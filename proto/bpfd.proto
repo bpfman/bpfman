@@ -1,0 +1,31 @@
+syntax = "proto3";
+package bpfd;
+
+service Loader {
+    rpc Load (LoadRequest) returns (LoadResponse);
+    rpc Unload (UnloadRequest) returns (UnloadResponse);
+}
+
+enum ProgramType {
+    XDP = 0;
+    TC_INGRESS = 1;
+    TC_EGRESS = 2;
+}
+
+message LoadRequest {
+    string path = 1;
+    string section_name = 2;
+    ProgramType program_type = 3;
+    int32 priority = 4;
+    string iface = 5;
+}
+
+message LoadResponse {
+    string id = 1;
+}
+
+message UnloadRequest {
+    string id = 1;
+}
+
+message UnloadResponse {}
