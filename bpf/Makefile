@@ -36,8 +36,10 @@ else
 	MAKEFLAGS += --no-print-directory
 endif
 
-.PHONY: all
-all: $(OUTPUT)/xdp_dispatcher.bpf.o $(OUTPUT)/tc_dispatcher.bpf.o $(OUTPUT)/xdp_pass.bpf.o
+OBJ = $(patsubst %.c,$(OUTPUT)/%.o,$(wildcard *.c))
+
+.PHONY:
+all: $(OBJ)
 
 .PHONY: clean
 clean:

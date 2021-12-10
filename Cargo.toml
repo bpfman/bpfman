@@ -19,7 +19,9 @@ structopt = "0.3"
 aya = { git = "https://github.com/dave-tucker/aya", branch = "ext" }
 tokio = { version = "1.14.0", features = ["full"] }
 uuid = { version = "0.8", features = ["v4"] }
-logs = "0.5.0"
+log = "0.4"
+env_logger = "0.9"
+libc = "0.2"
 
 [build-dependencies]
 tonic-build = "0.6"

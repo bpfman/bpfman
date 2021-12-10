@@ -72,6 +72,7 @@ impl TryFrom<String> for ProgramType {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
     let channel = tonic::transport::Channel::from_static("http://[::1]:50051")
         .connect()
         .await?;
