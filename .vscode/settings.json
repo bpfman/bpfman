@@ -1,3 +1,4 @@
 {
-    "rust-analyzer.cargo.loadOutDirsFromCheck": true,
+  "rust-analyzer.linkedProjects": ["Cargo.toml", "bpfd-ebpf/Cargo.toml"],
+  "rust-analyzer.cargo.loadOutDirsFromCheck": true,
 }

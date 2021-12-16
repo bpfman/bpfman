@@ -112,11 +112,8 @@ impl Loader for BpfdLoader {
 
             ifaces.insert(inner.iface.clone(), true);
         }
-      
-        let mut bpf = BpfLoader::new()
-            .programs_as_extensions()
-            .load_file(inner.path)
-            .unwrap();
+
+        let mut bpf = BpfLoader::new().load_file(inner.path).unwrap();
 
         let root_prog_path = match ProgramType::from_i32(inner.program_type) {
             Some(ProgramType::Xdp) => xdp_root_prog_path.as_str(),
@@ -174,8 +171,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let programs: Arc<Mutex<HashMap<String, Vec<BpfProgram>>>> =
         Arc::new(Mutex::new(HashMap::new()));
 
-    let xdp_root = include_bytes_aligned!("../bpf/.output/xdp_dispatcher.bpf.o");
-    let tc_root = include_bytes_aligned!("../bpf/.output/tc_dispatcher.bpf.o");
+    // TODO: Rusty eBPF Dispatchers
+    // let xdp_root = include_bytes_aligned!("../../target/bpfel-unknown-none/debug/xdp-dispatcher");
+    let xdp_root = include_bytes_aligned!("../../bpfd-ebpf/.output/xdp_dispatcher.bpf.o");
+    let tc_root = include_bytes_aligned!("../../bpfd-ebpf/.output/tc_dispatcher.bpf.o");
 
     let xdp_root_pin_path = "/sys/fs/bpf/xdp";
     let tc_root_pin_path = "/sys/fs/bpf/tc";

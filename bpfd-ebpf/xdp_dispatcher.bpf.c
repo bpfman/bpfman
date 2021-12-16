@@ -14,7 +14,7 @@ struct xdp_dispatcher_config {
 	__u32 chain_call_actions[MAX_DISPATCHER_ACTIONS];
 	__u32 run_prios[MAX_DISPATCHER_ACTIONS];
 };
-static volatile const struct xdp_dispatcher_config conf = {};
+volatile const struct xdp_dispatcher_config conf = {};
 
 __attribute__ ((noinline))
 int prog0(struct xdp_md *ctx) {
