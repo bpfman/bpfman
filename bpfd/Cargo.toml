@@ -16,7 +16,7 @@ tonic = "0.6"
 prost = "0.9"
 thiserror = "1"
 structopt = "0.3"
-aya = { git = "https://github.com/dave-tucker/aya", branch = "ext" }
+aya = { git = "https://github.com/aya-rs/aya", branch = "main" }
 tokio = { version = "1.14.0", features = ["full"] }
 uuid = { version = "0.8", features = ["v4"] }
 log = "0.4"

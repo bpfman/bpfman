@@ -53,7 +53,7 @@ pub fn run(opts: Options) -> Result<(), anyhow::Error> {
     let mut run_args: Vec<_> = opts.run_args.iter().map(String::as_str).collect();
 
     // configure args
-    let mut args: Vec<_> = opts.runner.trim().split_terminator(" ").collect();
+    let mut args: Vec<_> = opts.runner.trim().split_terminator(' ').collect();
     args.push(bin_path.as_str());
     args.append(&mut run_args);
 

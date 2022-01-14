@@ -1,4 +1,4 @@
-use aya::programs::{tc, Extension, LinkRef, SchedClassifier, TcAttachType, Xdp, XdpFlags};
+use aya::programs::{tc, Extension, ProgramInfo, SchedClassifier, TcAttachType, Xdp, XdpFlags};
 use aya::{include_bytes_aligned, Bpf, BpfLoader};
 use std::collections::HashMap;
 use std::ffi::CString;
@@ -18,7 +18,7 @@ pub mod bpfd_api {
 
 #[derive(Debug, Default)]
 pub struct BpfProgram {
-    section_name: String,
+    _section_name: String,
 }
 
 #[derive(Debug)]
@@ -113,7 +113,10 @@ impl Loader for BpfdLoader {
             ifaces.insert(inner.iface.clone(), true);
         }
 
-        let mut bpf = BpfLoader::new().load_file(inner.path).unwrap();
+        let mut bpf = BpfLoader::new()
+            .extension(&inner.section_name)
+            .load_file(inner.path)
+            .unwrap();
 
         let root_prog_path = match ProgramType::from_i32(inner.program_type) {
             Some(ProgramType::Xdp) => xdp_root_prog_path.as_str(),
@@ -135,9 +138,8 @@ impl Loader for BpfdLoader {
             0
         };
         let target_fn = format!("prog{}", next_available_id);
-        let root_prog = LinkRef::from_pinned_path(format!("{}/root", root_prog_path)).unwrap();
-        ext.load(root_prog.fd().unwrap(), target_fn.to_string())
-            .unwrap();
+        let root_prog = ProgramInfo::from_pinned(format!("{}/root", root_prog_path)).unwrap();
+        ext.load(root_prog.fd().unwrap(), &target_fn).unwrap();
         ext.attach().unwrap();
 
         bpf.program_mut(&inner.section_name)
@@ -146,7 +148,7 @@ impl Loader for BpfdLoader {
             .unwrap();
 
         programs.get_mut(&inner.iface).unwrap().push(BpfProgram {
-            section_name: inner.section_name.clone(),
+            _section_name: inner.section_name.clone(),
         });
 
         Ok(Response::new(reply))
