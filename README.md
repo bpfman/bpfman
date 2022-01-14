@@ -1,7 +1,8 @@
 bpfd
 ====
 
-A work in progress bpf loading daemon
+A work in progress implementation of the xdp_multiprog protocol in Rust, using Aya.
+It differs from the implementation in libxdp as we have chosen to implement a daemon instead.
 
 - bpfd is the daemon
 - bpfctl is the client program
@@ -10,7 +11,8 @@ There is a gRPC API that connects the two
 
 ## Requirements
 
-- Rust Stable
+- Rust Stable & Rust Nightly
+- bpf-linker
 - protoc
 - LLVM 11 or later
 
@@ -30,14 +32,6 @@ $ cargo build
 $ sudo ./target/debug/bpfd&
 $ ./target/debug/bpfctl load ./bpf/.output/xdp_pass.bpf.o -p xdp -i wlp2s0 --priority 50 -s "pass"
 ```
-
-## TODO
-
-- [ ] add support for BPF_PROG_TYPE_EXT in Aya
-- [ ] add pidfile so we only have one daemon running
-- [ ] recreate internal state on daemon restart
-- [ ] make sure we pin programs the same way xdp multi_prog does
-
 ## License
 
 Code in the bpf subdirectory is licensed under the terms of the [GNU General Public License, Version 2]
