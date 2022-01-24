@@ -15,9 +15,12 @@ path = "src/xdp.rs"
 name = "tc-dispatcher"
 path = "src/tc.rs"
 
+[[bin]]
+name = "xdp-pass"
+path = "src/pass.rs"
+
 [profile.dev]
 panic = "abort"
-debug = 2
 opt-level = 2
 overflow-checks = false
 

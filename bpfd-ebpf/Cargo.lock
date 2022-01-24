@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "aya-bpf"
 version = "0.1.0"
-source = "git+http://github.com/aya-rs/aya?branch=main#3a4c84fe17f0f308c618788da9a88269ab10560f"
+source = "git+http://github.com/aya-rs/aya?branch=main#2a1823934671ced3c910a2e6f287ba569bea9c60"
 dependencies = [
  "aya-bpf-bindings",
  "aya-bpf-cty",
@@ -15,7 +15,7 @@ dependencies = [
 [[package]]
 name = "aya-bpf-bindings"
 version = "0.1.0"
-source = "git+http://github.com/aya-rs/aya?branch=main#3a4c84fe17f0f308c618788da9a88269ab10560f"
+source = "git+http://github.com/aya-rs/aya?branch=main#2a1823934671ced3c910a2e6f287ba569bea9c60"
 dependencies = [
  "aya-bpf-cty",
 ]
@@ -23,12 +23,12 @@ dependencies = [
 [[package]]
 name = "aya-bpf-cty"
 version = "0.2.1"
-source = "git+http://github.com/aya-rs/aya?branch=main#3a4c84fe17f0f308c618788da9a88269ab10560f"
+source = "git+http://github.com/aya-rs/aya?branch=main#2a1823934671ced3c910a2e6f287ba569bea9c60"
 
 [[package]]
 name = "aya-bpf-macros"
 version = "0.1.0"
-source = "git+http://github.com/aya-rs/aya?branch=main#3a4c84fe17f0f308c618788da9a88269ab10560f"
+source = "git+http://github.com/aya-rs/aya?branch=main#2a1823934671ced3c910a2e6f287ba569bea9c60"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -49,27 +49,27 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.34"
+version = "1.0.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f84e92c0f7c9d58328b85a78557813e4bd845130db68d7184635344399423b1"
+checksum = "c7342d5883fbccae1cc37a2353b09c87c9b0f3afd73f5fb9bba687a1f733b029"
 dependencies = [
  "unicode-xid",
 ]
 
 [[package]]
 name = "quote"
-version = "1.0.10"
+version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38bc8cc6a5f2e3655e0899c1b848643b2562f853f114bfec7be120678e3ace05"
+checksum = "864d3e96a899863136fc6e99f3d7cae289dafe43bf2c5ac19b70df7210c0a145"
 dependencies = [
  "proc-macro2",
 ]
 
 [[package]]
 name = "syn"
-version = "1.0.82"
+version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8daf5dd0bb60cbd4137b1b587d2fc0ae729bc07cf01cd70b36a1ed5ade3b9d59"
+checksum = "8a65b3f4ffa0092e9887669db0eae07941f023991ab58ea44da8fe8e2d511c6b"
 dependencies = [
  "proc-macro2",
  "quote",

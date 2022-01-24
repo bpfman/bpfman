@@ -1,4 +1,4 @@
-use aya::programs::{tc, Extension, ProgramInfo, SchedClassifier, TcAttachType, Xdp, XdpFlags};
+use aya::programs::{Extension, ProgramInfo, Xdp, XdpFlags};
 use aya::{include_bytes_aligned, Bpf, BpfLoader};
 use std::collections::HashMap;
 use std::ffi::CString;
@@ -10,7 +10,6 @@ use uuid::Uuid;
 
 use bpfd_api::loader_server::{Loader, LoaderServer};
 use bpfd_api::{LoadRequest, LoadResponse, ProgramType, UnloadRequest, UnloadResponse};
-use log::info;
 
 pub mod bpfd_api {
     tonic::include_proto!("bpfd");
@@ -24,9 +23,9 @@ pub struct BpfProgram {
 #[derive(Debug)]
 pub struct BpfdLoader {
     xdp_root: &'static [u8],
-    tc_root: &'static [u8],
+    _tc_root: &'static [u8],
     xdp_root_pin_path: &'static str,
-    tc_root_pin_path: &'static str,
+    _tc_root_pin_path: &'static str,
     ifaces: Arc<Mutex<HashMap<String, bool>>>,
     programs: Arc<Mutex<HashMap<String, Vec<BpfProgram>>>>,
 }
@@ -47,14 +46,19 @@ impl Loader for BpfdLoader {
         let ifindex = ifindex_from_ifname(&inner.iface).unwrap();
         let root_prog_name = format!("dispatch-{}", ifindex);
         let xdp_root_prog_path = format!("{}/{}", self.xdp_root_pin_path, root_prog_name);
+
+        /* TODO: TC Support
         let tc_ingress_root_prog_path =
             format!("{}/{}/{}", self.tc_root_pin_path, "ingress", root_prog_name);
         let tc_egress_root_prog_path =
             format!("{}/{}/{}", self.tc_root_pin_path, "egress", root_prog_name);
+        */
 
         fs::create_dir_all(xdp_root_prog_path.as_str()).unwrap();
+        /* TODO: TC Support
         fs::create_dir_all(tc_ingress_root_prog_path.as_str()).unwrap();
         fs::create_dir_all(tc_egress_root_prog_path.as_str()).unwrap();
+        */
 
         if ifaces.get(&inner.iface).is_none() {
             let mut xdp_root = Bpf::load(self.xdp_root).unwrap();
@@ -73,6 +77,7 @@ impl Loader for BpfdLoader {
                 .pin(format!("{}/root", xdp_root_prog_path.as_str()))
                 .unwrap();
 
+            /* TODO: TC Support
             // add the qdisc
             if let Ok(()) = tc::qdisc_add_clsact(&inner.iface) {
                 info!("tc qdisc already attached");
@@ -109,7 +114,7 @@ impl Loader for BpfdLoader {
                 .unwrap()
                 .pin(format!("{}/root", tc_egress_root_prog_path.as_str()))
                 .unwrap();
-
+            */
             ifaces.insert(inner.iface.clone(), true);
         }
 
@@ -120,8 +125,8 @@ impl Loader for BpfdLoader {
 
         let root_prog_path = match ProgramType::from_i32(inner.program_type) {
             Some(ProgramType::Xdp) => xdp_root_prog_path.as_str(),
-            Some(ProgramType::TcIngress) => tc_ingress_root_prog_path.as_str(),
-            Some(ProgramType::TcEgress) => tc_egress_root_prog_path.as_str(),
+            Some(ProgramType::TcIngress) => todo!("tc support"),
+            Some(ProgramType::TcEgress) => todo!("tc support"),
             None => panic!("unidentified program type"),
         };
         let ext: &mut Extension = bpf
@@ -173,19 +178,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let programs: Arc<Mutex<HashMap<String, Vec<BpfProgram>>>> =
         Arc::new(Mutex::new(HashMap::new()));
 
-    // TODO: Rusty eBPF Dispatchers
-    // let xdp_root = include_bytes_aligned!("../../target/bpfel-unknown-none/debug/xdp-dispatcher");
-    let xdp_root = include_bytes_aligned!("../../bpfd-ebpf/.output/xdp_dispatcher.bpf.o");
-    let tc_root = include_bytes_aligned!("../../bpfd-ebpf/.output/tc_dispatcher.bpf.o");
+    let xdp_root = include_bytes_aligned!("../../target/bpfel-unknown-none/debug/xdp-dispatcher");
+    let tc_root = include_bytes_aligned!("../../target/bpfel-unknown-none/debug/tc-dispatcher");
 
     let xdp_root_pin_path = "/sys/fs/bpf/xdp";
     let tc_root_pin_path = "/sys/fs/bpf/tc";
 
     let loader = BpfdLoader {
         xdp_root,
-        tc_root,
+        _tc_root: tc_root,
         xdp_root_pin_path,
-        tc_root_pin_path,
+        _tc_root_pin_path: tc_root_pin_path,
         ifaces,
         programs,
     };

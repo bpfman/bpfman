@@ -19,10 +19,13 @@ static CONFIG: TcDispatcherConfig = TcDispatcherConfig {
 
 macro_rules! stub_program {
     ($prog:ident) => {
-        #[classifier]
-        pub fn $prog(_ctx: SkBuffContext) -> i32 {
+        #[no_mangle]
+        #[inline(never)]
+        pub fn $prog(ctx: *mut ::aya_bpf::bindings::__sk_buff) -> i32 {
             let ret = TC_DISPATCHER_RETVAL;
-            // TODO: Check TcContext is valid, if not abort
+            if ctx.is_null() {
+                return TC_ACT_OK;
+            }
             return ret;
         }
     };

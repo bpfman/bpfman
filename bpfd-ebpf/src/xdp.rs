@@ -19,15 +19,17 @@ static CONFIG: XdpDispatcherConfig = XdpDispatcherConfig {
 
 macro_rules! stub_program {
     ($prog:ident) => {
-        #[xdp]
-        pub fn $prog(_ctx: XdpContext) -> u32 {
+        #[no_mangle]
+        #[inline(never)]
+        pub fn $prog(ctx: *mut ::aya_bpf::bindings::xdp_md) -> u32 {
             let ret = XDP_DISPATCHER_RETVAL;
-            // TODO: Check XdpContext is valid, if not abort
+            if ctx.is_null() {
+                return xdp_action::XDP_ABORTED;
+            }
             return ret;
         }
     };
 }
-
 stub_program!(prog0);
 stub_program!(prog1);
 stub_program!(prog2);
@@ -43,7 +45,7 @@ stub_program!(prog9);
 fn dispatcher(ctx: XdpContext) -> u32 {
     let cfg = &CONFIG as *const XdpDispatcherConfig;
     let current_cfg = unsafe { core::ptr::read_volatile(&cfg) };
-    let num_progs_enabled = unsafe { (*current_cfg).num_progs_enabled };
+    let num_progs_enabled = unsafe { (*current_cfg).num_progs_enabled } as usize;
 
     macro_rules! stub_handler {
         ($n:literal, $fn:ident) => {
