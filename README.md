@@ -12,7 +12,7 @@ There is a gRPC API that connects the two
 ## Requirements
 
 - Rust Stable & Rust Nightly
-- bpf-linker
+- My [fork](https://github.com/dave-tucker/bpf-linker/tree/bpf-v2) of bpf-linker
 - protoc
 - LLVM 11 or later
 
