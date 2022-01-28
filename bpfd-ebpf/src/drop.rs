@@ -3,9 +3,9 @@
 
 use aya_bpf::{bindings::xdp_action, macros::xdp, programs::XdpContext};
 
-#[xdp(name = "pass")]
-fn pass(_ctx: XdpContext) -> u32 {
-    xdp_action::XDP_PASS
+#[xdp(name = "drop")]
+fn drop(_ctx: XdpContext) -> u32 {
+    return xdp_action::XDP_DROP;
 }
 
 #[panic_handler]

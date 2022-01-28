@@ -12,10 +12,6 @@ name = "xdp-dispatcher"
 path = "src/xdp.rs"
 
 [[bin]]
-name = "tc-dispatcher"
-path = "src/tc.rs"
-
-[[bin]]
 name = "xdp-pass"
 path = "src/pass.rs"
 

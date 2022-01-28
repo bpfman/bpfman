@@ -1,12 +1,14 @@
 use aya::programs::{Extension, ProgramInfo, Xdp, XdpFlags};
-use aya::{include_bytes_aligned, Bpf, BpfLoader};
+use aya::{include_bytes_aligned, BpfLoader};
 use std::collections::HashMap;
 use std::ffi::CString;
 
 use std::sync::{Arc, Mutex};
-use std::{fs, io};
+use std::{fs, io, mem};
 use tonic::{transport::Server, Request, Response, Status};
 use uuid::Uuid;
+
+use bpfd_common::*;
 
 use bpfd_api::loader_server::{Loader, LoaderServer};
 use bpfd_api::{LoadRequest, LoadResponse, ProgramType, UnloadRequest, UnloadResponse};
@@ -23,12 +25,13 @@ pub struct BpfProgram {
 #[derive(Debug)]
 pub struct BpfdLoader {
     xdp_root: &'static [u8],
-    _tc_root: &'static [u8],
     xdp_root_pin_path: &'static str,
-    _tc_root_pin_path: &'static str,
     ifaces: Arc<Mutex<HashMap<String, bool>>>,
     programs: Arc<Mutex<HashMap<String, Vec<BpfProgram>>>>,
 }
+
+const DEFAULT_ACTIONS_MAP: u32 = 1 << 2;
+const DEFAULT_PRIORITY: u32 = 50;
 
 #[tonic::async_trait]
 impl Loader for BpfdLoader {
@@ -46,75 +49,44 @@ impl Loader for BpfdLoader {
         let ifindex = ifindex_from_ifname(&inner.iface).unwrap();
         let root_prog_name = format!("dispatch-{}", ifindex);
         let xdp_root_prog_path = format!("{}/{}", self.xdp_root_pin_path, root_prog_name);
-
-        /* TODO: TC Support
-        let tc_ingress_root_prog_path =
-            format!("{}/{}/{}", self.tc_root_pin_path, "ingress", root_prog_name);
-        let tc_egress_root_prog_path =
-            format!("{}/{}/{}", self.tc_root_pin_path, "egress", root_prog_name);
-        */
-
         fs::create_dir_all(xdp_root_prog_path.as_str()).unwrap();
-        /* TODO: TC Support
-        fs::create_dir_all(tc_ingress_root_prog_path.as_str()).unwrap();
-        fs::create_dir_all(tc_egress_root_prog_path.as_str()).unwrap();
-        */
+
+        let mut programs = self.programs.lock().unwrap();
+        let next_available_id = if let Some(prog) = programs.get(&inner.iface) {
+            prog.len()
+        } else {
+            programs.insert(inner.iface.clone(), vec![]);
+            0
+        };
+
+        let config = XdpDispatcherConfig {
+            num_progs_enabled: next_available_id as u8 + 1,
+            chain_call_actions: [DEFAULT_ACTIONS_MAP; 10],
+            run_prios: [DEFAULT_PRIORITY; 10],
+        };
 
         if ifaces.get(&inner.iface).is_none() {
-            let mut xdp_root = Bpf::load(self.xdp_root).unwrap();
+            let mut xdp_root = BpfLoader::new()
+                .set_global("CONFIG", &config)
+                .load(self.xdp_root)
+                .unwrap();
+            // Will log using the default logger, which is TermLogger in this case
             let xdp_root_prog: &mut Xdp = xdp_root
                 .program_mut("dispatcher")
                 .unwrap()
                 .try_into()
                 .unwrap();
             xdp_root_prog.load().unwrap();
-            xdp_root_prog
+            let link = xdp_root_prog
                 .attach(&inner.iface, XdpFlags::default())
                 .unwrap();
+            // forget the link so the root prog isn't detached on drop.
+            mem::forget(link);
             xdp_root
                 .program_mut("dispatcher")
                 .unwrap()
                 .pin(format!("{}/root", xdp_root_prog_path.as_str()))
                 .unwrap();
-
-            /* TODO: TC Support
-            // add the qdisc
-            if let Ok(()) = tc::qdisc_add_clsact(&inner.iface) {
-                info!("tc qdisc already attached");
-            }
-
-            let mut tc_ingress_root = Bpf::load(self.tc_root).unwrap();
-            let tc_ingress_root_prog: &mut SchedClassifier = tc_ingress_root
-                .program_mut("dispatcher")
-                .unwrap()
-                .try_into()
-                .unwrap();
-            tc_ingress_root_prog.load().unwrap();
-            tc_ingress_root_prog
-                .attach(&inner.iface, TcAttachType::Ingress)
-                .unwrap();
-            tc_ingress_root
-                .program_mut("dispatcher")
-                .unwrap()
-                .pin(format!("{}/root", tc_ingress_root_prog_path.as_str()))
-                .unwrap();
-
-            let mut tc_egress_root = Bpf::load(self.tc_root).unwrap();
-            let tc_egress_root_prog: &mut SchedClassifier = tc_egress_root
-                .program_mut("dispatcher")
-                .unwrap()
-                .try_into()
-                .unwrap();
-            tc_egress_root_prog.load().unwrap();
-            tc_egress_root_prog
-                .attach(&inner.iface, TcAttachType::Ingress)
-                .unwrap();
-            tc_egress_root
-                .program_mut("dispatcher")
-                .unwrap()
-                .pin(format!("{}/root", tc_egress_root_prog_path.as_str()))
-                .unwrap();
-            */
             ifaces.insert(inner.iface.clone(), true);
         }
 
@@ -135,17 +107,12 @@ impl Loader for BpfdLoader {
             .try_into()
             .unwrap();
 
-        let mut programs = self.programs.lock().unwrap();
-        let next_available_id = if let Some(prog) = programs.get(&inner.iface) {
-            prog.len()
-        } else {
-            programs.insert(inner.iface.clone(), vec![]);
-            0
-        };
         let target_fn = format!("prog{}", next_available_id);
         let root_prog = ProgramInfo::from_pinned(format!("{}/root", root_prog_path)).unwrap();
         ext.load(root_prog.fd().unwrap(), &target_fn).unwrap();
-        ext.attach().unwrap();
+        let link = ext.attach().unwrap();
+        // forget the link so the root prog isn't detached on drop.
+        mem::forget(link);
 
         bpf.program_mut(&inner.section_name)
             .unwrap()
@@ -178,17 +145,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let programs: Arc<Mutex<HashMap<String, Vec<BpfProgram>>>> =
         Arc::new(Mutex::new(HashMap::new()));
 
-    let xdp_root = include_bytes_aligned!("../../target/bpfel-unknown-none/debug/xdp-dispatcher");
-    let tc_root = include_bytes_aligned!("../../target/bpfel-unknown-none/debug/tc-dispatcher");
-
+    let xdp_root = include_bytes_aligned!("../../target/bpfel-unknown-none/release/xdp-dispatcher");
     let xdp_root_pin_path = "/sys/fs/bpf/xdp";
-    let tc_root_pin_path = "/sys/fs/bpf/tc";
 
     let loader = BpfdLoader {
         xdp_root,
-        _tc_root: tc_root,
         xdp_root_pin_path,
-        _tc_root_pin_path: tc_root_pin_path,
         ifaces,
         programs,
     };

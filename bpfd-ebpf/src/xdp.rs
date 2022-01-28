@@ -47,12 +47,14 @@ fn dispatcher(ctx: XdpContext) -> u32 {
     let current_cfg = unsafe { core::ptr::read_volatile(&cfg) };
     let num_progs_enabled = unsafe { (*current_cfg).num_progs_enabled } as usize;
 
+    let mut ret = xdp_action::XDP_PASS;
+
     macro_rules! stub_handler {
         ($n:literal, $fn:ident) => {
             if num_progs_enabled < ($n + 1) {
-                return xdp_action::XDP_PASS;
+                return ret;
             }
-            let ret = $fn(ctx.as_ptr() as *mut xdp_md);
+            ret = $fn(ctx.as_ptr() as *mut xdp_md);
             if (1 << ret) & unsafe { (*current_cfg).chain_call_actions[$n] } == 0 {
                 return ret;
             };
@@ -70,7 +72,7 @@ fn dispatcher(ctx: XdpContext) -> u32 {
     stub_handler!(8, prog8);
     stub_handler!(9, prog9);
 
-    return xdp_action::XDP_PASS;
+    xdp_action::XDP_PASS
 }
 
 #[panic_handler]
