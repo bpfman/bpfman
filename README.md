@@ -19,10 +19,9 @@ There is a gRPC API that connects the two
 ## Building
 
 ```
+$ cargo xtask build-ebpf --release
 $ cargo build
 ```
-
-This will also compile the protobuf file and the *.bpf.c programs
 
 ## Usage
 
@@ -30,13 +29,18 @@ Load the sample XDP Program:
 ```
 $ cargo build
 $ sudo ./target/debug/bpfd&
-$ ./target/debug/bpfctl load ./bpf/.output/xdp_pass.bpf.o -p xdp -i wlp2s0 --priority 50 -s "pass"
+$ ./target/debug/bpfctl load ./target/bpfel-unknown-none/release/xdp-pass -p xdp -i wlp2s0 --priority 50 -s "pass"
 ```
 ## License
 
-Code in the bpf subdirectory is licensed under the terms of the [GNU General Public License, Version 2]
+## bpfd-ebpf
 
-All other code in this project is distributed under the terms of either the [MIT license] or the [Apache License] (version 2.0), at your option.
+Code in the `bpf-ebpf` crate is distributed under the terms of the [GNU General Public License, Version 2].
+
+## Other crates
+
+Code in all other crates is distributed under the terms of either the [MIT license] or the [Apache License] (version 2.0), at your option.
+
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this crate by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
 
