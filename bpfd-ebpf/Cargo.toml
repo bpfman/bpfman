@@ -15,6 +15,10 @@ path = "src/xdp.rs"
 name = "xdp-pass"
 path = "src/pass.rs"
 
+[[bin]]
+name = "xdp-drop"
+path = "src/drop.rs"
+
 [profile.dev]
 panic = "abort"
 opt-level = 2

@@ -1,2 +1,7 @@
 [workspace]
 members = ["bpfd", "bpfd-common", "xtask"]
+
+[patch.crates-io]
+aya = {path = "../aya-rs/aya/aya"}
+[patch."https://github.com/aya-rs/aya"]
+aya = {path = "../aya-rs/aya/aya"}

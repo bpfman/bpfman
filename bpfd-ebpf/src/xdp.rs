@@ -60,7 +60,6 @@ fn dispatcher(ctx: XdpContext) -> u32 {
             };
         };
     }
-
     stub_handler!(0, prog0);
     stub_handler!(1, prog1);
     stub_handler!(2, prog2);
@@ -71,8 +70,7 @@ fn dispatcher(ctx: XdpContext) -> u32 {
     stub_handler!(7, prog7);
     stub_handler!(8, prog8);
     stub_handler!(9, prog9);
-
-    xdp_action::XDP_PASS
+    return xdp_action::XDP_PASS;
 }
 
 #[panic_handler]
