@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
 use structopt::StructOpt;
 use thiserror::Error;
 
@@ -72,7 +73,15 @@ impl TryFrom<String> for ProgramType {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    env_logger::init();
+    TermLogger::init(
+        LevelFilter::Info,
+        ConfigBuilder::new()
+            .set_target_level(LevelFilter::Error)
+            .set_location_level(LevelFilter::Error)
+            .build(),
+        TerminalMode::Mixed,
+        ColorChoice::Auto,
+    )?;
     let channel = tonic::transport::Channel::from_static("http://[::1]:50051")
         .connect()
         .await?;
