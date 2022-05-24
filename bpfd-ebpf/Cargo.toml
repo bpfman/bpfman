@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-aya-bpf = { git = "http://github.com/aya-rs/aya", branch = "main" }
+aya-bpf = { git = "https://github.com/aya-rs/aya", branch = "main" }
 bpfd-common = { path = "../bpfd-common" }
 
 [[bin]]

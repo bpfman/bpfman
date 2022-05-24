@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "aya-bpf"
 version = "0.1.0"
-source = "git+http://github.com/aya-rs/aya?branch=main#2a1823934671ced3c910a2e6f287ba569bea9c60"
+source = "git+https://github.com/aya-rs/aya?branch=main#2a1823934671ced3c910a2e6f287ba569bea9c60"
 dependencies = [
  "aya-bpf-bindings",
  "aya-bpf-cty",
@@ -15,7 +15,7 @@ dependencies = [
 [[package]]
 name = "aya-bpf-bindings"
 version = "0.1.0"
-source = "git+http://github.com/aya-rs/aya?branch=main#2a1823934671ced3c910a2e6f287ba569bea9c60"
+source = "git+https://github.com/aya-rs/aya?branch=main#2a1823934671ced3c910a2e6f287ba569bea9c60"
 dependencies = [
  "aya-bpf-cty",
 ]
@@ -23,12 +23,12 @@ dependencies = [
 [[package]]
 name = "aya-bpf-cty"
 version = "0.2.1"
-source = "git+http://github.com/aya-rs/aya?branch=main#2a1823934671ced3c910a2e6f287ba569bea9c60"
+source = "git+https://github.com/aya-rs/aya?branch=main#2a1823934671ced3c910a2e6f287ba569bea9c60"
 
 [[package]]
 name = "aya-bpf-macros"
 version = "0.1.0"
-source = "git+http://github.com/aya-rs/aya?branch=main#2a1823934671ced3c910a2e6f287ba569bea9c60"
+source = "git+https://github.com/aya-rs/aya?branch=main#2a1823934671ced3c910a2e6f287ba569bea9c60"
 dependencies = [
  "proc-macro2",
  "quote",
