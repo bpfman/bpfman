@@ -110,7 +110,7 @@ enum BpfdError {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     TermLogger::init(
-        LevelFilter::Info,
+        LevelFilter::Debug,
         ConfigBuilder::new()
             .set_target_level(LevelFilter::Error)
             .set_location_level(LevelFilter::Error)
@@ -135,7 +135,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
     let dispatcher_bytes =
-        include_bytes_aligned!("../../target/bpfel-unknown-none/debug/xdp-dispatcher");
+        include_bytes_aligned!("../../bpfd-ebpf/.output/xdp_dispatcher.bpf.o");
     let mut bpf_manager = BpfManager::new(dispatcher_bytes);
 
     // Start receiving messages
