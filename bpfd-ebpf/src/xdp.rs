@@ -70,7 +70,7 @@ fn dispatcher(ctx: XdpContext) -> u32 {
     stub_handler!(7, prog7);
     stub_handler!(8, prog8);
     stub_handler!(9, prog9);
-    return xdp_action::XDP_PASS;
+    xdp_action::XDP_PASS
 }
 
 #[panic_handler]

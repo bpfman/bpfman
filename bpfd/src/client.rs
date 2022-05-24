@@ -8,8 +8,7 @@ pub mod bpfd_api {
     tonic::include_proto!("bpfd");
 }
 
-use bpfd_api::loader_client::LoaderClient;
-use bpfd_api::{LoadRequest, ProgramType, UnloadRequest};
+use bpfd_api::{loader_client::LoaderClient, LoadRequest, ProgramType, UnloadRequest};
 
 #[derive(StructOpt)]
 #[structopt(name = "bpfctl", about = "the bpf program loading daemon")]

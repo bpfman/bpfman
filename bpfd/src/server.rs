@@ -1,10 +1,14 @@
-use aya::programs::{Extension, Link, LinkRef, ProgramFd, Xdp, XdpFlags};
-use aya::{include_bytes_aligned, Bpf, BpfLoader};
+use aya::{
+    include_bytes_aligned,
+    programs::{
+        extension::ExtensionLink, xdp::XdpLink, Extension, OwnedLink, ProgramFd, Xdp, XdpFlags,
+    },
+    Bpf, BpfLoader,
+};
 use log::info;
 use std::collections::HashMap;
 use thiserror::Error;
-use tokio::sync::mpsc::Sender;
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 
 use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
 use std::sync::{Arc, Mutex};
@@ -13,8 +17,10 @@ use uuid::Uuid;
 
 use bpfd_common::*;
 
-use bpfd_api::loader_server::{Loader, LoaderServer};
-use bpfd_api::{LoadRequest, LoadResponse, UnloadRequest, UnloadResponse};
+use bpfd_api::{
+    loader_server::{Loader, LoaderServer},
+    LoadRequest, LoadResponse, UnloadRequest, UnloadResponse,
+};
 
 pub mod bpfd_api {
     tonic::include_proto!("bpfd");
@@ -158,18 +164,20 @@ fn ifindex_from_ifname(if_name: &str) -> Result<u32, io::Error> {
     Ok(if_index)
 }
 */
-
-#[derive(Debug)]
-struct Dispatcher {
+struct ExtensionProgram {
     loader: Bpf,
-    link: LinkRef,
+    link: Option<OwnedLink<ExtensionLink>>,
 }
 
-#[derive(Debug)]
+struct DispatcherProgram {
+    _loader: Bpf,
+    link: Option<OwnedLink<XdpLink>>,
+}
+
 struct BpfManager {
     dispatcher_bytes: &'static [u8],
-    dispatchers: HashMap<String, Dispatcher>,
-    programs: HashMap<String, Vec<Bpf>>,
+    dispatchers: HashMap<String, DispatcherProgram>,
+    programs: HashMap<String, Vec<ExtensionProgram>>,
 }
 
 impl BpfManager {
@@ -219,6 +227,8 @@ impl BpfManager {
 
         dispatcher.load()?;
         info!("dispatcher loaded");
+
+        let mut old_links = vec![];
         if self.programs.contains_key(&request.iface) {
             info!("attempting to attach existing programs");
             for (i, v) in self
@@ -228,12 +238,16 @@ impl BpfManager {
                 .iter_mut()
                 .enumerate()
             {
-                let ext: &mut Extension = (*v).programs_mut().next().unwrap().1.try_into()?;
+                let ext: &mut Extension =
+                    (*v).loader.programs_mut().next().unwrap().1.try_into()?;
                 let target_fn = format!("prog{}", i);
-                info!("old ext reloaded");
-                ext.reload(dispatcher.fd().unwrap(), &target_fn).unwrap();
-                info!("old ext attached");
-                ext.attach().unwrap();
+                let old_link = v.link.take().unwrap();
+                let new_link_id = ext
+                    .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
+                    .unwrap();
+                old_links.push(old_link);
+                v.link = Some(ext.forget_link(new_link_id)?);
+                info!("old ext attached to new dispatcher");
             }
         } else {
             info!("no existing programs");
@@ -252,34 +266,43 @@ impl BpfManager {
 
         ext.load(dispatcher.fd().unwrap(), &target_fn)?;
         info!("ext loaded");
-        ext.attach()?;
+        let ext_link = ext.attach()?;
         info!("ext attached");
+        let owned_ext_link = ext.forget_link(ext_link)?;
 
-        if let Some(d) = self.dispatchers.get_mut(&request.iface) {
-            d.link
-                .update(
-                    d.loader.programs().next().unwrap().1.fd().unwrap(),
-                    dispatcher.fd().unwrap(),
-                )
-                .unwrap();
-            d.loader = dispatcher_loader;
+        if let Some(mut d) = self.dispatchers.remove(&request.iface) {
+            info!("dispatcher replace");
+            info!("{:?}", dispatcher.fd().unwrap());
+            let link = dispatcher.attach_to_link(d.link.take().unwrap()).unwrap();
+            let owned_link = dispatcher.forget_link(link)?;
+            self.dispatchers.insert(
+                request.iface.clone(),
+                DispatcherProgram {
+                    _loader: dispatcher_loader,
+                    link: Some(owned_link),
+                },
+            );
         } else {
             info!("attach dispatcher");
             let link = dispatcher
                 .attach(&request.iface, XdpFlags::default())
                 .unwrap();
+            let owned_link = dispatcher.forget_link(link)?;
             info!("dispatcher attached");
             self.dispatchers.insert(
                 request.iface.clone(),
-                Dispatcher {
-                    loader: dispatcher_loader,
-                    link,
+                DispatcherProgram {
+                    _loader: dispatcher_loader,
+                    link: Some(owned_link),
                 },
             );
         }
 
         let programs = self.programs.get_mut(&request.iface).unwrap();
-        programs.push(ext_loader);
+        programs.push(ExtensionProgram {
+            loader: ext_loader,
+            link: Some(owned_ext_link),
+        });
         info!(
             "{} programs attached to dispatcher",
             self.programs.get(&request.iface).unwrap().len()
