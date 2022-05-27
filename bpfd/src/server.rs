@@ -60,18 +60,14 @@ impl Loader for BpfdLoader {
         };
 
         let tx = self.tx.lock().unwrap().clone();
-
-        info!("sending request on mspc channel");
         // Send the GET request
         tx.send(cmd).await.unwrap();
 
-        info!("awaiting response");
         // Await the response
-        let res = resp_rx.await;
-        info!("got response");
+        let res = resp_rx.await.unwrap();
         match res {
             Ok(_) => Ok(Response::new(reply)),
-            Err(_) => Err(Status::aborted("an error ocurred")),
+            Err(e) => Err(Status::aborted(format!("{}", e))),
         }
     }
 
@@ -105,6 +101,8 @@ enum BpfdError {
     BpfProgramError(#[from] aya::programs::ProgramError),
     #[error(transparent)]
     BpfLoadError(#[from] aya::BpfError),
+    #[error("No room to attach program. Please remove one and try again.")]
+    TooManyPrograms,
 }
 
 #[tokio::main]
@@ -114,6 +112,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         ConfigBuilder::new()
             .set_target_level(LevelFilter::Error)
             .set_location_level(LevelFilter::Error)
+            .add_filter_ignore("h2".to_string())
+            .add_filter_ignore("aya".to_string())
             .build(),
         TerminalMode::Mixed,
         ColorChoice::Auto,
@@ -130,12 +130,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .serve(addr);
 
     tokio::spawn(async move {
+        info!("Listening on [::1]:50051");
         if let Err(e) = serve.await {
             eprintln!("Error = {:?}", e);
         }
     });
-    let dispatcher_bytes =
-        include_bytes_aligned!("../../bpfd-ebpf/.output/xdp_dispatcher.bpf.o");
+    let dispatcher_bytes = include_bytes_aligned!("../../bpfd-ebpf/.output/xdp_dispatcher.bpf.o");
     let mut bpf_manager = BpfManager::new(dispatcher_bytes);
 
     // Start receiving messages
@@ -190,8 +190,6 @@ impl BpfManager {
     }
 
     fn new_dispatcher(&mut self, request: LoadRequest) -> Result<(), BpfdError> {
-        info!("new dispatcher");
-
         if request.iface.is_empty() {
             return Err(BpfdError::ArgumentNotProvided("iface".to_string()));
         }
@@ -201,14 +199,15 @@ impl BpfManager {
 
         // let ifindex = ifindex_from_ifname(&request.iface).unwrap();
         let next_available_id = if let Some(prog) = self.programs.get(&request.iface) {
-            info!("dispatcher loaded");
             prog.len()
         } else {
-            info!("no dispatcher loaded");
             self.programs.insert(request.iface.clone(), vec![]);
             0
         };
-        info!("next available program id is: {}", next_available_id);
+
+        if next_available_id > 9 {
+            return Err(BpfdError::TooManyPrograms);
+        }
 
         let config = XdpDispatcherConfig {
             num_progs_enabled: next_available_id as u8 + 1,
@@ -226,11 +225,9 @@ impl BpfManager {
             .try_into()?;
 
         dispatcher.load()?;
-        info!("dispatcher loaded");
 
         let mut old_links = vec![];
         if self.programs.contains_key(&request.iface) {
-            info!("attempting to attach existing programs");
             for (i, v) in self
                 .programs
                 .get_mut(&request.iface)
@@ -247,10 +244,7 @@ impl BpfManager {
                     .unwrap();
                 old_links.push(old_link);
                 v.link = Some(ext.forget_link(new_link_id)?);
-                info!("old ext attached to new dispatcher");
             }
-        } else {
-            info!("no existing programs");
         }
 
         let mut ext_loader = BpfLoader::new()
@@ -265,14 +259,10 @@ impl BpfManager {
         let target_fn = format!("prog{}", next_available_id);
 
         ext.load(dispatcher.fd().unwrap(), &target_fn)?;
-        info!("ext loaded");
         let ext_link = ext.attach()?;
-        info!("ext attached");
         let owned_ext_link = ext.forget_link(ext_link)?;
 
         if let Some(mut d) = self.dispatchers.remove(&request.iface) {
-            info!("dispatcher replace");
-            info!("{:?}", dispatcher.fd().unwrap());
             let link = dispatcher.attach_to_link(d.link.take().unwrap()).unwrap();
             let owned_link = dispatcher.forget_link(link)?;
             self.dispatchers.insert(
@@ -283,12 +273,10 @@ impl BpfManager {
                 },
             );
         } else {
-            info!("attach dispatcher");
             let link = dispatcher
                 .attach(&request.iface, XdpFlags::default())
                 .unwrap();
             let owned_link = dispatcher.forget_link(link)?;
-            info!("dispatcher attached");
             self.dispatchers.insert(
                 request.iface.clone(),
                 DispatcherProgram {
@@ -304,8 +292,9 @@ impl BpfManager {
             link: Some(owned_ext_link),
         });
         info!(
-            "{} programs attached to dispatcher",
-            self.programs.get(&request.iface).unwrap().len()
+            "{} programs attached to {}",
+            self.programs.get(&request.iface).unwrap().len(),
+            &request.iface,
         );
         Ok(())
     }
