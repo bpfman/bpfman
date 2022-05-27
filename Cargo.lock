@@ -78,7 +78,7 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 [[package]]
 name = "aya"
 version = "0.10.7"
-source = "git+https://github.com/dave-tucker/aya?branch=bpfd#f8caaa23af5b1e401869aabeaf844652f870533b"
+source = "git+https://github.com/dave-tucker/aya?branch=bpfd#602bc6ab2423726d5889ef8ee40f092e5633a5de"
 dependencies = [
  "bitflags",
  "bytes",
@@ -323,9 +323,9 @@ checksum = "c4a1e36c821dbe04574f602848a19f742f4fb3c98d40449f11bcad18d6b17421"
 
 [[package]]
 name = "hyper"
-version = "0.14.18"
+version = "0.14.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b26ae0a80afebe130861d90abf98e3814a4f28a4c6ffeb5ab8ebb2be311e0ef2"
+checksum = "42dc3c131584288d375f2d07f822b0cb012d8c6fb899a5b9fdb3cb7eb9b6004f"
 dependencies = [
  "bytes",
  "futures-channel",
