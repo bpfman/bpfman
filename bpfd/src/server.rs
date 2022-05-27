@@ -56,6 +56,7 @@ impl Loader for BpfdLoader {
         let (resp_tx, resp_rx) = oneshot::channel();
         let cmd = Command::Load {
             request,
+            id,
             responder: resp_tx,
         };
 
@@ -75,8 +76,25 @@ impl Loader for BpfdLoader {
         &self,
         request: Request<UnloadRequest>,
     ) -> Result<Response<UnloadResponse>, Status> {
-        println!("Got an unload request: {:?}", request);
-        Err(Status::unimplemented("not yet implemented"))
+        let reply = bpfd_api::UnloadResponse {};
+        let request = request.into_inner();
+
+        let (resp_tx, resp_rx) = oneshot::channel();
+        let cmd = Command::Unload {
+            request,
+            responder: resp_tx,
+        };
+
+        let tx = self.tx.lock().unwrap().clone();
+        // Send the GET request
+        tx.send(cmd).await.unwrap();
+
+        // Await the response
+        let res = resp_rx.await.unwrap();
+        match res {
+            Ok(_) => Ok(Response::new(reply)),
+            Err(e) => Err(Status::aborted(format!("{}", e))),
+        }
     }
 }
 
@@ -85,6 +103,11 @@ impl Loader for BpfdLoader {
 enum Command {
     Load {
         request: LoadRequest,
+        id: Uuid,
+        responder: Responder<Result<(), BpfdError>>,
+    },
+    Unload {
+        request: UnloadRequest,
         responder: Responder<Result<(), BpfdError>>,
     },
 }
@@ -103,6 +126,10 @@ enum BpfdError {
     BpfLoadError(#[from] aya::BpfError),
     #[error("No room to attach program. Please remove one and try again.")]
     TooManyPrograms,
+    #[error("No programs loaded to requested interface")]
+    NoProgramsLoaded,
+    #[error("Invalid ID")]
+    InvalidID,
 }
 
 #[tokio::main]
@@ -141,8 +168,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Start receiving messages
     while let Some(cmd) = rx.recv().await {
         match cmd {
-            Command::Load { request, responder } => {
-                let res = bpf_manager.new_dispatcher(request);
+            Command::Load {
+                request,
+                id,
+                responder,
+            } => {
+                let res = bpf_manager.add_program(request, id);
+                // Ignore errors
+                let _ = responder.send(res);
+            }
+            Command::Unload { request, responder } => {
+                let res = bpf_manager.remove_program(request);
                 // Ignore errors
                 let _ = responder.send(res);
             }
@@ -152,20 +188,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/*
-fn ifindex_from_ifname(if_name: &str) -> Result<u32, io::Error> {
-    let c_str_if_name = CString::new(if_name)?;
-    let c_if_name = c_str_if_name.as_ptr();
-    // Safety: libc wrapper
-    let if_index = unsafe { libc::if_nametoindex(c_if_name) };
-    if if_index == 0 {
-        return Err(io::Error::last_os_error());
-    }
-    Ok(if_index)
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
+struct Metadata {
+    priority: i32,
+    name: String,
 }
-*/
+
 struct ExtensionProgram {
     loader: Bpf,
+    metadata: Metadata,
     link: Option<OwnedLink<ExtensionLink>>,
 }
 
@@ -177,7 +208,7 @@ struct DispatcherProgram {
 struct BpfManager {
     dispatcher_bytes: &'static [u8],
     dispatchers: HashMap<String, DispatcherProgram>,
-    programs: HashMap<String, Vec<ExtensionProgram>>,
+    programs: HashMap<String, HashMap<Uuid, ExtensionProgram>>,
 }
 
 impl BpfManager {
@@ -189,7 +220,7 @@ impl BpfManager {
         }
     }
 
-    fn new_dispatcher(&mut self, request: LoadRequest) -> Result<(), BpfdError> {
+    fn add_program(&mut self, request: LoadRequest, id: Uuid) -> Result<(), BpfdError> {
         if request.iface.is_empty() {
             return Err(BpfdError::ArgumentNotProvided("iface".to_string()));
         }
@@ -197,11 +228,10 @@ impl BpfManager {
             return Err(BpfdError::ArgumentNotProvided("path".to_string()));
         }
 
-        // let ifindex = ifindex_from_ifname(&request.iface).unwrap();
         let next_available_id = if let Some(prog) = self.programs.get(&request.iface) {
             prog.len()
         } else {
-            self.programs.insert(request.iface.clone(), vec![]);
+            self.programs.insert(request.iface.clone(), HashMap::new());
             0
         };
 
@@ -228,7 +258,7 @@ impl BpfManager {
 
         let mut old_links = vec![];
         if self.programs.contains_key(&request.iface) {
-            for (i, v) in self
+            for (i, (_, v)) in self
                 .programs
                 .get_mut(&request.iface)
                 .unwrap()
@@ -296,11 +326,111 @@ impl BpfManager {
         }
 
         let programs = self.programs.get_mut(&request.iface).unwrap();
-        programs.push(ExtensionProgram {
-            loader: ext_loader,
-            link: Some(owned_ext_link),
-        });
-        info!("{} programs attached to {}", programs.len(), &request.iface,);
+        programs.insert(
+            id,
+            ExtensionProgram {
+                loader: ext_loader,
+                metadata: Metadata {
+                    priority: request.priority,
+                    name: request.section_name,
+                },
+                link: Some(owned_ext_link),
+            },
+        );
+        info!(
+            "{} programs attached to {}",
+            self.programs.get(&request.iface).unwrap().len(),
+            &request.iface,
+        );
+        Ok(())
+    }
+
+    fn remove_program(&mut self, request: UnloadRequest) -> Result<(), BpfdError> {
+        if request.id.is_empty() {
+            return Err(BpfdError::ArgumentNotProvided("id".to_string()));
+        }
+        if request.iface.is_empty() {
+            return Err(BpfdError::ArgumentNotProvided("iface".to_string()));
+        }
+
+        let id = request
+            .id
+            .parse::<Uuid>()
+            .map_err(|_| BpfdError::InvalidID)?;
+
+        if let Some(programs) = self.programs.get_mut(&request.iface) {
+            // Keep old_program until the dispatcher has been reloaded
+            if let Some(mut old_program) = programs.remove(&id) {
+                let config = XdpDispatcherConfig {
+                    num_progs_enabled: programs.len() as u8,
+                    chain_call_actions: [DEFAULT_ACTIONS_MAP; 10],
+                    run_prios: [DEFAULT_PRIORITY; 10],
+                };
+
+                let mut dispatcher_loader = BpfLoader::new()
+                    .set_global("CONFIG", &config)
+                    .load(self.dispatcher_bytes)?;
+
+                let dispatcher: &mut Xdp = dispatcher_loader
+                    .program_mut("dispatcher")
+                    .unwrap()
+                    .try_into()?;
+
+                dispatcher.load()?;
+
+                let mut old_links = vec![];
+                let mut extensions = programs
+                    .values_mut()
+                    .collect::<Vec<&mut ExtensionProgram>>();
+                extensions.sort_by(|a, b| b.metadata.cmp(&a.metadata));
+                for (i, mut v) in extensions.iter_mut().enumerate() {
+                    let ext: &mut Extension =
+                        (*v).loader.programs_mut().next().unwrap().1.try_into()?;
+                    let target_fn = format!("prog{}", i);
+                    let old_link = v.link.take().unwrap();
+                    let new_link_id = ext
+                        .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
+                        .unwrap();
+                    old_links.push(old_link);
+                    v.link = Some(ext.forget_link(new_link_id)?);
+                }
+
+                if let Some(mut d) = self.dispatchers.remove(&request.iface) {
+                    let link = dispatcher.attach_to_link(d.link.take().unwrap()).unwrap();
+                    let owned_link = dispatcher.forget_link(link)?;
+                    self.dispatchers.insert(
+                        request.iface.clone(),
+                        DispatcherProgram {
+                            loader: dispatcher_loader,
+                            link: Some(owned_link),
+                        },
+                    );
+                    // HACK: Close old dispatcher.
+                    // I'm not sure why this doesn't get cleaned up on drop of `Bpf`...
+                    // Probably some fancy refcount thing that isn't aware of bpf_link_update.
+                    // We should offer program.unload() to avoid unsafe + also fix this in Aya.
+                    let old_dispatcher: &mut Xdp =
+                        d.loader.program_mut("dispatcher").unwrap().try_into()?;
+                    if let Some(fd) = old_dispatcher.fd() {
+                        unsafe { libc::close(fd) };
+                    }
+                }
+
+                // HACK: Close old exetnsion.
+                let old_ext: &mut Extension = old_program
+                    .loader
+                    .program_mut(old_program.metadata.name.as_str())
+                    .unwrap()
+                    .try_into()?;
+                if let Some(fd) = old_ext.fd() {
+                    unsafe { libc::close(fd) };
+                }
+            } else {
+                return Err(BpfdError::InvalidID);
+            }
+        } else {
+            return Err(BpfdError::NoProgramsLoaded);
+        }
         Ok(())
     }
 }

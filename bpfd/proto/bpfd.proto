@@ -25,7 +25,8 @@ message LoadResponse {
 }
 
 message UnloadRequest {
-    string id = 1;
+    string iface = 1; 
+    string id = 2;
 }
 
 message UnloadResponse {}

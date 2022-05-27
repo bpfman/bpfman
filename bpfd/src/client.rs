@@ -1,38 +1,38 @@
 use std::path::PathBuf;
 
+use clap::{Parser, Subcommand};
 use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
-use structopt::StructOpt;
 use thiserror::Error;
-
 pub mod bpfd_api {
     tonic::include_proto!("bpfd");
 }
 
 use bpfd_api::{loader_client::LoaderClient, LoadRequest, ProgramType, UnloadRequest};
 
-#[derive(StructOpt)]
-#[structopt(name = "bpfctl", about = "the bpf program loading daemon")]
-pub struct Options {
-    #[structopt(subcommand)]
-    command: Command,
+#[derive(Parser)]
+#[clap(author, version, about, long_about = None)]
+struct Cli {
+    #[clap(subcommand)]
+    command: Commands,
 }
 
-#[derive(StructOpt)]
-enum Command {
+#[derive(Subcommand)]
+enum Commands {
     Load {
-        #[structopt(parse(from_os_str))]
+        #[clap(parse(from_os_str))]
         path: PathBuf,
-        #[structopt(short)]
+        #[clap(short, long)]
         program_type: String,
-        #[structopt(short)]
+        #[clap(short, long)]
         iface: String,
-        #[structopt(short)]
+        #[clap(short, long)]
         section_name: String,
-        #[structopt(long)]
+        #[clap(long)]
         priority: i32,
     },
     Unload {
-        #[structopt(short)]
+        #[clap(long)]
+        iface: String,
         id: String,
     },
 }
@@ -87,9 +87,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut client = LoaderClient::new(channel);
 
-    let opts = Options::from_args();
-    match opts.command {
-        Command::Load {
+    let cli = Cli::parse();
+    match &cli.command {
+        Commands::Load {
             path,
             program_type,
             iface,
@@ -97,22 +97,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             priority,
         } => {
             let path_str: String = path.to_string_lossy().to_string();
-            let prog_type = ProgramType::try_from(program_type).unwrap();
+            let prog_type = ProgramType::try_from(program_type.to_string()).unwrap();
             let request = tonic::Request::new(LoadRequest {
                 path: path_str,
                 program_type: prog_type as i32,
-                iface,
-                section_name,
-                priority,
+                iface: iface.to_string(),
+                section_name: section_name.to_string(),
+                priority: *priority,
             });
             let response = client.load(request).await?.into_inner();
             println!("{}", response.id);
         }
-        Command::Unload { id } => {
+        Commands::Unload { iface, id } => {
             println!("{}", id);
-            let request = tonic::Request::new(UnloadRequest { id });
-            let response = client.unload(request).await?.into_inner();
-            println!("RESPONSE={:?}", response);
+            let request = tonic::Request::new(UnloadRequest {
+                iface: iface.to_string(),
+                id: id.to_string(),
+            });
+            let _response = client.unload(request).await?.into_inner();
         }
     };
     Ok(())
