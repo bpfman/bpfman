@@ -18,8 +18,9 @@ use uuid::Uuid;
 use bpfd_common::*;
 
 use bpfd_api::{
+    list_response::ListResult,
     loader_server::{Loader, LoaderServer},
-    LoadRequest, LoadResponse, UnloadRequest, UnloadResponse,
+    ListRequest, ListResponse, LoadRequest, LoadResponse, UnloadRequest, UnloadResponse,
 };
 
 pub mod bpfd_api {
@@ -96,6 +97,39 @@ impl Loader for BpfdLoader {
             Err(e) => Err(Status::aborted(format!("{}", e))),
         }
     }
+
+    async fn list(&self, request: Request<ListRequest>) -> Result<Response<ListResponse>, Status> {
+        let mut reply = ListResponse { results: vec![] };
+        let request = request.into_inner();
+
+        let (resp_tx, resp_rx) = oneshot::channel();
+        let cmd = Command::List {
+            iface: request.iface,
+            responder: resp_tx,
+        };
+
+        let tx = self.tx.lock().unwrap().clone();
+        // Send the GET request
+        tx.send(cmd).await.unwrap();
+
+        // Await the response
+        let res = resp_rx.await.unwrap();
+        match res {
+            Ok(results) => {
+                for r in results {
+                    reply.results.push(ListResult {
+                        id: r.id,
+                        name: r.name,
+                        path: r.path,
+                        position: r.position as u32,
+                        priority: r.priority,
+                    })
+                }
+                Ok(Response::new(reply))
+            }
+            Err(e) => Err(Status::aborted(format!("{}", e))),
+        }
+    }
 }
 
 /// Multiple different commands are multiplexed over a single channel.
@@ -109,6 +143,10 @@ enum Command {
     Unload {
         request: UnloadRequest,
         responder: Responder<Result<(), BpfdError>>,
+    },
+    List {
+        iface: String,
+        responder: Responder<Result<Vec<ProgramInfo>, BpfdError>>,
     },
 }
 
@@ -182,9 +220,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Ignore errors
                 let _ = responder.send(res);
             }
+            Command::List { iface, responder } => {
+                let res = bpf_manager.list_programs(iface);
+                // Ignore errors
+                let _ = responder.send(res);
+            }
         }
     }
-
     Ok(())
 }
 
@@ -281,7 +323,7 @@ impl BpfManager {
                 .unwrap()
                 .values_mut()
                 .collect::<Vec<&mut ExtensionProgram>>();
-            extensions.sort_by(|a, b| b.metadata.cmp(&a.metadata));
+            extensions.sort_by(|a, b| a.metadata.cmp(&b.metadata));
             for (i, v) in extensions.iter_mut().enumerate() {
                 if v.metadata.attached {
                     let ext: &mut Extension = v
@@ -430,7 +472,7 @@ impl BpfManager {
                 let mut extensions = programs
                     .values_mut()
                     .collect::<Vec<&mut ExtensionProgram>>();
-                extensions.sort_by(|a, b| b.metadata.cmp(&a.metadata));
+                extensions.sort_by(|a, b| a.metadata.cmp(&b.metadata));
                 for (i, mut v) in extensions.iter_mut().enumerate() {
                     let ext: &mut Extension = (*v)
                         .loader
@@ -490,4 +532,36 @@ impl BpfManager {
         }
         Ok(())
     }
+
+    fn list_programs(&mut self, iface: String) -> Result<Vec<ProgramInfo>, BpfdError> {
+        if iface.is_empty() {
+            return Err(BpfdError::ArgumentNotProvided("iface".to_string()));
+        }
+        let mut results = vec![];
+        if let Some(programs) = self.programs.get(&iface) {
+            let mut extensions = programs.iter().collect::<Vec<_>>();
+            extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
+            for (id, v) in extensions.iter() {
+                results.push(ProgramInfo {
+                    id: id.to_string(),
+                    name: v.metadata.name.clone(),
+                    path: v.path.clone(),
+                    position: v.current_position.unwrap(),
+                    priority: v.metadata.priority,
+                })
+            }
+        } else {
+            return Err(BpfdError::NoProgramsLoaded);
+        }
+        Ok(results)
+    }
+}
+
+#[derive(Debug, Clone)]
+struct ProgramInfo {
+    id: String,
+    name: String,
+    path: String,
+    position: usize,
+    priority: i32,
 }

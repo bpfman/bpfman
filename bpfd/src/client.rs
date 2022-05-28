@@ -7,7 +7,7 @@ pub mod bpfd_api {
     tonic::include_proto!("bpfd");
 }
 
-use bpfd_api::{loader_client::LoaderClient, LoadRequest, ProgramType, UnloadRequest};
+use bpfd_api::{loader_client::LoaderClient, ListRequest, LoadRequest, ProgramType, UnloadRequest};
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -31,9 +31,13 @@ enum Commands {
         priority: i32,
     },
     Unload {
-        #[clap(long)]
+        #[clap(short, long)]
         iface: String,
         id: String,
+    },
+    List {
+        #[clap(short, long)]
+        iface: String,
     },
 }
 
@@ -109,12 +113,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("{}", response.id);
         }
         Commands::Unload { iface, id } => {
-            println!("{}", id);
             let request = tonic::Request::new(UnloadRequest {
                 iface: iface.to_string(),
                 id: id.to_string(),
             });
             let _response = client.unload(request).await?.into_inner();
+        }
+        Commands::List { iface } => {
+            let request = tonic::Request::new(ListRequest {
+                iface: iface.to_string(),
+            });
+            let response = client.list(request).await?.into_inner();
+            for r in response.results {
+                println!(
+                    "{}: {}\n\tname: \"{}\"\n\tpriority: {}\n\tpath: {}",
+                    r.position, r.id, r.name, r.priority, r.path
+                )
+            }
         }
     };
     Ok(())

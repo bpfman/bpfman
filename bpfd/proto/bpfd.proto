@@ -4,6 +4,7 @@ package bpfd;
 service Loader {
     rpc Load (LoadRequest) returns (LoadResponse);
     rpc Unload (UnloadRequest) returns (UnloadResponse);
+    rpc List (ListRequest) returns (ListResponse);
 }
 
 enum ProgramType {
@@ -30,3 +31,18 @@ message UnloadRequest {
 }
 
 message UnloadResponse {}
+
+message ListRequest {
+    string iface = 1;
+}
+
+message ListResponse {
+  message ListResult {
+    string id = 1;
+    string name = 2;
+    uint32 position = 3;
+    int32 priority = 4;
+    string path = 5;
+  }
+  repeated ListResult results = 1;
+}
