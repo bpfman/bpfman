@@ -192,10 +192,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 struct Metadata {
     priority: i32,
     name: String,
+    attached: bool,
 }
 
 struct ExtensionProgram {
-    loader: Bpf,
+    path: String,
+    current_position: Option<usize>,
+    loader: Option<Bpf>,
     metadata: Metadata,
     link: Option<OwnedLink<ExtensionLink>>,
 }
@@ -258,39 +261,68 @@ impl BpfManager {
 
         let mut old_links = vec![];
         if self.programs.contains_key(&request.iface) {
-            for (i, (_, v)) in self
+            self.programs.get_mut(&request.iface).unwrap().insert(
+                id,
+                ExtensionProgram {
+                    path: request.path,
+                    loader: None,
+                    current_position: None,
+                    metadata: Metadata {
+                        priority: request.priority,
+                        name: request.section_name,
+                        attached: false,
+                    },
+                    link: None,
+                },
+            );
+            let mut extensions = self
                 .programs
                 .get_mut(&request.iface)
                 .unwrap()
-                .iter_mut()
-                .enumerate()
-            {
-                let ext: &mut Extension =
-                    (*v).loader.programs_mut().next().unwrap().1.try_into()?;
-                let target_fn = format!("prog{}", i);
-                let old_link = v.link.take().unwrap();
-                let new_link_id = ext
-                    .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
-                    .unwrap();
-                old_links.push(old_link);
-                v.link = Some(ext.forget_link(new_link_id)?);
+                .values_mut()
+                .collect::<Vec<&mut ExtensionProgram>>();
+            extensions.sort_by(|a, b| b.metadata.cmp(&a.metadata));
+            for (i, v) in extensions.iter_mut().enumerate() {
+                if v.metadata.attached {
+                    let ext: &mut Extension = v
+                        .loader
+                        .as_mut()
+                        .unwrap()
+                        .programs_mut()
+                        .next()
+                        .unwrap()
+                        .1
+                        .try_into()?;
+                    let target_fn = format!("prog{}", i);
+                    let old_link = v.link.take().unwrap();
+                    let new_link_id = ext
+                        .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
+                        .unwrap();
+                    old_links.push(old_link);
+                    v.link = Some(ext.forget_link(new_link_id)?);
+                    v.current_position = Some(i);
+                    v.metadata.attached = true;
+                } else {
+                    let mut ext_loader = BpfLoader::new()
+                        .extension(&v.metadata.name)
+                        .load_file(v.path.clone())?;
+
+                    let ext: &mut Extension = ext_loader
+                        .program_mut(&v.metadata.name)
+                        .unwrap()
+                        .try_into()?;
+
+                    let target_fn = format!("prog{}", i);
+
+                    ext.load(dispatcher.fd().unwrap(), &target_fn)?;
+                    let ext_link = ext.attach()?;
+                    v.link = Some(ext.forget_link(ext_link)?);
+                    v.loader = Some(ext_loader);
+                    v.current_position = Some(i);
+                    v.metadata.attached = true;
+                }
             }
         }
-
-        let mut ext_loader = BpfLoader::new()
-            .extension(&request.section_name)
-            .load_file(request.path)?;
-
-        let ext: &mut Extension = ext_loader
-            .program_mut(&request.section_name)
-            .unwrap()
-            .try_into()?;
-
-        let target_fn = format!("prog{}", next_available_id);
-
-        ext.load(dispatcher.fd().unwrap(), &target_fn)?;
-        let ext_link = ext.attach()?;
-        let owned_ext_link = ext.forget_link(ext_link)?;
 
         if let Some(mut d) = self.dispatchers.remove(&request.iface) {
             let link = dispatcher.attach_to_link(d.link.take().unwrap()).unwrap();
@@ -324,19 +356,6 @@ impl BpfManager {
                 },
             );
         }
-
-        let programs = self.programs.get_mut(&request.iface).unwrap();
-        programs.insert(
-            id,
-            ExtensionProgram {
-                loader: ext_loader,
-                metadata: Metadata {
-                    priority: request.priority,
-                    name: request.section_name,
-                },
-                link: Some(owned_ext_link),
-            },
-        );
         info!(
             "{} programs attached to {}",
             self.programs.get(&request.iface).unwrap().len(),
@@ -361,6 +380,35 @@ impl BpfManager {
         if let Some(programs) = self.programs.get_mut(&request.iface) {
             // Keep old_program until the dispatcher has been reloaded
             if let Some(mut old_program) = programs.remove(&id) {
+                if programs.len() == 0 {
+                    if let Some(mut dispatcher) = self.dispatchers.remove(&request.iface) {
+                        // HACK: Close old dispatcher.
+                        // I'm not sure why this doesn't get cleaned up on drop of `Bpf`...
+                        // Probably some fancy refcount thing that isn't aware of bpf_link_update.
+                        // We should offer program.unload() to avoid unsafe + also fix this in Aya.
+                        let dispatcher_prog: &mut Xdp = dispatcher
+                            .loader
+                            .program_mut("dispatcher")
+                            .unwrap()
+                            .try_into()?;
+                        if let Some(fd) = dispatcher_prog.fd() {
+                            unsafe { libc::close(fd) };
+                        }
+                    }
+                    // HACK: Close old exetnsion.
+                    let old_ext: &mut Extension = old_program
+                        .loader
+                        .as_mut()
+                        .unwrap()
+                        .program_mut(old_program.metadata.name.as_str())
+                        .unwrap()
+                        .try_into()?;
+                    if let Some(fd) = old_ext.fd() {
+                        unsafe { libc::close(fd) };
+                    }
+                    return Ok(());
+                }
+
                 let config = XdpDispatcherConfig {
                     num_progs_enabled: programs.len() as u8,
                     chain_call_actions: [DEFAULT_ACTIONS_MAP; 10],
@@ -384,8 +432,15 @@ impl BpfManager {
                     .collect::<Vec<&mut ExtensionProgram>>();
                 extensions.sort_by(|a, b| b.metadata.cmp(&a.metadata));
                 for (i, mut v) in extensions.iter_mut().enumerate() {
-                    let ext: &mut Extension =
-                        (*v).loader.programs_mut().next().unwrap().1.try_into()?;
+                    let ext: &mut Extension = (*v)
+                        .loader
+                        .as_mut()
+                        .unwrap()
+                        .programs_mut()
+                        .next()
+                        .unwrap()
+                        .1
+                        .try_into()?;
                     let target_fn = format!("prog{}", i);
                     let old_link = v.link.take().unwrap();
                     let new_link_id = ext
@@ -419,6 +474,8 @@ impl BpfManager {
                 // HACK: Close old exetnsion.
                 let old_ext: &mut Extension = old_program
                     .loader
+                    .as_mut()
+                    .unwrap()
                     .program_mut(old_program.metadata.name.as_str())
                     .unwrap()
                     .try_into()?;
