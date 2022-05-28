@@ -170,7 +170,7 @@ struct ExtensionProgram {
 }
 
 struct DispatcherProgram {
-    _loader: Bpf,
+    loader: Bpf,
     link: Option<OwnedLink<XdpLink>>,
 }
 
@@ -268,10 +268,19 @@ impl BpfManager {
             self.dispatchers.insert(
                 request.iface.clone(),
                 DispatcherProgram {
-                    _loader: dispatcher_loader,
+                    loader: dispatcher_loader,
                     link: Some(owned_link),
                 },
             );
+            // HACK: Close old dispatcher.
+            // I'm not sure why this doesn't get cleaned up on drop of `Bpf`...
+            // Probably some fancy refcount thing that isn't aware of bpf_link_update.
+            // We should offer program.unload() to avoid unsafe + also fix this in Aya.
+            let old_dispatcher: &mut Xdp =
+                d.loader.program_mut("dispatcher").unwrap().try_into()?;
+            if let Some(fd) = old_dispatcher.fd() {
+                unsafe { libc::close(fd) };
+            }
         } else {
             let link = dispatcher
                 .attach(&request.iface, XdpFlags::default())
@@ -280,7 +289,7 @@ impl BpfManager {
             self.dispatchers.insert(
                 request.iface.clone(),
                 DispatcherProgram {
-                    _loader: dispatcher_loader,
+                    loader: dispatcher_loader,
                     link: Some(owned_link),
                 },
             );
@@ -291,11 +300,7 @@ impl BpfManager {
             loader: ext_loader,
             link: Some(owned_ext_link),
         });
-        info!(
-            "{} programs attached to {}",
-            self.programs.get(&request.iface).unwrap().len(),
-            &request.iface,
-        );
+        info!("{} programs attached to {}", programs.len(), &request.iface,);
         Ok(())
     }
 }
