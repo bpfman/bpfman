@@ -20,7 +20,7 @@ use bpfd_common::*;
 use bpfd_api::{
     list_response::ListResult,
     loader_server::{Loader, LoaderServer},
-    ListRequest, ListResponse, LoadRequest, LoadResponse, UnloadRequest, UnloadResponse,
+    ListRequest, ListResponse, LoadRequest, LoadResponse, UnloadRequest, UnloadResponse, GetMapRequest, GetMapResponse,
 };
 
 pub mod bpfd_api {
@@ -129,6 +129,10 @@ impl Loader for BpfdLoader {
             }
             Err(e) => Err(Status::aborted(format!("{}", e))),
         }
+    }
+
+    async fn get_map(&self, request: GetMapRequest) -> Result<Response<GetMapResponse>, Status> {
+        unimplemented!()
     }
 }
 

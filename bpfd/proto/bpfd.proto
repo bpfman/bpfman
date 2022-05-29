@@ -1,10 +1,12 @@
 syntax = "proto3";
 package bpfd;
+option go_package = "github.com/redhat-et/clients/gobpfd;gobpfd";
 
 service Loader {
     rpc Load (LoadRequest) returns (LoadResponse);
     rpc Unload (UnloadRequest) returns (UnloadResponse);
     rpc List (ListRequest) returns (ListResponse);
+    rpc GetMap (GetMapRequest) returns (GetMapResponse);
 }
 
 enum ProgramType {
@@ -26,7 +28,7 @@ message LoadResponse {
 }
 
 message UnloadRequest {
-    string iface = 1; 
+    string iface = 1;
     string id = 2;
 }
 
@@ -47,4 +49,11 @@ message ListResponse {
   repeated ListResult results = 1;
 }
 
-option go_package = "github.com/redhat-et/clients/gobpfd;gobpfd";
+message GetMapRequest {
+    string iface = 1;
+    string id = 2;
+    string map_name = 3;
+    string socket_path = 4;
+}
+
+message GetMapResponse {}
