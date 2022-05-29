@@ -1,12 +1,20 @@
 use aya::{
     include_bytes_aligned,
+    maps::MapFd,
     programs::{
         extension::ExtensionLink, xdp::XdpLink, Extension, OwnedLink, ProgramFd, Xdp, XdpFlags,
     },
     Bpf, BpfLoader,
 };
 use log::info;
-use std::collections::HashMap;
+use nix::{
+    fcntl::{fcntl, FcntlArg},
+    sys::socket::{
+        sendmsg, socket, AddressFamily, ControlMessage, MsgFlags, SockFlag, SockType, UnixAddr,
+    },
+    unistd::close,
+};
+use std::{collections::HashMap, io::IoSlice, path::Path};
 use thiserror::Error;
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 
@@ -20,7 +28,8 @@ use bpfd_common::*;
 use bpfd_api::{
     list_response::ListResult,
     loader_server::{Loader, LoaderServer},
-    ListRequest, ListResponse, LoadRequest, LoadResponse, UnloadRequest, UnloadResponse, GetMapRequest, GetMapResponse,
+    GetMapRequest, GetMapResponse, ListRequest, ListResponse, LoadRequest, LoadResponse,
+    UnloadRequest, UnloadResponse,
 };
 
 pub mod bpfd_api {
@@ -131,8 +140,32 @@ impl Loader for BpfdLoader {
         }
     }
 
-    async fn get_map(&self, request: GetMapRequest) -> Result<Response<GetMapResponse>, Status> {
-        unimplemented!()
+    async fn get_map(
+        &self,
+        request: Request<GetMapRequest>,
+    ) -> Result<Response<GetMapResponse>, Status> {
+        let reply = GetMapResponse {};
+        let request = request.into_inner();
+
+        let (resp_tx, resp_rx) = oneshot::channel();
+        let cmd = Command::GetMap {
+            iface: request.iface,
+            id: request.id,
+            map_name: request.map_name,
+            socket_path: request.socket_path,
+            responder: resp_tx,
+        };
+
+        let tx = self.tx.lock().unwrap().clone();
+        // Send the GET request
+        tx.send(cmd).await.unwrap();
+
+        // Await the response
+        let res = resp_rx.await.unwrap();
+        match res {
+            Ok(_) => Ok(Response::new(reply)),
+            Err(e) => Err(Status::aborted(format!("{}", e))),
+        }
     }
 }
 
@@ -151,6 +184,13 @@ enum Command {
     List {
         iface: String,
         responder: Responder<Result<Vec<ProgramInfo>, BpfdError>>,
+    },
+    GetMap {
+        iface: String,
+        id: String,
+        map_name: String,
+        socket_path: String,
+        responder: Responder<Result<(), BpfdError>>,
     },
 }
 
@@ -172,6 +212,10 @@ enum BpfdError {
     NoProgramsLoaded,
     #[error("Invalid ID")]
     InvalidID,
+    #[error("Map not found")]
+    MapNotFound,
+    #[error("Map not loaded")]
+    MapNotLoaded,
 }
 
 #[tokio::main]
@@ -216,17 +260,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 responder,
             } => {
                 let res = bpf_manager.add_program(request, id);
-                // Ignore errors
+                // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }
             Command::Unload { request, responder } => {
                 let res = bpf_manager.remove_program(request);
-                // Ignore errors
+                // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }
             Command::List { iface, responder } => {
                 let res = bpf_manager.list_programs(iface);
-                // Ignore errors
+                // Ignore errors as they'll be propagated to caller in the RPC status
+                let _ = responder.send(res);
+            }
+            Command::GetMap {
+                iface,
+                id,
+                map_name,
+                socket_path,
+                responder,
+            } => {
+                let res = bpf_manager.get_map(iface, id, map_name, socket_path);
+                // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }
         }
@@ -387,7 +442,7 @@ impl BpfManager {
             let old_dispatcher: &mut Xdp =
                 d.loader.program_mut("dispatcher").unwrap().try_into()?;
             if let Some(fd) = old_dispatcher.fd() {
-                unsafe { libc::close(fd) };
+                close(fd).unwrap();
             }
         } else {
             let link = dispatcher
@@ -438,7 +493,7 @@ impl BpfManager {
                             .unwrap()
                             .try_into()?;
                         if let Some(fd) = dispatcher_prog.fd() {
-                            unsafe { libc::close(fd) };
+                            close(fd).unwrap();
                         }
                     }
                     // HACK: Close old exetnsion.
@@ -450,7 +505,7 @@ impl BpfManager {
                         .unwrap()
                         .try_into()?;
                     if let Some(fd) = old_ext.fd() {
-                        unsafe { libc::close(fd) };
+                        close(fd).unwrap();
                     }
                     return Ok(());
                 }
@@ -513,7 +568,7 @@ impl BpfManager {
                     let old_dispatcher: &mut Xdp =
                         d.loader.program_mut("dispatcher").unwrap().try_into()?;
                     if let Some(fd) = old_dispatcher.fd() {
-                        unsafe { libc::close(fd) };
+                        close(fd).unwrap();
                     }
                 }
 
@@ -526,7 +581,7 @@ impl BpfManager {
                     .unwrap()
                     .try_into()?;
                 if let Some(fd) = old_ext.fd() {
-                    unsafe { libc::close(fd) };
+                    close(fd).unwrap();
                 }
             } else {
                 return Err(BpfdError::InvalidID);
@@ -558,6 +613,51 @@ impl BpfManager {
             return Err(BpfdError::NoProgramsLoaded);
         }
         Ok(results)
+    }
+
+    fn get_map(
+        &mut self,
+        iface: String,
+        id: String,
+        map_name: String,
+        socket_path: String,
+    ) -> Result<(), BpfdError> {
+        if let Some(programs) = self.programs.get_mut(&iface) {
+            let uuid = id.parse::<Uuid>().map_err(|_| BpfdError::InvalidID)?;
+            if let Some(target_prog) = programs.get_mut(&uuid) {
+                let map = target_prog
+                    .loader
+                    .as_mut()
+                    .unwrap()
+                    .map_mut(&map_name)
+                    .map_err(|_| BpfdError::MapNotFound)?;
+                if let Some(fd) = map.fd() {
+                    // FIXME: Error handling here is terrible!
+                    // Don't unwrap everything and return a BpfdError::SocketError instead.
+                    let dup = fcntl(fd, FcntlArg::F_DUPFD_CLOEXEC(fd)).unwrap();
+                    let fds = &[dup];
+                    let path = Path::new(&socket_path);
+                    let sock_addr = UnixAddr::new(path).unwrap();
+                    let sock = socket(
+                        AddressFamily::Unix,
+                        SockType::Datagram,
+                        SockFlag::empty(),
+                        None,
+                    )
+                    .unwrap();
+                    let sbuf = [1u8; 1];
+                    let flags = MsgFlags::empty();
+                    let iov1 = [IoSlice::new(&sbuf)];
+                    let cmsg = ControlMessage::ScmRights(fds);
+                    sendmsg(sock, &iov1, &[cmsg], flags, Some(&sock_addr)).unwrap();
+                } else {
+                    return Err(BpfdError::MapNotLoaded);
+                }
+            }
+        } else {
+            return Err(BpfdError::NoProgramsLoaded);
+        }
+        Ok(())
     }
 }
 
