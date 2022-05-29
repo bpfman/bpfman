@@ -46,3 +46,5 @@ message ListResponse {
   }
   repeated ListResult results = 1;
 }
+
+option go_package = "github.com/redhat-et/clients/gobpfd;gobpfd";
