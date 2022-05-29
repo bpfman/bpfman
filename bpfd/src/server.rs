@@ -635,7 +635,6 @@ impl BpfManager {
                     // FIXME: Error handling here is terrible!
                     // Don't unwrap everything and return a BpfdError::SocketError instead.
                     let dup = fcntl(fd, FcntlArg::F_DUPFD_CLOEXEC(fd)).unwrap();
-                    let fds = &[dup];
                     let path = Path::new(&socket_path);
                     let sock_addr = UnixAddr::new(path).unwrap();
                     let sock = socket(
@@ -645,11 +644,10 @@ impl BpfManager {
                         None,
                     )
                     .unwrap();
-                    let sbuf = [1u8; 1];
-                    let flags = MsgFlags::empty();
-                    let iov1 = [IoSlice::new(&sbuf)];
-                    let cmsg = ControlMessage::ScmRights(fds);
-                    sendmsg(sock, &iov1, &[cmsg], flags, Some(&sock_addr)).unwrap();
+                    let iov = [IoSlice::new(b"a")];
+                    let fds = [dup];
+                    let cmsg = ControlMessage::ScmRights(&fds);
+                    sendmsg(sock, &iov, &[cmsg], MsgFlags::empty(), Some(&sock_addr)).unwrap();
                 } else {
                     return Err(BpfdError::MapNotLoaded);
                 }

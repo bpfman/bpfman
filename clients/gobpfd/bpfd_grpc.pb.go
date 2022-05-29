@@ -25,6 +25,7 @@ type LoaderClient interface {
 	Load(ctx context.Context, in *LoadRequest, opts ...grpc.CallOption) (*LoadResponse, error)
 	Unload(ctx context.Context, in *UnloadRequest, opts ...grpc.CallOption) (*UnloadResponse, error)
 	List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error)
+	GetMap(ctx context.Context, in *GetMapRequest, opts ...grpc.CallOption) (*GetMapResponse, error)
 }
 
 type loaderClient struct {
@@ -62,6 +63,15 @@ func (c *loaderClient) List(ctx context.Context, in *ListRequest, opts ...grpc.C
 	return out, nil
 }
 
+func (c *loaderClient) GetMap(ctx context.Context, in *GetMapRequest, opts ...grpc.CallOption) (*GetMapResponse, error) {
+	out := new(GetMapResponse)
+	err := c.cc.Invoke(ctx, "/bpfd.Loader/GetMap", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LoaderServer is the server API for Loader service.
 // All implementations must embed UnimplementedLoaderServer
 // for forward compatibility
@@ -69,6 +79,7 @@ type LoaderServer interface {
 	Load(context.Context, *LoadRequest) (*LoadResponse, error)
 	Unload(context.Context, *UnloadRequest) (*UnloadResponse, error)
 	List(context.Context, *ListRequest) (*ListResponse, error)
+	GetMap(context.Context, *GetMapRequest) (*GetMapResponse, error)
 	mustEmbedUnimplementedLoaderServer()
 }
 
@@ -84,6 +95,9 @@ func (UnimplementedLoaderServer) Unload(context.Context, *UnloadRequest) (*Unloa
 }
 func (UnimplementedLoaderServer) List(context.Context, *ListRequest) (*ListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
+}
+func (UnimplementedLoaderServer) GetMap(context.Context, *GetMapRequest) (*GetMapResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMap not implemented")
 }
 func (UnimplementedLoaderServer) mustEmbedUnimplementedLoaderServer() {}
 
@@ -152,6 +166,24 @@ func _Loader_List_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Loader_GetMap_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMapRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LoaderServer).GetMap(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/bpfd.Loader/GetMap",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LoaderServer).GetMap(ctx, req.(*GetMapRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Loader_ServiceDesc is the grpc.ServiceDesc for Loader service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -170,6 +202,10 @@ var Loader_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "List",
 			Handler:    _Loader_List_Handler,
+		},
+		{
+			MethodName: "GetMap",
+			Handler:    _Loader_GetMap_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
