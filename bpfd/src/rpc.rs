@@ -56,7 +56,7 @@ impl Loader for BpfdLoader {
             Ok(id) => {
                 reply.id = id.to_string();
                 Ok(Response::new(reply))
-            },
+            }
             Err(e) => Err(Status::aborted(format!("{}", e))),
         }
     }

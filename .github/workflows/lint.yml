@@ -1,0 +1,37 @@
+name: lint
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          components: rustfmt, clippy, miri
+          override: true
+
+      - name: Check formatting
+        run: |
+          cargo fmt --all -- --check
+          cargo fmt --manifest-path ./bpfd-ebpf/Cargo.toml -- --check
+
+      - name: Run clippy
+        run: |
+          cargo clippy --all -- -A clippy::derive_partial_eq_without_eq --deny warnings
+          cargo clippy --manifest-path ./bpfd-ebpf/Cargo.toml -- -A clippy::derive_partial_eq_without_eq --deny warnings
