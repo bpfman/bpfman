@@ -88,109 +88,25 @@ impl BpfManager {
         }
 
         let mut dispatcher_loader = new_dispatcher(next_available_id as u8, self.dispatcher_bytes)?;
-        let dispatcher: &mut Xdp = dispatcher_loader
-            .program_mut(DISPATCHER_PROGRAM_NAME)
-            .unwrap()
-            .try_into()?;
-
-        let mut old_links = vec![];
-        if self.programs.contains_key(&iface) {
-            self.programs.get_mut(&iface).unwrap().insert(
-                id,
-                ExtensionProgram {
-                    path,
-                    loader: None,
-                    current_position: None,
-                    metadata: Metadata {
-                        priority,
-                        name: section_name,
-                        attached: false,
-                    },
-                    link: None,
+        self.programs.get_mut(&iface).unwrap().insert(
+            id,
+            ExtensionProgram {
+                path,
+                loader: None,
+                current_position: None,
+                metadata: Metadata {
+                    priority,
+                    name: section_name,
+                    attached: false,
                 },
-            );
-            let mut extensions = self
-                .programs
-                .get_mut(&iface)
-                .unwrap()
-                .values_mut()
-                .collect::<Vec<&mut ExtensionProgram>>();
-            extensions.sort_by(|a, b| a.metadata.cmp(&b.metadata));
-            for (i, v) in extensions.iter_mut().enumerate() {
-                if v.metadata.attached {
-                    let ext: &mut Extension = v
-                        .loader
-                        .as_mut()
-                        .unwrap()
-                        .programs_mut()
-                        .next()
-                        .unwrap()
-                        .1
-                        .try_into()?;
-                    let target_fn = format!("prog{}", i);
-                    let old_link = v.link.take().unwrap();
-                    let new_link_id = ext
-                        .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
-                        .unwrap();
-                    old_links.push(old_link);
-                    v.link = Some(ext.forget_link(new_link_id)?);
-                    v.current_position = Some(i);
-                    v.metadata.attached = true;
-                } else {
-                    let mut ext_loader = BpfLoader::new()
-                        .extension(&v.metadata.name)
-                        .load_file(v.path.clone())?;
+                link: None,
+            },
+        );
 
-                    let ext: &mut Extension = ext_loader
-                        .program_mut(&v.metadata.name)
-                        .unwrap()
-                        .try_into()?;
-
-                    let target_fn = format!("prog{}", i);
-
-                    ext.load(dispatcher.fd().unwrap(), &target_fn)?;
-                    let ext_link = ext.attach()?;
-                    v.link = Some(ext.forget_link(ext_link)?);
-                    v.loader = Some(ext_loader);
-                    v.current_position = Some(i);
-                    v.metadata.attached = true;
-                }
-            }
-        }
-
-        if let Some(mut d) = self.dispatchers.remove(&iface) {
-            let link = dispatcher.attach_to_link(d.link.take().unwrap()).unwrap();
-            let owned_link = dispatcher.forget_link(link)?;
-            self.dispatchers.insert(
-                iface.clone(),
-                DispatcherProgram {
-                    loader: dispatcher_loader,
-                    link: Some(owned_link),
-                },
-            );
-            // HACK: Close old dispatcher.
-            // I'm not sure why this doesn't get cleaned up on drop of `Bpf`...
-            // Probably some fancy refcount thing that isn't aware of bpf_link_update.
-            // We should offer program.unload() to avoid unsafe + also fix this in Aya.
-            let old_dispatcher: &mut Xdp = d
-                .loader
-                .program_mut(DISPATCHER_PROGRAM_NAME)
-                .unwrap()
-                .try_into()?;
-            if let Some(fd) = old_dispatcher.fd() {
-                close(fd).unwrap();
-            }
-        } else {
-            let link = dispatcher.attach(&iface, XdpFlags::default()).unwrap();
-            let owned_link = dispatcher.forget_link(link)?;
-            self.dispatchers.insert(
-                iface.clone(),
-                DispatcherProgram {
-                    loader: dispatcher_loader,
-                    link: Some(owned_link),
-                },
-            );
-        }
+        // Keep old_links in scope until after this function exits to avoid dropping
+        // them before the new dispatcher is attached
+        let _old_links = self.attach_extensions(&iface, &mut dispatcher_loader)?;
+        self.update_or_replace_dispatcher(iface.clone(), dispatcher_loader)?;
         info!(
             "{} programs attached to {}",
             self.programs.get(&iface).unwrap().len(),
@@ -234,58 +150,12 @@ impl BpfManager {
 
                 let mut dispatcher_loader =
                     new_dispatcher(programs.len() as u8, self.dispatcher_bytes)?;
-                let dispatcher: &mut Xdp = dispatcher_loader
-                    .program_mut(DISPATCHER_PROGRAM_NAME)
-                    .unwrap()
-                    .try_into()?;
 
-                let mut old_links = vec![];
-                let mut extensions = programs
-                    .values_mut()
-                    .collect::<Vec<&mut ExtensionProgram>>();
-                extensions.sort_by(|a, b| a.metadata.cmp(&b.metadata));
-                for (i, mut v) in extensions.iter_mut().enumerate() {
-                    let ext: &mut Extension = (*v)
-                        .loader
-                        .as_mut()
-                        .unwrap()
-                        .programs_mut()
-                        .next()
-                        .unwrap()
-                        .1
-                        .try_into()?;
-                    let target_fn = format!("prog{}", i);
-                    let old_link = v.link.take().unwrap();
-                    let new_link_id = ext
-                        .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
-                        .unwrap();
-                    old_links.push(old_link);
-                    v.link = Some(ext.forget_link(new_link_id)?);
-                }
+                // Keep old_links in scope until after this function exits to avoid dropping
+                // them before the new dispatcher is attached
+                let _old_links = self.attach_extensions(&iface, &mut dispatcher_loader)?;
 
-                if let Some(mut d) = self.dispatchers.remove(&iface) {
-                    let link = dispatcher.attach_to_link(d.link.take().unwrap()).unwrap();
-                    let owned_link = dispatcher.forget_link(link)?;
-                    self.dispatchers.insert(
-                        iface.clone(),
-                        DispatcherProgram {
-                            loader: dispatcher_loader,
-                            link: Some(owned_link),
-                        },
-                    );
-                    // HACK: Close old dispatcher.
-                    // I'm not sure why this doesn't get cleaned up on drop of `Bpf`...
-                    // Probably some fancy refcount thing that isn't aware of bpf_link_update.
-                    // We should offer program.unload() to avoid unsafe + also fix this in Aya.
-                    let old_dispatcher: &mut Xdp = d
-                        .loader
-                        .program_mut(DISPATCHER_PROGRAM_NAME)
-                        .unwrap()
-                        .try_into()?;
-                    if let Some(fd) = old_dispatcher.fd() {
-                        close(fd).unwrap();
-                    }
-                }
+                self.update_or_replace_dispatcher(iface, dispatcher_loader)?;
 
                 // HACK: Close old exetnsion.
                 let old_ext: &mut Extension = old_program
@@ -369,6 +239,111 @@ impl BpfManager {
             }
         } else {
             return Err(BpfdError::NoProgramsLoaded);
+        }
+        Ok(())
+    }
+
+    fn attach_extensions(
+        &mut self,
+        iface: &str,
+        dispatcher_loader: &mut Bpf,
+    ) -> Result<Vec<OwnedLink<ExtensionLink>>, BpfdError> {
+        let dispatcher: &mut Xdp = dispatcher_loader
+            .program_mut(DISPATCHER_PROGRAM_NAME)
+            .unwrap()
+            .try_into()?;
+        let mut old_links = vec![];
+        let mut extensions = self
+            .programs
+            .get_mut(iface)
+            .unwrap()
+            .values_mut()
+            .collect::<Vec<&mut ExtensionProgram>>();
+        extensions.sort_by(|a, b| a.metadata.cmp(&b.metadata));
+        for (i, v) in extensions.iter_mut().enumerate() {
+            if v.metadata.attached {
+                let ext: &mut Extension = v
+                    .loader
+                    .as_mut()
+                    .unwrap()
+                    .programs_mut()
+                    .next()
+                    .unwrap()
+                    .1
+                    .try_into()?;
+                let target_fn = format!("prog{}", i);
+                let old_link = v.link.take().unwrap();
+                let new_link_id = ext
+                    .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
+                    .unwrap();
+                old_links.push(old_link);
+                v.link = Some(ext.forget_link(new_link_id)?);
+                v.current_position = Some(i);
+                v.metadata.attached = true;
+            } else {
+                let mut ext_loader = BpfLoader::new()
+                    .extension(&v.metadata.name)
+                    .load_file(v.path.clone())?;
+
+                let ext: &mut Extension = ext_loader
+                    .program_mut(&v.metadata.name)
+                    .unwrap()
+                    .try_into()?;
+
+                let target_fn = format!("prog{}", i);
+
+                ext.load(dispatcher.fd().unwrap(), &target_fn)?;
+                let ext_link = ext.attach()?;
+                v.link = Some(ext.forget_link(ext_link)?);
+                v.loader = Some(ext_loader);
+                v.current_position = Some(i);
+                v.metadata.attached = true;
+            }
+        }
+        Ok(old_links)
+    }
+
+    fn update_or_replace_dispatcher(
+        &mut self,
+        iface: String,
+        mut dispatcher_loader: Bpf,
+    ) -> Result<(), BpfdError> {
+        let dispatcher: &mut Xdp = dispatcher_loader
+            .program_mut(DISPATCHER_PROGRAM_NAME)
+            .unwrap()
+            .try_into()?;
+        if let Some(mut d) = self.dispatchers.remove(&iface) {
+            let link = dispatcher.attach_to_link(d.link.take().unwrap()).unwrap();
+            let owned_link = dispatcher.forget_link(link)?;
+            self.dispatchers.insert(
+                iface.clone(),
+                DispatcherProgram {
+                    loader: dispatcher_loader,
+                    link: Some(owned_link),
+                },
+            );
+            // HACK: Close old dispatcher.
+            // I'm not sure why this doesn't get cleaned up on drop of `Bpf`...
+            // Probably some fancy refcount thing that isn't aware of bpf_link_update.
+            // We should offer program.unload() to avoid unsafe + also fix this in Aya.
+            let old_dispatcher: &mut Xdp = d
+                .loader
+                .program_mut(DISPATCHER_PROGRAM_NAME)
+                .unwrap()
+                .try_into()?;
+            if let Some(fd) = old_dispatcher.fd() {
+                close(fd).unwrap();
+            }
+        } else {
+            let link = dispatcher.attach(&iface, XdpFlags::default()).unwrap();
+            let owned_link = dispatcher.forget_link(link)?;
+            self.dispatchers.insert(
+                iface.clone(),
+                DispatcherProgram {
+                    loader: dispatcher_loader,
+                    link: Some(owned_link),
+                },
+            );
         }
         Ok(())
     }
