@@ -20,7 +20,7 @@ aya = { git = "https://github.com/aya-rs/aya", branch = "main" }
 tokio = { version = "1.14.0", features = ["full"] }
 uuid = { version = "0.8", features = ["v4"] }
 log = "0.4"
-simplelog = "0.11"
+simplelog = "0.12"
 bpfd-common = { path = "../bpfd-common", features=["user"] }
 nix = { version = "0.24", features = [ "socket", "fs" ]}
 
