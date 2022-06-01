@@ -74,7 +74,7 @@ impl BpfManager {
         path: String,
         priority: i32,
         section_name: String,
-    ) -> Result<(), BpfdError> {
+    ) -> Result<Uuid, BpfdError> {
         let id = Uuid::new_v4();
         let next_available_id = if let Some(prog) = self.programs.get(&iface) {
             prog.len()
@@ -112,7 +112,7 @@ impl BpfManager {
             self.programs.get(&iface).unwrap().len(),
             &iface,
         );
-        Ok(())
+        Ok(id)
     }
 
     pub(crate) fn remove_program(&mut self, id: Uuid, iface: String) -> Result<(), BpfdError> {

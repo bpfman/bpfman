@@ -34,7 +34,7 @@ impl BpfdLoader {
 #[tonic::async_trait]
 impl Loader for BpfdLoader {
     async fn load(&self, request: Request<LoadRequest>) -> Result<Response<LoadResponse>, Status> {
-        let reply = bpfd_api::LoadResponse { id: String::new() };
+        let mut reply = bpfd_api::LoadResponse { id: String::new() };
         let request = request.into_inner();
 
         let (resp_tx, resp_rx) = oneshot::channel();
@@ -53,7 +53,10 @@ impl Loader for BpfdLoader {
         // Await the response
         let res = resp_rx.await.unwrap();
         match res {
-            Ok(_) => Ok(Response::new(reply)),
+            Ok(id) => {
+                reply.id = id.to_string();
+                Ok(Response::new(reply))
+            },
             Err(e) => Err(Status::aborted(format!("{}", e))),
         }
     }
@@ -158,7 +161,7 @@ pub(crate) enum Command {
         path: String,
         priority: i32,
         section_name: String,
-        responder: Responder<Result<(), BpfdError>>,
+        responder: Responder<Result<Uuid, BpfdError>>,
     },
     Unload {
         id: Uuid,
