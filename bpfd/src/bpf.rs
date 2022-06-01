@@ -22,6 +22,7 @@ use crate::errors::BpfdError;
 
 const DEFAULT_ACTIONS_MAP: u32 = 1 << 2;
 const DEFAULT_PRIORITY: u32 = 50;
+const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct Metadata {
@@ -41,6 +42,15 @@ pub(crate) struct ExtensionProgram {
 pub(crate) struct DispatcherProgram {
     loader: Bpf,
     link: Option<OwnedLink<XdpLink>>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct ProgramInfo {
+    pub(crate) id: String,
+    pub(crate) name: String,
+    pub(crate) path: String,
+    pub(crate) position: usize,
+    pub(crate) priority: i32,
 }
 
 pub(crate) struct BpfManager {
@@ -77,22 +87,11 @@ impl BpfManager {
             return Err(BpfdError::TooManyPrograms);
         }
 
-        let config = XdpDispatcherConfig {
-            num_progs_enabled: next_available_id as u8 + 1,
-            chain_call_actions: [DEFAULT_ACTIONS_MAP; 10],
-            run_prios: [DEFAULT_PRIORITY; 10],
-        };
-
-        let mut dispatcher_loader = BpfLoader::new()
-            .set_global("CONFIG", &config)
-            .load(self.dispatcher_bytes)?;
-
+        let mut dispatcher_loader = new_dispatcher(next_available_id as u8, self.dispatcher_bytes)?;
         let dispatcher: &mut Xdp = dispatcher_loader
-            .program_mut("dispatcher")
+            .program_mut(DISPATCHER_PROGRAM_NAME)
             .unwrap()
             .try_into()?;
-
-        dispatcher.load()?;
 
         let mut old_links = vec![];
         if self.programs.contains_key(&iface) {
@@ -173,8 +172,11 @@ impl BpfManager {
             // I'm not sure why this doesn't get cleaned up on drop of `Bpf`...
             // Probably some fancy refcount thing that isn't aware of bpf_link_update.
             // We should offer program.unload() to avoid unsafe + also fix this in Aya.
-            let old_dispatcher: &mut Xdp =
-                d.loader.program_mut("dispatcher").unwrap().try_into()?;
+            let old_dispatcher: &mut Xdp = d
+                .loader
+                .program_mut(DISPATCHER_PROGRAM_NAME)
+                .unwrap()
+                .try_into()?;
             if let Some(fd) = old_dispatcher.fd() {
                 close(fd).unwrap();
             }
@@ -209,7 +211,7 @@ impl BpfManager {
                         // We should offer program.unload() to avoid unsafe + also fix this in Aya.
                         let dispatcher_prog: &mut Xdp = dispatcher
                             .loader
-                            .program_mut("dispatcher")
+                            .program_mut(DISPATCHER_PROGRAM_NAME)
                             .unwrap()
                             .try_into()?;
                         if let Some(fd) = dispatcher_prog.fd() {
@@ -230,22 +232,12 @@ impl BpfManager {
                     return Ok(());
                 }
 
-                let config = XdpDispatcherConfig {
-                    num_progs_enabled: programs.len() as u8,
-                    chain_call_actions: [DEFAULT_ACTIONS_MAP; 10],
-                    run_prios: [DEFAULT_PRIORITY; 10],
-                };
-
-                let mut dispatcher_loader = BpfLoader::new()
-                    .set_global("CONFIG", &config)
-                    .load(self.dispatcher_bytes)?;
-
+                let mut dispatcher_loader =
+                    new_dispatcher(programs.len() as u8, self.dispatcher_bytes)?;
                 let dispatcher: &mut Xdp = dispatcher_loader
-                    .program_mut("dispatcher")
+                    .program_mut(DISPATCHER_PROGRAM_NAME)
                     .unwrap()
                     .try_into()?;
-
-                dispatcher.load()?;
 
                 let mut old_links = vec![];
                 let mut extensions = programs
@@ -285,8 +277,11 @@ impl BpfManager {
                     // I'm not sure why this doesn't get cleaned up on drop of `Bpf`...
                     // Probably some fancy refcount thing that isn't aware of bpf_link_update.
                     // We should offer program.unload() to avoid unsafe + also fix this in Aya.
-                    let old_dispatcher: &mut Xdp =
-                        d.loader.program_mut("dispatcher").unwrap().try_into()?;
+                    let old_dispatcher: &mut Xdp = d
+                        .loader
+                        .program_mut(DISPATCHER_PROGRAM_NAME)
+                        .unwrap()
+                        .try_into()?;
                     if let Some(fd) = old_dispatcher.fd() {
                         close(fd).unwrap();
                     }
@@ -379,11 +374,21 @@ impl BpfManager {
     }
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct ProgramInfo {
-    pub(crate) id: String,
-    pub(crate) name: String,
-    pub(crate) path: String,
-    pub(crate) position: usize,
-    pub(crate) priority: i32,
+fn new_dispatcher(num_progs_enabled: u8, bytes: &'static [u8]) -> Result<Bpf, BpfdError> {
+    let config = XdpDispatcherConfig {
+        num_progs_enabled,
+        chain_call_actions: [DEFAULT_ACTIONS_MAP; 10],
+        run_prios: [DEFAULT_PRIORITY; 10],
+    };
+
+    let mut dispatcher_loader = BpfLoader::new().set_global("CONFIG", &config).load(bytes)?;
+
+    let dispatcher: &mut Xdp = dispatcher_loader
+        .program_mut(DISPATCHER_PROGRAM_NAME)
+        .unwrap()
+        .try_into()?;
+
+    dispatcher.load()?;
+
+    Ok(dispatcher_loader)
 }
