@@ -27,7 +27,7 @@ jobs:
           override: true
 
       - name: Install deps
-        run: apt-get update && apt-get install -qy libelf-dev
+        run: sudo apt-get update && sudo apt-get install -qy libelf-dev
 
       - name: Check formatting
         run: |

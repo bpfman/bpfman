@@ -27,7 +27,7 @@ jobs:
       - uses: Swatinem/rust-cache@v1
 
       - name: Install deps
-        run: apt-get update && apt-get install -qy libelf-dev
+        run: sudo apt-get update && sudo apt-get install -qy libelf-dev
 
       - name: Build
         run: cargo build --manifest-path bpfd-ebpf/Cargo.toml --verbose
