@@ -26,6 +26,9 @@ jobs:
           components: rustfmt, clippy, miri
           override: true
 
+      - name: Install deps
+        run: apt-get update && apt-get install -qy libelf-dev
+
       - name: Check formatting
         run: |
           cargo fmt --all -- --check
