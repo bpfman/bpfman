@@ -34,7 +34,7 @@ jobs:
 
       - name: Install deps
         run: |
-          sudo apt-get update && sudo apt-get install -qy libelf-dev
+          sudo apt-get update && sudo apt-get install -qy libelf-dev llvm-12-tools
           cargo install bpf-linker
 
       - name: Build eBPF
