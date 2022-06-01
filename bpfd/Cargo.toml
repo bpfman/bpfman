@@ -5,11 +5,11 @@ edition = "2021"
 
 [[bin]]
     name = "bpfd"
-    path = "src/server.rs"
+    path = "src/bin/bpfd.rs"
 
 [[bin]]
     name = "bpfctl"
-    path = "src/client.rs"
+    path = "src/bin/bpfctl.rs"
 
 [dependencies]
 tonic = "0.7"

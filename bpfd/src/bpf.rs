@@ -1,5 +1,4 @@
 use aya::{
-    include_bytes_aligned,
     maps::MapFd,
     programs::{
         extension::ExtensionLink, xdp::XdpLink, Extension, OwnedLink, ProgramFd, Xdp, XdpFlags,
@@ -15,288 +14,23 @@ use nix::{
     unistd::close,
 };
 use std::{collections::HashMap, io::IoSlice, path::Path};
-use thiserror::Error;
-use tokio::sync::{mpsc, mpsc::Sender, oneshot};
-
-use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
-use std::sync::{Arc, Mutex};
-use tonic::{transport::Server, Request, Response, Status};
 use uuid::Uuid;
 
 use bpfd_common::*;
 
-use bpfd_api::{
-    list_response::ListResult,
-    loader_server::{Loader, LoaderServer},
-    GetMapRequest, GetMapResponse, ListRequest, ListResponse, LoadRequest, LoadResponse,
-    UnloadRequest, UnloadResponse,
-};
-
-pub mod bpfd_api {
-    tonic::include_proto!("bpfd");
-}
-
-#[derive(Debug, Default)]
-pub struct BpfProgram {
-    _section_name: String,
-}
-
-#[derive(Debug)]
-pub struct BpfdLoader {
-    tx: Arc<Mutex<Sender<Command>>>,
-}
+use crate::errors::BpfdError;
 
 const DEFAULT_ACTIONS_MAP: u32 = 1 << 2;
 const DEFAULT_PRIORITY: u32 = 50;
 
-impl BpfdLoader {
-    fn new(tx: mpsc::Sender<Command>) -> BpfdLoader {
-        let tx = Arc::new(Mutex::new(tx));
-        BpfdLoader { tx }
-    }
-}
-
-#[tonic::async_trait]
-impl Loader for BpfdLoader {
-    async fn load(&self, request: Request<LoadRequest>) -> Result<Response<LoadResponse>, Status> {
-        let id = Uuid::new_v4();
-        let reply = bpfd_api::LoadResponse { id: id.to_string() };
-        let request = request.into_inner();
-
-        let (resp_tx, resp_rx) = oneshot::channel();
-        let cmd = Command::Load {
-            request,
-            id,
-            responder: resp_tx,
-        };
-
-        let tx = self.tx.lock().unwrap().clone();
-        // Send the GET request
-        tx.send(cmd).await.unwrap();
-
-        // Await the response
-        let res = resp_rx.await.unwrap();
-        match res {
-            Ok(_) => Ok(Response::new(reply)),
-            Err(e) => Err(Status::aborted(format!("{}", e))),
-        }
-    }
-
-    async fn unload(
-        &self,
-        request: Request<UnloadRequest>,
-    ) -> Result<Response<UnloadResponse>, Status> {
-        let reply = bpfd_api::UnloadResponse {};
-        let request = request.into_inner();
-
-        let (resp_tx, resp_rx) = oneshot::channel();
-        let cmd = Command::Unload {
-            request,
-            responder: resp_tx,
-        };
-
-        let tx = self.tx.lock().unwrap().clone();
-        // Send the GET request
-        tx.send(cmd).await.unwrap();
-
-        // Await the response
-        let res = resp_rx.await.unwrap();
-        match res {
-            Ok(_) => Ok(Response::new(reply)),
-            Err(e) => Err(Status::aborted(format!("{}", e))),
-        }
-    }
-
-    async fn list(&self, request: Request<ListRequest>) -> Result<Response<ListResponse>, Status> {
-        let mut reply = ListResponse { results: vec![] };
-        let request = request.into_inner();
-
-        let (resp_tx, resp_rx) = oneshot::channel();
-        let cmd = Command::List {
-            iface: request.iface,
-            responder: resp_tx,
-        };
-
-        let tx = self.tx.lock().unwrap().clone();
-        // Send the GET request
-        tx.send(cmd).await.unwrap();
-
-        // Await the response
-        let res = resp_rx.await.unwrap();
-        match res {
-            Ok(results) => {
-                for r in results {
-                    reply.results.push(ListResult {
-                        id: r.id,
-                        name: r.name,
-                        path: r.path,
-                        position: r.position as u32,
-                        priority: r.priority,
-                    })
-                }
-                Ok(Response::new(reply))
-            }
-            Err(e) => Err(Status::aborted(format!("{}", e))),
-        }
-    }
-
-    async fn get_map(
-        &self,
-        request: Request<GetMapRequest>,
-    ) -> Result<Response<GetMapResponse>, Status> {
-        let reply = GetMapResponse {};
-        let request = request.into_inner();
-
-        let (resp_tx, resp_rx) = oneshot::channel();
-        let cmd = Command::GetMap {
-            iface: request.iface,
-            id: request.id,
-            map_name: request.map_name,
-            socket_path: request.socket_path,
-            responder: resp_tx,
-        };
-
-        let tx = self.tx.lock().unwrap().clone();
-        // Send the GET request
-        tx.send(cmd).await.unwrap();
-
-        // Await the response
-        let res = resp_rx.await.unwrap();
-        match res {
-            Ok(_) => Ok(Response::new(reply)),
-            Err(e) => Err(Status::aborted(format!("{}", e))),
-        }
-    }
-}
-
-/// Multiple different commands are multiplexed over a single channel.
-#[derive(Debug)]
-enum Command {
-    Load {
-        request: LoadRequest,
-        id: Uuid,
-        responder: Responder<Result<(), BpfdError>>,
-    },
-    Unload {
-        request: UnloadRequest,
-        responder: Responder<Result<(), BpfdError>>,
-    },
-    List {
-        iface: String,
-        responder: Responder<Result<Vec<ProgramInfo>, BpfdError>>,
-    },
-    GetMap {
-        iface: String,
-        id: String,
-        map_name: String,
-        socket_path: String,
-        responder: Responder<Result<(), BpfdError>>,
-    },
-}
-
-/// Provided by the requester and used by the manager task to send
-/// the command response back to the requester.
-type Responder<T> = oneshot::Sender<T>;
-
-#[derive(Debug, Error)]
-enum BpfdError {
-    #[error("argument {0} not provided")]
-    ArgumentNotProvided(String),
-    #[error(transparent)]
-    BpfProgramError(#[from] aya::programs::ProgramError),
-    #[error(transparent)]
-    BpfLoadError(#[from] aya::BpfError),
-    #[error("No room to attach program. Please remove one and try again.")]
-    TooManyPrograms,
-    #[error("No programs loaded to requested interface")]
-    NoProgramsLoaded,
-    #[error("Invalid ID")]
-    InvalidID,
-    #[error("Map not found")]
-    MapNotFound,
-    #[error("Map not loaded")]
-    MapNotLoaded,
-}
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    TermLogger::init(
-        LevelFilter::Debug,
-        ConfigBuilder::new()
-            .set_target_level(LevelFilter::Error)
-            .set_location_level(LevelFilter::Error)
-            .add_filter_ignore("h2".to_string())
-            .add_filter_ignore("aya".to_string())
-            .build(),
-        TerminalMode::Mixed,
-        ColorChoice::Auto,
-    )?;
-
-    let (tx, mut rx) = mpsc::channel(32);
-
-    let addr = "[::1]:50051".parse().unwrap();
-
-    let loader = BpfdLoader::new(tx);
-
-    let serve = Server::builder()
-        .add_service(LoaderServer::new(loader))
-        .serve(addr);
-
-    tokio::spawn(async move {
-        info!("Listening on [::1]:50051");
-        if let Err(e) = serve.await {
-            eprintln!("Error = {:?}", e);
-        }
-    });
-    let dispatcher_bytes = include_bytes_aligned!("../../bpfd-ebpf/.output/xdp_dispatcher.bpf.o");
-    let mut bpf_manager = BpfManager::new(dispatcher_bytes);
-
-    // Start receiving messages
-    while let Some(cmd) = rx.recv().await {
-        match cmd {
-            Command::Load {
-                request,
-                id,
-                responder,
-            } => {
-                let res = bpf_manager.add_program(request, id);
-                // Ignore errors as they'll be propagated to caller in the RPC status
-                let _ = responder.send(res);
-            }
-            Command::Unload { request, responder } => {
-                let res = bpf_manager.remove_program(request);
-                // Ignore errors as they'll be propagated to caller in the RPC status
-                let _ = responder.send(res);
-            }
-            Command::List { iface, responder } => {
-                let res = bpf_manager.list_programs(iface);
-                // Ignore errors as they'll be propagated to caller in the RPC status
-                let _ = responder.send(res);
-            }
-            Command::GetMap {
-                iface,
-                id,
-                map_name,
-                socket_path,
-                responder,
-            } => {
-                let res = bpf_manager.get_map(iface, id, map_name, socket_path);
-                // Ignore errors as they'll be propagated to caller in the RPC status
-                let _ = responder.send(res);
-            }
-        }
-    }
-    Ok(())
-}
-
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
-struct Metadata {
+pub(crate) struct Metadata {
     priority: i32,
     name: String,
     attached: bool,
 }
 
-struct ExtensionProgram {
+pub(crate) struct ExtensionProgram {
     path: String,
     current_position: Option<usize>,
     loader: Option<Bpf>,
@@ -304,19 +38,19 @@ struct ExtensionProgram {
     link: Option<OwnedLink<ExtensionLink>>,
 }
 
-struct DispatcherProgram {
+pub(crate) struct DispatcherProgram {
     loader: Bpf,
     link: Option<OwnedLink<XdpLink>>,
 }
 
-struct BpfManager {
+pub(crate) struct BpfManager {
     dispatcher_bytes: &'static [u8],
     dispatchers: HashMap<String, DispatcherProgram>,
     programs: HashMap<String, HashMap<Uuid, ExtensionProgram>>,
 }
 
 impl BpfManager {
-    fn new(dispatcher_bytes: &'static [u8]) -> Self {
+    pub(crate) fn new(dispatcher_bytes: &'static [u8]) -> Self {
         Self {
             dispatcher_bytes,
             dispatchers: HashMap::new(),
@@ -324,18 +58,18 @@ impl BpfManager {
         }
     }
 
-    fn add_program(&mut self, request: LoadRequest, id: Uuid) -> Result<(), BpfdError> {
-        if request.iface.is_empty() {
-            return Err(BpfdError::ArgumentNotProvided("iface".to_string()));
-        }
-        if request.path.is_empty() {
-            return Err(BpfdError::ArgumentNotProvided("path".to_string()));
-        }
-
-        let next_available_id = if let Some(prog) = self.programs.get(&request.iface) {
+    pub(crate) fn add_program(
+        &mut self,
+        iface: String,
+        path: String,
+        priority: i32,
+        section_name: String,
+    ) -> Result<(), BpfdError> {
+        let id = Uuid::new_v4();
+        let next_available_id = if let Some(prog) = self.programs.get(&iface) {
             prog.len()
         } else {
-            self.programs.insert(request.iface.clone(), HashMap::new());
+            self.programs.insert(iface.clone(), HashMap::new());
             0
         };
 
@@ -361,16 +95,16 @@ impl BpfManager {
         dispatcher.load()?;
 
         let mut old_links = vec![];
-        if self.programs.contains_key(&request.iface) {
-            self.programs.get_mut(&request.iface).unwrap().insert(
+        if self.programs.contains_key(&iface) {
+            self.programs.get_mut(&iface).unwrap().insert(
                 id,
                 ExtensionProgram {
-                    path: request.path,
+                    path,
                     loader: None,
                     current_position: None,
                     metadata: Metadata {
-                        priority: request.priority,
-                        name: request.section_name,
+                        priority,
+                        name: section_name,
                         attached: false,
                     },
                     link: None,
@@ -378,7 +112,7 @@ impl BpfManager {
             );
             let mut extensions = self
                 .programs
-                .get_mut(&request.iface)
+                .get_mut(&iface)
                 .unwrap()
                 .values_mut()
                 .collect::<Vec<&mut ExtensionProgram>>();
@@ -425,11 +159,11 @@ impl BpfManager {
             }
         }
 
-        if let Some(mut d) = self.dispatchers.remove(&request.iface) {
+        if let Some(mut d) = self.dispatchers.remove(&iface) {
             let link = dispatcher.attach_to_link(d.link.take().unwrap()).unwrap();
             let owned_link = dispatcher.forget_link(link)?;
             self.dispatchers.insert(
-                request.iface.clone(),
+                iface.clone(),
                 DispatcherProgram {
                     loader: dispatcher_loader,
                     link: Some(owned_link),
@@ -445,12 +179,10 @@ impl BpfManager {
                 close(fd).unwrap();
             }
         } else {
-            let link = dispatcher
-                .attach(&request.iface, XdpFlags::default())
-                .unwrap();
+            let link = dispatcher.attach(&iface, XdpFlags::default()).unwrap();
             let owned_link = dispatcher.forget_link(link)?;
             self.dispatchers.insert(
-                request.iface.clone(),
+                iface.clone(),
                 DispatcherProgram {
                     loader: dispatcher_loader,
                     link: Some(owned_link),
@@ -459,30 +191,18 @@ impl BpfManager {
         }
         info!(
             "{} programs attached to {}",
-            self.programs.get(&request.iface).unwrap().len(),
-            &request.iface,
+            self.programs.get(&iface).unwrap().len(),
+            &iface,
         );
         Ok(())
     }
 
-    fn remove_program(&mut self, request: UnloadRequest) -> Result<(), BpfdError> {
-        if request.id.is_empty() {
-            return Err(BpfdError::ArgumentNotProvided("id".to_string()));
-        }
-        if request.iface.is_empty() {
-            return Err(BpfdError::ArgumentNotProvided("iface".to_string()));
-        }
-
-        let id = request
-            .id
-            .parse::<Uuid>()
-            .map_err(|_| BpfdError::InvalidID)?;
-
-        if let Some(programs) = self.programs.get_mut(&request.iface) {
+    pub(crate) fn remove_program(&mut self, id: Uuid, iface: String) -> Result<(), BpfdError> {
+        if let Some(programs) = self.programs.get_mut(&iface) {
             // Keep old_program until the dispatcher has been reloaded
             if let Some(mut old_program) = programs.remove(&id) {
-                if programs.len() == 0 {
-                    if let Some(mut dispatcher) = self.dispatchers.remove(&request.iface) {
+                if programs.is_empty() {
+                    if let Some(mut dispatcher) = self.dispatchers.remove(&iface) {
                         // HACK: Close old dispatcher.
                         // I'm not sure why this doesn't get cleaned up on drop of `Bpf`...
                         // Probably some fancy refcount thing that isn't aware of bpf_link_update.
@@ -551,11 +271,11 @@ impl BpfManager {
                     v.link = Some(ext.forget_link(new_link_id)?);
                 }
 
-                if let Some(mut d) = self.dispatchers.remove(&request.iface) {
+                if let Some(mut d) = self.dispatchers.remove(&iface) {
                     let link = dispatcher.attach_to_link(d.link.take().unwrap()).unwrap();
                     let owned_link = dispatcher.forget_link(link)?;
                     self.dispatchers.insert(
-                        request.iface.clone(),
+                        iface.clone(),
                         DispatcherProgram {
                             loader: dispatcher_loader,
                             link: Some(owned_link),
@@ -592,7 +312,7 @@ impl BpfManager {
         Ok(())
     }
 
-    fn list_programs(&mut self, iface: String) -> Result<Vec<ProgramInfo>, BpfdError> {
+    pub(crate) fn list_programs(&mut self, iface: String) -> Result<Vec<ProgramInfo>, BpfdError> {
         if iface.is_empty() {
             return Err(BpfdError::ArgumentNotProvided("iface".to_string()));
         }
@@ -615,7 +335,7 @@ impl BpfManager {
         Ok(results)
     }
 
-    fn get_map(
+    pub(crate) fn get_map(
         &mut self,
         iface: String,
         id: String,
@@ -660,10 +380,10 @@ impl BpfManager {
 }
 
 #[derive(Debug, Clone)]
-struct ProgramInfo {
-    id: String,
-    name: String,
-    path: String,
-    position: usize,
-    priority: i32,
+pub(crate) struct ProgramInfo {
+    pub(crate) id: String,
+    pub(crate) name: String,
+    pub(crate) path: String,
+    pub(crate) position: usize,
+    pub(crate) priority: i32,
 }
