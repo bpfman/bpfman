@@ -31,13 +31,29 @@ jobs:
       - uses: Swatinem/rust-cache@v1
 
       - name: Install deps
-        run: sudo apt-get update && sudo apt-get install -qy libelf-dev
+        run: |
+          sudo apt-get update && sudo apt-get install -qy libelf-dev
+          cargo install bpf-linker
 
       - name: Build eBPF
         run: |
           cargo xtask build-ebpf
           pushd bpfd-ebpf
           make
+          popd
+
+      - name: Check formatting
+        run: |
+          cargo fmt --all -- --check
+          pushd bpfd-ebpf
+          cargo fmt --all -- --check
+          popd
+
+      - name: Run clippy
+        run: |
+          cargo clippy --all -- -A clippy::derive_partial_eq_without_eq --deny warnings
+          pushd bpfd-ebpf
+          cargo clippy --all -- -A clippy::derive_partial_eq_without_eq --deny warnings
           popd
 
       - name: Build
