@@ -27,14 +27,18 @@ jobs:
           override: true
 
       - name: Install deps
-        run: sudo apt-get update && sudo apt-get install -qy libelf-dev
+        run: sudo apt-get update && sudo apt-get install -qy libelf-dev libc6-dev
 
       - name: Check formatting
         run: |
           cargo fmt --all -- --check
-          cargo fmt --manifest-path ./bpfd-ebpf/Cargo.toml -- --check
+          pushd bpfd-ebpf
+          cargo fmt --all -- --check
+          popd
 
       - name: Run clippy
         run: |
           cargo clippy --all -- -A clippy::derive_partial_eq_without_eq --deny warnings
-          cargo clippy --manifest-path ./bpfd-ebpf/Cargo.toml -- -A clippy::derive_partial_eq_without_eq --deny warnings
+          pushd bpfd-ebpf
+          cargo clippy --all -- -A clippy::derive_partial_eq_without_eq --deny warnings
+          popd
