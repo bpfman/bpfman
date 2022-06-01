@@ -17,10 +17,28 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: rust-src
+
       - uses: Swatinem/rust-cache@v1
 
       - name: Install deps
         run: sudo apt-get update && sudo apt-get install -qy libelf-dev
+
+      - name: Build eBPF
+        run: |
+          cargo xtask build-ebpf
+          pushd bpfd-ebpf
+          make
+          popd
 
       - name: Build
         run: cargo build --verbose
