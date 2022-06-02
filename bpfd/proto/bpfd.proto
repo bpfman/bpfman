@@ -39,6 +39,7 @@ message ListRequest {
 }
 
 message ListResponse {
+  string xdp_mode = 1;
   message ListResult {
     string id = 1;
     string name = 2;
@@ -46,7 +47,7 @@ message ListResponse {
     int32 priority = 4;
     string path = 5;
   }
-  repeated ListResult results = 1;
+  repeated ListResult results = 2;
 }
 
 message GetMapRequest {

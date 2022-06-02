@@ -1,9 +1,7 @@
 use thiserror::Error;
 
 #[derive(Debug, Error)]
-pub(crate) enum BpfdError {
-    #[error("argument {0} not provided")]
-    ArgumentNotProvided(String),
+pub enum BpfdError {
     #[error(transparent)]
     BpfProgramError(#[from] aya::programs::ProgramError),
     #[error(transparent)]

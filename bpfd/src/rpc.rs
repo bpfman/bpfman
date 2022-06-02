@@ -9,7 +9,7 @@ use bpfd_api::{
     ListResponse, LoadRequest, LoadResponse, UnloadRequest, UnloadResponse,
 };
 
-use crate::{bpf::ProgramInfo, errors::BpfdError};
+use crate::{bpf::InterfaceInfo, errors::BpfdError};
 
 pub mod bpfd_api {
     tonic::include_proto!("bpfd");
@@ -92,7 +92,10 @@ impl Loader for BpfdLoader {
     }
 
     async fn list(&self, request: Request<ListRequest>) -> Result<Response<ListResponse>, Status> {
-        let mut reply = ListResponse { results: vec![] };
+        let mut reply = ListResponse {
+            xdp_mode: String::new(),
+            results: vec![],
+        };
         let request = request.into_inner();
 
         let (resp_tx, resp_rx) = oneshot::channel();
@@ -109,7 +112,8 @@ impl Loader for BpfdLoader {
         let res = resp_rx.await.unwrap();
         match res {
             Ok(results) => {
-                for r in results {
+                reply.xdp_mode = results.xdp_mode;
+                for r in results.programs {
                     reply.results.push(ListResult {
                         id: r.id,
                         name: r.name,
@@ -170,7 +174,7 @@ pub(crate) enum Command {
     },
     List {
         iface: String,
-        responder: Responder<Result<Vec<ProgramInfo>, BpfdError>>,
+        responder: Responder<Result<InterfaceInfo, BpfdError>>,
     },
     GetMap {
         iface: String,
