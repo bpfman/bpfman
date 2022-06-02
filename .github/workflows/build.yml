@@ -14,8 +14,15 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:36
     steps:
+      - name: Install deps
+        run: |
+          sudo dnf groupinstall -y c-development
+          sudo dnf install -y git elfutils-libelf-devel clang llvm
+
       - uses: actions/checkout@v2
         with:
           submodules: recursive
@@ -30,12 +37,10 @@ jobs:
           toolchain: nightly
           components: rust-src
 
-      - uses: Swatinem/rust-cache@v1
+      - name: Install bpf-linker
+        run: cargo install bpf-linker
 
-      - name: Install deps
-        run: |
-          sudo apt-get update && sudo apt-get install -qy libelf-dev llvm-12 llvm-12-tools
-          cargo install bpf-linker
+      - uses: Swatinem/rust-cache@v1
 
       - name: Build eBPF
         run: |
