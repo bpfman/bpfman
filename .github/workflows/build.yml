@@ -21,7 +21,7 @@ jobs:
       - name: Install deps
         run: |
           sudo dnf groupinstall -y c-development
-          sudo dnf install -y git elfutils-libelf-devel clang llvm
+          sudo dnf install -y git elfutils-libelf-devel clang llvm protobuf-compiler cmake
 
       - uses: actions/checkout@v2
         with:
