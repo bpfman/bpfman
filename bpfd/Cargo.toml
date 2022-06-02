@@ -23,6 +23,8 @@ log = "0.4"
 simplelog = "0.12"
 bpfd-common = { path = "../bpfd-common", features=["user"] }
 nix = { version = "0.24", features = [ "socket", "fs" ]}
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.5"
 
 [build-dependencies]
 tonic-build = "0.7"

@@ -1,8 +1,6 @@
 use aya::{
     maps::MapFd,
-    programs::{
-        extension::ExtensionLink, xdp::XdpLink, Extension, OwnedLink, ProgramFd, Xdp, XdpFlags,
-    },
+    programs::{extension::ExtensionLink, xdp::XdpLink, Extension, OwnedLink, ProgramFd, Xdp},
     Bpf, BpfLoader,
 };
 use log::info;
@@ -18,7 +16,10 @@ use uuid::Uuid;
 
 use bpfd_common::*;
 
-use crate::errors::BpfdError;
+use crate::{
+    config::{Config, XdpMode},
+    errors::BpfdError,
+};
 
 const DEFAULT_ACTIONS_MAP: u32 = 1 << 2;
 const DEFAULT_PRIORITY: u32 = 50;
@@ -40,8 +41,15 @@ pub(crate) struct ExtensionProgram {
 }
 
 pub(crate) struct DispatcherProgram {
+    mode: XdpMode,
     loader: Bpf,
     link: Option<OwnedLink<XdpLink>>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct InterfaceInfo {
+    pub(crate) xdp_mode: String,
+    pub(crate) programs: Vec<ProgramInfo>,
 }
 
 #[derive(Debug, Clone)]
@@ -53,15 +61,17 @@ pub(crate) struct ProgramInfo {
     pub(crate) priority: i32,
 }
 
-pub(crate) struct BpfManager {
-    dispatcher_bytes: &'static [u8],
+pub(crate) struct BpfManager<'a> {
+    config: &'a Config,
+    dispatcher_bytes: &'a [u8],
     dispatchers: HashMap<String, DispatcherProgram>,
     programs: HashMap<String, HashMap<Uuid, ExtensionProgram>>,
 }
 
-impl BpfManager {
-    pub(crate) fn new(dispatcher_bytes: &'static [u8]) -> Self {
+impl<'a> BpfManager<'a> {
+    pub(crate) fn new(config: &'a Config, dispatcher_bytes: &'a [u8]) -> Self {
         Self {
+            config,
             dispatcher_bytes,
             dispatchers: HashMap::new(),
             programs: HashMap::new(),
@@ -177,25 +187,30 @@ impl BpfManager {
         Ok(())
     }
 
-    pub(crate) fn list_programs(&mut self, iface: String) -> Result<Vec<ProgramInfo>, BpfdError> {
-        if iface.is_empty() {
-            return Err(BpfdError::ArgumentNotProvided("iface".to_string()));
-        }
-        let mut results = vec![];
-        if let Some(programs) = self.programs.get(&iface) {
-            let mut extensions = programs.iter().collect::<Vec<_>>();
-            extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
-            for (id, v) in extensions.iter() {
-                results.push(ProgramInfo {
-                    id: id.to_string(),
-                    name: v.metadata.name.clone(),
-                    path: v.path.clone(),
-                    position: v.current_position.unwrap(),
-                    priority: v.metadata.priority,
-                })
-            }
-        } else {
+    pub(crate) fn list_programs(&mut self, iface: String) -> Result<InterfaceInfo, BpfdError> {
+        if !self.dispatchers.contains_key(&iface) {
             return Err(BpfdError::NoProgramsLoaded);
+        };
+        let xdp_mode = self.dispatchers.get(&iface).unwrap().mode.to_string();
+        let mut results = InterfaceInfo {
+            xdp_mode,
+            programs: vec![],
+        };
+        let mut extensions = self
+            .programs
+            .get(&iface)
+            .unwrap()
+            .iter()
+            .collect::<Vec<_>>();
+        extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
+        for (id, v) in extensions.iter() {
+            results.programs.push(ProgramInfo {
+                id: id.to_string(),
+                name: v.metadata.name.clone(),
+                path: v.path.clone(),
+                position: v.current_position.unwrap(),
+                priority: v.metadata.priority,
+            })
         }
         Ok(results)
     }
@@ -318,6 +333,7 @@ impl BpfManager {
             self.dispatchers.insert(
                 iface.clone(),
                 DispatcherProgram {
+                    mode: d.mode,
                     loader: dispatcher_loader,
                     link: Some(owned_link),
                 },
@@ -335,11 +351,18 @@ impl BpfManager {
                 close(fd).unwrap();
             }
         } else {
-            let link = dispatcher.attach(&iface, XdpFlags::default()).unwrap();
+            let mode = if let Some(i) = &self.config.interfaces {
+                i.get(&iface).map_or(XdpMode::Skb, |i| i.xdp_mode)
+            } else {
+                XdpMode::Skb
+            };
+            let flags = mode.as_flags();
+            let link = dispatcher.attach(&iface, flags).unwrap();
             let owned_link = dispatcher.forget_link(link)?;
             self.dispatchers.insert(
                 iface.clone(),
                 DispatcherProgram {
+                    mode,
                     loader: dispatcher_loader,
                     link: Some(owned_link),
                 },
@@ -349,7 +372,7 @@ impl BpfManager {
     }
 }
 
-fn new_dispatcher(num_progs_enabled: u8, bytes: &'static [u8]) -> Result<Bpf, BpfdError> {
+fn new_dispatcher(num_progs_enabled: u8, bytes: &[u8]) -> Result<Bpf, BpfdError> {
     let config = XdpDispatcherConfig {
         num_progs_enabled,
         chain_call_actions: [DEFAULT_ACTIONS_MAP; 10],

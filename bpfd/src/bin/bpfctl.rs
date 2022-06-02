@@ -124,6 +124,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 iface: iface.to_string(),
             });
             let response = client.list(request).await?.into_inner();
+            println!("{}\nxdp_mode: {}\n", iface, response.xdp_mode);
             for r in response.results {
                 println!(
                     "{}: {}\n\tname: \"{}\"\n\tpriority: {}\n\tpath: {}",

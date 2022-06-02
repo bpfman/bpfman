@@ -1,14 +1,20 @@
+mod bpf;
+mod config;
+mod errors;
+mod rpc;
+
 use bpf::BpfManager;
+pub use config::config_from_file;
+use config::Config;
 use log::info;
 use rpc::{bpfd_api::loader_server::LoaderServer, BpfdLoader, Command};
 use tokio::sync::mpsc;
 use tonic::transport::Server;
 
-mod bpf;
-mod errors;
-mod rpc;
-
-pub async fn serve(dispatcher_bytes: &'static [u8]) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn serve(
+    config: Config,
+    dispatcher_bytes: &'static [u8],
+) -> Result<(), Box<dyn std::error::Error>> {
     let (tx, mut rx) = mpsc::channel(32);
     let addr = "[::1]:50051".parse().unwrap();
 
@@ -25,7 +31,7 @@ pub async fn serve(dispatcher_bytes: &'static [u8]) -> Result<(), Box<dyn std::e
         }
     });
 
-    let mut bpf_manager = BpfManager::new(dispatcher_bytes);
+    let mut bpf_manager = BpfManager::new(&config, dispatcher_bytes);
 
     // Start receiving messages
     while let Some(cmd) = rx.recv().await {
