@@ -17,7 +17,7 @@ prost = "0.10"
 thiserror = "1"
 clap = { version = "3", features = ["derive"]}
 aya = { git = "https://github.com/aya-rs/aya", branch = "main" }
-tokio = { version = "1.14.0", features = ["full"] }
+tokio = { version = "1.19.1", features = ["full"] }
 uuid = { version = "1", features = ["v4"] }
 log = "0.4"
 simplelog = "0.12"
