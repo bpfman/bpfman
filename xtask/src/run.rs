@@ -58,7 +58,7 @@ pub fn run(opts: Options) -> Result<(), anyhow::Error> {
     args.append(&mut run_args);
 
     // spawn the command
-    let err = Command::new(args.get(0).expect("No first argument"))
+    let err = Command::new(args.first().expect("No first argument"))
         .args(args.iter().skip(1))
         .exec();
 
