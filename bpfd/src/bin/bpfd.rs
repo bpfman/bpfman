@@ -1,6 +1,9 @@
 use aya::include_bytes_aligned;
 use bpfd::config_from_file;
-use nix::{sys::resource::{setrlimit, Resource}, libc::RLIM_INFINITY};
+use nix::{
+    libc::RLIM_INFINITY,
+    sys::resource::{setrlimit, Resource},
+};
 use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
 
 #[tokio::main]
