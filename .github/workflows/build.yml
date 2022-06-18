@@ -45,9 +45,6 @@ jobs:
       - name: Build eBPF
         run: |
           cargo xtask build-ebpf
-          pushd bpfd-ebpf
-          make
-          popd
 
       - name: Check formatting
         run: |
