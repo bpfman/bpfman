@@ -28,11 +28,11 @@ $ cargo build
 
 ## Usage
 
-Load the sample XDP Program:
+Load a sample XDP Program:
 ```
 $ cargo build
 $ sudo ./target/debug/bpfd&
-$ ./target/debug/bpfctl load ./target/bpfel-unknown-none/release/xdp-pass -p xdp -i wlp2s0 --priority 50 -s "pass"
+$ ./target/debug/bpfctl load /path/to/xdp/program -p xdp -i wlp2s0 --priority 50 -s "pass"
 ```
 ## License
 

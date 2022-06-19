@@ -2,8 +2,7 @@
 // Copyright Authors of bpfd
 
 use aya::{
-    maps::MapFd,
-    programs::{extension::ExtensionLink, xdp::XdpLink, Extension, OwnedLink, ProgramFd, Xdp},
+    programs::{extension::ExtensionLink, xdp::XdpLink, Extension, OwnedLink, Xdp},
     Bpf, BpfLoader,
 };
 use log::info;
@@ -12,9 +11,8 @@ use nix::{
     sys::socket::{
         sendmsg, socket, AddressFamily, ControlMessage, MsgFlags, SockFlag, SockType, UnixAddr,
     },
-    unistd::close,
 };
-use std::{collections::HashMap, io::IoSlice, path::Path};
+use std::{collections::HashMap, io::IoSlice, os::unix::prelude::AsRawFd, path::Path};
 use uuid::Uuid;
 
 use bpfd_common::*;
@@ -45,7 +43,7 @@ pub(crate) struct ExtensionProgram {
 
 pub(crate) struct DispatcherProgram {
     mode: XdpMode,
-    loader: Bpf,
+    _loader: Bpf,
     link: Option<OwnedLink<XdpLink>>,
 }
 
@@ -131,33 +129,8 @@ impl<'a> BpfManager<'a> {
     pub(crate) fn remove_program(&mut self, id: Uuid, iface: String) -> Result<(), BpfdError> {
         if let Some(programs) = self.programs.get_mut(&iface) {
             // Keep old_program until the dispatcher has been reloaded
-            if let Some(mut old_program) = programs.remove(&id) {
+            if let Some(_old_program) = programs.remove(&id) {
                 if programs.is_empty() {
-                    if let Some(mut dispatcher) = self.dispatchers.remove(&iface) {
-                        // HACK: Close old dispatcher.
-                        // I'm not sure why this doesn't get cleaned up on drop of `Bpf`...
-                        // Probably some fancy refcount thing that isn't aware of bpf_link_update.
-                        // We should offer program.unload() to avoid unsafe + also fix this in Aya.
-                        let dispatcher_prog: &mut Xdp = dispatcher
-                            .loader
-                            .program_mut(DISPATCHER_PROGRAM_NAME)
-                            .unwrap()
-                            .try_into()?;
-                        if let Some(fd) = dispatcher_prog.fd() {
-                            close(fd).unwrap();
-                        }
-                    }
-                    // HACK: Close old exetnsion.
-                    let old_ext: &mut Extension = old_program
-                        .loader
-                        .as_mut()
-                        .unwrap()
-                        .program_mut(old_program.metadata.name.as_str())
-                        .unwrap()
-                        .try_into()?;
-                    if let Some(fd) = old_ext.fd() {
-                        close(fd).unwrap();
-                    }
                     return Ok(());
                 }
 
@@ -169,18 +142,6 @@ impl<'a> BpfManager<'a> {
                 let _old_links = self.attach_extensions(&iface, &mut dispatcher_loader)?;
 
                 self.update_or_replace_dispatcher(iface, dispatcher_loader)?;
-
-                // HACK: Close old exetnsion.
-                let old_ext: &mut Extension = old_program
-                    .loader
-                    .as_mut()
-                    .unwrap()
-                    .program_mut(old_program.metadata.name.as_str())
-                    .unwrap()
-                    .try_into()?;
-                if let Some(fd) = old_ext.fd() {
-                    close(fd).unwrap();
-                }
             } else {
                 return Err(BpfdError::InvalidID);
             }
@@ -237,7 +198,8 @@ impl<'a> BpfManager<'a> {
                 if let Some(fd) = map.fd() {
                     // FIXME: Error handling here is terrible!
                     // Don't unwrap everything and return a BpfdError::SocketError instead.
-                    let dup = fcntl(fd, FcntlArg::F_DUPFD_CLOEXEC(fd)).unwrap();
+                    let dup =
+                        fcntl(fd.as_raw_fd(), FcntlArg::F_DUPFD_CLOEXEC(fd.as_raw_fd())).unwrap();
                     let path = Path::new(&socket_path);
                     let sock_addr = UnixAddr::new(path).unwrap();
                     let sock = socket(
@@ -295,24 +257,23 @@ impl<'a> BpfManager<'a> {
                     .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
                     .unwrap();
                 old_links.push(old_link);
-                v.link = Some(ext.forget_link(new_link_id)?);
+                v.link = Some(ext.take_link(new_link_id)?);
                 v.current_position = Some(i);
                 v.metadata.attached = true;
             } else {
                 let mut ext_loader = BpfLoader::new()
                     .extension(&v.metadata.name)
                     .load_file(v.path.clone())?;
-
                 let ext: &mut Extension = ext_loader
                     .program_mut(&v.metadata.name)
-                    .unwrap()
+                    .ok_or(BpfdError::SectionNameNotValid(v.metadata.name.clone()))?
                     .try_into()?;
 
                 let target_fn = format!("prog{}", i);
 
                 ext.load(dispatcher.fd().unwrap(), &target_fn)?;
                 let ext_link = ext.attach()?;
-                v.link = Some(ext.forget_link(ext_link)?);
+                v.link = Some(ext.take_link(ext_link)?);
                 v.loader = Some(ext_loader);
                 v.current_position = Some(i);
                 v.metadata.attached = true;
@@ -332,27 +293,15 @@ impl<'a> BpfManager<'a> {
             .try_into()?;
         if let Some(mut d) = self.dispatchers.remove(&iface) {
             let link = dispatcher.attach_to_link(d.link.take().unwrap()).unwrap();
-            let owned_link = dispatcher.forget_link(link)?;
+            let owned_link = dispatcher.take_link(link)?;
             self.dispatchers.insert(
                 iface.clone(),
                 DispatcherProgram {
                     mode: d.mode,
-                    loader: dispatcher_loader,
+                    _loader: dispatcher_loader,
                     link: Some(owned_link),
                 },
             );
-            // HACK: Close old dispatcher.
-            // I'm not sure why this doesn't get cleaned up on drop of `Bpf`...
-            // Probably some fancy refcount thing that isn't aware of bpf_link_update.
-            // We should offer program.unload() to avoid unsafe + also fix this in Aya.
-            let old_dispatcher: &mut Xdp = d
-                .loader
-                .program_mut(DISPATCHER_PROGRAM_NAME)
-                .unwrap()
-                .try_into()?;
-            if let Some(fd) = old_dispatcher.fd() {
-                close(fd).unwrap();
-            }
         } else {
             let mode = if let Some(i) = &self.config.interfaces {
                 i.get(&iface).map_or(XdpMode::Skb, |i| i.xdp_mode)
@@ -361,12 +310,12 @@ impl<'a> BpfManager<'a> {
             };
             let flags = mode.as_flags();
             let link = dispatcher.attach(&iface, flags).unwrap();
-            let owned_link = dispatcher.forget_link(link)?;
+            let owned_link = dispatcher.take_link(link)?;
             self.dispatchers.insert(
                 iface.clone(),
                 DispatcherProgram {
                     mode,
-                    loader: dispatcher_loader,
+                    _loader: dispatcher_loader,
                     link: Some(owned_link),
                 },
             );

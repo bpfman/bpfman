@@ -102,8 +102,8 @@ dependencies = [
 
 [[package]]
 name = "aya"
-version = "0.10.7"
-source = "git+https://github.com/dave-tucker/aya?branch=bpfd-v2#4216cab80cbc87682f737b5c03e2ab613276c1bb"
+version = "0.11.0"
+source = "git+https://github.com/dave-tucker/aya?branch=bpfd#49323401b65c43be1beacbdf55ddb9a89f3e6531"
 dependencies = [
  "bitflags",
  "bytes",
