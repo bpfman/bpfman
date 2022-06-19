@@ -19,7 +19,7 @@ tonic = "0.7"
 prost = "0.10"
 thiserror = "1"
 clap = { version = "3", features = ["derive"]}
-aya = "0.10.7"
+aya = "0.11"
 tokio = { version = "1.19.2", features = ["full"] }
 uuid = { version = "1", features = ["v4"] }
 log = "0.4"

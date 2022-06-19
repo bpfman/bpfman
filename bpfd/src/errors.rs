@@ -9,6 +9,8 @@ pub enum BpfdError {
     BpfProgramError(#[from] aya::programs::ProgramError),
     #[error(transparent)]
     BpfLoadError(#[from] aya::BpfError),
+    #[error("Unable to find a valid program with section name {0}")]
+    SectionNameNotValid(String),
     #[error("No room to attach program. Please remove one and try again.")]
     TooManyPrograms,
     #[error("No programs loaded to requested interface")]
