@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: (MIT OR Apache-2.0)
+// Copyright Authors of bpfd
+
 use aya::{
     maps::MapFd,
     programs::{extension::ExtensionLink, xdp::XdpLink, Extension, OwnedLink, ProgramFd, Xdp},

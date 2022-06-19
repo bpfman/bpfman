@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: (MIT OR Apache-2.0)
+// Copyright Authors of bpfd
+
 use aya::include_bytes_aligned;
 use bpfd::config_from_file;
 use nix::{
@@ -19,7 +22,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         TerminalMode::Mixed,
         ColorChoice::Auto,
     )?;
-    let dispatcher_bytes = include_bytes_aligned!("../../bpf/.output/xdp_dispatcher.bpf.o");
+    let dispatcher_bytes =
+        include_bytes_aligned!(concat!(env!("OUT_DIR"), "/xdp_dispatcher.bpf.o"));
 
     setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: (MIT OR Apache-2.0)
+// Copyright Authors of bpfd
+
 use std::{collections::HashMap, path::Path};
 
 use aya::programs::XdpFlags;

@@ -12,14 +12,6 @@ bpfd-common = { path = "../bpfd-common" }
 name = "xdp-dispatcher"
 path = "src/xdp.rs"
 
-[[bin]]
-name = "xdp-pass"
-path = "src/pass.rs"
-
-[[bin]]
-name = "xdp-drop"
-path = "src/drop.rs"
-
 [profile.dev]
 panic = "abort"
 opt-level = 2

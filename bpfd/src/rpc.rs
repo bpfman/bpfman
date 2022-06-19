@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: (MIT OR Apache-2.0)
+// Copyright Authors of bpfd
+
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 
 use std::sync::{Arc, Mutex};

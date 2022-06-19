@@ -38,15 +38,19 @@ $ ./target/debug/bpfctl load ./target/bpfel-unknown-none/release/xdp-pass -p xdp
 
 ## bpfd-ebpf
 
-Code in the `bpf-ebpf` crate is distributed under the terms of the [GNU General Public License, Version 2].
+Code in this crate is distributed under the terms of the [GNU General Public License, Version 2] or the [BSD 2 Clause] license, at your option.
 
-## Other crates
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this crate by you, as defined in the GPL-2 license, shall be dual licensed as above, without any additional terms or conditions.
 
-Code in all other crates is distributed under the terms of either the [MIT license] or the [Apache License] (version 2.0), at your option.
+## bpfd, bpfd-common
 
+Rust code in all other crates is distributed under the terms of either the [MIT license] or the [Apache License] (version 2.0), at your option.
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this crate by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
+
+The `bpfd` crate also contains eBPF code that is distributed under the terms of the [GNU General Public License, Version 2] or the [BSD 2 Clause] license, at your option. It is packaged, in object form, inside the `bpfd` binary.
 
 [MIT license]: LICENSE-MIT
 [Apache license]: LICENSE-APACHE
 [GNU General Public License, Version 2]: LICENSE-GPL
+[BSD 2 Clause]: LICENSE-BSD2

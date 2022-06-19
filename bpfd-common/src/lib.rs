@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: (MIT OR Apache-2.0)
+// Copyright Authors of bpfd
+
 #![no_std]
 
 pub const XDP_METADATA_SECTION: &str = "xdp_metadata";

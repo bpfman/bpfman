@@ -131,9 +131,11 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 name = "bpfd"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "aya",
  "bpfd-common",
  "clap 3.2.5",
+ "libbpf-sys",
  "log",
  "nix",
  "prost",
@@ -474,6 +476,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
+name = "libbpf-sys"
+version = "0.8.0+v0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28195d30a1fc5355743db9921a188bb393bb9c67a37fcefa00106dcaf6e5fd80"
+dependencies = [
+ "cc",
+ "pkg-config",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.126"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -665,6 +677,12 @@ name = "pin-utils"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
+
+[[package]]
+name = "pkg-config"
+version = "0.3.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1df8c4ec4b0627e53bdf214615ad287367e482558cf84b109250b37464dc03ae"
 
 [[package]]
 name = "ppv-lite86"
