@@ -1,9 +1,8 @@
-![Logo](./img/bpfd.png)
+# ![bpfd](./docs/img/bpfd.svg)
 
-bpfd
-====
+A system daemon for managing eBPF programs.
 
-A work in progress implementation of the xdp_multiprog protocol in Rust, using Aya.
+Includes a work in progress implementation of the xdp_multiprog protocol in Rust, using Aya.
 It differs from the implementation in libxdp as we have chosen to implement a daemon instead.
 
 - bpfd is the daemon
