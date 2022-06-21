@@ -51,7 +51,11 @@ nav:
     - index.md
   - Admin Guide:
     - admin/index.md
+    - Tutorial: admin/tutorial.md
     - Configuration: admin/configuration.md
+  - Developer Guide:
+    - developer/index.md
+    - Go: developer/go.md
 
 plugins:
   - search

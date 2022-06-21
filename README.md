@@ -1,16 +1,34 @@
 # ![bpfd](./docs/img/bpfd.svg)
 
 A system daemon for managing eBPF programs.
+## Why bpfd?
 
-Includes a work in progress implementation of the xdp_multiprog protocol in Rust, using Aya.
-It differs from the implementation in libxdp as we have chosen to implement a daemon instead.
+bpfd seeks to solve the following problems:
 
-- bpfd is the daemon
-- bpfctl is the client program
+- To allow multiple XDP programs to share the same interface
+- To give administrators control over who can load programs and to allow them to define rules for ordering of networking eBPF programs
+- To allow programs to be loaded automatically at system launch time
+- To simplify the packaging and loading of eBPF-based infrastructure software (i.e Kubernetes CNI plugins)
 
-There is a gRPC API that connects the two
+## How does it work?
 
-## Requirements
+bpfd is built using [Aya](https://aya-rs.dev) an eBPF library written in Rust.
+It offers two ways of interaction:
+
+- `bpfctl`: a command line tool
+- using GRPC
+
+It is expected that humans will use `bpfctl` whereas other applications on the system wishing to load programs using
+bpfd will use the GRPC. This allows for API bindings to be generated in any language supported by protocol buffers.
+We are initially targeting Go and Rust.
+
+In order to allow the attachment of multiple XDP programs to the same interface, we have implemented the
+[libxdp multiprog protocol](https://github.com/xdp-project/xdp-tools/blob/master/lib/libxdp/protocol.org).
+Offering this in bpfd allows for XDP applications whose loader was not using libxdp to benefit from this.
+We are also hoping to find a way for applications linked with libxdp to use bpfd instead if it's
+in use in the system.
+
+## Development Requirements
 
 - Rust Stable & Rust Nightly
 - [bpf-linker](https://github.com/aya-rs/bpf-linker)
@@ -18,7 +36,7 @@ There is a gRPC API that connects the two
 - LLVM 11 or later
 - ... and make sure the submodules are checked out
 
-## Building
+## Building bpfd
 
 ```
 $ cargo xtask build-ebpf --release
