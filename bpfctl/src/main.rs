@@ -3,14 +3,13 @@
 
 use std::path::PathBuf;
 
+use anyhow::Context;
+use bpfd::client::{ListRequest, LoadRequest, LoaderClient, ProgramType, UnloadRequest};
 use clap::{Parser, Subcommand};
 use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
-use thiserror::Error;
-pub mod bpfd_api {
-    tonic::include_proto!("bpfd");
-}
-
-use bpfd_api::{loader_client::LoaderClient, ListRequest, LoadRequest, ProgramType, UnloadRequest};
+mod config;
+use config::config_from_file;
+use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -44,41 +43,8 @@ enum Commands {
     },
 }
 
-impl ToString for ProgramType {
-    fn to_string(&self) -> String {
-        match &self {
-            ProgramType::Xdp => "xdp".to_owned(),
-            ProgramType::TcIngress => "tc_ingress".to_owned(),
-            ProgramType::TcEgress => "tc_egress".to_owned(),
-        }
-    }
-}
-
-#[derive(Error, Debug)]
-pub enum BpfctlError {
-    #[error("{program} is not a valid program type")]
-    InvalidProgramType { program: String },
-}
-
-impl TryFrom<String> for ProgramType {
-    type Error = BpfctlError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Ok(match value.as_str() {
-            "xdp" => ProgramType::Xdp,
-            "tc_ingress" => ProgramType::TcIngress,
-            "tc_egress" => ProgramType::TcEgress,
-            program => {
-                return Err(BpfctlError::InvalidProgramType {
-                    program: program.to_string(),
-                })
-            }
-        })
-    }
-}
-
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> anyhow::Result<()> {
     TermLogger::init(
         LevelFilter::Info,
         ConfigBuilder::new()
@@ -88,7 +54,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         TerminalMode::Mixed,
         ColorChoice::Auto,
     )?;
-    let channel = tonic::transport::Channel::from_static("http://[::1]:50051")
+
+    let config = config_from_file("/etc/bpfd/bpfctl.toml");
+
+    let ca_cert = tokio::fs::read(&config.tls.ca_cert)
+        .await
+        .context("CA Cert File does not exist")?;
+    let ca_cert = Certificate::from_pem(ca_cert);
+    let cert = tokio::fs::read(&config.tls.cert)
+        .await
+        .context("Cert File does not exist")?;
+    let key = tokio::fs::read(&config.tls.key)
+        .await
+        .context("Cert Key File does not exist")?;
+    let identity = Identity::from_pem(cert, key);
+
+    let tls_config = ClientTlsConfig::new()
+        .domain_name("localhost")
+        .ca_certificate(ca_cert)
+        .identity(identity);
+    let channel = Channel::from_static("http://[::1]:50051")
+        .tls_config(tls_config)?
         .connect()
         .await?;
 

@@ -2,21 +2,23 @@
 // Copyright Authors of bpfd
 
 use aya::include_bytes_aligned;
-use bpfd::config_from_file;
+use bpfd::server::{config_from_file, serve};
 use nix::{
     libc::RLIM_INFINITY,
     sys::resource::{setrlimit, Resource},
 };
-use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
 
+use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> anyhow::Result<()> {
     TermLogger::init(
         LevelFilter::Debug,
         ConfigBuilder::new()
             .set_target_level(LevelFilter::Error)
             .set_location_level(LevelFilter::Error)
             .add_filter_ignore("h2".to_string())
+            .add_filter_ignore("rustls".to_string())
+            .add_filter_ignore("hyper".to_string())
             .add_filter_ignore("aya".to_string())
             .build(),
         TerminalMode::Mixed,
@@ -28,6 +30,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
 
     let config = config_from_file("/etc/bpfd.toml");
-    bpfd::serve(config, dispatcher_bytes).await?;
+    serve(config, dispatcher_bytes).await?;
     Ok(())
 }

@@ -4,12 +4,31 @@
 use std::{collections::HashMap, path::Path};
 
 use aya::programs::XdpFlags;
+use log::{error, warn};
 use serde::Deserialize;
 use std::fs;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Config {
+    pub tls: TlsConfig,
     pub interfaces: Option<HashMap<String, InterfaceConfig>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TlsConfig {
+    pub ca_cert: String,
+    pub cert: String,
+    pub key: String,
+}
+
+impl Default for TlsConfig {
+    fn default() -> Self {
+        Self {
+            ca_cert: "/etc/bpfd/certs/ca/ca.pem".to_string(),
+            cert: "/etc/bpfd/certs/bpfd/bpfd.pem".to_string(),
+            key: "/etc/bpfd/certs/bpfd/bpfd.key".to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -46,8 +65,15 @@ impl ToString for XdpMode {
 }
 
 pub fn config_from_file<P: AsRef<Path>>(path: P) -> Config {
-    let contents = fs::read_to_string(path).unwrap_or_default();
-    toml::from_str(&contents).unwrap()
+    if let Ok(contents) = fs::read_to_string(path) {
+        toml::from_str(&contents).unwrap_or_else(|e| {
+            error!("Error reading config file. Using default. {}", e);
+            Config::default()
+        })
+    } else {
+        warn!("No config file provided. Using default");
+        Config::default()
+    }
 }
 
 #[cfg(test)]
@@ -62,6 +88,11 @@ mod test {
     #[test]
     fn test_config_single_iface() {
         let input = r#"
+        [tls]
+        ca_cert = "/path/to/ca-cert.pem"
+        cert = "/path/to/cert.pem"
+        key = "/path/to/cert.key"
+
         [interfaces]
           [interfaces.eth0]
           xdp_mode = "drv"
@@ -79,6 +110,11 @@ mod test {
     #[test]
     fn test_config_multiple_iface() {
         let input = r#"
+        [tls]
+        ca_cert = "/path/to/ca-cert.pem"
+        cert = "/path/to/cert.pem"
+        key = "/path/to/cert.key"
+
         [interfaces]
           [interfaces.eth0]
           xdp_mode = "drv"
@@ -100,5 +136,19 @@ mod test {
             }
             None => panic!("expected interfaces to be present"),
         }
+    }
+
+    #[test]
+    fn test_config_tls() {
+        let input = r#"
+        [tls]
+        ca_cert = "/path/to/ca-cert.pem"
+        cert = "/path/to/cert.pem"
+        key = "/path/to/cert.key"
+        "#;
+        let config: Config = toml::from_str(input).expect("error parsing toml input");
+        assert_eq!(config.tls.ca_cert, "/path/to/ca-cert.pem");
+        assert_eq!(config.tls.cert, "/path/to/cert.pem");
+        assert_eq!(config.tls.key, "/path/to/cert.key");
     }
 }
