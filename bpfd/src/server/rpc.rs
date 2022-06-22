@@ -3,20 +3,16 @@
 
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 
+use crate::{
+    proto::bpfd_api::{
+        list_response::ListResult, loader_server::Loader, GetMapRequest, GetMapResponse,
+        ListRequest, ListResponse, LoadRequest, LoadResponse, UnloadRequest, UnloadResponse,
+    },
+    server::{bpf::InterfaceInfo, errors::BpfdError},
+};
 use std::sync::{Arc, Mutex};
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
-
-use bpfd_api::{
-    list_response::ListResult, loader_server::Loader, GetMapRequest, GetMapResponse, ListRequest,
-    ListResponse, LoadRequest, LoadResponse, UnloadRequest, UnloadResponse,
-};
-
-use crate::{bpf::InterfaceInfo, errors::BpfdError};
-
-pub mod bpfd_api {
-    tonic::include_proto!("bpfd");
-}
 
 #[derive(Debug)]
 pub struct BpfdLoader {
@@ -37,7 +33,7 @@ impl BpfdLoader {
 #[tonic::async_trait]
 impl Loader for BpfdLoader {
     async fn load(&self, request: Request<LoadRequest>) -> Result<Response<LoadResponse>, Status> {
-        let mut reply = bpfd_api::LoadResponse { id: String::new() };
+        let mut reply = LoadResponse { id: String::new() };
         let request = request.into_inner();
 
         let (resp_tx, resp_rx) = oneshot::channel();
@@ -68,7 +64,7 @@ impl Loader for BpfdLoader {
         &self,
         request: Request<UnloadRequest>,
     ) -> Result<Response<UnloadResponse>, Status> {
-        let reply = bpfd_api::UnloadResponse {};
+        let reply = UnloadResponse {};
         let request = request.into_inner();
         let id = request
             .id

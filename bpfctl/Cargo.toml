@@ -1,34 +1,23 @@
 [package]
-name = "bpfd"
+name = "bpfctl"
 version = "0.1.0"
 edition = "2021"
-description = "A system daemon for loading eBPF programs"
+description = "A client for working with bpfd"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/redhat-et/bpfd"
 
 [[bin]]
-    name = "bpfd"
+    name = "bpfctl"
     path = "src/main.rs"
 
-[lib]
-
 [dependencies]
+bpfd = { version = "0.1.0", path = "../bpfd" }
 tonic = { version = "0.7", features = ["tls"] }
 prost = "0.10"
 anyhow = "1"
-thiserror = "1"
 clap = { version = "3", features = ["derive"]}
-aya = "0.11"
 tokio = { version = "1.19.2", features = ["full"] }
-uuid = { version = "1", features = ["v4"] }
 log = "0.4"
 simplelog = "0.12"
-bpfd-common = { version = "0.1.0", path = "../bpfd-common", features=["user"] }
-nix = { version = "0.24", features = [ "socket", "fs" ]}
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.5"
-
-[build-dependencies]
-anyhow = "1.0"
-tonic-build = "0.7"
-libbpf-sys = "0.8.0"

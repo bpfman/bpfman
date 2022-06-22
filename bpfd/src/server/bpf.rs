@@ -17,7 +17,7 @@ use uuid::Uuid;
 
 use bpfd_common::*;
 
-use crate::{
+use crate::server::{
     config::{Config, XdpMode},
     errors::BpfdError,
 };
