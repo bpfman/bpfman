@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
+use std::{collections::HashMap, io::IoSlice, os::unix::prelude::AsRawFd, path::Path};
+
 use aya::{
     programs::{extension::ExtensionLink, xdp::XdpLink, Extension, OwnedLink, Xdp},
     Bpf, BpfLoader,
 };
+use bpfd_common::*;
 use log::info;
 use nix::{
     fcntl::{fcntl, FcntlArg},
@@ -12,10 +15,7 @@ use nix::{
         sendmsg, socket, AddressFamily, ControlMessage, MsgFlags, SockFlag, SockType, UnixAddr,
     },
 };
-use std::{collections::HashMap, io::IoSlice, os::unix::prelude::AsRawFd, path::Path};
 use uuid::Uuid;
-
-use bpfd_common::*;
 
 use crate::server::{
     config::{Config, XdpMode},

@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
+use std::sync::{Arc, Mutex};
+
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
+use tonic::{Request, Response, Status};
+use uuid::Uuid;
 use x509_certificate::X509Certificate;
 
 use crate::{
@@ -10,9 +14,6 @@ use crate::{
     },
     server::{bpf::InterfaceInfo, errors::BpfdError},
 };
-use std::sync::{Arc, Mutex};
-use tonic::{Request, Response, Status};
-use uuid::Uuid;
 
 #[derive(Debug, Default)]
 struct User {

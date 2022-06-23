@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, fs, path::Path};
 
 use aya::programs::XdpFlags;
 use log::{error, warn};
 use serde::Deserialize;
-use std::fs;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Config {

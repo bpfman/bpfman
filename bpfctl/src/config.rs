@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
-// Copyright Authors of bpfctl
+// Copyright Authors of bpfd
+
+use std::{fs, path::Path};
 
 use log::{error, warn};
 use serde::Deserialize;
-use std::{fs, path::Path};
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Config {

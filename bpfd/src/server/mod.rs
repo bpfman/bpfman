@@ -6,18 +6,17 @@ mod config;
 mod errors;
 mod rpc;
 
-use crate::proto::bpfd_api::loader_server::LoaderServer;
 use anyhow::Context;
 use bpf::BpfManager;
 pub use config::config_from_file;
 use config::Config;
 use log::info;
 use rpc::{BpfdLoader, Command};
-
 use tokio::sync::mpsc;
 use tonic::transport::{Certificate, Identity, Server, ServerTlsConfig};
 
 use self::rpc::intercept;
+use crate::proto::bpfd_api::loader_server::LoaderServer;
 
 pub async fn serve(config: Config, dispatcher_bytes: &'static [u8]) -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(32);

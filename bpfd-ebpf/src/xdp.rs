@@ -9,7 +9,6 @@ use aya_bpf::{
     programs::XdpContext,
     BpfContext,
 };
-
 use bpfd_common::*;
 
 #[no_mangle]

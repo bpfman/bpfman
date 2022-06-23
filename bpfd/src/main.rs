@@ -7,8 +7,8 @@ use nix::{
     libc::RLIM_INFINITY,
     sys::resource::{setrlimit, Resource},
 };
-
 use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     TermLogger::init(

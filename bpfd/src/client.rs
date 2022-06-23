@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
+use thiserror::Error;
+
 pub use crate::proto::bpfd_api::{
     loader_client::LoaderClient, ListRequest, ListResponse, LoadRequest, LoadResponse, ProgramType,
     UnloadRequest, UnloadResponse,
 };
-use thiserror::Error;
 
 impl ToString for ProgramType {
     fn to_string(&self) -> String {
