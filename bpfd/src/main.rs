@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::{env, str::FromStr};
+use std::{
+    env,
+    fs::{create_dir_all, File},
+    io::{BufRead, BufReader},
+    str::FromStr,
+};
 
+use anyhow::{bail, Context};
 use aya::include_bytes_aligned;
 use bpfd::server::{config_from_file, programs_from_directory, serve};
 use log::{debug, error};
 use nix::{
     libc::RLIM_INFINITY,
+    mount::{mount, MsFlags},
     sys::resource::{setrlimit, Resource},
     unistd,
 };
@@ -16,6 +23,7 @@ use systemd_journal_logger::{connected_to_journal, init_with_extra_fields};
 const DEFAULT_BPFD_CONFIG_PATH: &str = "/etc/bpfd/bpfd.toml";
 const DEFAULT_BPFD_STATIC_PROGRAM_DIR: &str = "/etc/bpfd/programs.d";
 const BPFD_ENV_LOG_LEVEL: &str = "RUST_LOG";
+const BPFFS: &str = "/var/run/bpfd/fs";
 
 fn main() -> anyhow::Result<()> {
     tokio::runtime::Builder::new_multi_thread()
@@ -41,6 +49,18 @@ fn main() -> anyhow::Result<()> {
                 "../../target/bpfel-unknown-none/release/xdp_dispatcher.bpf.o"
             );
             setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
+
+            create_dir_all(BPFFS).context("unable to create mountpoint")?;
+
+            if !is_bpffs_mounted()? {
+                debug!("Creating bpffs at /var/run/bpfd/fs");
+                let flags = MsFlags::MS_NOSUID
+                    | MsFlags::MS_NODEV
+                    | MsFlags::MS_NOEXEC
+                    | MsFlags::MS_RELATIME;
+                mount::<str, str, str, str>(None, BPFFS, Some("bpf"), flags, None)
+                    .context("unable to mount bpffs")?;
+            }
 
             let config = config_from_file(DEFAULT_BPFD_CONFIG_PATH);
 
@@ -83,4 +103,24 @@ fn drop_linux_capabilities() {
     drop_all_cap(caps::CapSet::Effective);
     drop_all_cap(caps::CapSet::Inheritable);
     drop_all_cap(caps::CapSet::Permitted);
+}
+
+fn is_bpffs_mounted() -> Result<bool, anyhow::Error> {
+    let file = File::open("/proc/mounts").context("Failed to open /proc/mounts")?;
+    let reader = BufReader::new(file);
+    for l in reader.lines() {
+        match l {
+            Ok(line) => {
+                let parts: Vec<&str> = line.split(' ').collect();
+                if parts.len() != 6 {
+                    bail!("expected 6 parts in proc mount")
+                }
+                if parts[0] == "none" && parts[1].contains("bpfd") && parts[2] == "bpf" {
+                    return Ok(true);
+                }
+            }
+            Err(e) => bail!("problem reading lines {}", e),
+        }
+    }
+    Ok(false)
 }
