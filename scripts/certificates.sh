@@ -4,43 +4,49 @@ set -e
 KEY_LEN=4096
 CERT_PATH=/etc/bpfd/certs
 
-# generate ca cert
-mkdir -p "${CERT_PATH}"/ca
-mkdir -p "${CERT_PATH}"/bpfd
-mkdir -p "${CERT_PATH}"/bpfctl
+init() {
+    # generate ca cert
+    mkdir -p "${CERT_PATH}"/ca
+    if [ ! -f "${CERT_PATH}"/ca/ca.pem ]; then
+        openssl genrsa -out "${CERT_PATH}"/ca/ca.key ${KEY_LEN}
+        openssl req -new -x509 -key "${CERT_PATH}"/ca/ca.key -subj "/CN=bpfd-ca/" -out "${CERT_PATH}"/ca/ca.pem
+        chmod -v 0400 "${CERT_PATH}"/ca/ca.pem "${CERT_PATH}"/ca/ca.key
+    fi
+    client bpfd
+    client bpfctl
+}
 
-if [ ! -f "${CERT_PATH}"/ca/ca.pem ]; then
-    openssl genrsa -out "${CERT_PATH}"/ca/ca.key ${KEY_LEN}
-    openssl req -new -x509 -key "${CERT_PATH}"/ca/ca.key -subj "/CN=bpfd-ca/" -out "${CERT_PATH}"/ca/ca.pem
-    chmod -v 0400 "${CERT_PATH}"/ca/ca.pem "${CERT_PATH}"/ca/ca.key
-fi
+client() {
+    name=$1
+    if [ -z "${name}" ]; then
+        echo "Client name required"
+        exit 1
+    fi
+    mkdir -p "${CERT_PATH}/${name}"
+    if [ ! -f "${CERT_PATH}/${name}/${name}.pem" ]; then
+        openssl genrsa -out "${CERT_PATH}/${name}/${name}.key" ${KEY_LEN}
+        openssl req -new -key "${CERT_PATH}/${name}/${name}.key" \
+            -subj "/CN=${name}/" \
+            -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" \
+            -out "${CERT_PATH}/${name}/${name}.csr"
+        openssl x509 -req -in "${CERT_PATH}/${name}/${name}.csr" \
+            -CA "${CERT_PATH}/ca/ca.pem" \
+            -CAkey "${CERT_PATH}/ca/ca.key" \
+            -extfile <(printf "subjectAltName=DNS:localhost,IP:127.0.0.1") \
+            -out "${CERT_PATH}/${name}/${name}.pem"
+        rm "${CERT_PATH}/${name}/${name}.csr"
+        chmod -v 0400 "${CERT_PATH}/${name}/${name}.pem" "${CERT_PATH}/${name}/${name}.key"
+    fi
+}
 
-if [ ! -f "${CERT_PATH}"/bpfd/bpfd.pem ]; then
-    openssl genrsa -out "${CERT_PATH}"/bpfd/bpfd.key ${KEY_LEN}
-    openssl req -new -key "${CERT_PATH}"/bpfd/bpfd.key \
-        -subj "/CN=bpfd/" \
-        -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" \
-        -out "${CERT_PATH}"/bpfd/bpfd.csr
-    openssl x509 -req -in "${CERT_PATH}"/bpfd/bpfd.csr \
-        -CA "${CERT_PATH}"/ca/ca.pem \
-        -CAkey "${CERT_PATH}"/ca/ca.key \
-        -extfile <(printf "subjectAltName=DNS:localhost,IP:127.0.0.1") \
-        -out "${CERT_PATH}"/bpfd/bpfd.pem
-    rm "${CERT_PATH}"/bpfd/bpfd.csr
-    chmod -v 0400 "${CERT_PATH}"/bpfd/bpfd.pem "${CERT_PATH}"/bpfd/bpfd.key
-fi
-
-if [ ! -f "${CERT_PATH}"/bpfctl/bpfctl.pem ]; then
-    openssl genrsa -out "${CERT_PATH}"/bpfctl/bpfctl.key ${KEY_LEN}
-    openssl req -new -key "${CERT_PATH}"/bpfctl/bpfctl.key \
-        -subj "/CN=bpfctl/" \
-        -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" \
-        -out "${CERT_PATH}"/bpfctl/bpfctl.csr
-    openssl x509 -req -in "${CERT_PATH}"/bpfctl/bpfctl.csr \
-        -CA "${CERT_PATH}"/ca/ca.pem \
-        -CAkey "${CERT_PATH}"/ca/ca.key \
-        -extfile <(printf "subjectAltName=DNS:localhost,IP:127.0.0.1") \
-        -out "${CERT_PATH}"/bpfctl/bpfctl.pem
-    rm "${CERT_PATH}"/bpfctl/bpfctl.csr
-    chmod -v 0400 "${CERT_PATH}"/bpfctl/bpfctl.pem "${CERT_PATH}"/bpfctl/bpfctl.key
-fi
+case $1 in
+    "init")
+        init
+        ;;
+    "client")
+        client "$2"
+        ;;
+    *)
+        echo "command required. init or client <name>"
+        exit 1
+esac

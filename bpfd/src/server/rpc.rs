@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
-
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
+use x509_certificate::X509Certificate;
 
 use crate::{
     proto::bpfd_api::{
@@ -13,6 +13,37 @@ use crate::{
 use std::sync::{Arc, Mutex};
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
+
+#[derive(Debug, Default)]
+struct User {
+    username: String,
+}
+
+static DEFAULT_USER: User = User {
+    username: String::new(),
+};
+
+/// This function will get called on each inbound request.
+/// It extracts the username from the client certificate and adds it to the request
+pub(crate) fn intercept(mut req: Request<()>) -> Result<Request<()>, Status> {
+    let certs = req
+        .peer_certs()
+        .ok_or_else(|| Status::unauthenticated("no certificate provided"))?;
+
+    if certs.len() != 1 {
+        return Err(Status::unauthenticated(
+            "expected only one client certificate",
+        ));
+    }
+
+    let cert = X509Certificate::from_der(certs[0].get_ref()).unwrap();
+    let username = cert
+        .subject_common_name()
+        .ok_or_else(|| Status::unauthenticated("CN is empty"))?;
+
+    req.extensions_mut().insert(User { username });
+    Ok(req)
+}
 
 #[derive(Debug)]
 pub struct BpfdLoader {
@@ -34,6 +65,12 @@ impl BpfdLoader {
 impl Loader for BpfdLoader {
     async fn load(&self, request: Request<LoadRequest>) -> Result<Response<LoadResponse>, Status> {
         let mut reply = LoadResponse { id: String::new() };
+        let username = request
+            .extensions()
+            .get::<User>()
+            .unwrap_or(&DEFAULT_USER)
+            .username
+            .to_string();
         let request = request.into_inner();
 
         let (resp_tx, resp_rx) = oneshot::channel();
@@ -43,6 +80,7 @@ impl Loader for BpfdLoader {
             path: request.path,
             priority: request.priority,
             section_name: request.section_name,
+            username,
         };
 
         let tx = self.tx.lock().unwrap().clone();
@@ -65,6 +103,12 @@ impl Loader for BpfdLoader {
         request: Request<UnloadRequest>,
     ) -> Result<Response<UnloadResponse>, Status> {
         let reply = UnloadResponse {};
+        let username = request
+            .extensions()
+            .get::<User>()
+            .unwrap_or(&DEFAULT_USER)
+            .username
+            .to_string();
         let request = request.into_inner();
         let id = request
             .id
@@ -75,6 +119,7 @@ impl Loader for BpfdLoader {
         let cmd = Command::Unload {
             id,
             iface: request.iface,
+            username,
             responder: resp_tx,
         };
 
@@ -164,11 +209,13 @@ pub(crate) enum Command {
         path: String,
         priority: i32,
         section_name: String,
+        username: String,
         responder: Responder<Result<Uuid, BpfdError>>,
     },
     Unload {
         id: Uuid,
         iface: String,
+        username: String,
         responder: Responder<Result<(), BpfdError>>,
     },
     List {
