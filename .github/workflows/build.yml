@@ -55,9 +55,9 @@ jobs:
 
       - name: Run clippy
         run: |
-          cargo +nightly clippy --all -- -A clippy::derive_partial_eq_without_eq --deny warnings
+          cargo +nightly clippy --all -- --deny warnings
           pushd bpfd-ebpf
-          cargo +nightly clippy --all -- -A clippy::derive_partial_eq_without_eq --deny warnings
+          cargo +nightly clippy --all -- --deny warnings
           popd
 
       - name: Build
