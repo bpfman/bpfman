@@ -25,6 +25,7 @@ use crate::server::{
 const DEFAULT_ACTIONS_MAP: u32 = 1 << 2;
 const DEFAULT_PRIORITY: u32 = 50;
 const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
+const SUPERUSER: &str = "bpfctl";
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct Metadata {
@@ -39,6 +40,7 @@ pub(crate) struct ExtensionProgram {
     loader: Option<Bpf>,
     metadata: Metadata,
     link: Option<OwnedLink<ExtensionLink>>,
+    owner: String,
 }
 
 pub(crate) struct DispatcherProgram {
@@ -85,6 +87,7 @@ impl<'a> BpfManager<'a> {
         path: String,
         priority: i32,
         section_name: String,
+        owner: String,
     ) -> Result<Uuid, BpfdError> {
         let id = Uuid::new_v4();
         let next_available_id = if let Some(prog) = self.programs.get(&iface) {
@@ -111,6 +114,7 @@ impl<'a> BpfManager<'a> {
                     attached: false,
                 },
                 link: None,
+                owner,
             },
         );
 
@@ -126,27 +130,34 @@ impl<'a> BpfManager<'a> {
         Ok(id)
     }
 
-    pub(crate) fn remove_program(&mut self, id: Uuid, iface: String) -> Result<(), BpfdError> {
+    pub(crate) fn remove_program(
+        &mut self,
+        id: Uuid,
+        iface: String,
+        owner: String,
+    ) -> Result<(), BpfdError> {
         if let Some(programs) = self.programs.get_mut(&iface) {
-            // Keep old_program until the dispatcher has been reloaded
-            if let Some(_old_program) = programs.remove(&id) {
-                if programs.is_empty() {
-                    return Ok(());
+            if let Some(prog) = programs.get(&id) {
+                if !(prog.owner == owner || owner == SUPERUSER) {
+                    return Err(BpfdError::NotAuthorized);
                 }
-
-                let mut dispatcher_loader =
-                    new_dispatcher(programs.len() as u8, self.dispatcher_bytes)?;
-
-                // Keep old_links in scope until after this function exits to avoid dropping
-                // them before the new dispatcher is attached
-                let _old_links = self.attach_extensions(&iface, &mut dispatcher_loader)?;
-
-                self.update_or_replace_dispatcher(iface, dispatcher_loader)?;
             } else {
                 return Err(BpfdError::InvalidID);
             }
-        } else {
-            return Err(BpfdError::NoProgramsLoaded);
+            // Keep old_program until the dispatcher has been reloaded
+            let _old_program = programs.remove(&id).unwrap();
+            if programs.is_empty() {
+                return Ok(());
+            }
+
+            let mut dispatcher_loader =
+                new_dispatcher(programs.len() as u8, self.dispatcher_bytes)?;
+
+            // Keep old_links in scope until after this function exits to avoid dropping
+            // them before the new dispatcher is attached
+            let _old_links = self.attach_extensions(&iface, &mut dispatcher_loader)?;
+
+            self.update_or_replace_dispatcher(iface, dispatcher_loader)?;
         }
         Ok(())
     }

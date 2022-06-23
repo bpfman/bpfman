@@ -17,6 +17,8 @@ use rpc::{BpfdLoader, Command};
 use tokio::sync::mpsc;
 use tonic::transport::{Certificate, Identity, Server, ServerTlsConfig};
 
+use self::rpc::intercept;
+
 pub async fn serve(config: Config, dispatcher_bytes: &'static [u8]) -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(32);
     let addr = "[::1]:50051".parse().unwrap();
@@ -42,7 +44,7 @@ pub async fn serve(config: Config, dispatcher_bytes: &'static [u8]) -> anyhow::R
 
     let serve = Server::builder()
         .tls_config(tls_config)?
-        .add_service(LoaderServer::new(loader))
+        .add_service(LoaderServer::with_interceptor(loader, intercept))
         .serve(addr);
 
     tokio::spawn(async move {
@@ -62,18 +64,20 @@ pub async fn serve(config: Config, dispatcher_bytes: &'static [u8]) -> anyhow::R
                 path,
                 priority,
                 section_name,
+                username,
                 responder,
             } => {
-                let res = bpf_manager.add_program(iface, path, priority, section_name);
+                let res = bpf_manager.add_program(iface, path, priority, section_name, username);
                 // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }
             Command::Unload {
                 id,
                 iface,
+                username,
                 responder,
             } => {
-                let res = bpf_manager.remove_program(id, iface);
+                let res = bpf_manager.remove_program(id, iface, username);
                 // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }

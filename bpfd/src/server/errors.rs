@@ -21,4 +21,6 @@ pub enum BpfdError {
     MapNotFound,
     #[error("Map not loaded")]
     MapNotLoaded,
+    #[error("Not authorized")]
+    NotAuthorized,
 }
