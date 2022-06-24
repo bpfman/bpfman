@@ -3,21 +3,22 @@ mod run;
 
 use std::process::exit;
 
-use structopt::StructOpt;
-#[derive(StructOpt)]
+use clap::Parser;
+
+#[derive(Debug, Parser)]
 pub struct Options {
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     command: Command,
 }
 
-#[derive(StructOpt)]
+#[derive(Debug, Parser)]
 enum Command {
     BuildEbpf(build_ebpf::Options),
     Run(run::Options),
 }
 
 fn main() {
-    let opts = Options::from_args();
+    let opts = Options::parse();
 
     use Command::*;
     let ret = match opts.command {
