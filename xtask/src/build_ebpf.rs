@@ -40,7 +40,7 @@ pub struct Options {
 }
 
 pub fn build_ebpf(opts: Options) -> Result<(), anyhow::Error> {
-    let dir = PathBuf::from("syscall-digest-ebpf");
+    let dir = PathBuf::from("bpfd-ebpf");
     let target = format!("--target={}", opts.target);
     let mut args = vec![
         "+nightly",
