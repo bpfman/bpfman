@@ -2,4 +2,4 @@
 members = ["bpfd", "bpfd-common", "bpfctl", "xtask"]
 
 [patch.crates-io]
-aya = {git = "https://github.com/dave-tucker/aya", branch="bpfd"}
+aya = {git = "https://github.com/aya-rs/aya", branch="main"}
