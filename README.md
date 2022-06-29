@@ -28,13 +28,39 @@ Offering this in bpfd allows for XDP applications whose loader was not using lib
 We are also hoping to find a way for applications linked with libxdp to use bpfd instead if it's
 in use in the system.
 
-## Development Requirements
+## Development Environment Setup
 
-- Rust Stable & Rust Nightly
+- [Rust Stable & Rust Nightly](https://www.rust-lang.org/tools/install) 
+
+```shell
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+export PATH="$HOME/.cargo/bin:$PATH"
+rustup default nightly
+rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+```
+- LLVM 11 or later (Linux package managers should provide a recent enough release)
+
+```shell
+sudo dnf install llvm-devel clang-devel
+```
+
 - [bpf-linker](https://github.com/aya-rs/bpf-linker)
-- protoc
-- LLVM 11 or later
-- ... and make sure the submodules are checked out
+
+```shell
+cargo install bpf-linker
+```
+
+- [protoc](https://grpc.io/docs/protoc-installation/)
+
+```shell
+sudo dnf install protobuf-compiler
+```
+
+- libelf devel
+
+```shell
+sudo dnf install elfutils-libelf-devel
+```
 
 ## Building bpfd
 
@@ -45,11 +71,17 @@ $ cargo build
 
 ## Usage
 
+Run the following script to generate certs in the default directory `/etc/bpfd/certs/` (see [configuration.md](docs/admin/configuration.md) for using non-default values, or add files to remove the `No config file provided.` warnings):
+
+```shell
+sudo ./scripts/certificates.sh init
+```
+
 Load a sample XDP Program:
 ```
 $ cargo build
 $ sudo ./target/debug/bpfd&
-$ ./target/debug/bpfctl load /path/to/xdp/program -p xdp -i wlp2s0 --priority 50 -s "pass"
+$ sudo ./target/debug/bpfctl load /path/to/xdp/program -p xdp -i wlp2s0 --priority 50 -s "pass"
 ```
 ## License
 
