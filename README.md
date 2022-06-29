@@ -35,8 +35,7 @@ in use in the system.
 ```shell
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 export PATH="$HOME/.cargo/bin:$PATH"
-rustup default nightly
-rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
+rustup toolchain install nightly -c rustfmt,clippy,rust-src
 ```
 - LLVM 11 or later (Linux package managers should provide a recent enough release)
 
