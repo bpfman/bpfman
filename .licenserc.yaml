@@ -1,20 +1,36 @@
 ---
 header:
-  license:
-    content: |
-      SPDX-License-Identifier: (MIT OR Apache-2.0)
-      Copyright Authors of bpfd
-  paths:
-    - bpfd
-    - bpfd-common
-    - bpfctl
-  paths-ignore:
-    - 'bpfd/src/bpf'
-    - '**/target/**'
-    - '**/*.toml'
-    - '**/*.proto'
-    - '**/*.lock'
-    - '**/*.yml'
-    - '**/*.md'
-
-  comment: on-failure
+  - license:
+      content: |
+        SPDX-License-Identifier: (MIT OR Apache-2.0)
+        Copyright Authors of bpfd
+    paths:
+      - bpfd
+      - bpfd-common
+      - bpfctl
+    paths-ignore:
+      - bpfd/src/bpf
+      - '**/target/**'
+      - '**/*.toml'
+      - '**/*.proto'
+      - '**/*.lock'
+      - '**/*.yml'
+      - '**/*.md'
+    comment: on-failure
+  - license:
+      content: |
+        SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+        Copyright Authors of bpfd
+    paths:
+      - bpfd/src/bpf
+      - bpfd-ebpf
+    paths-ignore:
+      - '**/target/**'
+      - '**/*.toml'
+      - '**/*.proto'
+      - '**/*.lock'
+      - '**/*.yml'
+      - '**/*.md'
+      - '**/.vim/**'
+      - '**/.vscode/**'
+    comment: on-failure
