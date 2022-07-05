@@ -21,6 +21,10 @@ pub enum BpfdError {
     MapNotFound,
     #[error("Map not loaded")]
     MapNotLoaded,
+    #[error("Map not deleted")]
+    MapNotDeleted,
     #[error("Not authorized")]
     NotAuthorized,
+    #[error("No programs left for interface. Failed to Remove Dispatcher")]
+    RemoveDispatcher
 }

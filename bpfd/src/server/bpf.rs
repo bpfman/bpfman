@@ -16,6 +16,7 @@ use nix::{
     },
 };
 use uuid::Uuid;
+use nix::unistd::close;
 
 use crate::server::{
     config::{Config, XdpMode},
@@ -144,12 +145,35 @@ impl<'a> BpfManager<'a> {
             } else {
                 return Err(BpfdError::InvalidID);
             }
+
             // Keep old_program until the dispatcher has been reloaded
             let _old_program = programs.remove(&id).unwrap();
-            if programs.is_empty() {
-                return Ok(());
+            
+            // Manually remove program's Maps upon removal or else they will be 
+            // orphaned
+            let prog_loader = _old_program.loader.unwrap();
+            let prog_maps = prog_loader.maps();
+            
+            for (_, maps) in prog_maps { 
+                for map in maps {
+                    if let Some(fd) = map.fd() {
+                        close(fd.as_raw_fd()).unwrap();
+                    } else { 
+                        return Err(BpfdError::MapNotDeleted);
+                    }
+                }
             }
-
+            
+            info!(
+                "program removed from {} {} programs remain attached",
+                &iface,
+                programs.keys().len(),
+            );
+            
+            if programs.is_empty() {
+                return self.remove_dispatcher(iface);
+            }
+    
             let mut dispatcher_loader =
                 new_dispatcher(programs.len() as u8, self.dispatcher_bytes)?;
 
@@ -330,6 +354,19 @@ impl<'a> BpfManager<'a> {
                     link: Some(owned_link),
                 },
             );
+        }
+        Ok(())
+    }
+
+    fn remove_dispatcher(
+        &mut self,
+        iface: String,
+    ) -> Result<(), BpfdError> {
+        if let Some(d) = self.dispatchers.remove(&iface) {
+            //dispatcher.detach(d.link as XdpLinkId);
+            drop(d.link); 
+        } else {
+            return Err(BpfdError::RemoveDispatcher);
         }
         Ok(())
     }
