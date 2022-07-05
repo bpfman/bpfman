@@ -94,10 +94,10 @@ impl<'a> BpfManager<'a> {
             prog.len()
         } else {
             self.programs.insert(iface.clone(), HashMap::new());
-            0
+            1
         };
 
-        if next_available_id > 9 {
+        if next_available_id > 10 {
             return Err(BpfdError::TooManyPrograms);
         }
 
