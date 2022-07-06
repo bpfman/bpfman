@@ -9,11 +9,8 @@ use aya::{
 };
 use bpfd_common::*;
 use log::info;
-use nix::{
-    fcntl::{fcntl, FcntlArg},
-    sys::socket::{
-        sendmsg, socket, AddressFamily, ControlMessage, MsgFlags, SockFlag, SockType, UnixAddr,
-    },
+use nix::sys::socket::{
+    sendmsg, socket, AddressFamily, ControlMessage, MsgFlags, SockFlag, SockType, UnixAddr,
 };
 use uuid::Uuid;
 
@@ -215,8 +212,6 @@ impl<'a> BpfManager<'a> {
                 if let Some(fd) = map.fd() {
                     // FIXME: Error handling here is terrible!
                     // Don't unwrap everything and return a BpfdError::SocketError instead.
-                    let dup =
-                        fcntl(fd.as_raw_fd(), FcntlArg::F_DUPFD_CLOEXEC(fd.as_raw_fd())).unwrap();
                     let path = Path::new(&socket_path);
                     let sock_addr = UnixAddr::new(path).unwrap();
                     let sock = socket(
@@ -227,7 +222,7 @@ impl<'a> BpfManager<'a> {
                     )
                     .unwrap();
                     let iov = [IoSlice::new(b"a")];
-                    let fds = [dup];
+                    let fds = [fd.as_raw_fd()];
                     let cmsg = ControlMessage::ScmRights(&fds);
                     sendmsg(sock, &iov, &[cmsg], MsgFlags::empty(), Some(&sock_addr)).unwrap();
                 } else {
