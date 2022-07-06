@@ -1,6 +1,7 @@
 {
   "rust-analyzer.linkedProjects": ["Cargo.toml", "bpfd-ebpf/Cargo.toml"],
   "rust-analyzer.cargo.runBuildScripts": true,
+  "rust-analyzer.checkOnSave.allTargets": false,
   "yaml.schemas": {
     "https://json.schemastore.org/github-workflow.json": "file:///home/dave/dev/bpfd/.github/workflows/build.yml"
   },

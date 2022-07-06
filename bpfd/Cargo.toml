@@ -30,6 +30,5 @@ toml = "0.5"
 x509-certificate = "0.13"
 
 [build-dependencies]
-anyhow = "1.0"
+anyhow = "1"
 tonic-build = "0.7"
-libbpf-sys = "0.8.0"
