@@ -9,7 +9,6 @@ header:
       - bpfd-common
       - bpfctl
     paths-ignore:
-      - bpfd/src/bpf
       - '**/target/**'
       - '**/*.toml'
       - '**/*.proto'
@@ -22,7 +21,6 @@ header:
         SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
         Copyright Authors of bpfd
     paths:
-      - bpfd/src/bpf
       - bpfd-ebpf
     paths-ignore:
       - '**/target/**'
