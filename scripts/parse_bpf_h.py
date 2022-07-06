@@ -7,19 +7,23 @@ from argparse import ArgumentParser
 
 PREAMBLE = '''#include <bpf/bpf.h>
 #include <dlfcn.h>
+#include <pthread.h>
 
 '''
 
 INIT = '''
 static bool init_done = false;
 static void* default_rtld = NULL;
+static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static void inline init_dl(void)
 {
+    pthread_mutex_lock(&init_lock);
     if (!init_done) {
         default_rtld = dlopen("libbpf.so", RTLD_LOCAL);
         init_done = true;
     }
+    pthread_mutex_unlock(&init_lock);
 }
 '''
 
