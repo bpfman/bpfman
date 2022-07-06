@@ -29,7 +29,7 @@ async fn main() -> anyhow::Result<()> {
         include_bytes_aligned!("../../target/bpfel-unknown-none/debug/xdp_dispatcher.bpf.o");
     #[cfg(not(debug_assertions))]
     let dispatcher_bytes =
-        include_bytes_aligned!("../../target/bpfel-unknown-none/debug/xdp_dispatcher.bpf.o");
+        include_bytes_aligned!("../../target/bpfel-unknown-none/release/xdp-dispatcher");
     setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
 
     let config = config_from_file("/etc/bpfd.toml");
