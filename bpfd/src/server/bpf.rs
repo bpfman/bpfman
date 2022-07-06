@@ -89,6 +89,12 @@ impl<'a> BpfManager<'a> {
         section_name: String,
         owner: String,
     ) -> Result<Uuid, BpfdError> {
+        let mut ext_loader = BpfLoader::new()
+            .extension(&section_name)
+            .load_file(path.clone())?;
+        ext_loader
+            .program_mut(&section_name)
+            .ok_or_else(|| BpfdError::SectionNameNotValid(section_name.clone()))?;
         let id = Uuid::new_v4();
         let next_available_id = if let Some(prog) = self.programs.get(&iface) {
             prog.len()
@@ -106,7 +112,7 @@ impl<'a> BpfManager<'a> {
             id,
             ExtensionProgram {
                 path,
-                loader: None,
+                loader: Some(ext_loader),
                 current_position: None,
                 metadata: Metadata {
                     priority,
@@ -272,10 +278,10 @@ impl<'a> BpfManager<'a> {
                 v.current_position = Some(i);
                 v.metadata.attached = true;
             } else {
-                let mut ext_loader = BpfLoader::new()
-                    .extension(&v.metadata.name)
-                    .load_file(v.path.clone())?;
-                let ext: &mut Extension = ext_loader
+                let ext: &mut Extension = v
+                    .loader
+                    .as_mut()
+                    .unwrap()
                     .program_mut(&v.metadata.name)
                     .ok_or_else(|| BpfdError::SectionNameNotValid(v.metadata.name.clone()))?
                     .try_into()?;
@@ -285,7 +291,6 @@ impl<'a> BpfManager<'a> {
                 ext.load(dispatcher.fd().unwrap(), &target_fn)?;
                 let ext_link = ext.attach()?;
                 v.link = Some(ext.take_link(ext_link)?);
-                v.loader = Some(ext_loader);
                 v.current_position = Some(i);
                 v.metadata.attached = true;
             }
