@@ -114,7 +114,7 @@ fn build_c_ebpf(opts: &Options) -> anyhow::Result<()> {
     let mut out_path = PathBuf::from(WORKSPACE_ROOT.to_string());
     out_path.push("target");
     out_path.push(opts.target.to_string());
-    out_path.push(if opts.release { "release " } else { "debug" });
+    out_path.push(if opts.release { "release" } else { "debug" });
 
     let include_path = out_path.join("include");
     get_libbpf_headers(&opts.libbpf_dir, &include_path)?;

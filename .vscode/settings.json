@@ -5,4 +5,7 @@
   "yaml.schemas": {
     "https://json.schemastore.org/github-workflow.json": "file:///home/dave/dev/bpfd/.github/workflows/build.yml"
   },
+  "files.associations": {
+    "bpf_helpers.h": "c"
+  },
 }

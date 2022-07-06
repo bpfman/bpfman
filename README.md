@@ -58,7 +58,7 @@ sudo dnf install protobuf-compiler
 - A checkout of libbpf
 
 ```shell
-git clone https://github.com/libbpf/libbpf --branch v0.8
+git clone https://github.com/libbpf/libbpf --branch v0.8.0
 ```
 
 ## Building bpfd
