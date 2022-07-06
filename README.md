@@ -64,7 +64,7 @@ git clone https://github.com/libbpf/libbpf --branch v0.8.0
 ## Building bpfd
 
 ```
-$ cargo xtask build-ebpf --release --libbpf-dir /path/to/libbpf
+$ cargo xtask build-ebpf --libbpf-dir /path/to/libbpf
 $ cargo build
 ```
 
