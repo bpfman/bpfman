@@ -74,17 +74,15 @@ fn build_rust_ebpf(opts: &Options) -> anyhow::Result<()> {
     dir.push("bpfd-ebpf");
 
     let target = format!("--target={}", opts.target);
-    let mut args = vec![
+    let args = vec![
         "+nightly",
         "build",
         "--verbose",
+        "--release",
         target.as_str(),
         "-Z",
         "build-std=core",
     ];
-    if opts.release {
-        args.push("--release")
-    }
     let status = Command::new("cargo")
         .current_dir(&dir)
         .args(&args)
@@ -114,7 +112,7 @@ fn build_c_ebpf(opts: &Options) -> anyhow::Result<()> {
     let mut out_path = PathBuf::from(WORKSPACE_ROOT.to_string());
     out_path.push("target");
     out_path.push(opts.target.to_string());
-    out_path.push(if opts.release { "release" } else { "debug" });
+    out_path.push("release");
 
     let include_path = out_path.join("include");
     get_libbpf_headers(&opts.libbpf_dir, &include_path)?;
