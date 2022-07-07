@@ -156,7 +156,7 @@ impl<'a> BpfManager<'a> {
             );
             if programs.is_empty() {
                 self.programs.remove(&iface);
-                self.remove_dispatcher(iface)?;
+                self.dispatchers.remove(&iface);
                 return Ok(());
             }
 
@@ -338,12 +338,6 @@ impl<'a> BpfManager<'a> {
                 },
             );
         }
-        Ok(())
-    }
-
-    #[inline(always)]
-    fn remove_dispatcher(&mut self, iface: String) -> Result<(), BpfdError> {
-        self.dispatchers.remove(&iface);
         Ok(())
     }
 }
