@@ -94,7 +94,7 @@ impl<'a> BpfManager<'a> {
             .ok_or_else(|| BpfdError::SectionNameNotValid(section_name.clone()))?;
         let id = Uuid::new_v4();
         let next_available_id = if let Some(prog) = self.programs.get(&iface) {
-            prog.len()
+            prog.len() + 1
         } else {
             self.programs.insert(iface.clone(), HashMap::new());
             1
