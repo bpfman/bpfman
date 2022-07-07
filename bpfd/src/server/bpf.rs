@@ -94,7 +94,7 @@ impl<'a> BpfManager<'a> {
             .ok_or_else(|| BpfdError::SectionNameNotValid(section_name.clone()))?;
         let id = Uuid::new_v4();
         let next_available_id = if let Some(prog) = self.programs.get(&iface) {
-            prog.len()
+            prog.len() + 1
         } else {
             self.programs.insert(iface.clone(), HashMap::new());
             1
@@ -126,7 +126,7 @@ impl<'a> BpfManager<'a> {
         let _old_links = self.attach_extensions(&iface, &mut dispatcher_loader)?;
         self.update_or_replace_dispatcher(iface.clone(), dispatcher_loader)?;
         info!(
-            "{} programs attached to {}",
+            "Program added: {} programs attached to {}",
             self.programs.get(&iface).unwrap().len(),
             &iface,
         );
@@ -149,7 +149,14 @@ impl<'a> BpfManager<'a> {
             }
             // Keep old_program until the dispatcher has been reloaded
             let _old_program = programs.remove(&id).unwrap();
+            info!(
+                "Program removed: {} programs attached to {}",
+                programs.len(),
+                &iface,
+            );
             if programs.is_empty() {
+                self.programs.remove(&iface);
+                self.remove_dispatcher(iface)?;
                 return Ok(());
             }
 
@@ -331,6 +338,12 @@ impl<'a> BpfManager<'a> {
                 },
             );
         }
+        Ok(())
+    }
+
+    #[inline(always)]
+    fn remove_dispatcher(&mut self, iface: String) -> Result<(), BpfdError> {
+        self.dispatchers.remove(&iface);
         Ok(())
     }
 }
