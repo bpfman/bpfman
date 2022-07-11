@@ -25,8 +25,7 @@ async fn main() -> anyhow::Result<()> {
         ColorChoice::Auto,
     )?;
     let dispatcher_bytes =
-        include_bytes_aligned!(concat!(env!("OUT_DIR"), "/xdp_dispatcher.bpf.o"));
-
+        include_bytes_aligned!("../../target/bpfel-unknown-none/release/xdp_dispatcher.bpf.o");
     setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
 
     let config = config_from_file("/etc/bpfd.toml");

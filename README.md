@@ -55,16 +55,16 @@ cargo install bpf-linker
 sudo dnf install protobuf-compiler
 ```
 
-- libelf devel
+- A checkout of libbpf
 
 ```shell
-sudo dnf install elfutils-libelf-devel
+git clone https://github.com/libbpf/libbpf --branch v0.8.0
 ```
 
 ## Building bpfd
 
 ```
-$ cargo xtask build-ebpf --release
+$ cargo xtask build-ebpf --libbpf-dir /path/to/libbpf
 $ cargo build
 ```
 
