@@ -21,11 +21,14 @@ jobs:
       - name: Install deps
         run: |
           sudo dnf groupinstall -y c-development
-          sudo dnf install -y git elfutils-libelf-devel clang llvm protobuf-compiler cmake
+          sudo dnf install -y git clang llvm protobuf-compiler cmake
+
+      - uses: actions/checkout@v2
 
       - uses: actions/checkout@v2
         with:
-          submodules: recursive
+          repository: libbpf/libbpf
+          path: libbpf
 
       - uses: actions-rs/toolchain@v1
         with:
@@ -44,7 +47,7 @@ jobs:
 
       - name: Build eBPF
         run: |
-          cargo xtask build-ebpf
+          cargo xtask build-ebpf --libbpf-dir ./libbpf
 
       - name: Check formatting
         run: |

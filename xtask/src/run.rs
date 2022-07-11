@@ -1,4 +1,4 @@
-use std::{os::unix::process::CommandExt, process::Command};
+use std::{os::unix::process::CommandExt, path::PathBuf, process::Command};
 
 use anyhow::Context as _;
 use clap::Parser;
@@ -19,6 +19,9 @@ pub struct Options {
     /// Arguments to pass to your application
     #[clap(name = "args", last = true)]
     pub run_args: Vec<String>,
+    /// Libbpf dir, required for compiling C code
+    #[clap(long, action)]
+    pub libbpf_dir: String,
 }
 
 /// Build the project
@@ -41,6 +44,7 @@ pub fn run(opts: Options) -> Result<(), anyhow::Error> {
     build_ebpf(BuildOptions {
         target: opts.bpf_target,
         release: opts.release,
+        libbpf_dir: PathBuf::from(&opts.libbpf_dir),
     })
     .context("Error while building eBPF program")?;
     build(&opts).context("Error while building userspace application")?;

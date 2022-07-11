@@ -9,11 +9,8 @@ use aya::{
 };
 use bpfd_common::*;
 use log::info;
-use nix::{
-    fcntl::{fcntl, FcntlArg},
-    sys::socket::{
-        sendmsg, socket, AddressFamily, ControlMessage, MsgFlags, SockFlag, SockType, UnixAddr,
-    },
+use nix::sys::socket::{
+    sendmsg, socket, AddressFamily, ControlMessage, MsgFlags, SockFlag, SockType, UnixAddr,
 };
 use uuid::Uuid;
 
@@ -89,15 +86,21 @@ impl<'a> BpfManager<'a> {
         section_name: String,
         owner: String,
     ) -> Result<Uuid, BpfdError> {
+        let mut ext_loader = BpfLoader::new()
+            .extension(&section_name)
+            .load_file(path.clone())?;
+        ext_loader
+            .program_mut(&section_name)
+            .ok_or_else(|| BpfdError::SectionNameNotValid(section_name.clone()))?;
         let id = Uuid::new_v4();
         let next_available_id = if let Some(prog) = self.programs.get(&iface) {
-            prog.len()
+            prog.len() + 1
         } else {
             self.programs.insert(iface.clone(), HashMap::new());
-            0
+            1
         };
 
-        if next_available_id > 9 {
+        if next_available_id > 10 {
             return Err(BpfdError::TooManyPrograms);
         }
 
@@ -106,7 +109,7 @@ impl<'a> BpfManager<'a> {
             id,
             ExtensionProgram {
                 path,
-                loader: None,
+                loader: Some(ext_loader),
                 current_position: None,
                 metadata: Metadata {
                     priority,
@@ -123,7 +126,7 @@ impl<'a> BpfManager<'a> {
         let _old_links = self.attach_extensions(&iface, &mut dispatcher_loader)?;
         self.update_or_replace_dispatcher(iface.clone(), dispatcher_loader)?;
         info!(
-            "{} programs attached to {}",
+            "Program added: {} programs attached to {}",
             self.programs.get(&iface).unwrap().len(),
             &iface,
         );
@@ -146,7 +149,14 @@ impl<'a> BpfManager<'a> {
             }
             // Keep old_program until the dispatcher has been reloaded
             let _old_program = programs.remove(&id).unwrap();
+            info!(
+                "Program removed: {} programs attached to {}",
+                programs.len(),
+                &iface,
+            );
             if programs.is_empty() {
+                self.programs.remove(&iface);
+                self.dispatchers.remove(&iface);
                 return Ok(());
             }
 
@@ -209,8 +219,6 @@ impl<'a> BpfManager<'a> {
                 if let Some(fd) = map.fd() {
                     // FIXME: Error handling here is terrible!
                     // Don't unwrap everything and return a BpfdError::SocketError instead.
-                    let dup =
-                        fcntl(fd.as_raw_fd(), FcntlArg::F_DUPFD_CLOEXEC(fd.as_raw_fd())).unwrap();
                     let path = Path::new(&socket_path);
                     let sock_addr = UnixAddr::new(path).unwrap();
                     let sock = socket(
@@ -221,7 +229,7 @@ impl<'a> BpfManager<'a> {
                     )
                     .unwrap();
                     let iov = [IoSlice::new(b"a")];
-                    let fds = [dup];
+                    let fds = [fd.as_raw_fd()];
                     let cmsg = ControlMessage::ScmRights(&fds);
                     sendmsg(sock, &iov, &[cmsg], MsgFlags::empty(), Some(&sock_addr)).unwrap();
                 } else {
@@ -272,10 +280,10 @@ impl<'a> BpfManager<'a> {
                 v.current_position = Some(i);
                 v.metadata.attached = true;
             } else {
-                let mut ext_loader = BpfLoader::new()
-                    .extension(&v.metadata.name)
-                    .load_file(v.path.clone())?;
-                let ext: &mut Extension = ext_loader
+                let ext: &mut Extension = v
+                    .loader
+                    .as_mut()
+                    .unwrap()
                     .program_mut(&v.metadata.name)
                     .ok_or_else(|| BpfdError::SectionNameNotValid(v.metadata.name.clone()))?
                     .try_into()?;
@@ -285,7 +293,6 @@ impl<'a> BpfManager<'a> {
                 ext.load(dispatcher.fd().unwrap(), &target_fn)?;
                 let ext_link = ext.attach()?;
                 v.link = Some(ext.take_link(ext_link)?);
-                v.loader = Some(ext_loader);
                 v.current_position = Some(i);
                 v.metadata.attached = true;
             }
