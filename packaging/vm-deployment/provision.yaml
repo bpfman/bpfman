@@ -1,0 +1,77 @@
+---
+- hosts: all
+  become: yes
+  become_method: sudo
+  strategy: debug
+  tasks:
+
+  - name: Set Variables
+    set_fact:
+      bpfd_user: "bpfd"
+      bpfd_password: "bpfd12345"
+
+  - name: Update OS
+    package:
+      name: '*'
+      state: latest
+
+  - name: Enable IPv6
+    command: sysctl -w net.ipv6.conf.all.disable_ipv6=0
+
+  - name: Install packages
+    package:
+      name: ['openssl', 'acl']
+
+  - name: Add bpfd user
+    shell: |
+      useradd -m {{ bpfd_user }} -p {{ bpfd_password }}
+      usermod -aG wheel {{ bpfd_user }}
+
+  # Copy user certificate creation script
+  - copy:
+      src: ../../scripts/certificates.sh
+      dest: /home/{{ bpfd_user }}/
+      mode: '0755'
+
+  - name: Install Certificates
+    become: yes
+    shell: /home/{{ bpfd_user }}/certificates.sh init
+
+  - name: Change cert ownership
+    command: chown -hR {{ bpfd_user }} /etc/bpfd/certs/
+
+  # Install the systemd unit file
+  - copy:
+      src: ./bpfd.service
+      dest: /etc/systemd/system/
+
+  # Delete the existing binary if it exists
+  - name: Delete existing bpfd binary
+    file:
+      path: "/usr/sbin/bpfd"
+      state: absent
+
+  # Delete the existing binary if it exists
+  - name: Delete existing bpfctl binary
+    file:
+      path: "/usr/sbin/bpfctl"
+      state: absent
+
+  # Copy bpfd binary from the host to the VM
+  - copy:
+      src: ../../target/debug/bpfd
+      dest: /usr/sbin/
+      mode: '0755'
+
+  # Copy bpfctl binary from the host to the VM
+  - copy:
+      src: ../../target/debug/bpfctl
+      dest: /usr/sbin/
+      mode: '0755'
+
+  - name: Enable and start bpfd systemd service
+    ansible.builtin.systemd:
+      daemon_reload: yes
+      name: bpfd.service
+      state: started
+      enabled: yes
