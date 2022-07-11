@@ -8,6 +8,7 @@ from argparse import ArgumentParser
 PREAMBLE = '''#include <bpf/bpf.h>
 #include <dlfcn.h>
 #include <pthread.h>
+#include <errno.h>
 
 '''
 
@@ -123,9 +124,12 @@ def main():
             func_def = func_def + line + "\n"
         if line.find(";") != -1 and start:
             for skip in config["exceptions"]:
-                if func_def.find(skip):
-                    start = False
-                    break
+                try:
+                    if func_def.find(skip["function"])> 0:
+                        start = False
+                        break
+                except KeyError:
+                    pass
             if start:
                 defs.append(ExportedFunction(func_def))
             start = False
@@ -134,6 +138,17 @@ def main():
 
     print(PREAMBLE)
     print(INIT)
+
+    for external in config["exceptions"]:
+        try: 
+            print(external["code"])
+        except KeyError:
+            try:
+                ext = open(external["filename"])
+                print(ext.read())
+                ext.close()
+            except (OSError, IOError, KeyError):
+                pass
     
     for func_def in defs:
         print(func_def.dump_declaration())
