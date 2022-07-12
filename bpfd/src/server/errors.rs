@@ -23,4 +23,6 @@ pub enum BpfdError {
     MapNotLoaded,
     #[error("Not authorized")]
     NotAuthorized,
+    #[error("Invalid Interface")]
+    InvalidInterface,
 }

@@ -9,8 +9,11 @@ use aya::{
 };
 use bpfd_common::*;
 use log::info;
-use nix::sys::socket::{
-    sendmsg, socket, AddressFamily, ControlMessage, MsgFlags, SockFlag, SockType, UnixAddr,
+use nix::{
+    net::if_::if_nametoindex,
+    sys::socket::{
+        sendmsg, socket, AddressFamily, ControlMessage, MsgFlags, SockFlag, SockType, UnixAddr,
+    },
 };
 use uuid::Uuid;
 
@@ -64,8 +67,8 @@ pub(crate) struct ProgramInfo {
 pub(crate) struct BpfManager<'a> {
     config: &'a Config,
     dispatcher_bytes: &'a [u8],
-    dispatchers: HashMap<String, DispatcherProgram>,
-    programs: HashMap<String, HashMap<Uuid, ExtensionProgram>>,
+    dispatchers: HashMap<u32, DispatcherProgram>,
+    programs: HashMap<u32, HashMap<Uuid, ExtensionProgram>>,
 }
 
 impl<'a> BpfManager<'a> {
@@ -86,6 +89,7 @@ impl<'a> BpfManager<'a> {
         section_name: String,
         owner: String,
     ) -> Result<Uuid, BpfdError> {
+        let if_index = self.get_ifindex(&iface)?;
         let mut ext_loader = BpfLoader::new()
             .extension(&section_name)
             .load_file(path.clone())?;
@@ -93,10 +97,10 @@ impl<'a> BpfManager<'a> {
             .program_mut(&section_name)
             .ok_or_else(|| BpfdError::SectionNameNotValid(section_name.clone()))?;
         let id = Uuid::new_v4();
-        let next_available_id = if let Some(prog) = self.programs.get(&iface) {
+        let next_available_id = if let Some(prog) = self.programs.get(&if_index) {
             prog.len() + 1
         } else {
-            self.programs.insert(iface.clone(), HashMap::new());
+            self.programs.insert(if_index, HashMap::new());
             1
         };
 
@@ -105,7 +109,7 @@ impl<'a> BpfManager<'a> {
         }
 
         let mut dispatcher_loader = new_dispatcher(next_available_id as u8, self.dispatcher_bytes)?;
-        self.programs.get_mut(&iface).unwrap().insert(
+        self.programs.get_mut(&if_index).unwrap().insert(
             id,
             ExtensionProgram {
                 path,
@@ -123,11 +127,11 @@ impl<'a> BpfManager<'a> {
 
         // Keep old_links in scope until after this function exits to avoid dropping
         // them before the new dispatcher is attached
-        let _old_links = self.attach_extensions(&iface, &mut dispatcher_loader)?;
-        self.update_or_replace_dispatcher(iface.clone(), dispatcher_loader)?;
+        let _old_links = self.attach_extensions(&if_index, &mut dispatcher_loader)?;
+        self.update_or_replace_dispatcher(iface.clone(), if_index, dispatcher_loader)?;
         info!(
             "Program added: {} programs attached to {}",
-            self.programs.get(&iface).unwrap().len(),
+            self.programs.get(&if_index).unwrap().len(),
             &iface,
         );
         Ok(id)
@@ -139,7 +143,8 @@ impl<'a> BpfManager<'a> {
         iface: String,
         owner: String,
     ) -> Result<(), BpfdError> {
-        if let Some(programs) = self.programs.get_mut(&iface) {
+        let if_index = self.get_ifindex(&iface)?;
+        if let Some(programs) = self.programs.get_mut(&if_index) {
             if let Some(prog) = programs.get(&id) {
                 if !(prog.owner == owner || owner == SUPERUSER) {
                     return Err(BpfdError::NotAuthorized);
@@ -155,8 +160,8 @@ impl<'a> BpfManager<'a> {
                 &iface,
             );
             if programs.is_empty() {
-                self.programs.remove(&iface);
-                self.dispatchers.remove(&iface);
+                self.programs.remove(&if_index);
+                self.dispatchers.remove(&if_index);
                 return Ok(());
             }
 
@@ -165,25 +170,26 @@ impl<'a> BpfManager<'a> {
 
             // Keep old_links in scope until after this function exits to avoid dropping
             // them before the new dispatcher is attached
-            let _old_links = self.attach_extensions(&iface, &mut dispatcher_loader)?;
+            let _old_links = self.attach_extensions(&if_index, &mut dispatcher_loader)?;
 
-            self.update_or_replace_dispatcher(iface, dispatcher_loader)?;
+            self.update_or_replace_dispatcher(iface, if_index, dispatcher_loader)?;
         }
         Ok(())
     }
 
     pub(crate) fn list_programs(&mut self, iface: String) -> Result<InterfaceInfo, BpfdError> {
-        if !self.dispatchers.contains_key(&iface) {
+        let if_index = self.get_ifindex(&iface)?;
+        if !self.dispatchers.contains_key(&if_index) {
             return Err(BpfdError::NoProgramsLoaded);
         };
-        let xdp_mode = self.dispatchers.get(&iface).unwrap().mode.to_string();
+        let xdp_mode = self.dispatchers.get(&if_index).unwrap().mode.to_string();
         let mut results = InterfaceInfo {
             xdp_mode,
             programs: vec![],
         };
         let mut extensions = self
             .programs
-            .get(&iface)
+            .get(&if_index)
             .unwrap()
             .iter()
             .collect::<Vec<_>>();
@@ -207,7 +213,8 @@ impl<'a> BpfManager<'a> {
         map_name: String,
         socket_path: String,
     ) -> Result<(), BpfdError> {
-        if let Some(programs) = self.programs.get_mut(&iface) {
+        let if_index = self.get_ifindex(&iface)?;
+        if let Some(programs) = self.programs.get_mut(&if_index) {
             let uuid = id.parse::<Uuid>().map_err(|_| BpfdError::InvalidID)?;
             if let Some(target_prog) = programs.get_mut(&uuid) {
                 let map = target_prog
@@ -244,7 +251,7 @@ impl<'a> BpfManager<'a> {
 
     fn attach_extensions(
         &mut self,
-        iface: &str,
+        if_index: &u32,
         dispatcher_loader: &mut Bpf,
     ) -> Result<Vec<OwnedLink<ExtensionLink>>, BpfdError> {
         let dispatcher: &mut Xdp = dispatcher_loader
@@ -254,7 +261,7 @@ impl<'a> BpfManager<'a> {
         let mut old_links = vec![];
         let mut extensions = self
             .programs
-            .get_mut(iface)
+            .get_mut(if_index)
             .unwrap()
             .values_mut()
             .collect::<Vec<&mut ExtensionProgram>>();
@@ -303,17 +310,18 @@ impl<'a> BpfManager<'a> {
     fn update_or_replace_dispatcher(
         &mut self,
         iface: String,
+        if_index: u32,
         mut dispatcher_loader: Bpf,
     ) -> Result<(), BpfdError> {
         let dispatcher: &mut Xdp = dispatcher_loader
             .program_mut(DISPATCHER_PROGRAM_NAME)
             .unwrap()
             .try_into()?;
-        if let Some(mut d) = self.dispatchers.remove(&iface) {
+        if let Some(mut d) = self.dispatchers.remove(&if_index) {
             let link = dispatcher.attach_to_link(d.link.take().unwrap()).unwrap();
             let owned_link = dispatcher.take_link(link)?;
             self.dispatchers.insert(
-                iface.clone(),
+                if_index,
                 DispatcherProgram {
                     mode: d.mode,
                     _loader: dispatcher_loader,
@@ -330,7 +338,7 @@ impl<'a> BpfManager<'a> {
             let link = dispatcher.attach(&iface, flags).unwrap();
             let owned_link = dispatcher.take_link(link)?;
             self.dispatchers.insert(
-                iface.clone(),
+                if_index,
                 DispatcherProgram {
                     mode,
                     _loader: dispatcher_loader,
@@ -339,6 +347,19 @@ impl<'a> BpfManager<'a> {
             );
         }
         Ok(())
+    }
+
+    fn get_ifindex(&mut self, iface: &str) -> Result<u32, BpfdError> {
+        match if_nametoindex(iface) {
+            Ok(index) => {
+                info!("Map {} to {}", iface, index);
+                Ok(index)
+            }
+            Err(_) => {
+                info!("Unable to validate interface {}", iface);
+                Err(BpfdError::InvalidInterface)
+            }
+        }
     }
 }
 
