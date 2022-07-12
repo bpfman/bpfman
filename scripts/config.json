@@ -1,4 +1,9 @@
 {
     "include":"/usr/include/bpf/bpf.h",
-    "exceptions":[]
+    "exceptions":[
+        {"function":"bpf_load_program_xattr",
+         "code":"static int (*real_bpf_load_program_xattr)(const struct bpf_load_program_attr *load_attr, char *log_buf, size_t log_buf_sz) = NULL;\n int bpf_load_program_xattr(const struct bpf_load_program_attr *load_attr, char *log_buf, size_t log_buf_sz)\n{\n\tinit_dl();\n\tswitch (load_attr->prog_type) {\n\tcase BPF_PROG_TYPE_XDP:\n\tcase BPF_PROG_TYPE_SOCKET_FILTER:\n\t\treturn -EACCES;\n\tdefault:\n\t\tif (!real_bpf_load_program_xattr) {\n\t\t\treal_bpf_load_program_xattr = dlsym(default_rtld, \"bpf_load_program_xattr\");\n\t\t}\n\t}\n\treturn real_bpf_load_program_xattr(load_attr, log_buf, log_buf_sz);\n}"},
+        {"function":"bpf_load_program",
+         "code":"static int (*real_bpf_load_program)(enum bpf_prog_type type, const struct bpf_insn *insns, size_t insns_cnt, const char *license, __u32 kern_version, char *log_buf, size_t log_buf_sz) = NULL;\n int bpf_load_program(enum bpf_prog_type type, const struct bpf_insn *insns, size_t insns_cnt, const char *license, __u32 kern_version, char *log_buf, size_t log_buf_sz)\n{\n\tinit_dl();\n\tswitch (type) {\n\tcase BPF_PROG_TYPE_XDP:\n\tcase BPF_PROG_TYPE_SOCKET_FILTER:\n\t\treturn -EACCES;\n\tdefault:\n\t\tif (!real_bpf_load_program) {\n\t\t\treal_bpf_load_program_xattr = dlsym(default_rtld, \"bpf_load_program\");\n\t\t}\n\t}\n\treturn real_bpf_load_program(type, insns, insns_cnt, license, kern_version, log_buf, log_buf_sz);\n}"}
+    ]
 }
