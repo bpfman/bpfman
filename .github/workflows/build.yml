@@ -40,6 +40,9 @@ jobs:
           toolchain: nightly
           components: rust-src
 
+      - name: Default to Rust Nightly
+        run: rustup default nightly
+
       - name: Install bpf-linker
         run: cargo install bpf-linker
 
