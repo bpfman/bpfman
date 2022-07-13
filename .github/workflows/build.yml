@@ -32,13 +32,9 @@ jobs:
 
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
-          override: true
-
-      - uses: actions-rs/toolchain@v1
-        with:
           toolchain: nightly
           components: rust-src
+          override: true
 
       - name: Install bpf-linker
         run: cargo install bpf-linker
