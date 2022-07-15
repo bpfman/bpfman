@@ -5,6 +5,7 @@ mod bpf;
 mod config;
 mod errors;
 mod rpc;
+mod static_program;
 
 use anyhow::Context;
 use bpf::BpfManager;
@@ -12,13 +13,19 @@ pub use config::config_from_file;
 use config::Config;
 use log::info;
 use rpc::{BpfdLoader, Command};
+pub use static_program::programs_from_directory;
+use static_program::StaticPrograms;
 use tokio::sync::mpsc;
 use tonic::transport::{Certificate, Identity, Server, ServerTlsConfig};
 
 use self::rpc::intercept;
 use crate::proto::bpfd_api::loader_server::LoaderServer;
 
-pub async fn serve(config: Config, dispatcher_bytes: &'static [u8]) -> anyhow::Result<()> {
+pub async fn serve(
+    config: Config,
+    dispatcher_bytes: &'static [u8],
+    static_programs: Vec<StaticPrograms>,
+) -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(32);
     let addr = "[::1]:50051".parse().unwrap();
 
@@ -54,6 +61,24 @@ pub async fn serve(config: Config, dispatcher_bytes: &'static [u8]) -> anyhow::R
     });
 
     let mut bpf_manager = BpfManager::new(&config, dispatcher_bytes);
+
+    // Load any static programs first
+    if !static_programs.is_empty() {
+        info!("Loading static programs from /etc/bpfd/programs.d",);
+
+        for programs in static_programs {
+            for program in programs.programs {
+                let uuid = bpf_manager.add_program(
+                    program.interface,
+                    program.path,
+                    program.priority,
+                    program.section_name,
+                    String::from("bpfd"),
+                )?;
+                info!("Loaded static program {} with UUID {}", program.name, uuid)
+            }
+        }
+    };
 
     // Start receiving messages
     while let Some(cmd) = rx.recv().await {
