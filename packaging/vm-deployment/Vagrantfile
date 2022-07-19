@@ -1,0 +1,15 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/fedora36"
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 4094
+    v.cpus = 4
+  end
+
+  config.vm.provision :ansible do |ansible|
+    ansible.limit = "all"
+    ansible.playbook = "provision.yaml"
+  end
+end
