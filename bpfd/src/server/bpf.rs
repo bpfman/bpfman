@@ -17,12 +17,16 @@ use nix::{
 };
 use uuid::Uuid;
 
-use crate::server::{
-    config::{Config, XdpMode},
-    errors::BpfdError,
+use crate::{
+    proto::bpfd_api::ProceedOn,
+    server::{
+        config::{Config, XdpMode},
+        errors::BpfdError,
+    },
 };
 
-const DEFAULT_ACTIONS_MAP: u32 = 1 << 2;
+const DEFAULT_ACTIONS_MAP: u32 =
+    1 << ProceedOn::Pass as u32 | 1 << ProceedOn::DispatcherReturn as u32;
 const DEFAULT_PRIORITY: u32 = 50;
 const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
 const SUPERUSER: &str = "bpfctl";
@@ -30,6 +34,7 @@ const SUPERUSER: &str = "bpfctl";
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct Metadata {
     priority: i32,
+    proceed_on_mask: u32,
     name: String,
     attached: bool,
 }
@@ -62,6 +67,7 @@ pub(crate) struct ProgramInfo {
     pub(crate) path: String,
     pub(crate) position: usize,
     pub(crate) priority: i32,
+    pub(crate) proceed_on: Vec<i32>,
 }
 
 pub(crate) struct BpfManager<'a> {
@@ -87,6 +93,7 @@ impl<'a> BpfManager<'a> {
         path: String,
         priority: i32,
         section_name: String,
+        proceed_on: Vec<i32>,
         owner: String,
     ) -> Result<Uuid, BpfdError> {
         let if_index = self.get_ifindex(&iface)?;
@@ -97,18 +104,28 @@ impl<'a> BpfManager<'a> {
             .program_mut(&section_name)
             .ok_or_else(|| BpfdError::SectionNameNotValid(section_name.clone()))?;
         let id = Uuid::new_v4();
+
+        // Calculate the next_available_id
         let next_available_id = if let Some(prog) = self.programs.get(&if_index) {
             prog.len() + 1
         } else {
             self.programs.insert(if_index, HashMap::new());
             1
         };
-
         if next_available_id > 10 {
             return Err(BpfdError::TooManyPrograms);
         }
 
-        let mut dispatcher_loader = new_dispatcher(next_available_id as u8, self.dispatcher_bytes)?;
+        // Process the input proceed_on
+        let mut proceed_on_mask: u32 = 0;
+        if proceed_on.is_empty() {
+            proceed_on_mask = DEFAULT_ACTIONS_MAP;
+        } else {
+            for action in proceed_on.into_iter() {
+                proceed_on_mask |= 1 << action;
+            }
+        }
+
         self.programs.get_mut(&if_index).unwrap().insert(
             id,
             ExtensionProgram {
@@ -117,6 +134,7 @@ impl<'a> BpfManager<'a> {
                 current_position: None,
                 metadata: Metadata {
                     priority,
+                    proceed_on_mask,
                     name: section_name,
                     attached: false,
                 },
@@ -124,6 +142,10 @@ impl<'a> BpfManager<'a> {
                 owner,
             },
         );
+        self.sort_extensions(&if_index);
+
+        let mut dispatcher_loader =
+            self.new_dispatcher(&if_index, next_available_id as u8, self.dispatcher_bytes)?;
 
         // Keep old_links in scope until after this function exits to avoid dropping
         // them before the new dispatcher is attached
@@ -165,8 +187,13 @@ impl<'a> BpfManager<'a> {
                 return Ok(());
             }
 
+            // Cache program length so programs goes out of scope and
+            // sort_extensions() can generate its own list.
+            let program_len = programs.len() as u8;
+            self.sort_extensions(&if_index);
+
             let mut dispatcher_loader =
-                new_dispatcher(programs.len() as u8, self.dispatcher_bytes)?;
+                self.new_dispatcher(&if_index, program_len, self.dispatcher_bytes)?;
 
             // Keep old_links in scope until after this function exits to avoid dropping
             // them before the new dispatcher is attached
@@ -195,12 +222,32 @@ impl<'a> BpfManager<'a> {
             .collect::<Vec<_>>();
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
         for (id, v) in extensions.iter() {
+            let mut proceed_on = Vec::new();
+            if v.metadata.proceed_on_mask & (1 << ProceedOn::Aborted as u32) != 0 {
+                proceed_on.push(ProceedOn::Aborted as i32)
+            }
+            if v.metadata.proceed_on_mask & (1 << ProceedOn::Drop as u32) != 0 {
+                proceed_on.push(ProceedOn::Drop as i32)
+            }
+            if v.metadata.proceed_on_mask & (1 << ProceedOn::Pass as u32) != 0 {
+                proceed_on.push(ProceedOn::Pass as i32)
+            }
+            if v.metadata.proceed_on_mask & (1 << ProceedOn::Tx as u32) != 0 {
+                proceed_on.push(ProceedOn::Tx as i32)
+            }
+            if v.metadata.proceed_on_mask & (1 << ProceedOn::Redirect as u32) != 0 {
+                proceed_on.push(ProceedOn::Redirect as i32)
+            }
+            if v.metadata.proceed_on_mask & (1 << ProceedOn::DispatcherReturn as u32) != 0 {
+                proceed_on.push(ProceedOn::DispatcherReturn as i32)
+            }
             results.programs.push(ProgramInfo {
                 id: id.to_string(),
                 name: v.metadata.name.clone(),
                 path: v.path.clone(),
                 position: v.current_position.unwrap(),
                 priority: v.metadata.priority,
+                proceed_on,
             })
         }
         Ok(results)
@@ -265,7 +312,7 @@ impl<'a> BpfManager<'a> {
             .unwrap()
             .values_mut()
             .collect::<Vec<&mut ExtensionProgram>>();
-        extensions.sort_by(|a, b| a.metadata.cmp(&b.metadata));
+        extensions.sort_by(|a, b| a.current_position.cmp(&b.current_position));
         for (i, v) in extensions.iter_mut().enumerate() {
             if v.metadata.attached {
                 let ext: &mut Extension = v
@@ -284,7 +331,6 @@ impl<'a> BpfManager<'a> {
                     .unwrap();
                 old_links.push(old_link);
                 v.link = Some(ext.take_link(new_link_id)?);
-                v.current_position = Some(i);
                 v.metadata.attached = true;
             } else {
                 let ext: &mut Extension = v
@@ -300,7 +346,6 @@ impl<'a> BpfManager<'a> {
                 ext.load(dispatcher.fd().unwrap(), &target_fn)?;
                 let ext_link = ext.attach()?;
                 v.link = Some(ext.take_link(ext_link)?);
-                v.current_position = Some(i);
                 v.metadata.attached = true;
             }
         }
@@ -361,23 +406,54 @@ impl<'a> BpfManager<'a> {
             }
         }
     }
-}
 
-fn new_dispatcher(num_progs_enabled: u8, bytes: &[u8]) -> Result<Bpf, BpfdError> {
-    let config = XdpDispatcherConfig {
-        num_progs_enabled,
-        chain_call_actions: [DEFAULT_ACTIONS_MAP; 10],
-        run_prios: [DEFAULT_PRIORITY; 10],
-    };
+    fn sort_extensions(&mut self, if_index: &u32) {
+        let mut extensions = self
+            .programs
+            .get_mut(if_index)
+            .unwrap()
+            .values_mut()
+            .collect::<Vec<&mut ExtensionProgram>>();
+        extensions.sort_by(|a, b| a.metadata.cmp(&b.metadata));
+        for (i, v) in extensions.iter_mut().enumerate() {
+            v.current_position = Some(i);
+        }
+    }
 
-    let mut dispatcher_loader = BpfLoader::new().set_global("CONFIG", &config).load(bytes)?;
+    fn new_dispatcher(
+        &mut self,
+        if_index: &u32,
+        num_progs_enabled: u8,
+        bytes: &[u8],
+    ) -> Result<Bpf, BpfdError> {
+        let mut chain_call_actions = [DEFAULT_ACTIONS_MAP; 10];
 
-    let dispatcher: &mut Xdp = dispatcher_loader
-        .program_mut(DISPATCHER_PROGRAM_NAME)
-        .unwrap()
-        .try_into()?;
+        let mut extensions = self
+            .programs
+            .get(if_index)
+            .unwrap()
+            .iter()
+            .collect::<Vec<_>>();
+        extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
+        for (_, v) in extensions.iter() {
+            chain_call_actions[v.current_position.unwrap()] = v.metadata.proceed_on_mask;
+        }
 
-    dispatcher.load()?;
+        let config = XdpDispatcherConfig {
+            num_progs_enabled,
+            chain_call_actions,
+            run_prios: [DEFAULT_PRIORITY; 10],
+        };
 
-    Ok(dispatcher_loader)
+        let mut dispatcher_loader = BpfLoader::new().set_global("CONFIG", &config).load(bytes)?;
+
+        let dispatcher: &mut Xdp = dispatcher_loader
+            .program_mut(DISPATCHER_PROGRAM_NAME)
+            .unwrap()
+            .try_into()?;
+
+        dispatcher.load()?;
+
+        Ok(dispatcher_loader)
+    }
 }

@@ -15,12 +15,22 @@ enum ProgramType {
     TC_EGRESS = 2;
 }
 
+enum ProceedOn {
+    ABORTED = 0;
+    DROP = 1;
+    PASS = 2;
+    TX = 3;
+    REDIRECT = 4;
+    DISPATCHER_RETURN = 31;
+}
+
 message LoadRequest {
     string path = 1;
     string section_name = 2;
     ProgramType program_type = 3;
     int32 priority = 4;
     string iface = 5;
+    repeated ProceedOn proceed_on = 6;
 }
 
 message LoadResponse {
@@ -46,6 +56,7 @@ message ListResponse {
     uint32 position = 3;
     int32 priority = 4;
     string path = 5;
+    repeated ProceedOn proceed_on = 6;
   }
   repeated ListResult results = 2;
 }

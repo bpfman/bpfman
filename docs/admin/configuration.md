@@ -33,6 +33,7 @@ path = <PATH TO BPF BYTECODE>
 section_name = "pass"
 program_type = "xdp"
 priority = 50
+proceed_on = ["pass", "dispatcher_return"]
 
 [[programs]]
 name = "program1"
@@ -41,7 +42,7 @@ path = <PATH TO BPF BYTECODE>
 section_name = "drop"
 program_type = "xdp"
 priority = 55
-
+proceed_on = ["pass", "dispatcher_return"]
 ```
 
 

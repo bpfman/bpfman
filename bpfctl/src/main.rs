@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
-use bpfd::client::{ListRequest, LoadRequest, LoaderClient, ProgramType, UnloadRequest};
+use bpfd::client::{ListRequest, LoadRequest, LoaderClient, ProceedOn, ProgramType, UnloadRequest};
 use clap::{Parser, Subcommand};
 use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
 mod config;
@@ -31,6 +31,8 @@ enum Commands {
         section_name: String,
         #[clap(long)]
         priority: i32,
+        #[clap(long, multiple = true)]
+        proceed_on: Vec<String>,
     },
     Unload {
         #[clap(short, long)]
@@ -88,15 +90,29 @@ async fn main() -> anyhow::Result<()> {
             iface,
             section_name,
             priority,
+            proceed_on,
         } => {
             let path_str: String = path.to_string_lossy().to_string();
             let prog_type = ProgramType::try_from(program_type.to_string()).unwrap();
+            let mut proc_on = Vec::new();
+            if !proceed_on.is_empty() {
+                for i in proceed_on.iter() {
+                    match ProceedOn::try_from(i.to_string()) {
+                        Ok(action) => proc_on.push(action as i32),
+                        Err(e) => {
+                            eprintln!("ERROR: {}", e);
+                            std::process::exit(1);
+                        }
+                    };
+                }
+            }
             let request = tonic::Request::new(LoadRequest {
                 path: path_str,
                 program_type: prog_type as i32,
                 iface: iface.to_string(),
                 section_name: section_name.to_string(),
                 priority: *priority,
+                proceed_on: proc_on,
             });
             let response = client.load(request).await?.into_inner();
             println!("{}", response.id);
@@ -118,7 +134,21 @@ async fn main() -> anyhow::Result<()> {
                 println!(
                     "{}: {}\n\tname: \"{}\"\n\tpriority: {}\n\tpath: {}",
                     r.position, r.id, r.name, r.priority, r.path
-                )
+                );
+                for (pos, action) in r.proceed_on.iter().enumerate() {
+                    if pos == 0 {
+                        print!(
+                            "\tproceed-on: {:?}",
+                            ProceedOn::try_from(*action as u32).unwrap().to_string()
+                        );
+                    } else {
+                        print!(
+                            ", {:?}",
+                            ProceedOn::try_from(*action as u32).unwrap().to_string()
+                        );
+                    }
+                }
+                println!()
             }
         }
     };

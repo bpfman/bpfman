@@ -19,7 +19,7 @@ use tokio::sync::mpsc;
 use tonic::transport::{Certificate, Identity, Server, ServerTlsConfig};
 
 use self::rpc::intercept;
-use crate::proto::bpfd_api::loader_server::LoaderServer;
+use crate::proto::bpfd_api::{loader_server::LoaderServer, ProceedOn};
 
 pub async fn serve(
     config: Config,
@@ -68,11 +68,25 @@ pub async fn serve(
 
         for programs in static_programs {
             for program in programs.programs {
+                let mut proc_on = Vec::new();
+                if !program.proceed_on.is_empty() {
+                    for i in program.proceed_on.iter() {
+                        match ProceedOn::try_from(i.to_string()) {
+                            Ok(action) => proc_on.push(action as i32),
+                            Err(e) => {
+                                eprintln!("ERROR: {}", e);
+                                std::process::exit(1);
+                            }
+                        };
+                    }
+                }
+
                 let uuid = bpf_manager.add_program(
                     program.interface,
                     program.path,
                     program.priority,
                     program.section_name,
+                    proc_on,
                     String::from("bpfd"),
                 )?;
                 info!("Loaded static program {} with UUID {}", program.name, uuid)
@@ -88,10 +102,18 @@ pub async fn serve(
                 path,
                 priority,
                 section_name,
+                proceed_on,
                 username,
                 responder,
             } => {
-                let res = bpf_manager.add_program(iface, path, priority, section_name, username);
+                let res = bpf_manager.add_program(
+                    iface,
+                    path,
+                    priority,
+                    section_name,
+                    proceed_on,
+                    username,
+                );
                 // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }
