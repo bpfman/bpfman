@@ -2,7 +2,7 @@
 // Copyright Authors of bpfd
 
 use aya::include_bytes_aligned;
-use bpfd::server::{config_from_file, serve};
+use bpfd::server::{config_from_file, programs_from_directory, serve};
 use nix::{
     libc::RLIM_INFINITY,
     sys::resource::{setrlimit, Resource},
@@ -29,6 +29,9 @@ async fn main() -> anyhow::Result<()> {
     setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
 
     let config = config_from_file("/etc/bpfd.toml");
-    serve(config, dispatcher_bytes).await?;
+
+    let static_programs = programs_from_directory("/etc/bpfd/programs.d")?;
+
+    serve(config, dispatcher_bytes, static_programs).await?;
     Ok(())
 }
