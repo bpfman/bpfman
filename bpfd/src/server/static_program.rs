@@ -25,21 +25,22 @@ pub fn programs_from_directory<P: AsRef<Path>>(
 ) -> Result<Vec<StaticPrograms>, anyhow::Error> {
     let mut static_programs: Vec<StaticPrograms> = Vec::new();
 
-    for entry in fs::read_dir(path)? {
-        let file = entry?;
-        let path = &file.path();
-        // ignore directories
-        if path.is_dir() {
-            continue;
-        }
+    if let Ok(entries) = fs::read_dir(path) {
+        for file in entries.flatten() {
+            let path = &file.path();
+            // ignore directories
+            if path.is_dir() {
+                continue;
+            }
 
-        if let Ok(contents) = fs::read_to_string(path) {
-            let program = toml::from_str(&contents)?;
+            if let Ok(contents) = fs::read_to_string(path) {
+                let program = toml::from_str(&contents)?;
 
-            static_programs.push(program);
-        } else {
-            warn!("Failed to parse program static file {:?}.", path.to_str());
-            continue;
+                static_programs.push(program);
+            } else {
+                warn!("Failed to parse program static file {:?}.", path.to_str());
+                continue;
+            }
         }
     }
 
@@ -53,7 +54,7 @@ mod test {
     #[test]
     fn test_parse_program_from_invalid_path() {
         let result = programs_from_directory("/tmp/file.toml");
-        assert!(result.is_err())
+        assert!(result.unwrap().is_empty())
     }
 
     #[test]
