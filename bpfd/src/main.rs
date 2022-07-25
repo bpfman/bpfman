@@ -3,6 +3,7 @@
 
 use aya::include_bytes_aligned;
 use bpfd::server::{config_from_file, programs_from_directory, serve};
+use log::warn;
 use nix::{
     libc::RLIM_INFINITY,
     sys::resource::{setrlimit, Resource},
@@ -30,7 +31,14 @@ async fn main() -> anyhow::Result<()> {
 
     let config = config_from_file("/etc/bpfd.toml");
 
-    let static_programs = programs_from_directory("/etc/bpfd/programs.d")?;
+    let static_programs = match programs_from_directory("/etc/bpfd/programs.d") {
+        Ok(static_programs) => static_programs,
+        // Bpfd should always start even if parsing static programs fails
+        Err(e) => {
+            warn!("Failed to parse program static files: {}", e);
+            vec![]
+        }
+    };
 
     serve(config, dispatcher_bytes, static_programs).await?;
     Ok(())

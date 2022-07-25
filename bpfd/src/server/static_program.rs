@@ -57,6 +57,12 @@ mod test {
     }
 
     #[test]
+    fn test_parse_program_from_missing_directory() {
+        let result = programs_from_directory("/tmp/fake-directory/");
+        assert!(result.is_err())
+    }
+
+    #[test]
     fn test_parse_single_file() {
         let input: &str = r#"
         [[programs]]
