@@ -21,26 +21,39 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     Load {
+        /// Required: Program to load.
         #[clap(parse(from_os_str))]
         path: PathBuf,
+        /// Required: BPF hook point.
+        /// Possible values: [xdp]
         #[clap(short, long)]
         program_type: String,
+        /// Required: Interface to load program on.
         #[clap(short, long)]
         iface: String,
+        /// Required: Name of the ELF section from the object file.
         #[clap(short, long)]
         section_name: String,
+        /// Required: Priority to run program in chain. Lower value runs first.
         #[clap(long)]
         priority: i32,
+        /// Optional: Proceed to call other programs in chain on this exit code.
+        /// Multiple values supported by repeating the parameter.
+        /// Possible values: [aborted, drop, pass, tx, redirect, dispatcher_return]
+        /// Default values: pass and dispatcher_return
         #[clap(long, multiple = true)]
         proceed_on: Vec<String>,
     },
     Unload {
         #[clap(short, long)]
+        /// Required: Interface to unload program from.
         iface: String,
+        /// Required: UUID used to identify loaded program.
         id: String,
     },
     List {
         #[clap(short, long)]
+        /// Required: Interface to list loaded programs from.
         iface: String,
     },
 }
@@ -93,7 +106,8 @@ async fn main() -> anyhow::Result<()> {
             proceed_on,
         } => {
             let path_str: String = path.to_string_lossy().to_string();
-            let prog_type = ProgramType::try_from(program_type.to_string()).unwrap();
+            let prog_type = ProgramType::try_from(program_type.to_string())?;
+
             let mut proc_on = Vec::new();
             if !proceed_on.is_empty() {
                 for i in proceed_on.iter() {
@@ -101,6 +115,7 @@ async fn main() -> anyhow::Result<()> {
                     proc_on.push(action as i32);
                 }
             }
+
             let request = tonic::Request::new(LoadRequest {
                 path: path_str,
                 program_type: prog_type as i32,
@@ -132,7 +147,7 @@ async fn main() -> anyhow::Result<()> {
                     .map(|action| ProceedOn::try_from(*action as u32).unwrap().to_string())
                     .collect();
                 println!(
-                    "{}: {}\n\tname: \"{}\"\n\tpriority: {}\n\tpath: {}\n\tproceed-on: {}",
+                    "{}: {}\n\tsection-name: \"{}\"\n\tpriority: {}\n\tpath: {}\n\tproceed-on: {}",
                     r.position,
                     r.id,
                     r.name,
