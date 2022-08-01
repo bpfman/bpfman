@@ -31,4 +31,4 @@ x509-certificate = "0.13"
 
 [build-dependencies]
 anyhow = "1"
-tonic-build = "0.7"
+tonic-build = "0.8"
