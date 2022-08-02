@@ -12,7 +12,7 @@ repository = "https://github.com/redhat-et/bpfd"
 
 [dependencies]
 bpfd = { version = "0.1.0", path = "../bpfd" }
-tonic = { version = "0.7", features = ["tls"] }
+tonic = { version = "0.8", features = ["tls"] }
 prost = "0.10"
 anyhow = "1"
 clap = { version = "3", features = ["derive"]}

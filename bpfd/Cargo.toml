@@ -13,7 +13,7 @@ repository = "https://github.com/redhat-et/bpfd"
 [lib]
 
 [dependencies]
-tonic = { version = "0.7", features = ["tls"] }
+tonic = { version = "0.8", features = ["tls"] }
 prost = "0.10"
 anyhow = "1"
 thiserror = "1"
