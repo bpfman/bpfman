@@ -1,0 +1,73 @@
+name: bpfd-image-build
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  REGISTRY: quay.io 
+  REPOSITORY: bpfd 
+  BPFD_IMAGE_NAME: bpfd
+  BPFCTL_IMAGE_NAME: bpfctl
+
+jobs:
+  build:
+    name: Build Images
+    runs-on: ubuntu-latest
+    environment: image-repositories
+    steps:
+    - name: Check out rust source code
+      uses: actions/checkout@v2
+
+    - name: Login to Quay.io
+      uses: redhat-actions/podman-login@v1
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.QUAY_USERNAME }}
+        password: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
+    - name: Extract metadata (tags, labels) for bpfd image
+      id: meta-bpfd
+      uses: docker/metadata-action@v3.6.2
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.BPFD_IMAGE_NAME }}
+
+    - name: Build bpfd image
+      id: build-bpfd
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: bpfd
+        tags: ${{ steps.meta-bpfd.outputs.tags }}
+        labels: ${{ steps.meta-bpfd.outputs.labels }}
+        containerfiles: |
+          ./packaging/container-deployment/Containerfile.bpfd
+    
+    - name: Push bpfd to quay.io/bpfd
+      uses: redhat-actions/push-to-registry@v2
+      with:
+        image: ${{ steps.build-bpfd.outputs.image }}
+        tags: ${{ steps.build-bpfd.outputs.tags }}
+        registry: quay.io/bpfd
+
+    - name: Extract metadata (tags, labels) for bpfctl image
+      id: meta-bpfctl
+      uses: docker/metadata-action@v3.6.2
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.BPFCTL_IMAGE_NAME }}
+
+    - name: Build bpfctl image
+      id: build-bpfctl
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: bpfctl
+        tags: ${{ steps.meta-bpfctl.outputs.tags }}
+        labels: ${{ steps.meta-bpfctl.outputs.labels }}
+        containerfiles: |
+          ./packaging/container-deployment/Containerfile.bpfctl
+
+    - name: Push bpfctl to quay.io/bpfd
+      uses: redhat-actions/push-to-registry@v2
+      with:
+        image: ${{ steps.build-bpfctl.outputs.image }}
+        tags: ${{ steps.build-bpfctl.outputs.tags }}
+        registry: quay.io/bpfd
