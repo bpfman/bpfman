@@ -17,16 +17,13 @@ use nix::{
 };
 use uuid::Uuid;
 
-use crate::{
-    proto::bpfd_api::ProceedOn,
-    server::{
-        config::{Config, XdpMode},
-        errors::BpfdError,
-    },
+use crate::server::{
+    config::{Config, XdpMode},
+    errors::BpfdError,
 };
 
-const DEFAULT_ACTIONS_MAP: u32 =
-    1 << ProceedOn::Pass as u32 | 1 << ProceedOn::DispatcherReturn as u32;
+// Default is Pass and DispatcherReturn
+const DEFAULT_ACTIONS_MAP: u32 = 1 << 2 | 1 << 31;
 const DEFAULT_PRIORITY: u32 = 50;
 const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
 const SUPERUSER: &str = "bpfctl";
@@ -34,7 +31,6 @@ const SUPERUSER: &str = "bpfctl";
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub(crate) struct Metadata {
     priority: i32,
-    proceed_on_mask: u32,
     name: String,
     attached: bool,
 }
@@ -46,6 +42,21 @@ pub(crate) struct ExtensionProgram {
     metadata: Metadata,
     link: Option<OwnedLink<ExtensionLink>>,
     owner: String,
+    proceed_on: Vec<i32>,
+}
+
+impl ExtensionProgram {
+    fn proceed_on_mask(&self) -> u32 {
+        let mut proceed_on_mask: u32 = 0;
+        if self.proceed_on.is_empty() {
+            proceed_on_mask = DEFAULT_ACTIONS_MAP;
+        } else {
+            for action in self.proceed_on.clone().into_iter() {
+                proceed_on_mask |= 1 << action;
+            }
+        }
+        proceed_on_mask
+    }
 }
 
 pub(crate) struct DispatcherProgram {
@@ -116,16 +127,6 @@ impl<'a> BpfManager<'a> {
             return Err(BpfdError::TooManyPrograms);
         }
 
-        // Process the input proceed_on
-        let mut proceed_on_mask: u32 = 0;
-        if proceed_on.is_empty() {
-            proceed_on_mask = DEFAULT_ACTIONS_MAP;
-        } else {
-            for action in proceed_on.into_iter() {
-                proceed_on_mask |= 1 << action;
-            }
-        }
-
         self.programs.get_mut(&if_index).unwrap().insert(
             id,
             ExtensionProgram {
@@ -134,12 +135,12 @@ impl<'a> BpfManager<'a> {
                 current_position: None,
                 metadata: Metadata {
                     priority,
-                    proceed_on_mask,
                     name: section_name,
                     attached: false,
                 },
                 link: None,
                 owner,
+                proceed_on,
             },
         );
         self.sort_extensions(&if_index);
@@ -222,32 +223,13 @@ impl<'a> BpfManager<'a> {
             .collect::<Vec<_>>();
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
         for (id, v) in extensions.iter() {
-            let mut proceed_on = Vec::new();
-            if v.metadata.proceed_on_mask & (1 << ProceedOn::Aborted as u32) != 0 {
-                proceed_on.push(ProceedOn::Aborted as i32)
-            }
-            if v.metadata.proceed_on_mask & (1 << ProceedOn::Drop as u32) != 0 {
-                proceed_on.push(ProceedOn::Drop as i32)
-            }
-            if v.metadata.proceed_on_mask & (1 << ProceedOn::Pass as u32) != 0 {
-                proceed_on.push(ProceedOn::Pass as i32)
-            }
-            if v.metadata.proceed_on_mask & (1 << ProceedOn::Tx as u32) != 0 {
-                proceed_on.push(ProceedOn::Tx as i32)
-            }
-            if v.metadata.proceed_on_mask & (1 << ProceedOn::Redirect as u32) != 0 {
-                proceed_on.push(ProceedOn::Redirect as i32)
-            }
-            if v.metadata.proceed_on_mask & (1 << ProceedOn::DispatcherReturn as u32) != 0 {
-                proceed_on.push(ProceedOn::DispatcherReturn as i32)
-            }
             results.programs.push(ProgramInfo {
                 id: id.to_string(),
                 name: v.metadata.name.clone(),
                 path: v.path.clone(),
                 position: v.current_position.unwrap(),
                 priority: v.metadata.priority,
-                proceed_on,
+                proceed_on: v.proceed_on.clone(),
             })
         }
         Ok(results)
@@ -436,7 +418,7 @@ impl<'a> BpfManager<'a> {
             .collect::<Vec<_>>();
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
         for (_, v) in extensions.iter() {
-            chain_call_actions[v.current_position.unwrap()] = v.metadata.proceed_on_mask;
+            chain_call_actions[v.current_position.unwrap()] = v.proceed_on_mask();
         }
 
         let config = XdpDispatcherConfig {

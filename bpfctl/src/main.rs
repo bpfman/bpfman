@@ -97,13 +97,8 @@ async fn main() -> anyhow::Result<()> {
             let mut proc_on = Vec::new();
             if !proceed_on.is_empty() {
                 for i in proceed_on.iter() {
-                    match ProceedOn::try_from(i.to_string()) {
-                        Ok(action) => proc_on.push(action as i32),
-                        Err(e) => {
-                            eprintln!("ERROR: {}", e);
-                            std::process::exit(1);
-                        }
-                    };
+                    let action = ProceedOn::try_from(i.to_string())?;
+                    proc_on.push(action as i32);
                 }
             }
             let request = tonic::Request::new(LoadRequest {
@@ -131,24 +126,20 @@ async fn main() -> anyhow::Result<()> {
             let response = client.list(request).await?.into_inner();
             println!("{}\nxdp_mode: {}\n", iface, response.xdp_mode);
             for r in response.results {
+                let proceed_on: Vec<String> = r
+                    .proceed_on
+                    .iter()
+                    .map(|action| ProceedOn::try_from(*action as u32).unwrap().to_string())
+                    .collect();
                 println!(
-                    "{}: {}\n\tname: \"{}\"\n\tpriority: {}\n\tpath: {}",
-                    r.position, r.id, r.name, r.priority, r.path
+                    "{}: {}\n\tname: \"{}\"\n\tpriority: {}\n\tpath: {}\n\tproceed-on: {}",
+                    r.position,
+                    r.id,
+                    r.name,
+                    r.priority,
+                    r.path,
+                    proceed_on.join(", ")
                 );
-                for (pos, action) in r.proceed_on.iter().enumerate() {
-                    if pos == 0 {
-                        print!(
-                            "\tproceed-on: {:?}",
-                            ProceedOn::try_from(*action as u32).unwrap().to_string()
-                        );
-                    } else {
-                        print!(
-                            ", {:?}",
-                            ProceedOn::try_from(*action as u32).unwrap().to_string()
-                        );
-                    }
-                }
-                println!()
             }
         }
     };

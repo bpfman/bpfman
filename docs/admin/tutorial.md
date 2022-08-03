@@ -53,7 +53,7 @@ xdp_mode: skb
         name: "xdp"
         priority: 100
         path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: "pass", "dispatcher_return"
+        proceed-on: pass, dispatcher_return
 ```
 
 From the output above you can see the program was loaded to slot 0 on our interface and will be executed first.
@@ -85,17 +85,17 @@ xdp_mode: skb
         name: "xdp"
         priority: 50
         path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: "pass", "dispatcher_return"
+        proceed-on: pass, dispatcher_return
 1: 92e3e14c-0400-4a20-be2d-f701af21873c
         name: "xdp"
         priority: 100
         path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: "pass", "dispatcher_return"
+        proceed-on: pass, dispatcher_return
 2: 6af7c28f-6a7f-46ee-bc98-2d92ed261369
         name: "xdp"
         priority: 200
         path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: "pass", "dispatcher_return"
+        proceed-on: pass, dispatcher_return
 ```
 
 By default, the next program in the chain will only be executed if a given program returns
@@ -120,22 +120,22 @@ xdp_mode: skb
         name: "xdp"
         priority: 50
         path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: "pass", "dispatcher_return"
+        proceed-on: pass, dispatcher_return
 1: 92e3e14c-0400-4a20-be2d-f701af21873c
         name: "xdp"
         priority: 100
         path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: "pass", "dispatcher_return"
+        proceed-on: pass, dispatcher_return
 2: b2f19b7b-4c71-4338-873e-914bd8fa44ba
         name: "xdp"
         priority: 150
         path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: "drop", pass", "dispatcher_return"
+        proceed-on: drop, pass, dispatcher_return
 3: 6af7c28f-6a7f-46ee-bc98-2d92ed261369
         name: "xdp"
         priority: 200
         path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: "pass", "dispatcher_return"
+        proceed-on: pass", dispatcher_return
 ```
 
 ## Step 4: Delete a program
@@ -156,17 +156,17 @@ xdp_mode: skb
         name: "xdp"
         priority: 50
         path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: "pass", "dispatcher_return"
+        proceed-on: pass, dispatcher_return
 1: b2f19b7b-4c71-4338-873e-914bd8fa44ba
         name: "xdp"
         priority: 150
         path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: "drop", pass", "dispatcher_return"
+        proceed-on: drop, pass, dispatcher_return
 2: 6af7c28f-6a7f-46ee-bc98-2d92ed261369
         name: "xdp"
         priority: 200
         path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: "pass", "dispatcher_return"
+        proceed-on: pass, dispatcher_return
 ```
 
 When bpfd is stopped, all remaining programs will be unloaded automatically.
