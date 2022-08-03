@@ -13,8 +13,8 @@ repository = "https://github.com/redhat-et/bpfd"
 [lib]
 
 [dependencies]
-tonic = { version = "0.7", features = ["tls"] }
-prost = "0.10"
+tonic = { version = "0.8", features = ["tls"] }
+prost = "0.11"
 anyhow = "1"
 thiserror = "1"
 clap = { version = "3", features = ["derive"]}
@@ -31,4 +31,4 @@ x509-certificate = "0.13"
 
 [build-dependencies]
 anyhow = "1"
-tonic-build = "0.7"
+tonic-build = "0.8"
