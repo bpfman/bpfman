@@ -13,6 +13,7 @@ pub struct StaticProgramEntry {
     pub section_name: String,
     pub program_type: String,
     pub priority: i32,
+    pub proceed_on: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -67,6 +68,7 @@ mod test {
         section_name = "firewall"
         program_type ="xdp"
         priority = 50
+        proceed_on = ["pass", "dispatcher_return"]
 
         [[programs]]
         name = "program2"
@@ -75,6 +77,7 @@ mod test {
         section_name = "firewall"
         program_type ="xdp"
         priority = 55
+        proceed_on = ["pass", "dispatcher_return"]
         "#;
         let mut programs: StaticPrograms = toml::from_str(input).expect("error parsing toml input");
         match programs.programs.pop() {

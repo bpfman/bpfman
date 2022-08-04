@@ -81,6 +81,7 @@ impl Loader for BpfdLoader {
             path: request.path,
             priority: request.priority,
             section_name: request.section_name,
+            proceed_on: request.proceed_on,
             username,
         };
 
@@ -165,6 +166,7 @@ impl Loader for BpfdLoader {
                         path: r.path,
                         position: r.position as u32,
                         priority: r.priority,
+                        proceed_on: r.proceed_on,
                     })
                 }
                 Ok(Response::new(reply))
@@ -210,6 +212,7 @@ pub(crate) enum Command {
         path: String,
         priority: i32,
         section_name: String,
+        proceed_on: Vec<i32>,
         username: String,
         responder: Responder<Result<Uuid, BpfdError>>,
     },
