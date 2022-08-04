@@ -148,7 +148,7 @@ name = "bpfctl"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bpfd",
+ "bpfd-api",
  "clap",
  "log",
  "prost",
@@ -165,20 +165,28 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "aya",
+ "bpfd-api",
  "bpfd-common",
  "clap",
  "log",
  "nix",
- "prost",
  "serde",
  "simplelog",
  "thiserror",
  "tokio",
  "toml",
  "tonic",
- "tonic-build",
  "uuid",
  "x509-certificate",
+]
+
+[[package]]
+name = "bpfd-api"
+version = "0.1.0"
+dependencies = [
+ "prost",
+ "thiserror",
+ "tonic",
 ]
 
 [[package]]
@@ -1644,4 +1652,5 @@ dependencies = [
  "clap",
  "lazy_static",
  "serde_json",
+ "tonic-build",
 ]

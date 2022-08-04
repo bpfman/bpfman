@@ -1,5 +1,5 @@
 [workspace]
-members = ["bpfd", "bpfd-common", "bpfctl", "xtask"]
+members = ["bpfd", "bpfd-api", "bpfd-common", "bpfctl", "xtask"]
 
 [patch.crates-io]
 aya = {git = "https://github.com/aya-rs/aya", branch="main"}

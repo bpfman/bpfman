@@ -4,7 +4,7 @@
 // - protoc             v3.19.4
 // source: bpfd.proto
 
-package gobpfd
+package v1
 
 import (
 	context "context"
@@ -38,7 +38,7 @@ func NewLoaderClient(cc grpc.ClientConnInterface) LoaderClient {
 
 func (c *loaderClient) Load(ctx context.Context, in *LoadRequest, opts ...grpc.CallOption) (*LoadResponse, error) {
 	out := new(LoadResponse)
-	err := c.cc.Invoke(ctx, "/bpfd.Loader/Load", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/bpfd.v1.Loader/Load", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func (c *loaderClient) Load(ctx context.Context, in *LoadRequest, opts ...grpc.C
 
 func (c *loaderClient) Unload(ctx context.Context, in *UnloadRequest, opts ...grpc.CallOption) (*UnloadResponse, error) {
 	out := new(UnloadResponse)
-	err := c.cc.Invoke(ctx, "/bpfd.Loader/Unload", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/bpfd.v1.Loader/Unload", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (c *loaderClient) Unload(ctx context.Context, in *UnloadRequest, opts ...gr
 
 func (c *loaderClient) List(ctx context.Context, in *ListRequest, opts ...grpc.CallOption) (*ListResponse, error) {
 	out := new(ListResponse)
-	err := c.cc.Invoke(ctx, "/bpfd.Loader/List", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/bpfd.v1.Loader/List", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (c *loaderClient) List(ctx context.Context, in *ListRequest, opts ...grpc.C
 
 func (c *loaderClient) GetMap(ctx context.Context, in *GetMapRequest, opts ...grpc.CallOption) (*GetMapResponse, error) {
 	out := new(GetMapResponse)
-	err := c.cc.Invoke(ctx, "/bpfd.Loader/GetMap", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/bpfd.v1.Loader/GetMap", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func _Loader_Load_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/bpfd.Loader/Load",
+		FullMethod: "/bpfd.v1.Loader/Load",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(LoaderServer).Load(ctx, req.(*LoadRequest))
@@ -140,7 +140,7 @@ func _Loader_Unload_Handler(srv interface{}, ctx context.Context, dec func(inter
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/bpfd.Loader/Unload",
+		FullMethod: "/bpfd.v1.Loader/Unload",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(LoaderServer).Unload(ctx, req.(*UnloadRequest))
@@ -158,7 +158,7 @@ func _Loader_List_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/bpfd.Loader/List",
+		FullMethod: "/bpfd.v1.Loader/List",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(LoaderServer).List(ctx, req.(*ListRequest))
@@ -176,7 +176,7 @@ func _Loader_GetMap_Handler(srv interface{}, ctx context.Context, dec func(inter
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/bpfd.Loader/GetMap",
+		FullMethod: "/bpfd.v1.Loader/GetMap",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(LoaderServer).GetMap(ctx, req.(*GetMapRequest))
@@ -188,7 +188,7 @@ func _Loader_GetMap_Handler(srv interface{}, ctx context.Context, dec func(inter
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Loader_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "bpfd.Loader",
+	ServiceName: "bpfd.v1.Loader",
 	HandlerType: (*LoaderServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
