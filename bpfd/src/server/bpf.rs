@@ -63,6 +63,7 @@ pub(crate) struct DispatcherProgram {
     mode: XdpMode,
     _loader: Bpf,
     link: Option<XdpLink>,
+    revision: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -355,6 +356,7 @@ impl<'a> BpfManager<'a> {
             self.dispatchers.insert(
                 if_index,
                 DispatcherProgram {
+                    revision: d.revision.wrapping_add(1),
                     mode: d.mode,
                     _loader: dispatcher_loader,
                     link: Some(owned_link),
@@ -372,6 +374,7 @@ impl<'a> BpfManager<'a> {
             self.dispatchers.insert(
                 if_index,
                 DispatcherProgram {
+                    revision: 1,
                     mode,
                     _loader: dispatcher_loader,
                     link: Some(owned_link),
