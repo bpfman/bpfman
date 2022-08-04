@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
-use thiserror::Error;
 
-pub use crate::proto::bpfd_api::{
-    loader_client::LoaderClient, ListRequest, ListResponse, LoadRequest, LoadResponse, ProceedOn,
-    ProgramType, UnloadRequest, UnloadResponse,
-};
+#[path = "bpfd.v1.rs"]
+#[rustfmt::skip]
+#[allow(clippy::all)]
+pub mod v1;
+
+use thiserror::Error;
+use v1::{ProceedOn, ProgramType};
 
 #[derive(Error, Debug)]
 pub enum ParseError {

@@ -1,4 +1,3 @@
 {
-  "rust-analyzer.linkedProjects": ["Cargo.toml", "bpfd-ebpf/Cargo.toml"],
-  "rust-analyzer.cargo.runBuildScripts": true
+  "rust-analyzer.linkedProjects": ["Cargo.toml", "bpfd-ebpf/Cargo.toml"]
 }

@@ -4,7 +4,9 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
-use bpfd::client::{ListRequest, LoadRequest, LoaderClient, ProceedOn, ProgramType, UnloadRequest};
+use bpfd_api::v1::{
+    loader_client::LoaderClient, ListRequest, LoadRequest, ProceedOn, ProgramType, UnloadRequest,
+};
 use clap::{Parser, Subcommand};
 use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
 mod config;

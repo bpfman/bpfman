@@ -56,6 +56,8 @@ cargo install bpf-linker
 sudo dnf install protobuf-compiler
 ```
 
+- [go protobuf compiler extensions](https://grpc.io/docs/languages/go/quickstart/)
+
 - A checkout of libbpf
 
 ```shell
@@ -65,7 +67,10 @@ git clone https://github.com/libbpf/libbpf --branch v0.8.0
 ## Building bpfd
 
 ```
+# If eBPF code has changed
 $ cargo xtask build-ebpf --libbpf-dir /path/to/libbpf
+# If protobuf files have changed
+$ cargo xtask build-proto
 $ cargo build
 ```
 

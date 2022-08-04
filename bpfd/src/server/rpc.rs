@@ -2,18 +2,16 @@
 // Copyright Authors of bpfd
 use std::sync::{Arc, Mutex};
 
+use bpfd_api::v1::{
+    list_response::ListResult, loader_server::Loader, GetMapRequest, GetMapResponse, ListRequest,
+    ListResponse, LoadRequest, LoadResponse, UnloadRequest, UnloadResponse,
+};
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 use x509_certificate::X509Certificate;
 
-use crate::{
-    proto::bpfd_api::{
-        list_response::ListResult, loader_server::Loader, GetMapRequest, GetMapResponse,
-        ListRequest, ListResponse, LoadRequest, LoadResponse, UnloadRequest, UnloadResponse,
-    },
-    server::{bpf::InterfaceInfo, errors::BpfdError},
-};
+use crate::server::{bpf::InterfaceInfo, errors::BpfdError};
 
 #[derive(Debug, Default)]
 struct User {

@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf"
-	"github.com/redhat-et/bpfd/clients/gobpfd"
+	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

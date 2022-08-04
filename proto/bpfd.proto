@@ -1,6 +1,6 @@
 syntax = "proto3";
-package bpfd;
-option go_package = "github.com/redhat-et/clients/gobpfd;gobpfd";
+package bpfd.v1;
+option go_package = "github.com/redhat-et/clients/gobpfd/v1;v1";
 
 service Loader {
     rpc Load (LoadRequest) returns (LoadResponse);

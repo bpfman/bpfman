@@ -9,6 +9,7 @@ mod static_program;
 
 use anyhow::Context;
 use bpf::BpfManager;
+use bpfd_api::v1::{loader_server::LoaderServer, ProceedOn};
 pub use config::config_from_file;
 use config::Config;
 use log::info;
@@ -19,7 +20,6 @@ use tokio::sync::mpsc;
 use tonic::transport::{Certificate, Identity, Server, ServerTlsConfig};
 
 use self::rpc::intercept;
-use crate::proto::bpfd_api::{loader_server::LoaderServer, ProceedOn};
 
 pub async fn serve(
     config: Config,

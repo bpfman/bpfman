@@ -1,4 +1,5 @@
 mod build_ebpf;
+mod protobuf;
 mod run;
 
 use std::process::exit;
@@ -14,6 +15,7 @@ pub struct Options {
 #[derive(Debug, Parser)]
 enum Command {
     BuildEbpf(build_ebpf::Options),
+    BuildProto(protobuf::Options),
     Run(run::Options),
 }
 
@@ -23,6 +25,7 @@ fn main() {
     use Command::*;
     let ret = match opts.command {
         BuildEbpf(opts) => build_ebpf::build_ebpf(opts),
+        BuildProto(opts) => protobuf::build(opts),
         Run(opts) => run::run(opts),
     };
 

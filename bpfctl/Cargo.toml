@@ -11,7 +11,7 @@ repository = "https://github.com/redhat-et/bpfd"
     path = "src/main.rs"
 
 [dependencies]
-bpfd = { version = "0.1.0", path = "../bpfd" }
+bpfd-api = { version = "0.1.0", path = "../bpfd-api" }
 tonic = { version = "0.8", features = ["tls"] }
 prost = "0.11"
 anyhow = "1"

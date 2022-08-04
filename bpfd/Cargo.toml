@@ -13,8 +13,6 @@ repository = "https://github.com/redhat-et/bpfd"
 [lib]
 
 [dependencies]
-tonic = { version = "0.8", features = ["tls"] }
-prost = "0.11"
 anyhow = "1"
 thiserror = "1"
 clap = { version = "3", features = ["derive"]}
@@ -23,12 +21,10 @@ tokio = { version = "1.20.1", features = ["full"] }
 uuid = { version = "1", features = ["v4"] }
 log = "0.4"
 simplelog = "0.12"
+tonic = "0.8"
+bpfd-api = { version = "0.1.0", path = "../bpfd-api" }
 bpfd-common = { version = "0.1.0", path = "../bpfd-common", features=["user"] }
 nix = { version = "0.24", features = [ "socket", "fs" ]}
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.5"
 x509-certificate = "0.13"
-
-[build-dependencies]
-anyhow = "1"
-tonic-build = "0.8"
