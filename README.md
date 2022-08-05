@@ -21,7 +21,7 @@ It offers two ways of interaction:
 It is expected that humans will use `bpfctl` whereas other applications on the system wishing to load programs using
 bpfd will use the GRPC. This allows for API bindings to be generated in any language supported by protocol buffers.
 We are initially targeting Go and Rust.
-See [tutorial.md](docs/admin/tutorial.md) for some examples using `bpfctl`.
+See [tutorial.md](docs/admin/tutorial.md) for some examples of starting `bpfd`, managing logs, and using `bpfctl`.
 
 In order to allow the attachment of multiple XDP programs to the same interface, we have implemented the
 [libxdp multiprog protocol](https://github.com/xdp-project/xdp-tools/blob/master/lib/libxdp/protocol.org).

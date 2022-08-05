@@ -7,23 +7,10 @@ use nix::{
     libc::RLIM_INFINITY,
     sys::resource::{setrlimit, Resource},
 };
-use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    TermLogger::init(
-        LevelFilter::Debug,
-        ConfigBuilder::new()
-            .set_target_level(LevelFilter::Error)
-            .set_location_level(LevelFilter::Error)
-            .add_filter_ignore("h2".to_string())
-            .add_filter_ignore("rustls".to_string())
-            .add_filter_ignore("hyper".to_string())
-            .add_filter_ignore("aya".to_string())
-            .build(),
-        TerminalMode::Mixed,
-        ColorChoice::Auto,
-    )?;
+    env_logger::init();
     let dispatcher_bytes =
         include_bytes_aligned!("../../target/bpfel-unknown-none/release/xdp_dispatcher.bpf.o");
     setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();

@@ -20,12 +20,23 @@ cargo build
 While learning and experimenting with bpfd, it may be useful to run bpfd in the foreground
 (which requires a second terminal to run the bpfctl commands below):
 
-``` console
-sudo ./target/debug/bpfd
+```console
+sudo RUST_LOG=info ./target/debug/bpfd
 ```
 
+bpfd uses the [env_logger](https://docs.rs/env_logger) crate to log messages to the
+terminal.
+By default, only `error` messages are logged, but that can be overwritten by setting
+the `RUST_LOG` environment variable.
+Valid values:
+* `error`
+* `warn`
+* `info`
+* `debug`
+* `trace`
+
 Later, once familiar with bpfd, run in the background:
-``` console
+```console
 sudo bpfd&
 ```
 

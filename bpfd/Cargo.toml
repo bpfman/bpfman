@@ -20,7 +20,7 @@ aya = "0.11"
 tokio = { version = "1.20.1", features = ["full"] }
 uuid = { version = "1", features = ["v4"] }
 log = "0.4"
-simplelog = "0.12"
+env_logger = "0.9"
 tonic = "0.8"
 bpfd-api = { version = "0.1.0", path = "../bpfd-api" }
 bpfd-common = { version = "0.1.0", path = "../bpfd-common", features=["user"] }
