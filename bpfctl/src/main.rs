@@ -8,7 +8,6 @@ use bpfd_api::v1::{
     loader_client::LoaderClient, ListRequest, LoadRequest, ProceedOn, ProgramType, UnloadRequest,
 };
 use clap::{Parser, Subcommand};
-use simplelog::{ColorChoice, ConfigBuilder, LevelFilter, TermLogger, TerminalMode};
 mod config;
 use config::config_from_file;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
@@ -62,15 +61,7 @@ enum Commands {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    TermLogger::init(
-        LevelFilter::Info,
-        ConfigBuilder::new()
-            .set_target_level(LevelFilter::Error)
-            .set_location_level(LevelFilter::Error)
-            .build(),
-        TerminalMode::Mixed,
-        ColorChoice::Auto,
-    )?;
+    env_logger::init();
 
     let config = config_from_file("/etc/bpfd/bpfctl.toml");
 
