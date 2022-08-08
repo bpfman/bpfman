@@ -152,7 +152,7 @@ impl<'a> BpfManager<'a> {
         // Keep old_links in scope until after this function exits to avoid dropping
         // them before the new dispatcher is attached
         let _old_links = self.attach_extensions(&if_index, &mut dispatcher_loader)?;
-        self.update_or_replace_dispatcher(iface.clone(), if_index, dispatcher_loader)?;
+        self.attach_or_replace_dispatcher(iface.clone(), if_index, dispatcher_loader)?;
         info!(
             "Program added: {} programs attached to {}",
             self.programs.get(&if_index).unwrap().len(),
@@ -201,7 +201,7 @@ impl<'a> BpfManager<'a> {
             // them before the new dispatcher is attached
             let _old_links = self.attach_extensions(&if_index, &mut dispatcher_loader)?;
 
-            self.update_or_replace_dispatcher(iface, if_index, dispatcher_loader)?;
+            self.attach_or_replace_dispatcher(iface, if_index, dispatcher_loader)?;
         }
         Ok(())
     }
@@ -340,7 +340,7 @@ impl<'a> BpfManager<'a> {
         Ok(old_links)
     }
 
-    fn update_or_replace_dispatcher(
+    fn attach_or_replace_dispatcher(
         &mut self,
         iface: String,
         if_index: u32,
