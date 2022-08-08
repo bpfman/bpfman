@@ -18,22 +18,13 @@ cargo build
 ## Step 2: Start bpfd
 
 While learning and experimenting with bpfd, it may be useful to run bpfd in the foreground
-(which requires a second terminal to run the bpfctl commands below):
+(which requires a second terminal to run the bpfctl commands below). For more details on 
+how logging is handled in bpfd, see [Logging](#logging) below.
 
 ```console
 sudo RUST_LOG=info ./target/debug/bpfd
 ```
 
-bpfd uses the [env_logger](https://docs.rs/env_logger) crate to log messages to the
-terminal.
-By default, only `error` messages are logged, but that can be overwritten by setting
-the `RUST_LOG` environment variable.
-Valid values:
-* `error`
-* `warn`
-* `info`
-* `debug`
-* `trace`
 
 Later, once familiar with bpfd, run in the background:
 ```console
@@ -181,3 +172,80 @@ xdp_mode: skb
 ```
 
 When bpfd is stopped, all remaining programs will be unloaded automatically.
+
+# Logging
+
+## env_logger
+
+bpfd and bpfctl use the [env_logger](https://docs.rs/env_logger) crate to log messages to the terminal.
+By default, only `error` messages are logged, but that can be overwritten by setting
+the `RUST_LOG` environment variable.
+Valid values:
+* `error`
+* `warn`
+* `info`
+* `debug`
+* `trace`
+
+Example:
+
+```console
+$ sudo RUST_LOG=info /usr/local/bin/bpfd
+[2022-08-08T20:29:31Z INFO  bpfd] Log using env_logger
+[2022-08-08T20:29:31Z INFO  bpfd::server] Loading static programs from /etc/bpfd/programs.d
+[2022-08-08T20:29:31Z INFO  bpfd::server::bpf] Map veth12fa8e3 to 13
+[2022-08-08T20:29:31Z INFO  bpfd::server] Listening on [::1]:50051
+[2022-08-08T20:29:31Z INFO  bpfd::server::bpf] Program added: 1 programs attached to veth12fa8e3
+[2022-08-08T20:29:31Z INFO  bpfd::server] Loaded static program pass with UUID d9fd88df-d039-4e64-9f63-19f3e08915ce
+```
+
+bpfctl doesn't currently have any logs, but the infrastructure is in place if needed for future debugging.
+
+## Systemd Service
+
+If bpfd is running as a systemd service, then bpfd will log to journald.
+As with env_logger, by default, only `error` messages are logged, but that can be
+overwritten by setting the `RUST_LOG` environment variable.
+bpfctl won't be run as a service, so it always uses env_logger.
+
+Example:
+
+```console
+sudo vi /usr/lib/systemd/system/bpfd.service
+[Unit]
+Description=Run bpfd as a service
+DefaultDependencies=no
+After=network.target
+
+[Service]
+Environment="RUST_LOG=Info"
+ExecStart=/home/bmcfall/src/bpfd/target/debug/bpfd
+
+[Install]
+WantedBy=sysinit.target
+```
+
+Start the service:
+
+```console
+sudo systemctl start bpfd.service
+```
+
+Check the logs:
+
+```console
+$ sudo journalctl -f -u bpfd
+Aug 08 16:25:04 ebpf03 systemd[1]: Started bpfd.service - Run bpfd as a service.
+Aug 08 16:25:04 ebpf03 bpfd[180118]: Log using journald
+Aug 08 16:25:04 ebpf03 bpfd[180118]: Loading static programs from /etc/bpfd/programs.d
+Aug 08 16:25:04 ebpf03 bpfd[180118]: Map veth12fa8e3 to 13
+Aug 08 16:25:04 ebpf03 bpfd[180118]: Listening on [::1]:50051
+Aug 08 16:25:04 ebpf03 bpfd[180118]: Program added: 1 programs attached to veth12fa8e3
+Aug 08 16:25:04 ebpf03 bpfd[180118]: Loaded static program pass with UUID a3ffa14a-786d-48ad-b0cd-a4802f0f10b6
+```
+
+Stop the service:
+
+```console
+sudo systemctl stop bpfd.service
+```

@@ -66,11 +66,22 @@ git clone https://github.com/libbpf/libbpf --branch v0.8.0
 
 ## Building bpfd
 
-```
-# If eBPF code has changed
+To just test with the latest bpfd, containerized image are stored in `quay.io/bpfd` (see
+[image-build.md](docs/developer/image-build.md)). To build with local changes, use the following commands.
+
+
+If eBPF code has changed:
+```console
 $ cargo xtask build-ebpf --libbpf-dir /path/to/libbpf
-# If protobuf files have changed
+```
+
+If protobuf files have changed:
+```console
 $ cargo xtask build-proto
+```
+
+To build bpfd and bpfctl:
+```console
 $ cargo build
 ```
 
