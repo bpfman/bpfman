@@ -1,16 +1,29 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
+use std::{env, str::FromStr};
+
 use aya::include_bytes_aligned;
 use bpfd::server::{config_from_file, programs_from_directory, serve};
 use nix::{
     libc::RLIM_INFINITY,
     sys::resource::{setrlimit, Resource},
 };
+use systemd_journal_logger::{connected_to_journal, init_with_extra_fields};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    env_logger::init();
+    if connected_to_journal() {
+        // If bpfd is running as a service, log to journald.
+        init_with_extra_fields(vec![("VERSION", env!("CARGO_PKG_VERSION"))]).unwrap();
+        manage_journal_log_level();
+        log::info!("Log using journald");
+    } else {
+        // Otherwise fall back to logging to standard error.
+        env_logger::init();
+        log::info!("Log using env_logger");
+    }
+
     let dispatcher_bytes =
         include_bytes_aligned!("../../target/bpfel-unknown-none/release/xdp_dispatcher.bpf.o");
     setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
@@ -21,4 +34,17 @@ async fn main() -> anyhow::Result<()> {
 
     serve(config, dispatcher_bytes, static_programs).await?;
     Ok(())
+}
+
+fn manage_journal_log_level() {
+    // env_logger uses the environment variable RUST_LOG to set the log
+    // level. Parse RUST_LOG to set the log level for journald.
+    log::set_max_level(log::LevelFilter::Error);
+    if env::var("RUST_LOG").is_ok() {
+        let rust_log = log::LevelFilter::from_str(&env::var("RUST_LOG").unwrap());
+        match rust_log {
+            Ok(value) => log::set_max_level(value),
+            Err(e) => log::error!("Invalid Log Level: {}", e),
+        }
+    }
 }
