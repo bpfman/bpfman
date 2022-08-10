@@ -31,8 +31,9 @@ type Stats struct {
 
 const (
 	DefaultRootCaPath     = "/etc/bpfd/certs/ca/ca.pem"
-	DefaultClientCertPath = "/etc/bpfd/certs/gocounter/gocounter.pem"
-	DefaultClientKeyPath  = "/etc/bpfd/certs/gocounter/gocounter.key"
+	DefaultClientCertPath = "/etc/bpfctl/certs/gocounter/gocounter.pem"
+	DefaultClientKeyPath  = "/etc/bpfctl/certs/gocounter/gocounter.key"
+	DefaultSocketPath     = "/etc/bpfd/sock/gocounter.sock"
 )
 
 // TODO (astoycos): Add back -Wall -Werror here once BTF maps are supported in Aya
@@ -92,10 +93,9 @@ func main() {
 	}(id)
 
 	// 3. Set up a UDS to receive the Map FD
-	const sockAddr = "/tmp/map.sock"
-	syscall.Unlink(sockAddr)
+	syscall.Unlink(DefaultSocketPath)
 
-	sock, err := net.ListenUnixgram("unixgram", &net.UnixAddr{sockAddr, "unix"})
+	sock, err := net.ListenUnixgram("unixgram", &net.UnixAddr{DefaultSocketPath, "unix"})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func main() {
 		Iface:      iface,
 		Id:         id,
 		MapName:    "xdp_stats_map",
-		SocketPath: sockAddr,
+		SocketPath: DefaultSocketPath,
 	})
 	if err != nil {
 		log.Fatal(err)

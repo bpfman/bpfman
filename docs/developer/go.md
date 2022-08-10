@@ -26,21 +26,24 @@ An example application that uses the `bpfd-go` bindings can be found [here](http
 `bpfd` uses mTLS for mutual authentication. To generate a client certificate for
 the gocounter example run:
 
+```console
+sudo ./scripts/setup.sh gocounter
 ```
-./scripts/certificates.sh client gocounter
-```
+
+This creates the certificate in a sub-directory of the `bpfctl` user (`/etc/bpfctl/certs/gocounter/`).
+
 
 ## Building
 
 To rebuild the c based bpf counter program example run:
 
-```
+```console
     cd examples/gocounter && go generate
 ```
 
 To build the userspace go client run:
 
-```   
+```console
     cd examples/gocounter && go build
 ```
 
@@ -50,14 +53,14 @@ First start or ensure `bpfd` is up and running.
 
 Then start the go program with:
 
-```
+```console
     cd examples/gocounter && sudo ./gocounter <INTERNET INTERFACE NAME>
 ```
 
 The output should show the count and total bytes of packets as they pass through the
 interface as shown below:
 
-```
+```console
 sudo ./gocounter docker0
 2022/07/05 17:53:57 Program registered with a2e26a4a-5bcf-4092-be07-c4f9b50031be id
 0 packets received
