@@ -1,0 +1,14 @@
+FROM scratch
+
+ARG PROGRAM_NAME
+ARG SECTION_NAME
+ARG PROGRAM_TYPE
+ARG BYTECODE_FILENAME
+ARG KERNEL_COMPILE_VER
+
+COPY  $BYTECODE_FILENAME /etc/bpfd/bytecode/
+LABEL io.ebpf.program_type $PROGRAM_TYPE
+LABEL io.ebpf.filename $BYTECODE_FILENAME
+LABEL io.ebpf.program_name $PROGRAM_NAME
+LABEL io.ebpf.section_name $SECTION_NAME
+LABEL io.ebpf.kernel_version $KERNEL_COMPILE_VER
