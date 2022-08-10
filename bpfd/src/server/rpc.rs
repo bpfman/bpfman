@@ -12,7 +12,7 @@ use tonic::{Request, Response, Status};
 use uuid::Uuid;
 use x509_certificate::X509Certificate;
 
-use crate::server::{bpf::InterfaceInfo, errors::BpfdError};
+use crate::server::{bpf::InterfaceInfo, errors::BpfdError, pull_bytecode::pull_bytecode};
 
 #[derive(Debug, Default)]
 struct User {
@@ -71,7 +71,19 @@ impl Loader for BpfdLoader {
             .unwrap_or(&DEFAULT_USER)
             .username
             .to_string();
-        let request = request.into_inner();
+        let mut request = request.into_inner();
+
+        if request.from_image {
+            // Pull image from Repo if not locally here, dump bytecode
+            let internal_program_overrides = pull_bytecode(&request.path).await;
+            match internal_program_overrides {
+                Ok(internal_program_overrides) => {
+                    request.path = internal_program_overrides.path;
+                    request.section_name = internal_program_overrides.image_meta.section_name;
+                }
+                Err(e) => return Err(Status::aborted(format!("{}", e))),
+            };
+        }
 
         let (resp_tx, resp_rx) = oneshot::channel();
         let cmd = Command::Load {

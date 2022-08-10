@@ -26,11 +26,12 @@ enum ProceedOn {
 
 message LoadRequest {
     string path = 1;
-    string section_name = 2;
-    ProgramType program_type = 3;
-    int32 priority = 4;
-    string iface = 5;
-    repeated ProceedOn proceed_on = 6;
+    bool from_image = 2;
+    string section_name = 3;
+    ProgramType program_type = 4;
+    int32 priority = 5;
+    string iface = 6;
+    repeated ProceedOn proceed_on = 7;
 }
 
 message LoadResponse {

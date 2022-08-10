@@ -27,15 +27,24 @@ enum Commands {
         /// Required: Program to load.
         #[clap(parse(from_os_str))]
         path: PathBuf,
-        /// Required: BPF hook point.
+        /// Optional: Extract bytecode from container, signals <PATH> is a
+        /// container image URL.
+        #[clap(long, conflicts_with_all(&["program-type", "section-name"]))]
+        from_image: bool,
+        /// Required if "--from-image" is not present: BPF hook point.
         /// Possible values: [xdp]
-        #[clap(short, long)]
+        #[clap(
+            short,
+            long,
+            default_value = "xdp",
+            required_unless_present("from-image")
+        )]
         program_type: String,
         /// Required: Interface to load program on.
         #[clap(short, long)]
         iface: String,
-        /// Required: Name of the ELF section from the object file.
-        #[clap(short, long)]
+        /// Required if "--from-image" is not present: Name of the ELF section from the object file.
+        #[clap(short, long, default_value = "", required_unless_present("from-image"))]
         section_name: String,
         /// Required: Priority to run program in chain. Lower value runs first.
         #[clap(long)]
@@ -94,6 +103,7 @@ async fn main() -> anyhow::Result<()> {
     match &cli.command {
         Commands::Load {
             path,
+            from_image,
             program_type,
             iface,
             section_name,
@@ -113,6 +123,7 @@ async fn main() -> anyhow::Result<()> {
 
             let request = tonic::Request::new(LoadRequest {
                 path: path_str,
+                from_image: *from_image,
                 program_type: prog_type as i32,
                 iface: iface.to_string(),
                 section_name: section_name.to_string(),
