@@ -4,6 +4,7 @@
 mod bpf;
 mod config;
 mod errors;
+mod pull_bytecode;
 mod rpc;
 mod static_program;
 

@@ -2,15 +2,17 @@
 pub struct LoadRequest {
     #[prost(string, tag="1")]
     pub path: ::prost::alloc::string::String,
-    #[prost(string, tag="2")]
+    #[prost(bool, tag="2")]
+    pub from_image: bool,
+    #[prost(string, tag="3")]
     pub section_name: ::prost::alloc::string::String,
-    #[prost(enumeration="ProgramType", tag="3")]
+    #[prost(enumeration="ProgramType", tag="4")]
     pub program_type: i32,
-    #[prost(int32, tag="4")]
+    #[prost(int32, tag="5")]
     pub priority: i32,
-    #[prost(string, tag="5")]
+    #[prost(string, tag="6")]
     pub iface: ::prost::alloc::string::String,
-    #[prost(enumeration="ProceedOn", repeated, tag="6")]
+    #[prost(enumeration="ProceedOn", repeated, tag="7")]
     pub proceed_on: ::prost::alloc::vec::Vec<i32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
