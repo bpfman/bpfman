@@ -56,7 +56,8 @@ cargo install bpf-linker
 sudo dnf install protobuf-compiler
 ```
 
-- [go protobuf compiler extensions](https://grpc.io/docs/languages/go/quickstart/)
+- go protobuf compiler extensions
+  - See [Quick Start Guide for gRPC in Go](https://grpc.io/docs/languages/go/quickstart/) for installation instructions
 
 - A checkout of libbpf
 
