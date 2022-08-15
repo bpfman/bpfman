@@ -25,7 +25,7 @@ systemd-journal-logger = "0.5.0"
 tonic = "0.8"
 bpfd-api = { version = "0.1.0", path = "../bpfd-api" }
 bpfd-common = { version = "0.1.0", path = "../bpfd-common", features=["user"] }
-nix = { version = "0.24", features = [ "socket", "fs" ]}
+nix = { version = "0.25", features = [ "socket", "fs" ]}
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.5"
 x509-certificate = "0.14"
