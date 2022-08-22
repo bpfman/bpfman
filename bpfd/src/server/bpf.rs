@@ -267,7 +267,12 @@ impl<'a> BpfManager<'a> {
                     let iov = [IoSlice::new(b"a")];
                     let fds = [fd.as_raw_fd()];
                     let cmsg = ControlMessage::ScmRights(&fds);
-                    sendmsg(sock, &iov, &[cmsg], MsgFlags::empty(), Some(&sock_addr)).unwrap();
+                    if let Err(result) =
+                        sendmsg(sock, &iov, &[cmsg], MsgFlags::empty(), Some(&sock_addr))
+                    {
+                        info!("sendmsg error: {}", result);
+                        return Err(BpfdError::SendFailure);
+                    }
                 } else {
                     return Err(BpfdError::MapNotLoaded);
                 }
