@@ -87,6 +87,7 @@ impl Loader for BpfdLoader {
 
         let (resp_tx, resp_rx) = oneshot::channel();
         let cmd = Command::Load {
+            program_type: request.program_type,
             iface: request.iface,
             responder: resp_tx,
             path: request.path,
@@ -219,6 +220,7 @@ impl Loader for BpfdLoader {
 #[derive(Debug)]
 pub(crate) enum Command {
     Load {
+        program_type: i32,
         iface: String,
         path: String,
         priority: i32,
