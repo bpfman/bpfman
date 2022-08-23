@@ -4,7 +4,10 @@
 use std::{collections::HashMap, io::IoSlice, os::unix::prelude::AsRawFd, path::Path};
 
 use aya::{
-    programs::{extension::ExtensionLink, xdp::XdpLink, Extension, OwnedLink, Xdp},
+    programs::{
+        extension::ExtensionLink, tc, xdp::XdpLink, Extension, OwnedLink, SchedClassifier,
+        TcAttachType, Xdp,
+    },
     Bpf, BpfLoader,
 };
 use bpfd_common::*;
@@ -100,6 +103,7 @@ impl<'a> BpfManager<'a> {
 
     pub(crate) fn add_program(
         &mut self,
+        program_type: i32,
         iface: String,
         path: String,
         priority: i32,
@@ -107,57 +111,92 @@ impl<'a> BpfManager<'a> {
         proceed_on: Vec<i32>,
         owner: String,
     ) -> Result<Uuid, BpfdError> {
+        println!("in add_program() program_type: {:#?}", program_type);
+
+        println!("Trace 01");
         let if_index = self.get_ifindex(&iface)?;
-        let mut ext_loader = BpfLoader::new()
-            .extension(&section_name)
-            .load_file(path.clone())?;
-        ext_loader
-            .program_mut(&section_name)
-            .ok_or_else(|| BpfdError::SectionNameNotValid(section_name.clone()))?;
-        let id = Uuid::new_v4();
+        println!("Trace 02");
+        match program_type {
+            0 => {
+                let mut ext_loader = BpfLoader::new()
+                    .extension(&section_name)
+                    .load_file(path.clone())?;
+                ext_loader
+                    .program_mut(&section_name)
+                    .ok_or_else(|| BpfdError::SectionNameNotValid(section_name.clone()))?;
+                let id = Uuid::new_v4();
 
-        // Calculate the next_available_id
-        let next_available_id = if let Some(prog) = self.programs.get(&if_index) {
-            prog.len() + 1
-        } else {
-            self.programs.insert(if_index, HashMap::new());
-            1
-        };
-        if next_available_id > 10 {
-            return Err(BpfdError::TooManyPrograms);
+                // Calculate the next_available_id
+                let next_available_id = if let Some(prog) = self.programs.get(&if_index) {
+                    prog.len() + 1
+                } else {
+                    self.programs.insert(if_index, HashMap::new());
+                    1
+                };
+                if next_available_id > 10 {
+                    return Err(BpfdError::TooManyPrograms);
+                }
+
+                self.programs.get_mut(&if_index).unwrap().insert(
+                    id,
+                    ExtensionProgram {
+                        path,
+                        loader: Some(ext_loader),
+                        current_position: None,
+                        metadata: Metadata {
+                            priority,
+                            name: section_name,
+                            attached: false,
+                        },
+                        link: None,
+                        owner,
+                        proceed_on,
+                    },
+                );
+                self.sort_extensions(&if_index);
+
+                let mut dispatcher_loader =
+                    self.new_dispatcher(&if_index, next_available_id as u8, self.dispatcher_bytes)?;
+
+                // Keep old_links in scope until after this function exits to avoid dropping
+                // them before the new dispatcher is attached
+                let _old_links = self.attach_extensions(&if_index, &mut dispatcher_loader)?;
+                self.update_or_replace_dispatcher(iface.clone(), if_index, dispatcher_loader)?;
+                info!(
+                    "Program added: {} programs attached to {}",
+                    self.programs.get(&if_index).unwrap().len(),
+                    &iface,
+                );
+                Ok(id)
+            }
+            1 => {
+                // error adding clsact to the interface if it is already added is harmless
+                // the full cleanup can be done with 'sudo tc qdisc del dev iface clsact'.
+                println!("Trace 03: {:#?}", &iface);
+                let _ = tc::qdisc_add_clsact(&iface);
+
+                let id = Uuid::new_v4();
+
+                println!("Trace 04");
+                let mut bpf = Bpf::load_file(path.clone())?;
+                println!("Trace 05");
+                let program: &mut SchedClassifier =
+                    bpf.program_mut(&section_name).unwrap().try_into()?;
+                println!("Trace 06");
+                program.load()?;
+                println!("Trace 07");
+                program.attach(&iface, TcAttachType::Ingress, priority as u16)?;
+                println!("Trace 08");
+
+                Ok(id)
+            }
+            2 => {
+                return Err(BpfdError::UnsuportedProgramType);
+            }
+            _ => {
+                return Err(BpfdError::UnsuportedProgramType);
+            }
         }
-
-        self.programs.get_mut(&if_index).unwrap().insert(
-            id,
-            ExtensionProgram {
-                path,
-                loader: Some(ext_loader),
-                current_position: None,
-                metadata: Metadata {
-                    priority,
-                    name: section_name,
-                    attached: false,
-                },
-                link: None,
-                owner,
-                proceed_on,
-            },
-        );
-        self.sort_extensions(&if_index);
-
-        let mut dispatcher_loader =
-            self.new_dispatcher(&if_index, next_available_id as u8, self.dispatcher_bytes)?;
-
-        // Keep old_links in scope until after this function exits to avoid dropping
-        // them before the new dispatcher is attached
-        let _old_links = self.attach_extensions(&if_index, &mut dispatcher_loader)?;
-        self.update_or_replace_dispatcher(iface.clone(), if_index, dispatcher_loader)?;
-        info!(
-            "Program added: {} programs attached to {}",
-            self.programs.get(&if_index).unwrap().len(),
-            &iface,
-        );
-        Ok(id)
     }
 
     pub(crate) fn remove_program(

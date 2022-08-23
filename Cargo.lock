@@ -112,7 +112,7 @@ dependencies = [
 [[package]]
 name = "aya"
 version = "0.11.0"
-source = "git+https://github.com/aya-rs/aya?branch=main#f2fb2116344e3fed10cff1dd1a1474971204e799"
+source = "git+https://github.com/aya-rs/aya?branch=main#c80ab31d7bb88f12a392fddae26b51486bc33999"
 dependencies = [
  "bitflags",
  "bytes",

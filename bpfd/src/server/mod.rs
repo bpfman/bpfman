@@ -82,6 +82,7 @@ pub async fn serve(
                 }
 
                 let uuid = bpf_manager.add_program(
+                    program.program_type,
                     program.interface,
                     program.path,
                     program.priority,
@@ -96,8 +97,10 @@ pub async fn serve(
 
     // Start receiving messages
     while let Some(cmd) = rx.recv().await {
+        println!("serv() received command:\n{:#?}", cmd);
         match cmd {
             Command::Load {
+                program_type,
                 iface,
                 path,
                 priority,
@@ -107,6 +110,7 @@ pub async fn serve(
                 responder,
             } => {
                 let res = bpf_manager.add_program(
+                    program_type,
                     iface,
                     path,
                     priority,

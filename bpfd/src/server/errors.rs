@@ -25,4 +25,6 @@ pub enum BpfdError {
     NotAuthorized,
     #[error("Invalid Interface")]
     InvalidInterface,
+    #[error("Unsupported ProgramType")]
+    UnsuportedProgramType,
 }
