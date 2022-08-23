@@ -18,10 +18,11 @@ jobs:
     container:
       image: fedora:36
     steps:
+      ## Install perl due to https://github.com/openssl/openssl/issues/13761
       - name: Install deps
         run: |
           sudo dnf groupinstall -y c-development
-          sudo dnf install -y git clang llvm protobuf-compiler cmake
+          sudo dnf install -y git clang llvm protobuf-compiler cmake perl
 
       - uses: actions/checkout@v2
 
