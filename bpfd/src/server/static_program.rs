@@ -7,11 +7,11 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct StaticProgramEntry {
+    pub program_type: i32,
     pub name: String,
     pub interface: String,
     pub path: String,
     pub section_name: String,
-    pub program_type: String,
     pub priority: i32,
     pub proceed_on: Vec<String>,
 }

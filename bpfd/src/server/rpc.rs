@@ -2,6 +2,7 @@
 // Copyright Authors of bpfd
 use std::sync::{Arc, Mutex};
 
+use anyhow::Result;
 use bpfd_api::v1::{
     list_response::ListResult, loader_server::Loader, ListRequest, ListResponse, LoadRequest,
     LoadResponse, UnloadRequest, UnloadResponse,
@@ -87,6 +88,7 @@ impl Loader for BpfdLoader {
 
         let (resp_tx, resp_rx) = oneshot::channel();
         let cmd = Command::Load {
+            program_type: request.program_type,
             iface: request.iface,
             responder: resp_tx,
             path: request.path,
@@ -219,6 +221,7 @@ impl Loader for BpfdLoader {
 #[derive(Debug)]
 pub(crate) enum Command {
     Load {
+        program_type: i32,
         iface: String,
         path: String,
         priority: i32,
