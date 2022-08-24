@@ -13,6 +13,8 @@ pub struct Options {
     /// Build and run the release target
     #[clap(long)]
     pub release: bool,
+    #[clap(long)]
+    pub compile_rust_ebpf: bool,
     /// The command used to wrap your application
     #[clap(short, long, default_value = "sudo -E")]
     pub runner: String,
@@ -44,6 +46,7 @@ pub fn run(opts: Options) -> Result<(), anyhow::Error> {
     build_ebpf(BuildOptions {
         target: opts.bpf_target,
         release: opts.release,
+        compile_rust_ebpf: opts.compile_rust_ebpf,
         libbpf_dir: PathBuf::from(&opts.libbpf_dir),
     })
     .context("Error while building eBPF program")?;

@@ -45,6 +45,9 @@ pub struct Options {
     /// Build the release target
     #[clap(long)]
     pub release: bool,
+    /// Compile rust ebpf dispatcher
+    #[clap(long)]
+    pub compile_rust_ebpf: bool,
     /// Libbpf dir, required for compiling C code
     #[clap(long, action)]
     pub libbpf_dir: PathBuf,
@@ -65,7 +68,9 @@ fn workspace_root() -> String {
 }
 
 pub fn build_ebpf(opts: Options) -> anyhow::Result<()> {
-    build_rust_ebpf(&opts)?;
+    if opts.compile_rust_ebpf {
+        build_rust_ebpf(&opts)?;
+    }
     build_c_ebpf(&opts)
 }
 
