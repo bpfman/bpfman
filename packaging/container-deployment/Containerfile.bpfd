@@ -1,10 +1,11 @@
-FROM rustlang/rust:nightly as bpfd-build
+FROM rust:1.63.0-bullseye as bpfd-build
 WORKDIR /usr/src/bpfd
 COPY ./ /usr/src/bpfd
 
-RUN git clone https://github.com/libbpf/libbpf --branch v0.8.0
+RUN git clone https://github.com/libbpf/libbpf --branch v0.8.0 /usr/src/bpfd/libbpf
 
 RUN apt-get update && apt-get install -y\
+ git\
  clang\
  protobuf-compiler\
  libelf-dev\
@@ -13,11 +14,12 @@ RUN apt-get update && apt-get install -y\
 
 RUN rustup target add x86_64-unknown-linux-musl
 
-RUN cargo install bpf-linker
+# When we switch to using the rust ebpf dispatcher we will need this for now leave
+# it out since it slows down builds
+#RUN cargo install bpf-linker
 
-# Compile the ebpf bytecode first
-RUN rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
-RUN cargo xtask build-ebpf --libbpf-dir /usr/src/bpfd/libbpf
+# Compile only the C ebpf bytecode
+RUN cargo xtask build-ebpf --release --libbpf-dir /usr/src/bpfd/libbpf
 # Compile only bpfd 
 RUN cargo build --release -p bpfd --target x86_64-unknown-linux-musl
 
