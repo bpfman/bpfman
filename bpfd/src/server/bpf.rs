@@ -111,11 +111,7 @@ impl<'a> BpfManager<'a> {
         proceed_on: Vec<i32>,
         owner: String,
     ) -> Result<Uuid, BpfdError> {
-        println!("in add_program() program_type: {:#?}", program_type);
-
-        println!("Trace 01");
         let if_index = self.get_ifindex(&iface)?;
-        println!("Trace 02");
         match program_type {
             0 => {
                 let mut ext_loader = BpfLoader::new()
@@ -172,21 +168,15 @@ impl<'a> BpfManager<'a> {
             1 => {
                 // error adding clsact to the interface if it is already added is harmless
                 // the full cleanup can be done with 'sudo tc qdisc del dev iface clsact'.
-                println!("Trace 03: {:#?}", &iface);
                 let _ = tc::qdisc_add_clsact(&iface);
 
                 let id = Uuid::new_v4();
 
-                println!("Trace 04");
                 let mut bpf = Bpf::load_file(path.clone())?;
-                println!("Trace 05");
                 let program: &mut SchedClassifier =
                     bpf.program_mut(&section_name).unwrap().try_into()?;
-                println!("Trace 06");
                 program.load()?;
-                println!("Trace 07");
                 program.attach(&iface, TcAttachType::Ingress, priority as u16)?;
-                println!("Trace 08");
 
                 Ok(id)
             }

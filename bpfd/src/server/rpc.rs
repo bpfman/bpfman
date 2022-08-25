@@ -64,7 +64,6 @@ impl BpfdLoader {
 #[tonic::async_trait]
 impl Loader for BpfdLoader {
     async fn load(&self, request: Request<LoadRequest>) -> Result<Response<LoadResponse>, Status> {
-        println!("In rpc.rs -> Loader.  Request = \n {:#?}, ", request,);
         let mut reply = LoadResponse { id: String::new() };
         let username = request
             .extensions()
