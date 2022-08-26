@@ -89,6 +89,7 @@ pub(crate) struct BpfManager<'a> {
     dispatcher_bytes: &'a [u8],
     dispatchers: HashMap<u32, DispatcherProgram>,
     programs: HashMap<u32, HashMap<Uuid, ExtensionProgram>>,
+    tc_programs: HashMap<u32, HashMap<Uuid, ExtensionProgram>>,
 }
 
 impl<'a> BpfManager<'a> {
@@ -98,6 +99,7 @@ impl<'a> BpfManager<'a> {
             dispatcher_bytes,
             dispatchers: HashMap::new(),
             programs: HashMap::new(),
+            tc_programs: HashMap::new(),
         }
     }
 
@@ -123,13 +125,13 @@ impl<'a> BpfManager<'a> {
                 let id = Uuid::new_v4();
 
                 // Calculate the next_available_id
-                let next_available_id = if let Some(prog) = self.programs.get(&if_index) {
+                let num_programs = if let Some(prog) = self.programs.get(&if_index) {
                     prog.len() + 1
                 } else {
                     self.programs.insert(if_index, HashMap::new());
                     1
                 };
-                if next_available_id > 10 {
+                if num_programs > 10 {
                     return Err(BpfdError::TooManyPrograms);
                 }
 
@@ -152,7 +154,7 @@ impl<'a> BpfManager<'a> {
                 self.sort_extensions(&if_index);
 
                 let mut dispatcher_loader =
-                    self.new_dispatcher(&if_index, next_available_id as u8, self.dispatcher_bytes)?;
+                    self.new_dispatcher(&if_index, num_programs as u8, self.dispatcher_bytes)?;
 
                 // Keep old_links in scope until after this function exits to avoid dropping
                 // them before the new dispatcher is attached
@@ -173,6 +175,35 @@ impl<'a> BpfManager<'a> {
                 let id = Uuid::new_v4();
 
                 let mut bpf = Bpf::load_file(path.clone())?;
+
+                // Calculate the next_available_id
+                let num_programs = if let Some(prog) = self.tc_programs.get(&if_index) {
+                    prog.len() + 1
+                } else {
+                    self.tc_programs.insert(if_index, HashMap::new());
+                    1
+                };
+                if num_programs > 10 {
+                    return Err(BpfdError::TooManyPrograms);
+                }
+
+                self.tc_programs.get_mut(&if_index).unwrap().insert(
+                    id,
+                    ExtensionProgram {
+                        path,
+                        loader: Some(bpf),
+                        current_position: None,
+                        metadata: Metadata {
+                            priority,
+                            name: section_name,
+                            attached: true,
+                        },
+                        link: None,
+                        owner,
+                        proceed_on,
+                    },
+                );
+
                 let program: &mut SchedClassifier =
                     bpf.program_mut(&section_name).unwrap().try_into()?;
                 program.load()?;
