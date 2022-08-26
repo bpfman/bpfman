@@ -95,6 +95,9 @@ func main() {
 	// 3. Set up a UDS to receive the Map FD
 	syscall.Unlink(DefaultSocketPath)
 
+	// Unmask to allow members of the same User Group to have rwx access to socket.
+	syscall.Umask(007)
+
 	sock, err := net.ListenUnixgram("unixgram", &net.UnixAddr{DefaultSocketPath, "unix"})
 	if err != nil {
 		log.Fatal(err)
