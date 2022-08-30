@@ -1,7 +1,6 @@
 #!/bin/bash
 
 KEY_LEN=4096
-CA_CERT_PATH=/etc/bpfd/certs/ca
 
 cert_init() {
     regen=$1
@@ -26,10 +25,10 @@ cert_init() {
         chmod -v 0444 "${CA_CERT_PATH}"/ca.pem
     fi
 
-    cert_client bpfd bpfd ${regen}
-    cert_client bpfctl bpfctl ${regen}
+    cert_client "${BIN_BPFD}" "${USER_BPFD}" ${regen}
+    cert_client "${BIN_BPFCTL}" "${USER_BPFCTL}" ${regen}
     if [ "${regen}" == true ]; then
-        cert_client gocounter bpfctl ${regen}
+        cert_client "${BIN_GOCOUNTER}" "${USER_BPFCTL}" ${regen}
     fi
 }
 

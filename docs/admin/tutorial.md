@@ -211,6 +211,8 @@ To unwind all the changes, stop `bpfd` and then run the following script:
 sudo ./scripts/setup.sh del
 ```
 
+**WARNING:** `setup.sh del` and `setup.sh uninstall` cleans everything up, so `/etc/bpfd/programs.d/`
+and `/var/bpfd/bytecode/` are deleted. Save any changes or files that were created if needed.
 
 ## Unprivileged Mode
 
@@ -312,6 +314,9 @@ running, so run it in-place of `setup.sh del`):
 ```console
 sudo ./scripts/setup.sh uninstall
 ```
+
+**WARNING:** `setup.sh del` and `setup.sh uninstall` cleans everything up, so `/etc/bpfd/programs.d/`
+and `/var/bpfd/bytecode/` are deleted. Save any changes or files that were created if needed.
 
 ## Additional Command
 

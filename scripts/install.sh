@@ -1,23 +1,23 @@
 #!/bin/bash
 
-SRC_BIN_PATH="../target/debug"
-DST_BIN_PATH="/usr/sbin"
-DST_SVC_PATH="/usr/lib/systemd/system"
-
 copy_bin() {
     bin_name=$1
     if [ -z "${bin_name}" ]; then
         echo "Binary name required"
         exit 1
     fi
-    user_group=$2
+    user_name=$2
+    if [ -z "${user_name}" ]; then
+        user_name=${bin_name}
+    fi
+    user_group=$3
     if [ -z "${user_group}" ]; then
         user_group=${bin_name}
     fi
 
-    echo "  Copying \"${bin_name}\" and chown \"${bin_name}:${user_group}\""
+    echo "  Copying \"${bin_name}\" and chown \"${user_name}:${user_group}\""
     cp "${SRC_BIN_PATH}/${bin_name}" "${DST_BIN_PATH}/${bin_name}"
-    chown ${bin_name}:${user_group} "${DST_BIN_PATH}/${bin_name}"
+    chown ${user_name}:${user_group} "${DST_BIN_PATH}/${bin_name}"
 }
 
 del_bin() {
@@ -26,6 +26,7 @@ del_bin() {
         echo "Binary name required"
         exit 1
     fi
+
     echo "  Removing \"${bin_name}\""
     rm -f "${DST_BIN_PATH}/${bin_name}"
 }
@@ -36,14 +37,18 @@ copy_svc() {
         echo "service name required"
         exit 1
     fi
-    user_group=$2
+    user_name=$2
+    if [ -z "${user_name}" ]; then
+        user_name=${svc_name}
+    fi
+    user_group=$3
     if [ -z "${user_group}" ]; then
         user_group=${svc_name}
     fi
 
-    echo "  Copying \"${svc_name}.service\" and chown \"${svc_name}:${user_group}\""
+    echo "  Copying \"${svc_name}.service\" and chown \"${user_name}:${user_group}\""
     cp "${svc_name}.service" "${DST_SVC_PATH}/${svc_name}.service"
-    chown ${svc_name}:${user_group} "${DST_SVC_PATH}/${svc_name}.service"
+    chown ${user_name}:${user_group} "${DST_SVC_PATH}/${svc_name}.service"
 }
 
 del_svc() {
@@ -70,30 +75,30 @@ install() {
 
     START_BPFD=false
     if [ "${reinstall}" == true ]; then
-        echo "  Stopping \"bpfd.service\""
-        systemctl stop bpfd.service
+        echo "  Stopping \"${BIN_BPFD}.service\""
+        systemctl stop ${BIN_BPFD}.service
         START_BPFD=true
     fi
 
-    copy_bin "bpfd"
-    copy_bin "bpfctl" "bpfd"
+    copy_bin "${BIN_BPFD}" "${USER_BPFD}" "${USER_GROUP}"
+    copy_bin "${BIN_BPFCTL}" "${USER_BPFCTL}" "${USER_GROUP}"
 
     if [ "${reinstall}" == false ]; then
         echo "Copy service file:"
-        copy_svc "bpfd"
+        copy_svc "${BIN_BPFD}" "${USER_BPFD}" "${USER_GROUP}"
     else
         if [ "${START_BPFD}" == true ]; then
-            echo "  Starting \"bpfd.service\""
-            systemctl start bpfd.service
+            echo "  Starting \"${BIN_BPFD}.service\""
+            systemctl start ${BIN_BPFD}.service
         fi
     fi
 }
 
 uninstall() {
     echo "Remove service file:"
-    del_svc bpfd
+    del_svc "${BIN_BPFD}"
 
     echo "Remove binaries:"
-    del_bin bpfd
-    del_bin bpfctl
+    del_bin "${BIN_BPFD}"
+    del_bin "${BIN_BPFCTL}"
 }
