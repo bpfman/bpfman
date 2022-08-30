@@ -9,6 +9,7 @@ env:
   REPOSITORY: bpfd 
   BPFD_IMAGE_NAME: bpfd
   BPFCTL_IMAGE_NAME: bpfctl
+  BPFD_AGENT_IMAGE_NAME: bpfd-agent
 
 jobs:
   build:
@@ -71,3 +72,27 @@ jobs:
         image: ${{ steps.build-bpfctl.outputs.image }}
         tags: ${{ steps.build-bpfctl.outputs.tags }}
         registry: quay.io/bpfd
+
+    - name: Extract metadata (tags, labels) for bpfd-agent image
+      id: meta-bpfd-agent
+      uses: docker/metadata-action@v3.6.2
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.BPFD_AGENT_IMAGE_NAME }}
+
+    - name: Build bpfd-agent image
+      id: build-bpfd-agent
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: bpfd-agent
+        tags: ${{ steps. meta-bpfd-agent.outputs.tags }}
+        labels: ${{ steps. meta-bpfd-agent.outputs.labels }}
+        containerfiles: |
+          ./packaging/container-deployment/Containerfile.bpfdagent
+
+    - name: Push bpfd-agent to quay.io/bpfd
+      uses: redhat-actions/push-to-registry@v2
+      with:
+        image: ${{ steps.build-bpfd-agent.outputs.image }}
+        tags: ${{ steps.build-bpfd-agent.outputs.tags }}
+        registry: quay.io/bpfd
+        
