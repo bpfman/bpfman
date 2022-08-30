@@ -6,6 +6,7 @@ use bpfd_api::v1::{
     list_response::ListResult, loader_server::Loader, GetMapRequest, GetMapResponse, ListRequest,
     ListResponse, LoadRequest, LoadResponse, UnloadRequest, UnloadResponse,
 };
+use log::info;
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
@@ -88,13 +89,15 @@ impl Loader for BpfdLoader {
         tx.send(cmd).await.unwrap();
 
         // Await the response
-        let res = resp_rx.await.unwrap();
-        match res {
+        match resp_rx.await {
             Ok(id) => {
-                reply.id = id.to_string();
+                reply.id = id.unwrap().to_string();
                 Ok(Response::new(reply))
             }
-            Err(e) => Err(Status::aborted(format!("{}", e))),
+            Err(e) => {
+                info!("RPC load error: {}", e);
+                Err(Status::aborted(format!("{}", e)))
+            }
         }
     }
 
@@ -128,10 +131,12 @@ impl Loader for BpfdLoader {
         tx.send(cmd).await.unwrap();
 
         // Await the response
-        let res = resp_rx.await.unwrap();
-        match res {
+        match resp_rx.await {
             Ok(_) => Ok(Response::new(reply)),
-            Err(e) => Err(Status::aborted(format!("{}", e))),
+            Err(e) => {
+                info!("RPC unload error: {}", e);
+                Err(Status::aborted(format!("{}", e)))
+            }
         }
     }
 
@@ -153,9 +158,9 @@ impl Loader for BpfdLoader {
         tx.send(cmd).await.unwrap();
 
         // Await the response
-        let res = resp_rx.await.unwrap();
-        match res {
-            Ok(results) => {
+        match resp_rx.await {
+            Ok(res) => {
+                let results = res.unwrap();
                 reply.xdp_mode = results.xdp_mode;
                 for r in results.programs {
                     reply.results.push(ListResult {
@@ -169,7 +174,10 @@ impl Loader for BpfdLoader {
                 }
                 Ok(Response::new(reply))
             }
-            Err(e) => Err(Status::aborted(format!("{}", e))),
+            Err(e) => {
+                info!("RPC list error: {}", e);
+                Err(Status::aborted(format!("{}", e)))
+            }
         }
     }
 
@@ -194,10 +202,12 @@ impl Loader for BpfdLoader {
         tx.send(cmd).await.unwrap();
 
         // Await the response
-        let res = resp_rx.await.unwrap();
-        match res {
+        match resp_rx.await {
             Ok(_) => Ok(Response::new(reply)),
-            Err(e) => Err(Status::aborted(format!("{}", e))),
+            Err(e) => {
+                info!("RPC get_map error: {}", e);
+                Err(Status::aborted(format!("{}", e)))
+            }
         }
     }
 }

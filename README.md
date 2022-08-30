@@ -33,26 +33,26 @@ in use in the system.
 
 - [Rust Stable & Rust Nightly](https://www.rust-lang.org/tools/install) 
 
-```shell
+```console
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 export PATH="$HOME/.cargo/bin:$PATH"
 rustup toolchain install nightly -c rustfmt,clippy,rust-src
 ```
 - LLVM 11 or later (Linux package managers should provide a recent enough release)
 
-```shell
+```console
 sudo dnf install llvm-devel clang-devel
 ```
 
 - [bpf-linker](https://github.com/aya-rs/bpf-linker)
 
-```shell
+```console
 cargo install bpf-linker
 ```
 
 - [protoc](https://grpc.io/docs/protoc-installation/)
 
-```shell
+```console
 sudo dnf install protobuf-compiler
 ```
 
@@ -61,7 +61,7 @@ sudo dnf install protobuf-compiler
 
 - A checkout of libbpf
 
-```shell
+```console
 git clone https://github.com/libbpf/libbpf --branch v0.8.0
 ```
 
@@ -88,18 +88,20 @@ $ cargo build
 
 ## Usage
 
-Run the following script to generate certs in the default directory `/etc/bpfd/certs/` (see [configuration.md](docs/admin/configuration.md) for using non-default values, or add files to remove the `No config file provided.` warnings):
+Run the following script to generate certs in the default directories, `/etc/bpfd/certs/` and `/etc/bpfctl/certs/` (see [configuration.md](docs/admin/configuration.md) for configuring non-default values):
 
-```shell
-sudo ./scripts/certificates.sh init
+```console
+sudo ./scripts/setup.sh init
 ```
 
 Load a sample XDP Program:
-```
+```console
 $ cargo build
 $ sudo ./target/debug/bpfd&
 $ sudo ./target/debug/bpfctl load /path/to/xdp/program -p xdp -i wlp2s0 --priority 50 -s "pass"
 ```
+
+See [tutorial.md](docs/admin/tutorial.md) for some examples of starting `bpfd`, managing logs, and using `bpfctl`.
 
 ## License
 

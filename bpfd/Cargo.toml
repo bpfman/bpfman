@@ -24,6 +24,7 @@ env_logger = "0.9"
 systemd-journal-logger = "0.5.0"
 tonic = "0.8"
 bpfd-api = { version = "0.1.0", path = "../bpfd-api" }
+caps = "0.5.4"
 bpfd-common = { version = "0.1.0", path = "../bpfd-common", features=["user"] }
 nix = { version = "0.25", features = [ "socket", "fs" ]}
 serde = { version = "1.0", features = ["derive"] }

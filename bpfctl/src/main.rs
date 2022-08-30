@@ -12,6 +12,8 @@ mod config;
 use config::config_from_file;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
 
+const DEFAULT_BPFCTL_CONFIG_PATH: &str = "/etc/bpfctl/bpfctl.toml";
+
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
 struct Cli {
@@ -63,7 +65,7 @@ enum Commands {
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let config = config_from_file("/etc/bpfd/bpfctl.toml");
+    let config = config_from_file(DEFAULT_BPFCTL_CONFIG_PATH);
 
     let ca_cert = tokio::fs::read(&config.tls.ca_cert)
         .await

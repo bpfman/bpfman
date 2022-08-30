@@ -3,8 +3,10 @@ Configuration
 
 ## bpfd
 
-bpfd expects a configuration file to be present at `/etc/bpfd.toml`.
+bpfd expects a configuration file to be present at `/etc/bpfd/bpfd.toml`.
 If no file is found, defaults are assumed.
+The `scripts/setup.sh` commands will copy a default version of the file to the correct location
+from `scripts/bpfd.toml`, which can then be overwritten if needed.
 
 ```toml
 [tls] # REQUIRED
@@ -19,8 +21,8 @@ If no file is found, defaults are assumed.
 
 ### Loading Programs at system launch time
 
-Bpfd allows the user to specify certain bpf programs to always be loaded every time the daemon is started. To do so simply
-create `.toml` files in the `/etc/bpfd/programs.d` directory with the following syntax:
+bpfd allows the user to specify certain bpf programs to always be loaded every time the daemon is started.
+To do so simply create `.toml` files in the `/etc/bpfd/programs.d` directory with the following syntax:
 
 **Users can specify multiple programs in a single `.toml` file AND multiple `.toml` files** 
 
@@ -48,12 +50,14 @@ proceed_on = ["pass", "dispatcher_return"]
 
 ## bpfctl
 
-bpfctl expects a configuration file to be present at `/etc/bpfd.toml`.
+bpfctl expects a configuration file to be present at `/etc/bpfctl/bpfctl.toml`.
 If no file is found, defaults are assumed.
+The `scripts/setup.sh` commands will copy a default version of the file to the correct location
+from `scripts/bpfctl.toml`, which can then be overwritten if needed.
 
 ```toml
 [tls] # REQUIRED
   ca_cert = "/etc/bpfd/certs/ca/ca.pem"
-  cert = "/etc/bpfd/certs/bpfctl/bpfctl.pem"
-  key = "/etc/bpfd/certs/bpfctl/bpfctl.key"
+  cert = "/etc/bpfctl/certs/bpfctl/bpfctl.pem"
+  key = "/etc/bpfctl/certs/bpfctl/bpfctl.key"
 ```
