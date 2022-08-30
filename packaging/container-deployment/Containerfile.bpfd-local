@@ -1,5 +1,0 @@
-FROM scratch
-
-ADD ./bpfd/bpfd ./bpfd
-
-ENTRYPOINT ["./bpfd"]
