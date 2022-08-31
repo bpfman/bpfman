@@ -10,14 +10,30 @@ fi
 . install.sh
 . user.sh
 
+USER_BPFD="bpfd"
+USER_BPFCTL="bpfctl"
+USER_GROUP="bpfd"
+BIN_BPFD="bpfd"
+BIN_BPFCTL="bpfctl"
+BIN_GOCOUNTER="gocounter"
+
+# Well known directories
+CA_CERT_PATH=/etc/${USER_BPFD}/certs/ca
+SRC_BIN_PATH="../target/debug"
+DST_BIN_PATH="/usr/sbin"
+DST_SVC_PATH="/usr/lib/systemd/system"
+VAR_BPFD_PATH="/var/${USER_BPFD}"
+VAR_BYTECODE_PATH="${VAR_BPFD_PATH}/bytecode"
+
+
 usage() {
     echo "USAGE:"
     echo "sudo ./scripts/setup.sh certs"
     echo "    Setup for running \"bpfd\" in foreground or background and straight"
-    echo "    from build directory. No \"bpfd\" or \"bpfctl\" users are created so"
+    echo "    from build directory. No \"${USER_BPFD}\" or \"${USER_BPFCTL}\" users are created so"
     echo "    always need \"sudo\" when executing \"bptctl\" commands. Performs the"
     echo "    following tasks:"
-    echo "    * Create \"/etc/bpfd/\" and \"/etc/bpfctl/\" directories."
+    echo "    * Create \"/etc/${USER_BPFD}/\" and \"/etc/${USER_BPFCTL}/\" directories."
     echo "    * Copy a default \"bpfd.toml\" and \"bpfctl.toml\" if needed."
     echo "    * Create certs for \"bpfd\" and \"bpfctl\" if needed."
     echo "    * To run \"bpfd\":"
@@ -28,19 +44,19 @@ usage() {
     echo "----"
     echo "sudo ./scripts/setup.sh init"
     echo "    Setup for running \"bpfd\" in foreground or background and straight"
-    echo "    from build directory, but also creates the \"bpfd\" or \"bpfctl\" users"
-    echo "     and user groups. Performs the following tasks:"
-    echo "    * Create User/Group \"bpfd\" and \"bpfctl\"."
-    echo "    * Create \"/etc/bpfd/\" and \"/etc/bpfctl/\" directories and set user"
+    echo "    from build directory, but also creates the \"${USER_BPFD}\" or \"${USER_BPFCTL}\" users"
+    echo "    and the \"${USER_GROUP}\" user group. Performs the following tasks:"
+    echo "    * Create Users \"${USER_BPFD}\" and \"${USER_BPFCTL}\" and User Group \"${USER_GROUP}\"."
+    echo "    * Create \"/etc/${USER_BPFD}/\" and \"/etc/${USER_BPFCTL}/\" directories and set user"
     echo "      group for each."
     echo "    * Copy a default \"bpfd.toml\" and \"bpfctl.toml\" if needed."
     echo "    * Create certs for \"bpfd\" and \"bpfctl\" if needed."
     echo "    * To run \"bpfd\":"
     echo "          sudo RUST_LOG=info ./target/debug/bpfd"
     echo "          <CTRL-C>"
-    echo "    * Optionally, to run \"bpfctl\" without sudo, add usergroup \"bpfctl\""
+    echo "    * Optionally, to run \"bpfctl\" without sudo, add usergroup \"${USER_GROUP}\""
     echo "      to desired user and logout/login to apply:"
-    echo "          sudo usermod -a -G bpfctl \$USER"
+    echo "          sudo usermod -a -G ${USER_GROUP} \$USER"
     echo "          exit"
     echo "          <LOGIN>"
     echo "sudo ./scripts/setup.sh del"
@@ -101,7 +117,7 @@ case "$1" in
         user_del
         ;;
     "gocounter")
-        cert_client gocounter bpfctl false
+        cert_client gocounter ${USER_BPFCTL} false
         ;;
     "regen")
         cert_init true
