@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
+use std::io;
+
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -27,4 +29,11 @@ pub enum BpfdError {
     InvalidInterface,
     #[error("Send Failure")]
     SendFailure,
+    #[error("Unable to pin link")]
+    UnableToPin,
+    #[error("Unable to cleanup")]
+    UnableToCleanup {
+        #[from]
+        io_error: io::Error,
+    },
 }

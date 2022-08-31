@@ -11,12 +11,11 @@ use std::{
 use anyhow::{bail, Context};
 use aya::include_bytes_aligned;
 use bpfd::server::{config_from_file, programs_from_directory, serve};
-use log::{debug, error};
+use log::{debug, error, info};
 use nix::{
     libc::RLIM_INFINITY,
     mount::{mount, MsFlags},
     sys::resource::{setrlimit, Resource},
-    unistd,
 };
 use systemd_journal_logger::{connected_to_journal, init_with_extra_fields};
 
@@ -44,6 +43,9 @@ fn main() -> anyhow::Result<()> {
                 env_logger::init();
                 log::info!("Log using env_logger");
             }
+
+            has_cap(caps::CapSet::Effective, caps::Capability::CAP_BPF);
+            has_cap(caps::CapSet::Effective, caps::Capability::CAP_SYS_ADMIN);
 
             let dispatcher_bytes = include_bytes_aligned!(
                 "../../target/bpfel-unknown-none/release/xdp_dispatcher.bpf.o"
@@ -91,13 +93,11 @@ fn drop_all_cap(cap: caps::CapSet) {
     }
 }
 
+fn has_cap(cset: caps::CapSet, cap: caps::Capability) {
+    info!("Has {}: {}", cap, caps::has_cap(None, cset, cap).unwrap());
+}
+
 fn drop_linux_capabilities() {
-    debug!(
-        "CAPS: PID {:?} TID {:?} User {:?}",
-        unistd::getpid(),
-        unistd::gettid(),
-        unistd::getuid()
-    );
     drop_all_cap(caps::CapSet::Ambient);
     drop_all_cap(caps::CapSet::Bounding);
     drop_all_cap(caps::CapSet::Effective);
