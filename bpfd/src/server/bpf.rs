@@ -4,7 +4,7 @@
 use std::{collections::HashMap, io::IoSlice, os::unix::prelude::AsRawFd, path::Path};
 
 use aya::{
-    programs::{extension::ExtensionLink, xdp::XdpLink, Extension, OwnedLink, Xdp},
+    programs::{extension::ExtensionLink, xdp::XdpLink, Extension, Xdp},
     Bpf, BpfLoader,
 };
 use bpfd_common::*;
@@ -40,7 +40,7 @@ pub(crate) struct ExtensionProgram {
     current_position: Option<usize>,
     loader: Option<Bpf>,
     metadata: Metadata,
-    link: Option<OwnedLink<ExtensionLink>>,
+    link: Option<ExtensionLink>,
     owner: String,
     proceed_on: Vec<i32>,
 }
@@ -62,7 +62,7 @@ impl ExtensionProgram {
 pub(crate) struct DispatcherProgram {
     mode: XdpMode,
     _loader: Bpf,
-    link: Option<OwnedLink<XdpLink>>,
+    link: Option<XdpLink>,
 }
 
 #[derive(Debug, Clone)]
@@ -287,7 +287,7 @@ impl<'a> BpfManager<'a> {
         &mut self,
         if_index: &u32,
         dispatcher_loader: &mut Bpf,
-    ) -> Result<Vec<OwnedLink<ExtensionLink>>, BpfdError> {
+    ) -> Result<Vec<ExtensionLink>, BpfdError> {
         let dispatcher: &mut Xdp = dispatcher_loader
             .program_mut(DISPATCHER_PROGRAM_NAME)
             .unwrap()
