@@ -65,6 +65,12 @@ sudo dnf install protobuf-compiler
 git clone https://github.com/libbpf/libbpf --branch v0.8.0
 ```
 
+- Perl
+```console
+sudo dnf install perl
+```
+
+
 ## Building bpfd
 
 To just test with the latest bpfd, containerized image are stored in `quay.io/bpfd` (see
