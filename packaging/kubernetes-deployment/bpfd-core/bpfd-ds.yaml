@@ -28,7 +28,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: bpfd
-        image: quay.io/main/bpfd:main
+        image: quay.io/bpfd/bpfd:main
         securityContext:
           privileged: true
         imagePullPolicy: Always
@@ -49,7 +49,7 @@ spec:
           mountPath: /etc/bpfd/certs/bpfd
           readOnly: true
         - name: bpfd-config 
-          mountPath: /etc/bpfd.toml
+          mountPath: /etc/bpfd/bpfd.toml
           subPath: bpfd.toml
           readOnly: true
           # These certs are missing in the scratch image to keep it small.  Mount
