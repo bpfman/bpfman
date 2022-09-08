@@ -35,7 +35,7 @@ pub fn build(_opts: Options) -> anyhow::Result<()> {
     // protoc -I=./bpfd/proto --go_out=paths=source_relative:./clients/gobpfd ./bpfd/proto/bpfd.proto
     let status = Command::new("protoc")
         .current_dir(&root)
-        .args(&[
+        .args([
             "-I=./proto",
             "--go_out=paths=source_relative:./clients/gobpfd/v1",
             "bpfd.proto",
@@ -45,7 +45,7 @@ pub fn build(_opts: Options) -> anyhow::Result<()> {
     assert!(status.success());
     let status = Command::new("protoc")
         .current_dir(&root)
-        .args(&[
+        .args([
             "-I=./proto",
             "--go-grpc_out=./clients/gobpfd/v1",
             "--go-grpc_opt=paths=source_relative",
