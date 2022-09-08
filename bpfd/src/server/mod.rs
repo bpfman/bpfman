@@ -62,6 +62,7 @@ pub async fn serve(
     });
 
     let mut bpf_manager = BpfManager::new(&config, dispatcher_bytes);
+    bpf_manager.rebuild_state()?;
 
     // Load any static programs first
     if !static_programs.is_empty() {
@@ -140,9 +141,7 @@ pub async fn serve(
                 socket_path,
                 responder,
             } => {
-                let res = bpf_manager.get_map(iface, id, map_name, socket_path);
-                // Ignore errors as they'll be propagated to caller in the RPC status
-                let _ = responder.send(res);
+                unimplemented!()
             }
         }
     }

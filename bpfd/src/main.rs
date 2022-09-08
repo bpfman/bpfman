@@ -53,6 +53,8 @@ fn main() -> anyhow::Result<()> {
             setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
 
             create_dir_all(BPFFS).context("unable to create mountpoint")?;
+            create_dir_all("/var/run/bpfd/programs")?;
+            create_dir_all("/var/run/bpfd/dispatchers")?;
 
             if !is_bpffs_mounted()? {
                 debug!("Creating bpffs at /var/run/bpfd/fs");

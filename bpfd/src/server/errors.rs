@@ -7,6 +7,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum BpfdError {
+    #[error("An error occurred. {0}")]
+    Error(String),
     #[error(transparent)]
     BpfProgramError(#[from] aya::programs::ProgramError),
     #[error(transparent)]
@@ -19,16 +21,10 @@ pub enum BpfdError {
     NoProgramsLoaded,
     #[error("Invalid ID")]
     InvalidID,
-    #[error("Map not found")]
-    MapNotFound,
-    #[error("Map not loaded")]
-    MapNotLoaded,
     #[error("Not authorized")]
     NotAuthorized,
     #[error("Invalid Interface")]
     InvalidInterface,
-    #[error("Send Failure")]
-    SendFailure,
     #[error("Unable to pin link")]
     UnableToPin,
     #[error("Unable to cleanup")]
