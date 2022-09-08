@@ -216,13 +216,19 @@ impl<'a> BpfManager<'a> {
         owner: String,
     ) -> Result<Uuid, BpfdError> {
         let if_index = self.get_ifindex(&iface)?;
+        let id = Uuid::new_v4();
+        let map_pin_path = format!("/var/run/bpfd/fs/maps/{}", id);
+        fs::create_dir_all(map_pin_path.clone())?;
+
         let mut ext_loader = BpfLoader::new()
             .extension(&section_name)
-            .load_file(path.clone())?;
-        ext_loader
-            .program_mut(&section_name)
-            .ok_or_else(|| BpfdError::SectionNameNotValid(section_name.clone()))?;
-        let id = Uuid::new_v4();
+            .map_pin_path(map_pin_path.clone())
+            .load_file(&path)?;
+
+        ext_loader.program_mut(&section_name).ok_or_else(|| {
+            let _ = fs::remove_dir_all(map_pin_path);
+            BpfdError::SectionNameNotValid(section_name.clone())
+        })?;
 
         // Calculate the next_available_id
         let next_available_id = if let Some(prog) = self.programs.get(&if_index) {
@@ -270,7 +276,7 @@ impl<'a> BpfManager<'a> {
             revision,
         )?;
 
-        self.attach_extensions(&if_index, &mut dispatcher_loader)?;
+        self.attach_extensions(&if_index, &mut dispatcher_loader, Some(ext_loader))?;
         self.attach_or_replace_dispatcher(iface.clone(), if_index, dispatcher_loader)?;
 
         if let Some(r) = old_revision {
@@ -329,7 +335,7 @@ impl<'a> BpfManager<'a> {
             let mut dispatcher_loader =
                 self.new_dispatcher(&if_index, program_len, self.dispatcher_bytes, revision)?;
 
-            self.attach_extensions(&if_index, &mut dispatcher_loader)?;
+            self.attach_extensions(&if_index, &mut dispatcher_loader, None)?;
 
             self.attach_or_replace_dispatcher(iface, if_index, dispatcher_loader)?;
 
@@ -372,6 +378,7 @@ impl<'a> BpfManager<'a> {
         &mut self,
         if_index: &u32,
         dispatcher_loader: &mut Bpf,
+        mut ext_loader: Option<Bpf>,
     ) -> Result<(), BpfdError> {
         let dispatcher: &mut Xdp = dispatcher_loader
             .program_mut(DISPATCHER_PROGRAM_NAME)
@@ -396,13 +403,10 @@ impl<'a> BpfManager<'a> {
                 let new_link: FdLink = ext.take_link(new_link_id)?.into();
                 let path = format!("/var/run/bpfd/fs/dispatcher_{if_index}_{revision}/link_{k}");
                 new_link.pin(path).map_err(|_| BpfdError::UnableToPin)?;
-                v.metadata.attached = true;
             } else {
-                let mut ext_loader = BpfLoader::new()
-                    .extension(&v.metadata.name)
-                    .load_file(&v.path.clone())?;
-
                 let ext: &mut Extension = ext_loader
+                    .as_mut()
+                    .unwrap()
                     .program_mut(&v.metadata.name)
                     .ok_or_else(|| BpfdError::SectionNameNotValid(v.metadata.name.clone()))?
                     .try_into()?;

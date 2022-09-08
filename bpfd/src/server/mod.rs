@@ -134,15 +134,6 @@ pub async fn serve(
                 // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }
-            Command::GetMap {
-                iface,
-                id,
-                map_name,
-                socket_path,
-                responder,
-            } => {
-                unimplemented!()
-            }
         }
     }
     Ok(())

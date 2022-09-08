@@ -3,8 +3,8 @@
 use std::sync::{Arc, Mutex};
 
 use bpfd_api::v1::{
-    list_response::ListResult, loader_server::Loader, GetMapRequest, GetMapResponse, ListRequest,
-    ListResponse, LoadRequest, LoadResponse, UnloadRequest, UnloadResponse,
+    list_response::ListResult, loader_server::Loader, ListRequest, ListResponse, LoadRequest,
+    LoadResponse, UnloadRequest, UnloadResponse,
 };
 use log::info;
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
@@ -192,36 +192,6 @@ impl Loader for BpfdLoader {
             }
         }
     }
-
-    async fn get_map(
-        &self,
-        request: Request<GetMapRequest>,
-    ) -> Result<Response<GetMapResponse>, Status> {
-        let reply = GetMapResponse {};
-        let request = request.into_inner();
-
-        let (resp_tx, resp_rx) = oneshot::channel();
-        let cmd = Command::GetMap {
-            iface: request.iface,
-            id: request.id,
-            map_name: request.map_name,
-            socket_path: request.socket_path,
-            responder: resp_tx,
-        };
-
-        let tx = self.tx.lock().unwrap().clone();
-        // Send the GET request
-        tx.send(cmd).await.unwrap();
-
-        // Await the response
-        match resp_rx.await {
-            Ok(_) => Ok(Response::new(reply)),
-            Err(e) => {
-                info!("RPC get_map error: {}", e);
-                Err(Status::aborted(format!("{}", e)))
-            }
-        }
-    }
 }
 
 /// Multiple different commands are multiplexed over a single channel.
@@ -245,12 +215,5 @@ pub(crate) enum Command {
     List {
         iface: String,
         responder: Responder<Result<InterfaceInfo, BpfdError>>,
-    },
-    GetMap {
-        iface: String,
-        id: String,
-        map_name: String,
-        socket_path: String,
-        responder: Responder<Result<(), BpfdError>>,
     },
 }

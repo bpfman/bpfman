@@ -11,18 +11,19 @@
 struct datarec {
 	__u64 rx_packets;
 	__u64 rx_bytes;
-};
+} datarec;
 
 /* Lesson#1: See how a map is defined.
  * - Here an array with XDP_ACTION_MAX (max_)entries are created.
  * - The idea is to keep stats per (enum) xdp_action
  */
-struct bpf_map_def SEC("maps") xdp_stats_map = {
-	.type        = BPF_MAP_TYPE_PERCPU_ARRAY,
-	.key_size    = sizeof(__u32),
-	.value_size  = sizeof(struct datarec),
-	.max_entries = XDP_ACTION_MAX,
-};
+struct {
+	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+	__type(key, __u32);
+	__type(value, datarec);
+	__uint(max_entries, XDP_ACTION_MAX);
+	__uint(pinning, LIBBPF_PIN_BY_NAME);
+} xdp_stats_map SEC(".maps");
 
 static __always_inline
 __u32 xdp_stats_record_action(struct xdp_md *ctx, __u32 action)
