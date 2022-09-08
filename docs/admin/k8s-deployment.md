@@ -2,59 +2,70 @@
 
 ## Pre-requsites
 
-For a local development cluster we use [kind](https://kind.sigs.k8s.io/docs/user/quick-start/)
+- [kind](https://kind.sigs.k8s.io/docs/user/quick-start/)
+  - [kind](https://kind.sigs.k8s.io/docs/user/quick-start/) can be used for a local development cluster.
+    This is optional and `bpfd` can be deployed on any kubernetes cluster.
+  - If using a `kind` cluster, the following command will create the cluster:
+    ```bash
+    kind create cluster
+    ```
 
-For certificate management we currently use [cert-manager](https://cert-manager.io/)
-
-Install instructions for cert-manager can be found [here](https://cert-manager.io/docs/installation/)
-
-To use the default static install instructions simply run:
-
-```
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
-```
-
-## Setup local kind cluster
-
-
-```bash
-kind create cluster 
-```
+- [cert-manager](https://cert-manager.io/)
+  - [cert-manager](https://cert-manager.io/) is used for certificate management.
+  - Full install instructions for cert-manager can be found [here](https://cert-manager.io/docs/installation/).
+  - To use the default static install instructions simply run:
+    ```bash
+    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
+    ```
+    This will create three pods in the `cert-manager` namespace:
+    ```bash
+    kubectl get pods -n cert-manager
+    NAME                                         READY   STATUS    RESTARTS   AGE
+    cert-manager-5dd59d9d9b-bbqbx                1/1     Running   0          22h
+    cert-manager-cainjector-8696fc9f89-rxtm7     1/1     Running   0          22h
+    cert-manager-webhook-7d4b5b8c56-gt6xb        1/1     Running   0          22h
+    ```
 
 ## Bpfd Component install
 
-1. Install `EbpfProgram` CRD
+1. Install `EbpfProgram` CRD.
+   This `EbpfProgram` CRD can then be used to add, delete and list eBPF programs.
+   See [Load a sample program](#load-a-sample-program) below.
 
 ```bash
 cargo run --bin crdgen | kubectl apply -f -
 ```
 
-2. Install CA and Necessary certs
+2. Install CA and Necessary certs.
 
 ```bash
-kubectl apply -f /bundle/manifests/bpfd-cert-issuer.yaml
-kubectl apply -f /bundle/manifests/bpfd-certs.yaml
+kubectl apply -f ./packaging/kubernetes-deployment/bpfd-core/bpfd-cert-issuer.yaml
+kubectl apply -f ./packaging/kubernetes-deployment/bpfd-core/bpfd-certs.yaml
 ```
 
-3. Install bpfd configmap
+3. Install `bpfd` configmap.
+   This configmap contains the `bpfd.toml` file content (see [configuration.md](configuration.md)).
+   When the bpfd daemonset is created in step 5, this configmap will be propagated to each node via a volume mount in the bpfd container.
 
 ```bash
-kubectl apply -f /bundle/manifests/bpfd-config.yaml
+kubectl apply -f ./packaging/kubernetes-deployment/bpfd-core/bpfd-config.yaml
 ```
 
-4. Install bpfd `serviceAccount`, `ClusterRole`, and `ClusterRoleBinding`
+4. Install bpfd `ServiceAccount`, `ClusterRole`, and `ClusterRoleBinding`.
 
 ```bash
-kubectl apply -f /bundle/manifests/bpfd-rbac.yaml
+kubectl apply -f ./packaging/kubernetes-deployment/bpfd-core/bpfd-rbac.yaml
 ```
 
-5. Install bpfd daemonset which contains the bpfd and bpfd-agent processes
+5. Install bpfd daemonset which contains the `bpfd` and `bpfd-agent` processes.
+   This runs a `bpfd-xxxxx` pod on each node, where each pod contains a `bpfd` and `bpfd-agent` container.
 
 ```bash
-kubectl apply -f /bundle/manifests/bpfd-ds.yaml
+kubectl apply -f ./packaging/kubernetes-deployment/bpfd-core/bpfd-ds.yaml
 ```
 
-If everything worked correctly the bpfd-ds pods will up and running in the
+
+If everything worked correctly the `bpfd-xxxxx` daemonset pods will be up and running in the
 `kube-system` namespace:
 
 ```bash
@@ -77,8 +88,8 @@ local-path-storage   local-path-provisioner-9cd9bd544-s4nvk       1/1     Runnin
 
 ## Load a sample program
 
-A sample xdp pass program is provided at `bundle/manifests/ebpf-program-sample.yaml` which
-resembles the following:
+A sample xdp pass program is provided at [packaging/kubernetes-deployment/sample-ebpfprograms/xdp-pass.yaml](../../packaging/kubernetes-deployment/sample-ebpfprograms/xdp-pass.yaml)
+which resembles the following:
 
 ```bash
 apiVersion: bpfd.io/v1alpha1
@@ -97,7 +108,7 @@ spec:
 To deploy the Ebpf program to all nodes in the cluster simply run:
 
 ```bash
-kubectl apply -f bundle/manifests/ebpf-program-sample.yaml
+kubectl apply -f ./packaging/kubernetes-deployment/sample-ebpfprograms/xdp-pass.yaml
 ```
 
 If the program was loaded successfully the `bpfd-agent` will write the
@@ -106,6 +117,10 @@ program on the `ebpfprogram-sample` object's annotations and also update
 the program's `sync-status` to `Loaded`.
 
 ```bash
+kubectl get ebpfprograms
+NAME                 AGE
+ebpfprogram-sample   99m
+
 kubectl get ebpfprogram ebpfprogram-sample -o yaml
 apiVersion: bpfd.io/v1alpha1
 kind: EbpfProgram

@@ -37,7 +37,7 @@ In order to run and interact with `bpfd`, certificates must be created.
 Scripts to create a local certificate authority which is used to sign certs for `bpfd` and `bpfctl`
 can be used in a development environment.
 Run the following command to create the default directories in `/etc/`, copy over default
-configuration files (see [configuration.md](docs/admin/configuration.md) for details on how to tailor
+configuration files (see [configuration.md](../configuration.md) for details on how to tailor
 configuration files), and create the certificates:
 
 ```console
