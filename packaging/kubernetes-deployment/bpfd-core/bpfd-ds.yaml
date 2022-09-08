@@ -54,8 +54,6 @@ spec:
           readOnly: true
           # These certs are missing in the scratch image to keep it small.  Mount
           # and use the host's instead.
-        - name: host-ssl
-          mountPath: /etc/ssl
         - name: host-bytecode
           mountPath: /etc/bpfd/bytecode
       - name: bpfd-agent 
@@ -97,9 +95,6 @@ spec:
       - name: bpfd-config
         configMap: 
           name: bpfd-config
-      - name: host-ssl 
-        hostPath: 
-          path: /etc/ssl
       - name: host-bytecode
         hostPath:
           path: /etc/bpfd/bytecode

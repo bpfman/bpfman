@@ -3,3 +3,5 @@ members = ["bpfd", "bpfd-api", "bpfd-common", "bpfctl","bpfd-agent", "bpfd-k8s-a
 
 [patch.crates-io]
 aya = {git = "https://github.com/aya-rs/aya", branch="main"}
+# Use this patch until https://github.com/krustlet/oci-distribution/pull/43 Merges
+oci-distribution = {git = "https://github.com/astoycos/oci-distribution", branch="main"}
