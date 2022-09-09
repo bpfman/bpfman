@@ -1,4 +1,8 @@
-use std::{process::{Child, Command}, thread::sleep, time::Duration};
+use std::{
+    process::{Child, Command},
+    thread::sleep,
+    time::Duration,
+};
 
 use assert_cmd::prelude::*;
 use log::{debug, info, LevelFilter};

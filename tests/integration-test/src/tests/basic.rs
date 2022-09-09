@@ -16,7 +16,8 @@ fn test_load_unload() -> anyhow::Result<()> {
             "50",
             "--from-image",
             "quay.io/astoycos/xdp_pass",
-        ]).ok()?;
+        ])
+        .ok()?;
     let uuid = String::from_utf8(output.stdout)?;
     debug!("UUID is {:?}", uuid);
     sleep(Duration::from_secs(2));
