@@ -18,3 +18,5 @@ certs
 # misc
 .idea/
 .vscode/launch.json
+
+tests/_tmp

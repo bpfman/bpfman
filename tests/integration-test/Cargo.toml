@@ -1,0 +1,13 @@
+[package]
+name = "integration-test"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1"
+assert_cmd = "2"
+inventory = "0.2"
+integration-test-macros = { path = "../integration-test-macros" }
+log = "0.4"
+env_logger = "0.9"

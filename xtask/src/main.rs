@@ -1,4 +1,5 @@
 mod build_ebpf;
+mod integration_test;
 mod protobuf;
 mod run;
 
@@ -17,6 +18,7 @@ enum Command {
     BuildEbpf(build_ebpf::Options),
     BuildProto(protobuf::Options),
     Run(run::Options),
+    IntegrationTest(integration_test::Options),
 }
 
 fn main() {
@@ -27,6 +29,7 @@ fn main() {
         BuildEbpf(opts) => build_ebpf::build_ebpf(opts),
         BuildProto(opts) => protobuf::build(opts),
         Run(opts) => run::run(opts),
+        IntegrationTest(opts) => integration_test::test(opts),
     };
 
     if let Err(e) = ret {
