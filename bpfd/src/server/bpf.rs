@@ -394,7 +394,7 @@ impl<'a> BpfManager<'a> {
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
         for (i, (k, v)) in extensions.iter_mut().enumerate() {
             if v.metadata.attached {
-                let mut prog = PinnedProgram::from_path(format!("/var/run/bpfd/fs/prog_{k}"))?;
+                let mut prog = PinnedProgram::from_pin(format!("/var/run/bpfd/fs/prog_{k}"))?;
                 let ext: &mut Extension = prog.as_mut().try_into()?;
                 let target_fn = format!("prog{}", i);
                 let new_link_id = ext
@@ -442,7 +442,7 @@ impl<'a> BpfManager<'a> {
             .try_into()?;
         if let Some(d) = self.dispatchers.remove(&if_index) {
             let path = format!("/var/run/bpfd/fs/dispatcher_{if_index}_link");
-            let pinned_link: FdLink = PinnedLink::from_path(path).unwrap().into();
+            let pinned_link: FdLink = PinnedLink::from_pin(path).unwrap().into();
             dispatcher
                 .attach_to_link(pinned_link.try_into().unwrap())
                 .unwrap();

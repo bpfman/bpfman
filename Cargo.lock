@@ -170,7 +170,7 @@ dependencies = [
 [[package]]
 name = "aya"
 version = "0.11.0"
-source = "git+https://github.com/dave-tucker/aya?branch=program-from-pinned#08fff6e6fddba50e70788a992706ef923872a5d7"
+source = "git+https://github.com/dave-tucker/aya?branch=program-from-pinned#1769933b83c3a233a204064245af2ee43dcb2eb3"
 dependencies = [
  "bitflags",
  "bytes",
