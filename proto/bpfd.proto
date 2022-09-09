@@ -6,7 +6,6 @@ service Loader {
     rpc Load (LoadRequest) returns (LoadResponse);
     rpc Unload (UnloadRequest) returns (UnloadResponse);
     rpc List (ListRequest) returns (ListResponse);
-    rpc GetMap (GetMapRequest) returns (GetMapResponse);
 }
 
 enum ProgramType {
@@ -61,12 +60,3 @@ message ListResponse {
   }
   repeated ListResult results = 2;
 }
-
-message GetMapRequest {
-    string iface = 1;
-    string id = 2;
-    string map_name = 3;
-    string socket_path = 4;
-}
-
-message GetMapResponse {}

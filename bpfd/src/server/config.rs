@@ -5,7 +5,7 @@ use std::{collections::HashMap, fs, path::Path};
 
 use aya::programs::XdpFlags;
 use log::{error, warn};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Config {
@@ -35,7 +35,7 @@ pub struct InterfaceConfig {
     pub xdp_mode: XdpMode,
 }
 
-#[derive(Debug, Deserialize, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum XdpMode {
     Skb,

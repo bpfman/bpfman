@@ -8,9 +8,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -19,7 +17,6 @@ import (
 
 	"github.com/cilium/ebpf"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
-	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -36,8 +33,7 @@ const (
 	DefaultSocketPath     = "/etc/bpfd/sock/gocounter.sock"
 )
 
-// TODO (astoycos): Add back -Wall -Werror here once BTF maps are supported in Aya
-//go:generate bpf2go -cc clang -no-strip -cflags "-O2 -g" bpf ./bpf/xdp_counter.c -- -I.:/usr/include/bpf:/usr/include/linux
+//go:generate bpf2go -cc clang -no-strip -cflags "-O2 -g -Wall" bpf ./bpf/xdp_counter.c -- -I.:/usr/include/bpf:/usr/include/linux
 func main() {
 	iface := os.Args[1]
 	if iface == "" {
@@ -92,51 +88,14 @@ func main() {
 		conn.Close()
 	}(id)
 
-	// 3. Set up a UDS to receive the Map FD
-	syscall.Unlink(DefaultSocketPath)
-
-	// Unmask to allow members of the same User Group to have rwx access to socket.
-	syscall.Umask(007)
-
-	sock, err := net.ListenUnixgram("unixgram", &net.UnixAddr{DefaultSocketPath, "unix"})
-	if err != nil {
-		log.Fatal(err)
+	// 3. Get access to our map
+	mapPath := fmt.Sprintf("/var/run/bpfd/fs/maps/%s/xdp_stats_map", id)
+	opts := &ebpf.LoadPinOptions{
+		ReadOnly:  false,
+		WriteOnly: false,
+		Flags:     0,
 	}
-	defer sock.Close()
-
-	fdChan := make(chan int)
-	go func(res chan int) {
-		oob := make([]byte, unix.CmsgSpace(4))
-		_, _, _, _, err := sock.ReadMsgUnix([]byte{}, oob)
-		if err != nil {
-			log.Fatal(err)
-		}
-		cmsgs, err := unix.ParseSocketControlMessage(oob)
-		if err != nil {
-			panic(err)
-		}
-		fds, err := unix.ParseUnixRights(&cmsgs[0])
-		if err != nil {
-			panic(err)
-		}
-		res <- fds[0]
-	}(fdChan)
-
-	// 4. Poll our map for changes
-	_, err = c.GetMap(ctx, &gobpfd.GetMapRequest{
-		Iface:      iface,
-		Id:         id,
-		MapName:    "xdp_stats_map",
-		SocketPath: DefaultSocketPath,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	mapFd := <-fdChan
-	defer syscall.Close(mapFd)
-
-	statsMap, err := ebpf.NewMapFromFD(mapFd)
+	statsMap, err := ebpf.LoadPinnedMap(mapPath, opts)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -172,7 +131,7 @@ func main() {
 
 func loadTLSCredentials() (credentials.TransportCredentials, error) {
 	// Load certificate of the CA who signed server's certificate
-	pemServerCA, err := ioutil.ReadFile(DefaultRootCaPath)
+	pemServerCA, err := os.ReadFile(DefaultRootCaPath)
 	if err != nil {
 		return nil, err
 	}

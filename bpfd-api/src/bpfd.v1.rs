@@ -60,20 +60,6 @@ pub mod list_response {
         pub proceed_on: ::prost::alloc::vec::Vec<i32>,
     }
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetMapRequest {
-    #[prost(string, tag="1")]
-    pub iface: ::prost::alloc::string::String,
-    #[prost(string, tag="2")]
-    pub id: ::prost::alloc::string::String,
-    #[prost(string, tag="3")]
-    pub map_name: ::prost::alloc::string::String,
-    #[prost(string, tag="4")]
-    pub socket_path: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetMapResponse {
-}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ProgramType {
@@ -240,23 +226,6 @@ pub mod loader_client {
             let path = http::uri::PathAndQuery::from_static("/bpfd.v1.Loader/List");
             self.inner.unary(request.into_request(), path, codec).await
         }
-        pub async fn get_map(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetMapRequest>,
-        ) -> Result<tonic::Response<super::GetMapResponse>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static("/bpfd.v1.Loader/GetMap");
-            self.inner.unary(request.into_request(), path, codec).await
-        }
     }
 }
 /// Generated server implementations.
@@ -278,10 +247,6 @@ pub mod loader_server {
             &self,
             request: tonic::Request<super::ListRequest>,
         ) -> Result<tonic::Response<super::ListResponse>, tonic::Status>;
-        async fn get_map(
-            &self,
-            request: tonic::Request<super::GetMapRequest>,
-        ) -> Result<tonic::Response<super::GetMapResponse>, tonic::Status>;
     }
     #[derive(Debug)]
     pub struct LoaderServer<T: Loader> {
@@ -439,42 +404,6 @@ pub mod loader_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = ListSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                "/bpfd.v1.Loader/GetMap" => {
-                    #[allow(non_camel_case_types)]
-                    struct GetMapSvc<T: Loader>(pub Arc<T>);
-                    impl<T: Loader> tonic::server::UnaryService<super::GetMapRequest>
-                    for GetMapSvc<T> {
-                        type Response = super::GetMapResponse;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::GetMapRequest>,
-                        ) -> Self::Future {
-                            let inner = self.0.clone();
-                            let fut = async move { (*inner).get_map(request).await };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let inner = inner.0;
-                        let method = GetMapSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
