@@ -1,0 +1,11 @@
+apiVersion: bpfd.io/v1alpha1
+kind: EbpfProgram
+metadata:
+  name: basic-node-firewall
+spec:
+  type: xdp
+  name: basic_node_firewall
+  interface: eth0
+  image: quay.io/astoycos/basic-node-firewall:latest
+  sectionname: basic_node_firewall
+  priority: 10

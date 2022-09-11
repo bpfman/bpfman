@@ -2,6 +2,7 @@
 members = ["bpfd", "bpfd-api", "bpfd-common", "bpfctl","bpfd-agent", "bpfd-k8s-api", "xtask", "tests/integration-test", "tests/integration-test-macros"]
 
 [patch.crates-io]
-aya = { git = "https://github.com/dave-tucker/aya", branch="program-from-pinned" }
+# I brought in Dave's patches here
+aya = { git = "https://github.com/astoycos/aya", branch="try-from-async-perf" }
 # Use this patch until https://github.com/krustlet/oci-distribution/pull/43 Merges
 oci-distribution = {git = "https://github.com/astoycos/oci-distribution", branch="main"}

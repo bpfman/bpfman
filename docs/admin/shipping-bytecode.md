@@ -60,6 +60,8 @@ like the following:
 podman build  --build-arg PROGRAM_NAME=xdp_counter --build-arg SECTION_NAME=pass --build-arg PROGRAM_TYPE=xdp --build-arg BYTECODE_FILENAME=pass.bpf.o --build-arg KERNEL_COMPILE_VER=$(uname -r) -f packaging/container-deployment/Containerfile.bytecode /home/<USER>/bytecode -t quay.io/<USER>/xdp_pass:latest
 ```
 
+podman build  --build-arg PROGRAM_NAME=basic_node_firewall --build-arg SECTION_NAME=basic_node_firewall --build-arg PROGRAM_TYPE=xdp --build-arg BYTECODE_FILENAME=basic-node-firewall.bpf.o --build-arg KERNEL_COMPILE_VER=$(uname -r) -f packaging/container-deployment/Containerfile.bytecode /home/astoycos/bytecode -t quay.io/astoycos/xdp_pass:latest
+
 Users can also use `skopeo` to ensure the image follows the
 backwards compatible version of the spec:
 

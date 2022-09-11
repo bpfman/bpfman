@@ -28,7 +28,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: bpfd
-        image: quay.io/bpfd/bpfd:main
+        image: quay.io/astoycos/bpfd:main
         securityContext:
           privileged: true
         imagePullPolicy: Always
@@ -40,8 +40,9 @@ spec:
                 name: bpfd-config
                 key: bpfd.log.level
         volumeMounts:
-        - name: bpf-fs
-          mountPath: /sys/fs/bpf
+        - name: bpfd-fs
+          mountPath: /var/run/bpfd
+          mountPropagation: Bidirectional
         - name: bpfd-ca
           mountPath: /etc/bpfd/certs/ca
           readOnly: true
@@ -52,10 +53,8 @@ spec:
           mountPath: /etc/bpfd/bpfd.toml
           subPath: bpfd.toml
           readOnly: true
-          # These certs are missing in the scratch image to keep it small.  Mount
-          # and use the host's instead.
         - name: host-bytecode
-          mountPath: /etc/bpfd/bytecode
+          mountPath: /var/bpfd/bytecode
       - name: bpfd-agent 
         image: quay.io/bpfd/bpfd-agent:main
         securityContext:
@@ -77,9 +76,6 @@ spec:
           readOnly: true
       terminationGracePeriodSeconds: 15
       volumes:
-      - name: bpf-fs
-        hostPath:
-          path: /sys/fs/bpf
       - name: bpfd-ca
         secret: 
           secretName: bpfd-ca
@@ -97,5 +93,8 @@ spec:
           name: bpfd-config
       - name: host-bytecode
         hostPath:
-          path: /etc/bpfd/bytecode
+          path: /var/bpfd/bytecode
+      - name: bpfd-fs
+        hostPath: 
+          path: /var/run/bpfd
       
