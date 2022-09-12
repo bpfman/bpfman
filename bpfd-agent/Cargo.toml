@@ -14,7 +14,7 @@ path = "src/crdgen.rs"
 [dependencies]
 bpfd-k8s-api = { path = "../bpfd-k8s-api" }
 bpfd-api = { path = "../bpfd-api" }
-tokio-util = "0.7.0"
+tokio-util = "0.7.4"
 assert-json-diff = "2.0.1"
 validator = { version = "0.16.0", features = ["derive"] }
 anyhow = "1.0.64"
