@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: basic-node-firewall-config
+  namespace: kube-system
+data:
+  # Write rules as a valid 
+  # <PORT>:<PROTO> 
+  # And traffic will be blocked on the specified 
+  # node IP as the specified port
+  blocklist: |
+    80:TCP
+    8080:TCP

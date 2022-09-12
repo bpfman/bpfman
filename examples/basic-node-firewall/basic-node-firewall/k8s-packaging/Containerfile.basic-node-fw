@@ -1,0 +1,16 @@
+FROM rustlang/rust:nightly as basic-node-firewall-build
+WORKDIR /usr/src/basic-node-firewall
+COPY ./ /usr/src/basic-node-firewall
+
+RUN apt-get update && apt-get install -y protobuf-compiler musl-tools
+
+RUN rustup target add x86_64-unknown-linux-musl
+
+# Compile only bpfctl
+RUN cargo build -p basic-node-firewall --release --target x86_64-unknown-linux-musl
+
+FROM scratch
+
+COPY --from=basic-node-firewall-build  /usr/src/basic-node-firewall/target/x86_64-unknown-linux-musl/release/basic-node-firewall .
+
+ENTRYPOINT ["./basic-node-firewall"]

@@ -1,0 +1,36 @@
+[package]
+name = "basic-node-firewall"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+aya = { version = ">=0.11", features=["async_tokio"] }
+aya-log = "0.1"
+basic-node-firewall-common = { path = "../basic-node-firewall-common", features=["user"] }
+anyhow = "1.0.42"
+clap = { version = "3.1", features = ["derive"] }
+log = "0.4"
+simplelog = "0.12"
+tokio = { version = "1.18", features = ["macros", "rt", "rt-multi-thread", "net", "signal"] }
+bytes = "1"
+k8s-openapi = { version = "0.15.0", default-features = false }
+bpfd-k8s-api = { git = "https://github.com/redhat-et/bpfd", branch = "main" }
+tracing = "0.1.29"
+tracing-subscriber = "0.3.3"
+env_logger = "0.8.4"
+openssl = { version = "0.10.41", features = ["vendored"] }
+
+
+
+[[bin]]
+name = "basic-node-firewall"
+path = "src/main.rs"
+
+[dependencies.kube]
+features = ["runtime", "client", "derive"]
+version = "0.74.0"
+
+[dependencies.pnet]
+features = ["std"]
+version = "0.31.0"

@@ -1,0 +1,13 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+clap = { version = "3.1", features = ["derive"] }
+aya-tool = { git = "https://github.com/aya-rs/aya", branch = "main" }
+
+[profile.dev]
+debug = 2
+ 

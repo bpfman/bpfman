@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: basic-node-firewall-manager
+  namespace: kube-system
+  labels:
+    k8s-app: basic-node-firewall-manager
+spec:
+  selector:
+    matchLabels:
+      name: basic-node-firewall-manager
+  template:
+    metadata:
+      labels:
+        name: basic-node-firewall-manager
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: basic-node-firewall-manager-sa
+      tolerations:
+      # these tolerations are to have the daemonset runnable on control plane nodes
+      # remove them if your control plane nodes should not run pods
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: basic-node-firewall-manager
+        image: quay.io/astoycos/basic-node-firewall-manager:latest
+        securityContext:
+          privileged: true
+        imagePullPolicy: Always
+        env: 
+          - name: RUST_LOG
+            value: "info"
+        volumeMounts:
+        - name: bpfd-fs
+          mountPath: /var/run/bpfd
+          mountPropagation: Bidirectional
+      terminationGracePeriodSeconds: 15
+      volumes:
+      - name: bpfd-fs
+        hostPath: 
+          path: /var/run/bpfd

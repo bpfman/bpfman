@@ -1,0 +1,3 @@
+{
+  "rust-analyzer.linkedProjects": ["Cargo.toml", "basic-node-firewall-ebpf/Cargo.toml"]
+}
