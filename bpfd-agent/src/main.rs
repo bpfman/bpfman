@@ -10,10 +10,12 @@ use kube::{
     Client,
 };
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
-use tracing::*;
+//use tracing::*;
 
 mod bpfd_agent;
 mod finalizer;
+use env_logger::Env;
+use log::{info, debug, error};
 
 // These are not configurable and must match the directories where
 // they are mounted in the bpfd Daemonset.
@@ -23,6 +25,8 @@ const AGENT_KEY_PATH: &str = "/etc/bpfd/certs/bpfd-agent/tls.key";
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    //env_logger::init();
+    //env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
     tracing_subscriber::fmt::init();
 
     // Setup bpfd client

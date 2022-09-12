@@ -13,6 +13,8 @@ use thiserror::Error;
 use tokio::time::Duration;
 use tonic::transport::Channel;
 use tracing::*;
+//use log::{info, debug, error};
+use gethostname::gethostname;
 
 use crate::finalizer;
 
@@ -67,8 +69,15 @@ pub async fn reconcile(ebpf_program: Arc<EbpfProgram>, ctx: Arc<Context>) -> Res
     // Make ebpfProgram client
     let ebpf_programs_api: Api<EbpfProgram> = Api::namespaced(client.clone(), ns);
 
+    let hostname = gethostname().into_string().unwrap();
+    info!("Node Hostname: {}", hostname);
+    let uuid_annotation_tag = format!("{}/uuid", hostname);
+    let attach_point_annotation_tag = format!("{}/attach_point", hostname);
+    let finalizer_tag = format!("{}/finalizer",hostname);
+    info!("UUID tag: {}\nAttachPointTag {}\nFinalizer tag: {}",
+    uuid_annotation_tag, attach_point_annotation_tag, finalizer_tag);
     // Performs action as decided by the `determine_action` function.
-    return match determine_action(&ebpf_program) {
+    return match determine_action(&ebpf_program, &uuid_annotation_tag) {
         EbpfProgramAction::Create => {
             debug!("Created EbpfProgram: {}", program_name);
 
@@ -81,18 +90,17 @@ pub async fn reconcile(ebpf_program: Arc<EbpfProgram>, ctx: Arc<Context>) -> Res
             );
             // Apply the finalizer first. If that fails, the `?` operator invokes automatic conversion
             // of `kube::Error` to the `Error` defined in this crate.
-            finalizer::add(client.clone(), program_name, ns)
-                .await
-                .map_err(Error::EbpfProgramReconcileFailed)?;
+            //finalizer::add(client.clone(), program_name, ns, &finalizer_tag)
+            //    .await
+            //    .map_err(Error::EbpfProgramReconcileFailed)?;
 
-            // always overwrite the annotations with a fresh UUID
-            let annotation = Patch::Apply(json!({
-                "apiVersion": "bpfd.io/v1alpha1",
-                "kind": "EbpfProgram",
+            //debug!("Added finalizer");
+            // Annotations will be unique for each node
+            let annotation = Patch::Merge(serde_json::json!({
                 "metadata": {
                     "annotations": {
-                        "bpfd.ebpfprogram.io/uuid": uuid,
-                        "bpfd.ebpfprogram.io/attach_point": attach_point
+                        uuid_annotation_tag: uuid,
+                        attach_point_annotation_tag: attach_point
                     }
                 }
             }));
@@ -114,7 +122,7 @@ pub async fn reconcile(ebpf_program: Arc<EbpfProgram>, ctx: Arc<Context>) -> Res
                 .map_err(Error::EbpfProgramReconcileFailed)?;
 
             ebpf_programs_api
-                .patch(program_name, &ps, &annotation)
+                .patch(program_name, &PatchParams::default(), &annotation)
                 .await
                 .map_err(Error::EbpfProgramReconcileFailed)?;
 
@@ -130,10 +138,12 @@ pub async fn reconcile(ebpf_program: Arc<EbpfProgram>, ctx: Arc<Context>) -> Res
                 .as_ref()
                 .ok_or(Error::MissingObjectKey(".metadata.annotations"))?;
 
-            let uuid = annotations.get("bpfd.ebpfprogram.io/uuid");
-            let interface = annotations.get("bpfd.ebpfprogram.io/attach_point");
+            let uuid = annotations.get(&uuid_annotation_tag);
+            let interface = annotations.get(&attach_point_annotation_tag);
             unload_ebpfprogram(uuid.unwrap(), interface.unwrap(), ctx).await?;
 
+            // Remove only a single finalizer (at index 0) we don't care what order
+            // the finalizers are removed in.
             finalizer::delete(client.clone(), &ebpf_program.name_any(), ns)
                 .await
                 .map_err(Error::EbpfProgramReconcileFailed)?;
@@ -155,14 +165,15 @@ pub fn error_policy(_error: &Error, _ctx: Arc<Context>) -> Action {
 ///
 /// # Arguments
 /// - `EbpfProgram`: A reference to `EbpfProgram` being reconciled to decide next action upon.
-fn determine_action(ebpf_program: &EbpfProgram) -> EbpfProgramAction {
+/// Only reconcile if we haven't added annotation
+fn determine_action(ebpf_program: &EbpfProgram, uuid_tag: &str) -> EbpfProgramAction {
     if ebpf_program.meta().deletion_timestamp.is_some() {
         EbpfProgramAction::Delete
     } else if ebpf_program
         .meta()
-        .finalizers
+        .annotations
         .as_ref()
-        .map_or(true, |finalizers| finalizers.is_empty())
+        .map_or(true, |annotations| !annotations.contains_key(uuid_tag))
     {
         EbpfProgramAction::Create
     } else {
