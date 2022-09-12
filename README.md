@@ -41,7 +41,7 @@ rustup toolchain install nightly -c rustfmt,clippy,rust-src
 - LLVM 11 or later (Linux package managers should provide a recent enough release)
 
 ```console
-sudo dnf install llvm-devel clang-devel
+sudo dnf install llvm-devel clang-devel elfutils-libelf-devel
 ```
 
 - [bpf-linker](https://github.com/aya-rs/bpf-linker)
