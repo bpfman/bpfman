@@ -7,8 +7,34 @@
 
   - name: Set Variables
     set_fact:
-      bpfd_user: "bpfd"
-      bpfd_password: "bpfd12345"
+      vagrant_user: "vagrant"
+
+  - name: Make directories for bpfd binaries and scripts
+    shell: |
+      mkdir -p /home/{{ vagrant_user }}/bpfd/target/debug/
+
+  - name: Copy bpfctl binary to the remote host
+    ansible.builtin.copy:
+      src: ../../target/debug/bpfctl
+      dest: /home/{{ vagrant_user }}/bpfd/target/debug/
+      owner: "{{ vagrant_user }}"
+      group: "{{ vagrant_user }}"
+      mode: '0755'
+
+  - name: Copy bpfd binary to the remote host
+    ansible.builtin.copy:
+      src: ../../target/debug/bpfd
+      dest: /home/{{ vagrant_user }}/bpfd/target/debug/
+      owner: "{{ vagrant_user }}"
+      group: "{{ vagrant_user }}"
+      mode: '0755'
+
+  - name: Copy the scripts directory to the remote host
+    ansible.builtin.copy:
+      src: ../../scripts/
+      dest: /home/{{ vagrant_user }}/bpfd/scripts/
+      owner: "{{ vagrant_user }}"
+      group: "{{ vagrant_user }}"
 
   - name: Update OS
     package:
@@ -22,56 +48,10 @@
     package:
       name: ['openssl', 'acl']
 
-  - name: Add bpfd user
-    shell: |
-      useradd -m {{ bpfd_user }} -p {{ bpfd_password }}
-      usermod -aG wheel {{ bpfd_user }}
-
-  # Copy user certificate creation script
-  - copy:
-      src: ../../scripts/certificates.sh
-      dest: /home/{{ bpfd_user }}/
-      mode: '0755'
-
-  - name: Install Certificates
+  - name: Change the working directory to bpfd/scripts and run
     become: yes
-    shell: /home/{{ bpfd_user }}/certificates.sh init
-
-  - name: Change cert ownership
-    command: chown -hR {{ bpfd_user }} /etc/bpfd/certs/
-
-  # Install the systemd unit file
-  - copy:
-      src: ./bpfd.service
-      dest: /etc/systemd/system/
-
-  # Delete the existing binary if it exists
-  - name: Delete existing bpfd binary
-    file:
-      path: "/usr/sbin/bpfd"
-      state: absent
-
-  # Delete the existing binary if it exists
-  - name: Delete existing bpfctl binary
-    file:
-      path: "/usr/sbin/bpfctl"
-      state: absent
-
-  # Copy bpfd binary from the host to the VM
-  - copy:
-      src: ../../target/debug/bpfd
-      dest: /usr/sbin/
-      mode: '0755'
-
-  # Copy bpfctl binary from the host to the VM
-  - copy:
-      src: ../../target/debug/bpfctl
-      dest: /usr/sbin/
-      mode: '0755'
-
-  - name: Enable and start bpfd systemd service
-    ansible.builtin.systemd:
-      daemon_reload: yes
-      name: bpfd.service
-      state: started
-      enabled: yes
+    shell: |
+      chmod +x ./scripts/*.sh
+      ./scripts/setup.sh install
+    args:
+      chdir: /home/{{ vagrant_user }}/bpfd

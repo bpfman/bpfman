@@ -18,5 +18,5 @@ certs
 # misc
 .idea/
 .vscode/launch.json
-
+.vagrant
 tests/_tmp
