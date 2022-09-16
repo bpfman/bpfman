@@ -192,6 +192,7 @@ impl<'a> BpfManager<'a> {
                                         self.programs
                                             .insert(if_index, HashMap::from([(uuid, prog)]));
                                     }
+                                    self.sort_extensions(&if_index);
                                 }
                                 _ => {
                                     // ignore other files on bpffs
