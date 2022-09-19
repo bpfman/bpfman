@@ -1,6 +1,4 @@
 FROM rust:1.63.0-bullseye as bpfd-build
-WORKDIR /usr/src/bpfd
-COPY ./ /usr/src/bpfd
 
 RUN git clone https://github.com/libbpf/libbpf --branch v0.8.0 /usr/src/bpfd/libbpf
 
@@ -11,6 +9,9 @@ RUN apt-get update && apt-get install -y\
  libelf-dev\
  gcc-multilib\
  musl-tools
+
+WORKDIR /usr/src/bpfd
+COPY ./ /usr/src/bpfd
 
 RUN rustup target add x86_64-unknown-linux-musl
 

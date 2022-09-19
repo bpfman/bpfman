@@ -57,8 +57,17 @@ To use the provided templated Containerfile simply run a `podman build` command
 like the following:
 
 ```bash
-podman build  --build-arg PROGRAM_NAME=xdp_counter --build-arg SECTION_NAME=pass --build-arg PROGRAM_TYPE=xdp --build-arg BYTECODE_FILENAME=pass.bpf.o --build-arg KERNEL_COMPILE_VER=$(uname -r) -f packaging/container-deployment/Containerfile.bytecode /home/<USER>/bytecode -t quay.io/<USER>/xdp_pass:latest
+podman build \
+ --build-arg PROGRAM_NAME=xdp_pass \
+ --build-arg SECTION_NAME=pass \
+ --build-arg PROGRAM_TYPE=xdp \
+ --build-arg BYTECODE_FILENAME=pass.bpf.o \
+ --build-arg KERNEL_COMPILE_VER=$(uname -r) \
+ -f packaging/container-deployment/Containerfile.bytecode \
+ /home/<USER>/bytecode -t quay.io/<USER>/xdp_pass:latest
 ```
+Where `/home/<USER>/bytecode` is the directory the bytecode object file is located.
+
 
 Users can also use `skopeo` to ensure the image follows the
 backwards compatible version of the spec:

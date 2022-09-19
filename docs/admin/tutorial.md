@@ -238,7 +238,7 @@ sudo ./scripts/setup.sh init
 Then add usergroup `bpfd` to desired user and logout/login to apply:
 
 ```console
-sudo usermod -a -G bpfd \$USER
+sudo usermod -a -G bpfd $USER
 exit
 <LOGIN>
 ```
@@ -275,7 +275,7 @@ sudo ./scripts/setup.sh install
 
 Then add usergroup `bpfd` to desired user if not already run and logout/login to apply:
 ```console
-sudo usermod -a -G bpfd \$USER
+sudo usermod -a -G bpfd $USER
 exit
 <LOGIN>
 ```

@@ -89,11 +89,11 @@ spec:
           secretName: bpfd-cert-secret
           optional: false
       - name: bpfd-agent-cert
-        secret: 
+        secret:
           secretName: bpfd-agent-cert-secret
           optional: false
       - name: bpfd-config
-        configMap: 
+        configMap:
           name: bpfd-config
       - name: host-bytecode
         hostPath:

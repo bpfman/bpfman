@@ -1,0 +1,86 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gocounter-config
+  namespace: kube-system
+data:
+  gocounter.toml: |
+    [tls]
+      ca_cert = "/etc/bpfd/certs/ca/ca.crt"
+      cert = "/etc/bpfctl/certs/gocounter/tls.crt"
+      key = "/etc/bpfctl/certs/gocounter/tls.key"
+    [config]
+      interface = "ens3"
+      bytecode_uuid = "62c2a443-9beb-4261-9c46-33a29612643d"
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gocounter-cert
+  namespace: kube-system
+spec:
+  dnsNames:
+    - localhost
+  ipAddresses:
+    - 127.0.0.1
+  commonName: gocounter
+  secretName: gocounter-cert-secret
+  privateKey:
+    algorithm: RSA
+  issuerRef:
+    name: bpfd-cert-issuer
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gocounter-pod
+spec:
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+  terminationGracePeriodSeconds: 15
+  nodeSelector:
+    kubernetes.io/hostname: ebpf-k8s-2
+  containers:
+  - name: gocounter
+    image: quay.io/$USER/gocounter:latest
+    imagePullPolicy: IfNotPresent
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: gocounter-cert
+      mountPath: /etc/bpfctl/certs/gocounter
+      readOnly: true
+    - name: bpfd-ca
+      mountPath: /etc/bpfd/certs/ca
+      readOnly: true
+    - name: host-bytecode
+      mountPath: /var/bpfd/bytecode
+      readOnly: false
+    - name: gocounter-maps
+      mountPath: /var/run/bpfd/fs/maps
+      readOnly: true
+    - name: gocounter-config
+      mountPath: /etc/bpfctl/gocounter.toml
+      subPath: gocounter.toml
+      readOnly: true
+  volumes:
+  - name: gocounter-cert
+    secret:
+      secretName: gocounter-cert-secret
+      optional: false
+  - name: bpfd-ca
+    secret:
+      secretName: bpfd-ca
+      optional: false
+  - name: host-bytecode
+    hostPath:
+      path: /var/bpfd/bytecode
+  - name: gocounter-maps
+    hostPath:
+      path: /var/run/bpfd/fs/maps
+  - name: gocounter-config
+    configMap:
+      name: gocounter-config
