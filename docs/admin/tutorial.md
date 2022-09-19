@@ -263,7 +263,8 @@ Same as above.
 Run the following command to copy the `bpfd` and `bpfctl` binaries to `/usr/sbin/.` and set the user
 and user group for each, and copy a default `bpfd.service` file to `/usr/lib/systemd/system/`,
 (this command runs the same steps as the previous `setup.sh` commands plus some additional steps,
-so run it in-place of  `setup.sh certs` or `setup.sh init`):
+so run it in-place of `setup.sh certs` or `setup.sh init`). This option will also start the systemd
+service `bpfd.service` by default:
 
 ```console
 sudo ./scripts/setup.sh install

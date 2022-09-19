@@ -86,6 +86,8 @@ install() {
     if [ "${reinstall}" == false ]; then
         echo "Copy service file:"
         copy_svc "${BIN_BPFD}" "${USER_BPFD}" "${USER_GROUP}"
+        echo "  Starting \"${BIN_BPFD}.service\""
+        systemctl start ${BIN_BPFD}.service
     else
         if [ "${START_BPFD}" == true ]; then
             echo "  Starting \"${BIN_BPFD}.service\""

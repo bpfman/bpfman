@@ -69,7 +69,7 @@ usage() {
     echo "    * Copy \"bpfd\" and \"bpfctl\" binaries to \"/usr/sbin/.\" and set"
     echo "      the user group for each."
     echo "    * Copy \"bpfd.service\" to \"/usr/lib/systemd/system/\"."
-    echo "    * Use \"systemctl\" to mange the service:"
+    echo "    * Use \"systemctl\" to mange the service (the installer starts bpfd.service by default):"
     echo "          sudo systemctl start bpfd.service"
     echo "          sudo systemctl stop bpfd.service"
     echo "sudo ./scripts/setup.sh reinstall"
