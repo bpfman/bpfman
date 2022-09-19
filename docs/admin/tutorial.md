@@ -253,6 +253,9 @@ Same as above except `sudo` can be dropped from all the `bpfctl` commands.
 To run `bpfd` as a systemd service, the binaries will be placed in a well known location
 (`/usr/sbin/.`) and a service configuration file will be added
 (`/usr/lib/systemd/system/bpfd.service`).
+When run as a systemd service, the set of linux capabilities are limited to only the needed set.
+If permission errors are encountered, see [linux-capabilities.md](../developer/linux-capabilities.md)
+for help debugging.
 
 ### Step 0-1
 
