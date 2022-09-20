@@ -1,0 +1,49 @@
+name: validate-installer
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-install:
+    runs-on: ubuntu-latest
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Install deps
+      run: sudo apt-get install -y git clang llvm protobuf-compiler cmake perl acl openssl pkgconf gcc-multilib
+
+    - uses: actions/checkout@v2
+      with:
+        repository: libbpf/libbpf
+        path: libbpf
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        components: rust-src
+        override: true
+
+    - name: Install bpf-linker
+      run: cargo install bpf-linker
+
+    - name: Build eBPF
+      run: cargo xtask build-ebpf --libbpf-dir ./libbpf
+
+    - name: Build bpfd
+      run: cargo build --verbose
+
+    - name: Run the bpfd installer
+      run: sudo ./scripts/setup.sh install
+
+    - name: Verify the bpfd systemd service is active
+      run: systemctl is-active bpfd
