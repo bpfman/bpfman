@@ -145,22 +145,26 @@ async fn main() -> anyhow::Result<()> {
                 iface: iface.to_string(),
             });
             let response = client.list(request).await?.into_inner();
-            println!("{}\nxdp_mode: {}\n", iface, response.xdp_mode);
-            for r in response.results {
-                let proceed_on: Vec<String> = r
-                    .proceed_on
-                    .iter()
-                    .map(|action| ProceedOn::try_from(*action as u32).unwrap().to_string())
-                    .collect();
-                println!(
-                    "{}: {}\n\tsection-name: \"{}\"\n\tpriority: {}\n\tpath: {}\n\tproceed-on: {}",
-                    r.position,
-                    r.id,
-                    r.name,
-                    r.priority,
-                    r.path,
-                    proceed_on.join(", ")
-                );
+            if response.results.is_empty() {
+                println!("{}\nno programs loaded on the specified interface", iface);
+            } else {
+                println!("{}\nxdp_mode: {}\n", iface, response.xdp_mode);
+                for r in response.results {
+                    let proceed_on: Vec<String> = r
+                        .proceed_on
+                        .iter()
+                        .map(|action| ProceedOn::try_from(*action as u32).unwrap().to_string())
+                        .collect();
+                    println!(
+                        "{}: {}\n\tsection-name: \"{}\"\n\tpriority: {}\n\tpath: {}\n\tproceed-on: {}",
+                        r.position,
+                        r.id,
+                        r.name,
+                        r.priority,
+                        r.path,
+                        proceed_on.join(", ")
+                    );
+                }
             }
         }
     };
