@@ -9,6 +9,7 @@ use bpfd_api::v1::{
 };
 use clap::{Parser, Subcommand};
 mod config;
+use comfy_table::Table;
 use config::config_from_file;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
 
@@ -145,28 +146,35 @@ async fn main() -> anyhow::Result<()> {
                 iface: iface.to_string(),
             });
             let response = client.list(request).await?.into_inner();
-            if response.results.is_empty() {
-                println!("{}\nno programs loaded on the specified interface", iface);
-            } else {
-                println!("{}\nxdp_mode: {}\n", iface, response.xdp_mode);
-                for r in response.results {
-                    let proceed_on: Vec<String> = r
-                        .proceed_on
-                        .iter()
-                        .map(|action| ProceedOn::try_from(*action as u32).unwrap().to_string())
-                        .collect();
-                    println!(
-                        "{}: {}\n\tsection-name: \"{}\"\n\tpriority: {}\n\tpath: {}\n\tproceed-on: {}",
-                        r.position,
-                        r.id,
-                        r.name,
-                        r.priority,
-                        r.path,
-                        proceed_on.join(", ")
-                    );
-                }
+            let mut table = Table::new();
+            table.load_preset(comfy_table::presets::NOTHING);
+            table.set_header(vec![
+                "Type",
+                "Position",
+                "UUID",
+                "Name",
+                "Priority",
+                "Path",
+                "Proceed-On",
+            ]);
+            for r in response.results {
+                let proceed_on: Vec<String> = r
+                    .proceed_on
+                    .iter()
+                    .map(|action| ProceedOn::try_from(*action as u32).unwrap().to_string())
+                    .collect();
+                table.add_row(vec![
+                    format!("xdp ({})", response.xdp_mode),
+                    r.position.to_string(),
+                    r.id.to_string(),
+                    r.name,
+                    r.priority.to_string(),
+                    r.path,
+                    proceed_on.join(", "),
+                ]);
             }
+            println!("{table}");
         }
-    };
+    }
     Ok(())
 }
