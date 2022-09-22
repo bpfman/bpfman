@@ -6,7 +6,7 @@ use bpfd_api::v1::{
     list_response::ListResult, loader_server::Loader, ListRequest, ListResponse, LoadRequest,
     LoadResponse, UnloadRequest, UnloadResponse,
 };
-use log::info;
+use log::warn;
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
@@ -102,12 +102,19 @@ impl Loader for BpfdLoader {
 
         // Await the response
         match resp_rx.await {
-            Ok(id) => {
-                reply.id = id.unwrap().to_string();
-                Ok(Response::new(reply))
-            }
+            Ok(res) => match res {
+                Ok(id) => {
+                    reply.id = id.to_string();
+                    Ok(Response::new(reply))
+                }
+                Err(e) => {
+                    warn!("BPFD load error: {}", e);
+                    Err(Status::aborted(format!("{}", e)))
+                }
+            },
+
             Err(e) => {
-                info!("RPC load error: {}", e);
+                warn!("RPC load error: {}", e);
                 Err(Status::aborted(format!("{}", e)))
             }
         }
@@ -144,9 +151,15 @@ impl Loader for BpfdLoader {
 
         // Await the response
         match resp_rx.await {
-            Ok(_) => Ok(Response::new(reply)),
+            Ok(res) => match res {
+                Ok(_) => Ok(Response::new(reply)),
+                Err(e) => {
+                    warn!("BPFD unload error: {}", e);
+                    Err(Status::aborted(format!("{}", e)))
+                }
+            },
             Err(e) => {
-                info!("RPC unload error: {}", e);
+                warn!("RPC unload error: {}", e);
                 Err(Status::aborted(format!("{}", e)))
             }
         }
@@ -171,23 +184,31 @@ impl Loader for BpfdLoader {
 
         // Await the response
         match resp_rx.await {
-            Ok(res) => {
-                let results = res.unwrap();
-                reply.xdp_mode = results.xdp_mode;
-                for r in results.programs {
-                    reply.results.push(ListResult {
-                        id: r.id,
-                        name: r.name,
-                        path: r.path,
-                        position: r.position as u32,
-                        priority: r.priority,
-                        proceed_on: r.proceed_on,
-                    })
+            Ok(res) => match res {
+                Ok(results) => {
+                    reply.xdp_mode = results.xdp_mode;
+                    for r in results.programs {
+                        reply.results.push(ListResult {
+                            id: r.id,
+                            name: r.name,
+                            path: r.path,
+                            position: r.position as u32,
+                            priority: r.priority,
+                            proceed_on: r.proceed_on,
+                        })
+                    }
+                    Ok(Response::new(reply))
                 }
-                Ok(Response::new(reply))
-            }
+                Err(e) => match e {
+                    BpfdError::NoProgramsLoaded => Ok(Response::new(reply)),
+                    _ => {
+                        warn!("BPFD list error: {}", e);
+                        Err(Status::aborted(format!("{}", e)))
+                    }
+                },
+            },
             Err(e) => {
-                info!("RPC list error: {}", e);
+                warn!("RPC list error: {}", e);
                 Err(Status::aborted(format!("{}", e)))
             }
         }
