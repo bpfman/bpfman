@@ -316,6 +316,8 @@ impl<'a> BpfManager<'a> {
                 self.programs.remove(&if_index);
                 let old = self.dispatchers.remove(&if_index);
                 if let Some(old) = old {
+                    let rev = self.revisions.remove(&if_index).unwrap();
+                    self.delete_link(if_index, rev)?;
                     old.delete(if_index).map_err(|_| {
                         BpfdError::Error("unable to delete persisted dispatcher data".to_string())
                     })?;
@@ -475,6 +477,14 @@ impl<'a> BpfManager<'a> {
     fn cleanup_extensions(&self, if_index: u32, revision: usize) -> Result<(), BpfdError> {
         let path = format!("/var/run/bpfd/fs/dispatcher_{if_index}_{revision}");
         fs::remove_dir_all(path).map_err(|io_error| BpfdError::UnableToCleanup { io_error })
+    }
+
+    fn delete_link(&self, if_index: u32, revision: usize) -> Result<(), BpfdError> {
+        let path_link = format!("/var/run/bpfd/fs/dispatcher_{if_index}_link");
+        fs::remove_file(path_link)?;
+        let path_link_rev = format!("/var/run/bpfd/fs/dispatcher_{if_index}_{revision}/");
+        fs::remove_dir_all(path_link_rev)
+            .map_err(|io_error| BpfdError::UnableToCleanup { io_error })
     }
 
     fn get_ifindex(&mut self, iface: &str) -> Result<u32, BpfdError> {
