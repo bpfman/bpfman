@@ -47,3 +47,6 @@ jobs:
 
     - name: Verify the bpfd systemd service is active
       run: systemctl is-active bpfd
+
+    - name: Verify bpfctl can connect to the daemon
+      run: sudo bpfctl --help
