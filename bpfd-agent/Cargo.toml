@@ -47,4 +47,4 @@ openssl = { version = "0.10.41", features = ["vendored"] }
 
 [dependencies.kube]
 features = ["runtime", "client", "derive"]
-version = "0.74.0"
+version = "0.75.0"
