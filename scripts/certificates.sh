@@ -66,6 +66,7 @@ cert_client() {
         openssl x509 -req -in "${CERT_PATH}/${sub_directory}.csr" \
             -CA "${CA_CERT_PATH}/ca.pem" \
             -CAkey "${CA_CERT_PATH}/ca.key" \
+            -CAcreateserial \
             -extfile <(printf "subjectAltName=DNS:localhost,IP:127.0.0.1") \
             -out "${CERT_PATH}/${sub_directory}.pem"
         rm "${CERT_PATH}/${sub_directory}.csr"
