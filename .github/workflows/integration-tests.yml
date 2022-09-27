@@ -1,4 +1,4 @@
-name: validate-installer
+name: integration-tests
 
 on:
   push:
@@ -47,3 +47,12 @@ jobs:
 
     - name: Verify the bpfd systemd service is active
       run: systemctl is-active bpfd
+
+    - name: Verify the bpfd systemd service is active
+      run: sudo bpfctl --help
+
+    - name: Stop the bpfd systemd service
+      run: sudo systemctl stop bpfd
+
+    - name: Run integration tests
+      run: cargo xtask integration-test
