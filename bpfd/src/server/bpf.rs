@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use core::fmt;
 use std::{collections::HashMap, convert::TryInto, fs, io::BufReader};
 
 use aya::{
@@ -23,7 +22,10 @@ use nix::net::if_::if_nametoindex;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::server::errors::BpfdError;
+use crate::server::{
+    command::{InterfaceInfo, ProgramInfo, ProgramType},
+    errors::BpfdError,
+};
 
 // Default is Pass and DispatcherReturn
 const DEFAULT_XDP_PROCEED_ON_PASS: i32 = 2;
@@ -126,22 +128,6 @@ pub(crate) struct DispatcherProgramTC {
     link_id: SchedClassifierLinkId,
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct InterfaceInfo {
-    pub(crate) xdp_mode: String,
-    pub(crate) programs: Vec<ProgramInfo>,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct ProgramInfo {
-    pub(crate) id: String,
-    pub(crate) name: String,
-    pub(crate) path: String,
-    pub(crate) position: usize,
-    pub(crate) priority: i32,
-    pub(crate) proceed_on: Vec<i32>,
-}
-
 pub(crate) struct BpfManager<'a> {
     config: &'a Config,
     dispatcher_bytes_xdp: &'a [u8],
@@ -155,21 +141,6 @@ pub(crate) struct BpfManager<'a> {
     dispatchers_tc_eg: HashMap<u32, DispatcherProgramTC>,
     progs_tc_eg: HashMap<u32, HashMap<Uuid, ExtensionProgram>>,
     revisions_tc_eg: HashMap<u32, usize>,
-}
-
-#[derive(Debug, Clone, Copy)]
-enum ProgramType {
-    TcIngress,
-    TcEgress,
-}
-
-impl fmt::Display for ProgramType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ProgramType::TcIngress => write!(f, "tc_in"),
-            ProgramType::TcEgress => write!(f, "tc_eg"),
-        }
-    }
 }
 
 macro_rules! get_next_id {
@@ -213,6 +184,7 @@ macro_rules! get_prog_list {
         match $prog_type {
             ProgramType::TcIngress => $self.progs_tc_in.get_mut(&$if_index),
             ProgramType::TcEgress => $self.progs_tc_eg.get_mut(&$if_index),
+            _ => todo!(),
         }
     };
 }
@@ -260,6 +232,7 @@ macro_rules! insert_dispatcher {
                     link_id: $link_id,
                 },
             ),
+            _ => todo!(),
         }
     };
 }
@@ -356,7 +329,7 @@ impl<'a> BpfManager<'a> {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn add_program(
         &mut self,
-        program_type: i32,
+        program_type: ProgramType,
         iface: String,
         path: String,
         priority: i32,
@@ -365,8 +338,10 @@ impl<'a> BpfManager<'a> {
         owner: String,
     ) -> Result<Uuid, BpfdError> {
         match program_type {
-            0 => self.add_program_xdp(iface, path, priority, section_name, proceed_on, owner),
-            1 => self.add_program_tc(
+            ProgramType::Xdp => {
+                self.add_program_xdp(iface, path, priority, section_name, proceed_on, owner)
+            }
+            ProgramType::TcIngress => self.add_program_tc(
                 ProgramType::TcIngress,
                 iface,
                 path,
@@ -375,7 +350,7 @@ impl<'a> BpfManager<'a> {
                 proceed_on,
                 owner,
             ),
-            2 => self.add_program_tc(
+            ProgramType::TcEgress => self.add_program_tc(
                 ProgramType::TcEgress,
                 iface,
                 path,
@@ -515,6 +490,8 @@ impl<'a> BpfManager<'a> {
         let next_available_id = match prog_type {
             ProgramType::TcIngress => get_next_id!(self, progs_tc_in, if_index),
             ProgramType::TcEgress => get_next_id!(self, progs_tc_eg, if_index),
+            ProgramType::Xdp => todo!(),
+            ProgramType::Tracepoint => todo!(),
         };
 
         if next_available_id > 10 {
@@ -525,6 +502,8 @@ impl<'a> BpfManager<'a> {
         let (old_revision, new_revision) = match prog_type {
             ProgramType::TcIngress => get_revisions!(self, revisions_tc_in, if_index),
             ProgramType::TcEgress => get_revisions!(self, revisions_tc_eg, if_index),
+            ProgramType::Xdp => todo!(),
+            ProgramType::Tracepoint => todo!(),
         };
 
         let prog = ExtensionProgram {
@@ -541,6 +520,7 @@ impl<'a> BpfManager<'a> {
         prog.save(id)
             .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
 
+        let prog_type = prog_type;
         match prog_type {
             ProgramType::TcIngress => {
                 insert_prog!(
@@ -564,6 +544,8 @@ impl<'a> BpfManager<'a> {
                     sort_extensions_tc
                 );
             }
+            ProgramType::Xdp => todo!(),
+            ProgramType::Tracepoint => todo!(),
         };
 
         let mut dispatcher_loader = self.new_tc_dispatcher(
@@ -597,6 +579,17 @@ impl<'a> BpfManager<'a> {
             next_available_id, &iface,
         );
         Ok(id)
+    }
+
+    pub(crate) fn add_single_attach_program(
+        &self,
+        _path: String,
+        _program_type: ProgramType,
+        _section_name: String,
+        _attach: String,
+        _username: String,
+    ) -> Result<Uuid, BpfdError> {
+        unimplemented!("todo")
     }
 
     pub(crate) fn remove_program(
@@ -707,6 +700,8 @@ impl<'a> BpfManager<'a> {
             let old_revision = match prog_type {
                 ProgramType::TcIngress => self.revisions_tc_in.remove(&if_index).unwrap(),
                 ProgramType::TcEgress => self.revisions_tc_eg.remove(&if_index).unwrap(),
+                ProgramType::Xdp => todo!(),
+                ProgramType::Tracepoint => todo!(),
             };
 
             if programs.is_empty() {
@@ -719,6 +714,8 @@ impl<'a> BpfManager<'a> {
                         self.progs_tc_eg.remove(&if_index);
                         self.dispatchers_tc_eg.remove(&if_index);
                     }
+                    ProgramType::Xdp => todo!(),
+                    ProgramType::Tracepoint => todo!(),
                 };
                 self.cleanup_extensions_tc(prog_type, if_index, old_revision)?;
                 return Ok(());
@@ -730,6 +727,8 @@ impl<'a> BpfManager<'a> {
             match prog_type {
                 ProgramType::TcIngress => self.revisions_tc_in.insert(if_index, revision),
                 ProgramType::TcEgress => self.revisions_tc_eg.insert(if_index, revision),
+                ProgramType::Xdp => todo!(),
+                ProgramType::Tracepoint => todo!(),
             };
 
             // Cache program length so programs goes out of scope and
@@ -845,6 +844,8 @@ impl<'a> BpfManager<'a> {
                     return Err(BpfdError::NoProgramsLoaded);
                 }
             }
+            ProgramType::Xdp => todo!(),
+            ProgramType::Tracepoint => todo!(),
         };
 
         let mut results = InterfaceInfo {
@@ -855,6 +856,8 @@ impl<'a> BpfManager<'a> {
         let mut extensions = match prog_type {
             ProgramType::TcIngress => get_progs!(self, progs_tc_in, if_index),
             ProgramType::TcEgress => get_progs!(self, progs_tc_eg, if_index),
+            ProgramType::Xdp => todo!(),
+            ProgramType::Tracepoint => todo!(),
         };
 
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
@@ -945,11 +948,15 @@ impl<'a> BpfManager<'a> {
         let revision = match prog_type {
             ProgramType::TcIngress => self.revisions_tc_in.get(if_index).unwrap(),
             ProgramType::TcEgress => self.revisions_tc_eg.get(if_index).unwrap(),
+            ProgramType::Xdp => todo!(),
+            ProgramType::Tracepoint => todo!(),
         };
 
         let mut extensions = match prog_type {
             ProgramType::TcIngress => get_progs!(self, progs_tc_in, if_index),
             ProgramType::TcEgress => get_progs!(self, progs_tc_eg, if_index),
+            ProgramType::Xdp => todo!(),
+            ProgramType::Tracepoint => todo!(),
         };
 
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
@@ -1050,11 +1057,15 @@ impl<'a> BpfManager<'a> {
         let attach_type = match prog_type {
             ProgramType::TcIngress => TcAttachType::Ingress,
             ProgramType::TcEgress => TcAttachType::Egress,
+            ProgramType::Xdp => todo!(),
+            ProgramType::Tracepoint => todo!(),
         };
 
         let dispatcher_result = match prog_type {
             ProgramType::TcIngress => self.dispatchers_tc_in.remove(&if_index),
             ProgramType::TcEgress => self.dispatchers_tc_eg.remove(&if_index),
+            ProgramType::Xdp => todo!(),
+            ProgramType::Tracepoint => todo!(),
         };
 
         match dispatcher_result {
@@ -1173,6 +1184,8 @@ impl<'a> BpfManager<'a> {
         let mut extensions = match prog_type {
             ProgramType::TcIngress => get_progs_values!(self, progs_tc_in, if_index),
             ProgramType::TcEgress => get_progs_values!(self, progs_tc_eg, if_index),
+            ProgramType::Xdp => todo!(),
+            ProgramType::Tracepoint => todo!(),
         };
         extensions.sort_by(|a, b| a.metadata.cmp(&b.metadata));
         for (i, v) in extensions.iter_mut().enumerate() {
@@ -1234,6 +1247,8 @@ impl<'a> BpfManager<'a> {
         let mut extensions = match prog_type {
             ProgramType::TcIngress => get_progs!(self, progs_tc_in, if_index),
             ProgramType::TcEgress => get_progs!(self, progs_tc_eg, if_index),
+            ProgramType::Xdp => todo!(),
+            ProgramType::Tracepoint => todo!(),
         };
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
 

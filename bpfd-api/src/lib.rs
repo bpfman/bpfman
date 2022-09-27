@@ -99,3 +99,21 @@ impl TryFrom<u32> for ProceedOn {
         })
     }
 }
+
+impl TryFrom<i32> for ProgramType {
+    type Error = ParseError;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        Ok(match value {
+            0 => ProgramType::Xdp,
+            1 => ProgramType::TcIngress,
+            2 => ProgramType::TcEgress,
+            3 => ProgramType::Tracepoint,
+            other => {
+                return Err(ParseError::InvalidProgramType {
+                    program: other.to_string(),
+                })
+            }
+        })
+    }
+}

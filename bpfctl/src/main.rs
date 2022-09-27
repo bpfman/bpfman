@@ -8,8 +8,8 @@ use bpfd_api::{
     config::config_from_file,
     util::directories::*,
     v1::{
-        loader_client::LoaderClient, ListRequest, LoadRequest,
-        NetworkMultiAttach, ProceedOn, ProgramType, UnloadRequest, load_request::AttachType,
+        load_request::AttachType, loader_client::LoaderClient, ListRequest, LoadRequest,
+        NetworkMultiAttach, ProceedOn, ProgramType, UnloadRequest,
     },
 };
 use clap::{Parser, Subcommand};

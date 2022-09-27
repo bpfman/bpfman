@@ -3,6 +3,7 @@
 
 mod bpf;
 mod certs;
+mod command;
 mod errors;
 mod pull_bytecode;
 mod rpc;
@@ -16,14 +17,13 @@ use bpfd_api::{
     v1::{loader_server::LoaderServer, ProceedOn, ProgramType},
 };
 pub use certs::get_tls_config;
+use command::{AttachType, Command, NetworkMultiAttach};
 use log::info;
-use rpc::{BpfdLoader, Command};
+use rpc::{intercept, BpfdLoader};
 pub use static_program::programs_from_directory;
 use static_program::StaticPrograms;
 use tokio::sync::mpsc;
 use tonic::transport::{Server, ServerTlsConfig};
-
-use self::rpc::intercept;
 
 pub async fn serve(
     config: Config,
@@ -80,7 +80,7 @@ pub async fn serve(
                 let prog_type = ProgramType::try_from(program.program_type.to_string())?;
 
                 let uuid = bpf_manager.add_program(
-                    prog_type as i32,
+                    (prog_type as i32).try_into()?,
                     program.interface,
                     program.path,
                     program.priority,
@@ -97,12 +97,15 @@ pub async fn serve(
     while let Some(cmd) = rx.recv().await {
         match cmd {
             Command::Load {
-                program_type,
-                iface,
                 path,
-                priority,
                 section_name,
-                proceed_on,
+                program_type,
+                attach_type:
+                    AttachType::NetworkMultiAttach(NetworkMultiAttach {
+                        iface,
+                        priority,
+                        proceed_on,
+                    }),
                 username,
                 responder,
             } => {
@@ -113,6 +116,24 @@ pub async fn serve(
                     priority,
                     section_name,
                     proceed_on,
+                    username,
+                );
+                // Ignore errors as they'll be propagated to caller in the RPC status
+                let _ = responder.send(res);
+            }
+            Command::Load {
+                path,
+                section_name,
+                attach_type: AttachType::SingleAttach(attach),
+                username,
+                responder,
+                program_type,
+            } => {
+                let res = bpf_manager.add_single_attach_program(
+                    path,
+                    program_type,
+                    section_name,
+                    attach,
                     username,
                 );
                 // Ignore errors as they'll be propagated to caller in the RPC status

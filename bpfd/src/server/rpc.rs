@@ -9,10 +9,9 @@ use bpfd_api::v1::{
 use log::warn;
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
-use uuid::Uuid;
 use x509_certificate::X509Certificate;
 
-use crate::server::{bpf::InterfaceInfo, errors::BpfdError, pull_bytecode::pull_bytecode};
+use crate::server::{errors::BpfdError, pull_bytecode::pull_bytecode, Command};
 
 #[derive(Debug, Default)]
 struct User {
@@ -50,10 +49,6 @@ pub struct BpfdLoader {
     tx: Arc<Mutex<Sender<Command>>>,
 }
 
-/// Provided by the requester and used by the manager task to send
-/// the command response back to the requester.
-type Responder<T> = oneshot::Sender<T>;
-
 impl BpfdLoader {
     pub(crate) fn new(tx: mpsc::Sender<Command>) -> BpfdLoader {
         let tx = Arc::new(Mutex::new(tx));
@@ -87,21 +82,36 @@ impl Loader for BpfdLoader {
 
         let (resp_tx, resp_rx) = oneshot::channel();
 
+        let program_type = request.program_type.try_into();
+        if program_type.is_err() {
+            return Err(Status::aborted("invalud program type"));
+        }
         if request.attach_type.is_none() {
             return Err(Status::aborted("message missing attach_type"));
         }
         let cmd = match request.attach_type.unwrap() {
             AttachType::NetworkMultiAttach(attach) => Command::Load {
-                iface: attach.iface,
                 responder: resp_tx,
                 path: request.path,
-                program_type: request.program_type,
-                priority: attach.priority,
+                attach_type: crate::server::command::AttachType::NetworkMultiAttach(
+                    crate::server::command::NetworkMultiAttach {
+                        iface: attach.iface,
+                        priority: attach.priority,
+                        proceed_on: attach.proceed_on,
+                    },
+                ),
                 section_name: request.section_name,
-                proceed_on: attach.proceed_on,
                 username,
+                program_type: program_type.unwrap(),
             },
-            _ => unimplemented!("attach type not yet implemented"),
+            AttachType::SingleAttach(attach) => Command::Load {
+                responder: resp_tx,
+                path: request.path,
+                attach_type: crate::server::command::AttachType::SingleAttach(attach.name),
+                section_name: request.section_name,
+                username,
+                program_type: program_type.unwrap(),
+            },
         };
 
         let tx = self.tx.lock().unwrap().clone();
@@ -221,29 +231,4 @@ impl Loader for BpfdLoader {
             }
         }
     }
-}
-
-/// Multiple different commands are multiplexed over a single channel.
-#[derive(Debug)]
-pub(crate) enum Command {
-    Load {
-        program_type: i32,
-        iface: String,
-        path: String,
-        priority: i32,
-        section_name: String,
-        proceed_on: Vec<i32>,
-        username: String,
-        responder: Responder<Result<Uuid, BpfdError>>,
-    },
-    Unload {
-        id: Uuid,
-        iface: String,
-        username: String,
-        responder: Responder<Result<(), BpfdError>>,
-    },
-    List {
-        iface: String,
-        responder: Responder<Result<InterfaceInfo, BpfdError>>,
-    },
 }
