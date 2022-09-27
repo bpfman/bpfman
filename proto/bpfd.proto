@@ -12,6 +12,7 @@ enum ProgramType {
     XDP = 0;
     TC_INGRESS = 1;
     TC_EGRESS = 2;
+    TRACEPOINT = 3;
 }
 
 enum ProceedOn {
@@ -28,9 +29,20 @@ message LoadRequest {
     bool from_image = 2;
     string section_name = 3;
     ProgramType program_type = 4;
+    oneof attach_type {
+        NetworkMultiAttach network_multi_attach = 5;
+        SingleAttach single_attach = 6;
+    }
+};
+
+message NetworkMultiAttach {
     int32 priority = 5;
     string iface = 6;
     repeated ProceedOn proceed_on = 7;
+}
+
+message SingleAttach {
+    string name = 1;
 }
 
 message LoadResponse {

@@ -8,8 +8,8 @@ use bpfd_api::{
     config::config_from_file,
     util::directories::*,
     v1::{
-        loader_client::LoaderClient, ListRequest, LoadRequest, ProceedOn, ProgramType,
-        UnloadRequest,
+        loader_client::LoaderClient, ListRequest, LoadRequest,
+        NetworkMultiAttach, ProceedOn, ProgramType, UnloadRequest, load_request::AttachType,
     },
 };
 use clap::{Parser, Subcommand};
@@ -126,11 +126,13 @@ async fn main() -> anyhow::Result<()> {
             let request = tonic::Request::new(LoadRequest {
                 path: path_str,
                 from_image: *from_image,
-                program_type: prog_type as i32,
-                iface: iface.to_string(),
                 section_name: section_name.to_string(),
-                priority: *priority,
-                proceed_on: proc_on,
+                program_type: prog_type as i32,
+                attach_type: Some(AttachType::NetworkMultiAttach(NetworkMultiAttach {
+                    iface: iface.to_string(),
+                    priority: *priority,
+                    proceed_on: proc_on,
+                })),
             });
             let response = client.load(request).await?.into_inner();
             println!("{}", response.id);

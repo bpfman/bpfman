@@ -25,6 +25,7 @@ impl ToString for ProgramType {
             ProgramType::Xdp => "xdp".to_owned(),
             ProgramType::TcIngress => "tc_ingress".to_owned(),
             ProgramType::TcEgress => "tc_egress".to_owned(),
+            ProgramType::Tracepoint => "tracepoint".to_owned(),
         }
     }
 }

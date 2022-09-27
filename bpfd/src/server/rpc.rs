@@ -3,8 +3,8 @@
 use std::sync::{Arc, Mutex};
 
 use bpfd_api::v1::{
-    list_response::ListResult, loader_server::Loader, ListRequest, ListResponse, LoadRequest,
-    LoadResponse, UnloadRequest, UnloadResponse,
+    list_response::ListResult, load_request::AttachType, loader_server::Loader, ListRequest,
+    ListResponse, LoadRequest, LoadResponse, UnloadRequest, UnloadResponse,
 };
 use log::warn;
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
@@ -86,15 +86,22 @@ impl Loader for BpfdLoader {
         }
 
         let (resp_tx, resp_rx) = oneshot::channel();
-        let cmd = Command::Load {
-            program_type: request.program_type,
-            iface: request.iface,
-            responder: resp_tx,
-            path: request.path,
-            priority: request.priority,
-            section_name: request.section_name,
-            proceed_on: request.proceed_on,
-            username,
+
+        if request.attach_type.is_none() {
+            return Err(Status::aborted("message missing attach_type"));
+        }
+        let cmd = match request.attach_type.unwrap() {
+            AttachType::NetworkMultiAttach(attach) => Command::Load {
+                iface: attach.iface,
+                responder: resp_tx,
+                path: request.path,
+                program_type: request.program_type,
+                priority: attach.priority,
+                section_name: request.section_name,
+                proceed_on: attach.proceed_on,
+                username,
+            },
+            _ => unimplemented!("attach type not yet implemented"),
         };
 
         let tx = self.tx.lock().unwrap().clone();

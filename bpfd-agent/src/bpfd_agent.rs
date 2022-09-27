@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use bpfd_api::v1::{loader_client::LoaderClient, LoadRequest, ProgramType, UnloadRequest};
+use bpfd_api::v1::{
+    load_request::AttachType, loader_client::LoaderClient, LoadRequest, NetworkMultiAttach,
+    ProgramType, UnloadRequest,
+};
 use bpfd_k8s_api::v1alpha1::{EbpfProgram, EbpfProgramStatus};
 use kube::{
     api::{Api, Patch, PatchParams},
@@ -128,7 +131,7 @@ pub async fn reconcile(ebpf_program: Arc<EbpfProgram>, ctx: Arc<Context>) -> Res
                 .metadata
                 .annotations
                 .as_ref()
-                .ok_or_else(|| Error::MissingObjectKey(".metadata.annotations"))?;
+                .ok_or(Error::MissingObjectKey(".metadata.annotations"))?;
 
             let uuid = annotations.get("bpfd.ebpfprogram.io/uuid");
             let interface = annotations.get("bpfd.ebpfprogram.io/attach_point");
@@ -209,12 +212,14 @@ pub async fn load_ebpfprogram(
     let request = tonic::Request::new(LoadRequest {
         path: bytecode_location,
         from_image: from_image_flag,
-        program_type: program_type as i32,
-        iface: attach_point,
         section_name: section_name_flag,
-        priority: priority_flag,
-        // Not supported via the kube API yet
-        proceed_on: proc_on,
+        program_type: program_type as i32,
+        attach_type: Some(AttachType::NetworkMultiAttach(NetworkMultiAttach {
+            iface: attach_point,
+            priority: priority_flag,
+            // Not supported via the kube API yet
+            proceed_on: proc_on,
+        })),
     });
 
     debug!("sending request to bpfd {:?}", request);

@@ -8,12 +8,32 @@ pub struct LoadRequest {
     pub section_name: ::prost::alloc::string::String,
     #[prost(enumeration="ProgramType", tag="4")]
     pub program_type: i32,
+    #[prost(oneof="load_request::AttachType", tags="5, 6")]
+    pub attach_type: ::core::option::Option<load_request::AttachType>,
+}
+/// Nested message and enum types in `LoadRequest`.
+pub mod load_request {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum AttachType {
+        #[prost(message, tag="5")]
+        NetworkMultiAttach(super::NetworkMultiAttach),
+        #[prost(message, tag="6")]
+        SingleAttach(super::SingleAttach),
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NetworkMultiAttach {
     #[prost(int32, tag="5")]
     pub priority: i32,
     #[prost(string, tag="6")]
     pub iface: ::prost::alloc::string::String,
     #[prost(enumeration="ProceedOn", repeated, tag="7")]
     pub proceed_on: ::prost::alloc::vec::Vec<i32>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SingleAttach {
+    #[prost(string, tag="1")]
+    pub name: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadResponse {
@@ -66,6 +86,7 @@ pub enum ProgramType {
     Xdp = 0,
     TcIngress = 1,
     TcEgress = 2,
+    Tracepoint = 3,
 }
 impl ProgramType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -77,6 +98,7 @@ impl ProgramType {
             ProgramType::Xdp => "XDP",
             ProgramType::TcIngress => "TC_INGRESS",
             ProgramType::TcEgress => "TC_EGRESS",
+            ProgramType::Tracepoint => "TRACEPOINT",
         }
     }
 }
