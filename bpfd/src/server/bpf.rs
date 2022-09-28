@@ -48,7 +48,9 @@ pub(crate) struct Metadata {
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct ExtensionProgram {
+    if_index: u32,
     path: String,
+    program_type: ProgramType,
     #[serde(skip)]
     current_position: Option<usize>,
     metadata: Metadata,
@@ -133,25 +135,12 @@ pub(crate) struct BpfManager<'a> {
     dispatcher_bytes_xdp: &'a [u8],
     dispatcher_bytes_tc: &'a [u8],
     dispatchers_xdp: HashMap<u32, DispatcherProgramXdp>,
-    progs_xdp: HashMap<u32, HashMap<Uuid, ExtensionProgram>>,
     revisions_xdp: HashMap<u32, usize>,
     dispatchers_tc_in: HashMap<u32, DispatcherProgramTC>,
-    progs_tc_in: HashMap<u32, HashMap<Uuid, ExtensionProgram>>,
     revisions_tc_in: HashMap<u32, usize>,
     dispatchers_tc_eg: HashMap<u32, DispatcherProgramTC>,
-    progs_tc_eg: HashMap<u32, HashMap<Uuid, ExtensionProgram>>,
     revisions_tc_eg: HashMap<u32, usize>,
-}
-
-macro_rules! get_next_id {
-    ($self:ident, $prog_list:ident, $if_index:ident) => {
-        if let Some(prog) = $self.$prog_list.get(&$if_index) {
-            prog.len() + 1
-        } else {
-            $self.$prog_list.insert($if_index, HashMap::new());
-            1
-        }
-    };
+    programs: HashMap<Uuid, ExtensionProgram>,
 }
 
 macro_rules! get_revisions {
@@ -164,52 +153,6 @@ macro_rules! get_revisions {
             $self.$revisions.insert($if_index, 0);
             (None, 0)
         }
-    };
-}
-
-// Inserts a program into prog_list and sorts the list.
-macro_rules! insert_prog {
-    ($self:ident, $prog_type:ident, $prog_list:ident, $if_index:ident, $id:ident, $prog:ident, $sort_fn:ident) => {
-        $self
-            .$prog_list
-            .get_mut(&$if_index)
-            .unwrap()
-            .insert($id, $prog);
-        $self.$sort_fn($prog_type, &$if_index);
-    };
-}
-
-macro_rules! get_prog_list {
-    ($self:ident, $prog_type:ident, $if_index:ident) => {
-        match $prog_type {
-            ProgramType::TcIngress => $self.progs_tc_in.get_mut(&$if_index),
-            ProgramType::TcEgress => $self.progs_tc_eg.get_mut(&$if_index),
-            _ => todo!(),
-        }
-    };
-}
-
-// Returns the list of programs on the given prog_list on the given interface.
-macro_rules! get_progs {
-    ($self:ident, $prog_list:ident, $if_index:ident) => {
-        $self
-            .$prog_list
-            .get_mut(&$if_index)
-            .unwrap()
-            .iter_mut()
-            .collect::<Vec<_>>()
-    };
-}
-
-// Returns the list of programs on the given prog_list on the given interface.
-macro_rules! get_progs_values {
-    ($self:ident, $prog_list:ident, $if_index:ident) => {
-        $self
-            .$prog_list
-            .get_mut($if_index)
-            .unwrap()
-            .values_mut()
-            .collect::<Vec<&mut ExtensionProgram>>()
     };
 }
 
@@ -248,14 +191,12 @@ impl<'a> BpfManager<'a> {
             dispatcher_bytes_xdp,
             dispatcher_bytes_tc,
             dispatchers_xdp: HashMap::new(),
-            progs_xdp: HashMap::new(),
             revisions_xdp: HashMap::new(),
             dispatchers_tc_in: HashMap::new(),
-            progs_tc_in: HashMap::new(),
             revisions_tc_in: HashMap::new(),
             dispatchers_tc_eg: HashMap::new(),
-            progs_tc_eg: HashMap::new(),
             revisions_tc_eg: HashMap::new(),
+            programs: HashMap::new(),
         }
     }
 
@@ -293,7 +234,7 @@ impl<'a> BpfManager<'a> {
                                     let mut path = entry.path();
                                     path.pop(); // remove filename
                                     let dir_name = path.file_name().unwrap();
-                                    // dispatcher-{ifindex}-{revision}
+                                    // dispatcher-{if_index}-{revision}
                                     let dispatcher_parts: Vec<&str> =
                                         dir_name.to_str().unwrap().split('_').collect();
                                     let if_index = dispatcher_parts[1].parse().unwrap();
@@ -305,12 +246,7 @@ impl<'a> BpfManager<'a> {
                                     prog.metadata.attached = true;
 
                                     info!("rebuilding state for program {uuid} on if_index {if_index}");
-                                    if let Some(progs) = self.progs_xdp.get_mut(&if_index) {
-                                        progs.insert(uuid, prog);
-                                    } else {
-                                        self.progs_xdp
-                                            .insert(if_index, HashMap::from([(uuid, prog)]));
-                                    }
+                                    self.programs.insert(uuid, prog);
                                     self.sort_extensions_xdp(&if_index);
                                 }
                                 _ => {
@@ -388,12 +324,12 @@ impl<'a> BpfManager<'a> {
         })?;
 
         // Calculate the next_available_id
-        let next_available_id = if let Some(prog) = self.progs_xdp.get(&if_index) {
-            prog.len() + 1
-        } else {
-            self.progs_xdp.insert(if_index, HashMap::new());
-            1
-        };
+        let next_available_id = self
+            .programs
+            .iter()
+            .filter(|(_, p)| p.if_index == if_index && p.program_type == ProgramType::Xdp)
+            .collect::<HashMap<_, _>>()
+            .len();
         if next_available_id > 10 {
             return Err(BpfdError::TooManyPrograms);
         }
@@ -420,6 +356,7 @@ impl<'a> BpfManager<'a> {
 
         let prog = ExtensionProgram {
             path,
+            program_type: ProgramType::Xdp,
             current_position: None,
             metadata: Metadata {
                 priority,
@@ -428,11 +365,12 @@ impl<'a> BpfManager<'a> {
             },
             owner,
             proceed_on,
+            if_index,
         };
         prog.save(id)
             .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
 
-        self.progs_xdp.get_mut(&if_index).unwrap().insert(id, prog);
+        self.programs.insert(id, prog);
         self.sort_extensions_xdp(&if_index);
 
         let mut dispatcher_loader = self.new_xdp_dispatcher(
@@ -451,7 +389,11 @@ impl<'a> BpfManager<'a> {
 
         info!(
             "Program added: {} programs attached to {}",
-            self.progs_xdp.get(&if_index).unwrap().len(),
+            self.programs
+                .iter()
+                .filter(|(_, p)| p.if_index == if_index && p.program_type == ProgramType::Xdp)
+                .collect::<HashMap<_, _>>()
+                .len(),
             &iface,
         );
         Ok(id)
@@ -487,12 +429,12 @@ impl<'a> BpfManager<'a> {
         })?;
 
         // Calculate the next_available_id
-        let next_available_id = match prog_type {
-            ProgramType::TcIngress => get_next_id!(self, progs_tc_in, if_index),
-            ProgramType::TcEgress => get_next_id!(self, progs_tc_eg, if_index),
-            ProgramType::Xdp => todo!(),
-            ProgramType::Tracepoint => todo!(),
-        };
+        let next_available_id = self
+            .programs
+            .iter()
+            .filter(|(_, p)| p.if_index == if_index && p.program_type == prog_type)
+            .collect::<HashMap<_, _>>()
+            .len();
 
         if next_available_id > 10 {
             return Err(BpfdError::TooManyPrograms);
@@ -516,37 +458,14 @@ impl<'a> BpfManager<'a> {
             },
             owner,
             proceed_on,
+            if_index,
+            program_type: prog_type,
         };
         prog.save(id)
             .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
-
+        self.programs.insert(id, prog);
+        self.sort_extensions_tc(prog_type, &if_index);
         let prog_type = prog_type;
-        match prog_type {
-            ProgramType::TcIngress => {
-                insert_prog!(
-                    self,
-                    prog_type,
-                    progs_tc_in,
-                    if_index,
-                    id,
-                    prog,
-                    sort_extensions_tc
-                );
-            }
-            ProgramType::TcEgress => {
-                insert_prog!(
-                    self,
-                    prog_type,
-                    progs_tc_eg,
-                    if_index,
-                    id,
-                    prog,
-                    sort_extensions_tc
-                );
-            }
-            ProgramType::Xdp => todo!(),
-            ProgramType::Tracepoint => todo!(),
-        };
 
         let mut dispatcher_loader = self.new_tc_dispatcher(
             prog_type,
@@ -622,57 +541,57 @@ impl<'a> BpfManager<'a> {
         owner: String,
     ) -> Result<(), BpfdError> {
         let if_index = self.get_ifindex(&iface)?;
-        if let Some(programs) = self.progs_xdp.get_mut(&if_index) {
-            if let Some(prog) = programs.get(&id) {
-                if !(prog.owner == owner || owner == SUPERUSER) {
-                    return Err(BpfdError::NotAuthorized);
-                }
-            } else {
-                return Err(BpfdError::InvalidID);
+        if let Some(prog) = self.programs.get(&id) {
+            if !(prog.owner == owner || owner == SUPERUSER) {
+                return Err(BpfdError::NotAuthorized);
             }
-
-            let prog = programs.remove(&id).unwrap();
-            prog.delete(id)
-                .map_err(|_| BpfdError::Error("unable to delete program data".to_string()))?;
-
-            if programs.is_empty() {
-                self.progs_xdp.remove(&if_index);
-                let old = self.dispatchers_xdp.remove(&if_index);
-                if let Some(old) = old {
-                    let rev = self.revisions_xdp.remove(&if_index).unwrap();
-                    self.delete_link_xdp(if_index, rev)?;
-                    old.delete(if_index).map_err(|_| {
-                        BpfdError::Error("unable to delete persisted dispatcher data".to_string())
-                    })?;
-                }
-                return Ok(());
-            }
-
-            // New dispatcher required: calculate the new dispatcher revision
-            let old_revision = self.revisions_xdp.remove(&if_index).unwrap();
-            let revision = old_revision.wrapping_add(1);
-            self.revisions_xdp.insert(if_index, revision);
-
-            // Cache program length so programs goes out of scope and
-            // sort_extensions() can generate its own list.
-            let program_len = programs.len() as u8;
-            self.sort_extensions_xdp(&if_index);
-
-            let mut dispatcher_loader = self.new_xdp_dispatcher(
-                &if_index,
-                program_len,
-                self.dispatcher_bytes_xdp,
-                revision,
-            )?;
-
-            self.attach_extensions_xdp(&if_index, &mut dispatcher_loader, None)?;
-
-            self.attach_or_replace_dispatcher_xdp(iface, if_index, dispatcher_loader)?;
-
-            self.cleanup_extensions_xdp(if_index, old_revision)?;
         } else {
             return Err(BpfdError::InvalidID);
         }
+
+        let prog = self.programs.remove(&id).unwrap();
+        prog.delete(id)
+            .map_err(|_| BpfdError::Error("unable to delete program data".to_string()))?;
+
+        let program_len = self
+            .programs
+            .iter()
+            .filter(|(_, p)| p.if_index == if_index && p.program_type == ProgramType::Xdp)
+            .collect::<HashMap<_, _>>()
+            .len();
+
+        if program_len == 0 {
+            let old = self.dispatchers_xdp.remove(&if_index);
+            if let Some(old) = old {
+                let rev = self.revisions_xdp.remove(&if_index).unwrap();
+                self.delete_link_xdp(if_index, rev)?;
+                old.delete(if_index).map_err(|_| {
+                    BpfdError::Error("unable to delete persisted dispatcher data".to_string())
+                })?;
+            }
+            return Ok(());
+        }
+
+        // New dispatcher required: calculate the new dispatcher revision
+        let old_revision = self.revisions_xdp.remove(&if_index).unwrap();
+        let revision = old_revision.wrapping_add(1);
+        self.revisions_xdp.insert(if_index, revision);
+
+        self.sort_extensions_xdp(&if_index);
+
+        let mut dispatcher_loader = self.new_xdp_dispatcher(
+            &if_index,
+            program_len as u8,
+            self.dispatcher_bytes_xdp,
+            revision,
+        )?;
+
+        self.attach_extensions_xdp(&if_index, &mut dispatcher_loader, None)?;
+
+        self.attach_or_replace_dispatcher_xdp(iface, if_index, dispatcher_loader)?;
+
+        self.cleanup_extensions_xdp(if_index, old_revision)?;
+
         Ok(())
     }
 
@@ -684,72 +603,73 @@ impl<'a> BpfManager<'a> {
         owner: String,
     ) -> Result<(), BpfdError> {
         let if_index = self.get_ifindex(&iface)?;
-        if let Some(programs) = get_prog_list!(self, prog_type, if_index) {
-            if let Some(prog) = programs.get(&id) {
-                if !(prog.owner == owner || owner == SUPERUSER) {
-                    return Err(BpfdError::NotAuthorized);
-                }
-            } else {
-                return Err(BpfdError::InvalidID);
+        if let Some(prog) = self.programs.get(&id) {
+            if !(prog.owner == owner || owner == SUPERUSER) {
+                return Err(BpfdError::NotAuthorized);
             }
-
-            let prog = programs.remove(&id).unwrap();
-            prog.delete(id)
-                .map_err(|_| BpfdError::Error("unable to delete program data".to_string()))?;
-
-            let old_revision = match prog_type {
-                ProgramType::TcIngress => self.revisions_tc_in.remove(&if_index).unwrap(),
-                ProgramType::TcEgress => self.revisions_tc_eg.remove(&if_index).unwrap(),
-                ProgramType::Xdp => todo!(),
-                ProgramType::Tracepoint => todo!(),
-            };
-
-            if programs.is_empty() {
-                match prog_type {
-                    ProgramType::TcIngress => {
-                        self.progs_tc_in.remove(&if_index);
-                        self.dispatchers_tc_in.remove(&if_index);
-                    }
-                    ProgramType::TcEgress => {
-                        self.progs_tc_eg.remove(&if_index);
-                        self.dispatchers_tc_eg.remove(&if_index);
-                    }
-                    ProgramType::Xdp => todo!(),
-                    ProgramType::Tracepoint => todo!(),
-                };
-                self.cleanup_extensions_tc(prog_type, if_index, old_revision)?;
-                return Ok(());
-            }
-
-            // New dispatcher required: calculate the new dispatcher revision
-            let revision = old_revision.wrapping_add(1);
-
-            match prog_type {
-                ProgramType::TcIngress => self.revisions_tc_in.insert(if_index, revision),
-                ProgramType::TcEgress => self.revisions_tc_eg.insert(if_index, revision),
-                ProgramType::Xdp => todo!(),
-                ProgramType::Tracepoint => todo!(),
-            };
-
-            // Cache program length so programs goes out of scope and
-            // sort_extensions() can generate its own list.
-            let program_len = programs.len() as u8;
-            self.sort_extensions_tc(prog_type, &if_index);
-
-            let mut dispatcher_loader = self.new_tc_dispatcher(
-                prog_type,
-                &if_index,
-                program_len,
-                self.dispatcher_bytes_tc,
-                revision,
-            )?;
-
-            self.attach_extensions_tc(prog_type, &if_index, &mut dispatcher_loader, None)?;
-            self.attach_or_replace_dispatcher_tc(prog_type, iface, if_index, dispatcher_loader)?;
-            self.cleanup_extensions_tc(prog_type, if_index, old_revision)?;
         } else {
             return Err(BpfdError::InvalidID);
         }
+
+        let prog = self.programs.remove(&id).unwrap();
+        prog.delete(id)
+            .map_err(|_| BpfdError::Error("unable to delete program data".to_string()))?;
+
+        let program_len = self
+            .programs
+            .iter()
+            .filter(|(_, p)| p.if_index == if_index && p.program_type == prog_type)
+            .collect::<HashMap<_, _>>()
+            .len();
+
+        let old_revision = match prog_type {
+            ProgramType::TcIngress => self.revisions_tc_in.remove(&if_index).unwrap(),
+            ProgramType::TcEgress => self.revisions_tc_eg.remove(&if_index).unwrap(),
+            ProgramType::Xdp => todo!(),
+            ProgramType::Tracepoint => todo!(),
+        };
+
+        if program_len == 0 {
+            match prog_type {
+                ProgramType::TcIngress => {
+                    self.dispatchers_tc_in.remove(&if_index);
+                }
+                ProgramType::TcEgress => {
+                    self.dispatchers_tc_eg.remove(&if_index);
+                }
+                ProgramType::Xdp => todo!(),
+                ProgramType::Tracepoint => todo!(),
+            };
+            self.cleanup_extensions_tc(prog_type, if_index, old_revision)?;
+            return Ok(());
+        }
+
+        // New dispatcher required: calculate the new dispatcher revision
+        let revision = old_revision.wrapping_add(1);
+
+        match prog_type {
+            ProgramType::TcIngress => self.revisions_tc_in.insert(if_index, revision),
+            ProgramType::TcEgress => self.revisions_tc_eg.insert(if_index, revision),
+            ProgramType::Xdp => todo!(),
+            ProgramType::Tracepoint => todo!(),
+        };
+
+        // Cache program length so programs goes out of scope and
+        // sort_extensions() can generate its own list.
+        self.sort_extensions_tc(prog_type, &if_index);
+
+        let mut dispatcher_loader = self.new_tc_dispatcher(
+            prog_type,
+            &if_index,
+            program_len as u8,
+            self.dispatcher_bytes_tc,
+            revision,
+        )?;
+
+        self.attach_extensions_tc(prog_type, &if_index, &mut dispatcher_loader, None)?;
+        self.attach_or_replace_dispatcher_tc(prog_type, iface, if_index, dispatcher_loader)?;
+        self.cleanup_extensions_tc(prog_type, if_index, old_revision)?;
+
         Ok(())
     }
 
@@ -809,10 +729,9 @@ impl<'a> BpfManager<'a> {
             programs: vec![],
         };
         let mut extensions = self
-            .progs_xdp
-            .get(&if_index)
-            .unwrap()
+            .programs
             .iter()
+            .filter(|(_, p)| p.if_index == if_index && p.program_type == ProgramType::Xdp)
             .collect::<Vec<_>>();
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
         for (id, v) in extensions.iter() {
@@ -853,12 +772,11 @@ impl<'a> BpfManager<'a> {
             programs: vec![],
         };
 
-        let mut extensions = match prog_type {
-            ProgramType::TcIngress => get_progs!(self, progs_tc_in, if_index),
-            ProgramType::TcEgress => get_progs!(self, progs_tc_eg, if_index),
-            ProgramType::Xdp => todo!(),
-            ProgramType::Tracepoint => todo!(),
-        };
+        let mut extensions = self
+            .programs
+            .iter()
+            .filter(|(_, p)| p.if_index == if_index && p.program_type == prog_type)
+            .collect::<Vec<(_, _)>>();
 
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
 
@@ -889,10 +807,9 @@ impl<'a> BpfManager<'a> {
             .try_into()?;
         let revision = self.revisions_xdp.get(if_index).unwrap();
         let mut extensions = self
-            .progs_xdp
-            .get_mut(if_index)
-            .unwrap()
+            .programs
             .iter_mut()
+            .filter(|(_, p)| p.if_index == *if_index && p.program_type == ProgramType::Xdp)
             .collect::<Vec<(&Uuid, &mut ExtensionProgram)>>();
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
         for (i, (k, v)) in extensions.iter_mut().enumerate() {
@@ -952,12 +869,11 @@ impl<'a> BpfManager<'a> {
             ProgramType::Tracepoint => todo!(),
         };
 
-        let mut extensions = match prog_type {
-            ProgramType::TcIngress => get_progs!(self, progs_tc_in, if_index),
-            ProgramType::TcEgress => get_progs!(self, progs_tc_eg, if_index),
-            ProgramType::Xdp => todo!(),
-            ProgramType::Tracepoint => todo!(),
-        };
+        let mut extensions = self
+            .programs
+            .iter_mut()
+            .filter(|(_, p)| p.if_index == *if_index && p.program_type == prog_type)
+            .collect::<Vec<(_, _)>>();
 
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
 
@@ -1169,10 +1085,9 @@ impl<'a> BpfManager<'a> {
 
     fn sort_extensions_xdp(&mut self, if_index: &u32) {
         let mut extensions = self
-            .progs_xdp
-            .get_mut(if_index)
-            .unwrap()
+            .programs
             .values_mut()
+            .filter(|p| p.if_index == *if_index && p.program_type == ProgramType::Xdp)
             .collect::<Vec<&mut ExtensionProgram>>();
         extensions.sort_by(|a, b| a.metadata.cmp(&b.metadata));
         for (i, v) in extensions.iter_mut().enumerate() {
@@ -1181,12 +1096,11 @@ impl<'a> BpfManager<'a> {
     }
 
     fn sort_extensions_tc(&mut self, prog_type: ProgramType, if_index: &u32) {
-        let mut extensions = match prog_type {
-            ProgramType::TcIngress => get_progs_values!(self, progs_tc_in, if_index),
-            ProgramType::TcEgress => get_progs_values!(self, progs_tc_eg, if_index),
-            ProgramType::Xdp => todo!(),
-            ProgramType::Tracepoint => todo!(),
-        };
+        let mut extensions = self
+            .programs
+            .values_mut()
+            .filter(|p| p.if_index == *if_index && p.program_type == prog_type)
+            .collect::<Vec<&mut ExtensionProgram>>();
         extensions.sort_by(|a, b| a.metadata.cmp(&b.metadata));
         for (i, v) in extensions.iter_mut().enumerate() {
             v.current_position = Some(i);
@@ -1203,10 +1117,9 @@ impl<'a> BpfManager<'a> {
         let mut chain_call_actions = [DEFAULT_XDP_ACTIONS_MAP; 10];
 
         let mut extensions = self
-            .progs_xdp
-            .get(if_index)
-            .unwrap()
+            .programs
             .iter()
+            .filter(|(_, p)| p.if_index == *if_index && p.program_type == ProgramType::Xdp)
             .collect::<Vec<_>>();
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
         for (_, v) in extensions.iter() {
@@ -1244,12 +1157,11 @@ impl<'a> BpfManager<'a> {
     ) -> Result<Bpf, BpfdError> {
         let mut chain_call_actions = [DEFAULT_ACTIONS_MAP_TC; 10];
 
-        let mut extensions = match prog_type {
-            ProgramType::TcIngress => get_progs!(self, progs_tc_in, if_index),
-            ProgramType::TcEgress => get_progs!(self, progs_tc_eg, if_index),
-            ProgramType::Xdp => todo!(),
-            ProgramType::Tracepoint => todo!(),
-        };
+        let mut extensions = self
+            .programs
+            .iter_mut()
+            .filter(|(_, p)| p.if_index == *if_index && p.program_type == prog_type)
+            .collect::<Vec<(_, _)>>();
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
 
         for (_, v) in extensions.iter() {

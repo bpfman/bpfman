@@ -3,6 +3,7 @@
 use std::fmt;
 
 use bpfd_api::ParseError;
+use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
 use uuid::Uuid;
 
@@ -42,7 +43,7 @@ pub(crate) enum AttachType {
     SingleAttach(String),
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub(crate) enum ProgramType {
     Xdp,
     TcIngress,
