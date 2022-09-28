@@ -1,5 +1,7 @@
-//! Commands between the RPC thread and the BPF thread
+// SPDX-License-Identifier: (MIT OR Apache-2.0)
+// Copyright Authors of bpfd
 
+//! Commands between the RPC thread and the BPF thread
 use std::fmt;
 
 use bpfd_api::ParseError;
