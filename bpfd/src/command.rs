@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
 use uuid::Uuid;
 
-use crate::server::errors::BpfdError;
+use crate::errors::BpfdError;
 
 pub(crate) const DEFAULT_XDP_PROCEED_ON_PASS: i32 = 2;
 pub(crate) const DEFAULT_XDP_PROCEED_ON_DISPATCHER_RETURN: i32 = 31;

@@ -4,7 +4,7 @@
 use log::info;
 use nix::net::if_::{if_nameindex, if_nametoindex};
 
-use crate::server::errors::BpfdError;
+use crate::errors::BpfdError;
 
 pub(crate) fn get_ifindex(iface: &str) -> Result<u32, BpfdError> {
     match if_nametoindex(iface) {

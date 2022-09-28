@@ -22,7 +22,7 @@ use nix::net::if_::if_nametoindex;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::server::{
+use crate::{
     command::{
         Direction, InterfaceInfo, NetworkMultiAttachInfo, Program, ProgramData, ProgramType,
         DEFAULT_ACTIONS_MAP_TC, DEFAULT_XDP_ACTIONS_MAP, DEFAULT_XDP_PROCEED_ON_DISPATCHER_RETURN,
@@ -179,13 +179,10 @@ impl<'a> BpfManager<'a> {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn add_program(
-        &mut self,
-        program: crate::server::command::Program,
-    ) -> Result<Uuid, BpfdError> {
+    pub(crate) fn add_program(&mut self, program: Program) -> Result<Uuid, BpfdError> {
         match program {
-            crate::server::command::Program::Xdp(_, _) => self.add_program_xdp(program),
-            crate::server::command::Program::Tc(_, _, _) => self.add_program_tc(program),
+            Program::Xdp(_, _) => self.add_program_xdp(program),
+            Program::Tc(_, _, _) => self.add_program_tc(program),
             _ => Err(BpfdError::UnsuportedProgramType),
         }
     }

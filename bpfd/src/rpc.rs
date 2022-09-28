@@ -11,7 +11,7 @@ use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
 use x509_certificate::X509Certificate;
 
-use crate::server::{errors::BpfdError, pull_bytecode::pull_bytecode, Command};
+use crate::{errors::BpfdError, pull_bytecode::pull_bytecode, Command};
 
 #[derive(Debug, Default)]
 struct User {
@@ -93,8 +93,8 @@ impl Loader for BpfdLoader {
             AttachType::NetworkMultiAttach(attach) => Command::Load {
                 responder: resp_tx,
                 path: request.path,
-                attach_type: crate::server::command::AttachType::NetworkMultiAttach(
-                    crate::server::command::NetworkMultiAttach {
+                attach_type: crate::command::AttachType::NetworkMultiAttach(
+                    crate::command::NetworkMultiAttach {
                         iface: attach.iface,
                         priority: attach.priority,
                         proceed_on: attach.proceed_on,
@@ -108,7 +108,7 @@ impl Loader for BpfdLoader {
             AttachType::SingleAttach(attach) => Command::Load {
                 responder: resp_tx,
                 path: request.path,
-                attach_type: crate::server::command::AttachType::SingleAttach(attach.name),
+                attach_type: crate::command::AttachType::SingleAttach(attach.name),
                 section_name: request.section_name,
                 username,
                 program_type: program_type.unwrap(),

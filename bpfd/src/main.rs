@@ -10,7 +10,7 @@ use std::{
 
 use anyhow::{bail, Context};
 use aya::include_bytes_aligned;
-use bpfd::server::{programs_from_directory, serve};
+use bpfd::{programs_from_directory, serve};
 use bpfd_api::{config::config_from_file, util::directories::*};
 use log::{debug, error, info};
 use nix::{
