@@ -81,6 +81,7 @@ pub async fn serve(
 
                 let uuid = bpf_manager.add_program(
                     (prog_type as i32).try_into()?,
+                    None,
                     program.interface,
                     program.path,
                     program.priority,
@@ -105,12 +106,14 @@ pub async fn serve(
                         iface,
                         priority,
                         proceed_on,
+                        direction,
                     }),
                 username,
                 responder,
             } => {
                 let res = bpf_manager.add_program(
                     program_type,
+                    direction,
                     iface,
                     path,
                     priority,

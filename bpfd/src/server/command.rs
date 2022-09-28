@@ -48,8 +48,7 @@ pub(crate) enum AttachType {
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub(crate) enum ProgramType {
     Xdp,
-    TcIngress,
-    TcEgress,
+    Tc,
     Tracepoint,
 }
 
@@ -60,8 +59,8 @@ impl TryFrom<i32> for ProgramType {
         let bpf_api_type = t.try_into()?;
         match bpf_api_type {
             bpfd_api::v1::ProgramType::Xdp => Ok(Self::Xdp),
-            bpfd_api::v1::ProgramType::TcIngress => Ok(Self::TcIngress),
-            bpfd_api::v1::ProgramType::TcEgress => Ok(Self::TcEgress),
+            bpfd_api::v1::ProgramType::TcIngress => Ok(Self::Tc),
+            bpfd_api::v1::ProgramType::TcEgress => Ok(Self::Tc),
             bpfd_api::v1::ProgramType::Tracepoint => Ok(Self::Tracepoint),
         }
     }
@@ -71,17 +70,32 @@ impl fmt::Display for ProgramType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
             ProgramType::Xdp => "xdp",
-            ProgramType::TcIngress => "tc_in",
-            ProgramType::TcEgress => "tc_eg",
+            ProgramType::Tc => "tc",
             ProgramType::Tracepoint => "tracepoint",
         };
         f.write_str(s)
     }
 }
 
+#[derive(Debug, Serialize, Hash, Deserialize, Eq, PartialEq, Copy, Clone)]
+pub(crate) enum Direction {
+    Ingress,
+    Egress,
+}
+
+impl std::fmt::Display for Direction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Direction::Ingress => f.write_str("in"),
+            Direction::Egress => f.write_str("eg"),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct NetworkMultiAttach {
     pub(crate) iface: String,
+    pub(crate) direction: Option<Direction>,
     pub(crate) priority: i32,
     pub(crate) proceed_on: Vec<i32>,
 }

@@ -98,6 +98,7 @@ impl Loader for BpfdLoader {
                         iface: attach.iface,
                         priority: attach.priority,
                         proceed_on: attach.proceed_on,
+                        direction: None,
                     },
                 ),
                 section_name: request.section_name,
