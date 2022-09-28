@@ -159,7 +159,6 @@ impl Loader for BpfdLoader {
         let (resp_tx, resp_rx) = oneshot::channel();
         let cmd = Command::Unload {
             id,
-            iface: request.iface,
             username,
             responder: resp_tx,
         };

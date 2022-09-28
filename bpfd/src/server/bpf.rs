@@ -14,7 +14,7 @@ use aya::{
 };
 use bpfd_api::{
     config::{Config, XdpMode},
-    util::directories::{RTDIR_DISPATCHER, RTDIR_FS, RTDIR_FS_MAPS, RTDIR_PROGRAMS},
+    util::directories::{RTDIR_DISPATCHER, RTDIR_FS, RTDIR_FS_MAPS},
 };
 use bpfd_common::*;
 use log::info;
@@ -22,111 +22,20 @@ use nix::net::if_::if_nametoindex;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::command::Direction;
 use crate::server::{
-    command::{InterfaceInfo, ProgramType},
+    command::{
+        Direction, InterfaceInfo, NetworkMultiAttachInfo, Program, ProgramData, ProgramType,
+        DEFAULT_ACTIONS_MAP_TC, DEFAULT_XDP_ACTIONS_MAP, DEFAULT_XDP_PROCEED_ON_DISPATCHER_RETURN,
+        DEFAULT_XDP_PROCEED_ON_PASS,
+    },
     errors::BpfdError,
 };
 
-// Default is Pass and DispatcherReturn
-const DEFAULT_XDP_PROCEED_ON_PASS: i32 = 2;
-const DEFAULT_XDP_PROCEED_ON_DISPATCHER_RETURN: i32 = 31;
-const DEFAULT_XDP_ACTIONS_MAP: u32 =
-    1 << DEFAULT_XDP_PROCEED_ON_PASS as u32 | 1 << DEFAULT_XDP_PROCEED_ON_DISPATCHER_RETURN as u32;
-const DEFAULT_ACTIONS_MAP_TC: u32 = 1 << 3; // TC_ACT_PIPE;
 const DEFAULT_PRIORITY: u32 = 50;
 const MIN_TC_DISPATCHER_PRIORITY: u16 = 50;
 const MAX_TC_DISPATCHER_PRIORITY: u16 = 45;
 const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
 const SUPERUSER: &str = "bpfctl";
-
-#[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
-pub(crate) struct Metadata {
-    priority: i32,
-    name: String,
-    attached: bool,
-}
-
-#[derive(Serialize, Deserialize)]
-pub(crate) enum Program {
-    Xdp(ProgramData, NetworkMultiAttachInfo),
-    Tracepoint(ProgramData, String),
-    Tc(ProgramData, NetworkMultiAttachInfo, Direction),
-}
-
-impl Program {
-    fn owner(&self) -> &String {
-        match self {
-            Program::Xdp(d, _) => &d.owner,
-            Program::Tracepoint(d, _) => &d.owner,
-            Program::Tc(d, _, _) => &d.owner,
-        }
-    }
-
-    pub(crate) fn set_attached(&mut self) {
-        match self {
-            Program::Xdp(_, m) => m.metadata.attached = true,
-            Program::Tracepoint(_, _) => (),
-            Program::Tc(_, m, _) => m.metadata.attached = true,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub(crate) struct ProgramData {
-    path: String,
-    owner: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub(crate) struct NetworkMultiAttachInfo {
-    if_index: u32,
-    #[serde(skip)]
-    current_position: Option<usize>,
-    metadata: Metadata,
-    proceed_on: Vec<i32>,
-}
-
-impl NetworkMultiAttachInfo {
-    fn proceed_on_mask(&self) -> u32 {
-        let mut proceed_on_mask: u32 = 0;
-        if self.proceed_on.is_empty() {
-            proceed_on_mask = DEFAULT_XDP_ACTIONS_MAP;
-        } else {
-            for action in self.proceed_on.clone().into_iter() {
-                proceed_on_mask |= 1 << action;
-            }
-        }
-        proceed_on_mask
-    }
-}
-
-impl Program {
-    fn save(&self, uuid: Uuid) -> Result<(), anyhow::Error> {
-        let path = format!("{RTDIR_PROGRAMS}/{uuid}");
-        serde_json::to_writer(&fs::File::create(path)?, &self)?;
-        Ok(())
-    }
-
-    fn delete(&self, uuid: Uuid) -> Result<(), anyhow::Error> {
-        let path = format!("{RTDIR_PROGRAMS}/{uuid}");
-        fs::remove_file(path)?;
-        let path = format!("{RTDIR_FS}/prog_{uuid}");
-        fs::remove_file(path)?;
-        let path = format!("{RTDIR_FS_MAPS}/{uuid}");
-        fs::remove_dir_all(path)?;
-
-        Ok(())
-    }
-
-    fn load(uuid: Uuid) -> Result<Self, anyhow::Error> {
-        let path = format!("{RTDIR_PROGRAMS}/{uuid}");
-        let file = fs::File::open(path)?;
-        let reader = BufReader::new(file);
-        let prog = serde_json::from_reader(reader)?;
-        Ok(prog)
-    }
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct XdpDispatcher {
@@ -272,261 +181,209 @@ impl<'a> BpfManager<'a> {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn add_program(
         &mut self,
-        program_type: ProgramType,
-        direction: Option<Direction>,
-        iface: String,
-        path: String,
-        priority: i32,
-        section_name: String,
-        proceed_on: Vec<i32>,
-        owner: String,
+        program: crate::server::command::Program,
     ) -> Result<Uuid, BpfdError> {
-        match program_type {
-            ProgramType::Xdp => {
-                self.add_program_xdp(iface, path, priority, section_name, proceed_on, owner)
-            }
-            ProgramType::Tc => self.add_program_tc(
-                direction,
-                iface,
-                path,
-                priority,
-                section_name,
-                proceed_on,
-                owner,
-            ),
+        match program {
+            crate::server::command::Program::Xdp(_, _) => self.add_program_xdp(program),
+            crate::server::command::Program::Tc(_, _, _) => self.add_program_tc(program),
             _ => Err(BpfdError::UnsuportedProgramType),
         }
     }
 
-    fn add_program_xdp(
-        &mut self,
-        iface: String,
-        path: String,
-        priority: i32,
-        section_name: String,
-        proceed_on: Vec<i32>,
-        owner: String,
-    ) -> Result<Uuid, BpfdError> {
-        let if_index = self.get_ifindex(&iface)?;
-        let id = Uuid::new_v4();
-        let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
-        fs::create_dir_all(map_pin_path.clone())?;
+    fn add_program_xdp(&mut self, p: Program) -> Result<Uuid, BpfdError> {
+        if let Program::Xdp(ref data, ref info) = p {
+            let ifindex = info.if_index;
+            let iface = info.if_name.clone();
+            let id = Uuid::new_v4();
+            let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
+            fs::create_dir_all(map_pin_path.clone())?;
 
-        let mut ext_loader = BpfLoader::new()
-            .extension(&section_name)
-            .map_pin_path(map_pin_path.clone())
-            .load_file(&path)?;
+            let mut ext_loader = BpfLoader::new()
+                .extension(&data.section_name)
+                .map_pin_path(map_pin_path.clone())
+                .load_file(&data.path)?;
 
-        ext_loader.program_mut(&section_name).ok_or_else(|| {
-            let _ = fs::remove_dir_all(map_pin_path);
-            BpfdError::SectionNameNotValid(section_name.clone())
-        })?;
+            ext_loader.program_mut(&data.section_name).ok_or_else(|| {
+                let _ = fs::remove_dir_all(map_pin_path);
+                BpfdError::SectionNameNotValid(data.section_name.clone())
+            })?;
 
-        // Calculate the next_available_id
-        let next_available_id = self
-            .programs
-            .iter()
-            .filter(|(_, p)| {
-                if let Program::Xdp(_, info) = p {
-                    info.if_index == if_index
-                } else {
-                    false
-                }
-            })
-            .collect::<HashMap<_, _>>()
-            .len();
-        if next_available_id > 10 {
-            return Err(BpfdError::TooManyPrograms);
-        }
-
-        // Calculate the dispatcher revision
-        let (old_revision, revision) = if let Some(Dispatcher::Xdp(d)) = self
-            .dispatchers
-            .get(&DispatcherId::Xdp(DispatcherInfo(if_index, None)))
-        {
-            (Some(d.revision), d.revision.wrapping_add(1))
-        } else {
-            (None, 0)
-        };
-
-        let proceed_on = if proceed_on.is_empty() {
-            vec![
-                DEFAULT_XDP_PROCEED_ON_PASS,
-                DEFAULT_XDP_PROCEED_ON_DISPATCHER_RETURN,
-            ]
-        } else {
-            proceed_on
-        };
-
-        let prog = Program::Xdp(
-            ProgramData { path, owner },
-            NetworkMultiAttachInfo {
-                if_index,
-                current_position: None,
-                metadata: Metadata {
-                    priority,
-                    name: section_name,
-                    attached: false,
-                },
-                proceed_on,
-            },
-        );
-        prog.save(id)
-            .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
-
-        self.programs.insert(id, prog);
-        self.sort_extensions_xdp(&if_index);
-
-        let mut dispatcher_loader = self.new_xdp_dispatcher(
-            &if_index,
-            next_available_id as u8,
-            self.dispatcher_bytes_xdp,
-            revision,
-        )?;
-
-        self.attach_extensions_xdp(
-            &if_index,
-            &mut dispatcher_loader,
-            Some(ext_loader),
-            revision,
-        )?;
-        self.attach_or_replace_dispatcher_xdp(
-            iface.clone(),
-            if_index,
-            dispatcher_loader,
-            revision,
-        )?;
-
-        if let Some(r) = old_revision {
-            self.cleanup_extensions_xdp(if_index, r)?;
-        }
-
-        info!(
-            "Program added: {} programs attached to {}",
-            self.programs
+            // Calculate the next_available_id
+            let next_available_id = self
+                .programs
                 .iter()
-                .filter(|(_, p)| if let Program::Xdp(_, info) = p {
-                    info.if_index == if_index
-                } else {
-                    false
+                .filter(|(_, p)| {
+                    if let Program::Xdp(_, i) = p {
+                        i.if_index == info.if_index
+                    } else {
+                        false
+                    }
                 })
                 .collect::<HashMap<_, _>>()
-                .len(),
-            &iface,
-        );
-        Ok(id)
+                .len();
+            if next_available_id > 10 {
+                return Err(BpfdError::TooManyPrograms);
+            }
+
+            // Calculate the dispatcher revision
+            let (old_revision, revision) = if let Some(Dispatcher::Xdp(d)) = self
+                .dispatchers
+                .get(&DispatcherId::Xdp(DispatcherInfo(info.if_index, None)))
+            {
+                (Some(d.revision), d.revision.wrapping_add(1))
+            } else {
+                (None, 0)
+            };
+
+            let proceed_on = if info.proceed_on.is_empty() {
+                vec![
+                    DEFAULT_XDP_PROCEED_ON_PASS,
+                    DEFAULT_XDP_PROCEED_ON_DISPATCHER_RETURN,
+                ]
+            } else {
+                info.proceed_on.clone()
+            };
+
+            p.save(id)
+                .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
+
+            self.programs.insert(id, p);
+            self.sort_extensions_xdp(&ifindex);
+
+            let mut dispatcher_loader = self.new_xdp_dispatcher(
+                &ifindex,
+                next_available_id as u8,
+                self.dispatcher_bytes_xdp,
+                revision,
+            )?;
+
+            self.attach_extensions_xdp(
+                &ifindex,
+                &mut dispatcher_loader,
+                Some(ext_loader),
+                revision,
+            )?;
+            self.attach_or_replace_dispatcher_xdp(
+                iface.clone(),
+                ifindex,
+                dispatcher_loader,
+                revision,
+            )?;
+
+            if let Some(r) = old_revision {
+                self.cleanup_extensions_xdp(ifindex, r)?;
+            }
+
+            info!(
+                "Program added: {} programs attached to {}",
+                self.programs
+                    .iter()
+                    .filter(|(_, p)| if let Program::Xdp(_, info) = p {
+                        info.if_index == ifindex
+                    } else {
+                        false
+                    })
+                    .collect::<HashMap<_, _>>()
+                    .len(),
+                &iface,
+            );
+            Ok(id)
+        } else {
+            unreachable!()
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn add_program_tc(
-        &mut self,
-        direction: Option<Direction>,
-        iface: String,
-        path: String,
-        priority: i32,
-        section_name: String,
-        proceed_on: Vec<i32>,
-        owner: String,
-    ) -> Result<Uuid, BpfdError> {
-        let if_index = self.get_ifindex(&iface)?;
-        let id = Uuid::new_v4();
-        let map_pin_path = format!("/var/run/bpfd/fs/maps/{id}");
-        fs::create_dir_all(map_pin_path.clone())?;
+    fn add_program_tc(&mut self, p: Program) -> Result<Uuid, BpfdError> {
+        if let Program::Tc(ref data, ref info, ref direction) = p {
+            let ifindex = info.if_index;
+            let iface = info.if_name.clone();
+            let id = Uuid::new_v4();
+            let map_pin_path = format!("/var/run/bpfd/fs/maps/{id}");
+            fs::create_dir_all(map_pin_path.clone())?;
 
-        // Add clsact qdisc to the interface. This is harmless if it has already been added.
-        let _ = tc::qdisc_add_clsact(&iface);
+            // Add clsact qdisc to the interface. This is harmless if it has already been added.
+            let _ = tc::qdisc_add_clsact(&info.if_name);
 
-        let mut ext_loader = BpfLoader::new()
-            .extension(&section_name)
-            .map_pin_path(map_pin_path.clone())
-            .load_file(&path)?;
+            let mut ext_loader = BpfLoader::new()
+                .extension(&data.section_name)
+                .map_pin_path(map_pin_path.clone())
+                .load_file(&data.path)?;
 
-        ext_loader.program_mut(&section_name).ok_or_else(|| {
-            let _ = fs::remove_dir_all(map_pin_path);
-            BpfdError::SectionNameNotValid(section_name.clone())
-        })?;
+            ext_loader.program_mut(&data.section_name).ok_or_else(|| {
+                let _ = fs::remove_dir_all(map_pin_path);
+                BpfdError::SectionNameNotValid(data.section_name.clone())
+            })?;
 
-        let direction = direction.unwrap();
+            let direction = info.direction.unwrap();
 
-        // Calculate the next_available_id
-        let next_available_id = self
-            .programs
-            .iter()
-            .filter(|(_, p)| {
-                if let Program::Tc(_, info, dir) = p {
-                    info.if_index == if_index && direction == *dir
-                } else {
-                    false
-                }
-            })
-            .collect::<HashMap<_, _>>()
-            .len();
-        if next_available_id > 10 {
-            return Err(BpfdError::TooManyPrograms);
-        }
+            // Calculate the next_available_id
+            let next_available_id = self
+                .programs
+                .iter()
+                .filter(|(_, p)| {
+                    if let Program::Tc(_, i, dir) = p {
+                        info.if_index == i.if_index && direction == *dir
+                    } else {
+                        false
+                    }
+                })
+                .collect::<HashMap<_, _>>()
+                .len();
+            if next_available_id > 10 {
+                return Err(BpfdError::TooManyPrograms);
+            }
 
-        // Calculate the dispatcher revision
-        let (old_revision, revision) = if let Some(Dispatcher::Tc(d)) = self
-            .dispatchers
-            .get(&DispatcherId::Tc(DispatcherInfo(if_index, Some(direction))))
-        {
-            (Some(d.revision), d.revision.wrapping_add(1))
+            // Calculate the dispatcher revision
+            let (old_revision, revision) = if let Some(Dispatcher::Tc(d)) = self
+                .dispatchers
+                .get(&DispatcherId::Tc(DispatcherInfo(ifindex, Some(direction))))
+            {
+                (Some(d.revision), d.revision.wrapping_add(1))
+            } else {
+                (None, 0)
+            };
+            p.save(id)
+                .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
+            self.programs.insert(id, p);
+            self.sort_extensions_tc(direction, &ifindex);
+
+            let mut dispatcher_loader = self.new_tc_dispatcher(
+                direction,
+                &ifindex,
+                next_available_id as u8,
+                self.dispatcher_bytes_tc,
+                revision,
+            )?;
+
+            self.attach_extensions_tc(
+                direction,
+                &ifindex,
+                &mut dispatcher_loader,
+                Some(ext_loader),
+                revision,
+            )?;
+
+            self.attach_or_replace_dispatcher_tc(
+                direction,
+                iface.clone(),
+                ifindex,
+                dispatcher_loader,
+                revision,
+            )?;
+
+            if let Some(r) = old_revision {
+                self.cleanup_extensions_tc(direction, ifindex, r)?;
+            }
+
+            info!(
+                "Program added: {} programs attached to {}",
+                next_available_id, &iface,
+            );
+            Ok(id)
         } else {
-            (None, 0)
-        };
-
-        let prog = Program::Tc(
-            ProgramData { path, owner },
-            NetworkMultiAttachInfo {
-                if_index,
-                current_position: None,
-                metadata: Metadata {
-                    priority,
-                    name: section_name,
-                    attached: false,
-                },
-                proceed_on,
-            },
-            direction,
-        );
-        prog.save(id)
-            .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
-        self.programs.insert(id, prog);
-        self.sort_extensions_tc(direction, &if_index);
-
-        let mut dispatcher_loader = self.new_tc_dispatcher(
-            direction,
-            &if_index,
-            next_available_id as u8,
-            self.dispatcher_bytes_tc,
-            revision,
-        )?;
-
-        self.attach_extensions_tc(
-            direction,
-            &if_index,
-            &mut dispatcher_loader,
-            Some(ext_loader),
-            revision,
-        )?;
-
-        self.attach_or_replace_dispatcher_tc(
-            direction,
-            iface.clone(),
-            if_index,
-            dispatcher_loader,
-            revision,
-        )?;
-
-        if let Some(r) = old_revision {
-            self.cleanup_extensions_tc(direction, if_index, r)?;
+            unreachable!()
         }
-
-        info!(
-            "Program added: {} programs attached to {}",
-            next_available_id, &iface,
-        );
-        Ok(id)
     }
 
     pub(crate) fn add_single_attach_program(
@@ -540,36 +397,7 @@ impl<'a> BpfManager<'a> {
         unimplemented!("todo")
     }
 
-    pub(crate) fn remove_program(
-        &mut self,
-        id: Uuid,
-        iface: String,
-        owner: String,
-    ) -> Result<(), BpfdError> {
-        if self
-            .remove_program_xdp(id, iface.clone(), owner.clone())
-            .is_ok()
-        {
-            return Ok(());
-        }
-
-        if self
-            .remove_program_tc(Direction::Ingress, id, iface.clone(), owner.clone())
-            .is_ok()
-        {
-            return Ok(());
-        }
-
-        self.remove_program_tc(Direction::Egress, id, iface, owner)
-    }
-
-    fn remove_program_xdp(
-        &mut self,
-        id: Uuid,
-        iface: String,
-        owner: String,
-    ) -> Result<(), BpfdError> {
-        let if_index = self.get_ifindex(&iface)?;
+    pub(crate) fn remove_program(&mut self, id: Uuid, owner: String) -> Result<(), BpfdError> {
         if let Some(prog) = self.programs.get(&id) {
             if !(prog.owner() == &owner || owner == SUPERUSER) {
                 return Err(BpfdError::NotAuthorized);
@@ -579,145 +407,155 @@ impl<'a> BpfManager<'a> {
         }
 
         let prog = self.programs.remove(&id).unwrap();
+
         prog.delete(id)
             .map_err(|_| BpfdError::Error("unable to delete program data".to_string()))?;
 
-        let attached_programs = self
-            .programs
-            .iter()
-            .filter(|(_, p)| {
-                if let Program::Xdp(_, info) = p {
-                    info.if_index == if_index
-                } else {
-                    false
-                }
-            })
-            .collect::<HashMap<_, _>>()
-            .len();
+        match prog {
+            Program::Xdp(_, _) => self.remove_program_xdp(&prog),
+            Program::Tc(_, _, _) => self.remove_program_tc(&prog),
+            Program::Tracepoint(_, _) => Ok(()),
+        }?;
+        Ok(())
+    }
 
-        if attached_programs == 0 {
+    fn remove_program_xdp(&mut self, program: &Program) -> Result<(), BpfdError> {
+        if let Program::Xdp(data, info) = program {
+            let if_index = info.if_index;
+            let iface = info.if_name.clone();
+            let attached_programs = self
+                .programs
+                .iter()
+                .filter(|(_, p)| {
+                    if let Program::Xdp(_, i) = p {
+                        i.if_index == info.if_index
+                    } else {
+                        false
+                    }
+                })
+                .collect::<HashMap<_, _>>()
+                .len();
+
+            if attached_programs == 0 {
+                let old = self
+                    .dispatchers
+                    .remove(&DispatcherId::Xdp(DispatcherInfo(if_index, None)));
+                if let Some(Dispatcher::Xdp(old)) = old {
+                    self.delete_link_xdp(if_index, old.revision)?;
+                    old.delete(if_index).map_err(|_| {
+                        BpfdError::Error("unable to delete persisted dispatcher data".to_string())
+                    })?;
+                }
+                return Ok(());
+            }
+
+            // New dispatcher required: calculate the new dispatcher revision
+            if let Dispatcher::Xdp(old_dispatcher) = self
+                .dispatchers
+                .get(&DispatcherId::Xdp(DispatcherInfo(if_index, None)))
+                .unwrap()
+            {
+                let old_revision = old_dispatcher.revision;
+                let revision = old_revision.wrapping_add(1);
+
+                self.sort_extensions_xdp(&if_index);
+
+                let mut dispatcher_loader = self.new_xdp_dispatcher(
+                    &if_index,
+                    attached_programs as u8,
+                    self.dispatcher_bytes_xdp,
+                    revision,
+                )?;
+
+                self.attach_extensions_xdp(&if_index, &mut dispatcher_loader, None, revision)?;
+
+                self.attach_or_replace_dispatcher_xdp(
+                    iface,
+                    if_index,
+                    dispatcher_loader,
+                    revision,
+                )?;
+
+                self.cleanup_extensions_xdp(if_index, old_revision)?;
+            } else {
+                unreachable!()
+            }
+            Ok(())
+        } else {
+            unreachable!()
+        }
+    }
+
+    fn remove_program_tc(&mut self, program: &Program) -> Result<(), BpfdError> {
+        if let Program::Tc(data, info, direction) = program {
+            let if_index = info.if_index;
+            let iface = info.if_name.clone();
+            let direction = *direction;
+
+            let attached_programs = self
+                .programs
+                .iter()
+                .filter(|(_, p)| {
+                    if let Program::Tc(_, i, dir) = p {
+                        i.if_index == if_index && dir == &direction
+                    } else {
+                        false
+                    }
+                })
+                .collect::<HashMap<_, _>>()
+                .len();
+
             let old = self
                 .dispatchers
                 .remove(&DispatcherId::Xdp(DispatcherInfo(if_index, None)));
-            if let Some(Dispatcher::Xdp(old)) = old {
-                self.delete_link_xdp(if_index, old.revision)?;
-                old.delete(if_index).map_err(|_| {
-                    BpfdError::Error("unable to delete persisted dispatcher data".to_string())
-                })?;
+            if let Some(Dispatcher::Tc(old)) = old {
+                self.cleanup_extensions_tc(direction, if_index, old.revision)?;
+                return Ok(());
             }
-            return Ok(());
-        }
 
-        // New dispatcher required: calculate the new dispatcher revision
-        if let Dispatcher::Xdp(old_dispatcher) = self
-            .dispatchers
-            .get(&DispatcherId::Xdp(DispatcherInfo(if_index, None)))
-            .unwrap()
-        {
-            let old_revision = old_dispatcher.revision;
-            let revision = old_revision.wrapping_add(1);
+            // New dispatcher required: calculate the new dispatcher revision
+            if let Dispatcher::Tc(old_dispatcher) = self
+                .dispatchers
+                .get(&DispatcherId::Tc(DispatcherInfo(if_index, Some(direction))))
+                .unwrap()
+            {
+                let old_revision = old_dispatcher.revision;
+                let revision = old_revision.wrapping_add(1);
 
-            self.sort_extensions_xdp(&if_index);
+                // Cache program length so programs goes out of scope and
+                // sort_extensions() can generate its own list.
+                self.sort_extensions_tc(direction, &if_index);
 
-            let mut dispatcher_loader = self.new_xdp_dispatcher(
-                &if_index,
-                attached_programs as u8,
-                self.dispatcher_bytes_xdp,
-                revision,
-            )?;
+                let mut dispatcher_loader = self.new_tc_dispatcher(
+                    direction,
+                    &if_index,
+                    attached_programs as u8,
+                    self.dispatcher_bytes_tc,
+                    revision,
+                )?;
 
-            self.attach_extensions_xdp(&if_index, &mut dispatcher_loader, None, revision)?;
-
-            self.attach_or_replace_dispatcher_xdp(iface, if_index, dispatcher_loader, revision)?;
-
-            self.cleanup_extensions_xdp(if_index, old_revision)?;
+                self.attach_extensions_tc(
+                    direction,
+                    &if_index,
+                    &mut dispatcher_loader,
+                    None,
+                    revision,
+                )?;
+                self.attach_or_replace_dispatcher_tc(
+                    direction,
+                    iface,
+                    if_index,
+                    dispatcher_loader,
+                    revision,
+                )?;
+                self.cleanup_extensions_tc(direction, if_index, old_revision)?;
+            } else {
+                unreachable!()
+            }
+            Ok(())
         } else {
             unreachable!()
         }
-        Ok(())
-    }
-
-    fn remove_program_tc(
-        &mut self,
-        direction: Direction,
-        id: Uuid,
-        iface: String,
-        owner: String,
-    ) -> Result<(), BpfdError> {
-        let if_index = self.get_ifindex(&iface)?;
-        if let Some(prog) = self.programs.get(&id) {
-            if !(prog.owner() == &owner || owner == SUPERUSER) {
-                return Err(BpfdError::NotAuthorized);
-            }
-        } else {
-            return Err(BpfdError::InvalidID);
-        }
-
-        let prog = self.programs.remove(&id).unwrap();
-        prog.delete(id)
-            .map_err(|_| BpfdError::Error("unable to delete program data".to_string()))?;
-
-        let attached_programs = self
-            .programs
-            .iter()
-            .filter(|(_, p)| {
-                if let Program::Tc(_, info, dir) = p {
-                    info.if_index == if_index && dir == &direction
-                } else {
-                    false
-                }
-            })
-            .collect::<HashMap<_, _>>()
-            .len();
-
-        let old = self
-            .dispatchers
-            .remove(&DispatcherId::Xdp(DispatcherInfo(if_index, None)));
-        if let Some(Dispatcher::Tc(old)) = old {
-            self.cleanup_extensions_tc(direction, if_index, old.revision)?;
-            return Ok(());
-        }
-
-        // New dispatcher required: calculate the new dispatcher revision
-        if let Dispatcher::Tc(old_dispatcher) = self
-            .dispatchers
-            .get(&DispatcherId::Tc(DispatcherInfo(if_index, Some(direction))))
-            .unwrap()
-        {
-            let old_revision = old_dispatcher.revision;
-            let revision = old_revision.wrapping_add(1);
-
-            // Cache program length so programs goes out of scope and
-            // sort_extensions() can generate its own list.
-            self.sort_extensions_tc(direction, &if_index);
-
-            let mut dispatcher_loader = self.new_tc_dispatcher(
-                direction,
-                &if_index,
-                attached_programs as u8,
-                self.dispatcher_bytes_tc,
-                revision,
-            )?;
-
-            self.attach_extensions_tc(
-                direction,
-                &if_index,
-                &mut dispatcher_loader,
-                None,
-                revision,
-            )?;
-            self.attach_or_replace_dispatcher_tc(
-                direction,
-                iface,
-                if_index,
-                dispatcher_loader,
-                revision,
-            )?;
-            self.cleanup_extensions_tc(direction, if_index, old_revision)?;
-        } else {
-            unreachable!()
-        }
-        Ok(())
     }
 
     pub(crate) fn list_programs(&mut self, _iface: String) -> Result<InterfaceInfo, BpfdError> {

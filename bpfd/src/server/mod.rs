@@ -8,6 +8,7 @@ mod errors;
 mod pull_bytecode;
 mod rpc;
 mod static_program;
+mod utils;
 
 use anyhow::Context;
 use bpf::BpfManager;
@@ -18,12 +19,16 @@ use bpfd_api::{
 };
 pub use certs::get_tls_config;
 use command::{AttachType, Command, NetworkMultiAttach};
+use errors::BpfdError;
 use log::info;
 use rpc::{intercept, BpfdLoader};
 pub use static_program::programs_from_directory;
 use static_program::StaticPrograms;
 use tokio::sync::mpsc;
 use tonic::transport::{Server, ServerTlsConfig};
+use utils::get_ifindex;
+
+use crate::server::command::{Metadata, NetworkMultiAttachInfo, Program, ProgramData};
 
 pub async fn serve(
     config: Config,
@@ -79,16 +84,26 @@ pub async fn serve(
                 }
                 let prog_type = ProgramType::try_from(program.program_type.to_string())?;
 
-                let uuid = bpf_manager.add_program(
-                    (prog_type as i32).try_into()?,
-                    None,
-                    program.interface,
-                    program.path,
-                    program.priority,
-                    program.section_name,
-                    proc_on,
-                    String::from("bpfd"),
-                )?;
+                let if_index = get_ifindex(&program.interface)?;
+                let uuid = bpf_manager.add_program(Program::Xdp(
+                    ProgramData {
+                        path: program.path,
+                        section_name: program.section_name.clone(),
+                        owner: String::from("bpfd"),
+                    },
+                    NetworkMultiAttachInfo {
+                        if_index,
+                        current_position: None,
+                        metadata: Metadata {
+                            priority: program.priority,
+                            name: program.section_name.clone(),
+                            attached: false,
+                        },
+                        proceed_on: proc_on,
+                        if_name: program.interface,
+                        direction: None,
+                    },
+                ))?;
                 info!("Loaded static program {} with UUID {}", program.name, uuid)
             }
         }
@@ -111,16 +126,34 @@ pub async fn serve(
                 username,
                 responder,
             } => {
-                let res = bpf_manager.add_program(
-                    program_type,
-                    direction,
-                    iface,
-                    path,
-                    priority,
-                    section_name,
-                    proceed_on,
-                    username,
-                );
+                let res = if let Ok(if_index) = get_ifindex(&iface) {
+                    let prog = match program_type {
+                        command::ProgramType::Xdp => Program::Xdp(
+                            ProgramData {
+                                path,
+                                owner: username,
+                                section_name: section_name.clone(),
+                            },
+                            NetworkMultiAttachInfo {
+                                if_index,
+                                current_position: None,
+                                metadata: command::Metadata {
+                                    priority,
+                                    name: section_name,
+                                    attached: false,
+                                },
+                                proceed_on,
+                                if_name: iface,
+                                direction: None,
+                            },
+                        ),
+                        command::ProgramType::Tc => unimplemented!(),
+                        command::ProgramType::Tracepoint => unimplemented!(),
+                    };
+                    bpf_manager.add_program(prog)
+                } else {
+                    Err(BpfdError::InvalidInterface)
+                };
                 // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }
@@ -144,11 +177,10 @@ pub async fn serve(
             }
             Command::Unload {
                 id,
-                iface,
                 username,
                 responder,
             } => {
-                let res = bpf_manager.remove_program(id, iface, username);
+                let res = bpf_manager.remove_program(id, username);
                 // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }
