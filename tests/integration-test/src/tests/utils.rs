@@ -55,15 +55,12 @@ pub fn add_xdp_pass(iface: &str, priority: &str) -> Result<String> {
             XDP_PASS_IMAGE,
         ])
         .ok();
-    let stdout = String::from_utf8(output.unwrap().stdout);
-    let uuid = stdout.as_ref();
-    assert!(!uuid.unwrap().is_empty());
-    debug!(
-        "Successfully added xdp_pass program: {:?}",
-        uuid.unwrap().trim()
-    );
+    let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
+    let uuid = stdout.trim();
+    assert!(!uuid.is_empty());
+    debug!("Successfully added xdp_pass program: {:?}", uuid);
 
-    Ok(stdout.unwrap())
+    Ok(uuid.to_string())
 }
 
 /// Delete a bpfd program using bpfctl
