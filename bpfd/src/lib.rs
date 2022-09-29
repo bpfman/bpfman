@@ -10,12 +10,12 @@ mod rpc;
 mod static_program;
 mod utils;
 
-use anyhow::Context;
+use anyhow::{bail, Context};
 use bpf::BpfManager;
 use bpfd_api::{
     config::Config,
     util::directories::CFGDIR_STATIC_PROGRAMS,
-    v1::{loader_server::LoaderServer, ProceedOn, ProgramType},
+    v1::{loader_server::LoaderServer, ProceedOn,},
 };
 pub use certs::get_tls_config;
 use command::{AttachType, Command, NetworkMultiAttach};
@@ -28,7 +28,7 @@ use tokio::sync::mpsc;
 use tonic::transport::{Server, ServerTlsConfig};
 use utils::get_ifindex;
 
-use crate::command::{Metadata, NetworkMultiAttachInfo, Program, ProgramData};
+use crate::command::{NetworkMultiAttachInfo, Program, ProgramData, ProgramType, Metadata};
 
 pub async fn serve(
     config: Config,
@@ -66,44 +66,52 @@ pub async fn serve(
 
     // Load any static programs first
     if !static_programs.is_empty() {
-        info!("Loading static programs from {}", CFGDIR_STATIC_PROGRAMS);
-
+        info!("Loading static programs from {CFGDIR_STATIC_PROGRAMS}",);
         for programs in static_programs {
             for program in programs.programs {
-                let mut proc_on = Vec::new();
-                if !program.proceed_on.is_empty() {
-                    for i in program.proceed_on.iter() {
-                        match ProceedOn::try_from(i.to_string()) {
-                            Ok(action) => proc_on.push(action as i32),
-                            Err(e) => {
-                                eprintln!("ERROR: {e}");
-                                std::process::exit(1);
+                let prog_type = program.program_type.parse()?;
+                let prog = match prog_type {
+                    ProgramType::Xdp => {
+                        let mut proc_on = Vec::new();
+                        if let Some(m) = program.network_attach {
+                            if !m.proceed_on.is_empty() {
+                                for i in m.proceed_on.iter() {
+                                    match ProceedOn::try_from(i.to_string()) {
+                                        Ok(action) => proc_on.push(action as i32),
+                                        Err(e) => {
+                                            eprintln!("ERROR: {}", e);
+                                            std::process::exit(1);
+                                        }
+                                    };
+                                }
                             }
-                        };
+                            let if_index = get_ifindex(&m.interface)?;
+                            Program::Xdp(
+                                ProgramData {
+                                    path: program.path,
+                                    section_name: program.section_name.clone(),
+                                    owner: String::from("bpfd"),
+                                },
+                                NetworkMultiAttachInfo {
+                                    if_index,
+                                    current_position: None,
+                                    metadata: Metadata {
+                                        priority: m.priority,
+                                        name: program.section_name.clone(),
+                                        attached: false,
+                                    },
+                                    proceed_on: proc_on,
+                                    if_name: m.interface,
+                                    direction: None,
+                                },
+                            )
+                        } else {
+                            bail!("invalid attach type for xdp program")
+                        }
                     }
-                }
-                let prog_type = ProgramType::try_from(program.program_type.to_string())?;
-
-                let if_index = get_ifindex(&program.interface)?;
-                let uuid = bpf_manager.add_program(Program::Xdp(
-                    ProgramData {
-                        path: program.path,
-                        section_name: program.section_name.clone(),
-                        owner: String::from("bpfd"),
-                    },
-                    NetworkMultiAttachInfo {
-                        if_index,
-                        current_position: None,
-                        metadata: Metadata {
-                            priority: program.priority,
-                            name: program.section_name.clone(),
-                            attached: false,
-                        },
-                        proceed_on: proc_on,
-                        if_name: program.interface,
-                        direction: None,
-                    },
-                ))?;
+                    _ => unimplemented!(),
+                };
+                let uuid = bpf_manager.add_program(prog)?;
                 info!("Loaded static program {} with UUID {}", program.name, uuid)
             }
         }

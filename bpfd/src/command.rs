@@ -2,7 +2,7 @@
 // Copyright Authors of bpfd
 
 //! Commands between the RPC thread and the BPF thread
-use std::{fmt, fs, io::BufReader};
+use std::{fmt, fs, io::BufReader,str::FromStr};
 
 use bpfd_api::{util::directories::RTDIR_PROGRAMS, ParseError};
 use serde::{Deserialize, Serialize};
@@ -45,8 +45,8 @@ pub(crate) enum Command {
     },
 }
 
-#[derive(Debug)]
-pub(crate) enum AttachType {
+#[derive(Debug, Serialize, Deserialize)]
+pub enum AttachType {
     NetworkMultiAttach(NetworkMultiAttach),
     SingleAttach(String),
 }
@@ -56,6 +56,19 @@ pub(crate) enum ProgramType {
     Xdp,
     Tc,
     Tracepoint,
+}
+
+impl FromStr for ProgramType {
+    type Err = BpfdError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "xdp" => Ok(Self::Xdp),
+            "tc" => Ok(Self::Tc),
+            "tracepoint" => Ok(Self::Tracepoint),
+            other => Err(BpfdError::InvalidProgramType(other.to_string())),
+        }
+    }
 }
 
 impl TryFrom<i32> for ProgramType {
@@ -98,8 +111,8 @@ impl std::fmt::Display for Direction {
     }
 }
 
-#[derive(Debug)]
-pub(crate) struct NetworkMultiAttach {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NetworkMultiAttach {
     pub(crate) iface: String,
     pub(crate) direction: Option<Direction>,
     pub(crate) priority: i32,

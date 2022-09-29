@@ -34,4 +34,6 @@ pub enum BpfdError {
     },
     #[error("Unsupported ProgramType")]
     UnsuportedProgramType,
+    #[error("{0} is not a valid program type")]
+    InvalidProgramType(String),
 }

@@ -38,6 +38,7 @@ impl TryFrom<String> for ProgramType {
             "xdp" => ProgramType::Xdp,
             "tc_ingress" => ProgramType::TcIngress,
             "tc_egress" => ProgramType::TcEgress,
+            "tracepoint" => ProgramType::Tracepoint,
             program => {
                 return Err(ParseError::InvalidProgramType {
                     program: program.to_string(),
