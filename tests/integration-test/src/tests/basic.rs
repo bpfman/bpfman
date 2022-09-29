@@ -36,7 +36,7 @@ fn test_load_unload() -> anyhow::Result<()> {
     let bpfctl_list = bpfctl_list.as_ref();
     for id in uuids.iter() {
         let prog_list = bpfctl_list.unwrap();
-        assert!(prog_list.contains(id));
+        assert!(prog_list.contains(id.trim()));
     }
 
     // Delete the installed programs
