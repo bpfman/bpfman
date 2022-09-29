@@ -2,7 +2,7 @@
 // Copyright Authors of bpfd
 
 //! Commands between the RPC thread and the BPF thread
-use std::{fmt, fs, io::BufReader,str::FromStr};
+use std::{fmt, fs, io::BufReader, str::FromStr};
 
 use bpfd_api::{util::directories::RTDIR_PROGRAMS, ParseError};
 use serde::{Deserialize, Serialize};

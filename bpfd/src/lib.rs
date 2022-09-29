@@ -15,7 +15,7 @@ use bpf::BpfManager;
 use bpfd_api::{
     config::Config,
     util::directories::CFGDIR_STATIC_PROGRAMS,
-    v1::{loader_server::LoaderServer, ProceedOn,},
+    v1::{loader_server::LoaderServer, ProceedOn},
 };
 pub use certs::get_tls_config;
 use command::{AttachType, Command, NetworkMultiAttach};
@@ -28,7 +28,7 @@ use tokio::sync::mpsc;
 use tonic::transport::{Server, ServerTlsConfig};
 use utils::get_ifindex;
 
-use crate::command::{NetworkMultiAttachInfo, Program, ProgramData, ProgramType, Metadata};
+use crate::command::{Metadata, NetworkMultiAttachInfo, Program, ProgramData, ProgramType};
 
 pub async fn serve(
     config: Config,
@@ -156,7 +156,7 @@ pub async fn serve(
                             },
                         ),
                         command::ProgramType::Tc => unimplemented!(),
-                        command::ProgramType::Tracepoint => unimplemented!(),
+                        _ => panic!("unsupported prog type"),
                     };
                     bpf_manager.add_program(prog)
                 } else {
@@ -173,13 +173,18 @@ pub async fn serve(
                 responder,
                 program_type,
             } => {
-                let res = bpf_manager.add_single_attach_program(
-                    path,
-                    program_type,
-                    section_name,
-                    attach,
-                    username,
-                );
+                let prog = match program_type {
+                    command::ProgramType::Tracepoint => Program::Tracepoint(
+                        ProgramData {
+                            path,
+                            owner: username,
+                            section_name: section_name.clone(),
+                        },
+                        attach,
+                    ),
+                    _ => panic!("unsupported prog type"),
+                };
+                let res = bpf_manager.add_program(prog);
                 // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }

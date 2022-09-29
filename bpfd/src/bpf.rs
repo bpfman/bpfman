@@ -8,7 +8,7 @@ use aya::{
         links::{FdLink, PinnedLink},
         tc,
         tc::SchedClassifierLinkId,
-        Extension, PinnedProgram, SchedClassifier, TcAttachType, Xdp,
+        Extension, PinnedProgram, SchedClassifier, TcAttachType, TracePoint, Xdp,
     },
     Bpf, BpfLoader,
 };
@@ -178,12 +178,11 @@ impl<'a> BpfManager<'a> {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn add_program(&mut self, program: Program) -> Result<Uuid, BpfdError> {
         match program {
             Program::Xdp(_, _) => self.add_program_xdp(program),
             Program::Tc(_, _, _) => self.add_program_tc(program),
-            _ => Err(BpfdError::UnsuportedProgramType),
+            Program::Tracepoint(_, _) => self.add_single_attach_program(program),
         }
     }
 
@@ -383,15 +382,44 @@ impl<'a> BpfManager<'a> {
         }
     }
 
-    pub(crate) fn add_single_attach_program(
-        &self,
-        _path: String,
-        _program_type: ProgramType,
-        _section_name: String,
-        _attach: String,
-        _username: String,
-    ) -> Result<Uuid, BpfdError> {
-        unimplemented!("todo")
+    pub(crate) fn add_single_attach_program(&mut self, p: Program) -> Result<Uuid, BpfdError> {
+        if let Program::Tracepoint(ref data, ref tp) = p {
+            let id = Uuid::new_v4();
+            let parts: Vec<&str> = tp.split('/').collect();
+            if parts.len() != 2 {
+                return Err(BpfdError::InvalidAttach(tp.to_string()));
+            }
+            let category = parts[0].to_owned();
+            let name = parts[1].to_owned();
+
+            let map_pin_path = format!("/var/run/bpfd/fs/maps/{}", id);
+            fs::create_dir_all(map_pin_path.clone())?;
+
+            let mut loader = BpfLoader::new()
+                .map_pin_path(map_pin_path.clone())
+                .load_file(&data.path)?;
+
+            let tracepoint: &mut TracePoint = loader
+                .program_mut(&data.section_name)
+                .ok_or_else(|| {
+                    let _ = fs::remove_dir_all(map_pin_path);
+                    BpfdError::SectionNameNotValid(data.section_name.clone())
+                })?
+                .try_into()?;
+
+            p.save(id)
+                .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
+            self.programs.insert(id, p);
+
+            tracepoint.attach(&category, &name)?;
+            tracepoint
+                .pin(format!("/var/run/bpfd/fs/programs/{id}_link"))
+                .map_err(|_| BpfdError::UnableToPin)?;
+
+            Ok(id)
+        } else {
+            panic!("not a tracepoint program")
+        }
     }
 
     pub(crate) fn remove_program(&mut self, id: Uuid, owner: String) -> Result<(), BpfdError> {

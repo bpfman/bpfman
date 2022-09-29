@@ -36,4 +36,6 @@ pub enum BpfdError {
     UnsuportedProgramType,
     #[error("{0} is not a valid program type")]
     InvalidProgramType(String),
+    #[error("{0} is not a valid attach point for this program")]
+    InvalidAttach(String),
 }
