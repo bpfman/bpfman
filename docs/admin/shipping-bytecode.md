@@ -24,9 +24,9 @@ as container images.
 ### Image Layers
 
 The container images following this variant must contain exactly one layer who's
-media type is the following:
+media type is one of the following:
 
-- `application/vnd.oci.image.layer.v1.tar+gzip`
+- `application/vnd.oci.image.layer.v1.tar+gzip` or the [compliant](https://github.com/opencontainers/image-spec/blob/main/media-types.md#applicationvndociimagelayerv1targzip) `application/vnd.docker.image.rootfs.diff.tar.gzip`
 
 Additionally the image layer must contain a valid EBPF object file (generally containing
 a `.o` extension) placed at the root of the layer `./`.
