@@ -7,7 +7,7 @@ use crate::tests::utils::*;
 
 #[integration_test]
 fn test_load_unload() -> anyhow::Result<()> {
-    let _guard = start_bpfd()?;
+    let guard = start_bpfd()?;
 
     let bpfd_iface = read_iface_env();
     if !iface_exists(bpfd_iface) {
@@ -30,6 +30,10 @@ fn test_load_unload() -> anyhow::Result<()> {
     let uuid = add_xdp_pass(bpfd_iface, "25");
     uuids.push(uuid.unwrap());
     assert_eq!(uuids.len(), 4);
+
+    // Verify rule persistence between restarts
+    drop(guard);
+    let _guard = start_bpfd()?;
 
     // Verify bpfctl list contains the uuids of each program
     let bpfctl_list = bpfd_list(bpfd_iface);
