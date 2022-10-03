@@ -72,7 +72,14 @@ pub async fn pull_bytecode(image_url: &String) -> Result<ProgramOverrides, anyho
         serde_json::from_str(&image_config["config"]["Labels"].to_string())?;
 
     let image_content = client
-        .pull(&image, &auth, vec![manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE])
+        .pull(
+            &image,
+            &auth,
+            vec![
+                manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE,
+                manifest::IMAGE_DOCKER_LAYER_GZIP_MEDIA_TYPE,
+            ],
+        )
         .await
         .map_err(ImageError::BytecodeImagePullFailure)?
         .layers
@@ -86,7 +93,8 @@ pub async fn pull_bytecode(image_url: &String) -> Result<ProgramOverrides, anyho
     // Create bytecode directory if not exists
     std::fs::create_dir_all(CONTAINERIZED_BYTECODE_PATH)?;
 
-    // Data is of OCI media type "application/vnd.oci.image.layer.v1.tar+gzip"
+    // Data is of OCI media type "application/vnd.oci.image.layer.v1.tar+gzip" or
+    // "application/vnd.docker.image.rootfs.diff.tar.gzip"
     // decode and unpack to access bytecode
     let unzipped_tarball = GzDecoder::new(image_content.as_slice());
     let mut tarball = Archive::new(unzipped_tarball);
