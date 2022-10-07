@@ -1,0 +1,23 @@
+FROM golang:1.19 as gocounter-build
+
+RUN apt-get update && apt-get install -y \
+ clang \
+ gcc-multilib \
+ libbpf-dev
+
+RUN go install github.com/cilium/ebpf/cmd/bpf2go@master
+
+WORKDIR /usr/src/bpfd/
+COPY ./ /usr/src/bpfd/
+
+WORKDIR /usr/src/bpfd/examples/gocounter
+
+# Compile gocounter
+RUN go generate
+RUN go build
+
+FROM registry.fedoraproject.org/fedora-minimal:latest
+
+COPY --from=gocounter-build  /usr/src/bpfd/examples/gocounter/gocounter .
+
+ENTRYPOINT ["./gocounter"]

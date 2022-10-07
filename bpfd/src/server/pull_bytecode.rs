@@ -98,7 +98,7 @@ pub async fn pull_bytecode(image_url: &String) -> Result<ProgramOverrides, anyho
     // decode and unpack to access bytecode
     let unzipped_tarball = GzDecoder::new(image_content.as_slice());
     let mut tarball = Archive::new(unzipped_tarball);
-    tarball.unpack(CONTAINERIZED_BYTECODE_PATH).unwrap();
+    tarball.unpack(CONTAINERIZED_BYTECODE_PATH)?;
 
     Ok(ProgramOverrides {
         path: bytecode_path,

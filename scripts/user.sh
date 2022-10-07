@@ -104,22 +104,22 @@ create_user_dirs() {
         mkdir -p "${BASE_PATH}/sock/"
         # Set the setuid and setgid bits (6000) so that files under sock directory
         # will inherit user group. Also set the sock directory so any of the "bpfd"
-        # group can read and write to a sock (0670).
+        # group can read and write to a sock (0070).
         chmod -R 6775 "${BASE_PATH}/sock/"
         if [ "${user_created}" == true ]; then
             echo "  setfacl of \"${BASE_PATH}/sock/\""
             setfacl -d -m u:${user_name}:rwx,g:${user_group}:rwx,o::- "${BASE_PATH}/sock/"
         fi
 
-        mkdir -p "${VAR_BPFD_PATH}"
+        mkdir -p "${VAR_BYTECODE_PATH}"
         if [ "${user_created}" == true ]; then
             echo "  chown and chmod of \"${VAR_BPFD_PATH}\""
             chown -R ${user_name}:${user_group} "${VAR_BPFD_PATH}"
-            # Set the setuid and setgid bits so that files under directory
-            # will inherit user group.
-            chmod 6755 "${VAR_BPFD_PATH}"
+            # Set the setuid and setgid bits (6000) so that files under directory
+            # will inherit user group. Also set the directory so any of the "bpfd"
+            # group can read and write to a sock (0070).
+            chmod 6775 "${VAR_BPFD_PATH}"
         fi
-        mkdir -p "${VAR_BYTECODE_PATH}"
     fi
 }
 

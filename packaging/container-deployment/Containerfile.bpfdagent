@@ -1,8 +1,9 @@
 FROM rustlang/rust:nightly as bpfd-agent-build
-WORKDIR /usr/src/bpfd
-COPY ./ /usr/src/bpfd
 
 RUN apt-get update && apt-get install -y protobuf-compiler musl-tools
+
+WORKDIR /usr/src/bpfd
+COPY ./ /usr/src/bpfd
 
 RUN rustup target add x86_64-unknown-linux-musl
 

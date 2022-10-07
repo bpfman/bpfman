@@ -16,6 +16,7 @@ use nix::{
     libc::RLIM_INFINITY,
     mount::{mount, MsFlags},
     sys::resource::{setrlimit, Resource},
+    unistd::{getuid, User},
 };
 use systemd_journal_logger::{connected_to_journal, init_with_extra_fields};
 
@@ -100,11 +101,23 @@ fn has_cap(cset: caps::CapSet, cap: caps::Capability) {
 }
 
 fn drop_linux_capabilities() {
-    drop_all_cap(caps::CapSet::Ambient);
-    drop_all_cap(caps::CapSet::Bounding);
-    drop_all_cap(caps::CapSet::Effective);
-    drop_all_cap(caps::CapSet::Inheritable);
-    drop_all_cap(caps::CapSet::Permitted);
+    let res = User::from_uid(getuid()).unwrap().unwrap();
+    if res.name == "bpfd" {
+        debug!(
+            "Running as user={}, dropping all capabilities for spawned threads",
+            res.name
+        );
+        drop_all_cap(caps::CapSet::Ambient);
+        drop_all_cap(caps::CapSet::Bounding);
+        drop_all_cap(caps::CapSet::Effective);
+        drop_all_cap(caps::CapSet::Inheritable);
+        drop_all_cap(caps::CapSet::Permitted);
+    } else {
+        debug!(
+            "Running as user={}, skip dropping all capabilities for spawned threads",
+            res.name
+        );
+    }
 }
 
 fn is_bpffs_mounted() -> Result<bool, anyhow::Error> {
