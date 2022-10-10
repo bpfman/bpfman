@@ -55,14 +55,14 @@ pub async fn reconcile(ebpf_program: Arc<EbpfProgram>, ctx: Arc<Context>) -> Res
         .metadata
         .name
         .as_ref()
-        .ok_or(Error::MissingObjectKey(".metadata.name"))?;
+        .ok_or_else(|| Error::MissingObjectKey(".metadata.name"))?;
 
     let client = ctx.client.clone();
     let ns = ebpf_program
         .metadata
         .namespace
         .as_ref()
-        .ok_or(Error::MissingObjectKey(".metadata.namespace"))?;
+        .ok_or_else(|| Error::MissingObjectKey(".metadata.namespace"))?;
 
     // Make ebpfProgram client
     let ebpf_programs_api: Api<EbpfProgram> = Api::namespaced(client.clone(), ns);
@@ -128,7 +128,7 @@ pub async fn reconcile(ebpf_program: Arc<EbpfProgram>, ctx: Arc<Context>) -> Res
                 .metadata
                 .annotations
                 .as_ref()
-                .ok_or(Error::MissingObjectKey(".metadata.annotations"))?;
+                .ok_or_else(|| Error::MissingObjectKey(".metadata.annotations"))?;
 
             let uuid = annotations.get("bpfd.ebpfprogram.io/uuid");
             let interface = annotations.get("bpfd.ebpfprogram.io/attach_point");
