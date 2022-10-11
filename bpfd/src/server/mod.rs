@@ -10,7 +10,10 @@ mod static_program;
 
 use anyhow::Context;
 use bpf::BpfManager;
-use bpfd_api::v1::{loader_server::LoaderServer, ProceedOn};
+use bpfd_api::{
+    util::directories::CFGDIR_STATIC_PROGRAMS,
+    v1::{loader_server::LoaderServer, ProceedOn},
+};
 pub use config::config_from_file;
 use config::Config;
 use log::info;
@@ -66,7 +69,7 @@ pub async fn serve(
 
     // Load any static programs first
     if !static_programs.is_empty() {
-        info!("Loading static programs from /etc/bpfd/programs.d",);
+        info!("Loading static programs from {}", CFGDIR_STATIC_PROGRAMS);
 
         for programs in static_programs {
             for program in programs.programs {

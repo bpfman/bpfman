@@ -15,14 +15,20 @@ cert_init() {
     fi
 
     # generate ca cert
-    mkdir -p "${CA_CERT_PATH}"
-    if [ ! -f "${CA_CERT_PATH}"/ca.pem ] || [ "${regen}" == true ]; then
-        openssl genrsa -out "${CA_CERT_PATH}"/ca.key ${KEY_LEN}
-        openssl req -new -x509 -key "${CA_CERT_PATH}"/ca.key -subj "/CN=bpfd-ca/" -out "${CA_CERT_PATH}"/ca.pem
+    mkdir -p "${CFG_CA_CERT_DIR}"
+    if [ ! -f "${CFG_CA_CERT_DIR}"/ca.pem ] || [ "${regen}" == true ]; then
+        openssl genrsa -out "${CFG_CA_CERT_DIR}"/ca.key ${KEY_LEN}
+        openssl req -new -x509 -key "${CFG_CA_CERT_DIR}"/ca.key -subj "/CN=bpfd-ca/" -out "${CFG_CA_CERT_DIR}"/ca.pem
         # Set the private key such that only members of the "bpfd" group can read
-        chmod -v 0440 "${CA_CERT_PATH}"/ca.key
+        chmod -v 0440 "${CFG_CA_CERT_DIR}"/ca.key
         # Set the public key such that any user can read
-        chmod -v 0444 "${CA_CERT_PATH}"/ca.pem
+        chmod -v 0444 "${CFG_CA_CERT_DIR}"/ca.pem
+
+        # Set the owner if the user has been created.
+        getent passwd "${USER_BPFD}" &>/dev/null
+        if [[ $? -eq 0 ]]; then
+            chown -R ${USER_BPFD}:${USER_BPFD} "${CFG_CA_CERT_DIR}"
+        fi
     fi
 
     cert_client "${BIN_BPFD}" "${USER_BPFD}" ${regen}
@@ -64,13 +70,19 @@ cert_client() {
             -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" \
             -out "${CERT_PATH}/${sub_directory}.csr"
         openssl x509 -req -in "${CERT_PATH}/${sub_directory}.csr" \
-            -CA "${CA_CERT_PATH}/ca.pem" \
-            -CAkey "${CA_CERT_PATH}/ca.key" \
+            -CA "${CFG_CA_CERT_DIR}/ca.pem" \
+            -CAkey "${CFG_CA_CERT_DIR}/ca.key" \
             -CAcreateserial \
             -extfile <(printf "subjectAltName=DNS:localhost,IP:127.0.0.1") \
             -out "${CERT_PATH}/${sub_directory}.pem"
         rm "${CERT_PATH}/${sub_directory}.csr"
         # Set the private and public keys such that only members of the user group can read
         chmod -v 0440 "${CERT_PATH}/${sub_directory}.pem" "${CERT_PATH}/${sub_directory}.key"
+
+        # Set the owner if the user has been created.
+        getent passwd "${user_name}" &>/dev/null
+        if [[ $? -eq 0 ]]; then
+            chown -R ${user_name}:${USER_BPFD} "${CERT_PATH}"
+        fi
     fi
 }

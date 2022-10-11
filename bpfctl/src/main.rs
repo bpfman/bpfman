@@ -4,16 +4,18 @@
 use std::path::PathBuf;
 
 use anyhow::Context;
-use bpfd_api::v1::{
-    loader_client::LoaderClient, ListRequest, LoadRequest, ProceedOn, ProgramType, UnloadRequest,
+use bpfd_api::{
+    util::directories::*,
+    v1::{
+        loader_client::LoaderClient, ListRequest, LoadRequest, ProceedOn, ProgramType,
+        UnloadRequest,
+    },
 };
 use clap::{Parser, Subcommand};
 mod config;
 use comfy_table::Table;
 use config::config_from_file;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
-
-const DEFAULT_BPFCTL_CONFIG_PATH: &str = "/etc/bpfctl/bpfctl.toml";
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -75,7 +77,7 @@ enum Commands {
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let config = config_from_file(DEFAULT_BPFCTL_CONFIG_PATH);
+    let config = config_from_file(CFGPATH_BPFCTL_CONFIG);
 
     let ca_cert = tokio::fs::read(&config.tls.ca_cert)
         .await

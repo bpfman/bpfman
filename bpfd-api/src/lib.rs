@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
+pub mod util;
 #[path = "bpfd.v1.rs"]
 #[rustfmt::skip]
 #[allow(clippy::all)]

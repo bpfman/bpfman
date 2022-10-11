@@ -39,8 +39,10 @@ delete_user() {
     rm -rf "${BASE_PATH}"
     if [ "${user_name}" == "${USER_BPFD}" ]; then
         echo "  Deleting \"${user_name}\" specific directories"
-        echo "  Deleting \"${VAR_BPFD_PATH}\""
-        rm -rf "${VAR_BPFD_PATH}"
+        echo "  Deleting \"${RUNTIME_DIR}\""
+        rm -rf "${RUNTIME_DIR}"
+        echo "  Deleting \"${STATE_DIR}\""
+        rm -rf "${STATE_DIR}"
     fi
 
     # Remove group from all users
@@ -78,49 +80,35 @@ create_user_dirs() {
 
     BASE_PATH="/etc/${user_name}"
 
-    echo "  Ensure \"${BASE_PATH}\" exists"
-    mkdir -p "${BASE_PATH}"
-
     # Set the owner if the user has been created.
     user_created=false
-    getent passwd $1 &>/dev/null
+    getent passwd ${user_name} &>/dev/null
     if [[ $? -eq 0 ]]; then
         user_created=true
-        echo "  chown and chmod of \"${BASE_PATH}\""
-        chown -R ${user_name}:${user_group} "${BASE_PATH}"
-        # Set the setuid and setgid bits so that files under directory
-        # will inherit user group.
-        chmod 6755 "${BASE_PATH}"
     fi
+
+    echo "  Ensure \"${BASE_PATH}\" exists"
+    mkdir -p "${BASE_PATH}"
 
     if [ ! -f "${BASE_PATH}/${binary}.toml" ]; then
         echo "  Copying \"${binary}.toml\""
         cp "${binary}.toml" "${BASE_PATH}/."
     fi
 
+    echo "  Creating \"${user_name}\" specific directories"
+    mkdir -p "${BASE_PATH}/certs/${user_name}/"
     if [ "${user_name}" == "${USER_BPFD}" ]; then
-        echo "  Creating \"${user_name}\" specific directories"
-        mkdir -p "${BASE_PATH}/programs.d/"
-        mkdir -p "${BASE_PATH}/sock/"
-        # Set the setuid and setgid bits (6000) so that files under sock directory
-        # will inherit user group. Also set the sock directory so any of the "bpfd"
-        # group can read and write to a sock (0070).
-        chmod -R 6775 "${BASE_PATH}/sock/"
-        if [ "${user_created}" == true ]; then
-            echo "  setfacl of \"${BASE_PATH}/sock/\""
-            setfacl -d -m u:${user_name}:rwx,g:${user_group}:rwx,o::- "${BASE_PATH}/sock/"
-        fi
-
-        mkdir -p "${VAR_BYTECODE_PATH}"
-        if [ "${user_created}" == true ]; then
-            echo "  chown and chmod of \"${VAR_BPFD_PATH}\""
-            chown -R ${user_name}:${user_group} "${VAR_BPFD_PATH}"
-            # Set the setuid and setgid bits (6000) so that files under directory
-            # will inherit user group. Also set the directory so any of the "bpfd"
-            # group can read and write to a sock (0070).
-            chmod 6775 "${VAR_BPFD_PATH}"
-        fi
+        mkdir -p "${CFG_CA_CERT_DIR}"
     fi
+
+    if [ "${user_created}" == true ]; then
+        echo "  chown and chmod of \"${BASE_PATH}\""
+        chown -R ${user_name}:${user_group} "${BASE_PATH}"
+    fi
+
+    # Set the setuid and setgid bits so that files under directory
+    # will inherit user group when created outside user.
+    chmod -R 6755 "${BASE_PATH}"
 }
 
 user_init() {

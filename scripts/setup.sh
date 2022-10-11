@@ -18,12 +18,23 @@ BIN_BPFCTL="bpfctl"
 BIN_GOCOUNTER="gocounter"
 
 # Well known directories
-CA_CERT_PATH=/etc/${USER_BPFD}/certs/ca
 SRC_BIN_PATH="../target/debug"
 DST_BIN_PATH="/usr/sbin"
 DST_SVC_PATH="/usr/lib/systemd/system"
-VAR_BPFD_PATH="/var/${USER_BPFD}"
-VAR_BYTECODE_PATH="${VAR_BPFD_PATH}/bytecode"
+
+# ConfigurationDirectory: /etc/bpfd/
+CONFIGURATION_DIR="/etc/bpfd"
+CFG_CA_CERT_DIR="/etc/bpfd/certs/ca"
+
+# RuntimeDirectory: /run/bpfd/
+RUNTIME_DIR="/run/bpfd"
+
+# CacheDirectory: /var/cache/
+
+# StateDirectory: /var/lib/bpfd/
+STATE_DIR="/var/lib/bpfd"
+
+# LogsDirectory:  /var/log/
 
 
 usage() {

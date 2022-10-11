@@ -54,7 +54,8 @@ const (
 	DefaultRootCaPath     = "/etc/bpfd/certs/ca/ca.pem"
 	DefaultClientCertPath = "/etc/bpfctl/certs/gocounter/gocounter.pem"
 	DefaultClientKeyPath  = "/etc/bpfctl/certs/gocounter/gocounter.key"
-	DefaultSocketPath     = "/etc/bpfd/sock/gocounter.sock"
+	DefaultSocketPath     = "/var/lib/bpfd/sock/gocounter.sock"
+	DefaultMapDir         = "/run/bpfd/fs/maps"
 )
 
 type bytecodeSrc int64
@@ -279,7 +280,7 @@ func main() {
 	}
 
 	// 3. Get access to our map
-	mapPath := fmt.Sprintf("/var/run/bpfd/fs/maps/%s/xdp_stats_map", id)
+	mapPath := fmt.Sprintf("%s/%s/xdp_stats_map", DefaultMapDir, id)
 	opts := &ebpf.LoadPinOptions{
 		ReadOnly:  false,
 		WriteOnly: false,

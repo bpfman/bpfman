@@ -191,9 +191,8 @@ The socket that is created by `gocounter` and shared between `gocounter` and `bp
 `bpfd` User Group and `gocounter` must have read-write access to it:
 
 ```console
-    $ ls -al /etc/bpfd/sock/gocounter.sock
-    srwxrwx---+ 1 <USER> bpfd 0 Aug 26 11:07 /etc/bpfd/sock/gocounter.sock
-
+    $ ls -al /var/lib/bpfd/sock/gocounter.sock
+    srwxrwx---+ 1 <USER> bpfd 0 Aug 26 11:07 /var/lib/bpfd/sock/gocounter.sock
 ```
 
 #### Step 2: Grant `gocounter` CAP_BPF Linux Capability
@@ -317,7 +316,7 @@ To run the `gocounter` example in a container, run the following command:
     podman run -it --privileged --net=host \
       -v /etc/bpfd/certs/ca/:/etc/bpfd/certs/ca/ \
       -v /etc/bpfctl/certs/gocounter/:/etc/bpfctl/certs/gocounter/ \
-      -v /var/run/bpfd/fs/maps/:/var/run/bpfd/fs/maps/ \
+      -v /run/bpfd/fs/maps/:/run/bpfd/fs/maps/ \
       -e BPFD_INTERFACE=ens3 \
       -e BPFD_BYTECODE_URL=quay.io/bpfd/bytecode:gocounter \
       gocounter:local
