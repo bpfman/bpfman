@@ -28,6 +28,7 @@ CFG_CA_CERT_DIR="/etc/bpfd/certs/ca"
 
 # RuntimeDirectory: /run/bpfd/
 RUNTIME_DIR="/run/bpfd"
+RTDIR_FS="/run/bpfd/fs"
 
 # CacheDirectory: /var/cache/
 
@@ -117,7 +118,7 @@ case "$1" in
         ;;
     "install")
         user_init
-        cert_init false
+        #cert_init false
         install false
         ;;
     "reinstall")

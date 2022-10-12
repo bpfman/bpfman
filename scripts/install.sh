@@ -49,6 +49,7 @@ copy_svc() {
     echo "  Copying \"${svc_name}.service\" and chown \"${user_name}:${user_group}\""
     cp "${svc_name}.service" "${DST_SVC_PATH}/${svc_name}.service"
     chown ${user_name}:${user_group} "${DST_SVC_PATH}/${svc_name}.service"
+    systemctl daemon-reload
 }
 
 del_svc() {

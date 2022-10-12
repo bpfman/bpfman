@@ -11,6 +11,7 @@ mod static_program;
 use anyhow::Context;
 use bpf::BpfManager;
 use bpfd_api::{
+    certs::get_tls_config,
     util::directories::CFGDIR_STATIC_PROGRAMS,
     v1::{loader_server::LoaderServer, ProceedOn},
 };
@@ -21,9 +22,11 @@ use rpc::{BpfdLoader, Command};
 pub use static_program::programs_from_directory;
 use static_program::StaticPrograms;
 use tokio::sync::mpsc;
-use tonic::transport::{Certificate, Identity, Server, ServerTlsConfig};
+use tonic::transport::{Server, ServerTlsConfig};
 
 use self::rpc::intercept;
+
+const CN_NAME: &str = "bpfd";
 
 pub async fn serve(
     config: Config,
@@ -35,18 +38,16 @@ pub async fn serve(
 
     let loader = BpfdLoader::new(tx);
 
-    let cert = tokio::fs::read(&config.tls.cert)
-        .await
-        .context("Server Cert File does not exist")?;
-    let key = tokio::fs::read(&config.tls.key)
-        .await
-        .context("Server Cert Key does not exist")?;
-    let identity = Identity::from_pem(cert, key);
-
-    let ca_cert = tokio::fs::read(&config.tls.ca_cert)
-        .await
-        .context("CA Cert File does not exist")?;
-    let ca_cert = Certificate::from_pem(ca_cert);
+    let (ca_cert, identity) = get_tls_config(
+        &config.tls.ca_cert,
+        &config.tls.key,
+        &config.tls.cert,
+        CN_NAME,
+        true,
+        true,
+    )
+    .await
+    .context("CA Cert File does not exist")?;
 
     let tls_config = ServerTlsConfig::new()
         .identity(identity)

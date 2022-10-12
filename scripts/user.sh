@@ -40,6 +40,7 @@ delete_user() {
     if [ "${user_name}" == "${USER_BPFD}" ]; then
         echo "  Deleting \"${user_name}\" specific directories"
         echo "  Deleting \"${RUNTIME_DIR}\""
+        umount "${RTDIR_FS}"
         rm -rf "${RUNTIME_DIR}"
         echo "  Deleting \"${STATE_DIR}\""
         rm -rf "${STATE_DIR}"
@@ -114,9 +115,9 @@ create_user_dirs() {
 user_init() {
     echo "Creating users/groups:"
     create_user "${USER_BPFD}" "${USER_GROUP}"
-    create_user_dirs "${USER_BPFD}" "${USER_GROUP}" "${BIN_BPFD}"
+    #create_user_dirs "${USER_BPFD}" "${USER_GROUP}" "${BIN_BPFD}"
     create_user "${USER_BPFCTL}" "${USER_GROUP}"
-    create_user_dirs "${USER_BPFCTL}" "${USER_GROUP}" "${BIN_BPFCTL}"
+    #create_user_dirs "${USER_BPFCTL}" "${USER_GROUP}" "${BIN_BPFCTL}"
 }
 
 user_del() {
