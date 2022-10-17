@@ -2,6 +2,7 @@
 Description=Run bpfd as a service
 DefaultDependencies=no
 After=network.target
+Before=bpfctl.service
 
 [Service]
 Environment="RUST_LOG=Info"

@@ -4,6 +4,7 @@
 use std::{collections::HashMap, fs, path::Path};
 
 use aya::programs::XdpFlags;
+use bpfd_api::util::directories::*;
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
 
@@ -23,9 +24,9 @@ pub struct TlsConfig {
 impl Default for TlsConfig {
     fn default() -> Self {
         Self {
-            ca_cert: "/etc/bpfd/certs/ca/ca.pem".to_string(),
-            cert: "/etc/bpfd/certs/bpfd/bpfd.pem".to_string(),
-            key: "/etc/bpfd/certs/bpfd/bpfd.key".to_string(),
+            ca_cert: CFGPATH_CA_CERTS_PEM.to_string(),
+            cert: CFGPATH_BPFD_CERTS_PEM.to_string(),
+            key: CFGPATH_BPFD_CERTS_KEY.to_string(),
         }
     }
 }

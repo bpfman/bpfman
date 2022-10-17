@@ -60,6 +60,7 @@ del_svc() {
     fi
 
     echo "  Stopping \"${svc_name}.service\""
+    systemctl disable ${svc_name}.service
     systemctl stop ${svc_name}.service
 
     echo "  Removing \"${svc_name}.service\""
@@ -87,7 +88,9 @@ install() {
     if [ "${reinstall}" == false ]; then
         echo "Copy service file:"
         copy_svc "${BIN_BPFD}" "${USER_BPFD}" "${USER_GROUP}"
+        copy_svc "${BIN_BPFCTL}" "${USER_BPFCTL}" "${USER_GROUP}"
         echo "  Starting \"${BIN_BPFD}.service\""
+        systemctl enable ${BIN_BPFCTL}.service
         systemctl start ${BIN_BPFD}.service
     else
         if [ "${START_BPFD}" == true ]; then
@@ -99,9 +102,10 @@ install() {
 
 uninstall() {
     echo "Remove service file:"
+    del_svc "${BIN_BPFCTL}"
     del_svc "${BIN_BPFD}"
 
     echo "Remove binaries:"
-    del_bin "${BIN_BPFD}"
     del_bin "${BIN_BPFCTL}"
+    del_bin "${BIN_BPFD}"
 }

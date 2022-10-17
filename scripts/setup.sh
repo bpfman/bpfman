@@ -40,40 +40,6 @@ STATE_DIR="/var/lib/bpfd"
 
 usage() {
     echo "USAGE:"
-    echo "sudo ./scripts/setup.sh certs"
-    echo "    Setup for running \"bpfd\" in foreground or background and straight"
-    echo "    from build directory. No \"${USER_BPFD}\" or \"${USER_BPFCTL}\" users are created so"
-    echo "    always need \"sudo\" when executing \"bptctl\" commands. Performs the"
-    echo "    following tasks:"
-    echo "    * Create \"/etc/${USER_BPFD}/\" and \"/etc/${USER_BPFCTL}/\" directories."
-    echo "    * Copy a default \"bpfd.toml\" and \"bpfctl.toml\" if needed."
-    echo "    * Create certs for \"bpfd\" and \"bpfctl\" if needed."
-    echo "    * To run \"bpfd\":"
-    echo "          sudo RUST_LOG=info ./target/debug/bpfd"
-    echo "          <CTRL-C>"
-    echo "sudo ./scripts/setup.sh del"
-    echo "    Unwinds all actions performed by \"setup.sh certs\"."
-    echo "----"
-    echo "sudo ./scripts/setup.sh init"
-    echo "    Setup for running \"bpfd\" in foreground or background and straight"
-    echo "    from build directory, but also creates the \"${USER_BPFD}\" or \"${USER_BPFCTL}\" users"
-    echo "    and the \"${USER_GROUP}\" user group. Performs the following tasks:"
-    echo "    * Create Users \"${USER_BPFD}\" and \"${USER_BPFCTL}\" and User Group \"${USER_GROUP}\"."
-    echo "    * Create \"/etc/${USER_BPFD}/\" and \"/etc/${USER_BPFCTL}/\" directories and set user"
-    echo "      group for each."
-    echo "    * Copy a default \"bpfd.toml\" and \"bpfctl.toml\" if needed."
-    echo "    * Create certs for \"bpfd\" and \"bpfctl\" if needed."
-    echo "    * To run \"bpfd\":"
-    echo "          sudo RUST_LOG=info ./target/debug/bpfd"
-    echo "          <CTRL-C>"
-    echo "    * Optionally, to run \"bpfctl\" without sudo, add usergroup \"${USER_GROUP}\""
-    echo "      to desired user and logout/login to apply:"
-    echo "          sudo usermod -a -G ${USER_GROUP} \$USER"
-    echo "          exit"
-    echo "          <LOGIN>"
-    echo "sudo ./scripts/setup.sh del"
-    echo "    Unwinds all actions performed by \"setup.sh init\"."
-    echo "----"
     echo "sudo ./scripts/setup.sh install"
     echo "    Setup for running \"bpfd\" as a systemd service. Performs the following"
     echo "    tasks:"
@@ -91,11 +57,8 @@ usage() {
     echo "sudo ./scripts/setup.sh uninstall"
     echo "    Unwind all actions performed by \"setup.sh install\" including stopping"
     echo "    the \"bpfd\" service if it is running."
-    echo "----"
     echo "sudo ./scripts/setup.sh gocounter"
     echo "    Create the certs for the \"gocounter\" example."
-    echo "sudo ./scripts/setup.sh regen"
-    echo "    Regenerate all existing certs."
     echo ""
 }
 
@@ -105,20 +68,8 @@ if [ $USER != "root" ]; then
 fi
 
 case "$1" in
-    "certs")
-        user_dir
-        cert_init false
-        ;;
-    "init")
-        user_init
-        cert_init false
-        ;;
-    "del"|"delete")
-        user_del
-        ;;
     "install")
         user_init
-        #cert_init false
         install false
         ;;
     "reinstall")
@@ -130,9 +81,6 @@ case "$1" in
         ;;
     "gocounter")
         cert_client gocounter ${USER_BPFCTL} false
-        ;;
-    "regen")
-        cert_init true
         ;;
     "help"|"--help"|"?")
         usage

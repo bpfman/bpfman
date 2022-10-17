@@ -48,6 +48,12 @@ jobs:
     - name: Verify the bpfd systemd service is active
       run: systemctl is-active bpfd
 
+    - name: Wait for bpfd to creates certs
+      run: sleep 4
+
+    - name: Verify the bpfctl systemd service is active
+      run: systemctl is-active bpfctl
+
     - name: Verify the bpfd systemd service is active
       run: sudo bpfctl --help
 
