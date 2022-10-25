@@ -49,6 +49,7 @@ copy_svc() {
     echo "  Copying \"${svc_name}.service\" and chown \"${user_name}:${user_group}\""
     cp "${svc_name}.service" "${DST_SVC_PATH}/${svc_name}.service"
     chown ${user_name}:${user_group} "${DST_SVC_PATH}/${svc_name}.service"
+    systemctl daemon-reload
 }
 
 del_svc() {
@@ -59,6 +60,7 @@ del_svc() {
     fi
 
     echo "  Stopping \"${svc_name}.service\""
+    systemctl disable ${svc_name}.service
     systemctl stop ${svc_name}.service
 
     echo "  Removing \"${svc_name}.service\""
@@ -86,7 +88,9 @@ install() {
     if [ "${reinstall}" == false ]; then
         echo "Copy service file:"
         copy_svc "${BIN_BPFD}" "${USER_BPFD}" "${USER_GROUP}"
+        copy_svc "${BIN_BPFCTL}" "${USER_BPFCTL}" "${USER_GROUP}"
         echo "  Starting \"${BIN_BPFD}.service\""
+        systemctl enable ${BIN_BPFCTL}.service
         systemctl start ${BIN_BPFD}.service
     else
         if [ "${START_BPFD}" == true ]; then
@@ -98,9 +102,10 @@ install() {
 
 uninstall() {
     echo "Remove service file:"
+    del_svc "${BIN_BPFCTL}"
     del_svc "${BIN_BPFD}"
 
     echo "Remove binaries:"
-    del_bin "${BIN_BPFD}"
     del_bin "${BIN_BPFCTL}"
+    del_bin "${BIN_BPFD}"
 }

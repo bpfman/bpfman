@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
+use bpfd_api::util::directories::RTDIR_BYTECODE;
 use flate2::read::GzDecoder;
 use log::debug;
 use oci_distribution::{client, manifest, secrets::RegistryAuth, Client, Reference};
@@ -7,8 +8,6 @@ use serde::Deserialize;
 use serde_json::Value;
 use tar::Archive;
 use thiserror::Error;
-
-const CONTAINERIZED_BYTECODE_PATH: &str = "/var/bpfd/bytecode/";
 
 #[derive(Debug, Deserialize, Default)]
 pub struct ContainerImageMetadata {
@@ -88,17 +87,17 @@ pub async fn pull_bytecode(image_url: &String) -> Result<ProgramOverrides, anyho
         .map(|layer| layer.data)
         .ok_or(ImageError::BytecodeImageExtractFailure)?;
 
-    let bytecode_path = CONTAINERIZED_BYTECODE_PATH.to_owned() + &image_labels.filename;
+    let bytecode_path = RTDIR_BYTECODE.to_owned() + "/" + &image_labels.filename;
 
     // Create bytecode directory if not exists
-    std::fs::create_dir_all(CONTAINERIZED_BYTECODE_PATH)?;
+    std::fs::create_dir_all(RTDIR_BYTECODE)?;
 
     // Data is of OCI media type "application/vnd.oci.image.layer.v1.tar+gzip" or
     // "application/vnd.docker.image.rootfs.diff.tar.gzip"
     // decode and unpack to access bytecode
     let unzipped_tarball = GzDecoder::new(image_content.as_slice());
     let mut tarball = Archive::new(unzipped_tarball);
-    tarball.unpack(CONTAINERIZED_BYTECODE_PATH)?;
+    tarball.unpack(RTDIR_BYTECODE)?;
 
     Ok(ProgramOverrides {
         path: bytecode_path,

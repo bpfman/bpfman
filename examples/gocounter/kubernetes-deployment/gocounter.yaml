@@ -60,7 +60,7 @@ spec:
       mountPath: /var/bpfd/bytecode
       readOnly: false
     - name: gocounter-maps
-      mountPath: /var/run/bpfd/fs/maps
+      mountPath: /run/bpfd/fs/maps
       readOnly: true
     - name: gocounter-config
       mountPath: /etc/bpfctl/gocounter.toml
@@ -80,7 +80,7 @@ spec:
       path: /var/bpfd/bytecode
   - name: gocounter-maps
     hostPath:
-      path: /var/run/bpfd/fs/maps
+      path: /run/bpfd/fs/maps
   - name: gocounter-config
     configMap:
       name: gocounter-config

@@ -3,6 +3,7 @@
 
 use std::{fs, path::Path};
 
+use bpfd_api::util::directories::*;
 use log::{error, warn};
 use serde::Deserialize;
 
@@ -21,9 +22,9 @@ pub struct TlsConfig {
 impl Default for TlsConfig {
     fn default() -> Self {
         Self {
-            ca_cert: "/etc/bpfd/certs/ca/ca.pem".to_string(),
-            cert: "/etc/bpfd/certs/bpfctl/bpfctl.pem".to_string(),
-            key: "/etc/bpfd/certs/bpfctl/bpfctl.key".to_string(),
+            ca_cert: CFGPATH_CA_CERTS_PEM.to_string(),
+            cert: CFGPATH_BPFCTL_CERTS_PEM.to_string(),
+            key: CFGPATH_BPFCTL_CERTS_KEY.to_string(),
         }
     }
 }

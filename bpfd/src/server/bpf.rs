@@ -13,6 +13,7 @@ use aya::{
     },
     Bpf, BpfLoader,
 };
+use bpfd_api::util::directories::{RTDIR_DISPATCHER, RTDIR_FS, RTDIR_FS_MAPS, RTDIR_PROGRAMS};
 use bpfd_common::*;
 use log::info;
 use nix::net::if_::if_nametoindex;
@@ -67,13 +68,13 @@ impl ExtensionProgram {
     }
 
     fn save(&self, uuid: Uuid) -> Result<(), anyhow::Error> {
-        let path = format!("/var/run/bpfd/programs/{uuid}");
+        let path = format!("{RTDIR_PROGRAMS}/{uuid}");
         serde_json::to_writer(&fs::File::create(path)?, &self)?;
         Ok(())
     }
 
     fn delete(&self, uuid: Uuid) -> Result<(), anyhow::Error> {
-        let path = format!("/var/run/bpfd/programs/{uuid}");
+        let path = format!("{RTDIR_PROGRAMS}/{uuid}");
         fs::remove_file(path)?;
         let path = format!("/var/run/bpfd/fs/prog_{uuid}");
         fs::remove_file(path)?;
@@ -84,7 +85,7 @@ impl ExtensionProgram {
     }
 
     fn load(uuid: Uuid) -> Result<Self, anyhow::Error> {
-        let path = format!("/var/run/bpfd/programs/{uuid}");
+        let path = format!("{RTDIR_PROGRAMS}/{uuid}");
         let file = fs::File::open(path)?;
         let reader = BufReader::new(file);
         let prog = serde_json::from_reader(reader)?;
@@ -99,19 +100,19 @@ pub(crate) struct DispatcherProgramXdp {
 
 impl DispatcherProgramXdp {
     fn save(&self, if_index: u32) -> Result<(), anyhow::Error> {
-        let path = format!("/var/run/bpfd/dispatchers/{if_index}");
+        let path = format!("{RTDIR_DISPATCHER}/{if_index}");
         serde_json::to_writer(&fs::File::create(path)?, &self)?;
         Ok(())
     }
 
     fn delete(&self, if_index: u32) -> Result<(), anyhow::Error> {
-        let path = format!("/var/run/bpfd/dispatchers/{if_index}");
+        let path = format!("{RTDIR_DISPATCHER}/{if_index}");
         fs::remove_file(path)?;
         Ok(())
     }
 
     fn load(if_index: u32) -> Result<Self, anyhow::Error> {
-        let path = format!("/var/run/bpfd/dispatchers/{if_index}");
+        let path = format!("{RTDIR_DISPATCHER}/{if_index}");
         let file = fs::File::open(path)?;
         let reader = BufReader::new(file);
         let prog = serde_json::from_reader(reader)?;
@@ -287,7 +288,7 @@ impl<'a> BpfManager<'a> {
 
     pub(crate) fn rebuild_state(&mut self) -> Result<(), BpfdError> {
         // 1. Check paths on bpffs
-        for entry in fs::read_dir("/var/run/bpfd/fs")? {
+        for entry in fs::read_dir(RTDIR_FS)? {
             let entry = entry?;
             let name = entry.file_name();
             let parts: Vec<&str> = name.to_str().unwrap().split('_').collect();
@@ -398,7 +399,7 @@ impl<'a> BpfManager<'a> {
     ) -> Result<Uuid, BpfdError> {
         let if_index = self.get_ifindex(&iface)?;
         let id = Uuid::new_v4();
-        let map_pin_path = format!("/var/run/bpfd/fs/maps/{id}");
+        let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
         fs::create_dir_all(map_pin_path.clone())?;
 
         let mut ext_loader = BpfLoader::new()
@@ -893,14 +894,14 @@ impl<'a> BpfManager<'a> {
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
         for (i, (k, v)) in extensions.iter_mut().enumerate() {
             if v.metadata.attached {
-                let mut prog = PinnedProgram::from_pin(format!("/var/run/bpfd/fs/prog_{k}"))?;
+                let mut prog = PinnedProgram::from_pin(format!("{RTDIR_FS}/prog_{k}"))?;
                 let ext: &mut Extension = prog.as_mut().try_into()?;
                 let target_fn = format!("prog{i}");
                 let new_link_id = ext
                     .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
                     .unwrap();
                 let new_link: FdLink = ext.take_link(new_link_id)?.into();
-                let path = format!("/var/run/bpfd/fs/dispatcher_{if_index}_{revision}/link_{k}");
+                let path = format!("{RTDIR_FS}/dispatcher_{if_index}_{revision}/link_{k}");
                 new_link.pin(path).map_err(|_| BpfdError::UnableToPin)?;
             } else {
                 let ext: &mut Extension = ext_loader
@@ -913,14 +914,14 @@ impl<'a> BpfManager<'a> {
                 let target_fn = format!("prog{i}");
 
                 ext.load(dispatcher.fd().unwrap(), &target_fn)?;
-                ext.pin(format!("/var/run/bpfd/fs/prog_{k}"))
+                ext.pin(format!("{RTDIR_FS}/prog_{k}"))
                     .map_err(|_| BpfdError::UnableToPin)?;
                 let new_link_id = ext.attach()?;
                 let new_link = ext.take_link(new_link_id)?;
                 let fd_link: FdLink = new_link.into();
                 fd_link
                     .pin(format!(
-                        "/var/run/bpfd/fs/dispatcher_{if_index}_{revision}/link_{k}"
+                        "{RTDIR_FS}/dispatcher_{if_index}_{revision}/link_{k}"
                     ))
                     .map_err(|_| BpfdError::UnableToPin)?;
                 v.metadata.attached = true;
@@ -1004,7 +1005,7 @@ impl<'a> BpfManager<'a> {
             .unwrap()
             .try_into()?;
         if let Some(d) = self.dispatchers_xdp.remove(&if_index) {
-            let path = format!("/var/run/bpfd/fs/dispatcher_{if_index}_link");
+            let path = format!("{RTDIR_FS}/dispatcher_{if_index}_link");
             let pinned_link: FdLink = PinnedLink::from_pin(path).unwrap().into();
             dispatcher
                 .attach_to_link(pinned_link.try_into().unwrap())
@@ -1020,7 +1021,7 @@ impl<'a> BpfManager<'a> {
             let flags = mode.as_flags();
             let link = dispatcher.attach(&iface, flags).unwrap();
             let owned_link = dispatcher.take_link(link)?;
-            let path = format!("/var/run/bpfd/fs/dispatcher_{if_index}_link");
+            let path = format!("{RTDIR_FS}/dispatcher_{if_index}_link");
             let _ = TryInto::<FdLink>::try_into(owned_link)
                 .unwrap() // TODO: Don't unwrap, although due to minimum kernel version this shouldn't ever panic
                 .pin(path)
@@ -1120,8 +1121,16 @@ impl<'a> BpfManager<'a> {
     }
 
     fn cleanup_extensions_xdp(&self, if_index: u32, revision: usize) -> Result<(), BpfdError> {
-        let path = format!("/var/run/bpfd/fs/dispatcher_{if_index}_{revision}");
+        let path = format!("{RTDIR_FS}/dispatcher_{if_index}_{revision}");
         fs::remove_dir_all(path).map_err(|io_error| BpfdError::UnableToCleanup { io_error })
+    }
+
+    fn delete_link_xdp(&self, if_index: u32, revision: usize) -> Result<(), BpfdError> {
+        let path_link = format!("{RTDIR_FS}/dispatcher_{if_index}_link");
+        fs::remove_file(path_link)?;
+        let path_link_rev = format!("{RTDIR_FS}/dispatcher_{if_index}_{revision}/");
+        fs::remove_dir_all(path_link_rev)
+            .map_err(|io_error| BpfdError::UnableToCleanup { io_error })
     }
 
     fn cleanup_extensions_tc(
@@ -1130,16 +1139,8 @@ impl<'a> BpfManager<'a> {
         if_index: u32,
         revision: usize,
     ) -> Result<(), BpfdError> {
-        let path = format!("/var/run/bpfd/fs/dispatcher_{prog_type}_{if_index}_{revision}");
+        let path = format!("{RTDIR_FS}/dispatcher_{prog_type}_{if_index}_{revision}");
         fs::remove_dir_all(path).map_err(|io_error| BpfdError::UnableToCleanup { io_error })
-    }
-
-    fn delete_link_xdp(&self, if_index: u32, revision: usize) -> Result<(), BpfdError> {
-        let path_link = format!("/var/run/bpfd/fs/dispatcher_{if_index}_link");
-        fs::remove_file(path_link)?;
-        let path_link_rev = format!("/var/run/bpfd/fs/dispatcher_{if_index}_{revision}/");
-        fs::remove_dir_all(path_link_rev)
-            .map_err(|io_error| BpfdError::UnableToCleanup { io_error })
     }
 
     fn get_ifindex(&mut self, iface: &str) -> Result<u32, BpfdError> {
@@ -1214,7 +1215,7 @@ impl<'a> BpfManager<'a> {
 
         dispatcher.load()?;
 
-        let path = format!("/var/run/bpfd/fs/dispatcher_{if_index}_{revision}");
+        let path = format!("{RTDIR_FS}/dispatcher_{if_index}_{revision}");
         fs::create_dir_all(path).unwrap();
 
         Ok(dispatcher_loader)

@@ -55,7 +55,7 @@ spec:
           # These certs are missing in the scratch image to keep it small.  Mount
           # and use the host's instead.
         - name: host-bytecode
-          mountPath: /etc/bpfd/bytecode
+          mountPath: /run/bpfd/bytecode
       - name: bpfd-agent 
         image: quay.io/bpfd/bpfd-agent:main
         securityContext:
@@ -97,5 +97,5 @@ spec:
           name: bpfd-config
       - name: host-bytecode
         hostPath:
-          path: /etc/bpfd/bytecode
+          path: /run/bpfd/bytecode
       

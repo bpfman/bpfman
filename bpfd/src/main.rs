@@ -11,6 +11,7 @@ use std::{
 use anyhow::{bail, Context};
 use aya::include_bytes_aligned;
 use bpfd::server::{config_from_file, programs_from_directory, serve};
+use bpfd_api::util::directories::*;
 use log::{debug, error, info};
 use nix::{
     libc::RLIM_INFINITY,
@@ -20,10 +21,7 @@ use nix::{
 };
 use systemd_journal_logger::{connected_to_journal, init_with_extra_fields};
 
-const DEFAULT_BPFD_CONFIG_PATH: &str = "/etc/bpfd/bpfd.toml";
-const DEFAULT_BPFD_STATIC_PROGRAM_DIR: &str = "/etc/bpfd/programs.d";
 const BPFD_ENV_LOG_LEVEL: &str = "RUST_LOG";
-const BPFFS: &str = "/var/run/bpfd/fs";
 
 fn main() -> anyhow::Result<()> {
     tokio::runtime::Builder::new_multi_thread()
@@ -56,23 +54,33 @@ fn main() -> anyhow::Result<()> {
             );
             setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
 
-            create_dir_all(BPFFS).context("unable to create mountpoint")?;
-            create_dir_all("/var/run/bpfd/programs")?;
-            create_dir_all("/var/run/bpfd/dispatchers")?;
+            create_dir_all(RTDIR).context("unable to create runtime directory")?;
+            create_dir_all(RTDIR_FS).context("unable to create mountpoint")?;
+            create_dir_all(RTDIR_FS_MAPS).context("unable to create maps directory")?;
+            create_dir_all(RTDIR_BYTECODE).context("unable to create bytecode directory")?;
+            create_dir_all(RTDIR_DISPATCHER).context("unable to create dispatcher directory")?;
+            create_dir_all(RTDIR_PROGRAMS).context("unable to create programs directory")?;
 
             if !is_bpffs_mounted()? {
-                debug!("Creating bpffs at /var/run/bpfd/fs");
+                debug!("Creating bpffs at {}", RTDIR_FS);
                 let flags = MsFlags::MS_NOSUID
                     | MsFlags::MS_NODEV
                     | MsFlags::MS_NOEXEC
                     | MsFlags::MS_RELATIME;
-                mount::<str, str, str, str>(None, BPFFS, Some("bpf"), flags, None)
+                mount::<str, str, str, str>(None, RTDIR_FS, Some("bpf"), flags, None)
                     .context("unable to mount bpffs")?;
             }
 
-            let config = config_from_file(DEFAULT_BPFD_CONFIG_PATH);
+            create_dir_all(CFGDIR_BPFD_CERTS).context("unable to create bpfd certs directory")?;
+            create_dir_all(CFGDIR_CA_CERTS).context("unable to create ca certs directory")?;
+            create_dir_all(CFGDIR_STATIC_PROGRAMS)
+                .context("unable to create static programs directory")?;
 
-            let static_programs = programs_from_directory(DEFAULT_BPFD_STATIC_PROGRAM_DIR)?;
+            create_dir_all(STDIR_SOCKET).context("unable to create socket directory")?;
+
+            let config = config_from_file(CFGPATH_BPFD_CONFIG);
+
+            let static_programs = programs_from_directory(CFGDIR_STATIC_PROGRAMS)?;
 
             serve(
                 config,

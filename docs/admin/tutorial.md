@@ -212,7 +212,7 @@ sudo ./scripts/setup.sh del
 ```
 
 **WARNING:** `setup.sh del` and `setup.sh uninstall` cleans everything up, so `/etc/bpfd/programs.d/`
-and `/var/bpfd/bytecode/` are deleted. Save any changes or files that were created if needed.
+and `/run/bpfd/bytecode/` are deleted. Save any changes or files that were created if needed.
 
 ## Unprivileged Mode
 
@@ -320,7 +320,7 @@ sudo ./scripts/setup.sh uninstall
 ```
 
 **WARNING:** `setup.sh del` and `setup.sh uninstall` cleans everything up, so `/etc/bpfd/programs.d/`
-and `/var/bpfd/bytecode/` are deleted. Save any changes or files that were created if needed.
+and `/run/bpfd/bytecode/` are deleted. Save any changes or files that were created if needed.
 
 ## Additional Command
 
