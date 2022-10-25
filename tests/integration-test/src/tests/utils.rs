@@ -17,10 +17,10 @@ pub struct ChildGuard {
 impl Drop for ChildGuard {
     fn drop(&mut self) {
         if let Err(e) = self.child.kill() {
-            println!("Could not kill {}: {}", self.name, e);
+            println!("Could not kill {}: {e}", self.name);
         }
         if let Err(e) = self.child.wait() {
-            println!("Could not wait for {}: {}", self.name, e);
+            println!("Could not wait for {}: {e}", self.name);
         }
     }
 }

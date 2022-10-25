@@ -81,7 +81,7 @@ impl Loader for BpfdLoader {
                     request.path = internal_program_overrides.path;
                     request.section_name = internal_program_overrides.image_meta.section_name;
                 }
-                Err(e) => return Err(Status::aborted(format!("{}", e))),
+                Err(e) => return Err(Status::aborted(format!("{e}"))),
             };
         }
 
@@ -109,13 +109,13 @@ impl Loader for BpfdLoader {
                 }
                 Err(e) => {
                     warn!("BPFD load error: {}", e);
-                    Err(Status::aborted(format!("{}", e)))
+                    Err(Status::aborted(format!("{e}")))
                 }
             },
 
             Err(e) => {
                 warn!("RPC load error: {}", e);
-                Err(Status::aborted(format!("{}", e)))
+                Err(Status::aborted(format!("{e}")))
             }
         }
     }
@@ -155,12 +155,12 @@ impl Loader for BpfdLoader {
                 Ok(_) => Ok(Response::new(reply)),
                 Err(e) => {
                     warn!("BPFD unload error: {}", e);
-                    Err(Status::aborted(format!("{}", e)))
+                    Err(Status::aborted(format!("{e}")))
                 }
             },
             Err(e) => {
                 warn!("RPC unload error: {}", e);
-                Err(Status::aborted(format!("{}", e)))
+                Err(Status::aborted(format!("{e}")))
             }
         }
     }
@@ -203,13 +203,13 @@ impl Loader for BpfdLoader {
                     BpfdError::NoProgramsLoaded => Ok(Response::new(reply)),
                     _ => {
                         warn!("BPFD list error: {}", e);
-                        Err(Status::aborted(format!("{}", e)))
+                        Err(Status::aborted(format!("{e}")))
                     }
                 },
             },
             Err(e) => {
                 warn!("RPC list error: {}", e);
-                Err(Status::aborted(format!("{}", e)))
+                Err(Status::aborted(format!("{e}")))
             }
         }
     }

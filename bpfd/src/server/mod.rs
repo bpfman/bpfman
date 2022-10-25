@@ -57,7 +57,7 @@ pub async fn serve(
     tokio::spawn(async move {
         info!("Listening on [::1]:50051");
         if let Err(e) = serve.await {
-            eprintln!("Error = {:?}", e);
+            eprintln!("Error = {e:?}");
         }
     });
 
@@ -76,7 +76,7 @@ pub async fn serve(
                         match ProceedOn::try_from(i.to_string()) {
                             Ok(action) => proc_on.push(action as i32),
                             Err(e) => {
-                                eprintln!("ERROR: {}", e);
+                                eprintln!("ERROR: {e}");
                                 std::process::exit(1);
                             }
                         };
