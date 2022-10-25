@@ -32,4 +32,6 @@ pub enum BpfdError {
         #[from]
         io_error: io::Error,
     },
+    #[error("Unsupported ProgramType")]
+    UnsuportedProgramType,
 }

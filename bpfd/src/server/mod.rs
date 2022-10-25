@@ -10,7 +10,7 @@ mod static_program;
 
 use anyhow::Context;
 use bpf::BpfManager;
-use bpfd_api::v1::{loader_server::LoaderServer, ProceedOn};
+use bpfd_api::v1::{loader_server::LoaderServer, ProceedOn, ProgramType};
 pub use config::config_from_file;
 use config::Config;
 use log::info;
@@ -24,7 +24,8 @@ use self::rpc::intercept;
 
 pub async fn serve(
     config: Config,
-    dispatcher_bytes: &'static [u8],
+    dispatcher_bytes_xdp: &'static [u8],
+    dispatcher_bytes_tc: &'static [u8],
     static_programs: Vec<StaticPrograms>,
 ) -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(32);
@@ -61,7 +62,7 @@ pub async fn serve(
         }
     });
 
-    let mut bpf_manager = BpfManager::new(&config, dispatcher_bytes);
+    let mut bpf_manager = BpfManager::new(&config, dispatcher_bytes_xdp, dispatcher_bytes_tc);
     bpf_manager.rebuild_state()?;
 
     // Load any static programs first
@@ -82,8 +83,10 @@ pub async fn serve(
                         };
                     }
                 }
+                let prog_type = ProgramType::try_from(program.program_type.to_string())?;
 
                 let uuid = bpf_manager.add_program(
+                    prog_type as i32,
                     program.interface,
                     program.path,
                     program.priority,
@@ -100,6 +103,7 @@ pub async fn serve(
     while let Some(cmd) = rx.recv().await {
         match cmd {
             Command::Load {
+                program_type,
                 iface,
                 path,
                 priority,
@@ -109,6 +113,7 @@ pub async fn serve(
                 responder,
             } => {
                 let res = bpf_manager.add_program(
+                    program_type,
                     iface,
                     path,
                     priority,
