@@ -13,7 +13,7 @@ use bpf::BpfManager;
 use bpfd_api::{
     certs::get_tls_config,
     util::directories::CFGDIR_STATIC_PROGRAMS,
-    v1::{loader_server::LoaderServer, ProceedOn},
+    v1::{loader_server::LoaderServer, ProceedOn, ProgramType},
 };
 pub use config::config_from_file;
 use config::Config;
@@ -30,7 +30,8 @@ const CN_NAME: &str = "bpfd";
 
 pub async fn serve(
     config: Config,
-    dispatcher_bytes: &'static [u8],
+    dispatcher_bytes_xdp: &'static [u8],
+    dispatcher_bytes_tc: &'static [u8],
     static_programs: Vec<StaticPrograms>,
 ) -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(32);
@@ -61,11 +62,11 @@ pub async fn serve(
     tokio::spawn(async move {
         info!("Listening on [::1]:50051");
         if let Err(e) = serve.await {
-            eprintln!("Error = {:?}", e);
+            eprintln!("Error = {e:?}");
         }
     });
 
-    let mut bpf_manager = BpfManager::new(&config, dispatcher_bytes);
+    let mut bpf_manager = BpfManager::new(&config, dispatcher_bytes_xdp, dispatcher_bytes_tc);
     bpf_manager.rebuild_state()?;
 
     // Load any static programs first
@@ -80,14 +81,16 @@ pub async fn serve(
                         match ProceedOn::try_from(i.to_string()) {
                             Ok(action) => proc_on.push(action as i32),
                             Err(e) => {
-                                eprintln!("ERROR: {}", e);
+                                eprintln!("ERROR: {e}");
                                 std::process::exit(1);
                             }
                         };
                     }
                 }
+                let prog_type = ProgramType::try_from(program.program_type.to_string())?;
 
                 let uuid = bpf_manager.add_program(
+                    prog_type as i32,
                     program.interface,
                     program.path,
                     program.priority,
@@ -104,6 +107,7 @@ pub async fn serve(
     while let Some(cmd) = rx.recv().await {
         match cmd {
             Command::Load {
+                program_type,
                 iface,
                 path,
                 priority,
@@ -113,6 +117,7 @@ pub async fn serve(
                 responder,
             } => {
                 let res = bpf_manager.add_program(
+                    program_type,
                     iface,
                     path,
                     priority,

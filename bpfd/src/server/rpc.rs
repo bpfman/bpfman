@@ -81,12 +81,13 @@ impl Loader for BpfdLoader {
                     request.path = internal_program_overrides.path;
                     request.section_name = internal_program_overrides.image_meta.section_name;
                 }
-                Err(e) => return Err(Status::aborted(format!("{}", e))),
+                Err(e) => return Err(Status::aborted(format!("{e}"))),
             };
         }
 
         let (resp_tx, resp_rx) = oneshot::channel();
         let cmd = Command::Load {
+            program_type: request.program_type,
             iface: request.iface,
             responder: resp_tx,
             path: request.path,
@@ -109,13 +110,13 @@ impl Loader for BpfdLoader {
                 }
                 Err(e) => {
                     warn!("BPFD load error: {}", e);
-                    Err(Status::aborted(format!("{}", e)))
+                    Err(Status::aborted(format!("{e}")))
                 }
             },
 
             Err(e) => {
                 warn!("RPC load error: {}", e);
-                Err(Status::aborted(format!("{}", e)))
+                Err(Status::aborted(format!("{e}")))
             }
         }
     }
@@ -155,12 +156,12 @@ impl Loader for BpfdLoader {
                 Ok(_) => Ok(Response::new(reply)),
                 Err(e) => {
                     warn!("BPFD unload error: {}", e);
-                    Err(Status::aborted(format!("{}", e)))
+                    Err(Status::aborted(format!("{e}")))
                 }
             },
             Err(e) => {
                 warn!("RPC unload error: {}", e);
-                Err(Status::aborted(format!("{}", e)))
+                Err(Status::aborted(format!("{e}")))
             }
         }
     }
@@ -203,13 +204,13 @@ impl Loader for BpfdLoader {
                     BpfdError::NoProgramsLoaded => Ok(Response::new(reply)),
                     _ => {
                         warn!("BPFD list error: {}", e);
-                        Err(Status::aborted(format!("{}", e)))
+                        Err(Status::aborted(format!("{e}")))
                     }
                 },
             },
             Err(e) => {
                 warn!("RPC list error: {}", e);
-                Err(Status::aborted(format!("{}", e)))
+                Err(Status::aborted(format!("{e}")))
             }
         }
     }
@@ -219,6 +220,7 @@ impl Loader for BpfdLoader {
 #[derive(Debug)]
 pub(crate) enum Command {
     Load {
+        program_type: i32,
         iface: String,
         path: String,
         priority: i32,

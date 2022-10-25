@@ -46,8 +46,11 @@ fn main() -> anyhow::Result<()> {
             has_cap(caps::CapSet::Effective, caps::Capability::CAP_BPF);
             has_cap(caps::CapSet::Effective, caps::Capability::CAP_SYS_ADMIN);
 
-            let dispatcher_bytes = include_bytes_aligned!(
+            let dispatcher_bytes_xdp = include_bytes_aligned!(
                 "../../target/bpfel-unknown-none/release/xdp_dispatcher.bpf.o"
+            );
+            let dispatcher_bytes_tc = include_bytes_aligned!(
+                "../../target/bpfel-unknown-none/release/tc_dispatcher.bpf.o"
             );
             setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
 
@@ -79,7 +82,13 @@ fn main() -> anyhow::Result<()> {
 
             let static_programs = programs_from_directory(CFGDIR_STATIC_PROGRAMS)?;
 
-            serve(config, dispatcher_bytes, static_programs).await?;
+            serve(
+                config,
+                dispatcher_bytes_xdp,
+                dispatcher_bytes_tc,
+                static_programs,
+            )
+            .await?;
             Ok(())
         })
 }
