@@ -495,7 +495,7 @@ impl<'a> BpfManager<'a> {
     ) -> Result<Uuid, BpfdError> {
         let if_index = self.get_ifindex(&iface)?;
         let id = Uuid::new_v4();
-        let map_pin_path = format!("/var/run/bpfd/fs/maps/{}", id);
+        let map_pin_path = format!("/var/run/bpfd/fs/maps/{id}");
         fs::create_dir_all(map_pin_path.clone())?;
 
         // Add clsact qdisc to the interface. This is harmless if it has already been added.
@@ -864,7 +864,7 @@ impl<'a> BpfManager<'a> {
                 id: id.to_string(),
                 // ANF-TODO: the following prepends prog_type to the name to help with the list_programs() hack described above.
                 // Remove this after the above TODO is fixed.
-                name: format!("{}:{}", prog_type, v.metadata.name),
+                name: format!("{prog_type}:{}", v.metadata.name),
                 path: v.path.clone(),
                 position: v.current_position.unwrap(),
                 priority: v.metadata.priority,
@@ -958,7 +958,7 @@ impl<'a> BpfManager<'a> {
             if v.metadata.attached {
                 let mut prog = PinnedProgram::from_pin(format!("/var/run/bpfd/fs/prog_{k}"))?;
                 let ext: &mut Extension = prog.as_mut().try_into()?;
-                let target_fn = format!("prog{}", i);
+                let target_fn = format!("prog{i}");
                 let new_link_id = ext
                     .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
                     .unwrap();
@@ -975,7 +975,7 @@ impl<'a> BpfManager<'a> {
                     .ok_or_else(|| BpfdError::SectionNameNotValid(v.metadata.name.clone()))?
                     .try_into()?;
 
-                let target_fn = format!("prog{}", i);
+                let target_fn = format!("prog{i}");
 
                 ext.load(dispatcher.fd().unwrap(), &target_fn)?;
                 ext.pin(format!("/var/run/bpfd/fs/prog_{k}"))

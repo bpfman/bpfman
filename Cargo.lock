@@ -341,8 +341,12 @@ dependencies = [
 name = "bpfd-api"
 version = "0.1.0"
 dependencies = [
+ "log",
+ "nix 0.25.0",
+ "openssl",
  "prost",
  "thiserror",
+ "tokio",
  "tonic",
 ]
 
