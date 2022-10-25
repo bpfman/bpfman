@@ -24,7 +24,11 @@ use crate::server::{
     errors::BpfdError,
 };
 
-const DEFAULT_ACTIONS_MAP_XDP: u32 = 1 << 2 | 1 << 31; // Default is Pass and DispatcherReturn
+// Default is Pass and DispatcherReturn
+const DEFAULT_XDP_PROCEED_ON_PASS: i32 = 2;
+const DEFAULT_XDP_PROCEED_ON_DISPATCHER_RETURN: i32 = 31;
+const DEFAULT_XDP_ACTIONS_MAP: u32 =
+    1 << DEFAULT_XDP_PROCEED_ON_PASS as u32 | 1 << DEFAULT_XDP_PROCEED_ON_DISPATCHER_RETURN as u32;
 const DEFAULT_ACTIONS_MAP_TC: u32 = 1 << 3; // TC_ACT_PIPE;
 const DEFAULT_PRIORITY: u32 = 50;
 const MIN_TC_DISPATCHER_PRIORITY: u16 = 50;
@@ -53,7 +57,7 @@ impl ExtensionProgram {
     fn proceed_on_mask(&self) -> u32 {
         let mut proceed_on_mask: u32 = 0;
         if self.proceed_on.is_empty() {
-            proceed_on_mask = DEFAULT_ACTIONS_MAP_XDP;
+            proceed_on_mask = DEFAULT_XDP_ACTIONS_MAP;
         } else {
             for action in self.proceed_on.clone().into_iter() {
                 proceed_on_mask |= 1 << action;
@@ -428,6 +432,15 @@ impl<'a> BpfManager<'a> {
                 self.revisions_xdp.insert(if_index, 0);
                 (None, 0)
             };
+
+        let proceed_on = if proceed_on.is_empty() {
+            vec![
+                DEFAULT_XDP_PROCEED_ON_PASS,
+                DEFAULT_XDP_PROCEED_ON_DISPATCHER_RETURN,
+            ]
+        } else {
+            proceed_on
+        };
 
         let prog = ExtensionProgram {
             path,
@@ -1173,7 +1186,7 @@ impl<'a> BpfManager<'a> {
         bytes: &[u8],
         revision: usize,
     ) -> Result<Bpf, BpfdError> {
-        let mut chain_call_actions = [DEFAULT_ACTIONS_MAP_XDP; 10];
+        let mut chain_call_actions = [DEFAULT_XDP_ACTIONS_MAP; 10];
 
         let mut extensions = self
             .progs_xdp
