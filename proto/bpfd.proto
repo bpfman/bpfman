@@ -10,9 +10,14 @@ service Loader {
 
 enum ProgramType {
     XDP = 0;
-    TC_INGRESS = 1;
-    TC_EGRESS = 2;
-    TRACEPOINT = 3;
+    TC = 1;
+    TRACEPOINT = 2;
+}
+
+enum Direction {
+    NONE = 0;
+    INGRESS = 1;
+    EGRESS = 2;
 }
 
 enum ProceedOn {
@@ -29,16 +34,18 @@ message LoadRequest {
     bool from_image = 2;
     string section_name = 3;
     ProgramType program_type = 4;
+    Direction direction = 5;
     oneof attach_type {
-        NetworkMultiAttach network_multi_attach = 5;
-        SingleAttach single_attach = 6;
+        NetworkMultiAttach network_multi_attach = 6;
+        SingleAttach single_attach = 7;
     }
 };
 
 message NetworkMultiAttach {
-    int32 priority = 5;
-    string iface = 6;
-    repeated ProceedOn proceed_on = 7;
+    int32 priority = 1;
+    string iface = 2;
+    int32 position = 3;
+    repeated ProceedOn proceed_on = 4;
 }
 
 message SingleAttach {
@@ -50,25 +57,24 @@ message LoadResponse {
 }
 
 message UnloadRequest {
-    string iface = 1;
-    string id = 2;
+    string id = 1;
 }
 
 message UnloadResponse {}
 
-message ListRequest {
-    string iface = 1;
-}
+message ListRequest {}
 
 message ListResponse {
-  string xdp_mode = 1;
   message ListResult {
     string id = 1;
     string name = 2;
-    uint32 position = 3;
-    int32 priority = 4;
-    string path = 5;
-    repeated ProceedOn proceed_on = 6;
+    string path = 3;
+    ProgramType program_type = 4;
+    Direction direction = 5;
+    oneof attach_type {
+        NetworkMultiAttach network_multi_attach = 6;
+        SingleAttach single_attach = 7;
+    }
   }
   repeated ListResult results = 2;
 }

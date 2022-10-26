@@ -79,7 +79,7 @@ pub async fn serve(
                                     match ProceedOn::try_from(i.to_string()) {
                                         Ok(action) => proc_on.push(action as i32),
                                         Err(e) => {
-                                            eprintln!("ERROR: {}", e);
+                                            eprintln!("ERROR: {e}");
                                             std::process::exit(1);
                                         }
                                     };
@@ -102,7 +102,6 @@ pub async fn serve(
                                     },
                                     proceed_on: proc_on,
                                     if_name: m.interface,
-                                    direction: None,
                                 },
                             )
                         } else {
@@ -124,12 +123,13 @@ pub async fn serve(
                 path,
                 section_name,
                 program_type,
+                direction,
                 attach_type:
                     AttachType::NetworkMultiAttach(NetworkMultiAttach {
                         iface,
                         priority,
                         proceed_on,
-                        direction,
+                        position: _,
                     }),
                 username,
                 responder,
@@ -152,10 +152,27 @@ pub async fn serve(
                                 },
                                 proceed_on,
                                 if_name: iface,
-                                direction: None,
                             },
                         ),
-                        command::ProgramType::Tc => unimplemented!(),
+                        command::ProgramType::Tc => Program::Tc(
+                            ProgramData {
+                                path,
+                                owner: username,
+                                section_name: section_name.clone(),
+                            },
+                            NetworkMultiAttachInfo {
+                                if_index,
+                                current_position: None,
+                                metadata: command::Metadata {
+                                    priority,
+                                    name: section_name,
+                                    attached: false,
+                                },
+                                proceed_on,
+                                if_name: iface,
+                            },
+                            direction.unwrap(),
+                        ),
                         _ => panic!("unsupported prog type"),
                     };
                     bpf_manager.add_program(prog)
@@ -172,6 +189,7 @@ pub async fn serve(
                 username,
                 responder,
                 program_type,
+                direction: _,
             } => {
                 let prog = match program_type {
                     command::ProgramType::Tracepoint => Program::Tracepoint(
@@ -197,10 +215,10 @@ pub async fn serve(
                 // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }
-            Command::List { iface, responder } => {
-                let res = bpf_manager.list_programs(iface);
+            Command::List { responder } => {
+                let progs = bpf_manager.list_programs();
                 // Ignore errors as they'll be propagated to caller in the RPC status
-                let _ = responder.send(res);
+                let _ = responder.send(progs);
             }
         }
     }

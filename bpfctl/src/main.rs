@@ -8,8 +8,8 @@ use bpfd_api::{
     config::config_from_file,
     util::directories::*,
     v1::{
-        load_request::AttachType, loader_client::LoaderClient, ListRequest, LoadRequest,
-        NetworkMultiAttach, ProceedOn, ProgramType, UnloadRequest,
+        list_response, load_request, loader_client::LoaderClient, Direction, ListRequest,
+        LoadRequest, NetworkMultiAttach, ProceedOn, ProgramType, SingleAttach, UnloadRequest,
     },
 };
 use clap::{Parser, Subcommand};
@@ -59,17 +59,10 @@ enum Commands {
         proceed_on: Vec<String>,
     },
     Unload {
-        #[clap(short, long)]
-        /// Required: Interface to unload program from.
-        iface: String,
         /// Required: UUID used to identify loaded program.
         id: String,
     },
-    List {
-        #[clap(short, long)]
-        /// Required: Interface to list loaded programs from.
-        iface: String,
-    },
+    List {},
 }
 
 #[tokio::main]
@@ -128,53 +121,93 @@ async fn main() -> anyhow::Result<()> {
                 from_image: *from_image,
                 section_name: section_name.to_string(),
                 program_type: prog_type as i32,
-                attach_type: Some(AttachType::NetworkMultiAttach(NetworkMultiAttach {
-                    iface: iface.to_string(),
-                    priority: *priority,
-                    proceed_on: proc_on,
-                })),
+                direction: Direction::None as i32,
+                attach_type: Some(load_request::AttachType::NetworkMultiAttach(
+                    NetworkMultiAttach {
+                        priority: *priority,
+                        iface: iface.to_string(),
+                        position: 0,
+                        proceed_on: proc_on,
+                    },
+                )),
             });
             let response = client.load(request).await?.into_inner();
             println!("{}", response.id);
         }
-        Commands::Unload { iface, id } => {
-            let request = tonic::Request::new(UnloadRequest {
-                iface: iface.to_string(),
-                id: id.to_string(),
-            });
+        Commands::Unload { id } => {
+            let request = tonic::Request::new(UnloadRequest { id: id.to_string() });
             let _response = client.unload(request).await?.into_inner();
         }
-        Commands::List { iface } => {
-            let request = tonic::Request::new(ListRequest {
-                iface: iface.to_string(),
-            });
+        Commands::List {} => {
+            let request = tonic::Request::new(ListRequest {});
             let response = client.list(request).await?.into_inner();
             let mut table = Table::new();
             table.load_preset(comfy_table::presets::NOTHING);
-            table.set_header(vec![
-                "Type",
-                "Position",
-                "UUID",
-                "Name",
-                "Priority",
-                "Path",
-                "Proceed-On",
-            ]);
+            table.set_header(vec!["UUID", "Type", "Name", "Path", "Metadata"]);
             for r in response.results {
-                let proceed_on: Vec<String> = r
-                    .proceed_on
-                    .iter()
-                    .map(|action| ProceedOn::try_from(*action as u32).unwrap().to_string())
-                    .collect();
-                table.add_row(vec![
-                    format!("xdp ({})", response.xdp_mode),
-                    r.position.to_string(),
-                    r.id.to_string(),
-                    r.name,
-                    r.priority.to_string(),
-                    r.path,
-                    proceed_on.join(", "),
-                ]);
+                let prog_type: ProgramType = r.program_type.try_into()?;
+                match prog_type {
+                    ProgramType::Xdp => {
+                        if let Some(list_response::list_result::AttachType::NetworkMultiAttach(
+                            NetworkMultiAttach {
+                                priority,
+                                iface,
+                                position,
+                                proceed_on,
+                            },
+                        )) = r.attach_type
+                        {
+                            let proceed_on: Vec<String> = proceed_on
+                                .iter()
+                                .map(|action| {
+                                    ProceedOn::try_from(*action as u32).unwrap().to_string()
+                                })
+                                .collect();
+                            let proceed_on = proceed_on.join(", ");
+                            table.add_row(vec![
+                            r.id.to_string(),
+                            "xdp".to_string(),
+                            r.name,
+                            r.path,
+                            format!(r#"{{"priority": {priority}, "iface": "{iface}", "postiion": {position}, "proceed_on": {proceed_on} }}"#)
+                        ]);
+                        }
+                    }
+                    ProgramType::Tc => {
+                        if let Some(list_response::list_result::AttachType::NetworkMultiAttach(
+                            NetworkMultiAttach {
+                                priority,
+                                iface,
+                                position,
+                                proceed_on: _,
+                            },
+                        )) = r.attach_type
+                        {
+                            let direction = r.direction.to_string();
+                            table.add_row(vec![
+                        r.id.to_string(),
+                        format!("tc-{direction}"),
+                        r.name,
+                        r.path,
+                        format!(r#"{{"priority": {priority}, "iface": "{iface}", "postiion": {position} }}"#)
+                    ]);
+                        }
+                    }
+                    ProgramType::Tracepoint => {
+                        if let Some(list_response::list_result::AttachType::SingleAttach(
+                            SingleAttach { name },
+                        )) = r.attach_type
+                        {
+                            table.add_row(vec![
+                                r.id.to_string(),
+                                "tracepoint".to_string(),
+                                r.name,
+                                r.path,
+                                format!(r#"{{ "tracepoint": {name} }}"#),
+                            ]);
+                        }
+                    }
+                }
             }
             println!("{table}");
         }

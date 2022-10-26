@@ -9,7 +9,7 @@ pub mod util;
 pub mod v1;
 
 use thiserror::Error;
-use v1::{ProceedOn, ProgramType};
+use v1::{Direction, ProceedOn, ProgramType};
 
 #[derive(Error, Debug)]
 pub enum ParseError {
@@ -17,14 +17,15 @@ pub enum ParseError {
     InvalidProgramType { program: String },
     #[error("{proceedon} is not a valid proceed-on value")]
     InvalidProceedOn { proceedon: String },
+    #[error("not a valid direction")]
+    InvalidDirection,
 }
 
 impl ToString for ProgramType {
     fn to_string(&self) -> String {
         match &self {
             ProgramType::Xdp => "xdp".to_owned(),
-            ProgramType::TcIngress => "tc_ingress".to_owned(),
-            ProgramType::TcEgress => "tc_egress".to_owned(),
+            ProgramType::Tc => "tc".to_owned(),
             ProgramType::Tracepoint => "tracepoint".to_owned(),
         }
     }
@@ -36,8 +37,7 @@ impl TryFrom<String> for ProgramType {
     fn try_from(value: String) -> Result<Self, Self::Error> {
         Ok(match value.as_str() {
             "xdp" => ProgramType::Xdp,
-            "tc_ingress" => ProgramType::TcIngress,
-            "tc_egress" => ProgramType::TcEgress,
+            "tc" => ProgramType::Tc,
             "tracepoint" => ProgramType::Tracepoint,
             program => {
                 return Err(ParseError::InvalidProgramType {
@@ -107,14 +107,23 @@ impl TryFrom<i32> for ProgramType {
     fn try_from(value: i32) -> Result<Self, Self::Error> {
         Ok(match value {
             0 => ProgramType::Xdp,
-            1 => ProgramType::TcIngress,
-            2 => ProgramType::TcEgress,
-            3 => ProgramType::Tracepoint,
+            1 => ProgramType::Tc,
+            2 => ProgramType::Tracepoint,
             other => {
                 return Err(ParseError::InvalidProgramType {
                     program: other.to_string(),
                 })
             }
         })
+    }
+}
+
+impl ToString for Direction {
+    fn to_string(&self) -> String {
+        match &self {
+            Direction::None => "none".to_string(),
+            Direction::Ingress => "ingress".to_string(),
+            Direction::Egress => "egress".to_string(),
+        }
     }
 }

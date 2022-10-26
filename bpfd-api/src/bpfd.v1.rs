@@ -8,26 +8,30 @@ pub struct LoadRequest {
     pub section_name: ::prost::alloc::string::String,
     #[prost(enumeration="ProgramType", tag="4")]
     pub program_type: i32,
-    #[prost(oneof="load_request::AttachType", tags="5, 6")]
+    #[prost(enumeration="Direction", tag="5")]
+    pub direction: i32,
+    #[prost(oneof="load_request::AttachType", tags="6, 7")]
     pub attach_type: ::core::option::Option<load_request::AttachType>,
 }
 /// Nested message and enum types in `LoadRequest`.
 pub mod load_request {
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum AttachType {
-        #[prost(message, tag="5")]
-        NetworkMultiAttach(super::NetworkMultiAttach),
         #[prost(message, tag="6")]
+        NetworkMultiAttach(super::NetworkMultiAttach),
+        #[prost(message, tag="7")]
         SingleAttach(super::SingleAttach),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NetworkMultiAttach {
-    #[prost(int32, tag="5")]
+    #[prost(int32, tag="1")]
     pub priority: i32,
-    #[prost(string, tag="6")]
+    #[prost(string, tag="2")]
     pub iface: ::prost::alloc::string::String,
-    #[prost(enumeration="ProceedOn", repeated, tag="7")]
+    #[prost(int32, tag="3")]
+    pub position: i32,
+    #[prost(enumeration="ProceedOn", repeated, tag="4")]
     pub proceed_on: ::prost::alloc::vec::Vec<i32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -43,8 +47,6 @@ pub struct LoadResponse {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UnloadRequest {
     #[prost(string, tag="1")]
-    pub iface: ::prost::alloc::string::String,
-    #[prost(string, tag="2")]
     pub id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -52,13 +54,9 @@ pub struct UnloadResponse {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListRequest {
-    #[prost(string, tag="1")]
-    pub iface: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListResponse {
-    #[prost(string, tag="1")]
-    pub xdp_mode: ::prost::alloc::string::String,
     #[prost(message, repeated, tag="2")]
     pub results: ::prost::alloc::vec::Vec<list_response::ListResult>,
 }
@@ -70,23 +68,32 @@ pub mod list_response {
         pub id: ::prost::alloc::string::String,
         #[prost(string, tag="2")]
         pub name: ::prost::alloc::string::String,
-        #[prost(uint32, tag="3")]
-        pub position: u32,
-        #[prost(int32, tag="4")]
-        pub priority: i32,
-        #[prost(string, tag="5")]
+        #[prost(string, tag="3")]
         pub path: ::prost::alloc::string::String,
-        #[prost(enumeration="super::ProceedOn", repeated, tag="6")]
-        pub proceed_on: ::prost::alloc::vec::Vec<i32>,
+        #[prost(enumeration="super::ProgramType", tag="4")]
+        pub program_type: i32,
+        #[prost(enumeration="super::Direction", tag="5")]
+        pub direction: i32,
+        #[prost(oneof="list_result::AttachType", tags="6, 7")]
+        pub attach_type: ::core::option::Option<list_result::AttachType>,
+    }
+    /// Nested message and enum types in `ListResult`.
+    pub mod list_result {
+        #[derive(Clone, PartialEq, ::prost::Oneof)]
+        pub enum AttachType {
+            #[prost(message, tag="6")]
+            NetworkMultiAttach(super::super::NetworkMultiAttach),
+            #[prost(message, tag="7")]
+            SingleAttach(super::super::SingleAttach),
+        }
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ProgramType {
     Xdp = 0,
-    TcIngress = 1,
-    TcEgress = 2,
-    Tracepoint = 3,
+    Tc = 1,
+    Tracepoint = 2,
 }
 impl ProgramType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -96,9 +103,28 @@ impl ProgramType {
     pub fn as_str_name(&self) -> &'static str {
         match self {
             ProgramType::Xdp => "XDP",
-            ProgramType::TcIngress => "TC_INGRESS",
-            ProgramType::TcEgress => "TC_EGRESS",
+            ProgramType::Tc => "TC",
             ProgramType::Tracepoint => "TRACEPOINT",
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum Direction {
+    None = 0,
+    Ingress = 1,
+    Egress = 2,
+}
+impl Direction {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Direction::None => "NONE",
+            Direction::Ingress => "INGRESS",
+            Direction::Egress => "EGRESS",
         }
     }
 }

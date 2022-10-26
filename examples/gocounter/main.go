@@ -269,7 +269,7 @@ func main() {
 		// 2. Set up defer to unload program when this is closed
 		defer func(id string) {
 			log.Printf("Unloading Program: %s\n", id)
-			_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Iface: iface, Id: id})
+			_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: id})
 			if err != nil {
 				conn.Close()
 				log.Print(err)

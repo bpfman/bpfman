@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use anyhow::Result;
 use bpfd_api::v1::{
-    load_request::AttachType, loader_client::LoaderClient, LoadRequest, NetworkMultiAttach,
-    ProgramType, UnloadRequest,
+    load_request::AttachType, loader_client::LoaderClient, Direction, LoadRequest,
+    NetworkMultiAttach, ProgramType, UnloadRequest,
 };
 use bpfd_k8s_api::v1alpha1::{EbpfProgram, EbpfProgramStatus};
 use kube::{
@@ -214,11 +214,13 @@ pub async fn load_ebpfprogram(
         from_image: from_image_flag,
         section_name: section_name_flag,
         program_type: program_type as i32,
+        direction: Direction::None as i32,
         attach_type: Some(AttachType::NetworkMultiAttach(NetworkMultiAttach {
             iface: attach_point,
             priority: priority_flag,
             // Not supported via the kube API yet
             proceed_on: proc_on,
+            position: 0,
         })),
     });
 
@@ -245,11 +247,10 @@ pub async fn load_ebpfprogram(
 // from the ebpfprogram's annotations and removes it from the node.
 pub async fn unload_ebpfprogram(
     uuid: &str,
-    attach_point: &str,
+    _attach_point: &str,
     ctx: Arc<Context>,
 ) -> Result<(), Error> {
     let request = tonic::Request::new(UnloadRequest {
-        iface: attach_point.to_string(),
         id: uuid.to_string(),
     });
     ctx.bpfd_client

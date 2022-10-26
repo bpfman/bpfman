@@ -30,6 +30,7 @@ pub(crate) enum Command {
         path: String,
         section_name: String,
         program_type: ProgramType,
+        direction: Option<Direction>,
         attach_type: AttachType,
         username: String,
         responder: Responder<Result<Uuid, BpfdError>>,
@@ -40,12 +41,11 @@ pub(crate) enum Command {
         responder: Responder<Result<(), BpfdError>>,
     },
     List {
-        iface: String,
-        responder: Responder<Result<InterfaceInfo, BpfdError>>,
+        responder: Responder<Result<Vec<ProgramInfo>, BpfdError>>,
     },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum AttachType {
     NetworkMultiAttach(NetworkMultiAttach),
     SingleAttach(String),
@@ -78,8 +78,7 @@ impl TryFrom<i32> for ProgramType {
         let bpf_api_type = t.try_into()?;
         match bpf_api_type {
             bpfd_api::v1::ProgramType::Xdp => Ok(Self::Xdp),
-            bpfd_api::v1::ProgramType::TcIngress => Ok(Self::Tc),
-            bpfd_api::v1::ProgramType::TcEgress => Ok(Self::Tc),
+            bpfd_api::v1::ProgramType::Tc => Ok(Self::Tc),
             bpfd_api::v1::ProgramType::Tracepoint => Ok(Self::Tracepoint),
         }
     }
@@ -102,6 +101,18 @@ pub(crate) enum Direction {
     Egress,
 }
 
+impl TryFrom<i32> for Direction {
+    type Error = ParseError;
+
+    fn try_from(v: i32) -> Result<Self, Self::Error> {
+        match v {
+            1 => Ok(Self::Ingress),
+            2 => Ok(Self::Egress),
+            _ => Err(ParseError::InvalidDirection {}),
+        }
+    }
+}
+
 impl std::fmt::Display for Direction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -111,18 +122,12 @@ impl std::fmt::Display for Direction {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NetworkMultiAttach {
     pub(crate) iface: String,
-    pub(crate) direction: Option<Direction>,
     pub(crate) priority: i32,
     pub(crate) proceed_on: Vec<i32>,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct InterfaceInfo {
-    pub(crate) xdp_mode: String,
-    pub(crate) programs: Vec<ProgramInfo>,
+    pub(crate) position: i32,
 }
 
 #[derive(Debug, Clone)]
@@ -130,9 +135,9 @@ pub(crate) struct ProgramInfo {
     pub(crate) id: String,
     pub(crate) name: String,
     pub(crate) path: String,
-    pub(crate) position: usize,
-    pub(crate) priority: i32,
-    pub(crate) proceed_on: Vec<i32>,
+    pub(crate) program_type: ProgramType,
+    pub(crate) direction: Option<Direction>,
+    pub(crate) attach_type: AttachType,
 }
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize)]
@@ -164,7 +169,6 @@ pub(crate) struct NetworkMultiAttachInfo {
     pub(crate) current_position: Option<usize>,
     pub(crate) metadata: Metadata,
     pub(crate) proceed_on: Vec<i32>,
-    pub(crate) direction: Option<Direction>,
 }
 
 impl NetworkMultiAttachInfo {
