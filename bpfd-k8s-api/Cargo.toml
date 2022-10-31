@@ -15,4 +15,4 @@ thiserror = "1.0.36"
 
 [dependencies.kube]
 features = ["runtime", "client", "derive"]
-version = "0.74.0"
+version = "0.76.0"
