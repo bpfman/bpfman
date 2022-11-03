@@ -36,7 +36,7 @@ fn test_load_unload() -> anyhow::Result<()> {
     let _guard = start_bpfd()?;
 
     // Verify bpfctl list contains the uuids of each program
-    let bpfctl_list = bpfd_list(bpfd_iface);
+    let bpfctl_list = bpfd_list();
     let bpfctl_list = bpfctl_list.as_ref();
     for id in uuids.iter() {
         let prog_list = bpfctl_list.unwrap();
@@ -47,12 +47,12 @@ fn test_load_unload() -> anyhow::Result<()> {
     debug!("Deleting bpfd programs");
     sleep(Duration::from_secs(2));
     for id in uuids.iter() {
-        bpfd_del_program(bpfd_iface, id)
+        bpfd_del_program(id)
     }
 
     // Verify bpfctl list does not contain the uuids of the deleted programs
     // and that there are no panics if bpfctl does not contain any programs.
-    let bpfctl_list = bpfd_list(bpfd_iface);
+    let bpfctl_list = bpfd_list();
     let bpfctl_list = bpfctl_list.as_ref();
     for id in uuids.iter() {
         let prog_list = bpfctl_list.unwrap();

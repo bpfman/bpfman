@@ -64,10 +64,10 @@ pub fn add_xdp_pass(iface: &str, priority: &str) -> Result<String> {
 }
 
 /// Delete a bpfd program using bpfctl
-pub fn bpfd_del_program(bpfd_iface: &str, uuid: &str) {
+pub fn bpfd_del_program(uuid: &str) {
     Command::cargo_bin("bpfctl")
         .unwrap()
-        .args(["unload", "--iface", bpfd_iface, uuid.trim()])
+        .args(["unload", uuid.trim()])
         .assert()
         .success()
         .stdout(is_empty());
@@ -76,10 +76,8 @@ pub fn bpfd_del_program(bpfd_iface: &str, uuid: &str) {
 }
 
 /// Retrieve the output of bpfctl list
-pub fn bpfd_list(bpfd_iface: &str) -> Result<String> {
-    let output = Command::cargo_bin("bpfctl")?
-        .args(["list", "--iface", bpfd_iface])
-        .ok();
+pub fn bpfd_list() -> Result<String> {
+    let output = Command::cargo_bin("bpfctl")?.args(["list"]).ok();
     let stdout = String::from_utf8(output.unwrap().stdout);
 
     Ok(stdout.unwrap())
