@@ -3,10 +3,9 @@ Configuration
 
 ## bpfd
 
-bpfd expects a configuration file to be present at `/etc/bpfd/bpfd.toml`.
+bpfd looks for a configuration file to be present at `/etc/bpfd/bpfd.toml`.
 If no file is found, defaults are assumed.
-The `scripts/setup.sh` commands will copy a default version of the file to the correct location
-from `scripts/bpfd.toml`, which can then be overwritten if needed.
+There is an example at `scripts/bpfd.toml`, similar to:
 
 ```toml
 [tls] # REQUIRED
@@ -17,6 +16,44 @@ from `scripts/bpfd.toml`, which can then be overwritten if needed.
 [interfaces]
   [interface.eth0]
   xdp_mode = "hw" # Valid xdp modes are "hw", "skb" and "drv". Default: "skb".
+```
+
+
+### bpfctl
+
+`bpfctl` will read the bpfd configuration file (`/etc/bpfd/bpfd.toml`).
+`bpfctl` specific values can be added to the bpfd configuration file.
+If no file is found, or no `bpfctl` specific settings exist, defaults are assumed.
+
+```toml
+[tls] # REQUIRED
+  ca_cert = "/etc/bpfd/certs/ca/ca.pem"
+  cert = "/etc/bpfd/certs/bpfd/bpfd.pem"
+  key = "/etc/bpfd/certs/bpfd/bpfd.key"
+
+[bpfctl]
+  cert = "/etc/bpfd/certs/bpfctl/bpfctl.pem"
+  key = "/etc/bpfd/certs/bpfctl/bpfctl.key"
+```
+
+### bpfd-agent
+
+`bpfd-agent`, which is only used in Kubernetes type deployments, will read the bpfd configuration file
+(`/etc/bpfd/bpfd.toml`).
+`bpfd-agent` specific values can be added to the bpfd configuration file.
+Any changes from the default values must also be reflected in the bpfd Daemonset deployment
+(see [bpfd-ds.yaml](../../packaging/kubernetes-deployment/bpfd-core/bpfd-ds.yaml)).
+If no file is found, or no `bpfd-agent` specific settings exist, defaults are assumed.
+
+```toml
+[tls] # REQUIRED
+  ca_cert = "/etc/bpfd/certs/ca/ca.crt"
+  cert = "/etc/bpfd/certs/bpfd/tls.crt"
+  key = "/etc/bpfd/certs/bpfd/tls.key"
+
+[bpfd_agent]
+  cert = "/etc/bpfd/certs/bpfd-agent/tls.crt"
+  key = "/etc/bpfd/certs/bpfd-agent/tls.key"
 ```
 
 ### Loading Programs at system launch time
@@ -45,19 +82,4 @@ section_name = "drop"
 program_type = "xdp"
 priority = 55
 proceed_on = ["pass", "dispatcher_return"]
-```
-
-
-## bpfctl
-
-`bpfctl` expects a configuration file to be present at `/etc/bpfctl/bpfctl.toml`.
-If no file is found, defaults are assumed.
-The `scripts/setup.sh` commands will copy a default version of the file to the correct location
-from `scripts/bpfctl.toml`, which can then be overwritten if needed.
-
-```toml
-[tls] # REQUIRED
-  ca_cert = "/etc/bpfd/certs/ca/ca.pem"
-  cert = "/etc/bpfctl/certs/bpfctl/bpfctl.pem"
-  key = "/etc/bpfctl/certs/bpfctl/bpfctl.key"
 ```

@@ -111,7 +111,7 @@ To generate a client certificate for the `gocounter` example run:
     sudo ./scripts/setup.sh gocounter
 ```
 
-This creates the certificate in a sub-directory of the `bpfctl` user (`/etc/bpfctl/certs/gocounter/`).
+This creates the certificate in a sub-directory of the `bpfd` user (`/etc/bpfd/certs/gocounter/`).
 
 ### Running Privileged
 
@@ -174,11 +174,10 @@ performed.
 
 #### Step 1: Create `bpfd` User Group
 
-The [tutorial.md](../admin/tutorial.md) guide describes the different modes `bpfd` and be run in.
-Specifically, [Unprivileged Mode](../admin/tutorial.md#unprivileged-mode) and
-[Systemd Service](../admin/tutorial.md#systemd-service) sections describe how to start `bpfd` with
-the `bpfd` and `bpfctl` Users and `bpfd` User Group.
-`bpfd` must be started in one of these two ways and `gocounter` must be run from a User that is a
+The [tutorial.md](../admin/tutorial.md) guide describes the different modes `bpfd` can be run in.
+Specifically, the [Systemd Service](../admin/tutorial.md#systemd-service) section describe how to
+start `bpfd` the `bpfd` Users and `bpfd` User Group.
+`bpfd` must be started as a Systemd Service and `gocounter` must be run from a User that is a
 member of the `bpfd` User Group.
 
 ```console

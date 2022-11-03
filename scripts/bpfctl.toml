@@ -1,4 +1,0 @@
-[tls] # REQUIRED
-  ca_cert = "/etc/bpfd/certs/ca/ca.pem"
-  cert = "/etc/bpfctl/certs/bpfctl/bpfctl.pem"
-  key = "/etc/bpfctl/certs/bpfctl/bpfctl.key"

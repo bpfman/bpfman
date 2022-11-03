@@ -3,6 +3,7 @@
 
 use std::{fs, os::unix::fs::PermissionsExt, path::Path, str};
 
+use bpfd_api::config::Config;
 use log::{debug, error, info};
 use openssl::{
     asn1::Asn1Time,
@@ -32,72 +33,86 @@ pub enum CertsError {
 const KEY_LENGTH: u32 = 4096;
 const CERT_EXP_DAYS: u32 = 30;
 const CA_CN_NAME: &str = "bpfd-ca";
+const CN_BPFD_NAME: &str = "bpfd";
+const CN_BPFCTL_NAME: &str = "bpfctl";
 const CA_KEY_FILENAME: &str = "ca.key";
 
-pub async fn get_tls_config(
-    ca_cert_path: &str,
-    cert_key_path: &str,
-    cert_path: &str,
-    cert_cn_name: &str,
-    cr_ca_cert_flag: bool,
-    cr_cert_flag: bool,
-) -> Result<(Certificate, Identity), CertsError> {
+pub async fn get_tls_config(config: &Config) -> Result<(Certificate, Identity), CertsError> {
     // Read CA Cert
-    let ca_cert_pem = match tokio::fs::read(ca_cert_path).await {
+    let ca_cert_pem = match tokio::fs::read(&config.tls.ca_cert).await {
         Ok(ca_cert_pem) => {
-            debug!("CA Certificate file {} exists.", ca_cert_path);
+            debug!("CA Certificate file {} exists.", config.tls.ca_cert);
             ca_cert_pem
         }
         Err(_) => {
-            if !cr_ca_cert_flag {
-                error!("CA Certificate file {} does not exist.", ca_cert_path);
-                return Err(CertsError::Error(
-                    "ca certificate file does not exist".to_string(),
-                ));
-            }
-
-            // CA Cert does not exist, cr_ca_cert_flag is true so create a CA Certificate
+            // CA Cert does not exist, so create a CA Certificate
             info!(
                 "CA Certificate file {} does not exist. Creating CA Certificate.",
-                ca_cert_path
+                config.tls.ca_cert
             );
-            generate_ca_cert_pem(ca_cert_path).await?
+            generate_ca_cert_pem(&config.tls.ca_cert).await?
         }
     };
 
-    // Read Cert Key and Cert files and create an identity
-    let identity = match tokio::fs::read(&cert_key_path).await {
+    // Read bpfd Cert Key and Cert files and create an identity
+    let identity = match tokio::fs::read(&config.tls.key).await {
         Ok(key) => {
-            debug!("Certificate Key {} exists.", cert_key_path);
+            debug!("Certificate Key {} exists.", config.tls.key);
 
             // If Key exists but Cert doesn't, return error
-            let cert_pem = tokio::fs::read(&cert_path)
+            let cert_pem = tokio::fs::read(&config.tls.cert)
                 .await
                 .map_err(|_| CertsError::Error("certificate file does not exist".to_string()))?;
 
             Identity::from_pem(cert_pem, key)
         }
         Err(_) => {
-            if !cr_cert_flag {
-                error!("Certificate Key file {} does not exist.", cert_key_path);
-                return Err(CertsError::Error(
-                    "certificate key file does not exist.".to_string(),
-                ));
-            }
-
-            // Cert Key does not exist, cr_cert_flag is true so create a CA Certificate
+            // Cert Key does not exist, so create a bpfd Certificate
             info!(
-                "Certificate Key {} does not exist. Creating Certificate.",
-                cert_key_path
+                "bpfd Certificate Key {} does not exist. Creating bpfd Certificate.",
+                config.tls.key
             );
-            generate_cert_identity(
-                ca_cert_path,
+            let (cert_pem, cert_key_pem) = generate_cert(
+                &config.tls.ca_cert,
                 &ca_cert_pem,
-                cert_key_path,
-                cert_path,
-                cert_cn_name,
+                &config.tls.key,
+                &config.tls.cert,
+                CN_BPFD_NAME,
             )
-            .await?
+            .await?;
+
+            Identity::from_pem(cert_pem, cert_key_pem)
+        }
+    };
+
+    // Read bpfctl Cert Key and Cert files and make sure they exist. If they don't, create them.
+    match tokio::fs::read(&config.bpfctl.key).await {
+        Ok(_) => {
+            debug!("bpfctl Certificate Key {} exists.", config.bpfctl.key);
+
+            // If Key exists but Cert doesn't, return error
+            let _ = tokio::fs::read(&config.bpfctl.cert).await.map_err(|_| {
+                CertsError::Error("bpfctl certificate file does not exist".to_string())
+            })?;
+        }
+        Err(_) => {
+            // Cert Key does not exist, so create a bpfd Certificate
+            info!(
+                "bpfctl Certificate Key {} does not exist. Creating bpfctl Certificate.",
+                config.bpfctl.key
+            );
+            if (generate_cert(
+                &config.tls.ca_cert,
+                &ca_cert_pem,
+                &config.bpfctl.key,
+                &config.bpfctl.cert,
+                CN_BPFCTL_NAME,
+            )
+            .await)
+                .is_err()
+            {
+                info!("Unable to create bpfctl Certificate. Continuing");
+            }
         }
     };
 
@@ -168,13 +183,23 @@ async fn generate_ca_cert_pem(ca_cert_path: &str) -> Result<Vec<u8>, CertsError>
     Ok(ca_cert_pem)
 }
 
-async fn generate_cert_identity(
+async fn generate_cert(
     ca_cert_path: &str,
     ca_cert_pem: &[u8],
     cert_key_path: &str,
     cert_path: &str,
     cert_cn_name: &str,
-) -> Result<Identity, CertsError> {
+) -> Result<(Vec<u8>, Vec<u8>), CertsError> {
+    // Determine CA Key filename based on input CA Cert filename and read
+    let path = Path::new(ca_cert_path);
+    let ca_dir = path.parent().unwrap();
+    let ca_key_path = ca_dir.join(CA_KEY_FILENAME);
+    let ca_key_path = ca_key_path.to_str().unwrap();
+    let ca_key_pem = tokio::fs::read(&ca_key_path)
+        .await
+        .map_err(|_| CertsError::Error("ca certificate key does not exist".to_string()))?;
+    let ca_key = PKey::private_key_from_pem(&ca_key_pem)?;
+
     // Generate the Private Key and write to a file.
     let rsa = Rsa::generate(KEY_LENGTH)?;
     let cert_key = PKey::from_rsa(rsa)?;
@@ -240,23 +265,14 @@ async fn generate_cert_identity(
         .build(&cert_builder.x509v3_context(Some(&ca_cert_x590), None))?;
     cert_builder.append_extension(subject_alt_name)?;
 
-    // Determine CA Key filename based on input CA Cert filename and read
-    let path = Path::new(ca_cert_path);
-    let ca_dir = path.parent().unwrap();
-    let ca_key_path = ca_dir.join(CA_KEY_FILENAME);
-    let ca_key_path = ca_key_path.to_str().unwrap();
-    let ca_key_pem = tokio::fs::read(&ca_key_path)
-        .await
-        .map_err(|_| CertsError::Error("ca certificate key does not exist".to_string()))?;
-    let ca_key = PKey::private_key_from_pem(&ca_key_pem)?;
-
+    // Self Sign
     cert_builder.sign(&ca_key, MessageDigest::sha256())?;
     let cert = cert_builder.build();
     let cert_pem = cert.to_pem().map_err(CertsError::CertOpensslError)?;
 
     tokio::fs::write(&cert_path, cert_pem.clone())
         .await
-        .map_err(|_| CertsError::Error("unable to certificate pem to file".to_string()))?;
+        .map_err(|_| CertsError::Error("unable to write certificate pem to file".to_string()))?;
 
-    Ok(Identity::from_pem(cert_pem, &cert_key_pem))
+    Ok((cert_pem, cert_key_pem))
 }

@@ -10,8 +10,8 @@ use std::{
 
 use anyhow::{bail, Context};
 use aya::include_bytes_aligned;
-use bpfd::server::{config_from_file, programs_from_directory, serve};
-use bpfd_api::util::directories::*;
+use bpfd::server::{programs_from_directory, serve};
+use bpfd_api::{config::config_from_file, util::directories::*};
 use log::{debug, error, info};
 use nix::{
     libc::RLIM_INFINITY,
@@ -54,6 +54,7 @@ fn main() -> anyhow::Result<()> {
             );
             setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
 
+            // Create directories associated with bpfd
             create_dir_all(RTDIR).context("unable to create runtime directory")?;
             create_dir_all(RTDIR_FS).context("unable to create mountpoint")?;
             create_dir_all(RTDIR_FS_MAPS).context("unable to create maps directory")?;
@@ -71,6 +72,8 @@ fn main() -> anyhow::Result<()> {
                     .context("unable to mount bpffs")?;
             }
 
+            create_dir_all(CFGDIR_BPFCTL_CERTS)
+                .context("unable to create bpfctl certs directory")?;
             create_dir_all(CFGDIR_BPFD_CERTS).context("unable to create bpfd certs directory")?;
             create_dir_all(CFGDIR_CA_CERTS).context("unable to create ca certs directory")?;
             create_dir_all(CFGDIR_STATIC_PROGRAMS)
@@ -118,10 +121,22 @@ fn has_cap(cset: caps::CapSet, cap: caps::Capability) {
 }
 
 fn drop_linux_capabilities() {
-    let res = User::from_uid(getuid()).unwrap().unwrap();
+    let uid = getuid();
+    let res = match User::from_uid(uid) {
+        Ok(res) => res.unwrap(),
+        Err(e) => {
+            debug!("Unable to map user id {} to a name. err: {}", uid, e);
+            info!(
+                "Running as user id {}, skip dropping all capabilities for spawned threads",
+                uid
+            );
+            return;
+        }
+    };
+
     if res.name == "bpfd" {
         debug!(
-            "Running as user={}, dropping all capabilities for spawned threads",
+            "Running as user {}, dropping all capabilities for spawned threads",
             res.name
         );
         drop_all_cap(caps::CapSet::Ambient);
@@ -130,8 +145,8 @@ fn drop_linux_capabilities() {
         drop_all_cap(caps::CapSet::Inheritable);
         drop_all_cap(caps::CapSet::Permitted);
     } else {
-        debug!(
-            "Running as user={}, skip dropping all capabilities for spawned threads",
+        info!(
+            "Running as user {}, skip dropping all capabilities for spawned threads",
             res.name
         );
     }

@@ -2,7 +2,7 @@
 // Copyright Authors of bpfd
 
 mod bpf;
-mod config;
+mod certs;
 mod errors;
 mod pull_bytecode;
 mod rpc;
@@ -11,12 +11,11 @@ mod static_program;
 use anyhow::Context;
 use bpf::BpfManager;
 use bpfd_api::{
-    certs::get_tls_config,
+    config::Config,
     util::directories::CFGDIR_STATIC_PROGRAMS,
     v1::{loader_server::LoaderServer, ProceedOn, ProgramType},
 };
-pub use config::config_from_file;
-use config::Config;
+pub use certs::get_tls_config;
 use log::info;
 use rpc::{BpfdLoader, Command};
 pub use static_program::programs_from_directory;
@@ -25,8 +24,6 @@ use tokio::sync::mpsc;
 use tonic::transport::{Server, ServerTlsConfig};
 
 use self::rpc::intercept;
-
-const CN_NAME: &str = "bpfd";
 
 pub async fn serve(
     config: Config,
@@ -39,16 +36,9 @@ pub async fn serve(
 
     let loader = BpfdLoader::new(tx);
 
-    let (ca_cert, identity) = get_tls_config(
-        &config.tls.ca_cert,
-        &config.tls.key,
-        &config.tls.cert,
-        CN_NAME,
-        true,
-        true,
-    )
-    .await
-    .context("CA Cert File does not exist")?;
+    let (ca_cert, identity) = get_tls_config(&config)
+        .await
+        .context("CA Cert File does not exist")?;
 
     let tls_config = ServerTlsConfig::new()
         .identity(identity)

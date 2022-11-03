@@ -50,10 +50,10 @@ type ConfigData struct {
 }
 
 const (
-	DefaultConfigPath     = "/etc/bpfctl/gocounter.toml"
+	DefaultConfigPath     = "/etc/bpfd/gocounter.toml"
 	DefaultRootCaPath     = "/etc/bpfd/certs/ca/ca.pem"
-	DefaultClientCertPath = "/etc/bpfctl/certs/gocounter/gocounter.pem"
-	DefaultClientKeyPath  = "/etc/bpfctl/certs/gocounter/gocounter.key"
+	DefaultClientCertPath = "/etc/bpfd/certs/gocounter/gocounter.pem"
+	DefaultClientKeyPath  = "/etc/bpfd/certs/gocounter/gocounter.key"
 	DefaultSocketPath     = "/var/lib/bpfd/sock/gocounter.sock"
 	DefaultMapDir         = "/run/bpfd/fs/maps"
 )
@@ -151,7 +151,7 @@ func main() {
 		if len(cmdlineUrl) == 0 {
 			// "-path" allows the location of the local bytecode file to be
 			// overwritten.
-			// ./gocounter -ifcae eth0 -path /var/bpfd/bytecode/bpf_bpfel.o
+			// ./gocounter -iface eth0 -path /var/bpfd/bytecode/bpf_bpfel.o
 			if len(cmdlinePath) != 0 {
 				bytecodePath = cmdlinePath
 				bytecodeSrc = srcPath
@@ -331,9 +331,15 @@ func loadConfig() (ConfigData) {
 		},
 	}
 
+	log.Printf("Reading %s ...\n", DefaultConfigPath)
 	file, err := ioutil.ReadFile(DefaultConfigPath)
 	if err == nil {
 		err = toml.Unmarshal(file, &config)
+		if err != nil {
+			log.Printf("Unmarshal failed: err %+v\n", err)
+		}
+	} else {
+		log.Printf("Read %s failed: err %+v\n", DefaultConfigPath, err)
 	}
 
 	return config

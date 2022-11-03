@@ -4,13 +4,18 @@
 use std::{collections::HashMap, fs, path::Path};
 
 use aya::programs::XdpFlags;
-use bpfd_api::util::directories::*;
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
+
+use crate::util::directories::*;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Config {
     pub tls: TlsConfig,
+    #[serde(default)]
+    pub bpfctl: BpfctlTlsConfig,
+    #[serde(default)]
+    pub bpfd_agent: BpfdAgentTlsConfig,
     pub interfaces: Option<HashMap<String, InterfaceConfig>>,
 }
 
@@ -32,6 +37,39 @@ impl Default for TlsConfig {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct BpfctlTlsConfig {
+    pub cert: String,
+    pub key: String,
+}
+
+impl Default for BpfctlTlsConfig {
+    fn default() -> Self {
+        Self {
+            cert: CFGPATH_BPFCTL_CERTS_PEM.to_string(),
+            key: CFGPATH_BPFCTL_CERTS_KEY.to_string(),
+        }
+    }
+}
+
+// These must match the directories where they are mounted
+// in the bpfd Daemonset (see bpfd-agent-cert in
+// packaging/kubernetes-deployment/bpfd-core/bpfd-ds.yaml)
+#[derive(Debug, Deserialize)]
+pub struct BpfdAgentTlsConfig {
+    pub cert: String,
+    pub key: String,
+}
+
+impl Default for BpfdAgentTlsConfig {
+    fn default() -> Self {
+        Self {
+            cert: CFGPATH_BPFD_AGENT_CERTS_CRT.to_string(),
+            key: CFGPATH_BPFD_AGENT_CERTS_KEY.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
 pub struct InterfaceConfig {
     pub xdp_mode: XdpMode,
 }
@@ -45,7 +83,7 @@ pub enum XdpMode {
 }
 
 impl XdpMode {
-    pub(crate) fn as_flags(&self) -> XdpFlags {
+    pub fn as_flags(&self) -> XdpFlags {
         match self {
             XdpMode::Skb => XdpFlags::SKB_MODE,
             XdpMode::Drv => XdpFlags::DRV_MODE,
@@ -89,9 +127,13 @@ mod test {
     fn test_config_single_iface() {
         let input = r#"
         [tls]
-        ca_cert = "/path/to/ca-cert.pem"
-        cert = "/path/to/cert.pem"
-        key = "/path/to/cert.key"
+        ca_cert = "/path/to/ca/ca-cert.pem"
+        cert = "/path/to/bpfd/cert.pem"
+        key = "/path/to/bpfd/cert.key"
+
+        [bpfctl]
+        cert = "/path/to/bpfctl/cert.pem"
+        key = "/path/to/bpfctl/cert.key"
 
         [interfaces]
           [interfaces.eth0]
@@ -111,9 +153,13 @@ mod test {
     fn test_config_multiple_iface() {
         let input = r#"
         [tls]
-        ca_cert = "/path/to/ca-cert.pem"
-        cert = "/path/to/cert.pem"
-        key = "/path/to/cert.key"
+        ca_cert = "/path/to/ca/ca-cert.pem"
+        cert = "/path/to/bpfd/cert.pem"
+        key = "/path/to/bpfd/cert.key"
+
+        [bpfctl]
+        cert = "/path/to/bpfctl/cert.pem"
+        key = "/path/to/bpfctl/cert.key"
 
         [interfaces]
           [interfaces.eth0]
@@ -142,13 +188,28 @@ mod test {
     fn test_config_tls() {
         let input = r#"
         [tls]
-        ca_cert = "/path/to/ca-cert.pem"
-        cert = "/path/to/cert.pem"
-        key = "/path/to/cert.key"
+        ca_cert = "/path/to/ca/ca-cert.pem"
+        cert = "/path/to/bpfd/cert.pem"
+        key = "/path/to/bpfd/cert.key"
+
+        [bpfctl]
+        cert = "/path/to/bpfctl/cert.pem"
+        key = "/path/to/bpfctl/cert.key"
         "#;
         let config: Config = toml::from_str(input).expect("error parsing toml input");
-        assert_eq!(config.tls.ca_cert, "/path/to/ca-cert.pem");
-        assert_eq!(config.tls.cert, "/path/to/cert.pem");
-        assert_eq!(config.tls.key, "/path/to/cert.key");
+        assert_eq!(config.tls.ca_cert, "/path/to/ca/ca-cert.pem");
+        assert_eq!(config.tls.cert, "/path/to/bpfd/cert.pem");
+        assert_eq!(config.tls.key, "/path/to/bpfd/cert.key");
+        assert_eq!(config.bpfctl.cert, "/path/to/bpfctl/cert.pem");
+        assert_eq!(config.bpfctl.key, "/path/to/bpfctl/cert.key");
+        // Not entered, so default vallues should be returned
+        assert_eq!(
+            config.bpfd_agent.cert,
+            CFGPATH_BPFD_AGENT_CERTS_CRT.to_string()
+        );
+        assert_eq!(
+            config.bpfd_agent.key,
+            CFGPATH_BPFD_AGENT_CERTS_KEY.to_string()
+        );
     }
 }
