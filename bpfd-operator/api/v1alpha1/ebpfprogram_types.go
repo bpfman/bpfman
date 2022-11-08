@@ -27,9 +27,9 @@ type EbpfProgramSpec struct {
 	// ProgramMap is is a map with Keys: UUIDs, Values: AttachPoint
 	ProgramMap map[string]EbpfProgramAttachPoint `json:"programmap"`
 
-	// MapPins is the location on the filesystem of any pinned bpfmaps used by the program
+	// Maps is the location on the filesystem of any pinned bpfmaps used by the program
 	// It is represented as a map with Keys: UUID, Value: Absolute path on host filesystem
-	MapPinPoints map[string]string `json:"mappinpoints"`
+	Maps map[string]string `json:"maps"`
 }
 
 // EbpfProgramStatus defines the observed state of EbpfProgram

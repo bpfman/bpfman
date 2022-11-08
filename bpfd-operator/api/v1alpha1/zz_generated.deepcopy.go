@@ -239,8 +239,8 @@ func (in *EbpfProgramSpec) DeepCopyInto(out *EbpfProgramSpec) {
 			(*out)[key] = *val.DeepCopy()
 		}
 	}
-	if in.MapPinPoints != nil {
-		in, out := &in.MapPinPoints, &out.MapPinPoints
+	if in.Maps != nil {
+		in, out := &in.Maps, &out.Maps
 		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val

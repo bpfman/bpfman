@@ -35,10 +35,10 @@ spec:
           spec:
             description: EbpfProgramSpec defines the desired state of EbpfProgram
             properties:
-              mappinpoints:
+              maps:
                 additionalProperties:
                   type: string
-                description: 'MapPins is the location on the filesystem of any pinned
+                description: 'Maps is the location on the filesystem of any pinned
                   bpfmaps used by the program It is represented as a map with Keys:
                   UUID, Value: Absolute path on host filesystem'
                 type: object
@@ -57,7 +57,7 @@ spec:
                 description: 'ProgramMap is is a map with Keys: UUIDs, Values: AttachPoint'
                 type: object
             required:
-            - mappinpoints
+            - maps
             - programmap
             type: object
           status:
