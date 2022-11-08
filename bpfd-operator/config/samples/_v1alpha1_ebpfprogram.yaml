@@ -1,0 +1,12 @@
+apiVersion: bpfd.io/v1alpha1
+kind: EbpfProgram
+metadata:
+  labels:
+    app.kubernetes.io/name: ebpfprogram
+    app.kubernetes.io/instance: ebpfprogram-sample
+    app.kubernetes.io/part-of: bpfd-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: bpfd-operator
+  name: ebpfprogram-sample
+spec:
+  # TODO(user): Add fields here

@@ -1,0 +1,26 @@
+domain: bpfd.io
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: bpfd-operator
+repo: github.com/redhat-et/bpfd
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: bpfd.io
+  kind: EbpfProgram
+  path: github.com/redhat-et/bpfd/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: bpfd.io
+  kind: EbpfProgramConfig
+  path: github.com/redhat-et/bpfd/api/v1alpha1
+  version: v1alpha1
+version: "3"
