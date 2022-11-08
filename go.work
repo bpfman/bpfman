@@ -1,6 +1,7 @@
 go 1.18
 
 use (
+	./bpfd-operator
 	./clients/gobpfd
 	./examples/gocounter
 )
