@@ -1,0 +1,27 @@
+# permissions for end users to view ebpfprogramconfigs.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: ebpfprogramconfig-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: bpfd-operator
+    app.kubernetes.io/part-of: bpfd-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: ebpfprogramconfig-viewer-role
+rules:
+- apiGroups:
+  - bpfd.io
+  resources:
+  - ebpfprogramconfigs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfd.io
+  resources:
+  - ebpfprogramconfigs/status
+  verbs:
+  - get
