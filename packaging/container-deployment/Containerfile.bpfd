@@ -27,5 +27,6 @@ RUN cargo build --release -p bpfd --target x86_64-unknown-linux-musl
 FROM scratch
 
 COPY --from=bpfd-build  /usr/src/bpfd/target/x86_64-unknown-linux-musl/release/bpfd .
+COPY --from=0 /etc/passwd /etc/passwd
 
 ENTRYPOINT ["./bpfd"]
