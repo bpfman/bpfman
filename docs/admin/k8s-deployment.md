@@ -54,7 +54,7 @@ kubectl apply -f ./packaging/kubernetes-deployment/bpfd-core/bpfd-config.yaml
 4. Install bpfd `ServiceAccount`, `ClusterRole`, and `ClusterRoleBinding`.
 
 ```bash
-kubectl apply -f ./packaging/kubernetes-deployment/bpfd-core/bpfd-rbac.yaml
+kubectl apply -f ./packaging/kubernetes-deployment/bpfd-core/bpfd-agent-rbac.yaml
 ```
 
 5. Install bpfd daemonset which contains the `bpfd` and `bpfd-agent` processes.
