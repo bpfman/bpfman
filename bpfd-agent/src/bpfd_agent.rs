@@ -145,7 +145,7 @@ pub async fn reconcile(ebpf_program: Arc<EbpfProgram>, ctx: Arc<Context>) -> Res
 }
 
 /// The controller triggers this on reconcile errors
-pub fn error_policy(_error: &Error, _ctx: Arc<Context>) -> Action {
+pub fn error_policy(_ebpf_program: Arc<EbpfProgram>, _error: &Error, _ctx: Arc<Context>) -> Action {
     Action::requeue(Duration::from_secs(10))
 }
 
