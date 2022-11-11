@@ -3,21 +3,25 @@ Configuration
 
 ## bpfd
 
-bpfd expects a configuration file to be present at `/etc/bpfd/bpfd.toml`.
+bpfd looks for a configuration file to be present at `/etc/bpfd/bpfd.toml`.
 If no file is found, defaults are assumed.
-The `scripts/setup.sh` commands will copy a default version of the file to the correct location
-from `scripts/bpfd.toml`, which can then be overwritten if needed.
+There is an example at `scripts/bpfd.toml`, similar to:
 
 ```toml
 [tls] # REQUIRED
   ca_cert = "/etc/bpfd/certs/ca/ca.pem"
   cert = "/etc/bpfd/certs/bpfd/bpfd.pem"
   key = "/etc/bpfd/certs/bpfd/bpfd.key"
+  client_cert = "/etc/bpfd/certs/bpfd-client/bpfd-client.pem"
+  client_key = "/etc/bpfd/certs/bpfd-client/bpfd-client.key"
 
 [interfaces]
   [interface.eth0]
   xdp_mode = "hw" # Valid xdp modes are "hw", "skb" and "drv". Default: "skb".
 ```
+
+`bpfctl` and `bpfd-agent` (which is only used in Kubernetes type deployments) will also read the
+bpfd configuration file (`/etc/bpfd/bpfd.toml`) to retrieve the bpfd-client certificate file locations.
 
 ### Loading Programs at system launch time
 
@@ -45,19 +49,4 @@ section_name = "drop"
 program_type = "xdp"
 priority = 55
 proceed_on = ["pass", "dispatcher_return"]
-```
-
-
-## bpfctl
-
-`bpfctl` expects a configuration file to be present at `/etc/bpfctl/bpfctl.toml`.
-If no file is found, defaults are assumed.
-The `scripts/setup.sh` commands will copy a default version of the file to the correct location
-from `scripts/bpfctl.toml`, which can then be overwritten if needed.
-
-```toml
-[tls] # REQUIRED
-  ca_cert = "/etc/bpfd/certs/ca/ca.pem"
-  cert = "/etc/bpfctl/certs/bpfctl/bpfctl.pem"
-  key = "/etc/bpfctl/certs/bpfctl/bpfctl.key"
 ```

@@ -13,17 +13,17 @@ use aya::{
     },
     Bpf, BpfLoader,
 };
-use bpfd_api::util::directories::{RTDIR_DISPATCHER, RTDIR_FS, RTDIR_FS_MAPS, RTDIR_PROGRAMS};
+use bpfd_api::{
+    config::{Config, XdpMode},
+    util::directories::{RTDIR_DISPATCHER, RTDIR_FS, RTDIR_FS_MAPS, RTDIR_PROGRAMS},
+};
 use bpfd_common::*;
 use log::info;
 use nix::net::if_::if_nametoindex;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::server::{
-    config::{Config, XdpMode},
-    errors::BpfdError,
-};
+use crate::server::errors::BpfdError;
 
 // Default is Pass and DispatcherReturn
 const DEFAULT_XDP_PROCEED_ON_PASS: i32 = 2;
@@ -76,9 +76,9 @@ impl ExtensionProgram {
     fn delete(&self, uuid: Uuid) -> Result<(), anyhow::Error> {
         let path = format!("{RTDIR_PROGRAMS}/{uuid}");
         fs::remove_file(path)?;
-        let path = format!("/var/run/bpfd/fs/prog_{uuid}");
+        let path = format!("{RTDIR_FS}/prog_{uuid}");
         fs::remove_file(path)?;
-        let path = format!("/var/run/bpfd/fs/maps/{uuid}");
+        let path = format!("{RTDIR_FS_MAPS}/{uuid}");
         fs::remove_dir_all(path)?;
 
         Ok(())

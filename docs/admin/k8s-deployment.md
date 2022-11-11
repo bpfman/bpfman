@@ -43,6 +43,10 @@ kubectl apply -f ./packaging/kubernetes-deployment/bpfd-core/bpfd-cert-issuer.ya
 kubectl apply -f ./packaging/kubernetes-deployment/bpfd-core/bpfd-certs.yaml
 ```
 
+**Note:** There may be a delay in cert-manager being completely up, even if pod state is running.
+If applying `bpfd-cert-issuer.yaml` fails with something like `x509: certificate signed by unknown
+authority`, check the `cert-manager` logs to verify that is it completely ready.
+
 3. Install `bpfd` configmap.
    This configmap contains the `bpfd.toml` file content (see [configuration.md](configuration.md)).
    When the bpfd daemonset is created in step 5, this configmap will be propagated to each node via a volume mount in the bpfd container.

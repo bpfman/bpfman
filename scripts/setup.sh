@@ -11,7 +11,6 @@ fi
 . user.sh
 
 USER_BPFD="bpfd"
-USER_BPFCTL="bpfctl"
 USER_GROUP="bpfd"
 BIN_BPFD="bpfd"
 BIN_BPFCTL="bpfctl"
@@ -30,12 +29,8 @@ CFG_CA_CERT_DIR="/etc/bpfd/certs/ca"
 RUNTIME_DIR="/run/bpfd"
 RTDIR_FS="/run/bpfd/fs"
 
-# CacheDirectory: /var/cache/
-
 # StateDirectory: /var/lib/bpfd/
 STATE_DIR="/var/lib/bpfd"
-
-# LogsDirectory:  /var/log/
 
 
 usage() {
@@ -43,7 +38,7 @@ usage() {
     echo "sudo ./scripts/setup.sh install"
     echo "    Setup for running \"bpfd\" as a systemd service. Performs the following"
     echo "    tasks:"
-    echo "    * Perform all actions performed by \"setup.sh init\"."
+    echo "    * Create User \"${USER_BPFD}\" and User Group \"${USER_GROUP}\"."
     echo "    * Copy \"bpfd\" and \"bpfctl\" binaries to \"/usr/sbin/.\" and set"
     echo "      the user group for each."
     echo "    * Copy \"bpfd.service\" to \"/usr/lib/systemd/system/\"."
@@ -57,8 +52,6 @@ usage() {
     echo "sudo ./scripts/setup.sh uninstall"
     echo "    Unwind all actions performed by \"setup.sh install\" including stopping"
     echo "    the \"bpfd\" service if it is running."
-    echo "sudo ./scripts/setup.sh gocounter"
-    echo "    Create the certs for the \"gocounter\" example."
     echo ""
 }
 
@@ -80,7 +73,7 @@ case "$1" in
         user_del
         ;;
     "gocounter")
-        cert_client gocounter ${USER_BPFCTL} false
+        cert_client gocounter ${USER_BPFD} false
         ;;
     "help"|"--help"|"?")
         usage

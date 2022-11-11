@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use anyhow::{Context as anyhowContext, Result};
-use bpfd_api::v1::loader_client::LoaderClient;
+use bpfd_api::{config::config_from_file, util::directories::*, v1::loader_client::LoaderClient};
 use bpfd_k8s_api::v1alpha1::EbpfProgram;
 use futures::StreamExt;
 use kube::{
@@ -15,25 +15,21 @@ use tracing::*;
 mod bpfd_agent;
 mod finalizer;
 
-// These are not configurable and must match the directories where
-// they are mounted in the bpfd Daemonset.
-const CA_CERT_PATH: &str = "/etc/bpfd/certs/ca/ca.crt";
-const AGENT_CERT_PATH: &str = "/etc/bpfd/certs/bpfd-agent/tls.crt";
-const AGENT_KEY_PATH: &str = "/etc/bpfd/certs/bpfd-agent/tls.key";
-
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
 
+    let config = config_from_file(CFGPATH_BPFD_CONFIG);
+
     // Setup bpfd client
-    let ca_cert = tokio::fs::read(CA_CERT_PATH)
+    let ca_cert = tokio::fs::read(&config.tls.ca_cert)
         .await
         .context("CA Cert File does not exist")?;
     let ca_cert = Certificate::from_pem(ca_cert);
-    let cert = tokio::fs::read(AGENT_CERT_PATH)
+    let cert = tokio::fs::read(&config.tls.client_cert)
         .await
         .context("Cert File does not exist")?;
-    let key = tokio::fs::read(AGENT_KEY_PATH)
+    let key = tokio::fs::read(&config.tls.client_key)
         .await
         .context("Cert Key File does not exist")?;
     let identity = Identity::from_pem(cert, key);

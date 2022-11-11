@@ -45,16 +45,13 @@ jobs:
     - name: Run the bpfd installer
       run: sudo ./scripts/setup.sh install
 
+    - name: Give certs time to be created
+      run: sleep 5
+
     - name: Verify the bpfd systemd service is active
       run: systemctl is-active bpfd
 
-    - name: Wait for bpfd to creates certs
-      run: sleep 4
-
-    - name: Verify the bpfctl systemd service is active
-      run: systemctl is-active bpfctl
-
-    - name: Verify the bpfd systemd service is active
+    - name: Verify the bpfctl can reach bpfd
       run: sudo bpfctl --help
 
     - name: Stop the bpfd systemd service

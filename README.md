@@ -94,12 +94,6 @@ $ cargo build
 
 ## Usage
 
-Run the following script to generate certs in the default directories, `/etc/bpfd/certs/` and `/etc/bpfctl/certs/` (see [configuration.md](docs/admin/configuration.md) for configuring non-default values):
-
-```console
-sudo ./scripts/setup.sh init
-```
-
 Load a sample XDP Program:
 ```console
 $ cargo build

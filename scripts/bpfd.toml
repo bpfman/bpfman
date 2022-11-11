@@ -2,6 +2,8 @@
   ca_cert = "/etc/bpfd/certs/ca/ca.pem"
   cert = "/etc/bpfd/certs/bpfd/bpfd.pem"
   key = "/etc/bpfd/certs/bpfd/bpfd.key"
+  client_cert = "/etc/bpfd/certs/bpfd-client/bpfd-client.pem"
+  client_key = "/etc/bpfd/certs/bpfd-client/bpfd-client.key"
 
 [interfaces]
   [interface.eth0]

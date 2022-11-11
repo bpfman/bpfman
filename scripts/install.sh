@@ -83,14 +83,13 @@ install() {
     fi
 
     copy_bin "${BIN_BPFD}" "${USER_BPFD}" "${USER_GROUP}"
-    copy_bin "${BIN_BPFCTL}" "${USER_BPFCTL}" "${USER_GROUP}"
+    copy_bin "${BIN_BPFCTL}" "${USER_BPFD}" "${USER_GROUP}"
 
     if [ "${reinstall}" == false ]; then
         echo "Copy service file:"
         copy_svc "${BIN_BPFD}" "${USER_BPFD}" "${USER_GROUP}"
-        copy_svc "${BIN_BPFCTL}" "${USER_BPFCTL}" "${USER_GROUP}"
+        systemctl daemon-reload
         echo "  Starting \"${BIN_BPFD}.service\""
-        systemctl enable ${BIN_BPFCTL}.service
         systemctl start ${BIN_BPFD}.service
     else
         if [ "${START_BPFD}" == true ]; then
@@ -102,6 +101,8 @@ install() {
 
 uninstall() {
     echo "Remove service file:"
+    # This can be removed at a future date. bpfctl service no longer started,
+    # But left here to cleanup on systems where is has been deployed.
     del_svc "${BIN_BPFCTL}"
     del_svc "${BIN_BPFD}"
 

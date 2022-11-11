@@ -40,8 +40,9 @@ spec:
                 name: bpfd-config
                 key: bpfd.log.level
         volumeMounts:
-        - name: bpf-fs
-          mountPath: /sys/fs/bpf
+        - name: runtime
+          mountPath: /run/bpfd
+          mountPropagation: Bidirectional
         - name: bpfd-ca
           mountPath: /etc/bpfd/certs/ca
           readOnly: true
@@ -73,13 +74,17 @@ spec:
           mountPath: /etc/bpfd/certs/ca
           readOnly: true
         - name: bpfd-agent-cert
-          mountPath: /etc/bpfd/certs/bpfd-agent
+          mountPath: /etc/bpfd/certs/bpfd-client
+          readOnly: true
+        - name: bpfd-config
+          mountPath: /etc/bpfd/bpfd.toml
+          subPath: bpfd.toml
           readOnly: true
       terminationGracePeriodSeconds: 15
       volumes:
-      - name: bpf-fs
+      - name: runtime
         hostPath:
-          path: /sys/fs/bpf
+          path: /run/bpfd
       - name: bpfd-ca
         secret: 
           secretName: bpfd-ca

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::{fs::create_dir_all, path::PathBuf};
+use std::path::PathBuf;
 
 use anyhow::Context;
 use bpfd_api::{
-    certs::get_tls_config,
+    config::config_from_file,
     util::directories::*,
     v1::{
         loader_client::LoaderClient, ListRequest, LoadRequest, ProceedOn, ProgramType,
@@ -13,14 +13,9 @@ use bpfd_api::{
     },
 };
 use clap::{Parser, Subcommand};
-mod config;
 use comfy_table::Table;
-use config::config_from_file;
-use tonic::transport::{Channel, ClientTlsConfig};
+use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
 
-const CN_NAME: &str = "bpfctl";
-
-//#[derive(Parser, PartialEq, Eq)]
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
 struct Cli {
@@ -28,7 +23,6 @@ struct Cli {
     command: Commands,
 }
 
-//#[derive(Subcommand, PartialEq, Eq)]
 #[derive(Subcommand)]
 enum Commands {
     Load {
@@ -76,32 +70,25 @@ enum Commands {
         /// Required: Interface to list loaded programs from.
         iface: String,
     },
-    Certs {},
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let config = config_from_file(CFGPATH_BPFCTL_CONFIG);
-    let cli = Cli::parse();
-    let create_certs = if matches!(&cli.command, Commands::Certs {}) {
-        create_dir_all(CFGDIR_BPFCTL_CERTS).context("unable to create bpfctl certs directory")?;
-        true
-    } else {
-        false
-    };
-    let (ca_cert, identity) = get_tls_config(
-        &config.tls.ca_cert,
-        &config.tls.key,
-        &config.tls.cert,
-        CN_NAME,
-        false,
-        create_certs,
-    )
-    .await
-    .context("CA Cert File does not exist")?;
+    let config = config_from_file(CFGPATH_BPFD_CONFIG);
 
+    let ca_cert = tokio::fs::read(&config.tls.ca_cert)
+        .await
+        .context("CA Cert File does not exist")?;
+    let ca_cert = Certificate::from_pem(ca_cert);
+    let cert = tokio::fs::read(&config.tls.client_cert)
+        .await
+        .context("Cert File does not exist")?;
+    let key = tokio::fs::read(&config.tls.client_key)
+        .await
+        .context("Cert Key File does not exist")?;
+    let identity = Identity::from_pem(cert, key);
     let tls_config = ClientTlsConfig::new()
         .domain_name("localhost")
         .ca_certificate(ca_cert)
@@ -113,6 +100,7 @@ async fn main() -> anyhow::Result<()> {
 
     let mut client = LoaderClient::new(channel);
 
+    let cli = Cli::parse();
     match &cli.command {
         Commands::Load {
             path,
@@ -187,7 +175,6 @@ async fn main() -> anyhow::Result<()> {
             }
             println!("{table}");
         }
-        Commands::Certs {} => {}
     }
     Ok(())
 }

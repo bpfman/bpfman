@@ -2,7 +2,6 @@
 Description=Run bpfd as a service
 DefaultDependencies=no
 After=network.target
-Before=bpfctl.service
 
 [Service]
 Environment="RUST_LOG=Info"
@@ -12,7 +11,7 @@ MemoryLow=infinity
 MemoryMax=infinity
 User=bpfd
 Group=bpfd
-ConfigurationDirectory=bpfd bpfd/certs bpfd/certs/bpfd bpfd/certs/ca bpfd/programs.d
+ConfigurationDirectory=bpfd bpfd/certs bpfd/certs/bpfd bpfd/certs/bpfd-client bpfd/certs/ca bpfd/programs.d
 ConfigurationDirectoryMode=6755
 RuntimeDirectory=bpfd bpfd/bytecode bpfd/dispatchers bpfd/fs bpfd/fs/maps bpfd/programs
 RuntimeDirectoryMode=6755

@@ -67,11 +67,13 @@ delete_user() {
 user_init() {
     echo "Creating users/groups:"
     create_user "${USER_BPFD}" "${USER_GROUP}"
-    create_user "${USER_BPFCTL}" "${USER_GROUP}"
 }
 
 user_del() {
     echo "Deleting users/groups:"
-    delete_user "${USER_BPFCTL}"
     delete_user "${USER_BPFD}"
+
+    # "bpfctl" no longer created. This can be removed later,
+    # but left around to cleanup systems where bpfctl user was created.
+    delete_user "bpfctl"
 }

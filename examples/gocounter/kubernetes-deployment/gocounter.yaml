@@ -8,8 +8,8 @@ data:
   gocounter.toml: |
     [tls]
       ca_cert = "/etc/bpfd/certs/ca/ca.crt"
-      cert = "/etc/bpfctl/certs/gocounter/tls.crt"
-      key = "/etc/bpfctl/certs/gocounter/tls.key"
+      cert = "/etc/bpfd/certs/bpfd-client/tls.crt"
+      key = "/etc/bpfd/certs/bpfd-client/tls.key"
     [config]
       interface = "ens3"
       bytecode_uuid = "62c2a443-9beb-4261-9c46-33a29612643d"
@@ -37,6 +37,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: gocounter-pod
+  namespace: kube-system
 spec:
   hostNetwork: true
   dnsPolicy: ClusterFirstWithHostNet
@@ -51,19 +52,19 @@ spec:
       privileged: true
     volumeMounts:
     - name: gocounter-cert
-      mountPath: /etc/bpfctl/certs/gocounter
+      mountPath: /etc/bpfd/certs/bpfd-client
       readOnly: true
     - name: bpfd-ca
       mountPath: /etc/bpfd/certs/ca
       readOnly: true
     - name: host-bytecode
-      mountPath: /var/bpfd/bytecode
+      mountPath: /run/bpfd/bytecode
       readOnly: false
     - name: gocounter-maps
       mountPath: /run/bpfd/fs/maps
       readOnly: true
     - name: gocounter-config
-      mountPath: /etc/bpfctl/gocounter.toml
+      mountPath: /etc/bpfd/gocounter.toml
       subPath: gocounter.toml
       readOnly: true
   volumes:
@@ -77,7 +78,7 @@ spec:
       optional: false
   - name: host-bytecode
     hostPath:
-      path: /var/bpfd/bytecode
+      path: /run/bpfd/bytecode
   - name: gocounter-maps
     hostPath:
       path: /run/bpfd/fs/maps

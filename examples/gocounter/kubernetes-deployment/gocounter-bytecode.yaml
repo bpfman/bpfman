@@ -2,6 +2,7 @@ apiVersion: bpfd.io/v1alpha1
 kind: EbpfProgram
 metadata:
   name: gocounter
+  namespace: kube-system
 spec:
   type: xdp
   name: gocounter

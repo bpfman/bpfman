@@ -4,21 +4,30 @@
 use std::{collections::HashMap, fs, path::Path};
 
 use aya::programs::XdpFlags;
-use bpfd_api::util::directories::*;
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
 
+use crate::util::directories::*;
+
 #[derive(Debug, Deserialize, Default)]
 pub struct Config {
+    #[serde(default)]
     pub tls: TlsConfig,
     pub interfaces: Option<HashMap<String, InterfaceConfig>>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct TlsConfig {
+    #[serde(default = "default_ca_cert")]
     pub ca_cert: String,
+    #[serde(default = "default_cert")]
     pub cert: String,
+    #[serde(default = "default_key")]
     pub key: String,
+    #[serde(default = "default_client_cert")]
+    pub client_cert: String,
+    #[serde(default = "default_client_key")]
+    pub client_key: String,
 }
 
 impl Default for TlsConfig {
@@ -27,8 +36,30 @@ impl Default for TlsConfig {
             ca_cert: CFGPATH_CA_CERTS_PEM.to_string(),
             cert: CFGPATH_BPFD_CERTS_PEM.to_string(),
             key: CFGPATH_BPFD_CERTS_KEY.to_string(),
+            client_cert: CFGPATH_BPFD_CLIENT_CERTS_PEM.to_string(),
+            client_key: CFGPATH_BPFD_CLIENT_CERTS_KEY.to_string(),
         }
     }
+}
+
+fn default_ca_cert() -> String {
+    CFGPATH_CA_CERTS_PEM.to_string()
+}
+
+fn default_cert() -> String {
+    CFGPATH_BPFD_CERTS_PEM.to_string()
+}
+
+fn default_key() -> String {
+    CFGPATH_BPFD_CERTS_KEY.to_string()
+}
+
+fn default_client_cert() -> String {
+    CFGPATH_BPFD_CLIENT_CERTS_PEM.to_string()
+}
+
+fn default_client_key() -> String {
+    CFGPATH_BPFD_CLIENT_CERTS_KEY.to_string()
 }
 
 #[derive(Debug, Deserialize)]
@@ -45,7 +76,7 @@ pub enum XdpMode {
 }
 
 impl XdpMode {
-    pub(crate) fn as_flags(&self) -> XdpFlags {
+    pub fn as_flags(&self) -> XdpFlags {
         match self {
             XdpMode::Skb => XdpFlags::SKB_MODE,
             XdpMode::Drv => XdpFlags::DRV_MODE,
@@ -89,9 +120,11 @@ mod test {
     fn test_config_single_iface() {
         let input = r#"
         [tls]
-        ca_cert = "/path/to/ca-cert.pem"
-        cert = "/path/to/cert.pem"
-        key = "/path/to/cert.key"
+        ca_cert = "/path/to/ca/ca-cert.pem"
+        cert = "/path/to/bpfd/cert.pem"
+        key = "/path/to/bpfd/cert.key"
+        client_cert = "/path/to/bpfd-client/cert.pem"
+        client_key = "/path/to/bpfd-client/cert.key"
 
         [interfaces]
           [interfaces.eth0]
@@ -111,9 +144,11 @@ mod test {
     fn test_config_multiple_iface() {
         let input = r#"
         [tls]
-        ca_cert = "/path/to/ca-cert.pem"
-        cert = "/path/to/cert.pem"
-        key = "/path/to/cert.key"
+        ca_cert = "/path/to/ca/ca-cert.pem"
+        cert = "/path/to/bpfd/cert.pem"
+        key = "/path/to/bpfd/cert.key"
+        client_cert = "/path/to/bpfd-client/cert.pem"
+        client_key = "/path/to/bpfd-client/cert.key"
 
         [interfaces]
           [interfaces.eth0]
@@ -142,13 +177,39 @@ mod test {
     fn test_config_tls() {
         let input = r#"
         [tls]
-        ca_cert = "/path/to/ca-cert.pem"
-        cert = "/path/to/cert.pem"
-        key = "/path/to/cert.key"
+        ca_cert = "/path/to/ca/ca-cert.pem"
+        cert = "/path/to/bpfd/cert.pem"
+        key = "/path/to/bpfd/cert.key"
+        client_cert = "/path/to/bpfd-client/cert.pem"
+        client_key = "/path/to/bpfd-client/cert.key"
         "#;
         let config: Config = toml::from_str(input).expect("error parsing toml input");
-        assert_eq!(config.tls.ca_cert, "/path/to/ca-cert.pem");
-        assert_eq!(config.tls.cert, "/path/to/cert.pem");
-        assert_eq!(config.tls.key, "/path/to/cert.key");
+        assert_eq!(config.tls.ca_cert, "/path/to/ca/ca-cert.pem");
+        assert_eq!(config.tls.cert, "/path/to/bpfd/cert.pem");
+        assert_eq!(config.tls.key, "/path/to/bpfd/cert.key");
+        assert_eq!(config.tls.client_cert, "/path/to/bpfd-client/cert.pem");
+        assert_eq!(config.tls.client_key, "/path/to/bpfd-client/cert.key");
+    }
+
+    #[test]
+    fn test_config_tls_missing_field() {
+        let input = r#"
+        [tls]
+        ca_cert = "/path/to/ca/ca-cert.pem"
+        cert = "/path/to/bpfd/cert.pem"
+        key = "/path/to/bpfd/cert.key"
+        "#;
+        let config: Config = toml::from_str(input).expect("error parsing toml input");
+        assert_eq!(config.tls.ca_cert, "/path/to/ca/ca-cert.pem");
+        assert_eq!(config.tls.cert, "/path/to/bpfd/cert.pem");
+        assert_eq!(config.tls.key, "/path/to/bpfd/cert.key");
+        assert_eq!(
+            config.tls.client_cert,
+            CFGPATH_BPFD_CLIENT_CERTS_PEM.to_string()
+        );
+        assert_eq!(
+            config.tls.client_key,
+            CFGPATH_BPFD_CLIENT_CERTS_KEY.to_string()
+        );
     }
 }
