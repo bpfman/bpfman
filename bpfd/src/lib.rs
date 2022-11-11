@@ -5,6 +5,7 @@ mod bpf;
 mod certs;
 mod command;
 mod errors;
+mod multiprog;
 mod pull_bytecode;
 mod rpc;
 mod static_program;
@@ -18,7 +19,7 @@ use bpfd_api::{
     v1::{loader_server::LoaderServer, ProceedOn},
 };
 pub use certs::get_tls_config;
-use command::{AttachType, Command, NetworkMultiAttach};
+use command::{AttachType, Command, NetworkMultiAttach, TcProgram, TracepointProgram};
 use errors::BpfdError;
 use log::info;
 use rpc::{intercept, BpfdLoader};
@@ -28,14 +29,11 @@ use tokio::sync::mpsc;
 use tonic::transport::{Server, ServerTlsConfig};
 use utils::get_ifindex;
 
-use crate::command::{Metadata, NetworkMultiAttachInfo, Program, ProgramData, ProgramType};
+use crate::command::{
+    Metadata, NetworkMultiAttachInfo, Program, ProgramData, ProgramType, XdpProgram,
+};
 
-pub async fn serve(
-    config: Config,
-    dispatcher_bytes_xdp: &'static [u8],
-    dispatcher_bytes_tc: &'static [u8],
-    static_programs: Vec<StaticPrograms>,
-) -> anyhow::Result<()> {
+pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(32);
     let addr = "[::1]:50051".parse().unwrap();
 
@@ -61,49 +59,48 @@ pub async fn serve(
         }
     });
 
-    let mut bpf_manager = BpfManager::new(&config, dispatcher_bytes_xdp, dispatcher_bytes_tc);
+    let mut bpf_manager = BpfManager::new(&config);
     bpf_manager.rebuild_state()?;
 
     // Load any static programs first
     if !static_programs.is_empty() {
-        info!("Loading static programs from {CFGDIR_STATIC_PROGRAMS}",);
+        info!("Loading static programs from {CFGDIR_STATIC_PROGRAMS}");
         for programs in static_programs {
             for program in programs.programs {
                 let prog_type = program.program_type.parse()?;
                 let prog = match prog_type {
                     ProgramType::Xdp => {
-                        let mut proc_on = Vec::new();
                         if let Some(m) = program.network_attach {
-                            if !m.proceed_on.is_empty() {
+                            let proc_on = if !m.proceed_on.is_empty() {
+                                let mut p = Vec::new();
                                 for i in m.proceed_on.iter() {
                                     match ProceedOn::try_from(i.to_string()) {
-                                        Ok(action) => proc_on.push(action as i32),
+                                        Ok(action) => p.push(action as i32),
                                         Err(e) => {
                                             eprintln!("ERROR: {e}");
                                             std::process::exit(1);
                                         }
                                     };
                                 }
-                            }
+                                command::ProceedOn(p)
+                            } else {
+                                command::ProceedOn::default_xdp()
+                            };
                             let if_index = get_ifindex(&m.interface)?;
-                            Program::Xdp(
-                                ProgramData {
-                                    path: program.path,
-                                    section_name: program.section_name.clone(),
-                                    owner: String::from("bpfd"),
-                                },
-                                NetworkMultiAttachInfo {
+                            let metadata = Metadata::new(m.priority, program.section_name.clone());
+                            Program::Xdp(XdpProgram::new(
+                                ProgramData::new(
+                                    program.path,
+                                    program.section_name.clone(),
+                                    String::from("bpfd"),
+                                ),
+                                NetworkMultiAttachInfo::new(
+                                    m.interface,
                                     if_index,
-                                    current_position: None,
-                                    metadata: Metadata {
-                                        priority: m.priority,
-                                        name: program.section_name.clone(),
-                                        attached: false,
-                                    },
-                                    proceed_on: proc_on,
-                                    if_name: m.interface,
-                                },
-                            )
+                                    metadata,
+                                    proc_on,
+                                ),
+                            ))
                         } else {
                             bail!("invalid attach type for xdp program")
                         }
@@ -136,13 +133,13 @@ pub async fn serve(
             } => {
                 let res = if let Ok(if_index) = get_ifindex(&iface) {
                     let prog = match program_type {
-                        command::ProgramType::Xdp => Program::Xdp(
-                            ProgramData {
+                        command::ProgramType::Xdp => Program::Xdp(XdpProgram {
+                            data: ProgramData {
                                 path,
                                 owner: username,
                                 section_name: section_name.clone(),
                             },
-                            NetworkMultiAttachInfo {
+                            info: NetworkMultiAttachInfo {
                                 if_index,
                                 current_position: None,
                                 metadata: command::Metadata {
@@ -153,14 +150,14 @@ pub async fn serve(
                                 proceed_on,
                                 if_name: iface,
                             },
-                        ),
-                        command::ProgramType::Tc => Program::Tc(
-                            ProgramData {
+                        }),
+                        command::ProgramType::Tc => Program::Tc(TcProgram {
+                            data: ProgramData {
                                 path,
                                 owner: username,
                                 section_name: section_name.clone(),
                             },
-                            NetworkMultiAttachInfo {
+                            info: NetworkMultiAttachInfo {
                                 if_index,
                                 current_position: None,
                                 metadata: command::Metadata {
@@ -171,8 +168,8 @@ pub async fn serve(
                                 proceed_on,
                                 if_name: iface,
                             },
-                            direction.unwrap(),
-                        ),
+                            direction: direction.unwrap(),
+                        }),
                         _ => panic!("unsupported prog type"),
                     };
                     bpf_manager.add_program(prog)
@@ -192,14 +189,14 @@ pub async fn serve(
                 direction: _,
             } => {
                 let prog = match program_type {
-                    command::ProgramType::Tracepoint => Program::Tracepoint(
-                        ProgramData {
+                    command::ProgramType::Tracepoint => Program::Tracepoint(TracepointProgram {
+                        data: ProgramData {
                             path,
                             owner: username,
                             section_name: section_name.clone(),
                         },
-                        attach,
-                    ),
+                        info: attach,
+                    }),
                     _ => panic!("unsupported prog type"),
                 };
                 let res = bpf_manager.add_program(prog);

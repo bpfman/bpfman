@@ -21,17 +21,18 @@ pub mod directories {
     pub const CFGPATH_BPFD_CERTS_KEY:        &str = "/etc/bpfd/certs/bpfd/bpfd.key";
     pub const CFGPATH_BPFD_CLIENT_CERTS_PEM: &str = "/etc/bpfd/certs/bpfd-client/bpfd-client.pem";
     pub const CFGPATH_BPFD_CLIENT_CERTS_KEY: &str = "/etc/bpfd/certs/bpfd-client/bpfd-client.key";
-
-    //
     // RuntimeDirectory: /run/bpfd/
     pub const RTDIR:            &str = "/run/bpfd";
     pub const RTDIR_BYTECODE:   &str = "/run/bpfd/bytecode";
-    pub const RTDIR_DISPATCHER: &str = "/run/bpfd/dispatchers";
-    pub const RTDIR_FS:         &str = "/run/bpfd/fs";
+    pub const RTDIR_XDP_DISPATCHER: &str = "/run/bpfd/dispatchers/xdp";
+    pub const RTDIR_TC_INGRESS_DISPATCHER: &str = "/run/bpfd/dispatchers/tc-ingress";
+    pub const RTDIR_TC_EGRESS_DISPATCHER: &str = "/run/bpfd/dispatchers/tc-egress";
+    pub const RTDIR_FS : &str = "/run/bpfd/fs";
+    pub const RTDIR_FS_TC_INGRESS:         &str = "/run/bpfd/fs/tc-ingress";
+    pub const RTDIR_FS_TC_EGRESS:         &str = "/run/bpfd/fs/tc-egress";
+    pub const RTDIR_FS_XDP:         &str = "/run/bpfd/fs/xdp";
     pub const RTDIR_FS_MAPS:    &str = "/run/bpfd/fs/maps";
     pub const RTDIR_PROGRAMS:   &str = "/run/bpfd/programs";
-
-    //
     // StateDirectory: /var/lib/bpfd/
     pub const STDIR:        &str = "/var/lib/bpfd";
     pub const STDIR_SOCKET: &str = "/var/lib/bpfd/sock";

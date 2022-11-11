@@ -101,7 +101,7 @@ impl Loader for BpfdLoader {
                     crate::command::NetworkMultiAttach {
                         iface: attach.iface,
                         priority: attach.priority,
-                        proceed_on: attach.proceed_on,
+                        proceed_on: crate::command::ProceedOn(attach.proceed_on),
                         position: 0,
                     },
                 ),
@@ -220,7 +220,7 @@ impl Loader for BpfdLoader {
                                             priority: m.priority,
                                             iface: m.iface,
                                             position: m.position,
-                                            proceed_on: m.proceed_on,
+                                            proceed_on: m.proceed_on.0,
                                         },
                                     ),
                                 ),

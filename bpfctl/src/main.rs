@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::{bail, Context};
 use bpfd_api::{
     config::config_from_file,
     util::directories::*,
@@ -12,7 +12,7 @@ use bpfd_api::{
         LoadRequest, NetworkMultiAttach, ProceedOn, ProgramType, SingleAttach, UnloadRequest,
     },
 };
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use comfy_table::Table;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
 
@@ -25,29 +25,36 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Load {
-        /// Required: Program to load.
-        #[clap(value_parser)]
-        path: PathBuf,
-        /// Optional: Extract bytecode from container, signals <PATH> is a
-        /// container image URL.
-        #[clap(long, conflicts_with_all(&["program_type", "section_name"]))]
-        from_image: bool,
-        /// Required if "--from-image" is not present: BPF hook point.
-        /// Possible values: [xdp]
-        #[clap(
-            short,
-            long,
-            default_value = "xdp",
-            required_unless_present("from_image")
-        )]
-        program_type: String,
+    Load(Load),
+    Unload { id: String },
+    List,
+}
+
+#[derive(Args)]
+struct Load {
+    /// Optional: Extract bytecode from container, signals <PATH> is a
+    /// container image URL.
+    #[clap(long, conflicts_with("section_name"))]
+    from_image: bool,
+
+    /// Required if "--from-image" is not present: Name of the ELF section from the object file.
+    #[clap(short, long, default_value = "", required_unless_present("from_image"))]
+    section_name: String,
+
+    /// Required: Program to load.
+    #[clap(short, long, value_parser)]
+    path: PathBuf,
+
+    #[clap(subcommand)]
+    command: LoadCommands,
+}
+
+#[derive(Subcommand)]
+enum LoadCommands {
+    Xdp {
         /// Required: Interface to load program on.
         #[clap(short, long)]
         iface: String,
-        /// Required if "--from-image" is not present: Name of the ELF section from the object file.
-        #[clap(short, long, default_value = "", required_unless_present("from_image"))]
-        section_name: String,
         /// Required: Priority to run program in chain. Lower value runs first.
         #[clap(long)]
         priority: i32,
@@ -58,11 +65,28 @@ enum Commands {
         #[clap(long, num_args(1..))]
         proceed_on: Vec<String>,
     },
-    Unload {
-        /// Required: UUID used to identify loaded program.
-        id: String,
+    Tc {
+        /// Required: Direction to apply program. "ingress" or "egress"
+        #[clap(long)]
+        direction: String,
+        /// Required: Interface to load program on.
+        #[clap(short, long)]
+        iface: String,
+        /// Required: Priority to run program in chain. Lower value runs first.
+        #[clap(long)]
+        priority: i32,
+        /// Optional: Proceed to call other programs in chain on this exit code.
+        /// Multiple values supported by repeating the parameter.
+        /// Possible values: [aborted, drop, pass, tx, redirect, dispatcher_return]
+        /// Default values: pass and dispatcher_return
+        #[clap(long, num_args(1..))]
+        proceed_on: Vec<String>,
     },
-    List {},
+    Tracepoint {
+        /// Required: The tracepoint to attach to. E.g sched/sched_switch
+        #[clap(short, long)]
+        tracepoint: String,
+    },
 }
 
 #[tokio::main]
@@ -94,42 +118,78 @@ async fn main() -> anyhow::Result<()> {
         .await?;
 
     let mut client = LoaderClient::new(channel);
-
+    let mut attach_direction = Direction::None;
     match &cli.command {
-        Commands::Load {
-            path,
-            from_image,
-            program_type,
-            iface,
-            section_name,
-            priority,
-            proceed_on,
-        } => {
-            let path_str: String = path.to_string_lossy().to_string();
-            let prog_type = ProgramType::try_from(program_type.to_string())?;
-
-            let mut proc_on = Vec::new();
-            if !proceed_on.is_empty() {
-                for i in proceed_on.iter() {
-                    let action = ProceedOn::try_from(i.to_string())?;
-                    proc_on.push(action as i32);
+        Commands::Load(l) => {
+            let path_str: String = l.path.to_string_lossy().to_string();
+            let prog_type = match l.command {
+                LoadCommands::Xdp { .. } => ProgramType::Xdp,
+                LoadCommands::Tc { .. } => ProgramType::Tc,
+                LoadCommands::Tracepoint { .. } => ProgramType::Tracepoint,
+            };
+            let attach_type = match &l.command {
+                LoadCommands::Xdp {
+                    iface,
+                    priority,
+                    proceed_on,
+                } => {
+                    let mut proc_on = Vec::new();
+                    if !proceed_on.is_empty() {
+                        for i in proceed_on.iter() {
+                            let action = ProceedOn::try_from(i.to_string())?;
+                            proc_on.push(action as i32);
+                        }
+                    }
+                    Some(load_request::AttachType::NetworkMultiAttach(
+                        NetworkMultiAttach {
+                            priority: *priority,
+                            iface: iface.to_string(),
+                            position: 0,
+                            proceed_on: proc_on,
+                        },
+                    ))
                 }
-            }
+                LoadCommands::Tc {
+                    direction,
+                    iface,
+                    priority,
+                    proceed_on,
+                } => {
+                    attach_direction = match direction.as_str() {
+                        "ingress" => Direction::Ingress,
+                        "egress" => Direction::Egress,
+                        other => bail!("{} is not a valid direction", other),
+                    };
+                    let mut proc_on = Vec::new();
+                    if !proceed_on.is_empty() {
+                        for i in proceed_on.iter() {
+                            let action = ProceedOn::try_from(i.to_string())?;
+                            proc_on.push(action as i32);
+                        }
+                    }
+                    Some(load_request::AttachType::NetworkMultiAttach(
+                        NetworkMultiAttach {
+                            priority: *priority,
+                            iface: iface.to_string(),
+                            position: 0,
+                            proceed_on: proc_on,
+                        },
+                    ))
+                }
+                LoadCommands::Tracepoint { tracepoint } => {
+                    Some(load_request::AttachType::SingleAttach(SingleAttach {
+                        name: tracepoint.to_string(),
+                    }))
+                }
+            };
 
             let request = tonic::Request::new(LoadRequest {
                 path: path_str,
-                from_image: *from_image,
-                section_name: section_name.to_string(),
+                from_image: l.from_image,
+                section_name: l.section_name.to_string(),
                 program_type: prog_type as i32,
-                direction: Direction::None as i32,
-                attach_type: Some(load_request::AttachType::NetworkMultiAttach(
-                    NetworkMultiAttach {
-                        priority: *priority,
-                        iface: iface.to_string(),
-                        position: 0,
-                        proceed_on: proc_on,
-                    },
-                )),
+                direction: attach_direction as i32,
+                attach_type,
             });
             let response = client.load(request).await?.into_inner();
             println!("{}", response.id);
