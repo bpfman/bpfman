@@ -33,11 +33,11 @@ struct Cli {
 enum Commands {
     Load {
         /// Required: Program to load.
-        #[clap(parse(from_os_str))]
+        #[clap(value_parser)]
         path: PathBuf,
         /// Optional: Extract bytecode from container, signals <PATH> is a
         /// container image URL.
-        #[clap(long, conflicts_with_all(&["program-type", "section-name"]))]
+        #[clap(long, conflicts_with_all(&["program_type", "section_name"]))]
         from_image: bool,
         /// Required if "--from-image" is not present: BPF hook point.
         /// Possible values: [xdp]
@@ -45,14 +45,14 @@ enum Commands {
             short,
             long,
             default_value = "xdp",
-            required_unless_present("from-image")
+            required_unless_present("from_image")
         )]
         program_type: String,
         /// Required: Interface to load program on.
         #[clap(short, long)]
         iface: String,
         /// Required if "--from-image" is not present: Name of the ELF section from the object file.
-        #[clap(short, long, default_value = "", required_unless_present("from-image"))]
+        #[clap(short, long, default_value = "", required_unless_present("from_image"))]
         section_name: String,
         /// Required: Priority to run program in chain. Lower value runs first.
         #[clap(long)]
@@ -61,7 +61,7 @@ enum Commands {
         /// Multiple values supported by repeating the parameter.
         /// Possible values: [aborted, drop, pass, tx, redirect, dispatcher_return]
         /// Default values: pass and dispatcher_return
-        #[clap(long, multiple = true)]
+        #[clap(long, num_args(1..))]
         proceed_on: Vec<String>,
     },
     Unload {
