@@ -72,9 +72,9 @@ fn main() -> anyhow::Result<()> {
                     .context("unable to mount bpffs")?;
             }
 
-            create_dir_all(CFGDIR_BPFCTL_CERTS)
-                .context("unable to create bpfctl certs directory")?;
             create_dir_all(CFGDIR_BPFD_CERTS).context("unable to create bpfd certs directory")?;
+            create_dir_all(CFGDIR_BPFD_CLIENT_CERTS)
+                .context("unable to create bpfd-client certs directory")?;
             create_dir_all(CFGDIR_CA_CERTS).context("unable to create ca certs directory")?;
             create_dir_all(CFGDIR_STATIC_PROGRAMS)
                 .context("unable to create static programs directory")?;

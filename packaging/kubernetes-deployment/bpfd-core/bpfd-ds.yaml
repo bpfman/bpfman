@@ -74,7 +74,7 @@ spec:
           mountPath: /etc/bpfd/certs/ca
           readOnly: true
         - name: bpfd-agent-cert
-          mountPath: /etc/bpfd/certs/bpfd-agent
+          mountPath: /etc/bpfd/certs/bpfd-client
           readOnly: true
         - name: bpfd-config
           mountPath: /etc/bpfd/bpfd.toml

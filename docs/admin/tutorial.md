@@ -275,20 +275,6 @@ sudo ./scripts/setup.sh uninstall
 **WARNING:** `setup.sh uninstall` cleans everything up, so `/etc/bpfd/programs.d/`
 and `/run/bpfd/bytecode/` are deleted. Save any changes or files that were created if needed.
 
-## Additional Command
-
-A few additional commands are supported in the `setup.sh` script.
-
-### gocounter Certificates
-
-This repository contains a sample BFP program written in Go (see [go.md](../developer/go.md)).
-This program requires certificates in order to run as well.
-To generate certificates for the `gocounter` example, run:
-
-```console
-sudo ./scripts/setup.sh gocounter
-```
-
 # Logging
 
 ## env_logger

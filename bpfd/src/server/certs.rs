@@ -3,7 +3,7 @@
 
 use std::{fs, os::unix::fs::PermissionsExt, path::Path, str};
 
-use bpfd_api::config::Config;
+use bpfd_api::config::TlsConfig;
 use log::{debug, error, info};
 use openssl::{
     asn1::Asn1Time,
@@ -34,33 +34,33 @@ const KEY_LENGTH: u32 = 4096;
 const CERT_EXP_DAYS: u32 = 30;
 const CA_CN_NAME: &str = "bpfd-ca";
 const CN_BPFD_NAME: &str = "bpfd";
-const CN_BPFCTL_NAME: &str = "bpfctl";
+const CN_BPFD_CLIENT_NAME: &str = "bpfd-client";
 const CA_KEY_FILENAME: &str = "ca.key";
 
-pub async fn get_tls_config(config: &Config) -> Result<(Certificate, Identity), CertsError> {
+pub async fn get_tls_config(tls: &TlsConfig) -> Result<(Certificate, Identity), CertsError> {
     // Read CA Cert
-    let ca_cert_pem = match tokio::fs::read(&config.tls.ca_cert).await {
+    let ca_cert_pem = match tokio::fs::read(&tls.ca_cert).await {
         Ok(ca_cert_pem) => {
-            debug!("CA Certificate file {} exists.", config.tls.ca_cert);
+            debug!("CA Certificate file {} exists.", tls.ca_cert);
             ca_cert_pem
         }
         Err(_) => {
             // CA Cert does not exist, so create a CA Certificate
             info!(
                 "CA Certificate file {} does not exist. Creating CA Certificate.",
-                config.tls.ca_cert
+                tls.ca_cert
             );
-            generate_ca_cert_pem(&config.tls.ca_cert).await?
+            generate_ca_cert_pem(&tls.ca_cert).await?
         }
     };
 
     // Read bpfd Cert Key and Cert files and create an identity
-    let identity = match tokio::fs::read(&config.tls.key).await {
+    let identity = match tokio::fs::read(&tls.key).await {
         Ok(key) => {
-            debug!("Certificate Key {} exists.", config.tls.key);
+            debug!("Certificate Key {} exists.", tls.key);
 
             // If Key exists but Cert doesn't, return error
-            let cert_pem = tokio::fs::read(&config.tls.cert)
+            let cert_pem = tokio::fs::read(&tls.cert)
                 .await
                 .map_err(|_| CertsError::Error("certificate file does not exist".to_string()))?;
 
@@ -70,13 +70,13 @@ pub async fn get_tls_config(config: &Config) -> Result<(Certificate, Identity), 
             // Cert Key does not exist, so create a bpfd Certificate
             info!(
                 "bpfd Certificate Key {} does not exist. Creating bpfd Certificate.",
-                config.tls.key
+                tls.key
             );
             let (cert_pem, cert_key_pem) = generate_cert(
-                &config.tls.ca_cert,
+                &tls.ca_cert,
                 &ca_cert_pem,
-                &config.tls.key,
-                &config.tls.cert,
+                &tls.key,
+                &tls.cert,
                 CN_BPFD_NAME,
             )
             .await?;
@@ -85,33 +85,33 @@ pub async fn get_tls_config(config: &Config) -> Result<(Certificate, Identity), 
         }
     };
 
-    // Read bpfctl Cert Key and Cert files and make sure they exist. If they don't, create them.
-    match tokio::fs::read(&config.bpfctl.key).await {
+    // Read bpfd-client Cert Key and Cert files and make sure they exist. If they don't, create them.
+    match tokio::fs::read(&tls.client_key).await {
         Ok(_) => {
-            debug!("bpfctl Certificate Key {} exists.", config.bpfctl.key);
+            debug!("bpfd-client Certificate Key {} exists.", tls.client_key);
 
             // If Key exists but Cert doesn't, return error
-            let _ = tokio::fs::read(&config.bpfctl.cert).await.map_err(|_| {
-                CertsError::Error("bpfctl certificate file does not exist".to_string())
+            let _ = tokio::fs::read(&tls.client_cert).await.map_err(|_| {
+                CertsError::Error("bpfd-client certificate file does not exist".to_string())
             })?;
         }
         Err(_) => {
             // Cert Key does not exist, so create a bpfd Certificate
             info!(
-                "bpfctl Certificate Key {} does not exist. Creating bpfctl Certificate.",
-                config.bpfctl.key
+                "bpfd-client Certificate Key {} does not exist. Creating bpfd-client Certificate.",
+                tls.client_key
             );
             if (generate_cert(
-                &config.tls.ca_cert,
+                &tls.ca_cert,
                 &ca_cert_pem,
-                &config.bpfctl.key,
-                &config.bpfctl.cert,
-                CN_BPFCTL_NAME,
+                &tls.client_key,
+                &tls.client_cert,
+                CN_BPFD_CLIENT_NAME,
             )
             .await)
                 .is_err()
             {
-                info!("Unable to create bpfctl Certificate. Continuing");
+                info!("Unable to create bpfd-client Certificate. Continuing");
             }
         }
     };

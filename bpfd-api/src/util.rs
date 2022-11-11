@@ -8,22 +8,19 @@ pub mod directories {
     // is not being run as a service.
     //
     // ConfigurationDirectory: /etc/bpfd/
-    pub const CFGDIR:                       &str = "/etc/bpfd";
-    pub const CFGDIR_BPFCTL_CERTS:          &str = "/etc/bpfd/certs/bpfctl";
-    pub const CFGDIR_BPFD_CERTS:            &str = "/etc/bpfd/certs/bpfd";
-    pub const CFGDIR_BPFD_AGENT_CERTS:      &str = "/etc/bpfd/certs/bpfd-agent";
-    pub const CFGDIR_CA_CERTS:              &str = "/etc/bpfd/certs/ca";
-    pub const CFGDIR_STATIC_PROGRAMS:       &str = "/etc/bpfd/programs.d";
+    pub const CFGDIR:                        &str = "/etc/bpfd";
+    pub const CFGDIR_BPFD_CERTS:             &str = "/etc/bpfd/certs/bpfd";
+    pub const CFGDIR_BPFD_CLIENT_CERTS:      &str = "/etc/bpfd/certs/bpfd-client";
+    pub const CFGDIR_CA_CERTS:               &str = "/etc/bpfd/certs/ca";
+    pub const CFGDIR_STATIC_PROGRAMS:        &str = "/etc/bpfd/programs.d";
 
-    pub const CFGPATH_BPFD_CONFIG:          &str = "/etc/bpfd/bpfd.toml";
-    pub const CFGPATH_CA_CERTS_PEM:         &str = "/etc/bpfd/certs/ca/ca.pem";
-    pub const CFGPATH_CA_CERTS_KEY:         &str = "/etc/bpfd/certs/ca/ca.key";
-    pub const CFGPATH_BPFCTL_CERTS_PEM:     &str = "/etc/bpfd/certs/bpfctl/bpfctl.pem";
-    pub const CFGPATH_BPFCTL_CERTS_KEY:     &str = "/etc/bpfd/certs/bpfctl/bpfctl.key";
-    pub const CFGPATH_BPFD_CERTS_PEM:       &str = "/etc/bpfd/certs/bpfd/bpfd.pem";
-    pub const CFGPATH_BPFD_CERTS_KEY:       &str = "/etc/bpfd/certs/bpfd/bpfd.key";
-    pub const CFGPATH_BPFD_AGENT_CERTS_CRT: &str = "/etc/bpfd/certs/bpfd-agent/tls.crt";
-    pub const CFGPATH_BPFD_AGENT_CERTS_KEY: &str = "/etc/bpfd/certs/bpfd-agent/tls.key";
+    pub const CFGPATH_BPFD_CONFIG:           &str = "/etc/bpfd/bpfd.toml";
+    pub const CFGPATH_CA_CERTS_PEM:          &str = "/etc/bpfd/certs/ca/ca.pem";
+    pub const CFGPATH_CA_CERTS_KEY:          &str = "/etc/bpfd/certs/ca/ca.key";
+    pub const CFGPATH_BPFD_CERTS_PEM:        &str = "/etc/bpfd/certs/bpfd/bpfd.pem";
+    pub const CFGPATH_BPFD_CERTS_KEY:        &str = "/etc/bpfd/certs/bpfd/bpfd.key";
+    pub const CFGPATH_BPFD_CLIENT_CERTS_PEM: &str = "/etc/bpfd/certs/bpfd-client/bpfd-client.pem";
+    pub const CFGPATH_BPFD_CLIENT_CERTS_KEY: &str = "/etc/bpfd/certs/bpfd-client/bpfd-client.key";
 
     //
     // RuntimeDirectory: /run/bpfd/

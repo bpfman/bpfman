@@ -26,10 +26,10 @@ async fn main() -> Result<()> {
         .await
         .context("CA Cert File does not exist")?;
     let ca_cert = Certificate::from_pem(ca_cert);
-    let cert = tokio::fs::read(&config.bpfd_agent.cert)
+    let cert = tokio::fs::read(&config.tls.client_cert)
         .await
         .context("Cert File does not exist")?;
-    let key = tokio::fs::read(&config.bpfd_agent.key)
+    let key = tokio::fs::read(&config.tls.client_key)
         .await
         .context("Cert Key File does not exist")?;
     let identity = Identity::from_pem(cert, key);

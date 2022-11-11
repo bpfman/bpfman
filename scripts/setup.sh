@@ -52,8 +52,6 @@ usage() {
     echo "sudo ./scripts/setup.sh uninstall"
     echo "    Unwind all actions performed by \"setup.sh install\" including stopping"
     echo "    the \"bpfd\" service if it is running."
-    echo "sudo ./scripts/setup.sh gocounter"
-    echo "    Create the certs for the \"gocounter\" example."
     echo ""
 }
 

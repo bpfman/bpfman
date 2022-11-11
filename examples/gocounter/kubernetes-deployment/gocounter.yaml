@@ -8,8 +8,8 @@ data:
   gocounter.toml: |
     [tls]
       ca_cert = "/etc/bpfd/certs/ca/ca.crt"
-      cert = "/etc/bpfd/certs/gocounter/tls.crt"
-      key = "/etc/bpfd/certs/gocounter/tls.key"
+      cert = "/etc/bpfd/certs/bpfd-client/tls.crt"
+      key = "/etc/bpfd/certs/bpfd-client/tls.key"
     [config]
       interface = "ens3"
       bytecode_uuid = "62c2a443-9beb-4261-9c46-33a29612643d"
@@ -52,7 +52,7 @@ spec:
       privileged: true
     volumeMounts:
     - name: gocounter-cert
-      mountPath: /etc/bpfd/certs/gocounter
+      mountPath: /etc/bpfd/certs/bpfd-client
       readOnly: true
     - name: bpfd-ca
       mountPath: /etc/bpfd/certs/ca

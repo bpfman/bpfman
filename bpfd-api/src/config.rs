@@ -11,19 +11,23 @@ use crate::util::directories::*;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct Config {
+    #[serde(default)]
     pub tls: TlsConfig,
-    #[serde(default)]
-    pub bpfctl: BpfctlTlsConfig,
-    #[serde(default)]
-    pub bpfd_agent: BpfdAgentTlsConfig,
     pub interfaces: Option<HashMap<String, InterfaceConfig>>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct TlsConfig {
+    #[serde(default = "default_ca_cert")]
     pub ca_cert: String,
+    #[serde(default = "default_cert")]
     pub cert: String,
+    #[serde(default = "default_key")]
     pub key: String,
+    #[serde(default = "default_client_cert")]
+    pub client_cert: String,
+    #[serde(default = "default_client_key")]
+    pub client_key: String,
 }
 
 impl Default for TlsConfig {
@@ -32,41 +36,30 @@ impl Default for TlsConfig {
             ca_cert: CFGPATH_CA_CERTS_PEM.to_string(),
             cert: CFGPATH_BPFD_CERTS_PEM.to_string(),
             key: CFGPATH_BPFD_CERTS_KEY.to_string(),
+            client_cert: CFGPATH_BPFD_CLIENT_CERTS_PEM.to_string(),
+            client_key: CFGPATH_BPFD_CLIENT_CERTS_KEY.to_string(),
         }
     }
 }
 
-#[derive(Debug, Deserialize)]
-pub struct BpfctlTlsConfig {
-    pub cert: String,
-    pub key: String,
+fn default_ca_cert() -> String {
+    CFGPATH_CA_CERTS_PEM.to_string()
 }
 
-impl Default for BpfctlTlsConfig {
-    fn default() -> Self {
-        Self {
-            cert: CFGPATH_BPFCTL_CERTS_PEM.to_string(),
-            key: CFGPATH_BPFCTL_CERTS_KEY.to_string(),
-        }
-    }
+fn default_cert() -> String {
+    CFGPATH_BPFD_CERTS_PEM.to_string()
 }
 
-// These must match the directories where they are mounted
-// in the bpfd Daemonset (see bpfd-agent-cert in
-// packaging/kubernetes-deployment/bpfd-core/bpfd-ds.yaml)
-#[derive(Debug, Deserialize)]
-pub struct BpfdAgentTlsConfig {
-    pub cert: String,
-    pub key: String,
+fn default_key() -> String {
+    CFGPATH_BPFD_CERTS_KEY.to_string()
 }
 
-impl Default for BpfdAgentTlsConfig {
-    fn default() -> Self {
-        Self {
-            cert: CFGPATH_BPFD_AGENT_CERTS_CRT.to_string(),
-            key: CFGPATH_BPFD_AGENT_CERTS_KEY.to_string(),
-        }
-    }
+fn default_client_cert() -> String {
+    CFGPATH_BPFD_CLIENT_CERTS_PEM.to_string()
+}
+
+fn default_client_key() -> String {
+    CFGPATH_BPFD_CLIENT_CERTS_KEY.to_string()
 }
 
 #[derive(Debug, Deserialize)]
@@ -130,10 +123,8 @@ mod test {
         ca_cert = "/path/to/ca/ca-cert.pem"
         cert = "/path/to/bpfd/cert.pem"
         key = "/path/to/bpfd/cert.key"
-
-        [bpfctl]
-        cert = "/path/to/bpfctl/cert.pem"
-        key = "/path/to/bpfctl/cert.key"
+        client_cert = "/path/to/bpfd-client/cert.pem"
+        client_key = "/path/to/bpfd-client/cert.key"
 
         [interfaces]
           [interfaces.eth0]
@@ -156,10 +147,8 @@ mod test {
         ca_cert = "/path/to/ca/ca-cert.pem"
         cert = "/path/to/bpfd/cert.pem"
         key = "/path/to/bpfd/cert.key"
-
-        [bpfctl]
-        cert = "/path/to/bpfctl/cert.pem"
-        key = "/path/to/bpfctl/cert.key"
+        client_cert = "/path/to/bpfd-client/cert.pem"
+        client_key = "/path/to/bpfd-client/cert.key"
 
         [interfaces]
           [interfaces.eth0]
@@ -191,25 +180,36 @@ mod test {
         ca_cert = "/path/to/ca/ca-cert.pem"
         cert = "/path/to/bpfd/cert.pem"
         key = "/path/to/bpfd/cert.key"
-
-        [bpfctl]
-        cert = "/path/to/bpfctl/cert.pem"
-        key = "/path/to/bpfctl/cert.key"
+        client_cert = "/path/to/bpfd-client/cert.pem"
+        client_key = "/path/to/bpfd-client/cert.key"
         "#;
         let config: Config = toml::from_str(input).expect("error parsing toml input");
         assert_eq!(config.tls.ca_cert, "/path/to/ca/ca-cert.pem");
         assert_eq!(config.tls.cert, "/path/to/bpfd/cert.pem");
         assert_eq!(config.tls.key, "/path/to/bpfd/cert.key");
-        assert_eq!(config.bpfctl.cert, "/path/to/bpfctl/cert.pem");
-        assert_eq!(config.bpfctl.key, "/path/to/bpfctl/cert.key");
-        // Not entered, so default vallues should be returned
+        assert_eq!(config.tls.client_cert, "/path/to/bpfd-client/cert.pem");
+        assert_eq!(config.tls.client_key, "/path/to/bpfd-client/cert.key");
+    }
+
+    #[test]
+    fn test_config_tls_missing_field() {
+        let input = r#"
+        [tls]
+        ca_cert = "/path/to/ca/ca-cert.pem"
+        cert = "/path/to/bpfd/cert.pem"
+        key = "/path/to/bpfd/cert.key"
+        "#;
+        let config: Config = toml::from_str(input).expect("error parsing toml input");
+        assert_eq!(config.tls.ca_cert, "/path/to/ca/ca-cert.pem");
+        assert_eq!(config.tls.cert, "/path/to/bpfd/cert.pem");
+        assert_eq!(config.tls.key, "/path/to/bpfd/cert.key");
         assert_eq!(
-            config.bpfd_agent.cert,
-            CFGPATH_BPFD_AGENT_CERTS_CRT.to_string()
+            config.tls.client_cert,
+            CFGPATH_BPFD_CLIENT_CERTS_PEM.to_string()
         );
         assert_eq!(
-            config.bpfd_agent.key,
-            CFGPATH_BPFD_AGENT_CERTS_KEY.to_string()
+            config.tls.client_key,
+            CFGPATH_BPFD_CLIENT_CERTS_KEY.to_string()
         );
     }
 }

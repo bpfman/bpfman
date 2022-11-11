@@ -36,7 +36,7 @@ pub async fn serve(
 
     let loader = BpfdLoader::new(tx);
 
-    let (ca_cert, identity) = get_tls_config(&config)
+    let (ca_cert, identity) = get_tls_config(&config.tls)
         .await
         .context("CA Cert File does not exist")?;
 

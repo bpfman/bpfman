@@ -52,8 +52,8 @@ type ConfigData struct {
 const (
 	DefaultConfigPath     = "/etc/bpfd/gocounter.toml"
 	DefaultRootCaPath     = "/etc/bpfd/certs/ca/ca.pem"
-	DefaultClientCertPath = "/etc/bpfd/certs/gocounter/gocounter.pem"
-	DefaultClientKeyPath  = "/etc/bpfd/certs/gocounter/gocounter.key"
+	DefaultClientCertPath = "/etc/bpfd/certs/bpfd-client/bpfd-client.pem"
+	DefaultClientKeyPath  = "/etc/bpfd/certs/bpfd-client/bpfd-client.key"
 	DefaultSocketPath     = "/var/lib/bpfd/sock/gocounter.sock"
 	DefaultMapDir         = "/run/bpfd/fs/maps"
 )
