@@ -76,6 +76,8 @@ enum Commands {
 async fn main() -> anyhow::Result<()> {
     env_logger::init();
 
+    let cli = Cli::parse();
+
     let config = config_from_file(CFGPATH_BPFD_CONFIG);
 
     let ca_cert = tokio::fs::read(&config.tls.ca_cert)
@@ -100,7 +102,6 @@ async fn main() -> anyhow::Result<()> {
 
     let mut client = LoaderClient::new(channel);
 
-    let cli = Cli::parse();
     match &cli.command {
         Commands::Load {
             path,
