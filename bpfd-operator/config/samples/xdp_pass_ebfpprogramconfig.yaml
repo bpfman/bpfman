@@ -1,0 +1,18 @@
+apiVersion: bpfd.io/v1alpha1
+kind: EbpfProgramConfig
+metadata:
+  labels:
+    app.kubernetes.io/name: ebpfprogramconfig
+  name: xdp-pass-all-nodes
+  finalizers: 
+  - ebpfprogram.bpfd.io/finalizer
+spec:
+  name: xdp-pass
+  type: xdp
+  # Select all nodes
+  nodeselector: {}
+  priority: 0
+  attachpoint: 
+    interface: eno1
+  bytecode:
+    imageurl: quay.io/bpfd/bytecode:xdp_pass
