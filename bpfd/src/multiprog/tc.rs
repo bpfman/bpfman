@@ -7,8 +7,8 @@ use aya::{
     include_bytes_aligned,
     programs::{
         links::FdLink,
-        tc::{self, SchedClassifierLinkId},
-        Extension, PinnedProgram, SchedClassifier, TcAttachType,
+        tc::{self, SchedClassifierLink},
+        Extension, Link, PinnedProgram, SchedClassifier, TcAttachType,
     },
     Bpf, BpfLoader,
 };
@@ -44,7 +44,7 @@ pub struct TcDispatcher {
     #[serde(skip)]
     loader: Option<Bpf>,
     #[serde(skip)]
-    link_id: Option<SchedClassifierLinkId>,
+    link: Option<SchedClassifierLink>,
 }
 
 impl TcDispatcher {
@@ -99,7 +99,7 @@ impl TcDispatcher {
             if_name,
             direction,
             loader: Some(loader),
-            link_id: None,
+            link: None,
         };
         dispatcher.attach_extensions(&mut extensions)?;
         dispatcher.attach(old_dispatcher)?;
@@ -127,35 +127,23 @@ impl TcDispatcher {
 
         if let Some(Dispatcher::Tc(mut d)) = old_dispatcher {
             self.current_pri = d.current_pri - 1;
-            self.link_id = Some(new_dispatcher.attach(&iface, attach_type, self.current_pri)?);
-            if self.current_pri > MAX_TC_DISPATCHER_PRIORITY {
-                return Ok(());
+            if self.current_pri < MAX_TC_DISPATCHER_PRIORITY {
+                self.current_pri = MIN_TC_DISPATCHER_PRIORITY
             }
-
-            let old: &mut SchedClassifier = d
-                .loader
-                .as_mut()
-                .ok_or(BpfdError::NotLoaded)?
-                .program_mut(DISPATCHER_PROGRAM_NAME)
-                .unwrap()
-                .try_into()?;
-
-            // Manually detach the old dispatcher
-            old.detach(d.link_id.take().unwrap())?;
-
-            let new_priority = MIN_TC_DISPATCHER_PRIORITY;
-
-            // Attach the new scheduler at the lowest priority
-            let new_link_id = new_dispatcher.attach(&iface, attach_type, new_priority)?;
-            // Manually detach the new dispatcher that's at the highest priority
-            new_dispatcher.detach(self.link_id.take().unwrap())?;
-            self.link_id = Some(new_link_id);
+            let link_id = new_dispatcher.attach(&iface, attach_type, self.current_pri)?;
+            let link = new_dispatcher.take_link(link_id)?;
+            self.link = Some(link);
+            // FIXME: TcLinks should detach on drop
+            if let Some(old_link) = d.link.take() {
+                old_link.detach()?;
+            }
             d.delete(false)?;
         } else {
             // This is the first tc dispatcher on this interface
             self.current_pri = MIN_TC_DISPATCHER_PRIORITY;
-            self.link_id =
-                Some(new_dispatcher.attach(&iface, attach_type, MIN_TC_DISPATCHER_PRIORITY)?);
+            let link_id = new_dispatcher.attach(&iface, attach_type, MIN_TC_DISPATCHER_PRIORITY)?;
+            let link = new_dispatcher.take_link(link_id)?;
+            self.link = Some(link);
         }
         Ok(())
     }
