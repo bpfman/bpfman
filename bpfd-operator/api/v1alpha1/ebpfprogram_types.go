@@ -53,7 +53,8 @@ type EbpfProgram struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
-	Spec   EbpfProgramSpec   `json:"spec"`
+	Spec EbpfProgramSpec `json:"spec"`
+	// +optional
 	Status EbpfProgramStatus `json:"status,omitempty"`
 }
 

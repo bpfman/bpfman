@@ -86,8 +86,9 @@ type EbpfProgramConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
-	Spec   EbpfProgramConfigSpec   `json:"spec"`
-	Status EbpfProgramConfigStatus `json:"status"`
+	Spec EbpfProgramConfigSpec `json:"spec"`
+	// +optional
+	Status EbpfProgramConfigStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
