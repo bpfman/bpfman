@@ -332,7 +332,7 @@ func loadConfig() ConfigData {
 	}
 
 	log.Printf("Reading %s ...\n", DefaultConfigPath)
-	file, err := ioutil.ReadFile(DefaultConfigPath)
+	file, err := os.ReadFile(DefaultConfigPath)
 	if err == nil {
 		err = toml.Unmarshal(file, &config)
 		if err != nil {

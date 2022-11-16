@@ -12,10 +12,7 @@ use aya::{
     },
     Bpf, BpfLoader,
 };
-use bpfd_api::util::directories::{
-    RTDIR_FS, RTDIR_FS_TC_EGRESS, RTDIR_FS_TC_INGRESS, RTDIR_TC_EGRESS_DISPATCHER,
-    RTDIR_TC_INGRESS_DISPATCHER,
-};
+use bpfd_api::util::directories::*;
 use bpfd_common::TcDispatcherConfig;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -180,6 +177,7 @@ impl TcDispatcher {
                 new_link.pin(path).map_err(|_| BpfdError::UnableToPin)?;
             } else {
                 let mut bpf = BpfLoader::new()
+                    .map_pin_path(format!("{RTDIR_FS_MAPS}/{k}"))
                     .extension(&v.data.section_name)
                     .load_file(&v.data.path)
                     .map_err(BpfdError::BpfLoadError)?;

@@ -157,6 +157,7 @@ impl XdpDispatcher {
                 new_link.pin(path).map_err(|_| BpfdError::UnableToPin)?;
             } else {
                 let mut bpf = BpfLoader::new()
+                    .map_pin_path(format!("{RTDIR_FS_MAPS}/{k}"))
                     .extension(&v.data.section_name)
                     .load_file(&v.data.path)
                     .map_err(BpfdError::BpfLoadError)?;
