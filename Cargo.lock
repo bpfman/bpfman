@@ -1237,11 +1237,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
+ "bpfd-api",
  "env_logger",
  "integration-test-macros",
  "inventory",
  "log",
  "predicates",
+ "rand",
 ]
 
 [[package]]

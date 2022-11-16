@@ -5,7 +5,7 @@ use std::{collections::HashMap, convert::TryInto, fs};
 
 use aya::{programs::TracePoint, BpfLoader};
 use bpfd_api::{config::Config, util::directories::*};
-use log::info;
+use log::{debug, info};
 use uuid::Uuid;
 
 use crate::{
@@ -40,6 +40,7 @@ impl<'a> BpfManager<'a> {
                     .map_err(|e| BpfdError::Error(format!("cant read program state {}", e)))?;
                 // TODO: Should probably check for pinned prog on bpffs rather than assuming they are attached
                 program.set_attached();
+                debug!("rebuilding state for program {}", uuid);
                 self.programs.insert(uuid, program);
             }
         }
@@ -113,7 +114,7 @@ impl<'a> BpfManager<'a> {
             })
             .collect::<HashMap<_, _>>()
             .len();
-        if next_available_id > 10 {
+        if next_available_id >= 10 {
             return Err(BpfdError::TooManyPrograms);
         }
 
@@ -233,9 +234,9 @@ impl<'a> BpfManager<'a> {
             .dispatcher_id()
             .ok_or(BpfdError::DispatcherNotRequired)?;
 
-        let old_dispatcher = self.dispatchers.remove(&did);
+        let mut old_dispatcher = self.dispatchers.remove(&did);
 
-        if let Some(ref old) = old_dispatcher {
+        if let Some(ref mut old) = old_dispatcher {
             if next_available_id == 0 {
                 // Delete the dispatcher
                 return old.delete(true);

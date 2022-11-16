@@ -92,7 +92,7 @@ impl XdpDispatcher {
         dispatcher.attach_extensions(&mut extensions)?;
         dispatcher.attach()?;
         dispatcher.save()?;
-        if let Some(old) = old_dispatcher {
+        if let Some(mut old) = old_dispatcher {
             old.delete(false)?;
         }
         Ok(dispatcher)
@@ -186,14 +186,14 @@ impl XdpDispatcher {
     }
 
     fn save(&self) -> Result<(), BpfdError> {
-        let path = format!("{RTDIR_XDP_DISPATCHER}/{}-{}", self.if_index, self.revision);
+        let path = format!("{RTDIR_XDP_DISPATCHER}/{}_{}", self.if_index, self.revision);
         serde_json::to_writer(&fs::File::create(path).unwrap(), &self)
             .map_err(|e| BpfdError::Error(format!("can't save state: {}", e)))?;
         Ok(())
     }
 
     pub fn load(if_index: u32, revision: u32) -> Result<Self, anyhow::Error> {
-        let path = format!("{RTDIR_XDP_DISPATCHER}/{if_index}-{revision}");
+        let path = format!("{RTDIR_XDP_DISPATCHER}/{if_index}_{revision}");
         let file = fs::File::open(path)?;
         let reader = BufReader::new(file);
         let prog = serde_json::from_reader(reader)?;
@@ -202,7 +202,7 @@ impl XdpDispatcher {
     }
 
     pub(crate) fn delete(&self, full: bool) -> Result<(), BpfdError> {
-        let path = format!("{RTDIR_XDP_DISPATCHER}/{}-{}", self.if_index, self.revision);
+        let path = format!("{RTDIR_XDP_DISPATCHER}/{}_{}", self.if_index, self.revision);
         fs::remove_file(path)
             .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {}", e)))?;
 

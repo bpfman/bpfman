@@ -215,18 +215,18 @@ impl TcDispatcher {
             Direction::Ingress => RTDIR_TC_INGRESS_DISPATCHER,
             Direction::Egress => RTDIR_TC_EGRESS_DISPATCHER,
         };
-        let path = format!("{base}/{}-{}", self.if_index, self.revision);
+        let path = format!("{base}/{}_{}", self.if_index, self.revision);
         serde_json::to_writer(&fs::File::create(path).unwrap(), &self)
             .map_err(|e| BpfdError::Error(format!("can't save state: {}", e)))?;
         Ok(())
     }
 
-    pub(crate) fn delete(&self, _full: bool) -> Result<(), BpfdError> {
+    pub(crate) fn delete(&mut self, _full: bool) -> Result<(), BpfdError> {
         let base = match self.direction {
             Direction::Ingress => RTDIR_TC_INGRESS_DISPATCHER,
             Direction::Egress => RTDIR_TC_EGRESS_DISPATCHER,
         };
-        let path = format!("{base}/{}-{}", self.if_index, self.revision);
+        let path = format!("{base}/{}_{}", self.if_index, self.revision);
         fs::remove_file(path)
             .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {}", e)))?;
 
@@ -237,7 +237,10 @@ impl TcDispatcher {
         let path = format!("{base}/dispatcher_{}_{}", self.if_index, self.revision);
         fs::remove_dir_all(path)
             .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {}", e)))?;
-        // Dispatcher will be detached when this object is dropped
+        // FIXME: Dispatcher *SHOULD* be detached when this object is dropped
+        if let Some(link) = self.link.take() {
+            link.detach()?;
+        }
         Ok(())
     }
 }

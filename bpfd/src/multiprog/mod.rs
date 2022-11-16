@@ -71,7 +71,7 @@ impl Dispatcher {
         Ok(d)
     }
 
-    pub(crate) fn delete(&self, full: bool) -> Result<(), BpfdError> {
+    pub(crate) fn delete(&mut self, full: bool) -> Result<(), BpfdError> {
         match self {
             Dispatcher::Xdp(d) => d.delete(full),
             Dispatcher::Tc(d) => d.delete(full),

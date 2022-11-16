@@ -12,3 +12,5 @@ integration-test-macros = { path = "../integration-test-macros" }
 log = "0.4"
 env_logger = "0.9"
 predicates = "2.1.1"
+rand = "0.8"
+bpfd-api = { path = "../../bpfd-api" }

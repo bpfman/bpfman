@@ -5,7 +5,7 @@
 use std::{fmt, fs, io::BufReader, path::PathBuf, str::FromStr};
 
 use bpfd_api::{
-    util::directories::{RTDIR_FS, RTDIR_PROGRAMS},
+    util::directories::{RTDIR_FS, RTDIR_FS_MAPS, RTDIR_PROGRAMS},
     ParseError,
 };
 use serde::{Deserialize, Serialize};
@@ -321,7 +321,7 @@ impl Program {
         if PathBuf::from(&path).exists() {
             fs::remove_file(path)?;
         }
-        let path = format!("/var/run/bpfd/fs/maps/{uuid}");
+        let path = format!("{RTDIR_FS_MAPS}/{uuid}");
         fs::remove_dir_all(path)?;
         Ok(())
     }
