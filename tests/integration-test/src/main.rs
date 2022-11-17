@@ -11,9 +11,7 @@ fn main() -> anyhow::Result<()> {
     // Run the tests
     for t in inventory::iter::<IntegrationTest> {
         info!("Running {}", t.name);
-        if let Err(e) = (t.test_fn)() {
-            panic!("{}", e)
-        };
+        (t.test_fn)();
     }
     Ok(())
 }

@@ -9,7 +9,6 @@ import (
 	"crypto/x509"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -37,11 +36,11 @@ type Tls struct {
 }
 
 type Config struct {
-	Iface         string `toml:"interface"`
-	Priority      string `toml:"priority"`
-	BytecodeUrl   string `toml:"bytecode_url"`
-	BytecodeUuid  string `toml:"bytecode_uuid"`
-	BytecodePath  string `toml:"bytecode_path"`
+	Iface        string `toml:"interface"`
+	Priority     string `toml:"priority"`
+	BytecodeUrl  string `toml:"bytecode_url"`
+	BytecodeUuid string `toml:"bytecode_uuid"`
+	BytecodePath string `toml:"bytecode_path"`
 }
 
 type ConfigData struct {
@@ -58,7 +57,6 @@ const (
 	DefaultMapDir         = "/run/bpfd/fs/maps"
 )
 
-type bytecodeSrc int64
 const (
 	srcNone = iota
 	srcUuid
@@ -139,7 +137,6 @@ func main() {
 		}
 	}
 
-
 	// "-uuid", "-url" and "-path" are mutually exclusive and "-uuid" takes precedence.
 	// Parse Commandline first.
 
@@ -211,7 +208,6 @@ func main() {
 			iface, priority, bytecodePath)
 	}
 
-
 	// If the bytecode src is a UUID, skip the loading and unloading of the bytecode.
 	if bytecodeSrc != srcUuid {
 		ctx := context.Background()
@@ -241,7 +237,7 @@ func main() {
 			}
 		} else if bytecodeSrc == srcUrl {
 			path = bytecodePath
-		    bytecode_url_flag = true
+			bytecode_url_flag = true
 		} else {
 			log.Print("bytecode source not provided.")
 			return
@@ -251,8 +247,12 @@ func main() {
 			FromImage:   bytecode_url_flag,
 			SectionName: "stats",
 			ProgramType: gobpfd.ProgramType_XDP,
-			Priority:    int32(priority),
-			Iface:       iface,
+			AttachType: &gobpfd.LoadRequest_NetworkMultiAttach{
+				NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
+					Priority: int32(priority),
+					Iface:    iface,
+				},
+			},
 		}
 
 		// 1. Load Program using bpfd
@@ -269,7 +269,7 @@ func main() {
 		// 2. Set up defer to unload program when this is closed
 		defer func(id string) {
 			log.Printf("Unloading Program: %s\n", id)
-			_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Iface: iface, Id: id})
+			_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: id})
 			if err != nil {
 				conn.Close()
 				log.Print(err)
@@ -322,17 +322,17 @@ func main() {
 	log.Printf("Exiting...\n")
 }
 
-func loadConfig() (ConfigData) {
+func loadConfig() ConfigData {
 	config := ConfigData{
-		Tls: Tls {
+		Tls: Tls{
 			CaCert: DefaultRootCaPath,
-			Cert: DefaultClientCertPath,
-			Key: DefaultClientKeyPath,
+			Cert:   DefaultClientCertPath,
+			Key:    DefaultClientKeyPath,
 		},
 	}
 
 	log.Printf("Reading %s ...\n", DefaultConfigPath)
-	file, err := ioutil.ReadFile(DefaultConfigPath)
+	file, err := os.ReadFile(DefaultConfigPath)
 	if err == nil {
 		err = toml.Unmarshal(file, &config)
 		if err != nil {

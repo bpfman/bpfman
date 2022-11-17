@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::io;
-
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -17,8 +15,6 @@ pub enum BpfdError {
     SectionNameNotValid(String),
     #[error("No room to attach program. Please remove one and try again.")]
     TooManyPrograms,
-    #[error("No programs loaded to requested interface")]
-    NoProgramsLoaded,
     #[error("Invalid ID")]
     InvalidID,
     #[error("Not authorized")]
@@ -27,11 +23,12 @@ pub enum BpfdError {
     InvalidInterface,
     #[error("Unable to pin link")]
     UnableToPin,
-    #[error("Unable to cleanup")]
-    UnableToCleanup {
-        #[from]
-        io_error: io::Error,
-    },
-    #[error("Unsupported ProgramType")]
-    UnsuportedProgramType,
+    #[error("{0} is not a valid program type")]
+    InvalidProgramType(String),
+    #[error("{0} is not a valid attach point for this program")]
+    InvalidAttach(String),
+    #[error("dispatcher is not loaded")]
+    NotLoaded,
+    #[error("dispatcher not required")]
+    DispatcherNotRequired,
 }

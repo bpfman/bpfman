@@ -3,16 +3,18 @@
 use std::sync::{Arc, Mutex};
 
 use bpfd_api::v1::{
-    list_response::ListResult, loader_server::Loader, ListRequest, ListResponse, LoadRequest,
-    LoadResponse, UnloadRequest, UnloadResponse,
+    list_response::{self, ListResult},
+    load_request::AttachType,
+    loader_server::Loader,
+    ListRequest, ListResponse, LoadRequest, LoadResponse, NetworkMultiAttach, SingleAttach,
+    UnloadRequest, UnloadResponse,
 };
 use log::warn;
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
-use uuid::Uuid;
 use x509_certificate::X509Certificate;
 
-use crate::server::{bpf::InterfaceInfo, errors::BpfdError, pull_bytecode::pull_bytecode};
+use crate::{pull_bytecode::pull_bytecode, Command};
 
 #[derive(Debug, Default)]
 struct User {
@@ -50,10 +52,6 @@ pub struct BpfdLoader {
     tx: Arc<Mutex<Sender<Command>>>,
 }
 
-/// Provided by the requester and used by the manager task to send
-/// the command response back to the requester.
-type Responder<T> = oneshot::Sender<T>;
-
 impl BpfdLoader {
     pub(crate) fn new(tx: mpsc::Sender<Command>) -> BpfdLoader {
         let tx = Arc::new(Mutex::new(tx));
@@ -86,15 +84,40 @@ impl Loader for BpfdLoader {
         }
 
         let (resp_tx, resp_rx) = oneshot::channel();
-        let cmd = Command::Load {
-            program_type: request.program_type,
-            iface: request.iface,
-            responder: resp_tx,
-            path: request.path,
-            priority: request.priority,
-            section_name: request.section_name,
-            proceed_on: request.proceed_on,
-            username,
+
+        let program_type = request.program_type.try_into();
+        if program_type.is_err() {
+            return Err(Status::aborted("invalud program type"));
+        }
+        if request.attach_type.is_none() {
+            return Err(Status::aborted("message missing attach_type"));
+        }
+        let cmd = match request.attach_type.unwrap() {
+            AttachType::NetworkMultiAttach(attach) => Command::Load {
+                responder: resp_tx,
+                path: request.path,
+                direction: request.direction.try_into().ok(),
+                attach_type: crate::command::AttachType::NetworkMultiAttach(
+                    crate::command::NetworkMultiAttach {
+                        iface: attach.iface,
+                        priority: attach.priority,
+                        proceed_on: crate::command::ProceedOn(attach.proceed_on),
+                        position: 0,
+                    },
+                ),
+                section_name: request.section_name,
+                username,
+                program_type: program_type.unwrap(),
+            },
+            AttachType::SingleAttach(attach) => Command::Load {
+                responder: resp_tx,
+                path: request.path,
+                direction: request.direction.try_into().ok(),
+                attach_type: crate::command::AttachType::SingleAttach(attach.name),
+                section_name: request.section_name,
+                username,
+                program_type: program_type.unwrap(),
+            },
         };
 
         let tx = self.tx.lock().unwrap().clone();
@@ -141,7 +164,6 @@ impl Loader for BpfdLoader {
         let (resp_tx, resp_rx) = oneshot::channel();
         let cmd = Command::Unload {
             id,
-            iface: request.iface,
             username,
             responder: resp_tx,
         };
@@ -166,18 +188,11 @@ impl Loader for BpfdLoader {
         }
     }
 
-    async fn list(&self, request: Request<ListRequest>) -> Result<Response<ListResponse>, Status> {
-        let mut reply = ListResponse {
-            xdp_mode: String::new(),
-            results: vec![],
-        };
-        let request = request.into_inner();
+    async fn list(&self, _request: Request<ListRequest>) -> Result<Response<ListResponse>, Status> {
+        let mut reply = ListResponse { results: vec![] };
 
         let (resp_tx, resp_rx) = oneshot::channel();
-        let cmd = Command::List {
-            iface: request.iface,
-            responder: resp_tx,
-        };
+        let cmd = Command::List { responder: resp_tx };
 
         let tx = self.tx.lock().unwrap().clone();
         // Send the GET request
@@ -187,26 +202,42 @@ impl Loader for BpfdLoader {
         match resp_rx.await {
             Ok(res) => match res {
                 Ok(results) => {
-                    reply.xdp_mode = results.xdp_mode;
-                    for r in results.programs {
+                    for r in results {
                         reply.results.push(ListResult {
                             id: r.id,
                             name: r.name,
                             path: r.path,
-                            position: r.position as u32,
-                            priority: r.priority,
-                            proceed_on: r.proceed_on,
+                            program_type: r.program_type as i32,
+                            direction: if let Some(direction) = r.direction {
+                                direction as i32
+                            } else {
+                                0
+                            },
+                            attach_type: match r.attach_type {
+                                crate::command::AttachType::NetworkMultiAttach(m) => Some(
+                                    list_response::list_result::AttachType::NetworkMultiAttach(
+                                        NetworkMultiAttach {
+                                            priority: m.priority,
+                                            iface: m.iface,
+                                            position: m.position,
+                                            proceed_on: m.proceed_on.0,
+                                        },
+                                    ),
+                                ),
+                                crate::command::AttachType::SingleAttach(s) => {
+                                    Some(list_response::list_result::AttachType::SingleAttach(
+                                        SingleAttach { name: s },
+                                    ))
+                                }
+                            },
                         })
                     }
                     Ok(Response::new(reply))
                 }
-                Err(e) => match e {
-                    BpfdError::NoProgramsLoaded => Ok(Response::new(reply)),
-                    _ => {
-                        warn!("BPFD list error: {}", e);
-                        Err(Status::aborted(format!("{e}")))
-                    }
-                },
+                Err(e) => {
+                    warn!("BPFD list error: {}", e);
+                    Err(Status::aborted(format!("{e}")))
+                }
             },
             Err(e) => {
                 warn!("RPC list error: {}", e);
@@ -214,29 +245,4 @@ impl Loader for BpfdLoader {
             }
         }
     }
-}
-
-/// Multiple different commands are multiplexed over a single channel.
-#[derive(Debug)]
-pub(crate) enum Command {
-    Load {
-        program_type: i32,
-        iface: String,
-        path: String,
-        priority: i32,
-        section_name: String,
-        proceed_on: Vec<i32>,
-        username: String,
-        responder: Responder<Result<Uuid, BpfdError>>,
-    },
-    Unload {
-        id: Uuid,
-        iface: String,
-        username: String,
-        responder: Responder<Result<(), BpfdError>>,
-    },
-    List {
-        iface: String,
-        responder: Responder<Result<InterfaceInfo, BpfdError>>,
-    },
 }

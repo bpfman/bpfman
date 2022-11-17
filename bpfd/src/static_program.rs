@@ -5,18 +5,24 @@ use std::{fs, path::Path};
 use log::warn;
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize)]
 pub struct StaticProgramEntry {
     pub name: String,
-    pub interface: String,
     pub path: String,
     pub section_name: String,
     pub program_type: String,
+    pub attach: Option<String>,
+    pub network_attach: Option<NetworkAttach>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct NetworkAttach {
+    pub interface: String,
     pub priority: i32,
     pub proceed_on: Vec<String>,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize)]
 pub struct StaticPrograms {
     pub programs: Vec<StaticProgramEntry>,
 }
@@ -63,27 +69,27 @@ mod test {
         let input: &str = r#"
         [[programs]]
         name = "program1"
-        interface = "eth0"
         path = "/opt/bin/myapp/lib/myebpf.o"
         section_name = "firewall"
         program_type ="xdp"
-        priority = 50
-        proceed_on = ["pass", "dispatcher_return"]
+        network_attach = { interface = "eth0", priority = 50, proceed_on = ["pass", "dispatcher_return"] }
 
         [[programs]]
         name = "program2"
-        interface = "eth0"
         path = "/opt/bin/myapp/lib/myebpf.o"
         section_name = "firewall"
         program_type ="xdp"
-        priority = 55
-        proceed_on = ["pass", "dispatcher_return"]
+        network_attach = { interface = "eth0", priority = 55, proceed_on = ["pass", "dispatcher_return"] }
         "#;
         let mut programs: StaticPrograms = toml::from_str(input).expect("error parsing toml input");
         match programs.programs.pop() {
             Some(i) => {
-                assert_eq!(i.interface, "eth0");
-                assert_eq!(i.priority, 55);
+                if let Some(m) = i.network_attach {
+                    assert_eq!(m.interface, "eth0");
+                    assert_eq!(m.priority, 55);
+                } else {
+                    panic!("incorrect attach type")
+                }
             }
             None => panic!("expected programs to be present"),
         }

@@ -9,8 +9,7 @@ use std::{
 };
 
 use anyhow::{bail, Context};
-use aya::include_bytes_aligned;
-use bpfd::server::{programs_from_directory, serve};
+use bpfd::{programs_from_directory, serve};
 use bpfd_api::{config::config_from_file, util::directories::*};
 use log::{debug, error, info};
 use nix::{
@@ -46,20 +45,18 @@ fn main() -> anyhow::Result<()> {
             has_cap(caps::CapSet::Effective, caps::Capability::CAP_BPF);
             has_cap(caps::CapSet::Effective, caps::Capability::CAP_SYS_ADMIN);
 
-            let dispatcher_bytes_xdp = include_bytes_aligned!(
-                "../../target/bpfel-unknown-none/release/xdp_dispatcher.bpf.o"
-            );
-            let dispatcher_bytes_tc = include_bytes_aligned!(
-                "../../target/bpfel-unknown-none/release/tc_dispatcher.bpf.o"
-            );
             setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
 
             // Create directories associated with bpfd
             create_dir_all(RTDIR).context("unable to create runtime directory")?;
             create_dir_all(RTDIR_FS).context("unable to create mountpoint")?;
-            create_dir_all(RTDIR_FS_MAPS).context("unable to create maps directory")?;
             create_dir_all(RTDIR_BYTECODE).context("unable to create bytecode directory")?;
-            create_dir_all(RTDIR_DISPATCHER).context("unable to create dispatcher directory")?;
+            create_dir_all(RTDIR_TC_INGRESS_DISPATCHER)
+                .context("unable to create dispatcher directory")?;
+            create_dir_all(RTDIR_TC_EGRESS_DISPATCHER)
+                .context("unable to create dispatcher directory")?;
+            create_dir_all(RTDIR_XDP_DISPATCHER)
+                .context("unable to create dispatcher directory")?;
             create_dir_all(RTDIR_PROGRAMS).context("unable to create programs directory")?;
 
             if !is_bpffs_mounted()? {
@@ -71,6 +68,12 @@ fn main() -> anyhow::Result<()> {
                 mount::<str, str, str, str>(None, RTDIR_FS, Some("bpf"), flags, None)
                     .context("unable to mount bpffs")?;
             }
+            create_dir_all(RTDIR_FS_XDP).context("unable to create xdp distpacher dir")?;
+            create_dir_all(RTDIR_FS_TC_INGRESS)
+                .context("unable to create tc ingress dispatcher dir")?;
+            create_dir_all(RTDIR_FS_TC_EGRESS)
+                .context("unable to create tc egress dispatcher dir")?;
+            create_dir_all(RTDIR_FS_MAPS).context("unable to create maps directory")?;
 
             create_dir_all(CFGDIR_BPFD_CERTS).context("unable to create bpfd certs directory")?;
             create_dir_all(CFGDIR_BPFD_CLIENT_CERTS)
@@ -85,13 +88,7 @@ fn main() -> anyhow::Result<()> {
 
             let static_programs = programs_from_directory(CFGDIR_STATIC_PROGRAMS)?;
 
-            serve(
-                config,
-                dispatcher_bytes_xdp,
-                dispatcher_bytes_tc,
-                static_programs,
-            )
-            .await?;
+            serve(config, static_programs).await?;
             Ok(())
         })
 }

@@ -7,6 +7,8 @@ use predicates::str::is_empty;
 
 const DEFAULT_BPFD_IFACE: &str = "eth0";
 const XDP_PASS_IMAGE: &str = "quay.io/bpfd/bytecode:xdp_pass";
+const TC_PASS_IMAGE: &str = "quay.io/bpfd/bytecode:tc_pass";
+const TRACEPOINT_IMAGE: &str = "quay.io/bpfd/bytecode:tracepoint";
 
 /// Exit on panic as well as the passing of a test
 pub struct ChildGuard {
@@ -43,16 +45,18 @@ pub fn read_iface_env() -> &'static str {
 }
 
 /// Install an xdp_pass program with bpfctl
-pub fn add_xdp_pass(iface: &str, priority: &str) -> Result<String> {
+pub fn add_xdp_pass(iface: &str, priority: u32) -> Result<String> {
     let output = Command::cargo_bin("bpfctl")?
         .args([
             "load",
+            "--from-image",
+            "--path",
+            XDP_PASS_IMAGE,
+            "xdp",
             "--iface",
             iface,
             "--priority",
-            priority,
-            "--from-image",
-            XDP_PASS_IMAGE,
+            priority.to_string().as_str(),
         ])
         .ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
@@ -63,11 +67,55 @@ pub fn add_xdp_pass(iface: &str, priority: &str) -> Result<String> {
     Ok(uuid.to_string())
 }
 
+/// Install an xdp_pass program with bpfctl
+pub fn add_tc_pass(iface: &str, priority: u32) -> Result<String> {
+    let output = Command::cargo_bin("bpfctl")?
+        .args([
+            "load",
+            "--from-image",
+            "--path",
+            TC_PASS_IMAGE,
+            "tc",
+            "--direction",
+            "ingress",
+            "--iface",
+            iface,
+            "--priority",
+            priority.to_string().as_str(),
+        ])
+        .ok();
+    let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
+    let uuid = stdout.trim();
+    assert!(!uuid.is_empty());
+    debug!("Successfully added tc_pass program: {:?}", uuid);
+    Ok(uuid.to_string())
+}
+
+/// Install an tracepoint program with bpfctl
+pub fn add_tracepoint() -> Result<String> {
+    let output = Command::cargo_bin("bpfctl")?
+        .args([
+            "load",
+            "--from-image",
+            "--path",
+            TRACEPOINT_IMAGE,
+            "tracepoint",
+            "--tracepoint",
+            "syscalls/sys_enter_openat",
+        ])
+        .ok();
+    let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
+    let uuid = stdout.trim();
+    assert!(!uuid.is_empty());
+    debug!("Successfully added tracepoint program: {:?}", uuid);
+    Ok(uuid.to_string())
+}
+
 /// Delete a bpfd program using bpfctl
-pub fn bpfd_del_program(bpfd_iface: &str, uuid: &str) {
+pub fn bpfd_del_program(uuid: &str) {
     Command::cargo_bin("bpfctl")
         .unwrap()
-        .args(["unload", "--iface", bpfd_iface, uuid.trim()])
+        .args(["unload", uuid.trim()])
         .assert()
         .success()
         .stdout(is_empty());
@@ -76,12 +124,20 @@ pub fn bpfd_del_program(bpfd_iface: &str, uuid: &str) {
 }
 
 /// Retrieve the output of bpfctl list
-pub fn bpfd_list(bpfd_iface: &str) -> Result<String> {
-    let output = Command::cargo_bin("bpfctl")?
-        .args(["list", "--iface", bpfd_iface])
-        .ok();
+pub fn bpfd_list() -> Result<String> {
+    let output = Command::cargo_bin("bpfctl")?.args(["list"]).ok();
     let stdout = String::from_utf8(output.unwrap().stdout);
 
+    Ok(stdout.unwrap())
+}
+
+/// Retrieve the output of bpfctl list
+pub fn tc_filter_list(iface: &str) -> Result<String> {
+    let output = Command::new("tc")
+        .args(["filter", "show", "dev", iface, "ingress"])
+        .output()
+        .expect("tc filter show dev lo ingress");
+    let stdout = String::from_utf8(output.unwrap().stdout);
     Ok(stdout.unwrap())
 }
 
