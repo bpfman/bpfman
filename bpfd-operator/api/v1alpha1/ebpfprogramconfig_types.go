@@ -80,6 +80,7 @@ type EbpfProgramConfigStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Cluster
 
 // EbpfProgramConfig is the Schema for the ebpfprogramconfigs API
 type EbpfProgramConfig struct {

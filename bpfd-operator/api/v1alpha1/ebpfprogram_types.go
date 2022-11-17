@@ -47,6 +47,7 @@ type EbpfProgramStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Cluster
 
 // EbpfProgram is the Schema for the ebpfprograms API
 type EbpfProgram struct {

@@ -13,7 +13,7 @@ spec:
     listKind: EbpfProgramList
     plural: ebpfprograms
     singular: ebpfprogram
-  scope: Namespaced
+  scope: Cluster
   versions:
   - name: v1alpha1
     schema:
