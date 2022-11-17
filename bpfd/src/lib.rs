@@ -132,6 +132,16 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                 responder,
             } => {
                 let res = if let Ok(if_index) = get_ifindex(&iface) {
+                    // If proceedOn is empty, then replace with the default
+                    let proc_on = if proceed_on.0.is_empty() {
+                        match program_type {
+                            command::ProgramType::Xdp => command::ProceedOn::default_xdp(),
+                            command::ProgramType::Tc => command::ProceedOn::default_tc(),
+                            _ => proceed_on,
+                        }
+                    } else {
+                        proceed_on
+                    };
                     let prog = match program_type {
                         command::ProgramType::Xdp => Program::Xdp(XdpProgram {
                             data: ProgramData {
@@ -147,7 +157,7 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                                     name: section_name,
                                     attached: false,
                                 },
-                                proceed_on,
+                                proceed_on: proc_on,
                                 if_name: iface,
                             },
                         }),
@@ -165,7 +175,7 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                                     name: section_name,
                                     attached: false,
                                 },
-                                proceed_on,
+                                proceed_on: proc_on,
                                 if_name: iface,
                             },
                             direction: direction.unwrap(),

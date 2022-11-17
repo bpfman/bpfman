@@ -220,16 +220,19 @@ async fn main() -> anyhow::Result<()> {
                             let proceed_on: Vec<String> = proceed_on
                                 .iter()
                                 .map(|action| {
-                                    ProceedOn::try_from(*action as u32).unwrap().to_string()
+                                    format!(
+                                        r#""{}""#,
+                                        ProceedOn::try_from(*action as u32).unwrap().to_string()
+                                    )
                                 })
                                 .collect();
-                            let proceed_on = proceed_on.join(", ");
+                            let proceed_on = format!(r#"[{}]"#, proceed_on.join(", "));
                             table.add_row(vec![
                             r.id.to_string(),
                             "xdp".to_string(),
                             r.name,
                             r.path,
-                            format!(r#"{{"priority": {priority}, "iface": "{iface}", "postiion": {position}, "proceed_on": {proceed_on} }}"#)
+                            format!(r#"{{"priority": {priority}, "iface": "{iface}", "position": {position}, "proceed_on": {proceed_on} }}"#)
                         ]);
                         }
                     }
