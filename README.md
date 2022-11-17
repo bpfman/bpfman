@@ -98,7 +98,7 @@ Load a sample XDP Program:
 ```console
 $ cargo build
 $ sudo ./target/debug/bpfd&
-$ sudo ./target/debug/bpfctl load /path/to/xdp/program -p xdp -i wlp2s0 --priority 50 -s "pass"
+$ sudo ./target/debug/bpfctl load --path /path/to/xdp/program --section-name "pass" xdp -i wlp2s0 --priority 50
 ```
 
 See [tutorial.md](docs/admin/tutorial.md) for some examples of starting `bpfd`, managing logs, and using `bpfctl`.

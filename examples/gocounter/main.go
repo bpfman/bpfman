@@ -249,7 +249,7 @@ func main() {
 			ProgramType: gobpfd.ProgramType_XDP,
 			AttachType: &gobpfd.LoadRequest_NetworkMultiAttach{
 				NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
-					Priority: 50,
+					Priority: int32(priority),
 					Iface:    iface,
 				},
 			},

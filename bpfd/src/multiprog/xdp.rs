@@ -207,7 +207,7 @@ impl XdpDispatcher {
             .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {}", e)))?;
 
         let path = format!(
-            "{RTDIR_FS}/xdp/dispatcher_{}_{}",
+            "{RTDIR_FS_XDP}/dispatcher_{}_{}",
             self.if_index, self.revision
         );
         fs::remove_dir_all(path)
