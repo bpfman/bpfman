@@ -108,8 +108,10 @@ test: manifests generate fmt vet envtest ## Run tests.
 ##@ Build
 
 .PHONY: build
-build: generate fmt vet ## Build manager binary.
-	go build -o bin/manager main.go
+build: generate fmt vet ## Build bpfd-operator and bpfd-agent binaries.
+	go build -o bin/bpfd-operator cmd/bpfd-operator/main.go
+	go build -o bin/bpfd-agent cmd/bpfd-agent/main.go
+
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.

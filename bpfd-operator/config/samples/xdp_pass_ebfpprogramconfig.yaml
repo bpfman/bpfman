@@ -7,10 +7,13 @@ metadata:
   finalizers: 
   - ebpfprogram.bpfd.io/finalizer
 spec:
-  name: xdp-pass
-  type: xdp
+  ## Must correspond to image section name
+  name: pass
+  type: XDP
   # Select all nodes
-  nodeselector: {}
+  nodeselector: 
+    matchLabels: 
+      run.ebpf: "true" 
   priority: 0
   attachpoint: 
     interface: eno1

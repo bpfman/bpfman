@@ -24,8 +24,11 @@ import (
 	"log"
 	"os"
 
+	//ctrl "sigs.k8s.io/controller-runtime"
+
 	toml "github.com/pelletier/go-toml"
-	//gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
+	bpfdiov1alpha1 "github.com/redhat-et/bpfd/api/v1alpha1"
+	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
 	"google.golang.org/grpc/credentials"
 )
 
@@ -38,21 +41,18 @@ const (
 	DefaultMapDir         = "/run/bpfd/fs/maps"
 )
 
-
 type Tls struct {
 	CaCert string `toml:"ca_cert"`
 	Cert   string `toml:"cert"`
 	Key    string `toml:"key"`
 }
 
-
-func LoadConfig() (Tls) {
-	tlsConfig := Tls {
-			CaCert: DefaultRootCaPath,
-			Cert: DefaultClientCertPath,
-			Key: DefaultClientKeyPath,
-		}
-	
+func LoadConfig() Tls {
+	tlsConfig := Tls{
+		CaCert: DefaultRootCaPath,
+		Cert:   DefaultClientCertPath,
+		Key:    DefaultClientKeyPath,
+	}
 
 	log.Printf("Reading %s ...\n", DefaultConfigPath)
 	file, err := ioutil.ReadFile(DefaultConfigPath)
@@ -93,4 +93,54 @@ func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) 
 	}
 
 	return credentials.NewTLS(config), nil
+}
+
+func BuildBpfdLoadRequest(ebpf_program_config *bpfdiov1alpha1.EbpfProgramConfig) (*gobpfd.LoadRequest, error) {
+	var loadRequest *gobpfd.LoadRequest
+
+	loadRequest.SectionName = ebpf_program_config.Spec.Name
+
+	// Parse if bytecode source is an image or local
+	// TODO since we know only one field here will be non-nil we can probably
+	// optimize at some point
+	if ebpf_program_config.Spec.ByteCode.ImageUrl != nil {
+		loadRequest.FromImage = true
+		loadRequest.Path = *ebpf_program_config.Spec.ByteCode.ImageUrl
+	} else {
+		loadRequest.FromImage = false
+		loadRequest.Path = *ebpf_program_config.Spec.ByteCode.Path
+	}
+
+	// Map program type (ultimately we should make this an ENUM in the API)
+	switch ebpf_program_config.Spec.Type {
+	case "XDP":
+		loadRequest.ProgramType = gobpfd.ProgramType_XDP
+	case "TC":
+		loadRequest.ProgramType = gobpfd.ProgramType_TC
+	default:
+		// Add a condition and exit don't requeue, an ensuing update to ebpfProgramConfig
+		// should fix this
+		return nil, fmt.Errorf("invalid Program Type")
+	}
+
+	if ebpf_program_config.Spec.AttachPoint.Interface != nil {
+		loadRequest.AttachType = &gobpfd.LoadRequest_NetworkMultiAttach{
+			NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
+				Priority: int32(ebpf_program_config.Spec.Priority),
+				Iface:    *ebpf_program_config.Spec.AttachPoint.Interface,
+			},
+		}
+	} else {
+		// Add a condition and exit don't requeue, an ensuing update to ebpfProgramConfig
+		// should fix this
+		return nil, fmt.Errorf("invalid Attach Type")
+	}
+
+	return loadRequest, nil
+}
+
+func BuildBpfdUnloadRequest(uuid string) (*gobpfd.UnloadRequest, error) {
+	return &gobpfd.UnloadRequest{
+		Id: uuid,
+	}, nil
 }

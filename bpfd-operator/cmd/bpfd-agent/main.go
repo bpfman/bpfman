@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -88,17 +89,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Set up a connection to the server.
-	conn, err := grpc.DialContext(context.Background(), "localhost:50051", grpc.WithTransportCredentials(creds))
+	// Set up a connection to bpfd, block until bpfd is up.
+	setupLog.Info("Waiting for active connection to bpfd")
+	conn, err := grpc.DialContext(context.Background(), "localhost:50051", grpc.WithTransportCredentials(creds), grpc.WithBlock())
 	if err != nil {
 		setupLog.Error(err, "did not connect")
+		os.Exit(1)
+	}
+
+	// Get the nodename where this pod is running
+	nodeName := os.Getenv("NODENAME")
+	if nodeName == "" {
+		setupLog.Error(fmt.Errorf("NODENAME env var not set"), "Couldn't determine bpfd-agent's node")
 		os.Exit(1)
 	}
 
 	if err = (&controllers.EbpfProgramReconciler{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
+		GrpcConn:   conn,
 		BpfdClient: gobpfd.NewLoaderClient(conn),
+		NodeName:   nodeName,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "EbpfProgram")
 		os.Exit(1)
