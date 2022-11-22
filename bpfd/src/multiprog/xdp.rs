@@ -219,4 +219,8 @@ impl XdpDispatcher {
         }
         Ok(())
     }
+
+    pub(crate) fn if_name(&self) -> String {
+        self.if_name.clone()
+    }
 }

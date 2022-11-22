@@ -9,9 +9,14 @@ use log::{debug, info};
 use uuid::Uuid;
 
 use crate::{
-    command::{Direction, ProceedOn, Program, ProgramInfo, ProgramType},
+    command::{
+        Direction,
+        Direction::{Egress, Ingress},
+        ProceedOn, Program, ProgramInfo, ProgramType,
+    },
     errors::BpfdError,
-    multiprog::{Dispatcher, DispatcherId, DispatcherInfo, XdpDispatcher},
+    multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
+    ProgramType::Tc,
 };
 
 const SUPERUSER: &str = "bpfctl";
@@ -37,12 +42,7 @@ impl<'a> BpfManager<'a> {
                 let entry = entry?;
                 let uuid = entry.file_name().to_string_lossy().parse().unwrap();
                 let mut program = Program::load(uuid)
-                    .map_err(|e| BpfdError::Error(format!("cant read program state {e}")))?;
-                // TODO: State reconstruction not supported for TC programs, so don't add them to the list.
-                if program.kind() == ProgramType::Tc {
-                    debug!("skip rebuilding state for TC program {}", uuid);
-                    continue;
-                }
+                    .map_err(|e| BpfdError::Error(format!("cant read program state {}", e)))?;
                 // TODO: Should probably check for pinned prog on bpffs rather than assuming they are attached
                 program.set_attached();
                 debug!("rebuilding state for program {}", uuid);
@@ -59,7 +59,10 @@ impl<'a> BpfManager<'a> {
                 }
                 let if_index: u32 = parts[0].parse().unwrap();
                 let revision: u32 = parts[1].parse().unwrap();
-                info!("rebuilding state for dispatcher on if_index {}", if_index);
+                info!(
+                    "rebuilding state for xdp dispatcher on if_index {}",
+                    if_index
+                );
                 let dispatcher = XdpDispatcher::load(if_index, revision).unwrap();
                 self.dispatchers.insert(
                     DispatcherId::Xdp(DispatcherInfo(if_index, None)),
@@ -67,17 +70,69 @@ impl<'a> BpfManager<'a> {
                 );
             }
         }
-
-        // TODO: Implement state reconstruction for TC....
-        /*
-        for entry in fs::read_dir(format!("{RTDIR_DISPATCHER}/tc-ingress"))? {
-
+        if let Ok(tc_in_dispatcher_dir) = fs::read_dir(RTDIR_TC_INGRESS_DISPATCHER) {
+            for entry in tc_in_dispatcher_dir {
+                let entry = entry?;
+                let name = entry.file_name();
+                let parts: Vec<&str> = name.to_str().unwrap().split('_').collect();
+                if parts.len() != 2 {
+                    continue;
+                }
+                let if_index: u32 = parts[0].parse().unwrap();
+                let revision: u32 = parts[1].parse().unwrap();
+                info!(
+                    "rebuilding state for ingress tc dispatcher on if_index {}",
+                    if_index
+                );
+                let dispatcher = TcDispatcher::load(if_index, Ingress, revision).unwrap();
+                self.dispatchers.insert(
+                    DispatcherId::Tc(DispatcherInfo(if_index, Some(Ingress))),
+                    Dispatcher::Tc(dispatcher),
+                );
+                // Rebuild the dispatcher 3 times to clear out the old dispatcher.
+                //TODO: Change this when https://github.com/aya-rs/aya/pull/445 is available.
+                for _ in 0..3 {
+                    self.rebuild_multiattach_dispatcher(
+                        Tc,
+                        if_index,
+                        Some(Ingress),
+                        DispatcherId::Tc(DispatcherInfo(if_index, Some(Ingress))),
+                    )?;
+                }
+            }
+        }
+        if let Ok(tc_eg_dispatcher_dir) = fs::read_dir(RTDIR_TC_EGRESS_DISPATCHER) {
+            for entry in tc_eg_dispatcher_dir {
+                let entry = entry?;
+                let name = entry.file_name();
+                let parts: Vec<&str> = name.to_str().unwrap().split('_').collect();
+                if parts.len() != 2 {
+                    continue;
+                }
+                let if_index: u32 = parts[0].parse().unwrap();
+                let revision: u32 = parts[1].parse().unwrap();
+                info!(
+                    "rebuilding state for egress tc dispatcher on if_index {}",
+                    if_index
+                );
+                let dispatcher = TcDispatcher::load(if_index, Egress, revision).unwrap();
+                self.dispatchers.insert(
+                    DispatcherId::Tc(DispatcherInfo(if_index, Some(Direction::Egress))),
+                    Dispatcher::Tc(dispatcher),
+                );
+                // Rebuild the dispatcher 3 times to clear out the old dispatcher.
+                //TODO: Change this when https://github.com/aya-rs/aya/pull/445 is available.
+                for _ in 0..3 {
+                    self.rebuild_multiattach_dispatcher(
+                        Tc,
+                        if_index,
+                        Some(Egress),
+                        DispatcherId::Tc(DispatcherInfo(if_index, Some(Direction::Egress))),
+                    )?;
+                }
+            }
         }
 
-        for entry in fs::read_dir(format!("{RTDIR_DISPATCHER}/tc-egress"))? {
-
-        }
-        */
         Ok(())
     }
 
@@ -269,6 +324,43 @@ impl<'a> BpfManager<'a> {
         };
         let dispatcher = Dispatcher::new(if_config, &programs, next_revision, old_dispatcher)?;
         self.dispatchers.insert(did, dispatcher);
+        Ok(())
+    }
+
+    pub(crate) fn rebuild_multiattach_dispatcher(
+        &mut self,
+        program_type: ProgramType,
+        if_index: u32,
+        direction: Option<Direction>,
+        did: DispatcherId,
+    ) -> Result<(), BpfdError> {
+        let mut old_dispatcher = self.dispatchers.remove(&did);
+
+        if let Some(ref mut old) = old_dispatcher {
+            debug!("Rebuild Multiattach Dispatcher for {did:?}");
+            let if_index = Some(if_index);
+
+            self.sort_programs(program_type, if_index, direction);
+            let programs = self.collect_programs(program_type, if_index, direction);
+
+            let if_name = old.if_name();
+            let if_config = if let Some(ref i) = self.config.interfaces {
+                i.get(&if_name)
+            } else {
+                None
+            };
+
+            let next_revision = if let Some(ref old) = old_dispatcher {
+                old.next_revision()
+            } else {
+                1
+            };
+
+            let dispatcher = Dispatcher::new(if_config, &programs, next_revision, old_dispatcher)?;
+            self.dispatchers.insert(did, dispatcher);
+        } else {
+            debug!("No dispatcher found in rebuild_multiattach_dispatcher() called for {did:?}");
+        }
         Ok(())
     }
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::fs;
+use std::{fs, io::BufReader};
 
 use aya::{
     include_bytes_aligned,
@@ -19,12 +19,17 @@ use uuid::Uuid;
 
 use super::Dispatcher;
 use crate::{
-    command::{Direction, Program, TcProgram},
+    command::{
+        Direction,
+        Direction::{Egress, Ingress},
+        Program, TcProgram,
+    },
     errors::BpfdError,
 };
+
 const DEFAULT_PRIORITY: u32 = 50;
 const MIN_TC_DISPATCHER_PRIORITY: u16 = 50;
-const MAX_TC_DISPATCHER_PRIORITY: u16 = 45;
+const MAX_TC_DISPATCHER_PRIORITY: u16 = 49;
 const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
 pub const TC_ACT_PIPE: i32 = 3;
 
@@ -83,8 +88,8 @@ impl TcDispatcher {
         dispatcher.load()?;
 
         let base = match direction {
-            Direction::Ingress => RTDIR_FS_TC_INGRESS,
-            Direction::Egress => RTDIR_FS_TC_EGRESS,
+            Ingress => RTDIR_FS_TC_INGRESS,
+            Egress => RTDIR_FS_TC_EGRESS,
         };
         let path = format!("{base}/dispatcher_{if_index}_{revision}");
         fs::create_dir_all(path).unwrap();
@@ -221,6 +226,23 @@ impl TcDispatcher {
         Ok(())
     }
 
+    pub(crate) fn load(
+        if_index: u32,
+        direction: Direction,
+        revision: u32,
+    ) -> Result<Self, anyhow::Error> {
+        let dir = match direction {
+            Direction::Ingress => RTDIR_TC_INGRESS_DISPATCHER,
+            Direction::Egress => RTDIR_TC_EGRESS_DISPATCHER,
+        };
+        let path = format!("{dir}/{if_index}_{revision}");
+        let file = fs::File::open(path)?;
+        let reader = BufReader::new(file);
+        let prog = serde_json::from_reader(reader)?;
+        // TODO: We should check the bpffs paths here to for pinned links etc...
+        Ok(prog)
+    }
+
     pub(crate) fn delete(&mut self, _full: bool) -> Result<(), BpfdError> {
         let base = match self.direction {
             Direction::Ingress => RTDIR_TC_INGRESS_DISPATCHER,
@@ -242,5 +264,8 @@ impl TcDispatcher {
             link.detach()?;
         }
         Ok(())
+    }
+    pub(crate) fn if_name(&self) -> String {
+        self.if_name.clone()
     }
 }
