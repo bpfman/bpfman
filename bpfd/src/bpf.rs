@@ -38,6 +38,11 @@ impl<'a> BpfManager<'a> {
                 let uuid = entry.file_name().to_string_lossy().parse().unwrap();
                 let mut program = Program::load(uuid)
                     .map_err(|e| BpfdError::Error(format!("cant read program state {}", e)))?;
+                // TODO: State reconstruction not supported for TC programs, so don't add them to the list.
+                if program.kind() == ProgramType::Tc {
+                    debug!("skip rebuilding state for TC program {}", uuid);
+                    continue;
+                }
                 // TODO: Should probably check for pinned prog on bpffs rather than assuming they are attached
                 program.set_attached();
                 debug!("rebuilding state for program {}", uuid);
