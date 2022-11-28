@@ -3,6 +3,7 @@
 
 use std::{collections::HashMap, convert::TryInto, fs};
 
+use anyhow::anyhow;
 use aya::{programs::TracePoint, BpfLoader};
 use bpfd_api::{config::Config, util::directories::*};
 use log::{debug, info};
@@ -16,7 +17,7 @@ use crate::{
     },
     errors::BpfdError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
-    ProgramType::Tc,
+    ProgramType::{Tc, Xdp},
 };
 
 const SUPERUSER: &str = "bpfctl";
@@ -49,90 +50,65 @@ impl<'a> BpfManager<'a> {
                 self.programs.insert(uuid, program);
             }
         }
-        if let Ok(xdp_dispatcher_dir) = fs::read_dir(RTDIR_XDP_DISPATCHER) {
-            for entry in xdp_dispatcher_dir {
-                let entry = entry?;
-                let name = entry.file_name();
-                let parts: Vec<&str> = name.to_str().unwrap().split('_').collect();
-                if parts.len() != 2 {
-                    continue;
-                }
-                let if_index: u32 = parts[0].parse().unwrap();
-                let revision: u32 = parts[1].parse().unwrap();
-                info!(
-                    "rebuilding state for xdp dispatcher on if_index {}",
-                    if_index
-                );
-                let dispatcher = XdpDispatcher::load(if_index, revision).unwrap();
-                self.dispatchers.insert(
-                    DispatcherId::Xdp(DispatcherInfo(if_index, None)),
-                    Dispatcher::Xdp(dispatcher),
-                );
-            }
-        }
-        if let Ok(tc_in_dispatcher_dir) = fs::read_dir(RTDIR_TC_INGRESS_DISPATCHER) {
-            for entry in tc_in_dispatcher_dir {
-                let entry = entry?;
-                let name = entry.file_name();
-                let parts: Vec<&str> = name.to_str().unwrap().split('_').collect();
-                if parts.len() != 2 {
-                    continue;
-                }
-                let if_index: u32 = parts[0].parse().unwrap();
-                let revision: u32 = parts[1].parse().unwrap();
-                info!(
-                    "rebuilding state for ingress tc dispatcher on if_index {}",
-                    if_index
-                );
-                let dispatcher = TcDispatcher::load(if_index, Ingress, revision).unwrap();
-                self.dispatchers.insert(
-                    DispatcherId::Tc(DispatcherInfo(if_index, Some(Ingress))),
-                    Dispatcher::Tc(dispatcher),
-                );
-                // Rebuild the dispatcher 3 times to clear out the old dispatcher.
-                //TODO: Change this when https://github.com/aya-rs/aya/pull/445 is available.
-                for _ in 0..3 {
-                    self.rebuild_multiattach_dispatcher(
-                        Tc,
-                        if_index,
-                        Some(Ingress),
-                        DispatcherId::Tc(DispatcherInfo(if_index, Some(Ingress))),
-                    )?;
-                }
-            }
-        }
-        if let Ok(tc_eg_dispatcher_dir) = fs::read_dir(RTDIR_TC_EGRESS_DISPATCHER) {
-            for entry in tc_eg_dispatcher_dir {
-                let entry = entry?;
-                let name = entry.file_name();
-                let parts: Vec<&str> = name.to_str().unwrap().split('_').collect();
-                if parts.len() != 2 {
-                    continue;
-                }
-                let if_index: u32 = parts[0].parse().unwrap();
-                let revision: u32 = parts[1].parse().unwrap();
-                info!(
-                    "rebuilding state for egress tc dispatcher on if_index {}",
-                    if_index
-                );
-                let dispatcher = TcDispatcher::load(if_index, Egress, revision).unwrap();
-                self.dispatchers.insert(
-                    DispatcherId::Tc(DispatcherInfo(if_index, Some(Direction::Egress))),
-                    Dispatcher::Tc(dispatcher),
-                );
-                // Rebuild the dispatcher 3 times to clear out the old dispatcher.
-                //TODO: Change this when https://github.com/aya-rs/aya/pull/445 is available.
-                for _ in 0..3 {
-                    self.rebuild_multiattach_dispatcher(
-                        Tc,
-                        if_index,
-                        Some(Egress),
-                        DispatcherId::Tc(DispatcherInfo(if_index, Some(Direction::Egress))),
-                    )?;
-                }
-            }
-        }
+        self.rebuild_dispatcher_state(Xdp, None, RTDIR_XDP_DISPATCHER)?;
+        self.rebuild_dispatcher_state(Tc, Some(Ingress), RTDIR_TC_INGRESS_DISPATCHER)?;
+        self.rebuild_dispatcher_state(Tc, Some(Egress), RTDIR_TC_EGRESS_DISPATCHER)?;
 
+        Ok(())
+    }
+
+    pub(crate) fn rebuild_dispatcher_state(
+        &mut self,
+        program_type: ProgramType,
+        direction: Option<Direction>,
+        path: &str,
+    ) -> Result<(), anyhow::Error> {
+        if let Ok(dispatcher_dir) = fs::read_dir(path) {
+            for entry in dispatcher_dir {
+                let entry = entry?;
+                let name = entry.file_name();
+                let parts: Vec<&str> = name.to_str().unwrap().split('_').collect();
+                if parts.len() != 2 {
+                    continue;
+                }
+                let if_index: u32 = parts[0].parse().unwrap();
+                let revision: u32 = parts[1].parse().unwrap();
+                info!(
+                    "rebuilding state for {program_type} (direction: {direction:?}) dispatcher on if_index {if_index}"
+                );
+                match program_type {
+                    Xdp => {
+                        let dispatcher = XdpDispatcher::load(if_index, revision).unwrap();
+                        self.dispatchers.insert(
+                            DispatcherId::Xdp(DispatcherInfo(if_index, None)),
+                            Dispatcher::Xdp(dispatcher),
+                        );
+                    }
+                    Tc => {
+                        if let Some(dir) = direction {
+                            let dispatcher = TcDispatcher::load(if_index, dir, revision).unwrap();
+                            self.dispatchers.insert(
+                                DispatcherId::Tc(DispatcherInfo(if_index, direction)),
+                                Dispatcher::Tc(dispatcher),
+                            );
+                        } else {
+                            return Err(anyhow!("direction required for tc programs"));
+                        }
+                        // Rebuild the dispatcher 3 times to clear out the old dispatcher.
+                        //TODO: Change this when https://github.com/aya-rs/aya/pull/445 is available.
+                        for _ in 0..3 {
+                            self.rebuild_multiattach_dispatcher(
+                                Tc,
+                                if_index,
+                                direction,
+                                DispatcherId::Tc(DispatcherInfo(if_index, direction)),
+                            )?;
+                        }
+                    }
+                    _ => return Err(anyhow!("invalid program type: {}", program_type)),
+                }
+            }
+        }
         Ok(())
     }
 
@@ -343,6 +319,13 @@ impl<'a> BpfManager<'a> {
             self.sort_programs(program_type, if_index, direction);
             let programs = self.collect_programs(program_type, if_index, direction);
 
+            // The following checks should have been done when the dispatcher was built, but check again to confirm
+            if programs.is_empty() {
+                return old.delete(true);
+            } else if programs.len() > 10 {
+                return Err(BpfdError::TooManyPrograms);
+            }
+
             let if_name = old.if_name();
             let if_config = if let Some(ref i) = self.config.interfaces {
                 i.get(&if_name)
@@ -359,7 +342,7 @@ impl<'a> BpfManager<'a> {
             let dispatcher = Dispatcher::new(if_config, &programs, next_revision, old_dispatcher)?;
             self.dispatchers.insert(did, dispatcher);
         } else {
-            debug!("No dispatcher found in rebuild_multiattach_dispatcher() called for {did:?}");
+            debug!("No dispatcher found in rebuild_multiattach_dispatcher() for {did:?}");
         }
         Ok(())
     }
