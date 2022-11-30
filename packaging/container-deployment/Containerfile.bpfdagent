@@ -1,17 +1,15 @@
-FROM rustlang/rust:nightly as bpfd-agent-build
+FROM golang:1.19 as bpfd-agent-build
 
-RUN apt-get update && apt-get install -y protobuf-compiler musl-tools
+WORKDIR /usr/src/bpfd/
+COPY ./ /usr/src/bpfd/
 
-WORKDIR /usr/src/bpfd
-COPY ./ /usr/src/bpfd
+WORKDIR /usr/src/bpfd/
 
-RUN rustup target add x86_64-unknown-linux-musl
-
-# Compile only bpfctl
-RUN cargo build -p bpfd-agent --release --target x86_64-unknown-linux-musl
+# Compile bpfd-agent statically since we're running in a scratch container
+RUN  cd ./bpfd-operator && CGO_ENABLED=0 go build -a -ldflags '-extldflags "-static"' -o ./bin/bpfd-agent ./cmd/bpfd-agent/main.go
 
 FROM scratch
 
-COPY --from=bpfd-agent-build  /usr/src/bpfd/target/x86_64-unknown-linux-musl/release/bpfd-agent .
+COPY --from=bpfd-agent-build  /usr/src/bpfd/bpfd-operator/bin/bpfd-agent .
 
 ENTRYPOINT ["./bpfd-agent"]
