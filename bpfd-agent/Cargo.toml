@@ -23,7 +23,7 @@ jsonpath_lib = "0.3.0"
 k8s-openapi = { version = "0.16.0", features = ["v1_25"], default-features = false }
 serde = { version = "1.0.147", features = ["derive"] }
 serde_json = "1.0.89"
-serde_yaml = "0.9.13"
+serde_yaml = "0.9.14"
 tokio = { version = "1.21.2", features = ["full"] }
 either = "1.6.1"
 schemars = "0.8.6"
