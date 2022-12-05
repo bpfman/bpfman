@@ -24,8 +24,6 @@ import (
 	"log"
 	"os"
 
-	//ctrl "sigs.k8s.io/controller-runtime"
-
 	toml "github.com/pelletier/go-toml"
 	bpfdiov1alpha1 "github.com/redhat-et/bpfd/api/v1alpha1"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
@@ -33,12 +31,10 @@ import (
 )
 
 const (
-	DefaultConfigPath     = "/etc/bpfd/gocounter.toml"
-	DefaultRootCaPath     = "/etc/bpfd/certs/ca/ca.pem"
-	DefaultClientCertPath = "/etc/bpfd/certs/bpfd-client/bpfd-client.pem"
-	DefaultClientKeyPath  = "/etc/bpfd/certs/bpfd-client/bpfd-client.key"
-	DefaultSocketPath     = "/var/lib/bpfd/sock/gocounter.sock"
-	DefaultMapDir         = "/run/bpfd/fs/maps"
+	DefaultConfigPath     = " /etc/bpfd/bpfd.toml"
+	DefaultRootCaPath     = "/etc/bpfd/certs/ca/ca.crt"
+	DefaultClientCertPath = "/etc/bpfd/certs/bpfd-client/tls.crt"
+	DefaultClientKeyPath  = "/etc/bpfd/certs/bpfd-client/tls.key"
 )
 
 type Tls struct {
@@ -96,7 +92,7 @@ func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) 
 }
 
 func BuildBpfdLoadRequest(ebpf_program_config *bpfdiov1alpha1.EbpfProgramConfig) (*gobpfd.LoadRequest, error) {
-	var loadRequest *gobpfd.LoadRequest
+	loadRequest := gobpfd.LoadRequest{}
 
 	loadRequest.SectionName = ebpf_program_config.Spec.Name
 
@@ -136,7 +132,7 @@ func BuildBpfdLoadRequest(ebpf_program_config *bpfdiov1alpha1.EbpfProgramConfig)
 		return nil, fmt.Errorf("invalid Attach Type")
 	}
 
-	return loadRequest, nil
+	return &loadRequest, nil
 }
 
 func BuildBpfdUnloadRequest(uuid string) (*gobpfd.UnloadRequest, error) {
