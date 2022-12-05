@@ -11,4 +11,4 @@ data:
     key = "/etc/bpfd/certs/bpfd/tls.key"
     client_cert = "/etc/bpfd/certs/bpfd-client/tls.crt"
     client_key = "/etc/bpfd/certs/bpfd-client/tls.key"
-  bpfd.log.level: "info"
+  bpfd.log.level: "debug"

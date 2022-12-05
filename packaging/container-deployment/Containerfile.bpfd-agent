@@ -1,3 +1,5 @@
+## This is no longer used but left up as an example of using scratch as the base image 
+## Instead of google's distroless
 FROM golang:1.19 as bpfd-agent-build
 
 WORKDIR /usr/src/bpfd/

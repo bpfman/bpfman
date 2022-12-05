@@ -63,13 +63,22 @@ type existingReq struct {
 	req  *bpfdiov1alpha1.EbpfProgramConfigSpec
 }
 
-const bpfdAgentFinalizer = "bpfd.io.agent/finalizer"
-const retryDuration = 10 * time.Second
+type ebpfProgramConditionType string
+
+const (
+	bpfdAgentFinalizer                               = "bpfd.io.agent/finalizer"
+	retryDurationAgent                               = 10 * time.Second
+	ebpfProgCondLoaded      ebpfProgramConditionType = "Loaded"
+	ebpfProgCondNotLoaded   ebpfProgramConditionType = "NotLoaded"
+	ebpfProgCondNotUnloaded ebpfProgramConditionType = "NotUnLoaded"
+	ebpfProgCondNotSelected ebpfProgramConditionType = "NotSelected"
+)
 
 //+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprograms,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprograms/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprogramconfigs,verbs=get;list;watch
+//+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -106,7 +115,7 @@ const retryDuration = 10 * time.Second
 func (r *EbpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := log.FromContext(ctx)
 
-	l.Info("ebpf-agent is reconciling", "request", req.String())
+	l.Info("bpfd-agent is reconciling", "request", req.String())
 
 	// Lookup Ks node object for this bpfd-agent This should always succeed
 	ourNode := &v1.Node{}
@@ -132,7 +141,7 @@ func (r *EbpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	nodeState, err := r.listBpfdPrograms(ctx)
 	if err != nil {
 		l.Error(err, "failed to list loaded bpfd programs")
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDuration}, nil
+		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 	}
 
 	existingRequests := map[string]existingReq{}
@@ -163,7 +172,7 @@ func (r *EbpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		retry, err := r.reconcileEbpfProgramConfig(ctx, &ebpfProgramConfig, ourNode, existingRequests)
 		if err != nil {
 			l.Error(err, "Reconciling ebpfProgramConfig Failed", "ebpfProgramConfigName", ebpfProgramConfig.Name)
-			return ctrl.Result{Requeue: retry, RequeueAfter: retryDuration}, nil
+			return ctrl.Result{Requeue: retry, RequeueAfter: retryDurationAgent}, nil
 		}
 	}
 
@@ -191,6 +200,7 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       ebpfProgramName,
 					Finalizers: []string{bpfdAgentFinalizer},
+					Labels:     map[string]string{"owningConfig": ebpfProgramConfig.Name},
 				},
 				Spec: bpfdiov1alpha1.EbpfProgramSpec{
 					ProgramMap: map[string]bpfdiov1alpha1.EbpfProgramAttachPoint{},
@@ -244,7 +254,7 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 		uuid, err := r.loadBpfdProgram(ctx, loadRequest)
 		if err != nil {
 			failedLoadedCondition := metav1.Condition{
-				Type:    "NotLoaded",
+				Type:    string(ebpfProgCondNotLoaded),
 				Status:  metav1.ConditionTrue,
 				Reason:  "bpfdNotLoaded",
 				Message: "Failed to load ebpfProgram",
@@ -266,7 +276,7 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 		}
 
 		loadedCondition := metav1.Condition{
-			Type:    "Loaded",
+			Type:    string(ebpfProgCondLoaded),
 			Status:  metav1.ConditionTrue,
 			Reason:  "bpfdLoaded",
 			Message: "Successfully loaded ebpfProgram",
@@ -292,7 +302,7 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 			err = r.unloadBpfdProgram(ctx, unloadRequest)
 			if err != nil {
 				failUnloadCondition := metav1.Condition{
-					Type:    "NotUnloaded",
+					Type:    string(ebpfProgCondNotUnloaded),
 					Status:  metav1.ConditionTrue,
 					Reason:  "bpfdNotUnloaded",
 					Message: "Failed to unload ebpfProgram",
@@ -329,7 +339,7 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 		if !isNodeSelected {
 			// Write NodeNodeSelected status
 			nodeNotSelectedCondition := metav1.Condition{
-				Type:    "NotSelected",
+				Type:    string(ebpfProgCondNotSelected),
 				Status:  metav1.ConditionTrue,
 				Reason:  "nodeNotSelected",
 				Message: "This node is not selected to run the ebpfProgram",
@@ -376,7 +386,7 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 			// If K8s hasn't cleaned up here it means we're no longer selected
 			// write NodeNodeSelected status ignoring error (object may not exist)
 			nodeNotSelectedCondition := metav1.Condition{
-				Type:    "NotSelected",
+				Type:    string(ebpfProgCondNotSelected),
 				Status:  metav1.ConditionTrue,
 				Reason:  "nodeNotSelected",
 				Message: "This node is no longer selected to run the ebpfProgram",
@@ -405,7 +415,7 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 		err = r.unloadBpfdProgram(ctx, unloadRequest)
 		if err != nil {
 			failUnloadCondition := metav1.Condition{
-				Type:    "NotUnloaded",
+				Type:    string(ebpfProgCondNotUnloaded),
 				Status:  metav1.ConditionTrue,
 				Reason:  "bpfdNotUnloaded",
 				Message: "Failed to unload ebpfProgram",
@@ -485,20 +495,4 @@ func nodePredicate(nodeName string) predicate.Funcs {
 			return e.Object.GetLabels()["kubernetes.io/hostname"] == nodeName
 		},
 	}
-}
-
-func shouldRecreate(ebpfProgram *bpfdiov1alpha1.EbpfProgram, ebpfProgramConfig *bpfdiov1alpha1.EbpfProgramConfig) bool {
-	recreate := false
-
-	// If ebpfProgram already exists and the attach points are represented correctly
-	// we don't need to reconcile
-	// Currently there is only one type of attach point (interface) in the future this
-	// will be extended with features such as Pod Interface selectors (allowing to select pod veth interfaces etc)
-	for _, v := range ebpfProgram.Spec.ProgramMap {
-		if v == ebpfProgramConfig.Spec.AttachPoint {
-			break
-		}
-	}
-
-	return recreate
 }
