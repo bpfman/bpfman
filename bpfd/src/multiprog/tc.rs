@@ -217,7 +217,7 @@ impl TcDispatcher {
         };
         let path = format!("{base}/{}_{}", self.if_index, self.revision);
         serde_json::to_writer(&fs::File::create(path).unwrap(), &self)
-            .map_err(|e| BpfdError::Error(format!("can't save state: {}", e)))?;
+            .map_err(|e| BpfdError::Error(format!("can't save state: {e}")))?;
         Ok(())
     }
 
@@ -228,7 +228,7 @@ impl TcDispatcher {
         };
         let path = format!("{base}/{}_{}", self.if_index, self.revision);
         fs::remove_file(path)
-            .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {}", e)))?;
+            .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {e}")))?;
 
         let base = match self.direction {
             Direction::Ingress => RTDIR_FS_TC_INGRESS,
@@ -236,7 +236,7 @@ impl TcDispatcher {
         };
         let path = format!("{base}/dispatcher_{}_{}", self.if_index, self.revision);
         fs::remove_dir_all(path)
-            .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {}", e)))?;
+            .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {e}")))?;
         // FIXME: Dispatcher *SHOULD* be detached when this object is dropped
         if let Some(link) = self.link.take() {
             link.detach()?;
