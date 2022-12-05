@@ -28,25 +28,21 @@ bpfd configuration file (`/etc/bpfd/bpfd.toml`) to retrieve the bpfd-client cert
 bpfd allows the user to specify certain bpf programs to always be loaded every time the daemon is started.
 To do so simply create `.toml` files in the `/etc/bpfd/programs.d` directory with the following syntax:
 
-**Users can specify multiple programs in a single `.toml` file AND multiple `.toml` files** 
+**NOTE:** Users can specify multiple programs in a single `.toml` file OR multiple `.toml` files
 
 ```toml
 
 [[programs]]
 name = "program0"
-interface = "eth0"
-path = <PATH TO BPF BYTECODE>
-section_name = "pass"
+path = "/usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o"
+section_name = "xdp"
 program_type = "xdp"
-priority = 50
-proceed_on = ["pass", "dispatcher_return"]
+network_attach = { interface = "eth0", priority = 50, proceed_on = ["pass", "dispatcher_return"] }
 
 [[programs]]
 name = "program1"
-interface = "eth0"
-path = <PATH TO BPF BYTECODE>
-section_name = "drop"
+path = "/usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o"
+section_name = "xdp"
 program_type = "xdp"
-priority = 55
-proceed_on = ["pass", "dispatcher_return"]
+network_attach = { interface = "eth0", priority = 55, proceed_on = ["pass", "dispatcher_return"] }
 ```

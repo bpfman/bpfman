@@ -232,7 +232,7 @@ async fn main() -> anyhow::Result<()> {
                             "xdp".to_string(),
                             r.name,
                             r.path,
-                            format!(r#"{{"priority": {priority}, "iface": "{iface}", "position": {position}, "proceed_on": {proceed_on} }}"#)
+                            format!(r#"{{ "priority": {priority}, "iface": "{iface}", "position": {position}, "proceed_on": {proceed_on} }}"#)
                         ]);
                         }
                     }
@@ -252,7 +252,7 @@ async fn main() -> anyhow::Result<()> {
                         format!("tc-{direction}"),
                         r.name,
                         r.path,
-                        format!(r#"{{"priority": {priority}, "iface": "{iface}", "postiion": {position} }}"#)
+                        format!(r#"{{ "priority": {priority}, "iface": "{iface}", "postiion": {position} }}"#)
                     ]);
                         }
                     }
