@@ -1,0 +1,10 @@
+resources:
+- manager.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- name: bpfd-operator
+  newName: quay.io/astoycos/bpfd-operator
+- name: controller
+  newName: quay.io/astoycos/bpfd-operator
+  newTag: latest

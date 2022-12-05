@@ -1,0 +1,4 @@
+resources:
+- config.yaml
+- certs.yaml
+- daemonset.yaml

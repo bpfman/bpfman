@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: daemon
+  namespace: kube-system
+  labels:
+    k8s-app: bpfd
+spec:
+  selector:
+    matchLabels:
+      name: bpfd-daemon
+  template:
+    metadata:
+      labels:
+        name: bpfd-daemon
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: bpfd-daemon
+      tolerations:
+      # these tolerations are to have the daemonset runnable on control plane nodes
+      # remove them if your control plane nodes should not run pods
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: bpfd
+        image: quay.io/bpfd/bpfd:main
+        securityContext:
+          privileged: true
+        imagePullPolicy: Always
+        env: 
+          - name: RUST_LOG
+            # This will eventually be configured by the operator
+            valueFrom: 
+              configMapKeyRef:
+                name: bpfd-config
+                key: bpfd.log.level
+        volumeMounts:
+        - name: runtime
+          mountPath: /run/bpfd
+          mountPropagation: Bidirectional
+        - name: bpfd-ca
+          mountPath: /etc/bpfd/certs/ca
+          readOnly: true
+        - name: bpfd-cert
+          mountPath: /etc/bpfd/certs/bpfd
+          readOnly: true
+        - name: bpfd-config 
+          mountPath: /etc/bpfd/bpfd.toml
+          subPath: bpfd.toml
+          readOnly: true
+        # Mounted so bpfd doesn't try and create the client code
+        - name: bpfd-agent-cert
+          mountPath: /etc/bpfd/certs/bpfd-client
+          readOnly: true
+          # These certs are missing in the scratch image to keep it small.  Mount
+          # and use the host's instead.
+        - name: host-bytecode
+          mountPath: /run/bpfd/bytecode
+      - name: bpfd-agent 
+        image: quay.io/astoycos/bpfd-agent:latest
+        securityContext:
+          privileged: true
+        imagePullPolicy: Always
+        env: 
+          - name: RUST_LOG
+            # This will eventually be configured by the operator
+            valueFrom: 
+              configMapKeyRef:
+                name: bpfd-config
+                key: bpfd.log.level
+          - name: NODENAME 
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+        volumeMounts:
+        - name: bpfd-ca
+          mountPath: /etc/bpfd/certs/ca
+          readOnly: true
+        - name: bpfd-agent-cert
+          mountPath: /etc/bpfd/certs/bpfd-client
+          readOnly: true
+        - name: bpfd-config
+          mountPath: /etc/bpfd/bpfd.toml
+          subPath: bpfd.toml
+          readOnly: true
+      terminationGracePeriodSeconds: 15
+      volumes:
+      - name: runtime
+        hostPath:
+          path: /run/bpfd
+      - name: bpfd-ca
+        secret: 
+          secretName: bpfd-ca
+          optional: false
+      - name: bpfd-cert
+        secret:
+          secretName: bpfd-cert-secret
+          optional: false
+      - name: bpfd-agent-cert
+        secret:
+          secretName: bpfd-agent-cert-secret
+          optional: false
+      - name: bpfd-config
+        configMap:
+          name: bpfd-config
+          optional: false
+      - name: host-bytecode
+        hostPath:
+          path: /run/bpfd/bytecode
+      

@@ -14,7 +14,7 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
+  name: operator
   namespace: system
   labels:
     control-plane: controller-manager
@@ -67,11 +67,11 @@ spec:
         #   type: RuntimeDefault
       containers:
       - command:
-        - /manager
+        - /bpfd-operator
         args:
         - --leader-elect
         image: controller:latest
-        name: manager
+        name: bpfd-operator
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
@@ -98,5 +98,5 @@ spec:
           requests:
             cpu: 10m
             memory: 64Mi
-      serviceAccountName: controller-manager
+      serviceAccountName: bpfd-operator
       terminationGracePeriodSeconds: 10

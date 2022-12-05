@@ -4,18 +4,14 @@ metadata:
   labels:
     app.kubernetes.io/name: ebpfprogramconfig
   name: xdp-pass-all-nodes
-  finalizers: 
-  - ebpfprogram.bpfd.io/finalizer
 spec:
   ## Must correspond to image section name
   name: pass
   type: XDP
   # Select all nodes
-  nodeselector: 
-    matchLabels: 
-      run.ebpf: "true" 
+  nodeselector: {}
   priority: 0
   attachpoint: 
-    interface: eno1
+    interface: eth0
   bytecode:
     imageurl: quay.io/bpfd/bytecode:xdp_pass
