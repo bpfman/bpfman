@@ -87,12 +87,29 @@ jobs:
         tags: ${{ steps. meta-bpfd-agent.outputs.tags }}
         labels: ${{ steps. meta-bpfd-agent.outputs.labels }}
         containerfiles: |
-          ./packaging/container-deployment/Containerfile.bpfdagent
+          ./bpfd-operator/Containerfile.bpfd-agent
 
     - name: Push bpfd-agent to quay.io/bpfd
       uses: redhat-actions/push-to-registry@v2
       with:
         image: ${{ steps.build-bpfd-agent.outputs.image }}
         tags: ${{ steps.build-bpfd-agent.outputs.tags }}
+        registry: quay.io/bpfd
+
+    - name: Build bpfd-operator image
+      id: build-bpfd-operator
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: bpfd-operator
+        tags: ${{ steps. meta-bpfd-operator.outputs.tags }}
+        labels: ${{ steps. meta-bpfd-operator.outputs.labels }}
+        containerfiles: |
+          ./bpfd-operator/Containerfile.bpfd-operator
+
+    - name: Push bpfd-operator to quay.io/bpfd
+      uses: redhat-actions/push-to-registry@v2
+      with:
+        image: ${{ steps.build-bpfd-operator.outputs.image }}
+        tags: ${{ steps.build-bpfd-operator.outputs.tags }}
         registry: quay.io/bpfd
         
