@@ -1,0 +1,17 @@
+apiVersion: bpfd.io/v1alpha1
+kind: EbpfProgramConfig
+metadata:
+  labels:
+    app.kubernetes.io/name: ebpfprogramconfig
+  name: go-counter-example
+spec:
+  ## Must correspond to image section name
+  name: go-counter
+  type: XDP
+  # Select all nodes
+  nodeselector: {}
+  priority: 0
+  attachpoint: 
+    interface: eth0
+  bytecode:
+    imageurl: quay.io/bpfd/bytecode:gocounter

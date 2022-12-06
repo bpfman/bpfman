@@ -43,5 +43,4 @@ resources:
 - ../crd
 - ../rbac
 - ../bpfd-operator-deployment
-- ../certmanager
 - ../bpfd-deployment

@@ -70,7 +70,8 @@ spec:
         - /bpfd-operator
         args:
         - --leader-elect
-        image: controller:latest
+        image: bpfd-operator-image:latest
+        imagePullPolicy: IfNotPresent
         name: bpfd-operator
         securityContext:
           allowPrivilegeEscalation: false
