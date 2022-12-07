@@ -24,11 +24,18 @@ import (
 
 // EbpfProgramSpec defines the desired state of EbpfProgram
 type EbpfProgramSpec struct {
-	// ProgramMap is is a map with Keys: UUIDs, Values: AttachPoint
-	ProgramMap map[string]EbpfProgramAttachPoint `json:"programmap"`
+	// ProgramMap is is a map with Keys: UUIDs, Values: EbpfProgramMeta
+	Programs map[string]EbpfProgramMeta `json:"programs"`
+}
 
-	// Maps is the location on the filesystem of any pinned bpfmaps used by the program
-	// It is represented as a map with Keys: UUID, Value: Absolute path on host filesystem
+// EbpfProgramMeta defines the relevant metadata needed for a single
+// running ebpfProgram.
+type EbpfProgramMeta struct {
+	// AttachPoint specifies what this ebpfProgram is attached to
+	// for some programs is may be nil.
+	AttachPoint *EbpfProgramAttachPoint `json:"attachpoint,omitempty"`
+
+	// Maps is a map with Keys: Map Names, and Values: Map Pin paths
 	Maps map[string]string `json:"maps"`
 }
 
