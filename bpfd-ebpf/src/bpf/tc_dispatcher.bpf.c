@@ -124,8 +124,6 @@ int tc_dispatcher(struct __sk_buff *skb)
 	__u8 num_progs_enabled = CONFIG.num_progs_enabled;
 	int ret;
 
-	bpf_printk("num_progs_enabled: %d", num_progs_enabled);
-
 	if (num_progs_enabled < 1)
 		goto out;
 	ret = prog0(skb);
