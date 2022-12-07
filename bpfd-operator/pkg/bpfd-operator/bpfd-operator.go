@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package bpfdoperator
 
 import (
 	"context"
@@ -44,6 +44,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	bpfdiov1alpha1 "github.com/redhat-et/bpfd/api/v1alpha1"
+	bpfdagent "github.com/redhat-et/bpfd/pkg/bpfd-agent"
 )
 
 type ebpfProgramConfigConditionType string
@@ -52,9 +53,9 @@ const (
 	bpfdOperatorFinalizer                                         = "bpfd.io.operator/finalizer"
 	retryDurationOperator                                         = 10 * time.Second
 	BpfdDaemonManifestPath                                        = "./config/bpfd-deployment/daemonset.yaml"
-	ebpfProgConfigNotYetLoaded     ebpfProgramConfigConditionType = "NotYetLoaded"
-	ebpfProgConfigReconcileError   ebpfProgramConfigConditionType = "ReconcileError"
-	ebpfProgConfigReconcileSuccess ebpfProgramConfigConditionType = "ReconcileSuccess"
+	EbpfProgConfigNotYetLoaded     ebpfProgramConfigConditionType = "NotYetLoaded"
+	EbpfProgConfigReconcileError   ebpfProgramConfigConditionType = "ReconcileError"
+	EbpfProgConfigReconcileSuccess ebpfProgramConfigConditionType = "ReconcileSuccess"
 )
 
 // EbpfProgramConfigReconciler reconciles a EbpfProgramConfig object
@@ -63,6 +64,7 @@ type EbpfProgramConfigReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+//+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprograms,verbs=get;list;watch
 //+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprogramconfigs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprogramconfigs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprogramconfigs/finalizers,verbs=update
@@ -205,7 +207,7 @@ func (r *EbpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// EbpfPrograms for this haven't been created by bpfd-agent
 	if len(nodes.Items) != len(ebpfPrograms.Items) {
 		notYetLoaded := metav1.Condition{
-			Type:    string(ebpfProgConfigNotYetLoaded),
+			Type:    string(EbpfProgConfigNotYetLoaded),
 			Status:  metav1.ConditionTrue,
 			Reason:  "ProgramsNotYetLoaded",
 			Message: "Waiting for ebpfProgramConfig Object to be reconciled to all nodes",
@@ -225,7 +227,7 @@ func (r *EbpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		}
 
 		for _, condition := range ebpfProgram.Status.Conditions {
-			if condition.Type == string(ebpfProgCondNotLoaded) || condition.Type == string(ebpfProgCondNotUnloaded) {
+			if condition.Type == string(bpfdagent.EbpfProgCondNotLoaded) || condition.Type == string(bpfdagent.EbpfProgCondNotUnloaded) {
 				failedEbpfPrograms = append(failedEbpfPrograms, ebpfProgram.Name)
 			}
 		}
@@ -233,7 +235,7 @@ func (r *EbpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	if len(failedEbpfPrograms) != 0 {
 		ReconcileError := metav1.Condition{
-			Type:   string(ebpfProgConfigReconcileError),
+			Type:   string(EbpfProgConfigReconcileError),
 			Status: metav1.ConditionTrue,
 			Reason: "ReconcileError",
 			Message: fmt.Sprintf("ebpfProgramReconciliation failed on the following ebpfProgram Objects: %v",
@@ -243,7 +245,7 @@ func (r *EbpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		updateStatusFunc(ReconcileError)
 	} else {
 		ReconcileSuccess := metav1.Condition{
-			Type:    string(ebpfProgConfigReconcileSuccess),
+			Type:    string(EbpfProgConfigReconcileSuccess),
 			Status:  metav1.ConditionTrue,
 			Reason:  "ReconcileSuccess",
 			Message: "ebpfProgramReconciliation Succeeded on all nodes",

@@ -3,46 +3,16 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: manager-role
+  name: bpfd-agent-role
 rules:
-- apiGroups:
-  - apps
-  resources:
-  - daemonsets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
 - apiGroups:
   - bpfd.io
   resources:
   - ebpfprogramconfigs
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
-- apiGroups:
-  - bpfd.io
-  resources:
-  - ebpfprogramconfigs/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - bpfd.io
-  resources:
-  - ebpfprogramconfigs/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - bpfd.io
   resources:

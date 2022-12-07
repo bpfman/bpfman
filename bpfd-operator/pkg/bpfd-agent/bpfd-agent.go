@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package bpfdagent
 
 import (
 	"context"
@@ -68,10 +68,10 @@ type ebpfProgramConditionType string
 const (
 	bpfdAgentFinalizer                               = "bpfd.io.agent/finalizer"
 	retryDurationAgent                               = 10 * time.Second
-	ebpfProgCondLoaded      ebpfProgramConditionType = "Loaded"
-	ebpfProgCondNotLoaded   ebpfProgramConditionType = "NotLoaded"
-	ebpfProgCondNotUnloaded ebpfProgramConditionType = "NotUnLoaded"
-	ebpfProgCondNotSelected ebpfProgramConditionType = "NotSelected"
+	EbpfProgCondLoaded      ebpfProgramConditionType = "Loaded"
+	EbpfProgCondNotLoaded   ebpfProgramConditionType = "NotLoaded"
+	EbpfProgCondNotUnloaded ebpfProgramConditionType = "NotUnLoaded"
+	EbpfProgCondNotSelected ebpfProgramConditionType = "NotSelected"
 )
 
 //+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprograms,verbs=get;list;watch;create;update;patch;delete
@@ -96,20 +96,7 @@ const (
 //
 // 3. Our NodeLabels are updated and the Node is no longer selected by an EbpfProgramConfig
 //
-// 4. And ebpfProgramCongfig Object is deleted
-//
-// To cover each case mentioned above the Reconcile loop does the following
-// 1. If (ebpfProgram object doesn't exist && our node is selected) Load and Create ebpfProgram object
-// 2. If (ebpfProgram exists && our node isn't selected) Remove and Delete ebpfProgram object
-// 3. If (ebpfProgram exists && our node is Selected)
-//   - List All programs
-//   - Get Priority, AttachPoint, and BytecodeSrc from output
-//   - Match ^ with what's in the current ebpfProgramConfig
-//   - Reconcile (Remove and Add) if information has changed
-//     -> Update program Map
-//
-// 4. If Deletion Timestamp is set on ebpfProgramConfig Remove and Delete ebpfProgram
-//
+// 4. An ebpfProgramCongfig Object is deleted
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *EbpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -117,7 +104,7 @@ func (r *EbpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	l.Info("bpfd-agent is reconciling", "request", req.String())
 
-	// Lookup Ks node object for this bpfd-agent This should always succeed
+	// Lookup K8s node object for this bpfd-agent This should always succeed
 	ourNode := &v1.Node{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.NodeName}, ourNode); err != nil {
 		return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting bpfd-agent node %s : %v",
@@ -137,7 +124,7 @@ func (r *EbpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{Requeue: false}, nil
 	}
 
-	// Get existing ebpf state on the node.
+	// Get existing ebpf state from bpfd.
 	nodeState, err := r.listBpfdPrograms(ctx)
 	if err != nil {
 		l.Error(err, "failed to list loaded bpfd programs")
@@ -203,12 +190,12 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 					Labels:     map[string]string{"owningConfig": ebpfProgramConfig.Name},
 				},
 				Spec: bpfdiov1alpha1.EbpfProgramSpec{
-					ProgramMap: map[string]bpfdiov1alpha1.EbpfProgramAttachPoint{},
-					Maps:       map[string]string{},
+					Programs: map[string]bpfdiov1alpha1.EbpfProgramMeta{},
 				},
 				Status: bpfdiov1alpha1.EbpfProgramStatus{Conditions: []metav1.Condition{}},
 			}
 
+			// Make the corresponding ebpfProgramConfig the owner
 			ctrl.SetControllerReference(ebpfProgramConfig, ebpfProgram, r.Scheme)
 
 			opts := client.CreateOptions{}
@@ -229,7 +216,6 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 			err)
 	}
 
-	// TODO (astoycos) not 100% sure this is right
 	nodeLabelSet, err := labels.ConvertSelectorToLabelsMap(labels.FormatLabels(ourNode.Labels))
 	if err != nil {
 		return false, fmt.Errorf("failed to parse node labels : %v",
@@ -254,7 +240,7 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 		uuid, err := r.loadBpfdProgram(ctx, loadRequest)
 		if err != nil {
 			failedLoadedCondition := metav1.Condition{
-				Type:    string(ebpfProgCondNotLoaded),
+				Type:    string(EbpfProgCondNotLoaded),
 				Status:  metav1.ConditionTrue,
 				Reason:  "bpfdNotLoaded",
 				Message: "Failed to load ebpfProgram",
@@ -266,9 +252,19 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 				err)
 		}
 
-		// TODO(astoycos) this wont' always be a multi Attach program
-		ebpfProgram.Spec.ProgramMap = map[string]bpfdiov1alpha1.EbpfProgramAttachPoint{uuid: {Interface: &loadRequest.GetNetworkMultiAttach().Iface}}
+		maps, err := internal.GetMapsForUUID(uuid)
+		if err != nil {
+			l.Error(err, "failed to get ebpfProgram's Maps")
+			maps = map[string]string{}
+		}
 
+		// TODO(astoycos) this won't always be a multi Attach program
+		ebpfProgram.Spec.Programs[uuid] = bpfdiov1alpha1.EbpfProgramMeta{
+			AttachPoint: &bpfdiov1alpha1.EbpfProgramAttachPoint{Interface: &loadRequest.GetNetworkMultiAttach().Iface},
+			Maps:        maps,
+		}
+
+		l.V(1).Info("Updating programs", "Programs", ebpfProgram.Spec.Programs)
 		// Update ebpfProgram once successfully loaded
 		if err = r.Update(ctx, ebpfProgram, &client.UpdateOptions{}); err != nil {
 			return false, fmt.Errorf("failed to create ebpfProgram object: %v",
@@ -276,7 +272,7 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 		}
 
 		loadedCondition := metav1.Condition{
-			Type:    string(ebpfProgCondLoaded),
+			Type:    string(EbpfProgCondLoaded),
 			Status:  metav1.ConditionTrue,
 			Reason:  "bpfdLoaded",
 			Message: "Successfully loaded ebpfProgram",
@@ -291,7 +287,14 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 	// This function unloads the bpf program via bpfd and removes the bpfd-agent
 	// finalizer from the ebpfProgram Object
 	unloadFunc := func() (bool, error) {
-		for uuid := range ebpfProgram.Spec.ProgramMap {
+		l.Info("unloading ebpf program via bpfd")
+
+		if len(ebpfProgram.Spec.Programs) == 0 {
+			l.Info("no programs to remove")
+			return false, nil
+		}
+
+		for uuid := range ebpfProgram.Spec.Programs {
 			unloadRequest, err := internal.BuildBpfdUnloadRequest(uuid)
 			if err != nil {
 				// Add a condition and exit do requeue, bpfd might become ready
@@ -302,7 +305,7 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 			err = r.unloadBpfdProgram(ctx, unloadRequest)
 			if err != nil {
 				failUnloadCondition := metav1.Condition{
-					Type:    string(ebpfProgCondNotUnloaded),
+					Type:    string(EbpfProgCondNotUnloaded),
 					Status:  metav1.ConditionTrue,
 					Reason:  "bpfdNotUnloaded",
 					Message: "Failed to unload ebpfProgram",
@@ -313,8 +316,6 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 				return true, fmt.Errorf("failed to unload ebpfProgram via bpfd: %v",
 					err)
 			}
-
-			l.Info("Program loaded via bpfd", "bpfd-program-uuid", uuid)
 		}
 
 		return false, nil
@@ -330,24 +331,13 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 		return true, fmt.Errorf("failed to generate bpfd load request: %v",
 			err)
 	}
+	l.V(1).Info("Nodestate", "NodeState", nodeState)
 
-	// Compare the desired state to existing node state
+	// Compare the desired state to existing bpfd state
 	v, ok := nodeState[ebpfProgramConfig.Spec.Name]
 	// ebpfProgram doesn't exist on node
 	if !ok {
-		// Make sure if we're not selected just exit
-		if !isNodeSelected {
-			// Write NodeNodeSelected status
-			nodeNotSelectedCondition := metav1.Condition{
-				Type:    string(ebpfProgCondNotSelected),
-				Status:  metav1.ConditionTrue,
-				Reason:  "nodeNotSelected",
-				Message: "This node is not selected to run the ebpfProgram",
-			}
-			updateStatusFunc(nodeNotSelectedCondition)
-
-			return false, nil
-		}
+		l.V(1).Info("ebpfProgram doesn't exist on node")
 
 		// If EbpfProgramConfig is being deleted just remove agent finalizer so the
 		// owner relationship can take care of cleanup
@@ -363,6 +353,20 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 			return false, nil
 		}
 
+		// Make sure if we're not selected just exit
+		if !isNodeSelected {
+			// Write NodeNodeSelected status
+			nodeNotSelectedCondition := metav1.Condition{
+				Type:    string(EbpfProgCondNotSelected),
+				Status:  metav1.ConditionTrue,
+				Reason:  "nodeNotSelected",
+				Message: "This node is not selected to run the ebpfProgram",
+			}
+			updateStatusFunc(nodeNotSelectedCondition)
+
+			return false, nil
+		}
+
 		// otherwise load it
 		return loadFunc(loadRequest)
 	}
@@ -370,6 +374,8 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 	// EbpfProgram exists but either EbpfProgramConfig is being deleted or node is no
 	// longer selected....unload program
 	if !ebpfProgramConfig.DeletionTimestamp.IsZero() || !isNodeSelected {
+		l.V(1).Info("ebpfProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", !ebpfProgramConfig.DeletionTimestamp.IsZero(),
+			"isSelected", isNodeSelected)
 		if controllerutil.ContainsFinalizer(ebpfProgram, bpfdAgentFinalizer) {
 			if retry, err := unloadFunc(); err != nil {
 				return retry, err
@@ -386,13 +392,14 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 			// If K8s hasn't cleaned up here it means we're no longer selected
 			// write NodeNodeSelected status ignoring error (object may not exist)
 			nodeNotSelectedCondition := metav1.Condition{
-				Type:    string(ebpfProgCondNotSelected),
+				Type:    string(EbpfProgCondNotSelected),
 				Status:  metav1.ConditionTrue,
 				Reason:  "nodeNotSelected",
 				Message: "This node is no longer selected to run the ebpfProgram",
 			}
 			updateStatusFunc(nodeNotSelectedCondition)
 		}
+
 		return false, nil
 	}
 
@@ -401,6 +408,9 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 	ebpfProgramConfig.Spec.NodeSelector = metav1.LabelSelector{}
 	ebpfProgramConfig.Spec.ByteCode.ImageUrl = nil
 	v.req.ByteCode.ImageUrl = nil
+
+	l.V(1).Info("Desired Spec and existing state", "ebpfProgramConfigSpec",
+		ebpfProgramConfig.Spec, "existingState", *v.req)
 
 	// EbpfProgram exists but is not correct state
 	if !reflect.DeepEqual(*v.req, ebpfProgramConfig.Spec) {
@@ -415,7 +425,7 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 		err = r.unloadBpfdProgram(ctx, unloadRequest)
 		if err != nil {
 			failUnloadCondition := metav1.Condition{
-				Type:    string(ebpfProgCondNotUnloaded),
+				Type:    string(EbpfProgCondNotUnloaded),
 				Status:  metav1.ConditionTrue,
 				Reason:  "bpfdNotUnloaded",
 				Message: "Failed to unload ebpfProgram",

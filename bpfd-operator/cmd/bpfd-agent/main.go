@@ -35,8 +35,8 @@ import (
 
 	bpfdiov1alpha1 "github.com/redhat-et/bpfd/api/v1alpha1"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
-	"github.com/redhat-et/bpfd/controllers"
 	"github.com/redhat-et/bpfd/internal"
+	"github.com/redhat-et/bpfd/pkg/bpfd-agent"
 
 	//+kubebuilder:scaffold:imports
 
@@ -58,11 +58,17 @@ func init() {
 func main() {
 	var metricsAddr string
 	var probeAddr string
+	var develMode bool
+	var opts zap.Options
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	opts := zap.Options{
-		Development: true,
+	flag.BoolVar(&develMode, "development-mode", true, "Configue bpfd-agent to run in developmentMode")
+	if develMode {
+		opts = zap.Options{
+			Development: true,
+		}
 	}
+
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
@@ -104,7 +110,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.EbpfProgramReconciler{
+	if err = (&bpfdagent.EbpfProgramReconciler{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		GrpcConn:   conn,

@@ -62,22 +62,21 @@ spec:
         - name: host-bytecode
           mountPath: /run/bpfd/bytecode
       - name: bpfd-agent 
+        command:
+        - /bpfd-agent      
         image: bpfd-agent-image:latest
         securityContext:
           privileged: true
         imagePullPolicy: IfNotPresent
         env: 
-          - name: RUST_LOG
-            # This will eventually be configured by the operator
-            valueFrom: 
-              configMapKeyRef:
-                name: bpfd-config
-                key: bpfd.log.level
           - name: NODENAME 
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
         volumeMounts:
+        - name: runtime
+          mountPath: /run/bpfd
+          mountPropagation: Bidirectional
         - name: bpfd-ca
           mountPath: /etc/bpfd/certs/ca
           readOnly: true

@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 
 	toml "github.com/pelletier/go-toml"
 	bpfdiov1alpha1 "github.com/redhat-et/bpfd/api/v1alpha1"
@@ -31,6 +32,7 @@ import (
 )
 
 const (
+	bpfdMapFs             = "/run/bpfd/fs/maps"
 	DefaultConfigPath     = " /etc/bpfd/bpfd.toml"
 	DefaultRootCaPath     = "/etc/bpfd/certs/ca/ca.crt"
 	DefaultClientCertPath = "/etc/bpfd/certs/bpfd-client/tls.crt"
@@ -139,4 +141,28 @@ func BuildBpfdUnloadRequest(uuid string) (*gobpfd.UnloadRequest, error) {
 	return &gobpfd.UnloadRequest{
 		Id: uuid,
 	}, nil
+}
+
+// GetMapsForUUID returns any maps for the specified bpf program
+// which bpfd is managing
+func GetMapsForUUID(uuid string) (map[string]string, error) {
+	maps := map[string]string{}
+	programMapPath := fmt.Sprintf("%s/%s", bpfdMapFs, uuid)
+
+	// The directory may not be created instantaneously by bpfd so wait 10 seconds
+	if err := filepath.Walk(programMapPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.Name() != uuid {
+			maps[info.Name()] = path
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return maps, nil
 }

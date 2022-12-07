@@ -6,12 +6,14 @@ metadata:
   name: go-counter-example
 spec:
   ## Must correspond to image section name
-  name: go-counter
+  name: stats
   type: XDP
   # Select all nodes
-  nodeselector: {}
-  priority: 0
-  attachpoint: 
+  nodeselector:
+    matchLabels: 
+      deploy-ebpf: "true"
+  priority: 5
+  attachpoint:
     interface: eth0
   bytecode:
     imageurl: quay.io/bpfd/bytecode:gocounter
