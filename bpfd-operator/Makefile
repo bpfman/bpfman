@@ -162,15 +162,15 @@ setup-kind: cm-verifier ## Setup Kind cluster with certmanager ready for bpfd de
 	$(KUSTOMIZE) build config/certmanager | kubectl apply -f -
 	$(CM_VERIFIER) --timeout 20s
 
-.PHONY: deploy-kind
-deploy-kind: manifests kustomize cm-verifier ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
+.PHONY: deploy
+deploy: manifests kustomize cm-verifier ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
 	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator-image=${BPFD_OPERATOR_IMG} 
 	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image bpfd-image=${BPFD_IMG} && $(KUSTOMIZE) edit set image bpfd-agent-image=${BPFD_AGENT_IMG}
-	$(KUSTOMIZE) build config/kind | kubectl apply -f -
+	$(KUSTOMIZE) build config/deployment | kubectl apply -f -
 
-.PHONY: undeploy-kind
-undeploy-kind: ## Undeploy bpfd-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/kind | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+.PHONY: undeploy
+undeploy: ## Undeploy bpfd-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	$(KUSTOMIZE) build config/deployment | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: kind-reload-images
 kind-reload-images: load-images-kind ## Reload locally build images into a kind cluster and restart the ds and deployment so they're picked up.
@@ -178,7 +178,7 @@ kind-reload-images: load-images-kind ## Reload locally build images into a kind 
 	kubectl rollout restart deployment bpfd-operator -n bpfd
 
 .PHONY: run-on-kind
-run-on-kind: setup-kind load-images-kind deploy-kind ## Kind Deploy runs the bpfd-operator on a local kind cluster using the local build
+run-on-kind: setup-kind load-images-kind deploy ## Kind Deploy runs the bpfd-operator on a local kind cluster using the local build
 
 ##@ Deployment
 
