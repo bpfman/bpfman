@@ -26,7 +26,7 @@ const DEFAULT_PRIORITY: u32 = 50;
 const MIN_TC_DISPATCHER_PRIORITY: u16 = 50;
 const MAX_TC_DISPATCHER_PRIORITY: u16 = 45;
 const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
-pub const TC_ACT_PIPE: i32 = 1 << 3;
+pub const TC_ACT_PIPE: i32 = 3;
 
 static DISPATCHER_BYTES: &[u8] =
     include_bytes_aligned!("../../../target/bpfel-unknown-none/release/tc_dispatcher.bpf.o");
