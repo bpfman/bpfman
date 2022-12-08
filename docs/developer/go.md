@@ -114,12 +114,15 @@ interface as shown below:
 
 ```console
     sudo ./gocounter -iface ens3
-    2022/09/23 09:18:48 Program registered with de12e48a-222d-4abc-ac02-c006d327268b id
-    2022/09/23 09:18:51 0 packets received
-    2022/09/23 09:18:51 0 bytes received
+    2022/12/02 15:59:34 Reading /etc/bpfd/gocounter.toml ...
+    2022/12/02 15:59:34 Read /etc/bpfd/gocounter.toml failed: err open /etc/bpfd/gocounter.toml: no such file or directory
+    2022/12/02 15:59:34 Using Input: Interface=vethb2795c7 Priority=50 Source=bpf_bpfel.o
+    2022/12/02 15:59:35 Program registered with b6b2107c-f1a3-48ac-a145-1073c0979ba4 id
+    2022/12/02 15:59:38 0 packets received
+    2022/12/02 15:59:38 0 bytes received
 
-    2022/09/23 09:18:54 5 packets received
-    2022/09/23 09:18:54 1191 bytes received
+    2022/12/02 15:59:41 4 packets received
+    2022/12/02 15:59:41 580 bytes received
 
     :
 ```
@@ -127,15 +130,9 @@ interface as shown below:
 Use `bpfctl` to show the gocounter BPF bytecode was loaded.
 
 ```console
-    bpfctl list -i ens3
-    ens3
-    xdp_mode: skb
-
-    0: de12e48a-222d-4abc-ac02-c006d327268b
-        section-name: "stats"
-        priority: 50
-        path: /home/$USER/src/bpfd/examples/gocounter/bpf_bpfel.o
-        proceed-on:
+    bpfctl list
+    UUID                                  Type  Name   Path                                                 Metadata
+    b6b2107c-f1a3-48ac-a145-1073c0979ba4  xdp   stats  /home/$USER/src/bpfd/examples/gocounter/bpf_bpfel.o  { "priority": 50, "iface": "vethb2795c7", "position": 0, "proceed_on": ["pass", "dispatcher_return"] }
 ```
 
 Finally, press `<CTRL>+c` when finished with `gocounter`.
@@ -143,14 +140,14 @@ Finally, press `<CTRL>+c` when finished with `gocounter`.
 ```console
     :
 
-    2022/09/23 09:18:57 5 packets received
-    2022/09/23 09:18:57 1191 bytes received
+    2022/12/02 16:00:56 64 packets received
+    2022/12/02 16:00:56 9280 bytes received
 
-    2022/09/23 09:19:00 7 packets received
-    2022/09/23 09:19:00 1275 bytes received
+    2022/12/02 16:00:59 64 packets received
+    2022/12/02 16:00:59 9280 bytes received
 
-    ^C2022/09/23 09:19:00 Exiting...
-    2022/09/23 09:19:01 Unloading Program: de12e48a-222d-4abc-ac02-c006d327268b
+    ^C2022/12/02 16:01:00 Exiting...
+    2022/12/02 16:01:00 Unloading Program: b6b2107c-f1a3-48ac-a145-1073c0979ba4
 ```
 
 ### Running Unprivileged
@@ -198,21 +195,23 @@ Start `gocounter` without `sudo`:
 
 ```console
     ./gocounter -iface ens3
-    2022/09/23 09:18:48 Program registered with de12e48a-222d-4abc-ac02-c006d327268b id
-    2022/09/23 09:18:51 0 packets received
-    2022/09/23 09:18:51 0 bytes received
+    2022/12/02 15:59:34 Reading /etc/bpfd/gocounter.toml ...
+    2022/12/02 15:59:34 Read /etc/bpfd/gocounter.toml failed: err open /etc/bpfd/gocounter.toml: no such file or directory
+    2022/12/02 15:59:34 Using Input: Interface=vethb2795c7 Priority=50 Source=bpf_bpfel.o
+    2022/12/02 15:59:35 Program registered with b6b2107c-f1a3-48ac-a145-1073c0979ba4 id
+    2022/12/02 15:59:38 0 packets received
+    2022/12/02 15:59:38 0 bytes received
 
-    2022/09/23 09:18:54 5 packets received
-    2022/09/23 09:18:54 1191 bytes received
+    2022/12/02 15:59:41 4 packets received
+    2022/12/02 15:59:41 580 bytes received
 
-    2022/09/23 09:18:57 5 packets received
-    2022/09/23 09:18:57 1191 bytes received
+    :
 
-    2022/09/23 09:19:00 7 packets received
-    2022/09/23 09:19:00 1275 bytes received
+    2022/12/02 16:00:59 64 packets received
+    2022/12/02 16:00:59 9280 bytes received
 
-    ^C2022/09/23 09:19:00 Exiting...
-    2022/09/23 09:19:01 Unloading Program: de12e48a-222d-4abc-ac02-c006d327268b
+    ^C2022/12/02 16:01:00 Exiting...
+    2022/12/02 16:01:00 Unloading Program: b6b2107c-f1a3-48ac-a145-1073c0979ba4
 ```
 
 ## Running In A Container
@@ -231,14 +230,18 @@ To use the container image, pass the URL to `gocounter`:
 
 ```console
     ./gocounter -iface ens3 -url quay.io/bpfd/bytecode:gocounter
-    2022/09/23 16:11:45 Program registered with 6211ffff-4457-40a1-890d-44df316c39fb id
-    2022/09/23 16:11:48 0 packets received
-    2022/09/23 16:11:48 0 bytes received
+    2022/12/02 16:28:32 Reading /etc/bpfd/gocounter.toml ...
+    2022/12/02 16:28:32 Read /etc/bpfd/gocounter.toml failed: err open /etc/bpfd/gocounter.toml: no such file or directory
+    2022/12/02 16:28:32 Using Input: Interface=ens3 Priority=50 Source=quay.io/bpfd/bytecode:gocounter
+    2022/12/02 16:28:34 Program registered with 8d89a6b6-bce2-4d3f-9cee-9cb0c689a90e id
+    2022/12/02 16:28:37 4 packets received
+    2022/12/02 16:28:37 580 bytes received
 
-    2022/09/23 16:11:51 0 packets received
-    2022/09/23 16:11:51 0 bytes received
-    ^C2022/09/23 16:11:51 Exiting...
-    2022/09/23 16:11:52 Unloading Program: 6211ffff-4457-40a1-890d-44df316c39fb
+    2022/12/02 16:28:40 4 packets received
+    2022/12/02 16:28:40 580 bytes received
+
+    ^C2022/12/02 16:28:42 Exiting...
+    2022/12/02 16:28:42 Unloading Program: 8d89a6b6-bce2-4d3f-9cee-9cb0c689a90e
 ```
 
 ### Building gocounter BPF Bytecode Container Image
@@ -258,7 +261,7 @@ To build a `gocounter` BPF bytecode container image, first make sure the bytecod
       --build-arg PROGRAM_TYPE=xdp \
       --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
       --build-arg KERNEL_COMPILE_VER=$(uname -r) \
-      -f Containerfile.bytecode . -t quay.io/$USER/bytecode:gocounter
+      -f ../../packaging/container-deployment/Containerfile.bytecode . -t quay.io/$USER/bytecode:gocounter
 ```
 
 `bpfd` currently only supports pulling a remote container image, so push the image to a remote
@@ -274,14 +277,18 @@ Then run with the privately built bytecode container image:
 
 ```console
     ./gocounter -iface ens3 -url quay.io/$USER/bytecode:gocounter
-    2022/09/23 16:11:45 Program registered with 6211ffff-4457-40a1-890d-44df316c39fb id
-    2022/09/23 16:11:48 0 packets received
-    2022/09/23 16:11:48 0 bytes received
+    2022/12/02 16:38:44 Reading /etc/bpfd/gocounter.toml ...
+    2022/12/02 16:38:44 Read /etc/bpfd/gocounter.toml failed: err open /etc/bpfd/gocounter.toml: no such file or directory
+    2022/12/02 16:38:44 Using Input: Interface=vethb2795c7 Priority=50 Source=quay.io/$USER/bytecode:gocounter
+    2022/12/02 16:38:45 Program registered with 0d313a4a-a17c-4c70-81ba-3ecc494b900e id
+    2022/12/02 16:38:48 4 packets received
+    2022/12/02 16:38:48 580 bytes received
 
-    2022/09/23 16:11:51 0 packets received
-    2022/09/23 16:11:51 0 bytes received
-    ^C2022/09/23 16:11:51 Exiting...
-    2022/09/23 16:11:52 Unloading Program: 6211ffff-4457-40a1-890d-44df316c39fb
+    2022/12/02 16:38:51 4 packets received
+    2022/12/02 16:38:51 580 bytes received
+
+    ^C2022/12/02 16:38:51 Exiting...
+    2022/12/02 16:38:51 Unloading Program: 0d313a4a-a17c-4c70-81ba-3ecc494b900e
 ```
 
 ### Building A gocounter Userspace Container Image
@@ -306,18 +313,21 @@ To run the `gocounter` example in a container, run the following command:
       -e BPFD_BYTECODE_URL=quay.io/bpfd/bytecode:gocounter \
       gocounter:local
 
-    2022/09/30 15:41:23 Program registered with 42a4acf4-0412-463d-b948-d27db955efae id
-    2022/09/30 15:41:26 4 packets received
-    2022/09/30 15:41:26 580 bytes received
+    2022/12/02 21:53:35 Reading /etc/bpfd/gocounter.toml ...
+    2022/12/02 21:53:35 Read /etc/bpfd/gocounter.toml failed: err open /etc/bpfd/gocounter.toml: no such file or directory
+    2022/12/02 21:53:35 Using Input: Interface=ens3 Priority=50 Source=quay.io/bpfd/bytecode:gocounter
+    2022/12/02 21:53:36 Program registered with 60970bb9-056e-49d7-b2a5-a6bf2c4d5abf id
+    2022/12/02 21:53:39 0 packets received
+    2022/12/02 21:53:39 0 bytes received
 
-    2022/09/30 15:41:29 4 packets received
-    2022/09/30 15:41:29 580 bytes received
+    2022/12/02 21:53:42 4 packets received
+    2022/12/02 21:53:42 580 bytes received
 
-    2022/09/30 15:41:32 8 packets received
-    2022/09/30 15:41:32 1160 bytes received
+    2022/12/02 21:53:45 4 packets received
+    2022/12/02 21:53:45 580 bytes received
 
-    ^C2022/09/30 15:41:33 Exiting...
-    2022/09/30 15:41:33 Unloading Program: 42a4acf4-0412-463d-b948-d27db955efae
+    ^C2022/12/02 21:53:46 Exiting...
+    2022/12/02 21:53:46 Unloading Program: 60970bb9-056e-49d7-b2a5-a6bf2c4d5abf
 ```
 
 `gocounter` can use the following environment variables to manage how it is started:
@@ -354,30 +364,30 @@ map and continue from there.
 First, use `bpfctl` to load the `gocounter` BPF bytecode:
 
 ```console
-    bpfctl load --iface vethb2795c7 --priority 50 --from-image quay.io/bpfd/bytecode:gocounter
-    2609e15f-ed83-495f-9ff4-b2a08ba01eb6
+    bpfctl load --from-image --path quay.io/bpfd/bytecode:gocounter xdp --iface vethb2795c7 --priority 50
+    d541af30-69be-44cf-9397-407ee512547a
 ```
 
 Then run the `gocounter` Userspace program, passing in the UUID:
 
 ```console
-    ./gocounter -iface vethb2795c7 -uuid 2609e15f-ed83-495f-9ff4-b2a08ba01eb6
-    2022/09/30 13:51:35 100 packets received
-    2022/09/30 13:51:35 14500 bytes received
+    ./gocounter -iface vethb2795c7 -uuid d541af30-69be-44cf-9397-407ee512547a
+    2022/12/02 17:01:38 Reading /etc/bpfd/gocounter.toml ...
+    2022/12/02 17:01:38 Read /etc/bpfd/gocounter.toml failed: err open /etc/bpfd/gocounter.toml: no such file or directory
+    2022/12/02 17:01:38 Using Input: Interface=vethb2795c7 Source=d541af30-69be-44cf-9397-407ee512547a
+    2022/12/02 17:01:41 180 packets received
+    2022/12/02 17:01:41 26100 bytes received
 
-    2022/09/30 13:51:38 100 packets received
-    2022/09/30 13:51:38 14500 bytes received
+    2022/12/02 17:01:44 184 packets received
+    2022/12/02 17:01:44 26680 bytes received
 
-    2022/09/30 13:51:41 104 packets received
-    2022/09/30 13:51:41 15080 bytes received
-
-    ^C2022/09/30 13:51:44 Exiting...
+    ^C2022/12/02 17:01:46 Exiting...
 ```
 
 Then use `bpfctl` to unload the `gocounter` BPF bytecode:
 
 ```console
-    bpfctl unload --iface vethb2795c7 2609e15f-ed83-495f-9ff4-b2a08ba01eb6
+    bpfctl unload d541af30-69be-44cf-9397-407ee512547a
 ```
 
 ## Deploying On Kubernetes

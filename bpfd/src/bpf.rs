@@ -37,7 +37,7 @@ impl<'a> BpfManager<'a> {
                 let entry = entry?;
                 let uuid = entry.file_name().to_string_lossy().parse().unwrap();
                 let mut program = Program::load(uuid)
-                    .map_err(|e| BpfdError::Error(format!("cant read program state {}", e)))?;
+                    .map_err(|e| BpfdError::Error(format!("cant read program state {e}")))?;
                 // TODO: State reconstruction not supported for TC programs, so don't add them to the list.
                 if program.kind() == ProgramType::Tc {
                     debug!("skip rebuilding state for TC program {}", uuid);
@@ -92,7 +92,7 @@ impl<'a> BpfManager<'a> {
         let id = Uuid::new_v4();
         let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
         fs::create_dir_all(map_pin_path.clone())
-            .map_err(|e| BpfdError::Error(format!("can't create map dir: {}", e)))?;
+            .map_err(|e| BpfdError::Error(format!("can't create map dir: {e}")))?;
 
         let mut ext_loader = BpfLoader::new()
             .extension(&program.data().section_name)
@@ -133,7 +133,7 @@ impl<'a> BpfManager<'a> {
             .ok_or(BpfdError::DispatcherNotRequired)?;
         program
             .save(id)
-            .map_err(|e| BpfdError::Error(format!("unable to save program state: {}", e)))?;
+            .map_err(|e| BpfdError::Error(format!("unable to save program state: {e}")))?;
         self.programs.insert(id, program);
         self.sort_programs(program_type, if_index, direction);
         let programs = self.collect_programs(program_type, if_index, direction);
@@ -168,7 +168,7 @@ impl<'a> BpfManager<'a> {
 
             let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
             fs::create_dir_all(map_pin_path.clone())
-                .map_err(|e| BpfdError::Error(format!("can't create map dir: {}", e)))?;
+                .map_err(|e| BpfdError::Error(format!("can't create map dir: {e}")))?;
 
             let mut loader = BpfLoader::new()
                 .map_pin_path(map_pin_path.clone())

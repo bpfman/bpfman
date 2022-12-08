@@ -188,7 +188,7 @@ impl XdpDispatcher {
     fn save(&self) -> Result<(), BpfdError> {
         let path = format!("{RTDIR_XDP_DISPATCHER}/{}_{}", self.if_index, self.revision);
         serde_json::to_writer(&fs::File::create(path).unwrap(), &self)
-            .map_err(|e| BpfdError::Error(format!("can't save state: {}", e)))?;
+            .map_err(|e| BpfdError::Error(format!("can't save state: {e}")))?;
         Ok(())
     }
 
@@ -204,18 +204,18 @@ impl XdpDispatcher {
     pub(crate) fn delete(&self, full: bool) -> Result<(), BpfdError> {
         let path = format!("{RTDIR_XDP_DISPATCHER}/{}_{}", self.if_index, self.revision);
         fs::remove_file(path)
-            .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {}", e)))?;
+            .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {e}")))?;
 
         let path = format!(
             "{RTDIR_FS_XDP}/dispatcher_{}_{}",
             self.if_index, self.revision
         );
         fs::remove_dir_all(path)
-            .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {}", e)))?;
+            .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {e}")))?;
         if full {
             let path_link = format!("{RTDIR_FS_XDP}/dispatcher_{}_link", self.if_index);
             fs::remove_file(path_link)
-                .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {}", e)))?;
+                .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {e}")))?;
         }
         Ok(())
     }

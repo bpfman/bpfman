@@ -5,7 +5,7 @@ There are several ways to launch and interact with `bpfd` and `bpfctl`:
 
 * **Privileged Mode** - Run `bpfd` in foreground or background and straight from build directory.
   `bpfd` user is not created so `sudo` is always required when executing `bpfctl` commands.
-  See [Priviledged Mode](#privileged-mode).
+  See [Privileged Mode](#privileged-mode).
 * **Systemd Service** - Run `bpfd` as a systemd service as the `bpfd` user.
   See [Systemd Service](#systemd-service).
 
@@ -31,12 +31,13 @@ cargo build
 `bpfd` uses mTLS for mutual authentication with clients.
 In order to run and interact with `bpfd`, certificates must be created.
 If no local certificate authority exists when `bpfd` is started, it will automatically be created.
+For this tutorial, `bpfd` will create the certificate authority in `/etc/bpfd/certs/`.
 
 ### Step 3: Start `bpfd`
 
 While learning and experimenting with `bpfd`, it may be useful to run `bpfd` in the foreground
-(which requires a second terminal to run the `bpfctl` commands below). For more details on
-how logging is handled in bpfd, see [Logging](#logging) below.
+(which requires a second terminal to run the `bpfctl` commands below).
+For more details on how logging is handled in bpfd, see [Logging](#logging) below.
 
 ```console
 sudo RUST_LOG=info ./target/debug/bpfd
@@ -50,29 +51,25 @@ sudo ./target/debug/bpfd&
 
 ### Step 4: Load your first program
 
-We will load the simple `xdp-pass` program, which permits all traffic to the interface eth0.
+We will load the simple `xdp-pass` program, which permits all traffic to the attached interface,
+`vethb2795c7` in this example.
 The section in the object file that contains the program is "xdp".
 Finally, we will use the priority of 100 (valid values are from 0 to 255).
+Find a deeper dive into `bpfctl` syntax in [bpfctl](#bpfctl) below.
 
 ```console
-sudo ./target/debug/bpfctl load -p xdp -i eth0 -s "xdp" --priority 100 /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
+sudo ./target/debug/bpfctl load --path /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o --section-name "xdp" xdp --iface vethb2795c7 --priority 100
 92e3e14c-0400-4a20-be2d-f701af21873c
 ```
 
-`bpfctl` returns a unique identifier to the program that was loaded.
+`bpfctl` returns a unique identifier (`92e3e14c-0400-4a20-be2d-f701af21873c` in this example) to the program that was loaded.
 This may be used to detach the program later.
 We can check the program was loaded using the following command:
 
 ```console
-sudo ./target/debug/bpfctl list -i eth0
-wlp2s0
-xdp_mode: skb
-
-0: 92e3e14c-0400-4a20-be2d-f701af21873c
-        name: "xdp"
-        priority: 100
-        path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: pass, dispatcher_return
+sudo ./target/debug/bpfctl list
+ UUID                                  Type  Name  Path                                                          Metadata
+ 92e3e14c-0400-4a20-be2d-f701af21873c  xdp   xdp   /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o  { "priority": 100, "iface": "vethb2795c7", "position": 0, "proceed_on": ["pass", "dispatcher_return"] }
 ```
 
 From the output above you can see the program was loaded to slot 0 on our interface and will be executed first.
@@ -83,38 +80,25 @@ From the output above you can see the program was loaded to slot 0 on our interf
 We will now load 2 more programs with different priorities to demonstrate how bpfd will ensure they are ordered correctly:
 
 ```console
-sudo ./target/debug/bpfctl load -p xdp -i eth0 -s "xdp" --priority 50 /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
+sudo ./target/debug/bpfctl load --path /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o --section-name "xdp" xdp --iface vethb2795c7 --priority 50
 1ccc1376-60e8-4dc5-9079-6c32748fa1c4
 ```
 
 ```console
-sudo ./target/debug/bpfctl load -p xdp -i eth0 -s "xdp" --priority 200 /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
+sudo ./target/debug/bpfctl load --path /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o --section-name "xdp" xdp --iface vethb2795c7 --priority 200
 6af7c28f-6a7f-46ee-bc98-2d92ed261369
 ```
 
 Using `bpfctl list` we can see that the programs are correctly ordered.
 The lowest priority program is executed first, while the highest is executed last.
 
-```console
-sudo ./target/debug/bpfctl list -i eth0
-eth0
-xdp_mode: skb
 
-0: 1ccc1376-60e8-4dc5-9079-6c32748fa1c4
-        name: "xdp"
-        priority: 50
-        path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: pass, dispatcher_return
-1: 92e3e14c-0400-4a20-be2d-f701af21873c
-        name: "xdp"
-        priority: 100
-        path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: pass, dispatcher_return
-2: 6af7c28f-6a7f-46ee-bc98-2d92ed261369
-        name: "xdp"
-        priority: 200
-        path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: pass, dispatcher_return
+```console
+sudo ./target/debug/bpfctl list
+ UUID                                  Type  Name  Path                                                          Metadata
+ 1ccc1376-60e8-4dc5-9079-6c32748fa1c4  xdp   xdp   /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o  { "priority": 50, "iface": "vethb2795c7", "position": 0, "proceed_on": ["pass", "dispatcher_return"] }
+ 92e3e14c-0400-4a20-be2d-f701af21873c  xdp   xdp   /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o  { "priority": 100, "iface": "vethb2795c7", "position": 1, "proceed_on": ["pass", "dispatcher_return"] }
+ 6af7c28f-6a7f-46ee-bc98-2d92ed261369  xdp   xdp   /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o  { "priority": 200, "iface": "vethb2795c7", "position": 2, "proceed_on": ["pass", "dispatcher_return"] }
 ```
 
 By default, the next program in the chain will only be executed if a given program returns
@@ -124,69 +108,40 @@ then the program can be loaded with those additional return values using the `pr
 parameter (see `bpfctl help load` for list of valid values):
 
 ```console
-sudo ./target/debug/bpfctl load -p xdp -i eth0 -s "xdp" --proceed-on "drop" --proceed-on "pass" --proceed-on "dispatcher_return" --priority 150 /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
+sudo ./target/debug/bpfctl load --path /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o --section-name "xdp" xdp --iface vethb2795c7 --priority 150 --proceed-on "pass" --proceed-on "dispatcher_return"
 b2f19b7b-4c71-4338-873e-914bd8fa44ba
 ```
 
-Which results in (see slot 2):
+Which results in (see position 2):
 
 ```console
-sudo ./target/debug/bpfctl list -i eth0
-eth0
-xdp_mode: skb
-
-0: 1ccc1376-60e8-4dc5-9079-6c32748fa1c4
-        name: "xdp"
-        priority: 50
-        path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: pass, dispatcher_return
-1: 92e3e14c-0400-4a20-be2d-f701af21873c
-        name: "xdp"
-        priority: 100
-        path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: pass, dispatcher_return
-2: b2f19b7b-4c71-4338-873e-914bd8fa44ba
-        name: "xdp"
-        priority: 150
-        path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: drop, pass, dispatcher_return
-3: 6af7c28f-6a7f-46ee-bc98-2d92ed261369
-        name: "xdp"
-        priority: 200
-        path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: pass", dispatcher_return
+sudo ./target/debug/bpfctl list
+ UUID                                  Type  Name  Path                                                          Metadata
+ 1ccc1376-60e8-4dc5-9079-6c32748fa1c4  xdp   xdp   /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o  { "priority": 50, "iface": "vethb2795c7", "position": 0, "proceed_on": ["pass", "dispatcher_return"] }
+ b2f19b7b-4c71-4338-873e-914bd8fa44ba  xdp   xdp   /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o  { "priority": 150, "iface": "vethb2795c7", "position": 2, "proceed_on": ["pass", "dispatcher_return"] }
+ 6af7c28f-6a7f-46ee-bc98-2d92ed261369  xdp   xdp   /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o  { "priority": 200, "iface": "vethb2795c7", "position": 3, "proceed_on": ["pass", "dispatcher_return"] }
+ 92e3e14c-0400-4a20-be2d-f701af21873c  xdp   xdp   /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o  { "priority": 100, "iface": "vethb2795c7", "position": 1, "proceed_on": ["pass", "dispatcher_return"] }
 ```
+
+Note that the list of programs may not always be sorted in the order of execution.
+The `position` indicates the order of execution, low to high.
 
 ### Step 6: Delete a program
 
-Let's remove the program at slot 1.
+Let's remove the program at position 1.
 
 ```console
-sudo ./target/debug/bpfctl unload -i eth0 92e3e14c-0400-4a20-be2d-f701af21873c
+sudo ./target/debug/bpfctl unload 92e3e14c-0400-4a20-be2d-f701af21873c
 ```
 
 And we can verify that it has been removed and the other programs re-ordered:
 
 ```console
-sudo ./target/debug/bpfctl list -i eth0
-eth0
-xdp_mode: skb
-
-0: 1ccc1376-60e8-4dc5-9079-6c32748fa1c4
-        name: "xdp"
-        priority: 50
-        path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: pass, dispatcher_return
-1: b2f19b7b-4c71-4338-873e-914bd8fa44ba
-        name: "xdp"
-        priority: 150
-        path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: drop, pass, dispatcher_return
-2: 6af7c28f-6a7f-46ee-bc98-2d92ed261369
-        name: "xdp"
-        priority: 200
-        path: /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o
-        proceed-on: pass, dispatcher_return
+sudo ./target/debug/bpfctl list
+ UUID                                  Type  Name  Path                                                          Metadata
+ 1ccc1376-60e8-4dc5-9079-6c32748fa1c4  xdp   xdp   /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o  { "priority": 50, "iface": "vethb2795c7", "position": 0, "proceed_on": ["pass", "dispatcher_return"] }
+ b2f19b7b-4c71-4338-873e-914bd8fa44ba  xdp   xdp   /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o  { "priority": 150, "iface": "vethb2795c7", "position": 1, "proceed_on": ["pass", "dispatcher_return"] }
+ 6af7c28f-6a7f-46ee-bc98-2d92ed261369  xdp   xdp   /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o  { "priority": 200, "iface": "vethb2795c7", "position": 2, "proceed_on": ["pass", "dispatcher_return"] }
 ```
 
 When `bpfd` is stopped, all remaining programs will be unloaded automatically.
@@ -260,7 +215,18 @@ sudo systemctl stop bpfd.service
 
 ### Step 4-6
 
-Same as above except `sudo` can be dropped from all the `bpfctl` commands.
+Same as above except `sudo` can be dropped from all the `bpfctl` commands and `bpfctl` is now in $PATH:
+
+```console
+bpfctl load --path /home/dave/dev/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o --section-name "xdp" xdp --iface vethb2795c7 --priority 100
+92e3e14c-0400-4a20-be2d-f701af21873c
+
+bpfctl list
+ UUID                                  Type  Name  Path                                                          Metadata
+ 92e3e14c-0400-4a20-be2d-f701af21873c  xdp   xdp   /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o  { "priority": 100, "iface": "vethb2795c7", "position": 0, "proceed_on": ["pass", "dispatcher_return"] }
+
+bpfctl unload 92e3e14c-0400-4a20-be2d-f701af21873c
+```
 
 ### Step 7: Clean-up
 
@@ -274,6 +240,115 @@ sudo ./scripts/setup.sh uninstall
 
 **WARNING:** `setup.sh uninstall` cleans everything up, so `/etc/bpfd/programs.d/`
 and `/run/bpfd/bytecode/` are deleted. Save any changes or files that were created if needed.
+
+# bpfctl
+
+`bpfctl` is the command line tool for interacting with `bpfd`.
+`bpfctl` allows the user to `load`, `unload` and `list` bpf programs.
+Basic syntax:
+
+```console
+bpfctl --help
+A client for working with bpfd
+
+Usage: bpfctl <COMMAND>
+
+Commands:
+  load
+  unload
+  list
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help information
+  -V, --version  Print version information
+```
+
+## bpfctl load
+
+The `bpfctl load` command is used to load bpf programs.
+Each program type (i.e. `<COMMAND>`) has it's own set of attributes specific to the program type,
+and those attributes MUST come after the program type is entered.
+There are a common set of attributes, and those MUST come before the program type is entered.
+
+```console
+bpfctl load --help
+Usage: bpfctl load [OPTIONS] --path <PATH> <COMMAND>
+
+Commands:
+  xdp
+  tc
+  tracepoint
+  help        Print this message or the help of the given subcommand(s)
+
+Options:
+      --from-image                   Optional: Extract bytecode from container, signals <PATH> is a container image URL
+  -s, --section-name <SECTION_NAME>  Required if "--from-image" is not present: Name of the ELF section from the object file [default: ]
+  -p, --path <PATH>                  Required: Program to load
+  -h, --help                         Print help information
+```
+
+Example using `--path`:
+
+```console
+bpfctl load --path /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o --section-name "xdp" xdp ...
+```
+
+Example from `--from-image`:
+
+```console
+bpfctl load --from-image --path quay.io/bpfd/bytecode:xdp_pass xdp ...
+```
+
+Command specific help is also provided:
+
+```console
+bpfctl load xdp --help
+Usage: bpfctl load --path <PATH> xdp [OPTIONS] --iface <IFACE> --priority <PRIORITY>
+
+Options:
+  -i, --iface <IFACE>               Required: Interface to load program on
+      --priority <PRIORITY>         Required: Priority to run program in chain. Lower value runs first
+      --proceed-on <PROCEED_ON>...  Optional: Proceed to call other programs in chain on this exit code. Multiple values supported by repeating the parameter. Possible values: [aborted, drop, pass, tx, redirect, dispatcher_return] Default values: pass and dispatcher_return
+  -h, --help                        Print help information
+```
+
+### bpfctl load Examples
+
+Below are some examples of `bpfctl load` commands:
+
+```console
+bpfctl load --path /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o --section-name "xdp" xdp --iface vethb2795c7 --priority 35
+
+bpfctl load --path /usr/local/src/net-ebpf-playground/.output/filter.bpf.o --section-name classifier tc --direction ingress --iface vethb2795c7 --priority 110
+
+bpfctl load --from-image --path quay.io/bpfd/bytecode:tracepoint tracepoint --tracepoint sched/sched_switch
+```
+
+## bpfctl list
+
+The `bpfctl list` command lists all the loaded bpf programs:
+
+```console
+bpfctl list
+ UUID                                  Type  Name         Path                                                          Metadata
+ c22440a7-5511-4c59-9cad-50583d0dbb3f  tc-0  classifier   /usr/local/src/net-ebpf-playground/.output/filter.bpf.o       { "priority": 110, "iface": "vethb2795c7", "postiion": 0 }
+ 6dafc471-a05c-469e-a066-0d2fbba8f19d  xdp   xdp          /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o  { "priority": 35, "iface": "vethb2795c7", "position": 0, "proceed_on": ["pass", "dispatcher_return"] }
+ e46e9de9-321b-4d91-b7c5-426f4357402d  tracepoint  hello  /run/bpfd/bytecode/openat.bpf.o                               { "tracepoint": sched/sched_switch }
+```
+
+## bpfctl unload
+
+The `bpfctl unload` command takes the UUID from the load or list command as a parameter, and unloads the requested bpf program:
+
+```console
+bpfctl unload c22440a7-5511-4c59-9cad-50583d0dbb3f
+
+bpfctl list
+ UUID                                  Type  Name         Path                                                          Metadata
+ 6dafc471-a05c-469e-a066-0d2fbba8f19d  xdp   xdp          /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o  { "priority": 35, "iface": "vethb2795c7", "position": 0, "proceed_on": ["pass", "dispatcher_return"] }
+ e46e9de9-321b-4d91-b7c5-426f4357402d  tracepoint  hello  /run/bpfd/bytecode/openat.bpf.o                               { "tracepoint": sched/sched_switch }
+```
 
 # Logging
 
