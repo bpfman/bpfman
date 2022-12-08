@@ -160,7 +160,7 @@ docker-buildx: test ## Build and push docker image for the manager for cross-pla
 setup-kind: cm-verifier ## Setup Kind cluster with certmanager ready for bpfd deployment
 	kind delete cluster --name bpfd-deployment && kind create cluster --config hack/kind-config.yaml --name bpfd-deployment
 	$(KUSTOMIZE) build config/certmanager | kubectl apply -f -
-	$(CM_VERIFIER) --timeout 20s
+	$(CM_VERIFIER) --timeout 60s
 
 .PHONY: deploy
 deploy: manifests kustomize cm-verifier ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
