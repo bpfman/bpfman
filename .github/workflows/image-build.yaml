@@ -10,6 +10,7 @@ env:
   BPFD_IMAGE_NAME: bpfd
   BPFCTL_IMAGE_NAME: bpfctl
   BPFD_AGENT_IMAGE_NAME: bpfd-agent
+  BPFD_OPERATOR_IMAGE_NAME: bpfd-operator
 
 jobs:
   build:
@@ -86,6 +87,7 @@ jobs:
         image: bpfd-agent
         tags: ${{ steps. meta-bpfd-agent.outputs.tags }}
         labels: ${{ steps. meta-bpfd-agent.outputs.labels }}
+        context: ./bpfd-operator
         containerfiles: |
           ./bpfd-operator/Containerfile.bpfd-agent
 
@@ -95,6 +97,12 @@ jobs:
         image: ${{ steps.build-bpfd-agent.outputs.image }}
         tags: ${{ steps.build-bpfd-agent.outputs.tags }}
         registry: quay.io/bpfd
+    
+    - name: Extract metadata (tags, labels) for bpfd-operator image
+      id: meta-bpfd-operator
+      uses: docker/metadata-action@v3.6.2
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.BPFD_OPERATOR_IMAGE_NAME }}
 
     - name: Build bpfd-operator image
       id: build-bpfd-operator
@@ -103,6 +111,7 @@ jobs:
         image: bpfd-operator
         tags: ${{ steps. meta-bpfd-operator.outputs.tags }}
         labels: ${{ steps. meta-bpfd-operator.outputs.labels }}
+        context: ./bpfd-operator
         containerfiles: |
           ./bpfd-operator/Containerfile.bpfd-operator
 
