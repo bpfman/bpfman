@@ -21,9 +21,8 @@ After reviewing the possible targets it's quick and easy to get bpfd deployed lo
 make run-on-kind
 ```
 
-**NOTE**
 The container images used for `bpfd`,`bpfd-agent`, and `bpfd-operator` can also be
-configured, by defualt local image builds will be used for the kind deployment.
+configured, by default local image builds will be used for the kind deployment.
 
 ```bash
 BPFD_IMG=<your/image/url> BPFD_AGENT_IMG=<your/image/url> BPFD_OPERATOR_IMG=<your/image/url> make run-on-kind
@@ -111,12 +110,12 @@ The Bpfd-Operator performs a few major functions and houses two major controller
 
 #### bpf-agent
 
-The bpfd-agent controller is deployed alongside bpfd in a daemonset.  It's main purpose to to watch user intent (in ebpfProgramConfig Objects) and communicate with
-bpfd via an mTLS secured connection in order to translate the cluster-wide user-inetent to per node state.
+The bpfd-agent controller is deployed alongside bpfd in a daemonset.  It's main purpose is to watch user intent (in ebpfProgramConfig Objects) and communicate with
+bpfd via a mTLS secured connection in order to translate the cluster-wide user-inetent to per node state.
 
 #### bpfd-operator
 
-The bpfd-operator performs the following functionality: 
+The bpfd-operator performs the following functionality:
 
 - Reconcile the bpfd daemonset (including both the `bpfd` and `bpfd-agent` processes) so that no manual edits can be completed.
 - Report cluster wide state back the the user with each ebpfProgramConfig's status field.
