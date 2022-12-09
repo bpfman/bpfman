@@ -14,6 +14,7 @@ roleRef:
   kind: ClusterRole
   name: proxy-role
 subjects:
+subjects:
 - kind: ServiceAccount
-  name: controller-manager
+  name: operator
   namespace: system

@@ -1,0 +1,55 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: bpfd-operator.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: EbpfProgramConfig is the Schema for the ebpfprogramconfigs API
+      displayName: Ebpf Program Config
+      kind: EbpfProgramConfig
+      name: ebpfprogramconfigs.bpfd.io
+      version: v1alpha1
+    - description: EbpfProgram is the Schema for the ebpfprograms API
+      displayName: Ebpf Program
+      kind: EbpfProgram
+      name: ebpfprograms.bpfd.io
+      version: v1alpha1
+  description: This Operator deploys bpfd to a kubernetes cluster in order to deploy
+    and manage ebpf at the cluster scope.
+  displayName: bpfd-operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - ebpf
+  - kubernetes
+  links:
+  - name: Bpfd Operator
+    url: https://bpfd-operator.domain
+  maintainers:
+  - email: astoycos@redhat.com
+    name: Andrew Stoycos
+  maturity: alpha
+  provider:
+    name: bpfd
+    url: https://redhat-et.github.io/bpfd/
+  version: 0.0.0

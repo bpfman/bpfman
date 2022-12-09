@@ -187,7 +187,6 @@ type LoadRequest struct {
 	ProgramType ProgramType `protobuf:"varint,4,opt,name=program_type,json=programType,proto3,enum=bpfd.v1.ProgramType" json:"program_type,omitempty"`
 	Direction   Direction   `protobuf:"varint,5,opt,name=direction,proto3,enum=bpfd.v1.Direction" json:"direction,omitempty"`
 	// Types that are assignable to AttachType:
-	//
 	//	*LoadRequest_NetworkMultiAttach
 	//	*LoadRequest_SingleAttach
 	AttachType isLoadRequest_AttachType `protobuf_oneof:"attach_type"`
@@ -643,7 +642,6 @@ type ListResponse_ListResult struct {
 	ProgramType ProgramType `protobuf:"varint,4,opt,name=program_type,json=programType,proto3,enum=bpfd.v1.ProgramType" json:"program_type,omitempty"`
 	Direction   Direction   `protobuf:"varint,5,opt,name=direction,proto3,enum=bpfd.v1.Direction" json:"direction,omitempty"`
 	// Types that are assignable to AttachType:
-	//
 	//	*ListResponse_ListResult_NetworkMultiAttach
 	//	*ListResponse_ListResult_SingleAttach
 	AttachType isListResponse_ListResult_AttachType `protobuf_oneof:"attach_type"`

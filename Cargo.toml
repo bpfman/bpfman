@@ -1,5 +1,5 @@
 [workspace]
-members = ["bpfd", "bpfd-api", "bpfd-common", "bpfctl","bpfd-agent", "bpfd-k8s-api", "xtask", "tests/integration-test", "tests/integration-test-macros"]
+members = ["bpfd", "bpfd-api", "bpfd-common", "bpfctl", "xtask", "tests/integration-test", "tests/integration-test-macros"]
 
 [patch.crates-io]
 aya = { git = "https://github.com/dave-tucker/aya", branch="program-from-pinned" }

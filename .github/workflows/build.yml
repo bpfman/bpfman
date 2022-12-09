@@ -65,3 +65,28 @@ jobs:
 
       - name: Run tests
         run: RUST_BACKTRACE=full cargo test --verbose
+  build-go: 
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:36
+    steps:
+
+      - name: Install deps
+        run: |
+          sudo dnf groupinstall -y c-development
+          sudo dnf install -y make gcc
+    
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: "1.19.3"
+
+      - name: Check formatting
+        run: |
+          gofmt -d -e .
+
+      - name: Build
+        run: | 
+          cd bpfd-operator
+          make build 

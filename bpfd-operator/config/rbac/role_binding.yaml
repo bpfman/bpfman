@@ -3,17 +3,35 @@ kind: ClusterRoleBinding
 metadata:
   labels:
     app.kubernetes.io/name: clusterrolebinding
-    app.kubernetes.io/instance: manager-rolebinding
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: bpfd-operator
     app.kubernetes.io/part-of: bpfd-operator
     app.kubernetes.io/managed-by: kustomize
-  name: manager-rolebinding
+  name: bpfd-operator-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: manager-role
+  name: bpfd-operator-role
 subjects:
 - kind: ServiceAccount
-  name: controller-manager
+  name: operator
+  namespace: system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrolebinding
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: bpfd-operator
+    app.kubernetes.io/part-of: bpfd-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: bpfd-agent-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: bpfd-agent-role
+subjects:
+- kind: ServiceAccount
+  name: daemon
   namespace: system

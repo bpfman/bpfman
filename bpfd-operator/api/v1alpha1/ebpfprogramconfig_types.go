@@ -80,14 +80,16 @@ type EbpfProgramConfigStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Cluster
 
 // EbpfProgramConfig is the Schema for the ebpfprogramconfigs API
 type EbpfProgramConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
-	Spec   EbpfProgramConfigSpec   `json:"spec"`
-	Status EbpfProgramConfigStatus `json:"status"`
+	Spec EbpfProgramConfigSpec `json:"spec"`
+	// +optional
+	Status EbpfProgramConfigStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
