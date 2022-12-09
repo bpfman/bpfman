@@ -1,4 +1,4 @@
-module github.com/redhat-et/bpfd/examples/gocounter
+module github.com/redhat-et/bpfd/examples/go-tc-counter
 
 go 1.18
 

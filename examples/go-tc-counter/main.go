@@ -49,11 +49,11 @@ type ConfigData struct {
 }
 
 const (
-	DefaultConfigPath     = "/etc/bpfd/gocounter.toml"
+	DefaultConfigPath     = "/etc/bpfd/go-tc-counter.toml"
 	DefaultRootCaPath     = "/etc/bpfd/certs/ca/ca.pem"
 	DefaultClientCertPath = "/etc/bpfd/certs/bpfd-client/bpfd-client.pem"
 	DefaultClientKeyPath  = "/etc/bpfd/certs/bpfd-client/bpfd-client.key"
-	DefaultSocketPath     = "/var/lib/bpfd/sock/gocounter.sock"
+	DefaultSocketPath     = "/var/lib/bpfd/sock/go-tc-counter.sock"
 	DefaultMapDir         = "/run/bpfd/fs/maps"
 )
 
@@ -94,9 +94,9 @@ func main() {
 	bytecodeSrc := srcNone
 
 	// "-iface" is the interface to run bpf program on. If not provided, then
-	// use value loaded from gocounter.toml file. If not provided, use environment
+	// use value loaded from go-tc-counter.toml file. If not provided, use environment
 	// variable. If not provided, error.
-	// ./gocounter -iface eth0
+	// ./go-tc-counter -iface eth0
 	if len(iface) == 0 {
 		if configData.Config.Iface != "" {
 			iface = configData.Config.Iface
@@ -110,9 +110,9 @@ func main() {
 	}
 
 	// "-priority" is the priority to load bpf program at. If not provided, then
-	// use value loaded from gocounter.toml file. If not provided, use environment
+	// use value loaded from go-tc-counter.toml file. If not provided, use environment
 	// variable. If not provided, defaults to 50.
-	// ./gocounter -iface eth0 -priority 45
+	// ./go-tc-counter -iface eth0 -priority 45
 	if priority < 0 {
 		var priorityStr string
 		var errStr string
@@ -141,14 +141,14 @@ func main() {
 	// Parse Commandline first.
 
 	// "-uuid" is a UUID for the bytecode that has already loaded into bpfd. If not
-	// ./gocounter -iface eth0 -uuid 53ac77fc-18a9-42e2-8dd3-152fc31ba979
+	// ./go-tc-counter -iface eth0 -uuid 53ac77fc-18a9-42e2-8dd3-152fc31ba979
 	if len(cmdlineUuid) == 0 {
 		// "-url" is a URL for the bytecode in a container image. If not provided,
-		// ./gocounter -iface eth0 -url quay.io/bpfd/bytecode:gocounter
+		// ./go-tc-counter -iface eth0 -url quay.io/bpfd/bytecode:go-tc-counter
 		if len(cmdlineUrl) == 0 {
 			// "-path" allows the location of the local bytecode file to be
 			// overwritten.
-			// ./gocounter -iface eth0 -path /var/bpfd/bytecode/bpf_bpfel.o
+			// ./go-tc-counter -iface eth0 -path /var/bpfd/bytecode/bpf_bpfel.o
 			if len(cmdlinePath) != 0 {
 				bytecodePath = cmdlinePath
 				bytecodeSrc = srcPath

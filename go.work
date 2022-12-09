@@ -4,5 +4,5 @@ use (
 	./bpfd-operator
 	./clients/gobpfd
 	./examples/gocounter
-	./examples/tcfirewall
+	./examples/go-tc-counter
 )

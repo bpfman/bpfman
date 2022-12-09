@@ -2,10 +2,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: gocounter-config
+  name: go-tc-counter-config
   namespace: kube-system
 data:
-  gocounter.toml: |
+  go-tc-counter.toml: |
     [tls]
       ca_cert = "/etc/bpfd/certs/ca/ca.crt"
       cert = "/etc/bpfd/certs/bpfd-client/tls.crt"
@@ -17,15 +17,15 @@ data:
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: gocounter-cert
+  name: go-tc-counter-cert
   namespace: kube-system
 spec:
   dnsNames:
     - localhost
   ipAddresses:
     - 127.0.0.1
-  commonName: gocounter
-  secretName: gocounter-cert-secret
+  commonName: go-tc-counter
+  secretName: go-tc-counter-cert-secret
   privateKey:
     algorithm: RSA
   issuerRef:
@@ -36,7 +36,7 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: gocounter-pod
+  name: go-tc-counter-pod
   namespace: kube-system
 spec:
   hostNetwork: true
@@ -45,13 +45,13 @@ spec:
   nodeSelector:
     kubernetes.io/hostname: ebpf-k8s-2
   containers:
-  - name: gocounter
-    image: quay.io/$USER/gocounter:latest
+  - name: go-tc-counter
+    image: quay.io/$USER/go-tc-counter:latest
     imagePullPolicy: IfNotPresent
     securityContext:
       privileged: true
     volumeMounts:
-    - name: gocounter-cert
+    - name: go-tc-counter-cert
       mountPath: /etc/bpfd/certs/bpfd-client
       readOnly: true
     - name: bpfd-ca
@@ -60,17 +60,17 @@ spec:
     - name: host-bytecode
       mountPath: /run/bpfd/bytecode
       readOnly: false
-    - name: gocounter-maps
+    - name: go-tc-counter-maps
       mountPath: /run/bpfd/fs/maps
       readOnly: true
-    - name: gocounter-config
-      mountPath: /etc/bpfd/gocounter.toml
-      subPath: gocounter.toml
+    - name: go-tc-counter-config
+      mountPath: /etc/bpfd/go-tc-counter.toml
+      subPath: go-tc-counter.toml
       readOnly: true
   volumes:
-  - name: gocounter-cert
+  - name: go-tc-counter-cert
     secret:
-      secretName: gocounter-cert-secret
+      secretName: go-tc-counter-cert-secret
       optional: false
   - name: bpfd-ca
     secret:
@@ -79,9 +79,9 @@ spec:
   - name: host-bytecode
     hostPath:
       path: /run/bpfd/bytecode
-  - name: gocounter-maps
+  - name: go-tc-counter-maps
     hostPath:
       path: /run/bpfd/fs/maps
-  - name: gocounter-config
+  - name: go-tc-counter-config
     configMap:
-      name: gocounter-config
+      name: go-tc-counter-config
