@@ -1,0 +1,12 @@
+apiVersion: bpfd.io/v1alpha1
+kind: EbpfProgram
+metadata:
+  name: gocounter
+  namespace: kube-system
+spec:
+  type: xdp
+  name: gocounter
+  interface: ens3
+  image: quay.io/bpfd/bytecode:gocounter
+  sectionname: stats
+  priority: 55
