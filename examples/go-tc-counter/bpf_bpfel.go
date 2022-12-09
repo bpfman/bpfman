@@ -59,14 +59,14 @@ type bpfSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type bpfProgramSpecs struct {
-	XdpStats *ebpf.ProgramSpec `ebpf:"xdp_stats"`
+	Stats *ebpf.ProgramSpec `ebpf:"stats"`
 }
 
 // bpfMapSpecs contains maps before they are loaded into the kernel.
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type bpfMapSpecs struct {
-	XdpStatsMap *ebpf.MapSpec `ebpf:"xdp_stats_map"`
+	TcStatsMap *ebpf.MapSpec `ebpf:"tc_stats_map"`
 }
 
 // bpfObjects contains all objects after they have been loaded into the kernel.
@@ -88,12 +88,12 @@ func (o *bpfObjects) Close() error {
 //
 // It can be passed to loadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type bpfMaps struct {
-	XdpStatsMap *ebpf.Map `ebpf:"xdp_stats_map"`
+	TcStatsMap *ebpf.Map `ebpf:"tc_stats_map"`
 }
 
 func (m *bpfMaps) Close() error {
 	return _BpfClose(
-		m.XdpStatsMap,
+		m.TcStatsMap,
 	)
 }
 
@@ -101,12 +101,12 @@ func (m *bpfMaps) Close() error {
 //
 // It can be passed to loadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type bpfPrograms struct {
-	XdpStats *ebpf.Program `ebpf:"xdp_stats"`
+	Stats *ebpf.Program `ebpf:"stats"`
 }
 
 func (p *bpfPrograms) Close() error {
 	return _BpfClose(
-		p.XdpStats,
+		p.Stats,
 	)
 }
 

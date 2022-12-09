@@ -4,7 +4,7 @@ metadata:
   name: go-tc-counter
   namespace: kube-system
 spec:
-  type: xdp
+  type: tc
   name: go-tc-counter
   interface: ens3
   image: quay.io/bpfd/bytecode:go-tc-counter

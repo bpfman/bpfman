@@ -64,7 +64,11 @@ const (
 	srcPath
 )
 
-//go:generate bpf2go -cc clang -no-strip -cflags "-O2 -g -Wall" bpf ./bpf/xdp_counter.c -- -I.:/usr/include/bpf:/usr/include/linux
+const (
+	TC_ACT_OK = 0
+)
+
+//go:generate bpf2go -cc clang -no-strip -cflags "-O2 -g -Wall" bpf ./bpf/tc_counter.c -- -I.:/usr/include/bpf:/usr/include/linux
 func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
@@ -246,7 +250,8 @@ func main() {
 			Path:        path,
 			FromImage:   bytecode_url_flag,
 			SectionName: "stats",
-			ProgramType: gobpfd.ProgramType_XDP,
+			ProgramType: gobpfd.ProgramType_TC,
+			Direction:   gobpfd.Direction_INGRESS,
 			AttachType: &gobpfd.LoadRequest_NetworkMultiAttach{
 				NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
 					Priority: int32(priority),
@@ -280,7 +285,7 @@ func main() {
 	}
 
 	// 3. Get access to our map
-	mapPath := fmt.Sprintf("%s/%s/xdp_stats_map", DefaultMapDir, id)
+	mapPath := fmt.Sprintf("%s/%s/tc_stats_map", DefaultMapDir, id)
 	opts := &ebpf.LoadPinOptions{
 		ReadOnly:  false,
 		WriteOnly: false,
@@ -296,7 +301,7 @@ func main() {
 	ticker := time.NewTicker(3 * time.Second)
 	go func() {
 		for range ticker.C {
-			key := uint32(2)
+			key := uint32(TC_ACT_OK)
 			var stats []Stats
 			var totalPackets uint64
 			var totalBytes uint64
