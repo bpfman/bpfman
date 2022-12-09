@@ -3,6 +3,7 @@ name: bpfd-image-build
 on:
   push:
     branches: [ main ]
+    paths: [ '.github/workflows/image-build.yaml' ]
 
 env:
   REGISTRY: quay.io 
