@@ -37,6 +37,7 @@ type Tls struct {
 
 type Config struct {
 	Iface        string `toml:"interface"`
+	Direction    string `toml:"direction"`
 	Priority     string `toml:"priority"`
 	BytecodeUrl  string `toml:"bytecode_url"`
 	BytecodeUuid string `toml:"bytecode_uuid"`
@@ -76,6 +77,9 @@ func main() {
 	configData := loadConfig()
 
 	var iface string
+	var direction_str string
+	var direction gobpfd.Direction
+	var action string
 	var priority int
 	var cmdlineUrl string
 	var cmdlineUuid string
@@ -83,6 +87,8 @@ func main() {
 
 	flag.StringVar(&iface, "iface", "",
 		"Interface to load bytecode.")
+	flag.StringVar(&direction_str, "direction", "",
+		"Direction to apply program. ingress or egress")
 	flag.IntVar(&priority, "priority", -1,
 		"Priority to load program in bpfd")
 	flag.StringVar(&cmdlineUuid, "uuid", "",
@@ -100,7 +106,7 @@ func main() {
 	// "-iface" is the interface to run bpf program on. If not provided, then
 	// use value loaded from go-tc-counter.toml file. If not provided, use environment
 	// variable. If not provided, error.
-	// ./go-tc-counter -iface eth0
+	// ./go-tc-counter -iface eth0 -direction ingress
 	if len(iface) == 0 {
 		if configData.Config.Iface != "" {
 			iface = configData.Config.Iface
@@ -113,10 +119,38 @@ func main() {
 		}
 	}
 
+	// "-direction" is the direction in which to run the bpf program. Valid values
+	// are "ingress" and "egress". If not provided, then use value loaded from
+	// go-tc-counter.toml file. If not provided, use environment variable. If not
+	// provided, error.
+	// ./go-tc-counter -iface eth0 -direction ingress
+	if len(direction_str) == 0 {
+		if configData.Config.Direction != "" {
+			direction_str = configData.Config.Direction
+		} else {
+			direction_str = os.Getenv("BPFD_DIRECTION")
+			if direction_str == "" {
+				log.Print("direction is required")
+				return
+			}
+		}
+	}
+
+	if direction_str == "ingress" {
+		direction = gobpfd.Direction_INGRESS
+		action = "received"
+	} else if direction_str == "egress" {
+		direction = gobpfd.Direction_EGRESS
+		action = "sent"
+	} else {
+		log.Printf("invalid direction (%s). valid options are ingress or egress.", direction_str)
+		return
+	}
+
 	// "-priority" is the priority to load bpf program at. If not provided, then
 	// use value loaded from go-tc-counter.toml file. If not provided, use environment
 	// variable. If not provided, defaults to 50.
-	// ./go-tc-counter -iface eth0 -priority 45
+	// ./go-tc-counter -iface eth0 -direction ingress -priority 45
 	if priority < 0 {
 		var priorityStr string
 		var errStr string
@@ -145,14 +179,14 @@ func main() {
 	// Parse Commandline first.
 
 	// "-uuid" is a UUID for the bytecode that has already loaded into bpfd. If not
-	// ./go-tc-counter -iface eth0 -uuid 53ac77fc-18a9-42e2-8dd3-152fc31ba979
+	// ./go-tc-counter -iface eth0 -direction ingress -uuid 53ac77fc-18a9-42e2-8dd3-152fc31ba979
 	if len(cmdlineUuid) == 0 {
 		// "-url" is a URL for the bytecode in a container image. If not provided,
-		// ./go-tc-counter -iface eth0 -url quay.io/bpfd/bytecode:go-tc-counter
+		// ./go-tc-counter -iface eth0 -direction ingress -url quay.io/bpfd/bytecode:go-tc-counter
 		if len(cmdlineUrl) == 0 {
 			// "-path" allows the location of the local bytecode file to be
 			// overwritten.
-			// ./go-tc-counter -iface eth0 -path /var/bpfd/bytecode/bpf_bpfel.o
+			// ./go-tc-counter -iface eth0 -direction ingress -path /var/bpfd/bytecode/bpf_bpfel.o
 			if len(cmdlinePath) != 0 {
 				bytecodePath = cmdlinePath
 				bytecodeSrc = srcPath
@@ -205,11 +239,11 @@ func main() {
 	}
 
 	if bytecodeSrc == srcUuid {
-		log.Printf("Using Input: Interface=%s Source=%s",
-			iface, id)
+		log.Printf("Using Input: Interface=%s Direction=%s Source=%s",
+			iface, direction_str, id)
 	} else {
-		log.Printf("Using Input: Interface=%s Priority=%d Source=%s",
-			iface, priority, bytecodePath)
+		log.Printf("Using Input: Interface=%s Direction=%s Priority=%d Source=%s",
+			iface, direction_str, priority, bytecodePath)
 	}
 
 	// If the bytecode src is a UUID, skip the loading and unloading of the bytecode.
@@ -251,7 +285,7 @@ func main() {
 			FromImage:   bytecode_url_flag,
 			SectionName: "stats",
 			ProgramType: gobpfd.ProgramType_TC,
-			Direction:   gobpfd.Direction_INGRESS,
+			Direction:   direction,
 			AttachType: &gobpfd.LoadRequest_NetworkMultiAttach{
 				NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
 					Priority: int32(priority),
@@ -317,8 +351,8 @@ func main() {
 				totalBytes += cpuStat.Bytes
 			}
 
-			log.Printf("%d packets received\n", totalPackets)
-			log.Printf("%d bytes received\n\n", totalBytes)
+			log.Printf("%d packets %s\n", totalPackets, action)
+			log.Printf("%d bytes %s\n\n", totalBytes, action)
 		}
 	}()
 

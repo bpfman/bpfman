@@ -12,6 +12,7 @@ data:
       key = "/etc/bpfd/certs/bpfd-client/tls.key"
     [config]
       interface = "ens3"
+      direction = "ingress"
       bytecode_uuid = "62c2a443-9beb-4261-9c46-33a29612643d"
 ---
 apiVersion: cert-manager.io/v1
