@@ -18,7 +18,7 @@ anyhow = "1"
 clap = { version = "4", features = ["derive"]}
 tokio = { version = "1.21.2", features = ["full"] }
 log = "0.4"
-env_logger = "0.9"
+env_logger = "0.10"
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.5"
 comfy-table = "6.1.2"
