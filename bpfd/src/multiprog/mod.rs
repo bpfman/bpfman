@@ -85,6 +85,13 @@ impl Dispatcher {
         };
         current.wrapping_add(1)
     }
+
+    pub(crate) fn if_name(&mut self) -> String {
+        match self {
+            Dispatcher::Xdp(d) => d.if_name(),
+            Dispatcher::Tc(d) => d.if_name(),
+        }
+    }
 }
 
 #[derive(Debug, Hash, Eq, PartialEq)]

@@ -104,7 +104,7 @@ fn test_load_unload_tc() {
 
     // Verify TC filter is using correct priority
     let output = tc_filter_list(bpfd_iface).unwrap();
-    assert!(output.contains("pref 47"));
+    assert!(output.contains("pref 49"));
 
     // Verify the bppfs has entries
     assert!(PathBuf::from(RTDIR_FS_TC_INGRESS)
