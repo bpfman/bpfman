@@ -40,8 +40,16 @@ rustup toolchain install nightly -c rustfmt,clippy,rust-src
 ```
 - LLVM 11 or later (Linux package managers should provide a recent enough release)
 
+`dnf` based OS:
 ```console
 sudo dnf install llvm-devel clang-devel elfutils-libelf-devel
+
+```
+
+`apt` based OS:
+```console
+sudo apt install clang lldb lld libelf-dev gcc-multilib
+
 ```
 
 - [bpf-linker](https://github.com/aya-rs/bpf-linker)
@@ -52,8 +60,14 @@ cargo install bpf-linker
 
 - [protoc](https://grpc.io/docs/protoc-installation/)
 
+`dnf` based OS:
 ```console
 sudo dnf install protobuf-compiler
+```
+
+`apt` based OS:
+```console
+sudo apt install protobuf-compiler
 ```
 
 - go protobuf compiler extensions
@@ -66,8 +80,15 @@ git clone https://github.com/libbpf/libbpf --branch v0.8.0
 ```
 
 - Perl
+
+`dnf` based OS:
 ```console
 sudo dnf install perl
+```
+
+`apt` based OS:
+```console
+sudo apt install perl
 ```
 
 
