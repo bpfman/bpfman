@@ -21,11 +21,11 @@ struct {
 	__uint(pinning, LIBBPF_PIN_BY_NAME);
 } tc_stats_map SEC(".maps");
 
-static __always_inline __u32 tc_stats_record_action(struct __sk_buff *skb,
-						    __u32 action)
+static __u32 tc_stats_record_action(struct __sk_buff *skb, __u32 action)
 {
 	void *data = (void *)(long)skb->data;
 	void *data_end = (void *)(long)skb->data_end;
+
 	if (data_end < data)
 		return TC_ACT_SHOT;
 
