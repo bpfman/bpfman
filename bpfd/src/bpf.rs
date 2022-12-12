@@ -43,7 +43,7 @@ impl<'a> BpfManager<'a> {
                 let entry = entry?;
                 let uuid = entry.file_name().to_string_lossy().parse().unwrap();
                 let mut program = Program::load(uuid)
-                    .map_err(|e| BpfdError::Error(format!("cant read program state {}", e)))?;
+                    .map_err(|e| BpfdError::Error(format!("cant read program state {e}")))?;
                 // TODO: Should probably check for pinned prog on bpffs rather than assuming they are attached
                 program.set_attached();
                 debug!("rebuilding state for program {}", uuid);
