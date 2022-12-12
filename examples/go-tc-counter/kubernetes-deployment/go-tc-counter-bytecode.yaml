@@ -7,6 +7,7 @@ spec:
   type: tc
   name: go-tc-counter
   interface: ens3
+  direction: ingress
   image: quay.io/bpfd/bytecode:go-tc-counter
   sectionname: stats
   priority: 55
