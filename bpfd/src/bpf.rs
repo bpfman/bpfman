@@ -179,7 +179,16 @@ impl<'a> BpfManager<'a> {
         } else {
             1
         };
-        let dispatcher = Dispatcher::new(if_config, &programs, next_revision, old_dispatcher)?;
+        let dispatcher = Dispatcher::new(if_config, &programs, next_revision, old_dispatcher)
+            .or_else(|e| {
+                let prog = self.programs.remove(&id).unwrap();
+                prog.delete(id).map_err(|_| {
+                    BpfdError::Error(
+                        "new dispatcher cleanup failed, unable to delete program data".to_string(),
+                    )
+                })?;
+                Err(e)
+            })?;
         self.dispatchers.insert(did, dispatcher);
         if let Some(p) = self.programs.get_mut(&id) {
             p.set_attached()
@@ -218,10 +227,27 @@ impl<'a> BpfManager<'a> {
                 .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
             self.programs.insert(id, p);
 
-            tracepoint.attach(&category, &name)?;
+            tracepoint.attach(&category, &name).or_else(|e| {
+                let prog = self.programs.remove(&id).unwrap();
+                prog.delete(id).map_err(|_| {
+                    BpfdError::Error(
+                        "new dispatcher cleanup failed, unable to delete program data".to_string(),
+                    )
+                })?;
+                Err(BpfdError::Error(format!("can't attach: {e}")))
+            })?;
             tracepoint
                 .pin(format!("{RTDIR_FS}/prog_{id}_link"))
-                .map_err(|_| BpfdError::UnableToPin)?;
+                .or_else(|_| {
+                    let prog = self.programs.remove(&id).unwrap();
+                    prog.delete(id).map_err(|_| {
+                        BpfdError::Error(
+                            "new dispatcher cleanup failed, unable to delete program data"
+                                .to_string(),
+                        )
+                    })?;
+                    Err(BpfdError::UnableToPin)
+                })?;
             Ok(id)
         } else {
             panic!("not a tracepoint program")
