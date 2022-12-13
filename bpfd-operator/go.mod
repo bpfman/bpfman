@@ -1,4 +1,4 @@
-module github.com/redhat-et/bpfd
+module github.com/redhat-et/bpfd/bpfd-operator
 
 go 1.19
 

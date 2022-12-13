@@ -40,9 +40,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	bpfdiov1alpha1 "github.com/redhat-et/bpfd/api/v1alpha1"
+	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/api/v1alpha1"
+	"github.com/redhat-et/bpfd/bpfd-operator/internal"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
-	"github.com/redhat-et/bpfd/internal"
 	"google.golang.org/grpc"
 	v1 "k8s.io/api/core/v1"
 )

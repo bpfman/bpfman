@@ -43,8 +43,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	bpfdiov1alpha1 "github.com/redhat-et/bpfd/api/v1alpha1"
-	bpfdagent "github.com/redhat-et/bpfd/pkg/bpfd-agent"
+	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/api/v1alpha1"
+	bpfdagent "github.com/redhat-et/bpfd/bpfd-operator/pkg/bpfd-agent"
 )
 
 type ebpfProgramConfigConditionType string
