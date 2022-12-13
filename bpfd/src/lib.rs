@@ -89,11 +89,12 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                             let if_index = get_ifindex(&m.interface)?;
                             let metadata = Metadata::new(m.priority, program.section_name.clone());
                             Program::Xdp(XdpProgram::new(
-                                ProgramData::new(
-                                    program.path,
+                                ProgramData::new_from_location(
+                                    program.location,
                                     program.section_name.clone(),
                                     String::from("bpfd"),
-                                ),
+                                )
+                                .await?,
                                 NetworkMultiAttachInfo::new(
                                     m.interface,
                                     if_index,
@@ -117,15 +118,15 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
     while let Some(cmd) = rx.recv().await {
         match cmd {
             Command::Load {
-                path,
+                location,
                 section_name,
                 program_type,
-                direction,
                 attach_type:
                     AttachType::NetworkMultiAttach(NetworkMultiAttach {
                         iface,
                         priority,
                         proceed_on,
+                        direction,
                         position: _,
                     }),
                 username,
@@ -142,19 +143,20 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                     } else {
                         proceed_on
                     };
+
+                    let prog_data =
+                        ProgramData::new_from_location(location, section_name.clone(), username)
+                            .await?;
                     let prog = match program_type {
                         command::ProgramType::Xdp => Program::Xdp(XdpProgram {
-                            data: ProgramData {
-                                path,
-                                owner: username,
-                                section_name: section_name.clone(),
-                            },
+                            data: prog_data.clone(),
                             info: NetworkMultiAttachInfo {
                                 if_index,
                                 current_position: None,
                                 metadata: command::Metadata {
                                     priority,
-                                    name: section_name,
+                                    // This could have been overridden by image tags
+                                    name: prog_data.section_name,
                                     attached: false,
                                 },
                                 proceed_on: proc_on,
@@ -162,17 +164,13 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                             },
                         }),
                         command::ProgramType::Tc => Program::Tc(TcProgram {
-                            data: ProgramData {
-                                path,
-                                owner: username,
-                                section_name: section_name.clone(),
-                            },
+                            data: prog_data.clone(),
                             info: NetworkMultiAttachInfo {
                                 if_index,
                                 current_position: None,
                                 metadata: command::Metadata {
                                     priority,
-                                    name: section_name,
+                                    name: prog_data.section_name,
                                     attached: false,
                                 },
                                 proceed_on: proc_on,
@@ -190,21 +188,17 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                 let _ = responder.send(res);
             }
             Command::Load {
-                path,
+                location,
                 section_name,
                 attach_type: AttachType::SingleAttach(attach),
                 username,
                 responder,
                 program_type,
-                direction: _,
             } => {
                 let prog = match program_type {
                     command::ProgramType::Tracepoint => Program::Tracepoint(TracepointProgram {
-                        data: ProgramData {
-                            path,
-                            owner: username,
-                            section_name: section_name.clone(),
-                        },
+                        data: ProgramData::new_from_location(location, section_name, username)
+                            .await?,
                         info: attach,
                     }),
                     _ => panic!("unsupported prog type"),

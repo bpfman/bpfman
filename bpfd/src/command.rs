@@ -10,11 +10,13 @@ use bpfd_api::{
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
+use url::Url;
 use uuid::Uuid;
 
 use crate::{
     errors::BpfdError,
     multiprog::{DispatcherId, DispatcherInfo, TC_ACT_PIPE, XDP_DISPATCHER_RET, XDP_PASS},
+    pull_bytecode::pull_bytecode,
 };
 
 /// Provided by the requester and used by the manager task to send
@@ -26,10 +28,9 @@ type Responder<T> = oneshot::Sender<T>;
 pub(crate) enum Command {
     /// Load a program
     Load {
-        path: String,
+        location: String,
         section_name: String,
         program_type: ProgramType,
-        direction: Option<Direction>,
         attach_type: AttachType,
         username: String,
         responder: Responder<Result<Uuid, BpfdError>>,
@@ -126,6 +127,7 @@ pub struct NetworkMultiAttach {
     pub(crate) iface: String,
     pub(crate) priority: i32,
     pub(crate) proceed_on: ProceedOn,
+    pub(crate) direction: Option<Direction>,
     pub(crate) position: i32,
 }
 
@@ -133,9 +135,8 @@ pub struct NetworkMultiAttach {
 pub(crate) struct ProgramInfo {
     pub(crate) id: String,
     pub(crate) name: String,
-    pub(crate) path: String,
+    pub(crate) location: String,
     pub(crate) program_type: ProgramType,
-    pub(crate) direction: Option<Direction>,
     pub(crate) attach_type: AttachType,
 }
 
@@ -189,17 +190,58 @@ pub(crate) struct TracepointProgram {
 
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct ProgramData {
+    pub(crate) location: String,
     pub(crate) path: String,
     pub(crate) section_name: String,
     pub(crate) owner: String,
 }
 
 impl ProgramData {
-    pub(crate) fn new(path: String, section_name: String, owner: String) -> Self {
-        ProgramData {
-            path,
-            section_name,
-            owner,
+    pub(crate) async fn new_from_location(
+        location: String,
+        section_name: String,
+        owner: String,
+    ) -> Result<Self, ParseError> {
+        let bytecode_url =
+            Url::parse(&location).map_err(ParseError::BytecodeLocationParseFailure)?;
+
+        match bytecode_url.scheme() {
+            "file" => {
+                // File URL isn't local
+                if bytecode_url.has_host() {
+                    return Err(ParseError::InvalidBytecodeLocation { location });
+                }
+
+                Ok(ProgramData {
+                    location,
+                    path: bytecode_url.path().to_string(),
+                    section_name,
+                    owner,
+                })
+            }
+            "image" => {
+                let image_path = format!(
+                    "{}{}",
+                    bytecode_url
+                        .host_str()
+                        .ok_or(ParseError::InvalidBytecodeLocation {
+                            location: location.clone()
+                        })?,
+                    bytecode_url.path()
+                );
+
+                let program_overrides = pull_bytecode(&image_path)
+                    .await
+                    .map_err(ParseError::BytecodePullFaiure)?;
+
+                Ok(ProgramData {
+                    location,
+                    path: program_overrides.path,
+                    section_name: program_overrides.image_meta.section_name,
+                    owner,
+                })
+            }
+            _ => Err(ParseError::InvalidBytecodeLocation { location }),
         }
     }
 }

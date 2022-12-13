@@ -355,14 +355,14 @@ impl<'a> BpfManager<'a> {
                 Program::Xdp(p) => ProgramInfo {
                     id: id.to_string(),
                     name: p.data.section_name.to_string(),
-                    path: p.data.path.to_string(),
+                    location: p.data.location.to_string(),
                     program_type: crate::command::ProgramType::Xdp,
-                    direction: None,
                     attach_type: crate::command::AttachType::NetworkMultiAttach(
                         crate::command::NetworkMultiAttach {
                             iface: p.info.if_name.to_string(),
                             priority: p.info.metadata.priority,
                             proceed_on: p.info.proceed_on.clone(),
+                            direction: None,
                             position: p.info.current_position.unwrap_or_default() as i32,
                         },
                     ),
@@ -370,22 +370,21 @@ impl<'a> BpfManager<'a> {
                 Program::Tracepoint(p) => ProgramInfo {
                     id: id.to_string(),
                     name: p.data.section_name.to_string(),
-                    path: p.data.path.to_string(),
+                    location: p.data.location.to_string(),
                     program_type: crate::command::ProgramType::Tracepoint,
-                    direction: None,
                     attach_type: crate::command::AttachType::SingleAttach(p.info.to_string()),
                 },
                 Program::Tc(p) => ProgramInfo {
                     id: id.to_string(),
                     name: p.data.section_name.to_string(),
-                    path: p.data.path.to_string(),
+                    location: p.data.location.to_string(),
                     program_type: crate::command::ProgramType::Tc,
-                    direction: Some(p.direction),
                     attach_type: crate::command::AttachType::NetworkMultiAttach(
                         crate::command::NetworkMultiAttach {
                             iface: p.info.if_name.to_string(),
                             priority: p.info.metadata.priority,
                             proceed_on: ProceedOn::default_tc(),
+                            direction: Some(p.direction),
                             position: p.info.current_position.unwrap() as i32,
                         },
                     ),

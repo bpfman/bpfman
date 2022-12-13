@@ -8,7 +8,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct StaticProgramEntry {
     pub name: String,
-    pub path: String,
+    pub location: String,
     pub section_name: String,
     pub program_type: String,
     pub attach: Option<String>,
@@ -69,14 +69,14 @@ mod test {
         let input: &str = r#"
         [[programs]]
         name = "program1"
-        path = "/opt/bin/myapp/lib/myebpf.o"
+        location = "file:///opt/bin/myapp/lib/myebpf.o"
         section_name = "firewall"
         program_type ="xdp"
         network_attach = { interface = "eth0", priority = 50, proceed_on = ["pass", "dispatcher_return"] }
 
         [[programs]]
         name = "program2"
-        path = "/opt/bin/myapp/lib/myebpf.o"
+        location = "image://quay.io/bpfd/bytecode:xdp_pass"
         section_name = "firewall"
         program_type ="xdp"
         network_attach = { interface = "eth0", priority = 55, proceed_on = ["pass", "dispatcher_return"] }
