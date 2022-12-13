@@ -1,25 +1,21 @@
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadRequest {
     #[prost(string, tag = "1")]
-    pub path: ::prost::alloc::string::String,
-    #[prost(bool, tag = "2")]
-    pub from_image: bool,
-    #[prost(string, tag = "3")]
+    pub location: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
     pub section_name: ::prost::alloc::string::String,
-    #[prost(enumeration = "ProgramType", tag = "4")]
+    #[prost(enumeration = "ProgramType", tag = "3")]
     pub program_type: i32,
-    #[prost(enumeration = "Direction", tag = "5")]
-    pub direction: i32,
-    #[prost(oneof = "load_request::AttachType", tags = "6, 7")]
+    #[prost(oneof = "load_request::AttachType", tags = "4, 5")]
     pub attach_type: ::core::option::Option<load_request::AttachType>,
 }
 /// Nested message and enum types in `LoadRequest`.
 pub mod load_request {
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum AttachType {
-        #[prost(message, tag = "6")]
+        #[prost(message, tag = "4")]
         NetworkMultiAttach(super::NetworkMultiAttach),
-        #[prost(message, tag = "7")]
+        #[prost(message, tag = "5")]
         SingleAttach(super::SingleAttach),
     }
 }
@@ -31,7 +27,9 @@ pub struct NetworkMultiAttach {
     pub iface: ::prost::alloc::string::String,
     #[prost(int32, tag = "3")]
     pub position: i32,
-    #[prost(enumeration = "ProceedOn", repeated, tag = "4")]
+    #[prost(enumeration = "Direction", tag = "4")]
+    pub direction: i32,
+    #[prost(enumeration = "ProceedOn", repeated, tag = "5")]
     pub proceed_on: ::prost::alloc::vec::Vec<i32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -67,11 +65,9 @@ pub mod list_response {
         #[prost(string, tag = "2")]
         pub name: ::prost::alloc::string::String,
         #[prost(string, tag = "3")]
-        pub path: ::prost::alloc::string::String,
+        pub location: ::prost::alloc::string::String,
         #[prost(enumeration = "super::ProgramType", tag = "4")]
         pub program_type: i32,
-        #[prost(enumeration = "super::Direction", tag = "5")]
-        pub direction: i32,
         #[prost(oneof = "list_result::AttachType", tags = "6, 7")]
         pub attach_type: ::core::option::Option<list_result::AttachType>,
     }
@@ -278,7 +274,7 @@ pub mod loader_client {
 pub mod loader_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
-    ///Generated trait containing gRPC methods that should be implemented for use with LoaderServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with LoaderServer.
     #[async_trait]
     pub trait Loader: Send + Sync + 'static {
         async fn load(
