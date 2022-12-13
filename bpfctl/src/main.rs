@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::path::PathBuf;
-
 use anyhow::{bail, Context};
 use bpfd_api::{
     config::config_from_file,
@@ -32,18 +30,14 @@ enum Commands {
 
 #[derive(Args)]
 struct Load {
-    /// Optional: Extract bytecode from container, signals <PATH> is a
-    /// container image URL.
-    #[clap(long, conflicts_with("section_name"))]
-    from_image: bool,
-
     /// Required if "--from-image" is not present: Name of the ELF section from the object file.
-    #[clap(short, long, default_value = "", required_unless_present("from_image"))]
+    #[clap(short, long, default_value = "")]
     section_name: String,
 
-    /// Required: Program to load.
+    /// Required: Location of Program Bytecode to load. Either Local file (file:///<path>) or bytecode
+    /// image URL (image://<container image url>)
     #[clap(short, long, value_parser)]
-    path: PathBuf,
+    location: String,
 
     #[clap(subcommand)]
     command: LoadCommands,
@@ -118,10 +112,8 @@ async fn main() -> anyhow::Result<()> {
         .await?;
 
     let mut client = LoaderClient::new(channel);
-    let mut attach_direction = Direction::None;
     match &cli.command {
         Commands::Load(l) => {
-            let path_str: String = l.path.to_string_lossy().to_string();
             let prog_type = match l.command {
                 LoadCommands::Xdp { .. } => ProgramType::Xdp,
                 LoadCommands::Tc { .. } => ProgramType::Tc,
@@ -145,6 +137,7 @@ async fn main() -> anyhow::Result<()> {
                             priority: *priority,
                             iface: iface.to_string(),
                             position: 0,
+                            direction: Direction::None as i32,
                             proceed_on: proc_on,
                         },
                     ))
@@ -155,7 +148,7 @@ async fn main() -> anyhow::Result<()> {
                     priority,
                     proceed_on,
                 } => {
-                    attach_direction = match direction.as_str() {
+                    let attach_direction = match direction.as_str() {
                         "ingress" => Direction::Ingress,
                         "egress" => Direction::Egress,
                         other => bail!("{} is not a valid direction", other),
@@ -172,6 +165,7 @@ async fn main() -> anyhow::Result<()> {
                             priority: *priority,
                             iface: iface.to_string(),
                             position: 0,
+                            direction: attach_direction as i32,
                             proceed_on: proc_on,
                         },
                     ))
@@ -184,11 +178,9 @@ async fn main() -> anyhow::Result<()> {
             };
 
             let request = tonic::Request::new(LoadRequest {
-                path: path_str,
-                from_image: l.from_image,
+                location: l.location.clone(),
                 section_name: l.section_name.to_string(),
                 program_type: prog_type as i32,
-                direction: attach_direction as i32,
                 attach_type,
             });
             let response = client.load(request).await?.into_inner();
@@ -203,7 +195,7 @@ async fn main() -> anyhow::Result<()> {
             let response = client.list(request).await?.into_inner();
             let mut table = Table::new();
             table.load_preset(comfy_table::presets::NOTHING);
-            table.set_header(vec!["UUID", "Type", "Name", "Path", "Metadata"]);
+            table.set_header(vec!["UUID", "Type", "Name", "Location", "Metadata"]);
             for r in response.results {
                 let prog_type: ProgramType = r.program_type.try_into()?;
                 match prog_type {
@@ -213,6 +205,7 @@ async fn main() -> anyhow::Result<()> {
                                 priority,
                                 iface,
                                 position,
+                                direction: _,
                                 proceed_on,
                             },
                         )) = r.attach_type
@@ -231,7 +224,7 @@ async fn main() -> anyhow::Result<()> {
                             r.id.to_string(),
                             "xdp".to_string(),
                             r.name,
-                            r.path,
+                            r.location,
                             format!(r#"{{ "priority": {priority}, "iface": "{iface}", "position": {position}, "proceed_on": {proceed_on} }}"#)
                         ]);
                         }
@@ -242,18 +235,18 @@ async fn main() -> anyhow::Result<()> {
                                 priority,
                                 iface,
                                 position,
+                                direction,
                                 proceed_on: _,
                             },
                         )) = r.attach_type
                         {
-                            let direction = r.direction.to_string();
                             table.add_row(vec![
-                        r.id.to_string(),
-                        format!("tc-{direction}"),
-                        r.name,
-                        r.path,
-                        format!(r#"{{ "priority": {priority}, "iface": "{iface}", "postiion": {position} }}"#)
-                    ]);
+                                r.id.to_string(),
+                                format!("tc-{direction}"),
+                                r.name,
+                                r.location,
+                                format!(r#"{{ "priority": {priority}, "iface": "{iface}", "position": {position} }}"#)
+                            ]);
                         }
                     }
                     ProgramType::Tracepoint => {
@@ -265,7 +258,7 @@ async fn main() -> anyhow::Result<()> {
                                 r.id.to_string(),
                                 "tracepoint".to_string(),
                                 r.name,
-                                r.path,
+                                r.location,
                                 format!(r#"{{ "tracepoint": {name} }}"#),
                             ]);
                         }
