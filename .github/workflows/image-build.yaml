@@ -88,7 +88,7 @@ jobs:
         image: bpfd-agent
         tags: ${{ steps. meta-bpfd-agent.outputs.tags }}
         labels: ${{ steps. meta-bpfd-agent.outputs.labels }}
-        context: ./bpfd-operator
+        context: ./
         containerfiles: |
           ./bpfd-operator/Containerfile.bpfd-agent
 
@@ -112,7 +112,7 @@ jobs:
         image: bpfd-operator
         tags: ${{ steps. meta-bpfd-operator.outputs.tags }}
         labels: ${{ steps. meta-bpfd-operator.outputs.labels }}
-        context: ./bpfd-operator
+        context: ./
         containerfiles: |
           ./bpfd-operator/Containerfile.bpfd-operator
 

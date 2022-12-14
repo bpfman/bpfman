@@ -125,8 +125,8 @@ build: generate fmt vet ## Build bpfd-operator and bpfd-agent binaries.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: build-images
 build-images: test ## Build docker image with the manager.
-	docker build -t ${BPFD_OPERATOR_IMG} -f Containerfile.bpfd-operator .
-	docker build -t ${BPFD_AGENT_IMG} -f Containerfile.bpfd-agent .
+	docker build -t ${BPFD_OPERATOR_IMG} -f Containerfile.bpfd-operator ../
+	docker build -t ${BPFD_AGENT_IMG} -f Containerfile.bpfd-agent ../
 
 .PHONY: push-images
 push-images: ## Push docker image with the manager.

@@ -3,29 +3,39 @@ FROM golang:1.19 as bpfd-operator-build
 ARG TARGETOS
 ARG TARGETARCH
 
-WORKDIR /usr/src/bpfd-operator/
+WORKDIR /usr/src/bpfd/
 
 # Copy the Go Modules manifests
-COPY go.mod go.mod
-COPY go.sum go.sum
+COPY ./bpfd-operator/go.mod bpfd-operator/go.mod
+COPY ./bpfd-operator/go.sum bpfd-operator/go.sum
 
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
-RUN go mod download
+RUN cd bpfd-operator && go mod download
 
 # Copy the go source
-COPY ./cmd/bpfd-operator/main.go main.go
-COPY api/ api/
-COPY pkg/ pkg/
-COPY internal/ internal/
-COPY config/bpfd-deployment/daemonset.yaml config/bpfd-deployment/daemonset.yaml
+COPY ./bpfd-operator/cmd/bpfd-operator/main.go bpfd-operator/main.go
+COPY ./bpfd-operator/api/ bpfd-operator/api/
+COPY ./bpfd-operator/pkg/ bpfd-operator/pkg/
+COPY ./bpfd-operator/internal/ bpfd-operator/internal/
+COPY ./bpfd-operator/config/bpfd-deployment/daemonset.yaml bpfd-operator/config/bpfd-deployment/daemonset.yaml
+
+# Copy local version of gobpfd bindings and go work sum so
+# that local bpfd API changes can get propogated to the container builds.
+# TODO(astoycos) When the bpfd-operator is split into it's own REPO this will
+# get slimmed down.
+COPY ./go.work go.work
+COPY ./go.work.sum go.work.sum 
+COPY ./clients/gobpfd ./clients/gobpfd
+COPY ./examples examples
+
 
 # Build
 # the GOARCH has not a default value to allow the binary be built according to the host where the command
 # was called. For example, if we call make docker-build in a local env which has the Apple Silicon M1 SO
 # the docker BUILDPLATFORM arg will be linux/arm64 when for Apple x86 it will be linux/amd64. Therefore,
 # by leaving it empty we can ensure that the container and binary shipped on it will have the same platform.
-RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bpfd-operator main.go
+RUN cd bpfd-operator && CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bpfd-operator main.go
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
@@ -34,8 +44,8 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bp
 
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
-COPY --from=bpfd-operator-build /usr/src/bpfd-operator/config/bpfd-deployment/daemonset.yaml ./config/bpfd-deployment/daemonset.yaml
-COPY --from=bpfd-operator-build /usr/src/bpfd-operator/bpfd-operator .
+COPY --from=bpfd-operator-build /usr/src/bpfd/bpfd-operator/config/bpfd-deployment/daemonset.yaml ./config/bpfd-deployment/daemonset.yaml
+COPY --from=bpfd-operator-build /usr/src/bpfd/bpfd-operator/bpfd-operator .
 USER 65532:65532
 
 ENTRYPOINT ["/bpfd-operator"]
