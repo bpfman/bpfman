@@ -4,7 +4,7 @@
 
 #define XDP_ACTION_MAX (XDP_REDIRECT + 1)
 
-// This counting program example was adapted from 
+// This counting program example was adapted from
 // https://github.com/xdp-project/xdp-tutorial/tree/master/basic03-map-counter
 
 /* This is the data record stored in the map */
@@ -48,7 +48,7 @@ __u32 xdp_stats_record_action(struct xdp_md *ctx, __u32 action)
 	 */
 	rec->rx_packets++;
 	rec->rx_bytes += bytes;
-	
+
 	return action;
 }
 

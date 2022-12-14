@@ -20,7 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -33,6 +33,10 @@ const (
 const (
 	ProgTypeXdp = iota
 	ProgTypeTc
+)
+
+const (
+	FILE_PREFIX = "file:///"
 )
 
 type ParameterData struct {
@@ -50,9 +54,9 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 
 	var cmdlineUuid, cmdlinelocation string
 
-	flag.StringVar(&iface, "iface", "",
+	flag.StringVar(&paramData.Iface, "iface", "",
 		"Interface to load bytecode.")
-	flag.IntVar(&priority, "priority", -1,
+	flag.IntVar(&paramData.Priority, "priority", -1,
 		"Priority to load program in bpfd")
 	flag.StringVar(&cmdlineUuid, "uuid", "",
 		"UUID of bytecode that has already been loaded. uuid and location are mutually exclusive.")
@@ -78,7 +82,7 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 
 	// "-iface" is the interface to run bpf program on. If not provided, then
 	// use value loaded from gocounter.toml file. If not provided, error.
-	//    ./gocounter -iface eth0
+	//    ./go-xdp-counter -iface eth0
 	if len(paramData.Iface) == 0 {
 		if configFileData.Config.Iface != "" {
 			paramData.Iface = configFileData.Config.Iface
@@ -89,7 +93,7 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 
 	// "-priority" is the priority to load bpf program at. If not provided, then
 	// use value loaded from gocounter.toml file. If not provided, defaults to 50.
-	//    ./gocounter -iface eth0 -priority 45
+	//    ./go-xdp-counter -iface eth0 -priority 45
 	if paramData.Priority < 0 {
 		if configFileData.Config.Priority != "" {
 			var err error
@@ -107,11 +111,11 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 
 	// "-uuid" is a UUID for the bytecode that has already loaded into bpfd. If not
 	// provided, check "-location".
-	//    ./gocounter -iface eth0 -uuid 53ac77fc-18a9-42e2-8dd3-152fc31ba979
+	//    ./go-xdp-counter -iface eth0 -uuid 53ac77fc-18a9-42e2-8dd3-152fc31ba979
 	if len(cmdlineUuid) == 0 {
 		// "-location" is a URL for the bytecode source. If not provided, check toml file.
-		//    ./gocounter -iface eth0 -location image://quay.io/bpfd/bytecode:gocounter
-		//    ./gocounter -iface eth0 -location file://var/bpfd/bytecode/bpf_bpfel.o
+		//    ./go-xdp-counter -iface eth0 -location image://quay.io/bpfd/bytecode:gocounter
+		//    ./go-xdp-counter -iface eth0 -location file://var/bpfd/bytecode/bpf_bpfel.o
 		if len(cmdlinelocation) != 0 {
 			// "-location" was entered so it is a URL
 			paramData.BytecodeLocation = cmdlinelocation
@@ -133,19 +137,15 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 			paramData.BytecodeSrc = SrcLocation
 		} else {
 			// Else default to local bytecode file
-			paramData.BytecodeLocation = defaultBytecodeFile
+			path, err := filepath.Abs(defaultBytecodeFile)
+			if err != nil {
+				return paramData, configFileData, fmt.Errorf("couldn't find bpf elf file: %v", err)
+			}
+
+			paramData.BytecodeLocation = FILE_PREFIX + path
 			paramData.BytecodeSrc = SrcLocation
 		}
 	}
-
-	// TODO: BILLY - Get absolute path for file
-	//if paramData.BytecodeSrc == SrcLocation {
-	//	var path string
-	//	path, err = filepath.Abs(paramData.BytecodeLocation)
-	//	if err != nil {
-	//		return paramData, configFileData, fmt.Errorf("couldn't find bpf elf file: %v", err)
-	//	}
-	//}
 
 
 	if paramData.BytecodeSrc == SrcUuid {

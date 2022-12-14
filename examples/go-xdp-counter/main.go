@@ -9,13 +9,13 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/cilium/ebpf"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
-	configMgmt "github.com/redhat-et/bpfd/examples/pkg/config-mgmt"
+	"github.com/redhat-et/bpfd/examples/pkg/config-mgmt"
+	"github.com/redhat-et/bpfd/examples/pkg/bpfd-app-client"
 	"google.golang.org/grpc"
 )
 
@@ -28,7 +28,7 @@ const (
 	DefaultConfigPath     = "/etc/bpfd/gocounter.toml"
 	DefaultSocketPath     = "/var/lib/bpfd/sock/gocounter.sock"
 	DefaultMapDir         = "/run/bpfd/fs/maps"
-	DefaultByteCodeFile   = "file://bpf_bpfel.o"
+	DefaultByteCodeFile   = "bpf_bpfel.o"
 )
 
 //go:generate bpf2go -cc clang -no-strip -cflags "-O2 -g -Wall" bpf ./bpf/xdp_counter.c -- -I.:/usr/include/bpf:/usr/include/linux
@@ -36,7 +36,7 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	// Parse Input Parameters (CmdLine, Config File and Environment Variables)
+	// Parse Input Parameters (CmdLine and Config File)
 	paramData, configFileData, err := configMgmt.ParseParamData(configMgmt.ProgTypeXdp, DefaultConfigPath, DefaultByteCodeFile)
 	if err != nil {
 		log.Printf("error processing parameters: %v\n", err)
@@ -45,14 +45,14 @@ func main() {
 
 	var mapPath string
 
-	// If running in a Kubernetes deployment, read the map path from the EbpfProgram CRD
+	// If running in a Kubernetes deployment, read the map path from the Bpf Program CRD
 	if paramData.CrdFlag == true {
-		mapPath, err = dynClient.GetMapPath()
+		mapPath, err = bpfdAppClient.GetMapPathDyn()
 		if err != nil {
-			log.Printf("error reading EbpfProgram CRD: %v\n", err)
+			log.Printf("error reading BpfProgram CRD: %v\n", err)
 			return
 		}
-    } else {
+	} else {
 		// If the bytecode src is a UUID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcUuid {
 			ctx := context.Background()
@@ -108,7 +108,7 @@ func main() {
 		}
 
 		// 3. Get access to our map
-		mapPath := fmt.Sprintf("%s/%s/xdp_stats_map", DefaultMapDir, paramData.Uuid)
+		mapPath = fmt.Sprintf("%s/%s/xdp_stats_map", DefaultMapDir, paramData.Uuid)
 	}
 
 	opts := &ebpf.LoadPinOptions{
