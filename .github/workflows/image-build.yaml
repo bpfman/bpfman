@@ -3,6 +3,8 @@ name: bpfd-image-build
 on:
   push:
     branches: [ main ]
+
+  pull_request:
     paths: [ '.github/workflows/image-build.yaml' ]
 
 env:
@@ -14,8 +16,85 @@ env:
   BPFD_OPERATOR_IMAGE_NAME: bpfd-operator
 
 jobs:
+  ## Used to ensure image builds are successful on PRs if workflow file was changed
   build:
+    if: ${{ github.event_name == 'pull_request' }}
     name: Build Images
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out rust source code
+      uses: actions/checkout@v2
+
+    - name: Extract metadata (tags, labels) for bpfd image
+      id: meta-bpfd
+      uses: docker/metadata-action@v3.6.2
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.BPFD_IMAGE_NAME }}
+
+    - name: Build bpfd image
+      id: build-bpfd
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: bpfd
+        tags: ${{ steps.meta-bpfd.outputs.tags }}
+        labels: ${{ steps.meta-bpfd.outputs.labels }}
+        containerfiles: |
+          ./packaging/container-deployment/Containerfile.bpfd
+
+    - name: Extract metadata (tags, labels) for bpfctl image
+      id: meta-bpfctl
+      uses: docker/metadata-action@v3.6.2
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.BPFCTL_IMAGE_NAME }}
+
+    - name: Build bpfctl image
+      id: build-bpfctl
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: bpfctl
+        tags: ${{ steps.meta-bpfctl.outputs.tags }}
+        labels: ${{ steps.meta-bpfctl.outputs.labels }}
+        containerfiles: |
+          ./packaging/container-deployment/Containerfile.bpfctl
+
+    - name: Extract metadata (tags, labels) for bpfd-agent image
+      id: meta-bpfd-agent
+      uses: docker/metadata-action@v3.6.2
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.BPFD_AGENT_IMAGE_NAME }}
+
+    - name: Build bpfd-agent image
+      id: build-bpfd-agent
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: bpfd-agent
+        tags: ${{ steps. meta-bpfd-agent.outputs.tags }}
+        labels: ${{ steps. meta-bpfd-agent.outputs.labels }}
+        context: ./
+        containerfiles: |
+          ./bpfd-operator/Containerfile.bpfd-agent
+    
+    - name: Extract metadata (tags, labels) for bpfd-operator image
+      id: meta-bpfd-operator
+      uses: docker/metadata-action@v3.6.2
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.BPFD_OPERATOR_IMAGE_NAME }}
+
+    - name: Build bpfd-operator image
+      id: build-bpfd-operator
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: bpfd-operator
+        tags: ${{ steps. meta-bpfd-operator.outputs.tags }}
+        labels: ${{ steps. meta-bpfd-operator.outputs.labels }}
+        context: ./
+        containerfiles: |
+          ./bpfd-operator/Containerfile.bpfd-operator
+
+  ## Used to build and push images when code is merged to the main branch
+  build-and-push:
+    if: ${{ github.event_name == 'push' }}
+    name: Build and Push Images
     runs-on: ubuntu-latest
     environment: image-repositories
     steps:
