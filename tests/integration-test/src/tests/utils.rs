@@ -6,9 +6,9 @@ use log::debug;
 use predicates::str::is_empty;
 
 const DEFAULT_BPFD_IFACE: &str = "eth0";
-const XDP_PASS_IMAGE: &str = "quay.io/bpfd/bytecode:xdp_pass";
-const TC_PASS_IMAGE: &str = "quay.io/bpfd/bytecode:tc_pass";
-const TRACEPOINT_IMAGE: &str = "quay.io/bpfd/bytecode:tracepoint";
+const XDP_PASS_IMAGE_LOC: &str = "image://quay.io/bpfd/bytecode:xdp_pass";
+const TC_PASS_IMAGE_LOC: &str = "image://quay.io/bpfd/bytecode:tc_pass";
+const TRACEPOINT_IMAGE_LOC: &str = "image://quay.io/bpfd/bytecode:tracepoint";
 
 /// Exit on panic as well as the passing of a test
 pub struct ChildGuard {
@@ -49,9 +49,8 @@ pub fn add_xdp_pass(iface: &str, priority: u32) -> Result<String> {
     let output = Command::cargo_bin("bpfctl")?
         .args([
             "load",
-            "--from-image",
-            "--path",
-            XDP_PASS_IMAGE,
+            "--location",
+            XDP_PASS_IMAGE_LOC,
             "xdp",
             "--iface",
             iface,
@@ -72,9 +71,8 @@ pub fn add_tc_pass(iface: &str, priority: u32) -> Result<String> {
     let output = Command::cargo_bin("bpfctl")?
         .args([
             "load",
-            "--from-image",
-            "--path",
-            TC_PASS_IMAGE,
+            "--location",
+            TC_PASS_IMAGE_LOC,
             "tc",
             "--direction",
             "ingress",
@@ -96,9 +94,8 @@ pub fn add_tracepoint() -> Result<String> {
     let output = Command::cargo_bin("bpfctl")?
         .args([
             "load",
-            "--from-image",
-            "--path",
-            TRACEPOINT_IMAGE,
+            "--location",
+            TRACEPOINT_IMAGE_LOC,
             "tracepoint",
             "--tracepoint",
             "syscalls/sys_enter_openat",
