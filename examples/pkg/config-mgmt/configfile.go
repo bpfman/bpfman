@@ -34,11 +34,11 @@ type Tls struct {
 }
 
 type Config struct {
-	Iface        string `toml:"interface"`
-	Priority     string `toml:"priority"`
-	BytecodeUrl  string `toml:"bytecode_url"`
-	BytecodeUuid string `toml:"bytecode_uuid"`
-	BytecodePath string `toml:"bytecode_path"`
+	Iface            string `toml:"interface"`
+	Priority         string `toml:"priority"`
+	BytecodeUrl      string `toml:"bytecode_url"`
+	BytecodeUuid     string `toml:"bytecode_uuid"`
+	BytecodeLocation string `toml:"bytecode_location"`
 }
 
 type ConfigFileData struct {

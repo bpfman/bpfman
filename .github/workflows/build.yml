@@ -89,7 +89,7 @@ jobs:
       - name: Build Examples
         run: | 
           go build ./examples/go-tc-counter/
-          go build ./examples/gocounter/
+          go build ./examples/go-xdp-counter/
 
       - name: Build Operator
         run: | 

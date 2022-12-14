@@ -1,0 +1,17 @@
+apiVersion: bpfd.io/v1alpha1
+kind: BpfProgramConfig
+metadata:
+  labels:
+    app.kubernetes.io/name: bpfprogramconfig
+  name: go-xdp-counter-example
+spec:
+  ## Must correspond to image section name
+  name: stats
+  type: XDP
+  # Select all nodes
+  nodeselector: {}
+  attachpoint:
+    networkmultiattach:
+      interface: eth0
+      priority: 55
+  bytecode: image://quay.io/bpfd/bytecode:gocounter
