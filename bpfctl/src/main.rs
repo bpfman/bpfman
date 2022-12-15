@@ -30,7 +30,7 @@ enum Commands {
 
 #[derive(Args)]
 struct Load {
-    /// Required if "--from-image" is not present: Name of the ELF section from the object file.
+    /// Name of the ELF section from the object file.
     #[clap(short, long, default_value = "")]
     section_name: String,
 
@@ -240,12 +240,20 @@ async fn main() -> anyhow::Result<()> {
                             },
                         )) = r.attach_type
                         {
+                            let attach_direction = match direction {
+                                0 => Direction::None,
+                                1 => Direction::Ingress,
+                                2 => Direction::Egress,
+                                other => bail!("{} is not a valid direction", other),
+                            }
+                            .as_str_name();
+                            //attach_direction = attach_direction.as_str_name()
                             table.add_row(vec![
                                 r.id.to_string(),
-                                format!("tc-{direction}"),
+                                "tc".to_string(),
                                 r.name,
                                 r.location,
-                                format!(r#"{{ "priority": {priority}, "iface": "{iface}", "position": {position} }}"#)
+                                format!(r#"{{ "priority": {priority}, "iface": "{iface}", "position": {position}, direction: {attach_direction} }}"#)
                             ]);
                         }
                     }
