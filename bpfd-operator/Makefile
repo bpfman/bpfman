@@ -127,6 +127,8 @@ build: generate fmt vet ## Build bpfd-operator and bpfd-agent binaries.
 build-images: test ## Build docker image with the manager.
 	docker build -t ${BPFD_OPERATOR_IMG} -f Containerfile.bpfd-operator ../
 	docker build -t ${BPFD_AGENT_IMG} -f Containerfile.bpfd-agent ../
+	docker build -t ${BPFD_IMG} -f ../packaging/container-deployment/Containerfile.bpfd ../
+	
 
 .PHONY: push-images
 push-images: ## Push docker image with the manager.
@@ -135,7 +137,7 @@ push-images: ## Push docker image with the manager.
 
 .PHONY: load-images-kind
 load-images-kind: build-images ## Push docker image with the manager.
-	kind load docker-image  ${BPFD_OPERATOR_IMG} ${BPFD_AGENT_IMG} --name bpfd-deployment
+	kind load docker-image  ${BPFD_IMG} ${BPFD_OPERATOR_IMG} ${BPFD_AGENT_IMG} --name bpfd-deployment
 
 # PLATFORMS defines the target platforms for  the manager image be build to provide support to multiple
 # architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:
