@@ -47,40 +47,41 @@ import (
 	bpfdagent "github.com/redhat-et/bpfd/bpfd-operator/pkg/bpfd-agent"
 )
 
-type ebpfProgramConfigConditionType string
+type BpfProgramConfigConditionType string
 
 const (
-	bpfdOperatorFinalizer                                         = "bpfd.io.operator/finalizer"
-	retryDurationOperator                                         = 10 * time.Second
-	BpfdDaemonManifestPath                                        = "./config/bpfd-deployment/daemonset.yaml"
-	EbpfProgConfigNotYetLoaded     ebpfProgramConfigConditionType = "NotYetLoaded"
-	EbpfProgConfigReconcileError   ebpfProgramConfigConditionType = "ReconcileError"
-	EbpfProgConfigReconcileSuccess ebpfProgramConfigConditionType = "ReconcileSuccess"
+	bpfdOperatorFinalizer                                        = "bpfd.io.operator/finalizer"
+	retryDurationOperator                                        = 10 * time.Second
+	BpfdDaemonManifestPath                                       = "./config/bpfd-deployment/daemonset.yaml"
+	EbpfProgConfigNotYetLoaded     BpfProgramConfigConditionType = "NotYetLoaded"
+	EbpfProgConfigReconcileError   BpfProgramConfigConditionType = "ReconcileError"
+	EbpfProgConfigReconcileSuccess BpfProgramConfigConditionType = "ReconcileSuccess"
+	EbpfProgConfigDeleteError      BpfProgramConfigConditionType = "DeleteError"
 )
 
-// EbpfProgramConfigReconciler reconciles a EbpfProgramConfig object
-type EbpfProgramConfigReconciler struct {
+// BpfProgramConfigReconciler reconciles a BpfProgramConfig object
+type BpfProgramConfigReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprograms,verbs=get;list;watch
-//+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprogramconfigs,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprogramconfigs/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprogramconfigs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfd.io,resources=bpfprogramconfigs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=bpfd.io,resources=bpfprogramconfigs/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=bpfd.io,resources=bpfprogramconfigs/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the EbpfProgramConfig object against the actual cluster state, and then
+// the BpfProgramConfig object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
-func (r *EbpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := log.FromContext(ctx)
 
 	l.Info("bpfd-operator is reconciling", "request", req.String())
@@ -124,93 +125,83 @@ func (r *EbpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	ebpfProgramConfig := &bpfdiov1alpha1.EbpfProgramConfig{}
-	if err := r.Get(ctx, req.NamespacedName, ebpfProgramConfig); err != nil {
-		// list all ebpfProgramConfig objects with
+	BpfProgramConfig := &bpfdiov1alpha1.BpfProgramConfig{}
+	if err := r.Get(ctx, req.NamespacedName, BpfProgramConfig); err != nil {
+		// list all BpfProgramConfig objects with
 		if errors.IsNotFound(err) {
-			l.Info("reconcile not triggered by ebpfProgramConfig change")
+			l.Info("reconcile not triggered by BpfProgramConfig change")
 
 			// TODO(astoycos) we could simplify this logic by making the name of the
-			// generated ebpfProgram object a bit more deterministic
-			ebpfProgram := &bpfdiov1alpha1.EbpfProgram{}
-			if err := r.Get(ctx, req.NamespacedName, ebpfProgram); err != nil {
-				return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting ebpfProgram Object %s : %v",
+			// generated bpfProgram object a bit more deterministic
+			bpfProgram := &bpfdiov1alpha1.BpfProgram{}
+			if err := r.Get(ctx, req.NamespacedName, bpfProgram); err != nil {
+				return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting bpfProgram Object %s : %v",
 					req.NamespacedName, err)
 			}
 
-			// Get owning ebpfProgramConfig object from ownerRef
-			ownerRef := metav1.GetControllerOf(ebpfProgram)
+			// Get owning BpfProgramConfig object from ownerRef
+			ownerRef := metav1.GetControllerOf(bpfProgram)
 			if ownerRef == nil {
-				return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting ebpfProgram Object owner")
+				return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting bpfProgram Object owner")
 			}
 
-			if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: ownerRef.Name}, ebpfProgramConfig); err != nil {
-				return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting ebpfProgramConfig Object from ownerRef: %v", err)
+			if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: ownerRef.Name}, BpfProgramConfig); err != nil {
+				return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting BpfProgramConfig Object from ownerRef: %v", err)
 			}
 
 		} else {
-			return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting ebpfProgramConfig Object %s : %v",
+			return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting BpfProgramConfig Object %s : %v",
 				req.NamespacedName, err)
 		}
 	}
 
-	if controllerutil.ContainsFinalizer(ebpfProgramConfig, bpfdOperatorFinalizer) && !ebpfProgramConfig.DeletionTimestamp.IsZero() {
-		// 2 Once we have an ebpfProgramConfig add out finalizer if not since we own it
-		controllerutil.RemoveFinalizer(ebpfProgramConfig, bpfdOperatorFinalizer)
+	if !controllerutil.ContainsFinalizer(BpfProgramConfig, bpfdOperatorFinalizer) {
+		// 2 Once we have an BpfProgramConfig add out finalizer if not since we own it
+		controllerutil.AddFinalizer(BpfProgramConfig, bpfdOperatorFinalizer)
 
-		err := r.Update(ctx, ebpfProgramConfig)
+		err := r.Update(ctx, BpfProgramConfig)
 		if err != nil {
-			return ctrl.Result{Requeue: false}, fmt.Errorf("failed adding bpfd-operator finalizer to ebpfProgramConfig %s : %v",
-				ebpfProgramConfig.Name, err)
-		}
-
-		return ctrl.Result{}, nil
-	} else {
-		// 2 Once we have an ebpfProgramConfig add out finalizer if not since we own it
-		controllerutil.AddFinalizer(ebpfProgramConfig, bpfdOperatorFinalizer)
-
-		err := r.Update(ctx, ebpfProgramConfig)
-		if err != nil {
-			return ctrl.Result{Requeue: false}, fmt.Errorf("failed adding bpfd-operator finalizer to ebpfProgramConfig %s : %v",
-				ebpfProgramConfig.Name, err)
+			return ctrl.Result{Requeue: false}, fmt.Errorf("failed adding bpfd-operator finalizer to BpfProgramConfig %s : %v",
+				BpfProgramConfig.Name, err)
 		}
 	}
 
-	// inline function for updating the status of the ebpfProgramObject
+	// inline function for updating the status of the bpfProgramObject
 	updateStatusFunc := func(condition metav1.Condition) {
-		meta.SetStatusCondition(&ebpfProgramConfig.Status.Conditions, condition)
+		meta.SetStatusCondition(&BpfProgramConfig.Status.Conditions, condition)
 
-		if err := r.Status().Update(ctx, ebpfProgramConfig); err != nil {
-			l.Error(err, "failed to set ebpfProgram object status")
+		if err := r.Status().Update(ctx, BpfProgramConfig); err != nil {
+			l.Error(err, "failed to set bpfProgram object status")
 		}
 	}
 
-	// reconcile ebpfProgramConfig Object on all other events
-	// list all existing ebpfProgram state for the given ebpfProgramConfig
-	ebpfPrograms := &bpfdiov1alpha1.EbpfProgramList{}
+	// reconcile BpfProgramConfig Object on all other events
+	// list all existing bpfProgram state for the given BpfProgramConfig
+	bpfPrograms := &bpfdiov1alpha1.BpfProgramList{}
 
-	// Only list ebpfPrograms for this ebpfProgramConfig
-	opts := []client.ListOption{client.MatchingLabels{"owningConfig": ebpfProgramConfig.Name}}
+	// Only list bpfPrograms for this BpfProgramConfig
+	opts := []client.ListOption{client.MatchingLabels{"owningConfig": BpfProgramConfig.Name}}
 
-	if err := r.List(ctx, ebpfPrograms, opts...); err != nil {
-		return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting ebpfProgramConfigs for full reconcile %s : %v",
+	if err := r.List(ctx, bpfPrograms, opts...); err != nil {
+		return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting BpfProgramConfigs for full reconcile %s : %v",
 			req.NamespacedName, err)
 	}
 
+	// List all nodes since an bpfprogram object will always be created
 	nodes := &corev1.NodeList{}
-	if err := r.List(ctx, nodes, []client.ListOption{}...); err != nil {
-		return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting ebpfProgramConfigs for full reconcile %s : %v",
+	if err := r.List(ctx, nodes, &client.ListOptions{}); err != nil {
+		return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting BpfProgramConfig Nodes for full reconcile %s : %v",
 			req.NamespacedName, err)
 	}
 
 	// Return NotYetLoaded Status
-	// EbpfPrograms for this haven't been created by bpfd-agent
-	if len(nodes.Items) != len(ebpfPrograms.Items) {
+	// BpfPrograms for this haven't been created by bpfd-agent
+	if len(nodes.Items) != len(bpfPrograms.Items) {
 		notYetLoaded := metav1.Condition{
 			Type:    string(EbpfProgConfigNotYetLoaded),
 			Status:  metav1.ConditionTrue,
 			Reason:  "ProgramsNotYetLoaded",
-			Message: "Waiting for ebpfProgramConfig Object to be reconciled to all nodes",
+			Message: "Waiting for BpfProgramConfig Object to be reconciled to all nodes",
 		}
 
 		updateStatusFunc(notYetLoaded)
@@ -218,28 +209,58 @@ func (r *EbpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{Requeue: false}, nil
 	}
 
-	failedEbpfPrograms := []string{}
-	// Make sure no ebpfPrograms have any issues issue
-	for _, ebpfProgram := range ebpfPrograms.Items {
+	failedBpfPrograms := []string{}
+	finalApplied := []string{}
+	// Make sure no bpfPrograms hade any issues in the loading process
+	for _, bpfProgram := range bpfPrograms.Items {
 
-		if ebpfProgram.Status.Conditions == nil {
+		if controllerutil.ContainsFinalizer(&bpfProgram, bpfdagent.BpfdAgentFinalizer) {
+			finalApplied = append(finalApplied, bpfProgram.Name)
+		}
+
+		if bpfProgram.Status.Conditions == nil {
 			continue
 		}
 
-		for _, condition := range ebpfProgram.Status.Conditions {
+		for _, condition := range bpfProgram.Status.Conditions {
 			if condition.Type == string(bpfdagent.EbpfProgCondNotLoaded) || condition.Type == string(bpfdagent.EbpfProgCondNotUnloaded) {
-				failedEbpfPrograms = append(failedEbpfPrograms, ebpfProgram.Name)
+				failedBpfPrograms = append(failedBpfPrograms, bpfProgram.Name)
 			}
 		}
 	}
 
-	if len(failedEbpfPrograms) != 0 {
+	if !BpfProgramConfig.DeletionTimestamp.IsZero() {
+		// Only remove bpfd-operator finalizer if all bpfProgram Objects are ready to be pruned  (i.e finalizers have been removed)
+		if len(finalApplied) == 0 {
+			controllerutil.RemoveFinalizer(BpfProgramConfig, bpfdOperatorFinalizer)
+
+			err := r.Update(ctx, BpfProgramConfig)
+			if err != nil {
+				return ctrl.Result{Requeue: false}, fmt.Errorf("failed adding bpfd-operator finalizer to BpfProgramConfig %s : %v",
+					BpfProgramConfig.Name, err)
+			}
+		} else {
+			ReconcileError := metav1.Condition{
+				Type:   string(EbpfProgConfigDeleteError),
+				Status: metav1.ConditionTrue,
+				Reason: "DeleteError",
+				Message: fmt.Sprintf("bpfProgramConfig Deletion failed on the following bpfProgram Objects: %v",
+					finalApplied),
+			}
+
+			updateStatusFunc(ReconcileError)
+		}
+
+		return ctrl.Result{}, nil
+	}
+
+	if len(failedBpfPrograms) != 0 {
 		ReconcileError := metav1.Condition{
 			Type:   string(EbpfProgConfigReconcileError),
 			Status: metav1.ConditionTrue,
 			Reason: "ReconcileError",
-			Message: fmt.Sprintf("ebpfProgramReconciliation failed on the following ebpfProgram Objects: %v",
-				failedEbpfPrograms),
+			Message: fmt.Sprintf("bpfProgramReconciliation failed on the following bpfProgram Objects: %v",
+				failedBpfPrograms),
 		}
 
 		updateStatusFunc(ReconcileError)
@@ -248,7 +269,7 @@ func (r *EbpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			Type:    string(EbpfProgConfigReconcileSuccess),
 			Status:  metav1.ConditionTrue,
 			Reason:  "ReconcileSuccess",
-			Message: "ebpfProgramReconciliation Succeeded on all nodes",
+			Message: "bpfProgramReconciliation Succeeded on all nodes",
 		}
 
 		updateStatusFunc(ReconcileSuccess)
@@ -258,9 +279,9 @@ func (r *EbpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Re
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *EbpfProgramConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *BpfProgramConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&bpfdiov1alpha1.EbpfProgramConfig{}).
+		For(&bpfdiov1alpha1.BpfProgramConfig{}).
 		// This only owns the bpfd-config configmap which should be created in the original deployment
 		// Owns(&corev1.ConfigMap{}, builder.WithPredicates(configPredicate())).
 		// This only owns the bpfd daemonset which should be created in the original
@@ -268,7 +289,7 @@ func (r *EbpfProgramConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// eventually we may need to do some fancy reconciliation here but for now we don't
 		Owns(&appsv1.DaemonSet{}, builder.WithPredicates(daemonPredicate())).
 		Watches(
-			&source.Kind{Type: &bpfdiov1alpha1.EbpfProgram{}},
+			&source.Kind{Type: &bpfdiov1alpha1.BpfProgram{}},
 			&handler.EnqueueRequestForObject{},
 			builder.WithPredicates(predicate.Or(predicate.GenerationChangedPredicate{}, statusChangedPredicate())),
 		).
@@ -279,8 +300,8 @@ func (r *EbpfProgramConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func statusChangedPredicate() predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			oldObject := e.ObjectOld.(*bpfdiov1alpha1.EbpfProgram)
-			newObject := e.ObjectNew.(*bpfdiov1alpha1.EbpfProgram)
+			oldObject := e.ObjectOld.(*bpfdiov1alpha1.BpfProgram)
+			newObject := e.ObjectNew.(*bpfdiov1alpha1.BpfProgram)
 			return !reflect.DeepEqual(oldObject.Status, newObject.Status)
 		},
 	}

@@ -47,8 +47,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-// EbpfProgramReconciler reconciles a EbpfProgram object
-type EbpfProgramReconciler struct {
+// BpfProgramReconciler reconciles a BpfProgram object
+type BpfProgramReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	GrpcConn   *grpc.ClientConn
@@ -56,50 +56,43 @@ type EbpfProgramReconciler struct {
 	NodeName   string
 }
 
-// existingRequests rebuilds the LoadRequests needed to actually get the node
-// to the desired state
-type existingReq struct {
-	uuid string
-	req  *bpfdiov1alpha1.EbpfProgramConfigSpec
-}
-
-type ebpfProgramConditionType string
+type bpfProgramConditionType string
 
 const (
-	bpfdAgentFinalizer                               = "bpfd.io.agent/finalizer"
-	retryDurationAgent                               = 10 * time.Second
-	EbpfProgCondLoaded      ebpfProgramConditionType = "Loaded"
-	EbpfProgCondNotLoaded   ebpfProgramConditionType = "NotLoaded"
-	EbpfProgCondNotUnloaded ebpfProgramConditionType = "NotUnLoaded"
-	EbpfProgCondNotSelected ebpfProgramConditionType = "NotSelected"
+	BpfdAgentFinalizer                              = "bpfd.io.agent/finalizer"
+	retryDurationAgent                              = 10 * time.Second
+	EbpfProgCondLoaded      bpfProgramConditionType = "Loaded"
+	EbpfProgCondNotLoaded   bpfProgramConditionType = "NotLoaded"
+	EbpfProgCondNotUnloaded bpfProgramConditionType = "NotUnLoaded"
+	EbpfProgCondNotSelected bpfProgramConditionType = "NotSelected"
 )
 
-//+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprograms,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprograms/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprograms/finalizers,verbs=update
-//+kubebuilder:rbac:groups=bpfd.io,resources=ebpfprogramconfigs,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfd.io,resources=bpfprogramconfigs,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the EbpfProgram object against the actual cluster state, and then
+// the BpfProgram object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 // This should be called in the following scenarios
-// 1. A new ebpfProgramConfig Object is created
-// 2. An ebpfProgramConfig Object is Updated (i.e one of the following fields change
+// 1. A new BpfProgramConfig Object is created
+// 2. An BpfProgramConfig Object is Updated (i.e one of the following fields change
 //   - NodeSelector
 //   - Priority
 //   - AttachPoint
 //   - Bytecodesource
 //
-// 3. Our NodeLabels are updated and the Node is no longer selected by an EbpfProgramConfig
+// 3. Our NodeLabels are updated and the Node is no longer selected by an BpfProgramConfig
 //
-// 4. An ebpfProgramCongfig Object is deleted
+// 4. An bpfProgramCongfig Object is deleted
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
-func (r *EbpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *BpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	l := log.FromContext(ctx)
 
 	l.Info("bpfd-agent is reconciling", "request", req.String())
@@ -111,16 +104,16 @@ func (r *EbpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			req.NamespacedName, err)
 	}
 
-	ebpfProgramConfigs := &bpfdiov1alpha1.EbpfProgramConfigList{}
+	BpfProgramConfigs := &bpfdiov1alpha1.BpfProgramConfigList{}
 
 	opts := []client.ListOption{}
 
-	if err := r.List(ctx, ebpfProgramConfigs, opts...); err != nil {
-		return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting ebpfProgramConfigs for full reconcile %s : %v",
+	if err := r.List(ctx, BpfProgramConfigs, opts...); err != nil {
+		return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting BpfProgramConfigs for full reconcile %s : %v",
 			req.NamespacedName, err)
 	}
 
-	if len(ebpfProgramConfigs.Items) == 0 {
+	if len(BpfProgramConfigs.Items) == 0 {
 		return ctrl.Result{Requeue: false}, nil
 	}
 
@@ -131,34 +124,19 @@ func (r *EbpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 	}
 
-	existingRequests := map[string]existingReq{}
-	// Rebuild EbpfProgramConfig.Spec from nodeState to compare to desired state
-	for _, bpfdProg := range nodeState {
-		existingConfigSpec := &bpfdiov1alpha1.EbpfProgramConfigSpec{
-			Name:     bpfdProg.Name,
-			Type:     bpfdProg.ProgramType.String(),
-			Priority: bpfdProg.GetNetworkMultiAttach().Priority,
-			ByteCode: bpfdiov1alpha1.ByteCodeSource{
-				ImageUrl: &bpfdProg.Path,
-			},
-			AttachPoint: bpfdiov1alpha1.EbpfProgramAttachPoint{
-				Interface: &bpfdProg.GetNetworkMultiAttach().Iface,
-			},
-			NodeSelector: metav1.LabelSelector{},
-		}
-
-		existingRequests[bpfdProg.Name] = existingReq{
-			uuid: bpfdProg.Id,
-			req:  existingConfigSpec,
-		}
+	// Rebuild BpfProgramConfig.Spec from nodeState to compare to desired state
+	existingConfigs, err := internal.CreateExistingState(nodeState)
+	if err != nil {
+		l.Error(err, "failed to generate node state to k8s state mapping")
+		return ctrl.Result{Requeue: false, RequeueAfter: retryDurationAgent}, nil
 	}
 
-	// Reconcile every ebpfProgramConfig Object
+	// Reconcile every BpfProgramConfig Object
 	// note: This doesn't necessarily result in any extra grpc calls to bpfd
-	for _, ebpfProgramConfig := range ebpfProgramConfigs.Items {
-		retry, err := r.reconcileEbpfProgramConfig(ctx, &ebpfProgramConfig, ourNode, existingRequests)
+	for _, BpfProgramConfig := range BpfProgramConfigs.Items {
+		retry, err := r.reconcilBpfProgramConfig(ctx, &BpfProgramConfig, ourNode, existingConfigs)
 		if err != nil {
-			l.Error(err, "Reconciling ebpfProgramConfig Failed", "ebpfProgramConfigName", ebpfProgramConfig.Name)
+			l.Error(err, "Reconciling BpfProgramConfig Failed", "BpfProgramConfigName", BpfProgramConfig.Name)
 			return ctrl.Result{Requeue: retry, RequeueAfter: retryDurationAgent}, nil
 		}
 	}
@@ -166,51 +144,51 @@ func (r *EbpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	return ctrl.Result{Requeue: false}, nil
 }
 
-// reconcileEbpfProgramConfig reconciles the existing node state to the user intent
-// within a single EbpfProgramConfig Object.
-func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
-	ebpfProgramConfig *bpfdiov1alpha1.EbpfProgramConfig,
+// reconcilBpfProgramConfig reconciles the existing node state to the user intent
+// within a single BpfProgramConfig Object.
+func (r *BpfProgramReconciler) reconcilBpfProgramConfig(ctx context.Context,
+	BpfProgramConfig *bpfdiov1alpha1.BpfProgramConfig,
 	ourNode *v1.Node,
-	nodeState map[string]existingReq) (bool, error) {
+	nodeState map[string]internal.ExistingReq) (bool, error) {
 
 	l := log.FromContext(ctx)
-	ebpfProgram := &bpfdiov1alpha1.EbpfProgram{}
-	ebpfProgramName := fmt.Sprintf("%s-%s", ebpfProgramConfig.Name, r.NodeName)
+	bpfProgram := &bpfdiov1alpha1.BpfProgram{}
+	bpfProgramName := fmt.Sprintf("%s-%s", BpfProgramConfig.Name, r.NodeName)
 	isNodeSelected := false
 
-	// Always create the ebpfProgram Object if it doesn't exist
-	err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: ebpfProgramName}, ebpfProgram)
+	// Always create the bpfProgram Object if it doesn't exist
+	err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: bpfProgramName}, bpfProgram)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			l.Info("ebpfProgram doesn't exist creating...")
-			ebpfProgram = &bpfdiov1alpha1.EbpfProgram{
+			l.Info("bpfProgram doesn't exist creating...")
+			bpfProgram = &bpfdiov1alpha1.BpfProgram{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:       ebpfProgramName,
-					Finalizers: []string{bpfdAgentFinalizer},
-					Labels:     map[string]string{"owningConfig": ebpfProgramConfig.Name},
+					Name:       bpfProgramName,
+					Finalizers: []string{BpfdAgentFinalizer},
+					Labels:     map[string]string{"owningConfig": BpfProgramConfig.Name},
 				},
-				Spec: bpfdiov1alpha1.EbpfProgramSpec{
-					Programs: map[string]bpfdiov1alpha1.EbpfProgramMeta{},
+				Spec: bpfdiov1alpha1.BpfProgramSpec{
+					Programs: map[string]bpfdiov1alpha1.BpfProgramMeta{},
 				},
-				Status: bpfdiov1alpha1.EbpfProgramStatus{Conditions: []metav1.Condition{}},
+				Status: bpfdiov1alpha1.BpfProgramStatus{Conditions: []metav1.Condition{}},
 			}
 
-			// Make the corresponding ebpfProgramConfig the owner
-			ctrl.SetControllerReference(ebpfProgramConfig, ebpfProgram, r.Scheme)
+			// Make the corresponding BpfProgramConfig the owner
+			ctrl.SetControllerReference(BpfProgramConfig, bpfProgram, r.Scheme)
 
 			opts := client.CreateOptions{}
-			if err = r.Create(ctx, ebpfProgram, &opts); err != nil {
-				return false, fmt.Errorf("failed to create ebpfProgram object: %v",
+			if err = r.Create(ctx, bpfProgram, &opts); err != nil {
+				return false, fmt.Errorf("failed to create bpfProgram object: %v",
 					err)
 			}
 		} else {
-			return false, fmt.Errorf("failed getting ebpfProgram %s : %v",
-				ebpfProgramName, err)
+			return false, fmt.Errorf("failed getting bpfProgram %s : %v",
+				bpfProgramName, err)
 		}
 	}
 
-	// Logic to check if this node is selected by the ebpfProgramConfig object
-	selector, err := metav1.LabelSelectorAsSelector(&ebpfProgramConfig.Spec.NodeSelector)
+	// Logic to check if this node is selected by the BpfProgramConfig object
+	selector, err := metav1.LabelSelectorAsSelector(&BpfProgramConfig.Spec.NodeSelector)
 	if err != nil {
 		return false, fmt.Errorf("failed to parse nodeSelector: %v",
 			err)
@@ -224,16 +202,7 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 
 	isNodeSelected = selector.Matches(nodeLabelSet)
 
-	// inline function for updating the status of the ebpfProgramObject
-	updateStatusFunc := func(condition metav1.Condition) {
-		meta.SetStatusCondition(&ebpfProgram.Status.Conditions, condition)
-
-		if err = r.Status().Update(ctx, ebpfProgram); err != nil {
-			l.Error(err, "failed to set ebpfProgram object status")
-		}
-	}
-
-	// inline function for loading and ebpfProgram via bpfd
+	// inline function for loading and bpfProgram via bpfd
 	loadFunc := func(loadRequest *gobpfd.LoadRequest) (bool, error) {
 		l.Info("loading ebpf program via bpfd")
 
@@ -243,31 +212,30 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 				Type:    string(EbpfProgCondNotLoaded),
 				Status:  metav1.ConditionTrue,
 				Reason:  "bpfdNotLoaded",
-				Message: "Failed to load ebpfProgram",
+				Message: "Failed to load bpfProgram",
 			}
 
-			updateStatusFunc(failedLoadedCondition)
+			r.updateStatus(ctx, bpfProgram, failedLoadedCondition)
 
-			return true, fmt.Errorf("failed to load ebpfProgram via bpfd: %v",
+			return true, fmt.Errorf("failed to load bpfProgram via bpfd: %v",
 				err)
 		}
 
 		maps, err := internal.GetMapsForUUID(uuid)
 		if err != nil {
-			l.Error(err, "failed to get ebpfProgram's Maps")
+			l.Error(err, "failed to get bpfProgram's Maps")
 			maps = map[string]string{}
 		}
 
-		// TODO(astoycos) this won't always be a multi Attach program
-		ebpfProgram.Spec.Programs[uuid] = bpfdiov1alpha1.EbpfProgramMeta{
-			AttachPoint: &bpfdiov1alpha1.EbpfProgramAttachPoint{Interface: &loadRequest.GetNetworkMultiAttach().Iface},
+		bpfProgram.Spec.Programs[uuid] = bpfdiov1alpha1.BpfProgramMeta{
+			AttachPoint: internal.AttachConversion(loadRequest),
 			Maps:        maps,
 		}
 
-		l.V(1).Info("Updating programs", "Programs", ebpfProgram.Spec.Programs)
-		// Update ebpfProgram once successfully loaded
-		if err = r.Update(ctx, ebpfProgram, &client.UpdateOptions{}); err != nil {
-			return false, fmt.Errorf("failed to create ebpfProgram object: %v",
+		l.V(1).Info("Updating programs", "Programs", bpfProgram.Spec.Programs)
+		// Update bpfProgram once successfully loaded
+		if err = r.Update(ctx, bpfProgram, &client.UpdateOptions{}); err != nil {
+			return false, fmt.Errorf("failed to create bpfProgram object: %v",
 				err)
 		}
 
@@ -275,26 +243,26 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 			Type:    string(EbpfProgCondLoaded),
 			Status:  metav1.ConditionTrue,
 			Reason:  "bpfdLoaded",
-			Message: "Successfully loaded ebpfProgram",
+			Message: "Successfully loaded bpfProgram",
 		}
 
-		updateStatusFunc(loadedCondition)
+		r.updateStatus(ctx, bpfProgram, loadedCondition)
 
 		l.Info("Program loaded via bpfd", "bpfd-program-uuid", uuid)
 		return false, nil
 	}
 
 	// This function unloads the bpf program via bpfd and removes the bpfd-agent
-	// finalizer from the ebpfProgram Object
+	// finalizer from the bpfProgram Object
 	unloadFunc := func() (bool, error) {
-		l.Info("unloading ebpf program via bpfd")
-
-		if len(ebpfProgram.Spec.Programs) == 0 {
+		if len(bpfProgram.Spec.Programs) == 0 {
 			l.Info("no programs to remove")
 			return false, nil
 		}
 
-		for uuid := range ebpfProgram.Spec.Programs {
+		for uuid := range bpfProgram.Spec.Programs {
+			l.Info("unloading ebpf program via bpfd", "program-uuid", uuid)
+
 			unloadRequest, err := internal.BuildBpfdUnloadRequest(uuid)
 			if err != nil {
 				// Add a condition and exit do requeue, bpfd might become ready
@@ -308,12 +276,12 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 					Type:    string(EbpfProgCondNotUnloaded),
 					Status:  metav1.ConditionTrue,
 					Reason:  "bpfdNotUnloaded",
-					Message: "Failed to unload ebpfProgram",
+					Message: "Failed to unload bpfProgram",
 				}
 
-				updateStatusFunc(failUnloadCondition)
+				r.updateStatus(ctx, bpfProgram, failUnloadCondition)
 
-				return true, fmt.Errorf("failed to unload ebpfProgram via bpfd: %v",
+				return true, fmt.Errorf("failed to unload bpfProgram via bpfd: %v",
 					err)
 			}
 		}
@@ -322,29 +290,38 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 	}
 
 	// TODO(astoycos) This will need to end up being a list of loadRequests
-	// if a given ebpfProgramConfig selects more than one attach point
+	// if a given BpfProgramConfig selects more than one attach point
 	// (i.e if we support a pod LabelSelector for interfaces) For now
-	// we only support specifying a single node interface in the API so
-	// there will only be a single loadRequest per ebpfProgramConfig Object.
-	loadRequest, err := internal.BuildBpfdLoadRequest(ebpfProgramConfig)
+	// we only support specifying a single BpfProgramAttachPoint in the API so
+	// there will only be a single loadRequest per BpfProgramConfig Object.
+	loadRequest, err := internal.BuildBpfdLoadRequest(BpfProgramConfig)
 	if err != nil {
+		failedBuildCondition := metav1.Condition{
+			Type:    string(EbpfProgCondNotLoaded),
+			Status:  metav1.ConditionTrue,
+			Reason:  "bpfdNotLoaded",
+			Message: "Failed to build bpfProgram load request",
+		}
+
+		r.updateStatus(ctx, bpfProgram, failedBuildCondition)
+
 		return true, fmt.Errorf("failed to generate bpfd load request: %v",
 			err)
 	}
 	l.V(1).Info("Nodestate", "NodeState", nodeState)
 
 	// Compare the desired state to existing bpfd state
-	v, ok := nodeState[ebpfProgramConfig.Spec.Name]
-	// ebpfProgram doesn't exist on node
+	v, ok := nodeState[BpfProgramConfig.Spec.Name]
+	// bpfProgram doesn't exist on node
 	if !ok {
-		l.V(1).Info("ebpfProgram doesn't exist on node")
+		l.V(1).Info("bpfProgram doesn't exist on node")
 
-		// If EbpfProgramConfig is being deleted just remove agent finalizer so the
+		// If BpfProgramConfig is being deleted just remove agent finalizer so the
 		// owner relationship can take care of cleanup
-		if !ebpfProgramConfig.DeletionTimestamp.IsZero() {
-			if controllerutil.ContainsFinalizer(ebpfProgram, bpfdAgentFinalizer) {
-				controllerutil.RemoveFinalizer(ebpfProgram, bpfdAgentFinalizer)
-				err := r.Update(ctx, ebpfProgram)
+		if !BpfProgramConfig.DeletionTimestamp.IsZero() {
+			if controllerutil.ContainsFinalizer(bpfProgram, BpfdAgentFinalizer) {
+				controllerutil.RemoveFinalizer(bpfProgram, BpfdAgentFinalizer)
+				err := r.Update(ctx, bpfProgram)
 				if err != nil {
 					return false, err
 				}
@@ -360,9 +337,9 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 				Type:    string(EbpfProgCondNotSelected),
 				Status:  metav1.ConditionTrue,
 				Reason:  "nodeNotSelected",
-				Message: "This node is not selected to run the ebpfProgram",
+				Message: "This node is not selected to run the bpfProgram",
 			}
-			updateStatusFunc(nodeNotSelectedCondition)
+			r.updateStatus(ctx, bpfProgram, nodeNotSelectedCondition)
 
 			return false, nil
 		}
@@ -371,20 +348,20 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 		return loadFunc(loadRequest)
 	}
 
-	// EbpfProgram exists but either EbpfProgramConfig is being deleted or node is no
+	// BpfProgram exists but either BpfProgramConfig is being deleted or node is no
 	// longer selected....unload program
-	if !ebpfProgramConfig.DeletionTimestamp.IsZero() || !isNodeSelected {
-		l.V(1).Info("ebpfProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", !ebpfProgramConfig.DeletionTimestamp.IsZero(),
+	if !BpfProgramConfig.DeletionTimestamp.IsZero() || !isNodeSelected {
+		l.V(1).Info("bpfProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", !BpfProgramConfig.DeletionTimestamp.IsZero(),
 			"isSelected", isNodeSelected)
-		if controllerutil.ContainsFinalizer(ebpfProgram, bpfdAgentFinalizer) {
+		if controllerutil.ContainsFinalizer(bpfProgram, BpfdAgentFinalizer) {
 			if retry, err := unloadFunc(); err != nil {
 				return retry, err
 			}
 
 			// Remove bpfd-agentFinalizer. Once all finalizers have been
 			// removed, the object will be deleted.
-			controllerutil.RemoveFinalizer(ebpfProgram, bpfdAgentFinalizer)
-			err := r.Update(ctx, ebpfProgram)
+			controllerutil.RemoveFinalizer(bpfProgram, BpfdAgentFinalizer)
+			err := r.Update(ctx, bpfProgram)
 			if err != nil {
 				return false, err
 			}
@@ -395,27 +372,30 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 				Type:    string(EbpfProgCondNotSelected),
 				Status:  metav1.ConditionTrue,
 				Reason:  "nodeNotSelected",
-				Message: "This node is no longer selected to run the ebpfProgram",
+				Message: "This node is no longer selected to run the bpfProgram",
 			}
-			updateStatusFunc(nodeNotSelectedCondition)
+			r.updateStatus(ctx, bpfProgram, nodeNotSelectedCondition)
 		}
 
 		return false, nil
 	}
 
-	// TODO (astoycos) blocked on https://github.com/redhat-et/bpfd/issues/177
+	BpfProgramConfig.Spec.NodeSelector = metav1.LabelSelector{}
+
 	// Temporary hacks for state which won't match yet based on list API
-	ebpfProgramConfig.Spec.NodeSelector = metav1.LabelSelector{}
-	ebpfProgramConfig.Spec.ByteCode.ImageUrl = nil
-	v.req.ByteCode.ImageUrl = nil
+	// Proceed-on is only supported for XDP currently
+	if BpfProgramConfig.Spec.Type == "XDP" || BpfProgramConfig.Spec.Type == "TC" {
+		BpfProgramConfig.Spec.AttachPoint.NetworkMultiAttach.ProceedOn = nil
+		v.Req.AttachPoint.NetworkMultiAttach.ProceedOn = nil
+	}
 
-	l.V(1).Info("Desired Spec and existing state", "ebpfProgramConfigSpec",
-		ebpfProgramConfig.Spec, "existingState", *v.req)
+	l.V(1).Info("Desired Spec and existing state", "BpfProgramConfigSpec",
+		BpfProgramConfig.Spec, "existingState", *v.Req)
 
-	// EbpfProgram exists but is not correct state
-	if !reflect.DeepEqual(*v.req, ebpfProgramConfig.Spec) {
+	// BpfProgram exists but is not correct state
+	if !reflect.DeepEqual(*v.Req, BpfProgramConfig.Spec) {
 		// Program is already loaded but not in the right state... Unload it and load new one
-		unloadRequest, err := internal.BuildBpfdUnloadRequest(v.uuid)
+		unloadRequest, err := internal.BuildBpfdUnloadRequest(v.Uuid)
 		if err != nil {
 			// Add a condition and exit do requeue, bpfd might become ready
 			return true, fmt.Errorf("failed to generate bpfd unload request: %v",
@@ -428,12 +408,12 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 				Type:    string(EbpfProgCondNotUnloaded),
 				Status:  metav1.ConditionTrue,
 				Reason:  "bpfdNotUnloaded",
-				Message: "Failed to unload ebpfProgram",
+				Message: "Failed to unload bpfProgram",
 			}
 
-			updateStatusFunc(failUnloadCondition)
+			r.updateStatus(ctx, bpfProgram, failUnloadCondition)
 
-			return true, fmt.Errorf("failed to unload ebpfProgram via bpfd: %v",
+			return true, fmt.Errorf("failed to unload bpfProgram via bpfd: %v",
 				err)
 		}
 
@@ -446,7 +426,7 @@ func (r *EbpfProgramReconciler) reconcileEbpfProgramConfig(ctx context.Context,
 	return false, nil
 }
 
-func (r *EbpfProgramReconciler) loadBpfdProgram(ctx context.Context, loadRequest *gobpfd.LoadRequest) (string, error) {
+func (r *BpfProgramReconciler) loadBpfdProgram(ctx context.Context, loadRequest *gobpfd.LoadRequest) (string, error) {
 	var res *gobpfd.LoadResponse
 	res, err := r.BpfdClient.Load(ctx, loadRequest)
 	if err != nil {
@@ -458,7 +438,7 @@ func (r *EbpfProgramReconciler) loadBpfdProgram(ctx context.Context, loadRequest
 	return id, nil
 }
 
-func (r *EbpfProgramReconciler) unloadBpfdProgram(ctx context.Context, unloadRequest *gobpfd.UnloadRequest) error {
+func (r *BpfProgramReconciler) unloadBpfdProgram(ctx context.Context, unloadRequest *gobpfd.UnloadRequest) error {
 	_, err := r.BpfdClient.Unload(ctx, unloadRequest)
 	if err != nil {
 		r.GrpcConn.Close()
@@ -467,7 +447,7 @@ func (r *EbpfProgramReconciler) unloadBpfdProgram(ctx context.Context, unloadReq
 	return nil
 }
 
-func (r *EbpfProgramReconciler) listBpfdPrograms(ctx context.Context) ([]*gobpfd.ListResponse_ListResult, error) {
+func (r *BpfProgramReconciler) listBpfdPrograms(ctx context.Context) ([]*gobpfd.ListResponse_ListResult, error) {
 	listReq := gobpfd.ListRequest{}
 
 	listResponse, err := r.BpfdClient.List(ctx, &listReq)
@@ -479,16 +459,27 @@ func (r *EbpfProgramReconciler) listBpfdPrograms(ctx context.Context) ([]*gobpfd
 	return listResponse.Results, nil
 }
 
+func (r *BpfProgramReconciler) updateStatus(ctx context.Context, prog *bpfdiov1alpha1.BpfProgram, cond metav1.Condition) {
+	// inline function for updating the status of the bpfProgramObject
+	l := log.FromContext(ctx)
+
+	meta.SetStatusCondition(&prog.Status.Conditions, cond)
+
+	if err := r.Status().Update(ctx, prog); err != nil {
+		l.Error(err, "failed to set bpfProgram object status")
+	}
+}
+
 // SetupWithManager sets up the controller with the Manager.
-// The Bpfd-Agent should reconcile whenever a ebpfProgramConfig is updated,
-// load the program to the node via bpfd, and then create a ebpfProgram object
+// The Bpfd-Agent should reconcile whenever a BpfProgramConfig is updated,
+// load the program to the node via bpfd, and then create a bpfProgram object
 // to reflect per node state information.
-func (r *EbpfProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *BpfProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&bpfdiov1alpha1.EbpfProgramConfig{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
-		Owns(&bpfdiov1alpha1.EbpfProgram{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
+		For(&bpfdiov1alpha1.BpfProgramConfig{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
+		Owns(&bpfdiov1alpha1.BpfProgram{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
 		// Only trigger reconciliation if node labels change since that could
-		// make the EbpfProgramConfig no longer select the Node. Additionally only
+		// make the BpfProgramConfig no longer select the Node. Additionally only
 		// care about node events specific to our node
 		Watches(
 			&source.Kind{Type: &v1.Node{}},

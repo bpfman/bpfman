@@ -8,7 +8,7 @@ rules:
 - apiGroups:
   - bpfd.io
   resources:
-  - ebpfprogramconfigs
+  - bpfprogramconfigs
   verbs:
   - get
   - list
@@ -16,7 +16,7 @@ rules:
 - apiGroups:
   - bpfd.io
   resources:
-  - ebpfprograms
+  - bpfprograms
   verbs:
   - create
   - delete
@@ -28,13 +28,13 @@ rules:
 - apiGroups:
   - bpfd.io
   resources:
-  - ebpfprograms/finalizers
+  - bpfprograms/finalizers
   verbs:
   - update
 - apiGroups:
   - bpfd.io
   resources:
-  - ebpfprograms/status
+  - bpfprograms/status
   verbs:
   - get
   - patch

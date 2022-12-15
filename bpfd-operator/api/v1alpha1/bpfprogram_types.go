@@ -22,26 +22,26 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EbpfProgramSpec defines the desired state of EbpfProgram
-type EbpfProgramSpec struct {
-	// ProgramMap is is a map with Keys: UUIDs, Values: EbpfProgramMeta
-	Programs map[string]EbpfProgramMeta `json:"programs"`
+// BpfProgramSpec defines the desired state of BpfProgram
+type BpfProgramSpec struct {
+	// ProgramMap is is a map with Keys: UUIDs, Values: BpfProgramMeta
+	Programs map[string]BpfProgramMeta `json:"programs"`
 }
 
-// EbpfProgramMeta defines the relevant metadata needed for a single
-// running ebpfProgram.
-type EbpfProgramMeta struct {
-	// AttachPoint specifies what this ebpfProgram is attached to
+// BpfProgramMeta defines the relevant metadata needed for a single
+// running BpfProgram.
+type BpfProgramMeta struct {
+	// AttachPoint specifies what this BpfProgram is attached to
 	// for some programs is may be nil.
-	AttachPoint *EbpfProgramAttachPoint `json:"attachpoint,omitempty"`
+	AttachPoint *BpfProgramAttachPoint `json:"attachpoint,omitempty"`
 
 	// Maps is a map with Keys: Map Names, and Values: Map Pin paths
 	Maps map[string]string `json:"maps"`
 }
 
-// EbpfProgramStatus defines the observed state of EbpfProgram
+// BpfProgramStatus defines the observed state of BpfProgram
 // TODO Make these a fixed set of metav1.Condition.types and metav1.Condition.reasons
-type EbpfProgramStatus struct {
+type BpfProgramStatus struct {
 	// Conditions houses the updates regarding the actual implementation of
 	// the bpf program on the node
 	// Known .status.conditions.type are: "Available", "Progressing", and "Degraded"
@@ -56,25 +56,25 @@ type EbpfProgramStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Cluster
 
-// EbpfProgram is the Schema for the ebpfprograms API
-type EbpfProgram struct {
+// BpfProgram is the Schema for the Bpfprograms API
+type BpfProgram struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
-	Spec EbpfProgramSpec `json:"spec"`
+	Spec BpfProgramSpec `json:"spec"`
 	// +optional
-	Status EbpfProgramStatus `json:"status,omitempty"`
+	Status BpfProgramStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// EbpfProgramList contains a list of EbpfProgram
-type EbpfProgramList struct {
+// BpfProgramList contains a list of BpfProgram
+type BpfProgramList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []EbpfProgram `json:"items"`
+	Items           []BpfProgram `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&EbpfProgram{}, &EbpfProgramList{})
+	SchemeBuilder.Register(&BpfProgram{}, &BpfProgramList{})
 }

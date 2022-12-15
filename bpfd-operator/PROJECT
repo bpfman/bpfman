@@ -12,7 +12,7 @@ resources:
     namespaced: true
   controller: true
   domain: bpfd.io
-  kind: EbpfProgram
+  kind: BpfProgram
   path: github.com/redhat-et/bpfd/api/v1alpha1
   version: v1alpha1
 - api:
@@ -20,7 +20,7 @@ resources:
     namespaced: true
   controller: true
   domain: bpfd.io
-  kind: EbpfProgramConfig
+  kind: BpfProgramConfig
   path: github.com/redhat-et/bpfd/api/v1alpha1
   version: v1alpha1
 version: "3"

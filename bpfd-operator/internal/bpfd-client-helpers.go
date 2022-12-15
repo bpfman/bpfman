@@ -29,6 +29,7 @@ import (
 	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/api/v1alpha1"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
 	"google.golang.org/grpc/credentials"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -93,45 +94,70 @@ func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) 
 	return credentials.NewTLS(config), nil
 }
 
-func BuildBpfdLoadRequest(ebpf_program_config *bpfdiov1alpha1.EbpfProgramConfig) (*gobpfd.LoadRequest, error) {
+func BuildBpfdLoadRequest(bpf_program_config *bpfdiov1alpha1.BpfProgramConfig) (*gobpfd.LoadRequest, error) {
 	loadRequest := gobpfd.LoadRequest{}
-
-	loadRequest.SectionName = ebpf_program_config.Spec.Name
-
-	// Parse if bytecode source is an image or local
-	// TODO since we know only one field here will be non-nil we can probably
-	// optimize at some point
-	if ebpf_program_config.Spec.ByteCode.ImageUrl != nil {
-		loadRequest.FromImage = true
-		loadRequest.Path = *ebpf_program_config.Spec.ByteCode.ImageUrl
-	} else {
-		loadRequest.FromImage = false
-		loadRequest.Path = *ebpf_program_config.Spec.ByteCode.Path
-	}
+	loadRequest.SectionName = bpf_program_config.Spec.Name
+	loadRequest.Location = bpf_program_config.Spec.ByteCode
 
 	// Map program type (ultimately we should make this an ENUM in the API)
-	switch ebpf_program_config.Spec.Type {
+	switch bpf_program_config.Spec.Type {
 	case "XDP":
 		loadRequest.ProgramType = gobpfd.ProgramType_XDP
+
+		if bpf_program_config.Spec.AttachPoint.NetworkMultiAttach != nil {
+			loadRequest.AttachType = &gobpfd.LoadRequest_NetworkMultiAttach{
+				NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
+					Priority: int32(bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Priority),
+					Iface:    bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Interface,
+				},
+			}
+		} else {
+			return nil, fmt.Errorf("invalid attach type for program type: XDP")
+
+		}
+
 	case "TC":
 		loadRequest.ProgramType = gobpfd.ProgramType_TC
-	default:
-		// Add a condition and exit don't requeue, an ensuing update to ebpfProgramConfig
-		// should fix this
-		return nil, fmt.Errorf("invalid Program Type")
-	}
 
-	if ebpf_program_config.Spec.AttachPoint.Interface != nil {
-		loadRequest.AttachType = &gobpfd.LoadRequest_NetworkMultiAttach{
-			NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
-				Priority: int32(ebpf_program_config.Spec.Priority),
-				Iface:    *ebpf_program_config.Spec.AttachPoint.Interface,
-			},
+		if bpf_program_config.Spec.AttachPoint.NetworkMultiAttach != nil {
+			var direction gobpfd.Direction
+			switch bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Direction {
+			case "INGRESS":
+				direction = gobpfd.Direction_INGRESS
+			case "EGRESS":
+				direction = gobpfd.Direction_EGRESS
+			default:
+				// Default to INGRESS
+				bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Direction = "INGRESS"
+				direction = gobpfd.Direction_INGRESS
+			}
+
+			loadRequest.AttachType = &gobpfd.LoadRequest_NetworkMultiAttach{
+				NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
+					Priority:  int32(bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Priority),
+					Iface:     bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Interface,
+					Direction: direction,
+				},
+			}
+		} else {
+			return nil, fmt.Errorf("invalid attach type for program type: XDP")
 		}
-	} else {
-		// Add a condition and exit don't requeue, an ensuing update to ebpfProgramConfig
+	case "TRACEPOINT":
+		loadRequest.ProgramType = gobpfd.ProgramType_TRACEPOINT
+
+		if bpf_program_config.Spec.AttachPoint.SingleAttach != nil {
+			loadRequest.AttachType = &gobpfd.LoadRequest_SingleAttach{
+				SingleAttach: &gobpfd.SingleAttach{
+					Name: bpf_program_config.Spec.AttachPoint.SingleAttach.Name,
+				},
+			}
+		} else {
+			return nil, fmt.Errorf("invalid attach type for program type: TRACEPOINT")
+		}
+	default:
+		// Add a condition and exit don't requeue, an ensuing update to BpfProgramConfig
 		// should fix this
-		return nil, fmt.Errorf("invalid Attach Type")
+		return nil, fmt.Errorf("invalid Program Type: %v", bpf_program_config.Spec.Type)
 	}
 
 	return &loadRequest, nil
@@ -165,4 +191,92 @@ func GetMapsForUUID(uuid string) (map[string]string, error) {
 	}
 
 	return maps, nil
+}
+
+// ExistingRequests rebuilds the LoadRequests needed to actually get the node
+// to the desired state
+type ExistingReq struct {
+	Uuid string
+	Req  *bpfdiov1alpha1.BpfProgramConfigSpec
+}
+
+// CreateExistingState takes bpfd state via the list API and
+// transforms it to k8s bpfd API state.
+func CreateExistingState(nodeState []*gobpfd.ListResponse_ListResult) (map[string]ExistingReq, error) {
+	existingRequests := map[string]ExistingReq{}
+
+	for _, bpfdProg := range nodeState {
+		var existingConfigSpec *bpfdiov1alpha1.BpfProgramConfigSpec
+
+		switch bpfdProg.ProgramType.String() {
+		case "XDP":
+			existingConfigSpec = &bpfdiov1alpha1.BpfProgramConfigSpec{
+				Name:         bpfdProg.Name,
+				Type:         bpfdProg.ProgramType.String(),
+				ByteCode:     bpfdProg.Location,
+				AttachPoint:  *AttachConversion(bpfdProg),
+				NodeSelector: metav1.LabelSelector{},
+			}
+		case "TC":
+			existingConfigSpec = &bpfdiov1alpha1.BpfProgramConfigSpec{
+				Name:         bpfdProg.Name,
+				Type:         bpfdProg.ProgramType.String(),
+				ByteCode:     bpfdProg.Location,
+				AttachPoint:  *AttachConversion(bpfdProg),
+				NodeSelector: metav1.LabelSelector{},
+			}
+		case "TRACEPOINT":
+			existingConfigSpec = &bpfdiov1alpha1.BpfProgramConfigSpec{
+				Name:         bpfdProg.Name,
+				Type:         bpfdProg.ProgramType.String(),
+				ByteCode:     bpfdProg.Location,
+				AttachPoint:  *AttachConversion(bpfdProg),
+				NodeSelector: metav1.LabelSelector{},
+			}
+		default:
+			return nil, fmt.Errorf("invalid existing program type: %s", bpfdProg.ProgramType.String())
+		}
+
+		existingRequests[bpfdProg.Name] = ExistingReq{
+			Uuid: bpfdProg.Id,
+			Req:  existingConfigSpec,
+		}
+	}
+
+	return existingRequests, nil
+}
+
+type BpfdAttachType interface {
+	GetNetworkMultiAttach() *gobpfd.NetworkMultiAttach
+	GetSingleAttach() *gobpfd.SingleAttach
+}
+
+// AttachConversion changes a bpfd core API attachType (represented by the
+// bpfdAttachType interface) to a bpfd k8s API Attachment type.
+func AttachConversion(attachment BpfdAttachType) *bpfdiov1alpha1.BpfProgramAttachPoint {
+	if attachment.GetNetworkMultiAttach() != nil {
+		proceedOn := []bpfdiov1alpha1.ProceedOnValue{}
+		for _, entry := range attachment.GetNetworkMultiAttach().ProceedOn {
+			proceedOn = append(proceedOn, bpfdiov1alpha1.ProceedOnValue(entry.String()))
+		}
+
+		return &bpfdiov1alpha1.BpfProgramAttachPoint{
+			NetworkMultiAttach: &bpfdiov1alpha1.BpfNetworkMultiAttach{
+				Interface: attachment.GetNetworkMultiAttach().Iface,
+				Priority:  attachment.GetNetworkMultiAttach().Priority,
+				Direction: attachment.GetNetworkMultiAttach().Direction.String(),
+				ProceedOn: proceedOn,
+			},
+		}
+	}
+
+	if attachment.GetSingleAttach() != nil {
+		return &bpfdiov1alpha1.BpfProgramAttachPoint{
+			SingleAttach: &bpfdiov1alpha1.BpfSingleAttach{
+				Name: attachment.GetSingleAttach().Name,
+			},
+		}
+	}
+
+	panic("Attachment Type is unknown")
 }

@@ -1,8 +1,8 @@
 apiVersion: bpfd.io/v1alpha1
-kind: EbpfProgramConfig
+kind: BpfProgramConfig
 metadata:
   labels:
-    app.kubernetes.io/name: ebpfprogramconfig
+    app.kubernetes.io/name: BpfProgramConfig
   name: go-counter-example
 spec:
   ## Must correspond to image section name
@@ -12,8 +12,9 @@ spec:
   nodeselector:
     matchLabels: 
       deploy-ebpf: "true"
-  priority: 5
   attachpoint:
-    interface: eth0
+    networkmultiattach: 
+      interface: eth0
+      priority: 5
   bytecode:
-    imageurl: quay.io/bpfd/bytecode:gocounter
+    imageurl: image://quay.io/bpfd/bytecode:gocounter
