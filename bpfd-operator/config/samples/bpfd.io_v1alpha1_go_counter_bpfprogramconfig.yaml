@@ -3,16 +3,17 @@ kind: BpfProgramConfig
 metadata:
   labels:
     app.kubernetes.io/name: BpfProgramConfig
-  name: xdp-pass-all-nodes
+  name: go-counter-example
 spec:
   ## Must correspond to image section name
-  name: pass
+  name: stats
   type: XDP
   # Select all nodes
-  nodeselector: {}
-  attachpoint: 
+  nodeselector:
+    matchLabels: 
+      deploy-ebpf: "true"
+  attachpoint:
     networkmultiattach: 
       interface: eth0
-      priority: 0
-  bytecode:
-    imageurl: quay.io/bpfd/bytecode:xdp_pass
+      priority: 5
+  bytecode: image://quay.io/bpfd/bytecode:gocounter
