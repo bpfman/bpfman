@@ -97,8 +97,8 @@ impl fmt::Display for ProgramType {
 
 #[derive(Debug, Serialize, Hash, Deserialize, Eq, PartialEq, Copy, Clone)]
 pub(crate) enum Direction {
-    Ingress,
-    Egress,
+    Ingress = 1,
+    Egress = 2,
 }
 
 impl TryFrom<i32> for Direction {
