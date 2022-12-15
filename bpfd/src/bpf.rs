@@ -271,6 +271,7 @@ impl<'a> BpfManager<'a> {
                 return Err(BpfdError::NotAuthorized);
             }
         } else {
+            debug!("InvalidID: {id}");
             return Err(BpfdError::InvalidID);
         }
 
