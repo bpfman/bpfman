@@ -50,6 +50,7 @@ endif
 BPFD_IMG ?= quay.io/bpfd/bpfd:main
 BPFD_AGENT_IMG ?= quay.io/bpfd/bpfd-agent:main
 BPFD_OPERATOR_IMG ?= quay.io/bpfd/bpfd-operator:main
+BPFD_OPERATOR_BUNDLE_IMG ?= quay.io/bpfd/bpfd-operator-bundle:main
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.25.0
@@ -127,13 +128,14 @@ build: generate fmt vet ## Build bpfd-operator and bpfd-agent binaries.
 build-images: test ## Build docker image with the manager.
 	docker build -t ${BPFD_OPERATOR_IMG} -f Containerfile.bpfd-operator ../
 	docker build -t ${BPFD_AGENT_IMG} -f Containerfile.bpfd-agent ../
-	docker build -t ${BPFD_IMG} -f ../packaging/container-deployment/Containerfile.bpfd ../
+	DOCKER_BUILDKIT=1 docker build -t ${BPFD_IMG} -f ../packaging/container-deployment/Containerfile.bpfd.local ../
 	
 
 .PHONY: push-images
-push-images: ## Push docker image with the manager.
+push-images: ## Push bpfd, bpfd-agent, bpfd-operator images.
 	docker push ${BPFD_OPERATOR_IMG}
 	docker push ${BPFD_AGENT_IMG}
+	docker push ${BPFD_IMG}
 
 .PHONY: load-images-kind
 load-images-kind: build-images ## Push docker image with the manager.
@@ -244,11 +246,11 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	docker build -f bundle.Dockerfile -t $(BPFD_OPERATOR_BUNDLE_IMG) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
-	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
+	docker push $(BPFD_OPERATOR_BUNDLE_IMG)
 
 .PHONY: opm
 OPM = ./bin/opm
@@ -289,4 +291,4 @@ catalog-build: opm ## Build a catalog image.
 # Push the catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
-	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+	docker push $(CATALOG_IMG)

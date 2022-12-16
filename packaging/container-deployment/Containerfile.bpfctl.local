@@ -1,0 +1,24 @@
+## This Containerfile makes use of docker's Buildkit to cache crates between 
+## builds, dramatically speeding up the local development process.
+FROM rust:1.63.0-bullseye as bpfctl-build
+
+RUN apt-get update && apt-get install -y protobuf-compiler musl-tools
+
+WORKDIR /usr/src/bpfd
+COPY ./ /usr/src/bpfd
+
+RUN rustup target add x86_64-unknown-linux-musl
+
+# Compile only bpfctl
+RUN --mount=type=cache,target=/usr/src/bpfd/target/ \
+    --mount=type=cache,target=/usr/local/cargo/registry \
+    cargo build -p bpfctl --release --target x86_64-unknown-linux-musl
+
+RUN --mount=type=cache,target=/usr/src/bpfd/target/ \
+    cp /usr/src/bpfd/target/x86_64-unknown-linux-musl/release/bpfctl ./bpfd/
+
+FROM scratch
+
+COPY --from=bpfctl-build  /usr/src/bpfd/bpfctl .
+
+ENTRYPOINT ["./bpfctl"]
