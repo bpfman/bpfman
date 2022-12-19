@@ -1,0 +1,18 @@
+apiVersion: bpfd.io/v1alpha1
+kind: BpfProgramConfig
+metadata:
+  labels:
+    app.kubernetes.io/name: BpfProgramConfig
+  name: tc-pass-all-nodes
+spec:
+  ## Must correspond to image section name
+  name: classifier
+  type: TC
+  # Select all nodes
+  nodeselector: {}
+  attachpoint: 
+    networkmultiattach: 
+      interface: eth0
+      priority: 0
+      direction: INGRESS
+  bytecode: image://quay.io/bpfd/bytecode:tc_pass

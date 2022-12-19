@@ -1,8 +1,8 @@
 apiVersion: bpfd.io/v1alpha1
-kind: EbpfProgramConfig
+kind: BpfProgramConfig
 metadata:
   labels:
-    app.kubernetes.io/name: ebpfprogramconfig
+    app.kubernetes.io/name: BpfProgramConfig
   name: xdp-pass-all-nodes
 spec:
   ## Must correspond to image section name
@@ -10,8 +10,8 @@ spec:
   type: XDP
   # Select all nodes
   nodeselector: {}
-  priority: 0
   attachpoint: 
-    interface: eth0
-  bytecode:
-    imageurl: quay.io/bpfd/bytecode:xdp_pass
+    networkmultiattach: 
+      interface: eth0
+      priority: 0
+  bytecode: image://quay.io/bpfd/bytecode:xdp_pass

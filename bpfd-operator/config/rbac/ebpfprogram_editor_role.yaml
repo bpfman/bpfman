@@ -1,20 +1,20 @@
-# permissions for end users to edit ebpfprograms.
+# permissions for end users to edit bpfprograms.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
     app.kubernetes.io/name: clusterrole
-    app.kubernetes.io/instance: ebpfprogram-editor-role
+    app.kubernetes.io/instance: bpfprogram-editor-role
     app.kubernetes.io/component: rbac
     app.kubernetes.io/created-by: bpfd-operator
     app.kubernetes.io/part-of: bpfd-operator
     app.kubernetes.io/managed-by: kustomize
-  name: ebpfprogram-editor-role
+  name: bpfprogram-editor-role
 rules:
 - apiGroups:
   - bpfd.io
   resources:
-  - ebpfprograms
+  - bpfprograms
   verbs:
   - create
   - delete
@@ -26,6 +26,6 @@ rules:
 - apiGroups:
   - bpfd.io
   resources:
-  - ebpfprograms/status
+  - bpfprograms/status
   verbs:
   - get

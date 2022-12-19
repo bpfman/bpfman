@@ -12,7 +12,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strconv"
 	"syscall"
 	"time"
@@ -38,9 +37,8 @@ type Tls struct {
 type Config struct {
 	Iface        string `toml:"interface"`
 	Priority     string `toml:"priority"`
-	BytecodeUrl  string `toml:"bytecode_url"`
 	BytecodeUuid string `toml:"bytecode_uuid"`
-	BytecodePath string `toml:"bytecode_path"`
+	BytecodeLocation string `toml:"bytecode_location"`
 }
 
 type ConfigData struct {
@@ -60,8 +58,7 @@ const (
 const (
 	srcNone = iota
 	srcUuid
-	srcUrl
-	srcPath
+	srcLocation
 )
 
 //go:generate bpf2go -cc clang -no-strip -cflags "-O2 -g -Wall" bpf ./bpf/xdp_counter.c -- -I.:/usr/include/bpf:/usr/include/linux
@@ -73,9 +70,7 @@ func main() {
 
 	var iface string
 	var priority int
-	var cmdlineUrl string
-	var cmdlineUuid string
-	var cmdlinePath string
+	var cmdlineUuid, cmdlinelocation string
 
 	flag.StringVar(&iface, "iface", "",
 		"Interface to load bytecode.")
@@ -83,14 +78,11 @@ func main() {
 		"Priority to load program in bpfd")
 	flag.StringVar(&cmdlineUuid, "uuid", "",
 		"UUID of bytecode that has already been loaded. uuid, url and path are mutually exclusive.")
-	flag.StringVar(&cmdlineUrl, "url", "",
-		"URL of bytecode container image to pull from. uuid, url and path are mutually exclusive.")
-	flag.StringVar(&cmdlinePath, "path", "",
-		"Directory on host where bytecode file is located. uuid, url and path are mutually exclusive.")
+	flag.StringVar(&cmdlinelocation, "location", "",
+		"URL of bytecode source.")
 	flag.Parse()
 
-	var id string
-	var bytecodePath string
+	var id, bytecodeLocation string
 	bytecodeSrc := srcNone
 
 	// "-iface" is the interface to run bpf program on. If not provided, then
@@ -143,20 +135,11 @@ func main() {
 	// "-uuid" is a UUID for the bytecode that has already loaded into bpfd. If not
 	// ./gocounter -iface eth0 -uuid 53ac77fc-18a9-42e2-8dd3-152fc31ba979
 	if len(cmdlineUuid) == 0 {
-		// "-url" is a URL for the bytecode in a container image. If not provided,
-		// ./gocounter -iface eth0 -url quay.io/bpfd/bytecode:gocounter
-		if len(cmdlineUrl) == 0 {
-			// "-path" allows the location of the local bytecode file to be
-			// overwritten.
-			// ./gocounter -iface eth0 -path /var/bpfd/bytecode/bpf_bpfel.o
-			if len(cmdlinePath) != 0 {
-				bytecodePath = cmdlinePath
-				bytecodeSrc = srcPath
-			}
-		} else {
-			// "-url" was entered so it is a URL
-			bytecodePath = cmdlineUrl
-			bytecodeSrc = srcUrl
+		// "location" is a URL for the bytecode source. If not provided,
+		// ./gocounter -iface eth0 -location quay.io/bpfd/bytecode:gocounter
+		if len(cmdlinelocation) == 0 {
+			log.Printf("No Bytecode Location provided")
+			return
 		}
 	} else {
 		// "-uuid" was entered so it is a UUID
@@ -169,35 +152,10 @@ func main() {
 		if configData.Config.BytecodeUuid != "" {
 			id = configData.Config.BytecodeUuid
 			bytecodeSrc = srcUuid
-		} else if configData.Config.BytecodeUrl != "" {
-			bytecodePath = configData.Config.BytecodeUrl
-			bytecodeSrc = srcUrl
-		} else if configData.Config.BytecodePath != "" {
-			bytecodePath = configData.Config.BytecodePath
-			bytecodeSrc = srcPath
-		}
-	}
-
-	// If bytecode source not entered not entered via toml file, check environment variables.
-	if bytecodeSrc == srcNone {
-		id = os.Getenv("BPFD_BYTECODE_UUID")
-		if id == "" {
-			bytecodePath = os.Getenv("BPFD_BYTECODE_URL")
-			if bytecodePath == "" {
-				bytecodePath = os.Getenv("BPFD_BYTECODE_PATH")
-				if bytecodePath == "" {
-					// Nothing entered so default to local file
-					bytecodePath = "bpf_bpfel.o"
-				}
-				bytecodeSrc = srcPath
-			} else {
-				// BPFD_BYTECODE_URL was entered so it is a URL
-				bytecodeSrc = srcUrl
-			}
-		} else {
-			// BPFD_BYTECODE_UUID was entered so it is a UUID
-			bytecodeSrc = srcUuid
-		}
+		} else if configData.Config.BytecodeLocation != "" {
+			bytecodeLocation = configData.Config.BytecodeLocation
+			bytecodeSrc = srcLocation
+		} 
 	}
 
 	if bytecodeSrc == srcUuid {
@@ -205,7 +163,7 @@ func main() {
 			iface, id)
 	} else {
 		log.Printf("Using Input: Interface=%s Priority=%d Source=%s",
-			iface, priority, bytecodePath)
+			iface, priority, bytecodeLocation)
 	}
 
 	// If the bytecode src is a UUID, skip the loading and unloading of the bytecode.
@@ -226,25 +184,8 @@ func main() {
 		}
 		c := gobpfd.NewLoaderClient(conn)
 
-		var path string
-		bytecode_url_flag := false
-		if bytecodeSrc == srcPath {
-			path, err = filepath.Abs(bytecodePath)
-			if err != nil {
-				conn.Close()
-				log.Printf("Couldn't find bpf elf file: %v", err)
-				return
-			}
-		} else if bytecodeSrc == srcUrl {
-			path = bytecodePath
-			bytecode_url_flag = true
-		} else {
-			log.Print("bytecode source not provided.")
-			return
-		}
 		loadRequest := &gobpfd.LoadRequest{
-			Path:        path,
-			FromImage:   bytecode_url_flag,
+			Location: bytecodeLocation,
 			SectionName: "stats",
 			ProgramType: gobpfd.ProgramType_XDP,
 			AttachType: &gobpfd.LoadRequest_NetworkMultiAttach{

@@ -1,5 +1,5 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
-- xdp_pass_ebpfprogramconfig.yaml
-- go_counter_ebpfprogramconfig.yaml
+- bpfd.io_v1alpha1_xdp_pass_bpfprogramconfig.yaml
+- bpfd.io_v1alpha1_go_counter_bpfprogramconfig.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

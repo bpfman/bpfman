@@ -34,7 +34,6 @@ spec:
         imagePullPolicy: IfNotPresent
         env: 
           - name: RUST_LOG
-            # This will eventually be configured by the operator
             valueFrom: 
               configMapKeyRef:
                 name: bpfd-config
@@ -53,14 +52,15 @@ spec:
           mountPath: /etc/bpfd/bpfd.toml
           subPath: bpfd.toml
           readOnly: true
-        # Mounted so bpfd doesn't try and create the client code
+        # Mounted so bpfd doesn't try and create the client certificate
         - name: bpfd-agent-cert
           mountPath: /etc/bpfd/certs/bpfd-client
           readOnly: true
-          # These certs are missing in the scratch image to keep it small.  Mount
-          # and use the host's instead.
         - name: host-bytecode
           mountPath: /run/bpfd/bytecode
+        # This mount is needed to attach tracepoint programs
+        - name: host-debug
+          mountPath: /sys/kernel/debug
       - name: bpfd-agent 
         command:
         - /bpfd-agent      
@@ -111,4 +111,7 @@ spec:
       - name: host-bytecode
         hostPath:
           path: /run/bpfd/bytecode
+      - name: host-debug
+        hostPath:
+          path: /sys/kernel/debug
       

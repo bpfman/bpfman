@@ -30,14 +30,12 @@ enum ProceedOn {
 }
 
 message LoadRequest {
-    string path = 1;
-    bool from_image = 2;
-    string section_name = 3;
-    ProgramType program_type = 4;
-    Direction direction = 5;
+    string location = 1;
+    string section_name = 2;
+    ProgramType program_type = 3;
     oneof attach_type {
-        NetworkMultiAttach network_multi_attach = 6;
-        SingleAttach single_attach = 7;
+        NetworkMultiAttach network_multi_attach = 4;
+        SingleAttach single_attach = 5;
     }
 };
 
@@ -45,7 +43,8 @@ message NetworkMultiAttach {
     int32 priority = 1;
     string iface = 2;
     int32 position = 3;
-    repeated ProceedOn proceed_on = 4;
+    Direction direction = 4;
+    repeated ProceedOn proceed_on = 5;
 }
 
 message SingleAttach {
@@ -68,9 +67,8 @@ message ListResponse {
   message ListResult {
     string id = 1;
     string name = 2;
-    string path = 3;
+    string location = 3;
     ProgramType program_type = 4;
-    Direction direction = 5;
     oneof attach_type {
         NetworkMultiAttach network_multi_attach = 6;
         SingleAttach single_attach = 7;

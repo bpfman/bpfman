@@ -86,7 +86,12 @@ jobs:
         run: |
           gofmt -d -e .
 
-      - name: Build
+      - name: Build Examples
+        run: | 
+          go build ./examples/go-tc-counter/
+          go build ./examples/gocounter/
+
+      - name: Build Operator
         run: | 
           cd bpfd-operator
           make build 

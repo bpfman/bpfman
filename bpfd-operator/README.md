@@ -6,7 +6,7 @@ The Bpfd-Operator repository exists in order to deploy and manage bpfd within a 
 
 ## Description
 
-This repository houses two main processes, the `bpfd-agent` and the `bpfd-operator` along with CRD api definitions for `EbpfProgram` and `EbpfProgramConfig` Objects. In the below sections we'll dive a bit deeper into the API and functionality of both processes.
+This repository houses two main processes, the `bpfd-agent` and the `bpfd-operator` along with CRD api definitions for `BpfProgram` and `BpfProgramConfig` Objects. In the below sections we'll dive a bit deeper into the API and functionality of both processes.
 
 But first try it out!
 
@@ -36,18 +36,18 @@ make kind-reload-images
 
 ### API
 
-#### EbpfProgramConfig
+#### BpfProgramConfig
 
-The `EbpfProgramConfig` crd is the bpfd K8s API object most relevant to users and can be used to understand clusterwide state for an ebpf program. It's designed to express how, and where bpf programs are to be deployed within a kubernetes cluster.  An example ebpfProgramConfig which loads a basic `xdp-pass` program to all nodes can be seen below:
+The `BpfProgramConfig` crd is the bpfd K8s API object most relevant to users and can be used to understand clusterwide state for an ebpf program. It's designed to express how, and where bpf programs are to be deployed within a kubernetes cluster.  An example BpfProgramConfig which loads a basic `xdp-pass` program to all nodes can be seen below:
 
-**NOTE: Currently the ebpfprogram's bytecode section-name MUST match the `spec.name` field in the ebpfProgramConfig Object.**
+**NOTE: Currently the bpfprogram's bytecode section-name MUST match the `spec.name` field in the BpfProgramConfig Object.**
 
 ```yaml
 apiVersion: bpfd.io/v1alpha1
-kind: EbpfProgramConfig
+kind: BpfProgramConfig
 metadata:
   labels:
-    app.kubernetes.io/name: ebpfprogramconfig
+    app.kubernetes.io/name: BpfProgramConfig
   name: xdp-pass-all-nodes
 spec:
   ## Must correspond to image section name
@@ -62,13 +62,13 @@ spec:
     imageurl: quay.io/bpfd/bytecode:xdp_pass
 ```
 
-### EbpfProgram
+### BpfProgram
 
-The `EbpfProgram` crd is used internally by the bpfd-deployment to keep track of per node bpfd state such as program UUIDs and map pin points, and to report node specific errors back to the user. K8s users/controllers are only allowed to view these objects, NOT create or edit them.  Below is an example ebpfProgram Object which was automatically generated in response to the above ebpfProgramConfig Object.
+The `BpfProgram` crd is used internally by the bpfd-deployment to keep track of per node bpfd state such as program UUIDs and map pin points, and to report node specific errors back to the user. K8s users/controllers are only allowed to view these objects, NOT create or edit them.  Below is an example ebpfProgram Object which was automatically generated in response to the above BpfProgramConfig Object.
 
 ```yaml
 apiVersion: bpfd.io/v1alpha1
-  kind: EbpfProgram
+  kind: BpfProgram
   metadata:
     creationTimestamp: "2022-12-07T22:41:29Z"
     finalizers:
@@ -81,7 +81,7 @@ apiVersion: bpfd.io/v1alpha1
     - apiVersion: bpfd.io/v1alpha1
       blockOwnerDeletion: true
       controller: true
-      kind: EbpfProgramConfig
+      kind: BpfProgramConfig
       name: xdp-pass-all-nodes
       uid: 6e3f5851-97b1-4772-906b-3ac69c6a4057
     resourceVersion: "1506"
@@ -110,7 +110,7 @@ The Bpfd-Operator performs a few major functions and houses two major controller
 
 #### bpf-agent
 
-The bpfd-agent controller is deployed alongside bpfd in a daemonset.  It's main purpose is to watch user intent (in ebpfProgramConfig Objects) and communicate with
+The bpfd-agent controller is deployed alongside bpfd in a daemonset.  It's main purpose is to watch user intent (in BpfProgramConfig Objects) and communicate with
 bpfd via a mTLS secured connection in order to translate the cluster-wide user-inetent to per node state.
 
 #### bpfd-operator
@@ -118,7 +118,7 @@ bpfd via a mTLS secured connection in order to translate the cluster-wide user-i
 The bpfd-operator performs the following functionality:
 
 - Reconcile the bpfd daemonset (including both the `bpfd` and `bpfd-agent` processes) so that no manual edits can be completed.
-- Report cluster wide state back the the user with each ebpfProgramConfig's status field.
+- Report cluster wide state back the the user with each BpfProgramConfig's status field.
 
 ## More useful commands
 

@@ -9,6 +9,7 @@ pub mod util;
 pub mod v1;
 
 use thiserror::Error;
+use url::ParseError as urlParseError;
 use v1::{Direction, ProceedOn, ProgramType};
 
 #[derive(Error, Debug)]
@@ -19,6 +20,12 @@ pub enum ParseError {
     InvalidProceedOn { proceedon: String },
     #[error("not a valid direction")]
     InvalidDirection,
+    #[error("Failed to Parse bytecode location: {0}")]
+    BytecodeLocationParseFailure(#[source] urlParseError),
+    #[error("Invalid bytecode location: {location}")]
+    InvalidBytecodeLocation { location: String },
+    #[error("Failed to pull bytecode from container registry: {0}")]
+    BytecodePullFaiure(#[source] anyhow::Error),
 }
 
 impl ToString for ProgramType {

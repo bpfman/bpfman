@@ -22,8 +22,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EbpfProgramConfigSpec defines the desired state of EbpfProgramConfig
-type EbpfProgramConfigSpec struct {
+// BpfProgramConfigSpec defines the desired state of BpfProgramConfig
+type BpfProgramConfigSpec struct {
 	// ProgramName specifies the name of the bpf program to be loaded.
 	Name string `json:"name"`
 
@@ -35,41 +35,22 @@ type EbpfProgramConfigSpec struct {
 	// use standard metav1.LabelSelector semantics and make it empty.
 	NodeSelector metav1.LabelSelector `json:"nodeselector"`
 
-	// Priority specifies the priority of the bpf program in relation to
-	// other programs of the same type with the same attach point. It is a value
-	// from 0 to 1000 where lower values have higher precedence.
-	// +kubebuilder:validation:Minimum=0
-	// +kubebuilder:validation:Maximum=1000
-	Priority int32 `json:"priority"`
-
-	// AttachPoint describes the kernel attach point for the ebpf program
+	// AttachPoint describes the kernel attach point for the Bpf program
 	// if there is one. Attach points usually correspond to program type
 	// in some way.
-	AttachPoint EbpfProgramAttachPoint `json:"attachpoint"`
+	AttachPoint BpfProgramAttachPoint `json:"attachpoint"`
 
 	// Bytecode configures where the bpf program's bytecode should be loaded
-	// from.
-	ByteCode ByteCodeSource `json:"bytecode"`
+	// from. It is a standard URL (RFC-1738) which currently only supports
+	// local files (file:///<local path>) or container registry links
+	// (image://<container image URL>)
+	// +kubebuilder:validation:Pattern=`(file|image)\:(\/){1,3}[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)`
+	ByteCode string `json:"bytecode"`
 }
 
-// ByteCodeSource describes the location of the bytecode for the ebpf program.
-// Exactly one of the sources must be specified.
-// +kubebuilder:validation:MaxProperties=1
-// +kubebuilder:validation:MinProperties=1
-type ByteCodeSource struct {
-	// ImageUrl specifies the bytecode image to pull and use.
-	// +optional
-	ImageUrl *string `json:"imageurl,omitempty"`
-
-	// Path specifies the host bound directory where the bytecode lives on each
-	// node where the program is to be deployed.
-	// +optional
-	Path *string `json:"path,omitempty"`
-}
-
-// EbpfProgramConfigStatus defines the observed state of EbpfProgramConfig
-type EbpfProgramConfigStatus struct {
-	// Conditions houses the global cluster state for the ebpfProgram
+// BpfProgramConfigStatus defines the observed state of BpfProgramConfig
+type BpfProgramConfigStatus struct {
+	// Conditions houses the global cluster state for the BpfProgram
 	// Known .status.conditions.type are: "Available", "Progressing", and "Degraded"
 	// +patchMergeKey=type
 	// +patchStrategy=merge
@@ -82,25 +63,25 @@ type EbpfProgramConfigStatus struct {
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Cluster
 
-// EbpfProgramConfig is the Schema for the ebpfprogramconfigs API
-type EbpfProgramConfig struct {
+// BpfProgramConfig is the Schema for the Bpfprogramconfigs API
+type BpfProgramConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
 
-	Spec EbpfProgramConfigSpec `json:"spec"`
+	Spec BpfProgramConfigSpec `json:"spec"`
 	// +optional
-	Status EbpfProgramConfigStatus `json:"status,omitempty"`
+	Status BpfProgramConfigStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
 
-// EbpfProgramConfigList contains a list of EbpfProgramConfig
-type EbpfProgramConfigList struct {
+// BpfProgramConfigList contains a list of BpfProgramConfig
+type BpfProgramConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []EbpfProgramConfig `json:"items"`
+	Items           []BpfProgramConfig `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&EbpfProgramConfig{}, &EbpfProgramConfigList{})
+	SchemeBuilder.Register(&BpfProgramConfig{}, &BpfProgramConfigList{})
 }

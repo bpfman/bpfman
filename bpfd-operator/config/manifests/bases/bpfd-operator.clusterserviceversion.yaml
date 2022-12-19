@@ -10,15 +10,15 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - description: EbpfProgramConfig is the Schema for the ebpfprogramconfigs API
-      displayName: Ebpf Program Config
-      kind: EbpfProgramConfig
-      name: ebpfprogramconfigs.bpfd.io
+    - description: BpfProgramConfig is the Schema for the Bpfprogramconfigs API
+      displayName: Bpf Program Config
+      kind: BpfProgramConfig
+      name: bpfprogramconfigs.bpfd.io
       version: v1alpha1
-    - description: EbpfProgram is the Schema for the ebpfprograms API
-      displayName: Ebpf Program
-      kind: EbpfProgram
-      name: ebpfprograms.bpfd.io
+    - description: BpfProgram is the Schema for the Bpfprograms API
+      displayName: Bpf Program
+      kind: BpfProgram
+      name: bpfprograms.bpfd.io
       version: v1alpha1
   description: This Operator deploys bpfd to a kubernetes cluster in order to deploy
     and manage ebpf at the cluster scope.

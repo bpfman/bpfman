@@ -89,11 +89,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&bpfdoperator.EbpfProgramConfigReconciler{
+	if err = (&bpfdoperator.BpfProgramConfigReconciler{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "EbpfProgramConfig")
+		setupLog.Error(err, "unable to create controller", "controller", "BpfProgramConfig")
 		os.Exit(1)
 	}
 	//+kubebuilder:scaffold:builder

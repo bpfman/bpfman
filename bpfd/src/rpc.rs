@@ -14,7 +14,7 @@ use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
 use x509_certificate::X509Certificate;
 
-use crate::{pull_bytecode::pull_bytecode, Command};
+use crate::Command;
 
 #[derive(Debug, Default)]
 struct User {
@@ -69,19 +69,7 @@ impl Loader for BpfdLoader {
             .unwrap_or(&DEFAULT_USER)
             .username
             .to_string();
-        let mut request = request.into_inner();
-
-        if request.from_image {
-            // Pull image from Repo if not locally here, dump bytecode
-            let internal_program_overrides = pull_bytecode(&request.path).await;
-            match internal_program_overrides {
-                Ok(internal_program_overrides) => {
-                    request.path = internal_program_overrides.path;
-                    request.section_name = internal_program_overrides.image_meta.section_name;
-                }
-                Err(e) => return Err(Status::aborted(format!("{e}"))),
-            };
-        }
+        let request = request.into_inner();
 
         let (resp_tx, resp_rx) = oneshot::channel();
 
@@ -95,13 +83,13 @@ impl Loader for BpfdLoader {
         let cmd = match request.attach_type.unwrap() {
             AttachType::NetworkMultiAttach(attach) => Command::Load {
                 responder: resp_tx,
-                path: request.path,
-                direction: request.direction.try_into().ok(),
+                location: request.location,
                 attach_type: crate::command::AttachType::NetworkMultiAttach(
                     crate::command::NetworkMultiAttach {
                         iface: attach.iface,
                         priority: attach.priority,
                         proceed_on: crate::command::ProceedOn(attach.proceed_on),
+                        direction: attach.direction.try_into().ok(),
                         position: 0,
                     },
                 ),
@@ -111,8 +99,7 @@ impl Loader for BpfdLoader {
             },
             AttachType::SingleAttach(attach) => Command::Load {
                 responder: resp_tx,
-                path: request.path,
-                direction: request.direction.try_into().ok(),
+                location: request.location,
                 attach_type: crate::command::AttachType::SingleAttach(attach.name),
                 section_name: request.section_name,
                 username,
@@ -206,13 +193,8 @@ impl Loader for BpfdLoader {
                         reply.results.push(ListResult {
                             id: r.id,
                             name: r.name,
-                            path: r.path,
+                            location: r.location,
                             program_type: r.program_type as i32,
-                            direction: if let Some(direction) = r.direction {
-                                direction as i32
-                            } else {
-                                0
-                            },
                             attach_type: match r.attach_type {
                                 crate::command::AttachType::NetworkMultiAttach(m) => Some(
                                     list_response::list_result::AttachType::NetworkMultiAttach(
@@ -220,6 +202,11 @@ impl Loader for BpfdLoader {
                                             priority: m.priority,
                                             iface: m.iface,
                                             position: m.position,
+                                            direction: if let Some(direction) = m.direction {
+                                                direction as i32
+                                            } else {
+                                                0
+                                            },
                                             proceed_on: m.proceed_on.0,
                                         },
                                     ),

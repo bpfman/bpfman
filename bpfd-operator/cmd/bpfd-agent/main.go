@@ -37,7 +37,6 @@ import (
 	"github.com/redhat-et/bpfd/bpfd-operator/internal"
 	"github.com/redhat-et/bpfd/bpfd-operator/pkg/bpfd-agent"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
-
 	//+kubebuilder:scaffold:imports
 
 	"google.golang.org/grpc"
@@ -110,14 +109,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&bpfdagent.EbpfProgramReconciler{
+	if err = (&bpfdagent.BpfProgramReconciler{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		GrpcConn:   conn,
 		BpfdClient: gobpfd.NewLoaderClient(conn),
 		NodeName:   nodeName,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "EbpfProgram")
+		setupLog.Error(err, "unable to create controller", "controller", "BpfProgram")
 		os.Exit(1)
 	}
 

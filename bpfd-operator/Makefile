@@ -50,6 +50,7 @@ endif
 BPFD_IMG ?= quay.io/bpfd/bpfd:main
 BPFD_AGENT_IMG ?= quay.io/bpfd/bpfd-agent:main
 BPFD_OPERATOR_IMG ?= quay.io/bpfd/bpfd-operator:main
+BPFD_OPERATOR_BUNDLE_IMG ?= quay.io/bpfd/bpfd-operator-bundle:main
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.25.0
@@ -125,17 +126,20 @@ build: generate fmt vet ## Build bpfd-operator and bpfd-agent binaries.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: build-images
 build-images: test ## Build docker image with the manager.
-	docker build -t ${BPFD_OPERATOR_IMG} -f Containerfile.bpfd-operator .
-	docker build -t ${BPFD_AGENT_IMG} -f Containerfile.bpfd-agent .
+	docker build -t ${BPFD_OPERATOR_IMG} -f Containerfile.bpfd-operator ../
+	docker build -t ${BPFD_AGENT_IMG} -f Containerfile.bpfd-agent ../
+	DOCKER_BUILDKIT=1 docker build -t ${BPFD_IMG} -f ../packaging/container-deployment/Containerfile.bpfd.local ../
+	
 
 .PHONY: push-images
-push-images: ## Push docker image with the manager.
+push-images: ## Push bpfd, bpfd-agent, bpfd-operator images.
 	docker push ${BPFD_OPERATOR_IMG}
 	docker push ${BPFD_AGENT_IMG}
+	docker push ${BPFD_IMG}
 
 .PHONY: load-images-kind
 load-images-kind: build-images ## Push docker image with the manager.
-	kind load docker-image  ${BPFD_OPERATOR_IMG} ${BPFD_AGENT_IMG} --name bpfd-deployment
+	kind load docker-image  ${BPFD_IMG} ${BPFD_OPERATOR_IMG} ${BPFD_AGENT_IMG} --name bpfd-deployment
 
 # PLATFORMS defines the target platforms for  the manager image be build to provide support to multiple
 # architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:
@@ -166,11 +170,11 @@ setup-kind: cm-verifier ## Setup Kind cluster with certmanager ready for bpfd de
 deploy: manifests kustomize cm-verifier ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
 	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator-image=${BPFD_OPERATOR_IMG} 
 	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image bpfd-image=${BPFD_IMG} && $(KUSTOMIZE) edit set image bpfd-agent-image=${BPFD_AGENT_IMG}
-	$(KUSTOMIZE) build config/deployment | kubectl apply -f -
+	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy
 undeploy: ## Undeploy bpfd-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/deployment | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: kind-reload-images
 kind-reload-images: load-images-kind ## Reload locally build images into a kind cluster and restart the ds and deployment so they're picked up.
@@ -178,7 +182,7 @@ kind-reload-images: load-images-kind ## Reload locally build images into a kind 
 	kubectl rollout restart deployment bpfd-operator -n bpfd
 
 .PHONY: run-on-kind
-run-on-kind: setup-kind load-images-kind deploy ## Kind Deploy runs the bpfd-operator on a local kind cluster using the local build
+run-on-kind: kustomize setup-kind load-images-kind deploy ## Kind Deploy runs the bpfd-operator on a local kind cluster using the local build
 
 ##@ Deployment
 
@@ -236,17 +240,17 @@ $(ENVTEST): $(LOCALBIN)
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
 	operator-sdk generate kustomize manifests -q
-	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator=${OP_IMG} bpfd=${BPFD_IMG} bpfd-agent=${BPFD_AGENT_IMG}
+	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator=${BPFD_OPERATOR_IMG} bpfd=${BPFD_IMG} bpfd-agent=${BPFD_AGENT_IMG}
 	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle $(BUNDLE_GEN_FLAGS)
 	operator-sdk bundle validate ./bundle
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	docker build -f bundle.Dockerfile -t $(BPFD_OPERATOR_BUNDLE_IMG) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
-	$(MAKE) docker-push IMG=$(BUNDLE_IMG)
+	docker push $(BPFD_OPERATOR_BUNDLE_IMG)
 
 .PHONY: opm
 OPM = ./bin/opm
@@ -287,4 +291,4 @@ catalog-build: opm ## Build a catalog image.
 # Push the catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
-	$(MAKE) docker-push IMG=$(CATALOG_IMG)
+	docker push $(CATALOG_IMG)

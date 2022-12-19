@@ -1,6 +1,6 @@
 module github.com/redhat-et/bpfd/examples/gocounter
 
-go 1.18
+go 1.19
 
 replace github.com/redhat-et/bpfd/clients/gobpfd => ../../clients/gobpfd
 

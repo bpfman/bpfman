@@ -5,20 +5,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.10.0
   creationTimestamp: null
-  name: ebpfprogramconfigs.bpfd.io
+  name: bpfprogramconfigs.bpfd.io
 spec:
   group: bpfd.io
   names:
-    kind: EbpfProgramConfig
-    listKind: EbpfProgramConfigList
-    plural: ebpfprogramconfigs
-    singular: ebpfprogramconfig
+    kind: BpfProgramConfig
+    listKind: BpfProgramConfigList
+    plural: bpfprogramconfigs
+    singular: bpfprogramconfig
   scope: Cluster
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: EbpfProgramConfig is the Schema for the ebpfprogramconfigs API
+        description: BpfProgramConfig is the Schema for the Bpfprogramconfigs API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -33,34 +33,81 @@ spec:
           metadata:
             type: object
           spec:
-            description: EbpfProgramConfigSpec defines the desired state of EbpfProgramConfig
+            description: BpfProgramConfigSpec defines the desired state of BpfProgramConfig
             properties:
               attachpoint:
                 description: AttachPoint describes the kernel attach point for the
-                  ebpf program if there is one. Attach points usually correspond to
+                  Bpf program if there is one. Attach points usually correspond to
                   program type in some way.
                 maxProperties: 1
                 minProperties: 1
                 properties:
-                  interface:
-                    description: Interface refers to the name of a network interface
-                    type: string
+                  networkmultiattach:
+                    description: NetworkMultiAttach defines an attach point for programs
+                      which attach to network devices and must be ordered via bpfd
+                    properties:
+                      direction:
+                        default: NONE
+                        description: Direction specifies the direction of traffic
+                          the bpfprogram should attach to for a given network device,
+                          this field should only be set for programs of type TC. TODO(astoycos)
+                          see if kubebuilder can handle more complicated validation
+                          for this.
+                        enum:
+                        - NONE
+                        - INGRESS
+                        - EGRESS
+                        type: string
+                      interface:
+                        description: Interface refers to the name of a network interface
+                        type: string
+                      priority:
+                        description: Priority specifies the priority of the bpf program
+                          in relation to other programs of the same type with the
+                          same attach point. It is a value from 0 to 1000 where lower
+                          values have higher precedence.
+                        format: int32
+                        maximum: 1000
+                        minimum: 0
+                        type: integer
+                      proceedon:
+                        description: 'ProceedOn allows the user to call other programs
+                          in chain on this exit code. Multiple values are supported
+                          by repeating the parameter. This feature is only applicable
+                          for XDP programs. NOTE: These values are not updatable following
+                          bpfProgramConfig creation.'
+                        items:
+                          enum:
+                          - ABORTED
+                          - DROP
+                          - PASS
+                          - TX
+                          - REDIRECT
+                          - DISPATCHER_RETURN
+                          type: string
+                        type: array
+                    required:
+                    - interface
+                    - priority
+                    type: object
+                  singleattach:
+                    description: SingleAttach defines an attach point for programs
+                      which attach to a single entity and do not need to be ordered.
+                    properties:
+                      name:
+                        description: Name refers to the name of the attach point
+                        type: string
+                    required:
+                    - name
+                    type: object
                 type: object
               bytecode:
                 description: Bytecode configures where the bpf program's bytecode
-                  should be loaded from.
-                maxProperties: 1
-                minProperties: 1
-                properties:
-                  imageurl:
-                    description: ImageUrl specifies the bytecode image to pull and
-                      use.
-                    type: string
-                  path:
-                    description: Path specifies the host bound directory where the
-                      bytecode lives on each node where the program is to be deployed.
-                    type: string
-                type: object
+                  should be loaded from. It is a standard URL (RFC-1738) which currently
+                  only supports local files (file:///<local path>) or container registry
+                  links (image://<container image URL>)
+                pattern: (file|image)\:(\/){1,3}[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)
+                type: string
               name:
                 description: ProgramName specifies the name of the bpf program to
                   be loaded.
@@ -113,15 +160,6 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
-              priority:
-                description: Priority specifies the priority of the bpf program in
-                  relation to other programs of the same type with the same attach
-                  point. It is a value from 0 to 1000 where lower values have higher
-                  precedence.
-                format: int32
-                maximum: 1000
-                minimum: 0
-                type: integer
               type:
                 description: Type specifies the bpf program type.
                 type: string
@@ -130,14 +168,13 @@ spec:
             - bytecode
             - name
             - nodeselector
-            - priority
             - type
             type: object
           status:
-            description: EbpfProgramConfigStatus defines the observed state of EbpfProgramConfig
+            description: BpfProgramConfigStatus defines the observed state of BpfProgramConfig
             properties:
               conditions:
-                description: 'Conditions houses the global cluster state for the ebpfProgram
+                description: 'Conditions houses the global cluster state for the BpfProgram
                   Known .status.conditions.type are: "Available", "Progressing", and
                   "Degraded"'
                 items:
