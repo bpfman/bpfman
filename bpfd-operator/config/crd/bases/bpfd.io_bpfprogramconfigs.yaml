@@ -44,7 +44,7 @@ spec:
                 properties:
                   networkmultiattach:
                     description: NetworkMultiAttach defines an attach point for programs
-                      which attach to network devices and must be ordered via bpfd
+                      which attach to network devices and must be ordered via bpfd.
                     properties:
                       direction:
                         default: NONE
@@ -59,7 +59,7 @@ spec:
                         - EGRESS
                         type: string
                       interface:
-                        description: Interface refers to the name of a network interface
+                        description: Interface refers to the name of a network interface.
                         type: string
                       priority:
                         description: Priority specifies the priority of the bpf program

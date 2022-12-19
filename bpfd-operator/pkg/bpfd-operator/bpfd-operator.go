@@ -211,7 +211,7 @@ func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	failedBpfPrograms := []string{}
 	finalApplied := []string{}
-	// Make sure no bpfPrograms hade any issues in the loading process
+	// Make sure no bpfPrograms had any issues in the loading process
 	for _, bpfProgram := range bpfPrograms.Items {
 
 		if controllerutil.ContainsFinalizer(&bpfProgram, bpfdagent.BpfdAgentFinalizer) {

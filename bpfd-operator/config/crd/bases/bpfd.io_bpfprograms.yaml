@@ -49,7 +49,7 @@ spec:
                         networkmultiattach:
                           description: NetworkMultiAttach defines an attach point
                             for programs which attach to network devices and must
-                            be ordered via bpfd
+                            be ordered via bpfd.
                           properties:
                             direction:
                               default: NONE
@@ -65,7 +65,7 @@ spec:
                               type: string
                             interface:
                               description: Interface refers to the name of a network
-                                interface
+                                interface.
                               type: string
                             priority:
                               description: Priority specifies the priority of the
