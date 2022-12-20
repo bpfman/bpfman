@@ -12,6 +12,7 @@ mod static_program;
 mod utils;
 
 use anyhow::{bail, Context};
+//use aya::programs::ProgramError;
 use bpf::BpfManager;
 use bpfd_api::{
     config::Config,
@@ -144,43 +145,50 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                         proceed_on
                     };
 
-                    let prog_data =
+                    let prog_data_result =
                         ProgramData::new_from_location(location, section_name.clone(), username)
-                            .await?;
-                    let prog = match program_type {
-                        command::ProgramType::Xdp => Program::Xdp(XdpProgram {
-                            data: prog_data.clone(),
-                            info: NetworkMultiAttachInfo {
-                                if_index,
-                                current_position: None,
-                                metadata: command::Metadata {
-                                    priority,
-                                    // This could have been overridden by image tags
-                                    name: prog_data.section_name,
-                                    attached: false,
-                                },
-                                proceed_on: proc_on,
-                                if_name: iface,
-                            },
-                        }),
-                        command::ProgramType::Tc => Program::Tc(TcProgram {
-                            data: prog_data.clone(),
-                            info: NetworkMultiAttachInfo {
-                                if_index,
-                                current_position: None,
-                                metadata: command::Metadata {
-                                    priority,
-                                    name: prog_data.section_name,
-                                    attached: false,
-                                },
-                                proceed_on: proc_on,
-                                if_name: iface,
-                            },
-                            direction: direction.unwrap(),
-                        }),
-                        _ => panic!("unsupported prog type"),
-                    };
-                    bpf_manager.add_program(prog)
+                            .await;
+
+                    match prog_data_result {
+                        // TODO: Return better error for Err case?
+                        Err(e) => Err(BpfdError::Error(format!("{e}"))),
+                        Ok(prog_data) => {
+                            let prog = match program_type {
+                                command::ProgramType::Xdp => Program::Xdp(XdpProgram {
+                                    data: prog_data.clone(),
+                                    info: NetworkMultiAttachInfo {
+                                        if_index,
+                                        current_position: None,
+                                        metadata: command::Metadata {
+                                            priority,
+                                            // This could have been overridden by image tags
+                                            name: prog_data.section_name,
+                                            attached: false,
+                                        },
+                                        proceed_on: proc_on,
+                                        if_name: iface,
+                                    },
+                                }),
+                                command::ProgramType::Tc => Program::Tc(TcProgram {
+                                    data: prog_data.clone(),
+                                    info: NetworkMultiAttachInfo {
+                                        if_index,
+                                        current_position: None,
+                                        metadata: command::Metadata {
+                                            priority,
+                                            name: prog_data.section_name,
+                                            attached: false,
+                                        },
+                                        proceed_on: proc_on,
+                                        if_name: iface,
+                                    },
+                                    direction: direction.unwrap(),
+                                }),
+                                _ => panic!("unsupported prog type"),
+                            };
+                            bpf_manager.add_program(prog)
+                        }
+                    }
                 } else {
                     Err(BpfdError::InvalidInterface)
                 };
