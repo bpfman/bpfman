@@ -205,22 +205,28 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                 responder,
                 program_type,
             } => {
-                let prog_result: Result<Program, BpfdError> = match program_type {
-                    command::ProgramType::Tracepoint => {
-                        Ok(Program::Tracepoint(TracepointProgram {
-                            data: ProgramData::new_from_location(location, section_name, username)
-                                .await?,
-                            info: attach,
-                        }))
+                let prog_data_result =
+                    ProgramData::new_from_location(location, section_name, username).await;
+
+                let res = match prog_data_result {
+                    Ok(prog_data) => {
+                        let prog_result: Result<Program, BpfdError> = match program_type {
+                            command::ProgramType::Tracepoint => {
+                                Ok(Program::Tracepoint(TracepointProgram {
+                                    data: prog_data,
+                                    info: attach,
+                                }))
+                            }
+                            _ => Err(BpfdError::InvalidProgramType(program_type.to_string())),
+                        };
+
+                        match prog_result {
+                            Ok(prog) => bpf_manager.add_program(prog),
+                            Err(e) => Err(e),
+                        }
                     }
-                    _ => Err(BpfdError::InvalidProgramType(program_type.to_string())),
+                    Err(e) => Err(BpfdError::BpfBytecodeError(e)),
                 };
-
-                let res = match prog_result {
-                    Ok(prog) => bpf_manager.add_program(prog),
-                    Err(e) => Err(e),
-                };
-
                 // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }
