@@ -158,14 +158,34 @@ docker-buildx: test ## Build and push docker image for the manager for cross-pla
 	- docker buildx rm project-v3-builder
 	rm Dockerfile.cross
 
+##@ Remote Deployment
+
+.PHONY: deploy-openshift
+deploy-openshift: manifests kustomize deploy-certmanager ## Deploy bpfd-operator to the Openshift cluster specified in ~/.kube/config.
+	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator-image=${BPFD_OPERATOR_IMG} 
+	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image bpfd-image=${BPFD_IMG} && $(KUSTOMIZE) edit set image bpfd-agent-image=${BPFD_AGENT_IMG}
+	$(KUSTOMIZE) build config/openshift | kubectl apply -f -
+
+.PHONY: undeploy-openshift
+undeploy-openshift: undeploy-certmanager ## Undeploy bpfd-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	$(KUSTOMIZE) build config/openshift | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+
 ##@ Local Deployment
 
 .PHONY: setup-kind
 setup-kind: cm-verifier ## Setup Kind cluster with certmanager ready for bpfd deployment
 	kind delete cluster --name bpfd-deployment && kind create cluster --config hack/kind-config.yaml --name bpfd-deployment
+
+.PHONY: deploy-certmanager
+deploy-certmanager: kustomize cm-verifier ## Deploy certmanager to the cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/certmanager | kubectl apply -f -
 	$(CM_VERIFIER) --timeout 60s
 
+.PHONY: undeploy-certmanager
+undeploy-certmanager: ## Undeploy certmanager from the cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	$(KUSTOMIZE) build config/certmanager  | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+
+## Default deploy target is KIND based.
 .PHONY: deploy
 deploy: manifests kustomize cm-verifier ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
 	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator-image=${BPFD_OPERATOR_IMG} 
@@ -182,10 +202,9 @@ kind-reload-images: load-images-kind ## Reload locally build images into a kind 
 	kubectl rollout restart deployment bpfd-operator -n bpfd
 
 .PHONY: run-on-kind
-run-on-kind: kustomize setup-kind load-images-kind deploy ## Kind Deploy runs the bpfd-operator on a local kind cluster using the local build
+run-on-kind: kustomize setup-kind deploy-certmanager load-images-kind deploy ## Kind Deploy runs the bpfd-operator on a local kind cluster using the local build
 
 ##@ Deployment
-
 
 ignore-not-found = true
 
@@ -213,7 +232,7 @@ CM_VERIFIER ?= $(LOCALBIN)/cm-verifier
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.8.7
 CONTROLLER_TOOLS_VERSION ?= v0.10.0
-CM_VERIFIER_VERSION ?= 0.2.0
+CM_VERIFIER_VERSION ?= 0.3.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
@@ -221,7 +240,8 @@ kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
 	test -s $(LOCALBIN)/kustomize || { curl -Ss $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); }
 
-CM_VERIFIER_BINARY ?= "https://github.com/alenkacz/cert-manager-verifier/releases/download/v0.2.0/cert-manager-verifier_$(CM_VERIFIER_VERSION)_Linux_x86_64.tar.gz"
+## Leave to my own release until https://github.com/alenkacz/cert-manager-verifier/pull/13 merges
+CM_VERIFIER_BINARY ?= https://github.com/astoycos/cert-manager-verifier/releases/download/v$(CM_VERIFIER_VERSION)/cert-manager-verifier_$(CM_VERIFIER_VERSION)_Linux_arm64.tar.gz
 .PHONY: cm-verifier
 cm-verifier: $(CM_VERIFIER) ## Download cm-verifier locally if necessary.
 $(CM_VERIFIER): $(LOCALBIN)
