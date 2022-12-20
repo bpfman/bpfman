@@ -163,10 +163,10 @@ func BuildBpfdLoadRequest(bpf_program_config *bpfdiov1alpha1.BpfProgramConfig) (
 	return &loadRequest, nil
 }
 
-func BuildBpfdUnloadRequest(uuid string) (*gobpfd.UnloadRequest, error) {
+func BuildBpfdUnloadRequest(uuid string) *gobpfd.UnloadRequest {
 	return &gobpfd.UnloadRequest{
 		Id: uuid,
-	}, nil
+	}
 }
 
 // GetMapsForUUID returns any maps for the specified bpf program

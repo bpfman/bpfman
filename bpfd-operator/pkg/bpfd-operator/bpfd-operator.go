@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"github.com/go-logr/logr"
 	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/api/v1alpha1"
 	bpfdagent "github.com/redhat-et/bpfd/bpfd-operator/pkg/bpfd-agent"
 )
@@ -50,19 +51,73 @@ import (
 type BpfProgramConfigConditionType string
 
 const (
-	bpfdOperatorFinalizer                                        = "bpfd.io.operator/finalizer"
-	retryDurationOperator                                        = 10 * time.Second
-	BpfdDaemonManifestPath                                       = "./config/bpfd-deployment/daemonset.yaml"
-	EbpfProgConfigNotYetLoaded     BpfProgramConfigConditionType = "NotYetLoaded"
-	EbpfProgConfigReconcileError   BpfProgramConfigConditionType = "ReconcileError"
-	EbpfProgConfigReconcileSuccess BpfProgramConfigConditionType = "ReconcileSuccess"
-	EbpfProgConfigDeleteError      BpfProgramConfigConditionType = "DeleteError"
+	bpfdOperatorFinalizer                                       = "bpfd.io.operator/finalizer"
+	retryDurationOperator                                       = 10 * time.Second
+	BpfdDaemonManifestPath                                      = "./config/bpfd-deployment/daemonset.yaml"
+	BpfProgConfigNotYetLoaded     BpfProgramConfigConditionType = "NotYetLoaded"
+	BpfProgConfigReconcileError   BpfProgramConfigConditionType = "ReconcileError"
+	BpfProgConfigReconcileSuccess BpfProgramConfigConditionType = "ReconcileSuccess"
+	BpfProgConfigDeleteError      BpfProgramConfigConditionType = "DeleteError"
 )
+
+func (b BpfProgramConfigConditionType) Condition(message string) metav1.Condition {
+	cond := metav1.Condition{}
+
+	switch b {
+	case BpfProgConfigNotYetLoaded:
+		if len(message) == 0 {
+			message = "Waiting for BpfProgramConfig Object to be reconciled to all nodes"
+		}
+
+		cond = metav1.Condition{
+			Type:    string(BpfProgConfigNotYetLoaded),
+			Status:  metav1.ConditionTrue,
+			Reason:  "ProgramsNotYetLoaded",
+			Message: message,
+		}
+	case BpfProgConfigReconcileError:
+		if len(message) == 0 {
+			message = "bpfProgramReconciliation failed"
+		}
+
+		cond = metav1.Condition{
+			Type:    string(BpfProgConfigReconcileError),
+			Status:  metav1.ConditionTrue,
+			Reason:  "ReconcileError",
+			Message: message,
+		}
+	case BpfProgConfigReconcileSuccess:
+		if len(message) == 0 {
+			message = "bpfProgramReconciliation Succeeded on all nodes"
+		}
+
+		cond = metav1.Condition{
+			Type:    string(BpfProgConfigReconcileSuccess),
+			Status:  metav1.ConditionTrue,
+			Reason:  "ReconcileSuccess",
+			Message: message,
+		}
+	case BpfProgConfigDeleteError:
+		if len(message) == 0 {
+			message = "bpfProgramConfig Deletion failed"
+		}
+
+		cond = metav1.Condition{
+			Type:    string(BpfProgConfigDeleteError),
+			Status:  metav1.ConditionTrue,
+			Reason:  "DeleteError",
+			Message: message,
+		}
+	}
+
+	return cond
+}
 
 // BpfProgramConfigReconciler reconciles a BpfProgramConfig object
 type BpfProgramConfigReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	Logger logr.Logger
 }
 
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms,verbs=get;list;watch
@@ -82,20 +137,19 @@ type BpfProgramConfigReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	l := log.FromContext(ctx)
+	r.Logger = log.FromContext(ctx)
 
-	l.Info("bpfd-operator is reconciling", "request", req.String())
+	r.Logger.Info("bpfd-operator is reconciling", "request", req.String())
 
 	// See if the bpfd deployment was manually edited and reconcile to correct
 	// state
 	bpfdDeployment := &appsv1.DaemonSet{}
 	if err := r.Get(ctx, req.NamespacedName, bpfdDeployment); err != nil {
 		if errors.IsNotFound(err) {
-			l.Info("reconcile not triggered by bpfd daemon change")
-
+			r.Logger.Info("reconcile not triggered by bpfd daemon change")
 		} else {
-			return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting bpfd-agent node %s : %v",
-				req.NamespacedName, err)
+			r.Logger.Error(err, "failed getting bpfd-agent node", "NodeName", req.NamespacedName)
+			return ctrl.Result{}, nil
 		}
 	} else {
 		// Load static bpfd deployment from disk
@@ -129,7 +183,7 @@ func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if err := r.Get(ctx, req.NamespacedName, BpfProgramConfig); err != nil {
 		// list all BpfProgramConfig objects with
 		if errors.IsNotFound(err) {
-			l.Info("reconcile not triggered by BpfProgramConfig change")
+			r.Logger.Info("reconcile not triggered by BpfProgramConfig change")
 
 			// TODO(astoycos) we could simplify this logic by making the name of the
 			// generated bpfProgram object a bit more deterministic
@@ -146,12 +200,13 @@ func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			}
 
 			if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: ownerRef.Name}, BpfProgramConfig); err != nil {
-				return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting BpfProgramConfig Object from ownerRef: %v", err)
+				r.Logger.Error(err, "failed getting BpfProgramConfig Object from ownerRef")
+				return ctrl.Result{}, nil
 			}
 
 		} else {
-			return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting BpfProgramConfig Object %s : %v",
-				req.NamespacedName, err)
+			r.Logger.Error(err, "failed getting BpfProgramConfig Object", "bpfProgramConfigName", req.NamespacedName)
+			return ctrl.Result{}, nil
 		}
 	}
 
@@ -161,17 +216,8 @@ func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 		err := r.Update(ctx, BpfProgramConfig)
 		if err != nil {
-			return ctrl.Result{Requeue: false}, fmt.Errorf("failed adding bpfd-operator finalizer to BpfProgramConfig %s : %v",
-				BpfProgramConfig.Name, err)
-		}
-	}
-
-	// inline function for updating the status of the bpfProgramObject
-	updateStatusFunc := func(condition metav1.Condition) {
-		meta.SetStatusCondition(&BpfProgramConfig.Status.Conditions, condition)
-
-		if err := r.Status().Update(ctx, BpfProgramConfig); err != nil {
-			l.Error(err, "failed to set bpfProgram object status")
+			r.Logger.Error(err, "failed adding bpfd-operator finalizer to BpfProgramConfig")
+			return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, nil
 		}
 	}
 
@@ -183,8 +229,8 @@ func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	opts := []client.ListOption{client.MatchingLabels{"owningConfig": BpfProgramConfig.Name}}
 
 	if err := r.List(ctx, bpfPrograms, opts...); err != nil {
-		return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting BpfProgramConfigs for full reconcile %s : %v",
-			req.NamespacedName, err)
+		r.Logger.Error(err, "failed getting BpfProgramConfigs for full reconcile")
+		return ctrl.Result{}, nil
 	}
 
 	// List all nodes since an bpfprogram object will always be created
@@ -194,18 +240,11 @@ func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			req.NamespacedName, err)
 	}
 
-	// Return NotYetLoaded Status
-	// BpfPrograms for this haven't been created by bpfd-agent
-	if len(nodes.Items) != len(bpfPrograms.Items) {
-		notYetLoaded := metav1.Condition{
-			Type:    string(EbpfProgConfigNotYetLoaded),
-			Status:  metav1.ConditionTrue,
-			Reason:  "ProgramsNotYetLoaded",
-			Message: "Waiting for BpfProgramConfig Object to be reconciled to all nodes",
-		}
-
-		updateStatusFunc(notYetLoaded)
-
+	// Return NotYetLoaded Status if
+	// BpfPrograms for this haven't been created by bpfd-agent and the config isn't
+	// being deleted.
+	if len(nodes.Items) != len(bpfPrograms.Items) && BpfProgramConfig.DeletionTimestamp.IsZero() {
+		r.updateStatus(ctx, BpfProgramConfig, BpfProgConfigNotYetLoaded, "")
 		return ctrl.Result{Requeue: false}, nil
 	}
 
@@ -223,7 +262,7 @@ func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 
 		for _, condition := range bpfProgram.Status.Conditions {
-			if condition.Type == string(bpfdagent.EbpfProgCondNotLoaded) || condition.Type == string(bpfdagent.EbpfProgCondNotUnloaded) {
+			if condition.Type == string(bpfdagent.BpfProgCondNotLoaded) || condition.Type == string(bpfdagent.BpfProgCondNotUnloaded) {
 				failedBpfPrograms = append(failedBpfPrograms, bpfProgram.Name)
 			}
 		}
@@ -236,46 +275,38 @@ func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 			err := r.Update(ctx, BpfProgramConfig)
 			if err != nil {
-				return ctrl.Result{Requeue: false}, fmt.Errorf("failed adding bpfd-operator finalizer to BpfProgramConfig %s : %v",
-					BpfProgramConfig.Name, err)
+				r.Logger.Error(err, "failed removing bpfd-operator finalizer to BpfProgramConfig")
+				return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, nil
 			}
 		} else {
-			ReconcileError := metav1.Condition{
-				Type:   string(EbpfProgConfigDeleteError),
-				Status: metav1.ConditionTrue,
-				Reason: "DeleteError",
-				Message: fmt.Sprintf("bpfProgramConfig Deletion failed on the following bpfProgram Objects: %v",
-					finalApplied),
-			}
-
-			updateStatusFunc(ReconcileError)
+			r.updateStatus(ctx, BpfProgramConfig, BpfProgConfigDeleteError, fmt.Sprintf("bpfProgramConfig Deletion failed on the following bpfProgram Objects: %v",
+				finalApplied))
 		}
 
 		return ctrl.Result{}, nil
 	}
 
 	if len(failedBpfPrograms) != 0 {
-		ReconcileError := metav1.Condition{
-			Type:   string(EbpfProgConfigReconcileError),
-			Status: metav1.ConditionTrue,
-			Reason: "ReconcileError",
-			Message: fmt.Sprintf("bpfProgramReconciliation failed on the following bpfProgram Objects: %v",
-				failedBpfPrograms),
-		}
-
-		updateStatusFunc(ReconcileError)
+		r.updateStatus(ctx, BpfProgramConfig, BpfProgConfigReconcileError,
+			fmt.Sprintf("bpfProgramReconciliation failed on the following bpfProgram Objects: %v", failedBpfPrograms))
 	} else {
-		ReconcileSuccess := metav1.Condition{
-			Type:    string(EbpfProgConfigReconcileSuccess),
-			Status:  metav1.ConditionTrue,
-			Reason:  "ReconcileSuccess",
-			Message: "bpfProgramReconciliation Succeeded on all nodes",
-		}
-
-		updateStatusFunc(ReconcileSuccess)
+		r.updateStatus(ctx, BpfProgramConfig, BpfProgConfigReconcileSuccess, "")
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func (r *BpfProgramConfigReconciler) updateStatus(ctx context.Context, prog *bpfdiov1alpha1.BpfProgramConfig, cond BpfProgramConfigConditionType, message string) {
+	// Sometimes we end up with a stale bpfProgramConfig due to races, do this
+	// get to ensure we're up to date before attempting a status update.
+	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: prog.Name}, prog); err != nil {
+		r.Logger.Error(err, "failed to get fresh bpfProgramConfig object default to existing")
+	}
+	meta.SetStatusCondition(&prog.Status.Conditions, cond.Condition(message))
+
+	if err := r.Status().Update(ctx, prog); err != nil {
+		r.Logger.Error(err, "failed to set bpfProgramConfig object status")
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.
