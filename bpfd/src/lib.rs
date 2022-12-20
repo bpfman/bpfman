@@ -144,43 +144,53 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                         proceed_on
                     };
 
-                    let prog_data =
+                    let prog_data_result =
                         ProgramData::new_from_location(location, section_name.clone(), username)
-                            .await?;
-                    let prog = match program_type {
-                        command::ProgramType::Xdp => Program::Xdp(XdpProgram {
-                            data: prog_data.clone(),
-                            info: NetworkMultiAttachInfo {
-                                if_index,
-                                current_position: None,
-                                metadata: command::Metadata {
-                                    priority,
-                                    // This could have been overridden by image tags
-                                    name: prog_data.section_name,
-                                    attached: false,
-                                },
-                                proceed_on: proc_on,
-                                if_name: iface,
-                            },
-                        }),
-                        command::ProgramType::Tc => Program::Tc(TcProgram {
-                            data: prog_data.clone(),
-                            info: NetworkMultiAttachInfo {
-                                if_index,
-                                current_position: None,
-                                metadata: command::Metadata {
-                                    priority,
-                                    name: prog_data.section_name,
-                                    attached: false,
-                                },
-                                proceed_on: proc_on,
-                                if_name: iface,
-                            },
-                            direction: direction.unwrap(),
-                        }),
-                        _ => panic!("unsupported prog type"),
-                    };
-                    bpf_manager.add_program(prog)
+                            .await;
+
+                    match prog_data_result {
+                        Ok(prog_data) => {
+                            let prog_result: Result<Program, BpfdError> = match program_type {
+                                command::ProgramType::Xdp => Ok(Program::Xdp(XdpProgram {
+                                    data: prog_data.clone(),
+                                    info: NetworkMultiAttachInfo {
+                                        if_index,
+                                        current_position: None,
+                                        metadata: command::Metadata {
+                                            priority,
+                                            // This could have been overridden by image tags
+                                            name: prog_data.section_name,
+                                            attached: false,
+                                        },
+                                        proceed_on: proc_on,
+                                        if_name: iface,
+                                    },
+                                })),
+                                command::ProgramType::Tc => Ok(Program::Tc(TcProgram {
+                                    data: prog_data.clone(),
+                                    info: NetworkMultiAttachInfo {
+                                        if_index,
+                                        current_position: None,
+                                        metadata: command::Metadata {
+                                            priority,
+                                            name: prog_data.section_name,
+                                            attached: false,
+                                        },
+                                        proceed_on: proc_on,
+                                        if_name: iface,
+                                    },
+                                    direction: direction.unwrap(),
+                                })),
+                                _ => Err(BpfdError::InvalidProgramType(program_type.to_string())),
+                            };
+
+                            match prog_result {
+                                Ok(prog) => bpf_manager.add_program(prog),
+                                Err(e) => Err(e),
+                            }
+                        }
+                        Err(e) => Err(BpfdError::BpfBytecodeError(e)),
+                    }
                 } else {
                     Err(BpfdError::InvalidInterface)
                 };
@@ -195,15 +205,28 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                 responder,
                 program_type,
             } => {
-                let prog = match program_type {
-                    command::ProgramType::Tracepoint => Program::Tracepoint(TracepointProgram {
-                        data: ProgramData::new_from_location(location, section_name, username)
-                            .await?,
-                        info: attach,
-                    }),
-                    _ => panic!("unsupported prog type"),
+                let prog_data_result =
+                    ProgramData::new_from_location(location, section_name, username).await;
+
+                let res = match prog_data_result {
+                    Ok(prog_data) => {
+                        let prog_result: Result<Program, BpfdError> = match program_type {
+                            command::ProgramType::Tracepoint => {
+                                Ok(Program::Tracepoint(TracepointProgram {
+                                    data: prog_data,
+                                    info: attach,
+                                }))
+                            }
+                            _ => Err(BpfdError::InvalidProgramType(program_type.to_string())),
+                        };
+
+                        match prog_result {
+                            Ok(prog) => bpf_manager.add_program(prog),
+                            Err(e) => Err(e),
+                        }
+                    }
+                    Err(e) => Err(BpfdError::BpfBytecodeError(e)),
                 };
-                let res = bpf_manager.add_program(prog);
                 // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }
