@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
+use bpfd_api::ParseError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -31,4 +32,6 @@ pub enum BpfdError {
     NotLoaded,
     #[error("dispatcher not required")]
     DispatcherNotRequired,
+    #[error("Failed to get BpfBytecode {0}")]
+    BpfBytecodeError(#[from] ParseError),
 }

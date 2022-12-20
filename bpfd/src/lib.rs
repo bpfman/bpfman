@@ -12,7 +12,6 @@ mod static_program;
 mod utils;
 
 use anyhow::{bail, Context};
-//use aya::programs::ProgramError;
 use bpf::BpfManager;
 use bpfd_api::{
     config::Config,
@@ -150,11 +149,9 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                             .await;
 
                     match prog_data_result {
-                        // TODO: Return better error for Err case?
-                        Err(e) => Err(BpfdError::Error(format!("{e}"))),
                         Ok(prog_data) => {
-                            let prog = match program_type {
-                                command::ProgramType::Xdp => Program::Xdp(XdpProgram {
+                            let prog_result: Result<Program, BpfdError> = match program_type {
+                                command::ProgramType::Xdp => Ok(Program::Xdp(XdpProgram {
                                     data: prog_data.clone(),
                                     info: NetworkMultiAttachInfo {
                                         if_index,
@@ -168,8 +165,8 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                                         proceed_on: proc_on,
                                         if_name: iface,
                                     },
-                                }),
-                                command::ProgramType::Tc => Program::Tc(TcProgram {
+                                })),
+                                command::ProgramType::Tc => Ok(Program::Tc(TcProgram {
                                     data: prog_data.clone(),
                                     info: NetworkMultiAttachInfo {
                                         if_index,
@@ -183,11 +180,16 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                                         if_name: iface,
                                     },
                                     direction: direction.unwrap(),
-                                }),
-                                _ => panic!("unsupported prog type"),
+                                })),
+                                _ => Err(BpfdError::InvalidProgramType(program_type.to_string())),
                             };
-                            bpf_manager.add_program(prog)
+
+                            match prog_result {
+                                Ok(prog) => bpf_manager.add_program(prog),
+                                Err(e) => Err(e),
+                            }
                         }
+                        Err(e) => Err(BpfdError::BpfBytecodeError(e)),
                     }
                 } else {
                     Err(BpfdError::InvalidInterface)
