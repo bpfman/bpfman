@@ -189,8 +189,11 @@ func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			// generated bpfProgram object a bit more deterministic
 			bpfProgram := &bpfdiov1alpha1.BpfProgram{}
 			if err := r.Get(ctx, req.NamespacedName, bpfProgram); err != nil {
-				return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting bpfProgram Object %s : %v",
-					req.NamespacedName, err)
+				if errors.IsNotFound(err) {
+					r.Logger.Info("bpfProgram Not found stale event, exiting", "bpfProgramName", req.NamespacedName)
+				}
+				r.Logger.Error(err, "failed getting bpfProgram Object", "bpfProgramName", req.NamespacedName)
+				return ctrl.Result{}, nil
 			}
 
 			// Get owning BpfProgramConfig object from ownerRef
