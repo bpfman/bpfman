@@ -274,13 +274,7 @@ func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if !BpfProgramConfig.DeletionTimestamp.IsZero() {
 		// Only remove bpfd-operator finalizer if all bpfProgram Objects are ready to be pruned  (i.e finalizers have been removed)
 		if len(finalApplied) == 0 {
-			controllerutil.RemoveFinalizer(BpfProgramConfig, bpfdOperatorFinalizer)
-
-			err := r.Update(ctx, BpfProgramConfig)
-			if err != nil {
-				r.Logger.Error(err, "failed removing bpfd-operator finalizer to BpfProgramConfig")
-				return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, nil
-			}
+			return r.removeFinalizer(ctx, BpfProgramConfig)
 		} else {
 			r.updateStatus(ctx, BpfProgramConfig, BpfProgConfigDeleteError, fmt.Sprintf("bpfProgramConfig Deletion failed on the following bpfProgram Objects: %v",
 				finalApplied))
@@ -301,7 +295,7 @@ func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 func (r *BpfProgramConfigReconciler) updateStatus(ctx context.Context, prog *bpfdiov1alpha1.BpfProgramConfig, cond BpfProgramConfigConditionType, message string) {
 	// Sometimes we end up with a stale bpfProgramConfig due to races, do this
-	// get to ensure we're up to date before attempting a status update.
+	// get to ensure we're up to date before attempting a finalizer removal.
 	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: prog.Name}, prog); err != nil {
 		r.Logger.Error(err, "failed to get fresh bpfProgramConfig object default to existing")
 	}
@@ -310,6 +304,23 @@ func (r *BpfProgramConfigReconciler) updateStatus(ctx context.Context, prog *bpf
 	if err := r.Status().Update(ctx, prog); err != nil {
 		r.Logger.Error(err, "failed to set bpfProgramConfig object status")
 	}
+}
+
+func (r *BpfProgramConfigReconciler) removeFinalizer(ctx context.Context, prog *bpfdiov1alpha1.BpfProgramConfig) (ctrl.Result, error) {
+	// Sometimes we end up with a stale bpfProgramConfig due to races, do this
+	// get to ensure we're up to date before attempting a status update.
+	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: prog.Name}, prog); err != nil {
+		r.Logger.Error(err, "failed to get fresh bpfProgramConfig object default to existing")
+	}
+	controllerutil.RemoveFinalizer(prog, bpfdOperatorFinalizer)
+
+	err := r.Update(ctx, prog)
+	if err != nil {
+		r.Logger.Error(err, "failed removing bpfd-operator finalizer to BpfProgramConfig")
+		return ctrl.Result{Requeue: true, RequeueAfter: 5 * time.Second}, nil
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
