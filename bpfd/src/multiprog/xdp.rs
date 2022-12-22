@@ -13,6 +13,7 @@ use aya::{
 };
 use bpfd_api::{config::XdpMode, util::directories::*};
 use bpfd_common::XdpDispatcherConfig;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -49,6 +50,7 @@ impl XdpDispatcher {
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
     ) -> Result<XdpDispatcher, BpfdError> {
+        debug!("XdpDispatcher::new() for if_index {if_index}, revision {revision}");
         let mut extensions: Vec<(&Uuid, &XdpProgram)> = programs
             .iter()
             .filter_map(|(k, v)| match v {
@@ -67,6 +69,8 @@ impl XdpDispatcher {
             chain_call_actions,
             run_prios: [DEFAULT_PRIORITY; 10],
         };
+
+        debug!("num_progs_enabled = {}", config.num_progs_enabled);
 
         let mut loader = BpfLoader::new()
             .set_global("CONFIG", &config)
@@ -99,6 +103,10 @@ impl XdpDispatcher {
     }
 
     pub(crate) fn attach(&mut self) -> Result<(), BpfdError> {
+        debug!(
+            "XdpDispatcher::attach() for if_index {}, revision {}",
+            self.if_index, self.revision
+        );
         let if_index = self.if_index;
         let iface = self.if_name.clone();
         let dispatcher: &mut Xdp = self
@@ -132,6 +140,10 @@ impl XdpDispatcher {
         &mut self,
         extensions: &mut [(&Uuid, &XdpProgram)],
     ) -> Result<(), BpfdError> {
+        debug!(
+            "XdpDispatcher::attach_extensions() for if_index {}, revision {}",
+            self.if_index, self.revision
+        );
         let if_index = self.if_index;
         let dispatcher: &mut Xdp = self
             .loader
@@ -186,6 +198,10 @@ impl XdpDispatcher {
     }
 
     fn save(&self) -> Result<(), BpfdError> {
+        debug!(
+            "XdpDispatcher::save() for if_index {}, revision {}",
+            self.if_index, self.revision
+        );
         let path = format!("{RTDIR_XDP_DISPATCHER}/{}_{}", self.if_index, self.revision);
         serde_json::to_writer(&fs::File::create(path).unwrap(), &self)
             .map_err(|e| BpfdError::Error(format!("can't save state: {e}")))?;
@@ -193,6 +209,7 @@ impl XdpDispatcher {
     }
 
     pub fn load(if_index: u32, revision: u32) -> Result<Self, anyhow::Error> {
+        debug!("XdpDispatcher::load() for if_index {if_index}, revision {revision}");
         let path = format!("{RTDIR_XDP_DISPATCHER}/{if_index}_{revision}");
         let file = fs::File::open(path)?;
         let reader = BufReader::new(file);
@@ -202,6 +219,10 @@ impl XdpDispatcher {
     }
 
     pub(crate) fn delete(&self, full: bool) -> Result<(), BpfdError> {
+        debug!(
+            "XdpDispatcher::delete() for if_index {}, revision {}",
+            self.if_index, self.revision
+        );
         let path = format!("{RTDIR_XDP_DISPATCHER}/{}_{}", self.if_index, self.revision);
         fs::remove_file(path)
             .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {e}")))?;

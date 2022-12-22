@@ -5,6 +5,7 @@ mod tc;
 mod xdp;
 
 use bpfd_api::config::{InterfaceConfig, XdpMode};
+use log::debug;
 pub use tc::TcDispatcher;
 use uuid::Uuid;
 pub use xdp::{XdpDispatcher, XDP_DISPATCHER_RET, XDP_PASS};
@@ -26,6 +27,7 @@ impl Dispatcher {
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
     ) -> Result<Dispatcher, BpfdError> {
+        debug!("Dispatcher::new()");
         let (_, p) = programs
             .first()
             .ok_or_else(|| BpfdError::Error("No programs to load".to_string()))?;
@@ -72,6 +74,7 @@ impl Dispatcher {
     }
 
     pub(crate) fn delete(&mut self, full: bool) -> Result<(), BpfdError> {
+        debug!("Dispatcher::delete()");
         match self {
             Dispatcher::Xdp(d) => d.delete(full),
             Dispatcher::Tc(d) => d.delete(full),

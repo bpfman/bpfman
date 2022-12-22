@@ -14,6 +14,7 @@ use aya::{
 };
 use bpfd_api::util::directories::*;
 use bpfd_common::TcDispatcherConfig;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -57,6 +58,7 @@ impl TcDispatcher {
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
     ) -> Result<TcDispatcher, BpfdError> {
+        debug!("TcDispatcher::new() for if_index {if_index}, revision {revision}");
         let mut extensions: Vec<(&Uuid, &TcProgram)> = programs
             .iter()
             .filter_map(|(k, v)| match v {
@@ -74,6 +76,8 @@ impl TcDispatcher {
             chain_call_actions,
             run_prios: [DEFAULT_PRIORITY; 10],
         };
+
+        debug!("num_progs_enabled = {}", config.num_progs_enabled);
 
         let mut loader = BpfLoader::new()
             .set_global("CONFIG", &config)
@@ -109,6 +113,10 @@ impl TcDispatcher {
     }
 
     fn attach(&mut self, old_dispatcher: Option<Dispatcher>) -> Result<(), BpfdError> {
+        debug!(
+            "TcDispatcher::attach() for if_index {}, revision {}",
+            self.if_index, self.revision
+        );
         let iface = self.if_name.clone();
         // Add clsact qdisc to the interface. This is harmless if it has already been added.
         let _ = tc::qdisc_add_clsact(&iface);
@@ -153,6 +161,10 @@ impl TcDispatcher {
         &mut self,
         extensions: &mut [(&Uuid, &TcProgram)],
     ) -> Result<(), BpfdError> {
+        debug!(
+            "TcDispatcher::attach_extensions() for if_index {}, revision {}",
+            self.if_index, self.revision
+        );
         let if_index = self.if_index;
         let dispatcher: &mut SchedClassifier = self
             .loader
@@ -215,6 +227,10 @@ impl TcDispatcher {
     }
 
     fn save(&self) -> Result<(), BpfdError> {
+        debug!(
+            "TcDispatcher::save() for if_index {}, revision {}",
+            self.if_index, self.revision
+        );
         let base = match self.direction {
             Direction::Ingress => RTDIR_TC_INGRESS_DISPATCHER,
             Direction::Egress => RTDIR_TC_EGRESS_DISPATCHER,
@@ -230,6 +246,7 @@ impl TcDispatcher {
         direction: Direction,
         revision: u32,
     ) -> Result<Self, anyhow::Error> {
+        debug!("TcDispatcher::load() for if_index {if_index}, revision {revision}");
         let dir = match direction {
             Direction::Ingress => RTDIR_TC_INGRESS_DISPATCHER,
             Direction::Egress => RTDIR_TC_EGRESS_DISPATCHER,
@@ -243,6 +260,10 @@ impl TcDispatcher {
     }
 
     pub(crate) fn delete(&mut self, _full: bool) -> Result<(), BpfdError> {
+        debug!(
+            "TcDispatcher::delete() for if_index {}, revision {}",
+            self.if_index, self.revision
+        );
         let base = match self.direction {
             Direction::Ingress => RTDIR_TC_INGRESS_DISPATCHER,
             Direction::Egress => RTDIR_TC_EGRESS_DISPATCHER,

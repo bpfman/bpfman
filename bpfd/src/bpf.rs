@@ -38,6 +38,7 @@ impl<'a> BpfManager<'a> {
     }
 
     pub(crate) fn rebuild_state(&mut self) -> Result<(), anyhow::Error> {
+        debug!("BpfManager::rebuild_state()");
         if let Ok(programs_dir) = fs::read_dir(RTDIR_PROGRAMS) {
             for entry in programs_dir {
                 let entry = entry?;
@@ -63,6 +64,10 @@ impl<'a> BpfManager<'a> {
         direction: Option<Direction>,
         path: &str,
     ) -> Result<(), anyhow::Error> {
+        debug!(
+            "BpfManager::rebuild_dispatcher_state() for program_type {program_type}, direction {:?}",
+            direction
+        );
         if let Ok(dispatcher_dir) = fs::read_dir(path) {
             for entry in dispatcher_dir {
                 let entry = entry?;
@@ -113,6 +118,7 @@ impl<'a> BpfManager<'a> {
     }
 
     pub(crate) fn add_program(&mut self, program: Program) -> Result<Uuid, BpfdError> {
+        debug!("BpfManager::add_program()");
         match program {
             Program::Xdp(_) | Program::Tc(_) => self.add_multi_attach_program(program),
             Program::Tracepoint(_) => self.add_single_attach_program(program),
@@ -120,6 +126,7 @@ impl<'a> BpfManager<'a> {
     }
 
     pub(crate) fn add_multi_attach_program(&mut self, program: Program) -> Result<Uuid, BpfdError> {
+        debug!("BpfManager::add_multi_attach_program()");
         let id = Uuid::new_v4();
         let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
         fs::create_dir_all(map_pin_path.clone())
@@ -153,6 +160,8 @@ impl<'a> BpfManager<'a> {
         if next_available_id >= 10 {
             return Err(BpfdError::TooManyPrograms);
         }
+
+        debug!("next_available_id={next_available_id}");
 
         let program_type = program.kind();
         let if_index = program.if_index();
@@ -197,6 +206,7 @@ impl<'a> BpfManager<'a> {
     }
 
     pub(crate) fn add_single_attach_program(&mut self, p: Program) -> Result<Uuid, BpfdError> {
+        debug!("BpfManager::add_single_attach_program()");
         if let Program::Tracepoint(ref program) = p {
             let id = Uuid::new_v4();
             let parts: Vec<&str> = program.info.split('/').collect();
@@ -255,6 +265,7 @@ impl<'a> BpfManager<'a> {
     }
 
     pub(crate) fn remove_program(&mut self, id: Uuid, owner: String) -> Result<(), BpfdError> {
+        debug!("BpfManager::remove_program() id: {id}");
         if let Some(prog) = self.programs.get(&id) {
             if !(prog.owner() == &owner || owner == SUPERUSER) {
                 return Err(BpfdError::NotAuthorized);
@@ -278,6 +289,7 @@ impl<'a> BpfManager<'a> {
         &mut self,
         program: Program,
     ) -> Result<(), BpfdError> {
+        debug!("BpfManager::remove_multi_attach_program()");
         // Calculate the next_available_id
         let next_available_id = self
             .programs
@@ -291,6 +303,7 @@ impl<'a> BpfManager<'a> {
             })
             .collect::<HashMap<_, _>>()
             .len();
+        debug!("next_available_id = {next_available_id}");
 
         let did = program
             .dispatcher_id()
@@ -324,6 +337,7 @@ impl<'a> BpfManager<'a> {
         } else {
             1
         };
+        debug!("next_revision = {next_revision}");
         let dispatcher = Dispatcher::new(if_config, &programs, next_revision, old_dispatcher)?;
         self.dispatchers.insert(did, dispatcher);
         Ok(())
@@ -336,6 +350,7 @@ impl<'a> BpfManager<'a> {
         direction: Option<Direction>,
         did: DispatcherId,
     ) -> Result<(), BpfdError> {
+        debug!("BpfManager::rebuild_multiattach_dispatcher() for program type {program_type} on if_index {if_index}");
         let mut old_dispatcher = self.dispatchers.remove(&did);
 
         if let Some(ref mut old) = old_dispatcher {
@@ -345,6 +360,7 @@ impl<'a> BpfManager<'a> {
             self.sort_programs(program_type, if_index, direction);
             let programs = self.collect_programs(program_type, if_index, direction);
 
+            debug!("programs loaded: {}", programs.len());
             // The following checks should have been done when the dispatcher was built, but check again to confirm
             if programs.is_empty() {
                 return old.delete(true);
@@ -374,6 +390,7 @@ impl<'a> BpfManager<'a> {
     }
 
     pub(crate) fn list_programs(&mut self) -> Result<Vec<ProgramInfo>, BpfdError> {
+        debug!("BpfManager::list_programs()");
         let programs = self
             .programs
             .iter()
