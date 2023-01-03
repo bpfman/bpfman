@@ -54,7 +54,7 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    createdAt: "2023-01-03T19:45:30Z"
+    createdAt: "2023-01-03T21:06:44Z"
     operators.operatorframework.io/builder: operator-sdk-v1.26.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
   name: bpfd-operator.v0.0.1
