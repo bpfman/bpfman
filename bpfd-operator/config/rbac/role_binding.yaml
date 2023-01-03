@@ -11,7 +11,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: bpfd-operator-role
+  name: operator-role
 subjects:
 - kind: ServiceAccount
   name: operator
@@ -26,7 +26,7 @@ metadata:
     app.kubernetes.io/created-by: bpfd-operator
     app.kubernetes.io/part-of: bpfd-operator
     app.kubernetes.io/managed-by: kustomize
-  name: bpfd-agent-rolebinding
+  name: agent-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
