@@ -42,5 +42,5 @@ kind: Kustomization
 resources:
 - ../crd
 - ../rbac
-- ../bpfd-operator-deployment
 - ../bpfd-deployment
+- ../bpfd-operator-deployment

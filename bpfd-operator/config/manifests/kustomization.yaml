@@ -2,7 +2,7 @@
 # used to generate the 'manifests/' directory in a bundle.
 resources:
 - bases/bpfd-operator.clusterserviceversion.yaml
-- ../default
+- ../openshift
 - ../samples
 - ../scorecard
 

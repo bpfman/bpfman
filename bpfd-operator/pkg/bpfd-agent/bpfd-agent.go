@@ -62,7 +62,7 @@ type bpfProgramConditionType string
 
 const (
 	BpfdAgentFinalizer                             = "bpfd.io.agent/finalizer"
-	retryDurationAgent                             = 10 * time.Second
+	retryDurationAgent                             = 5 * time.Second
 	BpfProgCondLoaded      bpfProgramConditionType = "Loaded"
 	BpfProgCondNotLoaded   bpfProgramConditionType = "NotLoaded"
 	BpfProgCondNotUnloaded bpfProgramConditionType = "NotUnLoaded"
@@ -115,10 +115,6 @@ func (b bpfProgramConditionType) Condition() metav1.Condition {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the BpfProgram object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
 // This should be called in the following scenarios
 // 1. A new BpfProgramConfig Object is created
 // 2. An BpfProgramConfig Object is Updated (i.e one of the following fields change
@@ -129,7 +125,7 @@ func (b bpfProgramConditionType) Condition() metav1.Condition {
 //
 // 3. Our NodeLabels are updated and the Node is no longer selected by an BpfProgramConfig
 //
-// 4. An bpfProgramCongfig Object is deleted
+// 4. An bpfProgramConfig Object is deleted
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *BpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -174,7 +170,7 @@ func (r *BpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Reconcile every BpfProgramConfig Object
 	// note: This doesn't necessarily result in any extra grpc calls to bpfd
 	for _, BpfProgramConfig := range BpfProgramConfigs.Items {
-		retry, err := r.reconcilBpfProgramConfig(ctx, &BpfProgramConfig, ourNode, existingConfigs)
+		retry, err := r.reconcileBpfProgramConfig(ctx, &BpfProgramConfig, ourNode, existingConfigs)
 		if err != nil {
 			r.Logger.Error(err, "Reconciling BpfProgramConfig Failed", "BpfProgramConfigName", BpfProgramConfig.Name, "Retrying", retry)
 			return ctrl.Result{Requeue: retry, RequeueAfter: retryDurationAgent}, nil
@@ -184,9 +180,9 @@ func (r *BpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{Requeue: false}, nil
 }
 
-// reconcilBpfProgramConfig reconciles the existing node state to the user intent
+// reconcileBpfProgramConfig reconciles the existing node state to the user intent
 // within a single BpfProgramConfig Object.
-func (r *BpfProgramReconciler) reconcilBpfProgramConfig(ctx context.Context,
+func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 	BpfProgramConfig *bpfdiov1alpha1.BpfProgramConfig,
 	ourNode *v1.Node,
 	nodeState map[string]internal.ExistingReq) (bool, error) {
@@ -348,7 +344,7 @@ func (r *BpfProgramReconciler) reconcilBpfProgramConfig(ctx context.Context,
 				Maps:        maps,
 			}
 
-			r.Logger.V(1).Info("Updating programs", "Programs", bpfProgram.Spec.Programs)
+			r.Logger.V(1).Info("Updating programs from nodestate", "Programs", bpfProgram.Spec.Programs)
 			// Update bpfProgram once successfully loaded
 			if err = r.Update(ctx, bpfProgram, &client.UpdateOptions{}); err != nil {
 				return false, fmt.Errorf("failed to create bpfProgram object: %v",
@@ -356,9 +352,6 @@ func (r *BpfProgramReconciler) reconcilBpfProgramConfig(ctx context.Context,
 			}
 
 			r.updateStatus(ctx, bpfProgram, BpfProgCondLoaded)
-
-			r.Logger.Info("Updated Programs on bpfProgram Object from nodeState",
-				"bpfProgramName", bpfProgram.Name)
 		} else {
 			// Program exists and bpfProgram K8s Object is up to date
 			r.Logger.Info("Ignoring Object Change nothing to reconcile on node")
@@ -390,10 +383,10 @@ func (r *BpfProgramReconciler) loadBpfdProgram(ctx context.Context, loadRequest 
 		Maps:        maps,
 	}
 
-	r.Logger.V(1).Info("Updating programs", "Programs", prog.Spec.Programs)
+	r.Logger.V(1).Info("updating programs after load", "Programs", prog.Spec.Programs)
 	// Update bpfProgram once successfully loaded
 	if err = r.Update(ctx, prog, &client.UpdateOptions{}); err != nil {
-		return false, fmt.Errorf("failed to create bpfProgram object: %v",
+		return false, fmt.Errorf("failed to update bpfProgram programs: %v",
 			err)
 	}
 	return false, nil
@@ -416,6 +409,14 @@ func (r *BpfProgramReconciler) unloadBpfdProgram(ctx context.Context, prog *bpfd
 			return true, fmt.Errorf("failed to unload bpfProgram via bpfd: %v",
 				err)
 		}
+		delete(prog.Spec.Programs, uuid)
+	}
+
+	r.Logger.V(1).Info("updating programs after unload", "Programs", prog.Spec.Programs)
+	// Update bpfProgram once successfully unloaded
+	if err := r.Update(ctx, prog, &client.UpdateOptions{}); err != nil {
+		return false, fmt.Errorf("failed to update bpfProgram programs: %v",
+			err)
 	}
 
 	return false, nil
@@ -459,10 +460,19 @@ func (r *BpfProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-// Only return node updates for our node
+// Only return node updates for our node (all events)
 func nodePredicate(nodeName string) predicate.Funcs {
 	return predicate.Funcs{
 		GenericFunc: func(e event.GenericEvent) bool {
+			return e.Object.GetLabels()["kubernetes.io/hostname"] == nodeName
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return e.Object.GetLabels()["kubernetes.io/hostname"] == nodeName
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return e.ObjectNew.GetLabels()["kubernetes.io/hostname"] == nodeName
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
 			return e.Object.GetLabels()["kubernetes.io/hostname"] == nodeName
 		},
 	}

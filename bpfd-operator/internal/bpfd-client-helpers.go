@@ -29,15 +29,22 @@ import (
 	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/api/v1alpha1"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
 	"google.golang.org/grpc/credentials"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
-	bpfdMapFs             = "/run/bpfd/fs/maps"
-	DefaultConfigPath     = " /etc/bpfd/bpfd.toml"
-	DefaultRootCaPath     = "/etc/bpfd/certs/ca/ca.crt"
-	DefaultClientCertPath = "/etc/bpfd/certs/bpfd-client/tls.crt"
-	DefaultClientKeyPath  = "/etc/bpfd/certs/bpfd-client/tls.key"
+	BpfdDsName             = "bpfd-daemon"
+	BpfdConfigName         = "bpfd-config"
+	BpfdDaemonManifestPath = "./config/bpfd-deployment/daemonset.yaml"
+	bpfdMapFs              = "/run/bpfd/fs/maps"
+	DefaultConfigPath      = "/etc/bpfd/bpfd.toml"
+	DefaultRootCaPath      = "/etc/bpfd/certs/ca/ca.crt"
+	DefaultClientCertPath  = "/etc/bpfd/certs/bpfd-client/tls.crt"
+	DefaultClientKeyPath   = "/etc/bpfd/certs/bpfd-client/tls.key"
 )
 
 type Tls struct {
@@ -279,4 +286,41 @@ func AttachConversion(attachment BpfdAttachType) *bpfdiov1alpha1.BpfProgramAttac
 	}
 
 	panic("Attachment Type is unknown")
+}
+
+func LoadAndConfigureBpfdDs(config *corev1.ConfigMap) *appsv1.DaemonSet {
+	// Load static bpfd deployment from disk
+	file, err := os.Open(BpfdDaemonManifestPath)
+	if err != nil {
+		panic(err)
+	}
+
+	b, err := ioutil.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+
+	decode := scheme.Codecs.UniversalDeserializer().Decode
+	obj, _, _ := decode(b, nil, nil)
+
+	staticBpfdDeployment := obj.(*appsv1.DaemonSet)
+
+	// Runtime Configurable fields
+	bpfdNamespace := config.Data["bpfd.namespace"]
+	bpfdImage := config.Data["bpfd.image"]
+	bpfdAgentImage := config.Data["bpfd.agent.image"]
+	bpfdLogLevel := config.Data["bpfd.log.level"]
+
+	// Annotate the log level on the ds so we get automatic restarts on changes.
+	if staticBpfdDeployment.Spec.Template.ObjectMeta.Annotations == nil {
+		staticBpfdDeployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
+	}
+	staticBpfdDeployment.Spec.Template.ObjectMeta.Annotations["bpfd.io.bpfd.loglevel"] = bpfdLogLevel
+	staticBpfdDeployment.Name = "bpfd-daemon"
+	staticBpfdDeployment.Namespace = bpfdNamespace
+	staticBpfdDeployment.Spec.Template.Spec.Containers[0].Image = bpfdImage
+	staticBpfdDeployment.Spec.Template.Spec.Containers[1].Image = bpfdAgentImage
+	controllerutil.AddFinalizer(staticBpfdDeployment, "bpfd.io.operator/finalizer")
+
+	return staticBpfdDeployment
 }
