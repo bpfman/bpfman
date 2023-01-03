@@ -129,7 +129,6 @@ build-images: test ## Build docker image with the manager.
 	docker build -t ${BPFD_OPERATOR_IMG} -f Containerfile.bpfd-operator ../
 	docker build -t ${BPFD_AGENT_IMG} -f Containerfile.bpfd-agent ../
 	DOCKER_BUILDKIT=1 docker build -t ${BPFD_IMG} -f ../packaging/container-deployment/Containerfile.bpfd.local ../
-	
 
 .PHONY: push-images
 push-images: ## Push bpfd, bpfd-agent, bpfd-operator images.
@@ -260,7 +259,8 @@ $(ENVTEST): $(LOCALBIN)
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
 	operator-sdk generate kustomize manifests -q
-	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator=${BPFD_OPERATOR_IMG} bpfd=${BPFD_IMG} bpfd-agent=${BPFD_AGENT_IMG}
+	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator=${BPFD_OPERATOR_IMG}
+	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image bpfd-image=${BPFD_IMG} && $(KUSTOMIZE) edit set image bpfd-agent-image=${BPFD_AGENT_IMG}
 	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle $(BUNDLE_GEN_FLAGS)
 	operator-sdk bundle validate ./bundle
 
