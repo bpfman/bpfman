@@ -90,7 +90,7 @@ fn build_rust_ebpf(opts: &Options) -> anyhow::Result<()> {
     ];
     let status = Command::new("cargo")
         .current_dir(&dir)
-        .args(&args)
+        .args(args)
         .status()
         .expect("failed to build bpf program");
     assert!(status.success());
