@@ -29,13 +29,21 @@ RUN --mount=type=cache,target=/usr/src/bpfd/target/ \
 # Compile only bpfd 
 RUN --mount=type=cache,target=/usr/src/bpfd/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry \ 
-    cargo build --release -p bpfd --target x86_64-unknown-linux-musl
+    cargo build --release --target x86_64-unknown-linux-musl
 
 RUN --mount=type=cache,target=/usr/src/bpfd/target/ \
     cp /usr/src/bpfd/target/x86_64-unknown-linux-musl/release/bpfd ./bpfd/
 
-FROM scratch
+RUN --mount=type=cache,target=/usr/src/bpfd/target/ \
+    cp /usr/src/bpfd/target/x86_64-unknown-linux-musl/release/bpfctl ./bpfctl/
+
+## Image for Local testing is much more of a debug image, give it bpftool, tcpdump
+## and bpfctl.
+FROM fedora:36
+
+RUN dnf makecache --refresh && dnf -y install bpftool tcpdump
 
 COPY --from=bpfd-build  ./usr/src/bpfd/bpfd .
+COPY --from=bpfd-build  ./usr/src/bpfd/bpfctl .
 
 ENTRYPOINT ["./bpfd"]
