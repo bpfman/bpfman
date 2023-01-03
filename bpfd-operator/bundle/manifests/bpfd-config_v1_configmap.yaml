@@ -1,0 +1,16 @@
+apiVersion: v1
+data:
+  bpfd.agent.image: quay.io/astoycos/bpfd-agent:main
+  bpfd.image: quay.io/astoycos/bpfd:main
+  bpfd.log.level: debug
+  bpfd.namespace: bpfd
+  bpfd.toml: |
+    [tls] # REQUIRED
+    ca_cert = "/etc/bpfd/certs/ca/ca.crt"
+    cert = "/etc/bpfd/certs/bpfd/tls.crt"
+    key = "/etc/bpfd/certs/bpfd/tls.key"
+    client_cert = "/etc/bpfd/certs/bpfd-client/tls.crt"
+    client_key = "/etc/bpfd/certs/bpfd-client/tls.key"
+kind: ConfigMap
+metadata:
+  name: bpfd-config
