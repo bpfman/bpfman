@@ -89,133 +89,7 @@ all: build
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-##@ Development
-
-.PHONY: manifests
-manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	$(CONTROLLER_GEN) rbac:roleName=agent-role paths="./pkg/bpfd-agent" output:rbac:artifacts:config=config/rbac/bpfd-agent-role
-	$(CONTROLLER_GEN) rbac:roleName=operator-role paths="./pkg/bpfd-operator" output:rbac:artifacts:config=config/rbac/bpfd-operator-role
-
-
-.PHONY: generate
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
-
-.PHONY: fmt
-fmt: ## Run go fmt against code.
-	go fmt ./...
-
-.PHONY: vet
-vet: ## Run go vet against code.
-	go vet ./...
-
-.PHONY: test
-test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
-
-##@ Build
-
-.PHONY: build
-build: generate fmt vet ## Build bpfd-operator and bpfd-agent binaries.
-	go build -o bin/bpfd-operator cmd/bpfd-operator/main.go
-	go build -o bin/bpfd-agent cmd/bpfd-agent/main.go
-
-# If you wish built the manager image targeting other platforms you can use the --platform flag.
-# (i.e. docker build --platform linux/arm64 ). However, you must enable docker buildKit for it.
-# More info: https://docs.docker.com/develop/develop-images/build_enhancements/
-.PHONY: build-images
-build-images: test ## Build docker image with the manager.
-	docker build -t ${BPFD_OPERATOR_IMG} -f Containerfile.bpfd-operator ../
-	docker build -t ${BPFD_AGENT_IMG} -f Containerfile.bpfd-agent ../
-	DOCKER_BUILDKIT=1 docker build -t ${BPFD_IMG} -f ../packaging/container-deployment/Containerfile.bpfd.local ../
-
-.PHONY: push-images
-push-images: ## Push bpfd, bpfd-agent, bpfd-operator images.
-	docker push ${BPFD_OPERATOR_IMG}
-	docker push ${BPFD_AGENT_IMG}
-	docker push ${BPFD_IMG}
-
-.PHONY: load-images-kind
-load-images-kind: build-images ## Push docker image with the manager.
-	kind load docker-image  ${BPFD_IMG} ${BPFD_OPERATOR_IMG} ${BPFD_AGENT_IMG} --name bpfd-deployment
-
-# PLATFORMS defines the target platforms for  the manager image be build to provide support to multiple
-# architectures. (i.e. make docker-buildx IMG=myregistry/mypoperator:0.0.1). To use this option you need to:
-# - able to use docker buildx . More info: https://docs.docker.com/build/buildx/
-# - have enable BuildKit, More info: https://docs.docker.com/develop/develop-images/build_enhancements/
-# - be able to push the image for your registry (i.e. if you do not inform a valid value via IMG=<myregistry/image:<tag>> than the export will fail)
-# To properly provided solutions that supports more than one platform you should use this option.
-PLATFORMS ?= linux/arm64,linux/amd64,linux/s390x,linux/ppc64le
-.PHONY: docker-buildx
-docker-buildx: test ## Build and push docker image for the manager for cross-platform support
-	# copy existing Dockerfile and insert --platform=${BUILDPLATFORM} into Dockerfile.cross, and preserve the original Dockerfile
-	sed -e '1 s/\(^FROM\)/FROM --platform=\$$\{BUILDPLATFORM\}/; t' -e ' 1,// s//FROM --platform=\$$\{BUILDPLATFORM\}/' Dockerfile > Dockerfile.cross
-	- docker buildx create --name project-v3-builder
-	docker buildx use project-v3-builder
-	- docker buildx build --push --platform=$(PLATFORMS) --tag ${IMG} -f Dockerfile.cross
-	- docker buildx rm project-v3-builder
-	rm Dockerfile.cross
-
-##@ Remote Deployment
-
-.PHONY: deploy-openshift
-deploy-openshift: manifests kustomize ## Deploy bpfd-operator to the Openshift cluster specified in ~/.kube/config.
-	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator-image=${BPFD_OPERATOR_IMG} 
-	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image bpfd-image=${BPFD_IMG} && $(KUSTOMIZE) edit set image bpfd-agent-image=${BPFD_AGENT_IMG}
-	$(KUSTOMIZE) build config/openshift | kubectl apply -f -
-
-.PHONY: undeploy-openshift
-undeploy-openshift: ## Undeploy bpfd-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/openshift | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
-
-##@ Local Deployment
-
-.PHONY: setup-kind
-setup-kind: cm-verifier ## Setup Kind cluster with certmanager ready for bpfd deployment
-	kind delete cluster --name bpfd-deployment && kind create cluster --config hack/kind-config.yaml --name bpfd-deployment
-
-.PHONY: deploy-certmanager
-deploy-certmanager: kustomize cm-verifier ## Deploy certmanager to the cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/certmanager | kubectl apply -f -
-	$(CM_VERIFIER) --timeout 60s
-
-.PHONY: undeploy-certmanager
-undeploy-certmanager: ## Undeploy certmanager from the cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/certmanager  | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
-
-## Default deploy target is KIND based.
-.PHONY: deploy
-deploy: manifests kustomize cm-verifier ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
-	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator-image=${BPFD_OPERATOR_IMG} 
-	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image bpfd-image=${BPFD_IMG} && $(KUSTOMIZE) edit set image bpfd-agent-image=${BPFD_AGENT_IMG}
-	$(KUSTOMIZE) build config/default | kubectl apply -f -
-
-.PHONY: undeploy
-undeploy: ## Undeploy bpfd-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
-
-.PHONY: kind-reload-images
-kind-reload-images: load-images-kind ## Reload locally build images into a kind cluster and restart the ds and deployment so they're picked up.
-	kubectl rollout restart daemonset bpfd-daemon -n bpfd
-	kubectl rollout restart deployment bpfd-operator -n bpfd
-
-.PHONY: run-on-kind
-run-on-kind: kustomize setup-kind deploy-certmanager load-images-kind deploy ## Kind Deploy runs the bpfd-operator on a local kind cluster using the local build
-
-##@ Deployment
-
-ignore-not-found = true
-
-.PHONY: install
-install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | kubectl apply -f -
-
-.PHONY: uninstall
-uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
-
-##@ Build Dependencies
+##@ Local Dependencies
 
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
@@ -256,22 +130,6 @@ envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
-.PHONY: bundle
-bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
-	operator-sdk generate kustomize manifests -q
-	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator-image=${BPFD_OPERATOR_IMG}
-	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image bpfd-image=${BPFD_IMG} && $(KUSTOMIZE) edit set image bpfd-agent-image=${BPFD_AGENT_IMG}
-	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle $(BUNDLE_GEN_FLAGS)
-	operator-sdk bundle validate ./bundle
-
-.PHONY: bundle-build
-bundle-build: ## Build the bundle image.
-	docker build -f Containerfile.bundle -t $(BPFD_OPERATOR_BUNDLE_IMG) .
-
-.PHONY: bundle-push
-bundle-push: ## Push the bundle image.
-	docker push $(BPFD_OPERATOR_BUNDLE_IMG)
-
 .PHONY: opm
 OPM = ./bin/opm
 opm: ## Download opm locally if necessary.
@@ -288,6 +146,73 @@ else
 OPM = $(shell which opm)
 endif
 endif
+
+##@ Development
+
+.PHONY: manifests
+manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
+	$(CONTROLLER_GEN) crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=agent-role paths="./pkg/bpfd-agent" output:rbac:artifacts:config=config/rbac/bpfd-agent-role
+	$(CONTROLLER_GEN) rbac:roleName=operator-role paths="./pkg/bpfd-operator" output:rbac:artifacts:config=config/rbac/bpfd-operator-role
+
+
+.PHONY: generate
+generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+.PHONY: fmt
+fmt: ## Run go fmt against code.
+	go fmt ./...
+
+.PHONY: vet
+vet: ## Run go vet against code.
+	go vet ./...
+
+.PHONY: test
+test: manifests generate fmt vet envtest ## Run tests.
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+
+.PHONY: bundle
+bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
+	operator-sdk generate kustomize manifests -q
+	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator-image=${BPFD_OPERATOR_IMG}
+	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image bpfd-image=${BPFD_IMG} && $(KUSTOMIZE) edit set image bpfd-agent-image=${BPFD_AGENT_IMG}
+	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle $(BUNDLE_GEN_FLAGS)
+	operator-sdk bundle validate ./bundle
+
+##@ Build
+
+.PHONY: build
+build: generate fmt vet ## Build bpfd-operator and bpfd-agent binaries.
+	go build -o bin/bpfd-operator cmd/bpfd-operator/main.go
+	go build -o bin/bpfd-agent cmd/bpfd-agent/main.go
+
+# If you wish built the manager image targeting other platforms you can use the --platform flag.
+# (i.e. docker build --platform linux/arm64 ). However, you must enable docker buildKit for it.
+# More info: https://docs.docker.com/develop/develop-images/build_enhancements/
+.PHONY: build-images
+build-images: test ## Build bpfd, bpfd-agent, and bpfd-operator images.
+	docker build -t ${BPFD_OPERATOR_IMG} -f Containerfile.bpfd-operator ../
+	docker build -t ${BPFD_AGENT_IMG} -f Containerfile.bpfd-agent ../
+	DOCKER_BUILDKIT=1 docker build -t ${BPFD_IMG} -f ../packaging/container-deployment/Containerfile.bpfd.local ../
+
+.PHONY: push-images
+push-images: ## Push bpfd, bpfd-agent, bpfd-operator images.
+	docker push ${BPFD_OPERATOR_IMG}
+	docker push ${BPFD_AGENT_IMG}
+	docker push ${BPFD_IMG}
+
+.PHONY: load-images-kind
+load-images-kind: build-images ## Load bpfd, bpfd-agent, and bpfd-operator images into the running local kind devel cluster.
+	kind load docker-image  ${BPFD_IMG} ${BPFD_OPERATOR_IMG} ${BPFD_AGENT_IMG} --name bpfd-deployment
+
+.PHONY: bundle-build
+bundle-build: ## Build the bundle image.
+	docker build -f Containerfile.bundle -t $(BPFD_OPERATOR_BUNDLE_IMG) .
+
+.PHONY: bundle-push
+bundle-push: ## Push the bundle image.
+	docker push $(BPFD_OPERATOR_BUNDLE_IMG)
 
 # A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=example.com/operator-bundle:v0.1.0,example.com/operator-bundle:v0.2.0).
 # These images MUST exist in a registry and be pull-able.
@@ -312,3 +237,63 @@ catalog-build: opm ## Build a catalog image.
 .PHONY: catalog-push
 catalog-push: ## Push a catalog image.
 	docker push $(CATALOG_IMG)
+
+##@ CRD Deployment
+
+ignore-not-found ?= false
+
+.PHONY: install
+install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
+	$(KUSTOMIZE) build config/crd | kubectl apply -f -
+
+.PHONY: uninstall
+uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+
+##@ Deployment Dependencies
+
+.PHONY: deploy-certmanager
+deploy-certmanager: kustomize cm-verifier ## Deploy certmanager to the cluster specified in ~/.kube/config.
+	$(KUSTOMIZE) build config/certmanager | kubectl apply -f -
+	$(CM_VERIFIER) --timeout 60s
+
+.PHONY: undeploy-certmanager
+undeploy-certmanager: ## Undeploy certmanager from the cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	$(KUSTOMIZE) build config/certmanager  | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+
+##@ Vanilla K8s Deployment
+
+.PHONY: setup-kind
+setup-kind: cm-verifier ## Setup Kind cluster with certmanager ready for bpfd deployment
+	kind delete cluster --name bpfd-deployment && kind create cluster --config hack/kind-config.yaml --name bpfd-deployment
+
+## Default deploy target is KIND based.
+.PHONY: deploy
+deploy: manifests kustomize cm-verifier ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
+	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator-image=${BPFD_OPERATOR_IMG} 
+	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image bpfd-image=${BPFD_IMG} && $(KUSTOMIZE) edit set image bpfd-agent-image=${BPFD_AGENT_IMG}
+	$(KUSTOMIZE) build config/default | kubectl apply -f -
+
+.PHONY: undeploy
+undeploy: ## Undeploy bpfd-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+
+.PHONY: kind-reload-images
+kind-reload-images: load-images-kind ## Reload locally build images into a kind cluster and restart the ds and deployment so they're picked up.
+	kubectl rollout restart daemonset bpfd-daemon -n bpfd
+	kubectl rollout restart deployment bpfd-operator -n bpfd
+
+.PHONY: run-on-kind
+run-on-kind: kustomize setup-kind deploy-certmanager load-images-kind deploy ## Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator
+
+##@ Openshift Deployment
+
+.PHONY: deploy-openshift
+deploy-openshift: manifests kustomize ## Deploy bpfd-operator to the Openshift cluster specified in ~/.kube/config.
+	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator-image=${BPFD_OPERATOR_IMG} 
+	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image bpfd-image=${BPFD_IMG} && $(KUSTOMIZE) edit set image bpfd-agent-image=${BPFD_AGENT_IMG}
+	$(KUSTOMIZE) build config/openshift | kubectl apply -f -
+
+.PHONY: undeploy-openshift
+undeploy-openshift: ## Undeploy bpfd-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	$(KUSTOMIZE) build config/openshift | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
