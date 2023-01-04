@@ -185,7 +185,7 @@ func (r *BpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 	BpfProgramConfig *bpfdiov1alpha1.BpfProgramConfig,
 	ourNode *v1.Node,
-	nodeState map[string]internal.ExistingReq) (bool, error) {
+	nodeState map[internal.ProgramKey]internal.ExistingReq) (bool, error) {
 
 	bpfProgram := &bpfdiov1alpha1.BpfProgram{}
 	bpfProgramName := fmt.Sprintf("%s-%s", BpfProgramConfig.Name, r.NodeName)
@@ -253,7 +253,7 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 	r.Logger.V(1).Info("Bpfd Node State Dump", "NodeState", nodeState)
 
 	// Compare the desired state to existing bpfd state
-	v, ok := nodeState[BpfProgramConfig.Spec.Name]
+	v, ok := nodeState[internal.ProgramKey{Name: BpfProgramConfig.Spec.Name, ProgType: BpfProgramConfig.Spec.Type}]
 	// bpfProgram doesn't exist on node
 	if !ok {
 		r.Logger.V(1).Info("bpfProgram doesn't exist on node")

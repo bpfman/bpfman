@@ -207,10 +207,15 @@ type ExistingReq struct {
 	Req  *bpfdiov1alpha1.BpfProgramConfigSpec
 }
 
+type ProgramKey struct {
+	Name     string
+	ProgType string
+}
+
 // CreateExistingState takes bpfd state via the list API and
 // transforms it to k8s bpfd API state.
-func CreateExistingState(nodeState []*gobpfd.ListResponse_ListResult) (map[string]ExistingReq, error) {
-	existingRequests := map[string]ExistingReq{}
+func CreateExistingState(nodeState []*gobpfd.ListResponse_ListResult) (map[ProgramKey]ExistingReq, error) {
+	existingRequests := map[ProgramKey]ExistingReq{}
 
 	for _, bpfdProg := range nodeState {
 		var existingConfigSpec *bpfdiov1alpha1.BpfProgramConfigSpec
@@ -244,7 +249,17 @@ func CreateExistingState(nodeState []*gobpfd.ListResponse_ListResult) (map[strin
 			return nil, fmt.Errorf("invalid existing program type: %s", bpfdProg.ProgramType.String())
 		}
 
-		existingRequests[bpfdProg.Name] = ExistingReq{
+		key := ProgramKey{
+			Name:     bpfdProg.Name,
+			ProgType: bpfdProg.ProgramType.String(),
+		}
+
+		// Don't overwrite existing entries
+		if _, ok := existingRequests[key]; ok {
+			return nil, fmt.Errorf("cannot have two programs loaded with the same type and section name")
+		}
+
+		existingRequests[key] = ExistingReq{
 			Uuid: bpfdProg.Id,
 			Req:  existingConfigSpec,
 		}
