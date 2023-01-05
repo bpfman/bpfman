@@ -29,6 +29,12 @@ const (
 	DefaultSocketPath     = "/var/lib/bpfd/sock/gocounter.sock"
 	DefaultMapDir         = "/run/bpfd/fs/maps"
 	DefaultByteCodeFile   = "bpf_bpfel.o"
+	BpfProgramConfigName  = "go-xdp-counter-example"
+	BpfProgramMapIndex    = "xdp_stats_map"
+)
+
+const (
+	XDP_ACT_OK = 2
 )
 
 //go:generate bpf2go -cc clang -no-strip -cflags "-O2 -g -Wall" bpf ./bpf/xdp_counter.c -- -I.:/usr/include/bpf:/usr/include/linux
@@ -47,7 +53,7 @@ func main() {
 
 	// If running in a Kubernetes deployment, read the map path from the Bpf Program CRD
 	if paramData.CrdFlag == true {
-		mapPath, err = bpfdAppClient.GetMapPathDyn()
+		mapPath, err = bpfdAppClient.GetMapPathDyn(BpfProgramConfigName, BpfProgramMapIndex)
 		if err != nil {
 			log.Printf("error reading BpfProgram CRD: %v\n", err)
 			return
@@ -126,7 +132,7 @@ func main() {
 	ticker := time.NewTicker(3 * time.Second)
 	go func() {
 		for range ticker.C {
-			key := uint32(2)
+			key := uint32(XDP_ACT_OK)
 			var stats []Stats
 			var totalPackets uint64
 			var totalBytes uint64

@@ -34,11 +34,10 @@ import (
 )
 
 const (
-	DefaultMapDir        = "/run/bpfd/fs/maps"
-	BpfProgramConfigName = "go-xdp-counter-example"
+	DefaultMapDir = "/run/bpfd/fs/maps"
 )
 
-func GetMapPathDyn() (string, error){
+func GetMapPathDyn(bpfProgramConfigName string, mapIndex string) (string, error){
 	var mapPath string
 
 	config, err := rest.InClusterConfig()
@@ -53,7 +52,7 @@ func GetMapPathDyn() (string, error){
 	if nodeName == "" {
 		return mapPath, fmt.Errorf("NODENAME env var not set")
 	}
-	bpfProgramName := BpfProgramConfigName + "-" + nodeName
+	bpfProgramName := bpfProgramConfigName + "-" + nodeName
 
 	// Get map pin path from relevant BpfProgram Object with a dynamic go-client
 	clientSet := dynamic.NewForConfigOrDie(config)
@@ -78,7 +77,7 @@ func GetMapPathDyn() (string, error){
 	}
 
 	for _, v := range bpfProgram.Spec.Programs {
-		mapPath = v.Maps["xdp_stats_map"]
+		mapPath = v.Maps[mapIndex]
 		log.Printf("mapPath=%s", mapPath)
 	}
 

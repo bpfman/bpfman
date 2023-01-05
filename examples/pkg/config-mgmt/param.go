@@ -22,6 +22,8 @@ import (
 	"log"
 	"path/filepath"
 	"strconv"
+
+	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
 )
 
 const (
@@ -42,6 +44,7 @@ const (
 type ParameterData struct {
 	Iface string
 	Priority int
+	Direction gobpfd.Direction
 	CrdFlag bool
 	Uuid string
 	BytecodeLocation string
@@ -52,7 +55,7 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 	var paramData ParameterData
 	paramData.BytecodeSrc = SrcNone
 
-	var cmdlineUuid, cmdlinelocation string
+	var cmdlineUuid, cmdlinelocation, direction_str string
 
 	flag.StringVar(&paramData.Iface, "iface", "",
 		"Interface to load bytecode.")
@@ -65,8 +68,8 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 	flag.BoolVar(&paramData.CrdFlag, "crd", false,
 		"Flag to indicate all attributes should be pulled from the EbpfProgram CRD. Used in Kubernetes deployments and is mutually exclusive with all other parameters.")
 	if progType == ProgTypeTc {
-		flag.BoolVar(&paramData.CrdFlag, "direction", false,
-			"Direction (ingress, egress)")
+		flag.StringVar(&direction_str, "direction", "",
+			"Direction to apply program (ingress, egress).")
 	}
 	flag.Parse()
 
@@ -88,6 +91,28 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 			paramData.Iface = configFileData.Config.Iface
 		} else {
 			return paramData, configFileData, fmt.Errorf("interface is required")
+		}
+	}
+
+	if progType == ProgTypeTc {
+		// "-direction" is the direction in which to run the bpf program. Valid values
+		// are "ingress" and "egress". If not provided, then use value loaded from
+		// gocounter.toml file. If not provided, error.
+		// ./go-tc-counter -iface eth0 -direction ingress
+		if len(direction_str) == 0 {
+			if configFileData.Config.Direction != "" {
+				direction_str = configFileData.Config.Direction
+			} else {
+				return paramData, configFileData, fmt.Errorf("direction is required")
+			}
+		}
+
+		if direction_str == "ingress" {
+			paramData.Direction = gobpfd.Direction_INGRESS
+		} else if direction_str == "egress" {
+			paramData.Direction = gobpfd.Direction_EGRESS
+		} else {
+			return paramData, configFileData, fmt.Errorf("invalid direction (%s). valid options are ingress or egress.", direction_str)
 		}
 	}
 

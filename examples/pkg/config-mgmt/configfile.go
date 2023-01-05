@@ -36,6 +36,7 @@ type Tls struct {
 type Config struct {
 	Iface            string `toml:"interface"`
 	Priority         string `toml:"priority"`
+	Direction        string `toml:"direction"`
 	BytecodeUrl      string `toml:"bytecode_url"`
 	BytecodeUuid     string `toml:"bytecode_uuid"`
 	BytecodeLocation string `toml:"bytecode_location"`

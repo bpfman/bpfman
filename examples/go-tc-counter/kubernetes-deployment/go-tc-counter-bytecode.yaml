@@ -1,13 +1,18 @@
 apiVersion: bpfd.io/v1alpha1
-kind: EbpfProgram
+kind: BpfProgramConfig
 metadata:
-  name: go-tc-counter
-  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: bpfprogramconfig
+  name: go-tc-counter-example
 spec:
-  type: tc
-  name: go-tc-counter
-  interface: ens3
-  direction: ingress
-  image: quay.io/bpfd/bytecode:go-tc-counter
-  sectionname: stats
-  priority: 55
+  ## Must correspond to image section name
+  name: stats
+  type: TC
+  # Select all nodes
+  nodeselector: {}
+  attachpoint:
+    networkmultiattach:
+      interface: eth0
+      priority: 55
+      direction: INGRESS
+  bytecode: image://quay.io/bpfd/bytecode:go-tc-counter
