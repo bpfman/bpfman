@@ -14,7 +14,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
-	"github.com/redhat-et/bpfd/examples/pkg/config-mgmt"
+	configMgmt "github.com/redhat-et/bpfd/examples/pkg/config-mgmt"
 	"github.com/redhat-et/bpfd/examples/pkg/bpfd-app-client"
 	"google.golang.org/grpc"
 )
@@ -43,7 +43,7 @@ func main() {
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	// Parse Input Parameters (CmdLine and Config File)
-	paramData, configFileData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTc, DefaultConfigPath, DefaultByteCodeFile)
+	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTc, DefaultConfigPath, DefaultByteCodeFile)
 	if err != nil {
 		log.Printf("error processing parameters: %v\n", err)
 		return
@@ -70,6 +70,7 @@ func main() {
 		if paramData.BytecodeSrc != configMgmt.SrcUuid {
 			ctx := context.Background()
 
+			configFileData := configMgmt.LoadConfig(DefaultConfigPath)
 			creds, err := configMgmt.LoadTLSCredentials(configFileData.Tls)
 			if err != nil {
 				log.Printf("Failed to generate credentials for new client: %v", err)

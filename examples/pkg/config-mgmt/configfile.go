@@ -33,18 +33,8 @@ type Tls struct {
 	Key    string `toml:"key"`
 }
 
-type Config struct {
-	Iface            string `toml:"interface"`
-	Priority         string `toml:"priority"`
-	Direction        string `toml:"direction"`
-	BytecodeUrl      string `toml:"bytecode_url"`
-	BytecodeUuid     string `toml:"bytecode_uuid"`
-	BytecodeLocation string `toml:"bytecode_location"`
-}
-
 type ConfigFileData struct {
 	Tls    Tls
-	Config Config
 }
 
 const (
@@ -53,7 +43,7 @@ const (
 	DefaultClientKeyPath  = "/etc/bpfd/certs/bpfd-client/bpfd-client.key"
 )
 
-func loadConfig(configFilePath string) ConfigFileData {
+func LoadConfig(configFilePath string) ConfigFileData {
 	config := ConfigFileData{
 		Tls: Tls{
 			CaCert: DefaultRootCaPath,
