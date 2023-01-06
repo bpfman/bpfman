@@ -60,7 +60,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: go-xdp-counter
-        image: quay.io/billy99/gocounter:latest
+        image: quay.io/billy99/go-xdp-counter:latest
         imagePullPolicy: Always
         securityContext:
           privileged: true

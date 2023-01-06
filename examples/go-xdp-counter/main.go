@@ -14,7 +14,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
-	"github.com/redhat-et/bpfd/examples/pkg/config-mgmt"
+	configMgmt "github.com/redhat-et/bpfd/examples/pkg/config-mgmt"
 	"github.com/redhat-et/bpfd/examples/pkg/bpfd-app-client"
 	"google.golang.org/grpc"
 )
@@ -29,6 +29,12 @@ const (
 	DefaultSocketPath     = "/var/lib/bpfd/sock/gocounter.sock"
 	DefaultMapDir         = "/run/bpfd/fs/maps"
 	DefaultByteCodeFile   = "bpf_bpfel.o"
+	BpfProgramConfigName  = "go-xdp-counter-example"
+	BpfProgramMapIndex    = "xdp_stats_map"
+)
+
+const (
+	XDP_ACT_OK = 2
 )
 
 //go:generate bpf2go -cc clang -no-strip -cflags "-O2 -g -Wall" bpf ./bpf/xdp_counter.c -- -I.:/usr/include/bpf:/usr/include/linux
@@ -37,7 +43,7 @@ func main() {
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	// Parse Input Parameters (CmdLine and Config File)
-	paramData, configFileData, err := configMgmt.ParseParamData(configMgmt.ProgTypeXdp, DefaultConfigPath, DefaultByteCodeFile)
+	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeXdp, DefaultConfigPath, DefaultByteCodeFile)
 	if err != nil {
 		log.Printf("error processing parameters: %v\n", err)
 		return
@@ -47,7 +53,7 @@ func main() {
 
 	// If running in a Kubernetes deployment, read the map path from the Bpf Program CRD
 	if paramData.CrdFlag == true {
-		mapPath, err = bpfdAppClient.GetMapPathDyn()
+		mapPath, err = bpfdAppClient.GetMapPathDyn(BpfProgramConfigName, BpfProgramMapIndex)
 		if err != nil {
 			log.Printf("error reading BpfProgram CRD: %v\n", err)
 			return
@@ -57,6 +63,7 @@ func main() {
 		if paramData.BytecodeSrc != configMgmt.SrcUuid {
 			ctx := context.Background()
 
+			configFileData := configMgmt.LoadConfig(DefaultConfigPath)
 			creds, err := configMgmt.LoadTLSCredentials(configFileData.Tls)
 			if err != nil {
 				log.Printf("Failed to generate credentials for new client: %v", err)
@@ -126,7 +133,7 @@ func main() {
 	ticker := time.NewTicker(3 * time.Second)
 	go func() {
 		for range ticker.C {
-			key := uint32(2)
+			key := uint32(XDP_ACT_OK)
 			var stats []Stats
 			var totalPackets uint64
 			var totalBytes uint64
