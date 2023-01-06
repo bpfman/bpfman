@@ -1,0 +1,318 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "bpfd.io/v1alpha1",
+          "kind": "BpfProgramConfig",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/name": "BpfProgramConfig"
+            },
+            "name": "go-counter-example"
+          },
+          "spec": {
+            "attachpoint": {
+              "networkmultiattach": {
+                "interface": "eth0",
+                "priority": 5
+              }
+            },
+            "bytecode": "image://quay.io/bpfd/bytecode:gocounter",
+            "name": "stats",
+            "nodeselector": {
+              "matchLabels": {
+                "deploy-ebpf": "true"
+              }
+            },
+            "type": "XDP"
+          }
+        },
+        {
+          "apiVersion": "bpfd.io/v1alpha1",
+          "kind": "BpfProgramConfig",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/name": "BpfProgramConfig"
+            },
+            "name": "xdp-pass-all-nodes"
+          },
+          "spec": {
+            "attachpoint": {
+              "networkmultiattach": {
+                "interface": "eth0",
+                "priority": 0
+              }
+            },
+            "bytecode": "image://quay.io/bpfd/bytecode:xdp_pass",
+            "name": "pass",
+            "nodeselector": {},
+            "type": "XDP"
+          }
+        }
+      ]
+    capabilities: Basic Install
+    createdAt: "2023-01-03T21:06:44Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.26.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+  name: bpfd-operator.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: BpfProgramConfig is the Schema for the Bpfprogramconfigs API
+      displayName: Bpf Program Config
+      kind: BpfProgramConfig
+      name: bpfprogramconfigs.bpfd.io
+      version: v1alpha1
+    - description: BpfProgram is the Schema for the Bpfprograms API
+      displayName: Bpf Program
+      kind: BpfProgram
+      name: bpfprograms.bpfd.io
+      version: v1alpha1
+  description: This Operator deploys bpfd to a kubernetes cluster in order to deploy
+    and manage ebpf at the cluster scope.
+  displayName: bpfd-operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - bpfd.io
+          resources:
+          - bpfprogramconfigs
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - bpfd.io
+          resources:
+          - bpfprogramconfigs/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - bpfd.io
+          resources:
+          - bpfprogramconfigs/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - bpfd.io
+          resources:
+          - bpfprograms
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - nodes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: bpfd-operator
+      deployments:
+      - label:
+          app.kubernetes.io/component: manager
+          app.kubernetes.io/created-by: bpfd-operator
+          app.kubernetes.io/instance: controller-manager
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: deployment
+          app.kubernetes.io/part-of: bpfd-operator
+          control-plane: controller-manager
+        name: bpfd-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                control-plane: controller-manager
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/arch
+                        operator: In
+                        values:
+                        - amd64
+                        - arm64
+                        - ppc64le
+                        - s390x
+                      - key: kubernetes.io/os
+                        operator: In
+                        values:
+                        - linux
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=0
+                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.0
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                command:
+                - /bpfd-operator
+                image: quay.io/bpfd/bpfd-operator:main
+                imagePullPolicy: IfNotPresent
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: bpfd-operator
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: bpfd-operator
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: bpfd-operator
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - ebpf
+  - kubernetes
+  links:
+  - name: Bpfd Operator
+    url: https://bpfd-operator.domain
+  maintainers:
+  - email: astoycos@redhat.com
+    name: Andrew Stoycos
+  maturity: alpha
+  provider:
+    name: bpfd
+    url: https://redhat-et.github.io/bpfd/
+  version: 0.0.1

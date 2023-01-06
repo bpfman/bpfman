@@ -25,7 +25,7 @@ package v1alpha1
 type BpfProgramAttachPoint struct {
 	// NetworkMultiAttach defines an attach point for programs
 	// which attach to network devices and must be
-	// ordered via bpfd
+	// ordered via bpfd.
 	// +optional
 	NetworkMultiAttach *BpfNetworkMultiAttach `json:"networkmultiattach,omitempty"`
 
@@ -38,11 +38,11 @@ type BpfProgramAttachPoint struct {
 // +kubebuilder:validation:Enum=ABORTED;DROP;PASS;TX;REDIRECT;DISPATCHER_RETURN
 type ProceedOnValue string
 
-// EbpfNetworkMultiAttach defines an ebpf attach
+// BpfNetworkMultiAttach defines an bpf attach
 // point for programs which attach to network devices,
 // i.e interfaces, and must be prioritized
 type BpfNetworkMultiAttach struct {
-	// Interface refers to the name of a network interface
+	// Interface refers to the name of a network interface.
 	Interface string `json:"interface"`
 
 	// Priority specifies the priority of the bpf program in relation to

@@ -14,6 +14,9 @@ env:
   BPFCTL_IMAGE_NAME: bpfctl
   BPFD_AGENT_IMAGE_NAME: bpfd-agent
   BPFD_OPERATOR_IMAGE_NAME: bpfd-operator
+  BPFD_OPERATOR_BUNDLE_IMAGE_NAME: bpfd-operator-bundle
+
+  
 
 jobs:
   ## Used to ensure image builds are successful on PRs if workflow file was changed
@@ -90,6 +93,23 @@ jobs:
         context: ./
         containerfiles: |
           ./bpfd-operator/Containerfile.bpfd-operator
+
+    - name: Extract metadata (tags, labels) for bpfd-operator-bundle image
+      id: meta-bpfd-operator-bundle
+      uses: docker/metadata-action@v3.6.2
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.BPFD_OPERATOR_BUNDLE_IMAGE_NAME }}
+
+    - name: Build bpfd-operator-bundle image
+      id: build-bpfd-operator-bundle
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: bpfd-operator-bundle
+        tags: ${{ steps. meta-bpfd-operator-bundle.outputs.tags }}
+        labels: ${{ steps. meta-bpfd-operator-bundle.outputs.labels }}
+        context: ./bpfd-operator
+        containerfiles: |
+          ./bpfd-operator/Containerfile.bundle
 
   ## Used to build and push images when code is merged to the main branch
   build-and-push:
@@ -201,4 +221,27 @@ jobs:
         image: ${{ steps.build-bpfd-operator.outputs.image }}
         tags: ${{ steps.build-bpfd-operator.outputs.tags }}
         registry: quay.io/bpfd
-        
+
+    - name: Extract metadata (tags, labels) for bpfd-operator-bundle image
+      id: meta-bpfd-operator-bundle
+      uses: docker/metadata-action@v3.6.2
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.REPOSITORY }}/${{ env.BPFD_OPERATOR_BUNDLE_IMAGE_NAME }}
+
+    - name: Build bpfd-operator-bundle image
+      id: build-bpfd-operator-bundle
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: bpfd-operator-bundle
+        tags: ${{ steps. meta-bpfd-operator-bundle.outputs.tags }}
+        labels: ${{ steps. meta-bpfd-operator-bundle.outputs.labels }}
+        context: ./bpfd-operator
+        containerfiles: |
+          ./bpfd-operator/Containerfile.bundle
+
+    - name: Push bpfd-operator-bundle to quay.io/bpfd
+      uses: redhat-actions/push-to-registry@v2
+      with:
+        image: ${{ steps.build-bpfd-operator-bundle.outputs.image }}
+        tags: ${{ steps.build-bpfd-operator-bundle.outputs.tags }}
+        registry: quay.io/bpfd

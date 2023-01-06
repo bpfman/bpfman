@@ -98,7 +98,7 @@ func main() {
 	setupLog.Info("Waiting for active connection to bpfd")
 	conn, err := grpc.DialContext(context.Background(), "localhost:50051", grpc.WithTransportCredentials(creds), grpc.WithBlock())
 	if err != nil {
-		setupLog.Error(err, "did not connect")
+		setupLog.Error(err, "unable to connect to bpfd")
 		os.Exit(1)
 	}
 

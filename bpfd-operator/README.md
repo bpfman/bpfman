@@ -12,10 +12,14 @@ But first try it out!
 
 ## Getting started
 
-This operator was build utilizing some great tooling provided by the [operator-sdk library](https://sdk.operatorframework.io/). A great first step in understanding some
-of the fucntionality can be to just run `make help`.
+> **Warning**: The bpfProgramConfig name **MUST** match the program's section name.
 
-After reviewing the possible targets it's quick and easy to get bpfd deployed locally on your system via a [KIND cluster](https://kind.sigs.k8s.io/). with:
+This operator was built utilizing some great tooling provided by the [operator-sdk library](https://sdk.operatorframework.io/). A great first step in understanding some
+of the functionality can be to just run `make help`.
+
+### Deploy locally via KIND
+
+After reviewing the possible make targets it's quick and easy to get bpfd deployed locally on your system via a [KIND cluster](https://kind.sigs.k8s.io/). with:
 
 ```bash
 make run-on-kind
@@ -34,7 +38,117 @@ Then to push and test out any local changes simply run:
 make kind-reload-images
 ```
 
-### API
+### Deploy To Openshift Cluster
+
+First install cert-manager (if not already deployed) to the cluster with:
+
+```bash
+make deploy-cert-manager
+```
+
+Then deploy the operator with one of the following two options:
+
+#### 1. Manually with Kustomize
+
+Then to install manually with Kustomize and raw manifests simply run:
+
+```bash
+make deploy-openshift
+```
+
+Which can then be cleaned up with:
+
+```bash
+make undeploy-openshift
+```
+
+#### 2. Via the OLM bundle
+
+The bpfd-operator can also be installed via it's [OLM bundle](https://www.redhat.com/en/blog/deploying-operators-olm-bundles).
+
+First setup the namespace and certificates for the operator with:
+
+```bash
+oc apply -f ./hack/ocp-scc-hacks.yaml
+```
+
+Then use `operator-sdk` to install the bundle like so:
+
+```bash
+operator-sdk run bundle quay.io/bpfd/bpfd-operator-bundle:latest --namespace openshift-bpfd
+```
+
+To clean everything up run:
+
+```bash
+operator-sdk cleanup bpfd-operator
+```
+
+followed by
+
+```bash
+oc delete -f ./hack/ocp-scc-hacks.yaml
+```
+
+### Verify the installation
+
+If the bpfd-operator came up successfully you will see the bpfd-daemon and bpfd-operator pods running without errors:
+
+```bash
+kubectl get pods -n bpfd
+NAME                             READY   STATUS    RESTARTS   AGE
+bpfd-daemon-bt5xm                2/2     Running   0          130m
+bpfd-daemon-ts7dr                2/2     Running   0          129m
+bpfd-daemon-w24pr                2/2     Running   0          130m
+bpfd-operator-78cf9c44c6-rv7f2   2/2     Running   0          132m
+```
+
+To test the deployment simply configure the `bpfprogramconfig` (i.e determine the node's main interface name, in kind it will be `eth0`) and deploy one of the sample `bpfprogramconfigs`:
+
+```bash
+kubectl apply -f ./config/samples/bpfd.io_v1alpha1_xdp_pass_bpfprogramconfig.yaml
+```
+
+If loading of the bpfprogram to the selected nodes was successful it will be reported
+back to the user via the `bpfprogramconfig`'s status field:
+
+```bash
+kubectl get bpfprogramconfig xdp-pass-all-nodes -o yaml
+apiVersion: bpfd.io/v1alpha1
+  kind: BpfProgramConfig
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"bpfd.io/v1alpha1","kind":"BpfProgramConfig","metadata":{"annotations":{},"labels":{"app.kubernetes.io/name":"BpfProgramConfig"},"name":"xdp-pass-all-nodes"},"spec":{"attachpoint":{"networkmultiattach":{"interface":"eth0","priority":0}},"bytecode":"image://quay.io/bpfd/bytecode:xdp_pass","name":"pass","nodeselector":{},"type":"XDP"}}
+    creationTimestamp: "2023-01-03T22:07:15Z"
+    finalizers:
+    - bpfd.io.operator/finalizer
+    generation: 1
+    labels:
+      app.kubernetes.io/name: BpfProgramConfig
+    name: xdp-pass-all-nodes
+    resourceVersion: "18891"
+    uid: ac3b2518-a26b-49cd-a7d9-5230c9999f7c
+  spec:
+    attachpoint:
+      networkmultiattach:
+        direction: NONE
+        interface: eth0
+        priority: 0
+    bytecode: image://quay.io/bpfd/bytecode:xdp_pass
+    name: pass
+    nodeselector: {}
+    type: XDP
+  status:
+    conditions:
+    - lastTransitionTime: "2023-01-03T22:07:15Z"
+      message: bpfProgramReconciliation Succeeded on all nodes
+      reason: ReconcileSuccess
+      status: "True"
+      type: ReconcileSuccess
+```
+
+### API Types Overview
 
 #### BpfProgramConfig
 
@@ -108,16 +222,16 @@ object to find references to the bpfMap pin points (`spec.maps`) in order to con
 
 The Bpfd-Operator performs a few major functions and houses two major controllers the `bpfd-agent` and `bpfd-operator`.
 
-#### bpf-agent
+#### bpfd-agent
 
 The bpfd-agent controller is deployed alongside bpfd in a daemonset.  It's main purpose is to watch user intent (in BpfProgramConfig Objects) and communicate with
-bpfd via a mTLS secured connection in order to translate the cluster-wide user-inetent to per node state.
+bpfd via a mTLS secured connection in order to translate the cluster-wide user-intent to per node state.
 
 #### bpfd-operator
 
 The bpfd-operator performs the following functionality:
 
-- Reconcile the bpfd daemonset (including both the `bpfd` and `bpfd-agent` processes) so that no manual edits can be completed.
+- Create and Reconcile the bpfd daemonset (including both the `bpfd` and `bpfd-agent` processes) so that no manual edits can be completed.
 - Report cluster wide state back the the user with each BpfProgramConfig's status field.
 
 ## More useful commands
