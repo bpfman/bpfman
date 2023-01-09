@@ -212,7 +212,7 @@ dependencies = [
  "env_logger",
  "flate2",
  "log",
- "nix 0.26.1",
+ "nix",
  "oci-distribution",
  "openssl",
  "serde",
@@ -224,7 +224,7 @@ dependencies = [
  "toml",
  "tonic",
  "url",
- "uuid 1.2.2",
+ "uuid",
  "x509-certificate",
 ]
 
@@ -1124,20 +1124,20 @@ checksum = "db6d7e329c562c5dfab7a46a2afabc8b987ab9a4834c9d1ca04dc54c1546cef8"
 
 [[package]]
 name = "libsystemd"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8144587c71c16756b1055d3dcb0c75cb605a10ecd6523cc33702d5f90902bf6d"
+checksum = "88b9597a67aa1c81a6624603e6bd0bcefb9e0f94c9c54970ec53771082104b4e"
 dependencies = [
  "hmac",
  "libc",
  "log",
- "nix 0.23.2",
+ "nix",
  "nom",
  "once_cell",
  "serde",
  "sha2",
  "thiserror",
- "uuid 0.8.2",
+ "uuid",
 ]
 
 [[package]]
@@ -1216,15 +1216,6 @@ checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
 name = "memoffset"
-version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5aa361d4faea93603064a027415f07bd8e1d5c88c9fbf68bf56a285428fd79ce"
-dependencies = [
- "autocfg",
-]
-
-[[package]]
-name = "memoffset"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5de893c32cde5f383baa4c04c5d6dbdd735cfd4a794b0debdb2bb1b421da5ff4"
@@ -1273,19 +1264,6 @@ checksum = "e5ce46fe64a9d73be07dcbe690a38ce1b293be448fd8ce1e6c1b8062c9f72c6a"
 
 [[package]]
 name = "nix"
-version = "0.23.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f3790c00a0150112de0f4cd161e3d7fc4b2d8a5542ffc35f099a2562aecb35c"
-dependencies = [
- "bitflags",
- "cc",
- "cfg-if",
- "libc",
- "memoffset 0.6.5",
-]
-
-[[package]]
-name = "nix"
 version = "0.26.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46a58d1d356c6597d08cde02c2f09d785b09e28711837b1ed667dc652c08a694"
@@ -1293,7 +1271,7 @@ dependencies = [
  "bitflags",
  "cfg-if",
  "libc",
- "memoffset 0.7.1",
+ "memoffset",
  "pin-utils",
  "static_assertions",
 ]
@@ -2074,9 +2052,9 @@ checksum = "20518fe4a4c9acf048008599e464deb21beeae3d3578418951a189c235a7a9a8"
 
 [[package]]
 name = "systemd-journal-logger"
-version = "0.6.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0826e69d44a82806ac59c909ba51f0d54a53a7c24f5e7fa5151b00db3548e2f2"
+checksum = "abee2da0faf67d79baaa095840d6b687e365aa9b7c34560c48a8e90f8e62055e"
 dependencies = [
  "libsystemd",
  "log",
@@ -2507,20 +2485,12 @@ dependencies = [
 
 [[package]]
 name = "uuid"
-version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "uuid"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "422ee0de9031b5b948b97a8fc04e3aa35230001a722ddd27943e0be31564ce4c"
 dependencies = [
  "getrandom",
+ "serde",
 ]
 
 [[package]]
