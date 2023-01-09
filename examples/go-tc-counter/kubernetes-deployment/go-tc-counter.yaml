@@ -60,7 +60,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: go-tc-counter
-        image: quay.io/billy99/go-tc-counter:latest
+        image: quay.io/bpfd-userspace/go-tc-counter:latest
         imagePullPolicy: Always
         securityContext:
           privileged: true

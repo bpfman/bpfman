@@ -123,6 +123,8 @@ $ sudo ./target/debug/bpfctl load --path /path/to/xdp/program --section-name "pa
 ```
 
 See [tutorial.md](docs/admin/tutorial.md) for some examples of starting `bpfd`, managing logs, and using `bpfctl`.
+See [Example BPF Programs](docs/developer/example-bpf.md) for some examples of BPF programs written in Go,
+interacting with `bpfd`.
 
 ## License
 

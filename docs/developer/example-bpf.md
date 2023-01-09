@@ -1,47 +1,63 @@
-# Go
+# Example BPF Programs
 
-An example application that uses the `bpfd-go` bindings can be found in
-[examples/gocounter/](https://github.com/redhat-et/bpfd/tree/main/examples/gocounter).
-This example and associated documentation is intended to provide basics on deploying a BPF
-program using bpfd with a go gRPC client.
-There are two ways to deploy this example application, simply running locally, or on a Kubernetes
-cluster.
+Example applications that use the `bpfd-go` bindings can be found in
+[examples/go-xdp-counter/](https://github.com/redhat-et/bpfd/tree/main/examples/go-xdp-counter) and
+[examples/go-tc-counter/](https://github.com/redhat-et/bpfd/tree/main/examples/go-tc-counter).
+These examples and the associated documentation is intended to provide the basics on how to deploy
+and manage a BPF program using bpfd.
+There are two ways to deploy these example applications, simply run locally on one machine, or deploy
+to multiple nodes in a Kubernetes cluster.
 
-The `gocounter` example contains a BPF Program written in C
-([xdp_counter.c](https://github.com/redhat-et/bpfd/tree/main/examples/gocounter/bpf/xdp_counter.c))
+The `go-xdp-counter` and  `go-tc-counter` examples each contain a BPF Program written in C
+([xdp_counter.c](https://github.com/redhat-et/bpfd/tree/main/examples/go-xdp-counter/bpf/xdp_counter.c) and
+[tc_counter.c](https://github.com/redhat-et/bpfd/tree/main/examples/go-tc-counter/bpf/tc_counter.c))
 that is compiled into BPF bytecode.
 The BPF program counts packets that are received on an interface and stores the packet and byte
 counts in a map that is accessible by the userspace portion.
-The `gocounter` example also has a userspace portion written in GO that is responsible for loading
-the BPF program at the XDP hook point, via gRPC calls to `bpfd`, and then every 3 seconds polls the
-BPF map and logs the current counts.
-The `gocounter` userspace code is leveraging the [cilium/ebpf library](https://github.com/cilium/ebpf)
+The `go-xdp-counter` and  `go-tc-counter` examples each also have a userspace portion written in GO.
+When run locally, the userspace program makes gRPC calls to `bpfd` requesting `bpfd` to load the BPF program
+at the requested hook Point (XDP hook point or the TC hook point).
+When run in a Kubernetes deployment, the `bpfd-agent` makes gRPC calls to `bpfd` requesting `bpfd` to load
+the BPF program based on a `BpfProgramConfig` Custom Resource Definition (CRD), which is described in more
+detail below.
+Independent of the deployment, the userspace program then polls the BPF map every 3 seconds and logs the
+current counts.
+The userspace code is leveraging the [cilium/ebpf library](https://github.com/cilium/ebpf)
 to manage the maps shared with the BPF program.
+The XDP and TC programs are very similar in functionality, and only vary where in the Linux networking stack
+they are inserted.
+Read more about XDP and TC programs [here](https://docs.cilium.io/en/latest/bpf/progtypes/).
 
 ## Table of Contents
 
-- [Building](#building)
-  - [Prerequisites](#prerequisites)
-  - [Building Locally](#building-locally)
-- [Running On Host](#running-on-host)
-   - [Running Privileged](#running-privileged)
-   - [Running Unprivileged](#running-unprivileged)
-- [Running In A Container](#running-in-a-container)
-   - [Passing BPF Bytecode In A Container Image](#passing-bpf-bytecode-in-a-container-image)
-   - [Building gocounter BPF Bytecode Container Image](#building-gocounter-bpf-bytecode-container-image)
-   - [Building A gocounter Userspace Container Image](#building-a-gocounter-userspace-container-image)
-   - [Preloading gocounter BPF Bytecode](#preloading-gocounter-bpf-bytecode)
+- [Deploying Locally](#deploying-locally)
+  - [Building](#building)
+    - [Prerequisites](#prerequisites)
+    - [Building Locally](#building-locally)
+  - [Running On Host](#running-on-host)
+     - [Running Privileged](#running-privileged)
+     - [Running Unprivileged](#running-unprivileged)
+  - [Passing BPF Bytecode In A Container Image](#passing-bpf-bytecode-in-a-container-image)
+     - [Building BPF Bytecode Container Image](#building-bpf-bytecode-container-image)
+     - [Preloading BPF Bytecode](#preloading-bpf-bytecode)
 - [Deploying On Kubernetes](#deploying-on-kubernetes)
-   - [Loading gocounter BPF Bytecode On Kubernetes](#loading-gocounter-bpf-bytecode-on-kubernetes)
-   - [Loading gocounter Userspace Container On Kubernetes](#loading-gocounter-userspace-container-on-kubernetes)
-   Loading gocounter Userspace Container On Kubernetes
+   - [Loading BPF Bytecode On Kubernetes](#loading-bpf-bytecode-on-kubernetes)
+   - [Loading Userspace Container On Kubernetes](#loading-userspace-container-on-kubernetes)
+     - [Building A Userspace Container Image](#building-a-userspace-container-image)
+     - [Loading A Userspace Container Image](#loading-a-userspace-container-image)
 - [Notes](#notes)
 
-## Building
+## Deploying Locally
+
+This section describes running bpfd and the example bpf programs on a local host.
+When running bpfd, it can be run as a process or run as a systemd service.
+Examples run the same, independent of how bpfd is deployed, other than requiring `sudo` or not.
+
+### Building
 
 To build directly on a system, make sure all the prerequisites are met, then build.
 
-### Prerequisites
+#### Prerequisites
 
 **Assuming bpfd is already installed and running on the system**
 
@@ -61,62 +77,80 @@ To build directly on a system, make sure all the prerequisites are met, then bui
     `go install github.com/cilium/ebpf/cmd/bpf2go@master`
 
 
-### Building Locally
+#### Building Locally
 
 To build the C based BPF counter bytecode, run:
 
 ```console
-    cd src/bpfd/examples/gocounter/
+    cd src/bpfd/examples/go-xdp-counter/
     go generate
 ```
 
 To build the Userspace GO Client run:
 
 ```console
-    cd src/bpfd/examples/gocounter/
+    cd src/bpfd/examples/go-xdp-counter/
     go build
 ```
 
-## Running On Host
+Repeat for TC if desired:
+```console
+    cd src/bpfd/examples/go-tc-counter/
+    go generate
+    go build
+```
+
+### Running On Host
 
 The most basic way to deploy this example is running directly on a host system.
 First, start or ensure `bpfd` is up and running.
 [tutorial.md](../admin/tutorial.md) will guide you through deploying `bpfd`.
-In all the examples of running `gocounter` on a host system, a bpfd-client certificate is used that is generated by bpfd.
+In all the examples of running `go-xdp-counter` or `go-tc-counter` on a host system,
+a bpfd-client certificate is used that is generated by `bpfd` to encrypt the application's
+connection to `bpfd`.
+The diagram below shows `go-xdp-counter` example, but the `go-tc-counter` example
+operates exactly the same way.
 
-![gocounter On Host](../img/gocounter-on-host.png)
+![go-xdp-counter On Host](../img/gocounter-on-host.png)
 
-In this example, when `gocounter` is started, it will send a gRPC request over mTLS to `bpfd`
-requesting `bpfd` to load the gocounter BPF bytecode located at
-`src/bpfd/src/examples/gocounter/bpf_bpfel.o` at a priority of 50 and on interface `ens3`.
+Following the diagram (Purple numbers):
+1. When `go-xdp-counter` userspace is started, it will send a gRPC request
+over mTLS to `bpfd` requesting `bpfd` to load the `go-xdp-counter` BPF bytecode located on disk
+at `bpfd/examples/go-xdp-counter/bpf_bpfel.o` at a priority of 50 and on interface `ens3`.
 These values are configurable as we will see later, but for now we will use the defaults
 (except interface, which is required to be entered).
-`bpfd` will load it's `dispatcher` BPF program, which links to the `gocounter` BPF program
-which was requested to be loaded.
-`bpfctl list` can be used to show that the BPF program was loaded.
+2. `bpfd` will load it's `dispatcher` BPF program, which links to the `go-xdp-counter` BPF program
+and return a UUID describing the running program.
+3. `bpfctl list` can be used to show that the BPF program was loaded.
 `bpfctl` also sends gRPC requests over mTLS to perform actions and request data from `bpfd`.
+4. Once the `go-xdp-counter` BPF bytecode is loaded, the BPF program will write packet counts
+and byte counts to a shared map.
+5. `go-xdp-counter` userspace program periodically reads counters from the shared map and logs
+the value.
 
-Once the gocounter BPF bytecode is loaded, the BPF program will write packet counts and byte
-counts to a shared map that gocounter Userspace program will read from.
+#### Running Privileged
 
-### Running Privileged
-
-The most basic example, just use `sudo` to start the `gocounter` program.
+The most basic example, just use `sudo` to start the `go-xdp-counter` program.
 Determine the host interface to attach the BPF program to and then start the go program with:
 
 ```console
-    cd src/bpfd/examples/gocounter/
-    sudo ./gocounter -iface <INTERNET INTERFACE NAME>
+    cd src/bpfd/examples/go-xdp-counter/
+    sudo ./go-xdp-counter -iface <INTERNET INTERFACE NAME>
+```
+or (**NOTE:** TC programs also require a direction, ingress or egress)
+```console
+    cd src/bpfd/examples/go-tc-counter/
+    sudo ./go-tc-counter -direction ingress -iface <INTERNET INTERFACE NAME>
 ```
 
 The output should show the count and total bytes of packets as they pass through the
 interface as shown below:
 
 ```console
-    sudo ./gocounter -iface ens3
+    sudo ./go-xdp-counter -iface ens3
     2022/12/02 15:59:34 Reading /etc/bpfd/gocounter.toml ...
     2022/12/02 15:59:34 Read /etc/bpfd/gocounter.toml failed: err open /etc/bpfd/gocounter.toml: no such file or directory
-    2022/12/02 15:59:34 Using Input: Interface=vethb2795c7 Priority=50 Source=bpf_bpfel.o
+    2022/12/02 15:59:34 Using Input: Interface=ens3 Priority=50 Source=bpf_bpfel.o
     2022/12/02 15:59:35 Program registered with b6b2107c-f1a3-48ac-a145-1073c0979ba4 id
     2022/12/02 15:59:38 0 packets received
     2022/12/02 15:59:38 0 bytes received
@@ -127,15 +161,15 @@ interface as shown below:
     :
 ```
 
-Use `bpfctl` to show the gocounter BPF bytecode was loaded.
+Use `bpfctl` to show the `go-xdp-counter` BPF bytecode was loaded.
 
 ```console
     bpfctl list
-    UUID                                  Type  Name   Path                                                 Metadata
-    b6b2107c-f1a3-48ac-a145-1073c0979ba4  xdp   stats  /home/$USER/src/bpfd/examples/gocounter/bpf_bpfel.o  { "priority": 50, "iface": "vethb2795c7", "position": 0, "proceed_on": ["pass", "dispatcher_return"] }
+    UUID                                  Type  Name   Path                                                      Metadata
+    b6b2107c-f1a3-48ac-a145-1073c0979ba4  xdp   stats  /home/$USER/src/bpfd/examples/go-xdp-counter/bpf_bpfel.o  { "priority": 50, "iface": "ens3", "position": 0, "proceed_on": ["pass", "dispatcher_return"] }
 ```
 
-Finally, press `<CTRL>+c` when finished with `gocounter`.
+Finally, press `<CTRL>+c` when finished with `go-xdp-counter`.
 
 ```console
     :
@@ -150,17 +184,17 @@ Finally, press `<CTRL>+c` when finished with `gocounter`.
     2022/12/02 16:01:00 Unloading Program: b6b2107c-f1a3-48ac-a145-1073c0979ba4
 ```
 
-### Running Unprivileged
+#### Running Unprivileged
 
-To run the `gocounter` example unprivileged (without `sudo`), the following three steps must be
-performed.
+To run the `go-xdp-counter` and `go-tc-counter` examples unprivileged (without `sudo`), the
+following three steps must be performed.
 
-#### Step 1: Create `bpfd` User Group
+##### Step 1: Create `bpfd` User Group
 
 The [tutorial.md](../admin/tutorial.md) guide describes the different modes `bpfd` can be run in.
-Specifically, the [Systemd Service](../admin/tutorial.md#systemd-service) section describe how to
-start `bpfd` the `bpfd` Users and `bpfd` User Group.
-`bpfd` must be started as a Systemd Service and `gocounter` must be run from a User that is a
+Specifically, the [Systemd Service](../admin/tutorial.md#systemd-service) section explains how to
+start `bpfd` and create the `bpfd` Users and `bpfd` User Group.
+`bpfd` must be started as a Systemd Service and `go-xdp-counter` must be run from a User that is a
 member of the `bpfd` User Group.
 
 ```console
@@ -169,35 +203,34 @@ member of the `bpfd` User Group.
     <LOGIN>
 ```
 
-The socket that is created by `gocounter` and shared between `gocounter` and `bpfd` is created in the
-`bpfd` User Group and `gocounter` must have read-write access to it:
+##### Step 2: Grant CAP_BPF Linux Capability
 
-```console
-    $ ls -al /var/lib/bpfd/sock/gocounter.sock
-    srwxrwx---+ 1 <USER> bpfd 0 Aug 26 11:07 /var/lib/bpfd/sock/gocounter.sock
-```
-
-#### Step 2: Grant `gocounter` CAP_BPF Linux Capability
-
-`gocounter` uses a map to share data between the userspace side of the program and the BPF portion.
+`go-xdp-counter` and `go-tc-counter` use a map to share data between the userspace side of the program
+and the BPF portion.
 Accessing this map requires access to the CAP_BPF capability.
-Run the following command to grant `gocounter` access to the CAP_BPF capability:
+Run the following command to grant `go-xdp-counter` access to the CAP_BPF capability:
 
 ```console
-    sudo /sbin/setcap cap_dac_override,cap_bpf=ep ./gocounter
+    cd src/bpfd/examples/go-xdp-counter/
+    sudo /sbin/setcap cap_dac_override,cap_bpf=ep ./go-xdp-counter
+```
+and
+```console
+    cd src/bpfd/examples/go-tc-counter/
+    sudo /sbin/setcap cap_dac_override,cap_bpf=ep ./go-tc-counter
 ```
 
-**Reminder:** The capability must be re-granted each time `gocounter` is rebuilt.
+**Reminder:** The capability must be re-granted each time the examples are rebuilt.
 
-#### Step 3: Start `gocounter` without `sudo`
+##### Step 3: Start `go-xdp-counter` without `sudo`
 
-Start `gocounter` without `sudo`:
+Start `go-xdp-counter` without `sudo`:
 
 ```console
-    ./gocounter -iface ens3
+    ./go-xdp-counter -iface ens3
     2022/12/02 15:59:34 Reading /etc/bpfd/gocounter.toml ...
     2022/12/02 15:59:34 Read /etc/bpfd/gocounter.toml failed: err open /etc/bpfd/gocounter.toml: no such file or directory
-    2022/12/02 15:59:34 Using Input: Interface=vethb2795c7 Priority=50 Source=bpf_bpfel.o
+    2022/12/02 15:59:34 Using Input: Interface=ens3 Priority=50 Source=bpf_bpfel.o
     2022/12/02 15:59:35 Program registered with b6b2107c-f1a3-48ac-a145-1073c0979ba4 id
     2022/12/02 15:59:38 0 packets received
     2022/12/02 15:59:38 0 bytes received
@@ -214,22 +247,16 @@ Start `gocounter` without `sudo`:
     2022/12/02 16:01:00 Unloading Program: b6b2107c-f1a3-48ac-a145-1073c0979ba4
 ```
 
-## Running In A Container
-
-Running the `gocounter` example in a container can take many forms.
-This will step through the different options and lay the groundwork to running the application on
-Kubernetes.
-
 ### Passing BPF Bytecode In A Container Image
 
-Whether or not the Userspace portion of `gocounter` is running on a host or in a container, the
 bpfd can load BPF bytecode from a container image built following the spec described in
 [shipping-bytecode.md](../../docs/admin/shipping-bytecode.md).
-A pre-built `gocounter` BPF container image can be loaded from `quay.io/bpfd-bytecode/go-xdp-counter`.
-To use the container image, pass the URL to `gocounter`:
+Pre-built `go-xdp-counter` and `go-tc-counter` BPF container images can be loaded from
+`quay.io/bpfd-bytecode/go-xdp-counter:latest` or `quay.io/bpfd-bytecode/go-tc-counter:latest`.
+To use the container image, pass the URL to the userspace program:
 
 ```console
-    ./gocounter -iface ens3 -url quay.io/bpfd-bytecode/go-xdp-counter:latest
+    ./go-xdp-counter -iface ens3 -location image://quay.io/bpfd-bytecode/go-xdp-counter:latest
     2022/12/02 16:28:32 Reading /etc/bpfd/gocounter.toml ...
     2022/12/02 16:28:32 Read /etc/bpfd/gocounter.toml failed: err open /etc/bpfd/gocounter.toml: no such file or directory
     2022/12/02 16:28:32 Using Input: Interface=ens3 Priority=50 Source=quay.io/bpfd-bytecode/go-xdp-counter:latest
@@ -244,24 +271,40 @@ To use the container image, pass the URL to `gocounter`:
     2022/12/02 16:28:42 Unloading Program: 8d89a6b6-bce2-4d3f-9cee-9cb0c689a90e
 ```
 
-### Building gocounter BPF Bytecode Container Image
+#### Building BPF Bytecode Container Image
 
 [shipping-bytecode.md](../../docs/admin/shipping-bytecode.md) provides detailed instructions on
 building and shipping bytecode in a container image.
-To build a `gocounter` BPF bytecode container image, first make sure the bytecode has been built
-(i.e. `bpf_bpfel.o` has been built - see [Building](#building]), then run the build command below:
+To build `go-xdp-counter` and `go-tc-counter` BPF bytecode container image, first make sure the
+bytecode has been built (i.e. `bpf_bpfel.o` has been built - see [Building](#building]), then
+run the build commands below:
 
 ```console
-    cd src/bpfd/examples/gocounter/
+    cd src/bpfd/examples/go-xdp-counter/
     go generate
 
     podman build \
-      --build-arg PROGRAM_NAME=gocounter \
+      --build-arg PROGRAM_NAME=go-xdp-counter \
       --build-arg SECTION_NAME=stats \
       --build-arg PROGRAM_TYPE=xdp \
       --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
       --build-arg KERNEL_COMPILE_VER=$(uname -r) \
-      -f ../../packaging/container-deployment/Containerfile.bytecode . -t quay.io/$USER/bytecode:gocounter
+      -f ../../packaging/container-deployment/Containerfile.bytecode . -t quay.io/$USER/go-xdp-counter-bytecode:latest
+```
+
+and
+
+```console
+    cd src/bpfd/examples/go-tc-counter/
+    go generate
+
+    podman build \
+      --build-arg PROGRAM_NAME=go-tc-counter \
+      --build-arg SECTION_NAME=stats \
+      --build-arg PROGRAM_TYPE=tc \
+      --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
+      --build-arg KERNEL_COMPILE_VER=$(uname -r) \
+      -f ../../packaging/container-deployment/Containerfile.bytecode . -t quay.io/$USER/go-tc-counter-bytecode:latest
 ```
 
 `bpfd` currently only supports pulling a remote container image, so push the image to a remote
@@ -270,16 +313,17 @@ For example:
 
 ```console
     podman login quay.io
-    podman push quay.io/$USER/bytecode:gocounter
+    podman push quay.io/$USER/go-xdp-counter-bytecode:latest
+    podman push quay.io/$USER/go-tc-counter-bytecode:latest
 ```
 
 Then run with the privately built bytecode container image:
 
 ```console
-    ./gocounter -iface ens3 -url quay.io/$USER/bytecode:gocounter
+    ./go-tc-counter -iface ens3 -direction ingress -location image://quay.io/$USER/go-tc-counter-bytecode:latest
     2022/12/02 16:38:44 Reading /etc/bpfd/gocounter.toml ...
     2022/12/02 16:38:44 Read /etc/bpfd/gocounter.toml failed: err open /etc/bpfd/gocounter.toml: no such file or directory
-    2022/12/02 16:38:44 Using Input: Interface=vethb2795c7 Priority=50 Source=quay.io/$USER/bytecode:gocounter
+    2022/12/02 16:38:44 Using Input: Interface=ens3 Priority=50 Source=quay.io/$USER/go-tc-counter-bytecode:latest
     2022/12/02 16:38:45 Program registered with 0d313a4a-a17c-4c70-81ba-3ecc494b900e id
     2022/12/02 16:38:48 4 packets received
     2022/12/02 16:38:48 580 bytes received
@@ -291,90 +335,31 @@ Then run with the privately built bytecode container image:
     2022/12/02 16:38:51 Unloading Program: 0d313a4a-a17c-4c70-81ba-3ecc494b900e
 ```
 
-### Building A gocounter Userspace Container Image
+#### Preloading BPF Bytecode
 
-See [image-build.md](image-build.md) for details on building `bpfd` and `bpfctl` in a container image.
-To build the `gocounter` Userspace example in a container, from the bpfd code source directory, run
-the following build command:
-
-```console
-    cd src/bpfd/
-    podman build -f examples/gocounter/container-deployment/Containerfile.gocounter . -t gocounter:local
-```
-
-To run the `gocounter` example in a container, run the following command:
-
-```console
-    podman run -it --privileged --net=host \
-      -v /etc/bpfd/certs/ca/:/etc/bpfd/certs/ca/ \
-      -v /etc/bpfd/certs/bpfd-client/:/etc/bpfd/certs/bpfd-client/ \
-      -v /run/bpfd/fs/maps/:/run/bpfd/fs/maps/ \
-      -e BPFD_INTERFACE=ens3 \
-      -e BPFD_BYTECODE_URL=quay.io/bpfd-bytecode/go-xdp-counter \
-      gocounter:local
-
-    2022/12/02 21:53:35 Reading /etc/bpfd/gocounter.toml ...
-    2022/12/02 21:53:35 Read /etc/bpfd/gocounter.toml failed: err open /etc/bpfd/gocounter.toml: no such file or directory
-    2022/12/02 21:53:35 Using Input: Interface=ens3 Priority=50 Source=quay.io/bpfd-bytecode/go-xdp-counter
-    2022/12/02 21:53:36 Program registered with 60970bb9-056e-49d7-b2a5-a6bf2c4d5abf id
-    2022/12/02 21:53:39 0 packets received
-    2022/12/02 21:53:39 0 bytes received
-
-    2022/12/02 21:53:42 4 packets received
-    2022/12/02 21:53:42 580 bytes received
-
-    2022/12/02 21:53:45 4 packets received
-    2022/12/02 21:53:45 580 bytes received
-
-    ^C2022/12/02 21:53:46 Exiting...
-    2022/12/02 21:53:46 Unloading Program: 60970bb9-056e-49d7-b2a5-a6bf2c4d5abf
-```
-
-`gocounter` can use the following environment variables to manage how it is started:
-* **BPFD_INTERFACE:** Required: Interface to load bytecode on.
-  Example: `-e BPFD_INTERFACE=ens3`
-* **BPFD_PRIORITY:** Optional: Priority to load bytecode (lower value has higher priority).
-  Example: `-e BPFD_PRIORITY=35`
-* **BPFD_BYTECODE_URL:** Optional and mutually exclusive with BPFD_BYTECODE_UUID and
-  BPFD_BYTECODE_PATH: URL of BPF bytecode container image.
-  Example: `-e BPFD_BYTECODE_URL=quay.io/bpfd-bytecode/go-xdp-counter`
-* **BPFD_BYTECODE_UUID:** Optional and mutually exclusive with BPFD_BYTECODE_URL and
-  BPFD_BYTECODE_PATH: On a Kubernetes type environment, the BPF bytecode should be loaded by
-  an administrator and using the `EbpfProgram` CRD.
-  The UUID is the bpfd index to the loaded bytecode.
-  Example: `-e BPFD_BYTECODE_UUID=5d843e8b-dd84-48bd-b34c-a5bc690bf7b2`
-* **BPFD_BYTECODE_PATH:** Optional and mutually exclusive with BPFD_BYTECODE_URL and
-  BPFD_BYTECODE_UUID: Not useful in the containerized deployment, specifies the location of the
-  bytecode file a host system to load from.
-  Example: `-e BPFD_BYTECODE_PATH=/var/bpfd/bytecode/bpf_bpfel.o`
-
-The volume mounts provide access to the generated certificates and location of the shared map on the
-host, where the counts are shared.
-
-### Preloading gocounter BPF Bytecode
-
-Another way to load the BPF bytecode is to pre-load the `gocounter` BPF bytecode and
-pass the associated `bpfd` UUID to `gocounter` Userspace program.
+Another way to load the BPF bytecode is to pre-load the BPF bytecode and
+pass the associated `bpfd` UUID to the userspace program.
 This is similar to how BPF programs will be loaded in Kubernetes, except `kubectl` commands will be
-used to create `EbpfProgram` CRD objects instead of using `bpfctl`, but that is covered in the next
-section.
-The `gocounter` Userspace program will skip the loading portion and use the UUID to find the shared
+used to create `bpfProgramConfig` kubernetes object objects instead of using `bpfctl`, but that
+is covered in the next section.
+The userspace programs will skip the loading portion and use the UUID to find the shared
 map and continue from there.
 
-First, use `bpfctl` to load the `gocounter` BPF bytecode:
+Referring back to the diagram above, the `load` and `unload` are being done by `bpfctl` and not
+`go-xdp-counter` userspace program.
+
+First, use `bpfctl` to load the `go-xdp-counter` BPF bytecode:
 
 ```console
-    bpfctl load --from-image --path quay.io/bpfd-bytecode/go-xdp-counter:latest xdp --iface vethb2795c7 --priority 50
+    bpfctl load --location image://quay.io/bpfd-bytecode/go-xdp-counter:latest xdp --iface ens3 --priority 50
     d541af30-69be-44cf-9397-407ee512547a
 ```
 
-Then run the `gocounter` Userspace program, passing in the UUID:
+Then run the `go-xdp-counter` userspace program, passing in the UUID:
 
 ```console
-    ./gocounter -iface vethb2795c7 -uuid d541af30-69be-44cf-9397-407ee512547a
-    2022/12/02 17:01:38 Reading /etc/bpfd/gocounter.toml ...
-    2022/12/02 17:01:38 Read /etc/bpfd/gocounter.toml failed: err open /etc/bpfd/gocounter.toml: no such file or directory
-    2022/12/02 17:01:38 Using Input: Interface=vethb2795c7 Source=d541af30-69be-44cf-9397-407ee512547a
+    ./go-xdp-counter -iface ens3 -uuid d541af30-69be-44cf-9397-407ee512547a
+    2022/12/02 17:01:38 Using Input: Interface=ens3 Source=d541af30-69be-44cf-9397-407ee512547a
     2022/12/02 17:01:41 180 packets received
     2022/12/02 17:01:41 26100 bytes received
 
@@ -384,7 +369,7 @@ Then run the `gocounter` Userspace program, passing in the UUID:
     ^C2022/12/02 17:01:46 Exiting...
 ```
 
-Then use `bpfctl` to unload the `gocounter` BPF bytecode:
+Then use `bpfctl` to unload the BPF bytecode:
 
 ```console
     bpfctl unload d541af30-69be-44cf-9397-407ee512547a
@@ -392,168 +377,270 @@ Then use `bpfctl` to unload the `gocounter` BPF bytecode:
 
 ## Deploying On Kubernetes
 
-This section will describe loading bytecode on a Kubernetes cluster and launching the Userspace
+This section will describe loading bytecode on a Kubernetes cluster and launching the userspace
 program.
 The approach is slightly different when running on a Kubernetes cluster.
-The BPF bytecode should be loaded by an administrator, not the Userspace program itself.
+The BPF bytecode should be loaded by an administrator, not the userspace program itself.
 
 ![gocounter On Kubernetes](../img/gocounter-on-k8s.png)
 
-
-### Loading gocounter BPF Bytecode On Kubernetes
+### Loading BPF Bytecode On Kubernetes
 
 This assumes there is already a Kubernetes cluster running and `bpfd` is running in the cluster
 (see [How to Manually Deploy bpfd on Kubernetes](../admin/k8s-deployment.md)).
-Instead of using `bpfctl` to load the `gocounter` BPF bytecode, it will be loaded via the
-`EbpfProgram` CRD type. Edit the
-[gocounter-bytecode.yaml](../../examples/gocounter/kubernetes-deployment/gocounter-bytecode.yaml)
+Instead of using the userspace program or `bpfctl` to load the BPF bytecode as done above, the bytecode
+will be loaded by creating a `BpfProgramConfig` kubernetes object.
+Edit the
+[go-xdp-counter-bytecode.yaml](../../examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml)
 file to customize, primarily setting the interface.
+Also note that the `BpfProgramConfig` is running the bytecode on all nodes (`nodeselector: {}`).
+This can be change to run on specific nodes, but the DaemonSet yaml for the userspace program, which
+is described below, should have an equivalent change
+(see [go-xdp-counter.yaml](../../examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter.yaml)).
 
 ```console
-    vi examples/gocounter/kubernetes-deployment/gocounter-bytecode.yaml
+    vi examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml
     apiVersion: bpfd.io/v1alpha1
-    kind: EbpfProgram
+    kind: BpfProgramConfig
     metadata:
-      name: gocounter
+      labels:
+        app.kubernetes.io/name: bpfprogramconfig
+      name: go-xdp-counter-example
     spec:
-      type: xdp
-      name: gocounter
-      interface: ens3                          # INTERFACE
-      image: quay.io/bpfd-bytecode/go-xdp-counter:latest
-      sectionname: stats
-      priority: 55
+      ## Must correspond to image section name
+      name: stats
+      type: XDP
+      # Select all nodes
+      nodeselector: {}
+      attachpoint:
+        networkmultiattach:
+          interface: eth0
+          priority: 55
+      bytecode: image://quay.io/bpfd-bytecode/go-xdp-counter-latest
 ```
 
-Then apply the update yaml:
+Repeat for `go-tc-counter-bytecode.yaml` and then apply the updated yamls:
 
 ```console
-    kubectl apply -f examples/gocounter/kubernetes-deployment/gocounter-bytecode.yaml
-    ebpfprogram.bpfd.io/gocounter created
+    kubectl apply -f examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml
+    bpfprogramconfig.bpfd.io/go-xdp-counter-example created
+
+    kubectl apply -f examples/go-tc-counter/kubernetes-deployment/go-tc-counter-bytecode.yaml
+    bpfprogramconfig.bpfd.io/go-tc-counter-example created
 ```
 
-To retrieve information on the `EbpfProgram` objects:
+Following the diagram (Blue numbers):
+1. The user creates a `BpfProgramConfig` object with the parameters
+associated with the BPF bytecode, like interface, priority and BFP bytecode image.
+The name of the `BpfProgramConfig` object in this example is `go-xdp-counter-example`.
+2. `bpfd-agent`, running on each node, is watching for all changes to `BpfProgramConfig` objects.
+When it sees a `BpfProgramConfig` object modified, it makes sure a `BpfProgram` object for that
+node exists. The name of the `BpfProgram` object is the `BpfProgramConfig` object name with the
+node name appended.
+3. `bpfd-agent` then determines if it should be running on the given node, loads or unloads as needed
+by making gRPC calls the `bpfd`.
+`bpfd` behaves the same as described in the running locally example.
+4. `bpfd-agent` finally updates the status of the `BpfProgram` object.
+5. `bpfd-operator` watches all `BpfProgram` objects, and updates the status of the `BpfProgramConfig`
+object indicating if the BPF program has been applied to all the desired nodes or not.
+
+To retrieve information on the `BpfProgramConfig` objects:
 
 ```console
-    kubectl get EbpfPrograms -A
-    NAMESPACE     NAME                  AGE
-    kube-system   gocounter             9s
+    kubectl get bpfprogramconfigs
+    NAME                     AGE
+    go-tc-counter-example    3d5h
+    go-xdp-counter-example   3d5h
 
-    kubectl describe EbpfPrograms -n kube-system gocounter
-    Name:         gocounter
-    Namespace:    kube-system
-    Labels:       <none>
-    Annotations:  ebpf-k8s-1/attach_point: ens3
-                  ebpf-k8s-1/uuid: 49284c27-c623-4aa7-88b4-99116815e78e
-                  ebpf-k8s-2/attach_point: ens3
-                  ebpf-k8s-2/uuid: 62c2a443-9beb-4261-9c46-33a29612643d
-                  ebpf-k8s-3/attach_point: ens3
-                  ebpf-k8s-3/uuid: dff67fcf-10dc-4b49-8c49-d74a43f16a4c
-    API Version:  bpfd.io/v1alpha1
-    Kind:         EbpfProgram
-    Metadata:
-      Creation Timestamp:  2022-09-29T20:40:54Z
-    :
+    kubectl get bpfprogramconfigs go-xdp-counter-example -o yaml
+    apiVersion: bpfd.io/v1alpha1
+    kind: BpfProgramConfig
+    metadata:
+      creationTimestamp: "2023-01-06T15:04:22Z"
+      finalizers:
+      - bpfd.io.operator/finalizer
+      generation: 1
+      labels:
+        app.kubernetes.io/name: bpfprogramconfig
+      name: go-xdp-counter-example
+      resourceVersion: "268771"
+      uid: 81a9d2ea-52fc-4c5a-8a57-d3189119fad2
+    spec:
+      attachpoint:
+        networkmultiattach:
+          direction: NONE
+          interface: eth0
+          priority: 55
+      bytecode: image://quay.io/bpfd-bytecode/go-xdp-counter:latest
+      name: stats
+      nodeselector: {}
+      type: XDP
+    status:
+      conditions:
+      - lastTransitionTime: "2023-01-06T15:04:22Z"
+        message: Waiting for BpfProgramConfig Object to be reconciled to all nodes
+        reason: ProgramsNotYetLoaded
+        status: "True"
+        type: NotYetLoaded
+      - lastTransitionTime: "2023-01-06T15:04:22Z"
+        message: bpfProgramReconciliation Succeeded on all nodes
+        reason: ReconcileSuccess
+        status: "True"
+        type: ReconcileSuccess
 ```
 
-Using the annotations, the UUID of each node can be determined.
+To retrieve information on the `BpfProgram` objects:
 
-### Loading gocounter Userspace Container On Kubernetes
+```console
+    kubectl get bpfprograms
+    NAME                                                   AGE
+    go-tc-counter-example-bpfd-deployment-control-plane    3d5h
+    go-tc-counter-example-bpfd-deployment-worker           3d5h
+    go-tc-counter-example-bpfd-deployment-worker2          3d5h
+    go-xdp-counter-example-bpfd-deployment-control-plane   3d5h
+    go-xdp-counter-example-bpfd-deployment-worker          3d5h
+    go-xdp-counter-example-bpfd-deployment-worker2         3d5h
 
-As described above, the Userspace program can be built into a container.
-In this case, it can be pushed to a upstream repository to use across multiple systems.
+    kubectl get bpfprograms go-xdp-counter-example-bpfd-deployment-worker -o yaml
+    apiVersion: bpfd.io/v1alpha1
+    kind: BpfProgram
+    metadata:
+      creationTimestamp: "2023-01-06T15:04:22Z"
+      finalizers:
+      - bpfd.io.agent/finalizer
+      generation: 2
+      labels:
+        owningConfig: go-xdp-counter-example
+      name: go-xdp-counter-example-bpfd-deployment-worker
+      ownerReferences:
+      - apiVersion: bpfd.io/v1alpha1
+        blockOwnerDeletion: true
+        controller: true
+        kind: BpfProgramConfig
+        name: go-xdp-counter-example
+        uid: 81a9d2ea-52fc-4c5a-8a57-d3189119fad2
+      resourceVersion: "268828"
+      uid: 7957b711-d752-4893-8a8d-7d48c3afaa53
+    spec:
+      programs:
+        30f8264a-ba07-4adc-9824-85a2c755e85e:
+          attachpoint:
+            networkmultiattach:
+              direction: NONE
+              interface: eth0
+              priority: 55
+              proceedon: []
+          maps:
+            xdp_stats_map: /run/bpfd/fs/maps/30f8264a-ba07-4adc-9824-85a2c755e85e/xdp_stats_map
+    status:
+      conditions:
+      - lastTransitionTime: "2023-01-06T15:04:23Z"
+        message: Successfully loaded bpfProgram
+        reason: bpfdLoaded
+        status: "True"
+        type: Loaded
+```
+
+### Loading Userspace Container On Kubernetes
+
+#### Building A Userspace Container Image
+
+To build the `go-xdp-counter` and `go-tc-counter` userspace examples in a container, from the bpfd code
+source directory, run the following build commands:
 
 ```console
     cd src/bpfd/
-    podman build -f examples/gocounter/container-deployment/Containerfile.gocounter . -t quay.io/$USER/gocounter:latest
+    podman build -f examples/go-xdp-counter/container-deployment/Containerfile.go-xdp-counter . -t quay.io/$USER/go-xdp-counter:latest
+    podman build -f examples/go-tc-counter/container-deployment/Containerfile.go-tc-counter . -t quay.io/$USER/go-tc-counter:latest
+```
 
+Then push images to a remote repository:
+
+```console
     podman login quay.io
-    podman push quay.io/$USER/gocounter:latest
+    podman push quay.io/$USER/go-xdp-counter:latest
+    podman push quay.io/$USER/go-tc-counter:latest
 ```
 
-Using the UUID from annotation collected in the previous section, update the
-[gocounter.yaml](../../examples/gocounter/kubernetes-deployment/gocounter.yaml)
-with the interface, UUID, Node Selector and private image:
+#### Loading A Userspace Container Image
+
+The userspace program in a Kubernetes Deployment no longer interacts directly with `bpfd`.
+Instead, the userspace program running on each node reads the `BpdProgram` to determine the
+map location.
+For example, the output above shows the maps as:
 
 ```console
-    vi src/bpfd/examples/gocounter/kubernetes-deployment/gocounter.yaml
-    ---
-    apiVersion: v1
-    kind: ConfigMap
-    metadata:
-      name: gocounter-config
-      namespace: kube-system
-    data:
-      gocounter.toml: |
-        [tls]
-          ca_cert = "/etc/bpfd/certs/ca/ca.crt"
-          cert = "/etc/bpfd/certs/bpfd-client/tls.crt"
-          key = "/etc/bpfd/certs/bpfd-client/tls.key"
-        [config]
-          interface = "ens3"                                       # INTERFACE
-          bytecode_uuid = "62c2a443-9beb-4261-9c46-33a29612643d"   # UUID
-    ---
+    kubectl get bpfprograms go-xdp-counter-example-bpfd-deployment-worker -o yaml
     :
-    ---
-    apiVersion: v1
-    kind: Pod
-    metadata:
-      name: gocounter-pod
     spec:
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
-      terminationGracePeriodSeconds: 30
-      nodeSelector:
-        kubernetes.io/hostname: ebpf-k8s-2                         # NODE SELECTOR
-      containers:
-      - name: gocounter
-        image: quay.io/$USER/gocounter:latest                      # IMAGE
-        imagePullPolicy: IfNotPresent
+      programs:
+        30f8264a-ba07-4adc-9824-85a2c755e85e:
+    :
+          maps:
+            xdp_stats_map: /run/bpfd/fs/maps/30f8264a-ba07-4adc-9824-85a2c755e85e/xdp_stats_map
     :
 ```
 
-The `gocounter` Userspace Program also takes input from a `/etc/bpfd/gocounter.toml` file.
-The [gocounter.yaml](../../examples/gocounter/kubernetes-deployment/gocounter.yaml)
-creates a configMap which is mapped to a `/etc/bpfd/gocounter.toml` file on the node.
-This allows the specific attributes to be passed to the `gocounter` Userspace Program.
-It also allows the name of the certificates to be named in the CertManager format.
+To interact with the KubeApiServer, RBAC must be setup properly to access the `BpdProgram`
+object.
+The `bpfd-operator` defined the yaml for several ClusterRoles that can be used to access the
+different `bpfd` related CRD objects with different access rights.
+The example userspace containers will use the `bpfprogram-viewer-role`, which allows Read-Only
+access to the `BpfProgram` object.
+This ClusterRole is created automatically by the  `bpfd-operator`.
 
-Once the [gocounter.yaml](../../examples/gocounter/kubernetes-deployment/gocounter.yaml)
-is tailored to a specific deployment, it can be applied:
+The remaining objects (NameSpace, ServiceAccount, ClusterRoleBinding and examples DaemonSet)
+also need to be created.
 
 ```console
-    kubectl apply -f examples/gocounter/kubernetes-deployment/gocounter.yaml
-    configmap/gocounter-config created
-    certificate.cert-manager.io/gocounter-cert created
-    pod/gocounter-pod created
+    cd src/bpfd/
+    kubectl create -f examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter.yaml
+    kubectl create -f examples/go-tc-counter/kubernetes-deployment/go-tc-counter.yaml
 ```
 
-View the logs of `gocounter-pod` to see the counters:
+Following the diagram (Green numbers):
+1. The userspace program queries the KubeApiServer for a specific `BpfProgram` object.
+2. The userspace program pulls the file location of the shared map out of the `BpfProgram`
+object and uses the file to periodically read the counter values.
+
+To see if the userspace programs are working, view the logs:
 
 ```console
-    kubectl logs -n kube-system gocounter-pod
+    kubectl get pods -A
+    NAMESPACE       NAME                       READY   STATUS    RESTARTS   AGE
+    :
+    go-tc-counter   go-tc-counter-ds-k7vmp     1/1     Running   0          3d7h
+    go-tc-counter   go-tc-counter-ds-r77mq     1/1     Running   0          3d7h
+    go-tc-counter   go-tc-counter-ds-wds65     1/1     Running   0          3d7h
+    go-xdp-counter  go-xdp-counter-ds-5q4hz    1/1     Running   0          3d7h
+    go-xdp-counter  go-xdp-counter-ds-bbm9c    1/1     Running   0          3d7h
+    go-xdp-counter  go-xdp-counter-ds-dn247    1/1     Running   0          3d7h
+    :
 
-    2022/09/30 18:30:50 188000 packets received
-    2022/09/30 18:30:50 86781557 bytes received
+    kubectl logs -n go-xdp-counter go-xdp-counter-ds-5q4hz
+    2023/01/08 08:47:55 908748 packets received
+    2023/01/08 08:47:55 631463477 bytes received
 
-    2022/09/30 18:30:53 188011 packets received
-    2022/09/30 18:30:53 86788674 bytes received
+    2023/01/08 08:47:58 908757 packets received
+    2023/01/08 08:47:58 631466099 bytes received
 
-    2022/09/30 18:30:56 188017 packets received
-    2022/09/30 18:30:56 86789701 bytes received
+    2023/01/08 08:48:01 908778 packets received
+    2023/01/08 08:48:01 631472201 bytes received
 
+    2023/01/08 08:48:04 908791 packets received
+    2023/01/08 08:48:04 631480013 bytes received
     :
 ```
 
-To tear down:
+
+To cleanup:
 
 ```console
-    kubectl delete -f examples/gocounter/kubernetes-deployment/gocounter.yaml
-    configmap "gocounter-config" deleted
-    certificate.cert-manager.io "gocounter-cert" deleted
-    pod "gocounter-pod" deleted
+    kubectl delete -f examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter.yaml
+    kubectl delete -f examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml
 
-    kubectl delete -f examples/gocounter/kubernetes-deployment/gocounter-bytecode.yaml
-    ebpfprogram.bpfd.io "gocounter" deleted
+    kubectl delete -f examples/go-tc-counter/kubernetes-deployment/go-tc-counter.yaml
+    kubectl delete -f examples/go-tc-counter/kubernetes-deployment/go-tc-counter-bytecode.yaml
 ```
 
 ## Notes
