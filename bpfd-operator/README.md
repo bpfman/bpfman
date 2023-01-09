@@ -119,7 +119,7 @@ apiVersion: bpfd.io/v1alpha1
   metadata:
     annotations:
       kubectl.kubernetes.io/last-applied-configuration: |
-        {"apiVersion":"bpfd.io/v1alpha1","kind":"BpfProgramConfig","metadata":{"annotations":{},"labels":{"app.kubernetes.io/name":"BpfProgramConfig"},"name":"xdp-pass-all-nodes"},"spec":{"attachpoint":{"networkmultiattach":{"interface":"eth0","priority":0}},"bytecode":"image://quay.io/bpfd/bytecode:xdp_pass","name":"pass","nodeselector":{},"type":"XDP"}}
+        {"apiVersion":"bpfd.io/v1alpha1","kind":"BpfProgramConfig","metadata":{"annotations":{},"labels":{"app.kubernetes.io/name":"BpfProgramConfig"},"name":"xdp-pass-all-nodes"},"spec":{"attachpoint":{"networkmultiattach":{"interface":"eth0","priority":0}},"bytecode":"image://quay.io/bpfd-bytecode/xdp_pass:latest","name":"pass","nodeselector":{},"type":"XDP"}}
     creationTimestamp: "2023-01-03T22:07:15Z"
     finalizers:
     - bpfd.io.operator/finalizer
@@ -135,7 +135,7 @@ apiVersion: bpfd.io/v1alpha1
         direction: NONE
         interface: eth0
         priority: 0
-    bytecode: image://quay.io/bpfd/bytecode:xdp_pass
+    bytecode: image://quay.io/bpfd-bytecode/xdp_pass:latest
     name: pass
     nodeselector: {}
     type: XDP
@@ -173,7 +173,7 @@ spec:
   attachpoint: 
     interface: eth0
   bytecode:
-    imageurl: quay.io/bpfd/bytecode:xdp_pass
+    imageurl: quay.io/bpfd-bytecode/xdp_pass:latest
 ```
 
 ### BpfProgram

@@ -20,7 +20,7 @@ metadata:
                 "priority": 5
               }
             },
-            "bytecode": "image://quay.io/bpfd/bytecode:go-xdp-counter",
+            "bytecode": "image://quay.io/bpfd-bytecode/go-xdp-counter:latest",
             "name": "stats",
             "nodeselector": {
               "matchLabels": {
@@ -46,7 +46,7 @@ metadata:
                 "priority": 0
               }
             },
-            "bytecode": "image://quay.io/bpfd/bytecode:xdp_pass",
+            "bytecode": "image://quay.io/bpfd-bytecode/xdp_pass:latest",
             "name": "pass",
             "nodeselector": {},
             "type": "XDP"

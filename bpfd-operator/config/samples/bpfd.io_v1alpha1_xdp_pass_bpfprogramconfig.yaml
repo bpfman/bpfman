@@ -14,4 +14,4 @@ spec:
     networkmultiattach: 
       interface: eth0
       priority: 0
-  bytecode: image://quay.io/bpfd/bytecode:xdp_pass
+  bytecode: image://quay.io/bpfd-bytecode/xdp_pass:latest

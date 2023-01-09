@@ -120,7 +120,7 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 	//    ./go-xdp-counter -iface eth0 -uuid 53ac77fc-18a9-42e2-8dd3-152fc31ba979
 	if len(cmdlineUuid) == 0 {
 		// "-location" is a URL for the bytecode source. If not provided, check toml file.
-		//    ./go-xdp-counter -iface eth0 -location image://quay.io/bpfd/bytecode:gocounter
+		//    ./go-xdp-counter -iface eth0 -location image://quay.io/bpfd-bytecode/go-xdp-counter:latest
 		//    ./go-xdp-counter -iface eth0 -location file://var/bpfd/bytecode/bpf_bpfel.o
 		if len(cmdlinelocation) != 0 {
 			// "-location" was entered so it is a URL
