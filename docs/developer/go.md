@@ -225,14 +225,14 @@ Kubernetes.
 Whether or not the Userspace portion of `gocounter` is running on a host or in a container, the
 bpfd can load BPF bytecode from a container image built following the spec described in
 [shipping-bytecode.md](../../docs/admin/shipping-bytecode.md).
-A pre-built `gocounter` BPF container image can be loaded from `quay.io/bpfd/bytecode:gocounter`.
+A pre-built `gocounter` BPF container image can be loaded from `quay.io/bpfd-bytecode/go-xdp-counter`.
 To use the container image, pass the URL to `gocounter`:
 
 ```console
-    ./gocounter -iface ens3 -url quay.io/bpfd/bytecode:gocounter
+    ./gocounter -iface ens3 -url quay.io/bpfd-bytecode/go-xdp-counter:latest
     2022/12/02 16:28:32 Reading /etc/bpfd/gocounter.toml ...
     2022/12/02 16:28:32 Read /etc/bpfd/gocounter.toml failed: err open /etc/bpfd/gocounter.toml: no such file or directory
-    2022/12/02 16:28:32 Using Input: Interface=ens3 Priority=50 Source=quay.io/bpfd/bytecode:gocounter
+    2022/12/02 16:28:32 Using Input: Interface=ens3 Priority=50 Source=quay.io/bpfd-bytecode/go-xdp-counter:latest
     2022/12/02 16:28:34 Program registered with 8d89a6b6-bce2-4d3f-9cee-9cb0c689a90e id
     2022/12/02 16:28:37 4 packets received
     2022/12/02 16:28:37 580 bytes received
@@ -310,12 +310,12 @@ To run the `gocounter` example in a container, run the following command:
       -v /etc/bpfd/certs/bpfd-client/:/etc/bpfd/certs/bpfd-client/ \
       -v /run/bpfd/fs/maps/:/run/bpfd/fs/maps/ \
       -e BPFD_INTERFACE=ens3 \
-      -e BPFD_BYTECODE_URL=quay.io/bpfd/bytecode:gocounter \
+      -e BPFD_BYTECODE_URL=quay.io/bpfd-bytecode/go-xdp-counter \
       gocounter:local
 
     2022/12/02 21:53:35 Reading /etc/bpfd/gocounter.toml ...
     2022/12/02 21:53:35 Read /etc/bpfd/gocounter.toml failed: err open /etc/bpfd/gocounter.toml: no such file or directory
-    2022/12/02 21:53:35 Using Input: Interface=ens3 Priority=50 Source=quay.io/bpfd/bytecode:gocounter
+    2022/12/02 21:53:35 Using Input: Interface=ens3 Priority=50 Source=quay.io/bpfd-bytecode/go-xdp-counter
     2022/12/02 21:53:36 Program registered with 60970bb9-056e-49d7-b2a5-a6bf2c4d5abf id
     2022/12/02 21:53:39 0 packets received
     2022/12/02 21:53:39 0 bytes received
@@ -337,7 +337,7 @@ To run the `gocounter` example in a container, run the following command:
   Example: `-e BPFD_PRIORITY=35`
 * **BPFD_BYTECODE_URL:** Optional and mutually exclusive with BPFD_BYTECODE_UUID and
   BPFD_BYTECODE_PATH: URL of BPF bytecode container image.
-  Example: `-e BPFD_BYTECODE_URL=quay.io/bpfd/bytecode:gocounter`
+  Example: `-e BPFD_BYTECODE_URL=quay.io/bpfd-bytecode/go-xdp-counter`
 * **BPFD_BYTECODE_UUID:** Optional and mutually exclusive with BPFD_BYTECODE_URL and
   BPFD_BYTECODE_PATH: On a Kubernetes type environment, the BPF bytecode should be loaded by
   an administrator and using the `EbpfProgram` CRD.
@@ -364,7 +364,7 @@ map and continue from there.
 First, use `bpfctl` to load the `gocounter` BPF bytecode:
 
 ```console
-    bpfctl load --from-image --path quay.io/bpfd/bytecode:gocounter xdp --iface vethb2795c7 --priority 50
+    bpfctl load --from-image --path quay.io/bpfd-bytecode/go-xdp-counter:latest xdp --iface vethb2795c7 --priority 50
     d541af30-69be-44cf-9397-407ee512547a
 ```
 
@@ -419,7 +419,7 @@ file to customize, primarily setting the interface.
       type: xdp
       name: gocounter
       interface: ens3                          # INTERFACE
-      image: quay.io/bpfd/bytecode:gocounter
+      image: quay.io/bpfd-bytecode/go-xdp-counter:latest
       sectionname: stats
       priority: 55
 ```

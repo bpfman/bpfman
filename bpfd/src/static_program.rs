@@ -76,7 +76,7 @@ mod test {
 
         [[programs]]
         name = "program2"
-        location = "image://quay.io/bpfd/bytecode:xdp_pass"
+        location = "image://quay.io/bpfd-bytecode/xdp_pass:latest"
         section_name = "firewall"
         program_type ="xdp"
         network_attach = { interface = "eth0", priority = 55, proceed_on = ["pass", "dispatcher_return"] }

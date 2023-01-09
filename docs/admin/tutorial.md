@@ -297,7 +297,7 @@ bpfctl load --path /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o 
 Example from `--from-image`:
 
 ```console
-bpfctl load --from-image --path quay.io/bpfd/bytecode:xdp_pass xdp ...
+bpfctl load --from-image --path quay.io/bpfd-bytecode/xdp_pass:latest xdp ...
 ```
 
 Command specific help is also provided:
@@ -322,7 +322,7 @@ bpfctl load --path /usr/local/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o 
 
 bpfctl load --path /usr/local/src/net-ebpf-playground/.output/filter.bpf.o --section-name classifier tc --direction ingress --iface vethb2795c7 --priority 110
 
-bpfctl load --from-image --path quay.io/bpfd/bytecode:tracepoint tracepoint --tracepoint sched/sched_switch
+bpfctl load --from-image --path quay.io/bpfd-bytecode/tracepoint:latest tracepoint --tracepoint sched/sched_switch
 ```
 
 ## bpfctl list

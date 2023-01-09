@@ -14,4 +14,4 @@ spec:
     networkmultiattach:
       interface: eth0
       priority: 55
-  bytecode: image://quay.io/bpfd/bytecode:go-xdp-counter
+  bytecode: image://quay.io/bpfd-bytecode/go-xdp-counter:latest

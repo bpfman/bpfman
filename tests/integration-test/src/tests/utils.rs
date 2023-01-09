@@ -6,9 +6,9 @@ use log::debug;
 use predicates::str::is_empty;
 
 const DEFAULT_BPFD_IFACE: &str = "eth0";
-const XDP_PASS_IMAGE_LOC: &str = "image://quay.io/bpfd/bytecode:xdp_pass";
-const TC_PASS_IMAGE_LOC: &str = "image://quay.io/bpfd/bytecode:tc_pass";
-const TRACEPOINT_IMAGE_LOC: &str = "image://quay.io/bpfd/bytecode:tracepoint";
+const XDP_PASS_IMAGE_LOC: &str = "image://quay.io/bpfd-bytecode/xdp_pass:latest";
+const TC_PASS_IMAGE_LOC: &str = "image://quay.io/bpfd-bytecode/tc_pass:latest";
+const TRACEPOINT_IMAGE_LOC: &str = "image://quay.io/bpfd-bytecode/tracepoint:latest";
 
 /// Exit on panic as well as the passing of a test
 pub struct ChildGuard {
