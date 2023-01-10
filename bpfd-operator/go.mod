@@ -4,7 +4,6 @@ go 1.19
 
 require (
 	github.com/go-logr/logr v1.2.3
-	github.com/kong/blixt v0.0.0-20221222150858-6830118d645f
 	github.com/kong/kubernetes-testing-framework v0.24.1
 	github.com/pelletier/go-toml v1.9.5
 	github.com/redhat-et/bpfd/clients/gobpfd v0.0.0-20221122124347-10ccb612fd2a
@@ -13,7 +12,6 @@ require (
 	k8s.io/apimachinery v0.26.0
 	k8s.io/client-go v0.26.0
 	sigs.k8s.io/controller-runtime v0.14.1
-	sigs.k8s.io/gateway-api v0.6.0
 )
 
 require (
@@ -33,6 +31,8 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/google/go-github/v48 v48.1.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
@@ -53,6 +53,7 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
+	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/net v0.3.1-0.20221206200815-1e63c2f08a10 // indirect
 	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783 // indirect
 	golang.org/x/sync v0.1.0 // indirect
