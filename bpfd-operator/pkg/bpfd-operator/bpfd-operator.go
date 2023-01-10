@@ -151,7 +151,7 @@ func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			bpfProgram := &bpfdiov1alpha1.BpfProgram{}
 			if err := r.Get(ctx, req.NamespacedName, bpfProgram); err != nil {
 				if errors.IsNotFound(err) {
-					r.Logger.Info("bpfProgram not found stale reconcile, exiting", "bpfProgramName", req.NamespacedName)
+					r.Logger.V(1).Info("bpfProgram not found stale reconcile, exiting", "bpfProgramName", req.NamespacedName)
 				} else {
 					r.Logger.Error(err, "failed getting bpfProgram Object", "bpfProgramName", req.NamespacedName)
 				}
@@ -183,18 +183,10 @@ func (r *BpfProgramConfigReconciler) Reconcile(ctx context.Context, req ctrl.Req
 }
 
 func (r *BpfProgramConfigReconciler) ReconcileBpfProgramConfig(ctx context.Context, bpfProgramConfig *bpfdiov1alpha1.BpfProgramConfig) (ctrl.Result, error) {
+	r.Logger.V(1).Info("Reconciling bpfProgramConfig", "bpfProgramConfig", bpfProgramConfig.Name)
+
 	if !controllerutil.ContainsFinalizer(bpfProgramConfig, bpfdOperatorFinalizer) {
-		// Once we have an BpfProgramConfig add our finalizer since we own it
-		controllerutil.AddFinalizer(bpfProgramConfig, bpfdOperatorFinalizer)
-
-		// Causes Requeue
-		err := r.Update(ctx, bpfProgramConfig)
-		if err != nil {
-			r.Logger.Error(err, "failed adding bpfd-operator finalizer to BpfProgramConfig")
-			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
-		}
-
-		return ctrl.Result{}, nil
+		return r.addFinalizer(ctx, bpfProgramConfig.Name)
 	}
 
 	// reconcile BpfProgramConfig Object on all other events
@@ -209,23 +201,24 @@ func (r *BpfProgramConfigReconciler) ReconcileBpfProgramConfig(ctx context.Conte
 		return ctrl.Result{}, nil
 	}
 
-	// List all nodes since an bpfprogram object will always be created
+	// List all nodes since an bpfprogram object will always be created for each
 	nodes := &corev1.NodeList{}
 	if err := r.List(ctx, nodes, &client.ListOptions{}); err != nil {
+		r.Logger.Error(err, "failed getting nodes for full reconcile")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}
 
 	// Return NotYetLoaded Status if
-	// BpfPrograms for this haven't been created by bpfd-agent and the config isn't
+	// BpfPrograms for each node haven't been created by bpfd-agent and the config isn't
 	// being deleted.
 	if len(nodes.Items) != len(bpfPrograms.Items) && bpfProgramConfig.DeletionTimestamp.IsZero() {
 		// Causes Requeue
-		return r.updateStatus(ctx, bpfProgramConfig, BpfProgConfigNotYetLoaded, "")
+		return r.updateStatus(ctx, bpfProgramConfig.Name, BpfProgConfigNotYetLoaded, "")
 	}
 
 	failedBpfPrograms := []string{}
 	finalApplied := []string{}
-	// Make sure no bpfPrograms had any issues in the loading process
+	// Make sure no bpfPrograms had any issues in the loading or unloading process
 	for _, bpfProgram := range bpfPrograms.Items {
 
 		if controllerutil.ContainsFinalizer(&bpfProgram, bpfdagent.BpfdAgentFinalizer) {
@@ -233,13 +226,16 @@ func (r *BpfProgramConfigReconciler) ReconcileBpfProgramConfig(ctx context.Conte
 		}
 
 		if bpfProgram.Status.Conditions == nil {
-			continue
+			return ctrl.Result{}, nil
 		}
 
-		for _, condition := range bpfProgram.Status.Conditions {
-			if condition.Type == string(bpfdagent.BpfProgCondNotLoaded) || condition.Type == string(bpfdagent.BpfProgCondNotUnloaded) {
-				failedBpfPrograms = append(failedBpfPrograms, bpfProgram.Name)
-			}
+		// Get most recent condition
+		recentIdx := len(bpfProgram.Status.Conditions) - 1
+
+		condition := bpfProgram.Status.Conditions[recentIdx]
+
+		if condition.Type == string(bpfdagent.BpfProgCondNotLoaded) || condition.Type == string(bpfdagent.BpfProgCondNotUnloaded) {
+			failedBpfPrograms = append(failedBpfPrograms, bpfProgram.Name)
 		}
 	}
 
@@ -247,22 +243,22 @@ func (r *BpfProgramConfigReconciler) ReconcileBpfProgramConfig(ctx context.Conte
 		// Only remove bpfd-operator finalizer if all bpfProgram Objects are ready to be pruned  (i.e finalizers have been removed)
 		if len(finalApplied) == 0 {
 			// Causes Requeue
-			return r.removeFinalizer(ctx, bpfProgramConfig)
+			return r.removeFinalizer(ctx, bpfProgramConfig.Name)
 		}
 
 		// Causes Requeue
-		return r.updateStatus(ctx, bpfProgramConfig, BpfProgConfigDeleteError, fmt.Sprintf("bpfProgramConfig Deletion failed on the following bpfProgram Objects: %v",
+		return r.updateStatus(ctx, bpfProgramConfig.Name, BpfProgConfigDeleteError, fmt.Sprintf("bpfProgramConfig Deletion failed on the following bpfProgram Objects: %v",
 			finalApplied))
 	}
 
 	if len(failedBpfPrograms) != 0 {
 		// Causes Requeue
-		return r.updateStatus(ctx, bpfProgramConfig, BpfProgConfigReconcileError,
+		return r.updateStatus(ctx, bpfProgramConfig.Name, BpfProgConfigReconcileError,
 			fmt.Sprintf("bpfProgramReconciliation failed on the following bpfProgram Objects: %v", failedBpfPrograms))
 	}
 
 	// Causes Requeue
-	return r.updateStatus(ctx, bpfProgramConfig, BpfProgConfigReconcileSuccess, "")
+	return r.updateStatus(ctx, bpfProgramConfig.Name, BpfProgConfigReconcileSuccess, "")
 }
 
 func (r *BpfProgramConfigReconciler) ReconcileBpfdConfig(ctx context.Context, req ctrl.Request, bpfdConfig *corev1.ConfigMap) (ctrl.Result, error) {
@@ -313,35 +309,56 @@ func (r *BpfProgramConfigReconciler) ReconcileBpfdConfig(ctx context.Context, re
 	return ctrl.Result{}, nil
 }
 
-func (r *BpfProgramConfigReconciler) updateStatus(ctx context.Context, prog *bpfdiov1alpha1.BpfProgramConfig, cond BpfProgramConfigConditionType, message string) (ctrl.Result, error) {
+func (r *BpfProgramConfigReconciler) updateStatus(ctx context.Context, name string, cond BpfProgramConfigConditionType, message string) (ctrl.Result, error) {
 	// Sometimes we end up with a stale bpfProgramConfig due to races, do this
 	// get to ensure we're up to date before attempting a finalizer removal.
-	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: prog.Name}, prog); err != nil {
-		r.Logger.Error(err, "failed to get fresh bpfProgramConfig object default to existing")
+	prog := &bpfdiov1alpha1.BpfProgramConfig{}
+	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: name}, prog); err != nil {
+		r.Logger.V(1).Info("failed to get fresh bpfProgramConfig object...requeuing")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}
 	meta.SetStatusCondition(&prog.Status.Conditions, cond.Condition(message))
 
 	if err := r.Status().Update(ctx, prog); err != nil {
-		r.Logger.Error(err, "failed to set bpfProgramConfig object status")
+		r.Logger.V(1).Info("failed to set bpfProgramConfig object status...requeuing")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *BpfProgramConfigReconciler) removeFinalizer(ctx context.Context, prog *bpfdiov1alpha1.BpfProgramConfig) (ctrl.Result, error) {
+func (r *BpfProgramConfigReconciler) removeFinalizer(ctx context.Context, name string) (ctrl.Result, error) {
 	// Sometimes we end up with a stale bpfProgramConfig due to races, do this
 	// get to ensure we're up to date before attempting a status update.
-	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: prog.Name}, prog); err != nil {
-		r.Logger.Error(err, "failed to get fresh bpfProgramConfig object default to existing")
+	prog := &bpfdiov1alpha1.BpfProgramConfig{}
+	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: name}, prog); err != nil {
+		r.Logger.V(1).Info("failed to get fresh bpfProgramConfig object...requeuing")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}
 	controllerutil.RemoveFinalizer(prog, bpfdOperatorFinalizer)
 
 	err := r.Update(ctx, prog)
 	if err != nil {
-		r.Logger.Error(err, "failed removing bpfd-operator finalizer to BpfProgramConfig")
+		r.Logger.V(1).Info("failed removing bpfd-operator finalizer to BpfProgramConfig...requeuing")
+		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *BpfProgramConfigReconciler) addFinalizer(ctx context.Context, name string) (ctrl.Result, error) {
+	// Sometimes we end up with a stale bpfProgramConfig due to races, do this
+	// get to ensure we're up to date before attempting a status update.
+	prog := &bpfdiov1alpha1.BpfProgramConfig{}
+	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: name}, prog); err != nil {
+		r.Logger.V(1).Info("failed to get fresh bpfProgramConfig object...requeuing")
+		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+	}
+	controllerutil.AddFinalizer(prog, bpfdOperatorFinalizer)
+
+	err := r.Update(ctx, prog)
+	if err != nil {
+		r.Logger.V(1).Info("failed adding bpfd-operator finalizer to BpfProgramConfig...requeuing")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}
 
@@ -370,23 +387,32 @@ func (r *BpfProgramConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&source.Kind{Type: &bpfdiov1alpha1.BpfProgram{}},
 			&handler.EnqueueRequestForObject{},
-			builder.WithPredicates(predicate.Or(predicate.GenerationChangedPredicate{}, statusChangedPredicate())),
+			builder.WithPredicates(statusChangedPredicate()),
 		).
 		Complete(r)
 }
 
-// Only return node updates for our configMap
+// Only reconcile if a bpfprogram object's status has been updated.
 func statusChangedPredicate() predicate.Funcs {
 	return predicate.Funcs{
+		GenericFunc: func(e event.GenericEvent) bool {
+			return false
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return false
+		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			oldObject := e.ObjectOld.(*bpfdiov1alpha1.BpfProgram)
 			newObject := e.ObjectNew.(*bpfdiov1alpha1.BpfProgram)
 			return !reflect.DeepEqual(oldObject.Status, newObject.Status)
 		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return false
+		},
 	}
 }
 
-// We only care about the bpfd DS. (all events)
+// Only reconcile on bpfd-daemon Daemonset events.
 func bpfdDaemonPredicate() predicate.Funcs {
 	return predicate.Funcs{
 		GenericFunc: func(e event.GenericEvent) bool {
@@ -404,7 +430,7 @@ func bpfdDaemonPredicate() predicate.Funcs {
 	}
 }
 
-// We only care about the bpfdConfigMap (all events)
+// Only reconcile on bpfd-config configmap events.
 func bpfdConfigPredicate() predicate.Funcs {
 	return predicate.Funcs{
 		GenericFunc: func(e event.GenericEvent) bool {

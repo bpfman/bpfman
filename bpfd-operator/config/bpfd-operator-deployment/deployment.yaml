@@ -72,6 +72,9 @@ spec:
         - --leader-elect
         image: bpfd-operator-image:latest
         imagePullPolicy: IfNotPresent
+        env:
+          - name: GO_LOG
+            value: "info"
         name: bpfd-operator
         securityContext:
           allowPrivilegeEscalation: false

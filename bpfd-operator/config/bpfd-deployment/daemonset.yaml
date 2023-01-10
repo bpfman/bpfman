@@ -73,6 +73,11 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
+          - name: GO_LOG
+            valueFrom:
+              configMapKeyRef:
+                name: bpfd-config
+                key: bpfd.log.level
         volumeMounts:
         - name: runtime
           mountPath: /run/bpfd
