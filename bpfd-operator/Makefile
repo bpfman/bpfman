@@ -297,3 +297,10 @@ deploy-openshift: manifests kustomize ## Deploy bpfd-operator to the Openshift c
 .PHONY: undeploy-openshift
 undeploy-openshift: ## Undeploy bpfd-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/openshift | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+
+##@ Testing
+
+.PHONY: test-integration
+test-integration: manifests generate fmt vet
+	go clean -testcache
+	GOFLAGS="-tags=integration_tests" go test -race -v ./test/integration/...

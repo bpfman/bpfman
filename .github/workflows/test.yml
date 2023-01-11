@@ -1,20 +1,22 @@
-name: integration-tests
+name: tests
 
 on:
-  push:
-    branches:
-      - main
-
   pull_request:
     branches:
-      - main
+      - '*'
+  push:
+    branches:
+      - 'main'
+    tags:
+      - '*'
+  workflow_dispatch: {}
 
-env:
-  CARGO_TERM_COLOR: always
-
+#TODO Add unit testing
 jobs:
-  build-install:
+  basic-integration-tests:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
     steps:
 
     - uses: actions/checkout@v2
@@ -59,3 +61,35 @@ jobs:
 
     - name: Run integration tests
       run: cargo xtask integration-test
+
+  kubernetes-integration-tests:
+    runs-on: ubuntu-latest
+    env:
+      BPFD_IMG: "quay.io/bpfd/bpfd:int-test"
+      BPFD_AGENT_IMG: "quay.io/bpfd/bpfd-agent:int-test"
+      BPFD_OPERATOR_IMG: "quay.io/bpfd/bpfd-operator:int-test"
+    steps:
+
+    - name: setup golang
+      uses: actions/setup-go@v3
+      with:
+        go-version: '^1.19'
+
+    - name: cache go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-build-codegen-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-build-codegen-
+
+    - name: checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: build images
+      run: cd bpfd-operator && make build-images
+
+    - name: run integration tests
+      run: cd bpfd-operator && make test-integration

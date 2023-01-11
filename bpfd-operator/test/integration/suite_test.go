@@ -1,4 +1,5 @@
 //go:build integration_tests
+// +build integration_tests
 
 package integration
 
@@ -25,13 +26,13 @@ var (
 	cancel context.CancelFunc
 	env    environments.Environment
 
-	bpfdImage = os.Getenv("BPFD_IMAGE")
-	bpfdAgentImage    = os.Getenv("BPFD_AGENT_IMAGE")
-	bpfdOperatorImage    = os.Getenv("BPFD_OPERATOR_IMAGE")
+	bpfdImage = os.Getenv("BPFD_IMG")
+	bpfdAgentImage    = os.Getenv("BPFD_AGENT_IMG")
+	bpfdOperatorImage    = os.Getenv("BPFD_OPERATOR_IMG")
 
 	existingCluster      = os.Getenv("USE_EXISTING_KIND_CLUSTER")
 	keepTestCluster      = func() bool { return os.Getenv("TEST_KEEP_CLUSTER") == "true" || existingCluster != "" }()
-	// TODO (astoycos) add this back after debugging what causes this to hang in KTF
+	// TODO (astoycos) add this back after fixing bpfd-operator deletion issues
 	//keepKustomizeDeploys = func() bool { return os.Getenv("TEST_KEEP_KUSTOMIZE_DEPLOYS") == "true" }()
 
 	cleanup = []func(context.Context) error{}
@@ -42,11 +43,11 @@ const (
 )
 
 func TestMain(m *testing.M) {
-	// check that we have a controlplane and dataplane image to use for the tests.
+	// check that we have the bpfd, bpfd-agent, and bpfd-operator images to use for the tests.
 	// generally the runner of the tests should have built these from the latest
 	// changes prior to the tests and fed them to the test suite.
 	if bpfdImage == "" || bpfdAgentImage == "" || bpfdOperatorImage == ""  {
-		exitOnErr(fmt.Errorf("BPFD_IMAGE, BPFD_AGENT_IMAGE, and BPFD_OPERATOR_IMAGE must be provided"))
+		exitOnErr(fmt.Errorf("BPFD_IMG, BPFD_AGENT_IMG, and BPFD_OPERATOR_IMG must be provided"))
 	}
 
 	ctx, cancel = context.WithCancel(context.Background())
@@ -85,18 +86,18 @@ func TestMain(m *testing.M) {
 		}
 
 		fmt.Printf("INFO: new kind cluster %s was created\n", env.Cluster().Name())
-	}
 
-	// deploy the BPFD Operator and revelevant CRDs
-	fmt.Println("INFO: deploying bpfd operator to test cluster")
-	exitOnErr(clusters.KustomizeDeployForCluster(ctx, env.Cluster(), bpfdKustomize))
-	// TODO(astoycos) add this back after debugging what causes deletion to hang in KTF
-	// if !keepKustomizeDeploys {
-	// 	addCleanup(func(context.Context) error {
-	// 		cleanupLog("cleaning up bpfd operator")
-	// 		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), bpfdKustomize)
-	// 	})
-	// }
+		// deploy the BPFD Operator and revelevant CRDs
+		fmt.Println("INFO: deploying bpfd operator to test cluster")
+		exitOnErr(clusters.KustomizeDeployForCluster(ctx, env.Cluster(), bpfdKustomize))
+		// TODO (astoycos) add this back after fixing bpfd-operator deletion issues
+		// if !keepKustomizeDeploys {
+		// 	addCleanup(func(context.Context) error {
+		// 		cleanupLog("cleaning up bpfd operator")
+		// 		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), bpfdKustomize)
+		// 	})
+		// }
+	}
 
 	exitOnErr(waitForBpfdReadiness(ctx, env))
 

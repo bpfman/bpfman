@@ -7,6 +7,7 @@ require (
 	github.com/kong/kubernetes-testing-framework v0.24.1
 	github.com/pelletier/go-toml v1.9.5
 	github.com/redhat-et/bpfd/clients/gobpfd v0.0.0-20221122124347-10ccb612fd2a
+	github.com/stretchr/testify v1.8.1
 	google.golang.org/grpc v1.51.0
 	k8s.io/api v0.26.0
 	k8s.io/apimachinery v0.26.0
@@ -45,6 +46,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
