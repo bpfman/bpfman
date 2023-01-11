@@ -283,7 +283,7 @@ run the build commands below:
     cd src/bpfd/examples/go-xdp-counter/
     go generate
 
-    podman build \
+    docker build \
       --build-arg PROGRAM_NAME=go-xdp-counter \
       --build-arg SECTION_NAME=stats \
       --build-arg PROGRAM_TYPE=xdp \
@@ -298,7 +298,7 @@ and
     cd src/bpfd/examples/go-tc-counter/
     go generate
 
-    podman build \
+    docker build \
       --build-arg PROGRAM_NAME=go-tc-counter \
       --build-arg SECTION_NAME=stats \
       --build-arg PROGRAM_TYPE=tc \
@@ -312,9 +312,9 @@ repository.
 For example:
 
 ```console
-    podman login quay.io
-    podman push quay.io/$USER/go-xdp-counter-bytecode:latest
-    podman push quay.io/$USER/go-tc-counter-bytecode:latest
+    docker login quay.io
+    docker push quay.io/$USER/go-xdp-counter-bytecode:latest
+    docker push quay.io/$USER/go-tc-counter-bytecode:latest
 ```
 
 Then run with the privately built bytecode container image:
@@ -550,16 +550,16 @@ source directory, run the following build commands:
 
 ```console
     cd src/bpfd/
-    podman build -f examples/go-xdp-counter/container-deployment/Containerfile.go-xdp-counter . -t quay.io/$USER/go-xdp-counter:latest
-    podman build -f examples/go-tc-counter/container-deployment/Containerfile.go-tc-counter . -t quay.io/$USER/go-tc-counter:latest
+    docker build -f examples/go-xdp-counter/container-deployment/Containerfile.go-xdp-counter . -t quay.io/$USER/go-xdp-counter:latest
+    docker build -f examples/go-tc-counter/container-deployment/Containerfile.go-tc-counter . -t quay.io/$USER/go-tc-counter:latest
 ```
 
 Then push images to a remote repository:
 
 ```console
-    podman login quay.io
-    podman push quay.io/$USER/go-xdp-counter:latest
-    podman push quay.io/$USER/go-tc-counter:latest
+    docker login quay.io
+    docker push quay.io/$USER/go-xdp-counter:latest
+    docker push quay.io/$USER/go-tc-counter:latest
 ```
 
 #### Loading A Userspace Container Image

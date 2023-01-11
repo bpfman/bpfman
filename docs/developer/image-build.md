@@ -9,13 +9,13 @@ pushed to `quay.io/bpfd` whenever code is merged into the `main` branch of the
 ### bpfd
 
 ```sh
-    podman build -f /packaging/container-deployment/Containerfile.bpfd . -t bpfd:local
+    docker build -f /packaging/container-deployment/Containerfile.bpfd . -t bpfd:local
 ```
 
 ### bpfctl
 
 ```sh
-    podman build -f /packaging/container-deployment/Containerfile.bpfctl . -t bpfctl:local
+    docker build -f /packaging/container-deployment/Containerfile.bpfctl . -t bpfctl:local
 ```
 
 ## Running locally in container
@@ -23,11 +23,11 @@ pushed to `quay.io/bpfd` whenever code is merged into the `main` branch of the
 ### bpfd
 
 ```sh
-sudo podman run --init --privileged --net=host -v /etc/bpfd/certs/:/etc/bpfd/certs/ -v /sys/fs/bpf:/sys/fs/bpf quay.io/bpfd/bpfd:main
+sudo docker run --init --privileged --net=host -v /etc/bpfd/certs/:/etc/bpfd/certs/ -v /sys/fs/bpf:/sys/fs/bpf quay.io/bpfd/bpfd:main
 ```
 
 ### bpfctl 
 
 ```sh
-sudo podman run --init --privileged --net=host -v /etc/bpfd/certs/:/etc/bpfd/certs/ quay.io/bpfd/bpfctl:main <COMMANDS>
+sudo docker run --init --privileged --net=host -v /etc/bpfd/certs/:/etc/bpfd/certs/ quay.io/bpfd/bpfctl:main <COMMANDS>
 ```

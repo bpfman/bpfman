@@ -53,11 +53,11 @@ against.
 
 An Example Containerfile can be found at `/packaging/container/deployment/Containerfile.bytecode`
 
-To use the provided templated Containerfile simply run a `podman build` command
+To use the provided templated Containerfile simply run a `docker build` command
 like the following:
 
 ```bash
-podman build \
+docker build \
  --build-arg PROGRAM_NAME=xdp_pass \
  --build-arg SECTION_NAME=pass \
  --build-arg PROGRAM_TYPE=xdp \
