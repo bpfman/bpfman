@@ -55,7 +55,7 @@ nav:
     - Configuration: admin/configuration.md
   - Developer Guide:
     - developer/index.md
-    - Go: developer/go.md
+    - Example BPF Programs: developer/example-bpf.md
 
 plugins:
   - search

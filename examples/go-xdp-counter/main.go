@@ -26,7 +26,6 @@ type Stats struct {
 
 const (
 	DefaultConfigPath     = "/etc/bpfd/gocounter.toml"
-	DefaultSocketPath     = "/var/lib/bpfd/sock/gocounter.sock"
 	DefaultMapDir         = "/run/bpfd/fs/maps"
 	DefaultByteCodeFile   = "bpf_bpfel.o"
 	BpfProgramConfigName  = "go-xdp-counter-example"
