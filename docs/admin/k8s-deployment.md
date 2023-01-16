@@ -1,6 +1,6 @@
 # How to Deploy bpfd on Kubernetes
 
-One of the key use cases for bpfd is to support the deployment of bpf programs
+One of the key use cases for bpfd is to support the deployment of BPF programs
 in kubernetes clusters.  The simplest way to do this is to use the
 bpfd-operator.  In this document, we provide an overview of using the
 bpfd-operator as well as the manual steps required to use bpfd with kubernetes,
@@ -78,6 +78,17 @@ To push and test out any local changes simply run:
 make kind-reload-images
 ```
 
+To tear down the kind cluster, run:
+```bash
+kind delete cluster -n bpfd-deployment
+```
+
+The default name of the created cluster is bpfd-deployment.
+To retrieve all the created kind clusters, use 
+```bash
+kind get clusters
+```
+
 ### Deploy To Openshift Cluster
 
 First install cert-manager (if not already deployed) to the cluster with:
@@ -149,7 +160,7 @@ bpfd-operator-685db895b7-9qqrs   2/2     Running   0          75m
 
 To test the deployment, load one or both of the example programs.
 
-> **_NOTE:_**  The example `BpfProgramConfig` crds assume that the programs will
+> **_NOTE:_**  The example `BpfProgramConfig` CRDs assume that the programs will
 > be run on `eth0`, which is the default for the kind deployment.  If you need
 > to run the programs on a different interface, modify `interface` in the
 > associated file:
@@ -157,12 +168,6 @@ To test the deployment, load one or both of the example programs.
 >- `examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml`,
 >  or
 >- `examples/go-tc-counter/kubernetes-deployment/go-tc-counter-bytecode.yaml`
-
-Create the program viewer role:
-
-```bash
-kubectl create -f bpfd-operator/config/rbac/ebpfprogram_viewer_role.yaml
-```
 
 Load the example xdp kernel and user space programs:
 
@@ -259,9 +264,9 @@ kubectl logs -n go-xdp-counter go-xdp-counter-ds-6px5b
 
 ### BpfProgramConfig
 
-The `BpfProgramConfig` crd is the bpfd K8s API object most relevant to users and
-can be used to understand clusterwide state for an ebpf program. It's designed
-to express how, and where bpf programs are to be deployed within a kubernetes
+The `BpfProgramConfig` CRD is the bpfd K8s API object most relevant to users and
+can be used to understand clusterwide state for a BPF program. It's designed
+to express how, and where BPF programs are to be deployed within a kubernetes
 cluster.  An example BpfProgramConfig which loads a basic `xdp-pass` program to
 all nodes can be seen below:
 
@@ -290,10 +295,10 @@ spec:
 
 ### BpfProgram
 
-The `BpfProgram` crd is used internally by the bpfd-deployment to keep track of
+The `BpfProgram` CRD is used internally by the bpfd-deployment to keep track of
 per node bpfd state such as program UUIDs and map pin points, and to report node
 specific errors back to the user. K8s users/controllers are only allowed to view
-these objects, NOT create or edit them.  Below is an example ebpfProgram Object
+these objects, NOT create or edit them.  Below is an example BpfProgram Object
 which was automatically generated in response to the above BpfProgramConfig
 Object.
 
@@ -326,15 +331,15 @@ apiVersion: bpfd.io/v1alpha1
   status:
     conditions:
     - lastTransitionTime: "2022-12-07T22:41:30Z"
-      message: Successfully loaded ebpfProgram
+      message: Successfully loaded BpfProgram
       reason: bpfdLoaded
       status: "True"
       type: Loaded
 ```
 
-Applications wishing to use bpfd to deploy/manage their bpf programs in
+Applications wishing to use bpfd to deploy/manage their BPF programs in
 kubernetes will make use of this object to find references to the bpfMap pin
-points (`spec.maps`) in order to configure their bpf programs.
+points (`spec.maps`) in order to configure their BPF programs.
 
 ## Controllers
 
@@ -361,37 +366,45 @@ The bpfd-operator performs the following functionality:
 
 1. Install Instances of Custom Resources:
 
-```sh
+```bash
 kubectl apply -f config/samples/
 ```
 
 2. Build and push your bpfd-agent and bpd-operator container images to the
    location specified by `BPFD_AGENT_IMG` and `BPFD_OPERATOR_IMG`:
 
-```sh
+```bash
 make build-images push-images BPFD_OPERATOR_IMG=<some-registry>/bpfd-operator:tag BPFD_AGENT_IMAGE=<some-registry>/bpfd-agent:tag
 ```
 
 3. Deploy the operator and agent to a cluster with the image specified by
    `BPFD_AGENT_IMG` and `BPFD_OPERATOR_IMG`:
 
-```sh
+```bash
 make deploy BPFD_OPERATOR_IMG=<some-registry>/bpfd-operator:tag BPFD_AGENT_IMAGE=<some-registry>/bpfd-agent:tag
 ```
 
-## Uninstall CRDs
+## Reinstall CRDs
 
 To delete the CRDs from the cluster:
 
-```sh
+```bash
 make uninstall
+```
+
+## Deploy controller
+
+Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config:
+
+```bash
+make deploy
 ```
 
 ## Undeploy controller
 
-UnDeploy the controller to the cluster:
+Undeploy the controller from a vanilla K8s Deployment cluster:
 
-```sh
+```bash
 make undeploy
 ```
 
@@ -399,6 +412,6 @@ make undeploy
 
 If you are editing the API definitions, generate the manifests such as CRs or CRDs using:
 
-```sh
+```bash
 make manifests
 ```
