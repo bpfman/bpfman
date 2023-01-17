@@ -111,7 +111,7 @@ connection to `bpfd`.
 The diagram below shows `go-xdp-counter` example, but the `go-tc-counter` example
 operates exactly the same way.
 
-![go-xdp-counter On Host](../img/gocounter-on-host.png)
+![go-xdp-counter On Host](./img/gocounter-on-host.png)
 
 Following the diagram (Purple numbers):
 1. When `go-xdp-counter` userspace is started, it will send a gRPC request
@@ -382,7 +382,7 @@ program.
 The approach is slightly different when running on a Kubernetes cluster.
 The BPF bytecode should be loaded by an administrator, not the userspace program itself.
 
-![gocounter On Kubernetes](../img/gocounter-on-k8s.png)
+![gocounter On Kubernetes](./img/gocounter-on-k8s.png)
 
 ### Loading BPF Bytecode On Kubernetes
 

@@ -49,15 +49,15 @@ markdown_extensions:
 nav:
   - Home:
     - index.md
-  - Admin Guide:
-    - admin/index.md
-    - Tutorial: admin/tutorial.md
-    - Configuration: admin/configuration.md
-  - Developer Guide:
-    - developer/index.md
-    - Example BPF Programs: developer/example-bpf.md
+    - Tutorial: tutorial.md
+    - Configuration: configuration.md
+    - Example BPF Programs: example-bpf.md
+    - Deploying on Kubernetes: k8s-deployment.md
+    - BPFD Container Images: image-build.md
+    - Linux Capabilities: linux-capabilities.md
+    - EBPF Bytecode Image Specifications: shipping-bytecode.md
 
 plugins:
   - search
 
-copyright: Copyright &copy; 2021-2022 The bpfd contribtutors
+copyright: Copyright &copy; 2021-2023 The bpfd contribtutors
