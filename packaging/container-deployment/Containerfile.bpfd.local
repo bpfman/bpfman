@@ -1,6 +1,6 @@
 ## This Containerfile makes use of docker's Buildkit to cache crates between 
 ## builds, dramatically speeding up the local development process.
-FROM rust:1.63.0-bullseye as bpfd-build
+FROM rust:1-slim as bpfd-build
 
 RUN git clone https://github.com/libbpf/libbpf --branch v0.8.0 /usr/src/bpfd/libbpf
 
