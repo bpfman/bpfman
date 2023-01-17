@@ -1,14 +1,14 @@
 # How to Deploy bpfd on Kubernetes
 
 One of the key use cases for bpfd is to support the deployment of BPF programs
-in kubernetes clusters.  The simplest way to do this is to use the
+in Kubernetes clusters.  The simplest way to do this is to use the
 bpfd-operator.  In this document, we provide an overview of using the
-bpfd-operator as well as the manual steps required to use bpfd with kubernetes,
+bpfd-operator as well as the manual steps required to use bpfd with Kubernetes,
 in general, and OpenShift, in particular.
 
 ## bpfd-operator Overview
 
-The Bpfd-Operator can be used to deploy and manage bpfd within a kubernetes cluster.
+The Bpfd-Operator can be used to deploy and manage bpfd within a Kubernetes cluster.
 
 ![bpfd on K8s](./bpfd-on-k8s.jpg)
 
@@ -54,7 +54,7 @@ understanding some of the functionality can be to cd into the
 #### Deploy locally via KIND
 
 After reviewing the possible make targets it's quick and easy to get bpfd
-deployed locally on your system via a [KIND cluster](https://kind.sigs.k8s.io/).
+deployed locally on your system via a [KIND cluster](https://kind.sigs.k8s.io/)
 with:
 
 ```bash
@@ -83,7 +83,7 @@ To tear down the kind cluster, run:
 kind delete cluster -n bpfd-deployment
 ```
 
-The default name of the created cluster is bpfd-deployment.
+The default name of the created cluster is `bpfd-deployment`.
 To retrieve all the created kind clusters, use 
 ```bash
 kind get clusters
@@ -266,7 +266,7 @@ kubectl logs -n go-xdp-counter go-xdp-counter-ds-6px5b
 
 The `BpfProgramConfig` CRD is the bpfd K8s API object most relevant to users and
 can be used to understand clusterwide state for a BPF program. It's designed
-to express how, and where BPF programs are to be deployed within a kubernetes
+to express how, and where BPF programs are to be deployed within a Kubernetes
 cluster.  An example BpfProgramConfig which loads a basic `xdp-pass` program to
 all nodes can be seen below:
 
@@ -338,7 +338,7 @@ apiVersion: bpfd.io/v1alpha1
 ```
 
 Applications wishing to use bpfd to deploy/manage their BPF programs in
-kubernetes will make use of this object to find references to the bpfMap pin
+Kubernetes will make use of this object to find references to the bpfMap pin
 points (`spec.maps`) in order to configure their BPF programs.
 
 ## Controllers
