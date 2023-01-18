@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/kong/kubernetes-testing-framework/pkg/clusters"
 	"github.com/kong/kubernetes-testing-framework/pkg/clusters/addons/loadimage"
 	"github.com/kong/kubernetes-testing-framework/pkg/clusters/addons/certmanager"
@@ -27,8 +28,9 @@ var (
 	env    environments.Environment
 
 	bpfdImage = os.Getenv("BPFD_IMG")
-	bpfdAgentImage    = os.Getenv("BPFD_AGENT_IMG")
-	bpfdOperatorImage    = os.Getenv("BPFD_OPERATOR_IMG")
+	bpfdAgentImage  = os.Getenv("BPFD_AGENT_IMG")
+	bpfdOperatorImage  = os.Getenv("BPFD_OPERATOR_IMG")
+	certmanagerVersionStr = os.Getenv("CERTMANAGER_VERSION")
 
 	existingCluster      = os.Getenv("USE_EXISTING_KIND_CLUSTER")
 	keepTestCluster      = func() bool { return os.Getenv("TEST_KEEP_CLUSTER") == "true" || existingCluster != "" }()
@@ -73,9 +75,17 @@ func TestMain(m *testing.M) {
 		loadImages, err = loadImages.WithImage(bpfdOperatorImage)
 		exitOnErr(err)
 
+		certManagerBuilder := certmanager.NewBuilder()
+
+		if len(certmanagerVersionStr) != 0 { 
+			fmt.Printf("INFO: a specific version of certmanager was requested: %s\n", certmanagerVersionStr)
+			certmanagerVersion, err := semver.ParseTolerant(certmanagerVersionStr)
+			exitOnErr(err)
+			certManagerBuilder.WithVersion(certmanagerVersion)
+		}
 
 		// create the testing environment and cluster
-		env, err = environments.NewBuilder().WithAddons(certmanager.New(),loadImages.Build()).Build(ctx)
+		env, err = environments.NewBuilder().WithAddons(certManagerBuilder.Build(),loadImages.Build()).Build(ctx)
 		exitOnErr(err)
 
 		if !keepTestCluster {
