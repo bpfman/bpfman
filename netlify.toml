@@ -1,0 +1,13 @@
+[build]
+publish = "site"
+command = """
+pip3 install -r requirements.txt &&
+mkdocs build -d site
+"""
+
+[context.staging]
+  command = """
+  pip3 install -r requirements.txt &&
+  mkdocs build -d site
+  echo "X-Robots-Tag: noindex" > site/_headers
+  """

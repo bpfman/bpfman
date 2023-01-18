@@ -1,7 +1,7 @@
 Configuration
 =============
 
-## bpfd
+## bpfd FAKE
 
 bpfd looks for a configuration file to be present at `/etc/bpfd/bpfd.toml`.
 If no file is found, defaults are assumed.
