@@ -7,7 +7,7 @@ See [capabilities man-page](https://man7.org/linux/man-pages/man7/capabilities.7
 
 When `bpfd` is run as a systemd service, the set of linux capabilities are restricted to only the
 required set of capabilities via the `bpfd.service` file using the `AmbientCapabilities` and
-`CapabilityBoundingSet` fields (see [bpfd.service](../scripts/bpfd.service)).
+`CapabilityBoundingSet` fields (see [bpfd.service](https://github.com/redhat-et/bpfd/tree/main/scripts/bpfd.service)).
 All spawned threads are stripped of all capabilities, removing all sudo privileges
 (see `drop_linux_capabilities()` usage), leaving only the main thread with only the needed set of capabilities.
 

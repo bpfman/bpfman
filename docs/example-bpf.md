@@ -396,12 +396,12 @@ This assumes there is already a Kubernetes cluster running and `bpfd` is running
 Instead of using the userspace program or `bpfctl` to load the BPF bytecode as done above, the bytecode
 will be loaded by creating a `BpfProgramConfig` kubernetes object.
 Edit the
-[go-xdp-counter-bytecode.yaml](../examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml)
+[go-xdp-counter-bytecode.yaml](https://github.com/redhat-et/bpfd/tree/main/examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml)
 file to customize, primarily setting the interface.
 Also note that the `BpfProgramConfig` is running the bytecode on all nodes (`nodeselector: {}`).
 This can be change to run on specific nodes, but the DaemonSet yaml for the userspace program, which
 is described below, should have an equivalent change
-(see [go-xdp-counter.yaml](../examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter.yaml)).
+(see [go-xdp-counter.yaml](https://github.com/redhat-et/bpfd/tree/main/examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter.yaml)).
 
 ```console
     vi examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml

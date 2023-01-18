@@ -3,6 +3,7 @@
 bpfd is a system daemon for managing BPF programs.
 
 It currently a work in progress!
+
 ## Why bpfd?
 
 bpfd seeks to solve the following problems:
@@ -25,7 +26,7 @@ bpfd will use the GRPC. This allows for API bindings to be generated in any lang
 We are initially targeting Go and Rust.
 
 In order to allow the attachment of multiple XDP programs to the same interface, we have implemented the
-[libxdp multiprog protocol](https://github.com/xdp-project/xdp-tools/blob/master/lib/libxdp/protocol.org).
+[libxdp multiprog protocol](https://github.com/xdp-project/xdp-tools/tree/master/lib/libxdp/protocol.org).
 Offering this in bpfd allows for XDP applications whose loader was not using libxdp to benefit from this.
 We are also hoping to find a way for applications linked with libxdp to use bpfd instead if it's
 in use in the system.
