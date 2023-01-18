@@ -166,7 +166,7 @@ fn compile_with_clang<P: Clone + AsRef<Path>>(
     let output = cmd.output().context("Failed to execute clang")?;
     if !output.status.success() {
         bail!(
-            "Failed to compile eBPF programs\n \
+            "Failed to compile BPF programs\n \
             stdout=\n \
             {}\n \
             stderr=\n \

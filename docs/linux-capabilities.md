@@ -7,7 +7,7 @@ See [capabilities man-page](https://man7.org/linux/man-pages/man7/capabilities.7
 
 When `bpfd` is run as a systemd service, the set of linux capabilities are restricted to only the
 required set of capabilities via the `bpfd.service` file using the `AmbientCapabilities` and
-`CapabilityBoundingSet` fields (see [bpfd.service](../../scripts/bpfd.service)).
+`CapabilityBoundingSet` fields (see [bpfd.service](../scripts/bpfd.service)).
 All spawned threads are stripped of all capabilities, removing all sudo privileges
 (see `drop_linux_capabilities()` usage), leaving only the main thread with only the needed set of capabilities.
 
@@ -99,25 +99,25 @@ Then dump the capabilities of each thread:
 
 ```shel
 $ grep Cap /proc/75550/status
-CapInh:	000000c001201106
-CapPrm:	000000c001201106
-CapEff:	000000c001201106
-CapBnd:	000000c001201106
-CapAmb:	000000c001201106
+CapInh: 000000c001201106
+CapPrm: 000000c001201106
+CapEff: 000000c001201106
+CapBnd: 000000c001201106
+CapAmb: 000000c001201106
 
 $ grep Cap /proc/75551/status
-CapInh:	0000000000000000
-CapPrm:	0000000000000000
-CapEff:	0000000000000000
-CapBnd:	0000000000000000
-CapAmb:	0000000000000000
+CapInh: 0000000000000000
+CapPrm: 0000000000000000
+CapEff: 0000000000000000
+CapBnd: 0000000000000000
+CapAmb: 0000000000000000
 
 $ grep Cap /proc/75552/status
-CapInh:	0000000000000000
-CapPrm:	0000000000000000
-CapEff:	0000000000000000
-CapBnd:	0000000000000000
-CapAmb:	0000000000000000
+CapInh: 0000000000000000
+CapPrm: 0000000000000000
+CapEff: 0000000000000000
+CapBnd: 0000000000000000
+CapAmb: 0000000000000000
 
 :
 

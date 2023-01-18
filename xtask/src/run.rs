@@ -49,7 +49,7 @@ pub fn run(opts: Options) -> Result<(), anyhow::Error> {
         compile_rust_ebpf: opts.compile_rust_ebpf,
         libbpf_dir: PathBuf::from(&opts.libbpf_dir),
     })
-    .context("Error while building eBPF program")?;
+    .context("Error while building BPF program")?;
     build(&opts).context("Error while building userspace application")?;
 
     // profile we are building (release or debug)

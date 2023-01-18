@@ -43,8 +43,8 @@ For more details on how logging is handled in bpfd, see [Logging](#logging) belo
 sudo RUST_LOG=info ./target/debug/bpfd
 ```
 
-
 Later, once familiar with bpfd, optionally run in the background instead:
+
 ```console
 sudo ./target/debug/bpfd&
 ```
@@ -74,7 +74,6 @@ sudo ./target/debug/bpfctl list
 
 From the output above you can see the program was loaded to slot 0 on our interface and will be executed first.
 
-
 ### Step 5: Loading more programs
 
 We will now load 2 more programs with different priorities to demonstrate how bpfd will ensure they are ordered correctly:
@@ -91,7 +90,6 @@ sudo ./target/debug/bpfctl load --path /usr/local/src/xdp-tutorial/basic01-xdp-p
 
 Using `bpfctl list` we can see that the programs are correctly ordered.
 The lowest priority program is executed first, while the highest is executed last.
-
 
 ```console
 sudo ./target/debug/bpfctl list
@@ -163,7 +161,7 @@ To run `bpfd` as a systemd service, the binaries will be placed in a well known 
 (`/usr/sbin/.`) and a service configuration file will be added
 (`/usr/lib/systemd/system/bpfd.service`).
 When run as a systemd service, the set of linux capabilities are limited to only the needed set.
-If permission errors are encountered, see [linux-capabilities.md](../developer/linux-capabilities.md)
+If permission errors are encountered, see [linux-capabilities.md](./linux-capabilities.md)
 for help debugging.
 
 ### Step 0-1
@@ -181,6 +179,7 @@ sudo ./scripts/setup.sh install
 ```
 
 Then add usergroup `bpfd` to desired user if not already run and logout/login to apply:
+
 ```console
 sudo usermod -a -G bpfd $USER
 exit
@@ -358,6 +357,7 @@ bpfctl list
 By default, only `error` messages are logged, but that can be overwritten by setting
 the `RUST_LOG` environment variable.
 Valid values:
+
 * `error`
 * `warn`
 * `info`
