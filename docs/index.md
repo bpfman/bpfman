@@ -1,6 +1,6 @@
 # Welcome to bpfd
 
-bpfd is a system daemon for managing eBPF programs.
+bpfd is a system daemon for managing BPF programs.
 
 It currently a work in progress!
 ## Why bpfd?
@@ -8,13 +8,13 @@ It currently a work in progress!
 bpfd seeks to solve the following problems:
 
 - To allow multiple XDP programs to share the same interface
-- To give administrators control over who can load programs and to allow them to define rules for ordering of networking eBPF programs
+- To give administrators control over who can load programs and to allow them to define rules for ordering of networking BPF programs
 - To allow programs to be loaded automatically at system launch time
-- To simplify the packaging and loading of eBPF-based infrastructure software (i.e Kubernetes CNI plugins)
+- To simplify the packaging and loading of BPF-based infrastructure software (i.e Kubernetes CNI plugins)
 
 ## How does it work?
 
-bpfd is built using [Aya](https://aya-rs.dev) an eBPF library written in Rust.
+bpfd is built using [Aya](https://aya-rs.dev) an BPF library written in Rust.
 It offers two ways of interaction:
 
 - `bpfctl`: a command line tool

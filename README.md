@@ -1,18 +1,18 @@
 # ![bpfd](./docs/img/bpfd.svg)
 
-A system daemon for managing eBPF programs.
+A system daemon for managing BPF programs.
 ## Why bpfd?
 
 bpfd seeks to solve the following problems:
 
 - To allow multiple XDP programs to share the same interface
-- To give administrators control over who can load programs and to allow them to define rules for ordering of networking eBPF programs
+- To give administrators control over who can load programs and to allow them to define rules for ordering of networking BPF programs
 - To allow programs to be loaded automatically at system launch time
-- To simplify the packaging and loading of eBPF-based infrastructure software (i.e Kubernetes CNI plugins)
+- To simplify the packaging and loading of BPF-based infrastructure software (i.e Kubernetes CNI plugins)
 
 ## How does it work?
 
-bpfd is built using [Aya](https://aya-rs.dev) an eBPF library written in Rust.
+bpfd is built using [Aya](https://aya-rs.dev) an BPF library written in Rust.
 It offers two ways of interaction:
 
 - `bpfctl`: a command line tool
@@ -98,7 +98,7 @@ To just test with the latest bpfd, containerized image are stored in `quay.io/bp
 [image-build.md](docs/developer/image-build.md)). To build with local changes, use the following commands.
 
 
-If you are building bpfd for the first time OR the ebpf code has changed:
+If you are building bpfd for the first time OR the BPF code has changed:
 ```console
 $ cargo xtask build-ebpf --libbpf-dir /path/to/libbpf
 ```
@@ -140,7 +140,7 @@ Rust code in all other crates is distributed under the terms of either the [MIT 
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this crate by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
 
-The `bpfd` crate also contains eBPF code that is distributed under the terms of the [GNU General Public License, Version 2] or the [BSD 2 Clause] license, at your option. It is packaged, in object form, inside the `bpfd` binary.
+The `bpfd` crate also contains BPF code that is distributed under the terms of the [GNU General Public License, Version 2] or the [BSD 2 Clause] license, at your option. It is packaged, in object form, inside the `bpfd` binary.
 
 [MIT license]: LICENSE-MIT
 [Apache license]: LICENSE-APACHE
