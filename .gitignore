@@ -20,3 +20,4 @@ certs
 .vscode/launch.json
 .vagrant
 tests/_tmp
+.history

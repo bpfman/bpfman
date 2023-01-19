@@ -26,7 +26,7 @@ as container images.
 The container images following this variant must contain exactly one layer who's
 media type is one of the following:
 
-- `application/vnd.oci.image.layer.v1.tar+gzip` or the [compliant](https://github.com/opencontainers/image-spec/blob/main/media-types.md#applicationvndociimagelayerv1targzip) `application/vnd.docker.image.rootfs.diff.tar.gzip`
+- `application/vnd.oci.image.layer.v1.tar+gzip` or the [compliant](https://github.com/opencontainers/image-spec/tree/main/media-types.md#applicationvndociimagelayerv1targzip) `application/vnd.docker.image.rootfs.diff.tar.gzip`
 
 Additionally the image layer must contain a valid EBPF object file (generally containing
 a `.o` extension) placed at the root of the layer `./`.
@@ -66,8 +66,8 @@ docker build \
  -f packaging/container-deployment/Containerfile.bytecode \
  /home/<USER>/bytecode -t quay.io/<USER>/xdp_pass:latest
 ```
-Where `/home/<USER>/bytecode` is the directory the bytecode object file is located.
 
+Where `/home/<USER>/bytecode` is the directory the bytecode object file is located.
 
 Users can also use `skopeo` to ensure the image follows the
 backwards compatible version of the spec:

@@ -10,7 +10,7 @@ in general, and OpenShift, in particular.
 
 The Bpfd-Operator can be used to deploy and manage bpfd within a Kubernetes cluster.
 
-![bpfd on K8s](./bpfd-on-k8s.jpg)
+![bpfd on K8s](./img/bpfd-on-k8s.jpg)
 
 The [bpfd-operator
 repository](https://github.com/redhat-et/bpfd/tree/main/bpfd-operator) houses
