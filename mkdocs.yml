@@ -51,9 +51,9 @@ nav:
     - index.md
     - Tutorial: tutorial.md
     - Configuration: configuration.md
-    - Building bpfd: building-bpfd.md
+    - Setup and Building bpfd: building-bpfd.md
     - Example BPF Programs: example-bpf.md
-    - Deploying on Kubernetes: k8s-deployment.md
+    - How to Deploy bpfd on Kubernetes: k8s-deployment.md
     - BPFD Container Images: image-build.md
     - Linux Capabilities: linux-capabilities.md
     - EBPF Bytecode Image Specifications: shipping-bytecode.md
