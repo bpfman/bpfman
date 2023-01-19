@@ -2,7 +2,7 @@
 
 bpfd is a system daemon for managing BPF programs.
 
-It currently a work in progress!
+It is currently a work in progress!
 
 ## Why bpfd?
 
