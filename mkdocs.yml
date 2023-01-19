@@ -51,6 +51,7 @@ nav:
     - index.md
     - Tutorial: tutorial.md
     - Configuration: configuration.md
+    - Building bpfd: building-bpfd.md
     - Example BPF Programs: example-bpf.md
     - Deploying on Kubernetes: k8s-deployment.md
     - BPFD Container Images: image-build.md
