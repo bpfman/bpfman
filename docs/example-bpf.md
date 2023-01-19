@@ -28,25 +28,6 @@ The XDP and TC programs are very similar in functionality, and only vary where i
 they are inserted.
 Read more about XDP and TC programs [here](https://docs.cilium.io/en/latest/bpf/progtypes/).
 
-## Table of Contents
-
-- [Deploying Locally](#deploying-locally)
-  - [Building](#building)
-    - [Prerequisites](#prerequisites)
-    - [Building Locally](#building-locally)
-  - [Running On Host](#running-on-host)
-    - [Running Privileged](#running-privileged)
-    - [Running Unprivileged](#running-unprivileged)
-  - [Passing BPF Bytecode In A Container Image](#passing-bpf-bytecode-in-a-container-image)
-    - [Building BPF Bytecode Container Image](#building-bpf-bytecode-container-image)
-    - [Preloading BPF Bytecode](#preloading-bpf-bytecode)
-- [Deploying On Kubernetes](#deploying-on-kubernetes)
-  - [Loading BPF Bytecode On Kubernetes](#loading-bpf-bytecode-on-kubernetes)
-  - [Loading Userspace Container On Kubernetes](#loading-userspace-container-on-kubernetes)
-    - [Building A Userspace Container Image](#building-a-userspace-container-image)
-    - [Loading A Userspace Container Image](#loading-a-userspace-container-image)
-- [Notes](#notes)
-
 ## Deploying Locally
 
 This section describes running bpfd and the example bpf programs on a local host.
