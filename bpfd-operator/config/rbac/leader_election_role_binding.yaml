@@ -14,7 +14,6 @@ roleRef:
   kind: Role
   name: leader-election-role
 subjects:
-subjects:
 - kind: ServiceAccount
   name: operator
   namespace: system

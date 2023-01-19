@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/created-by: bpfd-operator
     app.kubernetes.io/part-of: bpfd-operator
     app.kubernetes.io/managed-by: kustomize
-  name: BpfProgramConfig-editor-role
+  name: bpfprogramconfig-editor-role
 rules:
 - apiGroups:
   - bpfd.io

@@ -57,19 +57,27 @@ func init() {
 func main() {
 	var metricsAddr string
 	var probeAddr string
-	var develMode bool
 	var opts zap.Options
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
-	flag.BoolVar(&develMode, "development-mode", true, "Configue bpfd-agent to run in developmentMode")
-	if develMode {
+	flag.Parse()
+
+	// Get the Log level for bpfd deployment where this pod is running
+	logLevel := os.Getenv("GO_LOG")
+	switch logLevel {
+	case "info":
+		opts = zap.Options{
+			Development: false,
+		}
+	case "debug":
 		opts = zap.Options{
 			Development: true,
 		}
+	default:
+		opts = zap.Options{
+			Development: false,
+		}
 	}
-
-	opts.BindFlags(flag.CommandLine)
-	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 

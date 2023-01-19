@@ -37,6 +37,8 @@ import (
 )
 
 const (
+	BpfdNs                 = "bpfd"
+	BpfdOperatorName       = "bpfd-operator"
 	BpfdDsName             = "bpfd-daemon"
 	BpfdConfigName         = "bpfd-config"
 	BpfdDaemonManifestPath = "./config/bpfd-deployment/daemonset.yaml"

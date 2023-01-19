@@ -354,7 +354,7 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 			r.updateStatus(ctx, bpfProgram, BpfProgCondLoaded)
 		} else {
 			// Program exists and bpfProgram K8s Object is up to date
-			r.Logger.Info("Ignoring Object Change nothing to reconcile on node")
+			r.Logger.V(1).Info("Ignoring Object Change nothing to reconcile on node")
 		}
 	}
 
@@ -389,8 +389,10 @@ func (r *BpfProgramReconciler) loadBpfdProgram(ctx context.Context, loadRequest 
 		return false, fmt.Errorf("failed to update bpfProgram programs: %v",
 			err)
 	}
-	return false, nil
 
+	r.updateStatus(ctx, prog, BpfProgCondLoaded)
+
+	return false, nil
 }
 
 func (r *BpfProgramReconciler) unloadBpfdProgram(ctx context.Context, prog *bpfdiov1alpha1.BpfProgram) (bool, error) {

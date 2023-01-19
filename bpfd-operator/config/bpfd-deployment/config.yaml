@@ -8,7 +8,7 @@ data:
   bpfd.namespace: bpfd
   bpfd.agent.image: quay.io/bpfd/bpfd-agent:main
   bpfd.image: quay.io/bpfd/bpfd:main
-  bpfd.log.level: "debug"
+  bpfd.log.level: "info"
   ## Must be configured at startup
   bpfd.toml: |
     [tls] # REQUIRED

@@ -1,0 +1,9 @@
+## Activate debug logging for bpfd-daemon
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config
+  namespace: kube-system
+data:
+  ## Can be configured at runtime
+  bpfd.log.level: debug
