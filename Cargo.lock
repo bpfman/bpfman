@@ -1449,9 +1449,9 @@ dependencies = [
 
 [[package]]
 name = "pem"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03c64931a1a212348ec4f3b4362585eca7159d0d09cbdf4a7f74f02173596fd4"
+checksum = "a8835c273a76a90455d7344889b0964598e3316e2a79ede8e36f16bdcf2228b8"
 dependencies = [
  "base64",
 ]
@@ -1951,9 +1951,9 @@ dependencies = [
 
 [[package]]
 name = "signature"
-version = "1.6.4"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74233d3b3b2f6d4b006dc19dee745e73e2a6bfb6f93607cd3b02bd5b00797d7c"
+checksum = "8fe458c98333f9c8152221191a77e2a44e8325d0193484af2e9421a53019e57d"
 
 [[package]]
 name = "slab"
@@ -2757,9 +2757,9 @@ dependencies = [
 
 [[package]]
 name = "x509-certificate"
-version = "0.17.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9265d77682c80a848c9311214f2e42c3d07ac016d3fb70782bd082afaad15d20"
+checksum = "b6ae06cd45e681e1ae216e2e668e30ce1c4f02db026374bde8c0644684af1721"
 dependencies = [
  "bcder",
  "bytes",
