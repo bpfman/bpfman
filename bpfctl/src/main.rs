@@ -69,12 +69,6 @@ enum LoadCommands {
         /// Required: Priority to run program in chain. Lower value runs first.
         #[clap(long)]
         priority: i32,
-        /// Optional: Proceed to call other programs in chain on this exit code.
-        /// Multiple values supported by repeating the parameter.
-        /// Possible values: [aborted, drop, pass, tx, redirect, dispatcher_return]
-        /// Default values: pass and dispatcher_return
-        #[clap(long, num_args(1..))]
-        proceed_on: Vec<String>,
     },
     Tracepoint {
         /// Required: The tracepoint to attach to. E.g sched/sched_switch
@@ -146,20 +140,13 @@ async fn main() -> anyhow::Result<()> {
                     direction,
                     iface,
                     priority,
-                    proceed_on,
                 } => {
                     let attach_direction = match direction.as_str() {
                         "ingress" => Direction::Ingress,
                         "egress" => Direction::Egress,
                         other => bail!("{} is not a valid direction", other),
                     };
-                    let mut proc_on = Vec::new();
-                    if !proceed_on.is_empty() {
-                        for i in proceed_on.iter() {
-                            let action = ProceedOn::try_from(i.to_string())?;
-                            proc_on.push(action as i32);
-                        }
-                    }
+                    let proc_on = Vec::new();
                     Some(load_request::AttachType::NetworkMultiAttach(
                         NetworkMultiAttach {
                             priority: *priority,
