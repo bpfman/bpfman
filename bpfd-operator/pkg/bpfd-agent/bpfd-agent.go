@@ -237,19 +237,6 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 
 	isNodeSelected = selector.Matches(nodeLabelSet)
 
-	// TODO(astoycos) This will need to end up being a list of loadRequests
-	// if a given BpfProgramConfig selects more than one attach point
-	// (i.e if we support a pod LabelSelector for interfaces) For now
-	// we only support specifying a single BpfProgramAttachPoint in the API so
-	// there will only be a single loadRequest per BpfProgramConfig Object.
-	loadRequest, err := internal.BuildBpfdLoadRequest(BpfProgramConfig)
-	if err != nil {
-		r.updateStatus(ctx, bpfProgram, BpfProgCondNotLoaded)
-
-		return true, fmt.Errorf("failed to generate bpfd load request: %v",
-			err)
-	}
-
 	r.Logger.V(1).Info("Bpfd Node State Dump", "NodeState", nodeState)
 
 	// Compare the desired state to existing bpfd state
@@ -281,7 +268,7 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 		}
 
 		// otherwise load it
-		return r.loadBpfdProgram(ctx, loadRequest, bpfProgram)
+		return r.loadBpfdProgram(ctx, BpfProgramConfig, bpfProgram)
 	}
 
 	// BpfProgram exists but either BpfProgramConfig is being deleted or node is no
@@ -329,7 +316,7 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 		}
 
 		// Re-create correct version
-		return r.loadBpfdProgram(ctx, loadRequest, bpfProgram)
+		return r.loadBpfdProgram(ctx, BpfProgramConfig, bpfProgram)
 	} else {
 		// Program already exists, but bpfProgram K8s Object might not be up to date
 		if _, ok := bpfProgram.Spec.Programs[v.Uuid]; !ok {
@@ -340,7 +327,7 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 			}
 
 			bpfProgram.Spec.Programs[v.Uuid] = bpfdiov1alpha1.BpfProgramMeta{
-				AttachPoint: internal.AttachConversion(loadRequest),
+				AttachPoint: &BpfProgramConfig.Spec.AttachPoint,
 				Maps:        maps,
 			}
 
@@ -361,9 +348,23 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 	return false, nil
 }
 
-func (r *BpfProgramReconciler) loadBpfdProgram(ctx context.Context, loadRequest *gobpfd.LoadRequest, prog *bpfdiov1alpha1.BpfProgram) (bool, error) {
+func (r *BpfProgramReconciler) loadBpfdProgram(ctx context.Context, progConfig *bpfdiov1alpha1.BpfProgramConfig, prog *bpfdiov1alpha1.BpfProgram) (bool, error) {
 	var res *gobpfd.LoadResponse
-	res, err := r.BpfdClient.Load(ctx, loadRequest)
+
+	// TODO(astoycos) This will need to end up being a list of loadRequests
+	// if a given BpfProgramConfig selects more than one attach point
+	// (i.e if we support a pod LabelSelector for interfaces) For now
+	// we only support specifying a single BpfProgramAttachPoint in the API so
+	// there will only be a single loadRequest per BpfProgramConfig Object.
+	loadRequest, err := internal.BuildBpfdLoadRequest(progConfig)
+	if err != nil {
+		r.updateStatus(ctx, prog, BpfProgCondNotLoaded)
+
+		return true, fmt.Errorf("failed to generate bpfd load request: %v",
+			err)
+	}
+
+	res, err = r.BpfdClient.Load(ctx, loadRequest)
 	if err != nil {
 		r.updateStatus(ctx, prog, BpfProgCondNotLoaded)
 
