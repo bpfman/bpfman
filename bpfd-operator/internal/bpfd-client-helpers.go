@@ -114,15 +114,27 @@ func BuildBpfdLoadRequest(bpf_program_config *bpfdiov1alpha1.BpfProgramConfig) (
 		loadRequest.ProgramType = gobpfd.ProgramType_XDP
 
 		if bpf_program_config.Spec.AttachPoint.NetworkMultiAttach != nil {
+			var proc_on []gobpfd.ProceedOn
+			if len(bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.ProceedOn) > 0 {
+				for _, proceedOnStr := range bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.ProceedOn {
+					if action, ok := gobpfd.ProceedOn_value[string(proceedOnStr)]; !ok {
+						return nil, fmt.Errorf("invalid proceedOn value %s for BpfProgramConfig %s",
+							string(proceedOnStr), bpf_program_config.Name)
+					} else {
+						proc_on = append(proc_on, gobpfd.ProceedOn(action))
+					}
+				}
+			}
+
 			loadRequest.AttachType = &gobpfd.LoadRequest_NetworkMultiAttach{
 				NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
 					Priority: int32(bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Priority),
 					Iface:    bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Interface,
+					ProceedOn: proc_on,
 				},
 			}
 		} else {
 			return nil, fmt.Errorf("invalid attach type for program type: XDP")
-
 		}
 
 	case "TC":
