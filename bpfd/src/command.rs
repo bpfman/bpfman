@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 use crate::{
     errors::BpfdError,
-    multiprog::{DispatcherId, DispatcherInfo, XDP_DISPATCHER_RET, XDP_PASS},
+    multiprog::{DispatcherId, DispatcherInfo, TC_ACT_PIPE, XDP_DISPATCHER_RET, XDP_PASS},
     pull_bytecode::pull_bytecode,
 };
 
@@ -280,10 +280,8 @@ impl ProceedOn {
         ProceedOn(vec![XDP_PASS, XDP_DISPATCHER_RET])
     }
 
-    // Default this to an actual when it's actually supported
-    // in the TC dispatcher.
     pub fn default_tc() -> Self {
-        ProceedOn(vec![])
+        ProceedOn(vec![TC_ACT_PIPE])
     }
 
     pub(crate) fn mask(&self) -> u32 {
