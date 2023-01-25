@@ -119,13 +119,13 @@ impl Loader for BpfdLoader {
                     Ok(Response::new(reply))
                 }
                 Err(e) => {
-                    warn!("BPFD load error: {}", e);
+                    warn!("BPFD load error: {:#?}", e);
                     Err(Status::aborted(format!("{e}")))
                 }
             },
 
             Err(e) => {
-                warn!("RPC load error: {}", e);
+                warn!("RPC load error: {:#?}", e);
                 Err(Status::aborted(format!("{e}")))
             }
         }
