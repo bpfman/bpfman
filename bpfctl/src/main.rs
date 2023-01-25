@@ -71,8 +71,7 @@ enum LoadCommands {
         priority: i32,
         /// Optional: Proceed to call other programs in chain on this exit code.
         /// Multiple values supported by repeating the parameter.
-        /// Possible values: [aborted, drop, pass, tx, redirect, dispatcher_return]
-        /// Default values: pass and dispatcher_return
+        /// Not yet supported for TC programs. May have unintended behavior if used.
         #[clap(long, num_args(1..))]
         proceed_on: Vec<String>,
     },

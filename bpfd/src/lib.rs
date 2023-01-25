@@ -145,7 +145,7 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                         match program_type {
                             command::ProgramType::Xdp => proceed_on,
                             command::ProgramType::Tc => {
-                                warn!("proceed-on config not supported yet for TC and my have unintended behavior");
+                                warn!("proceed-on config not supported yet for TC and may have unintended behavior");
                                 proceed_on
                             }
                             _ => proceed_on,
