@@ -114,7 +114,7 @@ $(KUSTOMIZE): $(LOCALBIN)
 	test -s $(LOCALBIN)/kustomize || { curl -Ss $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); }
 
 ## Leave to my own release until https://github.com/alenkacz/cert-manager-verifier/pull/13 merges
-CM_VERIFIER_BINARY ?= https://github.com/astoycos/cert-manager-verifier/releases/download/v$(CM_VERIFIER_VERSION)/cert-manager-verifier_$(CM_VERIFIER_VERSION)_Linux_$(shell arch).tar.gz
+CM_VERIFIER_BINARY ?= https://github.com/astoycos/cert-manager-verifier/releases/download/v$(CM_VERIFIER_VERSION)/cert-manager-verifier_$(CM_VERIFIER_VERSION)_Linux_$(shell go env GOARCH).tar.gz
 .PHONY: cm-verifier
 cm-verifier: $(CM_VERIFIER) ## Download cm-verifier locally if necessary.
 $(CM_VERIFIER): $(LOCALBIN)
