@@ -128,8 +128,8 @@ func BuildBpfdLoadRequest(bpf_program_config *bpfdiov1alpha1.BpfProgramConfig) (
 
 			loadRequest.AttachType = &gobpfd.LoadRequest_NetworkMultiAttach{
 				NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
-					Priority: int32(bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Priority),
-					Iface:    bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Interface,
+					Priority:  int32(bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Priority),
+					Iface:     bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Interface,
 					ProceedOn: proc_on,
 				},
 			}
