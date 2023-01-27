@@ -191,7 +191,7 @@ build: generate fmt vet ## Build bpfd-operator and bpfd-agent binaries.
 # (i.e. docker build --platform linux/arm64 ). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: build-images
-build-images: test ## Build bpfd, bpfd-agent, and bpfd-operator images.
+build-images: ## Build bpfd, bpfd-agent, and bpfd-operator images.
 	docker build -t ${BPFD_OPERATOR_IMG} -f Containerfile.bpfd-operator ../
 	docker build -t ${BPFD_AGENT_IMG} -f Containerfile.bpfd-agent ../
 	DOCKER_BUILDKIT=1 docker build -t ${BPFD_IMG} -f ../packaging/container-deployment/Containerfile.bpfd.local ../
