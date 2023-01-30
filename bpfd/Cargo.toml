@@ -28,7 +28,7 @@ caps = "0.5.4"
 bpfd-common = { version = "0.1.0", path = "../bpfd-common", features=["user"] }
 nix = { version = "0.26", features = [ "socket", "fs", "mount"]}
 serde = { version = "1.0", features = ["derive"] }
-toml = "0.5"
+toml = "0.7"
 x509-certificate = "0.18"
 oci-distribution = {version = "0.9.2", default-features = false, features = ["rustls-tls", "trust-dns"] }
 serde_json = "1.0"
