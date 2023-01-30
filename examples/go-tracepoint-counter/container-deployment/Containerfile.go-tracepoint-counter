@@ -1,0 +1,22 @@
+FROM golang:1.19 as go-tracepoint-counter-build
+
+RUN apt-get update && apt-get install -y \
+ clang \
+ gcc-multilib \
+ libbpf-dev
+
+RUN go install github.com/cilium/ebpf/cmd/bpf2go@master
+
+WORKDIR /usr/src/bpfd/
+COPY ./ /usr/src/bpfd/
+
+WORKDIR /usr/src/bpfd/examples/go-tracepoint-counter
+
+# Compile go-tracepoint-counter
+RUN go build
+
+FROM registry.fedoraproject.org/fedora-minimal:latest
+
+COPY --from=go-tracepoint-counter-build  /usr/src/bpfd/examples/go-tracepoint-counter/go-tracepoint-counter .
+
+ENTRYPOINT ["./go-tracepoint-counter", "--crd"]

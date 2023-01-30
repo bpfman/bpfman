@@ -1,0 +1,79 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: go-tracepoint-counter
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bpfd-app-go-tracepoint-counter
+  namespace: go-tracepoint-counter
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrolebinding
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: go-tracepoint-counter
+    app.kubernetes.io/part-of: go-tracepoint-counter
+    app.kubernetes.io/managed-by: go-tracepoint-counter
+  name: bpfd-app-rolebinding-go-tracepoint-counter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: bpfd-bpfprogram-viewer-role
+subjects:
+- kind: ServiceAccount
+  name: bpfd-app-go-tracepoint-counter
+  namespace: go-tracepoint-counter
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: go-tracepoint-counter-ds
+  namespace: go-tracepoint-counter
+  labels:
+    k8s-app: go-tracepoint-counter
+spec:
+  selector:
+    matchLabels:
+      name: go-tracepoint-counter
+  template:
+    metadata:
+      labels:
+        name: go-tracepoint-counter
+    spec:
+      nodeSelector: {}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: bpfd-app-go-tracepoint-counter
+      tolerations:
+      # these tolerations are to have the daemonset runnable on control plane nodes
+      # remove them if your control plane nodes should not run pods
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: go-tracepoint-counter
+        image: quay.io/bpfd-userspace/go-tracepoint-counter:latest
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true
+        env:
+          - name: NODENAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+        volumeMounts:
+        - name: go-tracepoint-counter-maps
+          mountPath: /run/bpfd/fs/maps
+          readOnly: true
+      volumes:
+      - name: go-tracepoint-counter-maps
+        hostPath:
+          path: /run/bpfd/fs/maps
