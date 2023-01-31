@@ -6,7 +6,7 @@ metadata:
   name: go-tracepoint-counter-example
 spec:
   ## Must correspond to image section name
-  name: stats
+  name: tracepoint_kill_recorder
   type: TRACEPOINT
   # Select all nodes
   nodeselector: {}
