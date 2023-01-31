@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf"
+	bpfdHelpers "github.com/redhat-et/bpfd/bpfd-operator/pkg/helpers"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
-	bpfdAppClient "github.com/redhat-et/bpfd/examples/pkg/bpfd-app-client"
 	configMgmt "github.com/redhat-et/bpfd/examples/pkg/config-mgmt"
 	"google.golang.org/grpc"
 )
@@ -44,10 +44,15 @@ func main() {
 	// or BPFD or otherwise.
 	var mapPath string
 	if paramData.CrdFlag { // get the map path from the API resource if on k8s
-		mapPath, err = bpfdAppClient.GetMapPathDyn(BpfProgramConfigName, BpfProgramMapIndex)
+		c := bpfdHelpers.GetClientOrDie()
+
+		maps, err := bpfdHelpers.GetMaps(c, BpfProgramConfigName, []string{BpfProgramMapIndex})
 		if err != nil {
-			log.Fatalf("error reading BpfProgram CRD: %v\n", err)
+			log.Printf("error getting bpf stats map: %v\n", err)
+			return
 		}
+
+		mapPath = maps[BpfProgramMapIndex]
 	} else { // if not on k8s, find the map path from the system
 
 		// if the bytecode src is not a UUID provided by BPFD, we'll need to
@@ -80,13 +85,18 @@ func main() {
 	// will report on to the stats map.
 	go func() {
 		for {
-			syscall.Kill(os.Getpid(), syscall.SIGUSR1)
+			err := syscall.Kill(os.Getpid(), syscall.SIGUSR1)
+			if err != nil {
+				log.Print("Failed to kill process with SIGUSR1:")
+				log.Print(err)
+				return
+			}
 			time.Sleep(time.Second * 1)
 		}
 	}()
 
 	// retrieve and report on the number of kill -SIGUSR1 calls
-	index := 0
+	index := uint32(0)
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for range ticker.C {
@@ -124,9 +134,11 @@ func loadProgram(paramData *configMgmt.ParameterData) (func(string), error) {
 	// create a request to load the BPF program
 	loadRequest := &gobpfd.LoadRequest{
 		Location:    paramData.BytecodeLocation,
-		SectionName: "stats",
+		SectionName: "tracepoint_kill_recorder",
 		ProgramType: gobpfd.ProgramType_TRACEPOINT,
-		AttachType:  &gobpfd.LoadRequest_SingleAttach{},
+		AttachType: &gobpfd.LoadRequest_SingleAttach{
+			SingleAttach: &gobpfd.SingleAttach{Name: "syscalls/sys_enter_kill"},
+		},
 	}
 
 	// send the load request to BPFD
