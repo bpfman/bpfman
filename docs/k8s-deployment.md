@@ -341,6 +341,63 @@ Applications wishing to use bpfd to deploy/manage their BPF programs in
 Kubernetes will make use of this object to find references to the bpfMap pin
 points (`spec.maps`) in order to configure their BPF programs.
 
+### Helpers
+
+>**Still a work in progress.**
+
+There are two scripts to help retrieve the BpfProgramConfig and BpfProgram objects
+in a summary format.
+The BpfProgramConfig script uses `kubectl` with `-o custom-columns` and the BpfProgram
+script uses `kubectl` with `-o jsonpath`.
+
+Example of summary of BpfProgramConfigs:
+
+```bash
+./bpfd-operator/hack/bpfprogramconfigs.sh
+NAME                     TYPE        SECNAME   STATUS             INTERFACE   PRIORITY   DIRECTION   TRACEPOINT
+go-tc-counter-example    TC          stats     ReconcileSuccess   eth0        55         INGRESS     <none>
+go-xdp-counter-example   XDP         stats     ReconcileSuccess   eth0        55         NONE        <none>
+xdp-pass-all-nodes       XDP         pass      ReconcileSuccess   eth0        60         NONE        <none>
+tracepoint-example       TRACEPOINT  hello     ReconcileSuccess   <none>      <none>     <none>      sched/sched_switch
+```
+
+Example of summary of BpfPrograms:
+
+```bash
+./bpfd-operator/hack/bpfprograms.sh
+
+STATUS  REASON    NAME
+   IFACE  PRI DIR TRACEPOINT
+
+Loaded  bpfdLoaded  go-tc-counter-example-bpfd-deployment-control-plane
+   eth0 55  INGRESS 
+
+Loaded  bpfdLoaded  go-tc-counter-example-bpfd-deployment-worker
+   eth0 55  INGRESS 
+
+Loaded  bpfdLoaded  go-tc-counter-example-bpfd-deployment-worker2
+   eth0 55  INGRESS 
+
+Loaded  bpfdLoaded  go-xdp-counter-example-bpfd-deployment-control-plane
+   eth0 55  NONE  
+
+Loaded  bpfdLoaded  go-xdp-counter-example-bpfd-deployment-worker
+   eth0 55  NONE  
+
+Loaded  bpfdLoaded  go-xdp-counter-example-bpfd-deployment-worker2
+   eth0 55  NONE  
+
+Loaded  bpfdLoaded  xdp-pass-all-nodes-bpfd-deployment-control-plane
+   eth0 60  NONE  
+
+Loaded  bpfdLoaded  xdp-pass-all-nodes-bpfd-deployment-worker
+   eth0 60  NONE  
+
+Loaded  bpfdLoaded  xdp-pass-all-nodes-bpfd-deployment-worker2
+   eth0 60  NONE  
+
+```
+
 ## Controllers
 
 The Bpfd-Operator performs a few major functions and houses two major
