@@ -25,7 +25,7 @@ struct kill_args {
   long sig;
 };
 
-SEC("tracepoint/syscalls/sys_enter_kill")
+SEC("tracepoint/tracepoint_kill_recorder")
 static __u32 tracepoint_kill_recorder(struct kill_args *ctx)
 {
     if (ctx->sig != SIGUSR1)
