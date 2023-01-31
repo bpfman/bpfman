@@ -1,0 +1,2 @@
+kubectl get bpfprograms -o jsonpath='{"\n"}{"STATUS\tREASON\t\tNAME\n   IFACE\tPRI\tDIR\tTRACEPOINT\n\n"}{range .items[*]}{range .status.conditions[-1:]}{.type}{"\t"}{.reason}{end}{"\t"}{.metadata.name}{"\n"}{range .spec.programs.*}{"   "}{.attachpoint.networkmultiattach.interface}{"\t"}{.attachpoint.networkmultiattach.priority}{"\t"}{.attachpoint.networkmultiattach.direction}{"\t"}{.attachpoint.singleattach.name}{end}{"\n"}{"\n"}{end}'
+
