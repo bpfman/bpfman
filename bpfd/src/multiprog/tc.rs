@@ -7,7 +7,7 @@ use aya::{
     include_bytes_aligned,
     programs::{
         links::FdLink,
-        tc::{self, SchedClassifierLink},
+        tc::{self, SchedClassifierLink, TcOptions},
         Extension, Link, PinnedProgram, SchedClassifier, TcAttachType,
     },
     Bpf, BpfLoader,
@@ -139,7 +139,14 @@ impl TcDispatcher {
             if self.current_pri < MAX_TC_DISPATCHER_PRIORITY {
                 self.current_pri = MIN_TC_DISPATCHER_PRIORITY
             }
-            let link_id = new_dispatcher.attach(&iface, attach_type, self.current_pri)?;
+            let link_id = new_dispatcher.attach_with_options(
+                &iface,
+                attach_type,
+                TcOptions {
+                    priority: self.current_pri,
+                    ..Default::default()
+                },
+            )?;
             let link = new_dispatcher.take_link(link_id)?;
             self.link = Some(link);
             // FIXME: TcLinks should detach on drop
@@ -150,7 +157,14 @@ impl TcDispatcher {
         } else {
             // This is the first tc dispatcher on this interface
             self.current_pri = MIN_TC_DISPATCHER_PRIORITY;
-            let link_id = new_dispatcher.attach(&iface, attach_type, MIN_TC_DISPATCHER_PRIORITY)?;
+            let link_id = new_dispatcher.attach_with_options(
+                &iface,
+                attach_type,
+                TcOptions {
+                    priority: MIN_TC_DISPATCHER_PRIORITY,
+                    ..Default::default()
+                },
+            )?;
             let link = new_dispatcher.take_link(link_id)?;
             self.link = Some(link);
         }
