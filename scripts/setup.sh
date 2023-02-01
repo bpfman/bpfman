@@ -20,6 +20,8 @@ BIN_GOCOUNTER="gocounter"
 SRC_BIN_PATH="../target/debug"
 DST_BIN_PATH="/usr/sbin"
 DST_SVC_PATH="/usr/lib/systemd/system"
+SRC_KUBECTL_PLUGIN_PATH="../bpfd-operator/hack"
+DST_KUBECTL_PLUGIN_PATH="/usr/local/bin"
 
 # ConfigurationDirectory: /etc/bpfd/
 CONFIGURATION_DIR="/etc/bpfd"
@@ -52,6 +54,8 @@ usage() {
     echo "sudo ./scripts/setup.sh uninstall"
     echo "    Unwind all actions performed by \"setup.sh install\" including stopping"
     echo "    the \"bpfd\" service if it is running."
+    echo "sudo ./scripts/setup.sh kubectl"
+    echo "    Install kubectl plugins for \"bpfprogramconfigs\" and \"bpfprograms\"."
     echo ""
 }
 
@@ -71,9 +75,13 @@ case "$1" in
     "uninstall")
         uninstall
         user_del
+        del_kubectl_plugin
         ;;
     "gocounter")
         cert_client gocounter ${USER_BPFD} false
+        ;;
+    "kubectl")
+        copy_kubectl_plugin
         ;;
     "help"|"--help"|"?")
         usage

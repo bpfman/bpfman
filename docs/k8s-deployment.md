@@ -341,7 +341,7 @@ Applications wishing to use bpfd to deploy/manage their BPF programs in
 Kubernetes will make use of this object to find references to the bpfMap pin
 points (`spec.maps`) in order to configure their BPF programs.
 
-### Helpers
+### Kubectl Plugins
 
 >**Still a work in progress.**
 
@@ -352,8 +352,8 @@ script uses `kubectl` with `-o jsonpath`.
 
 Example of summary of BpfProgramConfigs:
 
-```bash
-./bpfd-operator/hack/bpfprogramconfigs.sh
+```console
+kubectl bpfprogramconfigs
 NAME                     TYPE        SECNAME   STATUS             INTERFACE   PRIORITY   DIRECTION   TRACEPOINT
 go-tc-counter-example    TC          stats     ReconcileSuccess   eth0        55         INGRESS     <none>
 go-xdp-counter-example   XDP         stats     ReconcileSuccess   eth0        55         NONE        <none>
@@ -363,8 +363,8 @@ tracepoint-example       TRACEPOINT  hello     ReconcileSuccess   <none>      <n
 
 Example of summary of BpfPrograms:
 
-```bash
-./bpfd-operator/hack/bpfprograms.sh
+```console
+kubectl bpfprograms
 
 STATUS  REASON    NAME
    IFACE  PRI DIR TRACEPOINT
@@ -397,6 +397,20 @@ Loaded  bpfdLoaded  xdp-pass-all-nodes-bpfd-deployment-worker2
    eth0 60  NONE  
 
 ```
+
+To install the kubectl plugins, run:
+
+```console
+sudo ./scripts/setup.sh kubectl
+```
+
+The kubectl plugins will be deleted when `uninstall` is run:
+
+```console
+sudo ./scripts/setup.sh uninstall
+```
+> **NOTE:** `./scripts/setup.sh uninstall` removes ALL files installed by `bpfd`,
+including any bpfd binaries and service files.
 
 ## Controllers
 
