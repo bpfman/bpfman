@@ -110,3 +110,25 @@ uninstall() {
     del_bin "${BIN_BPFCTL}"
     del_bin "${BIN_BPFD}"
 }
+
+copy_kubectl_plugin() {
+    echo "Installing kubectl plugins:"
+
+    echo "  Copying \"kubectl-bpfprogramconfigs\""
+    cp "${SRC_KUBECTL_PLUGIN_PATH}/kubectl-bpfprogramconfigs" "${DST_KUBECTL_PLUGIN_PATH}/kubectl-bpfprogramconfigs"
+    chown root:root "${DST_KUBECTL_PLUGIN_PATH}/kubectl-bpfprogramconfigs"
+
+    echo "  Copying \"kubectl-bpfprograms\""
+    cp "${SRC_KUBECTL_PLUGIN_PATH}/kubectl-bpfprograms" "${DST_KUBECTL_PLUGIN_PATH}/kubectl-bpfprograms"
+    chown root:root "${DST_KUBECTL_PLUGIN_PATH}/kubectl-bpfprograms"
+}
+
+del_kubectl_plugin() {
+    echo "Remove kubectl plugins:"
+
+    echo "  Deleting \"kubectl-bpfprogramconfigs\""
+    rm -f "${DST_KUBECTL_PLUGIN_PATH}/kubectl-bpfprogramconfigs"
+
+    echo "  Deleting \"kubectl-bpfprograms\""
+    rm -f "${DST_KUBECTL_PLUGIN_PATH}/kubectl-bpfprograms"
+}
