@@ -91,7 +91,9 @@ impl<'a> BpfManager<'a> {
                     }
                     Tc => {
                         if let Some(dir) = direction {
-                            let dispatcher = TcDispatcher::load(if_index, dir, revision).unwrap();
+                            let mut dispatcher =
+                                TcDispatcher::load(if_index, dir, revision).unwrap();
+                            dispatcher.set_link();
                             self.dispatchers.insert(
                                 DispatcherId::Tc(DispatcherInfo(if_index, direction)),
                                 Dispatcher::Tc(dispatcher),
@@ -99,16 +101,13 @@ impl<'a> BpfManager<'a> {
                         } else {
                             return Err(anyhow!("direction required for tc programs"));
                         }
-                        // Rebuild the dispatcher 3 times to clear out the old dispatcher.
-                        //TODO: Change this when https://github.com/aya-rs/aya/pull/445 is available.
-                        for _ in 0..3 {
-                            self.rebuild_multiattach_dispatcher(
-                                Tc,
-                                if_index,
-                                direction,
-                                DispatcherId::Tc(DispatcherInfo(if_index, direction)),
-                            )?;
-                        }
+
+                        self.rebuild_multiattach_dispatcher(
+                            Tc,
+                            if_index,
+                            direction,
+                            DispatcherId::Tc(DispatcherInfo(if_index, direction)),
+                        )?;
                     }
                     _ => return Err(anyhow!("invalid program type: {}", program_type)),
                 }
@@ -362,6 +361,7 @@ impl<'a> BpfManager<'a> {
             let programs = self.collect_programs(program_type, if_index, direction);
 
             debug!("programs loaded: {}", programs.len());
+
             // The following checks should have been done when the dispatcher was built, but check again to confirm
             if programs.is_empty() {
                 return old.delete(true);
@@ -429,7 +429,7 @@ impl<'a> BpfManager<'a> {
                             priority: p.info.metadata.priority,
                             proceed_on: ProceedOn::default_tc(),
                             direction: Some(p.direction),
-                            position: p.info.current_position.unwrap() as i32,
+                            position: p.info.current_position.unwrap_or_default() as i32,
                         },
                     ),
                 },
