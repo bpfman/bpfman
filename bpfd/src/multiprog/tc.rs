@@ -28,9 +28,8 @@ use crate::{
     errors::BpfdError,
 };
 
-const DEFAULT_PRIORITY: u32 = 50;
-const MIN_TC_DISPATCHER_PRIORITY: u16 = 50;
-const MAX_TC_DISPATCHER_PRIORITY: u16 = 49;
+const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the dispatcher
+const TC_DISPATCHER_PRIORITY: u16 = 50; // Default TC priority for TC Dispatcher
 const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
 pub const TC_ACT_PIPE: i32 = 3;
 
@@ -40,10 +39,11 @@ static DISPATCHER_BYTES: &[u8] =
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TcDispatcher {
     pub(crate) revision: u32,
-    current_pri: u16,
     if_index: u32,
     if_name: String,
     direction: Direction,
+    priority: u16,
+    handle: Option<u32>,
     #[serde(skip)]
     loader: Option<Bpf>,
     #[serde(skip)]
@@ -100,10 +100,11 @@ impl TcDispatcher {
 
         let mut dispatcher = TcDispatcher {
             revision,
-            current_pri: 0,
             if_index: *if_index,
             if_name,
             direction,
+            priority: TC_DISPATCHER_PRIORITY,
+            handle: None,
             loader: Some(loader),
             link: None,
         };
@@ -135,40 +136,26 @@ impl TcDispatcher {
             Direction::Egress => TcAttachType::Egress,
         };
 
+        let link_id = new_dispatcher.attach_with_options(
+            &iface,
+            attach_type,
+            TcOptions {
+                priority: self.priority,
+                ..Default::default()
+            },
+        )?;
+        let link = new_dispatcher.take_link(link_id)?;
+        self.handle = Some(link.handle());
+        self.link = Some(link);
+
         if let Some(Dispatcher::Tc(mut d)) = old_dispatcher {
-            self.current_pri = d.current_pri - 1;
-            if self.current_pri < MAX_TC_DISPATCHER_PRIORITY {
-                self.current_pri = MIN_TC_DISPATCHER_PRIORITY
-            }
-            let link_id = new_dispatcher.attach_with_options(
-                &iface,
-                attach_type,
-                TcOptions {
-                    priority: self.current_pri,
-                    ..Default::default()
-                },
-            )?;
-            let link = new_dispatcher.take_link(link_id)?;
-            self.link = Some(link);
             // FIXME: TcLinks should detach on drop
             if let Some(old_link) = d.link.take() {
                 old_link.detach()?;
             }
             d.delete(false)?;
-        } else {
-            // This is the first tc dispatcher on this interface
-            self.current_pri = MIN_TC_DISPATCHER_PRIORITY;
-            let link_id = new_dispatcher.attach_with_options(
-                &iface,
-                attach_type,
-                TcOptions {
-                    priority: MIN_TC_DISPATCHER_PRIORITY,
-                    ..Default::default()
-                },
-            )?;
-            let link = new_dispatcher.take_link(link_id)?;
-            self.link = Some(link);
         }
+
         Ok(())
     }
 
@@ -300,6 +287,7 @@ impl TcDispatcher {
         }
         Ok(())
     }
+
     pub(crate) fn if_name(&self) -> String {
         self.if_name.clone()
     }
