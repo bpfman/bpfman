@@ -34,9 +34,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/api/v1alpha1"
+	bpfdagent "github.com/redhat-et/bpfd/bpfd-operator/controllers/bpfd-agent"
 	"github.com/redhat-et/bpfd/bpfd-operator/internal"
-	"github.com/redhat-et/bpfd/bpfd-operator/pkg/bpfd-agent"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
+
 	//+kubebuilder:scaffold:imports
 
 	"google.golang.org/grpc"

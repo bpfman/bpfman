@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/api/v1alpha1"
-	"github.com/redhat-et/bpfd/bpfd-operator/pkg/bpfd-operator"
+	bpfdoperator "github.com/redhat-et/bpfd/bpfd-operator/controllers/bpfd-operator"
 	//+kubebuilder:scaffold:imports
 )
 
