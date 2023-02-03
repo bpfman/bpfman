@@ -41,8 +41,8 @@ import (
 
 	"github.com/go-logr/logr"
 	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/api/v1alpha1"
+	bpfdagent "github.com/redhat-et/bpfd/bpfd-operator/controllers/bpfd-agent"
 	"github.com/redhat-et/bpfd/bpfd-operator/internal"
-	bpfdagent "github.com/redhat-et/bpfd/bpfd-operator/pkg/bpfd-agent"
 )
 
 type BpfProgramConfigConditionType string

@@ -16,7 +16,7 @@ RUN cd bpfd-operator && go mod download
 # Copy the go source
 COPY ./bpfd-operator/cmd/bpfd-agent/main.go bpfd-operator/main.go
 COPY ./bpfd-operator/api/ bpfd-operator/api/
-COPY ./bpfd-operator/pkg/ bpfd-operator/pkg/
+COPY ./bpfd-operator/controllers/ bpfd-operator/controllers/
 COPY ./bpfd-operator/internal/ bpfd-operator/internal/
 
 # Copy local version of gobpfd bindings and go work sum so 
