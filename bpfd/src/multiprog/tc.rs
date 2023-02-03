@@ -290,4 +290,21 @@ impl TcDispatcher {
     pub(crate) fn if_name(&self) -> String {
         self.if_name.clone()
     }
+
+    pub(crate) fn set_link(&mut self) {
+        let iface = self.if_name.clone();
+
+        let attach_type = match self.direction {
+            Direction::Ingress => TcAttachType::Ingress,
+            Direction::Egress => TcAttachType::Egress,
+        };
+
+        if let Some(handle) = self.handle {
+            if let Ok(link) =
+                SchedClassifierLink::attached(&iface, attach_type, self.priority, handle)
+            {
+                self.link = Some(link);
+            }
+        };
+    }
 }
