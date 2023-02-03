@@ -1,8 +1,15 @@
 # [![bpfd](./docs/img/bpfd.svg)](https://bpfd.netlify.app/)
 
-A system daemon for managing BPF programs.
+![License][license-badge]
+![Build status][build-badge]
+[![Book][book-badge]][book-url]
 
-Please see the [bpfd website](https://bpfd.netlify.app/) for more information.
+[license-badge]: https://img.shields.io/badge/license-MIT%2FApache--2.0-blue?style=for-the-badge
+[build-badge]: https://img.shields.io/github/actions/workflow/status/redhat-et/bpfd/build.yml?branch=main&style=for-the-badge
+[book-badge]: https://img.shields.io/badge/read%20the-book-9cf.svg?style=for-the-badge&logo=mdbook
+[book-url]: https://bpfd.netlify.app/
+
+A system daemon for managing BPF programs.
 
 ## Why bpfd?
 
