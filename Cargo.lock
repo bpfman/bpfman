@@ -133,7 +133,7 @@ dependencies = [
 [[package]]
 name = "aya"
 version = "0.11.0"
-source = "git+https://github.com/redhat-et/aya?branch=main#ad7ff617dcb2ccfa68a29f645ac719e7fdb7af76"
+source = "git+https://github.com/anfredette/aya?branch=recon#e703cf88d3c533fe79214fda500619211a01f747"
 dependencies = [
  "bitflags",
  "bytes",
