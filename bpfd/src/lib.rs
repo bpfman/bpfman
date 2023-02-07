@@ -21,7 +21,7 @@ use bpfd_api::{
 pub use certs::get_tls_config;
 use command::{AttachType, Command, NetworkMultiAttach, TcProgram, TracepointProgram};
 use errors::BpfdError;
-use log::info;
+use log::{info, warn};
 use rpc::{intercept, BpfdLoader};
 pub use static_program::programs_from_directory;
 use static_program::StaticPrograms;
@@ -141,7 +141,15 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                             _ => proceed_on,
                         }
                     } else {
-                        proceed_on
+                        // FIXME: when proceed-on is supported for TC programs just return: proceed_on
+                        match program_type {
+                            command::ProgramType::Xdp => proceed_on,
+                            command::ProgramType::Tc => {
+                                warn!("proceed-on config not supported yet for TC and may have unintended behavior");
+                                proceed_on
+                            }
+                            _ => proceed_on,
+                        }
                     };
 
                     let prog_data_result =

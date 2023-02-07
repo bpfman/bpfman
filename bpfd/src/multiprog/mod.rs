@@ -6,7 +6,7 @@ mod xdp;
 
 use bpfd_api::config::{InterfaceConfig, XdpMode};
 use log::debug;
-pub use tc::TcDispatcher;
+pub use tc::{TcDispatcher, TC_ACT_PIPE};
 use uuid::Uuid;
 pub use xdp::{XdpDispatcher, XDP_DISPATCHER_RET, XDP_PASS};
 
