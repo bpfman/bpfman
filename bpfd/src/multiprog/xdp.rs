@@ -7,7 +7,7 @@ use aya::{
     include_bytes_aligned,
     programs::{
         links::{FdLink, PinnedLink},
-        Extension, PinnedProgram, Xdp,
+        Extension, Xdp,
     },
     Bpf, BpfLoader,
 };
@@ -155,8 +155,7 @@ impl XdpDispatcher {
         extensions.sort_by(|(_, a), (_, b)| a.info.current_position.cmp(&b.info.current_position));
         for (i, (k, v)) in extensions.iter_mut().enumerate() {
             if v.info.metadata.attached {
-                let mut prog = PinnedProgram::from_pin(format!("{RTDIR_FS}/prog_{k}"))?;
-                let ext: &mut Extension = prog.as_mut().try_into()?;
+                let mut ext = Extension::from_pin(format!("{RTDIR_FS}/prog_{k}"))?;
                 let target_fn = format!("prog{i}");
                 let new_link_id = ext
                     .attach_to_program(dispatcher.fd().unwrap(), &target_fn)

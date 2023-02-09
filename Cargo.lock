@@ -133,8 +133,9 @@ dependencies = [
 [[package]]
 name = "aya"
 version = "0.11.0"
-source = "git+https://github.com/anfredette/aya?branch=recon#e703cf88d3c533fe79214fda500619211a01f747"
+source = "git+https://github.com/aya-rs/aya?branch=main#bb1b39535cdbe38e960d7255d5d2ca3fe74c7ffb"
 dependencies = [
+ "aya-obj",
  "bitflags",
  "bytes",
  "lazy_static",
@@ -142,6 +143,17 @@ dependencies = [
  "log",
  "object",
  "parking_lot",
+ "thiserror",
+]
+
+[[package]]
+name = "aya-obj"
+version = "0.1.0"
+source = "git+https://github.com/aya-rs/aya?branch=main#bb1b39535cdbe38e960d7255d5d2ca3fe74c7ffb"
+dependencies = [
+ "bytes",
+ "log",
+ "object",
  "thiserror",
 ]
 
@@ -1332,9 +1344,9 @@ dependencies = [
 
 [[package]]
 name = "object"
-version = "0.29.0"
+version = "0.30.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "21158b2c33aa6d4561f1c0a6ea283ca92bc54802a93b263e910746d679a7eb53"
+checksum = "ea86265d3d3dcb6a27fc51bd29a4bf387fae9d2986b823079d4986af253eb439"
 dependencies = [
  "memchr",
 ]
