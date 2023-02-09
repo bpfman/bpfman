@@ -8,7 +8,7 @@ use aya::{
     programs::{
         links::FdLink,
         tc::{self, SchedClassifierLink, TcOptions},
-        Extension, Link, PinnedProgram, SchedClassifier, TcAttachType,
+        Extension, Link, SchedClassifier, TcAttachType,
     },
     Bpf, BpfLoader,
 };
@@ -180,8 +180,7 @@ impl TcDispatcher {
 
         for (i, (k, v)) in extensions.iter_mut().enumerate() {
             if v.info.metadata.attached {
-                let mut prog = PinnedProgram::from_pin(format!("{RTDIR_FS}/prog_{k}"))?;
-                let ext: &mut Extension = prog.as_mut().try_into()?;
+                let mut ext = Extension::from_pin(format!("{RTDIR_FS}/prog_{k}"))?;
                 let target_fn = format!("prog{i}");
                 let new_link_id = ext
                     .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
