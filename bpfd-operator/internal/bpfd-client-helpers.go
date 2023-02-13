@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 
 	toml "github.com/pelletier/go-toml"
-	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/api/v1alpha1"
+	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/apis/v1alpha1"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
 	"google.golang.org/grpc/credentials"
 	appsv1 "k8s.io/api/apps/v1"

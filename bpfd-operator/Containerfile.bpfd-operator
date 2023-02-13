@@ -15,7 +15,7 @@ RUN cd bpfd-operator && go mod download
 
 # Copy the go source
 COPY ./bpfd-operator/cmd/bpfd-operator/main.go bpfd-operator/main.go
-COPY ./bpfd-operator/api/ bpfd-operator/api/
+COPY ./bpfd-operator/apis/ bpfd-operator/apis/
 COPY ./bpfd-operator/controllers/ bpfd-operator/controllers/
 COPY ./bpfd-operator/internal/ bpfd-operator/internal/
 COPY ./bpfd-operator/config/bpfd-deployment/daemonset.yaml bpfd-operator/config/bpfd-deployment/daemonset.yaml

@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/api/v1alpha1"
+	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/apis/v1alpha1"
 	bpfdagent "github.com/redhat-et/bpfd/bpfd-operator/controllers/bpfd-agent"
 	"github.com/redhat-et/bpfd/bpfd-operator/internal"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
