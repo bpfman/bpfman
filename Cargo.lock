@@ -133,7 +133,7 @@ dependencies = [
 [[package]]
 name = "aya"
 version = "0.11.0"
-source = "git+https://github.com/aya-rs/aya?branch=main#bb1b39535cdbe38e960d7255d5d2ca3fe74c7ffb"
+source = "git+https://github.com/aya-rs/aya?branch=main#d7d6442671a38098613b1a0accea0c08272d9fc0"
 dependencies = [
  "aya-obj",
  "bitflags",
@@ -149,7 +149,7 @@ dependencies = [
 [[package]]
 name = "aya-obj"
 version = "0.1.0"
-source = "git+https://github.com/aya-rs/aya?branch=main#bb1b39535cdbe38e960d7255d5d2ca3fe74c7ffb"
+source = "git+https://github.com/aya-rs/aya?branch=main#d7d6442671a38098613b1a0accea0c08272d9fc0"
 dependencies = [
  "bytes",
  "log",
