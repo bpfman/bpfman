@@ -22,6 +22,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// +genclient
+// +genclient:nonNamespaced
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Cluster
+
+// BpfProgramConfig is the Schema for the Bpfprogramconfigs API
+type BpfProgramConfig struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec BpfProgramConfigSpec `json:"spec"`
+	// +optional
+	Status BpfProgramConfigStatus `json:"status,omitempty"`
+}
+
 // BpfProgramConfigSpec defines the desired state of BpfProgramConfig
 type BpfProgramConfigSpec struct {
 	// ProgramName specifies the name of the bpf program to be loaded.
@@ -60,28 +76,10 @@ type BpfProgramConfigStatus struct {
 }
 
 //+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
-
-// BpfProgramConfig is the Schema for the Bpfprogramconfigs API
-type BpfProgramConfig struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
-
-	Spec BpfProgramConfigSpec `json:"spec"`
-	// +optional
-	Status BpfProgramConfigStatus `json:"status,omitempty"`
-}
-
-//+kubebuilder:object:root=true
 
 // BpfProgramConfigList contains a list of BpfProgramConfig
 type BpfProgramConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []BpfProgramConfig `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&BpfProgramConfig{}, &BpfProgramConfigList{})
 }

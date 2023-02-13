@@ -22,6 +22,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// +genclient
+// +genclient:nonNamespaced
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
+//+kubebuilder:resource:scope=Cluster
+
+// BpfProgram is the Schema for the Bpfprograms API
+type BpfProgram struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec BpfProgramSpec `json:"spec"`
+	// +optional
+	Status BpfProgramStatus `json:"status,omitempty"`
+}
+
 // BpfProgramSpec defines the desired state of BpfProgram
 type BpfProgramSpec struct {
 	// ProgramMap is is a map with Keys: UUIDs, Values: BpfProgramMeta
@@ -53,28 +69,10 @@ type BpfProgramStatus struct {
 }
 
 //+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:scope=Cluster
-
-// BpfProgram is the Schema for the Bpfprograms API
-type BpfProgram struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata"`
-
-	Spec BpfProgramSpec `json:"spec"`
-	// +optional
-	Status BpfProgramStatus `json:"status,omitempty"`
-}
-
-//+kubebuilder:object:root=true
 
 // BpfProgramList contains a list of BpfProgram
 type BpfProgramList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []BpfProgram `json:"items"`
-}
-
-func init() {
-	SchemeBuilder.Register(&BpfProgram{}, &BpfProgramList{})
 }
