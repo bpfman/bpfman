@@ -149,6 +149,17 @@ endif
 
 ##@ Development
 
+VERIFY_CODEGEN ?= false
+ifeq ($(VERIFY_CODEGEN), true)
+VERIFY_FLAG=--verify-only
+endif
+
+OUTPUT_PKG ?= github.com/redhat-et/bpfd/bpfd-operator/pkg/client
+APIS_PKG ?= github.com/redhat-et/bpfd/bpfd-operator
+CLIENTSET_NAME ?= versioned
+CLIENTSET_PKG_NAME ?= clientset
+COMMON_FLAGS ?= ${VERIFY_FLAG} --go-header-file $(shell pwd)/hack/boilerplate.go.txt
+
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
@@ -157,8 +168,45 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 
 
 .PHONY: generate
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+generate: generate-register generate-deepcopy generate-typed-clients generate-typed-listers generate-typed-informers ## Generate deepcopy, client, lister, and informer code
+
+.PHONY: generate-register
+generate-register:
+	go run k8s.io/code-generator/cmd/register-gen \
+		--input-dirs "${APIS_PKG}/apis/v1alpha1" \
+		--output-package "${APIS_PKG}/apis/" \
+		${COMMON_FLAGS}
+
+.PHONY: generate-deepcopy
+generate-deepcopy: ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+.PHONY: generate-typed-clients
+generate-typed-clients: ## Generate typed client code
+	go run k8s.io/code-generator/cmd/client-gen \
+	--clientset-name "${CLIENTSET_NAME}" \
+	--input-base "" \
+	--input "${APIS_PKG}/apis/v1alpha1" \
+	--output-package "${OUTPUT_PKG}/${CLIENTSET_PKG_NAME}" \
+	${COMMON_FLAGS}
+
+
+.PHONY: generate-typed-listers
+generate-typed-listers: ## Generate typed listers code
+	go run k8s.io/code-generator/cmd/lister-gen \
+	--input-dirs "${APIS_PKG}/apis/v1alpha1" \
+	--output-package "${OUTPUT_PKG}/listers" \
+	${COMMON_FLAGS}
+
+
+.PHONY: generate-typed-informers
+generate-typed-informers: ## Generate typed informers code
+	go run k8s.io/code-generator/cmd/informer-gen \
+	--input-dirs "${APIS_PKG}/apis/v1alpha1" \
+	--versioned-clientset-package "${OUTPUT_PKG}/${CLIENTSET_PKG_NAME}/${CLIENTSET_NAME}" \
+	--listers-package "${OUTPUT_PKG}/listers" \
+	--output-package "${OUTPUT_PKG}/informers" \
+	${COMMON_FLAGS}
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
