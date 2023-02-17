@@ -26,8 +26,6 @@ use crate::{
 
 const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
-pub const XDP_PASS: i32 = 2;
-pub const XDP_DISPATCHER_RET: i32 = 31;
 
 static DISPATCHER_BYTES: &[u8] =
     include_bytes_aligned!("../../../target/bpfel-unknown-none/release/xdp_dispatcher.bpf.o");

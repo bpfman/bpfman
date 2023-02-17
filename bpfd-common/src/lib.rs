@@ -23,14 +23,14 @@ unsafe impl aya::Pod for XdpDispatcherConfig {}
 // TC Defines
 pub const TC_METADATA_SECTION: &str = "tc_metadata";
 pub const TC_DISPATCHER_VERSION: u32 = 1;
-pub const TC_DISPATCHER_RETVAL: u32 = 0; //TC_ACT_OK
+pub const TC_DISPATCHER_RETVAL: u32 = 31;
 pub const TC_MAX_DISPATCHER_ACTIONS: usize = 10;
 
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct TcDispatcherConfig {
     pub num_progs_enabled: u8,
-    pub chain_call_actions: [u32; TC_MAX_DISPATCHER_ACTIONS],
+    pub chain_call_actions: [i32; TC_MAX_DISPATCHER_ACTIONS],
     pub run_prios: [u32; TC_MAX_DISPATCHER_ACTIONS],
 }
 

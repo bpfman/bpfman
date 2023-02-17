@@ -32,7 +32,6 @@ use crate::{
 const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the dispatcher
 const TC_DISPATCHER_PRIORITY: u16 = 50; // Default TC priority for TC Dispatcher
 const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
-pub const TC_ACT_PIPE: i32 = 3;
 
 static DISPATCHER_BYTES: &[u8] =
     include_bytes_aligned!("../../../target/bpfel-unknown-none/release/tc_dispatcher.bpf.o");

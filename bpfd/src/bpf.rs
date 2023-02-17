@@ -8,7 +8,7 @@ use aya::{
     programs::{links::FdLink, trace_point::TracePointLink, TracePoint},
     BpfLoader,
 };
-use bpfd_api::{config::Config, util::directories::*};
+use bpfd_api::{config::Config, util::directories::*, ProgramType, TcProceedOn};
 use log::{debug, info};
 use uuid::Uuid;
 
@@ -16,7 +16,7 @@ use crate::{
     command::{
         Direction,
         Direction::{Egress, Ingress},
-        ProceedOn, Program, ProgramInfo, ProgramType,
+        Program, ProgramInfo,
     },
     errors::BpfdError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
@@ -55,9 +55,9 @@ impl<'a> BpfManager<'a> {
                 self.programs.insert(uuid, program);
             }
         }
-        self.rebuild_dispatcher_state(Xdp, None, RTDIR_XDP_DISPATCHER)?;
-        self.rebuild_dispatcher_state(Tc, Some(Ingress), RTDIR_TC_INGRESS_DISPATCHER)?;
-        self.rebuild_dispatcher_state(Tc, Some(Egress), RTDIR_TC_EGRESS_DISPATCHER)?;
+        self.rebuild_dispatcher_state(ProgramType::Xdp, None, RTDIR_XDP_DISPATCHER)?;
+        self.rebuild_dispatcher_state(ProgramType::Tc, Some(Ingress), RTDIR_TC_INGRESS_DISPATCHER)?;
+        self.rebuild_dispatcher_state(ProgramType::Tc, Some(Egress), RTDIR_TC_EGRESS_DISPATCHER)?;
 
         Ok(())
     }
@@ -68,10 +68,6 @@ impl<'a> BpfManager<'a> {
         direction: Option<Direction>,
         path: &str,
     ) -> Result<(), anyhow::Error> {
-        debug!(
-            "BpfManager::rebuild_dispatcher_state() for program_type {program_type}, direction {:?}",
-            direction
-        );
         if let Ok(dispatcher_dir) = fs::read_dir(path) {
             for entry in dispatcher_dir {
                 let entry = entry?;
@@ -82,18 +78,15 @@ impl<'a> BpfManager<'a> {
                 }
                 let if_index: u32 = parts[0].parse().unwrap();
                 let revision: u32 = parts[1].parse().unwrap();
-                info!(
-                    "rebuilding state for {program_type} (direction: {direction:?}) dispatcher on if_index {if_index}"
-                );
                 match program_type {
-                    Xdp => {
+                    ProgramType::Xdp => {
                         let dispatcher = XdpDispatcher::load(if_index, revision).unwrap();
                         self.dispatchers.insert(
                             DispatcherId::Xdp(DispatcherInfo(if_index, None)),
                             Dispatcher::Xdp(dispatcher),
                         );
                     }
-                    Tc => {
+                    ProgramType::Tc => {
                         if let Some(dir) = direction {
                             let mut dispatcher =
                                 TcDispatcher::load(if_index, dir, revision).unwrap();
@@ -107,13 +100,13 @@ impl<'a> BpfManager<'a> {
                         }
 
                         self.rebuild_multiattach_dispatcher(
-                            Tc,
+                            program_type,
                             if_index,
                             direction,
                             DispatcherId::Tc(DispatcherInfo(if_index, direction)),
                         )?;
                     }
-                    _ => return Err(anyhow!("invalid program type: {}", program_type)),
+                    _ => return Err(anyhow!("invalid program type {:?}", program_type)),
                 }
             }
         }
@@ -224,9 +217,11 @@ impl<'a> BpfManager<'a> {
         debug!("BpfManager::add_single_attach_program()");
         if let Program::Tracepoint(ref program) = p {
             let id = Uuid::new_v4();
-            let parts: Vec<&str> = program.info.split('/').collect();
+            let parts: Vec<&str> = program.info.tracepoint.split('/').collect();
             if parts.len() != 2 {
-                return Err(BpfdError::InvalidAttach(program.info.to_string()));
+                return Err(BpfdError::InvalidAttach(
+                    program.info.tracepoint.to_string(),
+                ));
             }
             let category = parts[0].to_owned();
             let name = parts[1].to_owned();
@@ -444,39 +439,38 @@ impl<'a> BpfManager<'a> {
                 Program::Xdp(p) => ProgramInfo {
                     id: id.to_string(),
                     name: p.data.section_name.to_string(),
-                    location: p.data.location.clone(),
-                    program_type: crate::command::ProgramType::Xdp,
-                    attach_type: crate::command::AttachType::NetworkMultiAttach(
-                        crate::command::NetworkMultiAttach {
-                            iface: p.info.if_name.to_string(),
-                            priority: p.info.metadata.priority,
-                            proceed_on: p.info.proceed_on.clone(),
-                            direction: None,
-                            position: p.info.current_position.unwrap_or_default() as i32,
-                        },
-                    ),
+                    location: p.data.location.to_string(),
+                    program_type: ProgramType::Xdp as i32,
+                    attach_info: crate::command::AttachInfo::Xdp(crate::command::XdpAttachInfo {
+                        iface: p.info.if_name.to_string(),
+                        priority: p.info.metadata.priority,
+                        proceed_on: p.info.proceed_on.clone(),
+                        position: p.info.current_position.unwrap_or_default() as i32,
+                    }),
                 },
                 Program::Tracepoint(p) => ProgramInfo {
                     id: id.to_string(),
                     name: p.data.section_name.to_string(),
-                    location: p.data.location.clone(),
-                    program_type: crate::command::ProgramType::Tracepoint,
-                    attach_type: crate::command::AttachType::SingleAttach(p.info.to_string()),
+                    location: p.data.location.to_string(),
+                    program_type: ProgramType::Tracepoint as i32,
+                    attach_info: crate::command::AttachInfo::Tracepoint(
+                        crate::command::TracepointAttachInfo {
+                            tracepoint: p.info.tracepoint.to_string(),
+                        },
+                    ),
                 },
                 Program::Tc(p) => ProgramInfo {
                     id: id.to_string(),
                     name: p.data.section_name.to_string(),
-                    location: p.data.location.clone(),
-                    program_type: crate::command::ProgramType::Tc,
-                    attach_type: crate::command::AttachType::NetworkMultiAttach(
-                        crate::command::NetworkMultiAttach {
-                            iface: p.info.if_name.to_string(),
-                            priority: p.info.metadata.priority,
-                            proceed_on: ProceedOn::default_tc(),
-                            direction: Some(p.direction),
-                            position: p.info.current_position.unwrap_or_default() as i32,
-                        },
-                    ),
+                    location: p.data.location.to_string(),
+                    program_type: ProgramType::Tc as i32,
+                    attach_info: crate::command::AttachInfo::Tc(crate::command::TcAttachInfo {
+                        iface: p.info.if_name.to_string(),
+                        priority: p.info.metadata.priority,
+                        proceed_on: TcProceedOn::default(),
+                        direction: p.direction,
+                        position: p.info.current_position.unwrap_or_default() as i32,
+                    }),
                 },
             })
             .collect();

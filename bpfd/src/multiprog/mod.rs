@@ -4,14 +4,17 @@
 mod tc;
 mod xdp;
 
-use bpfd_api::config::{InterfaceConfig, XdpMode};
+use bpfd_api::{
+    config::{InterfaceConfig, XdpMode},
+    ProgramType,
+};
 use log::debug;
-pub use tc::{TcDispatcher, TC_ACT_PIPE};
+pub use tc::TcDispatcher;
 use uuid::Uuid;
-pub use xdp::{XdpDispatcher, XDP_DISPATCHER_RET, XDP_PASS};
+pub use xdp::XdpDispatcher;
 
 use crate::{
-    command::{Direction, Program, ProgramType},
+    command::{Direction, Program},
     errors::BpfdError,
 };
 

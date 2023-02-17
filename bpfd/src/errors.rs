@@ -27,6 +27,8 @@ pub enum BpfdError {
     UnableToPinProgram(#[source] aya::pin::PinError),
     #[error("{0} is not a valid program type")]
     InvalidProgramType(String),
+    #[error("Unable to pin link")]
+    UnableToPin,
     #[error("{0} is not a valid attach point for this program")]
     InvalidAttach(String),
     #[error("dispatcher is not loaded")]

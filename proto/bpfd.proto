@@ -8,65 +8,53 @@ service Loader {
     rpc List (ListRequest) returns (ListResponse);
 }
 
-enum ProgramType {
-    XDP = 0;
-    TC = 1;
-    TRACEPOINT = 2;
+message BytecodeImage {
+    string url = 1;
+    int32 image_pull_policy = 2;
+    string username = 3;
+    string password = 4;
 }
 
-enum Direction {
-    NONE = 0;
-    INGRESS = 1;
-    EGRESS = 2;
-}
-
-enum ProceedOn {
-    ABORTED = 0;
-    DROP = 1;
-    PASS = 2;
-    TX = 3;
-    REDIRECT = 4;
-    DISPATCHER_RETURN = 31;
-}
-
-message LoadRequest {
+message LoadRequestCommon {
     oneof location {
         BytecodeImage image = 1;
         string file = 2;
     } ;
     string section_name = 3;
-    ProgramType program_type = 4;
-    oneof attach_type {
-        NetworkMultiAttach network_multi_attach = 5;
-        SingleAttach single_attach = 6;
-    }
-	map<string, bytes> global_data = 7;
-};
-
-enum ImagePullPolicy {
-    Always = 0;
-    IfNotPresent = 1;
-    Never = 2;
+    int32 program_type = 4;
+    optional string id = 5;
+    map<string, bytes> global_data = 6;
 }
 
-message BytecodeImage {
-    string url = 1;
-    ImagePullPolicy image_pull_policy = 2;
-    string username = 3;
-    string password = 4;
-}
+message NoAttachInfo {}
 
-message NetworkMultiAttach {
+message XDPAttachInfo {
     int32 priority = 1;
     string iface = 2;
     int32 position = 3;
-    Direction direction = 4;
-    repeated ProceedOn proceed_on = 5;
+    repeated int32 proceed_on = 4;
 }
 
-message SingleAttach {
-    string name = 1;
+message TCAttachInfo {
+    int32 priority = 1;
+    string iface = 2;
+    int32 position = 3;
+    string direction = 4;
+    repeated int32 proceed_on = 5;
 }
+
+message TracepointAttachInfo {
+    string tracepoint = 1;
+}
+
+message LoadRequest {
+    LoadRequestCommon common = 1;
+    oneof attach_info {
+        XDPAttachInfo xdp_attach_info = 2;
+        TCAttachInfo tc_attach_info = 3;
+        TracepointAttachInfo tracepoint_attach_info = 4;
+    }
+};
 
 message LoadResponse {
     string id = 1;
@@ -78,7 +66,9 @@ message UnloadRequest {
 
 message UnloadResponse {}
 
-message ListRequest {}
+message ListRequest {
+    optional int32 program_type = 1;
+}
 
 message ListResponse {
   message ListResult {
@@ -88,11 +78,14 @@ message ListResponse {
         BytecodeImage image = 3;
         string file = 4;
     } ;
-    ProgramType program_type = 5;
-    oneof attach_type {
-        NetworkMultiAttach network_multi_attach = 6;
-        SingleAttach single_attach = 7;
+    optional string section_name = 5;
+    int32 program_type = 6;
+    oneof attach_info {
+        NoAttachInfo none = 7;
+        XDPAttachInfo xdp_attach_info = 8;
+        TCAttachInfo tc_attach_info = 9;
+        TracepointAttachInfo tracepoint_attach_info = 10;
     }
-  }
-  repeated ListResult results = 2;
+  } 
+  repeated ListResult results = 11;
 }
