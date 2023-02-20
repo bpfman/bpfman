@@ -125,13 +125,11 @@ func (b bpfProgramConditionType) Condition() metav1.Condition {
 //
 // 3. Our NodeLabels are updated and the Node is no longer selected by an BpfProgramConfig
 //
-// 4. An bpfProgramConfig Object is deleted
+// 4. A bpfProgramConfig Object is deleted
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.0/pkg/reconcile
 func (r *BpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Logger = log.FromContext(ctx)
-
-	r.Logger.Info("bpfd-agent is reconciling", "request", req.String())
 
 	// Lookup K8s node object for this bpfd-agent This should always succeed
 	ourNode := &v1.Node{}
@@ -170,6 +168,8 @@ func (r *BpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Reconcile every BpfProgramConfig Object
 	// note: This doesn't necessarily result in any extra grpc calls to bpfd
 	for _, BpfProgramConfig := range BpfProgramConfigs.Items {
+		r.Logger.Info("bpfd-agent is reconciling", "bpfProgramConfig", BpfProgramConfig.Name)
+
 		retry, err := r.reconcileBpfProgramConfig(ctx, &BpfProgramConfig, ourNode, existingConfigs)
 		if err != nil {
 			r.Logger.Error(err, "Reconciling BpfProgramConfig Failed", "BpfProgramConfigName", BpfProgramConfig.Name, "Retrying", retry)
@@ -195,7 +195,7 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 	err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: bpfProgramName}, bpfProgram)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			r.Logger.Info("bpfProgram doesn't exist creating...")
+			r.Logger.Info("bpfProgram object doesn't exist creating...")
 			bpfProgram = &bpfdiov1alpha1.BpfProgram{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       bpfProgramName,
@@ -218,6 +218,8 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 				return false, fmt.Errorf("failed to create bpfProgram object: %v",
 					err)
 			}
+
+			return false, nil
 		} else {
 			return false, fmt.Errorf("failed getting bpfProgram %s : %v",
 				bpfProgramName, err)
@@ -239,10 +241,20 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 
 	isNodeSelected = selector.Matches(nodeLabelSet)
 
-	r.Logger.V(1).Info("Bpfd Node State Dump", "NodeState", nodeState)
+	programKey := internal.ProgramKey{
+		Name:        BpfProgramConfig.Spec.Name,
+		ProgType:    BpfProgramConfig.Spec.Type,
+		AttachPoint: internal.StringifyAttachType(&BpfProgramConfig.Spec.AttachPoint),
+	}
+
+	// Dump node state debugging
+	if r.Logger.V(1).Enabled() {
+		r.Logger.V(1).Info("Desired State:", "ProgramKey", programKey)
+		internal.PrintNodeState(nodeState)
+	}
 
 	// Compare the desired state to existing bpfd state
-	v, ok := nodeState[internal.ProgramKey{Name: BpfProgramConfig.Spec.Name, ProgType: BpfProgramConfig.Spec.Type}]
+	v, ok := nodeState[programKey]
 	// bpfProgram doesn't exist on node
 	if !ok {
 		r.Logger.V(1).Info("bpfProgram doesn't exist on node")
@@ -250,6 +262,7 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 		// If BpfProgramConfig is being deleted just remove agent finalizer so the
 		// owner relationship can take care of cleanup
 		if !BpfProgramConfig.DeletionTimestamp.IsZero() {
+			r.Logger.V(1).Info("bpfProgramConfig is deleted, don't load program, remove finalizer")
 			if controllerutil.ContainsFinalizer(bpfProgram, BpfdAgentFinalizer) {
 				controllerutil.RemoveFinalizer(bpfProgram, BpfdAgentFinalizer)
 				err := r.Update(ctx, bpfProgram)
@@ -263,6 +276,7 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 
 		// Make sure if we're not selected just exit
 		if !isNodeSelected {
+			r.Logger.V(1).Info("bpfProgramConfig does not select this node")
 			// Write NodeNodeSelected status
 			r.updateStatus(ctx, bpfProgram, BpfProgCondNotSelected)
 
@@ -283,7 +297,7 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 			return true, fmt.Errorf("failed to generate bpfd load request: %v",
 				err)
 		}
-
+		r.Logger.V(1).Info("Loading bpfProgram", "loadRequest", loadRequest)
 		return r.loadBpfdProgram(ctx, loadRequest, bpfProgram)
 	}
 
@@ -335,9 +349,6 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 		v.Req.AttachPoint.NetworkMultiAttach.ProceedOn = nil
 	}
 
-	r.Logger.V(1).Info("desired k8s state vs existing state", "BpfProgramConfigSpec",
-		BpfProgramConfig.Spec, "existingState", *v.Req)
-
 	// BpfProgram exists but is not correct state, unload and recreate
 	if !reflect.DeepEqual(*v.Req, BpfProgramConfig.Spec) {
 		if retry, err := r.unloadBpfdProgram(ctx, bpfProgram); err != nil {
@@ -383,9 +394,8 @@ func (r *BpfProgramReconciler) loadBpfdProgram(ctx context.Context, loadRequest 
 	res, err := r.BpfdClient.Load(ctx, loadRequest)
 	if err != nil {
 		r.updateStatus(ctx, prog, BpfProgCondNotLoaded)
-
-		return true, fmt.Errorf("failed to load bpfProgram via bpfd: %v",
-			err)
+		r.Logger.Error(err, "failed to load bpfProgram via bpfd")
+		return true, nil
 	}
 	uuid := res.GetId()
 
@@ -403,8 +413,8 @@ func (r *BpfProgramReconciler) loadBpfdProgram(ctx context.Context, loadRequest 
 	r.Logger.V(1).Info("updating programs after load", "Programs", prog.Spec.Programs)
 	// Update bpfProgram once successfully loaded
 	if err = r.Update(ctx, prog, &client.UpdateOptions{}); err != nil {
-		return false, fmt.Errorf("failed to update bpfProgram programs: %v",
-			err)
+		r.Logger.Error(err, "failed to update bpfProgram programs")
+		return true, nil
 	}
 
 	r.updateStatus(ctx, prog, BpfProgCondLoaded)

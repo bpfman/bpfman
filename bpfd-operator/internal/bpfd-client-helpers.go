@@ -21,7 +21,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -33,6 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -49,6 +49,8 @@ const (
 	DefaultClientKeyPath   = "/etc/bpfd/certs/bpfd-client/tls.key"
 )
 
+var log = ctrl.Log.WithName("bpfd-internal-helpers")
+
 type Tls struct {
 	CaCert string `toml:"ca_cert"`
 	Cert   string `toml:"cert"`
@@ -62,7 +64,7 @@ func LoadConfig() Tls {
 		Key:    DefaultClientKeyPath,
 	}
 
-	log.Printf("Reading %s ...\n", DefaultConfigPath)
+	log.Info("Reading...\n", "Default config path", DefaultConfigPath)
 	file, err := os.Open(DefaultConfigPath)
 	if err != nil {
 		panic(err)
@@ -72,10 +74,10 @@ func LoadConfig() Tls {
 	if err == nil {
 		err = toml.Unmarshal(b, &tlsConfig)
 		if err != nil {
-			log.Printf("Unmarshal failed: err %+v\n", err)
+			log.Info("Unmarshal failed: err %+v\n", err)
 		}
 	} else {
-		log.Printf("Read %s failed: err %+v\n", DefaultConfigPath, err)
+		log.Info("Read config-path failed: err\n", "config-path", DefaultConfigPath, "err", err)
 	}
 
 	return tlsConfig
@@ -228,8 +230,9 @@ type ExistingReq struct {
 }
 
 type ProgramKey struct {
-	Name     string
-	ProgType string
+	Name        string
+	ProgType    string
+	AttachPoint string
 }
 
 // CreateExistingState takes bpfd state via the list API and
@@ -239,6 +242,7 @@ func CreateExistingState(nodeState []*gobpfd.ListResponse_ListResult) (map[Progr
 
 	for _, bpfdProg := range nodeState {
 		var existingConfigSpec *bpfdiov1alpha1.BpfProgramConfigSpec
+		attachType := AttachConversion(bpfdProg)
 
 		switch bpfdProg.ProgramType.String() {
 		case "XDP":
@@ -246,7 +250,7 @@ func CreateExistingState(nodeState []*gobpfd.ListResponse_ListResult) (map[Progr
 				Name:         bpfdProg.Name,
 				Type:         bpfdProg.ProgramType.String(),
 				ByteCode:     bpfdProg.Location,
-				AttachPoint:  *AttachConversion(bpfdProg),
+				AttachPoint:  *attachType,
 				NodeSelector: metav1.LabelSelector{},
 			}
 		case "TC":
@@ -254,7 +258,7 @@ func CreateExistingState(nodeState []*gobpfd.ListResponse_ListResult) (map[Progr
 				Name:         bpfdProg.Name,
 				Type:         bpfdProg.ProgramType.String(),
 				ByteCode:     bpfdProg.Location,
-				AttachPoint:  *AttachConversion(bpfdProg),
+				AttachPoint:  *attachType,
 				NodeSelector: metav1.LabelSelector{},
 			}
 		case "TRACEPOINT":
@@ -262,7 +266,7 @@ func CreateExistingState(nodeState []*gobpfd.ListResponse_ListResult) (map[Progr
 				Name:         bpfdProg.Name,
 				Type:         bpfdProg.ProgramType.String(),
 				ByteCode:     bpfdProg.Location,
-				AttachPoint:  *AttachConversion(bpfdProg),
+				AttachPoint:  *attachType,
 				NodeSelector: metav1.LabelSelector{},
 			}
 		default:
@@ -270,13 +274,14 @@ func CreateExistingState(nodeState []*gobpfd.ListResponse_ListResult) (map[Progr
 		}
 
 		key := ProgramKey{
-			Name:     bpfdProg.Name,
-			ProgType: bpfdProg.ProgramType.String(),
+			Name:        bpfdProg.Name,
+			ProgType:    bpfdProg.ProgramType.String(),
+			AttachPoint: StringifyAttachType(attachType),
 		}
 
 		// Don't overwrite existing entries
 		if _, ok := existingRequests[key]; ok {
-			return nil, fmt.Errorf("cannot have two programs loaded with the same type and section name")
+			return nil, fmt.Errorf("cannot have two programs loaded with the same type, section name, and attachpoint")
 		}
 
 		existingRequests[key] = ExistingReq{
@@ -323,6 +328,18 @@ func AttachConversion(attachment BpfdAttachType) *bpfdiov1alpha1.BpfProgramAttac
 	panic("Attachment Type is unknown")
 }
 
+func StringifyAttachType(attach *bpfdiov1alpha1.BpfProgramAttachPoint) string {
+	if attach.NetworkMultiAttach != nil {
+		return fmt.Sprintf("%s_%s_%d",
+			attach.NetworkMultiAttach.Interface,
+			attach.NetworkMultiAttach.Direction,
+			attach.NetworkMultiAttach.Priority,
+		)
+	}
+
+	return attach.SingleAttach.Name
+}
+
 func LoadAndConfigureBpfdDs(config *corev1.ConfigMap) *appsv1.DaemonSet {
 	// Load static bpfd deployment from disk
 	file, err := os.Open(BpfdDaemonManifestPath)
@@ -358,4 +375,10 @@ func LoadAndConfigureBpfdDs(config *corev1.ConfigMap) *appsv1.DaemonSet {
 	controllerutil.AddFinalizer(staticBpfdDeployment, "bpfd.io.operator/finalizer")
 
 	return staticBpfdDeployment
+}
+
+func PrintNodeState(state map[ProgramKey]ExistingReq) {
+	for k, v := range state {
+		log.V(1).Info("Node State---->", "ProgramKey", k, "Value", v)
+	}
 }
