@@ -33,7 +33,7 @@ jobs:
 
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-2023-02-26
           components: rust-src
           override: true
 
@@ -48,16 +48,16 @@ jobs:
 
       - name: Check formatting
         run: |
-          cargo +nightly fmt --all -- --check
+          cargo +nightly-2023-02-26 fmt --all -- --check
           pushd bpfd-ebpf
-          cargo +nightly fmt --all -- --check
+          cargo +nightly-2023-02-26 fmt --all -- --check
           popd
 
       - name: Run clippy
         run: |
-          cargo +nightly clippy --all -- --deny warnings
+          cargo +nightly-2023-02-26 clippy --all -- --deny warnings
           pushd bpfd-ebpf
-          cargo +nightly clippy --all -- --deny warnings
+          cargo +nightly-2023-02-26 clippy --all -- --deny warnings
           popd
 
       - name: Build
