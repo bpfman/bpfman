@@ -51,6 +51,7 @@ BPFD_IMG ?= quay.io/bpfd/bpfd:main
 BPFD_AGENT_IMG ?= quay.io/bpfd/bpfd-agent:main
 BPFD_OPERATOR_IMG ?= quay.io/bpfd/bpfd-operator:main
 BPFD_OPERATOR_BUNDLE_IMG ?= quay.io/bpfd/bpfd-operator-bundle:main
+KIND_CLUSTER_NAME ?= bpfd-deployment
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.25.0
@@ -260,7 +261,7 @@ push-images: ## Push bpfd, bpfd-agent, bpfd-operator images.
 
 .PHONY: load-images-kind
 load-images-kind: build-images ## Load bpfd, bpfd-agent, and bpfd-operator images into the running local kind devel cluster.
-	kind load docker-image  ${BPFD_IMG} ${BPFD_OPERATOR_IMG} ${BPFD_AGENT_IMG} --name bpfd-deployment
+	kind load docker-image  ${BPFD_IMG} ${BPFD_OPERATOR_IMG} ${BPFD_AGENT_IMG} --name ${KIND_CLUSTER_NAME}
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
@@ -325,7 +326,7 @@ setup-kind: cm-verifier ## Setup Kind cluster with certmanager ready for bpfd de
 
 ## Default deploy target is KIND based.
 .PHONY: deploy
-deploy: manifests kustomize cm-verifier ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
+deploy: manifests kustomize cm-verifier load-images-kind ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
 	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator-image=${BPFD_OPERATOR_IMG} 
 	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image bpfd-image=${BPFD_IMG} && $(KUSTOMIZE) edit set image bpfd-agent-image=${BPFD_AGENT_IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
