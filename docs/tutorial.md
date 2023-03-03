@@ -185,13 +185,25 @@ This option will also start the systemd service `bpfd.service` by default:
 sudo ./scripts/setup.sh install
 ```
 
-Then add usergroup `bpfd` to desired user if not already run and logout/login to apply:
+Then add usergroup `bpfd` to the desired user if not already run and logout/login to apply.
+Programs run by users which are members of the `bpfd` user group are able to access the mTLS certificates
+created by bpfd.
+Therefore, these programs can make bpfd requests without requiring `sudo`.
+For userspace programs accessing maps, the maps are owned by the `bpfd` user and `bpfd` user group.
+Programs run by users which are members of the `bpfd` user group are able to access the maps files without
+requiring  `sudo` (specifically CAP_DAC_SEARCH or CAP_DAC_OVERIDE).
 
 ```console
 sudo usermod -a -G bpfd $USER
 exit
 <LOGIN>
 ```
+
+> **_NOTE:_** Prior to **kernel 5.19**, all BPF sys calls required CAP_BPF, which are used to access maps shared
+between the BFP program and the userspace program.
+So userspace programs that are accessing maps and running on kernels older than 5.19 will require either `sudo`
+or the CAP_BPF capability (`sudo /sbin/setcap cap_bpf=ep ./<USERSPACE-PROGRAM>`).
+
 
 To update the configuration settings associated with running `bpfd` as a service, edit the
 service configuration file:
