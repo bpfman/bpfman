@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
+pub const USRGRP_BPFD: &str = "bpfd";
+
 pub mod directories {
     // The following directories are used by bpfd. They should be created by bpfd service
     // via the bpfd.service settings. They will be manually created in the case where bpfd

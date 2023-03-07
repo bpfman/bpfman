@@ -15,7 +15,7 @@ use anyhow::{bail, Context};
 use bpf::BpfManager;
 use bpfd_api::{
     config::Config,
-    util::directories::CFGDIR_STATIC_PROGRAMS,
+    util::directories::{CFGDIR_STATIC_PROGRAMS, RTDIR_FS_MAPS},
     v1::{loader_server::LoaderServer, ProceedOn},
 };
 pub use certs::get_tls_config;
@@ -27,7 +27,7 @@ pub use static_program::programs_from_directory;
 use static_program::StaticPrograms;
 use tokio::sync::mpsc;
 use tonic::transport::{Server, ServerTlsConfig};
-use utils::get_ifindex;
+use utils::{get_ifindex, set_map_permissions};
 
 use crate::command::{
     Metadata, NetworkMultiAttachInfo, Program, ProgramData, ProgramType, XdpProgram,
@@ -202,6 +202,13 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                 } else {
                     Err(BpfdError::InvalidInterface)
                 };
+
+                // If program was successfully loaded, allow map access by bpfd group members.
+                if let Ok(uuid) = res {
+                    let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
+                    set_map_permissions(&maps_dir).await;
+                }
+
                 // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }
@@ -235,6 +242,13 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                     }
                     Err(e) => Err(BpfdError::BpfBytecodeError(e)),
                 };
+
+                // If program was successfully loaded, allow map access by bpfd group members.
+                if let Ok(uuid) = res {
+                    let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
+                    set_map_permissions(&maps_dir).await;
+                }
+
                 // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }

@@ -187,26 +187,33 @@ member of the `bpfd` User Group.
     <LOGIN>
 ```
 
+If the user running the userspace program is not a member of the `bpfd` user group, then the userspace
+program cannot access the map files shared between the BFP program and the userspace program.
+If the above step is skipped, then the userspace program must be run with `sudo` or the program must
+be granted CAP_DAC_OVERRIDE capabilities (`sudo /sbin/setcap cap_dac_override=ep ./go-xdp-counter`).
+
 ##### Step 2: Grant CAP_BPF Linux Capability
+
+> **_NOTE:_** Only for kernel versions prior to **kernel 5.19**
 
 `go-xdp-counter` and `go-tc-counter` use a map to share data between the userspace side of the program
 and the BPF portion.
-Accessing this map requires access to the CAP_BPF capability.
+Accessing this map requires access to the CAP_BPF capability for kernel versions prior to **kernel 5.19**.
 Run the following command to grant `go-xdp-counter` access to the CAP_BPF capability:
 
 ```console
     cd src/bpfd/examples/go-xdp-counter/
-    sudo /sbin/setcap cap_dac_override,cap_bpf=ep ./go-xdp-counter
+    sudo /sbin/setcap cap_bpf=ep ./go-xdp-counter
 ```
 
 and
 
 ```console
     cd src/bpfd/examples/go-tc-counter/
-    sudo /sbin/setcap cap_dac_override,cap_bpf=ep ./go-tc-counter
+    sudo /sbin/setcap cap_bpf=ep ./go-tc-counter
 ```
 
-**Reminder:** The capability must be re-granted each time the examples are rebuilt.
+> **_Reminder:_** The capability must be re-granted each time the examples are rebuilt.
 
 ##### Step 3: Start `go-xdp-counter` without `sudo`
 
