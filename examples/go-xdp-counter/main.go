@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/cilium/ebpf"
+	bpfdHelpers "github.com/redhat-et/bpfd/bpfd-operator/pkg/helpers"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
 	configMgmt "github.com/redhat-et/bpfd/examples/pkg/config-mgmt"
-	"github.com/redhat-et/bpfd/examples/pkg/bpfd-app-client"
 	"google.golang.org/grpc"
 )
 
@@ -25,11 +25,11 @@ type Stats struct {
 }
 
 const (
-	DefaultConfigPath     = "/etc/bpfd/gocounter.toml"
-	DefaultMapDir         = "/run/bpfd/fs/maps"
-	DefaultByteCodeFile   = "bpf_bpfel.o"
-	BpfProgramConfigName  = "go-xdp-counter-example"
-	BpfProgramMapIndex    = "xdp_stats_map"
+	DefaultConfigPath    = "/etc/bpfd/gocounter.toml"
+	DefaultMapDir        = "/run/bpfd/fs/maps"
+	DefaultByteCodeFile  = "bpf_bpfel.o"
+	BpfProgramConfigName = "go-xdp-counter-example"
+	BpfProgramMapIndex   = "xdp_stats_map"
 )
 
 const (
@@ -51,12 +51,16 @@ func main() {
 	var mapPath string
 
 	// If running in a Kubernetes deployment, read the map path from the Bpf Program CRD
-	if paramData.CrdFlag == true {
-		mapPath, err = bpfdAppClient.GetMapPathDyn(BpfProgramConfigName, BpfProgramMapIndex)
+	if paramData.CrdFlag {
+		c := bpfdHelpers.GetClientOrDie()
+
+		maps, err := bpfdHelpers.GetMaps(c, BpfProgramConfigName, []string{BpfProgramMapIndex})
 		if err != nil {
-			log.Printf("error reading BpfProgram CRD: %v\n", err)
+			log.Printf("error getting bpf stats map: %v\n", err)
 			return
 		}
+
+		mapPath = maps[BpfProgramMapIndex]
 	} else {
 		// If the bytecode src is a UUID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcUuid {
@@ -78,7 +82,7 @@ func main() {
 			c := gobpfd.NewLoaderClient(conn)
 
 			loadRequest := &gobpfd.LoadRequest{
-				Location: paramData.BytecodeLocation,
+				Location:    paramData.BytecodeLocation,
 				SectionName: "stats",
 				ProgramType: gobpfd.ProgramType_XDP,
 				AttachType: &gobpfd.LoadRequest_NetworkMultiAttach{
