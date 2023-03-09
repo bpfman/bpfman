@@ -209,7 +209,9 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 			}
 
 			// Make the corresponding BpfProgramConfig the owner
-			ctrl.SetControllerReference(BpfProgramConfig, bpfProgram, r.Scheme)
+			if err = ctrl.SetControllerReference(BpfProgramConfig, bpfProgram, r.Scheme); err != nil {
+				return false, fmt.Errorf("failed to bpfProgram object owner reference: %v", err)
+			}
 
 			opts := client.CreateOptions{}
 			if err = r.Create(ctx, bpfProgram, &opts); err != nil {

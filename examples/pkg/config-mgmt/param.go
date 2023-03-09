@@ -41,13 +41,13 @@ const (
 )
 
 type ParameterData struct {
-	Iface string
-	Priority int
-	Direction gobpfd.Direction
-	CrdFlag bool
-	Uuid string
+	Iface            string
+	Priority         int
+	Direction        gobpfd.Direction
+	CrdFlag          bool
+	Uuid             string
 	BytecodeLocation string
-	BytecodeSrc int
+	BytecodeSrc      int
 }
 
 func ParseParamData(progType int, configFilePath string, defaultBytecodeFile string) (ParameterData, error) {
@@ -72,7 +72,7 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 	}
 	flag.Parse()
 
-	if paramData.CrdFlag == true {
+	if paramData.CrdFlag {
 		if flag.NFlag() != 1 {
 			return paramData, fmt.Errorf("\"crd\" is mutually exclusive with all other parameters.")
 		} else {
@@ -144,7 +144,6 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 		paramData.BytecodeLocation = FILE_PREFIX + path
 		paramData.BytecodeSrc = SrcLocation
 	}
-
 
 	if paramData.BytecodeSrc == SrcUuid {
 		log.Printf("Using Input: Interface=%s Source=%s",
