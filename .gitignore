@@ -21,3 +21,6 @@ certs
 .vagrant
 tests/_tmp
 .history
+
+# Don't track vendor files
+**/vendor

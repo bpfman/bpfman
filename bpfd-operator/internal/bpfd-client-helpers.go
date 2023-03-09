@@ -20,7 +20,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -63,9 +63,14 @@ func LoadConfig() Tls {
 	}
 
 	log.Printf("Reading %s ...\n", DefaultConfigPath)
-	file, err := ioutil.ReadFile(DefaultConfigPath)
+	file, err := os.Open(DefaultConfigPath)
+	if err != nil {
+		panic(err)
+	}
+
+	b, err := io.ReadAll(file)
 	if err == nil {
-		err = toml.Unmarshal(file, &tlsConfig)
+		err = toml.Unmarshal(b, &tlsConfig)
 		if err != nil {
 			log.Printf("Unmarshal failed: err %+v\n", err)
 		}
@@ -104,9 +109,10 @@ func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) 
 }
 
 func BuildBpfdLoadRequest(bpf_program_config *bpfdiov1alpha1.BpfProgramConfig) (*gobpfd.LoadRequest, error) {
-	loadRequest := gobpfd.LoadRequest{}
-	loadRequest.SectionName = bpf_program_config.Spec.Name
-	loadRequest.Location = bpf_program_config.Spec.ByteCode
+	loadRequest := gobpfd.LoadRequest{
+		SectionName: bpf_program_config.Spec.Name,
+		Location:    bpf_program_config.Spec.ByteCode,
+	}
 
 	// Map program type (ultimately we should make this an ENUM in the API)
 	switch bpf_program_config.Spec.Type {
@@ -324,7 +330,7 @@ func LoadAndConfigureBpfdDs(config *corev1.ConfigMap) *appsv1.DaemonSet {
 		panic(err)
 	}
 
-	b, err := ioutil.ReadAll(file)
+	b, err := io.ReadAll(file)
 	if err != nil {
 		panic(err)
 	}
