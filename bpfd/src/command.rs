@@ -199,7 +199,7 @@ pub(crate) struct ProgramData {
 impl ProgramData {
     pub(crate) async fn new_from_location(
         location: String,
-        section_name: String,
+        mut section_name: String,
         owner: String,
     ) -> Result<Self, ParseError> {
         let bytecode_url =
@@ -234,10 +234,22 @@ impl ProgramData {
                     .await
                     .map_err(ParseError::BytecodePullFaiure)?;
 
+                // If section name isn't provided and we're loading from a container
+                // image use the section name provided in the image metadata, otherwise
+                // always use the provided section name.
+                if section_name.is_empty() {
+                    section_name = program_overrides.image_meta.section_name
+                } else if program_overrides.image_meta.section_name != section_name {
+                    return Err(ParseError::BytecodeMetaDataMismatch {
+                        image_sec_name: program_overrides.image_meta.section_name,
+                        provided_sec_name: section_name,
+                    });
+                }
+
                 Ok(ProgramData {
                     location,
                     path: program_overrides.path,
-                    section_name: program_overrides.image_meta.section_name,
+                    section_name,
                     owner,
                 })
             }

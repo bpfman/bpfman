@@ -26,6 +26,11 @@ pub enum ParseError {
     InvalidBytecodeLocation { location: String },
     #[error("Failed to pull bytecode from container registry: {0}")]
     BytecodePullFaiure(#[source] anyhow::Error),
+    #[error("Bytecode image has section name: {image_sec_name} isn't equal to the provided section name {provided_sec_name}")]
+    BytecodeMetaDataMismatch {
+        image_sec_name: String,
+        provided_sec_name: String,
+    },
 }
 
 impl ToString for ProgramType {
