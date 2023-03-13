@@ -2,7 +2,7 @@
 // Copyright Authors of bpfd
 
 //! Commands between the RPC thread and the BPF thread
-use std::{fmt, fs, io::BufReader, path::PathBuf, str::FromStr};
+use std::{collections::HashMap, fmt, fs, io::BufReader, path::PathBuf, str::FromStr};
 
 use bpfd_api::{
     util::directories::{RTDIR_FS, RTDIR_FS_MAPS, RTDIR_PROGRAMS},
@@ -30,6 +30,7 @@ pub(crate) enum Command {
     Load {
         location: String,
         section_name: String,
+        global_data: HashMap<String, Vec<u8>>,
         program_type: ProgramType,
         attach_type: AttachType,
         username: String,
@@ -191,15 +192,17 @@ pub(crate) struct TracepointProgram {
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct ProgramData {
     pub(crate) location: String,
-    pub(crate) path: String,
     pub(crate) section_name: String,
+    pub(crate) global_data: HashMap<String, Vec<u8>>,
+    pub(crate) path: String,
     pub(crate) owner: String,
 }
 
 impl ProgramData {
-    pub(crate) async fn new_from_location(
+    pub(crate) async fn new(
         location: String,
         mut section_name: String,
+        global_data: HashMap<String, Vec<u8>>,
         owner: String,
     ) -> Result<Self, ParseError> {
         let bytecode_url =
@@ -216,6 +219,7 @@ impl ProgramData {
                     location,
                     path: bytecode_url.path().to_string(),
                     section_name,
+                    global_data,
                     owner,
                 })
             }
@@ -250,6 +254,7 @@ impl ProgramData {
                     location,
                     path: program_overrides.path,
                     section_name,
+                    global_data,
                     owner,
                 })
             }

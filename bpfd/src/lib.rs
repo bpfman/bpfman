@@ -89,9 +89,10 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                             let if_index = get_ifindex(&m.interface)?;
                             let metadata = Metadata::new(m.priority, program.section_name.clone());
                             Program::Xdp(XdpProgram::new(
-                                ProgramData::new_from_location(
+                                ProgramData::new(
                                     program.location,
                                     program.section_name.clone(),
+                                    program.global_data,
                                     String::from("bpfd"),
                                 )
                                 .await?,
@@ -120,6 +121,7 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
             Command::Load {
                 location,
                 section_name,
+                global_data,
                 program_type,
                 attach_type:
                     AttachType::NetworkMultiAttach(NetworkMultiAttach {
@@ -153,7 +155,7 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                     };
 
                     let prog_data_result =
-                        ProgramData::new_from_location(location, section_name.clone(), username)
+                        ProgramData::new(location, section_name.clone(), global_data, username)
                             .await;
 
                     match prog_data_result {
@@ -215,13 +217,14 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
             Command::Load {
                 location,
                 section_name,
+                global_data,
                 attach_type: AttachType::SingleAttach(attach),
                 username,
                 responder,
                 program_type,
             } => {
                 let prog_data_result =
-                    ProgramData::new_from_location(location, section_name, username).await;
+                    ProgramData::new(location, section_name, global_data, username).await;
 
                 let res = match prog_data_result {
                     Ok(prog_data) => {

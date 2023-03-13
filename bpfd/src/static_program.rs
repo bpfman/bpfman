@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
-use std::{fs, path::Path};
+use std::{collections::HashMap, fs, path::Path};
 
 use log::warn;
 use serde::Deserialize;
@@ -10,6 +10,7 @@ pub struct StaticProgramEntry {
     pub name: String,
     pub location: String,
     pub section_name: String,
+    pub global_data: HashMap<String, Vec<u8>>,
     pub program_type: String,
     pub attach: Option<String>,
     pub network_attach: Option<NetworkAttach>,

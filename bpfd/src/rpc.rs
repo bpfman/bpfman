@@ -84,6 +84,7 @@ impl Loader for BpfdLoader {
             AttachType::NetworkMultiAttach(attach) => Command::Load {
                 responder: resp_tx,
                 location: request.location,
+                global_data: request.global_data,
                 attach_type: crate::command::AttachType::NetworkMultiAttach(
                     crate::command::NetworkMultiAttach {
                         iface: attach.iface,
@@ -100,6 +101,7 @@ impl Loader for BpfdLoader {
             AttachType::SingleAttach(attach) => Command::Load {
                 responder: resp_tx,
                 location: request.location,
+                global_data: request.global_data,
                 attach_type: crate::command::AttachType::SingleAttach(attach.name),
                 section_name: request.section_name,
                 username,
