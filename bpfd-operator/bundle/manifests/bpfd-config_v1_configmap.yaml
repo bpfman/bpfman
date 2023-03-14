@@ -2,7 +2,7 @@ apiVersion: v1
 data:
   bpfd.agent.image: quay.io/bpfd/bpfd-agent:main
   bpfd.image: quay.io/bpfd/bpfd:main
-  bpfd.log.level: debug
+  bpfd.log.level: info
   bpfd.namespace: openshift-bpfd
   bpfd.toml: |
     [tls] # REQUIRED

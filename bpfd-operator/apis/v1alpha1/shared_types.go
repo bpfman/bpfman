@@ -38,12 +38,25 @@ type BpfProgramAttachPoint struct {
 // +kubebuilder:validation:Enum=ABORTED;DROP;PASS;TX;REDIRECT;DISPATCHER_RETURN
 type ProceedOnValue string
 
+// InterfaceSelector defines interface to attach to.
+// +kubebuilder:validation:MaxProperties=1
+// +kubebuilder:validation:MinProperties=1
+type InterfaceSelector struct {
+	// Interface refers to the name of a network interface to attach BPF program too.
+	// +optional
+	Interface *string `json:"interface,omitempty"`
+
+	// Attach BPF program to the primary interface on the node. Only 'true' accepted.
+	// +optional
+	PrimaryNodeInterface *bool `json:"primarynodeinterface,omitempty"`
+}
+
 // BpfNetworkMultiAttach defines an bpf attach
 // point for programs which attach to network devices,
 // i.e interfaces, and must be prioritized
 type BpfNetworkMultiAttach struct {
-	// Interface refers to the name of a network interface.
-	Interface string `json:"interface"`
+	// Selector to determine the network interface (or interfaces)
+	InterfaceSelector InterfaceSelector `json:"interfaceselector"`
 
 	// Priority specifies the priority of the bpf program in relation to
 	// other programs of the same type with the same attach point. It is a value

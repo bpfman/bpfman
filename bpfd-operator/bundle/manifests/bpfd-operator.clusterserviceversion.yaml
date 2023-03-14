@@ -16,11 +16,13 @@ metadata:
           "spec": {
             "attachpoint": {
               "networkmultiattach": {
-                "interface": "eth0",
+                "interfaceselector": {
+                  "interface": "eth0"
+                },
                 "priority": 5
               }
             },
-            "bytecode": "image://quay.io/bpfd-bytecode/go-xdp-counter:latest",
+            "bytecode": "image://bpfd-bytecode/go-xdp-counter:latest",
             "name": "stats",
             "nodeselector": {
               "matchLabels": {
@@ -42,7 +44,9 @@ metadata:
           "spec": {
             "attachpoint": {
               "networkmultiattach": {
-                "interface": "eth0",
+                "interfaceselector": {
+                  "interface": "eth0"
+                },
                 "priority": 0
               }
             },
@@ -227,6 +231,9 @@ spec:
                 - --leader-elect
                 command:
                 - /bpfd-operator
+                env:
+                - name: GO_LOG
+                  value: info
                 image: quay.io/bpfd/bpfd-operator:main
                 imagePullPolicy: IfNotPresent
                 livenessProbe:

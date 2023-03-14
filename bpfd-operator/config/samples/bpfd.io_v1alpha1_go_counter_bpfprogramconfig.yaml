@@ -13,7 +13,8 @@ spec:
     matchLabels: 
       deploy-ebpf: "true"
   attachpoint:
-    networkmultiattach: 
-      interface: eth0
+    networkmultiattach:
+      interfaceselector:
+        interface: eth0
       priority: 5
   bytecode: image://bpfd-bytecode/go-xdp-counter:latest

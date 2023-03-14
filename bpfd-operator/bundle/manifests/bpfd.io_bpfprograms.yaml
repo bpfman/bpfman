@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.10.0
+    controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
   name: bpfprograms.bpfd.io
 spec:
@@ -34,6 +34,9 @@ spec:
           spec:
             description: BpfProgramSpec defines the desired state of BpfProgram
             properties:
+              node:
+                description: Node program is loaded on
+                type: string
               programs:
                 additionalProperties:
                   description: BpfProgramMeta defines the relevant metadata needed
@@ -62,10 +65,21 @@ spec:
                               - INGRESS
                               - EGRESS
                               type: string
-                            interface:
-                              description: Interface refers to the name of a network
-                                interface.
-                              type: string
+                            interfaceselector:
+                              description: Selector to determine the network interface
+                                (or interfaces)
+                              maxProperties: 1
+                              minProperties: 1
+                              properties:
+                                interface:
+                                  description: Interface refers to the name of a network
+                                    interface to attach BPF program too.
+                                  type: string
+                                primarynodeinterface:
+                                  description: Attach BPF program to the primary interface
+                                    on the node. Only 'true' accepted.
+                                  type: boolean
+                              type: object
                             priority:
                               description: Priority specifies the priority of the
                                 bpf program in relation to other programs of the same
@@ -92,7 +106,7 @@ spec:
                                 type: string
                               type: array
                           required:
-                          - interface
+                          - interfaceselector
                           - priority
                           type: object
                         singleattach:
@@ -118,8 +132,13 @@ spec:
                   type: object
                 description: 'ProgramMap is is a map with Keys: UUIDs, Values: BpfProgramMeta'
                 type: object
+              type:
+                description: Type specifies the bpf program type.
+                type: string
             required:
+            - node
             - programs
+            - type
             type: object
           status:
             description: BpfProgramStatus defines the observed state of BpfProgram
@@ -201,7 +220,6 @@ spec:
                 x-kubernetes-list-type: map
             type: object
         required:
-        - metadata
         - spec
         type: object
     served: true

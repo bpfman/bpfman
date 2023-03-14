@@ -110,36 +110,40 @@ func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) 
 	return credentials.NewTLS(config), nil
 }
 
-func BuildBpfdLoadRequest(bpf_program_config *bpfdiov1alpha1.BpfProgramConfig) (*gobpfd.LoadRequest, error) {
+func BuildBpfdLoadRequest(bpf_program_config_spec *bpfdiov1alpha1.BpfProgramConfigSpec, name string) (*gobpfd.LoadRequest, error) {
 	loadRequest := gobpfd.LoadRequest{
-		SectionName: bpf_program_config.Spec.Name,
-		Location:    bpf_program_config.Spec.ByteCode,
+		SectionName: bpf_program_config_spec.Name,
+		Location:    bpf_program_config_spec.ByteCode,
 	}
 
 	// Map program type (ultimately we should make this an ENUM in the API)
-	switch bpf_program_config.Spec.Type {
+	switch bpf_program_config_spec.Type {
 	case "XDP":
 		loadRequest.ProgramType = gobpfd.ProgramType_XDP
 
-		if bpf_program_config.Spec.AttachPoint.NetworkMultiAttach != nil {
+		if bpf_program_config_spec.AttachPoint.NetworkMultiAttach != nil {
 			var proc_on []gobpfd.ProceedOn
-			if len(bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.ProceedOn) > 0 {
-				for _, proceedOnStr := range bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.ProceedOn {
+			if len(bpf_program_config_spec.AttachPoint.NetworkMultiAttach.ProceedOn) > 0 {
+				for _, proceedOnStr := range bpf_program_config_spec.AttachPoint.NetworkMultiAttach.ProceedOn {
 					if action, ok := gobpfd.ProceedOn_value[string(proceedOnStr)]; !ok {
 						return nil, fmt.Errorf("invalid proceedOn value %s for BpfProgramConfig %s",
-							string(proceedOnStr), bpf_program_config.Name)
+							string(proceedOnStr), name)
 					} else {
 						proc_on = append(proc_on, gobpfd.ProceedOn(action))
 					}
 				}
 			}
 
-			loadRequest.AttachType = &gobpfd.LoadRequest_NetworkMultiAttach{
-				NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
-					Priority:  int32(bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Priority),
-					Iface:     bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Interface,
-					ProceedOn: proc_on,
-				},
+			if bpf_program_config_spec.AttachPoint.NetworkMultiAttach.InterfaceSelector.Interface != nil {
+				loadRequest.AttachType = &gobpfd.LoadRequest_NetworkMultiAttach{
+					NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
+						Priority:  int32(bpf_program_config_spec.AttachPoint.NetworkMultiAttach.Priority),
+						Iface:     *bpf_program_config_spec.AttachPoint.NetworkMultiAttach.InterfaceSelector.Interface,
+						ProceedOn: proc_on,
+					},
+				}
+			} else {
+				return nil, fmt.Errorf("invalid interface selector for program type: XDP")
 			}
 		} else {
 			return nil, fmt.Errorf("invalid attach type for program type: XDP")
@@ -148,36 +152,40 @@ func BuildBpfdLoadRequest(bpf_program_config *bpfdiov1alpha1.BpfProgramConfig) (
 	case "TC":
 		loadRequest.ProgramType = gobpfd.ProgramType_TC
 
-		if bpf_program_config.Spec.AttachPoint.NetworkMultiAttach != nil {
+		if bpf_program_config_spec.AttachPoint.NetworkMultiAttach != nil {
 			var direction gobpfd.Direction
-			switch bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Direction {
+			switch bpf_program_config_spec.AttachPoint.NetworkMultiAttach.Direction {
 			case "INGRESS":
 				direction = gobpfd.Direction_INGRESS
 			case "EGRESS":
 				direction = gobpfd.Direction_EGRESS
 			default:
 				// Default to INGRESS
-				bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Direction = "INGRESS"
+				bpf_program_config_spec.AttachPoint.NetworkMultiAttach.Direction = "INGRESS"
 				direction = gobpfd.Direction_INGRESS
 			}
 
-			loadRequest.AttachType = &gobpfd.LoadRequest_NetworkMultiAttach{
-				NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
-					Priority:  int32(bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Priority),
-					Iface:     bpf_program_config.Spec.AttachPoint.NetworkMultiAttach.Interface,
-					Direction: direction,
-				},
+			if bpf_program_config_spec.AttachPoint.NetworkMultiAttach.InterfaceSelector.Interface != nil {
+				loadRequest.AttachType = &gobpfd.LoadRequest_NetworkMultiAttach{
+					NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
+						Priority:  int32(bpf_program_config_spec.AttachPoint.NetworkMultiAttach.Priority),
+						Iface:     *bpf_program_config_spec.AttachPoint.NetworkMultiAttach.InterfaceSelector.Interface,
+						Direction: direction,
+					},
+				}
+			} else {
+				return nil, fmt.Errorf("invalid interface selector for program type: TC")
 			}
 		} else {
-			return nil, fmt.Errorf("invalid attach type for program type: XDP")
+			return nil, fmt.Errorf("invalid attach type for program type: TC")
 		}
 	case "TRACEPOINT":
 		loadRequest.ProgramType = gobpfd.ProgramType_TRACEPOINT
 
-		if bpf_program_config.Spec.AttachPoint.SingleAttach != nil {
+		if bpf_program_config_spec.AttachPoint.SingleAttach != nil {
 			loadRequest.AttachType = &gobpfd.LoadRequest_SingleAttach{
 				SingleAttach: &gobpfd.SingleAttach{
-					Name: bpf_program_config.Spec.AttachPoint.SingleAttach.Name,
+					Name: bpf_program_config_spec.AttachPoint.SingleAttach.Name,
 				},
 			}
 		} else {
@@ -186,7 +194,7 @@ func BuildBpfdLoadRequest(bpf_program_config *bpfdiov1alpha1.BpfProgramConfig) (
 	default:
 		// Add a condition and exit don't requeue, an ensuing update to BpfProgramConfig
 		// should fix this
-		return nil, fmt.Errorf("invalid Program Type: %v", bpf_program_config.Spec.Type)
+		return nil, fmt.Errorf("invalid Program Type: %v", bpf_program_config_spec.Type)
 	}
 
 	return &loadRequest, nil
@@ -309,7 +317,9 @@ func AttachConversion(attachment BpfdAttachType) *bpfdiov1alpha1.BpfProgramAttac
 
 		return &bpfdiov1alpha1.BpfProgramAttachPoint{
 			NetworkMultiAttach: &bpfdiov1alpha1.BpfNetworkMultiAttach{
-				Interface: attachment.GetNetworkMultiAttach().Iface,
+				InterfaceSelector: bpfdiov1alpha1.InterfaceSelector{
+					Interface: &attachment.GetNetworkMultiAttach().Iface,
+				},
 				Priority:  attachment.GetNetworkMultiAttach().Priority,
 				Direction: attachment.GetNetworkMultiAttach().Direction.String(),
 				ProceedOn: proceedOn,
@@ -330,11 +340,19 @@ func AttachConversion(attachment BpfdAttachType) *bpfdiov1alpha1.BpfProgramAttac
 
 func StringifyAttachType(attach *bpfdiov1alpha1.BpfProgramAttachPoint) string {
 	if attach.NetworkMultiAttach != nil {
-		return fmt.Sprintf("%s_%s_%d",
-			attach.NetworkMultiAttach.Interface,
-			attach.NetworkMultiAttach.Direction,
-			attach.NetworkMultiAttach.Priority,
-		)
+		if attach.NetworkMultiAttach.InterfaceSelector.Interface != nil {
+			return fmt.Sprintf("%s_%s_%d",
+				*attach.NetworkMultiAttach.InterfaceSelector.Interface,
+				attach.NetworkMultiAttach.Direction,
+				attach.NetworkMultiAttach.Priority,
+			)
+		} else {
+			return fmt.Sprintf("%s_%s_%d",
+				"unknown",
+				attach.NetworkMultiAttach.Direction,
+				attach.NetworkMultiAttach.Priority,
+			)
+		}
 	}
 
 	return attach.SingleAttach.Name
@@ -381,4 +399,32 @@ func PrintNodeState(state map[ProgramKey]ExistingReq) {
 	for k, v := range state {
 		log.V(1).Info("Node State---->", "ProgramKey", k, "Value", v)
 	}
+}
+
+func ConvertToBpfProgramConfigSpecList(BpfProgramConfigSpec *bpfdiov1alpha1.BpfProgramConfigSpec, NodeIface string) (nodeState []bpfdiov1alpha1.BpfProgramConfigSpec) {
+	bpfProgramConfigSpecList := []bpfdiov1alpha1.BpfProgramConfigSpec{}
+
+	if BpfProgramConfigSpec.AttachPoint.NetworkMultiAttach != nil {
+		if BpfProgramConfigSpec.AttachPoint.NetworkMultiAttach.InterfaceSelector.Interface != nil {
+			bpfProgramConfigSpecList = append(bpfProgramConfigSpecList, *BpfProgramConfigSpec)
+			return bpfProgramConfigSpecList
+		}
+
+		if BpfProgramConfigSpec.AttachPoint.NetworkMultiAttach.InterfaceSelector.PrimaryNodeInterface != nil {
+			modBpfProgramConfigSpec := *BpfProgramConfigSpec
+			modBpfProgramConfigSpec.AttachPoint.NetworkMultiAttach.InterfaceSelector.PrimaryNodeInterface = nil
+			modBpfProgramConfigSpec.AttachPoint.NetworkMultiAttach.InterfaceSelector.Interface = &NodeIface
+			bpfProgramConfigSpecList = append(bpfProgramConfigSpecList, modBpfProgramConfigSpec)
+			return bpfProgramConfigSpecList
+		}
+
+		panic("AttachPoint is unknown")
+	}
+
+	if BpfProgramConfigSpec.AttachPoint.SingleAttach != nil {
+		bpfProgramConfigSpecList = append(bpfProgramConfigSpecList, *BpfProgramConfigSpec)
+		return bpfProgramConfigSpecList
+	}
+
+	panic("Attachment Type is unknown")
 }
