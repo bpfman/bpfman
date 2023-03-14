@@ -58,9 +58,21 @@ spec:
                         - INGRESS
                         - EGRESS
                         type: string
-                      interface:
-                        description: Interface refers to the name of a network interface.
-                        type: string
+                      interfaceselector:
+                        description: Selector to determine the network interface (or
+                          interfaces)
+                        maxProperties: 1
+                        minProperties: 1
+                        properties:
+                          interface:
+                            description: Interface refers to the name of a network
+                              interface to attach BPF program too.
+                            type: string
+                          primarynodeinterface:
+                            description: Attach BPF program to the primary interface
+                              on the node. Only 'true' accepted.
+                            type: boolean
+                        type: object
                       priority:
                         description: Priority specifies the priority of the bpf program
                           in relation to other programs of the same type with the
@@ -87,7 +99,7 @@ spec:
                           type: string
                         type: array
                     required:
-                    - interface
+                    - interfaceselector
                     - priority
                     type: object
                   singleattach:

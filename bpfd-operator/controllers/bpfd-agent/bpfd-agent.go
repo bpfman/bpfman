@@ -19,6 +19,7 @@ package bpfdagent
 import (
 	"context"
 	"fmt"
+	"net"
 	"reflect"
 	"time"
 
@@ -56,6 +57,7 @@ type BpfProgramReconciler struct {
 	BpfdClient gobpfd.LoaderClient
 	NodeName   string
 	Logger     logr.Logger
+	NodeIface  string
 }
 
 type bpfProgramConditionType string
@@ -138,6 +140,12 @@ func (r *BpfProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			req.NamespacedName, err)
 	}
 
+	if r.NodeIface == "" {
+		if err := r.setNodeInterface(ourNode); err != nil {
+			r.Logger.Error(err, "unable to set node interface")
+		}
+	}
+
 	BpfProgramConfigs := &bpfdiov1alpha1.BpfProgramConfigList{}
 
 	opts := []client.ListOption{}
@@ -203,6 +211,8 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 					Labels:     map[string]string{"owningConfig": BpfProgramConfig.Name},
 				},
 				Spec: bpfdiov1alpha1.BpfProgramSpec{
+					Node:     r.NodeName,
+					Type:     BpfProgramConfig.Spec.Type,
 					Programs: map[string]bpfdiov1alpha1.BpfProgramMeta{},
 				},
 				Status: bpfdiov1alpha1.BpfProgramStatus{Conditions: []metav1.Condition{}},
@@ -241,147 +251,141 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 
 	isNodeSelected = selector.Matches(nodeLabelSet)
 
-	programKey := internal.ProgramKey{
-		Name:        BpfProgramConfig.Spec.Name,
-		ProgType:    BpfProgramConfig.Spec.Type,
-		AttachPoint: internal.StringifyAttachType(&BpfProgramConfig.Spec.AttachPoint),
-	}
+	// Convert BpfProgramConfig.Spec object to a list of BpfProgramConfig.Spec, which maps any non-interface
+	// (like pod label or primary interface flag) into its actual interface or list of interfaces.
+	bpfProgramConfigSpecList := internal.ConvertToBpfProgramConfigSpecList(&BpfProgramConfig.Spec, r.NodeIface)
+	for _, modBpfProgramConfigSpec := range bpfProgramConfigSpecList {
+		programKey := internal.ProgramKey{
+			Name:        modBpfProgramConfigSpec.Name,
+			ProgType:    modBpfProgramConfigSpec.Type,
+			AttachPoint: internal.StringifyAttachType(&modBpfProgramConfigSpec.AttachPoint),
+		}
 
-	// Dump node state debugging
-	if r.Logger.V(1).Enabled() {
-		r.Logger.V(1).Info("Desired State:", "ProgramKey", programKey)
-		internal.PrintNodeState(nodeState)
-	}
+		// Dump node state debugging
+		if r.Logger.V(1).Enabled() {
+			r.Logger.V(1).Info("Desired State:", "ProgramKey", programKey)
+			internal.PrintNodeState(nodeState)
+		}
 
-	// Compare the desired state to existing bpfd state
-	v, ok := nodeState[programKey]
-	// bpfProgram doesn't exist on node
-	if !ok {
-		r.Logger.V(1).Info("bpfProgram doesn't exist on node")
+		// Compare the desired state to existing bpfd state
+		v, ok := nodeState[programKey]
+		// bpfProgram doesn't exist on node
+		if !ok {
+			r.Logger.V(1).Info("bpfProgram doesn't exist on node")
 
-		// If BpfProgramConfig is being deleted just remove agent finalizer so the
-		// owner relationship can take care of cleanup
-		if !BpfProgramConfig.DeletionTimestamp.IsZero() {
-			r.Logger.V(1).Info("bpfProgramConfig is deleted, don't load program, remove finalizer")
+			// If BpfProgramConfig is being deleted just remove agent finalizer so the
+			// owner relationship can take care of cleanup
+			if !BpfProgramConfig.DeletionTimestamp.IsZero() {
+				r.Logger.V(1).Info("bpfProgramConfig is deleted, don't load program, remove finalizer")
+				if controllerutil.ContainsFinalizer(bpfProgram, BpfdAgentFinalizer) {
+					controllerutil.RemoveFinalizer(bpfProgram, BpfdAgentFinalizer)
+					err := r.Update(ctx, bpfProgram)
+					if err != nil {
+						return false, err
+					}
+				}
+
+				return false, nil
+			}
+
+			// Make sure if we're not selected just exit
+			if !isNodeSelected {
+				r.Logger.V(1).Info("bpfProgramConfig does not select this node")
+				// Write NodeNodeSelected status
+				r.updateStatus(ctx, bpfProgram, BpfProgCondNotSelected)
+
+				return false, nil
+			}
+
+			// otherwise load it
+			loadRequest, err := internal.BuildBpfdLoadRequest(&modBpfProgramConfigSpec, BpfProgramConfig.Name)
+			if err != nil {
+				r.updateStatus(ctx, bpfProgram, BpfProgCondNotLoaded)
+
+				return true, fmt.Errorf("failed to generate bpfd load request: %v",
+					err)
+			}
+			r.Logger.Info("Loading bpfProgram", "loadRequest", loadRequest)
+			return r.loadBpfdProgram(ctx, loadRequest, bpfProgram)
+		}
+
+		// BpfProgram exists but either BpfProgramConfig is being deleted or node is no
+		// longer selected....unload program
+		if !BpfProgramConfig.DeletionTimestamp.IsZero() || !isNodeSelected {
+			r.Logger.V(1).Info("bpfProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", !BpfProgramConfig.DeletionTimestamp.IsZero(),
+				"isSelected", isNodeSelected)
 			if controllerutil.ContainsFinalizer(bpfProgram, BpfdAgentFinalizer) {
+				if retry, err := r.unloadBpfdProgram(ctx, bpfProgram); err != nil {
+					return retry, err
+				}
+
+				// Remove bpfd-agentFinalizer. Once all finalizers have been
+				// removed, the object will be deleted.
 				controllerutil.RemoveFinalizer(bpfProgram, BpfdAgentFinalizer)
 				err := r.Update(ctx, bpfProgram)
 				if err != nil {
 					return false, err
 				}
+
+				// If K8s hasn't cleaned up here it means we're no longer selected
+				// write NodeNodeSelected status ignoring error (object may not exist)
+				r.updateStatus(ctx, bpfProgram, BpfProgCondNotSelected)
 			}
 
 			return false, nil
 		}
 
-		// Make sure if we're not selected just exit
-		if !isNodeSelected {
-			r.Logger.V(1).Info("bpfProgramConfig does not select this node")
-			// Write NodeNodeSelected status
-			r.updateStatus(ctx, bpfProgram, BpfProgCondNotSelected)
+		modBpfProgramConfigSpec.NodeSelector = metav1.LabelSelector{}
 
-			return false, nil
-		}
-
-		// otherwise load it
-
-		// TODO(astoycos) This will need to end up being a list of loadRequests
-		// if a given BpfProgramConfig selects more than one attach point
-		// (i.e if we support a pod LabelSelector for interfaces) For now
-		// we only support specifying a single BpfProgramAttachPoint in the API so
-		// there will only be a single loadRequest per BpfProgramConfig Object.
-		loadRequest, err := internal.BuildBpfdLoadRequest(BpfProgramConfig)
+		loadRequest, err := internal.BuildBpfdLoadRequest(&modBpfProgramConfigSpec, BpfProgramConfig.Name)
 		if err != nil {
 			r.updateStatus(ctx, bpfProgram, BpfProgCondNotLoaded)
 
 			return true, fmt.Errorf("failed to generate bpfd load request: %v",
 				err)
 		}
-		r.Logger.V(1).Info("Loading bpfProgram", "loadRequest", loadRequest)
-		return r.loadBpfdProgram(ctx, loadRequest, bpfProgram)
-	}
 
-	// BpfProgram exists but either BpfProgramConfig is being deleted or node is no
-	// longer selected....unload program
-	if !BpfProgramConfig.DeletionTimestamp.IsZero() || !isNodeSelected {
-		r.Logger.V(1).Info("bpfProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", !BpfProgramConfig.DeletionTimestamp.IsZero(),
-			"isSelected", isNodeSelected)
-		if controllerutil.ContainsFinalizer(bpfProgram, BpfdAgentFinalizer) {
+		// Temporary hacks for state which won't match yet based on list API
+		// Proceed-on updates are not currently supported
+		if modBpfProgramConfigSpec.Type == "XDP" || modBpfProgramConfigSpec.Type == "TC" {
+			modBpfProgramConfigSpec.AttachPoint.NetworkMultiAttach.ProceedOn = nil
+			v.Req.AttachPoint.NetworkMultiAttach.ProceedOn = nil
+		}
+
+		// BpfProgram exists but is not correct state, unload and recreate
+		if !reflect.DeepEqual(*v.Req, modBpfProgramConfigSpec) {
 			if retry, err := r.unloadBpfdProgram(ctx, bpfProgram); err != nil {
 				return retry, err
 			}
 
-			// Remove bpfd-agentFinalizer. Once all finalizers have been
-			// removed, the object will be deleted.
-			controllerutil.RemoveFinalizer(bpfProgram, BpfdAgentFinalizer)
-			err := r.Update(ctx, bpfProgram)
-			if err != nil {
-				return false, err
-			}
-
-			// If K8s hasn't cleaned up here it means we're no longer selected
-			// write NodeNodeSelected status ignoring error (object may not exist)
-			r.updateStatus(ctx, bpfProgram, BpfProgCondNotSelected)
-		}
-
-		return false, nil
-	}
-
-	BpfProgramConfig.Spec.NodeSelector = metav1.LabelSelector{}
-
-	// TODO(astoycos) This will need to end up being a list of loadRequests
-	// if a given BpfProgramConfig selects more than one attach point
-	// (i.e if we support a pod LabelSelector for interfaces) For now
-	// we only support specifying a single BpfProgramAttachPoint in the API so
-	// there will only be a single loadRequest per BpfProgramConfig Object.
-	loadRequest, err := internal.BuildBpfdLoadRequest(BpfProgramConfig)
-	if err != nil {
-		r.updateStatus(ctx, bpfProgram, BpfProgCondNotLoaded)
-
-		return true, fmt.Errorf("failed to generate bpfd load request: %v",
-			err)
-	}
-
-	// Temporary hacks for state which won't match yet based on list API
-	// Proceed-on updates are not currently supported
-	if BpfProgramConfig.Spec.Type == "XDP" || BpfProgramConfig.Spec.Type == "TC" {
-		BpfProgramConfig.Spec.AttachPoint.NetworkMultiAttach.ProceedOn = nil
-		v.Req.AttachPoint.NetworkMultiAttach.ProceedOn = nil
-	}
-
-	// BpfProgram exists but is not correct state, unload and recreate
-	if !reflect.DeepEqual(*v.Req, BpfProgramConfig.Spec) {
-		if retry, err := r.unloadBpfdProgram(ctx, bpfProgram); err != nil {
-			return retry, err
-		}
-
-		// Re-create correct version
-		return r.loadBpfdProgram(ctx, loadRequest, bpfProgram)
-	} else {
-		// Program already exists, but bpfProgram K8s Object might not be up to date
-		if _, ok := bpfProgram.Spec.Programs[v.Uuid]; !ok {
-			maps, err := internal.GetMapsForUUID(v.Uuid)
-			if err != nil {
-				r.Logger.Error(err, "failed to get bpfProgram's Maps")
-				maps = map[string]string{}
-			}
-
-			bpfProgram.Spec.Programs[v.Uuid] = bpfdiov1alpha1.BpfProgramMeta{
-				AttachPoint: internal.AttachConversion(loadRequest),
-				Maps:        maps,
-			}
-
-			r.Logger.V(1).Info("Updating programs from nodestate", "Programs", bpfProgram.Spec.Programs)
-			// Update bpfProgram once successfully loaded
-			if err = r.Update(ctx, bpfProgram, &client.UpdateOptions{}); err != nil {
-				return false, fmt.Errorf("failed to create bpfProgram object: %v",
-					err)
-			}
-
-			r.updateStatus(ctx, bpfProgram, BpfProgCondLoaded)
+			// Re-create correct version
+			return r.loadBpfdProgram(ctx, loadRequest, bpfProgram)
 		} else {
-			// Program exists and bpfProgram K8s Object is up to date
-			r.Logger.V(1).Info("Ignoring Object Change nothing to reconcile on node")
+			// Program already exists, but bpfProgram K8s Object might not be up to date
+			if _, ok := bpfProgram.Spec.Programs[v.Uuid]; !ok {
+				maps, err := internal.GetMapsForUUID(v.Uuid)
+				if err != nil {
+					r.Logger.Error(err, "failed to get bpfProgram's Maps")
+					maps = map[string]string{}
+				}
+
+				bpfProgram.Spec.Programs[v.Uuid] = bpfdiov1alpha1.BpfProgramMeta{
+					AttachPoint: internal.AttachConversion(loadRequest),
+					Maps:        maps,
+				}
+
+				r.Logger.V(1).Info("Updating programs from nodestate", "Programs", bpfProgram.Spec.Programs)
+				// Update bpfProgram once successfully loaded
+				if err = r.Update(ctx, bpfProgram, &client.UpdateOptions{}); err != nil {
+					return false, fmt.Errorf("failed to create bpfProgram object: %v",
+						err)
+				}
+
+				r.updateStatus(ctx, bpfProgram, BpfProgCondLoaded)
+			} else {
+				// Program exists and bpfProgram K8s Object is up to date
+				r.Logger.V(1).Info("Ignoring Object Change nothing to reconcile on node")
+			}
 		}
 	}
 
@@ -505,4 +509,46 @@ func nodePredicate(nodeName string) predicate.Funcs {
 			return e.Object.GetLabels()["kubernetes.io/hostname"] == nodeName
 		},
 	}
+}
+
+func (r *BpfProgramReconciler) setNodeInterface(ourNode *v1.Node) error {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		r.Logger.Error(err, "failed to read node interfaces")
+		return err
+	}
+
+	for _, ipaddr := range ourNode.Status.Addresses {
+		r.Logger.V(1).Info("Node IP  - ", "Type", ipaddr.Type, "Address", ipaddr.Address)
+		if ipaddr.Type == v1.NodeInternalIP {
+			for _, i := range ifaces {
+				addrs, err := i.Addrs()
+				if err != nil {
+					r.Logger.Error(err, "failed to parse localAddresses, continuing")
+					continue
+				}
+				for _, a := range addrs {
+					switch v := a.(type) {
+					case *net.IPAddr:
+						r.Logger.V(1).Info("localAddresses", "name", i.Name, "index", i.Index, "addr", v, "mask", v.IP.DefaultMask())
+						if ipaddr.Address == v.String() {
+							r.NodeIface = i.Name
+							r.Logger.Info("primary node interface set", "name", r.NodeIface)
+							return nil
+						}
+
+					case *net.IPNet:
+						r.Logger.V(1).Info(" localAddresses", "name", i.Name, "index", i.Index, "v", v, "addr", v.IP, "mask", v.Mask)
+						if v.IP.Equal(net.ParseIP(ipaddr.Address)) {
+							r.NodeIface = i.Name
+							r.Logger.Info("primary node interface set", "name", r.NodeIface)
+							return nil
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return fmt.Errorf("Unable to find Node Interface")
 }

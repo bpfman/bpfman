@@ -12,7 +12,8 @@ spec:
   nodeselector: {}
   attachpoint: 
     networkmultiattach: 
-      interface: eth0
+      interfaceselector:
+        interface: eth0
       priority: 0
       direction: INGRESS
   bytecode: image://quay.io/bpfd-bytecode/tc_pass:latest

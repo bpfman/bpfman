@@ -40,6 +40,14 @@ type BpfProgram struct {
 
 // BpfProgramSpec defines the desired state of BpfProgram
 type BpfProgramSpec struct {
+	// Node program is loaded on
+	// +optional
+	Node string `json:"node,omitempty"`
+
+	// Type specifies the bpf program type.
+	// +optional
+	Type string `json:"type,omitempty"`
+
 	// ProgramMap is is a map with Keys: UUIDs, Values: BpfProgramMeta
 	Programs map[string]BpfProgramMeta `json:"programs"`
 }

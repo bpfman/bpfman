@@ -12,6 +12,7 @@ spec:
   nodeselector: {}
   attachpoint:
     networkmultiattach:
-      interface: eth0
+      interfaceselector:
+        primarynodeinterface: true
       priority: 55
   bytecode: image://quay.io/bpfd-bytecode/go-xdp-counter:latest
