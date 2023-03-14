@@ -102,11 +102,13 @@ KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 CM_VERIFIER ?= $(LOCALBIN)/cm-verifier
+OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.8.7
 CONTROLLER_TOOLS_VERSION ?= v0.11.3
 CM_VERIFIER_VERSION ?= 0.3.0
+OPERATOR_SDK_VERSION ?= v1.27.0
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
@@ -120,6 +122,13 @@ CM_VERIFIER_BINARY ?= https://github.com/astoycos/cert-manager-verifier/releases
 cm-verifier: $(CM_VERIFIER) ## Download cm-verifier locally if necessary.
 $(CM_VERIFIER): $(LOCALBIN)
 	test -s $(LOCALBIN)/cm_verifier || { curl -LSs $(CM_VERIFIER_BINARY) | tar -xz -C $(LOCALBIN); }
+
+OPERATOR_SDK_DL_NAME=operator-sdk_$(shell go env GOOS)_$(shell go env GOARCH)
+OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/$(OPERATOR_SDK_DL_NAME)
+.PHONY: operator-sdk
+operator-sdk: $(OPERATOR_SDK)
+$(OPERATOR_SDK): $(LOCALBIN)
+	test -s $(LOCALBIN)/operator_sdk || { curl -LO ${OPERATOR_SDK_DL_URL} && chmod +x ${OPERATOR_SDK_DL_NAME} && mv ${OPERATOR_SDK_DL_NAME} $(LOCALBIN)/operator-sdk; }
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
