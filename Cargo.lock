@@ -222,6 +222,7 @@ dependencies = [
  "clap",
  "comfy-table",
  "env_logger",
+ "hex",
  "log",
  "prost",
  "serde",
