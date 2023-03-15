@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
+use std::collections::HashMap;
+
 use anyhow::{bail, Context};
 use bpfd_api::{
     config::config_from_file,
@@ -12,6 +14,7 @@ use bpfd_api::{
 };
 use clap::{Args, Parser, Subcommand};
 use comfy_table::Table;
+use hex::FromHex;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
 
 #[derive(Parser)]
@@ -33,6 +36,15 @@ struct Load {
     /// Name of the ELF section from the object file.
     #[clap(short, long, default_value = "")]
     section_name: String,
+
+    /// Optional: Global variables to be set when program is loaded. Format: <NAME>=<Hex Value>
+    ///
+    /// Multiple values supported by repeating the parameter.
+    /// This is a very low level primitive. The caller is responsible for formatting
+    /// the byte string appropriately considering such things as size, endianness,
+    /// alignment and packing of data structures.
+    #[clap(short, long, num_args(1..), value_parser=parse_global_arg)]
+    global: Option<Vec<GlobalArg>>,
 
     /// Required: Location of Program Bytecode to load. Either Local file (file:///<path>) or bytecode
     /// image URL (image://<container image url>)
@@ -61,7 +73,7 @@ enum LoadCommands {
     },
     Tc {
         /// Required: Direction to apply program. "ingress" or "egress"
-        #[clap(long)]
+        #[clap(short, long)]
         direction: String,
         /// Required: Interface to load program on.
         #[clap(short, long)]
@@ -80,6 +92,34 @@ enum LoadCommands {
         #[clap(short, long)]
         tracepoint: String,
     },
+}
+
+#[derive(Clone, Debug)]
+struct GlobalArg {
+    /// Required: Name of global variable to set.
+    name: String,
+    /// Value of global variable.
+    ///
+    /// This is a very low level API.  User is responsible for ensuring that
+    /// alignment and endianness are correct for target processor.
+    value: Vec<u8>,
+}
+
+fn parse_global_arg(global_arg: &str) -> Result<GlobalArg, std::io::Error> {
+    let mut parts = global_arg.split('=');
+
+    let name_str = parts.next().ok_or(std::io::ErrorKind::InvalidInput)?;
+
+    let value_str = parts.next().ok_or(std::io::ErrorKind::InvalidInput)?;
+    let value = Vec::<u8>::from_hex(value_str).map_err(|_e| std::io::ErrorKind::InvalidInput)?;
+    if value.is_empty() {
+        return Err(std::io::ErrorKind::InvalidInput.into());
+    }
+
+    Ok(GlobalArg {
+        name: name_str.to_string(),
+        value,
+    })
 }
 
 #[tokio::main]
@@ -159,6 +199,7 @@ async fn main() -> anyhow::Result<()> {
                             proc_on.push(action as i32);
                         }
                     }
+
                     Some(load_request::AttachType::NetworkMultiAttach(
                         NetworkMultiAttach {
                             priority: *priority,
@@ -176,11 +217,20 @@ async fn main() -> anyhow::Result<()> {
                 }
             };
 
+            let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
+
+            if let Some(global) = &l.global {
+                for g in global.iter() {
+                    global_data.insert(g.name.to_string(), g.value.clone());
+                }
+            }
+
             let request = tonic::Request::new(LoadRequest {
                 location: l.location.clone(),
                 section_name: l.section_name.to_string(),
                 program_type: prog_type as i32,
                 attach_type,
+                global_data,
             });
             let response = client.load(request).await?.into_inner();
             println!("{}", response.id);

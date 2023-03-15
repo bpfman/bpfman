@@ -7,6 +7,11 @@ pub struct LoadRequest {
     pub section_name: ::prost::alloc::string::String,
     #[prost(enumeration = "ProgramType", tag = "3")]
     pub program_type: i32,
+    #[prost(map = "string, bytes", tag = "6")]
+    pub global_data: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::vec::Vec<u8>,
+    >,
     #[prost(oneof = "load_request::AttachType", tags = "4, 5")]
     pub attach_type: ::core::option::Option<load_request::AttachType>,
 }

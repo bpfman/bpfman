@@ -37,6 +37,7 @@ message LoadRequest {
         NetworkMultiAttach network_multi_attach = 4;
         SingleAttach single_attach = 5;
     }
+	map<string, bytes> global_data = 6;
 };
 
 message NetworkMultiAttach {
