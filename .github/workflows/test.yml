@@ -95,3 +95,12 @@ jobs:
 
     - name: run integration tests
       run: cd bpfd-operator && make test-integration
+
+    ## Upload diagnostics if integration test step failed.
+    - name: upload diagnostics
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: kubernetes-integration-test-diag
+        path: /tmp/ktf-diag*
+        if-no-files-found: ignore
