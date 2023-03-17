@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/redhat-et/bpfd/bpfd-operator/test/utils"
 )
 
 const (
@@ -29,6 +30,7 @@ func TestXdpGoCounter(t *testing.T) {
 	require.NoError(t, clusters.ApplyManifestByURL(ctx, env.Cluster(), xdpCounterBytecodeYaml))
 	addCleanup(func(ctx context.Context) error {
 		cleanupLog("cleaning up xdp counter bpfd program")
+		utils.DumpDiagnosticsIfFailed(ctx, t , env.Cluster())
 		return clusters.DeleteManifestByURL(ctx, env.Cluster(), xdpCounterBytecodeYaml)
 	})
 
@@ -36,6 +38,7 @@ func TestXdpGoCounter(t *testing.T) {
 	require.NoError(t, clusters.ApplyManifestByURL(ctx, env.Cluster(), xdpGoCounterUserspaceYaml))
 	addCleanup(func(ctx context.Context) error {
 		cleanupLog("cleaning up xdp counter userspace daemon")
+		utils.DumpDiagnosticsIfFailed(ctx, t , env.Cluster())
 		return clusters.DeleteManifestByURL(ctx, env.Cluster(), xdpGoCounterUserspaceYaml)
 	})
 
