@@ -1,12 +1,14 @@
 # [![bpfd](./docs/img/bpfd.svg)](https://bpfd.netlify.app/)
 
-![License][license-badge]
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License](https://img.shields.io/badge/License-BSD_2--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
+[![License: GPL v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 ![Build status][build-badge]
 [![Book][book-badge]][book-url]
 
-[license-badge]: https://img.shields.io/badge/license-MIT%2FApache--2.0-blue?style=for-the-badge
-[build-badge]: https://img.shields.io/github/actions/workflow/status/redhat-et/bpfd/build.yml?branch=main&style=for-the-badge
-[book-badge]: https://img.shields.io/badge/read%20the-book-9cf.svg?style=for-the-badge&logo=mdbook
+[build-badge]: https://img.shields.io/github/actions/workflow/status/redhat-et/bpfd/build.yml?branch=main
+[book-badge]: https://img.shields.io/badge/read%20the-book-9cf.svg
 [book-url]: https://bpfd.netlify.app/
 
 A system daemon for managing BPF programs.
