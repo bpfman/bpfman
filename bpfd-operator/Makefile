@@ -232,8 +232,8 @@ test: manifests generate fmt vet envtest ## Run tests.
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
 	operator-sdk generate kustomize manifests -q
-	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator-image=${BPFD_OPERATOR_IMG}
-	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image bpfd-image=${BPFD_IMG} && $(KUSTOMIZE) edit set image bpfd-agent-image=${BPFD_AGENT_IMG}
+	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-operator=${BPFD_OPERATOR_IMG}
+	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd=${BPFD_IMG} && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-agent=${BPFD_AGENT_IMG}
 	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle $(BUNDLE_GEN_FLAGS)
 	operator-sdk bundle validate ./bundle
 
@@ -327,8 +327,8 @@ setup-kind: cm-verifier ## Setup Kind cluster with certmanager ready for bpfd de
 ## Default deploy target is KIND based.
 .PHONY: deploy
 deploy: manifests kustomize cm-verifier load-images-kind ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
-	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator-image=${BPFD_OPERATOR_IMG} 
-	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image bpfd-image=${BPFD_IMG} && $(KUSTOMIZE) edit set image bpfd-agent-image=${BPFD_AGENT_IMG}
+	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-operator=${BPFD_OPERATOR_IMG}
+	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd=${BPFD_IMG} && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-agent=${BPFD_AGENT_IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
 .PHONY: undeploy
@@ -347,8 +347,8 @@ run-on-kind: kustomize setup-kind deploy-certmanager load-images-kind deploy ## 
 
 .PHONY: deploy-openshift
 deploy-openshift: manifests kustomize ## Deploy bpfd-operator to the Openshift cluster specified in ~/.kube/config.
-	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image bpfd-operator-image=${BPFD_OPERATOR_IMG} 
-	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image bpfd-image=${BPFD_IMG} && $(KUSTOMIZE) edit set image bpfd-agent-image=${BPFD_AGENT_IMG}
+	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-operator=${BPFD_OPERATOR_IMG}
+	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd=${BPFD_IMG} && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-agent=${BPFD_AGENT_IMG}
 	$(KUSTOMIZE) build config/openshift | kubectl apply -f -
 
 .PHONY: undeploy-openshift
