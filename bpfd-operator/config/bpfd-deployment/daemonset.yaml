@@ -28,7 +28,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: bpfd
-        image: bpfd-image:main
+        image: quay.io/bpfd/bpfd:main
         securityContext:
           privileged: true
         imagePullPolicy: IfNotPresent
@@ -64,7 +64,7 @@ spec:
       - name: bpfd-agent 
         command:
         - /bpfd-agent      
-        image: bpfd-agent-image:latest
+        image: quay.io/bpfd/bpfd-agent:main
         securityContext:
           privileged: true
         imagePullPolicy: IfNotPresent

@@ -70,7 +70,7 @@ spec:
         - /bpfd-operator
         args:
         - --leader-elect
-        image: bpfd-operator-image:latest
+        image: quay.io/bpfd/bpfd-operator:latest
         imagePullPolicy: IfNotPresent
         env:
           - name: GO_LOG

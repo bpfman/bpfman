@@ -41,7 +41,7 @@ var (
 )
 
 const (
-	bpfdKustomize = "../../config/default"
+	bpfdKustomize = "../../config/test";
 )
 
 func TestMain(m *testing.M) {
