@@ -72,6 +72,7 @@ mod test {
         name = "program1"
         location = "file:///opt/bin/myapp/lib/myebpf.o"
         section_name = "firewall"
+        global_data = { }
         program_type ="xdp"
         network_attach = { interface = "eth0", priority = 50, proceed_on = ["pass", "dispatcher_return"] }
 
@@ -79,6 +80,7 @@ mod test {
         name = "program2"
         location = "image://quay.io/bpfd-bytecode/xdp_pass:latest"
         section_name = "firewall"
+        global_data = { }
         program_type ="xdp"
         network_attach = { interface = "eth0", priority = 55, proceed_on = ["pass", "dispatcher_return"] }
         "#;

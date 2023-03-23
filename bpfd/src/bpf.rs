@@ -222,7 +222,13 @@ impl<'a> BpfManager<'a> {
             fs::create_dir_all(map_pin_path.clone())
                 .map_err(|e| BpfdError::Error(format!("can't create map dir: {e}")))?;
 
-            let mut loader = BpfLoader::new()
+            let mut loader = BpfLoader::new();
+
+            for (name, value) in &program.data.global_data {
+                loader.set_global(name, value.as_slice());
+            }
+
+            let mut loader = loader
                 .map_pin_path(map_pin_path.clone())
                 .load_file(&program.data.path)?;
 
