@@ -30,15 +30,31 @@ enum ProceedOn {
 }
 
 message LoadRequest {
-    string location = 1;
-    string section_name = 2;
-    ProgramType program_type = 3;
+    oneof location {
+        BytecodeImage image = 1;
+        string file = 2;
+    } ;
+    string section_name = 3;
+    ProgramType program_type = 4;
     oneof attach_type {
-        NetworkMultiAttach network_multi_attach = 4;
-        SingleAttach single_attach = 5;
+        NetworkMultiAttach network_multi_attach = 5;
+        SingleAttach single_attach = 6;
     }
-	map<string, bytes> global_data = 6;
+	map<string, bytes> global_data = 7;
 };
+
+enum ImagePullPolicy {
+    Always = 0;
+    IfNotPresent = 1;
+    Never = 2;
+}
+
+message BytecodeImage {
+    string url = 1;
+    ImagePullPolicy image_pull_policy = 2;
+    string username = 3;
+    string password = 4;
+}
 
 message NetworkMultiAttach {
     int32 priority = 1;
@@ -68,8 +84,11 @@ message ListResponse {
   message ListResult {
     string id = 1;
     string name = 2;
-    string location = 3;
-    ProgramType program_type = 4;
+    oneof location {
+        BytecodeImage image = 3;
+        string file = 4;
+    } ;
+    ProgramType program_type = 5;
     oneof attach_type {
         NetworkMultiAttach network_multi_attach = 6;
         SingleAttach single_attach = 7;

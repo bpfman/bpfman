@@ -23,7 +23,6 @@ pub mod directories {
     pub const CFGPATH_BPFD_CLIENT_CERTS_KEY: &str = "/etc/bpfd/certs/bpfd-client/bpfd-client.key";
     // RuntimeDirectory: /run/bpfd/
     pub const RTDIR: &str = "/run/bpfd";
-    pub const RTDIR_BYTECODE: &str = "/run/bpfd/bytecode";
     pub const RTDIR_XDP_DISPATCHER: &str = "/run/bpfd/dispatchers/xdp";
     pub const RTDIR_TC_INGRESS_DISPATCHER: &str = "/run/bpfd/dispatchers/tc-ingress";
     pub const RTDIR_TC_EGRESS_DISPATCHER: &str = "/run/bpfd/dispatchers/tc-egress";
@@ -37,4 +36,5 @@ pub mod directories {
     // StateDirectory: /var/lib/bpfd/
     pub const STDIR: &str = "/var/lib/bpfd";
     pub const STDIR_SOCKET: &str = "/var/lib/bpfd/sock";
+    pub const BYTECODE_IMAGE_CONTENT_STORE: &str = "/var/lib/bpfd/io.bpfd.image.content";
 }
