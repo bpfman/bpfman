@@ -167,11 +167,6 @@ impl TcDispatcher {
             "TcDispatcher::attach_extensions() for if_index {}, revision {}",
             self.if_index, self.revision
         );
-
-        #[derive(Copy, Clone)]
-        struct DataWrapper(&'static [u8]);
-        unsafe impl aya::Pod for DataWrapper {}
-
         let if_index = self.if_index;
         let dispatcher: &mut SchedClassifier = self
             .loader
@@ -183,22 +178,7 @@ impl TcDispatcher {
 
         extensions.sort_by(|(_, a), (_, b)| a.info.current_position.cmp(&b.info.current_position));
 
-        // // Set up test map of global variables
-        // let global1: [u8; 4] = [0x01, 0x02, 0x03, 0x04];
-        // let global2: [u8; 4] = [0x04, 0x03, 0x02, 0x01];
-        // let mut test_globals = HashMap::new();
-        // test_globals.insert("GLOBAL_1", global1);
-        // test_globals.insert("GLOBAL_2", global2);
-
         for (i, (k, v)) in extensions.iter_mut().enumerate() {
-            //let mut globals: HashMap<String, DataWrapper> = HashMap::new();
-
-            for (name, value) in &v.data.global_data {
-                println!("name: {:?}, value: {:?}", name, value);
-                //let val = DataWrapper(value);
-                //globals.insert(name.to_string(), val);
-            }
-
             if v.info.metadata.attached {
                 let mut ext = Extension::from_pin(format!("{RTDIR_FS}/prog_{k}"))?;
                 let target_fn = format!("prog{i}");
@@ -215,15 +195,9 @@ impl TcDispatcher {
             } else {
                 let mut bpf = BpfLoader::new();
 
-                // let bar = DataWrapper(&[0x00, 0x01, 0x02]);
-                // bpf.set_global("foo", &bar);
-
-                // for (name, value) in globals {
-                //     //println!("name: {:?}, value: {:?}", name, value);
-                //     let name2 = name.clone();
-                //     let value2 = value.clone();
-                //     bpf.set_global(&name2, &value2);
-                // }
+                for (name, value) in &v.data.global_data {
+                    bpf.set_global(name, value.as_slice());
+                }
 
                 let mut bpf = bpf
                     .map_pin_path(format!("{RTDIR_FS_MAPS}/{k}"))

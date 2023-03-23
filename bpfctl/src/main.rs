@@ -199,7 +199,6 @@ async fn main() -> anyhow::Result<()> {
                             proc_on.push(action as i32);
                         }
                     }
-
                     Some(load_request::AttachType::NetworkMultiAttach(
                         NetworkMultiAttach {
                             priority: *priority,
