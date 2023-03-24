@@ -298,7 +298,7 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 			}
 
 			// otherwise load it
-			loadRequest, err := internal.BuildBpfdLoadRequest(&modBpfProgramConfigSpec, BpfProgramConfig.Name)
+			loadRequest, err := internal.BuildBpfdLoadRequest(&modBpfProgramConfigSpec, BpfProgramConfig.Name, r.Client)
 			if err != nil {
 				r.updateStatus(ctx, bpfProgram, BpfProgCondNotLoaded)
 
@@ -337,7 +337,7 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 
 		modBpfProgramConfigSpec.NodeSelector = metav1.LabelSelector{}
 
-		loadRequest, err := internal.BuildBpfdLoadRequest(&modBpfProgramConfigSpec, BpfProgramConfig.Name)
+		loadRequest, err := internal.BuildBpfdLoadRequest(&modBpfProgramConfigSpec, BpfProgramConfig.Name, r.Client)
 		if err != nil {
 			r.updateStatus(ctx, bpfProgram, BpfProgCondNotLoaded)
 

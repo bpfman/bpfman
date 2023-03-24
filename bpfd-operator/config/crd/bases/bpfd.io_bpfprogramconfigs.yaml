@@ -115,11 +115,36 @@ spec:
                 type: object
               bytecode:
                 description: Bytecode configures where the bpf program's bytecode
-                  should be loaded from. It is a standard URL (RFC-1738) which currently
-                  only supports local files (file:///<local path>) or container registry
-                  links (image://<container image URL>)
-                pattern: (file|image)\:(\/){1,3}[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)
-                type: string
+                  should be loaded from.
+                properties:
+                  image:
+                    description: Image used to specify a bytecode container image.
+                    properties:
+                      imagepullpolicy:
+                        default: IfNotPresent
+                        description: PullPolicy describes a policy for if/when to
+                          pull a bytecode image. Defaults to IfNotPresent.
+                        enum:
+                        - Always
+                        - Never
+                        - IfNotPresent
+                        type: string
+                      imagepullsecret:
+                        description: ImagePullSecret is the name of the secret bpfd
+                          should use to get remote image repository secrets.
+                        type: string
+                      url:
+                        description: Valid container image URL used to reference a
+                          remote bytecode image.
+                        type: string
+                    required:
+                    - imagepullpolicy
+                    - url
+                    type: object
+                  path:
+                    description: Path is used to specify a bytecode object via filepath.
+                    type: string
+                type: object
               name:
                 description: ProgramName specifies the name of the bpf program to
                   be loaded.

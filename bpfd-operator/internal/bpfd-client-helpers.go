@@ -17,22 +17,31 @@ limitations under the License.
 package internal
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/containers/image/docker/reference"
 	toml "github.com/pelletier/go-toml"
 	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/apis/v1alpha1"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
 	"google.golang.org/grpc/credentials"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -137,10 +146,167 @@ func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) 
 	return credentials.NewTLS(config), nil
 }
 
-func BuildBpfdLoadRequest(bpf_program_config_spec *bpfdiov1alpha1.BpfProgramConfigSpec, name string) (*gobpfd.LoadRequest, error) {
+// Structure from https://github.com/kubernetes/kubernetes/blob/master/pkg/credentialprovider/config.go#L39
+// ContainerConfigJSON represents ~/.docker/config.json file info
+// see https://github.com/docker/docker/pull/12009
+type ContainerConfigJSON struct {
+	Auths ContainerConfig `json:"auths"`
+	// +optional
+	HTTPHeaders map[string]string `json:"HttpHeaders,omitempty"`
+}
+
+// DockerConfig represents the config file used by the docker CLI.
+// This config that represents the credentials that should be used
+// when pulling images from specific image repositories.
+type ContainerConfig map[string]ContainerConfigEntry
+
+// dockerConfigEntryWithAuth is used solely for deserializing the Auth field
+// into a dockerConfigEntry during JSON deserialization.
+type ContainerConfigEntry struct {
+	// +optional
+	Username string `json:"username,omitempty"`
+	// +optional
+	Password string `json:"password,omitempty"`
+	// +optional
+	Email string `json:"email,omitempty"`
+	// +optional
+	Auth string `json:"auth,omitempty"`
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface.
+func (ident *ContainerConfigEntry) UnmarshalJSON(data []byte) error {
+	err := json.Unmarshal(data, &ident)
+	if err != nil {
+		return err
+	}
+
+	if len(ident.Auth) == 0 {
+		return nil
+	}
+
+	ident.Username, ident.Password, err = decodeContainerConfigFieldAuth(ident.Auth)
+	return err
+}
+
+// decodeContainerConfigFieldAuth deserializes the "auth" field from containercfg into a
+// username and a password. The format of the auth field is base64(<username>:<password>).
+func decodeContainerConfigFieldAuth(field string) (username, password string, err error) {
+
+	var decoded []byte
+
+	// StdEncoding can only decode padded string
+	// RawStdEncoding can only decode unpadded string
+	if strings.HasSuffix(strings.TrimSpace(field), "=") {
+		// decode padded data
+		decoded, err = base64.StdEncoding.DecodeString(field)
+	} else {
+		// decode unpadded data
+		decoded, err = base64.RawStdEncoding.DecodeString(field)
+	}
+
+	if err != nil {
+		return
+	}
+
+	parts := strings.SplitN(string(decoded), ":", 2)
+	if len(parts) != 2 {
+		err = fmt.Errorf("unable to parse auth field, must be formatted as base64(username:password)")
+		return
+	}
+
+	username = parts[0]
+	password = parts[1]
+
+	return
+}
+
+// Mimicking exactly what Kubernetes does to pull out auths from secrets:
+// https://github.com/kubernetes/kubernetes/blob/master/pkg/credentialprovider/secrets/secrets.go#L29
+func ParseAuth(c client.Client, secretName string) (*ContainerConfig, error) {
+
+	var creds ContainerConfig
+
+	// Lookup the k8s Secret for repository authentication
+	ctx := context.Background()
+	imageSecret := &v1.Secret{}
+	if err := c.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: secretName}, imageSecret); err != nil {
+		return nil, fmt.Errorf("failed image auth secret %s: %v",
+			secretName, err)
+	}
+
+	if containerConfigJSONBytes, containerConfigJSONExists := imageSecret.Data[v1.DockerConfigJsonKey]; (imageSecret.Type == v1.SecretTypeDockerConfigJson) && containerConfigJSONExists && (len(containerConfigJSONBytes) > 0) {
+		containerConfigJSON := ContainerConfigJSON{}
+		if err := json.Unmarshal(containerConfigJSONBytes, &containerConfigJSON); err != nil {
+			return nil, err
+		}
+
+		creds = containerConfigJSON.Auths
+	} else if dockercfgBytes, dockercfgExists := imageSecret.Data[v1.DockerConfigKey]; (imageSecret.Type == v1.SecretTypeDockercfg) && dockercfgExists && (len(dockercfgBytes) > 0) {
+		dockercfg := ContainerConfig{}
+		if err := json.Unmarshal(dockercfgBytes, &dockercfg); err != nil {
+			return nil, err
+		}
+
+		creds = dockercfg
+	}
+
+	return &creds, nil
+}
+
+func BuildBpfdLoadRequest(bpf_program_config_spec *bpfdiov1alpha1.BpfProgramConfigSpec, name string, c client.Client) (*gobpfd.LoadRequest, error) {
 	loadRequest := gobpfd.LoadRequest{
 		SectionName: bpf_program_config_spec.Name,
-		Location:    bpf_program_config_spec.ByteCode,
+	}
+
+	if bpf_program_config_spec.ByteCode.Image != nil {
+		bytecodeImage := bpf_program_config_spec.ByteCode.Image
+		var pullPolicy gobpfd.ImagePullPolicy
+
+		ref, err := reference.ParseNamed(bytecodeImage.Url)
+		if err != nil {
+			panic(err)
+		}
+
+		var username, password string
+		if bytecodeImage.ImagePullSecret != "" {
+			creds, err := ParseAuth(c, bytecodeImage.ImagePullSecret)
+			if err != nil {
+				return nil, err
+			}
+
+			domain := reference.Domain(ref)
+
+			if domain == "docker.io" || domain == "" {
+				domain = "https://index.docker.io/v1/"
+			}
+
+			cred := (*creds)[domain]
+
+			username = cred.Username
+			password = cred.Password
+		}
+
+		switch bytecodeImage.ImagePullPolicy {
+		case "Always":
+			pullPolicy = gobpfd.ImagePullPolicy_Always
+		case "IfNotPresent":
+			pullPolicy = gobpfd.ImagePullPolicy_IfNotPresent
+		case "Never":
+			pullPolicy = gobpfd.ImagePullPolicy_Never
+		}
+
+		loadRequest.Location = &gobpfd.LoadRequest_Image{
+			Image: &gobpfd.BytecodeImage{
+				Url:             bytecodeImage.Url,
+				ImagePullPolicy: pullPolicy,
+				Username:        username,
+				Password:        password,
+			},
+		}
+	} else {
+		loadRequest.Location = &gobpfd.LoadRequest_File{
+			File: *bpf_program_config_spec.ByteCode.Path,
+		}
 	}
 
 	// Map program type (ultimately we should make this an ENUM in the API)
@@ -278,13 +444,14 @@ func CreateExistingState(nodeState []*gobpfd.ListResponse_ListResult) (map[Progr
 	for _, bpfdProg := range nodeState {
 		var existingConfigSpec *bpfdiov1alpha1.BpfProgramConfigSpec
 		attachType := AttachConversion(bpfdProg)
+		byteCode := BytecodeConversion(bpfdProg)
 
 		switch bpfdProg.ProgramType.String() {
 		case "XDP":
 			existingConfigSpec = &bpfdiov1alpha1.BpfProgramConfigSpec{
 				Name:         bpfdProg.Name,
 				Type:         bpfdProg.ProgramType.String(),
-				ByteCode:     bpfdProg.Location,
+				ByteCode:     *byteCode,
 				AttachPoint:  *attachType,
 				NodeSelector: metav1.LabelSelector{},
 			}
@@ -292,7 +459,7 @@ func CreateExistingState(nodeState []*gobpfd.ListResponse_ListResult) (map[Progr
 			existingConfigSpec = &bpfdiov1alpha1.BpfProgramConfigSpec{
 				Name:         bpfdProg.Name,
 				Type:         bpfdProg.ProgramType.String(),
-				ByteCode:     bpfdProg.Location,
+				ByteCode:     *byteCode,
 				AttachPoint:  *attachType,
 				NodeSelector: metav1.LabelSelector{},
 			}
@@ -300,7 +467,7 @@ func CreateExistingState(nodeState []*gobpfd.ListResponse_ListResult) (map[Progr
 			existingConfigSpec = &bpfdiov1alpha1.BpfProgramConfigSpec{
 				Name:         bpfdProg.Name,
 				Type:         bpfdProg.ProgramType.String(),
-				ByteCode:     bpfdProg.Location,
+				ByteCode:     *byteCode,
 				AttachPoint:  *attachType,
 				NodeSelector: metav1.LabelSelector{},
 			}
@@ -328,6 +495,38 @@ func CreateExistingState(nodeState []*gobpfd.ListResponse_ListResult) (map[Progr
 	return existingRequests, nil
 }
 
+// This Interface is derived from the go protobuf bindings to abstract the
+// Bytecode Location type without being coupled to a specific GRPC Service Type
+type BpfdBytecode interface {
+	GetImage() *gobpfd.BytecodeImage
+	GetFile() string
+}
+
+// BytecodeConversion changes a bpfd core API bytecode Location (represented by the
+// bpfdLocation interface) to a bpfd k8s API BytecodeSelector.
+func BytecodeConversion(location BpfdBytecode) *bpfdiov1alpha1.BytecodeSelector {
+	if location.GetImage() != nil {
+
+		return &bpfdiov1alpha1.BytecodeSelector{
+			Image: &bpfdiov1alpha1.BytecodeImage{
+				Url:             location.GetImage().Url,
+				ImagePullPolicy: bpfdiov1alpha1.PullPolicy(location.GetImage().GetImagePullPolicy().String()),
+			},
+		}
+	}
+
+	if location.GetFile() != "" {
+		path := location.GetFile()
+		return &bpfdiov1alpha1.BytecodeSelector{
+			Path: &path,
+		}
+	}
+
+	panic("Bytecode Location Type is unknown")
+}
+
+// This Interface is derived from the go protobuf bindings to abstract the
+// attachType without being coupled to a specific GRPC Service Type
 type BpfdAttachType interface {
 	GetNetworkMultiAttach() *gobpfd.NetworkMultiAttach
 	GetSingleAttach() *gobpfd.SingleAttach

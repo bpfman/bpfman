@@ -13,4 +13,6 @@ spec:
   attachpoint:
     singleattach:
       name: syscalls/sys_enter_kill
-  bytecode: image://quay.io/bpfd-bytecode/go-tracepoint-counter:latest
+  bytecode: 
+    image:
+      url: quay.io/bpfd-bytecode/go-tracepoint-counter:latest
