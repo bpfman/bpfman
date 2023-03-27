@@ -22,8 +22,10 @@ pub enum BpfdError {
     NotAuthorized,
     #[error("Invalid Interface")]
     InvalidInterface,
-    #[error("Unable to pin link")]
-    UnableToPin,
+    #[error("Failed to pin link {0}")]
+    UnableToPinLink(#[source] aya::pin::PinError),
+    #[error("Failed to pin program {0}")]
+    UnableToPinProgram(#[source] aya::pin::PinError),
     #[error("{0} is not a valid program type")]
     InvalidProgramType(String),
     #[error("{0} is not a valid attach point for this program")]

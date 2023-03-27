@@ -131,7 +131,7 @@ impl XdpDispatcher {
             let _ = TryInto::<FdLink>::try_into(owned_link)
                 .unwrap() // TODO: Don't unwrap, although due to minimum kernel version this shouldn't ever panic
                 .pin(path)
-                .map_err(|_| BpfdError::UnableToPin)?;
+                .map_err(BpfdError::UnableToPinLink)?;
         }
         Ok(())
     }
@@ -165,7 +165,7 @@ impl XdpDispatcher {
                     "{RTDIR_FS_XDP}/dispatcher_{if_index}_{}/link_{k}",
                     self.revision
                 );
-                new_link.pin(path).map_err(|_| BpfdError::UnableToPin)?;
+                new_link.pin(path).map_err(BpfdError::UnableToPinLink)?;
             } else {
                 let mut bpf = BpfLoader::new()
                     .map_pin_path(format!("{RTDIR_FS_MAPS}/{k}"))
@@ -181,7 +181,7 @@ impl XdpDispatcher {
 
                 ext.load(dispatcher.fd().unwrap(), &target_fn)?;
                 ext.pin(format!("{RTDIR_FS}/prog_{k}"))
-                    .map_err(|_| BpfdError::UnableToPin)?;
+                    .map_err(BpfdError::UnableToPinProgram)?;
                 let new_link_id = ext.attach()?;
                 let new_link = ext.take_link(new_link_id)?;
                 let fd_link: FdLink = new_link.into();
@@ -190,7 +190,7 @@ impl XdpDispatcher {
                         "{RTDIR_FS_XDP}/dispatcher_{if_index}_{}/link_{k}",
                         self.revision,
                     ))
-                    .map_err(|_| BpfdError::UnableToPin)?;
+                    .map_err(BpfdError::UnableToPinLink)?;
             }
         }
         Ok(())
