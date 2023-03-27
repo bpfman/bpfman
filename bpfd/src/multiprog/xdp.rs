@@ -69,7 +69,7 @@ impl XdpDispatcher {
             run_prios: [DEFAULT_PRIORITY; 10],
         };
 
-        debug!("num_progs_enabled = {}", config.num_progs_enabled);
+        debug!("xdp dispatcher config: {:?}", config);
 
         let mut loader = BpfLoader::new()
             .set_global("CONFIG", &config)

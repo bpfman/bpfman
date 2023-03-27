@@ -78,7 +78,7 @@ impl TcDispatcher {
             run_prios: [DEFAULT_PRIORITY; 10],
         };
 
-        debug!("num_progs_enabled = {}", config.num_progs_enabled);
+        debug!("tc dispatcher config: {:?}", config);
 
         let mut loader = BpfLoader::new()
             .set_global("CONFIG", &config)
