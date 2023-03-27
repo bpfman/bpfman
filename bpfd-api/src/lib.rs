@@ -205,7 +205,7 @@ pub enum XdpProceedOnEntry {
     Pass,
     Tx,
     Redirect,
-    DispatcherReturn,
+    DispatcherReturn = 31,
 }
 
 impl TryFrom<String> for XdpProceedOnEntry {
@@ -317,10 +317,13 @@ impl std::fmt::Display for XdpProceedOn {
     }
 }
 
+// FIXME: ANF: -1 doesn't work as a bit in a mask. My idea is to add 1 to the
+// value for building and evaluating the mask.  This will require changes both
+// here and in the tc dispatcher.
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 pub enum TcProceedOnEntry {
-    Unspec,
-    Ok,
+    Unspec = -1,
+    Ok = 0,
     Reclassify,
     Shot,
     Pipe,
@@ -329,7 +332,7 @@ pub enum TcProceedOnEntry {
     Repeat,
     Redirect,
     Trap,
-    DispatcherReturn,
+    DispatcherReturn = 31,
 }
 
 impl TryFrom<String> for TcProceedOnEntry {
@@ -433,8 +436,8 @@ impl TcProceedOn {
         Ok(TcProceedOn(res))
     }
 
-    pub fn mask(&self) -> i32 {
-        let mut proceed_on_mask: i32 = 0;
+    pub fn mask(&self) -> u32 {
+        let mut proceed_on_mask: u32 = 0;
         for action in self.0.clone().into_iter() {
             proceed_on_mask |= 1 << action as i32;
         }

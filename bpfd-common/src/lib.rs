@@ -30,7 +30,7 @@ pub const TC_MAX_DISPATCHER_ACTIONS: usize = 10;
 #[repr(C)]
 pub struct TcDispatcherConfig {
     pub num_progs_enabled: u8,
-    pub chain_call_actions: [i32; TC_MAX_DISPATCHER_ACTIONS],
+    pub chain_call_actions: [u32; TC_MAX_DISPATCHER_ACTIONS],
     pub run_prios: [u32; TC_MAX_DISPATCHER_ACTIONS],
 }
 
