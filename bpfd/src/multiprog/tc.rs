@@ -191,7 +191,7 @@ impl TcDispatcher {
                     Direction::Egress => RTDIR_FS_TC_EGRESS,
                 };
                 let path = format!("{base}/dispatcher_{if_index}_{}/link_{k}", self.revision);
-                new_link.pin(path).map_err(|_| BpfdError::UnableToPin)?;
+                new_link.pin(path).map_err(BpfdError::UnableToPinLink)?;
             } else {
                 let mut bpf = BpfLoader::new()
                     .map_pin_path(format!("{RTDIR_FS_MAPS}/{k}"))
@@ -208,7 +208,7 @@ impl TcDispatcher {
 
                 ext.load(dispatcher.fd().unwrap(), &target_fn)?;
                 ext.pin(format!("{RTDIR_FS}/prog_{k}"))
-                    .map_err(|_| BpfdError::UnableToPin)?;
+                    .map_err(BpfdError::UnableToPinProgram)?;
                 let new_link_id = ext.attach()?;
                 let new_link = ext.take_link(new_link_id)?;
                 let fd_link: FdLink = new_link.into();
@@ -221,7 +221,7 @@ impl TcDispatcher {
                         "{base}/dispatcher_{if_index}_{}/link_{k}",
                         self.revision,
                     ))
-                    .map_err(|_| BpfdError::UnableToPin)?;
+                    .map_err(BpfdError::UnableToPinLink)?;
             }
         }
         Ok(())

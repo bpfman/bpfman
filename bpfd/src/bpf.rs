@@ -4,7 +4,10 @@
 use std::{collections::HashMap, convert::TryInto, fs};
 
 use anyhow::anyhow;
-use aya::{programs::TracePoint, BpfLoader};
+use aya::{
+    programs::{links::FdLink, trace_point::TracePointLink, TracePoint},
+    BpfLoader,
+};
 use bpfd_api::{config::Config, util::directories::*};
 use log::{debug, info};
 use uuid::Uuid;
@@ -236,18 +239,27 @@ impl<'a> BpfManager<'a> {
                 .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
             self.programs.insert(id, p);
 
-            tracepoint.attach(&category, &name).or_else(|e| {
+            let link_id = tracepoint.attach(&category, &name).or_else(|e| {
                 let prog = self.programs.remove(&id).unwrap();
                 prog.delete(id).map_err(|_| {
                     BpfdError::Error(
                         "new dispatcher cleanup failed, unable to delete program data".to_string(),
                     )
                 })?;
-                Err(BpfdError::Error(format!("can't attach: {e}")))
+                Err(BpfdError::BpfProgramError(e))
             })?;
-            tracepoint
+
+            let owned_link: TracePointLink = tracepoint.take_link(link_id)?;
+            let fd_link: FdLink = owned_link
+                .try_into()
+                .expect("unable to get owned tracepoint attach link");
+            fd_link
                 .pin(format!("{RTDIR_FS}/prog_{id}_link"))
-                .or_else(|_| {
+                .map_err(BpfdError::UnableToPinLink)?;
+
+            tracepoint
+                .pin(format!("{RTDIR_FS}/prog_{id}"))
+                .or_else(|e| {
                     let prog = self.programs.remove(&id).unwrap();
                     prog.delete(id).map_err(|_| {
                         BpfdError::Error(
@@ -255,8 +267,9 @@ impl<'a> BpfManager<'a> {
                                 .to_string(),
                         )
                     })?;
-                    Err(BpfdError::UnableToPin)
+                    Err(BpfdError::UnableToPinProgram(e))
                 })?;
+
             Ok(id)
         } else {
             panic!("not a tracepoint program")
