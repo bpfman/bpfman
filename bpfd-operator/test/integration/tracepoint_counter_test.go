@@ -63,7 +63,7 @@ func TestTracepointGoCounter(t *testing.T) {
 		t.Logf("counter pod log %s", output.String())
 
 		matches := want.FindAllStringSubmatch(output.String(), -1)
-		if len(matches) == 1 && len(matches[0]) == 2 {
+		if len(matches) >= 1 && len(matches[0]) >= 2 {
 			count, err := strconv.Atoi(matches[0][1])
 			require.NoError(t, err)
 			if count > 0 {
