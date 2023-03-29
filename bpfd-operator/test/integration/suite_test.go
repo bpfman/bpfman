@@ -112,6 +112,11 @@ func TestMain(m *testing.M) {
 	exitOnErr(waitForBpfdReadiness(ctx, env))
 
 	exit := m.Run()
+	// If there's any errors in e2e tests dump diagnostics
+	if exit != 0 {
+		_, err := env.Cluster().DumpDiagnostics(ctx, "bpfd-e2e-test")
+		exitOnErr(err)
+	}
 
 	exitOnErr(runCleanup())
 
