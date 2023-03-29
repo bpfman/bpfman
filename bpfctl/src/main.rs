@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::collections::HashMap;
+use std::{collections::HashMap, net::SocketAddr};
 
 use anyhow::{bail, Context};
 use bpfd_api::{
@@ -145,7 +145,17 @@ async fn main() -> anyhow::Result<()> {
         .domain_name("localhost")
         .ca_certificate(ca_cert)
         .identity(identity);
-    let channel = Channel::from_static("http://[::1]:50051")
+    let endpoint = &config.grpc.endpoint;
+    let address = SocketAddr::new(
+        endpoint
+            .address
+            .parse()
+            .unwrap_or_else(|_| panic!("failed to parse address '{}'", endpoint.address)),
+        endpoint.port,
+    );
+    // TODO: Use https (https://github.com/redhat-et/bpfd/issues/396)
+    let address = format!("http://{address}");
+    let channel = Channel::from_shared(address)?
         .tls_config(tls_config)?
         .connect()
         .await?;

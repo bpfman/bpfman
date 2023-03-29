@@ -11,6 +11,8 @@ mod rpc;
 mod static_program;
 mod utils;
 
+use std::net::SocketAddr;
+
 use anyhow::{bail, Context};
 use bpf::BpfManager;
 use bpfd_api::{
@@ -35,7 +37,14 @@ use crate::command::{
 
 pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(32);
-    let addr = "[::1]:50051".parse().unwrap();
+    let endpoint = &config.grpc.endpoint;
+    let addr = SocketAddr::new(
+        endpoint
+            .address
+            .parse()
+            .unwrap_or_else(|_| panic!("failed to parse listening address '{}'", endpoint.address)),
+        endpoint.port,
+    );
 
     let loader = BpfdLoader::new(tx);
 
@@ -53,7 +62,7 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
         .serve(addr);
 
     tokio::spawn(async move {
-        info!("Listening on [::1]:50051");
+        info!("Listening on {addr}");
         if let Err(e) = serve.await {
             eprintln!("Error = {e:?}");
         }
