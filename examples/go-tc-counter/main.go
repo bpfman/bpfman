@@ -90,7 +90,7 @@ func main() {
 			c := gobpfd.NewLoaderClient(conn)
 
 			loadRequest := &gobpfd.LoadRequest{
-				Location:    paramData.BytecodeLocation,
+				Location:    paramData.BytecodeSource.Location,
 				SectionName: "stats",
 				ProgramType: gobpfd.ProgramType_TC,
 				AttachType: &gobpfd.LoadRequest_NetworkMultiAttach{

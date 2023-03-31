@@ -28,7 +28,8 @@ import (
 const (
 	SrcNone = iota
 	SrcUuid
-	SrcLocation
+	SrcImage
+	SrcFile
 )
 
 const (
@@ -37,34 +38,33 @@ const (
 	ProgTypeTracepoint
 )
 
-const (
-	FILE_PREFIX = "file:///"
-)
-
 type ParameterData struct {
-	Iface            string
-	Priority         int
-	Direction        gobpfd.Direction
-	CrdFlag          bool
-	Uuid             string
-	BytecodeLocation string
-	BytecodeSrc      int
+	Iface     string
+	Priority  int
+	Direction gobpfd.Direction
+	CrdFlag   bool
+	Uuid      string
+	// The bytecodesource type has to be encapsulated in a complete LoadRequest because isLoadRequest_Location is not Public
+	BytecodeSource *gobpfd.LoadRequest
+	BytecodeSrc    int
 }
 
 func ParseParamData(progType int, configFilePath string, defaultBytecodeFile string) (ParameterData, error) {
 	var paramData ParameterData
 	paramData.BytecodeSrc = SrcNone
 
-	var cmdlineUuid, cmdlinelocation, direction_str string
+	var cmdlineUuid, cmdlineImage, cmdlineFile, direction_str string
 
 	flag.StringVar(&paramData.Iface, "iface", "",
 		"Interface to load bytecode.")
 	flag.IntVar(&paramData.Priority, "priority", -1,
 		"Priority to load program in bpfd")
 	flag.StringVar(&cmdlineUuid, "uuid", "",
-		"UUID of bytecode that has already been loaded. uuid and location are mutually exclusive.")
-	flag.StringVar(&cmdlinelocation, "location", "",
-		"URL of bytecode source. uuid and location are mutually exclusive.")
+		"UUID of bytecode that has already been loaded. uuid and image/file are mutually exclusive.")
+	flag.StringVar(&cmdlineImage, "image", "",
+		"Image repository URL of bytecode source. uuid/file and image are mutually exclusive.")
+	flag.StringVar(&cmdlineFile, "file", "",
+		"File path of bytecode source. uuid/image and file are mutually exclusive.")
 	flag.BoolVar(&paramData.CrdFlag, "crd", false,
 		"Flag to indicate all attributes should be pulled from the EbpfProgram CRD. Used in Kubernetes deployments and is mutually exclusive with all other parameters.")
 	if progType == ProgTypeTc {
@@ -117,16 +117,30 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 	// Parse Commandline first.
 
 	// "-uuid" is a UUID for the bytecode that has already loaded into bpfd. If not
-	// provided, check "-location".
+	// provided, check "-file" and "-image".
 	//    ./go-xdp-counter -iface eth0 -uuid 53ac77fc-18a9-42e2-8dd3-152fc31ba979
 	if len(cmdlineUuid) == 0 {
-		// "-location" is a URL for the bytecode source. If not provided, check toml file.
-		//    ./go-xdp-counter -iface eth0 -location image://quay.io/bpfd-bytecode/go-xdp-counter:latest
-		//    ./go-xdp-counter -iface eth0 -location file://var/bpfd/bytecode/bpf_bpfel.o
-		if len(cmdlinelocation) != 0 {
+		// "-path" is a file path for the bytecode source. If not provided, check toml file.
+		//    ./go-xdp-counter -iface eth0 -path /var/bpfd/bytecode/bpf_bpfel.o
+		if len(cmdlineFile) != 0 {
 			// "-location" was entered so it is a URL
-			paramData.BytecodeLocation = cmdlinelocation
-			paramData.BytecodeSrc = SrcLocation
+			paramData.BytecodeSource = &gobpfd.LoadRequest{
+				Location: &gobpfd.LoadRequest_File{File: cmdlineFile},
+			}
+
+			paramData.BytecodeSrc = SrcFile
+		}
+		// "-image" is a container registry url for the bytecode source. If not provided, check toml file.
+		//    ./go-xdp-counter -p eth0 -image quay.io/bpfd-bytecode/go-xdp-counter:latest
+		if len(cmdlineImage) != 0 {
+			// "-location" was entered so it is a URL
+			paramData.BytecodeSource = &gobpfd.LoadRequest{
+				Location: &gobpfd.LoadRequest_Image{Image: &gobpfd.BytecodeImage{
+					Url: cmdlineImage,
+				}},
+			}
+
+			paramData.BytecodeSrc = SrcImage
 		}
 	} else {
 		// "-uuid" was entered so it is a UUID
@@ -142,16 +156,18 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 			return paramData, fmt.Errorf("couldn't find bpf elf file: %v", err)
 		}
 
-		paramData.BytecodeLocation = FILE_PREFIX + path
-		paramData.BytecodeSrc = SrcLocation
+		paramData.BytecodeSource = &gobpfd.LoadRequest{
+			Location: &gobpfd.LoadRequest_File{File: path},
+		}
+		paramData.BytecodeSrc = SrcFile
 	}
 
 	if paramData.BytecodeSrc == SrcUuid {
 		log.Printf("Using Input: Interface=%s Source=%s",
 			paramData.Iface, paramData.Uuid)
 	} else {
-		log.Printf("Using Input: Interface=%s Priority=%d Source=%s",
-			paramData.Iface, paramData.Priority, paramData.BytecodeLocation)
+		log.Printf("Using Input: Interface=%s Priority=%d Source=%+v",
+			paramData.Iface, paramData.Priority, &paramData.BytecodeSource)
 	}
 
 	return paramData, nil
