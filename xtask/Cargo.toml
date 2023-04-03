@@ -9,4 +9,4 @@ anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 lazy_static = "1"
 serde_json = "1"
-tonic-build = "0.8"
+tonic-build = "0.9"
