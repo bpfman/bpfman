@@ -94,7 +94,7 @@ jobs:
       - uses: golangci/golangci-lint-action@v3
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
-          # Keep this version synced with /bpfd/bpfd-operator/hack/verify-golint.sh
+          # Keep this version synced with /bpfd/bpfd-operator/hack/verify-golint.sh and /bpfd/bpfd-operator/scripts/verify-golint.sh
           version: v1.51.1
           # Optional: working directory, useful for monorepos
           working-directory: ${{ env.GOPATH }}/src/github.com/redhat-et/bpfd/examples
@@ -122,7 +122,7 @@ jobs:
       - uses: golangci/golangci-lint-action@v3
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
-          # Keep this version synced with /bpfd/bpfd-operator/hack/verify-golint.sh
+          # Keep this version synced with /bpfd/bpfd-operator/scripts/verify-golint.sh
           version: v1.51.1
           # Optional: working directory, useful for monorepos
           working-directory: ${{ env.GOPATH }}/src/github.com/redhat-et/bpfd/bpfd-operator
