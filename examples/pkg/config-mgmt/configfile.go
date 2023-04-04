@@ -33,14 +33,24 @@ type Tls struct {
 	Key    string `toml:"key"`
 }
 
+type Endpoint struct {
+	Port uint16 `toml:"port"`
+}
+
+type Grpc struct {
+	Endpoint Endpoint `toml:"endpoint"`
+}
+
 type ConfigFileData struct {
-	Tls    Tls
+	Tls  Tls  `toml:"tls"`
+	Grpc Grpc `toml:"grpc"`
 }
 
 const (
 	DefaultRootCaPath     = "/etc/bpfd/certs/ca/ca.pem"
 	DefaultClientCertPath = "/etc/bpfd/certs/bpfd-client/bpfd-client.pem"
 	DefaultClientKeyPath  = "/etc/bpfd/certs/bpfd-client/bpfd-client.key"
+	DefaultPort           = 50051
 )
 
 func LoadConfig(configFilePath string) ConfigFileData {
@@ -49,6 +59,11 @@ func LoadConfig(configFilePath string) ConfigFileData {
 			CaCert: DefaultRootCaPath,
 			Cert:   DefaultClientCertPath,
 			Key:    DefaultClientKeyPath,
+		},
+		Grpc: Grpc{
+			Endpoint: Endpoint{
+				Port: DefaultPort,
+			},
 		},
 	}
 

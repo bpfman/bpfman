@@ -74,7 +74,8 @@ func main() {
 			}
 
 			// Set up a connection to the server.
-			conn, err := grpc.DialContext(ctx, "localhost:50051", grpc.WithTransportCredentials(creds))
+			addr := fmt.Sprintf("localhost:%d", configFileData.Grpc.Endpoint.Port)
+			conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(creds))
 			if err != nil {
 				log.Printf("did not connect: %v", err)
 				return
