@@ -95,9 +95,9 @@ func main() {
 	}
 
 	// Setup bpfd Client
-	tlsConfig := internal.LoadConfig()
+	configFileData := internal.LoadConfig()
 
-	creds, err := internal.LoadTLSCredentials(tlsConfig)
+	creds, err := internal.LoadTLSCredentials(configFileData.Tls)
 	if err != nil {
 		setupLog.Error(err, "Failed to generate credentials for new client")
 		os.Exit(1)
@@ -105,7 +105,8 @@ func main() {
 
 	// Set up a connection to bpfd, block until bpfd is up.
 	setupLog.Info("Waiting for active connection to bpfd")
-	conn, err := grpc.DialContext(context.Background(), "localhost:50051", grpc.WithTransportCredentials(creds), grpc.WithBlock())
+	addr := fmt.Sprintf("localhost:%d", configFileData.Grpc.Endpoint.Port)
+	conn, err := grpc.DialContext(context.Background(), addr, grpc.WithTransportCredentials(creds), grpc.WithBlock())
 	if err != nil {
 		setupLog.Error(err, "unable to connect to bpfd")
 		os.Exit(1)

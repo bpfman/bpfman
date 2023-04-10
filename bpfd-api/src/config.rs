@@ -14,6 +14,8 @@ pub struct Config {
     #[serde(default)]
     pub tls: TlsConfig,
     pub interfaces: Option<HashMap<String, InterfaceConfig>>,
+    #[serde(default)]
+    pub grpc: Grpc,
 }
 
 #[derive(Debug, Deserialize)]
@@ -93,6 +95,37 @@ impl ToString for XdpMode {
             XdpMode::Hw => "hw".to_string(),
         }
     }
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct Grpc {
+    #[serde(default)]
+    pub endpoint: Endpoint,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Endpoint {
+    #[serde(default = "default_address")]
+    pub address: String,
+    #[serde(default = "default_port")]
+    pub port: u16,
+}
+
+impl Default for Endpoint {
+    fn default() -> Self {
+        Endpoint {
+            address: default_address(),
+            port: default_port(),
+        }
+    }
+}
+
+fn default_address() -> String {
+    String::from("::1")
+}
+
+fn default_port() -> u16 {
+    50051
 }
 
 pub fn config_from_file<P: AsRef<Path>>(path: P) -> Config {
@@ -211,5 +244,73 @@ mod test {
             config.tls.client_key,
             CFGPATH_BPFD_CLIENT_CERTS_KEY.to_string()
         );
+    }
+
+    #[test]
+    fn test_config_endpoint_default() {
+        let input = r#"
+        "#;
+
+        let config: Config = toml::from_str(input).expect("error parsing toml input");
+        assert_eq!(config.grpc.endpoint.address, default_address());
+        assert_eq!(config.grpc.endpoint.port, default_port());
+    }
+
+    #[test]
+    fn test_config_endpoint_no_endpoint() {
+        let input = r#"
+        [grpc]
+        "#;
+
+        let config: Config = toml::from_str(input).expect("error parsing toml input");
+        assert_eq!(config.grpc.endpoint.address, default_address());
+        assert_eq!(config.grpc.endpoint.port, default_port());
+    }
+
+    #[test]
+    fn test_config_endpoint_empty_endpoint() {
+        let input = r#"
+        [grpc.endpoint]
+        "#;
+
+        let config: Config = toml::from_str(input).expect("error parsing toml input");
+        assert_eq!(config.grpc.endpoint.address, default_address());
+        assert_eq!(config.grpc.endpoint.port, default_port());
+    }
+
+    #[test]
+    fn test_config_endpoint_no_port() {
+        let input = r#"
+        [grpc.endpoint]
+        address = "127.0.0.1"
+        "#;
+
+        let config: Config = toml::from_str(input).expect("error parsing toml input");
+        assert_eq!(config.grpc.endpoint.address, "127.0.0.1");
+        assert_eq!(config.grpc.endpoint.port, default_port());
+    }
+    #[test]
+    fn test_config_endpoint_no_address() {
+        let input = r#"
+        [grpc.endpoint]
+        port = 50052
+        "#;
+
+        let config: Config = toml::from_str(input).expect("error parsing toml input");
+        assert_eq!(config.grpc.endpoint.address, default_address());
+        assert_eq!(config.grpc.endpoint.port, 50052);
+    }
+
+    #[test]
+    fn test_config_endpoint() {
+        let input = r#"
+        [grpc.endpoint]
+        address = "127.0.0.1"
+        port = 50052
+        "#;
+
+        let config: Config = toml::from_str(input).expect("error parsing toml input");
+        assert_eq!(config.grpc.endpoint.address, "127.0.0.1");
+        assert_eq!(config.grpc.endpoint.port, 50052);
     }
 }

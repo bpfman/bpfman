@@ -18,6 +18,10 @@ There is an example at `scripts/bpfd.toml`, similar to:
 [interfaces]
   [interface.eth0]
   xdp_mode = "hw" # Valid xdp modes are "hw", "skb" and "drv". Default: "skb".
+
+[grpc.endpoint]
+  address = "::1"
+  port = 50051
 ```
 
 `bpfctl` and `bpfd-agent` (which is only used in Kubernetes type deployments) will also read the

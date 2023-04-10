@@ -45,23 +45,50 @@ const (
 	bpfdMapFs              = "/run/bpfd/fs/maps"
 	DefaultConfigPath      = "/etc/bpfd/bpfd.toml"
 	DefaultRootCaPath      = "/etc/bpfd/certs/ca/ca.crt"
+	DefaultCertPath        = "/etc/bpfd/certs/bpfd/tls.crt"
+	DefaultKeyPath         = "/etc/bpfd/certs/bpfd/tls.key"
 	DefaultClientCertPath  = "/etc/bpfd/certs/bpfd-client/tls.crt"
 	DefaultClientKeyPath   = "/etc/bpfd/certs/bpfd-client/tls.key"
+	DefaultPort            = 50051
 )
 
 var log = ctrl.Log.WithName("bpfd-internal-helpers")
 
 type Tls struct {
-	CaCert string `toml:"ca_cert"`
-	Cert   string `toml:"cert"`
-	Key    string `toml:"key"`
+	CaCert     string `toml:"ca_cert"`
+	Cert       string `toml:"cert"`
+	Key        string `toml:"key"`
+	ClientCert string `toml:"client_cert"`
+	ClientKey  string `toml:"client_key"`
 }
 
-func LoadConfig() Tls {
-	tlsConfig := Tls{
-		CaCert: DefaultRootCaPath,
-		Cert:   DefaultClientCertPath,
-		Key:    DefaultClientKeyPath,
+type Endpoint struct {
+	Port uint16 `toml:"port"`
+}
+
+type Grpc struct {
+	Endpoint Endpoint `toml:"endpoint"`
+}
+
+type ConfigFileData struct {
+	Tls  Tls  `toml:"tls"`
+	Grpc Grpc `toml:"grpc"`
+}
+
+func LoadConfig() ConfigFileData {
+	config := ConfigFileData{
+		Tls: Tls{
+			CaCert:     DefaultRootCaPath,
+			Cert:       DefaultCertPath,
+			Key:        DefaultKeyPath,
+			ClientCert: DefaultClientCertPath,
+			ClientKey:  DefaultClientKeyPath,
+		},
+		Grpc: Grpc{
+			Endpoint: Endpoint{
+				Port: DefaultPort,
+			},
+		},
 	}
 
 	log.Info("Reading...\n", "Default config path", DefaultConfigPath)
@@ -72,7 +99,7 @@ func LoadConfig() Tls {
 
 	b, err := io.ReadAll(file)
 	if err == nil {
-		err = toml.Unmarshal(b, &tlsConfig)
+		err = toml.Unmarshal(b, &config)
 		if err != nil {
 			log.Info("Unmarshal failed: err %+v\n", err)
 		}
@@ -80,7 +107,7 @@ func LoadConfig() Tls {
 		log.Info("Read config-path failed: err\n", "config-path", DefaultConfigPath, "err", err)
 	}
 
-	return tlsConfig
+	return config
 }
 
 func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) {
@@ -96,7 +123,7 @@ func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) 
 	}
 
 	// Load client's certificate and private key
-	clientCert, err := tls.LoadX509KeyPair(tlsFiles.Cert, tlsFiles.Key)
+	clientCert, err := tls.LoadX509KeyPair(tlsFiles.ClientCert, tlsFiles.ClientKey)
 	if err != nil {
 		return nil, err
 	}

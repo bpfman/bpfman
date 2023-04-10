@@ -8,3 +8,7 @@
 [interfaces]
   [interface.eth0]
   xdp_mode = "hw" # Valid xdp modes are "hw", "skb" and "drv". Default: "skb".
+
+[grpc.endpoint]
+  address = "::1"
+  port = 50051
