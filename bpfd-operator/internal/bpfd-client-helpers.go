@@ -45,6 +45,8 @@ const (
 	bpfdMapFs              = "/run/bpfd/fs/maps"
 	DefaultConfigPath      = "/etc/bpfd/bpfd.toml"
 	DefaultRootCaPath      = "/etc/bpfd/certs/ca/ca.crt"
+	DefaultCertPath        = "/etc/bpfd/certs/bpfd/tls.crt"
+	DefaultKeyPath         = "/etc/bpfd/certs/bpfd/tls.key"
 	DefaultClientCertPath  = "/etc/bpfd/certs/bpfd-client/tls.crt"
 	DefaultClientKeyPath   = "/etc/bpfd/certs/bpfd-client/tls.key"
 	DefaultPort            = 50051
@@ -53,9 +55,11 @@ const (
 var log = ctrl.Log.WithName("bpfd-internal-helpers")
 
 type Tls struct {
-	CaCert string `toml:"ca_cert"`
-	Cert   string `toml:"cert"`
-	Key    string `toml:"key"`
+	CaCert     string `toml:"ca_cert"`
+	Cert       string `toml:"cert"`
+	Key        string `toml:"key"`
+	ClientCert string `toml:"client_cert"`
+	ClientKey  string `toml:"client_key"`
 }
 
 type Endpoint struct {
@@ -74,9 +78,11 @@ type ConfigFileData struct {
 func LoadConfig() ConfigFileData {
 	config := ConfigFileData{
 		Tls: Tls{
-			CaCert: DefaultRootCaPath,
-			Cert:   DefaultClientCertPath,
-			Key:    DefaultClientKeyPath,
+			CaCert:     DefaultRootCaPath,
+			Cert:       DefaultCertPath,
+			Key:        DefaultKeyPath,
+			ClientCert: DefaultClientCertPath,
+			ClientKey:  DefaultClientKeyPath,
 		},
 		Grpc: Grpc{
 			Endpoint: Endpoint{
@@ -117,7 +123,7 @@ func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) 
 	}
 
 	// Load client's certificate and private key
-	clientCert, err := tls.LoadX509KeyPair(tlsFiles.Cert, tlsFiles.Key)
+	clientCert, err := tls.LoadX509KeyPair(tlsFiles.ClientCert, tlsFiles.ClientKey)
 	if err != nil {
 		return nil, err
 	}

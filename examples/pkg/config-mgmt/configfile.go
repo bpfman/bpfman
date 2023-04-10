@@ -28,9 +28,11 @@ import (
 )
 
 type Tls struct {
-	CaCert string `toml:"ca_cert"`
-	Cert   string `toml:"cert"`
-	Key    string `toml:"key"`
+	CaCert     string `toml:"ca_cert"`
+	Cert       string `toml:"cert"`
+	Key        string `toml:"key"`
+	ClientCert string `toml:"client_cert"`
+	ClientKey  string `toml:"client_key"`
 }
 
 type Endpoint struct {
@@ -48,6 +50,8 @@ type ConfigFileData struct {
 
 const (
 	DefaultRootCaPath     = "/etc/bpfd/certs/ca/ca.pem"
+	DefaultCertPath       = "/etc/bpfd/certs/bpfd/tls.crt"
+	DefaultKeyPath        = "/etc/bpfd/certs/bpfd/tls.key"
 	DefaultClientCertPath = "/etc/bpfd/certs/bpfd-client/bpfd-client.pem"
 	DefaultClientKeyPath  = "/etc/bpfd/certs/bpfd-client/bpfd-client.key"
 	DefaultPort           = 50051
@@ -56,9 +60,11 @@ const (
 func LoadConfig(configFilePath string) ConfigFileData {
 	config := ConfigFileData{
 		Tls: Tls{
-			CaCert: DefaultRootCaPath,
-			Cert:   DefaultClientCertPath,
-			Key:    DefaultClientKeyPath,
+			CaCert:     DefaultRootCaPath,
+			Cert:       DefaultCertPath,
+			Key:        DefaultKeyPath,
+			ClientCert: DefaultClientCertPath,
+			ClientKey:  DefaultClientKeyPath,
 		},
 		Grpc: Grpc{
 			Endpoint: Endpoint{
@@ -94,7 +100,7 @@ func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) 
 	}
 
 	// Load client's certificate and private key
-	clientCert, err := tls.LoadX509KeyPair(tlsFiles.Cert, tlsFiles.Key)
+	clientCert, err := tls.LoadX509KeyPair(tlsFiles.ClientCert, tlsFiles.ClientKey)
 	if err != nil {
 		return nil, err
 	}
