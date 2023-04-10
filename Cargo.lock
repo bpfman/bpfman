@@ -407,7 +407,7 @@ dependencies = [
  "heck",
  "proc-macro2",
  "quote",
- "syn 2.0.11",
+ "syn 2.0.13",
 ]
 
 [[package]]
@@ -1968,9 +1968,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.94"
+version = "1.0.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c533a59c9d8a93a09c6ab31f0fd5e5f4dd1b8fc9434804029839884765d04ea"
+checksum = "d721eca97ac802aa7777b701877c8004d950fc142651367300d21c1cc0194744"
 dependencies = [
  "itoa",
  "ryu",
@@ -2283,7 +2283,7 @@ checksum = "61a573bdc87985e9d6ddeed1b3d864e8a302c847e40d647746df2f1de209d1ce"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.11",
+ "syn 2.0.13",
 ]
 
 [[package]]
