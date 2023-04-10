@@ -3,11 +3,11 @@ kind: BpfProgramConfig
 metadata:
   labels:
     app.kubernetes.io/name: BpfProgramConfig
-  name: tc-pass-all-nodes
+  name: xdp-pass-all-nodes
 spec:
   ## Must correspond to image section name
-  name: classifier
-  type: TC
+  name: pass
+  type: XDP
   # Select all nodes
   nodeselector: {}
   attachpoint: 
@@ -15,7 +15,7 @@ spec:
       interfaceselector:
         interface: eth0
       priority: 0
-      direction: INGRESS
   bytecode:
     image:
-      url: image://quay.io/bpfd-bytecode/tc_pass:latest
+      imagepullsecret: regcred
+      url: quay.io/bpfd-bytecode/xdp_pass_private:latest

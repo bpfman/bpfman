@@ -30,6 +30,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
@@ -37,6 +38,7 @@ import (
 	bpfdagent "github.com/redhat-et/bpfd/bpfd-operator/controllers/bpfd-agent"
 	"github.com/redhat-et/bpfd/bpfd-operator/internal"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
+	v1 "k8s.io/api/core/v1"
 
 	//+kubebuilder:scaffold:imports
 
@@ -50,8 +52,8 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
 	utilruntime.Must(bpfdiov1alpha1.AddToScheme(scheme))
+	utilruntime.Must(v1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
@@ -88,6 +90,8 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         false,
+		// Specify that Secrets's should not be cached.
+		ClientDisableCacheFor: []client.Object{&v1.Secret{}},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -119,11 +123,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Get the bpfd deployments Namespace
+	namespace := os.Getenv("NAMESPACE")
+	if namespace == "" {
+		setupLog.Error(fmt.Errorf("NAMESPACE env var not set"), "Couldn't determine bpfd-agent's namespace")
+		os.Exit(1)
+	}
+
 	if err = (&bpfdagent.BpfProgramReconciler{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		GrpcConn:   conn,
 		BpfdClient: gobpfd.NewLoaderClient(conn),
+		Namespace:  namespace,
 		NodeName:   nodeName,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BpfProgram")

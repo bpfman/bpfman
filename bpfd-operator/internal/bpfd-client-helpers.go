@@ -146,9 +146,9 @@ func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) 
 	return credentials.NewTLS(config), nil
 }
 
-// Structure from https://github.com/kubernetes/kubernetes/blob/master/pkg/credentialprovider/config.go#L39
 // ContainerConfigJSON represents ~/.docker/config.json file info
-// see https://github.com/docker/docker/pull/12009
+// See https://github.com/docker/docker/pull/12009
+// Structure from https://github.com/kubernetes/kubernetes/blob/master/pkg/credentialprovider/config.go#L39
 type ContainerConfigJSON struct {
 	Auths ContainerConfig `json:"auths"`
 	// +optional
@@ -160,9 +160,16 @@ type ContainerConfigJSON struct {
 // when pulling images from specific image repositories.
 type ContainerConfig map[string]ContainerConfigEntry
 
+// ContainerConfigEntry wraps a container config as a entry
+type ContainerConfigEntry struct {
+	Username string
+	Password string
+	Email    string
+}
+
 // dockerConfigEntryWithAuth is used solely for deserializing the Auth field
 // into a dockerConfigEntry during JSON deserialization.
-type ContainerConfigEntry struct {
+type ContainerConfigEntryWithAuth struct {
 	// +optional
 	Username string `json:"username,omitempty"`
 	// +optional
@@ -175,16 +182,17 @@ type ContainerConfigEntry struct {
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
 func (ident *ContainerConfigEntry) UnmarshalJSON(data []byte) error {
-	err := json.Unmarshal(data, &ident)
+	var tmp ContainerConfigEntryWithAuth
+	err := json.Unmarshal(data, &tmp)
 	if err != nil {
 		return err
 	}
 
-	if len(ident.Auth) == 0 {
+	if len(tmp.Auth) == 0 {
 		return nil
 	}
 
-	ident.Username, ident.Password, err = decodeContainerConfigFieldAuth(ident.Auth)
+	ident.Username, ident.Password, err = decodeContainerConfigFieldAuth(tmp.Auth)
 	return err
 }
 
@@ -222,14 +230,14 @@ func decodeContainerConfigFieldAuth(field string) (username, password string, er
 
 // Mimicking exactly what Kubernetes does to pull out auths from secrets:
 // https://github.com/kubernetes/kubernetes/blob/master/pkg/credentialprovider/secrets/secrets.go#L29
-func ParseAuth(c client.Client, secretName string) (*ContainerConfig, error) {
-
+func ParseAuth(c client.Client, secretName, secretNamespace string) (*ContainerConfig, error) {
 	var creds ContainerConfig
 
-	// Lookup the k8s Secret for repository authentication
-	ctx := context.Background()
+	// Lookup the k8s Secret in the bpfd-namespace for repository authentication
+	ctx := context.TODO()
 	imageSecret := &v1.Secret{}
-	if err := c.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: secretName}, imageSecret); err != nil {
+
+	if err := c.Get(ctx, types.NamespacedName{Namespace: secretNamespace, Name: secretName}, imageSecret); err != nil {
 		return nil, fmt.Errorf("failed image auth secret %s: %v",
 			secretName, err)
 	}
@@ -253,7 +261,7 @@ func ParseAuth(c client.Client, secretName string) (*ContainerConfig, error) {
 	return &creds, nil
 }
 
-func BuildBpfdLoadRequest(bpf_program_config_spec *bpfdiov1alpha1.BpfProgramConfigSpec, name string, c client.Client) (*gobpfd.LoadRequest, error) {
+func BuildBpfdLoadRequest(bpf_program_config_spec *bpfdiov1alpha1.BpfProgramConfigSpec, name string, namespace string, c client.Client) (*gobpfd.LoadRequest, error) {
 	loadRequest := gobpfd.LoadRequest{
 		SectionName: bpf_program_config_spec.Name,
 	}
@@ -264,18 +272,23 @@ func BuildBpfdLoadRequest(bpf_program_config_spec *bpfdiov1alpha1.BpfProgramConf
 
 		ref, err := reference.ParseNamed(bytecodeImage.Url)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 
 		var username, password string
 		if bytecodeImage.ImagePullSecret != "" {
-			creds, err := ParseAuth(c, bytecodeImage.ImagePullSecret)
+			creds, err := ParseAuth(c, bytecodeImage.ImagePullSecret, namespace)
 			if err != nil {
 				return nil, err
 			}
 
+			if creds == nil {
+				return nil, fmt.Errorf("no registry credentials found in secret: %s", bytecodeImage.ImagePullSecret)
+			}
+
 			domain := reference.Domain(ref)
 
+			// All docker.io image domains resolve to https://index.docker.io/v1/ in the credentials JSON file.
 			if domain == "docker.io" || domain == "" {
 				domain = "https://index.docker.io/v1/"
 			}
