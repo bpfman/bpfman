@@ -5,8 +5,14 @@ use std::{fs::remove_file, net::SocketAddr, path::Path};
 
 use anyhow::Context;
 use bpfd_api::{config::Config, util::directories::RTDIR_FS_MAPS, v1::loader_server::LoaderServer};
-use log::info;
-use tokio::{net::UnixListener, sync::mpsc};
+use futures::{channel::oneshot, FutureExt};
+use log::{debug, info};
+use tokio::{
+    net::UnixListener,
+    select,
+    signal::unix::{signal, SignalKind},
+    sync::mpsc,
+};
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::{Server, ServerTlsConfig};
 
@@ -28,6 +34,8 @@ const SOCK_MODE: u32 = 0o0770;
 
 pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(32);
+    let mut shutdown_senders = Vec::new();
+    let mut task_handles = Vec::new();
     let endpoint = &config.grpc.endpoint;
 
     // Listen on Unix socket
@@ -43,16 +51,19 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
 
     let loader = BpfdLoader::new(tx.clone());
 
+    let (shutdown_tx, shutdown_rx) = oneshot::channel();
+    shutdown_senders.push(shutdown_tx);
+
     let serve = Server::builder()
         .add_service(LoaderServer::new(loader))
-        .serve_with_incoming(uds_stream);
+        .serve_with_incoming_shutdown(uds_stream, shutdown_rx.map(drop));
 
-    tokio::spawn(async move {
+    task_handles.push(tokio::spawn(async move {
         info!("Listening on {}", unix);
         if let Err(e) = serve.await {
-            eprintln!("Error = {e:?}");
+            panic!("Error = {e:?}");
         }
-    });
+    }));
 
     // Listen on TCP socket
     let addr = SocketAddr::new(
@@ -73,17 +84,33 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
         .identity(identity)
         .client_ca_root(ca_cert);
 
+    let (shutdown_tx, shutdown_rx) = oneshot::channel();
+    shutdown_senders.push(shutdown_tx);
+
     let serve = Server::builder()
         .tls_config(tls_config)?
         .add_service(LoaderServer::with_interceptor(loader, intercept))
-        .serve(addr);
+        .serve_with_shutdown(addr, shutdown_rx.map(drop));
 
-    tokio::spawn(async move {
+    task_handles.push(tokio::spawn(async move {
         info!("Listening on {addr}");
         if let Err(e) = serve.await {
-            eprintln!("Error = {e:?}");
+            panic!("Error = {e:?}");
         }
-    });
+    }));
+
+    task_handles.push(tokio::spawn(async move {
+        let mut sigint = signal(SignalKind::interrupt()).unwrap();
+        let mut sigterm = signal(SignalKind::terminate()).unwrap();
+        select! {
+            _ = sigint.recv() => {debug!("Received SIGINT")},
+            _ = sigterm.recv() => {debug!("Received SIGTERM")},
+        }
+
+        for handle in shutdown_senders {
+            handle.send(()).unwrap_or_default();
+        }
+    }));
 
     let mut bpf_manager = BpfManager::new(&config);
     bpf_manager.rebuild_state().await?;
@@ -249,5 +276,10 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
             }
         }
     }
+
+    for handle in task_handles {
+        handle.await?;
+    }
+
     Ok(())
 }
