@@ -17,7 +17,7 @@ anyhow = "1"
 thiserror = "1"
 clap = { version = "4", features = ["derive"]}
 aya = "0.11"
-tokio = { version = "1.27.0", features = ["full"] }
+tokio = { version = "1.27.0", features = ["full", "signal"] }
 uuid = { version = "1", features = ["v4"] }
 log = "0.4"
 env_logger = "0.10"
@@ -41,3 +41,4 @@ tokio-stream = { version = "0.1.12", features = ["net"] }
 sha2 = "0.10.6"
 base16ct = { version = "0.2.0", features = ["alloc"] }
 tempfile = "3.4.0"
+futures = "0.3.27"
