@@ -12,28 +12,31 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/kong/kubernetes-testing-framework/pkg/clusters"
-	"github.com/kong/kubernetes-testing-framework/pkg/clusters/addons/loadimage"
 	"github.com/kong/kubernetes-testing-framework/pkg/clusters/addons/certmanager"
+	"github.com/kong/kubernetes-testing-framework/pkg/clusters/addons/loadimage"
 	"github.com/kong/kubernetes-testing-framework/pkg/clusters/types/kind"
 	"github.com/kong/kubernetes-testing-framework/pkg/environments"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/redhat-et/bpfd/bpfd-operator/internal"
+	"github.com/redhat-et/bpfd/bpfd-operator/pkg/client/clientset/versioned"
+	bpfdHelpers "github.com/redhat-et/bpfd/bpfd-operator/pkg/helpers"
 )
 
 var (
-	ctx    context.Context
-	cancel context.CancelFunc
-	env    environments.Environment
+	ctx        context.Context
+	cancel     context.CancelFunc
+	env        environments.Environment
+	bpfdClient *versioned.Clientset
 
-	bpfdImage = os.Getenv("BPFD_IMG")
-	bpfdAgentImage  = os.Getenv("BPFD_AGENT_IMG")
-	bpfdOperatorImage  = os.Getenv("BPFD_OPERATOR_IMG")
+	bpfdImage             = os.Getenv("BPFD_IMG")
+	bpfdAgentImage        = os.Getenv("BPFD_AGENT_IMG")
+	bpfdOperatorImage     = os.Getenv("BPFD_OPERATOR_IMG")
 	certmanagerVersionStr = os.Getenv("CERTMANAGER_VERSION")
 
-	existingCluster      = os.Getenv("USE_EXISTING_KIND_CLUSTER")
-	keepTestCluster      = func() bool { return os.Getenv("TEST_KEEP_CLUSTER") == "true" || existingCluster != "" }()
+	existingCluster = os.Getenv("USE_EXISTING_KIND_CLUSTER")
+	keepTestCluster = func() bool { return os.Getenv("TEST_KEEP_CLUSTER") == "true" || existingCluster != "" }()
 	// TODO (astoycos) add this back after fixing bpfd-operator deletion issues
 	//keepKustomizeDeploys = func() bool { return os.Getenv("TEST_KEEP_KUSTOMIZE_DEPLOYS") == "true" }()
 
@@ -41,14 +44,14 @@ var (
 )
 
 const (
-	bpfdKustomize = "../../config/test";
+	bpfdKustomize = "../../config/test"
 )
 
 func TestMain(m *testing.M) {
 	// check that we have the bpfd, bpfd-agent, and bpfd-operator images to use for the tests.
 	// generally the runner of the tests should have built these from the latest
 	// changes prior to the tests and fed them to the test suite.
-	if bpfdImage == "" || bpfdAgentImage == "" || bpfdOperatorImage == ""  {
+	if bpfdImage == "" || bpfdAgentImage == "" || bpfdOperatorImage == "" {
 		exitOnErr(fmt.Errorf("BPFD_IMG, BPFD_AGENT_IMG, and BPFD_OPERATOR_IMG must be provided"))
 	}
 
@@ -77,7 +80,7 @@ func TestMain(m *testing.M) {
 
 		certManagerBuilder := certmanager.NewBuilder()
 
-		if len(certmanagerVersionStr) != 0 { 
+		if len(certmanagerVersionStr) != 0 {
 			fmt.Printf("INFO: a specific version of certmanager was requested: %s\n", certmanagerVersionStr)
 			certmanagerVersion, err := semver.ParseTolerant(certmanagerVersionStr)
 			exitOnErr(err)
@@ -85,7 +88,7 @@ func TestMain(m *testing.M) {
 		}
 
 		// create the testing environment and cluster
-		env, err = environments.NewBuilder().WithAddons(certManagerBuilder.Build(),loadImages.Build()).Build(ctx)
+		env, err = environments.NewBuilder().WithAddons(certManagerBuilder.Build(), loadImages.Build()).Build(ctx)
 		exitOnErr(err)
 
 		if !keepTestCluster {
@@ -109,6 +112,7 @@ func TestMain(m *testing.M) {
 		// }
 	}
 
+	bpfdClient = bpfdHelpers.GetClientOrDie()
 	exitOnErr(waitForBpfdReadiness(ctx, env))
 
 	exit := m.Run()
@@ -177,7 +181,7 @@ func waitForBpfdReadiness(ctx context.Context, env environments.Environment) err
 
 			controlplane, err := env.Cluster().Client().AppsV1().Deployments(internal.BpfdNs).Get(ctx, internal.BpfdOperatorName, metav1.GetOptions{})
 			if err != nil {
-				if errors.IsNotFound(err) { 
+				if errors.IsNotFound(err) {
 					fmt.Println("INFO: bpfd-operator dep not found yet")
 					continue
 				}
@@ -189,7 +193,7 @@ func waitForBpfdReadiness(ctx context.Context, env environments.Environment) err
 
 			dataplane, err := env.Cluster().Client().AppsV1().DaemonSets(internal.BpfdNs).Get(ctx, internal.BpfdDsName, metav1.GetOptions{})
 			if err != nil {
-				if errors.IsNotFound(err) { 
+				if errors.IsNotFound(err) {
 					fmt.Println("INFO: bpfd daemon not found yet")
 					continue
 				}

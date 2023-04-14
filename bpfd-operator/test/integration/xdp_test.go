@@ -7,11 +7,12 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"strings"
 	"testing"
 	"time"
-	"strings"
 
 	"github.com/kong/kubernetes-testing-framework/pkg/clusters"
+	bpfdHelpers "github.com/redhat-et/bpfd/bpfd-operator/pkg/helpers"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,6 +24,68 @@ const (
 	xdpGoCounterUserspaceNs     = "go-xdp-counter"
 	xdpGoCounterUserspaceDsName = "go-xdp-counter-ds"
 )
+
+func TestXdpPassPrivate(t *testing.T) {
+	t.Log("deploying secret for privated xdp bytecode image in the bpfd namespace")
+	// Generated from
+	/*
+		kubectl create secret -n bpfd docker-registry regcred --docker-server=quay.io --docker-username=bpfd-bytecode+bpfdcreds --docker-password=JOGZ3FA6A9L2297JAT4FFN6CJU87LKTIY6X1ZGKWJ0W0XLKY0KPT5YKTBBEAGSF5
+	*/
+	xdpPassPrivateSecretYAML := `---
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: regcred
+  namespace: bpfd
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: eyJhdXRocyI6eyJxdWF5LmlvIjp7InVzZXJuYW1lIjoiYnBmZC1ieXRlY29kZSticGZkY3JlZHMiLCJwYXNzd29yZCI6IkpPR1ozRkE2QTlMMjI5N0pBVDRGRk42Q0pVODdMS1RJWTZYMVpHS1dKMFcwWExLWTBLUFQ1WUtUQkJFQUdTRjUiLCJhdXRoIjoiWW5CbVpDMWllWFJsWTI5a1pTdGljR1prWTNKbFpITTZTazlIV2pOR1FUWkJPVXd5TWprM1NrRlVORVpHVGpaRFNsVTROMHhMVkVsWk5sZ3hXa2RMVjBvd1Z6QllURXRaTUV0UVZEVlpTMVJDUWtWQlIxTkdOUT09In19fQ==
+`
+
+	require.NoError(t, clusters.ApplyManifestByYAML(ctx, env.Cluster(), xdpPassPrivateSecretYAML))
+	addCleanup(func(ctx context.Context) error {
+		cleanupLog("cleaning up xdp pass private secret")
+		return clusters.DeleteManifestByYAML(ctx, env.Cluster(), xdpPassPrivateSecretYAML)
+	})
+
+	xdpPassPrivateBpfProgramConfigYAML := `---
+---
+apiVersion: bpfd.io/v1alpha1
+kind: BpfProgramConfig
+metadata:
+  labels:
+    app.kubernetes.io/name: BpfProgramConfig
+  name: xdp-pass-private-all-nodes
+spec:
+  ## Must correspond to image section name
+  name: pass
+  type: XDP
+  # Select all nodes
+  nodeselector: {}
+  attachpoint:
+    networkmultiattach:
+      interfaceselector:
+        interface: eth0
+      priority: 0
+  bytecode:
+    image:
+      imagepullsecret: regcred
+      url: quay.io/bpfd-bytecode/xdp_pass_private:latest
+`
+
+	t.Log("deploying private xdp pass bpf program")
+	require.NoError(t, clusters.ApplyManifestByYAML(ctx, env.Cluster(), xdpPassPrivateBpfProgramConfigYAML))
+	addCleanup(func(ctx context.Context) error {
+		cleanupLog("cleaning up xdp pass private bpfd program")
+		return clusters.DeleteManifestByYAML(ctx, env.Cluster(), xdpPassPrivateBpfProgramConfigYAML)
+	})
+
+	// Make sure the bpfProgram was successfully deployed
+	require.NoError(t, bpfdHelpers.WaitForBpfProgConfLoad(bpfdClient, "xdp-pass-private-all-nodes", time.Duration(time.Second*10)))
+	t.Log("private xdp pass bpf program successfully deployed")
+
+}
 
 func TestXdpGoCounter(t *testing.T) {
 	t.Log("deploying xdp counter bpf program")
@@ -60,9 +123,9 @@ func TestXdpGoCounter(t *testing.T) {
 		_, err = io.Copy(output, logs)
 		require.NoError(t, err)
 		t.Logf("counter pod log %s", output.String())
-		if strings.Contains(output.String(), "packets received") && strings.Contains(output.String(), "bytes received") { 
+		if strings.Contains(output.String(), "packets received") && strings.Contains(output.String(), "bytes received") {
 			return true
 		}
 		return false
-	}, 30 * time.Second, time.Second)
+	}, 30*time.Second, time.Second)
 }
