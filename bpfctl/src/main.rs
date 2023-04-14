@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::{collections::HashMap, str, net::SocketAddr};
+use std::{collections::HashMap, net::SocketAddr, str};
 
 use anyhow::{bail, Context};
 use base64::{engine::general_purpose, Engine as _};
@@ -17,10 +17,10 @@ use bpfd_api::{
 use clap::{Args, Parser, Subcommand};
 use comfy_table::Table;
 use hex::FromHex;
+use itertools::Itertools;
 use tokio::net::UnixStream;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity, Uri};
 use tower::service_fn;
-use itertools::Itertools;
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -31,9 +31,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Load a BPF program from a local .o file.
     LoadFromFile(LoadFileArgs),
+    /// Load a BPF program packaged in a OCI container image from a given registry.
     LoadFromImage(LoadImageArgs),
+    /// Unload a BPF program using the UUID.
     Unload { id: String },
+    /// List all BPF programs loaded via bpfd.
     List,
 }
 
@@ -51,10 +55,9 @@ struct LoadFileArgs {
     #[clap(short, long, num_args(1..), value_parser=parse_global_arg)]
     global: Option<Vec<GlobalArg>>,
 
-    /// Required: Location of Program Bytecode to load. Either Local file (file:///<path>) or bytecode
-    /// image URL (image://<container image url>)
     /// Required: Location of Local bytecode file
     path: String,
+
     #[clap(subcommand)]
     command: LoadCommands,
 }
