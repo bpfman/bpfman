@@ -16,12 +16,6 @@ rules:
 - apiGroups:
   - bpfd.io
   resources:
-  - bpfprogramconfigs/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - bpfd.io
-  resources:
   - bpfprograms
   verbs:
   - create

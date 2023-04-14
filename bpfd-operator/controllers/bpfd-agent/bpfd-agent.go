@@ -113,7 +113,6 @@ func (b bpfProgramConditionType) Condition() metav1.Condition {
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprogramconfigs,verbs=get;list;watch
-//+kubebuilder:rbac:groups=bpfd.io,resources=bpfprogramconfigs/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=secrets,namespace=bpfd,verbs=get
 
