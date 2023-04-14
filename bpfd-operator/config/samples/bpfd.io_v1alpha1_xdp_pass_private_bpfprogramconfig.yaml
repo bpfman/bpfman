@@ -3,7 +3,7 @@ kind: BpfProgramConfig
 metadata:
   labels:
     app.kubernetes.io/name: BpfProgramConfig
-  name: xdp-pass-all-nodes
+  name: xdp-pass-private-all-nodes
 spec:
   ## Must correspond to image section name
   name: pass

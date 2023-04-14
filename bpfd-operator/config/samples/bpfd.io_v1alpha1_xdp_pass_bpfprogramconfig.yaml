@@ -17,4 +17,4 @@ spec:
       priority: 0
   bytecode:
     image:
-      url: image://quay.io/bpfd-bytecode/xdp_pass:latest
+      url: quay.io/bpfd-bytecode/xdp_pass:latest

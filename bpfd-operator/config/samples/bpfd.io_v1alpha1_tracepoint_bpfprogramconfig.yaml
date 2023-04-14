@@ -15,4 +15,4 @@ spec:
       name: syscalls/sys_enter_openat
   bytecode:
     image:
-      url: image://quay.io/bpfd-bytecode/tracepoint:latest
+      url: quay.io/bpfd-bytecode/tracepoint:latest

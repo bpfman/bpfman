@@ -19,4 +19,4 @@ spec:
       priority: 5
   bytecode:
     image:
-      url: image://bpfd-bytecode/go-xdp-counter:latest
+      url: quay.io/bpfd-bytecode/go-xdp-counter:latest

@@ -18,4 +18,4 @@ spec:
       direction: INGRESS
   bytecode:
     image:
-      url: image://quay.io/bpfd-bytecode/tc_pass:latest
+      url: quay.io/bpfd-bytecode/tc_pass:latest
