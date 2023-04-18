@@ -22,9 +22,9 @@ use command::{AttachType, Command, NetworkMultiAttach, TcProgram, TracepointProg
 use errors::BpfdError;
 use log::{info, warn};
 use rpc::{intercept, BpfdLoader};
+use static_program::get_static_programs;
 use tokio::{net::UnixListener, sync::mpsc};
 use tokio_stream::wrappers::UnixListenerStream;
-use static_program::get_static_programs;
 use tonic::transport::{Server, ServerTlsConfig};
 use utils::{get_ifindex, set_map_permissions};
 

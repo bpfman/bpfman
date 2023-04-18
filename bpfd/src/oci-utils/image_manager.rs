@@ -110,7 +110,8 @@ impl BytecodeImage {
             None => image_content_path,
         };
 
-        let exists = image_content_path.clone().exists();
+        // Make sure the actual image manifest exists so that we are sure the content is there
+        let exists: bool = image_content_path.join("manifest.json").exists();
 
         let image_meta = match self.image_pull_policy {
             ImagePullPolicy::Always => self.pull_image(image, image_content_path.clone()).await?,
@@ -317,8 +318,10 @@ fn load_image_manifest(image_dir: PathBuf) -> Result<OciImageManifest, anyhow::E
     let manifest_path = image_dir.join("manifest.json");
 
     // Get image manifest from disk
-    let file_content =
-        read_to_string(manifest_path).context("failed to read image manifest file")?;
+    let file_content = read_to_string(manifest_path).context(format!(
+        "failed to read image manifest file {}",
+        image_dir.display()
+    ))?;
     Ok(serde_json::from_str::<OciImageManifest>(&file_content)?)
 }
 
