@@ -15,7 +15,9 @@ use bpfd_api::{
 use clap::{Args, Parser, Subcommand};
 use comfy_table::Table;
 use hex::FromHex;
-use tonic::transport::{Certificate, Channel, ClientTlsConfig, Identity};
+use tokio::net::UnixStream;
+use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity, Uri};
+use tower::service_fn;
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -130,6 +132,19 @@ async fn main() -> anyhow::Result<()> {
 
     let config = config_from_file(CFGPATH_BPFD_CONFIG);
 
+    let endpoint = &config.grpc.endpoint;
+    // URI is ignored on UDS, so any parsable string works.
+    let address = String::from("http://localhost");
+    let unix = endpoint.unix.clone();
+    let channel = Endpoint::try_from(address)?
+        .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(unix.clone())))
+        .await?;
+
+    match execute_request(&cli.command, channel).await {
+        Ok(_) => return Ok(()),
+        Err(e) => eprintln!("Error = {e:?}"),
+    }
+
     let ca_cert = tokio::fs::read(&config.tls.ca_cert)
         .await
         .context("CA Cert File does not exist")?;
@@ -145,7 +160,6 @@ async fn main() -> anyhow::Result<()> {
         .domain_name("localhost")
         .ca_certificate(ca_cert)
         .identity(identity);
-    let endpoint = &config.grpc.endpoint;
     let address = SocketAddr::new(
         endpoint
             .address
@@ -160,8 +174,16 @@ async fn main() -> anyhow::Result<()> {
         .connect()
         .await?;
 
+    if let Err(e) = execute_request(&cli.command, channel).await {
+        eprintln!("Error = {e:?}")
+    }
+
+    Ok(())
+}
+
+async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result<()> {
     let mut client = LoaderClient::new(channel);
-    match &cli.command {
+    match command {
         Commands::Load(l) => {
             let prog_type = match l.command {
                 LoadCommands::Xdp { .. } => ProgramType::Xdp,

@@ -11,7 +11,7 @@ mod rpc;
 mod static_program;
 mod utils;
 
-use std::net::SocketAddr;
+use std::{fs::remove_file, net::SocketAddr, path::Path};
 
 use anyhow::{bail, Context};
 use bpf::BpfManager;
@@ -27,7 +27,8 @@ use log::{info, warn};
 use rpc::{intercept, BpfdLoader};
 pub use static_program::programs_from_directory;
 use static_program::StaticPrograms;
-use tokio::sync::mpsc;
+use tokio::{net::UnixListener, sync::mpsc};
+use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::{Server, ServerTlsConfig};
 use utils::{get_ifindex, set_map_permissions};
 
@@ -38,6 +39,31 @@ use crate::command::{
 pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(32);
     let endpoint = &config.grpc.endpoint;
+
+    // Listen on Unix socket
+    let unix = endpoint.unix.clone();
+    if Path::new(&unix).exists() {
+        // Attempt to remove the socket, since bind fails if it exists
+        remove_file(&unix)?;
+    }
+
+    let uds = UnixListener::bind(&unix)?;
+    let uds_stream = UnixListenerStream::new(uds);
+
+    let loader = BpfdLoader::new(tx.clone());
+
+    let serve = Server::builder()
+        .add_service(LoaderServer::new(loader))
+        .serve_with_incoming(uds_stream);
+
+    tokio::spawn(async move {
+        info!("Listening on {}", unix);
+        if let Err(e) = serve.await {
+            eprintln!("Error = {e:?}");
+        }
+    });
+
+    // Listen on TCP socket
     let addr = SocketAddr::new(
         endpoint
             .address

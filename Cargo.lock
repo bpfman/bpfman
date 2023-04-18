@@ -257,6 +257,7 @@ dependencies = [
  "tokio",
  "toml",
  "tonic",
+ "tower",
 ]
 
 [[package]]
@@ -281,6 +282,7 @@ dependencies = [
  "tar",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "toml",
  "tonic",
  "url",
