@@ -16,4 +16,6 @@ spec:
         interface: eth0
       priority: 0
       direction: INGRESS
-  bytecode: image://quay.io/bpfd-bytecode/tc_pass:latest
+  bytecode:
+    image:
+      url: quay.io/bpfd-bytecode/tc_pass:latest

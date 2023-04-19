@@ -133,7 +133,7 @@ func loadProgram(paramData *configMgmt.ParameterData) (func(string), error) {
 
 	// create a request to load the BPF program
 	loadRequest := &gobpfd.LoadRequest{
-		Location:    paramData.BytecodeLocation,
+		Location:    paramData.BytecodeSource.Location,
 		SectionName: "tracepoint_kill_recorder",
 		ProgramType: gobpfd.ProgramType_TRACEPOINT,
 		AttachType: &gobpfd.LoadRequest_SingleAttach{

@@ -17,4 +17,6 @@ spec:
       interfaceselector:
         interface: eth0
       priority: 5
-  bytecode: image://bpfd-bytecode/go-xdp-counter:latest
+  bytecode:
+    image:
+      url: quay.io/bpfd-bytecode/go-xdp-counter:latest

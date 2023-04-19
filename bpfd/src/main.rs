@@ -9,7 +9,7 @@ use std::{
 };
 
 use anyhow::{bail, Context};
-use bpfd::{programs_from_directory, serve};
+use bpfd::serve;
 use bpfd_api::{config::config_from_file, util::directories::*};
 use log::{debug, error, info};
 use nix::{
@@ -50,7 +50,6 @@ fn main() -> anyhow::Result<()> {
             // Create directories associated with bpfd
             create_dir_all(RTDIR).context("unable to create runtime directory")?;
             create_dir_all(RTDIR_FS).context("unable to create mountpoint")?;
-            create_dir_all(RTDIR_BYTECODE).context("unable to create bytecode directory")?;
             create_dir_all(RTDIR_TC_INGRESS_DISPATCHER)
                 .context("unable to create dispatcher directory")?;
             create_dir_all(RTDIR_TC_EGRESS_DISPATCHER)
@@ -84,11 +83,12 @@ fn main() -> anyhow::Result<()> {
 
             create_dir_all(STDIR_SOCKET).context("unable to create socket directory")?;
 
+            create_dir_all(BYTECODE_IMAGE_CONTENT_STORE)
+                .context("unable to create bytecode image store directory")?;
+
             let config = config_from_file(CFGPATH_BPFD_CONFIG);
 
-            let static_programs = programs_from_directory(CFGDIR_STATIC_PROGRAMS)?;
-
-            serve(config, static_programs).await?;
+            serve(config, CFGDIR_STATIC_PROGRAMS).await?;
             Ok(())
         })
 }

@@ -16,4 +16,6 @@ spec:
         interface: eth0
       priority: 55
       direction: INGRESS
-  bytecode: image://quay.io/bpfd-bytecode/go-tc-counter:latest
+  bytecode: 
+    image:
+      url: quay.io/bpfd-bytecode/go-tc-counter:latest

@@ -13,4 +13,6 @@ spec:
   attachpoint:
     singleattach: 
       name: syscalls/sys_enter_openat
-  bytecode: image://quay.io/bpfd-bytecode/tracepoint:latest
+  bytecode:
+    image:
+      url: quay.io/bpfd-bytecode/tracepoint:latest

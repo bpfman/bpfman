@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use bpfd_api::ParseError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -34,6 +33,11 @@ pub enum BpfdError {
     NotLoaded,
     #[error("dispatcher not required")]
     DispatcherNotRequired,
-    #[error("Failed to get BpfBytecode {0}")]
-    BpfBytecodeError(#[from] ParseError),
+    #[error(transparent)]
+    BpfBytecodeError(#[from] anyhow::Error),
+    #[error("Bytecode image has section name: {image_sec_name} isn't equal to the provided section name {provided_sec_name}")]
+    BytecodeMetaDataMismatch {
+        image_sec_name: String,
+        provided_sec_name: String,
+    },
 }

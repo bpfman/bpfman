@@ -88,7 +88,7 @@ fn test_load_unload_tc() {
     debug!("Installing tc_pass programs");
     let mut uuids = vec![];
     let mut rng = rand::thread_rng();
-    // Install a few xdp programs
+    // Install a few tc programs
     for _ in 0..10 {
         let priority = rng.gen_range(1..255);
         let uuid = add_tc_pass(bpfd_iface, priority);

@@ -265,7 +265,8 @@ func isbpfdProgConfLoaded(c *bpfdclientset.Clientset, progConfName string) wait.
 		condition := bpfProgConfig.Status.Conditions[recentIdx]
 
 		if condition.Type != string(bpfdoperator.BpfProgConfigReconcileSuccess) {
-			return false, fmt.Errorf("BpfProgramConfig: %s not ready with condition: %s", progConfName, condition.Type)
+			log.Info("BpfProgramConfig: %s not ready with condition: %s, waiting until timeout", progConfName, condition.Type)
+			return false, nil
 		}
 
 		return true, nil

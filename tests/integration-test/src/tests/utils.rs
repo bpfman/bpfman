@@ -6,9 +6,9 @@ use log::debug;
 use predicates::str::is_empty;
 
 const DEFAULT_BPFD_IFACE: &str = "eth0";
-const XDP_PASS_IMAGE_LOC: &str = "image://quay.io/bpfd-bytecode/xdp_pass:latest";
-const TC_PASS_IMAGE_LOC: &str = "image://quay.io/bpfd-bytecode/tc_pass:latest";
-const TRACEPOINT_IMAGE_LOC: &str = "image://quay.io/bpfd-bytecode/tracepoint:latest";
+const XDP_PASS_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/xdp_pass:latest";
+const TC_PASS_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/tc_pass:latest";
+const TRACEPOINT_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/tracepoint:latest";
 
 /// Exit on panic as well as the passing of a test
 pub struct ChildGuard {
@@ -48,8 +48,8 @@ pub fn read_iface_env() -> &'static str {
 pub fn add_xdp_pass(iface: &str, priority: u32) -> Result<String> {
     let output = Command::cargo_bin("bpfctl")?
         .args([
-            "load",
-            "--location",
+            "load-from-image",
+            "--image-url",
             XDP_PASS_IMAGE_LOC,
             "xdp",
             "--iface",
@@ -70,8 +70,8 @@ pub fn add_xdp_pass(iface: &str, priority: u32) -> Result<String> {
 pub fn add_tc_pass(iface: &str, priority: u32) -> Result<String> {
     let output = Command::cargo_bin("bpfctl")?
         .args([
-            "load",
-            "--location",
+            "load-from-image",
+            "--image-url",
             TC_PASS_IMAGE_LOC,
             "tc",
             "--direction",
@@ -93,8 +93,8 @@ pub fn add_tc_pass(iface: &str, priority: u32) -> Result<String> {
 pub fn add_tracepoint() -> Result<String> {
     let output = Command::cargo_bin("bpfctl")?
         .args([
-            "load",
-            "--location",
+            "load-from-image",
+            "--image-url",
             TRACEPOINT_IMAGE_LOC,
             "tracepoint",
             "--tracepoint",

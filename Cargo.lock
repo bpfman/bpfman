@@ -199,6 +199,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "base16ct"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c7f02d4ea65f2c1853089ffd8d2787bdbc63de2f0d29dedbcf8ccdfa0ccd4cf"
+
+[[package]]
 name = "base64"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -246,11 +252,13 @@ name = "bpfctl"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64 0.21.0",
  "bpfd-api",
  "clap",
  "comfy-table",
  "env_logger",
  "hex",
+ "itertools",
  "log",
  "prost",
  "serde",
@@ -266,6 +274,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "aya",
+ "base16ct",
  "bpfd-api",
  "bpfd-common",
  "caps",
@@ -278,8 +287,10 @@ dependencies = [
  "openssl",
  "serde",
  "serde_json",
+ "sha2",
  "systemd-journal-logger",
  "tar",
+ "tempfile",
  "thiserror",
  "tokio",
  "tokio-stream",

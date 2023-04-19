@@ -6,27 +6,23 @@ mod certs;
 mod command;
 mod errors;
 mod multiprog;
-mod pull_bytecode;
+#[path = "oci-utils/mod.rs"]
+mod oci_utils;
 mod rpc;
 mod static_program;
 mod utils;
 
 use std::{fs::remove_file, net::SocketAddr, path::Path};
 
-use anyhow::{bail, Context};
+use anyhow::Context;
 use bpf::BpfManager;
-use bpfd_api::{
-    config::Config,
-    util::directories::{CFGDIR_STATIC_PROGRAMS, RTDIR_FS_MAPS},
-    v1::{loader_server::LoaderServer, ProceedOn},
-};
+use bpfd_api::{config::Config, util::directories::RTDIR_FS_MAPS, v1::loader_server::LoaderServer};
 pub use certs::get_tls_config;
 use command::{AttachType, Command, NetworkMultiAttach, TcProgram, TracepointProgram};
 use errors::BpfdError;
 use log::{info, warn};
 use rpc::{intercept, BpfdLoader};
-pub use static_program::programs_from_directory;
-use static_program::StaticPrograms;
+use static_program::get_static_programs;
 use tokio::{net::UnixListener, sync::mpsc};
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::{Server, ServerTlsConfig};
@@ -36,7 +32,7 @@ use crate::command::{
     Metadata, NetworkMultiAttachInfo, Program, ProgramData, ProgramType, XdpProgram,
 };
 
-pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyhow::Result<()> {
+pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(32);
     let endpoint = &config.grpc.endpoint;
 
@@ -97,56 +93,13 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
     let mut bpf_manager = BpfManager::new(&config);
     bpf_manager.rebuild_state()?;
 
+    let static_programs = get_static_programs(static_program_path).await?;
+
     // Load any static programs first
     if !static_programs.is_empty() {
-        info!("Loading static programs from {CFGDIR_STATIC_PROGRAMS}");
-        for programs in static_programs {
-            for program in programs.programs {
-                let prog_type = program.program_type.parse()?;
-                let prog = match prog_type {
-                    ProgramType::Xdp => {
-                        if let Some(m) = program.network_attach {
-                            let proc_on = if !m.proceed_on.is_empty() {
-                                let mut p = Vec::new();
-                                for i in m.proceed_on.iter() {
-                                    match ProceedOn::try_from(i.to_string()) {
-                                        Ok(action) => p.push(action as i32),
-                                        Err(e) => {
-                                            eprintln!("ERROR: {e}");
-                                            std::process::exit(1);
-                                        }
-                                    };
-                                }
-                                command::ProceedOn(p)
-                            } else {
-                                command::ProceedOn::default_xdp()
-                            };
-                            let if_index = get_ifindex(&m.interface)?;
-                            let metadata = Metadata::new(m.priority, program.section_name.clone());
-                            Program::Xdp(XdpProgram::new(
-                                ProgramData::new(
-                                    program.location,
-                                    program.section_name.clone(),
-                                    program.global_data,
-                                    String::from("bpfd"),
-                                )
-                                .await?,
-                                NetworkMultiAttachInfo::new(
-                                    m.interface,
-                                    if_index,
-                                    metadata,
-                                    proc_on,
-                                ),
-                            ))
-                        } else {
-                            bail!("invalid attach type for xdp program")
-                        }
-                    }
-                    _ => unimplemented!(),
-                };
-                let uuid = bpf_manager.add_program(prog)?;
-                info!("Loaded static program {} with UUID {}", program.name, uuid)
-            }
+        for prog in static_programs {
+            let uuid = bpf_manager.add_program(prog)?;
+            info!("Loaded static program with UUID {}", uuid)
         }
     };
 
@@ -234,7 +187,7 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                                 Err(e) => Err(e),
                             }
                         }
-                        Err(e) => Err(BpfdError::BpfBytecodeError(e)),
+                        Err(e) => Err(e),
                     }
                 } else {
                     Err(BpfdError::InvalidInterface)
@@ -278,7 +231,7 @@ pub async fn serve(config: Config, static_programs: Vec<StaticPrograms>) -> anyh
                             Err(e) => Err(e),
                         }
                     }
-                    Err(e) => Err(BpfdError::BpfBytecodeError(e)),
+                    Err(e) => Err(e),
                 };
 
                 // If program was successfully loaded, allow map access by bpfd group members.

@@ -56,6 +56,7 @@ type BpfProgramReconciler struct {
 	GrpcConn   *grpc.ClientConn
 	BpfdClient gobpfd.LoaderClient
 	NodeName   string
+	Namespace  string
 	Logger     logr.Logger
 	NodeIface  string
 }
@@ -112,8 +113,8 @@ func (b bpfProgramConditionType) Condition() metav1.Condition {
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprogramconfigs,verbs=get;list;watch
-//+kubebuilder:rbac:groups=bpfd.io,resources=bpfprogramconfigs/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
+//+kubebuilder:rbac:groups=core,resources=secrets,namespace=bpfd,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -298,7 +299,7 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 			}
 
 			// otherwise load it
-			loadRequest, err := internal.BuildBpfdLoadRequest(&modBpfProgramConfigSpec, BpfProgramConfig.Name)
+			loadRequest, err := internal.BuildBpfdLoadRequest(&modBpfProgramConfigSpec, BpfProgramConfig.Name, r.Namespace, r.Client)
 			if err != nil {
 				r.updateStatus(ctx, bpfProgram, BpfProgCondNotLoaded)
 
@@ -335,9 +336,7 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 			return false, nil
 		}
 
-		modBpfProgramConfigSpec.NodeSelector = metav1.LabelSelector{}
-
-		loadRequest, err := internal.BuildBpfdLoadRequest(&modBpfProgramConfigSpec, BpfProgramConfig.Name)
+		loadRequest, err := internal.BuildBpfdLoadRequest(&modBpfProgramConfigSpec, BpfProgramConfig.Name, r.Namespace, r.Client)
 		if err != nil {
 			r.updateStatus(ctx, bpfProgram, BpfProgCondNotLoaded)
 
@@ -345,8 +344,11 @@ func (r *BpfProgramReconciler) reconcileBpfProgramConfig(ctx context.Context,
 				err)
 		}
 
-		// Temporary hacks for state which won't match yet based on list API
-		// Proceed-on updates are not currently supported
+		// Temporary hacks for state which won't match based on bpfd list API
+		modBpfProgramConfigSpec.NodeSelector = metav1.LabelSelector{}
+		if modBpfProgramConfigSpec.ByteCode.Image != nil {
+			modBpfProgramConfigSpec.ByteCode.Image.ImagePullSecret = ""
+		}
 		if modBpfProgramConfigSpec.Type == "XDP" || modBpfProgramConfigSpec.Type == "TC" {
 			modBpfProgramConfigSpec.AttachPoint.NetworkMultiAttach.ProceedOn = nil
 			v.Req.AttachPoint.NetworkMultiAttach.ProceedOn = nil

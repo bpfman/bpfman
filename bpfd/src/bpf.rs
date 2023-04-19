@@ -20,6 +20,7 @@ use crate::{
     },
     errors::BpfdError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
+    oci_utils::image_manager::get_bytecode_from_image_store,
     ProgramType::{Tc, Xdp},
 };
 
@@ -134,10 +135,22 @@ impl<'a> BpfManager<'a> {
         fs::create_dir_all(map_pin_path.clone())
             .map_err(|e| BpfdError::Error(format!("can't create map dir: {e}")))?;
 
+        let program_bytes = if program
+            .data()
+            .path
+            .clone()
+            .contains(BYTECODE_IMAGE_CONTENT_STORE)
+        {
+            get_bytecode_from_image_store(program.data().path.clone())?
+        } else {
+            std::fs::read(program.data().path.clone())
+                .map_err(|e| BpfdError::Error(format!("can't read bytecode file from disk {e}")))?
+        };
+
         let mut ext_loader = BpfLoader::new()
             .extension(&program.data().section_name)
             .map_pin_path(map_pin_path.clone())
-            .load_file(program.data().path.clone())?;
+            .load(&program_bytes)?;
 
         ext_loader
             .program_mut(&program.data().section_name)
@@ -228,9 +241,22 @@ impl<'a> BpfManager<'a> {
                 loader.set_global(name, value.as_slice());
             }
 
-            let mut loader = loader
+            let program_bytes = if program
+                .data
+                .path
+                .clone()
+                .contains(BYTECODE_IMAGE_CONTENT_STORE)
+            {
+                get_bytecode_from_image_store(program.data.path.clone())?
+            } else {
+                std::fs::read(program.data.path.clone()).map_err(|e| {
+                    BpfdError::Error(format!("can't read bytecode file from disk {e}"))
+                })?
+            };
+
+            let mut loader = BpfLoader::new()
                 .map_pin_path(map_pin_path.clone())
-                .load_file(&program.data.path)?;
+                .load(&program_bytes)?;
 
             let tracepoint: &mut TracePoint = loader
                 .program_mut(&program.data.section_name)
@@ -418,7 +444,7 @@ impl<'a> BpfManager<'a> {
                 Program::Xdp(p) => ProgramInfo {
                     id: id.to_string(),
                     name: p.data.section_name.to_string(),
-                    location: p.data.location.to_string(),
+                    location: p.data.location.clone(),
                     program_type: crate::command::ProgramType::Xdp,
                     attach_type: crate::command::AttachType::NetworkMultiAttach(
                         crate::command::NetworkMultiAttach {
@@ -433,14 +459,14 @@ impl<'a> BpfManager<'a> {
                 Program::Tracepoint(p) => ProgramInfo {
                     id: id.to_string(),
                     name: p.data.section_name.to_string(),
-                    location: p.data.location.to_string(),
+                    location: p.data.location.clone(),
                     program_type: crate::command::ProgramType::Tracepoint,
                     attach_type: crate::command::AttachType::SingleAttach(p.info.to_string()),
                 },
                 Program::Tc(p) => ProgramInfo {
                     id: id.to_string(),
                     name: p.data.section_name.to_string(),
-                    location: p.data.location.to_string(),
+                    location: p.data.location.clone(),
                     program_type: crate::command::ProgramType::Tc,
                     attach_type: crate::command::AttachType::NetworkMultiAttach(
                         crate::command::NetworkMultiAttach {

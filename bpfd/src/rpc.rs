@@ -4,7 +4,7 @@ use std::sync::{Arc, Mutex};
 
 use bpfd_api::v1::{
     list_response::{self, ListResult},
-    load_request::AttachType,
+    load_request::{AttachType, Location},
     loader_server::Loader,
     ListRequest, ListResponse, LoadRequest, LoadResponse, NetworkMultiAttach, SingleAttach,
     UnloadRequest, UnloadResponse,
@@ -14,7 +14,7 @@ use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
 use x509_certificate::X509Certificate;
 
-use crate::Command;
+use crate::{oci_utils::BytecodeImage, Command};
 
 #[derive(Debug, Default)]
 struct User {
@@ -80,11 +80,27 @@ impl Loader for BpfdLoader {
         if request.attach_type.is_none() {
             return Err(Status::aborted("message missing attach_type"));
         }
+        let bytecode_source = match request.location.unwrap() {
+            Location::Image(i) => crate::command::Location::Image(BytecodeImage::new(
+                i.url,
+                i.image_pull_policy,
+                match i.username.as_ref() {
+                    "" => None,
+                    u => Some(u.to_string()),
+                },
+                match i.password.as_ref() {
+                    "" => None,
+                    p => Some(p.to_string()),
+                },
+            )),
+            Location::File(p) => crate::command::Location::File(p),
+        };
+
         let cmd = match request.attach_type.unwrap() {
             AttachType::NetworkMultiAttach(attach) => Command::Load {
                 responder: resp_tx,
-                location: request.location,
                 global_data: request.global_data,
+                location: bytecode_source,
                 attach_type: crate::command::AttachType::NetworkMultiAttach(
                     crate::command::NetworkMultiAttach {
                         iface: attach.iface,
@@ -100,8 +116,8 @@ impl Loader for BpfdLoader {
             },
             AttachType::SingleAttach(attach) => Command::Load {
                 responder: resp_tx,
-                location: request.location,
                 global_data: request.global_data,
+                location: bytecode_source,
                 attach_type: crate::command::AttachType::SingleAttach(attach.name),
                 section_name: request.section_name,
                 username,
@@ -195,7 +211,22 @@ impl Loader for BpfdLoader {
                         reply.results.push(ListResult {
                             id: r.id,
                             name: r.name,
-                            location: r.location,
+                            location: match r.location {
+                                crate::command::Location::Image(m) => {
+                                    Some(list_response::list_result::Location::Image(
+                                        bpfd_api::v1::BytecodeImage {
+                                            url: m.get_url().to_string(),
+                                            image_pull_policy: m.get_pull_policy() as i32,
+                                            // Never dump Plaintext Credentials
+                                            username: "".to_string(),
+                                            password: "".to_string(),
+                                        },
+                                    ))
+                                }
+                                crate::command::Location::File(m) => {
+                                    Some(list_response::list_result::Location::File(m))
+                                }
+                            },
                             program_type: r.program_type as i32,
                             attach_type: match r.attach_type {
                                 crate::command::AttachType::NetworkMultiAttach(m) => Some(

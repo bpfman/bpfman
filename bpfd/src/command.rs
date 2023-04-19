@@ -10,13 +10,12 @@ use bpfd_api::{
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
-use url::Url;
 use uuid::Uuid;
 
 use crate::{
     errors::BpfdError,
     multiprog::{DispatcherId, DispatcherInfo, TC_ACT_PIPE, XDP_DISPATCHER_RET, XDP_PASS},
-    pull_bytecode::pull_bytecode,
+    oci_utils::BytecodeImage,
 };
 
 /// Provided by the requester and used by the manager task to send
@@ -25,10 +24,11 @@ type Responder<T> = oneshot::Sender<T>;
 
 /// Multiple different commands are multiplexed over a single channel.
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum Command {
     /// Load a program
     Load {
-        location: String,
+        location: Location,
         section_name: String,
         global_data: HashMap<String, Vec<u8>>,
         program_type: ProgramType,
@@ -50,6 +50,22 @@ pub(crate) enum Command {
 pub enum AttachType {
     NetworkMultiAttach(NetworkMultiAttach),
     SingleAttach(String),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) enum Location {
+    Image(BytecodeImage),
+    File(String),
+}
+
+impl fmt::Display for Location {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self.clone() {
+            Location::Image(i) => format!("image://{}", i.get_url()),
+            Location::File(p) => format!("file:///{p}"),
+        };
+        f.write_str(&s)
+    }
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq)]
@@ -105,11 +121,14 @@ pub(crate) enum Direction {
 impl TryFrom<i32> for Direction {
     type Error = ParseError;
 
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        match v {
-            1 => Ok(Self::Ingress),
-            2 => Ok(Self::Egress),
-            _ => Err(ParseError::InvalidDirection {}),
+    fn try_from(t: i32) -> Result<Self, Self::Error> {
+        let bpf_api_type = t.try_into()?;
+        match bpf_api_type {
+            bpfd_api::v1::Direction::None => Err(ParseError::InvalidDirection {
+                direction: "none".to_string(),
+            }),
+            bpfd_api::v1::Direction::Ingress => Ok(Self::Ingress),
+            bpfd_api::v1::Direction::Egress => Ok(Self::Egress),
         }
     }
 }
@@ -136,7 +155,7 @@ pub struct NetworkMultiAttach {
 pub(crate) struct ProgramInfo {
     pub(crate) id: String,
     pub(crate) name: String,
-    pub(crate) location: String,
+    pub(crate) location: Location,
     pub(crate) program_type: ProgramType,
     pub(crate) attach_type: AttachType,
 }
@@ -183,15 +202,36 @@ pub(crate) struct TcProgram {
     pub(crate) info: NetworkMultiAttachInfo,
     pub(crate) direction: Direction,
 }
+
+impl TcProgram {
+    pub(crate) fn new(
+        data: ProgramData,
+        info: NetworkMultiAttachInfo,
+        direction: Direction,
+    ) -> Self {
+        Self {
+            data,
+            info,
+            direction,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct TracepointProgram {
     pub(crate) data: ProgramData,
     pub(crate) info: String,
 }
 
+impl TracepointProgram {
+    pub(crate) fn new(data: ProgramData, info: String) -> Self {
+        Self { data, info }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct ProgramData {
-    pub(crate) location: String,
+    pub(crate) location: Location,
     pub(crate) section_name: String,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
     pub(crate) path: String,
@@ -200,43 +240,24 @@ pub(crate) struct ProgramData {
 
 impl ProgramData {
     pub(crate) async fn new(
-        location: String,
+        location: Location,
         mut section_name: String,
         global_data: HashMap<String, Vec<u8>>,
         owner: String,
-    ) -> Result<Self, ParseError> {
-        let bytecode_url =
-            Url::parse(&location).map_err(ParseError::BytecodeLocationParseFailure)?;
-
-        match bytecode_url.scheme() {
-            "file" => {
-                // File URL isn't local
-                if bytecode_url.has_host() {
-                    return Err(ParseError::InvalidBytecodeLocation { location });
-                }
-
-                Ok(ProgramData {
-                    location,
-                    path: bytecode_url.path().to_string(),
-                    section_name,
-                    global_data,
-                    owner,
-                })
-            }
-            "image" => {
-                let image_path = format!(
-                    "{}{}",
-                    bytecode_url
-                        .host_str()
-                        .ok_or(ParseError::InvalidBytecodeLocation {
-                            location: location.clone()
-                        })?,
-                    bytecode_url.path()
-                );
-
-                let program_overrides = pull_bytecode(&image_path)
+    ) -> Result<Self, BpfdError> {
+        match location.clone() {
+            Location::File(l) => Ok(ProgramData {
+                location,
+                path: l,
+                section_name,
+                owner,
+                global_data,
+            }),
+            Location::Image(l) => {
+                let program_overrides = l
+                    .get_image(None)
                     .await
-                    .map_err(ParseError::BytecodePullFaiure)?;
+                    .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
 
                 // If section name isn't provided and we're loading from a container
                 // image use the section name provided in the image metadata, otherwise
@@ -244,7 +265,7 @@ impl ProgramData {
                 if section_name.is_empty() {
                     section_name = program_overrides.image_meta.section_name
                 } else if program_overrides.image_meta.section_name != section_name {
-                    return Err(ParseError::BytecodeMetaDataMismatch {
+                    return Err(BpfdError::BytecodeMetaDataMismatch {
                         image_sec_name: program_overrides.image_meta.section_name,
                         provided_sec_name: section_name,
                     });
@@ -258,12 +279,11 @@ impl ProgramData {
                     owner,
                 })
             }
-            _ => Err(ParseError::InvalidBytecodeLocation { location }),
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub(crate) struct NetworkMultiAttachInfo {
     pub(crate) if_name: String,
     pub(crate) if_index: u32,

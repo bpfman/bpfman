@@ -3,7 +3,7 @@ kind: BpfProgramConfig
 metadata:
   labels:
     app.kubernetes.io/name: BpfProgramConfig
-  name: xdp-pass-all-nodes
+  name: xdp-pass-private-all-nodes
 spec:
   ## Must correspond to image section name
   name: pass
@@ -17,4 +17,5 @@ spec:
       priority: 0
   bytecode:
     image:
-      url: quay.io/bpfd-bytecode/xdp_pass:latest
+      imagepullsecret: regcred
+      url: quay.io/bpfd-bytecode/xdp_pass_private:latest

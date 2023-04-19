@@ -57,11 +57,45 @@ type BpfProgramConfigSpec struct {
 	AttachPoint BpfProgramAttachPoint `json:"attachpoint"`
 
 	// Bytecode configures where the bpf program's bytecode should be loaded
-	// from. It is a standard URL (RFC-1738) which currently only supports
-	// local files (file:///<local path>) or container registry links
-	// (image://<container image URL>)
-	// +kubebuilder:validation:Pattern=`(file|image)\:(\/){1,3}[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)`
-	ByteCode string `json:"bytecode"`
+	// from.
+	ByteCode BytecodeSelector `json:"bytecode"`
+}
+
+// PullPolicy describes a policy for if/when to pull a container image
+// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
+type PullPolicy string
+
+const (
+	// PullAlways means that bpfd always attempts to pull the latest bytecode image. Container will fail If the pull fails.
+	PullAlways PullPolicy = "Always"
+	// PullNever means that bpfd never pulls an image, but only uses a local image. Container will fail if the image isn't present
+	PullNever PullPolicy = "Never"
+	// PullIfNotPresent means that bpfd pulls if the image isn't present on disk. Container will fail if the image isn't present and the pull fails.
+	PullIfNotPresent PullPolicy = "IfNotPresent"
+)
+
+// BytecodeSelector defines the various ways to reference bpf bytecode objects.
+type BytecodeSelector struct {
+	// Image used to specify a bytecode container image.
+	Image *BytecodeImage `json:"image,omitempty"`
+
+	// Path is used to specify a bytecode object via filepath.
+	Path *string `json:"path,omitempty"`
+}
+
+// BytecodeImage defines how to specify a bytecode container image.
+type BytecodeImage struct {
+	// Valid container image URL used to reference a remote bytecode image.
+	Url string `json:"url"`
+
+	// PullPolicy describes a policy for if/when to pull a bytecode image. Defaults to IfNotPresent.
+	// +kubebuilder:default:=IfNotPresent
+	ImagePullPolicy PullPolicy `json:"imagepullpolicy"`
+
+	// ImagePullSecret is the name of the secret bpfd should use to get remote image
+	// repository secrets.
+	// +optional
+	ImagePullSecret string `json:"imagepullsecret,omitempty"`
 }
 
 // BpfProgramConfigStatus defines the observed state of BpfProgramConfig

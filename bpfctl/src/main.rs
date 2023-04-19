@@ -1,20 +1,23 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::{collections::HashMap, net::SocketAddr};
+use std::{collections::HashMap, net::SocketAddr, str};
 
 use anyhow::{bail, Context};
+use base64::{engine::general_purpose, Engine as _};
 use bpfd_api::{
     config::config_from_file,
     util::directories::*,
     v1::{
-        list_response, load_request, loader_client::LoaderClient, Direction, ListRequest,
-        LoadRequest, NetworkMultiAttach, ProceedOn, ProgramType, SingleAttach, UnloadRequest,
+        list_response, load_request, loader_client::LoaderClient, BytecodeImage, Direction,
+        ListRequest, LoadRequest, NetworkMultiAttach, ProceedOn, ProgramType, SingleAttach,
+        UnloadRequest,
     },
 };
 use clap::{Args, Parser, Subcommand};
 use comfy_table::Table;
 use hex::FromHex;
+use itertools::Itertools;
 use tokio::net::UnixStream;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity, Uri};
 use tower::service_fn;
@@ -28,30 +31,64 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Load(Load),
+    /// Load a BPF program from a local .o file.
+    LoadFromFile(LoadFileArgs),
+    /// Load a BPF program packaged in a OCI container image from a given registry.
+    LoadFromImage(LoadImageArgs),
+    /// Unload a BPF program using the UUID.
     Unload { id: String },
+    /// List all BPF programs loaded via bpfd.
     List,
 }
 
 #[derive(Args)]
-struct Load {
+struct LoadFileArgs {
     /// Name of the ELF section from the object file.
     #[clap(short, long, default_value = "")]
     section_name: String,
 
     /// Optional: Global variables to be set when program is loaded. Format: <NAME>=<Hex Value>
     ///
-    /// Multiple values supported by repeating the parameter.
     /// This is a very low level primitive. The caller is responsible for formatting
     /// the byte string appropriately considering such things as size, endianness,
     /// alignment and packing of data structures.
     #[clap(short, long, num_args(1..), value_parser=parse_global_arg)]
     global: Option<Vec<GlobalArg>>,
 
-    /// Required: Location of Program Bytecode to load. Either Local file (file:///<path>) or bytecode
-    /// image URL (image://<container image url>)
-    #[clap(short, long, value_parser)]
-    location: String,
+    /// Required: Location of Local bytecode file
+    path: String,
+
+    #[clap(subcommand)]
+    command: LoadCommands,
+}
+
+#[derive(Args)]
+struct LoadImageArgs {
+    /// Name of the ELF section from the object file.
+    #[clap(short, long, default_value = "")]
+    section_name: String,
+
+    /// Required: Container Image URL
+    #[clap(long)]
+    image_url: String,
+
+    /// ImagePullPolicy defaults to 'IfNotPresent'
+    #[clap(long, default_value = "IfNotPresent")]
+    image_pull_policy: String,
+
+    /// registry auth for authenticating with the specified image registry this should
+    /// be base64 encoded from the '<username>:<password>' string just like it's stored
+    /// in the docker/podman host config.
+    #[clap(short, long)]
+    registry_auth: Option<String>,
+
+    /// Optional: Global variables to be set when program is loaded. Format: <NAME>=<Hex Value>
+    ///
+    /// This is a very low level primitive. The caller is responsible for formatting
+    /// the byte string appropriately considering such things as size, endianness,
+    /// alignment and packing of data structures.
+    #[clap(short, long, num_args(1..), value_parser=parse_global_arg)]
+    global: Option<Vec<GlobalArg>>,
 
     #[clap(subcommand)]
     command: LoadCommands,
@@ -184,7 +221,7 @@ async fn main() -> anyhow::Result<()> {
 async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result<()> {
     let mut client = LoaderClient::new(channel);
     match command {
-        Commands::Load(l) => {
+        Commands::LoadFromFile(l) => {
             let prog_type = match l.command {
                 LoadCommands::Xdp { .. } => ProgramType::Xdp,
                 LoadCommands::Tc { .. } => ProgramType::Tc,
@@ -255,9 +292,10 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                     global_data.insert(g.name.to_string(), g.value.clone());
                 }
             }
+            let location = Some(load_request::Location::File(l.path.clone()));
 
             let request = tonic::Request::new(LoadRequest {
-                location: l.location.clone(),
+                location,
                 section_name: l.section_name.to_string(),
                 program_type: prog_type as i32,
                 attach_type,
@@ -266,6 +304,115 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
             let response = client.load(request).await?.into_inner();
             println!("{}", response.id);
         }
+        Commands::LoadFromImage(l) => {
+            let prog_type = match l.command {
+                LoadCommands::Xdp { .. } => ProgramType::Xdp,
+                LoadCommands::Tc { .. } => ProgramType::Tc,
+                LoadCommands::Tracepoint { .. } => ProgramType::Tracepoint,
+            };
+            let attach_type = match &l.command {
+                LoadCommands::Xdp {
+                    iface,
+                    priority,
+                    proceed_on,
+                } => {
+                    let mut proc_on = Vec::new();
+                    if !proceed_on.is_empty() {
+                        for i in proceed_on.iter() {
+                            let action = ProceedOn::try_from(i.to_string())?;
+                            proc_on.push(action as i32);
+                        }
+                    }
+                    Some(load_request::AttachType::NetworkMultiAttach(
+                        NetworkMultiAttach {
+                            priority: *priority,
+                            iface: iface.to_string(),
+                            position: 0,
+                            direction: Direction::None as i32,
+                            proceed_on: proc_on,
+                        },
+                    ))
+                }
+                LoadCommands::Tc {
+                    direction,
+                    iface,
+                    priority,
+                    proceed_on,
+                } => {
+                    let attach_direction = match direction.as_str() {
+                        "ingress" => Direction::Ingress,
+                        "egress" => Direction::Egress,
+                        other => bail!("{} is not a valid direction", other),
+                    };
+                    let mut proc_on = Vec::new();
+                    if !proceed_on.is_empty() {
+                        for i in proceed_on.iter() {
+                            let action = ProceedOn::try_from(i.to_string())?;
+                            proc_on.push(action as i32);
+                        }
+                    }
+                    Some(load_request::AttachType::NetworkMultiAttach(
+                        NetworkMultiAttach {
+                            priority: *priority,
+                            iface: iface.to_string(),
+                            position: 0,
+                            direction: attach_direction as i32,
+                            proceed_on: proc_on,
+                        },
+                    ))
+                }
+                LoadCommands::Tracepoint { tracepoint } => {
+                    Some(load_request::AttachType::SingleAttach(SingleAttach {
+                        name: tracepoint.to_string(),
+                    }))
+                }
+            };
+
+            let image_pull_policy: bpfd_api::v1::ImagePullPolicy =
+                l.image_pull_policy.as_str().try_into()?;
+
+            let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
+
+            if let Some(global) = &l.global {
+                for g in global.iter() {
+                    global_data.insert(g.name.to_string(), g.value.clone());
+                }
+            }
+
+            let location = match l.registry_auth.clone() {
+                Some(a) => {
+                    let auth_raw = general_purpose::STANDARD_NO_PAD.decode(a)?;
+
+                    let auth_string = String::from_utf8(auth_raw)?;
+
+                    let (username, password) = auth_string.split(':').next_tuple().unwrap();
+
+                    load_request::Location::Image(BytecodeImage {
+                        url: l.image_url.clone(),
+                        image_pull_policy: image_pull_policy as i32,
+                        username: username.to_owned(),
+                        password: password.to_owned(),
+                    })
+                }
+                None => load_request::Location::Image(BytecodeImage {
+                    url: l.image_url.clone(),
+                    image_pull_policy: image_pull_policy as i32,
+                    username: "".to_owned(),
+                    password: "".to_owned(),
+                }),
+            };
+
+            let request = tonic::Request::new(LoadRequest {
+                location: Some(location),
+                section_name: l.section_name.to_string(),
+                program_type: prog_type as i32,
+                attach_type,
+                global_data,
+            });
+            let response = client.load(request).await?.into_inner();
+            println!("{}", response.id);
+        }
+
         Commands::Unload { id } => {
             let request = tonic::Request::new(UnloadRequest { id: id.to_string() });
             let _response = client.unload(request).await?.into_inner();
@@ -304,7 +451,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                             r.id.to_string(),
                             "xdp".to_string(),
                             r.name,
-                            r.location,
+                            r.location.unwrap().to_string(),
                             format!(r#"{{ "priority": {priority}, "iface": "{iface}", "position": {position}, "proceed_on": {proceed_on} }}"#)
                         ]);
                         }
@@ -332,7 +479,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                                 r.id.to_string(),
                                 "tc".to_string(),
                                 r.name,
-                                r.location,
+                                r.location.unwrap().to_string(),
                                 format!(r#"{{ "priority": {priority}, "iface": "{iface}", "position": {position}, direction: {attach_direction} }}"#)
                             ]);
                         }
@@ -346,7 +493,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                                 r.id.to_string(),
                                 "tracepoint".to_string(),
                                 r.name,
-                                r.location,
+                                r.location.unwrap().to_string(),
                                 format!(r#"{{ "tracepoint": {name} }}"#),
                             ]);
                         }
