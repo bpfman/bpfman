@@ -15,10 +15,20 @@ spec:
       kind: BpfProgramConfig
       name: bpfprogramconfigs.bpfd.io
       version: v1alpha1
-    - description: BpfProgram is the Schema for the Bpfprograms API
-      displayName: Bpf Program
-      kind: BpfProgram
-      name: bpfprograms.bpfd.io
+    - description: XdpProgram is the Schema for the Xdpprograms API
+      displayName: Xdp Program
+      kind: XdpProgram
+      name: xdpprograms.bpfd.io
+      version: v1alpha1
+    - description: TcProgram is the Schema for the Tcprograms API
+      displayName: Tc Program
+      kind: TcProgram
+      name: tcprograms.bpfd.io
+      version: v1alpha1
+    - description: TracepointProgram is the Schema for the Tracepointprograms API
+      displayName: Tracepoint Program
+      kind: TracepointProgram
+      name: tracepointprograms.bpfd.io
       version: v1alpha1
   description: This Operator deploys bpfd to a kubernetes cluster in order to deploy
     and manage ebpf at the cluster scope.

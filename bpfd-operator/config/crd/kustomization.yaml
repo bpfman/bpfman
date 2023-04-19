@@ -3,7 +3,10 @@
 # It should be run by config/default
 resources:
 - bases/bpfd.io_bpfprograms.yaml
-- bases/bpfd.io_bpfprogramconfigs.yaml
+- bases/bpfd.io_tcprograms.yaml
+- bases/bpfd.io_tracepointprograms.yaml
+- bases/bpfd.io_xdpprograms.yaml
+
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
