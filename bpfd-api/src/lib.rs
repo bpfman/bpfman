@@ -10,9 +10,7 @@ pub mod v1;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::ParseError as urlParseError;
-use v1::{
-    list_response::list_result::Location,
-};
+use v1::list_response::list_result::Location;
 
 #[derive(Error, Debug)]
 pub enum ParseError {
@@ -30,7 +28,7 @@ pub enum ParseError {
     InvalidBytecodeImagePullPolicy { pull_policy: String },
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub enum ProgramType {
     Unspec,
     SocketFilter,
@@ -460,6 +458,56 @@ impl std::fmt::Display for TcProceedOn {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum ImagePullPolicy {
+    Always,
+    IfNotPresent,
+    Never,
+}
+
+impl std::fmt::Display for ImagePullPolicy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let v = match self {
+            ImagePullPolicy::Always => "Always",
+            ImagePullPolicy::IfNotPresent => "IfNotPresent",
+            ImagePullPolicy::Never => "Never",
+        };
+        write!(f, "{v}")
+    }
+}
+
+impl TryFrom<i32> for ImagePullPolicy {
+    type Error = ParseError;
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        Ok(match value {
+            0 => ImagePullPolicy::Always,
+            1 => ImagePullPolicy::IfNotPresent,
+            2 => ImagePullPolicy::Never,
+            policy => {
+                return Err(ParseError::InvalidBytecodeImagePullPolicy {
+                    pull_policy: policy.to_string(),
+                })
+            }
+        })
+    }
+}
+
+impl TryFrom<&str> for ImagePullPolicy {
+    type Error = ParseError;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(match value {
+            "Always" => ImagePullPolicy::Always,
+            "IfNotPresent" => ImagePullPolicy::IfNotPresent,
+            "Never" => ImagePullPolicy::Never,
+            policy => {
+                return Err(ParseError::InvalidBytecodeImagePullPolicy {
+                    pull_policy: policy.to_string(),
+                })
+            }
+        })
+    }
+}
+
 impl ToString for Location {
     fn to_string(&self) -> String {
         match &self {
@@ -467,9 +515,7 @@ impl ToString for Location {
             Location::Image(i) => format!(
                 "image: {{ url: {}, pullpolicy: {} }}",
                 i.url,
-                TryInto::<ImagePullPolicy>::try_into(i.image_pull_policy)
-                    .unwrap()
-                    .as_str_name()
+                TryInto::<ImagePullPolicy>::try_into(i.image_pull_policy).unwrap()
             ),
             Location::File(p) => format!("file: {{ path: {p} }}"),
         }

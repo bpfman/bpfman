@@ -2,7 +2,7 @@
 // Copyright Authors of bpfd
 
 //! Commands between the RPC thread and the BPF thread
-use std::{fmt, fs, io::BufReader, path::PathBuf};
+use std::{collections::HashMap, fmt, fs, io::BufReader, path::PathBuf};
 
 use bpfd_api::{
     util::directories::{RTDIR_FS, RTDIR_FS_MAPS, RTDIR_PROGRAMS},
@@ -16,7 +16,6 @@ use crate::{
     errors::BpfdError,
     multiprog::{DispatcherId, DispatcherInfo},
     oci_utils::BytecodeImage,
-    pull_bytecode::pull_bytecode,
 };
 
 /// Provided by the requester and used by the manager task to send
@@ -88,7 +87,9 @@ impl TryFrom<String> for Direction {
         match v.as_str() {
             "ingress" => Ok(Self::Ingress),
             "egress" => Ok(Self::Egress),
-            _ => Err(ParseError::InvalidDirection {}),
+            m => Err(ParseError::InvalidDirection {
+                direction: m.to_string(),
+            }),
         }
     }
 }
@@ -118,7 +119,7 @@ pub(crate) enum AttachInfo {
     Tracepoint(TracepointAttachInfo),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct XdpAttachInfo {
     pub(crate) priority: i32,
     pub(crate) iface: String,
@@ -126,7 +127,7 @@ pub(crate) struct XdpAttachInfo {
     pub(crate) proceed_on: XdpProceedOn,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct TcAttachInfo {
     pub(crate) priority: i32,
     pub(crate) iface: String,
@@ -135,7 +136,7 @@ pub(crate) struct TcAttachInfo {
     pub(crate) direction: Direction,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct TracepointAttachInfo {
     pub(crate) tracepoint: String,
 }
@@ -190,7 +191,7 @@ pub(crate) struct TracepointProgram {
 }
 
 impl TracepointProgram {
-    pub(crate) fn new(data: ProgramData, info: String) -> Self {
+    pub(crate) fn new(data: ProgramData, info: TracepointProgramInfo) -> Self {
         Self { data, info }
     }
 }

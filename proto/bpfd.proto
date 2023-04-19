@@ -73,19 +73,18 @@ message ListRequest {
 message ListResponse {
   message ListResult {
     string id = 1;
-    string name = 2;
+    optional string section_name = 2;
     oneof location {
         BytecodeImage image = 3;
         string file = 4;
     } ;
-    optional string section_name = 5;
-    int32 program_type = 6;
+    int32 program_type = 5;
     oneof attach_info {
-        NoAttachInfo none = 7;
-        XDPAttachInfo xdp_attach_info = 8;
-        TCAttachInfo tc_attach_info = 9;
-        TracepointAttachInfo tracepoint_attach_info = 10;
+        NoAttachInfo none = 6;
+        XDPAttachInfo xdp_attach_info = 7;
+        TCAttachInfo tc_attach_info = 8;
+        TracepointAttachInfo tracepoint_attach_info = 9;
     }
   } 
-  repeated ListResult results = 11;
+  repeated ListResult results = 10;
 }

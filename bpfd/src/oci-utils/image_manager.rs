@@ -9,7 +9,7 @@ use std::{
 };
 
 use anyhow::Context;
-use bpfd_api::{util::directories::BYTECODE_IMAGE_CONTENT_STORE, ParseError};
+use bpfd_api::{util::directories::BYTECODE_IMAGE_CONTENT_STORE, ImagePullPolicy};
 use flate2::read::GzDecoder;
 use log::debug;
 use oci_distribution::{
@@ -32,26 +32,6 @@ pub struct ContainerImageMetadata {
     pub program_type: String,
     #[serde(rename(deserialize = "io.ebpf.filename"))]
     pub filename: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum ImagePullPolicy {
-    Always = 0,
-    IfNotPresent = 1,
-    Never = 2,
-}
-
-impl TryFrom<i32> for ImagePullPolicy {
-    type Error = ParseError;
-
-    fn try_from(t: i32) -> Result<Self, Self::Error> {
-        let bpf_api_type = t.try_into()?;
-        match bpf_api_type {
-            bpfd_api::v1::ImagePullPolicy::Always => Ok(Self::Always),
-            bpfd_api::v1::ImagePullPolicy::IfNotPresent => Ok(Self::IfNotPresent),
-            bpfd_api::v1::ImagePullPolicy::Never => Ok(Self::Never),
-        }
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

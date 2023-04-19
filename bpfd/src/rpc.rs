@@ -4,8 +4,9 @@ use std::sync::{Arc, Mutex};
 
 use bpfd_api::{
     v1::{
-        list_response::{list_result::AttachInfo, ListResult},
+        list_response::{list_result, list_result::AttachInfo, ListResult},
         load_request,
+        load_request_common::Location,
         loader_server::Loader,
         ListRequest, ListResponse, LoadRequest, LoadResponse, TcAttachInfo, TracepointAttachInfo,
         UnloadRequest, UnloadResponse, XdpAttachInfo,
@@ -84,7 +85,7 @@ impl Loader for BpfdLoader {
         if request.attach_info.is_none() {
             return Err(Status::aborted("missing attach info"));
         }
-        let bytecode_source = match request.location.unwrap() {
+        let bytecode_source = match common.location.unwrap() {
             Location::Image(i) => crate::command::Location::Image(BytecodeImage::new(
                 i.url,
                 i.image_pull_policy,
@@ -100,11 +101,10 @@ impl Loader for BpfdLoader {
             Location::File(p) => crate::command::Location::File(p),
         };
 
-
         let cmd = match request.attach_info.unwrap() {
             load_request::AttachInfo::XdpAttachInfo(attach) => Command::LoadXDP {
                 responder: resp_tx,
-                global_data: request.global_data,
+                global_data: common.global_data,
                 location: bytecode_source,
                 iface: attach.iface,
                 priority: attach.priority,
@@ -120,7 +120,8 @@ impl Loader for BpfdLoader {
                     .map_err(|_| Status::aborted("direction is not a string"))?;
                 Command::LoadTC {
                     responder: resp_tx,
-                    location: common.location,
+                    location: bytecode_source,
+                    global_data: common.global_data,
                     iface: attach.iface,
                     priority: attach.priority,
                     direction,
@@ -132,7 +133,7 @@ impl Loader for BpfdLoader {
             }
             load_request::AttachInfo::TracepointAttachInfo(attach) => Command::LoadTracepoint {
                 responder: resp_tx,
-                global_data: request.global_data,
+                global_data: common.global_data,
                 location: bytecode_source,
                 tracepoint: attach.tracepoint,
                 section_name: common.section_name,
@@ -247,11 +248,27 @@ impl Loader for BpfdLoader {
                                 })
                             }
                         };
+
+                        let loc = match r.location {
+                            crate::command::Location::Image(m) => {
+                                Some(list_result::Location::Image(bpfd_api::v1::BytecodeImage {
+                                    url: m.get_url().to_string(),
+                                    image_pull_policy: m.get_pull_policy() as i32,
+                                    // Never dump Plaintext Credentials
+                                    username: "".to_string(),
+                                    password: "".to_string(),
+                                }))
+                            }
+                            crate::command::Location::File(m) => {
+                                Some(list_result::Location::File(m))
+                            }
+                        };
+
                         reply.results.push(ListResult {
                             id: r.id,
                             section_name: Some(r.name),
                             attach_info: Some(attach_info),
-                            location: Some(r.location),
+                            location: loc,
                             program_type: r.program_type,
                         })
                     }

@@ -9,7 +9,7 @@ use aya::{
     BpfLoader,
 };
 use bpfd_api::{config::Config, util::directories::*, ProgramType, TcProceedOn};
-use log::{debug, info};
+use log::debug;
 use uuid::Uuid;
 
 use crate::{
@@ -21,7 +21,6 @@ use crate::{
     errors::BpfdError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
     oci_utils::image_manager::get_bytecode_from_image_store,
-    ProgramType::{Tc, Xdp},
 };
 
 const SUPERUSER: &str = "bpfctl";
@@ -439,7 +438,7 @@ impl<'a> BpfManager<'a> {
                 Program::Xdp(p) => ProgramInfo {
                     id: id.to_string(),
                     name: p.data.section_name.to_string(),
-                    location: p.data.location.to_string(),
+                    location: p.data.location.clone(),
                     program_type: ProgramType::Xdp as i32,
                     attach_info: crate::command::AttachInfo::Xdp(crate::command::XdpAttachInfo {
                         iface: p.info.if_name.to_string(),
@@ -451,7 +450,7 @@ impl<'a> BpfManager<'a> {
                 Program::Tracepoint(p) => ProgramInfo {
                     id: id.to_string(),
                     name: p.data.section_name.to_string(),
-                    location: p.data.location.to_string(),
+                    location: p.data.location.clone(),
                     program_type: ProgramType::Tracepoint as i32,
                     attach_info: crate::command::AttachInfo::Tracepoint(
                         crate::command::TracepointAttachInfo {
@@ -462,7 +461,7 @@ impl<'a> BpfManager<'a> {
                 Program::Tc(p) => ProgramInfo {
                     id: id.to_string(),
                     name: p.data.section_name.to_string(),
-                    location: p.data.location.to_string(),
+                    location: p.data.location.clone(),
                     program_type: ProgramType::Tc as i32,
                     attach_info: crate::command::AttachInfo::Tc(crate::command::TcAttachInfo {
                         iface: p.info.if_name.to_string(),

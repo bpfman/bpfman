@@ -16,12 +16,7 @@ use std::{fs::remove_file, net::SocketAddr, path::Path};
 
 use anyhow::Context;
 use bpf::BpfManager;
-use bpfd_api::{
-    config::Config,
-    util::directories::{CFGDIR_STATIC_PROGRAMS, RTDIR_FS_MAPS},
-    v1::loader_server::LoaderServer,
-    ProgramType, XdpProceedOn,
-};
+use bpfd_api::{config::Config, util::directories::RTDIR_FS_MAPS, v1::loader_server::LoaderServer};
 pub use certs::get_tls_config;
 use command::{Command, TcProgram, TcProgramInfo, TracepointProgram, TracepointProgramInfo};
 use errors::BpfdError;
@@ -120,9 +115,9 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                 responder,
             } => {
                 let res = if let Ok(if_index) = get_ifindex(&iface) {
-                let prog_data_result =
-                ProgramData::new(location, section_name.clone(), global_data, username)
-                    .await;
+                    let prog_data =
+                        ProgramData::new(location, section_name.clone(), global_data, username)
+                            .await?;
 
                     let prog_result = Ok(Program::Xdp(XdpProgram {
                         data: prog_data.clone(),
@@ -140,11 +135,8 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                         },
                     }));
 
-                            match prog_result {
-                                Ok(prog) => bpf_manager.add_program(prog),
-                                Err(e) => Err(e),
-                            }
-                        }
+                    match prog_result {
+                        Ok(prog) => bpf_manager.add_program(prog),
                         Err(e) => Err(e),
                     }
                 } else {
@@ -172,8 +164,8 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                 responder,
             } => {
                 let res = if let Ok(if_index) = get_ifindex(&iface) {
-                    let prog_data_result =
-                    ProgramData::new(location, section_name, global_data, username).await;
+                    let prog_data =
+                        ProgramData::new(location, section_name, global_data, username).await?;
 
                     let prog_result = Ok(Program::Tc(TcProgram {
                         data: prog_data.clone(),
@@ -201,9 +193,9 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                 };
 
                 // If program was successfully loaded, allow map access by bpfd group members.
-                if let Ok(uuid) = res {
-                    let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
-                    set_map_permissions(&maps_dir).await;
+                if let Ok(uuid) = &res {
+                    let maps_dir = format!("{RTDIR_FS_MAPS}/{}", uuid.clone());
+                    set_dir_permissions(&maps_dir, MAPS_MODE).await;
                 }
 
                 // Ignore errors as they'll be propagated to caller in the RPC status
@@ -212,15 +204,14 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
             Command::LoadTracepoint {
                 location,
                 section_name,
+                global_data,
                 tracepoint,
                 username,
                 responder,
             } => {
                 let res = {
                     let prog_data =
-                        ProgramData::new_from_location(location, section_name.clone(), username)
-                            .await
-                            .map_err(BpfdError::BpfBytecodeError)?;
+                        ProgramData::new(location, section_name, global_data, username).await?;
 
                     let prog_result = Ok(Program::Tracepoint(TracepointProgram {
                         data: prog_data,
@@ -231,7 +222,6 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                         Ok(prog) => bpf_manager.add_program(prog),
                         Err(e) => Err(e),
                     }
-                    Err(e) => Err(e),
                 };
 
                 // If program was successfully loaded, allow map access by bpfd group members.

@@ -8,7 +8,7 @@ repository = "https://github.com/redhat-et/bpfd"
 
 [dependencies]
 anyhow = "1"
-tonic = { version = "0.8", features = ["tls"] }
+tonic = { version = "0.8.0", features = ["tls"] }
 prost = "0.11"
 thiserror = "1"
 tokio = { version = "1.27.0", features = ["full"] }
