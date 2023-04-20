@@ -38,4 +38,8 @@ pub enum BpfdError {
         image_sec_name: String,
         provided_sec_name: String,
     },
+    #[error("Unable to parse passed UUID {0}")]
+    PassedUUIDError(#[from] uuid::Error),
+    #[error("Passed UUID already in use {0}")]
+    PassedUUIDInUse(String),
 }

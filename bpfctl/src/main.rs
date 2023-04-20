@@ -44,6 +44,11 @@ enum Commands {
 
 #[derive(Args)]
 struct LoadFileArgs {
+    /// Optional: Program uuid to be used by bpfd. If not
+    /// specified, bpfd will generate a uuid.
+    #[clap(short, long)]
+    id: Option<String>,
+
     /// Name of the ELF section from the object file.
     #[clap(short, long, default_value = "")]
     section_name: String,
@@ -65,6 +70,11 @@ struct LoadFileArgs {
 
 #[derive(Args)]
 struct LoadImageArgs {
+    /// Optional: Program uuid to be used by bpfd. If not
+    /// specified, bpfd will generate a uuid.
+    #[clap(short, long)]
+    id: Option<String>,
+
     /// Name of the ELF section from the object file.
     #[clap(short, long, default_value = "")]
     section_name: String,
@@ -285,7 +295,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
 
             let request = tonic::Request::new(LoadRequest {
                 common: Some(LoadRequestCommon {
-                    id: None,
+                    id: l.id.clone(),
                     location,
                     section_name: l.section_name.to_string(),
                     program_type: prog_type as i32,
@@ -387,7 +397,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
 
             let request = tonic::Request::new(LoadRequest {
                 common: Some(LoadRequestCommon {
-                    id: None,
+                    id: l.id.clone(),
                     location,
                     section_name: l.section_name.to_string(),
                     program_type: prog_type as i32,

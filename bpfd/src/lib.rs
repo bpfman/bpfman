@@ -96,7 +96,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
     // Load any static programs first
     if !static_programs.is_empty() {
         for prog in static_programs {
-            let uuid = bpf_manager.add_program(prog)?;
+            let uuid = bpf_manager.add_program(prog, None)?;
             info!("Loaded static program with UUID {}", uuid)
         }
     };
@@ -107,6 +107,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
             Command::LoadXDP {
                 location,
                 section_name,
+                id,
                 global_data,
                 iface,
                 priority,
@@ -136,7 +137,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                     }));
 
                     match prog_result {
-                        Ok(prog) => bpf_manager.add_program(prog),
+                        Ok(prog) => bpf_manager.add_program(prog, id),
                         Err(e) => Err(e),
                     }
                 } else {
@@ -144,7 +145,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                 };
 
                 // If program was successfully loaded, allow map access by bpfd group members.
-                if let Ok(uuid) = res {
+                if let Ok(uuid) = &res {
                     let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
                     set_map_permissions(&maps_dir).await;
                 }
@@ -155,6 +156,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
             Command::LoadTC {
                 location,
                 section_name,
+                id,
                 global_data,
                 iface,
                 priority,
@@ -185,7 +187,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                     }));
 
                     match prog_result {
-                        Ok(prog) => bpf_manager.add_program(prog),
+                        Ok(prog) => bpf_manager.add_program(prog, id),
                         Err(e) => Err(e),
                     }
                 } else {
@@ -195,7 +197,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                 // If program was successfully loaded, allow map access by bpfd group members.
                 if let Ok(uuid) = &res {
                     let maps_dir = format!("{RTDIR_FS_MAPS}/{}", uuid.clone());
-                    set_dir_permissions(&maps_dir, MAPS_MODE).await;
+                    set_map_permissions(&maps_dir).await;
                 }
 
                 // Ignore errors as they'll be propagated to caller in the RPC status
@@ -204,6 +206,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
             Command::LoadTracepoint {
                 location,
                 section_name,
+                id,
                 global_data,
                 tracepoint,
                 username,
@@ -219,13 +222,13 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                     }));
 
                     match prog_result {
-                        Ok(prog) => bpf_manager.add_program(prog),
+                        Ok(prog) => bpf_manager.add_program(prog, id),
                         Err(e) => Err(e),
                     }
                 };
 
                 // If program was successfully loaded, allow map access by bpfd group members.
-                if let Ok(uuid) = res {
+                if let Ok(uuid) = &res {
                     let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
                     set_map_permissions(&maps_dir).await;
                 }

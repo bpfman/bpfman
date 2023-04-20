@@ -104,6 +104,7 @@ impl Loader for BpfdLoader {
         let cmd = match request.attach_info.unwrap() {
             load_request::AttachInfo::XdpAttachInfo(attach) => Command::LoadXDP {
                 responder: resp_tx,
+                id: common.id,
                 global_data: common.global_data,
                 location: bytecode_source,
                 iface: attach.iface,
@@ -121,6 +122,7 @@ impl Loader for BpfdLoader {
                 Command::LoadTC {
                     responder: resp_tx,
                     location: bytecode_source,
+                    id: common.id,
                     global_data: common.global_data,
                     iface: attach.iface,
                     priority: attach.priority,
@@ -133,6 +135,7 @@ impl Loader for BpfdLoader {
             }
             load_request::AttachInfo::TracepointAttachInfo(attach) => Command::LoadTracepoint {
                 responder: resp_tx,
+                id: common.id,
                 global_data: common.global_data,
                 location: bytecode_source,
                 tracepoint: attach.tracepoint,
@@ -149,7 +152,7 @@ impl Loader for BpfdLoader {
         match resp_rx.await {
             Ok(res) => match res {
                 Ok(id) => {
-                    reply.id = id.to_string();
+                    reply.id = id;
                     Ok(Response::new(reply))
                 }
                 Err(e) => {

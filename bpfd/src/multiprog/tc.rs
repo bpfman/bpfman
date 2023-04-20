@@ -16,7 +16,6 @@ use bpfd_api::util::directories::*;
 use bpfd_common::TcDispatcherConfig;
 use log::debug;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use super::Dispatcher;
 use crate::{
@@ -55,12 +54,12 @@ impl TcDispatcher {
         direction: Direction,
         if_index: &u32,
         if_name: String,
-        programs: &[(Uuid, Program)],
+        programs: &[(String, Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
     ) -> Result<TcDispatcher, BpfdError> {
         debug!("TcDispatcher::new() for if_index {if_index}, revision {revision}");
-        let mut extensions: Vec<(&Uuid, &TcProgram)> = programs
+        let mut extensions: Vec<(&String, &TcProgram)> = programs
             .iter()
             .filter_map(|(k, v)| match v {
                 Program::Tc(p) => Some((k, p)),
@@ -161,7 +160,7 @@ impl TcDispatcher {
 
     fn attach_extensions(
         &mut self,
-        extensions: &mut [(&Uuid, &TcProgram)],
+        extensions: &mut [(&String, &TcProgram)],
     ) -> Result<(), BpfdError> {
         debug!(
             "TcDispatcher::attach_extensions() for if_index {}, revision {}",
