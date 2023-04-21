@@ -19,6 +19,7 @@ use clap::{Args, Parser, Subcommand};
 use comfy_table::Table;
 use hex::FromHex;
 use itertools::Itertools;
+use log::{debug, info};
 use tokio::net::UnixStream;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity, Uri};
 use tower::service_fn;
@@ -174,6 +175,13 @@ fn parse_global_arg(global_arg: &str) -> Result<GlobalArg, std::io::Error> {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // For output to bpfctl commands, eprintln() should be used. This includes
+    // errors returned from bpfd. Every command should print some success indication
+    // or a meaningful error.
+    // logs (warn!(), info!(), debug!()) can be used by developers to help debug
+    // failure cases. Being a CLI, they will be limited in their use. To see logs
+    // for bpfctl commands, use the RUST_LOG environment variable:
+    //    $ RUST_LOG=info bpfctl list
     env_logger::init();
 
     let cli = Cli::parse();
@@ -184,13 +192,18 @@ async fn main() -> anyhow::Result<()> {
     // URI is ignored on UDS, so any parsable string works.
     let address = String::from("http://localhost");
     let unix = endpoint.unix.clone();
-    let channel = Endpoint::try_from(address)?
+    match Endpoint::try_from(address)?
         .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(unix.clone())))
-        .await?;
-
-    match execute_request(&cli.command, channel).await {
-        Ok(_) => return Ok(()),
-        Err(e) => eprintln!("Error = {e:?}"),
+        .await
+    {
+        Ok(channel) => {
+            info!("Using UNIX socket as transport");
+            match execute_request(&cli.command, channel).await {
+                Ok(_) => return Ok(()),
+                Err(e) => eprintln!("Error = {e:?}"),
+            }
+        }
+        Err(e) => debug!("Error getting UNIX socket channel. Err: {}", e),
     }
 
     let ca_cert = tokio::fs::read(&config.tls.ca_cert)
@@ -222,6 +235,7 @@ async fn main() -> anyhow::Result<()> {
         .connect()
         .await?;
 
+    info!("Using TLS over TCP socket as transport");
     if let Err(e) = execute_request(&cli.command, channel).await {
         eprintln!("Error = {e:?}")
     }
