@@ -26,9 +26,12 @@ use static_program::get_static_programs;
 use tokio::{net::UnixListener, sync::mpsc};
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::{Server, ServerTlsConfig};
-use utils::{get_ifindex, set_map_permissions};
+use utils::{get_ifindex, set_dir_permissions, set_file_permissions};
 
 use crate::command::{Metadata, Program, ProgramData, XdpProgram, XdpProgramInfo};
+
+const MAPS_MODE: u32 = 0o0660;
+const SOCK_MODE: u32 = 0o0770;
 
 pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(32);
@@ -43,6 +46,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
 
     let uds = UnixListener::bind(&unix)?;
     let uds_stream = UnixListenerStream::new(uds);
+    set_file_permissions(&unix, SOCK_MODE).await;
 
     let loader = BpfdLoader::new(tx.clone());
 
@@ -147,7 +151,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                 // If program was successfully loaded, allow map access by bpfd group members.
                 if let Ok(uuid) = &res {
                     let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
-                    set_map_permissions(&maps_dir).await;
+                    set_dir_permissions(&maps_dir, MAPS_MODE).await;
                 }
 
                 // Ignore errors as they'll be propagated to caller in the RPC status
@@ -197,7 +201,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                 // If program was successfully loaded, allow map access by bpfd group members.
                 if let Ok(uuid) = &res {
                     let maps_dir = format!("{RTDIR_FS_MAPS}/{}", uuid.clone());
-                    set_map_permissions(&maps_dir).await;
+                    set_dir_permissions(&maps_dir, MAPS_MODE).await;
                 }
 
                 // Ignore errors as they'll be propagated to caller in the RPC status
@@ -230,7 +234,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                 // If program was successfully loaded, allow map access by bpfd group members.
                 if let Ok(uuid) = &res {
                     let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
-                    set_map_permissions(&maps_dir).await;
+                    set_dir_permissions(&maps_dir, MAPS_MODE).await;
                 }
 
                 // Ignore errors as they'll be propagated to caller in the RPC status

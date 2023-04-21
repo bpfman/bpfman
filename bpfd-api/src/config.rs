@@ -132,7 +132,7 @@ fn default_port() -> u16 {
 }
 
 fn default_unix() -> String {
-    RTDIR_SOCKET.to_string()
+    STPATH_BPFD_SOCKET.to_string()
 }
 
 pub fn config_from_file<P: AsRef<Path>>(path: P) -> Config {
