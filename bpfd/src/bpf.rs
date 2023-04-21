@@ -40,7 +40,7 @@ impl<'a> BpfManager<'a> {
         }
     }
 
-    pub(crate) fn rebuild_state(&mut self) -> Result<(), anyhow::Error> {
+    pub(crate) async fn rebuild_state(&mut self) -> Result<(), anyhow::Error> {
         debug!("BpfManager::rebuild_state()");
         if let Ok(programs_dir) = fs::read_dir(RTDIR_PROGRAMS) {
             for entry in programs_dir {
@@ -54,14 +54,17 @@ impl<'a> BpfManager<'a> {
                 self.programs.insert(uuid, program);
             }
         }
-        self.rebuild_dispatcher_state(ProgramType::Xdp, None, RTDIR_XDP_DISPATCHER)?;
-        self.rebuild_dispatcher_state(ProgramType::Tc, Some(Ingress), RTDIR_TC_INGRESS_DISPATCHER)?;
-        self.rebuild_dispatcher_state(ProgramType::Tc, Some(Egress), RTDIR_TC_EGRESS_DISPATCHER)?;
+        self.rebuild_dispatcher_state(ProgramType::Xdp, None, RTDIR_XDP_DISPATCHER)
+            .await?;
+        self.rebuild_dispatcher_state(ProgramType::Tc, Some(Ingress), RTDIR_TC_INGRESS_DISPATCHER)
+            .await?;
+        self.rebuild_dispatcher_state(ProgramType::Tc, Some(Egress), RTDIR_TC_EGRESS_DISPATCHER)
+            .await?;
 
         Ok(())
     }
 
-    pub(crate) fn rebuild_dispatcher_state(
+    pub(crate) async fn rebuild_dispatcher_state(
         &mut self,
         program_type: ProgramType,
         direction: Option<Direction>,
@@ -103,7 +106,8 @@ impl<'a> BpfManager<'a> {
                             if_index,
                             direction,
                             DispatcherId::Tc(DispatcherInfo(if_index, direction)),
-                        )?;
+                        )
+                        .await?;
                     }
                     _ => return Err(anyhow!("invalid program type {:?}", program_type)),
                 }
@@ -112,7 +116,7 @@ impl<'a> BpfManager<'a> {
         Ok(())
     }
 
-    pub(crate) fn add_program(
+    pub(crate) async fn add_program(
         &mut self,
         program: Program,
         id: Option<Uuid>,
@@ -134,12 +138,12 @@ impl<'a> BpfManager<'a> {
         };
 
         match program {
-            Program::Xdp(_) | Program::Tc(_) => self.add_multi_attach_program(program, uuid),
+            Program::Xdp(_) | Program::Tc(_) => self.add_multi_attach_program(program, uuid).await,
             Program::Tracepoint(_) => self.add_single_attach_program(program, uuid),
         }
     }
 
-    pub(crate) fn add_multi_attach_program(
+    pub(crate) async fn add_multi_attach_program(
         &mut self,
         program: Program,
         id: Uuid,
@@ -218,6 +222,7 @@ impl<'a> BpfManager<'a> {
             1
         };
         let dispatcher = Dispatcher::new(if_config, &programs, next_revision, old_dispatcher)
+            .await
             .or_else(|e| {
                 let prog = self.programs.remove(&id).unwrap();
                 prog.delete(id).map_err(|_| {
@@ -327,7 +332,11 @@ impl<'a> BpfManager<'a> {
         }
     }
 
-    pub(crate) fn remove_program(&mut self, id: Uuid, owner: String) -> Result<(), BpfdError> {
+    pub(crate) async fn remove_program(
+        &mut self,
+        id: Uuid,
+        owner: String,
+    ) -> Result<(), BpfdError> {
         debug!("BpfManager::remove_program() id: {id}");
         if let Some(prog) = self.programs.get(&id) {
             if !(prog.owner() == &owner || owner == SUPERUSER) {
@@ -344,12 +353,12 @@ impl<'a> BpfManager<'a> {
             .map_err(|_| BpfdError::Error("unable to delete program data".to_string()))?;
 
         match prog {
-            Program::Xdp(_) | Program::Tc(_) => self.remove_multi_attach_program(prog),
+            Program::Xdp(_) | Program::Tc(_) => self.remove_multi_attach_program(prog).await,
             Program::Tracepoint(_) => Ok(()),
         }
     }
 
-    pub(crate) fn remove_multi_attach_program(
+    pub(crate) async fn remove_multi_attach_program(
         &mut self,
         program: Program,
     ) -> Result<(), BpfdError> {
@@ -402,12 +411,13 @@ impl<'a> BpfManager<'a> {
             1
         };
         debug!("next_revision = {next_revision}");
-        let dispatcher = Dispatcher::new(if_config, &programs, next_revision, old_dispatcher)?;
+        let dispatcher =
+            Dispatcher::new(if_config, &programs, next_revision, old_dispatcher).await?;
         self.dispatchers.insert(did, dispatcher);
         Ok(())
     }
 
-    pub(crate) fn rebuild_multiattach_dispatcher(
+    pub(crate) async fn rebuild_multiattach_dispatcher(
         &mut self,
         program_type: ProgramType,
         if_index: u32,
@@ -446,7 +456,8 @@ impl<'a> BpfManager<'a> {
                 1
             };
 
-            let dispatcher = Dispatcher::new(if_config, &programs, next_revision, old_dispatcher)?;
+            let dispatcher =
+                Dispatcher::new(if_config, &programs, next_revision, old_dispatcher).await?;
             self.dispatchers.insert(did, dispatcher);
         } else {
             debug!("No dispatcher found in rebuild_multiattach_dispatcher() for {did:?}");

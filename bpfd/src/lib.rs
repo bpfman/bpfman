@@ -93,14 +93,14 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
     });
 
     let mut bpf_manager = BpfManager::new(&config);
-    bpf_manager.rebuild_state()?;
+    bpf_manager.rebuild_state().await?;
 
     let static_programs = get_static_programs(static_program_path).await?;
 
     // Load any static programs first
     if !static_programs.is_empty() {
         for prog in static_programs {
-            let uuid = bpf_manager.add_program(prog, None)?;
+            let uuid = bpf_manager.add_program(prog, None).await?;
             info!("Loaded static program with UUID {}", uuid)
         }
     };
@@ -141,7 +141,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                     }));
 
                     match prog_result {
-                        Ok(prog) => bpf_manager.add_program(prog, id),
+                        Ok(prog) => bpf_manager.add_program(prog, id).await,
                         Err(e) => Err(e),
                     }
                 } else {
@@ -191,7 +191,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                     }));
 
                     match prog_result {
-                        Ok(prog) => bpf_manager.add_program(prog, id),
+                        Ok(prog) => bpf_manager.add_program(prog, id).await,
                         Err(e) => Err(e),
                     }
                 } else {
@@ -226,7 +226,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                     }));
 
                     match prog_result {
-                        Ok(prog) => bpf_manager.add_program(prog, id),
+                        Ok(prog) => bpf_manager.add_program(prog, id).await,
                         Err(e) => Err(e),
                     }
                 };
@@ -245,7 +245,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                 username,
                 responder,
             } => {
-                let res = bpf_manager.remove_program(id, username);
+                let res = bpf_manager.remove_program(id, username).await;
                 // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }
