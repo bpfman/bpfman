@@ -32,7 +32,6 @@ pub mod directories {
     pub const RTDIR_FS_XDP: &str = "/run/bpfd/fs/xdp";
     pub const RTDIR_FS_MAPS: &str = "/run/bpfd/fs/maps";
     pub const RTDIR_PROGRAMS: &str = "/run/bpfd/programs";
-    pub const RTDIR_SOCKET: &str = "/run/bpfd/bpfd.sock";
     // StateDirectory: /var/lib/bpfd/
     pub const STDIR: &str = "/var/lib/bpfd";
     pub const STDIR_SOCKET: &str = "/var/lib/bpfd/sock";
