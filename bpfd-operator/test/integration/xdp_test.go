@@ -82,7 +82,7 @@ spec:
 	})
 
 	// Make sure the bpfProgram was successfully deployed
-	require.NoError(t, bpfdHelpers.WaitForBpfProgConfLoad(bpfdClient, "xdp-pass-private-all-nodes", time.Duration(time.Second*10)))
+	require.NoError(t, bpfdHelpers.WaitForBpfProgConfLoad(bpfdClient, "xdp-pass-private-all-nodes", time.Duration(time.Second*10), bpfdHelpers.Xdp))
 	t.Log("private xdp pass bpf program successfully deployed")
 
 }
