@@ -90,6 +90,7 @@ type BytecodeImage struct {
 
 	// PullPolicy describes a policy for if/when to pull a bytecode image. Defaults to IfNotPresent.
 	// +kubebuilder:default:=IfNotPresent
+	// +optional
 	ImagePullPolicy PullPolicy `json:"imagepullpolicy"`
 
 	// ImagePullSecret is the name of the secret bpfd should use to get remote image

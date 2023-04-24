@@ -138,7 +138,6 @@ spec:
                           remote bytecode image.
                         type: string
                     required:
-                    - imagepullpolicy
                     - url
                     type: object
                   path:
