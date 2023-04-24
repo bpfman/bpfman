@@ -22,15 +22,14 @@ import (
 	"os"
 	"time"
 
-	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/apis/v1alpha1"
+	//bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/apis/v1alpha1"
 	bpfdclientset "github.com/redhat-et/bpfd/bpfd-operator/pkg/client/clientset/versioned"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
+	//"k8s.io/apimachinery/pkg/api/errors"
+	//"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	//"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
@@ -43,13 +42,66 @@ const (
 	DefaultMapDir = "/run/bpfd/fs/maps"
 )
 
-type ProgType string
+// Must match the internal bpfd-api mappings
+type ProgramType int32
 
 const (
-	Tc         ProgType = "TC"
-	Xdp        ProgType = "XDP"
-	TracePoint ProgType = "TRACEPOINT"
+	Tc         ProgramType = 3
+	Tracepoint ProgramType = 5
+	Xdp        ProgramType = 6
 )
+
+func (p ProgramType) Int32() *int32 {
+	progTypeInt := int32(p)
+	return &progTypeInt
+}
+
+func FromString(p string) (*ProgramType, error) {
+	var programType ProgramType
+	switch p {
+	case "tc":
+		programType = Tc
+	case "xdp":
+		programType = Xdp
+	case "tracepoint":
+		programType = Tracepoint
+	default:
+		return nil, fmt.Errorf("unknown program type: %s", p)
+	}
+
+	return &programType, nil
+}
+
+func (p ProgramType) String() string {
+	switch p {
+	case Tc:
+		return "tc"
+	case Xdp:
+		return "xdp"
+	case Tracepoint:
+		return "tracepoint"
+	default:
+		return ""
+	}
+}
+
+type TcProgramDirection int32
+
+const (
+	Ingress TcProgramDirection = 1
+	Egress  TcProgramDirection = 2
+)
+
+func (t TcProgramDirection) String() string {
+	switch t {
+	case Ingress:
+		return "ingress"
+	case Egress:
+		return "egress"
+	default:
+		return ""
+	}
+}
 
 var log = ctrl.Log.WithName("bpfd-helpers")
 
@@ -81,8 +133,7 @@ func GetClientOrDie() *bpfdclientset.Clientset {
 
 // GetMaps is meant to be used by applications wishing to use BPFD. It takes in a bpf program
 // name and a list of map names, and returns a map corelating map name to map pin path.
-func GetMaps(c *bpfdclientset.Clientset, bpfProgramConfigName string, mapNames []string) (map[string]string, error) {
-	bpfMaps := map[string]string{}
+func GetMaps(c *bpfdclientset.Clientset, bpfProgramConfigName string, mapNames []string) (map[string]map[string]string, error) {
 	ctx := context.Background()
 
 	// Get the nodename where this pod is running
@@ -97,158 +148,118 @@ func GetMaps(c *bpfdclientset.Clientset, bpfProgramConfigName string, mapNames [
 		return nil, fmt.Errorf("error getting BpfProgram %s: %v", bpfProgramName, err)
 	}
 
-	// TODO (astoycos) This doesn't support multiple programs in a single bpfProgram Object yet
 	for _, v := range bpfProgram.Spec.Programs {
 		for _, mapName := range mapNames {
-
-			if pinPath, ok := v.Maps[mapName]; !ok {
+			if _, ok := v[mapName]; !ok {
 				return nil, fmt.Errorf("map: %s not found", mapName)
-			} else {
-				bpfMaps[mapName] = pinPath
 			}
-
 		}
 	}
 
-	return bpfMaps, nil
+	return bpfProgram.Spec.Programs, nil
 }
 
-// NewBpfProgramConfig is a good starting point for operators who want to deploy and
-// manage bpfProgramConfig objects programatically.  It takes in the desired program
-// name and type returning a skeleton bpfProgram Object for further use.
-func NewBpfProgramConfig(name string, progType ProgType) *bpfdiov1alpha1.BpfProgramConfig {
-	switch progType {
-	case Xdp, Tc:
-		return &bpfdiov1alpha1.BpfProgramConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: name,
-			},
-			Spec: bpfdiov1alpha1.BpfProgramConfigSpec{
-				Type: string(progType),
-				AttachPoint: bpfdiov1alpha1.BpfProgramAttachPoint{
-					NetworkMultiAttach: &bpfdiov1alpha1.BpfNetworkMultiAttach{},
-				},
-			},
-		}
-	case TracePoint:
-		return &bpfdiov1alpha1.BpfProgramConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: name,
-			},
-			Spec: bpfdiov1alpha1.BpfProgramConfigSpec{
-				Type: string(progType),
-				AttachPoint: bpfdiov1alpha1.BpfProgramAttachPoint{
-					SingleAttach: &bpfdiov1alpha1.BpfSingleAttach{},
-				},
-			},
-		}
-	default:
-		return nil
-	}
-}
+// // CreateOrUpdateOwnedBpfProgConf creates or updates a bpfProgramConfig object while also setting the owner reference to
+// // another Kubernetes core object or CRD.
+// func CreateOrUpdateOwnedBpfProgConf(c *bpfdclientset.Clientset, progConfig *bpfdiov1alpha1.BpfProgramConfig, owner client.Object, ownerScheme *runtime.Scheme) error {
+// 	progName := progConfig.GetName()
+// 	ctx := context.Background()
 
-// CreateOrUpdateOwnedBpfProgConf creates or updates a bpfProgramConfig object while also setting the owner reference to
-// another Kubernetes core object or CRD.
-func CreateOrUpdateOwnedBpfProgConf(c *bpfdclientset.Clientset, progConfig *bpfdiov1alpha1.BpfProgramConfig, owner client.Object, ownerScheme *runtime.Scheme) error {
-	progName := progConfig.GetName()
-	ctx := context.Background()
+// 	err := ctrl.SetControllerReference(owner, progConfig, ownerScheme)
+// 	if err != nil {
+// 		log.Error(err, "Failed to set controller reference")
+// 		return err
+// 	}
 
-	err := ctrl.SetControllerReference(owner, progConfig, ownerScheme)
-	if err != nil {
-		log.Error(err, "Failed to set controller reference")
-		return err
-	}
+// 	progConfigExisting, err := c.BpfdV1alpha1().BpfProgramConfigs().Get(ctx, progName, metav1.GetOptions{})
+// 	if err != nil {
+// 		// Create if not found
+// 		if errors.IsNotFound(err) {
+// 			_, err = c.BpfdV1alpha1().BpfProgramConfigs().Create(ctx, progConfig, metav1.CreateOptions{})
+// 			if err != nil {
+// 				return fmt.Errorf("error creating BpfProgramConfig %s: %v", progName, err)
+// 			}
 
-	progConfigExisting, err := c.BpfdV1alpha1().BpfProgramConfigs().Get(ctx, progName, metav1.GetOptions{})
-	if err != nil {
-		// Create if not found
-		if errors.IsNotFound(err) {
-			_, err = c.BpfdV1alpha1().BpfProgramConfigs().Create(ctx, progConfig, metav1.CreateOptions{})
-			if err != nil {
-				return fmt.Errorf("error creating BpfProgramConfig %s: %v", progName, err)
-			}
+// 			return nil
+// 		}
+// 		return fmt.Errorf("error getting BpfProgramConfig %s: %v", progName, err)
+// 	}
 
-			return nil
-		}
-		return fmt.Errorf("error getting BpfProgramConfig %s: %v", progName, err)
-	}
+// 	progConfig.SetResourceVersion(progConfigExisting.GetResourceVersion())
 
-	progConfig.SetResourceVersion(progConfigExisting.GetResourceVersion())
+// 	// Update if already exists
+// 	_, err = c.BpfdV1alpha1().BpfProgramConfigs().Update(ctx, progConfig, metav1.UpdateOptions{})
+// 	if err != nil {
+// 		return fmt.Errorf("error updating BpfProgramConfig %s: %v", progName, err)
+// 	}
 
-	// Update if already exists
-	_, err = c.BpfdV1alpha1().BpfProgramConfigs().Update(ctx, progConfig, metav1.UpdateOptions{})
-	if err != nil {
-		return fmt.Errorf("error updating BpfProgramConfig %s: %v", progName, err)
-	}
+// 	return nil
+// }
 
-	return nil
-}
+// // CreateOrUpdateBpfProgConf creates or updates a bpfProgramConfig object.
+// func CreateOrUpdateBpfProgConf(c *bpfdclientset.Clientset, progConfig *bpfdiov1alpha1.BpfProgramConfig) error {
+// 	progName := progConfig.GetName()
+// 	ctx := context.Background()
 
-// CreateOrUpdateBpfProgConf creates or updates a bpfProgramConfig object.
-func CreateOrUpdateBpfProgConf(c *bpfdclientset.Clientset, progConfig *bpfdiov1alpha1.BpfProgramConfig) error {
-	progName := progConfig.GetName()
-	ctx := context.Background()
+// 	progConfigExisting, err := c.BpfdV1alpha1().BpfProgramConfigs().Get(ctx, progName, metav1.GetOptions{})
+// 	if err != nil {
+// 		// Create if not found
+// 		if errors.IsNotFound(err) {
+// 			_, err = c.BpfdV1alpha1().BpfProgramConfigs().Create(ctx, progConfig, metav1.CreateOptions{})
+// 			if err != nil {
+// 				return fmt.Errorf("error creating BpfProgramConfig %s: %v", progName, err)
+// 			}
 
-	progConfigExisting, err := c.BpfdV1alpha1().BpfProgramConfigs().Get(ctx, progName, metav1.GetOptions{})
-	if err != nil {
-		// Create if not found
-		if errors.IsNotFound(err) {
-			_, err = c.BpfdV1alpha1().BpfProgramConfigs().Create(ctx, progConfig, metav1.CreateOptions{})
-			if err != nil {
-				return fmt.Errorf("error creating BpfProgramConfig %s: %v", progName, err)
-			}
+// 			return nil
+// 		}
+// 		return fmt.Errorf("error getting BpfProgramConfig %s: %v", progName, err)
+// 	}
 
-			return nil
-		}
-		return fmt.Errorf("error getting BpfProgramConfig %s: %v", progName, err)
-	}
+// 	progConfig.SetResourceVersion(progConfigExisting.GetResourceVersion())
 
-	progConfig.SetResourceVersion(progConfigExisting.GetResourceVersion())
+// 	// Update if already exists
+// 	_, err = c.BpfdV1alpha1().BpfProgramConfigs().Update(ctx, progConfig, metav1.UpdateOptions{})
+// 	if err != nil {
+// 		return fmt.Errorf("error updating BpfProgramConfig %s: %v", progName, err)
+// 	}
 
-	// Update if already exists
-	_, err = c.BpfdV1alpha1().BpfProgramConfigs().Update(ctx, progConfig, metav1.UpdateOptions{})
-	if err != nil {
-		return fmt.Errorf("error updating BpfProgramConfig %s: %v", progName, err)
-	}
+// 	return nil
+// }
 
-	return nil
-}
+// // DeleteBpfProgramConf deletes a given bpfProgramConfig object based on name.
+// func DeleteBpfProgConf(c *bpfdclientset.Clientset, progName string) error {
+// 	ctx := context.Background()
 
-// DeleteBpfProgramConf deletes a given bpfProgramConfig object based on name.
-func DeleteBpfProgConf(c *bpfdclientset.Clientset, progName string) error {
-	ctx := context.Background()
+// 	err := c.BpfdV1alpha1().BpfProgramConfigs().Delete(ctx, progName, metav1.DeleteOptions{})
+// 	if err != nil {
+// 		return fmt.Errorf("error Deleting BpfProgramConfig %s: %v", progName, err)
+// 	}
 
-	err := c.BpfdV1alpha1().BpfProgramConfigs().Delete(ctx, progName, metav1.DeleteOptions{})
-	if err != nil {
-		return fmt.Errorf("error Deleting BpfProgramConfig %s: %v", progName, err)
-	}
+// 	return nil
+// }
 
-	return nil
-}
+// // DeleteBpfProgConfLabels deletes a single or set of bpfProgramConfig object based
+// // on a labelSelector.
+// func DeleteBpfProgConfLabels(c *bpfdclientset.Clientset, selector *metav1.LabelSelector) error {
+// 	ctx := context.Background()
 
-// DeleteBpfProgConfLabels deletes a single or set of bpfProgramConfig object based
-// on a labelSelector.
-func DeleteBpfProgConfLabels(c *bpfdclientset.Clientset, selector *metav1.LabelSelector) error {
-	ctx := context.Background()
+// 	err := c.BpfdV1alpha1().BpfProgramConfigs().DeleteCollection(ctx, metav1.DeleteOptions{},
+// 		metav1.ListOptions{
+// 			LabelSelector: labels.Set(selector.MatchLabels).String(),
+// 		})
+// 	if err != nil {
+// 		return fmt.Errorf("error Deleting BpfProgramConfigs for labels %s: %v", labels.Set(selector.MatchLabels).String(), err)
+// 	}
 
-	err := c.BpfdV1alpha1().BpfProgramConfigs().DeleteCollection(ctx, metav1.DeleteOptions{},
-		metav1.ListOptions{
-			LabelSelector: labels.Set(selector.MatchLabels).String(),
-		})
-	if err != nil {
-		return fmt.Errorf("error Deleting BpfProgramConfigs for labels %s: %v", labels.Set(selector.MatchLabels).String(), err)
-	}
+// 	return nil
+// }
 
-	return nil
-}
-
-func isbpfdProgConfLoaded(c *bpfdclientset.Clientset, progConfName string) wait.ConditionFunc {
+func isTcbpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string) wait.ConditionFunc {
 	ctx := context.Background()
 
 	return func() (bool, error) {
 		log.Info(".") // progress bar!
-
-		bpfProgConfig, err := c.BpfdV1alpha1().BpfProgramConfigs().Get(ctx, progConfName, metav1.GetOptions{})
+		bpfProgConfig, err := c.BpfdV1alpha1().TcPrograms().Get(ctx, progConfName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -265,7 +276,67 @@ func isbpfdProgConfLoaded(c *bpfdclientset.Clientset, progConfName string) wait.
 		condition := bpfProgConfig.Status.Conditions[recentIdx]
 
 		if condition.Type != string(bpfdoperator.BpfProgConfigReconcileSuccess) {
-			log.Info("BpfProgramConfig: %s not ready with condition: %s, waiting until timeout", progConfName, condition.Type)
+			log.Info("tcProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condition.Type)
+			return false, nil
+		}
+
+		return true, nil
+	}
+}
+
+func isTracepointbpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string) wait.ConditionFunc {
+	ctx := context.Background()
+
+	return func() (bool, error) {
+		log.Info(".") // progress bar!
+		bpfProgConfig, err := c.BpfdV1alpha1().TracepointPrograms().Get(ctx, progConfName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		// Get most recent condition
+		conLen := len(bpfProgConfig.Status.Conditions)
+
+		if conLen <= 0 {
+			return false, nil
+		}
+
+		recentIdx := len(bpfProgConfig.Status.Conditions) - 1
+
+		condition := bpfProgConfig.Status.Conditions[recentIdx]
+
+		if condition.Type != string(bpfdoperator.BpfProgConfigReconcileSuccess) {
+			log.Info("tracepointProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condition.Type)
+			return false, nil
+		}
+
+		return true, nil
+	}
+}
+
+func isXdpbpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string) wait.ConditionFunc {
+	ctx := context.Background()
+
+	return func() (bool, error) {
+		log.Info(".") // progress bar!
+		bpfProgConfig, err := c.BpfdV1alpha1().XdpPrograms().Get(ctx, progConfName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		// Get most recent condition
+		conLen := len(bpfProgConfig.Status.Conditions)
+
+		if conLen <= 0 {
+			return false, nil
+		}
+
+		recentIdx := len(bpfProgConfig.Status.Conditions) - 1
+
+		condition := bpfProgConfig.Status.Conditions[recentIdx]
+
+		if condition.Type != string(bpfdoperator.BpfProgConfigReconcileSuccess) {
+			log.Info("xdpProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condition.Type)
 			return false, nil
 		}
 
@@ -275,8 +346,17 @@ func isbpfdProgConfLoaded(c *bpfdclientset.Clientset, progConfName string) wait.
 
 // WaitForBpfProgConfLoad ensures the bpfProgramConfig object is loaded and deployed successfully, specifically
 // it checks the config objects' conditions to look for the `Loaded` state.
-func WaitForBpfProgConfLoad(c *bpfdclientset.Clientset, progName string, timeout time.Duration) error {
-	return wait.PollImmediate(time.Second, timeout, isbpfdProgConfLoaded(c, progName))
+func WaitForBpfProgConfLoad(c *bpfdclientset.Clientset, progName string, timeout time.Duration, progType ProgramType) error {
+	switch progType {
+	case Tc:
+		return wait.PollImmediate(time.Second, timeout, isTcbpfdProgLoaded(c, progName))
+	case Xdp:
+		return wait.PollImmediate(time.Second, timeout, isXdpbpfdProgLoaded(c, progName))
+	case Tracepoint:
+		return wait.PollImmediate(time.Second, timeout, isTracepointbpfdProgLoaded(c, progName))
+	default:
+		return fmt.Errorf("unknown bpf program type: %s", progType)
+	}
 }
 
 // IsBpfdDeployed is used to check for the existence of bpfd in a Kubernetes cluster. Specifically it checks for

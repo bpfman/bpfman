@@ -173,9 +173,8 @@ COMMON_FLAGS ?= ${VERIFY_FLAG} --go-header-file $(shell pwd)/hack/boilerplate.go
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
-	$(CONTROLLER_GEN) rbac:roleName=agent-role paths="./controllers/bpfd-agent" output:rbac:artifacts:config=config/rbac/bpfd-agent-role
-	$(CONTROLLER_GEN) rbac:roleName=operator-role paths="./controllers/bpfd-operator" output:rbac:artifacts:config=config/rbac/bpfd-operator-role
-
+	$(CONTROLLER_GEN) rbac:roleName=agent-role paths="./controllers/bpfd-agent/..." output:rbac:artifacts:config=config/rbac/bpfd-agent
+	$(CONTROLLER_GEN) rbac:roleName=operator-role paths="./controllers/bpfd-operator" output:rbac:artifacts:config=config/rbac/bpfd-operator
 
 .PHONY: generate
 generate: manifests generate-register generate-deepcopy generate-typed-clients generate-typed-listers generate-typed-informers ## Generate deepcopy, client, lister, and informer code
