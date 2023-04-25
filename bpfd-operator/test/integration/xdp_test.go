@@ -52,22 +52,18 @@ data:
 	xdpPassPrivateBpfProgramConfigYAML := `---
 ---
 apiVersion: bpfd.io/v1alpha1
-kind: BpfProgramConfig
+kind: XdpProgram
 metadata:
   labels:
-    app.kubernetes.io/name: BpfProgramConfig
+    app.kubernetes.io/name: xdpprogram
   name: xdp-pass-private-all-nodes
 spec:
-  ## Must correspond to image section name
-  name: pass
-  type: XDP
+  sectionname: pass
   # Select all nodes
   nodeselector: {}
-  attachpoint:
-    networkmultiattach:
-      interfaceselector:
-        interface: eth0
-      priority: 0
+  interfaceselector:
+    interface: eth0
+  priority: 0
   bytecode:
     image:
       imagepullsecret: regcred

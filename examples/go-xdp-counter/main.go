@@ -60,7 +60,11 @@ func main() {
 			return
 		}
 
-		mapPath = maps[BpfProgramMapIndex]
+		// Use first map 
+		for _, v := range maps {
+			mapPath = v[BpfProgramMapIndex]
+			break
+		}
 	} else {
 		// If the bytecode src is a UUID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcUuid {
@@ -81,13 +85,16 @@ func main() {
 				return
 			}
 			c := gobpfd.NewLoaderClient(conn)
+			loadRequestCommon := &gobpfd.LoadRequestCommon{
+				Location: paramData.BytecodeSource.Location,
+				SectionName: "stats",
+				ProgramType: *bpfdHelpers.Xdp.Int32(),
+			}
 
 			loadRequest := &gobpfd.LoadRequest{
-				Location:    paramData.BytecodeSource.Location,
-				SectionName: "stats",
-				ProgramType: gobpfd.ProgramType_XDP,
-				AttachType: &gobpfd.LoadRequest_NetworkMultiAttach{
-					NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
+				Common: loadRequestCommon,
+				AttachInfo: &gobpfd.LoadRequest_XdpAttachInfo{
+					XdpAttachInfo: &gobpfd.XDPAttachInfo{
 						Priority: int32(paramData.Priority),
 						Iface:    paramData.Iface,
 					},

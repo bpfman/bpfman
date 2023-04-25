@@ -1,21 +1,17 @@
 apiVersion: bpfd.io/v1alpha1
-kind: BpfProgramConfig
+kind: TcProgram
 metadata:
   labels:
-    app.kubernetes.io/name: bpfprogramconfig
+    app.kubernetes.io/name: tcprogram
   name: go-tc-counter-example
 spec:
-  ## Must correspond to image section name
-  name: stats
-  type: TC
+  sectionname: stats
   # Select all nodes
   nodeselector: {}
-  attachpoint:
-    networkmultiattach:
-      interfaceselector:
-        interface: eth0
-      priority: 55
-      direction: INGRESS
+  interfaceselector:
+    interface: eth0
+  priority: 55
+  direction: ingress
   bytecode: 
     image:
       url: quay.io/bpfd-bytecode/go-tc-counter:latest

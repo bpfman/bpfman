@@ -49,7 +49,7 @@ func main() {
 	}
 
 	var action string
-	if paramData.Direction == gobpfd.Direction_INGRESS {
+	if paramData.Direction == bpfdHelpers.Ingress {
 		action = "received"
 	} else {
 		action = "sent"
@@ -67,7 +67,12 @@ func main() {
 			return
 		}
 
-		mapPath = maps[BpfProgramMapIndex]
+
+		// Use first map 
+		for _, v := range maps {
+			mapPath = v[BpfProgramMapIndex]
+			break
+		}
 	} else {
 		// If the bytecode src is a UUID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcUuid {
@@ -89,15 +94,19 @@ func main() {
 			}
 			c := gobpfd.NewLoaderClient(conn)
 
-			loadRequest := &gobpfd.LoadRequest{
-				Location:    paramData.BytecodeSource.Location,
+			loadRequestCommon := &gobpfd.LoadRequestCommon{
+				Location: paramData.BytecodeSource.Location,
 				SectionName: "stats",
-				ProgramType: gobpfd.ProgramType_TC,
-				AttachType: &gobpfd.LoadRequest_NetworkMultiAttach{
-					NetworkMultiAttach: &gobpfd.NetworkMultiAttach{
-						Priority:  int32(paramData.Priority),
-						Iface:     paramData.Iface,
-						Direction: paramData.Direction,
+				ProgramType: *bpfdHelpers.Xdp.Int32(),
+			}
+
+			loadRequest := &gobpfd.LoadRequest{
+				Common: loadRequestCommon,
+				AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
+					TcAttachInfo: &gobpfd.TCAttachInfo{
+						Priority: int32(paramData.Priority),
+						Iface:    paramData.Iface,
+						Direction: paramData.Direction.String(),
 					},
 				},
 			}
