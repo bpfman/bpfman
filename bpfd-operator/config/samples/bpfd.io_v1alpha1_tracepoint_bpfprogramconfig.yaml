@@ -1,18 +1,14 @@
 apiVersion: bpfd.io/v1alpha1
-kind: BpfProgramConfig
+kind: TracepointProgram
 metadata:
   labels:
-    app.kubernetes.io/name: BpfProgramConfig
+    app.kubernetes.io/name: tracepointprogram
   name: tracepoint-example
 spec:
-  ## Must correspond to image section name
-  name: hello
-  type: TRACEPOINT
+  sectionname: hello
   # Select all nodes
   nodeselector: {}
-  attachpoint:
-    singleattach: 
-      name: syscalls/sys_enter_openat
+  name: syscalls/sys_enter_openat
   bytecode:
     image:
       url: quay.io/bpfd-bytecode/tracepoint:latest
