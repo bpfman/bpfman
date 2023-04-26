@@ -18,10 +18,7 @@ package bpfdagent
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/binary"
 	"fmt"
-	"math/rand"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -37,7 +34,6 @@ import (
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
 	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
-	"github.com/google/uuid"
 
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	v1 "k8s.io/api/core/v1"
@@ -57,7 +53,7 @@ func (r *TcProgramReconciler) getRecCommon() *ReconcilerCommon {
 }
 
 func (r *TcProgramReconciler) getFinalizer() string {
-	return TcProgramControllerFinalizer
+	return internal.TcProgramControllerFinalizer
 }
 
 func (r *TcProgramReconciler) getRecType() string {
@@ -130,21 +126,21 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			req.NamespacedName, err)
 	}
 
-	TcPrograms := &bpfdiov1alpha1.TcProgramList{}
+	tcPrograms := &bpfdiov1alpha1.TcProgramList{}
 
 	opts := []client.ListOption{}
 
-	if err := r.List(ctx, TcPrograms, opts...); err != nil {
+	if err := r.List(ctx, tcPrograms, opts...); err != nil {
 		return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting TcPrograms for full reconcile %s : %v",
 			req.NamespacedName, err)
 	}
 
-	if len(TcPrograms.Items) == 0 {
+	if len(tcPrograms.Items) == 0 {
 		return ctrl.Result{Requeue: false}, nil
 	}
 
 	// Get existing ebpf state from bpfd.
-	programMap, err := r.listBpfdPrograms(ctx, internal.Tc)
+	programMap, err := bpfdagentinternal.ListBpfdPrograms(ctx, r.BpfdClient, internal.Tc)
 	if err != nil {
 		r.Logger.Error(err, "failed to list loaded bpfd programs")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
@@ -152,8 +148,8 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Reconcile every TcProgram Object
 	// note: This doesn't necessarily result in any extra grpc calls to bpfd
-	for _, tcProgram := range TcPrograms.Items {
-		r.Logger.Info("bpfd-agent is reconciling", "bpfProgramConfig", tcProgram.Name)
+	for _, tcProgram := range tcPrograms.Items {
+		r.Logger.Info("TcProgramController is reconciling", "key", req)
 		r.currentTcProgram = &tcProgram
 		retry, err := reconcileProgram(ctx, r, r.currentTcProgram, &r.currentTcProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
 		if err != nil {
@@ -173,11 +169,9 @@ func (r *TcProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 	isNodeSelected bool,
 	isBeingDeleted bool) (bpfProgramConditionType, error) {
 
-	TcProgram := r.currentTcProgram
-
-	ifaces, err := getInterfaces(&TcProgram.Spec.InterfaceSelector, r.ourNode)
+	ifaces, err := getInterfaces(&r.currentTcProgram.Spec.InterfaceSelector, r.ourNode)
 	if err != nil {
-		return BpfProgCondNotLoaded, fmt.Errorf("failed to get interfaces for TcProgram %s: %v", TcProgram.Name, err)
+		return BpfProgCondNotLoaded, fmt.Errorf("failed to get interfaces for TcProgram %s: %v", r.currentTcProgram.Name, err)
 	}
 
 	r.Logger.V(1).Info("Existing bpfProgramEntries", "ExistingEntries", r.bpfProgram.Spec.Programs)
@@ -190,24 +184,16 @@ func (r *TcProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 	for _, iface := range ifaces {
 		loadRequest := &gobpfd.LoadRequest{}
 
-		// Hash this string and use it as seed to make the UUID deterministic
-		// for now. Eventually the BpfProgram UID will be used for this.
-		h := sha256.New()
-		h.Write([]byte(fmt.Sprintf("%s-%s", TcProgram.Name, iface)))
-		seed := binary.BigEndian.Uint64(h.Sum(nil))
-		rnd := rand.New(rand.NewSource(int64(seed)))
-		uuid.SetRand(rnd)
-		uuid, _ := uuid.NewRandomFromReader(rnd)
-		id := uuid.String()
+		id := bpfdagentinternal.GenIdFromName(fmt.Sprintf("%s-%s", r.currentTcProgram.Name, iface))
 
-		loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(bytecode, TcProgram.Spec.SectionName, internal.Tc, id, TcProgram.Spec.GlobalData)
+		loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(bytecode, r.currentTcProgram.Spec.SectionName, internal.Tc, id, r.currentTcProgram.Spec.GlobalData)
 
 		loadRequest.AttachInfo = &gobpfd.LoadRequest_TcAttachInfo{
 			TcAttachInfo: &gobpfd.TCAttachInfo{
-				Priority:  TcProgram.Spec.Priority,
+				Priority:  r.currentTcProgram.Spec.Priority,
 				Iface:     iface,
-				Direction: TcProgram.Spec.Direction,
-				ProceedOn: tcProceedOnToInt(TcProgram.Spec.ProceedOn),
+				Direction: r.currentTcProgram.Spec.Direction,
+				ProceedOn: tcProceedOnToInt(r.currentTcProgram.Spec.ProceedOn),
 			},
 		}
 
@@ -241,8 +227,9 @@ func (r *TcProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 
 		// BpfProgram exists but either BpfProgramConfig is being deleted or node is no
 		// longer selected....unload program
-		if !TcProgram.DeletionTimestamp.IsZero() || !isNodeSelected {
-			r.Logger.V(1).Info("TcProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", !TcProgram.DeletionTimestamp.IsZero(),
+		if isBeingDeleted || !isNodeSelected {
+			r.Logger.V(1).Info("TcProgram exists on  ode but is scheduled for deletion or node is no longer selected...unload it",
+				"isDeleted", !r.currentTcProgram.DeletionTimestamp.IsZero(),
 				"isSelected", isNodeSelected)
 			if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 				r.Logger.Error(err, "Failed to unload TcProgram")

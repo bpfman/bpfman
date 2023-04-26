@@ -19,19 +19,22 @@ package internal
 import "fmt"
 
 const (
-	BpfdNs                 = "bpfd"
-	BpfdOperatorName       = "bpfd-operator"
-	BpfdDsName             = "bpfd-daemon"
-	BpfdConfigName         = "bpfd-config"
-	BpfdDaemonManifestPath = "./config/bpfd-deployment/daemonset.yaml"
-	BpfdMapFs              = "/run/bpfd/fs/maps"
-	DefaultConfigPath      = "/etc/bpfd/bpfd.toml"
-	DefaultRootCaPath      = "/etc/bpfd/certs/ca/ca.crt"
-	DefaultCertPath        = "/etc/bpfd/certs/bpfd/tls.crt"
-	DefaultKeyPath         = "/etc/bpfd/certs/bpfd/tls.key"
-	DefaultClientCertPath  = "/etc/bpfd/certs/bpfd-client/tls.crt"
-	DefaultClientKeyPath   = "/etc/bpfd/certs/bpfd-client/tls.key"
-	DefaultPort            = 50051
+	XdpProgramControllerFinalizer        = "bpfd.io.xdpprogramcontroller-finalizer"
+	TcProgramControllerFinalizer         = "bpfd.io.tcprogramcontroller/finalizer"
+	TracepointProgramControllerFinalizer = "bpfd.io.tracepointprogramcontroller/finalizer"
+	BpfdNs                               = "bpfd"
+	BpfdOperatorName                     = "bpfd-operator"
+	BpfdDsName                           = "bpfd-daemon"
+	BpfdConfigName                       = "bpfd-config"
+	BpfdDaemonManifestPath               = "./config/bpfd-deployment/daemonset.yaml"
+	BpfdMapFs                            = "/run/bpfd/fs/maps"
+	DefaultConfigPath                    = "/etc/bpfd/bpfd.toml"
+	DefaultRootCaPath                    = "/etc/bpfd/certs/ca/ca.crt"
+	DefaultCertPath                      = "/etc/bpfd/certs/bpfd/tls.crt"
+	DefaultKeyPath                       = "/etc/bpfd/certs/bpfd/tls.key"
+	DefaultClientCertPath                = "/etc/bpfd/certs/bpfd-client/tls.crt"
+	DefaultClientKeyPath                 = "/etc/bpfd/certs/bpfd-client/tls.key"
+	DefaultPort                          = 50051
 )
 
 // Must match the internal bpfd-api mappings

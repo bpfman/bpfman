@@ -40,7 +40,6 @@ import (
 
 type XdpProgramReconciler struct {
 	ReconcilerCommon
-	Finalizer string
 }
 
 func (r *XdpProgramReconciler) getRecCommon() *ReconcilerCommon {
@@ -48,7 +47,7 @@ func (r *XdpProgramReconciler) getRecCommon() *ReconcilerCommon {
 }
 
 func (r *XdpProgramReconciler) getFinalizer() string {
-	return r.Finalizer
+	return internal.XdpProgramControllerFinalizer
 }
 
 // SetupWithManager sets up the controller with the Manager.

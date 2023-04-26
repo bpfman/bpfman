@@ -40,7 +40,6 @@ import (
 
 type TracepointProgramReconciler struct {
 	ReconcilerCommon
-	Finalizer string
 }
 
 func (r *TracepointProgramReconciler) getRecCommon() *ReconcilerCommon {
@@ -48,7 +47,7 @@ func (r *TracepointProgramReconciler) getRecCommon() *ReconcilerCommon {
 }
 
 func (r *TracepointProgramReconciler) getFinalizer() string {
-	return r.Finalizer
+	return internal.TracepointProgramControllerFinalizer
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -67,12 +66,10 @@ func (r *TracepointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Logger = log.FromContext(ctx)
 
-	tracpointProgram := &bpfdiov1alpha1.TracepointProgram{}
-	if err := r.Get(ctx, req.NamespacedName, tracpointProgram); err != nil {
+	tracepointProgram := &bpfdiov1alpha1.TracepointProgram{}
+	if err := r.Get(ctx, req.NamespacedName, tracepointProgram); err != nil {
 		// list all BpfProgramConfig objects with
 		if errors.IsNotFound(err) {
-			// TODO(astoycos) we could simplify this logic by making the name of the
-			// generated bpfProgram object a bit more deterministic
 			bpfProgram := &bpfdiov1alpha1.BpfProgram{}
 			if err := r.Get(ctx, req.NamespacedName, bpfProgram); err != nil {
 				if errors.IsNotFound(err) {
@@ -89,7 +86,7 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 				return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting bpfProgram Object owner")
 			}
 
-			if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: ownerRef.Name}, tracpointProgram); err != nil {
+			if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: ownerRef.Name}, tracepointProgram); err != nil {
 				if errors.IsNotFound(err) {
 					r.Logger.Info("Tracepoint Program from ownerRef not found stale reconcile exiting", "Bame", req.NamespacedName)
 				} else {
@@ -104,7 +101,7 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		}
 	}
 
-	return reconcileBpfProgram(ctx, r, tracpointProgram)
+	return reconcileBpfProgram(ctx, r, tracepointProgram)
 }
 
 func (r *TracepointProgramReconciler) updateStatus(ctx context.Context, name string, cond BpfProgramConfigConditionType, message string) (ctrl.Result, error) {

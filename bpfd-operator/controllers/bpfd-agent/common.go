@@ -37,7 +37,6 @@ import (
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
-	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	"github.com/go-logr/logr"
 	"google.golang.org/grpc"
@@ -78,15 +77,12 @@ type bpfdReconciler interface {
 type bpfProgramConditionType string
 
 const (
-	XdpProgramControllerFinalizer                                = "bpfd.io.xdpprogramcontroller-finalizer"
-	TcProgramControllerFinalizer                                 = "bpfd.io.tcprogramcontroller/finalizer"
-	TracepointProgramControllerFinalizer                         = "bpfd.io.tracepointprogramcontroller/finalizer"
-	retryDurationAgent                                           = 5 * time.Second
-	BpfProgCondLoaded                    bpfProgramConditionType = "Loaded"
-	BpfProgCondNotLoaded                 bpfProgramConditionType = "NotLoaded"
-	BpfProgCondNotUnloaded               bpfProgramConditionType = "NotUnLoaded"
-	BpfProgCondNotSelected               bpfProgramConditionType = "NotSelected"
-	BpfProgCondUnloaded                  bpfProgramConditionType = "Unloaded"
+	retryDurationAgent                             = 5 * time.Second
+	BpfProgCondLoaded      bpfProgramConditionType = "Loaded"
+	BpfProgCondNotLoaded   bpfProgramConditionType = "NotLoaded"
+	BpfProgCondNotUnloaded bpfProgramConditionType = "NotUnLoaded"
+	BpfProgCondNotSelected bpfProgramConditionType = "NotSelected"
+	BpfProgCondUnloaded    bpfProgramConditionType = "Unloaded"
 )
 
 func (b bpfProgramConditionType) Condition() metav1.Condition {
@@ -190,26 +186,6 @@ func getInterfaces(interfaceSelector *bpfdiov1alpha1.InterfaceSelector, ourNode 
 
 }
 
-// Move to bpfd core helpers
-func (r *ReconcilerCommon) listBpfdPrograms(ctx context.Context, programType internal.SupportedProgramType) (map[string]*gobpfd.ListResponse_ListResult, error) {
-	listReq := gobpfd.ListRequest{
-		ProgramType: programType.Int32(),
-	}
-
-	out := map[string]*gobpfd.ListResponse_ListResult{}
-
-	listResponse, err := r.BpfdClient.List(ctx, &listReq)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, result := range listResponse.Results {
-		out[result.Id] = result
-	}
-
-	return out, nil
-}
-
 // removeFinalizer removes the finalizer from the BpfProgram object if is applied,
 // returning if the action resulted in a kube API update or not along with any
 // errors.
@@ -269,12 +245,12 @@ func reconcileProgram(ctx context.Context,
 	err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: bpfProgramName}, r.bpfProgram)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			r.Logger.Info("bpfProgram object doesn't exist creating...")
+			r.Logger.Info("bpfProgram object doesn't exist creating...", "Name", bpfProgramName)
 			r.bpfProgram = &bpfdiov1alpha1.BpfProgram{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       bpfProgramName,
 					Finalizers: []string{rec.getFinalizer()},
-					Labels:     map[string]string{"owningConfig": program.GetName()},
+					Labels:     map[string]string{"ownedByProgram": program.GetName()},
 				},
 				Spec: bpfdiov1alpha1.BpfProgramSpec{
 					Node:     r.NodeName,
@@ -321,7 +297,7 @@ func reconcileProgram(ctx context.Context,
 
 	// Deletion of a bpfProgram takes two reconciles
 	// 1. Remove the finalizer
-	// 2. Update the condition to BpfProgCondUnloaded so the operator knows it's
+	// 2. Update the condition to 'BpfProgCondUnloaded' so the operator knows it's
 	//    safe to remove the parent Program Object, which is when the bpfProgram
 	//	  is automatically deleted by the owner-reference.
 	if isBeingDeleted {

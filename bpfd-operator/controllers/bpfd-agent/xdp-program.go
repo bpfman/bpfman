@@ -18,10 +18,7 @@ package bpfdagent
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/binary"
 	"fmt"
-	"math/rand"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -37,7 +34,6 @@ import (
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
 	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
-	"github.com/google/uuid"
 
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	v1 "k8s.io/api/core/v1"
@@ -57,7 +53,7 @@ func (r *XdpProgramReconciler) getRecCommon() *ReconcilerCommon {
 }
 
 func (r *XdpProgramReconciler) getFinalizer() string {
-	return XdpProgramControllerFinalizer
+	return internal.XdpProgramControllerFinalizer
 }
 
 func (r *XdpProgramReconciler) getRecType() string {
@@ -120,21 +116,21 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			req.NamespacedName, err)
 	}
 
-	XdpPrograms := &bpfdiov1alpha1.XdpProgramList{}
+	xdpPrograms := &bpfdiov1alpha1.XdpProgramList{}
 
 	opts := []client.ListOption{}
 
-	if err := r.List(ctx, XdpPrograms, opts...); err != nil {
+	if err := r.List(ctx, xdpPrograms, opts...); err != nil {
 		return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting XdpPrograms for full reconcile %s : %v",
 			req.NamespacedName, err)
 	}
 
-	if len(XdpPrograms.Items) == 0 {
+	if len(xdpPrograms.Items) == 0 {
 		return ctrl.Result{Requeue: false}, nil
 	}
 
 	// Get existing ebpf state from bpfd.
-	programMap, err := r.listBpfdPrograms(ctx, internal.Tc)
+	programMap, err := bpfdagentinternal.ListBpfdPrograms(ctx, r.BpfdClient, internal.Tc)
 	if err != nil {
 		r.Logger.Error(err, "failed to list loaded bpfd programs")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
@@ -142,7 +138,7 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Reconcile every XdpProgram Object
 	// note: This doesn't necessarily result in any extra grpc calls to bpfd
-	for _, XdpProgram := range XdpPrograms.Items {
+	for _, XdpProgram := range xdpPrograms.Items {
 		r.Logger.Info("bpfd-agent is reconciling", "bpfProgramConfig", XdpProgram.Name)
 		r.currentXdpProgram = &XdpProgram
 		retry, err := reconcileProgram(ctx, r, r.currentXdpProgram, &r.currentXdpProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
@@ -163,11 +159,9 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 	isNodeSelected bool,
 	isBeingDeleted bool) (bpfProgramConditionType, error) {
 
-	XdpProgram := r.currentXdpProgram
-
-	ifaces, err := getInterfaces(&XdpProgram.Spec.InterfaceSelector, r.ourNode)
+	ifaces, err := getInterfaces(&r.currentXdpProgram.Spec.InterfaceSelector, r.ourNode)
 	if err != nil {
-		return BpfProgCondNotLoaded, fmt.Errorf("failed to get interfaces for XdpProgram %s: %v", XdpProgram.Name, err)
+		return BpfProgCondNotLoaded, fmt.Errorf("failed to get interfaces for XdpProgram %s: %v", r.currentXdpProgram.Name, err)
 	}
 
 	r.Logger.V(1).Info("Existing bpfProgramEntries", "ExistingEntries", r.bpfProgram.Spec.Programs)
@@ -180,23 +174,15 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 	for _, iface := range ifaces {
 		loadRequest := &gobpfd.LoadRequest{}
 
-		// Hash this string and use it as seed to make the UUID deterministic
-		// for now. Eventually the BpfProgram UID will be used for this.
-		h := sha256.New()
-		h.Write([]byte(fmt.Sprintf("%s-%s", XdpProgram.Name, iface)))
-		seed := binary.BigEndian.Uint64(h.Sum(nil))
-		rnd := rand.New(rand.NewSource(int64(seed)))
-		uuid.SetRand(rnd)
-		uuid, _ := uuid.NewRandomFromReader(rnd)
-		id := uuid.String()
+		id := bpfdagentinternal.GenIdFromName(fmt.Sprintf("%s-%s", r.currentXdpProgram.Name, iface))
 
-		loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(bytecode, XdpProgram.Spec.SectionName, internal.Tc, id, XdpProgram.Spec.GlobalData)
+		loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(bytecode, r.currentXdpProgram.Spec.SectionName, internal.Xdp, id, r.currentXdpProgram.Spec.GlobalData)
 
 		loadRequest.AttachInfo = &gobpfd.LoadRequest_XdpAttachInfo{
 			XdpAttachInfo: &gobpfd.XDPAttachInfo{
-				Priority:  XdpProgram.Spec.Priority,
+				Priority:  r.currentXdpProgram.Spec.Priority,
 				Iface:     iface,
-				ProceedOn: xdpProceedOnToInt(XdpProgram.Spec.ProceedOn),
+				ProceedOn: xdpProceedOnToInt(r.currentXdpProgram.Spec.ProceedOn),
 			},
 		}
 
@@ -230,8 +216,8 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 
 		// BpfProgram exists but either BpfProgramConfig is being deleted or node is no
 		// longer selected....unload program
-		if !XdpProgram.DeletionTimestamp.IsZero() || !isNodeSelected {
-			r.Logger.V(1).Info("XdpProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", !XdpProgram.DeletionTimestamp.IsZero(),
+		if isBeingDeleted || !isNodeSelected {
+			r.Logger.V(1).Info("XdpProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", isBeingDeleted,
 				"isSelected", isNodeSelected)
 			if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 				r.Logger.Error(err, "Failed to unload XdpProgram")

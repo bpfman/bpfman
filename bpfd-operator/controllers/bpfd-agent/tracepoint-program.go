@@ -18,10 +18,7 @@ package bpfdagent
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/binary"
 	"fmt"
-	"math/rand"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -36,7 +33,6 @@ import (
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
-	"github.com/google/uuid"
 
 	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 
@@ -47,21 +43,21 @@ import (
 //+kubebuilder:rbac:groups=bpfd.io,resources=tracepointprograms,verbs=get;list;watch
 
 // BpfProgramReconciler reconciles a BpfProgram object
-type TracePointProgramReconciler struct {
+type TracepointProgramReconciler struct {
 	ReconcilerCommon
 	currentTracepointProgram *bpfdiov1alpha1.TracepointProgram
 	ourNode                  *v1.Node
 }
 
-func (r *TracePointProgramReconciler) getRecCommon() *ReconcilerCommon {
+func (r *TracepointProgramReconciler) getRecCommon() *ReconcilerCommon {
 	return &r.ReconcilerCommon
 }
 
-func (r *TracePointProgramReconciler) getFinalizer() string {
-	return TracepointProgramControllerFinalizer
+func (r *TracepointProgramReconciler) getFinalizer() string {
+	return internal.TracepointProgramControllerFinalizer
 }
 
-func (r *TracePointProgramReconciler) getRecType() string {
+func (r *TracepointProgramReconciler) getRecType() string {
 	return internal.Tracepoint.String()
 }
 
@@ -69,7 +65,7 @@ func (r *TracePointProgramReconciler) getRecType() string {
 // The Bpfd-Agent should reconcile whenever a BpfProgramConfig is updated,
 // load the program to the node via bpfd, and then create a bpfProgram object
 // to reflect per node state information.
-func (r *TracePointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *TracepointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bpfdiov1alpha1.TracepointProgram{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
 		Owns(&bpfdiov1alpha1.BpfProgram{}, builder.WithPredicates(internal.BpfProgramTypePredicate(internal.Tracepoint.String()))).
@@ -84,7 +80,7 @@ func (r *TracePointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *TracePointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentTracepointProgram = &bpfdiov1alpha1.TracepointProgram{}
 	r.ourNode = &v1.Node{}
@@ -97,21 +93,21 @@ func (r *TracePointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			req.NamespacedName, err)
 	}
 
-	TracepointPrograms := &bpfdiov1alpha1.TracepointProgramList{}
+	tracepointPrograms := &bpfdiov1alpha1.TracepointProgramList{}
 
 	opts := []client.ListOption{}
 
-	if err := r.List(ctx, TracepointPrograms, opts...); err != nil {
+	if err := r.List(ctx, tracepointPrograms, opts...); err != nil {
 		return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting TcPrograms for full reconcile %s : %v",
 			req.NamespacedName, err)
 	}
 
-	if len(TracepointPrograms.Items) == 0 {
+	if len(tracepointPrograms.Items) == 0 {
 		return ctrl.Result{Requeue: false}, nil
 	}
 
 	// Get existing ebpf state from bpfd.
-	programMap, err := r.listBpfdPrograms(ctx, internal.Tc)
+	programMap, err := bpfdagentinternal.ListBpfdPrograms(ctx, r.BpfdClient, internal.Tc)
 	if err != nil {
 		r.Logger.Error(err, "failed to list loaded bpfd programs")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
@@ -119,8 +115,8 @@ func (r *TracePointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Reconcile every TcProgram Object
 	// note: This doesn't necessarily result in any extra grpc calls to bpfd
-	for _, tcProgram := range TracepointPrograms.Items {
-		r.Logger.Info("bpfd-agent is reconciling", "bpfProgramConfig", tcProgram.Name)
+	for _, tcProgram := range tracepointPrograms.Items {
+		r.Logger.Info("TracepointProgramController is reconciling", "key", req)
 		r.currentTracepointProgram = &tcProgram
 		retry, err := reconcileProgram(ctx, r, r.currentTracepointProgram, &r.currentTracepointProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
 		if err != nil {
@@ -134,13 +130,12 @@ func (r *TracePointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 // reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
 // It does interact with the k8s API in any way.
-func (r *TracePointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
+func (r *TracepointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
 	bytecode interface{},
 	isNodeSelected bool,
 	isBeingDeleted bool) (bpfProgramConditionType, error) {
 
-	tracepointProgram := r.currentTracepointProgram
 	r.expectedPrograms = map[string]map[string]string{}
 
 	r.Logger.V(1).Info("Existing bpfProgramEntries", "ExistingEntries", r.bpfProgram.Spec.Programs)
@@ -151,21 +146,13 @@ func (r *TracePointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 
 	loadRequest := &gobpfd.LoadRequest{}
 
-	// Hash this string and use it as seed to make the UUID deterministic
-	// for now. Eventually the BpfProgram UID will be used for this.
-	h := sha256.New()
-	h.Write([]byte(tracepointProgram.Name))
-	seed := binary.BigEndian.Uint64(h.Sum(nil))
-	rnd := rand.New(rand.NewSource(int64(seed)))
-	uuid.SetRand(rnd)
-	uuid, _ := uuid.NewRandomFromReader(rnd)
-	id := uuid.String()
+	id := bpfdagentinternal.GenIdFromName(r.currentTracepointProgram.Name)
 
-	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(bytecode, tracepointProgram.Spec.SectionName, internal.Tracepoint, id, tracepointProgram.Spec.GlobalData)
+	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(bytecode, r.currentTracepointProgram.Spec.SectionName, internal.Tracepoint, id, r.currentTracepointProgram.Spec.GlobalData)
 
 	loadRequest.AttachInfo = &gobpfd.LoadRequest_TracepointAttachInfo{
 		TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
-			Tracepoint: tracepointProgram.Spec.Name,
+			Tracepoint: r.currentTracepointProgram.Spec.Name,
 		},
 	}
 
@@ -197,8 +184,8 @@ func (r *TracePointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 
 	// BpfProgram exists but either BpfProgramConfig is being deleted or node is no
 	// longer selected....unload program
-	if !tracepointProgram.DeletionTimestamp.IsZero() || !isNodeSelected {
-		r.Logger.V(1).Info("TcProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", !tracepointProgram.DeletionTimestamp.IsZero(),
+	if isBeingDeleted || !isNodeSelected {
+		r.Logger.V(1).Info("TcProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", isBeingDeleted,
 			"isSelected", isNodeSelected)
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload TcProgram")
