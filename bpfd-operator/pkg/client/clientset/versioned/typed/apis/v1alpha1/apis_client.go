@@ -28,7 +28,9 @@ import (
 type BpfdV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	BpfProgramsGetter
-	BpfProgramConfigsGetter
+	TcProgramsGetter
+	TracepointProgramsGetter
+	XdpProgramsGetter
 }
 
 // BpfdV1alpha1Client is used to interact with features provided by the bpfd.io group.
@@ -40,8 +42,16 @@ func (c *BpfdV1alpha1Client) BpfPrograms() BpfProgramInterface {
 	return newBpfPrograms(c)
 }
 
-func (c *BpfdV1alpha1Client) BpfProgramConfigs() BpfProgramConfigInterface {
-	return newBpfProgramConfigs(c)
+func (c *BpfdV1alpha1Client) TcPrograms() TcProgramInterface {
+	return newTcPrograms(c)
+}
+
+func (c *BpfdV1alpha1Client) TracepointPrograms() TracepointProgramInterface {
+	return newTracepointPrograms(c)
+}
+
+func (c *BpfdV1alpha1Client) XdpPrograms() XdpProgramInterface {
+	return newXdpPrograms(c)
 }
 
 // NewForConfig creates a new BpfdV1alpha1Client for the given config.

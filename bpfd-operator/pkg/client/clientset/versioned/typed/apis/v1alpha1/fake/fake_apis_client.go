@@ -31,8 +31,16 @@ func (c *FakeBpfdV1alpha1) BpfPrograms() v1alpha1.BpfProgramInterface {
 	return &FakeBpfPrograms{c}
 }
 
-func (c *FakeBpfdV1alpha1) BpfProgramConfigs() v1alpha1.BpfProgramConfigInterface {
-	return &FakeBpfProgramConfigs{c}
+func (c *FakeBpfdV1alpha1) TcPrograms() v1alpha1.TcProgramInterface {
+	return &FakeTcPrograms{c}
+}
+
+func (c *FakeBpfdV1alpha1) TracepointPrograms() v1alpha1.TracepointProgramInterface {
+	return &FakeTracepointPrograms{c}
+}
+
+func (c *FakeBpfdV1alpha1) XdpPrograms() v1alpha1.XdpProgramInterface {
+	return &FakeXdpPrograms{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

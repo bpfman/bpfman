@@ -1,45 +1,9 @@
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LoadRequest {
-    #[prost(string, tag = "3")]
-    pub section_name: ::prost::alloc::string::String,
-    #[prost(enumeration = "ProgramType", tag = "4")]
-    pub program_type: i32,
-    #[prost(map = "string, bytes", tag = "7")]
-    pub global_data: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::vec::Vec<u8>,
-    >,
-    #[prost(oneof = "load_request::Location", tags = "1, 2")]
-    pub location: ::core::option::Option<load_request::Location>,
-    #[prost(oneof = "load_request::AttachType", tags = "5, 6")]
-    pub attach_type: ::core::option::Option<load_request::AttachType>,
-}
-/// Nested message and enum types in `LoadRequest`.
-pub mod load_request {
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Location {
-        #[prost(message, tag = "1")]
-        Image(super::BytecodeImage),
-        #[prost(string, tag = "2")]
-        File(::prost::alloc::string::String),
-    }
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum AttachType {
-        #[prost(message, tag = "5")]
-        NetworkMultiAttach(super::NetworkMultiAttach),
-        #[prost(message, tag = "6")]
-        SingleAttach(super::SingleAttach),
-    }
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BytecodeImage {
     #[prost(string, tag = "1")]
     pub url: ::prost::alloc::string::String,
-    #[prost(enumeration = "ImagePullPolicy", tag = "2")]
+    #[prost(int32, tag = "2")]
     pub image_pull_policy: i32,
     #[prost(string, tag = "3")]
     pub username: ::prost::alloc::string::String,
@@ -48,23 +12,87 @@ pub struct BytecodeImage {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NetworkMultiAttach {
+pub struct LoadRequestCommon {
+    #[prost(string, tag = "3")]
+    pub section_name: ::prost::alloc::string::String,
+    #[prost(int32, tag = "4")]
+    pub program_type: i32,
+    #[prost(string, optional, tag = "5")]
+    pub id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(map = "string, bytes", tag = "6")]
+    pub global_data: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::vec::Vec<u8>,
+    >,
+    #[prost(oneof = "load_request_common::Location", tags = "1, 2")]
+    pub location: ::core::option::Option<load_request_common::Location>,
+}
+/// Nested message and enum types in `LoadRequestCommon`.
+pub mod load_request_common {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Location {
+        #[prost(message, tag = "1")]
+        Image(super::BytecodeImage),
+        #[prost(string, tag = "2")]
+        File(::prost::alloc::string::String),
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NoAttachInfo {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct XdpAttachInfo {
     #[prost(int32, tag = "1")]
     pub priority: i32,
     #[prost(string, tag = "2")]
     pub iface: ::prost::alloc::string::String,
     #[prost(int32, tag = "3")]
     pub position: i32,
-    #[prost(enumeration = "Direction", tag = "4")]
-    pub direction: i32,
-    #[prost(enumeration = "ProceedOn", repeated, tag = "5")]
+    #[prost(int32, repeated, tag = "4")]
     pub proceed_on: ::prost::alloc::vec::Vec<i32>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SingleAttach {
+pub struct TcAttachInfo {
+    #[prost(int32, tag = "1")]
+    pub priority: i32,
+    #[prost(string, tag = "2")]
+    pub iface: ::prost::alloc::string::String,
+    #[prost(int32, tag = "3")]
+    pub position: i32,
+    #[prost(string, tag = "4")]
+    pub direction: ::prost::alloc::string::String,
+    #[prost(int32, repeated, tag = "5")]
+    pub proceed_on: ::prost::alloc::vec::Vec<i32>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TracepointAttachInfo {
     #[prost(string, tag = "1")]
-    pub name: ::prost::alloc::string::String,
+    pub tracepoint: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LoadRequest {
+    #[prost(message, optional, tag = "1")]
+    pub common: ::core::option::Option<LoadRequestCommon>,
+    #[prost(oneof = "load_request::AttachInfo", tags = "2, 3, 4")]
+    pub attach_info: ::core::option::Option<load_request::AttachInfo>,
+}
+/// Nested message and enum types in `LoadRequest`.
+pub mod load_request {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum AttachInfo {
+        #[prost(message, tag = "2")]
+        XdpAttachInfo(super::XdpAttachInfo),
+        #[prost(message, tag = "3")]
+        TcAttachInfo(super::TcAttachInfo),
+        #[prost(message, tag = "4")]
+        TracepointAttachInfo(super::TracepointAttachInfo),
+    }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -83,11 +111,14 @@ pub struct UnloadRequest {
 pub struct UnloadResponse {}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListRequest {}
+pub struct ListRequest {
+    #[prost(int32, optional, tag = "1")]
+    pub program_type: ::core::option::Option<i32>,
+}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListResponse {
-    #[prost(message, repeated, tag = "2")]
+    #[prost(message, repeated, tag = "10")]
     pub results: ::prost::alloc::vec::Vec<list_response::ListResult>,
 }
 /// Nested message and enum types in `ListResponse`.
@@ -97,14 +128,14 @@ pub mod list_response {
     pub struct ListResult {
         #[prost(string, tag = "1")]
         pub id: ::prost::alloc::string::String,
-        #[prost(string, tag = "2")]
-        pub name: ::prost::alloc::string::String,
-        #[prost(enumeration = "super::ProgramType", tag = "5")]
+        #[prost(string, optional, tag = "2")]
+        pub section_name: ::core::option::Option<::prost::alloc::string::String>,
+        #[prost(int32, tag = "5")]
         pub program_type: i32,
         #[prost(oneof = "list_result::Location", tags = "3, 4")]
         pub location: ::core::option::Option<list_result::Location>,
-        #[prost(oneof = "list_result::AttachType", tags = "6, 7")]
-        pub attach_type: ::core::option::Option<list_result::AttachType>,
+        #[prost(oneof = "list_result::AttachInfo", tags = "6, 7, 8, 9")]
+        pub attach_info: ::core::option::Option<list_result::AttachInfo>,
     }
     /// Nested message and enum types in `ListResult`.
     pub mod list_result {
@@ -118,136 +149,15 @@ pub mod list_response {
         }
         #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Oneof)]
-        pub enum AttachType {
+        pub enum AttachInfo {
             #[prost(message, tag = "6")]
-            NetworkMultiAttach(super::super::NetworkMultiAttach),
+            None(super::super::NoAttachInfo),
             #[prost(message, tag = "7")]
-            SingleAttach(super::super::SingleAttach),
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum ProgramType {
-    Xdp = 0,
-    Tc = 1,
-    Tracepoint = 2,
-}
-impl ProgramType {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            ProgramType::Xdp => "XDP",
-            ProgramType::Tc => "TC",
-            ProgramType::Tracepoint => "TRACEPOINT",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "XDP" => Some(Self::Xdp),
-            "TC" => Some(Self::Tc),
-            "TRACEPOINT" => Some(Self::Tracepoint),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum Direction {
-    None = 0,
-    Ingress = 1,
-    Egress = 2,
-}
-impl Direction {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Direction::None => "NONE",
-            Direction::Ingress => "INGRESS",
-            Direction::Egress => "EGRESS",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "NONE" => Some(Self::None),
-            "INGRESS" => Some(Self::Ingress),
-            "EGRESS" => Some(Self::Egress),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum ProceedOn {
-    Aborted = 0,
-    Drop = 1,
-    Pass = 2,
-    Tx = 3,
-    Redirect = 4,
-    DispatcherReturn = 31,
-}
-impl ProceedOn {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            ProceedOn::Aborted => "ABORTED",
-            ProceedOn::Drop => "DROP",
-            ProceedOn::Pass => "PASS",
-            ProceedOn::Tx => "TX",
-            ProceedOn::Redirect => "REDIRECT",
-            ProceedOn::DispatcherReturn => "DISPATCHER_RETURN",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "ABORTED" => Some(Self::Aborted),
-            "DROP" => Some(Self::Drop),
-            "PASS" => Some(Self::Pass),
-            "TX" => Some(Self::Tx),
-            "REDIRECT" => Some(Self::Redirect),
-            "DISPATCHER_RETURN" => Some(Self::DispatcherReturn),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum ImagePullPolicy {
-    Always = 0,
-    IfNotPresent = 1,
-    Never = 2,
-}
-impl ImagePullPolicy {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            ImagePullPolicy::Always => "Always",
-            ImagePullPolicy::IfNotPresent => "IfNotPresent",
-            ImagePullPolicy::Never => "Never",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "Always" => Some(Self::Always),
-            "IfNotPresent" => Some(Self::IfNotPresent),
-            "Never" => Some(Self::Never),
-            _ => None,
+            XdpAttachInfo(super::super::XdpAttachInfo),
+            #[prost(message, tag = "8")]
+            TcAttachInfo(super::super::TcAttachInfo),
+            #[prost(message, tag = "9")]
+            TracepointAttachInfo(super::super::TracepointAttachInfo),
         }
     }
 }

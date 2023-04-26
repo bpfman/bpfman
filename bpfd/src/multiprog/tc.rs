@@ -16,7 +16,6 @@ use bpfd_api::util::directories::*;
 use bpfd_common::TcDispatcherConfig;
 use log::debug;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use super::Dispatcher;
 use crate::{
@@ -32,7 +31,6 @@ use crate::{
 const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the dispatcher
 const TC_DISPATCHER_PRIORITY: u16 = 50; // Default TC priority for TC Dispatcher
 const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
-pub const TC_ACT_PIPE: i32 = 3;
 
 static DISPATCHER_BYTES: &[u8] =
     include_bytes_aligned!("../../../target/bpfel-unknown-none/release/tc_dispatcher.bpf.o");
@@ -56,12 +54,12 @@ impl TcDispatcher {
         direction: Direction,
         if_index: &u32,
         if_name: String,
-        programs: &[(Uuid, Program)],
+        programs: &[(String, Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
     ) -> Result<TcDispatcher, BpfdError> {
         debug!("TcDispatcher::new() for if_index {if_index}, revision {revision}");
-        let mut extensions: Vec<(&Uuid, &TcProgram)> = programs
+        let mut extensions: Vec<(&String, &TcProgram)> = programs
             .iter()
             .filter_map(|(k, v)| match v {
                 Program::Tc(p) => Some((k, p)),
@@ -79,7 +77,7 @@ impl TcDispatcher {
             run_prios: [DEFAULT_PRIORITY; 10],
         };
 
-        debug!("num_progs_enabled = {}", config.num_progs_enabled);
+        debug!("tc dispatcher config: {:?}", config);
 
         let mut loader = BpfLoader::new()
             .set_global("CONFIG", &config)
@@ -162,7 +160,7 @@ impl TcDispatcher {
 
     fn attach_extensions(
         &mut self,
-        extensions: &mut [(&Uuid, &TcProgram)],
+        extensions: &mut [(&String, &TcProgram)],
     ) -> Result<(), BpfdError> {
         debug!(
             "TcDispatcher::attach_extensions() for if_index {}, revision {}",

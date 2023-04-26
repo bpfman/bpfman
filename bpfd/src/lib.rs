@@ -18,9 +18,9 @@ use anyhow::Context;
 use bpf::BpfManager;
 use bpfd_api::{config::Config, util::directories::RTDIR_FS_MAPS, v1::loader_server::LoaderServer};
 pub use certs::get_tls_config;
-use command::{AttachType, Command, NetworkMultiAttach, TcProgram, TracepointProgram};
+use command::{Command, TcProgram, TcProgramInfo, TracepointProgram, TracepointProgramInfo};
 use errors::BpfdError;
-use log::{info, warn};
+use log::info;
 use rpc::{intercept, BpfdLoader};
 use static_program::get_static_programs;
 use tokio::{net::UnixListener, sync::mpsc};
@@ -28,9 +28,7 @@ use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::{Server, ServerTlsConfig};
 use utils::{get_ifindex, set_map_permissions};
 
-use crate::command::{
-    Metadata, NetworkMultiAttachInfo, Program, ProgramData, ProgramType, XdpProgram,
-};
+use crate::command::{Metadata, Program, ProgramData, XdpProgram, XdpProgramInfo};
 
 pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<()> {
     let (tx, mut rx) = mpsc::channel(32);
@@ -98,7 +96,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
     // Load any static programs first
     if !static_programs.is_empty() {
         for prog in static_programs {
-            let uuid = bpf_manager.add_program(prog)?;
+            let uuid = bpf_manager.add_program(prog, None)?;
             info!("Loaded static program with UUID {}", uuid)
         }
     };
@@ -106,87 +104,40 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
     // Start receiving messages
     while let Some(cmd) = rx.recv().await {
         match cmd {
-            Command::Load {
+            Command::LoadXDP {
                 location,
                 section_name,
+                id,
                 global_data,
-                program_type,
-                attach_type:
-                    AttachType::NetworkMultiAttach(NetworkMultiAttach {
-                        iface,
-                        priority,
-                        proceed_on,
-                        direction,
-                        position: _,
-                    }),
+                iface,
+                priority,
+                proceed_on,
                 username,
                 responder,
             } => {
                 let res = if let Ok(if_index) = get_ifindex(&iface) {
-                    // If proceedOn is empty, then replace with the default
-                    let proc_on = if proceed_on.0.is_empty() {
-                        match program_type {
-                            command::ProgramType::Xdp => command::ProceedOn::default_xdp(),
-                            command::ProgramType::Tc => command::ProceedOn::default_tc(),
-                            _ => proceed_on,
-                        }
-                    } else {
-                        // FIXME: when proceed-on is supported for TC programs just return: proceed_on
-                        match program_type {
-                            command::ProgramType::Xdp => proceed_on,
-                            command::ProgramType::Tc => {
-                                warn!("proceed-on config not supported yet for TC and may have unintended behavior");
-                                proceed_on
-                            }
-                            _ => proceed_on,
-                        }
-                    };
-
-                    let prog_data_result =
+                    let prog_data =
                         ProgramData::new(location, section_name.clone(), global_data, username)
-                            .await;
+                            .await?;
 
-                    match prog_data_result {
-                        Ok(prog_data) => {
-                            let prog_result: Result<Program, BpfdError> = match program_type {
-                                command::ProgramType::Xdp => Ok(Program::Xdp(XdpProgram {
-                                    data: prog_data.clone(),
-                                    info: NetworkMultiAttachInfo {
-                                        if_index,
-                                        current_position: None,
-                                        metadata: command::Metadata {
-                                            priority,
-                                            // This could have been overridden by image tags
-                                            name: prog_data.section_name,
-                                            attached: false,
-                                        },
-                                        proceed_on: proc_on,
-                                        if_name: iface,
-                                    },
-                                })),
-                                command::ProgramType::Tc => Ok(Program::Tc(TcProgram {
-                                    data: prog_data.clone(),
-                                    info: NetworkMultiAttachInfo {
-                                        if_index,
-                                        current_position: None,
-                                        metadata: command::Metadata {
-                                            priority,
-                                            name: prog_data.section_name,
-                                            attached: false,
-                                        },
-                                        proceed_on: proc_on,
-                                        if_name: iface,
-                                    },
-                                    direction: direction.unwrap(),
-                                })),
-                                _ => Err(BpfdError::InvalidProgramType(program_type.to_string())),
-                            };
+                    let prog_result = Ok(Program::Xdp(XdpProgram {
+                        data: prog_data.clone(),
+                        info: XdpProgramInfo {
+                            if_index,
+                            current_position: None,
+                            metadata: command::Metadata {
+                                priority,
+                                // This could have been overridden by image tags
+                                name: prog_data.section_name,
+                                attached: false,
+                            },
+                            proceed_on,
+                            if_name: iface,
+                        },
+                    }));
 
-                            match prog_result {
-                                Ok(prog) => bpf_manager.add_program(prog),
-                                Err(e) => Err(e),
-                            }
-                        }
+                    match prog_result {
+                        Ok(prog) => bpf_manager.add_program(prog, id),
                         Err(e) => Err(e),
                     }
                 } else {
@@ -194,7 +145,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                 };
 
                 // If program was successfully loaded, allow map access by bpfd group members.
-                if let Ok(uuid) = res {
+                if let Ok(uuid) = &res {
                     let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
                     set_map_permissions(&maps_dir).await;
                 }
@@ -202,40 +153,82 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                 // Ignore errors as they'll be propagated to caller in the RPC status
                 let _ = responder.send(res);
             }
-            Command::Load {
+            Command::LoadTC {
                 location,
                 section_name,
+                id,
                 global_data,
-                attach_type: AttachType::SingleAttach(attach),
+                iface,
+                priority,
+                direction,
+                proceed_on,
                 username,
                 responder,
-                program_type,
             } => {
-                let prog_data_result =
-                    ProgramData::new(location, section_name, global_data, username).await;
+                let res = if let Ok(if_index) = get_ifindex(&iface) {
+                    let prog_data =
+                        ProgramData::new(location, section_name, global_data, username).await?;
 
-                let res = match prog_data_result {
-                    Ok(prog_data) => {
-                        let prog_result: Result<Program, BpfdError> = match program_type {
-                            command::ProgramType::Tracepoint => {
-                                Ok(Program::Tracepoint(TracepointProgram {
-                                    data: prog_data,
-                                    info: attach,
-                                }))
-                            }
-                            _ => Err(BpfdError::InvalidProgramType(program_type.to_string())),
-                        };
+                    let prog_result = Ok(Program::Tc(TcProgram {
+                        data: prog_data.clone(),
+                        direction,
+                        info: TcProgramInfo {
+                            if_index,
+                            current_position: None,
+                            metadata: command::Metadata {
+                                priority,
+                                // This could have been overridden by image tags
+                                name: prog_data.section_name,
+                                attached: false,
+                            },
+                            proceed_on,
+                            if_name: iface,
+                        },
+                    }));
 
-                        match prog_result {
-                            Ok(prog) => bpf_manager.add_program(prog),
-                            Err(e) => Err(e),
-                        }
+                    match prog_result {
+                        Ok(prog) => bpf_manager.add_program(prog, id),
+                        Err(e) => Err(e),
                     }
-                    Err(e) => Err(e),
+                } else {
+                    Err(BpfdError::InvalidInterface)
                 };
 
                 // If program was successfully loaded, allow map access by bpfd group members.
-                if let Ok(uuid) = res {
+                if let Ok(uuid) = &res {
+                    let maps_dir = format!("{RTDIR_FS_MAPS}/{}", uuid.clone());
+                    set_map_permissions(&maps_dir).await;
+                }
+
+                // Ignore errors as they'll be propagated to caller in the RPC status
+                let _ = responder.send(res);
+            }
+            Command::LoadTracepoint {
+                location,
+                section_name,
+                id,
+                global_data,
+                tracepoint,
+                username,
+                responder,
+            } => {
+                let res = {
+                    let prog_data =
+                        ProgramData::new(location, section_name, global_data, username).await?;
+
+                    let prog_result = Ok(Program::Tracepoint(TracepointProgram {
+                        data: prog_data,
+                        info: TracepointProgramInfo { tracepoint },
+                    }));
+
+                    match prog_result {
+                        Ok(prog) => bpf_manager.add_program(prog, id),
+                        Err(e) => Err(e),
+                    }
+                };
+
+                // If program was successfully loaded, allow map access by bpfd group members.
+                if let Ok(uuid) = &res {
                     let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
                     set_map_permissions(&maps_dir).await;
                 }

@@ -3,58 +3,54 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: operator-role
+  name: agent-role
 rules:
-- apiGroups:
-  - apps
-  resources:
-  - daemonsets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - bpfd.io
-  resources:
-  - bpfprogramconfigs
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - bpfd.io
-  resources:
-  - bpfprogramconfigs/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - bpfd.io
-  resources:
-  - bpfprogramconfigs/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - bpfd.io
   resources:
   - bpfprograms
   verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - bpfd.io
+  resources:
+  - bpfprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfd.io
+  resources:
+  - bpfprograms/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - bpfd.io
+  resources:
+  - tcprograms
+  verbs:
   - get
   - list
   - watch
 - apiGroups:
-  - ""
+  - bpfd.io
   resources:
-  - configmaps
+  - tracepointprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfd.io
+  resources:
+  - xdpprograms
   verbs:
   - get
   - list
@@ -67,3 +63,17 @@ rules:
   - get
   - list
   - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: null
+  name: agent-role
+  namespace: bpfd
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get

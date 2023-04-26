@@ -15,7 +15,6 @@ use bpfd_api::{config::XdpMode, util::directories::*};
 use bpfd_common::XdpDispatcherConfig;
 use log::debug;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use super::Dispatcher;
 use crate::{
@@ -26,8 +25,6 @@ use crate::{
 
 const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
-pub const XDP_PASS: i32 = 2;
-pub const XDP_DISPATCHER_RET: i32 = 31;
 
 static DISPATCHER_BYTES: &[u8] =
     include_bytes_aligned!("../../../target/bpfel-unknown-none/release/xdp_dispatcher.bpf.o");
@@ -47,12 +44,12 @@ impl XdpDispatcher {
         mode: XdpMode,
         if_index: &u32,
         if_name: String,
-        programs: &[(Uuid, Program)],
+        programs: &[(String, Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
     ) -> Result<XdpDispatcher, BpfdError> {
         debug!("XdpDispatcher::new() for if_index {if_index}, revision {revision}");
-        let mut extensions: Vec<(&Uuid, &XdpProgram)> = programs
+        let mut extensions: Vec<(&String, &XdpProgram)> = programs
             .iter()
             .filter_map(|(k, v)| match v {
                 Program::Xdp(p) => Some((k, p)),
@@ -71,7 +68,7 @@ impl XdpDispatcher {
             run_prios: [DEFAULT_PRIORITY; 10],
         };
 
-        debug!("num_progs_enabled = {}", config.num_progs_enabled);
+        debug!("xdp dispatcher config: {:?}", config);
 
         let mut loader = BpfLoader::new()
             .set_global("CONFIG", &config)
@@ -139,7 +136,7 @@ impl XdpDispatcher {
 
     fn attach_extensions(
         &mut self,
-        extensions: &mut [(&Uuid, &XdpProgram)],
+        extensions: &mut [(&String, &XdpProgram)],
     ) -> Result<(), BpfdError> {
         debug!(
             "XdpDispatcher::attach_extensions() for if_index {}, revision {}",

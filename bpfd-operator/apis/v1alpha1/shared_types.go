@@ -17,26 +17,9 @@ limitations under the License.
 // +kubebuilder:validation:Required
 package v1alpha1
 
-// BpfProgramAttachPoint defines the allowed attach points
-// for a program loaded via bpfd Exactly one attach point must
-// be set.
-// +kubebuilder:validation:MaxProperties=1
-// +kubebuilder:validation:MinProperties=1
-type BpfProgramAttachPoint struct {
-	// NetworkMultiAttach defines an attach point for programs
-	// which attach to network devices and must be
-	// ordered via bpfd.
-	// +optional
-	NetworkMultiAttach *BpfNetworkMultiAttach `json:"networkmultiattach,omitempty"`
-
-	// SingleAttach defines an attach point for programs which
-	// attach to a single entity and do not need to be ordered.
-	// +optional
-	SingleAttach *BpfSingleAttach `json:"singleattach,omitempty"`
-}
-
-// +kubebuilder:validation:Enum=ABORTED;DROP;PASS;TX;REDIRECT;DISPATCHER_RETURN
-type ProceedOnValue string
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // InterfaceSelector defines interface to attach to.
 // +kubebuilder:validation:MaxProperties=1
@@ -51,42 +34,62 @@ type InterfaceSelector struct {
 	PrimaryNodeInterface *bool `json:"primarynodeinterface,omitempty"`
 }
 
-// BpfNetworkMultiAttach defines an bpf attach
-// point for programs which attach to network devices,
-// i.e interfaces, and must be prioritized
-type BpfNetworkMultiAttach struct {
-	// Selector to determine the network interface (or interfaces)
-	InterfaceSelector InterfaceSelector `json:"interfaceselector"`
+// BpfProgramCommon defines the common attributes for all BPF programs
+type BpfProgramCommon struct {
+	// SectionName is the the section name described in the bpf Program
+	SectionName string `json:"sectionname"`
 
-	// Priority specifies the priority of the bpf program in relation to
-	// other programs of the same type with the same attach point. It is a value
-	// from 0 to 1000 where lower values have higher precedence.
-	// +kubebuilder:validation:Minimum=0
-	// +kubebuilder:validation:Maximum=1000
-	Priority int32 `json:"priority"`
+	// NodeSelector allows the user to specify which nodes to deploy the
+	// bpf program to.  This field must be specified, to select all nodes
+	// use standard metav1.LabelSelector semantics and make it empty.
+	NodeSelector metav1.LabelSelector `json:"nodeselector"`
 
-	// Direction specifies the direction of traffic the bpfprogram should
-	// attach to for a given network device, this field should only be
-	// set for programs of type TC.
-	// TODO(astoycos) see if kubebuilder can handle more complicated validation
-	// for this.
-	// +kubebuilder:validation:Enum=NONE;INGRESS;EGRESS
-	// +kubebuilder:default=NONE
+	// Bytecode configures where the bpf program's bytecode should be loaded
+	// from.
+	ByteCode BytecodeSelector `json:"bytecode"`
+
+	// GlobalData allows the user to to set global variables when the program is loaded
+	// with an array of raw bytes. This is a very low level primitive. The caller
+	// is responsible for formatting the byte string appropriately considering
+	// such things as size, endianness, alignment and packing of data structures.
 	// +optional
-	Direction string `json:"direction"`
-
-	// ProceedOn allows the user to call other programs in chain on this exit code.
-	// Multiple values are supported by repeating the parameter. This feature
-	// is only applicable for XDP programs.
-	// NOTE: These values are not updatable following bpfProgramConfig creation.
-	// +optional
-	ProceedOn []ProceedOnValue `json:"proceedon"`
+	GlobalData map[string][]byte `json:"globaldata,omitempty"`
 }
 
-// BpfSingleAttach defines an ebpf attach
-// point for programs which attach to single linux entities,
-// i.e cgroups, tracepoints, kprobes etc.
-type BpfSingleAttach struct {
-	// Name refers to the name of the attach point
-	Name string `json:"name"`
+// PullPolicy describes a policy for if/when to pull a container image
+// +kubebuilder:validation:Enum=Always;Never;IfNotPresent
+type PullPolicy string
+
+const (
+	// PullAlways means that bpfd always attempts to pull the latest bytecode image. Container will fail If the pull fails.
+	PullAlways PullPolicy = "Always"
+	// PullNever means that bpfd never pulls an image, but only uses a local image. Container will fail if the image isn't present
+	PullNever PullPolicy = "Never"
+	// PullIfNotPresent means that bpfd pulls if the image isn't present on disk. Container will fail if the image isn't present and the pull fails.
+	PullIfNotPresent PullPolicy = "IfNotPresent"
+)
+
+// BytecodeSelector defines the various ways to reference bpf bytecode objects.
+type BytecodeSelector struct {
+	// Image used to specify a bytecode container image.
+	Image *BytecodeImage `json:"image,omitempty"`
+
+	// Path is used to specify a bytecode object via filepath.
+	Path *string `json:"path,omitempty"`
+}
+
+// BytecodeImage defines how to specify a bytecode container image.
+type BytecodeImage struct {
+	// Valid container image URL used to reference a remote bytecode image.
+	Url string `json:"url"`
+
+	// PullPolicy describes a policy for if/when to pull a bytecode image. Defaults to IfNotPresent.
+	// +kubebuilder:default:=IfNotPresent
+	// +optional
+	ImagePullPolicy PullPolicy `json:"imagepullpolicy"`
+
+	// ImagePullSecret is the name of the secret bpfd should use to get remote image
+	// repository secrets.
+	// +optional
+	ImagePullSecret string `json:"imagepullsecret,omitempty"`
 }

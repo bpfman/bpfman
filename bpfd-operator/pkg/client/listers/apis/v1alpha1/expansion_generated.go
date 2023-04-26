@@ -21,6 +21,14 @@ package v1alpha1
 // BpfProgramLister.
 type BpfProgramListerExpansion interface{}
 
-// BpfProgramConfigListerExpansion allows custom methods to be added to
-// BpfProgramConfigLister.
-type BpfProgramConfigListerExpansion interface{}
+// TcProgramListerExpansion allows custom methods to be added to
+// TcProgramLister.
+type TcProgramListerExpansion interface{}
+
+// TracepointProgramListerExpansion allows custom methods to be added to
+// TracepointProgramLister.
+type TracepointProgramListerExpansion interface{}
+
+// XdpProgramListerExpansion allows custom methods to be added to
+// XdpProgramLister.
+type XdpProgramListerExpansion interface{}

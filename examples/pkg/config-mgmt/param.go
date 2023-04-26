@@ -22,6 +22,7 @@ import (
 	"log"
 	"path/filepath"
 
+	bpfdHelpers "github.com/redhat-et/bpfd/bpfd-operator/pkg/helpers"
 	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
 )
 
@@ -41,11 +42,11 @@ const (
 type ParameterData struct {
 	Iface     string
 	Priority  int
-	Direction gobpfd.Direction
+	Direction bpfdHelpers.TcProgramDirection
 	CrdFlag   bool
 	Uuid      string
 	// The bytecodesource type has to be encapsulated in a complete LoadRequest because isLoadRequest_Location is not Public
-	BytecodeSource *gobpfd.LoadRequest
+	BytecodeSource *gobpfd.LoadRequestCommon
 	BytecodeSrc    int
 }
 
@@ -98,9 +99,9 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 		}
 
 		if direction_str == "ingress" {
-			paramData.Direction = gobpfd.Direction_INGRESS
+			paramData.Direction = bpfdHelpers.Ingress
 		} else if direction_str == "egress" {
-			paramData.Direction = gobpfd.Direction_EGRESS
+			paramData.Direction = bpfdHelpers.Egress
 		} else {
 			return paramData, fmt.Errorf("invalid direction (%s). valid options are ingress or egress.", direction_str)
 		}
@@ -124,8 +125,8 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 		//    ./go-xdp-counter -iface eth0 -path /var/bpfd/bytecode/bpf_bpfel.o
 		if len(cmdlineFile) != 0 {
 			// "-location" was entered so it is a URL
-			paramData.BytecodeSource = &gobpfd.LoadRequest{
-				Location: &gobpfd.LoadRequest_File{File: cmdlineFile},
+			paramData.BytecodeSource = &gobpfd.LoadRequestCommon{
+				Location: &gobpfd.LoadRequestCommon_File{File: cmdlineFile},
 			}
 
 			paramData.BytecodeSrc = SrcFile
@@ -134,8 +135,8 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 		//    ./go-xdp-counter -p eth0 -image quay.io/bpfd-bytecode/go-xdp-counter:latest
 		if len(cmdlineImage) != 0 {
 			// "-location" was entered so it is a URL
-			paramData.BytecodeSource = &gobpfd.LoadRequest{
-				Location: &gobpfd.LoadRequest_Image{Image: &gobpfd.BytecodeImage{
+			paramData.BytecodeSource = &gobpfd.LoadRequestCommon{
+				Location: &gobpfd.LoadRequestCommon_Image{Image: &gobpfd.BytecodeImage{
 					Url: cmdlineImage,
 				}},
 			}
@@ -156,8 +157,8 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 			return paramData, fmt.Errorf("couldn't find bpf elf file: %v", err)
 		}
 
-		paramData.BytecodeSource = &gobpfd.LoadRequest{
-			Location: &gobpfd.LoadRequest_File{File: path},
+		paramData.BytecodeSource = &gobpfd.LoadRequestCommon{
+			Location: &gobpfd.LoadRequestCommon_File{File: path},
 		}
 		paramData.BytecodeSrc = SrcFile
 	}

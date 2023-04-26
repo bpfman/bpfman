@@ -25,8 +25,6 @@ pub enum BpfdError {
     UnableToPinLink(#[source] aya::pin::PinError),
     #[error("Failed to pin program {0}")]
     UnableToPinProgram(#[source] aya::pin::PinError),
-    #[error("{0} is not a valid program type")]
-    InvalidProgramType(String),
     #[error("{0} is not a valid attach point for this program")]
     InvalidAttach(String),
     #[error("dispatcher is not loaded")]
@@ -40,4 +38,8 @@ pub enum BpfdError {
         image_sec_name: String,
         provided_sec_name: String,
     },
+    #[error("Unable to parse passed UUID {0}")]
+    PassedUUIDError(#[from] uuid::Error),
+    #[error("Passed UUID already in use {0}")]
+    PassedUUIDInUse(String),
 }

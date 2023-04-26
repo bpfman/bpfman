@@ -9,10 +9,11 @@ use bpfd_api::{
     config::config_from_file,
     util::directories::*,
     v1::{
-        list_response, load_request, loader_client::LoaderClient, BytecodeImage, Direction,
-        ListRequest, LoadRequest, NetworkMultiAttach, ProceedOn, ProgramType, SingleAttach,
-        UnloadRequest,
+        list_response, load_request, load_request_common, loader_client::LoaderClient,
+        BytecodeImage, ListRequest, LoadRequest, LoadRequestCommon, TcAttachInfo,
+        TracepointAttachInfo, UnloadRequest, XdpAttachInfo,
     },
+    ImagePullPolicy, ProgramType, TcProceedOn, XdpProceedOn,
 };
 use clap::{Args, Parser, Subcommand};
 use comfy_table::Table;
@@ -43,6 +44,11 @@ enum Commands {
 
 #[derive(Args)]
 struct LoadFileArgs {
+    /// Optional: Program uuid to be used by bpfd. If not
+    /// specified, bpfd will generate a uuid.
+    #[clap(short, long)]
+    id: Option<String>,
+
     /// Name of the ELF section from the object file.
     #[clap(short, long, default_value = "")]
     section_name: String,
@@ -64,6 +70,11 @@ struct LoadFileArgs {
 
 #[derive(Args)]
 struct LoadImageArgs {
+    /// Optional: Program uuid to be used by bpfd. If not
+    /// specified, bpfd will generate a uuid.
+    #[clap(short, long)]
+    id: Option<String>,
+
     /// Name of the ELF section from the object file.
     #[clap(short, long, default_value = "")]
     section_name: String,
@@ -233,22 +244,16 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                     priority,
                     proceed_on,
                 } => {
-                    let mut proc_on = Vec::new();
-                    if !proceed_on.is_empty() {
-                        for i in proceed_on.iter() {
-                            let action = ProceedOn::try_from(i.to_string())?;
-                            proc_on.push(action as i32);
-                        }
-                    }
-                    Some(load_request::AttachType::NetworkMultiAttach(
-                        NetworkMultiAttach {
-                            priority: *priority,
-                            iface: iface.to_string(),
-                            position: 0,
-                            direction: Direction::None as i32,
-                            proceed_on: proc_on,
-                        },
-                    ))
+                    let proc_on = match XdpProceedOn::from_strings(proceed_on) {
+                        Ok(p) => p,
+                        Err(e) => bail!("error parsing proceed_on {e}"),
+                    };
+                    Some(load_request::AttachInfo::XdpAttachInfo(XdpAttachInfo {
+                        priority: *priority,
+                        iface: iface.to_string(),
+                        position: 0,
+                        proceed_on: proc_on.as_action_vec(),
+                    }))
                 }
                 LoadCommands::Tc {
                     direction,
@@ -256,33 +261,27 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                     priority,
                     proceed_on,
                 } => {
-                    let attach_direction = match direction.as_str() {
-                        "ingress" => Direction::Ingress,
-                        "egress" => Direction::Egress,
+                    match direction.as_str() {
+                        "ingress" | "egress" => (),
                         other => bail!("{} is not a valid direction", other),
                     };
-                    let mut proc_on = Vec::new();
-                    if !proceed_on.is_empty() {
-                        for i in proceed_on.iter() {
-                            let action = ProceedOn::try_from(i.to_string())?;
-                            proc_on.push(action as i32);
-                        }
-                    }
-                    Some(load_request::AttachType::NetworkMultiAttach(
-                        NetworkMultiAttach {
-                            priority: *priority,
-                            iface: iface.to_string(),
-                            position: 0,
-                            direction: attach_direction as i32,
-                            proceed_on: proc_on,
-                        },
-                    ))
-                }
-                LoadCommands::Tracepoint { tracepoint } => {
-                    Some(load_request::AttachType::SingleAttach(SingleAttach {
-                        name: tracepoint.to_string(),
+                    let proc_on = match TcProceedOn::from_strings(proceed_on) {
+                        Ok(p) => p,
+                        Err(e) => bail!("error parsing proceed_on {e}"),
+                    };
+                    Some(load_request::AttachInfo::TcAttachInfo(TcAttachInfo {
+                        priority: *priority,
+                        iface: iface.to_string(),
+                        position: 0,
+                        direction: direction.to_string(),
+                        proceed_on: proc_on.as_action_vec(),
                     }))
                 }
+                LoadCommands::Tracepoint { tracepoint } => Some(
+                    load_request::AttachInfo::TracepointAttachInfo(TracepointAttachInfo {
+                        tracepoint: tracepoint.to_string(),
+                    }),
+                ),
             };
 
             let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
@@ -292,14 +291,17 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                     global_data.insert(g.name.to_string(), g.value.clone());
                 }
             }
-            let location = Some(load_request::Location::File(l.path.clone()));
+            let location = Some(load_request_common::Location::File(l.path.clone()));
 
             let request = tonic::Request::new(LoadRequest {
-                location,
-                section_name: l.section_name.to_string(),
-                program_type: prog_type as i32,
-                attach_type,
-                global_data,
+                common: Some(LoadRequestCommon {
+                    id: l.id.clone(),
+                    location,
+                    section_name: l.section_name.to_string(),
+                    program_type: prog_type as i32,
+                    global_data,
+                }),
+                attach_info: attach_type,
             });
             let response = client.load(request).await?.into_inner();
             println!("{}", response.id);
@@ -316,22 +318,16 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                     priority,
                     proceed_on,
                 } => {
-                    let mut proc_on = Vec::new();
-                    if !proceed_on.is_empty() {
-                        for i in proceed_on.iter() {
-                            let action = ProceedOn::try_from(i.to_string())?;
-                            proc_on.push(action as i32);
-                        }
-                    }
-                    Some(load_request::AttachType::NetworkMultiAttach(
-                        NetworkMultiAttach {
-                            priority: *priority,
-                            iface: iface.to_string(),
-                            position: 0,
-                            direction: Direction::None as i32,
-                            proceed_on: proc_on,
-                        },
-                    ))
+                    let proc_on = match XdpProceedOn::from_strings(proceed_on) {
+                        Ok(p) => p,
+                        Err(e) => bail!("error parsing proceed_on {e}"),
+                    };
+                    Some(load_request::AttachInfo::XdpAttachInfo(XdpAttachInfo {
+                        priority: *priority,
+                        iface: iface.to_string(),
+                        position: 0,
+                        proceed_on: proc_on.as_action_vec(),
+                    }))
                 }
                 LoadCommands::Tc {
                     direction,
@@ -339,37 +335,34 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                     priority,
                     proceed_on,
                 } => {
-                    let attach_direction = match direction.as_str() {
-                        "ingress" => Direction::Ingress,
-                        "egress" => Direction::Egress,
+                    match direction.as_str() {
+                        "ingress" | "egress" => (),
                         other => bail!("{} is not a valid direction", other),
                     };
-                    let mut proc_on = Vec::new();
-                    if !proceed_on.is_empty() {
-                        for i in proceed_on.iter() {
-                            let action = ProceedOn::try_from(i.to_string())?;
-                            proc_on.push(action as i32);
-                        }
-                    }
-                    Some(load_request::AttachType::NetworkMultiAttach(
-                        NetworkMultiAttach {
-                            priority: *priority,
-                            iface: iface.to_string(),
-                            position: 0,
-                            direction: attach_direction as i32,
-                            proceed_on: proc_on,
-                        },
-                    ))
-                }
-                LoadCommands::Tracepoint { tracepoint } => {
-                    Some(load_request::AttachType::SingleAttach(SingleAttach {
-                        name: tracepoint.to_string(),
+                    let proc_on = match TcProceedOn::from_strings(proceed_on) {
+                        Ok(p) => p,
+                        Err(e) => bail!("error parsing proceed_on {e}"),
+                    };
+                    Some(load_request::AttachInfo::TcAttachInfo(TcAttachInfo {
+                        priority: *priority,
+                        iface: iface.to_string(),
+                        position: 0,
+                        direction: direction.to_string(),
+                        proceed_on: proc_on.as_action_vec(),
                     }))
                 }
+                LoadCommands::Tracepoint { tracepoint } => Some(
+                    load_request::AttachInfo::TracepointAttachInfo(TracepointAttachInfo {
+                        tracepoint: tracepoint.to_string(),
+                    }),
+                ),
             };
 
-            let image_pull_policy: bpfd_api::v1::ImagePullPolicy =
-                l.image_pull_policy.as_str().try_into()?;
+            let image_pull_policy: ImagePullPolicy = l
+                .image_pull_policy
+                .as_str()
+                .try_into()
+                .expect("invalid image pull policy");
 
             let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
 
@@ -387,28 +380,32 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
 
                     let (username, password) = auth_string.split(':').next_tuple().unwrap();
 
-                    load_request::Location::Image(BytecodeImage {
+                    Some(load_request_common::Location::Image(BytecodeImage {
                         url: l.image_url.clone(),
                         image_pull_policy: image_pull_policy as i32,
                         username: username.to_owned(),
                         password: password.to_owned(),
-                    })
+                    }))
                 }
-                None => load_request::Location::Image(BytecodeImage {
+                None => Some(load_request_common::Location::Image(BytecodeImage {
                     url: l.image_url.clone(),
                     image_pull_policy: image_pull_policy as i32,
                     username: "".to_owned(),
                     password: "".to_owned(),
-                }),
+                })),
             };
 
             let request = tonic::Request::new(LoadRequest {
-                location: Some(location),
-                section_name: l.section_name.to_string(),
-                program_type: prog_type as i32,
-                attach_type,
-                global_data,
+                common: Some(LoadRequestCommon {
+                    id: l.id.clone(),
+                    location,
+                    section_name: l.section_name.to_string(),
+                    program_type: prog_type as i32,
+                    global_data,
+                }),
+                attach_info: attach_type,
             });
+
             let response = client.load(request).await?.into_inner();
             println!("{}", response.id);
         }
@@ -418,7 +415,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
             let _response = client.unload(request).await?.into_inner();
         }
         Commands::List {} => {
-            let request = tonic::Request::new(ListRequest {});
+            let request = tonic::Request::new(ListRequest { program_type: None });
             let response = client.list(request).await?.into_inner();
             let mut table = Table::new();
             table.load_preset(comfy_table::presets::NOTHING);
@@ -427,77 +424,64 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                 let prog_type: ProgramType = r.program_type.try_into()?;
                 match prog_type {
                     ProgramType::Xdp => {
-                        if let Some(list_response::list_result::AttachType::NetworkMultiAttach(
-                            NetworkMultiAttach {
+                        if let Some(list_response::list_result::AttachInfo::XdpAttachInfo(
+                            XdpAttachInfo {
                                 priority,
                                 iface,
                                 position,
-                                direction: _,
                                 proceed_on,
                             },
-                        )) = r.attach_type
+                        )) = r.attach_info
                         {
-                            let proceed_on: Vec<String> = proceed_on
-                                .iter()
-                                .map(|action| {
-                                    format!(
-                                        r#""{}""#,
-                                        ProceedOn::try_from(*action as u32).unwrap().to_string()
-                                    )
-                                })
-                                .collect();
-                            let proceed_on = format!(r#"[{}]"#, proceed_on.join(", "));
+                            let proc_on = match XdpProceedOn::from_int32s(proceed_on) {
+                                Ok(p) => p,
+                                Err(e) => bail!("error parsing proceed_on {e}"),
+                            };
                             table.add_row(vec![
                             r.id.to_string(),
                             "xdp".to_string(),
-                            r.name,
+                            r.section_name.unwrap(),
                             r.location.unwrap().to_string(),
-                            format!(r#"{{ "priority": {priority}, "iface": "{iface}", "position": {position}, "proceed_on": {proceed_on} }}"#)
+                            format!(r#"{{ "priority": {priority}, "iface": "{iface}", "position": {position}, "proceed_on": {proc_on} }}"#)
                         ]);
                         }
                     }
                     ProgramType::Tc => {
-                        if let Some(list_response::list_result::AttachType::NetworkMultiAttach(
-                            NetworkMultiAttach {
+                        if let Some(list_response::list_result::AttachInfo::TcAttachInfo(
+                            TcAttachInfo {
                                 priority,
                                 iface,
                                 position,
                                 direction,
                                 proceed_on: _,
                             },
-                        )) = r.attach_type
+                        )) = r.attach_info
                         {
-                            let attach_direction = match direction {
-                                0 => Direction::None,
-                                1 => Direction::Ingress,
-                                2 => Direction::Egress,
-                                other => bail!("{} is not a valid direction", other),
-                            }
-                            .as_str_name();
-                            //attach_direction = attach_direction.as_str_name()
                             table.add_row(vec![
                                 r.id.to_string(),
                                 "tc".to_string(),
-                                r.name,
+                                r.section_name.unwrap(),
                                 r.location.unwrap().to_string(),
-                                format!(r#"{{ "priority": {priority}, "iface": "{iface}", "position": {position}, direction: {attach_direction} }}"#)
+                                format!(r#"{{ "priority": {priority}, "iface": "{iface}", "position": {position}, direction: {direction} }}"#)
                             ]);
                         }
                     }
                     ProgramType::Tracepoint => {
-                        if let Some(list_response::list_result::AttachType::SingleAttach(
-                            SingleAttach { name },
-                        )) = r.attach_type
+                        if let Some(list_response::list_result::AttachInfo::TracepointAttachInfo(
+                            TracepointAttachInfo { tracepoint },
+                        )) = r.attach_info
                         {
                             table.add_row(vec![
                                 r.id.to_string(),
                                 "tracepoint".to_string(),
-                                r.name,
+                                r.section_name.unwrap(),
                                 r.location.unwrap().to_string(),
-                                format!(r#"{{ "tracepoint": {name} }}"#),
+                                format!(r#"{{ "tracepoint": {tracepoint} }}"#),
                             ]);
                         }
                     }
+                    // skip unknown program types
+                    _ => {}
                 }
             }
             println!("{table}");

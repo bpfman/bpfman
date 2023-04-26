@@ -31,58 +31,58 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// BpfProgramConfigInformer provides access to a shared informer and lister for
-// BpfProgramConfigs.
-type BpfProgramConfigInformer interface {
+// XdpProgramInformer provides access to a shared informer and lister for
+// XdpPrograms.
+type XdpProgramInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.BpfProgramConfigLister
+	Lister() v1alpha1.XdpProgramLister
 }
 
-type bpfProgramConfigInformer struct {
+type xdpProgramInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 }
 
-// NewBpfProgramConfigInformer constructs a new informer for BpfProgramConfig type.
+// NewXdpProgramInformer constructs a new informer for XdpProgram type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewBpfProgramConfigInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredBpfProgramConfigInformer(client, resyncPeriod, indexers, nil)
+func NewXdpProgramInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredXdpProgramInformer(client, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredBpfProgramConfigInformer constructs a new informer for BpfProgramConfig type.
+// NewFilteredXdpProgramInformer constructs a new informer for XdpProgram type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredBpfProgramConfigInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredXdpProgramInformer(client versioned.Interface, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.BpfdV1alpha1().BpfProgramConfigs().List(context.TODO(), options)
+				return client.BpfdV1alpha1().XdpPrograms().List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.BpfdV1alpha1().BpfProgramConfigs().Watch(context.TODO(), options)
+				return client.BpfdV1alpha1().XdpPrograms().Watch(context.TODO(), options)
 			},
 		},
-		&apisv1alpha1.BpfProgramConfig{},
+		&apisv1alpha1.XdpProgram{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *bpfProgramConfigInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredBpfProgramConfigInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *xdpProgramInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredXdpProgramInformer(client, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *bpfProgramConfigInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apisv1alpha1.BpfProgramConfig{}, f.defaultInformer)
+func (f *xdpProgramInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&apisv1alpha1.XdpProgram{}, f.defaultInformer)
 }
 
-func (f *bpfProgramConfigInformer) Lister() v1alpha1.BpfProgramConfigLister {
-	return v1alpha1.NewBpfProgramConfigLister(f.Informer().GetIndexer())
+func (f *xdpProgramInformer) Lister() v1alpha1.XdpProgramLister {
+	return v1alpha1.NewXdpProgramLister(f.Informer().GetIndexer())
 }

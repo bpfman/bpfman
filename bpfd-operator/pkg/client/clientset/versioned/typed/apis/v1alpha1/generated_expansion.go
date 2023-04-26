@@ -19,4 +19,8 @@ package v1alpha1
 
 type BpfProgramExpansion interface{}
 
-type BpfProgramConfigExpansion interface{}
+type TcProgramExpansion interface{}
+
+type TracepointProgramExpansion interface{}
+
+type XdpProgramExpansion interface{}

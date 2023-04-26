@@ -44,23 +44,13 @@ type BpfProgramSpec struct {
 	// +optional
 	Node string `json:"node,omitempty"`
 
-	// Type specifies the bpf program type.
+	// Type specifies the bpf program type
 	// +optional
 	Type string `json:"type,omitempty"`
 
-	// ProgramMap is is a map with Keys: UUIDs, Values: BpfProgramMeta
-	Programs map[string]BpfProgramMeta `json:"programs"`
-}
-
-// BpfProgramMeta defines the relevant metadata needed for a single
-// running BpfProgram.
-type BpfProgramMeta struct {
-	// AttachPoint specifies what this BpfProgram is attached to
-	// for some programs is may be nil.
-	AttachPoint *BpfProgramAttachPoint `json:"attachpoint,omitempty"`
-
-	// Maps is a map with Keys: Map Names, and Values: Map Pin paths
-	Maps map[string]string `json:"maps"`
+	// ProgramMap is is a map with Keys: UUIDs, Values: map with Keys: Map Names,
+	// and Values: Map Pin paths
+	Programs map[string]map[string]string `json:"programs"`
 }
 
 // BpfProgramStatus defines the observed state of BpfProgram

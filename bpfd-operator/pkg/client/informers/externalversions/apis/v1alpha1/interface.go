@@ -25,8 +25,12 @@ import (
 type Interface interface {
 	// BpfPrograms returns a BpfProgramInformer.
 	BpfPrograms() BpfProgramInformer
-	// BpfProgramConfigs returns a BpfProgramConfigInformer.
-	BpfProgramConfigs() BpfProgramConfigInformer
+	// TcPrograms returns a TcProgramInformer.
+	TcPrograms() TcProgramInformer
+	// TracepointPrograms returns a TracepointProgramInformer.
+	TracepointPrograms() TracepointProgramInformer
+	// XdpPrograms returns a XdpProgramInformer.
+	XdpPrograms() XdpProgramInformer
 }
 
 type version struct {
@@ -45,7 +49,17 @@ func (v *version) BpfPrograms() BpfProgramInformer {
 	return &bpfProgramInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
-// BpfProgramConfigs returns a BpfProgramConfigInformer.
-func (v *version) BpfProgramConfigs() BpfProgramConfigInformer {
-	return &bpfProgramConfigInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+// TcPrograms returns a TcProgramInformer.
+func (v *version) TcPrograms() TcProgramInformer {
+	return &tcProgramInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// TracepointPrograms returns a TracepointProgramInformer.
+func (v *version) TracepointPrograms() TracepointProgramInformer {
+	return &tracepointProgramInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// XdpPrograms returns a XdpProgramInformer.
+func (v *version) XdpPrograms() XdpProgramInformer {
+	return &xdpProgramInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

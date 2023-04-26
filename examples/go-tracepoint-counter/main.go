@@ -52,7 +52,11 @@ func main() {
 			return
 		}
 
-		mapPath = maps[BpfProgramMapIndex]
+		// Use first map 
+		for _, v := range maps {
+			mapPath = v[BpfProgramMapIndex]
+			break
+		}
 	} else { // if not on k8s, find the map path from the system
 
 		// if the bytecode src is not a UUID provided by BPFD, we'll need to
@@ -130,14 +134,18 @@ func loadProgram(paramData *configMgmt.ParameterData) (func(string), error) {
 		return nil, err
 	}
 	c := gobpfd.NewLoaderClient(conn)
+	loadRequestCommon := &gobpfd.LoadRequestCommon{
+		Location: paramData.BytecodeSource.Location,
+		SectionName: "stats",
+		ProgramType: *bpfdHelpers.Xdp.Int32(),
+	}
 
-	// create a request to load the BPF program
 	loadRequest := &gobpfd.LoadRequest{
-		Location:    paramData.BytecodeSource.Location,
-		SectionName: "tracepoint_kill_recorder",
-		ProgramType: gobpfd.ProgramType_TRACEPOINT,
-		AttachType: &gobpfd.LoadRequest_SingleAttach{
-			SingleAttach: &gobpfd.SingleAttach{Name: "syscalls/sys_enter_kill"},
+		Common: loadRequestCommon,
+		AttachInfo: &gobpfd.LoadRequest_TracepointAttachInfo{
+			TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
+				Tracepoint: "syscalls/sys_enter_kill",
+			},
 		},
 	}
 

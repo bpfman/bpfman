@@ -36,5 +36,6 @@ pub mod directories {
     // StateDirectory: /var/lib/bpfd/
     pub const STDIR: &str = "/var/lib/bpfd";
     pub const STDIR_SOCKET: &str = "/var/lib/bpfd/sock";
+    pub const STPATH_BPFD_SOCKET: &str = "/var/lib/bpfd/sock/bpfd.sock";
     pub const BYTECODE_IMAGE_CONTENT_STORE: &str = "/var/lib/bpfd/io.bpfd.image.content";
 }

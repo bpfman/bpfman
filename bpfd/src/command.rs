@@ -2,19 +2,18 @@
 // Copyright Authors of bpfd
 
 //! Commands between the RPC thread and the BPF thread
-use std::{collections::HashMap, fmt, fs, io::BufReader, path::PathBuf, str::FromStr};
+use std::{collections::HashMap, fmt, fs, io::BufReader, path::PathBuf};
 
 use bpfd_api::{
     util::directories::{RTDIR_FS, RTDIR_FS_MAPS, RTDIR_PROGRAMS},
-    ParseError,
+    ParseError, ProgramType, TcProceedOn, XdpProceedOn,
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
-use uuid::Uuid;
 
 use crate::{
     errors::BpfdError,
-    multiprog::{DispatcherId, DispatcherInfo, TC_ACT_PIPE, XDP_DISPATCHER_RET, XDP_PASS},
+    multiprog::{DispatcherId, DispatcherInfo},
     oci_utils::BytecodeImage,
 };
 
@@ -26,18 +25,43 @@ type Responder<T> = oneshot::Sender<T>;
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub(crate) enum Command {
-    /// Load a program
-    Load {
+    /// Load an XDP program
+    LoadXDP {
         location: Location,
         section_name: String,
+        id: Option<String>,
         global_data: HashMap<String, Vec<u8>>,
-        program_type: ProgramType,
-        attach_type: AttachType,
+        iface: String,
+        priority: i32,
+        proceed_on: XdpProceedOn,
         username: String,
-        responder: Responder<Result<Uuid, BpfdError>>,
+        responder: Responder<Result<String, BpfdError>>,
+    },
+    /// Load a TC Program
+    LoadTC {
+        location: Location,
+        section_name: String,
+        id: Option<String>,
+        global_data: HashMap<String, Vec<u8>>,
+        iface: String,
+        priority: i32,
+        direction: Direction,
+        proceed_on: TcProceedOn,
+        username: String,
+        responder: Responder<Result<String, BpfdError>>,
+    },
+    // Load a Tracepoint Program
+    LoadTracepoint {
+        location: Location,
+        id: Option<String>,
+        section_name: String,
+        global_data: HashMap<String, Vec<u8>>,
+        tracepoint: String,
+        username: String,
+        responder: Responder<Result<String, BpfdError>>,
     },
     Unload {
-        id: Uuid,
+        id: String,
         username: String,
         responder: Responder<Result<(), BpfdError>>,
     },
@@ -47,69 +71,9 @@ pub(crate) enum Command {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub enum AttachType {
-    NetworkMultiAttach(NetworkMultiAttach),
-    SingleAttach(String),
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) enum Location {
     Image(BytecodeImage),
     File(String),
-}
-
-impl fmt::Display for Location {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self.clone() {
-            Location::Image(i) => format!("image://{}", i.get_url()),
-            Location::File(p) => format!("file:///{p}"),
-        };
-        f.write_str(&s)
-    }
-}
-
-#[derive(Debug, Copy, Clone, Serialize, Deserialize, Eq, PartialEq)]
-pub(crate) enum ProgramType {
-    Xdp,
-    Tc,
-    Tracepoint,
-}
-
-impl FromStr for ProgramType {
-    type Err = BpfdError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "xdp" => Ok(Self::Xdp),
-            "tc" => Ok(Self::Tc),
-            "tracepoint" => Ok(Self::Tracepoint),
-            other => Err(BpfdError::InvalidProgramType(other.to_string())),
-        }
-    }
-}
-
-impl TryFrom<i32> for ProgramType {
-    type Error = ParseError;
-
-    fn try_from(t: i32) -> Result<Self, Self::Error> {
-        let bpf_api_type = t.try_into()?;
-        match bpf_api_type {
-            bpfd_api::v1::ProgramType::Xdp => Ok(Self::Xdp),
-            bpfd_api::v1::ProgramType::Tc => Ok(Self::Tc),
-            bpfd_api::v1::ProgramType::Tracepoint => Ok(Self::Tracepoint),
-        }
-    }
-}
-
-impl fmt::Display for ProgramType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            ProgramType::Xdp => "xdp",
-            ProgramType::Tc => "tc",
-            ProgramType::Tracepoint => "tracepoint",
-        };
-        f.write_str(s)
-    }
 }
 
 #[derive(Debug, Serialize, Hash, Deserialize, Eq, PartialEq, Copy, Clone)]
@@ -118,17 +82,16 @@ pub(crate) enum Direction {
     Egress = 2,
 }
 
-impl TryFrom<i32> for Direction {
+impl TryFrom<String> for Direction {
     type Error = ParseError;
 
-    fn try_from(t: i32) -> Result<Self, Self::Error> {
-        let bpf_api_type = t.try_into()?;
-        match bpf_api_type {
-            bpfd_api::v1::Direction::None => Err(ParseError::InvalidDirection {
-                direction: "none".to_string(),
+    fn try_from(v: String) -> Result<Self, Self::Error> {
+        match v.as_str() {
+            "ingress" => Ok(Self::Ingress),
+            "egress" => Ok(Self::Egress),
+            m => Err(ParseError::InvalidDirection {
+                direction: m.to_string(),
             }),
-            bpfd_api::v1::Direction::Ingress => Ok(Self::Ingress),
-            bpfd_api::v1::Direction::Egress => Ok(Self::Egress),
         }
     }
 }
@@ -142,22 +105,42 @@ impl std::fmt::Display for Direction {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct NetworkMultiAttach {
-    pub(crate) iface: String,
-    pub(crate) priority: i32,
-    pub(crate) proceed_on: ProceedOn,
-    pub(crate) direction: Option<Direction>,
-    pub(crate) position: i32,
-}
-
 #[derive(Debug, Clone)]
 pub(crate) struct ProgramInfo {
     pub(crate) id: String,
     pub(crate) name: String,
     pub(crate) location: Location,
-    pub(crate) program_type: ProgramType,
-    pub(crate) attach_type: AttachType,
+    pub(crate) program_type: i32,
+    pub(crate) attach_info: AttachInfo,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum AttachInfo {
+    Xdp(XdpAttachInfo),
+    Tc(TcAttachInfo),
+    Tracepoint(TracepointAttachInfo),
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub(crate) struct XdpAttachInfo {
+    pub(crate) priority: i32,
+    pub(crate) iface: String,
+    pub(crate) position: i32,
+    pub(crate) proceed_on: XdpProceedOn,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub(crate) struct TcAttachInfo {
+    pub(crate) priority: i32,
+    pub(crate) iface: String,
+    pub(crate) position: i32,
+    pub(crate) proceed_on: TcProceedOn,
+    pub(crate) direction: Direction,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub(crate) struct TracepointAttachInfo {
+    pub(crate) tracepoint: String,
 }
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize, Clone)]
@@ -187,11 +170,11 @@ pub(crate) enum Program {
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct XdpProgram {
     pub(crate) data: ProgramData,
-    pub(crate) info: NetworkMultiAttachInfo,
+    pub(crate) info: XdpProgramInfo,
 }
 
 impl XdpProgram {
-    pub(crate) fn new(data: ProgramData, info: NetworkMultiAttachInfo) -> Self {
+    pub(crate) fn new(data: ProgramData, info: XdpProgramInfo) -> Self {
         Self { data, info }
     }
 }
@@ -199,32 +182,18 @@ impl XdpProgram {
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct TcProgram {
     pub(crate) data: ProgramData,
-    pub(crate) info: NetworkMultiAttachInfo,
+    pub(crate) info: TcProgramInfo,
     pub(crate) direction: Direction,
-}
-
-impl TcProgram {
-    pub(crate) fn new(
-        data: ProgramData,
-        info: NetworkMultiAttachInfo,
-        direction: Direction,
-    ) -> Self {
-        Self {
-            data,
-            info,
-            direction,
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct TracepointProgram {
     pub(crate) data: ProgramData,
-    pub(crate) info: String,
+    pub(crate) info: TracepointProgramInfo,
 }
 
 impl TracepointProgram {
-    pub(crate) fn new(data: ProgramData, info: String) -> Self {
+    pub(crate) fn new(data: ProgramData, info: TracepointProgramInfo) -> Self {
         Self { data, info }
     }
 }
@@ -283,54 +252,40 @@ impl ProgramData {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub(crate) struct NetworkMultiAttachInfo {
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct XdpProgramInfo {
     pub(crate) if_name: String,
     pub(crate) if_index: u32,
     #[serde(skip)]
     pub(crate) current_position: Option<usize>,
     pub(crate) metadata: Metadata,
-    pub(crate) proceed_on: ProceedOn,
+    pub(crate) proceed_on: XdpProceedOn,
 }
 
-impl NetworkMultiAttachInfo {
-    pub(crate) fn new(
-        if_name: String,
-        if_index: u32,
-        metadata: Metadata,
-        proceed_on: ProceedOn,
-    ) -> Self {
-        NetworkMultiAttachInfo {
-            if_name,
-            if_index,
-            current_position: None,
-            metadata,
-            proceed_on,
-        }
-    }
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct TcProgramInfo {
+    pub(crate) if_name: String,
+    pub(crate) if_index: u32,
+    #[serde(skip)]
+    pub(crate) current_position: Option<usize>,
+    pub(crate) metadata: Metadata,
+    pub(crate) proceed_on: TcProceedOn,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub(crate) struct ProceedOn(pub(crate) Vec<i32>);
-impl ProceedOn {
-    pub fn default_xdp() -> Self {
-        ProceedOn(vec![XDP_PASS, XDP_DISPATCHER_RET])
-    }
-
-    pub fn default_tc() -> Self {
-        ProceedOn(vec![TC_ACT_PIPE])
-    }
-
-    pub(crate) fn mask(&self) -> u32 {
-        let mut proceed_on_mask: u32 = 0;
-        for action in self.0.clone().into_iter() {
-            proceed_on_mask |= 1 << action;
-        }
-        proceed_on_mask
-    }
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct TracepointProgramInfo {
+    pub(crate) tracepoint: String,
 }
 
 impl Program {
+    pub(crate) fn kind(&self) -> ProgramType {
+        match self {
+            Program::Xdp(_) => ProgramType::Xdp,
+            Program::Tc(_) => ProgramType::Tc,
+            Program::Tracepoint(_) => ProgramType::Tracepoint,
+        }
+    }
+
     pub(crate) fn dispatcher_id(&self) -> Option<DispatcherId> {
         match self {
             Program::Xdp(p) => Some(DispatcherId::Xdp(DispatcherInfo(p.info.if_index, None))),
@@ -382,13 +337,13 @@ impl Program {
         }
     }
 
-    pub(crate) fn save(&self, uuid: Uuid) -> Result<(), anyhow::Error> {
+    pub(crate) fn save(&self, uuid: String) -> Result<(), anyhow::Error> {
         let path = format!("{RTDIR_PROGRAMS}/{uuid}");
         serde_json::to_writer(&fs::File::create(path)?, &self)?;
         Ok(())
     }
 
-    pub(crate) fn delete(&self, uuid: Uuid) -> Result<(), anyhow::Error> {
+    pub(crate) fn delete(&self, uuid: String) -> Result<(), anyhow::Error> {
         let path = format!("{RTDIR_PROGRAMS}/{uuid}");
         fs::remove_file(path)?;
 
@@ -405,20 +360,12 @@ impl Program {
         Ok(())
     }
 
-    pub(crate) fn load(uuid: Uuid) -> Result<Self, anyhow::Error> {
+    pub(crate) fn load(uuid: String) -> Result<Self, anyhow::Error> {
         let path = format!("{RTDIR_PROGRAMS}/{uuid}");
         let file = fs::File::open(path)?;
         let reader = BufReader::new(file);
         let prog = serde_json::from_reader(reader)?;
         Ok(prog)
-    }
-
-    pub(crate) fn kind(&self) -> ProgramType {
-        match self {
-            Program::Xdp(_) => ProgramType::Xdp,
-            Program::Tracepoint(_) => ProgramType::Tracepoint,
-            Program::Tc(_) => ProgramType::Tc,
-        }
     }
 
     pub(crate) fn if_index(&self) -> Option<u32> {

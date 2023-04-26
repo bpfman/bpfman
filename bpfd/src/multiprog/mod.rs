@@ -4,14 +4,16 @@
 mod tc;
 mod xdp;
 
-use bpfd_api::config::{InterfaceConfig, XdpMode};
+use bpfd_api::{
+    config::{InterfaceConfig, XdpMode},
+    ProgramType,
+};
 use log::debug;
-pub use tc::{TcDispatcher, TC_ACT_PIPE};
-use uuid::Uuid;
-pub use xdp::{XdpDispatcher, XDP_DISPATCHER_RET, XDP_PASS};
+pub use tc::TcDispatcher;
+pub use xdp::XdpDispatcher;
 
 use crate::{
-    command::{Direction, Program, ProgramType},
+    command::{Direction, Program},
     errors::BpfdError,
 };
 
@@ -23,7 +25,7 @@ pub(crate) enum Dispatcher {
 impl Dispatcher {
     pub fn new(
         config: Option<&InterfaceConfig>,
-        programs: &[(Uuid, Program)],
+        programs: &[(String, Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
     ) -> Result<Dispatcher, BpfdError> {

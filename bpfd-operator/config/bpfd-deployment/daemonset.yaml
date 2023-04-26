@@ -61,6 +61,10 @@ spec:
         # This mount is needed to attach tracepoint programs
         - name: host-debug
           mountPath: /sys/kernel/debug
+        # Needed to ensure images are persisted to disk across restarts
+        - name: bpfd-content-store
+          mountPath: /var/lib/bpfd
+          mountPropagation: Bidirectional
       - name: bpfd-agent 
         command:
         - /bpfd-agent      
@@ -123,4 +127,6 @@ spec:
       - name: host-debug
         hostPath:
           path: /sys/kernel/debug
-      
+      - name: bpfd-content-store
+        hostPath:
+          path: /var/lib/bpfd

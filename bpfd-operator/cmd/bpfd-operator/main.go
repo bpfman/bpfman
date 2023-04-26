@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/apis/v1alpha1"
+	bpfdagent "github.com/redhat-et/bpfd/bpfd-operator/controllers/bpfd-agent"
 	bpfdoperator "github.com/redhat-et/bpfd/bpfd-operator/controllers/bpfd-operator"
 	//+kubebuilder:scaffold:imports
 )
@@ -103,13 +104,42 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&bpfdoperator.BpfProgramConfigReconciler{
+	common := bpfdoperator.ReconcilerCommon{
 		Client: mgr.GetClient(),
 		Scheme: mgr.GetScheme(),
+	}
+
+	if err = (&bpfdoperator.BpfdConfigReconciler{
+		ReconcilerCommon: common,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "BpfProgramConfig")
+		setupLog.Error(err, "unable to create bpfdCofig controller", "controller", "BpfProgram")
 		os.Exit(1)
 	}
+
+	if err = (&bpfdoperator.XdpProgramReconciler{
+		ReconcilerCommon: common,
+		Finalizer:        bpfdagent.XdpProgramControllerFinalizer,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create xdpProgram controller", "controller", "BpfProgram")
+		os.Exit(1)
+	}
+
+	if err = (&bpfdoperator.TcProgramReconciler{
+		ReconcilerCommon: common,
+		Finalizer:        bpfdagent.TcProgramControllerFinalizer,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create tcProgram controller", "controller", "BpfProgram")
+		os.Exit(1)
+	}
+
+	if err = (&bpfdoperator.TracepointProgramReconciler{
+		ReconcilerCommon: common,
+		Finalizer:        bpfdagent.TracepointProgramControllerFinalizer,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create tracepointProgram controller", "controller", "BpfProgram")
+		os.Exit(1)
+	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

@@ -1,18 +1,14 @@
 apiVersion: bpfd.io/v1alpha1
-kind: BpfProgramConfig
+kind: TracepointProgram
 metadata:
   labels:
-    app.kubernetes.io/name: BpfProgramConfig
+    app.kubernetes.io/name: tracepointprogram
   name: go-tracepoint-counter-example
 spec:
-  ## Must correspond to image section name
-  name: tracepoint_kill_recorder
-  type: TRACEPOINT
+  sectionname: tracepoint_kill_recorder
   # Select all nodes
   nodeselector: {}
-  attachpoint:
-    singleattach:
-      name: syscalls/sys_enter_kill
+  name: syscalls/sys_enter_kill
   bytecode: 
     image:
       url: quay.io/bpfd-bytecode/go-tracepoint-counter:latest
