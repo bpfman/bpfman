@@ -1,0 +1,18 @@
+name: Add all issues to bpfd project
+
+on:
+  issues:
+    types:
+      - opened
+
+jobs:
+  add-to-project:
+    name: Add issue to project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/add-to-project@RELEASE_VERSION
+        with:
+          # You can target a project in a different organization
+          # to the issue
+          project-url: https://github.com/orgs/bpfd-dev/projects/4
+          github-token: ${{ secrets.BPFD_PROJECT_PAT }}
