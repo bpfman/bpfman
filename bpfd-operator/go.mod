@@ -4,11 +4,11 @@ go 1.19
 
 require (
 	github.com/blang/semver/v4 v4.0.0
+	github.com/bpfd-dev/bpfd/clients/gobpfd v0.0.0-20230213120310-6d91cf19f8a3
 	github.com/containers/image v3.0.2+incompatible
 	github.com/go-logr/logr v1.2.3
 	github.com/kong/kubernetes-testing-framework v0.24.1
 	github.com/pelletier/go-toml v1.9.5
-	github.com/bpfd-dev/bpfd/clients/gobpfd v0.0.0-20230213120310-6d91cf19f8a3
 	github.com/stretchr/testify v1.8.1
 	google.golang.org/grpc v1.54.0
 	k8s.io/api v0.26.0
@@ -82,4 +82,9 @@ require (
 	sigs.k8s.io/kind v0.17.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
+)
+
+replace (
+	github.com/bpfd-dev/bpfd/bpfd-operator => ../bpfd-operator
+	github.com/bpfd-dev/bpfd/clients/gobpfd => ../clients/gobpfd
 )

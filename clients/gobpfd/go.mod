@@ -15,3 +15,8 @@ require (
 	golang.org/x/text v0.6.0 // indirect
 	google.golang.org/genproto v0.0.0-20221206210731-b1a01be3a5f6 // indirect
 )
+
+replace (
+	github.com/bpfd-dev/bpfd/bpfd-operator => ../../bpfd-operator
+	github.com/bpfd-dev/bpfd/clients/gobpfd => ../gobpfd
+)
