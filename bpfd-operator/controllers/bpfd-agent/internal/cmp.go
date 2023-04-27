@@ -19,7 +19,7 @@ package internal
 import (
 	"reflect"
 
-	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
+	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 )
 
 // Look at using https://pkg.go.dev/google.golang.org/protobuf/testing/protocmp to simplify.

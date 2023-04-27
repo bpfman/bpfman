@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
+	bpfdHelpers "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/helpers"
 	"github.com/kong/kubernetes-testing-framework/pkg/clusters"
-	bpfdHelpers "github.com/redhat-et/bpfd/bpfd-operator/pkg/helpers"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

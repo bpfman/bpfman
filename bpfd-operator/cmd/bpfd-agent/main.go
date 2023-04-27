@@ -34,11 +34,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/apis/v1alpha1"
-	bpfdagent "github.com/redhat-et/bpfd/bpfd-operator/controllers/bpfd-agent"
+	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
+	bpfdagent "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent"
 
-	"github.com/redhat-et/bpfd/bpfd-operator/internal/tls"
-	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal/tls"
+	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	v1 "k8s.io/api/core/v1"
 
 	//+kubebuilder:scaffold:imports

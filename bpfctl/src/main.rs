@@ -215,7 +215,7 @@ async fn main() -> anyhow::Result<()> {
             .unwrap_or_else(|_| panic!("failed to parse address '{}'", endpoint.address)),
         endpoint.port,
     );
-    // TODO: Use https (https://github.com/redhat-et/bpfd/issues/396)
+    // TODO: Use https (https://github.com/bpfd-dev/bpfd/issues/396)
     let address = format!("http://{address}");
     let channel = Channel::from_shared(address)?
         .tls_config(tls_config)?

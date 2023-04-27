@@ -22,11 +22,11 @@ import (
 	"os"
 	"path/filepath"
 
+	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
+	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	"github.com/containers/image/docker/reference"
-	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/apis/v1alpha1"
-	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
 
-	"github.com/redhat-et/bpfd/bpfd-operator/internal"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

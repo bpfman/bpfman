@@ -74,12 +74,12 @@ jobs:
       GOPATH: ${{ github.workspace }}
     defaults:
       run:
-        working-directory: ${{ env.GOPATH }}/src/github.com/redhat-et/bpfd
+        working-directory: ${{ env.GOPATH }}/src/github.com/bpfd-dev/bpfd
     steps:
 
       - uses: actions/checkout@v2
         with:
-          path: ${{ env.GOPATH }}/src/github.com/redhat-et/bpfd
+          path: ${{ env.GOPATH }}/src/github.com/bpfd-dev/bpfd
 
       - uses: actions/setup-go@v3
         with:
@@ -97,7 +97,7 @@ jobs:
           # Keep this version synced with /bpfd/bpfd-operator/hack/verify-golint.sh and /bpfd/bpfd-operator/scripts/verify-golint.sh
           version: v1.51.1
           # Optional: working directory, useful for monorepos
-          working-directory: ${{ env.GOPATH }}/src/github.com/redhat-et/bpfd/examples
+          working-directory: ${{ env.GOPATH }}/src/github.com/bpfd-dev/bpfd/examples
           # Optional: if set to true then the all caching functionality will be complete disabled,
           #           takes precedence over all other caching options.
           skip-cache: true
@@ -125,7 +125,7 @@ jobs:
           # Keep this version synced with /bpfd/bpfd-operator/scripts/verify-golint.sh
           version: v1.51.1
           # Optional: working directory, useful for monorepos
-          working-directory: ${{ env.GOPATH }}/src/github.com/redhat-et/bpfd/bpfd-operator
+          working-directory: ${{ env.GOPATH }}/src/github.com/bpfd-dev/bpfd/bpfd-operator
           # Optional: if set to true then the all caching functionality will be complete disabled,
           #           takes precedence over all other caching options.
           skip-cache: true

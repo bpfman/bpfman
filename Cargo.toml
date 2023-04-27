@@ -2,5 +2,5 @@
 members = ["bpfd", "bpfd-api", "bpfd-common", "bpfctl", "xtask", "tests/integration-test", "tests/integration-test-macros"]
 
 [patch.crates-io]
-aya = { git = "https://github.com/redhat-et/aya", branch="main" }
+aya = { git = "https://github.com/bpfd-dev/aya", branch="main" }
 oci-distribution = {git = "https://github.com/krustlet/oci-distribution", branch="main"}

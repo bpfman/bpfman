@@ -1,4 +1,4 @@
-module github.com/redhat-et/bpfd/clients/gobpfd
+module github.com/bpfd-dev/bpfd/clients/gobpfd
 
 go 1.19
 

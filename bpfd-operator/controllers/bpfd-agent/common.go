@@ -35,11 +35,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
+	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
+	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	"github.com/go-logr/logr"
-	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/apis/v1alpha1"
-	bpfdagentinternal "github.com/redhat-et/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
-	"github.com/redhat-et/bpfd/bpfd-operator/internal"
-	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
 	"google.golang.org/grpc"
 	v1 "k8s.io/api/core/v1"
 )

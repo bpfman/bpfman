@@ -18,8 +18,8 @@ limitations under the License.
 package apis
 
 import (
-	v1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/pkg/client/informers/externalversions/apis/v1alpha1"
-	internalinterfaces "github.com/redhat-et/bpfd/bpfd-operator/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/client/informers/externalversions/apis/v1alpha1"
+	internalinterfaces "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/client/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to each of this group's versions.

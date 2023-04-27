@@ -7,7 +7,7 @@
 ![Build status][build-badge]
 [![Book][book-badge]][book-url]
 
-[build-badge]: https://img.shields.io/github/actions/workflow/status/redhat-et/bpfd/build.yml?branch=main
+[build-badge]: https://img.shields.io/github/actions/workflow/status/bpfd-dev/bpfd/build.yml?branch=main
 [book-badge]: https://img.shields.io/badge/read%20the-book-9cf.svg
 [book-url]: https://bpfd.netlify.app/
 

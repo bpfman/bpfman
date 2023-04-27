@@ -1,16 +1,16 @@
 # Example BPF Programs
 
 Example applications that use the `bpfd-go` bindings can be found in
-[examples/go-xdp-counter/](https://github.com/redhat-et/bpfd/tree/main/examples/go-xdp-counter) and
-[examples/go-tc-counter/](https://github.com/redhat-et/bpfd/tree/main/examples/go-tc-counter).
+[examples/go-xdp-counter/](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-xdp-counter) and
+[examples/go-tc-counter/](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tc-counter).
 These examples and the associated documentation is intended to provide the basics on how to deploy
 and manage a BPF program using bpfd.
 There are two ways to deploy these example applications, simply run locally on one machine, or deploy
 to multiple nodes in a Kubernetes cluster.
 
 The `go-xdp-counter` and  `go-tc-counter` examples each contain a BPF Program written in C
-([xdp_counter.c](https://github.com/redhat-et/bpfd/tree/main/examples/go-xdp-counter/bpf/xdp_counter.c) and
-[tc_counter.c](https://github.com/redhat-et/bpfd/tree/main/examples/go-tc-counter/bpf/tc_counter.c))
+([xdp_counter.c](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-xdp-counter/bpf/xdp_counter.c) and
+[tc_counter.c](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tc-counter/bpf/tc_counter.c))
 that is compiled into BPF bytecode.
 The BPF program counts packets that are received on an interface and stores the packet and byte
 counts in a map that is accessible by the userspace portion.
@@ -384,12 +384,12 @@ This assumes there is already a Kubernetes cluster running and `bpfd` is running
 Instead of using the userspace program or `bpfctl` to load the BPF bytecode as done above, the bytecode
 will be loaded by creating a `BpfProgramConfig` kubernetes object.
 Edit the
-[go-xdp-counter-bytecode.yaml](https://github.com/redhat-et/bpfd/tree/main/examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml)
+[go-xdp-counter-bytecode.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml)
 file to customize, primarily setting the interface.
 Also note that the `BpfProgramConfig` is running the bytecode on all nodes (`nodeselector: {}`).
 This can be change to run on specific nodes, but the DaemonSet yaml for the userspace program, which
 is described below, should have an equivalent change
-(see [go-xdp-counter.yaml](https://github.com/redhat-et/bpfd/tree/main/examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter.yaml)).
+(see [go-xdp-counter.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter.yaml)).
 
 ```console
     vi examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml

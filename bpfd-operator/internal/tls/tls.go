@@ -23,8 +23,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	toml "github.com/pelletier/go-toml"
-	"github.com/redhat-et/bpfd/bpfd-operator/internal"
 	"google.golang.org/grpc/credentials"
 	ctrl "sigs.k8s.io/controller-runtime"
 )

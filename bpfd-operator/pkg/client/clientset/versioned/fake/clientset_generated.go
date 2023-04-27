@@ -18,9 +18,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "github.com/redhat-et/bpfd/bpfd-operator/pkg/client/clientset/versioned"
-	bpfdv1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/pkg/client/clientset/versioned/typed/apis/v1alpha1"
-	fakebpfdv1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/pkg/client/clientset/versioned/typed/apis/v1alpha1/fake"
+	clientset "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/client/clientset/versioned"
+	bpfdv1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/client/clientset/versioned/typed/apis/v1alpha1"
+	fakebpfdv1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/client/clientset/versioned/typed/apis/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

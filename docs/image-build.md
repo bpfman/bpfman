@@ -2,7 +2,7 @@
 
 Container images for the `bpfd` and `bpfctl` binaries are automatically built and
 pushed to `quay.io/bpfd` whenever code is merged into the `main` branch of the
-`github.com/redhat-et/bpfd` repository under the `:main` tag.
+`github.com/bpfd-dev/bpfd` repository under the `:main` tag.
 
 ## Building the images locally
 

@@ -22,8 +22,8 @@ import (
 	"log"
 	"path/filepath"
 
-	bpfdHelpers "github.com/redhat-et/bpfd/bpfd-operator/pkg/helpers"
-	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
+	bpfdHelpers "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/helpers"
+	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 )
 
 const (

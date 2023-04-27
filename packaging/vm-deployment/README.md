@@ -14,7 +14,7 @@ Once the dependencies are installed, simply clone bpfd and run the following com
 
 ```console
 # Clone the bpfd repo:
-$ git clone https://github.com/redhat-et/bpfd.git
+$ git clone https://github.com/bpfd-dev/bpfd.git
 $ cd bpfd/packaging/vm-deployment/
 
 # Start the vagrant deployment
