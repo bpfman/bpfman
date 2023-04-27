@@ -12,10 +12,10 @@ import (
 	"syscall"
 	"time"
 
+	bpfdHelpers "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/helpers"
+	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
+	configMgmt "github.com/bpfd-dev/bpfd/examples/pkg/config-mgmt"
 	"github.com/cilium/ebpf"
-	bpfdHelpers "github.com/redhat-et/bpfd/bpfd-operator/pkg/helpers"
-	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
-	configMgmt "github.com/redhat-et/bpfd/examples/pkg/config-mgmt"
 	"google.golang.org/grpc"
 )
 
@@ -60,7 +60,7 @@ func main() {
 			return
 		}
 
-		// Use first map 
+		// Use first map
 		for _, v := range maps {
 			mapPath = v[BpfProgramMapIndex]
 			break
@@ -86,7 +86,7 @@ func main() {
 			}
 			c := gobpfd.NewLoaderClient(conn)
 			loadRequestCommon := &gobpfd.LoadRequestCommon{
-				Location: paramData.BytecodeSource.Location,
+				Location:    paramData.BytecodeSource.Location,
 				SectionName: "stats",
 				ProgramType: *bpfdHelpers.Xdp.Int32(),
 			}

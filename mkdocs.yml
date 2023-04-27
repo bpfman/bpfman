@@ -1,5 +1,5 @@
 site_name: bpfd
-repo_url: https://github.com/redhat-et/bpfd
+repo_url: https://github.com/bpfd-dev/bpfd
 edit_uri: edit/main/docs
 extra_css:
   - stylesheets/extra.css

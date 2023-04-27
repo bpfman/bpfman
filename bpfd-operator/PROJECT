@@ -5,7 +5,7 @@ plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: bpfd-operator
-repo: github.com/redhat-et/bpfd
+repo: github.com/bpfd-dev/bpfd
 resources:
 - api:
     crdVersion: v1
@@ -13,7 +13,7 @@ resources:
   controller: true
   domain: bpfd.io
   kind: BpfProgram
-  path: github.com/redhat-et/bpfd/api/v1alpha1
+  path: github.com/bpfd-dev/bpfd/api/v1alpha1
   version: v1alpha1
 - api:
     crdVersion: v1
@@ -21,6 +21,6 @@ resources:
   controller: true
   domain: bpfd.io
   kind: BpfProgramConfig
-  path: github.com/redhat-et/bpfd/api/v1alpha1
+  path: github.com/bpfd-dev/bpfd/api/v1alpha1
   version: v1alpha1
 version: "3"

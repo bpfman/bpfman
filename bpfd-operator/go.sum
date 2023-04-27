@@ -270,8 +270,8 @@ github.com/prometheus/procfs v0.6.0/go.mod h1:cz+aTbrPOrUb4q7XlbU9ygM+/jj0fzG6c1
 github.com/prometheus/procfs v0.7.3/go.mod h1:cz+aTbrPOrUb4q7XlbU9ygM+/jj0fzG6c1xBZuNvfVA=
 github.com/prometheus/procfs v0.8.0 h1:ODq8ZFEaYeCaZOJlZZdJA2AbQR98dSHSM1KW/You5mo=
 github.com/prometheus/procfs v0.8.0/go.mod h1:z7EfXMXOkbkqb9IINtpCn86r/to3BnA0uaxHdg830/4=
-github.com/redhat-et/bpfd/clients/gobpfd v0.0.0-20230213120310-6d91cf19f8a3 h1:Rg9NVL0rVGoDIZWAhn2t4uEKyK8xiDL88fXcKuQzZjE=
-github.com/redhat-et/bpfd/clients/gobpfd v0.0.0-20230213120310-6d91cf19f8a3/go.mod h1:9+h/nr1ABRP390h8rSvt41fjYNjo/WnuWQn7w9E5gZ4=
+github.com/bpfd-dev/bpfd/clients/gobpfd v0.0.0-20230213120310-6d91cf19f8a3 h1:Rg9NVL0rVGoDIZWAhn2t4uEKyK8xiDL88fXcKuQzZjE=
+github.com/bpfd-dev/bpfd/clients/gobpfd v0.0.0-20230213120310-6d91cf19f8a3/go.mod h1:9+h/nr1ABRP390h8rSvt41fjYNjo/WnuWQn7w9E5gZ4=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.9.0 h1:73kH8U+JUqXU8lRuOHeVHaa/SZPifC7BkcraZVejAe8=
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=

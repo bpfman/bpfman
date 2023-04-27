@@ -321,5 +321,5 @@ spec:
   maturity: alpha
   provider:
     name: bpfd
-    url: https://redhat-et.github.io/bpfd/
+    url: https://bpfd-dev.github.io/bpfd/
   version: 0.0.1

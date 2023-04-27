@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2018"
 description = "bpfd's common code that is shared between kernel and userspace"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/redhat-et/bpfd"
+repository = "https://github.com/bpfd-dev/bpfd"
 
 [features]
 default = []

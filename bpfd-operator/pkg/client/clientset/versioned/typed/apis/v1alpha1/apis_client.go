@@ -20,8 +20,8 @@ package v1alpha1
 import (
 	"net/http"
 
-	v1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/apis/v1alpha1"
-	"github.com/redhat-et/bpfd/bpfd-operator/pkg/client/clientset/versioned/scheme"
+	v1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/pkg/client/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

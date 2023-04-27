@@ -13,7 +13,7 @@ The Bpfd-Operator can be used to deploy and manage bpfd within a Kubernetes clus
 ![bpfd on K8s](./img/bpfd-on-k8s.jpg)
 
 The [bpfd-operator
-repository](https://github.com/redhat-et/bpfd/tree/main/bpfd-operator) houses
+repository](https://github.com/bpfd-dev/bpfd/tree/main/bpfd-operator) houses
 two main processes, the `bpfd-agent` and the `bpfd-operator` along with CRD api
 definitions for `BpfProgram` and `BpfProgramConfig` Objects. In the below
 sections we'll dive a bit deeper into the API and functionality of both
@@ -42,7 +42,7 @@ and deploy bpfd.
 - clone the bpfd repository
 
 ```bash
-git clone https://github.com/redhat-et/bpfd.git
+git clone https://github.com/bpfd-dev/bpfd.git
 cd bpfd/bpfd-operator
 ```
 

@@ -1,12 +1,12 @@
-module github.com/redhat-et/bpfd/examples
+module github.com/bpfd-dev/bpfd/examples
 
 go 1.19
 
 require (
 	github.com/cilium/ebpf v0.10.0
 	github.com/pelletier/go-toml v1.9.5
-	github.com/redhat-et/bpfd/bpfd-operator v0.0.0-20230323205922-e592b47c32db
-	github.com/redhat-et/bpfd/clients/gobpfd v0.0.0-20230213120310-6d91cf19f8a3
+	github.com/bpfd-dev/bpfd/bpfd-operator v0.0.0-20230323205922-e592b47c32db
+	github.com/bpfd-dev/bpfd/clients/gobpfd v0.0.0-20230213120310-6d91cf19f8a3
 	google.golang.org/grpc v1.51.0
 )
 

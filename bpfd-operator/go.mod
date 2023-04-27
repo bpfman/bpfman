@@ -1,4 +1,4 @@
-module github.com/redhat-et/bpfd/bpfd-operator
+module github.com/bpfd-dev/bpfd/bpfd-operator
 
 go 1.19
 
@@ -8,7 +8,7 @@ require (
 	github.com/go-logr/logr v1.2.3
 	github.com/kong/kubernetes-testing-framework v0.24.1
 	github.com/pelletier/go-toml v1.9.5
-	github.com/redhat-et/bpfd/clients/gobpfd v0.0.0-20230213120310-6d91cf19f8a3
+	github.com/bpfd-dev/bpfd/clients/gobpfd v0.0.0-20230213120310-6d91cf19f8a3
 	github.com/stretchr/testify v1.8.1
 	google.golang.org/grpc v1.54.0
 	k8s.io/api v0.26.0

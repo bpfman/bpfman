@@ -19,9 +19,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/redhat-et/bpfd/bpfd-operator/internal"
-	"github.com/redhat-et/bpfd/bpfd-operator/pkg/client/clientset/versioned"
-	bpfdHelpers "github.com/redhat-et/bpfd/bpfd-operator/pkg/helpers"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/pkg/client/clientset/versioned"
+	bpfdHelpers "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/helpers"
 )
 
 var (

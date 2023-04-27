@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	operatorinternal "github.com/redhat-et/bpfd/bpfd-operator/controllers/bpfd-operator/internal"
-	"github.com/redhat-et/bpfd/bpfd-operator/internal"
+	operatorinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-operator/internal"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 )
 
 // +kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete

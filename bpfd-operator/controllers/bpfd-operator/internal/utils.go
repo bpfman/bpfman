@@ -20,7 +20,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/redhat-et/bpfd/bpfd-operator/internal"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"

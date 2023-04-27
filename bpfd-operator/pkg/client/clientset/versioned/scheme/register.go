@@ -18,7 +18,7 @@ limitations under the License.
 package scheme
 
 import (
-	bpfdv1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/apis/v1alpha1"
+	bpfdv1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

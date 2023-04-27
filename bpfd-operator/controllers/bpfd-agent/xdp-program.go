@@ -31,11 +31,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/apis/v1alpha1"
-	bpfdagentinternal "github.com/redhat-et/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
-	internal "github.com/redhat-et/bpfd/bpfd-operator/internal"
+	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
+	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
+	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 
-	gobpfd "github.com/redhat-et/bpfd/clients/gobpfd/v1"
+	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	v1 "k8s.io/api/core/v1"
 )
 

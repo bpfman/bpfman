@@ -22,8 +22,8 @@ import (
 	"os"
 	"time"
 
-	//bpfdiov1alpha1 "github.com/redhat-et/bpfd/bpfd-operator/apis/v1alpha1"
-	bpfdclientset "github.com/redhat-et/bpfd/bpfd-operator/pkg/client/clientset/versioned"
+	//bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
+	bpfdclientset "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/client/clientset/versioned"
 	//"k8s.io/apimachinery/pkg/api/errors"
 	//"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -35,7 +35,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	bpfdoperator "github.com/redhat-et/bpfd/bpfd-operator/controllers/bpfd-operator"
+	bpfdoperator "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-operator"
 )
 
 const (

@@ -22,9 +22,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/redhat-et/bpfd/bpfd-operator/pkg/client/clientset/versioned"
-	apis "github.com/redhat-et/bpfd/bpfd-operator/pkg/client/informers/externalversions/apis"
-	internalinterfaces "github.com/redhat-et/bpfd/bpfd-operator/pkg/client/informers/externalversions/internalinterfaces"
+	versioned "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/client/clientset/versioned"
+	apis "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/client/informers/externalversions/apis"
+	internalinterfaces "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/client/informers/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
