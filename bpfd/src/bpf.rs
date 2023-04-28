@@ -28,7 +28,7 @@ const SUPERUSER: &str = "bpfctl";
 pub(crate) struct BpfManager<'a> {
     config: &'a Config,
     dispatchers: HashMap<DispatcherId, Dispatcher>,
-    programs: HashMap<String, Program>,
+    programs: HashMap<Uuid, Program>,
 }
 
 impl<'a> BpfManager<'a> {
@@ -45,8 +45,8 @@ impl<'a> BpfManager<'a> {
         if let Ok(programs_dir) = fs::read_dir(RTDIR_PROGRAMS) {
             for entry in programs_dir {
                 let entry = entry?;
-                let uuid: String = entry.file_name().to_string_lossy().parse().unwrap();
-                let mut program = Program::load(uuid.clone())
+                let uuid = entry.file_name().to_string_lossy().parse().unwrap();
+                let mut program = Program::load(uuid)
                     .map_err(|e| BpfdError::Error(format!("cant read program state {e}")))?;
                 // TODO: Should probably check for pinned prog on bpffs rather than assuming they are attached
                 program.set_attached();
@@ -115,11 +115,11 @@ impl<'a> BpfManager<'a> {
     pub(crate) fn add_program(
         &mut self,
         program: Program,
-        id: Option<String>,
-    ) -> Result<String, BpfdError> {
+        id: Option<Uuid>,
+    ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_program()");
 
-        let uuid: String = match id {
+        let uuid = match id {
             Some(id) => {
                 debug!("Using provided program UUID: {}", id);
                 if self.programs.contains_key(&id) {
@@ -129,7 +129,7 @@ impl<'a> BpfManager<'a> {
             }
             None => {
                 debug!("Generating new program UUID");
-                format!("{}", Uuid::new_v4())
+                Uuid::new_v4()
             }
         };
 
@@ -142,8 +142,8 @@ impl<'a> BpfManager<'a> {
     pub(crate) fn add_multi_attach_program(
         &mut self,
         program: Program,
-        id: String,
-    ) -> Result<String, BpfdError> {
+        id: Uuid,
+    ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_multi_attach_program()");
         let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
         fs::create_dir_all(map_pin_path.clone())
@@ -201,9 +201,9 @@ impl<'a> BpfManager<'a> {
             .dispatcher_id()
             .ok_or(BpfdError::DispatcherNotRequired)?;
         program
-            .save(id.clone())
+            .save(id)
             .map_err(|e| BpfdError::Error(format!("unable to save program state: {e}")))?;
-        self.programs.insert(id.clone(), program);
+        self.programs.insert(id, program);
         self.sort_programs(program_type, if_index, direction);
         let programs = self.collect_programs(program_type, if_index, direction);
         let old_dispatcher = self.dispatchers.remove(&did);
@@ -220,7 +220,7 @@ impl<'a> BpfManager<'a> {
         let dispatcher = Dispatcher::new(if_config, &programs, next_revision, old_dispatcher)
             .or_else(|e| {
                 let prog = self.programs.remove(&id).unwrap();
-                prog.delete(id.clone()).map_err(|_| {
+                prog.delete(id).map_err(|_| {
                     BpfdError::Error(
                         "new dispatcher cleanup failed, unable to delete program data".to_string(),
                     )
@@ -237,8 +237,8 @@ impl<'a> BpfManager<'a> {
     pub(crate) fn add_single_attach_program(
         &mut self,
         p: Program,
-        id: String,
-    ) -> Result<String, BpfdError> {
+        id: Uuid,
+    ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_single_attach_program()");
         if let Program::Tracepoint(ref program) = p {
             let parts: Vec<&str> = program.info.tracepoint.split('/').collect();
@@ -286,13 +286,13 @@ impl<'a> BpfManager<'a> {
                 .try_into()?;
 
             tracepoint.load()?;
-            p.save(id.clone())
+            p.save(id)
                 .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
-            self.programs.insert(id.clone(), p);
+            self.programs.insert(id, p);
 
             let link_id = tracepoint.attach(&category, &name).or_else(|e| {
                 let prog = self.programs.remove(&id).unwrap();
-                prog.delete(id.clone()).map_err(|_| {
+                prog.delete(id).map_err(|_| {
                     BpfdError::Error(
                         "new dispatcher cleanup failed, unable to delete program data".to_string(),
                     )
@@ -312,7 +312,7 @@ impl<'a> BpfManager<'a> {
                 .pin(format!("{RTDIR_FS}/prog_{id}"))
                 .or_else(|e| {
                     let prog = self.programs.remove(&id).unwrap();
-                    prog.delete(id.clone()).map_err(|_| {
+                    prog.delete(id).map_err(|_| {
                         BpfdError::Error(
                             "new dispatcher cleanup failed, unable to delete program data"
                                 .to_string(),
@@ -327,7 +327,7 @@ impl<'a> BpfManager<'a> {
         }
     }
 
-    pub(crate) fn remove_program(&mut self, id: String, owner: String) -> Result<(), BpfdError> {
+    pub(crate) fn remove_program(&mut self, id: Uuid, owner: String) -> Result<(), BpfdError> {
         debug!("BpfManager::remove_program() id: {id}");
         if let Some(prog) = self.programs.get(&id) {
             if !(prog.owner() == &owner || owner == SUPERUSER) {
@@ -461,7 +461,7 @@ impl<'a> BpfManager<'a> {
             .iter()
             .map(|(id, p)| match p {
                 Program::Xdp(p) => ProgramInfo {
-                    id: id.to_string(),
+                    id: *id,
                     name: p.data.section_name.to_string(),
                     location: p.data.location.clone(),
                     program_type: ProgramType::Xdp as i32,
@@ -473,7 +473,7 @@ impl<'a> BpfManager<'a> {
                     }),
                 },
                 Program::Tracepoint(p) => ProgramInfo {
-                    id: id.to_string(),
+                    id: *id,
                     name: p.data.section_name.to_string(),
                     location: p.data.location.clone(),
                     program_type: ProgramType::Tracepoint as i32,
@@ -484,7 +484,7 @@ impl<'a> BpfManager<'a> {
                     ),
                 },
                 Program::Tc(p) => ProgramInfo {
-                    id: id.to_string(),
+                    id: *id,
                     name: p.data.section_name.to_string(),
                     location: p.data.location.clone(),
                     program_type: ProgramType::Tc as i32,
@@ -521,7 +521,7 @@ impl<'a> BpfManager<'a> {
                     None
                 }
             })
-            .collect::<Vec<(&String, &mut Program)>>();
+            .collect::<Vec<(&Uuid, &mut Program)>>();
         extensions.sort_by(|(_, a), (_, b)| a.metadata().cmp(&b.metadata()));
         for (i, (_, v)) in extensions.iter_mut().enumerate() {
             v.set_position(Some(i));
@@ -533,7 +533,7 @@ impl<'a> BpfManager<'a> {
         program_type: ProgramType,
         if_index: Option<u32>,
         direction: Option<Direction>,
-    ) -> Vec<(String, Program)> {
+    ) -> Vec<(Uuid, Program)> {
         let mut results = vec![];
         for (k, v) in self.programs.iter() {
             if v.kind() == program_type && v.if_index() == if_index && v.direction() == direction {

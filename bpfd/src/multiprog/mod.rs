@@ -10,6 +10,7 @@ use bpfd_api::{
 };
 use log::debug;
 pub use tc::TcDispatcher;
+use uuid::Uuid;
 pub use xdp::XdpDispatcher;
 
 use crate::{
@@ -25,7 +26,7 @@ pub(crate) enum Dispatcher {
 impl Dispatcher {
     pub fn new(
         config: Option<&InterfaceConfig>,
-        programs: &[(String, Program)],
+        programs: &[(Uuid, Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
     ) -> Result<Dispatcher, BpfdError> {
