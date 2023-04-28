@@ -200,7 +200,10 @@ async fn main() -> anyhow::Result<()> {
             info!("Using UNIX socket as transport");
             match execute_request(&cli.command, channel).await {
                 Ok(_) => return Ok(()),
-                Err(e) => eprintln!("Error = {e:?}"),
+                Err(e) => {
+                    eprintln!("Error = {e:?}");
+                    return Ok(());
+                }
             }
         }
         Err(e) => debug!("Error getting UNIX socket channel. Err: {}", e),
