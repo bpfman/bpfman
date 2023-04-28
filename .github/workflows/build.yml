@@ -13,7 +13,15 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-## Build bpfd Core
+  check-license:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Check License Header
+        uses: apache/skywalking-eyes@f461a46e74e5fa22e9f9599a355ab4f0ac265469
+
   build:
     runs-on: ubuntu-latest
     container:
@@ -67,16 +75,15 @@ jobs:
       - name: Run tests
         run: RUST_BACKTRACE=full cargo test --verbose
 
-## Build go modules
-  build-go: 
+  ## Build go modules
+  build-go:
     runs-on: ubuntu-latest
-    env: 
+    env:
       GOPATH: ${{ github.workspace }}
     defaults:
       run:
         working-directory: ${{ env.GOPATH }}/src/github.com/bpfd-dev/bpfd
     steps:
-
       - uses: actions/checkout@v2
         with:
           path: ${{ env.GOPATH }}/src/github.com/bpfd-dev/bpfd
@@ -86,11 +93,11 @@ jobs:
           go-version: "1.20"
 
       - name: Build Examples
-        run: | 
+        run: |
           go build ./examples/go-tc-counter/
           go build ./examples/go-xdp-counter/
 
-      ## Run linter on Examples 
+      ## Run linter on Examples
       - uses: golangci/golangci-lint-action@v3
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
@@ -109,11 +116,11 @@ jobs:
           args: -v
 
       - name: Build Operator
-        run: | 
+        run: |
           cd bpfd-operator
           make build
 
-      - name: Verify Operator Generated 
+      - name: Verify Operator Generated
         run: |
           cd bpfd-operator
           make verify
@@ -135,3 +142,109 @@ jobs:
           skip-build-cache: true
           # Set verbose logging
           args: -v
+
+  basic-integration-tests:
+    runs-on: ubuntu-latest
+    needs: ["build", "build-go"]
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install deps
+        run: sudo apt-get install -y git clang llvm protobuf-compiler cmake perl acl openssl pkgconf gcc-multilib
+
+      - uses: actions/checkout@v2
+        with:
+          repository: libbpf/libbpf
+          path: libbpf
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: rust-src
+          override: true
+
+      - name: Install bpf-linker
+        run: cargo install bpf-linker
+
+      - name: Build eBPF
+        run: cargo xtask build-ebpf --libbpf-dir ./libbpf
+
+      - name: Build bpfd
+        run: cargo build --verbose
+
+      - name: Run the bpfd installer
+        run: sudo ./scripts/setup.sh install
+
+      - name: Give certs time to be created
+        run: sleep 5
+
+      - name: Verify the bpfd systemd service is active
+        run: systemctl is-active bpfd
+
+      - name: Verify the bpfctl can reach bpfd
+        run: sudo bpfctl --help
+
+      - name: Stop the bpfd systemd service
+        run: sudo systemctl stop bpfd
+
+      - name: Run integration tests
+        run: cargo xtask integration-test
+
+  kubernetes-integration-tests:
+    needs: ["build", "build-go"]
+    runs-on: ubuntu-latest
+    env:
+      BPFD_IMG: "quay.io/bpfd/bpfd:int-test"
+      BPFD_AGENT_IMG: "quay.io/bpfd/bpfd-agent:int-test"
+      BPFD_OPERATOR_IMG: "quay.io/bpfd/bpfd-operator:int-test"
+      ## This should match what's found in bpfd/bpfd-operator/config/certmanager/kustomization.yaml
+      CERTMANAGER_VERSION: "v1.10.1"
+    steps:
+      - name: setup golang
+        uses: actions/setup-go@v3
+        with:
+          go-version: "^1.19"
+
+      - name: cache go modules
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-build-codegen-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-build-codegen-
+
+      - name: checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: build images
+        run: cd bpfd-operator && make build-images
+
+      - name: run integration tests
+        run: cd bpfd-operator && make test-integration
+
+      ## Upload diagnostics if integration test step failed.
+      - name: upload diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: kubernetes-integration-test-diag
+          path: /tmp/ktf-diag*
+          if-no-files-found: ignore
+
+  build-workflow-complete:
+    needs:
+      [
+        "check-license",
+        "build",
+        "build-go",
+        "basic-integration-tests",
+        "kubernetes-integration-tests",
+      ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build Complete
+        run: echo "Build Complete"

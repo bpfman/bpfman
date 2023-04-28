@@ -20,9 +20,8 @@ env:
 
 jobs:
   ## Used to ensure image builds are successful on PRs if workflow file was changed
-  build:
+  build-images:
     if: ${{ github.event_name == 'pull_request' }}
-    name: Build Images
     runs-on: ubuntu-latest
     steps:
     - name: Check out rust source code
@@ -112,7 +111,7 @@ jobs:
           ./bpfd-operator/Containerfile.bundle
 
   ## Used to build and push images when code is merged to the main branch
-  build-and-push:
+  build-and-push-images:
     if: ${{ github.event_name == 'push' }}
     name: Build and Push Images
     runs-on: ubuntu-latest
