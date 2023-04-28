@@ -41,9 +41,17 @@ jobs:
 
       - uses: actions-rs/toolchain@v1
         with:
+          toolchain: stable
+          override: true
+
+      - uses: actions-rs/toolchain@v1
+        with:
           toolchain: nightly
           components: rust-src
-          override: true
+          override: false
+
+      - name: Install cargo-llvm-cov
+        uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Install bpf-linker
         run: cargo install bpf-linker
@@ -69,80 +77,70 @@ jobs:
         run: cargo build --verbose
 
       - name: Run tests
-        run: RUST_BACKTRACE=full cargo test --verbose
+        run: cargo llvm-cov test --all-features -p bpfd -p bpfd-api -p bpfctl --lcov --output-path lcov.info
+        env:
+          RUST_BACKTRACE: full
+
+      - name: Archive Rust code coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: lcov.info
+          if-no-files-found: error
 
   ## Build go modules
   build-go:
     runs-on: ubuntu-latest
-    env:
-      GOPATH: ${{ github.workspace }}
-    defaults:
-      run:
-        working-directory: ${{ env.GOPATH }}/src/github.com/bpfd-dev/bpfd
     steps:
       - uses: actions/checkout@v2
-        with:
-          path: ${{ env.GOPATH }}/src/github.com/bpfd-dev/bpfd
-
       - uses: actions/setup-go@v3
         with:
           go-version: "1.20"
 
       - name: Build Examples
         run: |
-          go build ./examples/go-tc-counter/
-          go build ./examples/go-xdp-counter/
+          go build ./examples/...
 
-      ## Run linter on Examples
-      - uses: golangci/golangci-lint-action@v3
+      - name: Lint Examples
+        uses: golangci/golangci-lint-action@v3
         with:
-          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           # Keep this version synced with /bpfd/bpfd-operator/hack/verify-golint.sh and /bpfd/bpfd-operator/scripts/verify-golint.sh
           version: v1.51.1
-          # Optional: working directory, useful for monorepos
-          working-directory: ${{ env.GOPATH }}/src/github.com/bpfd-dev/bpfd/examples
-          # Optional: if set to true then the all caching functionality will be complete disabled,
-          #           takes precedence over all other caching options.
+          working-directory: examples
           skip-cache: true
-          # Optional: if set to true then the action don't cache or restore ~/go/pkg.
           skip-pkg-cache: true
-          # Optional: if set to true then the action don't cache or restore ~/.cache/go-build.
           skip-build-cache: true
-          # Set verbose logging
           args: -v
 
       - name: Build Operator
-        run: |
-          cd bpfd-operator
-          make build
+        working-directory: bpfd-operator
+        run: make build
 
-      - name: Verify Operator Generated
-        run: |
-          cd bpfd-operator
-          make verify
+      - name: Verify Operator
+        working-directory: bpfd-operator
+        run: make verify
 
-      ## Run linter on bpfd-operator
-      - uses: golangci/golangci-lint-action@v3
+      - name: Lint Operator
+        uses: golangci/golangci-lint-action@v3
         with:
-          # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           # Keep this version synced with /bpfd/bpfd-operator/scripts/verify-golint.sh
           version: v1.51.1
-          # Optional: working directory, useful for monorepos
-          working-directory: ${{ env.GOPATH }}/src/github.com/bpfd-dev/bpfd/bpfd-operator
-          # Optional: if set to true then the all caching functionality will be complete disabled,
-          #           takes precedence over all other caching options.
+          working-directory: ./bpfd-operator
           skip-cache: true
-          # Optional: if set to true then the action don't cache or restore ~/go/pkg.
           skip-pkg-cache: true
-          # Optional: if set to true then the action don't cache or restore ~/.cache/go-build.
           skip-build-cache: true
-          # Set verbose logging
           args: -v
 
-      - name: Run Operator Unit Tests
-        run:  |
-          cd bpfd-operator
-          make test
+      - name: Run Tests
+        working-directory: bpfd-operator
+        run: make test
+
+      - name: Archive Go code coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: ./bpfd-operator/cover.out
+          if-no-files-found: error
 
   basic-integration-tests:
     runs-on: ubuntu-latest
@@ -235,12 +233,29 @@ jobs:
           path: /tmp/ktf-diag*
           if-no-files-found: ignore
 
+  coverage:
+    needs: ["build", "build-go"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          fail_ci_if_error: true
+          files: ./cover.out,./lcov.info
+          verbose: true
+
   build-workflow-complete:
     needs:
       [
         "check-license",
         "build",
         "build-go",
+        "coverage",
         "basic-integration-tests",
         "kubernetes-integration-tests",
       ]
