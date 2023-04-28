@@ -6,7 +6,6 @@ mod certs;
 mod command;
 mod errors;
 mod multiprog;
-#[path = "oci-utils/mod.rs"]
 mod oci_utils;
 mod rpc;
 mod static_program;
