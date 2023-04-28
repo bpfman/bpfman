@@ -18,7 +18,10 @@ package bpfdagent
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
+	"math/rand"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -147,7 +150,17 @@ func (r *TracePointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 	}
 
 	loadRequest := &gobpfd.LoadRequest{}
-	id := uuid.New().String()
+
+	// Hash this string and use it as seed to make the UUID deterministic
+	// for now. Eventually the BpfProgram UID will be used for this.
+	h := sha256.New()
+	h.Write([]byte(tracepointProgram.Name))
+	seed := binary.BigEndian.Uint64(h.Sum(nil))
+	rnd := rand.New(rand.NewSource(int64(seed)))
+	uuid.SetRand(rnd)
+	uuid, _ := uuid.NewRandomFromReader(rnd)
+	id := uuid.String()
+
 	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(bytecode, tracepointProgram.Spec.SectionName, internal.Tracepoint, id, tracepointProgram.Spec.GlobalData)
 
 	loadRequest.AttachInfo = &gobpfd.LoadRequest_TracepointAttachInfo{
