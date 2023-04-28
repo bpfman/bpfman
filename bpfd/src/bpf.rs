@@ -8,7 +8,7 @@ use aya::{
     programs::{links::FdLink, trace_point::TracePointLink, TracePoint},
     BpfLoader,
 };
-use bpfd_api::{config::Config, util::directories::*, ProgramType, TcProceedOn};
+use bpfd_api::{config::Config, util::directories::*, ProgramType};
 use log::debug;
 use uuid::Uuid;
 
@@ -491,7 +491,7 @@ impl<'a> BpfManager<'a> {
                     attach_info: crate::command::AttachInfo::Tc(crate::command::TcAttachInfo {
                         iface: p.info.if_name.to_string(),
                         priority: p.info.metadata.priority,
-                        proceed_on: TcProceedOn::default(),
+                        proceed_on: p.info.proceed_on.clone(),
                         direction: p.direction,
                         position: p.info.current_position.unwrap_or_default() as i32,
                     }),
