@@ -262,6 +262,7 @@ async fn generate_cert(
 
     let subject_alt_name = SubjectAlternativeName::new()
         .dns("localhost,IP:127.0.0.1")
+        .dns("localhost")
         .build(&cert_builder.x509v3_context(Some(&ca_cert_x590), None))?;
     cert_builder.append_extension(subject_alt_name)?;
 
