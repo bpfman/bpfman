@@ -1,0 +1,42 @@
+pull_request_rules:
+  - name: automatic merge for Dependabot pull requests
+    conditions:
+      - author=dependabot[bot]
+      - check-success=build-workflow-complete
+      - check-success=build-images
+      - label!=hold
+    actions:
+      merge:
+        method: merge
+
+  - name: automatic merge for main with > 1 approved reviews, all requested reviews have given feedback, not held, and CI is successful
+    conditions:
+      - "#approved-reviews-by>=1"
+      - "#review-requested=0"
+      - "#changes-requested-reviews-by=0"
+      - base=main
+      - label!=hold
+      - check-success=DCO
+      - check-success=build-workflow-complete
+      - check-success=build-images
+    actions:
+      merge:
+        method: merge
+
+  - name: Warn on conflicts
+    conditions:
+      - conflict
+    actions:
+      comment:
+        message: "@{{author}}, this pull request is now in conflict and requires a rebase."
+      label:
+        add:
+          - needs-rebase
+
+  - name: remove conflict label if not needed
+    conditions:
+      - -conflict
+    actions:
+      label:
+        remove:
+          - needs-rebase
