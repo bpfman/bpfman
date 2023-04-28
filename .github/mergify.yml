@@ -3,7 +3,6 @@ pull_request_rules:
     conditions:
       - author=dependabot[bot]
       - check-success=build-workflow-complete
-      - check-success=build-images
       - label!=hold
     actions:
       merge:
@@ -18,7 +17,6 @@ pull_request_rules:
       - label!=hold
       - check-success=DCO
       - check-success=build-workflow-complete
-      - check-success=build-images
     actions:
       merge:
         method: merge
