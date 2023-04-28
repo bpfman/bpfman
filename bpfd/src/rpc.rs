@@ -16,6 +16,7 @@ use bpfd_api::{
 use log::warn;
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
+use uuid::Uuid;
 use x509_certificate::X509Certificate;
 
 use crate::{oci_utils::BytecodeImage, Command};
@@ -101,10 +102,15 @@ impl Loader for BpfdLoader {
             Location::File(p) => crate::command::Location::File(p),
         };
 
+        let id = match common.id {
+            Some(id) => Some(Uuid::parse_str(&id).map_err(|_| Status::aborted("invalid UUID"))?),
+            None => None,
+        };
+
         let cmd = match request.attach_info.unwrap() {
             load_request::AttachInfo::XdpAttachInfo(attach) => Command::LoadXDP {
                 responder: resp_tx,
-                id: common.id,
+                id,
                 global_data: common.global_data,
                 location: bytecode_source,
                 iface: attach.iface,
@@ -122,7 +128,7 @@ impl Loader for BpfdLoader {
                 Command::LoadTC {
                     responder: resp_tx,
                     location: bytecode_source,
-                    id: common.id,
+                    id,
                     global_data: common.global_data,
                     iface: attach.iface,
                     priority: attach.priority,
@@ -135,7 +141,7 @@ impl Loader for BpfdLoader {
             }
             load_request::AttachInfo::TracepointAttachInfo(attach) => Command::LoadTracepoint {
                 responder: resp_tx,
-                id: common.id,
+                id,
                 global_data: common.global_data,
                 location: bytecode_source,
                 tracepoint: attach.tracepoint,
@@ -152,7 +158,7 @@ impl Loader for BpfdLoader {
         match resp_rx.await {
             Ok(res) => match res {
                 Ok(id) => {
-                    reply.id = id;
+                    reply.id = id.to_string();
                     Ok(Response::new(reply))
                 }
                 Err(e) => {
@@ -268,7 +274,7 @@ impl Loader for BpfdLoader {
                         };
 
                         reply.results.push(ListResult {
-                            id: r.id,
+                            id: r.id.to_string(),
                             section_name: Some(r.name),
                             attach_info: Some(attach_info),
                             location: loc,
@@ -285,6 +291,91 @@ impl Loader for BpfdLoader {
             Err(e) => {
                 warn!("RPC list error: {}", e);
                 Err(Status::aborted(format!("{e}")))
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use bpfd_api::v1::{
+        load_request::AttachInfo, load_request_common::Location, LoadRequest, LoadRequestCommon,
+        XdpAttachInfo,
+    };
+    use tokio::sync::mpsc::Receiver;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_load_with_valid_id() {
+        let (tx, rx) = mpsc::channel(32);
+        let loader = BpfdLoader::new(tx.clone());
+
+        let request = LoadRequest {
+            common: Some(LoadRequestCommon {
+                id: Some("4eee7d98-ffb5-49aa-bab8-b6d5d39c638e".to_string()),
+                location: Some(Location::Image(bpfd_api::v1::BytecodeImage {
+                    url: "quay.io/bpfd-bytecode/xdp:latest".to_string(),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            }),
+            attach_info: Some(AttachInfo::XdpAttachInfo(XdpAttachInfo {
+                iface: "eth0".to_string(),
+                priority: 50,
+                position: 0,
+                proceed_on: vec![2, 31],
+            })),
+        };
+
+        tokio::spawn(async move {
+            mock_serve(rx).await;
+        });
+
+        let res = loader.load(Request::new(request)).await;
+        assert!(res.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_load_with_invalid_id() {
+        let (tx, rx) = mpsc::channel(32);
+        let loader = BpfdLoader::new(tx.clone());
+
+        let request = LoadRequest {
+            common: Some(LoadRequestCommon {
+                id: Some("notauuid".to_string()),
+                location: Some(Location::Image(bpfd_api::v1::BytecodeImage {
+                    url: "quay.io/bpfd-bytecode/xdp:latest".to_string(),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            }),
+            attach_info: Some(AttachInfo::XdpAttachInfo(XdpAttachInfo {
+                iface: "eth0".to_string(),
+                priority: 50,
+                position: 0,
+                proceed_on: vec![2, 31],
+            })),
+        };
+
+        tokio::spawn(async move {
+            mock_serve(rx).await;
+        });
+
+        let res = loader.load(Request::new(request)).await;
+        assert!(res.is_err());
+    }
+
+    async fn mock_serve(mut rx: Receiver<Command>) {
+        while let Some(cmd) = rx.recv().await {
+            match cmd {
+                Command::LoadXDP { responder, .. } => responder.send(Ok(Uuid::new_v4())).unwrap(),
+                Command::LoadTC { responder, .. } => responder.send(Ok(Uuid::new_v4())).unwrap(),
+                Command::LoadTracepoint { responder, .. } => {
+                    responder.send(Ok(Uuid::new_v4())).unwrap()
+                }
+                Command::Unload { responder, .. } => responder.send(Ok(())).unwrap(),
+                Command::List { responder, .. } => responder.send(Ok(vec![])).unwrap(),
             }
         }
     }

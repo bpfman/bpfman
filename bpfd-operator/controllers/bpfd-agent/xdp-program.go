@@ -18,7 +18,10 @@ package bpfdagent
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
+	"math/rand"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -34,6 +37,7 @@ import (
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
 	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
+	"github.com/google/uuid"
 
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	v1 "k8s.io/api/core/v1"
@@ -176,8 +180,17 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 	for _, iface := range ifaces {
 		loadRequest := &gobpfd.LoadRequest{}
 
-		Id := fmt.Sprintf("%s-%s", XdpProgram.Name, iface)
-		loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(bytecode, XdpProgram.Spec.SectionName, internal.Tc, Id, XdpProgram.Spec.GlobalData)
+		// Hash this string and use it as seed to make the UUID deterministic
+		// for now. Eventually the BpfProgram UID will be used for this.
+		h := sha256.New()
+		h.Write([]byte(fmt.Sprintf("%s-%s", XdpProgram.Name, iface)))
+		seed := binary.BigEndian.Uint64(h.Sum(nil))
+		rnd := rand.New(rand.NewSource(int64(seed)))
+		uuid.SetRand(rnd)
+		uuid, _ := uuid.NewRandomFromReader(rnd)
+		id := uuid.String()
+
+		loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(bytecode, XdpProgram.Spec.SectionName, internal.Tc, id, XdpProgram.Spec.GlobalData)
 
 		loadRequest.AttachInfo = &gobpfd.LoadRequest_XdpAttachInfo{
 			XdpAttachInfo: &gobpfd.XDPAttachInfo{
@@ -187,7 +200,7 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 			},
 		}
 
-		existingProgram, doesProgramExist := existingBpfPrograms[Id]
+		existingProgram, doesProgramExist := existingBpfPrograms[id]
 		if !doesProgramExist {
 			r.Logger.V(1).Info("XdpProgram doesn't exist on node")
 
@@ -208,8 +221,8 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 				return BpfProgCondNotLoaded, err
 			}
 
-			bpfProgramEntries[Id] = bpfProgramEntry
-			r.Logger.V(1).WithValues("UUID", Id, "ProgramEntry", bpfProgramEntries).Info("Loaded XdpProgram on Node")
+			bpfProgramEntries[id] = bpfProgramEntry
+			r.Logger.V(1).WithValues("UUID", id, "ProgramEntry", bpfProgramEntries).Info("Loaded XdpProgram on Node")
 
 			// Move to next program
 			continue
@@ -220,11 +233,11 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 		if !XdpProgram.DeletionTimestamp.IsZero() || !isNodeSelected {
 			r.Logger.V(1).Info("XdpProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", !XdpProgram.DeletionTimestamp.IsZero(),
 				"isSelected", isNodeSelected)
-			if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, Id); err != nil {
+			if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 				r.Logger.Error(err, "Failed to unload XdpProgram")
 				return BpfProgCondLoaded, err
 			}
-			delete(bpfProgramEntries, Id)
+			delete(bpfProgramEntries, id)
 
 			// continue to next program
 			continue
@@ -234,7 +247,7 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 		// BpfProgram exists but is not correct state, unload and recreate
 		if !bpfdagentinternal.DoesProgExist(existingProgram, loadRequest) {
 			r.Logger.V(1).Info("XdpProgram is in wrong state, unloading and reloading")
-			if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, Id); err != nil {
+			if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 				r.Logger.Error(err, "Failed to unload XdpProgram")
 				return BpfProgCondNotUnloaded, err
 			}
@@ -245,19 +258,19 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 				return BpfProgCondNotLoaded, err
 			}
 
-			r.Logger.V(1).WithValues("UUID", Id, "ProgramEntry", bpfProgramEntry).Info("ReLoaded XdpProgram on Node")
-			bpfProgramEntries[Id] = bpfProgramEntry
+			r.Logger.V(1).WithValues("UUID", id, "ProgramEntry", bpfProgramEntry).Info("ReLoaded XdpProgram on Node")
+			bpfProgramEntries[id] = bpfProgramEntry
 		} else {
 			// Program already exists, but bpfProgram K8s Object might not be up to date
 			r.Logger.V(1).Info("XdpProgram already loaded on Node")
-			if _, ok := r.bpfProgram.Spec.Programs[Id]; !ok {
-				maps, err := bpfdagentinternal.GetMapsForUUID(Id)
+			if _, ok := r.bpfProgram.Spec.Programs[id]; !ok {
+				maps, err := bpfdagentinternal.GetMapsForUUID(id)
 				if err != nil {
 					r.Logger.Error(err, "failed to get bpfProgram's Maps")
 					return BpfProgCondNotLoaded, err
 				}
 
-				bpfProgramEntries[Id] = maps
+				bpfProgramEntries[id] = maps
 			} else {
 				// Program exists and bpfProgram K8s Object is up to date
 				r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")

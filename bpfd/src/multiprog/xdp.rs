@@ -15,6 +15,7 @@ use bpfd_api::{config::XdpMode, util::directories::*};
 use bpfd_common::XdpDispatcherConfig;
 use log::debug;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use super::Dispatcher;
 use crate::{
@@ -44,12 +45,12 @@ impl XdpDispatcher {
         mode: XdpMode,
         if_index: &u32,
         if_name: String,
-        programs: &[(String, Program)],
+        programs: &[(Uuid, Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
     ) -> Result<XdpDispatcher, BpfdError> {
         debug!("XdpDispatcher::new() for if_index {if_index}, revision {revision}");
-        let mut extensions: Vec<(&String, &XdpProgram)> = programs
+        let mut extensions: Vec<(&Uuid, &XdpProgram)> = programs
             .iter()
             .filter_map(|(k, v)| match v {
                 Program::Xdp(p) => Some((k, p)),
@@ -136,7 +137,7 @@ impl XdpDispatcher {
 
     fn attach_extensions(
         &mut self,
-        extensions: &mut [(&String, &XdpProgram)],
+        extensions: &mut [(&Uuid, &XdpProgram)],
     ) -> Result<(), BpfdError> {
         debug!(
             "XdpDispatcher::attach_extensions() for if_index {}, revision {}",

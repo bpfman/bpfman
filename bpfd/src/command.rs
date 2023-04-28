@@ -10,6 +10,7 @@ use bpfd_api::{
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
+use uuid::Uuid;
 
 use crate::{
     errors::BpfdError,
@@ -29,39 +30,39 @@ pub(crate) enum Command {
     LoadXDP {
         location: Location,
         section_name: String,
-        id: Option<String>,
+        id: Option<Uuid>,
         global_data: HashMap<String, Vec<u8>>,
         iface: String,
         priority: i32,
         proceed_on: XdpProceedOn,
         username: String,
-        responder: Responder<Result<String, BpfdError>>,
+        responder: Responder<Result<Uuid, BpfdError>>,
     },
     /// Load a TC Program
     LoadTC {
         location: Location,
         section_name: String,
-        id: Option<String>,
+        id: Option<Uuid>,
         global_data: HashMap<String, Vec<u8>>,
         iface: String,
         priority: i32,
         direction: Direction,
         proceed_on: TcProceedOn,
         username: String,
-        responder: Responder<Result<String, BpfdError>>,
+        responder: Responder<Result<Uuid, BpfdError>>,
     },
     // Load a Tracepoint Program
     LoadTracepoint {
         location: Location,
-        id: Option<String>,
+        id: Option<Uuid>,
         section_name: String,
         global_data: HashMap<String, Vec<u8>>,
         tracepoint: String,
         username: String,
-        responder: Responder<Result<String, BpfdError>>,
+        responder: Responder<Result<Uuid, BpfdError>>,
     },
     Unload {
-        id: String,
+        id: Uuid,
         username: String,
         responder: Responder<Result<(), BpfdError>>,
     },
@@ -107,7 +108,7 @@ impl std::fmt::Display for Direction {
 
 #[derive(Debug, Clone)]
 pub(crate) struct ProgramInfo {
-    pub(crate) id: String,
+    pub(crate) id: Uuid,
     pub(crate) name: String,
     pub(crate) location: Location,
     pub(crate) program_type: i32,
@@ -337,13 +338,13 @@ impl Program {
         }
     }
 
-    pub(crate) fn save(&self, uuid: String) -> Result<(), anyhow::Error> {
+    pub(crate) fn save(&self, uuid: Uuid) -> Result<(), anyhow::Error> {
         let path = format!("{RTDIR_PROGRAMS}/{uuid}");
         serde_json::to_writer(&fs::File::create(path)?, &self)?;
         Ok(())
     }
 
-    pub(crate) fn delete(&self, uuid: String) -> Result<(), anyhow::Error> {
+    pub(crate) fn delete(&self, uuid: Uuid) -> Result<(), anyhow::Error> {
         let path = format!("{RTDIR_PROGRAMS}/{uuid}");
         fs::remove_file(path)?;
 
@@ -360,7 +361,7 @@ impl Program {
         Ok(())
     }
 
-    pub(crate) fn load(uuid: String) -> Result<Self, anyhow::Error> {
+    pub(crate) fn load(uuid: Uuid) -> Result<Self, anyhow::Error> {
         let path = format!("{RTDIR_PROGRAMS}/{uuid}");
         let file = fs::File::open(path)?;
         let reader = BufReader::new(file);
