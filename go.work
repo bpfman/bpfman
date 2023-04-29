@@ -1,7 +1,0 @@
-go 1.19
-
-use (
-	./bpfd-operator
-	./clients/gobpfd
-	./examples
-)

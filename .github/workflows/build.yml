@@ -97,20 +97,19 @@ jobs:
         with:
           go-version: "1.20"
 
-      - name: Build Examples
-        run: |
-          go build ./examples/...
-
-      - name: Lint Examples
+      - name: Lint
         uses: golangci/golangci-lint-action@v3
         with:
-          # Keep this version synced with /bpfd/bpfd-operator/hack/verify-golint.sh and /bpfd/bpfd-operator/scripts/verify-golint.sh
+          # Keep this version synced with /bpfd/bpfd-operator/scripts/verify-golint.sh
           version: v1.51.1
-          working-directory: examples
           skip-cache: true
           skip-pkg-cache: true
           skip-build-cache: true
           args: -v
+
+      - name: Build Examples
+        run: |
+          go build ./examples/...
 
       - name: Build Operator
         working-directory: bpfd-operator
@@ -119,17 +118,6 @@ jobs:
       - name: Verify Operator
         working-directory: bpfd-operator
         run: make verify
-
-      - name: Lint Operator
-        uses: golangci/golangci-lint-action@v3
-        with:
-          # Keep this version synced with /bpfd/bpfd-operator/scripts/verify-golint.sh
-          version: v1.51.1
-          working-directory: ./bpfd-operator
-          skip-cache: true
-          skip-pkg-cache: true
-          skip-build-cache: true
-          args: -v
 
       - name: Run Tests
         working-directory: bpfd-operator
