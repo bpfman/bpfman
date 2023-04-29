@@ -63,7 +63,7 @@ For more details, please see the following:
 
 ## License
 
-## bpfd-ebpf
+## bpf
 
 Code in this crate is distributed under the terms of the [GNU General Public
 License, Version 2] or the [BSD 2 Clause] license, at your option.

@@ -40,7 +40,7 @@ A good commit message should describe what changed and why.
   Examples:
 
   * bpfd: validate program section names
-  * bpfd-ebpf: add dispatcher program test slot
+  * bpf: add dispatcher program test slot
 
 2. Keep the second line blank.
 3. Wrap all other lines at 72 columns (except for long URLs).
@@ -83,5 +83,5 @@ This can be accomplished by the following:
 cargo +nightly fmt
 cargo +nightly clippy
 cargo test
-# if you have edited code in bpfd-ebpf, repeat in the above in that directory
+# if you have edited code in bpf, repeat in the above in that directory
 ```

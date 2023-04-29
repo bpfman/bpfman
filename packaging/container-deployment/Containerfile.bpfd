@@ -15,10 +15,6 @@ COPY ./ /usr/src/bpfd
 
 RUN rustup target add x86_64-unknown-linux-musl
 
-# When we switch to using the rust ebpf dispatcher we will need this for now leave
-# it out since it slows down builds
-#RUN cargo install bpf-linker
-
 # Compile only the C ebpf bytecode
 RUN cargo xtask build-ebpf --release --libbpf-dir /usr/src/bpfd/libbpf
 # Compile only bpfd 

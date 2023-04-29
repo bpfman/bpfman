@@ -21,7 +21,7 @@ header:
         SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
         Copyright Authors of bpfd
     paths:
-      - bpfd-ebpf
+      - bpf
     paths-ignore:
       - '**/target/**'
       - '**/*.toml'

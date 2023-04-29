@@ -13,7 +13,6 @@ use aya::{
     Bpf, BpfLoader,
 };
 use bpfd_api::util::directories::*;
-use bpfd_common::TcDispatcherConfig;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -25,6 +24,7 @@ use crate::{
         Direction::{Egress, Ingress},
         Program, TcProgram,
     },
+    dispatcher_config::TcDispatcherConfig,
     errors::BpfdError,
     oci_utils::image_manager::get_bytecode_from_image_store,
 };
@@ -33,8 +33,7 @@ const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the d
 const TC_DISPATCHER_PRIORITY: u16 = 50; // Default TC priority for TC Dispatcher
 const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
 
-static DISPATCHER_BYTES: &[u8] =
-    include_bytes_aligned!("../../../target/bpfel-unknown-none/release/tc_dispatcher.bpf.o");
+static DISPATCHER_BYTES: &[u8] = include_bytes_aligned!("../../../.output/tc_dispatcher.bpf.o");
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TcDispatcher {

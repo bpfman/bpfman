@@ -1,5 +1,5 @@
 [workspace]
-members = ["bpfd", "bpfd-api", "bpfd-common", "bpfctl", "xtask", "tests/integration-test", "tests/integration-test-macros"]
+members = ["bpfd", "bpfd-api", "bpfctl", "xtask", "tests/integration-test", "tests/integration-test-macros"]
 
 [patch.crates-io]
 aya = { git = "https://github.com/bpfd-dev/aya", branch="main" }
