@@ -105,7 +105,7 @@ jobs:
           skip-cache: true
           skip-pkg-cache: true
           skip-build-cache: true
-          args: -v
+          args: -v --timeout 3m
 
       - name: Build Examples
         run: |
