@@ -244,7 +244,7 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 ##@ Build
 
 .PHONY: build
-build: fmt vet ## Build bpfd-operator and bpfd-agent binaries.
+build: fmt ## Build bpfd-operator and bpfd-agent binaries.
 	go build -o bin/bpfd-operator cmd/bpfd-operator/main.go
 	go build -o bin/bpfd-agent cmd/bpfd-agent/main.go
 
