@@ -223,6 +223,8 @@ jobs:
     needs: ["build", "build-go"]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+
       - name: Download coverage artifacts
         uses: actions/download-artifact@v2
         with:
