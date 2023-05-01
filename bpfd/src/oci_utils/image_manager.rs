@@ -77,6 +77,9 @@ impl BytecodeImage {
         self,
         base_dir: Option<String>,
     ) -> Result<ProgramOverrides, ImageError> {
+        // The reference created here is created using the krustlet oci-distribution
+        // crate. It currently contains many defaults more of which can be seen
+        // here: https://github.com/krustlet/oci-distribution/blob/main/src/reference.rs#L58
         let image: Reference = self
             .image_url
             .parse()
@@ -265,16 +268,23 @@ impl BytecodeImage {
     }
 }
 
-fn get_image_content_dir(image_url: Reference) -> PathBuf {
-    let repo = image_url.repository();
-    let tag = match image_url.tag() {
+fn get_image_content_dir(image: Reference) -> PathBuf {
+    // Try to get the tag, if it doesn't exist, get the digest
+    // if neither exist, return "latest" as the tag
+    let tag = match image.tag() {
         Some(t) => t,
-        _ => image_url.digest().unwrap(),
+        _ => match image.digest() {
+            Some(d) => d,
+            _ => "latest",
+        },
     };
 
     Path::new(&format!(
-        "{}/{}/{}",
-        BYTECODE_IMAGE_CONTENT_STORE, repo, tag
+        "{}/{}/{}/{}",
+        BYTECODE_IMAGE_CONTENT_STORE,
+        image.registry(),
+        image.repository(),
+        tag
     ))
     .to_owned()
 }
@@ -470,5 +480,29 @@ mod tests {
             .await;
 
         assert!(matches!(result, Err(ImageError::ByteCodeImageNotfound(_))));
+    }
+
+    #[test]
+    fn test_good_image_content_path() {
+        struct Case {
+            input: &'static str,
+            output: PathBuf,
+        }
+        let tt = vec![
+            Case{input: "busybox", output: PathBuf::from("/var/lib/bpfd/io.bpfd.image.content/docker.io/library/busybox/latest")},
+            Case{input:"quay.io/busybox", output: PathBuf::from("/var/lib/bpfd/io.bpfd.image.content/quay.io/busybox/latest")},
+            Case{input:"docker.io/test:tag", output: PathBuf::from("/var/lib/bpfd/io.bpfd.image.content/docker.io/library/test/tag")},
+            Case{input:"quay.io/test:5000", output: PathBuf::from("/var/lib/bpfd/io.bpfd.image.content/quay.io/test/5000")},
+            Case{input:"test.com/repo:tag", output: PathBuf::from("/var/lib/bpfd/io.bpfd.image.content/test.com/repo/tag")},
+            Case{
+                input:"test.com/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                output: PathBuf::from("/var/lib/bpfd/io.bpfd.image.content/test.com/repo/sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+            }
+        ];
+        for t in tt {
+            let good_reference: Reference = t.input.parse().unwrap();
+            let image_content_path = get_image_content_dir(good_reference);
+            assert_eq!(image_content_path, t.output);
+        }
     }
 }
