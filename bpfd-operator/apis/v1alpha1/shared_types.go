@@ -91,5 +91,14 @@ type BytecodeImage struct {
 	// ImagePullSecret is the name of the secret bpfd should use to get remote image
 	// repository secrets.
 	// +optional
-	ImagePullSecret string `json:"imagepullsecret,omitempty"`
+	ImagePullSecret *ImagePullSecretSelector `json:"imagepullsecret,omitempty"`
+}
+
+// ImagePullSecretSelector defines the name and namespace of an image pull secret.
+type ImagePullSecretSelector struct {
+	// Name of the secret which contains the credentials to access the image repository.
+	Name string `json:"name"`
+
+	// Namespace of the secret which contains the credentials to access the image repository.
+	Namespace string `json:"namespace"`
 }

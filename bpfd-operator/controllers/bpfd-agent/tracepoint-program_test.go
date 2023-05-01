@@ -92,7 +92,6 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 		Scheme:           s,
 		BpfdClient:       cli,
 		NodeName:         fakeNode.Name,
-		Namespace:        namespace,
 		bpfProgram:       &bpfdiov1alpha1.BpfProgram{},
 		expectedPrograms: map[string]map[string]string{},
 	}
