@@ -4,6 +4,7 @@
 mod bpf;
 mod certs;
 mod command;
+mod dispatcher_config;
 mod errors;
 mod multiprog;
 mod oci_utils;

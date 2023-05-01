@@ -1,12 +1,8 @@
 {
-  "rust-analyzer.linkedProjects": ["Cargo.toml", "bpfd-ebpf/Cargo.toml"],
   "rust-analyzer.checkOnSave.allTargets": false,
   "rust-analyzer.cargo.buildScripts.enable": true,
   "rust-analyzer.checkOnSave.command": "clippy",
   "yaml.schemas": {
     "https://json.schemastore.org/github-workflow.json": "file:///home/dave/dev/bpfd/.github/workflows/build.yml"
   },
-  "files.associations": {
-    "bpf_helpers.h": "c"
-  }
 }

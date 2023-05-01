@@ -12,7 +12,6 @@ use aya::{
     Bpf, BpfLoader,
 };
 use bpfd_api::{config::XdpMode, util::directories::*};
-use bpfd_common::XdpDispatcherConfig;
 use log::debug;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -20,6 +19,7 @@ use uuid::Uuid;
 use super::Dispatcher;
 use crate::{
     command::{Program, XdpProgram},
+    dispatcher_config::XdpDispatcherConfig,
     errors::BpfdError,
     oci_utils::image_manager::get_bytecode_from_image_store,
 };
@@ -27,8 +27,7 @@ use crate::{
 const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
 
-static DISPATCHER_BYTES: &[u8] =
-    include_bytes_aligned!("../../../target/bpfel-unknown-none/release/xdp_dispatcher.bpf.o");
+static DISPATCHER_BYTES: &[u8] = include_bytes_aligned!("../../../.output/xdp_dispatcher.bpf.o");
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct XdpDispatcher {

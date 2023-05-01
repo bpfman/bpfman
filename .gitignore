@@ -24,3 +24,6 @@ tests/_tmp
 
 # Don't track vendor files
 **/vendor
+
+# Ignore compiled C files
+.output

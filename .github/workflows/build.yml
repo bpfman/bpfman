@@ -53,9 +53,6 @@ jobs:
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
-      - name: Install bpf-linker
-        run: cargo install bpf-linker
-
       - uses: Swatinem/rust-cache@v1
 
       - name: Build eBPF
@@ -64,15 +61,11 @@ jobs:
       - name: Check formatting
         run: |
           cargo +nightly fmt --all -- --check
-          pushd bpfd-ebpf
-          cargo +nightly fmt --all -- --check
-          popd
+
       - name: Run clippy
         run: |
           cargo +nightly clippy --all -- --deny warnings
-          pushd bpfd-ebpf
-          cargo +nightly clippy --all -- --deny warnings
-          popd
+
       - name: Build
         run: cargo build --verbose
 
@@ -159,9 +152,6 @@ jobs:
           toolchain: nightly
           components: rust-src
           override: true
-
-      - name: Install bpf-linker
-        run: cargo install bpf-linker
 
       - name: Build eBPF
         run: cargo xtask build-ebpf --libbpf-dir ./libbpf

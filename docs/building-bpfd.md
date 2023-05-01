@@ -26,12 +26,6 @@ sudo apt install clang lldb lld libelf-dev gcc-multilib
 
 ```
 
-- [bpf-linker](https://github.com/aya-rs/bpf-linker)
-
-```console
-cargo install bpf-linker
-```
-
 - [protoc](https://grpc.io/docs/protoc-installation/)
 
 `dnf` based OS:

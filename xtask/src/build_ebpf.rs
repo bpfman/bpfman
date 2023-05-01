@@ -1,5 +1,6 @@
 use std::{
-    env, fs,
+    env,
+    fs::{self, create_dir_all},
     path::{Path, PathBuf},
     process::Command,
     string::String,
@@ -67,36 +68,6 @@ fn workspace_root() -> String {
     v["workspace_root"].as_str().unwrap().to_string()
 }
 
-pub fn build_ebpf(opts: Options) -> anyhow::Result<()> {
-    if opts.compile_rust_ebpf {
-        build_rust_ebpf(&opts)?;
-    }
-    build_c_ebpf(&opts)
-}
-
-fn build_rust_ebpf(opts: &Options) -> anyhow::Result<()> {
-    let mut dir = PathBuf::from(WORKSPACE_ROOT.to_string());
-    dir.push("bpfd-ebpf");
-
-    let target = format!("--target={}", opts.target);
-    let args = vec![
-        "+nightly",
-        "build",
-        "--verbose",
-        "--release",
-        target.as_str(),
-        "-Z",
-        "build-std=core",
-    ];
-    let status = Command::new("cargo")
-        .current_dir(&dir)
-        .args(args)
-        .status()
-        .expect("failed to build bpf program");
-    assert!(status.success());
-    Ok(())
-}
-
 fn get_libbpf_headers<P: AsRef<Path>>(libbpf_dir: P, include_path: P) -> anyhow::Result<()> {
     let dir = include_path.as_ref();
     fs::create_dir_all(dir)?;
@@ -110,14 +81,13 @@ fn get_libbpf_headers<P: AsRef<Path>>(libbpf_dir: P, include_path: P) -> anyhow:
     Ok(())
 }
 
-fn build_c_ebpf(opts: &Options) -> anyhow::Result<()> {
+pub fn build_ebpf(opts: Options) -> anyhow::Result<()> {
     let mut src = PathBuf::from(WORKSPACE_ROOT.to_string());
-    src.push("bpfd-ebpf/src/bpf");
+    src.push("bpf");
 
     let mut out_path = PathBuf::from(WORKSPACE_ROOT.to_string());
-    out_path.push("target");
-    out_path.push(opts.target.to_string());
-    out_path.push("release");
+    out_path.push(".output");
+    create_dir_all(&out_path)?;
 
     let include_path = out_path.join("include");
     get_libbpf_headers(&opts.libbpf_dir, &include_path)?;
