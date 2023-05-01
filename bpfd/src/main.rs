@@ -18,7 +18,7 @@ use nix::{
     sys::resource::{setrlimit, Resource},
     unistd::{getuid, User},
 };
-use systemd_journal_logger::{connected_to_journal, init_with_extra_fields};
+use systemd_journal_logger::{connected_to_journal, JournalLog};
 
 const BPFD_ENV_LOG_LEVEL: &str = "RUST_LOG";
 
@@ -33,7 +33,10 @@ fn main() -> anyhow::Result<()> {
         .block_on(async {
             if connected_to_journal() {
                 // If bpfd is running as a service, log to journald.
-                init_with_extra_fields(vec![("VERSION", env!("CARGO_PKG_VERSION"))]).unwrap();
+                JournalLog::default()
+                    .with_extra_fields(vec![("VERSION", env!("CARGO_PKG_VERSION"))])
+                    .install()
+                    .unwrap();
                 manage_journal_log_level();
                 log::info!("Log using journald");
             } else {
