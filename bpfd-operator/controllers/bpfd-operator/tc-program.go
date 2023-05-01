@@ -36,7 +36,6 @@ import (
 
 type TcProgramReconciler struct {
 	ReconcilerCommon
-	Finalizer string
 }
 
 func (r *TcProgramReconciler) getRecCommon() *ReconcilerCommon {
@@ -44,7 +43,7 @@ func (r *TcProgramReconciler) getRecCommon() *ReconcilerCommon {
 }
 
 func (r *TcProgramReconciler) getFinalizer() string {
-	return r.Finalizer
+	return internal.TcProgramControllerFinalizer
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -71,8 +70,6 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err := r.Get(ctx, req.NamespacedName, tcProgram); err != nil {
 		// list all BpfProgramConfig objects with
 		if errors.IsNotFound(err) {
-			// TODO(astoycos) we could simplify this logic by making the name of the
-			// generated bpfProgram object a bit more deterministic
 			bpfProgram := &bpfdiov1alpha1.BpfProgram{}
 			if err := r.Get(ctx, req.NamespacedName, bpfProgram); err != nil {
 				if errors.IsNotFound(err) {

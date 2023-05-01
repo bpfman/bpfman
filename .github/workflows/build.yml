@@ -32,7 +32,6 @@ jobs:
         run: |
           sudo dnf groupinstall -y c-development
           sudo dnf install -y git clang llvm protobuf-compiler cmake perl
-
       - uses: actions/checkout@v2
 
       - uses: actions/checkout@v2
@@ -54,21 +53,18 @@ jobs:
       - name: Build eBPF
         run: |
           cargo xtask build-ebpf --libbpf-dir ./libbpf
-
       - name: Check formatting
         run: |
           cargo +nightly fmt --all -- --check
           pushd bpfd-ebpf
           cargo +nightly fmt --all -- --check
           popd
-
       - name: Run clippy
         run: |
           cargo +nightly clippy --all -- --deny warnings
           pushd bpfd-ebpf
           cargo +nightly clippy --all -- --deny warnings
           popd
-
       - name: Build
         run: cargo build --verbose
 
@@ -143,6 +139,11 @@ jobs:
           # Set verbose logging
           args: -v
 
+      - name: Run Operator Unit Tests
+        run:  |
+          cd bpfd-operator
+          make test
+
   basic-integration-tests:
     runs-on: ubuntu-latest
     needs: ["build", "build-go"]
@@ -214,7 +215,6 @@ jobs:
           key: ${{ runner.os }}-build-codegen-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-build-codegen-
-
       - name: checkout repository
         uses: actions/checkout@v3
         with:

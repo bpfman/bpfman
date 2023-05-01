@@ -32,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
-	bpfdagent "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent"
 	bpfdoperator "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-operator"
 	//+kubebuilder:scaffold:imports
 )
@@ -118,7 +117,6 @@ func main() {
 
 	if err = (&bpfdoperator.XdpProgramReconciler{
 		ReconcilerCommon: common,
-		Finalizer:        bpfdagent.XdpProgramControllerFinalizer,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create xdpProgram controller", "controller", "BpfProgram")
 		os.Exit(1)
@@ -126,7 +124,6 @@ func main() {
 
 	if err = (&bpfdoperator.TcProgramReconciler{
 		ReconcilerCommon: common,
-		Finalizer:        bpfdagent.TcProgramControllerFinalizer,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create tcProgram controller", "controller", "BpfProgram")
 		os.Exit(1)
@@ -134,7 +131,6 @@ func main() {
 
 	if err = (&bpfdoperator.TracepointProgramReconciler{
 		ReconcilerCommon: common,
-		Finalizer:        bpfdagent.TracepointProgramControllerFinalizer,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create tracepointProgram controller", "controller", "BpfProgram")
 		os.Exit(1)

@@ -165,7 +165,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&bpfdagent.TracePointProgramReconciler{
+	if err = (&bpfdagent.TracepointProgramReconciler{
 		ReconcilerCommon: common,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create tracepointProgram controller", "controller", "BpfProgram")
