@@ -2173,9 +2173,9 @@ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 
 [[package]]
 name = "systemd-journal-logger"
-version = "0.7.0"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abee2da0faf67d79baaa095840d6b687e365aa9b7c34560c48a8e90f8e62055e"
+checksum = "356b5cb52ce54916cbfaee19b07d305c7ea8ce5435a088c58743d4a0211f3eff"
 dependencies = [
  "libsystemd",
  "log",
