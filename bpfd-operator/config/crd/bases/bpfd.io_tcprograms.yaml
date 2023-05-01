@@ -61,7 +61,19 @@ spec:
                       imagepullsecret:
                         description: ImagePullSecret is the name of the secret bpfd
                           should use to get remote image repository secrets.
-                        type: string
+                        properties:
+                          name:
+                            description: Name of the secret which contains the credentials
+                              to access the image repository.
+                            type: string
+                          namespace:
+                            description: Namespace of the secret which contains the
+                              credentials to access the image repository.
+                            type: string
+                        required:
+                        - name
+                        - namespace
+                        type: object
                       url:
                         description: Valid container image URL used to reference a
                           remote bytecode image.

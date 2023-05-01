@@ -37,7 +37,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: regcred
-  namespace: bpfd
+  namespace: default
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: eyJhdXRocyI6eyJxdWF5LmlvIjp7InVzZXJuYW1lIjoiYnBmZC1ieXRlY29kZSticGZkY3JlZHMiLCJwYXNzd29yZCI6IkpPR1ozRkE2QTlMMjI5N0pBVDRGRk42Q0pVODdMS1RJWTZYMVpHS1dKMFcwWExLWTBLUFQ1WUtUQkJFQUdTRjUiLCJhdXRoIjoiWW5CbVpDMWllWFJsWTI5a1pTdGljR1prWTNKbFpITTZTazlIV2pOR1FUWkJPVXd5TWprM1NrRlVORVpHVGpaRFNsVTROMHhMVkVsWk5sZ3hXa2RMVjBvd1Z6QllURXRaTUV0UVZEVlpTMVJDUWtWQlIxTkdOUT09In19fQ==
@@ -66,7 +66,9 @@ spec:
   priority: 0
   bytecode:
     image:
-      imagepullsecret: regcred
+      imagepullsecret: 
+        name: regcred
+        namespace: default
       url: quay.io/bpfd-bytecode/xdp_pass_private:latest
 `
 

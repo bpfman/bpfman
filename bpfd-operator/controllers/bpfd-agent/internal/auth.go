@@ -115,7 +115,7 @@ func decodeContainerConfigFieldAuth(field string) (username, password string, er
 func ParseAuth(c client.Client, secretName, secretNamespace string) (*ContainerConfig, error) {
 	var creds ContainerConfig
 
-	// Lookup the k8s Secret in the bpfd-namespace for repository authentication
+	// Lookup the k8s Secret for repository authentication
 	ctx := context.TODO()
 	imageSecret := &v1.Secret{}
 

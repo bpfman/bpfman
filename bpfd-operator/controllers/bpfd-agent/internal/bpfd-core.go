@@ -50,7 +50,7 @@ func imagePullPolicyConversion(policy bpfdiov1alpha1.PullPolicy) int32 {
 	}
 }
 
-func GetBytecode(c client.Client, namespace string, b *bpfdiov1alpha1.BytecodeSelector) (interface{}, error) {
+func GetBytecode(c client.Client, b *bpfdiov1alpha1.BytecodeSelector) (interface{}, error) {
 	if b.Image != nil {
 		bytecodeImage := b.Image
 
@@ -60,8 +60,8 @@ func GetBytecode(c client.Client, namespace string, b *bpfdiov1alpha1.BytecodeSe
 		}
 
 		var username, password string
-		if bytecodeImage.ImagePullSecret != "" {
-			creds, err := ParseAuth(c, bytecodeImage.ImagePullSecret, namespace)
+		if bytecodeImage.ImagePullSecret != nil {
+			creds, err := ParseAuth(c, bytecodeImage.ImagePullSecret.Name, bytecodeImage.ImagePullSecret.Namespace)
 			if err != nil {
 				return nil, err
 			}

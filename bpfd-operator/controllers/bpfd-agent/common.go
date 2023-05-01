@@ -47,7 +47,7 @@ import (
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
-//+kubebuilder:rbac:groups=core,resources=secrets,namespace=bpfd,verbs=get
+//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get
 
 // ReconcilerCommon provides a skeleton for a all Program Reconcilers.
 type ReconcilerCommon struct {
@@ -57,7 +57,6 @@ type ReconcilerCommon struct {
 	BpfdClient       gobpfd.LoaderClient
 	Logger           logr.Logger
 	NodeName         string
-	Namespace        string
 	bpfProgram       *bpfdiov1alpha1.BpfProgram
 	expectedPrograms map[string]map[string]string
 }
@@ -285,7 +284,7 @@ func reconcileProgram(ctx context.Context,
 
 	isBeingDeleted := !program.GetDeletionTimestamp().IsZero()
 
-	bytecode, err := bpfdagentinternal.GetBytecode(r.Client, r.Namespace, &common.ByteCode)
+	bytecode, err := bpfdagentinternal.GetBytecode(r.Client, &common.ByteCode)
 	if err != nil {
 		return false, fmt.Errorf("failed to process bytecode selector: %v", err)
 	}

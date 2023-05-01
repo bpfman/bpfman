@@ -135,19 +135,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Get the bpfd deployments Namespace
-	namespace := os.Getenv("NAMESPACE")
-	if namespace == "" {
-		setupLog.Error(fmt.Errorf("NAMESPACE env var not set"), "Couldn't determine bpfd-agent's namespace")
-		os.Exit(1)
-	}
-
 	common := bpfdagent.ReconcilerCommon{
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		GrpcConn:   conn,
 		BpfdClient: gobpfd.NewLoaderClient(conn),
-		Namespace:  namespace,
 		NodeName:   nodeName,
 	}
 
