@@ -91,7 +91,7 @@ func tcProceedOnToInt(proceedOn []bpfdiov1alpha1.TcProceedOnValue) []int32 {
 		case "trap":
 			out = append(out, 8)
 		case "dispatcher_return":
-			out = append(out, 31)
+			out = append(out, 30)
 		}
 	}
 

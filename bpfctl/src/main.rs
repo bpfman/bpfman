@@ -134,7 +134,9 @@ enum LoadCommands {
         priority: i32,
         /// Optional: Proceed to call other programs in chain on this exit code.
         /// Multiple values supported by repeating the parameter.
-        /// Not yet supported for TC programs. May have unintended behavior if used.
+        /// Possible values: [unspec, ok, reclassify, shot, pipe, stolen, queued,
+        /// repeat, redirect, trap, dispatcher_return]
+        /// Default values: ok, pipe, and dispatcher_return
         #[clap(long, num_args(1..))]
         proceed_on: Vec<String>,
     },
@@ -459,7 +461,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                             "xdp".to_string(),
                             r.section_name.unwrap(),
                             r.location.unwrap().to_string(),
-                            format!(r#"{{ "priority": {priority}, "iface": "{iface}", "position": {position}, "proceed_on": {proc_on} }}"#)
+                            format!(r#"{{ priority: {priority}, iface: {iface}, position: {position}, proceed_on: {proc_on} }}"#)
                         ]);
                         }
                     }
@@ -470,16 +472,20 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                                 iface,
                                 position,
                                 direction,
-                                proceed_on: _,
+                                proceed_on,
                             },
                         )) = r.attach_info
                         {
+                            let proc_on = match TcProceedOn::from_int32s(proceed_on) {
+                                Ok(p) => p,
+                                Err(e) => bail!("error parsing proceed_on {e}"),
+                            };
                             table.add_row(vec![
                                 r.id.to_string(),
                                 "tc".to_string(),
                                 r.section_name.unwrap(),
                                 r.location.unwrap().to_string(),
-                                format!(r#"{{ "priority": {priority}, "iface": "{iface}", "position": {position}, direction: {direction} }}"#)
+                                format!(r#"{{ priority: {priority}, iface: {iface}, position: {position}, direction: {direction}, proceed_on: {proc_on} }}"#)
                             ]);
                         }
                     }
@@ -493,7 +499,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                                 "tracepoint".to_string(),
                                 r.section_name.unwrap(),
                                 r.location.unwrap().to_string(),
-                                format!(r#"{{ "tracepoint": {tracepoint} }}"#),
+                                format!(r#"{{ tracepoint: {tracepoint} }}"#),
                             ]);
                         }
                     }

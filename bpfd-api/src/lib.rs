@@ -311,13 +311,10 @@ impl XdpProceedOn {
 impl std::fmt::Display for XdpProceedOn {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let res: Vec<String> = self.0.iter().map(|x| x.to_string()).collect();
-        write!(f, "{}", res.join(" ,"))
+        write!(f, "{}", res.join(", "))
     }
 }
 
-// FIXME: ANF: -1 doesn't work as a bit in a mask. My idea is to add 1 to the
-// value for building and evaluating the mask.  This will require changes both
-// here and in the tc dispatcher.
 #[derive(Serialize, Deserialize, Copy, Clone, Debug)]
 pub enum TcProceedOnEntry {
     Unspec = -1,
@@ -330,7 +327,7 @@ pub enum TcProceedOnEntry {
     Repeat,
     Redirect,
     Trap,
-    DispatcherReturn = 31,
+    DispatcherReturn = 30,
 }
 
 impl TryFrom<String> for TcProceedOnEntry {
@@ -371,7 +368,7 @@ impl TryFrom<i32> for TcProceedOnEntry {
             6 => TcProceedOnEntry::Repeat,
             7 => TcProceedOnEntry::Redirect,
             8 => TcProceedOnEntry::Trap,
-            31 => TcProceedOnEntry::DispatcherReturn,
+            30 => TcProceedOnEntry::DispatcherReturn,
             proceedon => {
                 return Err(ParseError::InvalidProceedOn {
                     proceedon: proceedon.to_string(),
@@ -434,10 +431,14 @@ impl TcProceedOn {
         Ok(TcProceedOn(res))
     }
 
+    // Valid TC return values range from -1 to 8.  Since -1 is not a valid shift value,
+    // 1 is added to the value to determine the bit to set in the bitmask and,
+    // correspondingly, The TC dispatcher adds 1 to the return value from the BPF program
+    // before it compares it to the configured bit mask.
     pub fn mask(&self) -> u32 {
         let mut proceed_on_mask: u32 = 0;
         for action in self.0.clone().into_iter() {
-            proceed_on_mask |= 1 << action as i32;
+            proceed_on_mask |= 1 << ((action as i32) + 1);
         }
         proceed_on_mask
     }
@@ -454,7 +455,7 @@ impl TcProceedOn {
 impl std::fmt::Display for TcProceedOn {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let res: Vec<String> = self.0.iter().map(|x| x.to_string()).collect();
-        write!(f, "{}", res.join(" ,"))
+        write!(f, "{}", res.join(", "))
     }
 }
 

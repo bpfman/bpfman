@@ -9,7 +9,7 @@
 
 #define TC_METADATA_SECTION "tc_metadata"
 #define TC_DISPATCHER_VERSION 1
-#define TC_DISPATCHER_RETVAL TC_ACT_OK
+#define TC_DISPATCHER_RETVAL 30
 #define MAX_DISPATCHER_ACTIONS 10
 
 struct tc_dispatcher_config {
@@ -127,61 +127,61 @@ int tc_dispatcher(struct __sk_buff *skb)
 	if (num_progs_enabled < 1)
 		goto out;
 	ret = prog0(skb);
-	if (!((1U << ret) & CONFIG.chain_call_actions[0]))
+	if (!((1U << (ret + 1)) & CONFIG.chain_call_actions[0]))
 		return ret;
 
 	if (num_progs_enabled < 2)
 		goto out;
 	ret = prog1(skb);
-	if (!((1U << ret) & CONFIG.chain_call_actions[1]))
+	if (!((1U << (ret + 1)) & CONFIG.chain_call_actions[1]))
 		return ret;
 
 	if (num_progs_enabled < 3)
 		goto out;
 	ret = prog2(skb);
-	if (!((1U << ret) & CONFIG.chain_call_actions[2]))
+	if (!((1U << (ret + 1)) & CONFIG.chain_call_actions[2]))
 		return ret;
 
 	if (num_progs_enabled < 4)
 		goto out;
 	ret = prog3(skb);
-	if (!((1U << ret) & CONFIG.chain_call_actions[3]))
+	if (!((1U << (ret + 1)) & CONFIG.chain_call_actions[3]))
 		return ret;
 
 	if (num_progs_enabled < 5)
 		goto out;
 	ret = prog4(skb);
-	if (!((1U << ret) & CONFIG.chain_call_actions[4]))
+	if (!((1U << (ret + 1)) & CONFIG.chain_call_actions[4]))
 		return ret;
 
 	if (num_progs_enabled < 6)
 		goto out;
 	ret = prog5(skb);
-	if (!((1U << ret) & CONFIG.chain_call_actions[5]))
+	if (!((1U << (ret + 1)) & CONFIG.chain_call_actions[5]))
 		return ret;
 
 	if (num_progs_enabled < 7)
 		goto out;
 	ret = prog6(skb);
-	if (!((1U << ret) & CONFIG.chain_call_actions[6]))
+	if (!((1U << (ret + 1)) & CONFIG.chain_call_actions[6]))
 		return ret;
 
 	if (num_progs_enabled < 8)
 		goto out;
 	ret = prog7(skb);
-	if (!((1U << ret) & CONFIG.chain_call_actions[7]))
+	if (!((1U << (ret + 1)) & CONFIG.chain_call_actions[7]))
 		return ret;
 
 	if (num_progs_enabled < 9)
 		goto out;
 	ret = prog8(skb);
-	if (!((1U << ret) & CONFIG.chain_call_actions[8]))
+	if (!((1U << (ret + 1)) & CONFIG.chain_call_actions[8]))
 		return ret;
 
 	if (num_progs_enabled < 10)
 		goto out;
 	ret = prog9(skb);
-	if (!((1U << ret) & CONFIG.chain_call_actions[9]))
+	if (!((1U << (ret + 1)) & CONFIG.chain_call_actions[9]))
 		return ret;
 
 	/* keep a reference to the compat_test() function so we can use it
