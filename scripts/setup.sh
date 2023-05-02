@@ -14,7 +14,7 @@ USER_BPFD="bpfd"
 USER_GROUP="bpfd"
 BIN_BPFD="bpfd"
 BIN_BPFCTL="bpfctl"
-BIN_GOCOUNTER="gocounter"
+BIN_BPFD_CLIENT="bpfd-client"
 
 # Well known directories
 SRC_BIN_PATH="../target/debug"
@@ -56,6 +56,8 @@ usage() {
     echo "    the \"bpfd\" service if it is running."
     echo "sudo ./scripts/setup.sh kubectl"
     echo "    Install kubectl plugins for \"bpfprogramconfigs\" and \"bpfprograms\"."
+    echo "sudo ./scripts/setup.sh certs"
+    echo "    Debug only. Generate OpenSSL based certificates instead of rustls based certificates."
     echo ""
 }
 
@@ -82,6 +84,9 @@ case "$1" in
         ;;
     "kubectl")
         copy_kubectl_plugin
+        ;;
+    "certs")
+        cert_init true
         ;;
     "help"|"--help"|"?")
         usage

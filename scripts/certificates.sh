@@ -32,10 +32,7 @@ cert_init() {
     fi
 
     cert_client "${BIN_BPFD}" "${USER_BPFD}" ${regen}
-    cert_client "${BIN_BPFCTL}" "${USER_BPFD}" ${regen}
-    if [ "${regen}" == true ]; then
-        cert_client "${BIN_GOCOUNTER}" "${USER_BPFD}" ${regen}
-    fi
+    cert_client "${BIN_BPFD_CLIENT}" "${USER_BPFD}" ${regen}
 }
 
 cert_client() {

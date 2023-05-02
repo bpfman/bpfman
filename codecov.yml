@@ -1,0 +1,15 @@
+# Many of these values are defaults taken from:
+# https://docs.codecov.com/docs/commit-status
+coverage:
+  status:
+    patch:
+      default:
+        # TODO(astoycos) set this back to auto when we have a stable release.
+        target: 0%
+        threshold: 0%
+    project:
+      default:
+        # base
+        target: auto
+        # TODO(astoycos) set this back to 0% when we have a stable release.
+        threshold: 10%
