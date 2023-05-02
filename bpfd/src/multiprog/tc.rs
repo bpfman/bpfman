@@ -27,6 +27,7 @@ use crate::{
     dispatcher_config::TcDispatcherConfig,
     errors::BpfdError,
     oci_utils::image_manager::get_bytecode_from_image_store,
+    utils::read,
 };
 
 const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the dispatcher
@@ -50,7 +51,7 @@ pub struct TcDispatcher {
 }
 
 impl TcDispatcher {
-    pub(crate) fn new(
+    pub(crate) async fn new(
         direction: Direction,
         if_index: &u32,
         if_name: String,
@@ -107,7 +108,7 @@ impl TcDispatcher {
             loader: Some(loader),
             link: None,
         };
-        dispatcher.attach_extensions(&mut extensions)?;
+        dispatcher.attach_extensions(&mut extensions).await?;
         dispatcher.attach(old_dispatcher)?;
         dispatcher.save()?;
         Ok(dispatcher)
@@ -158,7 +159,7 @@ impl TcDispatcher {
         Ok(())
     }
 
-    fn attach_extensions(
+    async fn attach_extensions(
         &mut self,
         extensions: &mut [(&Uuid, &TcProgram)],
     ) -> Result<(), BpfdError> {
@@ -199,9 +200,9 @@ impl TcDispatcher {
                 }
 
                 let program_bytes = if v.data.path.clone().contains(BYTECODE_IMAGE_CONTENT_STORE) {
-                    get_bytecode_from_image_store(v.data.path.clone())?
+                    get_bytecode_from_image_store(v.data.path.clone()).await?
                 } else {
-                    std::fs::read(v.data.path.clone()).map_err(|e| {
+                    read(v.data.path.clone()).await.map_err(|e| {
                         BpfdError::Error(format!("can't read bytecode file from disk {e}"))
                     })?
                 };

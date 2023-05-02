@@ -8,10 +8,21 @@ use std::{
     str::FromStr,
 };
 
+mod bpf;
+mod certs;
+mod command;
+mod dispatcher_config;
+mod errors;
+mod multiprog;
+mod oci_utils;
+mod rpc;
+mod serve;
+mod static_program;
+mod utils;
+
 use anyhow::{bail, Context};
-use bpfd::serve;
-use bpfd_api::{config::config_from_file, util::directories::*};
-use log::{debug, error, info};
+use bpfd_api::{config::Config, util::directories::*};
+use log::{debug, error, info, warn};
 use nix::{
     libc::RLIM_INFINITY,
     mount::{mount, MsFlags},
@@ -20,6 +31,7 @@ use nix::{
 };
 use systemd_journal_logger::{connected_to_journal, JournalLog};
 
+use crate::{serve::serve, utils::read_to_string};
 const BPFD_ENV_LOG_LEVEL: &str = "RUST_LOG";
 
 fn main() -> anyhow::Result<()> {
@@ -89,7 +101,15 @@ fn main() -> anyhow::Result<()> {
             create_dir_all(BYTECODE_IMAGE_CONTENT_STORE)
                 .context("unable to create bytecode image store directory")?;
 
-            let config = config_from_file(CFGPATH_BPFD_CONFIG);
+            let config = if let Ok(c) = read_to_string(CFGPATH_BPFD_CONFIG).await {
+                c.parse().unwrap_or_else(|_| {
+                    warn!("Unable to parse config file, using defaults");
+                    Config::default()
+                })
+            } else {
+                warn!("Unable to read config file, using defaults");
+                Config::default()
+            };
 
             serve(config, CFGDIR_STATIC_PROGRAMS).await?;
             Ok(())

@@ -10,8 +10,6 @@ repository = "https://github.com/bpfd-dev/bpfd"
     name = "bpfd"
     path = "src/main.rs"
 
-[lib]
-
 [dependencies]
 anyhow = "1"
 thiserror = "1"

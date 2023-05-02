@@ -21,6 +21,7 @@ use crate::{
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfdError,
     oci_utils::{image_manager::get_bytecode_from_image_store, BytecodeImage},
+    utils::read,
 };
 
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
@@ -76,7 +77,7 @@ impl XdpDispatcher {
             .get_image(None)
             .await
             .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
-        let program_bytes = get_bytecode_from_image_store(overrides.path)?;
+        let program_bytes = get_bytecode_from_image_store(overrides.path).await?;
         let mut loader = BpfLoader::new()
             .set_global("CONFIG", &config)
             .load(&program_bytes)?;
@@ -99,7 +100,7 @@ impl XdpDispatcher {
             loader: Some(loader),
             progam_name: Some(overrides.image_meta.section_name.clone()),
         };
-        dispatcher.attach_extensions(&mut extensions)?;
+        dispatcher.attach_extensions(&mut extensions).await?;
         dispatcher.attach()?;
         dispatcher.save()?;
         if let Some(mut old) = old_dispatcher {
@@ -142,7 +143,7 @@ impl XdpDispatcher {
         Ok(())
     }
 
-    fn attach_extensions(
+    async fn attach_extensions(
         &mut self,
         extensions: &mut [(&Uuid, &XdpProgram)],
     ) -> Result<(), BpfdError> {
@@ -180,9 +181,9 @@ impl XdpDispatcher {
                 }
 
                 let program_bytes = if v.data.path.clone().contains(BYTECODE_IMAGE_CONTENT_STORE) {
-                    get_bytecode_from_image_store(v.data.path.clone())?
+                    get_bytecode_from_image_store(v.data.path.clone()).await?
                 } else {
-                    std::fs::read(v.data.path.clone()).map_err(|e| {
+                    read(v.data.path.clone()).await.map_err(|e| {
                         BpfdError::Error(format!("can't read bytecode file from disk {e}"))
                     })?
                 };

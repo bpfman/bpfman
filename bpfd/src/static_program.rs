@@ -2,7 +2,6 @@
 // Copyright Authors of bpfd
 use std::{
     collections::HashMap,
-    fs,
     path::{Path, PathBuf},
 };
 
@@ -10,16 +9,17 @@ use anyhow::bail;
 use bpfd_api::{util::directories::CFGDIR_STATIC_PROGRAMS, ProgramType};
 use log::{info, warn};
 use serde::Deserialize;
+use tokio::fs;
 
 use crate::{
     command::{
         Location::{File, Image},
-        Program, TcAttachInfo, TcProgramInfo, TracepointAttachInfo, TracepointProgramInfo,
-        XdpAttachInfo, XdpProgramInfo,
+        Metadata, Program, ProgramData, TcAttachInfo, TcProgram, TcProgramInfo,
+        TracepointAttachInfo, TracepointProgram, TracepointProgramInfo, XdpAttachInfo, XdpProgram,
+        XdpProgramInfo,
     },
-    get_ifindex,
     oci_utils::BytecodeImage,
-    Metadata, ProgramData, TcProgram, TracepointProgram, XdpProgram,
+    utils::{get_ifindex, read_to_string},
 };
 
 #[derive(Debug, Deserialize, Clone)]
@@ -55,16 +55,16 @@ struct StaticProgramManager {
 }
 
 impl StaticProgramManager {
-    fn programs_from_directory(mut self) -> Result<(), anyhow::Error> {
-        if let Ok(entries) = fs::read_dir(self.path) {
-            for file in entries.flatten() {
+    async fn programs_from_directory(mut self) -> Result<(), anyhow::Error> {
+        if let Ok(mut entries) = fs::read_dir(self.path).await {
+            while let Some(file) = entries.next_entry().await? {
                 let path = &file.path();
                 // ignore directories
                 if path.is_dir() {
                     continue;
                 }
 
-                if let Ok(contents) = fs::read_to_string(path) {
+                if let Ok(contents) = read_to_string(path).await {
                     let program = toml::from_str(&contents)?;
 
                     self.programs.push(program);
@@ -86,7 +86,10 @@ pub(crate) async fn get_static_programs<P: AsRef<Path>>(
         programs: Vec::new(),
     };
 
-    static_program_manager.clone().programs_from_directory()?;
+    static_program_manager
+        .clone()
+        .programs_from_directory()
+        .await?;
 
     let mut programs: Vec<Program> = Vec::new();
 
@@ -185,8 +188,8 @@ pub(crate) async fn get_static_programs<P: AsRef<Path>>(
 mod test {
     use super::*;
 
-    #[test]
-    fn test_parse_program_from_invalid_path() {
+    #[tokio::test]
+    async fn test_parse_program_from_invalid_path() {
         let static_program_manager = StaticProgramManager {
             path: "/tmp/file.toml".into(),
             programs: Vec::new(),
@@ -195,6 +198,7 @@ mod test {
         static_program_manager
             .clone()
             .programs_from_directory()
+            .await
             .unwrap();
         assert!(static_program_manager.programs.is_empty())
     }

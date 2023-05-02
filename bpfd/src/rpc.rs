@@ -19,7 +19,7 @@ use tonic::{Request, Response, Status};
 use uuid::Uuid;
 use x509_certificate::X509Certificate;
 
-use crate::{oci_utils::BytecodeImage, Command};
+use crate::{command::Command, oci_utils::BytecodeImage};
 
 #[derive(Debug, Default)]
 struct User {
