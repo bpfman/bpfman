@@ -4,14 +4,13 @@
 use std::{fs, io::BufReader, path::PathBuf};
 
 use aya::{
-    include_bytes_aligned,
     programs::{
         links::{FdLink, PinnedLink},
         Extension, Xdp,
     },
     Bpf, BpfLoader,
 };
-use bpfd_api::{config::XdpMode, util::directories::*};
+use bpfd_api::{config::XdpMode, util::directories::*, ImagePullPolicy};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -21,13 +20,10 @@ use crate::{
     command::{Program, XdpProgram},
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfdError,
-    oci_utils::image_manager::get_bytecode_from_image_store,
+    oci_utils::{image_manager::get_bytecode_from_image_store, BytecodeImage},
 };
 
-const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
-
-static DISPATCHER_BYTES: &[u8] = include_bytes_aligned!("../../../.output/xdp_dispatcher.bpf.o");
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct XdpDispatcher {
@@ -37,10 +33,11 @@ pub struct XdpDispatcher {
     mode: XdpMode,
     #[serde(skip)]
     loader: Option<Bpf>,
+    progam_name: Option<String>,
 }
 
 impl XdpDispatcher {
-    pub(crate) fn new(
+    pub(crate) async fn new(
         mode: XdpMode,
         if_index: &u32,
         if_name: String,
@@ -69,13 +66,23 @@ impl XdpDispatcher {
         };
 
         debug!("xdp dispatcher config: {:?}", config);
-
+        let image = BytecodeImage::new(
+            "quay.io/bpfd/xdp-dispatcher:v1".to_string(),
+            ImagePullPolicy::IfNotPresent as i32,
+            None,
+            None,
+        );
+        let overrides = image
+            .get_image(None)
+            .await
+            .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
+        let program_bytes = get_bytecode_from_image_store(overrides.path)?;
         let mut loader = BpfLoader::new()
             .set_global("CONFIG", &config)
-            .load(DISPATCHER_BYTES)?;
+            .load(&program_bytes)?;
 
         let dispatcher: &mut Xdp = loader
-            .program_mut(DISPATCHER_PROGRAM_NAME)
+            .program_mut(&overrides.image_meta.section_name)
             .unwrap()
             .try_into()?;
 
@@ -90,6 +97,7 @@ impl XdpDispatcher {
             revision,
             mode,
             loader: Some(loader),
+            progam_name: Some(overrides.image_meta.section_name.clone()),
         };
         dispatcher.attach_extensions(&mut extensions)?;
         dispatcher.attach()?;
@@ -111,7 +119,7 @@ impl XdpDispatcher {
             .loader
             .as_mut()
             .ok_or(BpfdError::NotLoaded)?
-            .program_mut(DISPATCHER_PROGRAM_NAME)
+            .program_mut(self.progam_name.clone().unwrap().as_str())
             .unwrap()
             .try_into()?;
 
@@ -147,7 +155,7 @@ impl XdpDispatcher {
             .loader
             .as_mut()
             .ok_or(BpfdError::NotLoaded)?
-            .program_mut(DISPATCHER_PROGRAM_NAME)
+            .program_mut(self.progam_name.clone().unwrap().as_str())
             .unwrap()
             .try_into()?;
         extensions.sort_by(|(_, a), (_, b)| a.info.current_position.cmp(&b.info.current_position));

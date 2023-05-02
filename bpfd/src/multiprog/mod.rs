@@ -24,7 +24,7 @@ pub(crate) enum Dispatcher {
 }
 
 impl Dispatcher {
-    pub fn new(
+    pub async fn new(
         config: Option<&InterfaceConfig>,
         programs: &[(Uuid, Program)],
         revision: u32,
@@ -55,7 +55,8 @@ impl Dispatcher {
                     programs,
                     revision,
                     old_dispatcher,
-                )?;
+                )
+                .await?;
                 Dispatcher::Xdp(x)
             }
             ProgramType::Tc => {
