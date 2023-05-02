@@ -8,13 +8,14 @@ pull_request_rules:
       merge:
         method: merge
 
-  - name: automatic merge for main with > 1 approved reviews, all requested reviews have given feedback, not held, and CI is successful
+  - name: automatic merge conditions for main
     conditions:
       - "#approved-reviews-by>=1"
       - "#review-requested=0"
       - "#changes-requested-reviews-by=0"
       - base=main
       - label!=hold
+      - label!=work-in-progress
       - check-success=DCO
       - check-success=build-workflow-complete
     actions:
