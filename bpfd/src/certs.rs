@@ -13,8 +13,7 @@ use openssl::{
     rsa::Rsa,
     x509::{
         extension::{
-            AuthorityKeyIdentifier, BasicConstraints, KeyUsage, SubjectAlternativeName,
-            SubjectKeyIdentifier,
+            AuthorityKeyIdentifier, BasicConstraints, SubjectAlternativeName, SubjectKeyIdentifier,
         },
         X509NameBuilder, X509ReqBuilder, X509,
     },
@@ -158,18 +157,17 @@ async fn generate_ca_cert_pem(ca_cert_path: &str) -> Result<Vec<u8>, CertsError>
     let not_after = Asn1Time::days_from_now(CERT_EXP_DAYS)?;
     cert_builder.set_not_after(&not_after)?;
 
-    cert_builder.append_extension(BasicConstraints::new().critical().ca().build()?)?;
-    cert_builder.append_extension(
-        KeyUsage::new()
-            .critical()
-            .key_cert_sign()
-            .crl_sign()
-            .build()?,
-    )?;
-
     let subject_key_identifier =
         SubjectKeyIdentifier::new().build(&cert_builder.x509v3_context(None, None))?;
     cert_builder.append_extension(subject_key_identifier)?;
+
+    let auth_key_identifier = AuthorityKeyIdentifier::new()
+        .keyid(false)
+        .issuer(false)
+        .build(&cert_builder.x509v3_context(None, None))?;
+    cert_builder.append_extension(auth_key_identifier)?;
+
+    cert_builder.append_extension(BasicConstraints::new().critical().ca().build()?)?;
 
     cert_builder.sign(&ca_cert_key, MessageDigest::sha256())?;
     let ca_cert = cert_builder.build();
@@ -239,16 +237,12 @@ async fn generate_cert(
     let not_after = Asn1Time::days_from_now(CERT_EXP_DAYS)?;
     cert_builder.set_not_after(&not_after)?;
 
-    cert_builder.append_extension(BasicConstraints::new().build()?)?;
-
-    cert_builder.append_extension(
-        KeyUsage::new()
-            .critical()
-            .non_repudiation()
-            .digital_signature()
-            .key_encipherment()
-            .build()?,
-    )?;
+    let subject_alt_name = SubjectAlternativeName::new()
+        .dns("localhost")
+        .ip("127.0.0.1")
+        .ip("::1")
+        .build(&cert_builder.x509v3_context(Some(&ca_cert_x590), None))?;
+    cert_builder.append_extension(subject_alt_name)?;
 
     let subject_key_identifier = SubjectKeyIdentifier::new()
         .build(&cert_builder.x509v3_context(Some(&ca_cert_x590), None))?;
@@ -259,12 +253,6 @@ async fn generate_cert(
         .issuer(false)
         .build(&cert_builder.x509v3_context(Some(&ca_cert_x590), None))?;
     cert_builder.append_extension(auth_key_identifier)?;
-
-    let subject_alt_name = SubjectAlternativeName::new()
-        .dns("localhost,IP:127.0.0.1")
-        .dns("localhost")
-        .build(&cert_builder.x509v3_context(Some(&ca_cert_x590), None))?;
-    cert_builder.append_extension(subject_alt_name)?;
 
     // Self Sign
     cert_builder.sign(&ca_key, MessageDigest::sha256())?;
