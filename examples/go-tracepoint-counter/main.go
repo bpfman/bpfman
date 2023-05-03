@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"syscall"
 	"time"
 
@@ -32,6 +33,9 @@ type Stats struct {
 
 //go:generate bpf2go -cc clang -no-strip -cflags "-O2 -g -Wall" bpf ./bpf/tracepoint_counter.c -- -I.:/usr/include/bpf:/usr/include/linux
 func main() {
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
 	// pull the BPFD config management data to determine if we're running on a
 	// system with BPFD available.
 	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTracepoint, DefaultConfigPath, DefaultByteCodeFile)
@@ -64,7 +68,8 @@ func main() {
 		if paramData.BytecodeSrc != configMgmt.SrcUuid {
 			cleanup, err := loadProgram(&paramData)
 			if err != nil {
-				log.Fatalf("failed to load BPF program: %v\n", err)
+				log.Printf("Failed to load BPF program: %v", err)
+				return
 			}
 			defer cleanup(paramData.Uuid)
 		}
@@ -102,21 +107,27 @@ func main() {
 	// retrieve and report on the number of kill -SIGUSR1 calls
 	index := uint32(0)
 	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-	for range ticker.C {
-		var stats []Stats
-		var totalCalls uint64
+	go func() {
+		for range ticker.C {
+			var stats []Stats
+			var totalCalls uint64
 
-		if err := statsMap.Lookup(&index, &stats); err != nil {
-			log.Fatalf("map lookup failed: %v\n", err)
+			if err := statsMap.Lookup(&index, &stats); err != nil {
+				log.Printf("map lookup failed: %v", err)
+				return
+			}
+
+			for _, stat := range stats {
+				totalCalls += stat.Calls
+			}
+
+			log.Printf("SIGUSR1 signal count: %d\n", totalCalls)
 		}
+	}()
 
-		for _, stat := range stats {
-			totalCalls += stat.Calls
-		}
+	<-stop
 
-		log.Printf("%d SIGUSR1 signals seen\n", totalCalls)
-	}
+	log.Printf("Exiting...\n")
 }
 
 func loadProgram(paramData *configMgmt.ParameterData) (func(string), error) {
@@ -136,7 +147,7 @@ func loadProgram(paramData *configMgmt.ParameterData) (func(string), error) {
 	c := gobpfd.NewLoaderClient(conn)
 	loadRequestCommon := &gobpfd.LoadRequestCommon{
 		Location:    paramData.BytecodeSource.Location,
-		SectionName: "stats",
+		SectionName: "tracepoint_kill_recorder",
 		ProgramType: *bpfdHelpers.Xdp.Int32(),
 	}
 
@@ -166,7 +177,8 @@ func loadProgram(paramData *configMgmt.ParameterData) (func(string), error) {
 		_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: id})
 		if err != nil {
 			conn.Close()
-			log.Fatalf("failed to unload program %s: %v", id, err)
+			log.Printf("failed to unload program %s: %v", id, err)
+			return
 		}
 	}, nil
 }

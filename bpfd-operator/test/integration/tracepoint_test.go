@@ -51,7 +51,7 @@ func TestTracepointGoCounter(t *testing.T) {
 	require.NoError(t, err)
 	goTracepointCounterPod := pods.Items[0]
 
-	want := regexp.MustCompile(`([0-9]+) SIGUSR1 signals seen`)
+	want := regexp.MustCompile(`SIGUSR1 signal count: ([0-9]+)`)
 	req := env.Cluster().Client().CoreV1().Pods(tracepointGoCounterUserspaceNs).GetLogs(goTracepointCounterPod.Name, &corev1.PodLogOptions{})
 	require.Eventually(t, func() bool {
 		logs, err := req.Stream(ctx)
