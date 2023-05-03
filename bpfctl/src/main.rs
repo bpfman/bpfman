@@ -158,6 +158,99 @@ struct GlobalArg {
     value: Vec<u8>,
 }
 
+struct ProgTable(Table);
+
+impl ProgTable {
+    fn new() -> Self {
+        let mut table = Table::new();
+
+        table.load_preset(comfy_table::presets::NOTHING);
+        table.set_header(vec!["UUID", "Type", "Name", "Location", "Metadata"]);
+        ProgTable(table)
+    }
+
+    fn add_row(
+        &mut self,
+        uuid: String,
+        type_: String,
+        name: String,
+        location: String,
+        metadata: String,
+    ) {
+        self.0.add_row(vec![uuid, type_, name, location, metadata]);
+    }
+
+    fn add_response_prog(&mut self, r: list_response::ListResult) -> anyhow::Result<()> {
+        let prog_type: ProgramType = r.program_type.try_into()?;
+        match prog_type {
+            ProgramType::Xdp => {
+                if let Some(list_response::list_result::AttachInfo::XdpAttachInfo(
+                    XdpAttachInfo {
+                        priority,
+                        iface,
+                        position,
+                        proceed_on,
+                    },
+                )) = r.attach_info
+                {
+                    let proc_on = match XdpProceedOn::from_int32s(proceed_on) {
+                        Ok(p) => p,
+                        Err(e) => bail!("error parsing proceed_on {e}"),
+                    };
+                    self.add_row(r.id.to_string(),
+				  "xdp".to_string(),
+				  r.section_name.unwrap(),
+				  r.location.unwrap().to_string(),
+				  format!(r#"{{ priority: {priority}, iface: {iface}, position: {position}, proceed_on: {proc_on} }}"#));
+                }
+            }
+            ProgramType::Tc => {
+                if let Some(list_response::list_result::AttachInfo::TcAttachInfo(TcAttachInfo {
+                    priority,
+                    iface,
+                    position,
+                    direction,
+                    proceed_on,
+                })) = r.attach_info
+                {
+                    let proc_on = match TcProceedOn::from_int32s(proceed_on) {
+                        Ok(p) => p,
+                        Err(e) => bail!("error parsing proceed_on {e}"),
+                    };
+                    self.add_row(r.id.to_string(),
+				  "tc".to_string(),
+				  r.section_name.unwrap(),
+				  r.location.unwrap().to_string(),
+				  format!(r#"{{ priority: {priority}, iface: {iface}, position: {position}, direction: {direction}, proceed_on: {proc_on} }}"#))
+                }
+            }
+            ProgramType::Tracepoint => {
+                if let Some(list_response::list_result::AttachInfo::TracepointAttachInfo(
+                    TracepointAttachInfo { tracepoint },
+                )) = r.attach_info
+                {
+                    self.add_row(
+                        r.id.to_string(),
+                        "tracepoint".to_string(),
+                        r.section_name.unwrap(),
+                        r.location.unwrap().to_string(),
+                        format!(r#"{{ tracepoint: {tracepoint} }}"#),
+                    );
+                }
+            }
+            // skip unknown program types
+            _ => {}
+        }
+        Ok(())
+    }
+}
+
+impl std::fmt::Display for ProgTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 fn parse_global_arg(global_arg: &str) -> Result<GlobalArg, std::io::Error> {
     let mut parts = global_arg.split('=');
 
@@ -444,75 +537,11 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
         Commands::List {} => {
             let request = tonic::Request::new(ListRequest { program_type: None });
             let response = client.list(request).await?.into_inner();
-            let mut table = Table::new();
-            table.load_preset(comfy_table::presets::NOTHING);
-            table.set_header(vec!["UUID", "Type", "Name", "Location", "Metadata"]);
+            let mut table = ProgTable::new();
+
             for r in response.results {
-                let prog_type: ProgramType = r.program_type.try_into()?;
-                match prog_type {
-                    ProgramType::Xdp => {
-                        if let Some(list_response::list_result::AttachInfo::XdpAttachInfo(
-                            XdpAttachInfo {
-                                priority,
-                                iface,
-                                position,
-                                proceed_on,
-                            },
-                        )) = r.attach_info
-                        {
-                            let proc_on = match XdpProceedOn::from_int32s(proceed_on) {
-                                Ok(p) => p,
-                                Err(e) => bail!("error parsing proceed_on {e}"),
-                            };
-                            table.add_row(vec![
-                            r.id.to_string(),
-                            "xdp".to_string(),
-                            r.section_name.unwrap(),
-                            r.location.unwrap().to_string(),
-                            format!(r#"{{ priority: {priority}, iface: {iface}, position: {position}, proceed_on: {proc_on} }}"#)
-                        ]);
-                        }
-                    }
-                    ProgramType::Tc => {
-                        if let Some(list_response::list_result::AttachInfo::TcAttachInfo(
-                            TcAttachInfo {
-                                priority,
-                                iface,
-                                position,
-                                direction,
-                                proceed_on,
-                            },
-                        )) = r.attach_info
-                        {
-                            let proc_on = match TcProceedOn::from_int32s(proceed_on) {
-                                Ok(p) => p,
-                                Err(e) => bail!("error parsing proceed_on {e}"),
-                            };
-                            table.add_row(vec![
-                                r.id.to_string(),
-                                "tc".to_string(),
-                                r.section_name.unwrap(),
-                                r.location.unwrap().to_string(),
-                                format!(r#"{{ priority: {priority}, iface: {iface}, position: {position}, direction: {direction}, proceed_on: {proc_on} }}"#)
-                            ]);
-                        }
-                    }
-                    ProgramType::Tracepoint => {
-                        if let Some(list_response::list_result::AttachInfo::TracepointAttachInfo(
-                            TracepointAttachInfo { tracepoint },
-                        )) = r.attach_info
-                        {
-                            table.add_row(vec![
-                                r.id.to_string(),
-                                "tracepoint".to_string(),
-                                r.section_name.unwrap(),
-                                r.location.unwrap().to_string(),
-                                format!(r#"{{ tracepoint: {tracepoint} }}"#),
-                            ]);
-                        }
-                    }
-                    // skip unknown program types
-                    _ => {}
+                if let Err(e) = table.add_response_prog(r) {
+                    bail!(e)
                 }
             }
             println!("{table}");
