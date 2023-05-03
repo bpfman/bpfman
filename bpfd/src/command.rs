@@ -27,48 +27,60 @@ type Responder<T> = oneshot::Sender<T>;
 #[allow(clippy::large_enum_variant)]
 pub(crate) enum Command {
     /// Load an XDP program
-    LoadXDP {
-        location: Location,
-        section_name: String,
-        id: Option<Uuid>,
-        global_data: HashMap<String, Vec<u8>>,
-        iface: String,
-        priority: i32,
-        proceed_on: XdpProceedOn,
-        username: String,
-        responder: Responder<Result<Uuid, BpfdError>>,
-    },
+    LoadXDP(LoadXDPArgs),
     /// Load a TC Program
-    LoadTC {
-        location: Location,
-        section_name: String,
-        id: Option<Uuid>,
-        global_data: HashMap<String, Vec<u8>>,
-        iface: String,
-        priority: i32,
-        direction: Direction,
-        proceed_on: TcProceedOn,
-        username: String,
-        responder: Responder<Result<Uuid, BpfdError>>,
-    },
+    LoadTC(LoadTCArgs),
     // Load a Tracepoint Program
-    LoadTracepoint {
-        location: Location,
-        id: Option<Uuid>,
-        section_name: String,
-        global_data: HashMap<String, Vec<u8>>,
-        tracepoint: String,
-        username: String,
-        responder: Responder<Result<Uuid, BpfdError>>,
-    },
-    Unload {
-        id: Uuid,
-        username: String,
-        responder: Responder<Result<(), BpfdError>>,
-    },
+    LoadTracepoint(LoadTracepointArgs),
+    Unload(UnloadArgs),
     List {
         responder: Responder<Result<Vec<ProgramInfo>, BpfdError>>,
     },
+}
+
+#[derive(Debug)]
+pub(crate) struct LoadXDPArgs {
+    pub(crate) location: Location,
+    pub(crate) section_name: String,
+    pub(crate) id: Option<Uuid>,
+    pub(crate) global_data: HashMap<String, Vec<u8>>,
+    pub(crate) iface: String,
+    pub(crate) priority: i32,
+    pub(crate) proceed_on: XdpProceedOn,
+    pub(crate) username: String,
+    pub(crate) responder: Responder<Result<Uuid, BpfdError>>,
+}
+
+#[derive(Debug)]
+pub(crate) struct LoadTCArgs {
+    pub(crate) location: Location,
+    pub(crate) section_name: String,
+    pub(crate) id: Option<Uuid>,
+    pub(crate) global_data: HashMap<String, Vec<u8>>,
+    pub(crate) iface: String,
+    pub(crate) priority: i32,
+    pub(crate) direction: Direction,
+    pub(crate) proceed_on: TcProceedOn,
+    pub(crate) username: String,
+    pub(crate) responder: Responder<Result<Uuid, BpfdError>>,
+}
+
+#[derive(Debug)]
+pub(crate) struct LoadTracepointArgs {
+    pub(crate) location: Location,
+    pub(crate) id: Option<Uuid>,
+    pub(crate) section_name: String,
+    pub(crate) global_data: HashMap<String, Vec<u8>>,
+    pub(crate) tracepoint: String,
+    pub(crate) username: String,
+    pub(crate) responder: Responder<Result<Uuid, BpfdError>>,
+}
+
+#[derive(Debug)]
+pub(crate) struct UnloadArgs {
+    pub(crate) id: Uuid,
+    pub(crate) username: String,
+    pub(crate) responder: Responder<Result<(), BpfdError>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -289,7 +289,6 @@ dependencies = [
  "clap",
  "env_logger",
  "flate2",
- "futures",
  "log",
  "nix",
  "oci-distribution",

@@ -9,7 +9,7 @@ use thiserror::Error;
 
 use crate::util::directories::*;
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Config {
     #[serde(default)]
     pub tls: TlsConfig,
@@ -32,7 +32,7 @@ impl FromStr for Config {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct TlsConfig {
     #[serde(default = "default_ca_cert")]
     pub ca_cert: String,
@@ -78,7 +78,7 @@ fn default_client_key() -> String {
     CFGPATH_BPFD_CLIENT_CERTS_KEY.to_string()
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Copy, Clone)]
 pub struct InterfaceConfig {
     pub xdp_mode: XdpMode,
 }
@@ -111,13 +111,13 @@ impl ToString for XdpMode {
     }
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, Clone)]
 pub struct Grpc {
     #[serde(default)]
     pub endpoint: Endpoint,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Endpoint {
     #[serde(default = "default_address")]
     pub address: String,
