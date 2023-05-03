@@ -49,10 +49,13 @@ func main() {
 	}
 
 	var action string
-	if paramData.Direction == bpfdHelpers.Ingress {
+	var direction bpfdHelpers.TcProgramDirection
+	if paramData.Direction == configMgmt.TcDirectionIngress {
 		action = "received"
+		direction = bpfdHelpers.Ingress
 	} else {
 		action = "sent"
+		direction = bpfdHelpers.Egress
 	}
 
 	var mapPath string
@@ -105,7 +108,7 @@ func main() {
 					TcAttachInfo: &gobpfd.TCAttachInfo{
 						Priority:  int32(paramData.Priority),
 						Iface:     paramData.Iface,
-						Direction: paramData.Direction.String(),
+						Direction: direction.String(),
 					},
 				},
 			}

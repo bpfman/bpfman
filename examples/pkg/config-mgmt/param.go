@@ -20,9 +20,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 
-	bpfdHelpers "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/helpers"
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 )
 
@@ -33,16 +33,25 @@ const (
 	SrcFile
 )
 
+type ProgType int
 const (
-	ProgTypeXdp = iota
+	ProgTypeXdp ProgType = iota
 	ProgTypeTc
 	ProgTypeTracepoint
+)
+func (s ProgType) String() string {
+        return [...]string{"xdp", "tc", "tracepoint"}[s]
+}
+
+const (
+	TcDirectionIngress = iota
+	TcDirectionEgress
 )
 
 type ParameterData struct {
 	Iface     string
 	Priority  int
-	Direction bpfdHelpers.TcProgramDirection
+	Direction int
 	CrdFlag   bool
 	Uuid      string
 	// The bytecodesource type has to be encapsulated in a complete LoadRequest because isLoadRequest_Location is not Public
@@ -50,27 +59,38 @@ type ParameterData struct {
 	BytecodeSrc    int
 }
 
-func ParseParamData(progType int, configFilePath string, defaultBytecodeFile string) (ParameterData, error) {
+func ParseParamData(progType ProgType, configFilePath string, defaultBytecodeFile string) (ParameterData, error) {
 	var paramData ParameterData
 	paramData.BytecodeSrc = SrcNone
 
 	var cmdlineUuid, cmdlineImage, cmdlineFile, direction_str string
 
-	flag.StringVar(&paramData.Iface, "iface", "",
-		"Interface to load bytecode.")
-	flag.IntVar(&paramData.Priority, "priority", -1,
-		"Priority to load program in bpfd")
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+
+	if progType == ProgTypeXdp || progType == ProgTypeTc {
+		flag.StringVar(&paramData.Iface, "iface", "",
+			"Interface to load bytecode. Required.")
+		flag.IntVar(&paramData.Priority, "priority", 50,
+			"Priority to load program in bpfd. Optional.")
+	}
 	flag.StringVar(&cmdlineUuid, "uuid", "",
-		"UUID of bytecode that has already been loaded. uuid and image/file are mutually exclusive.")
+		"UUID of bytecode that has already been loaded. uuid and file/image are\n" +
+		"mutually exclusive.\n" +
+		"Example: -uuid 5471e2f5-2584-49ec-9ddc-381788446c2d")
 	flag.StringVar(&cmdlineImage, "image", "",
-		"Image repository URL of bytecode source. uuid/file and image are mutually exclusive.")
+		"Image repository URL of bytecode source. image and file/uuid are mutually\n" +
+		"exclusive.\n" +
+		"Example: -image quay.io/bpfd-bytecode/go-" + progType.String() + "-counter:latest")
 	flag.StringVar(&cmdlineFile, "file", "",
-		"File path of bytecode source. uuid/image and file are mutually exclusive.")
+		"File path of bytecode source. file and image/uuid are mutually exclusive.\n" +
+		"Example: -file /home/$USER/src/bpfd/examples/go-" + progType.String() + "-counter/bpf_bpfel.o")
 	flag.BoolVar(&paramData.CrdFlag, "crd", false,
-		"Flag to indicate all attributes should be pulled from the EbpfProgram CRD. Used in Kubernetes deployments and is mutually exclusive with all other parameters.")
+		"Flag to indicate all attributes should be pulled from the BpfProgram CRD.\n" +
+		"Used in Kubernetes deployments and is mutually exclusive with all other\n" +
+		"parameters.")
 	if progType == ProgTypeTc {
 		flag.StringVar(&direction_str, "direction", "",
-			"Direction to apply program (ingress, egress).")
+			"Direction to apply program (ingress, egress). Required.")
 	}
 	flag.Parse()
 
@@ -99,9 +119,9 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 		}
 
 		if direction_str == "ingress" {
-			paramData.Direction = bpfdHelpers.Ingress
+			paramData.Direction = TcDirectionIngress
 		} else if direction_str == "egress" {
-			paramData.Direction = bpfdHelpers.Egress
+			paramData.Direction = TcDirectionEgress
 		} else {
 			return paramData, fmt.Errorf("invalid direction (%s). valid options are ingress or egress.", direction_str)
 		}
@@ -110,9 +130,9 @@ func ParseParamData(progType int, configFilePath string, defaultBytecodeFile str
 	// "-priority" is the priority to load bpf program at. If not provided, then
 	// use value loaded from gocounter.toml file. If not provided, defaults to 50.
 	//    ./go-xdp-counter -iface eth0 -priority 45
-	if paramData.Priority < 0 {
-		paramData.Priority = 50
-	}
+	//if paramData.Priority < 0 {
+	//	paramData.Priority = 50
+	//}
 
 	// "-uuid" and "-location" are mutually exclusive and "-uuid" takes precedence.
 	// Parse Commandline first.
