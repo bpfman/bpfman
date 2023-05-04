@@ -25,7 +25,7 @@ type Stats struct {
 }
 
 const (
-	DefaultConfigPath    = "/etc/bpfd/gocounter.toml"
+	DefaultConfigPath    = "/etc/bpfd/bpfd.toml"
 	DefaultMapDir        = "/run/bpfd/fs/maps"
 	DefaultByteCodeFile  = "bpf_bpfel.o"
 	BpfProgramConfigName = "go-tc-counter-example"

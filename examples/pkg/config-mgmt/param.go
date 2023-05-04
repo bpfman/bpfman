@@ -63,7 +63,7 @@ func ParseParamData(progType ProgType, configFilePath string, defaultBytecodeFil
 	var paramData ParameterData
 	paramData.BytecodeSrc = SrcNone
 
-	var cmdlineUuid, cmdlineImage, cmdlineFile, direction_str string
+	var cmdlineUuid, cmdlineImage, cmdlineFile, direction_str, source string
 
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
@@ -102,8 +102,7 @@ func ParseParamData(progType ProgType, configFilePath string, defaultBytecodeFil
 		}
 	}
 
-	// "-iface" is the interface to run bpf program on. If not provided, then
-	// use value loaded from gocounter.toml file. If not provided, error.
+	// "-iface" is the interface to run bpf program on. If not provided, error.
 	//    ./go-xdp-counter -iface eth0
 	if (progType == ProgTypeTc || progType == ProgTypeXdp) && len(paramData.Iface) == 0 {
 		return paramData, fmt.Errorf("interface is required")
@@ -111,9 +110,8 @@ func ParseParamData(progType ProgType, configFilePath string, defaultBytecodeFil
 
 	if progType == ProgTypeTc {
 		// "-direction" is the direction in which to run the bpf program. Valid values
-		// are "ingress" and "egress". If not provided, then use value loaded from
-		// gocounter.toml file. If not provided, error.
-		// ./go-tc-counter -iface eth0 -direction ingress
+		// are "ingress" and "egress". If not provided, error.
+		//    ./go-tc-counter -iface eth0 -direction ingress
 		if len(direction_str) == 0 {
 			return paramData, fmt.Errorf("direction is required")
 		}
@@ -127,12 +125,9 @@ func ParseParamData(progType ProgType, configFilePath string, defaultBytecodeFil
 		}
 	}
 
-	// "-priority" is the priority to load bpf program at. If not provided, then
-	// use value loaded from gocounter.toml file. If not provided, defaults to 50.
+	// "-priority" is the priority to load bpf program at. If not provided,
+	// defaults to 50 from the commandline.
 	//    ./go-xdp-counter -iface eth0 -priority 45
-	//if paramData.Priority < 0 {
-	//	paramData.Priority = 50
-	//}
 
 	// "-uuid" and "-location" are mutually exclusive and "-uuid" takes precedence.
 	// Parse Commandline first.
@@ -150,6 +145,7 @@ func ParseParamData(progType ProgType, configFilePath string, defaultBytecodeFil
 			}
 
 			paramData.BytecodeSrc = SrcFile
+			source = cmdlineFile
 		}
 		// "-image" is a container registry url for the bytecode source. If not provided, check toml file.
 		//    ./go-xdp-counter -p eth0 -image quay.io/bpfd-bytecode/go-xdp-counter:latest
@@ -162,11 +158,13 @@ func ParseParamData(progType ProgType, configFilePath string, defaultBytecodeFil
 			}
 
 			paramData.BytecodeSrc = SrcImage
+			source = cmdlineImage
 		}
 	} else {
 		// "-uuid" was entered so it is a UUID
 		paramData.Uuid = cmdlineUuid
 		paramData.BytecodeSrc = SrcUuid
+		source = cmdlineUuid
 	}
 
 	// If bytecode source not entered not entered on Commandline, set to default.
@@ -181,14 +179,15 @@ func ParseParamData(progType ProgType, configFilePath string, defaultBytecodeFil
 			Location: &gobpfd.LoadRequestCommon_File{File: path},
 		}
 		paramData.BytecodeSrc = SrcFile
+		source = path
 	}
 
 	if paramData.BytecodeSrc == SrcUuid {
 		log.Printf("Using Input: Interface=%s Source=%s",
-			paramData.Iface, paramData.Uuid)
+			paramData.Iface, source)
 	} else {
 		log.Printf("Using Input: Interface=%s Priority=%d Source=%+v",
-			paramData.Iface, paramData.Priority, &paramData.BytecodeSource)
+			paramData.Iface, paramData.Priority, source)
 	}
 
 	return paramData, nil

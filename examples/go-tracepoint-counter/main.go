@@ -23,7 +23,7 @@ const (
 	BpfProgramConfigName = "go-tracepoint-counter-example"
 	BpfProgramMapIndex   = "tracepoint_stats_map"
 	DefaultByteCodeFile  = "bpf_bpfel.o"
-	DefaultConfigPath    = "/etc/bpfd/gocounter.toml"
+	DefaultConfigPath    = "/etc/bpfd/bpfd.toml"
 	DefaultMapDir        = "/run/bpfd/fs/maps"
 )
 
