@@ -9,36 +9,42 @@ use aya::{
     BpfLoader,
 };
 use bpfd_api::{config::Config, util::directories::*, ProgramType};
-use log::debug;
-use tokio::fs;
+use log::{debug, info};
+use tokio::{fs, select, sync::mpsc};
 use uuid::Uuid;
 
 use crate::{
     command::{
-        Direction,
+        self, Command, Direction,
         Direction::{Egress, Ingress},
-        Program, ProgramInfo,
+        LoadTCArgs, LoadTracepointArgs, LoadXDPArgs, Program, ProgramData, ProgramInfo, TcProgram,
+        TcProgramInfo, TracepointProgram, TracepointProgramInfo, UnloadArgs, XdpProgram,
+        XdpProgramInfo,
     },
     errors::BpfdError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
     oci_utils::image_manager::get_bytecode_from_image_store,
-    utils::read,
+    serve::shutdown_handler,
+    utils::{get_ifindex, read, set_dir_permissions},
 };
 
 const SUPERUSER: &str = "bpfctl";
+const MAPS_MODE: u32 = 0o0660;
 
-pub(crate) struct BpfManager<'a> {
-    config: &'a Config,
+pub(crate) struct BpfManager {
+    config: Config,
     dispatchers: HashMap<DispatcherId, Dispatcher>,
     programs: HashMap<Uuid, Program>,
+    commands: mpsc::Receiver<Command>,
 }
 
-impl<'a> BpfManager<'a> {
-    pub(crate) fn new(config: &'a Config) -> Self {
+impl BpfManager {
+    pub(crate) fn new(config: Config, commands: mpsc::Receiver<Command>) -> Self {
         Self {
             config,
             dispatchers: HashMap::new(),
             programs: HashMap::new(),
+            commands,
         }
     }
 
@@ -554,5 +560,152 @@ impl<'a> BpfManager<'a> {
             }
         }
         results
+    }
+
+    pub(crate) async fn process_commands(&mut self) {
+        loop {
+            // Start receiving messages
+            select! {
+                biased;
+                _ = shutdown_handler() => {
+                    info!("Signal received to stop command processing");
+                    break;
+                }
+                Some(cmd) = self.commands.recv() => {
+                    match cmd {
+                        Command::LoadXDP(args) => self.load_xdp_command(args).await.unwrap(),
+                        Command::LoadTC(args) => self.load_tc_command(args).await.unwrap(),
+                        Command::LoadTracepoint(args) => self.load_tracepoint_command(args).await.unwrap(),
+                        Command::Unload(args) => self.unload_command(args).await.unwrap(),
+                        Command::List { responder } => {
+                            let progs = self.list_programs();
+                            // Ignore errors as they'll be propagated to caller in the RPC status
+                            let _ = responder.send(progs);
+                        }
+                    }
+                }
+            }
+            info!("Stopping processing commands");
+        }
+    }
+
+    async fn load_xdp_command(&mut self, args: LoadXDPArgs) -> anyhow::Result<()> {
+        let res = if let Ok(if_index) = get_ifindex(&args.iface) {
+            let prog_data = ProgramData::new(
+                args.location,
+                args.section_name.clone(),
+                args.global_data,
+                args.username,
+            )
+            .await?;
+
+            let prog = Program::Xdp(XdpProgram {
+                data: prog_data.clone(),
+                info: XdpProgramInfo {
+                    if_index,
+                    current_position: None,
+                    metadata: command::Metadata {
+                        priority: args.priority,
+                        // This could have been overridden by image tags
+                        name: prog_data.section_name,
+                        attached: false,
+                    },
+                    proceed_on: args.proceed_on,
+                    if_name: args.iface,
+                },
+            });
+            self.add_program(prog, args.id).await
+        } else {
+            Err(BpfdError::InvalidInterface)
+        };
+
+        // If program was successfully loaded, allow map access by bpfd group members.
+        if let Ok(uuid) = &res {
+            let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
+            set_dir_permissions(&maps_dir, MAPS_MODE).await;
+        }
+
+        // Ignore errors as they'll be propagated to caller in the RPC status
+        let _ = args.responder.send(res);
+        Ok(())
+    }
+
+    async fn load_tc_command(&mut self, args: LoadTCArgs) -> anyhow::Result<()> {
+        let res = if let Ok(if_index) = get_ifindex(&args.iface) {
+            let prog_data = ProgramData::new(
+                args.location,
+                args.section_name,
+                args.global_data,
+                args.username,
+            )
+            .await?;
+
+            let prog = Program::Tc(TcProgram {
+                data: prog_data.clone(),
+                direction: args.direction,
+                info: TcProgramInfo {
+                    if_index,
+                    current_position: None,
+                    metadata: command::Metadata {
+                        priority: args.priority,
+                        // This could have been overridden by image tags
+                        name: prog_data.section_name,
+                        attached: false,
+                    },
+                    proceed_on: args.proceed_on,
+                    if_name: args.iface,
+                },
+            });
+            self.add_program(prog, args.id).await
+        } else {
+            Err(BpfdError::InvalidInterface)
+        };
+
+        // If program was successfully loaded, allow map access by bpfd group members.
+        if let Ok(uuid) = &res {
+            let maps_dir = format!("{RTDIR_FS_MAPS}/{}", uuid.clone());
+            set_dir_permissions(&maps_dir, MAPS_MODE).await;
+        }
+
+        // Ignore errors as they'll be propagated to caller in the RPC status
+        let _ = args.responder.send(res);
+        Ok(())
+    }
+
+    async fn load_tracepoint_command(&mut self, args: LoadTracepointArgs) -> anyhow::Result<()> {
+        let res = {
+            let prog_data = ProgramData::new(
+                args.location,
+                args.section_name,
+                args.global_data,
+                args.username,
+            )
+            .await?;
+
+            let prog = Program::Tracepoint(TracepointProgram {
+                data: prog_data,
+                info: TracepointProgramInfo {
+                    tracepoint: args.tracepoint,
+                },
+            });
+            self.add_program(prog, args.id).await
+        };
+
+        // If program was successfully loaded, allow map access by bpfd group members.
+        if let Ok(uuid) = &res {
+            let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
+            set_dir_permissions(&maps_dir, MAPS_MODE).await;
+        }
+
+        // Ignore errors as they'll be propagated to caller in the RPC status
+        let _ = args.responder.send(res);
+        Ok(())
+    }
+
+    async fn unload_command(&mut self, args: UnloadArgs) -> anyhow::Result<()> {
+        let res = self.remove_program(args.id, args.username).await;
+        // Ignore errors as they'll be propagated to caller in the RPC status
+        let _ = args.responder.send(res);
+        Ok(())
     }
 }

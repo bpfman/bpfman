@@ -17,9 +17,11 @@ use log::warn;
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
-use x509_certificate::X509Certificate;
 
-use crate::{command::Command, oci_utils::BytecodeImage};
+use crate::{
+    command::{Command, LoadTCArgs, LoadTracepointArgs, LoadXDPArgs, UnloadArgs},
+    oci_utils::BytecodeImage,
+};
 
 #[derive(Debug, Default)]
 struct User {
@@ -29,28 +31,6 @@ struct User {
 static DEFAULT_USER: User = User {
     username: String::new(),
 };
-
-/// This function will get called on each inbound request.
-/// It extracts the username from the client certificate and adds it to the request
-pub(crate) fn intercept(mut req: Request<()>) -> Result<Request<()>, Status> {
-    let certs = req
-        .peer_certs()
-        .ok_or_else(|| Status::unauthenticated("no certificate provided"))?;
-
-    if certs.len() != 1 {
-        return Err(Status::unauthenticated(
-            "expected only one client certificate",
-        ));
-    }
-
-    let cert = X509Certificate::from_der(certs[0].get_ref()).unwrap();
-    let username = cert
-        .subject_common_name()
-        .ok_or_else(|| Status::unauthenticated("CN is empty"))?;
-
-    req.extensions_mut().insert(User { username });
-    Ok(req)
-}
 
 #[derive(Debug)]
 pub struct BpfdLoader {
@@ -108,7 +88,7 @@ impl Loader for BpfdLoader {
         };
 
         let cmd = match request.attach_info.unwrap() {
-            load_request::AttachInfo::XdpAttachInfo(attach) => Command::LoadXDP {
+            load_request::AttachInfo::XdpAttachInfo(attach) => Command::LoadXDP(LoadXDPArgs {
                 responder: resp_tx,
                 id,
                 global_data: common.global_data,
@@ -119,13 +99,13 @@ impl Loader for BpfdLoader {
                     .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
                 section_name: common.section_name,
                 username,
-            },
+            }),
             load_request::AttachInfo::TcAttachInfo(attach) => {
                 let direction = attach
                     .direction
                     .try_into()
                     .map_err(|_| Status::aborted("direction is not a string"))?;
-                Command::LoadTC {
+                Command::LoadTC(LoadTCArgs {
                     responder: resp_tx,
                     location: bytecode_source,
                     id,
@@ -137,17 +117,19 @@ impl Loader for BpfdLoader {
                         .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
                     section_name: common.section_name,
                     username,
-                }
+                })
             }
-            load_request::AttachInfo::TracepointAttachInfo(attach) => Command::LoadTracepoint {
-                responder: resp_tx,
-                id,
-                global_data: common.global_data,
-                location: bytecode_source,
-                tracepoint: attach.tracepoint,
-                section_name: common.section_name,
-                username,
-            },
+            load_request::AttachInfo::TracepointAttachInfo(attach) => {
+                Command::LoadTracepoint(LoadTracepointArgs {
+                    responder: resp_tx,
+                    id,
+                    global_data: common.global_data,
+                    location: bytecode_source,
+                    tracepoint: attach.tracepoint,
+                    section_name: common.section_name,
+                    username,
+                })
+            }
         };
 
         let tx = self.tx.lock().unwrap().clone();
@@ -192,11 +174,11 @@ impl Loader for BpfdLoader {
             .map_err(|_| Status::invalid_argument("invalid id"))?;
 
         let (resp_tx, resp_rx) = oneshot::channel();
-        let cmd = Command::Unload {
+        let cmd = Command::Unload(UnloadArgs {
             id,
             username,
             responder: resp_tx,
-        };
+        });
 
         let tx = self.tx.lock().unwrap().clone();
         // Send the GET request
@@ -369,12 +351,10 @@ mod test {
     async fn mock_serve(mut rx: Receiver<Command>) {
         while let Some(cmd) = rx.recv().await {
             match cmd {
-                Command::LoadXDP { responder, .. } => responder.send(Ok(Uuid::new_v4())).unwrap(),
-                Command::LoadTC { responder, .. } => responder.send(Ok(Uuid::new_v4())).unwrap(),
-                Command::LoadTracepoint { responder, .. } => {
-                    responder.send(Ok(Uuid::new_v4())).unwrap()
-                }
-                Command::Unload { responder, .. } => responder.send(Ok(())).unwrap(),
+                Command::LoadXDP(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
+                Command::LoadTC(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
+                Command::LoadTracepoint(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
+                Command::Unload(args) => args.responder.send(Ok(())).unwrap(),
                 Command::List { responder, .. } => responder.send(Ok(vec![])).unwrap(),
             }
         }

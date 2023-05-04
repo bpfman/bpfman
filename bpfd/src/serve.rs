@@ -4,33 +4,33 @@
 use std::{fs::remove_file, net::SocketAddr, path::Path};
 
 use anyhow::Context;
-use bpfd_api::{config::Config, util::directories::RTDIR_FS_MAPS, v1::loader_server::LoaderServer};
-use log::info;
-use tokio::{net::UnixListener, sync::mpsc};
+use bpfd_api::{config::Config, v1::loader_server::LoaderServer};
+use log::{debug, error, info};
+use tokio::{
+    join,
+    net::UnixListener,
+    select,
+    signal::unix::{signal, SignalKind},
+    sync::mpsc,
+};
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::{Server, ServerTlsConfig};
 
 pub use crate::certs::get_tls_config;
 use crate::{
-    bpf::BpfManager,
-    command::{
-        Command, Metadata, Program, ProgramData, TcProgram, TcProgramInfo, TracepointProgram,
-        TracepointProgramInfo, XdpProgram, XdpProgramInfo,
-    },
-    errors::BpfdError,
-    rpc::{intercept, BpfdLoader},
-    static_program::get_static_programs,
-    utils::{get_ifindex, set_dir_permissions, set_file_permissions},
+    bpf::BpfManager, errors::BpfdError, rpc::BpfdLoader, static_program::get_static_programs,
+    utils::set_file_permissions,
 };
 
-const MAPS_MODE: u32 = 0o0660;
 const SOCK_MODE: u32 = 0o0770;
 
 pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<()> {
-    let (tx, mut rx) = mpsc::channel(32);
+    let (tx, rx) = mpsc::channel(32);
     let endpoint = &config.grpc.endpoint;
 
-    // Listen on Unix socket
+    let loader = BpfdLoader::new(tx.clone());
+    let service = LoaderServer::new(loader);
+
     let unix = endpoint.unix.clone();
     if Path::new(&unix).exists() {
         // Attempt to remove the socket, since bind fails if it exists
@@ -41,30 +41,26 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
     let uds_stream = UnixListenerStream::new(uds);
     set_file_permissions(&unix, SOCK_MODE).await;
 
-    let loader = BpfdLoader::new(tx.clone());
-
     let serve = Server::builder()
-        .add_service(LoaderServer::new(loader))
-        .serve_with_incoming(uds_stream);
+        .add_service(service.clone())
+        .serve_with_incoming_shutdown(uds_stream, shutdown_handler());
 
-    tokio::spawn(async move {
+    let unix_listener = async move {
         info!("Listening on {}", unix);
         if let Err(e) = serve.await {
-            eprintln!("Error = {e:?}");
+            error!("unix socket error: {e:?}");
         }
-    });
+        info!("Shutdown Unix Handler {}", unix);
+    };
 
-    // Listen on TCP socket
-    let addr = SocketAddr::new(
-        endpoint
-            .address
-            .parse()
-            .unwrap_or_else(|_| panic!("failed to parse listening address '{}'", endpoint.address)),
-        endpoint.port,
-    );
-
-    let loader = BpfdLoader::new(tx);
-
+    let ip = endpoint.address.parse().map_err(|_| {
+        BpfdError::Error(format!(
+            "failed to parse listening address '{}'",
+            endpoint.address
+        ))
+    })?;
+    let port = endpoint.port;
+    let addr = SocketAddr::new(ip, port);
     let (ca_cert, identity) = get_tls_config(&config.tls)
         .await
         .context("CA Cert File does not exist")?;
@@ -75,17 +71,18 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
 
     let serve = Server::builder()
         .tls_config(tls_config)?
-        .add_service(LoaderServer::with_interceptor(loader, intercept))
-        .serve(addr);
+        .add_service(service.clone())
+        .serve_with_shutdown(addr, shutdown_handler());
 
-    tokio::spawn(async move {
+    let tcp_listener = async move {
         info!("Listening on {addr}");
         if let Err(e) = serve.await {
-            eprintln!("Error = {e:?}");
+            error!("tcp error: {e:?}");
         }
-    });
+        info!("Shutdown TCP Handler {}", addr);
+    };
 
-    let mut bpf_manager = BpfManager::new(&config);
+    let mut bpf_manager = BpfManager::new(config, rx);
     bpf_manager.rebuild_state().await?;
 
     let static_programs = get_static_programs(static_program_path).await?;
@@ -97,157 +94,15 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
             info!("Loaded static program with UUID {}", uuid)
         }
     };
-
-    // Start receiving messages
-    while let Some(cmd) = rx.recv().await {
-        match cmd {
-            Command::LoadXDP {
-                location,
-                section_name,
-                id,
-                global_data,
-                iface,
-                priority,
-                proceed_on,
-                username,
-                responder,
-            } => {
-                let res = if let Ok(if_index) = get_ifindex(&iface) {
-                    let prog_data =
-                        ProgramData::new(location, section_name.clone(), global_data, username)
-                            .await?;
-
-                    let prog_result = Ok(Program::Xdp(XdpProgram {
-                        data: prog_data.clone(),
-                        info: XdpProgramInfo {
-                            if_index,
-                            current_position: None,
-                            metadata: Metadata {
-                                priority,
-                                // This could have been overridden by image tags
-                                name: prog_data.section_name,
-                                attached: false,
-                            },
-                            proceed_on,
-                            if_name: iface,
-                        },
-                    }));
-
-                    match prog_result {
-                        Ok(prog) => bpf_manager.add_program(prog, id).await,
-                        Err(e) => Err(e),
-                    }
-                } else {
-                    Err(BpfdError::InvalidInterface)
-                };
-
-                // If program was successfully loaded, allow map access by bpfd group members.
-                if let Ok(uuid) = &res {
-                    let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
-                    set_dir_permissions(&maps_dir, MAPS_MODE).await;
-                }
-
-                // Ignore errors as they'll be propagated to caller in the RPC status
-                let _ = responder.send(res);
-            }
-            Command::LoadTC {
-                location,
-                section_name,
-                id,
-                global_data,
-                iface,
-                priority,
-                direction,
-                proceed_on,
-                username,
-                responder,
-            } => {
-                let res = if let Ok(if_index) = get_ifindex(&iface) {
-                    let prog_data =
-                        ProgramData::new(location, section_name, global_data, username).await?;
-
-                    let prog_result = Ok(Program::Tc(TcProgram {
-                        data: prog_data.clone(),
-                        direction,
-                        info: TcProgramInfo {
-                            if_index,
-                            current_position: None,
-                            metadata: Metadata {
-                                priority,
-                                // This could have been overridden by image tags
-                                name: prog_data.section_name,
-                                attached: false,
-                            },
-                            proceed_on,
-                            if_name: iface,
-                        },
-                    }));
-
-                    match prog_result {
-                        Ok(prog) => bpf_manager.add_program(prog, id).await,
-                        Err(e) => Err(e),
-                    }
-                } else {
-                    Err(BpfdError::InvalidInterface)
-                };
-
-                // If program was successfully loaded, allow map access by bpfd group members.
-                if let Ok(uuid) = &res {
-                    let maps_dir = format!("{RTDIR_FS_MAPS}/{}", uuid.clone());
-                    set_dir_permissions(&maps_dir, MAPS_MODE).await;
-                }
-
-                // Ignore errors as they'll be propagated to caller in the RPC status
-                let _ = responder.send(res);
-            }
-            Command::LoadTracepoint {
-                location,
-                section_name,
-                id,
-                global_data,
-                tracepoint,
-                username,
-                responder,
-            } => {
-                let res = {
-                    let prog_data =
-                        ProgramData::new(location, section_name, global_data, username).await?;
-
-                    let prog_result = Ok(Program::Tracepoint(TracepointProgram {
-                        data: prog_data,
-                        info: TracepointProgramInfo { tracepoint },
-                    }));
-
-                    match prog_result {
-                        Ok(prog) => bpf_manager.add_program(prog, id).await,
-                        Err(e) => Err(e),
-                    }
-                };
-
-                // If program was successfully loaded, allow map access by bpfd group members.
-                if let Ok(uuid) = &res {
-                    let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
-                    set_dir_permissions(&maps_dir, MAPS_MODE).await;
-                }
-
-                // Ignore errors as they'll be propagated to caller in the RPC status
-                let _ = responder.send(res);
-            }
-            Command::Unload {
-                id,
-                username,
-                responder,
-            } => {
-                let res = bpf_manager.remove_program(id, username).await;
-                // Ignore errors as they'll be propagated to caller in the RPC status
-                let _ = responder.send(res);
-            }
-            Command::List { responder } => {
-                let progs = bpf_manager.list_programs();
-                // Ignore errors as they'll be propagated to caller in the RPC status
-                let _ = responder.send(progs);
-            }
-        }
-    }
+    join!(unix_listener, tcp_listener, bpf_manager.process_commands());
     Ok(())
+}
+
+pub(crate) async fn shutdown_handler() {
+    let mut sigint = signal(SignalKind::interrupt()).unwrap();
+    let mut sigterm = signal(SignalKind::terminate()).unwrap();
+    select! {
+        _ = sigint.recv() => {debug!("Received SIGINT")},
+        _ = sigterm.recv() => {debug!("Received SIGTERM")},
+    }
 }
