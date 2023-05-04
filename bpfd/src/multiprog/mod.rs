@@ -69,7 +69,8 @@ impl Dispatcher {
                     programs,
                     revision,
                     old_dispatcher,
-                )?;
+                )
+                .await?;
                 Dispatcher::Tc(t)
             }
             _ => return Err(BpfdError::DispatcherNotRequired),

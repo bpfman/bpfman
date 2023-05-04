@@ -1,34 +1,27 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-mod bpf;
-mod certs;
-mod command;
-mod dispatcher_config;
-mod errors;
-mod multiprog;
-mod oci_utils;
-mod rpc;
-mod static_program;
-mod utils;
-
 use std::{fs::remove_file, net::SocketAddr, path::Path};
 
 use anyhow::Context;
-use bpf::BpfManager;
 use bpfd_api::{config::Config, util::directories::RTDIR_FS_MAPS, v1::loader_server::LoaderServer};
-pub use certs::get_tls_config;
-use command::{Command, TcProgram, TcProgramInfo, TracepointProgram, TracepointProgramInfo};
-use errors::BpfdError;
 use log::info;
-use rpc::{intercept, BpfdLoader};
-use static_program::get_static_programs;
 use tokio::{net::UnixListener, sync::mpsc};
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::{Server, ServerTlsConfig};
-use utils::{get_ifindex, set_dir_permissions, set_file_permissions};
 
-use crate::command::{Metadata, Program, ProgramData, XdpProgram, XdpProgramInfo};
+pub use crate::certs::get_tls_config;
+use crate::{
+    bpf::BpfManager,
+    command::{
+        Command, Metadata, Program, ProgramData, TcProgram, TcProgramInfo, TracepointProgram,
+        TracepointProgramInfo, XdpProgram, XdpProgramInfo,
+    },
+    errors::BpfdError,
+    rpc::{intercept, BpfdLoader},
+    static_program::get_static_programs,
+    utils::{get_ifindex, set_dir_permissions, set_file_permissions},
+};
 
 const MAPS_MODE: u32 = 0o0660;
 const SOCK_MODE: u32 = 0o0770;
@@ -129,7 +122,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                         info: XdpProgramInfo {
                             if_index,
                             current_position: None,
-                            metadata: command::Metadata {
+                            metadata: Metadata {
                                 priority,
                                 // This could have been overridden by image tags
                                 name: prog_data.section_name,
@@ -179,7 +172,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
                         info: TcProgramInfo {
                             if_index,
                             current_position: None,
-                            metadata: command::Metadata {
+                            metadata: Metadata {
                                 priority,
                                 // This could have been overridden by image tags
                                 name: prog_data.section_name,

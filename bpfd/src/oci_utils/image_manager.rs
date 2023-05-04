@@ -21,6 +21,7 @@ use sha2::{Digest, Sha256};
 use tar::Archive;
 
 use super::ImageError;
+use crate::utils::read;
 
 #[derive(Debug, Deserialize, Default)]
 pub struct ContainerImageMetadata {
@@ -340,7 +341,9 @@ fn load_image_meta(image_content_path: PathBuf) -> Result<ContainerImageMetadata
     )?)
 }
 
-pub(crate) fn get_bytecode_from_image_store(content_dir: String) -> Result<Vec<u8>, anyhow::Error> {
+pub(crate) async fn get_bytecode_from_image_store(
+    content_dir: String,
+) -> Result<Vec<u8>, anyhow::Error> {
     debug!("bytecode is stored as tar+gzip file at {}", content_dir);
     let image_dir = Path::new(&content_dir);
     // Get image manifest from disk
@@ -368,7 +371,7 @@ pub(crate) fn get_bytecode_from_image_store(content_dir: String) -> Result<Vec<u
     // The data is of OCI media type "application/vnd.oci.image.layer.v1.tar+gzip" or
     // "application/vnd.docker.image.rootfs.diff.tar.gzip"
     // decode and unpack to access bytecode
-    let buf = std::fs::read(bytecode_path)?;
+    let buf = read(bytecode_path).await?;
     let unzipped_tarball = GzDecoder::new(buf.as_slice());
 
     return Ok(Archive::new(unzipped_tarball)
@@ -412,6 +415,7 @@ mod tests {
         assert!(Path::new(&program_overrides.path).exists());
 
         let program_bytes = get_bytecode_from_image_store(program_overrides.path)
+            .await
             .expect("failed to get bytecode from image store");
 
         assert!(program_bytes.len() > 0)
@@ -458,6 +462,7 @@ mod tests {
         assert!(Path::new(&program_overrides.path).exists());
 
         let program_bytes = get_bytecode_from_image_store(program_overrides.path)
+            .await
             .expect("failed to get bytecode from image store");
 
         assert!(program_bytes.len() > 0)

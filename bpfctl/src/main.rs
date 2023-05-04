@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::{collections::HashMap, net::SocketAddr, str};
+use std::{collections::HashMap, fs, net::SocketAddr, str};
 
 use anyhow::{bail, Context};
 use base64::{engine::general_purpose, Engine as _};
 use bpfd_api::{
-    config::config_from_file,
+    config::Config,
     util::directories::*,
     v1::{
         list_response, load_request, load_request_common, loader_client::LoaderClient,
@@ -19,7 +19,7 @@ use clap::{Args, Parser, Subcommand};
 use comfy_table::Table;
 use hex::FromHex;
 use itertools::Itertools;
-use log::{debug, info};
+use log::{debug, info, warn};
 use tokio::net::UnixStream;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity, Uri};
 use tower::service_fn;
@@ -188,7 +188,15 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    let config = config_from_file(CFGPATH_BPFD_CONFIG);
+    let config = if let Ok(c) = fs::read_to_string(CFGPATH_BPFD_CONFIG) {
+        c.parse().unwrap_or_else(|_| {
+            warn!("Unable to parse config file, using defaults");
+            Config::default()
+        })
+    } else {
+        warn!("Unable to read config file, using defaults");
+        Config::default()
+    };
 
     let endpoint = &config.grpc.endpoint;
     // URI is ignored on UDS, so any parsable string works.

@@ -21,6 +21,8 @@ use openssl::{
 use thiserror::Error;
 use tonic::transport::{Certificate, Identity};
 
+use crate::utils::read;
+
 #[derive(Error, Debug)]
 pub enum CertsError {
     #[error("An error occurred. {0}")]
@@ -38,7 +40,7 @@ const CA_KEY_FILENAME: &str = "ca.key";
 
 pub async fn get_tls_config(tls: &TlsConfig) -> Result<(Certificate, Identity), CertsError> {
     // Read CA Cert
-    let ca_cert_pem = match tokio::fs::read(&tls.ca_cert).await {
+    let ca_cert_pem = match read(&tls.ca_cert).await {
         Ok(ca_cert_pem) => {
             debug!("CA Certificate file {} exists.", tls.ca_cert);
             ca_cert_pem
@@ -54,12 +56,12 @@ pub async fn get_tls_config(tls: &TlsConfig) -> Result<(Certificate, Identity), 
     };
 
     // Read bpfd Cert Key and Cert files and create an identity
-    let identity = match tokio::fs::read(&tls.key).await {
+    let identity = match read(&tls.key).await {
         Ok(key) => {
             debug!("Certificate Key {} exists.", tls.key);
 
             // If Key exists but Cert doesn't, return error
-            let cert_pem = tokio::fs::read(&tls.cert)
+            let cert_pem = read(&tls.cert)
                 .await
                 .map_err(|_| CertsError::Error("certificate file does not exist".to_string()))?;
 
@@ -85,7 +87,7 @@ pub async fn get_tls_config(tls: &TlsConfig) -> Result<(Certificate, Identity), 
     };
 
     // Read bpfd-client Cert Key and Cert files and make sure they exist. If they don't, create them.
-    match tokio::fs::read(&tls.client_key).await {
+    match read(&tls.client_key).await {
         Ok(_) => {
             debug!("bpfd-client Certificate Key {} exists.", tls.client_key);
 
@@ -193,7 +195,7 @@ async fn generate_cert(
     let ca_dir = path.parent().unwrap();
     let ca_key_path = ca_dir.join(CA_KEY_FILENAME);
     let ca_key_path = ca_key_path.to_str().unwrap();
-    let ca_key_pem = tokio::fs::read(&ca_key_path)
+    let ca_key_pem = read(&ca_key_path)
         .await
         .map_err(|_| CertsError::Error("ca certificate key does not exist".to_string()))?;
     let ca_key = PKey::private_key_from_pem(&ca_key_pem)?;

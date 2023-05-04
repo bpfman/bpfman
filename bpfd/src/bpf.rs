@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::{collections::HashMap, convert::TryInto, fs};
+use std::{collections::HashMap, convert::TryInto};
 
 use anyhow::anyhow;
 use aya::{
@@ -10,6 +10,7 @@ use aya::{
 };
 use bpfd_api::{config::Config, util::directories::*, ProgramType};
 use log::debug;
+use tokio::fs;
 use uuid::Uuid;
 
 use crate::{
@@ -21,6 +22,7 @@ use crate::{
     errors::BpfdError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
     oci_utils::image_manager::get_bytecode_from_image_store,
+    utils::read,
 };
 
 const SUPERUSER: &str = "bpfctl";
@@ -42,17 +44,15 @@ impl<'a> BpfManager<'a> {
 
     pub(crate) async fn rebuild_state(&mut self) -> Result<(), anyhow::Error> {
         debug!("BpfManager::rebuild_state()");
-        if let Ok(programs_dir) = fs::read_dir(RTDIR_PROGRAMS) {
-            for entry in programs_dir {
-                let entry = entry?;
-                let uuid = entry.file_name().to_string_lossy().parse().unwrap();
-                let mut program = Program::load(uuid)
-                    .map_err(|e| BpfdError::Error(format!("cant read program state {e}")))?;
-                // TODO: Should probably check for pinned prog on bpffs rather than assuming they are attached
-                program.set_attached();
-                debug!("rebuilding state for program {}", uuid);
-                self.programs.insert(uuid, program);
-            }
+        let mut programs_dir = fs::read_dir(RTDIR_PROGRAMS).await?;
+        while let Some(entry) = programs_dir.next_entry().await? {
+            let uuid = entry.file_name().to_string_lossy().parse().unwrap();
+            let mut program = Program::load(uuid)
+                .map_err(|e| BpfdError::Error(format!("cant read program state {e}")))?;
+            // TODO: Should probably check for pinned prog on bpffs rather than assuming they are attached
+            program.set_attached();
+            debug!("rebuilding state for program {}", uuid);
+            self.programs.insert(uuid, program);
         }
         self.rebuild_dispatcher_state(ProgramType::Xdp, None, RTDIR_XDP_DISPATCHER)
             .await?;
@@ -70,49 +70,47 @@ impl<'a> BpfManager<'a> {
         direction: Option<Direction>,
         path: &str,
     ) -> Result<(), anyhow::Error> {
-        if let Ok(dispatcher_dir) = fs::read_dir(path) {
-            for entry in dispatcher_dir {
-                let entry = entry?;
-                let name = entry.file_name();
-                let parts: Vec<&str> = name.to_str().unwrap().split('_').collect();
-                if parts.len() != 2 {
-                    continue;
+        let mut dispatcher_dir = fs::read_dir(path).await?;
+        while let Some(entry) = dispatcher_dir.next_entry().await? {
+            let name = entry.file_name();
+            let parts: Vec<&str> = name.to_str().unwrap().split('_').collect();
+            if parts.len() != 2 {
+                continue;
+            }
+            let if_index: u32 = parts[0].parse().unwrap();
+            let revision: u32 = parts[1].parse().unwrap();
+            match program_type {
+                ProgramType::Xdp => {
+                    let dispatcher = XdpDispatcher::load(if_index, revision).unwrap();
+                    self.dispatchers.insert(
+                        DispatcherId::Xdp(DispatcherInfo(if_index, None)),
+                        Dispatcher::Xdp(dispatcher),
+                    );
                 }
-                let if_index: u32 = parts[0].parse().unwrap();
-                let revision: u32 = parts[1].parse().unwrap();
-                match program_type {
-                    ProgramType::Xdp => {
-                        let dispatcher = XdpDispatcher::load(if_index, revision).unwrap();
+                ProgramType::Tc => {
+                    if let Some(dir) = direction {
+                        let mut dispatcher = TcDispatcher::load(if_index, dir, revision).unwrap();
+                        dispatcher.set_link();
                         self.dispatchers.insert(
-                            DispatcherId::Xdp(DispatcherInfo(if_index, None)),
-                            Dispatcher::Xdp(dispatcher),
-                        );
-                    }
-                    ProgramType::Tc => {
-                        if let Some(dir) = direction {
-                            let mut dispatcher =
-                                TcDispatcher::load(if_index, dir, revision).unwrap();
-                            dispatcher.set_link();
-                            self.dispatchers.insert(
-                                DispatcherId::Tc(DispatcherInfo(if_index, direction)),
-                                Dispatcher::Tc(dispatcher),
-                            );
-                        } else {
-                            return Err(anyhow!("direction required for tc programs"));
-                        }
-
-                        self.rebuild_multiattach_dispatcher(
-                            program_type,
-                            if_index,
-                            direction,
                             DispatcherId::Tc(DispatcherInfo(if_index, direction)),
-                        )
-                        .await?;
+                            Dispatcher::Tc(dispatcher),
+                        );
+                    } else {
+                        return Err(anyhow!("direction required for tc programs"));
                     }
-                    _ => return Err(anyhow!("invalid program type {:?}", program_type)),
+
+                    self.rebuild_multiattach_dispatcher(
+                        program_type,
+                        if_index,
+                        direction,
+                        DispatcherId::Tc(DispatcherInfo(if_index, direction)),
+                    )
+                    .await?;
                 }
+                _ => return Err(anyhow!("invalid program type {:?}", program_type)),
             }
         }
+
         Ok(())
     }
 
@@ -139,7 +137,7 @@ impl<'a> BpfManager<'a> {
 
         match program {
             Program::Xdp(_) | Program::Tc(_) => self.add_multi_attach_program(program, uuid).await,
-            Program::Tracepoint(_) => self.add_single_attach_program(program, uuid),
+            Program::Tracepoint(_) => self.add_single_attach_program(program, uuid).await,
         }
     }
 
@@ -151,6 +149,7 @@ impl<'a> BpfManager<'a> {
         debug!("BpfManager::add_multi_attach_program()");
         let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
         fs::create_dir_all(map_pin_path.clone())
+            .await
             .map_err(|e| BpfdError::Error(format!("can't create map dir: {e}")))?;
 
         let program_bytes = if program
@@ -159,10 +158,9 @@ impl<'a> BpfManager<'a> {
             .clone()
             .contains(BYTECODE_IMAGE_CONTENT_STORE)
         {
-            get_bytecode_from_image_store(program.data().path.clone())?
+            get_bytecode_from_image_store(program.data().path.clone()).await?
         } else {
-            std::fs::read(program.data().path.clone())
-                .map_err(|e| BpfdError::Error(format!("can't read bytecode file from disk {e}")))?
+            read(program.data().path.clone()).await?
         };
 
         let mut ext_loader = BpfLoader::new()
@@ -170,12 +168,15 @@ impl<'a> BpfManager<'a> {
             .map_pin_path(map_pin_path.clone())
             .load(&program_bytes)?;
 
-        ext_loader
-            .program_mut(&program.data().section_name)
-            .ok_or_else(|| {
-                let _ = fs::remove_dir_all(map_pin_path);
-                BpfdError::SectionNameNotValid(program.data().section_name.clone())
-            })?;
+        match ext_loader.program_mut(&program.data().section_name) {
+            Some(_) => Ok(()),
+            None => {
+                let _ = fs::remove_dir_all(map_pin_path).await;
+                Err(BpfdError::SectionNameNotValid(
+                    program.data().section_name.clone(),
+                ))
+            }
+        }?;
 
         // Calculate the next_available_id
         let next_available_id = self
@@ -239,7 +240,7 @@ impl<'a> BpfManager<'a> {
         Ok(id)
     }
 
-    pub(crate) fn add_single_attach_program(
+    pub(crate) async fn add_single_attach_program(
         &mut self,
         p: Program,
         id: Uuid,
@@ -257,6 +258,7 @@ impl<'a> BpfManager<'a> {
 
             let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
             fs::create_dir_all(map_pin_path.clone())
+                .await
                 .map_err(|e| BpfdError::Error(format!("can't create map dir: {e}")))?;
 
             let mut loader = BpfLoader::new();
@@ -271,24 +273,24 @@ impl<'a> BpfManager<'a> {
                 .clone()
                 .contains(BYTECODE_IMAGE_CONTENT_STORE)
             {
-                get_bytecode_from_image_store(program.data.path.clone())?
+                get_bytecode_from_image_store(program.data.path.clone()).await?
             } else {
-                std::fs::read(program.data.path.clone()).map_err(|e| {
-                    BpfdError::Error(format!("can't read bytecode file from disk {e}"))
-                })?
+                read(program.data.path.clone()).await?
             };
 
             let mut loader = BpfLoader::new()
                 .map_pin_path(map_pin_path.clone())
                 .load(&program_bytes)?;
 
-            let tracepoint: &mut TracePoint = loader
-                .program_mut(&program.data.section_name)
-                .ok_or_else(|| {
-                    let _ = fs::remove_dir_all(map_pin_path);
-                    BpfdError::SectionNameNotValid(program.data.section_name.clone())
-                })?
-                .try_into()?;
+            let tracepoint: &mut TracePoint = match loader.program_mut(&program.data.section_name) {
+                Some(p) => p.try_into(),
+                None => {
+                    let _ = fs::remove_dir_all(map_pin_path).await;
+                    return Err(BpfdError::SectionNameNotValid(
+                        program.data.section_name.clone(),
+                    ));
+                }
+            }?;
 
             tracepoint.load()?;
             p.save(id)

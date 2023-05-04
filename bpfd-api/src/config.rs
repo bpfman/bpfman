@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::{collections::HashMap, fs, path::Path};
+use std::{collections::HashMap, str::FromStr};
 
 use aya::programs::XdpFlags;
-use log::{error, warn};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use crate::util::directories::*;
 
@@ -16,6 +16,20 @@ pub struct Config {
     pub interfaces: Option<HashMap<String, InterfaceConfig>>,
     #[serde(default)]
     pub grpc: Grpc,
+}
+
+#[derive(Debug, Error)]
+pub enum ConfigError {
+    #[error("Error parsing config file: {0}")]
+    ParseError(#[from] toml::de::Error),
+}
+
+impl FromStr for Config {
+    type Err = ConfigError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        toml::from_str(s).map_err(ConfigError::ParseError)
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -135,25 +149,13 @@ fn default_unix() -> String {
     STPATH_BPFD_SOCKET.to_string()
 }
 
-pub fn config_from_file<P: AsRef<Path>>(path: P) -> Config {
-    if let Ok(contents) = fs::read_to_string(path) {
-        toml::from_str(&contents).unwrap_or_else(|e| {
-            error!("Error reading config file. Using default. {}", e);
-            Config::default()
-        })
-    } else {
-        warn!("No config file provided. Using default");
-        Config::default()
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
-    fn test_config_from_invalid_path() {
-        config_from_file("/tmp/bpfd_empty_config.toml");
+    fn test_config_from_invalid_string() {
+        assert!(Config::from_str("i am a teapot").is_err());
     }
 
     #[test]
