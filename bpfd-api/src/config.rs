@@ -111,28 +111,44 @@ impl ToString for XdpMode {
     }
 }
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Grpc {
     #[serde(default)]
-    pub endpoint: Endpoint,
+    pub endpoints: Vec<Endpoint>,
+}
+
+impl Default for Grpc {
+    fn default() -> Self {
+        Self {
+            endpoints: vec![Endpoint::default()],
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct Endpoint {
-    #[serde(default = "default_address")]
-    pub address: String,
-    #[serde(default = "default_port")]
-    pub port: u16,
-    #[serde(default = "default_unix")]
-    pub unix: String,
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum Endpoint {
+    Tcp {
+        #[serde(default = "default_address")]
+        address: String,
+        #[serde(default = "default_port")]
+        port: u16,
+        #[serde(default = "default_enabled")]
+        enabled: bool,
+    },
+    Unix {
+        #[serde(default = "default_unix")]
+        path: String,
+        #[serde(default = "default_enabled")]
+        enabled: bool,
+    },
 }
 
 impl Default for Endpoint {
     fn default() -> Self {
-        Endpoint {
-            address: default_address(),
-            port: default_port(),
-            unix: default_unix(),
+        Endpoint::Unix {
+            path: default_unix(),
+            enabled: default_enabled(),
         }
     }
 }
@@ -147,6 +163,10 @@ fn default_port() -> u16 {
 
 fn default_unix() -> String {
     STPATH_BPFD_SOCKET.to_string()
+}
+
+fn default_enabled() -> bool {
+    true
 }
 
 #[cfg(test)]
@@ -261,86 +281,211 @@ mod test {
         "#;
 
         let config: Config = toml::from_str(input).expect("error parsing toml input");
-        assert_eq!(config.grpc.endpoint.address, default_address());
-        assert_eq!(config.grpc.endpoint.port, default_port());
-        assert_eq!(config.grpc.endpoint.unix, default_unix());
+        let endpoints = config.grpc.endpoints;
+        assert_eq!(endpoints.len(), 1);
+
+        match endpoints.get(0).unwrap() {
+            Endpoint::Unix { path, enabled } => {
+                assert_eq!(path, &default_unix());
+                assert_eq!(enabled, &true);
+            }
+            _ => panic!("Failed to parse empty configuration"),
+        }
     }
 
     #[test]
-    fn test_config_endpoint_no_endpoint() {
+    fn test_config_endpoint_tcp_default() {
         let input = r#"
-        [grpc]
+        [[grpc.endpoints]]
+        type = "tcp"
         "#;
 
         let config: Config = toml::from_str(input).expect("error parsing toml input");
-        assert_eq!(config.grpc.endpoint.address, default_address());
-        assert_eq!(config.grpc.endpoint.port, default_port());
-        assert_eq!(config.grpc.endpoint.unix, default_unix());
+        let endpoints = config.grpc.endpoints;
+        assert_eq!(endpoints.len(), 1);
+
+        match endpoints.get(0).unwrap() {
+            Endpoint::Tcp {
+                address,
+                port,
+                enabled,
+            } => {
+                assert_eq!(address, &default_address());
+                assert_eq!(port, &default_port());
+                assert!(enabled);
+            }
+            _ => panic!("Failed to parse empty configuration"),
+        }
     }
 
     #[test]
-    fn test_config_endpoint_empty_endpoint() {
+    fn test_config_endpoint_tcp_no_port() {
         let input = r#"
-        [grpc.endpoint]
-        "#;
+            [[grpc.endpoints]]
+            type = "tcp"
+            address = "127.0.0.1"
+            "#;
 
         let config: Config = toml::from_str(input).expect("error parsing toml input");
-        assert_eq!(config.grpc.endpoint.address, default_address());
-        assert_eq!(config.grpc.endpoint.port, default_port());
-        assert_eq!(config.grpc.endpoint.unix, default_unix());
+        let endpoints = config.grpc.endpoints;
+        assert_eq!(endpoints.len(), 1);
+
+        match endpoints.get(0).unwrap() {
+            Endpoint::Tcp {
+                address,
+                port,
+                enabled,
+            } => {
+                assert_eq!(address, &"127.0.0.1");
+                assert_eq!(port, &default_port());
+                assert!(enabled);
+            }
+            _ => panic!("Failed to parse TCP endpoint"),
+        }
     }
 
     #[test]
-    fn test_config_endpoint_no_port() {
+    fn test_config_endpoint_tcp_no_address() {
         let input = r#"
-        [grpc.endpoint]
-        address = "127.0.0.1"
-        "#;
+            [[grpc.endpoints]]
+            type = "tcp"
+            port = 50052
+            "#;
 
         let config: Config = toml::from_str(input).expect("error parsing toml input");
-        assert_eq!(config.grpc.endpoint.address, "127.0.0.1");
-        assert_eq!(config.grpc.endpoint.port, default_port());
-        assert_eq!(config.grpc.endpoint.unix, default_unix());
+        let endpoints = config.grpc.endpoints;
+        assert_eq!(endpoints.len(), 1);
+
+        match endpoints.get(0).unwrap() {
+            Endpoint::Tcp {
+                address,
+                port,
+                enabled,
+            } => {
+                assert_eq!(address, &default_address());
+                assert_eq!(port, &50052);
+                assert!(enabled);
+            }
+            _ => panic!("Failed to parse TCP endpoint"),
+        }
     }
 
     #[test]
-    fn test_config_endpoint_no_address() {
+    fn test_config_endpoint_unix_default() {
         let input = r#"
-        [grpc.endpoint]
-        port = 50052
-        "#;
+            [[grpc.endpoints]]
+            type = "unix"
+            "#;
 
         let config: Config = toml::from_str(input).expect("error parsing toml input");
-        assert_eq!(config.grpc.endpoint.address, default_address());
-        assert_eq!(config.grpc.endpoint.port, 50052);
-        assert_eq!(config.grpc.endpoint.unix, default_unix());
+        let endpoints = config.grpc.endpoints;
+        assert_eq!(endpoints.len(), 1);
+
+        match endpoints.get(0).unwrap() {
+            Endpoint::Unix { path, enabled } => {
+                assert_eq!(path, &default_unix());
+                assert!(enabled);
+            }
+            _ => panic!("Failed to parse Unix socket"),
+        }
     }
 
     #[test]
     fn test_config_endpoint_unix() {
         let input = r#"
-        [grpc.endpoint]
-        unix = "/tmp/socket"
-        "#;
+            [[grpc.endpoints]]
+            type = "unix"
+            path = "/tmp/socket"
+            "#;
 
         let config: Config = toml::from_str(input).expect("error parsing toml input");
-        assert_eq!(config.grpc.endpoint.address, default_address());
-        assert_eq!(config.grpc.endpoint.port, default_port());
-        assert_eq!(config.grpc.endpoint.unix, "/tmp/socket");
+        let endpoints = config.grpc.endpoints;
+        assert_eq!(endpoints.len(), 1);
+
+        match endpoints.get(0).unwrap() {
+            Endpoint::Unix { path, enabled } => {
+                assert_eq!(path, "/tmp/socket");
+                assert!(enabled);
+            }
+            _ => panic!("Failed to parse Unix socket"),
+        }
     }
 
     #[test]
     fn test_config_endpoint() {
         let input = r#"
-        [grpc.endpoint]
-        address = "127.0.0.1"
-        port = 50052
-        unix = "/tmp/socket"
+            [[grpc.endpoints]]
+            type = "tcp"
+            enabled = true
+            address = "::1"
+            port = 50051
+
+            [[grpc.endpoints]]
+            type = "tcp"
+            enabled = false
+            address = "127.0.0.1"
+            port = 50051
+
+            [[grpc.endpoints]]
+            type = "unix"
+            enabled = true
+            path = "/run/bpfd/bpfd.sock"
         "#;
 
+        let expected_endpoints: Vec<Endpoint> = vec![
+            Endpoint::Tcp {
+                address: String::from("::1"),
+                port: 50051,
+                enabled: true,
+            },
+            Endpoint::Tcp {
+                address: String::from("127.0.0.1"),
+                port: 50051,
+                enabled: false,
+            },
+            Endpoint::Unix {
+                path: String::from("/run/bpfd/bpfd.sock"),
+                enabled: true,
+            },
+        ];
+
         let config: Config = toml::from_str(input).expect("error parsing toml input");
-        assert_eq!(config.grpc.endpoint.address, "127.0.0.1");
-        assert_eq!(config.grpc.endpoint.port, 50052);
-        assert_eq!(config.grpc.endpoint.unix, "/tmp/socket");
+        let endpoints = config.grpc.endpoints;
+        assert_eq!(endpoints.len(), 3);
+
+        for (i, endpoint) in endpoints.iter().enumerate() {
+            match endpoint {
+                Endpoint::Unix { path, enabled } => {
+                    if let Endpoint::Unix {
+                        path: expected_path,
+                        enabled: expected_enabled,
+                    } = expected_endpoints.get(i).unwrap()
+                    {
+                        assert_eq!(path, expected_path);
+                        assert_eq!(enabled, expected_enabled);
+                    } else {
+                        panic!("Mismatch on endpoint type");
+                    }
+                }
+                Endpoint::Tcp {
+                    address,
+                    port,
+                    enabled,
+                } => {
+                    if let Endpoint::Tcp {
+                        address: expected_address,
+                        port: expected_port,
+                        enabled: expected_enabled,
+                    } = expected_endpoints.get(i).unwrap()
+                    {
+                        assert_eq!(address, expected_address);
+                        assert_eq!(port, expected_port);
+                        assert_eq!(enabled, expected_enabled);
+                    } else {
+                        panic!("Mismatch on endpoint type");
+                    }
+                }
+            }
+        }
     }
 }

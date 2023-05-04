@@ -6,7 +6,7 @@ use std::{collections::HashMap, fs, net::SocketAddr, str};
 use anyhow::{bail, Context};
 use base64::{engine::general_purpose, Engine as _};
 use bpfd_api::{
-    config::Config,
+    config::{self, Config},
     util::directories::*,
     v1::{
         list_response, load_request, load_request_common, loader_client::LoaderClient,
@@ -19,7 +19,7 @@ use clap::{Args, Parser, Subcommand};
 use comfy_table::Table;
 use hex::FromHex;
 use itertools::Itertools;
-use log::{debug, info, warn};
+use log::{info, warn};
 use tokio::net::UnixStream;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity, Uri};
 use tower::service_fn;
@@ -198,27 +198,6 @@ async fn main() -> anyhow::Result<()> {
         Config::default()
     };
 
-    let endpoint = &config.grpc.endpoint;
-    // URI is ignored on UDS, so any parsable string works.
-    let address = String::from("http://localhost");
-    let unix = endpoint.unix.clone();
-    match Endpoint::try_from(address)?
-        .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(unix.clone())))
-        .await
-    {
-        Ok(channel) => {
-            info!("Using UNIX socket as transport");
-            match execute_request(&cli.command, channel).await {
-                Ok(_) => return Ok(()),
-                Err(e) => {
-                    eprintln!("Error = {e:?}");
-                    return Ok(());
-                }
-            }
-        }
-        Err(e) => debug!("Error getting UNIX socket channel. Err: {}", e),
-    }
-
     let ca_cert = tokio::fs::read(&config.tls.ca_cert)
         .await
         .context("CA Cert File does not exist")?;
@@ -234,13 +213,60 @@ async fn main() -> anyhow::Result<()> {
         .domain_name("localhost")
         .ca_certificate(ca_cert)
         .identity(identity);
+
+    for endpoint in config.grpc.endpoints {
+        match endpoint {
+            config::Endpoint::Tcp {
+                address,
+                port,
+                enabled,
+            } if !enabled => info!("Skipping disabled endpoint on {address}, port: {port}"),
+            config::Endpoint::Tcp {
+                address,
+                port,
+                enabled: _,
+            } => match execute_request_tcp(&cli.command, address, port, tls_config.clone()).await {
+                Ok(_) => return Ok(()),
+                Err(e) => eprintln!("Error = {e:?}"),
+            },
+            config::Endpoint::Unix { path, enabled } if !enabled => {
+                info!("Skipping disabled endpoint on {path}")
+            }
+            config::Endpoint::Unix { path, enabled: _ } => {
+                match execute_request_unix(&cli.command, path).await {
+                    Ok(_) => return Ok(()),
+                    Err(e) => eprintln!("Error = {e:?}"),
+                }
+            }
+        }
+    }
+    bail!("Failed to execute request")
+}
+
+async fn execute_request_unix(command: &Commands, path: String) -> anyhow::Result<()> {
+    // URI is ignored on UDS, so any parsable string works.
+    let address = String::from("http://localhost");
+    let channel = Endpoint::try_from(address)?
+        .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(path.clone())))
+        .await?;
+
+    info!("Using UNIX socket as transport");
+    execute_request(command, channel).await
+}
+
+async fn execute_request_tcp(
+    command: &Commands,
+    address: String,
+    port: u16,
+    tls_config: ClientTlsConfig,
+) -> anyhow::Result<()> {
     let address = SocketAddr::new(
-        endpoint
-            .address
+        address
             .parse()
-            .unwrap_or_else(|_| panic!("failed to parse address '{}'", endpoint.address)),
-        endpoint.port,
+            .unwrap_or_else(|_| panic!("failed to parse address '{}'", address)),
+        port,
     );
+
     // TODO: Use https (https://github.com/bpfd-dev/bpfd/issues/396)
     let address = format!("http://{address}");
     let channel = Channel::from_shared(address)?
@@ -249,11 +275,7 @@ async fn main() -> anyhow::Result<()> {
         .await?;
 
     info!("Using TLS over TCP socket as transport");
-    if let Err(e) = execute_request(&cli.command, channel).await {
-        eprintln!("Error = {e:?}")
-    }
-
-    Ok(())
+    execute_request(command, channel).await
 }
 
 async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result<()> {

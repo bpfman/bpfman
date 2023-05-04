@@ -19,7 +19,8 @@ There is an example at `scripts/bpfd.toml`, similar to:
   [interface.eth0]
   xdp_mode = "hw" # Valid xdp modes are "hw", "skb" and "drv". Default: "skb".
 
-[grpc.endpoint]
+[[grpc.endpoints]]
+  type = "tcp"
   address = "::1"
   port = 50051
 ```
