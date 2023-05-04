@@ -16,11 +16,23 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .spec.sectionname
+      name: SectionName
+      type: string
+    - jsonPath: .spec.nodeselector
+      name: NodeSelector
+      type: string
     - jsonPath: .spec.priority
       name: Priority
+      priority: 1
       type: string
-    - jsonPath: .spec.direction
-      name: Direction
+    - jsonPath: .spec.interfaceselector
+      name: InterfaceSelector
+      priority: 1
+      type: string
+    - jsonPath: .spec.proceedon
+      name: ProceedOn
+      priority: 1
       type: string
     name: v1alpha1
     schema:

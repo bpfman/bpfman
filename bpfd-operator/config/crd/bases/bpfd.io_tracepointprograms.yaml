@@ -15,7 +15,18 @@ spec:
     singular: tracepointprogram
   scope: Cluster
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .spec.sectionname
+      name: SectionName
+      type: string
+    - jsonPath: .spec.nodeselector
+      name: NodeSelector
+      type: string
+    - jsonPath: .spec.name
+      name: TracePoint
+      priority: 1
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: TracepointProgram is the Schema for the TracepointPrograms API

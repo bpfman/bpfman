@@ -29,8 +29,11 @@ import (
 //+kubebuilder:resource:scope=Cluster
 
 // XdpProgram is the Schema for the XdpPrograms API
-// +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`
-// +kubebuilder:printcolumn:name="Direction",type=string,JSONPath=`.spec.direction`
+// +kubebuilder:printcolumn:name="SectionName",type=string,JSONPath=`.spec.sectionname`
+// +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
+// +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`,priority=1
+// +kubebuilder:printcolumn:name="InterfaceSelector",type=string,JSONPath=`.spec.interfaceselector`,priority=1
+// +kubebuilder:printcolumn:name="ProceedOn",type=string,JSONPath=`.spec.proceedon`,priority=1
 type XdpProgram struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
