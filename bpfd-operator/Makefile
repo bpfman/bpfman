@@ -177,17 +177,17 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 	$(CONTROLLER_GEN) rbac:roleName=operator-role paths="./controllers/bpfd-operator" output:rbac:artifacts:config=config/rbac/bpfd-operator
 
 .PHONY: generate
-generate: manifests generate-register generate-deepcopy generate-typed-clients generate-typed-listers generate-typed-informers ## Generate deepcopy, client, lister, and informer code
+generate: manifests generate-register generate-deepcopy generate-typed-clients generate-typed-listers generate-typed-informers ## Generate ALL auto-generated code.
 
 .PHONY: generate-register
-generate-register:
+generate-register: ## Generate register code see all `zz_generated.register.go` files.
 	go run k8s.io/code-generator/cmd/register-gen \
 		--input-dirs "${APIS_PKG}/apis/v1alpha1" \
 		--output-package "${APIS_PKG}/apis/" \
 		${COMMON_FLAGS}
 
 .PHONY: generate-deepcopy
-generate-deepcopy: ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+generate-deepcopy: ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations see all `zz_generated.register.go` files.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: generate-typed-clients
@@ -230,8 +230,14 @@ lint: ## Run golang-ci linter
 	./hack/verify-golint.sh
 
 .PHONY: test
-test: generate fmt envtest ## Run tests.
+test: generate fmt envtest ## Run Unit tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+
+
+.PHONY: test-integration
+test-integration: ## Run Integration tests.
+	go clean -testcache
+	GOFLAGS="-tags=integration_tests" go test -race -v ./test/integration/...
 
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
@@ -358,10 +364,3 @@ deploy-openshift: manifests kustomize ## Deploy bpfd-operator to the Openshift c
 .PHONY: undeploy-openshift
 undeploy-openshift: ## Undeploy bpfd-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/openshift | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
-
-##@ Testing
-
-.PHONY: test-integration
-test-integration:
-	go clean -testcache
-	GOFLAGS="-tags=integration_tests" go test -race -v ./test/integration/...
