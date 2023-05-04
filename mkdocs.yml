@@ -3,6 +3,7 @@ repo_url: https://github.com/bpfd-dev/bpfd
 edit_uri: edit/main/docs
 extra_css:
   - stylesheets/extra.css
+site_dir: site
 
 theme:
   name: material
@@ -47,20 +48,30 @@ markdown_extensions:
   - tables
 
 nav:
-  - Home:
-    - index.md
-    - Tutorial: tutorial.md
-    - Configuration: configuration.md
-    - Setup and Building bpfd: building-bpfd.md
-    - Example BPF Programs: example-bpf.md
-    - Deploying Example BPF Programs On Local Host: example-bpf-local.md
-    - Deploying Example BPF Programs On Kubernetes: example-bpf-k8s.md
-    - How to Deploy bpfd on Kubernetes: k8s-deployment.md
-    - BPFD Container Images: image-build.md
-    - Linux Capabilities: linux-capabilities.md
+  - Home: index.md
+  - Bpfd on Linux:
+    - Tutorial: bpfd/tutorial.md
+    - Configuration: bpfd/configuration.md
+    - Setup and Building: bpfd/building-bpfd.md
+    - BPFD Container Images: bpfd/image-build.md
+    - Linux Capabilities: bpfd/linux-capabilities.md
+  - Bpfd on Kubernetes: 
+    - Quick start: bpfd-operator/quick-start.md
+    - Development: bpfd-operator/developing.md
+    - API-Reference: bpfd-operator/api-spec.md
+  - Examples:
+    - Example BPF Programs: examples/example-bpf.md
+    - Deploying Example BPF Programs On Local Host: examples/example-bpf-local.md
+    - Deploying Example BPF Programs On Kubernetes: examples/example-bpf-k8s.md
+  - Bytecode Container Images:
     - EBPF Bytecode Image Specifications: shipping-bytecode.md
+  - Conributing:
+    - Guidelines: contributing.md
+    - Bpfd: contributing-bpfd.md
+
+
 
 plugins:
   - search
 
-copyright: Copyright &copy; 2021-2023 The bpfd contribtutors
+copyright: Copyright &copy; 2021-2023 The bpfd contributors
