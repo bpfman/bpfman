@@ -253,9 +253,9 @@ build: fmt ## Build bpfd-operator and bpfd-agent binaries.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: build-images
 build-images: ## Build bpfd, bpfd-agent, and bpfd-operator images.
-	docker build -t ${BPFD_OPERATOR_IMG} -f Containerfile.bpfd-operator ../
-	docker build -t ${BPFD_AGENT_IMG} -f Containerfile.bpfd-agent ../
-	DOCKER_BUILDKIT=1 docker build -t ${BPFD_IMG} -f ../packaging/container-deployment/Containerfile.bpfd.local ../
+	docker build --target bpfd-operator -t ${BPFD_OPERATOR_IMG} -f ../Containerfile ../
+	docker build --target bpfd-agent -t ${BPFD_AGENT_IMG} -f ../Containerfile ../
+	DOCKER_BUILDKIT=1 docker build --target development -t ${BPFD_IMG} -f ../Containerfile ../
 
 .PHONY: push-images
 push-images: ## Push bpfd, bpfd-agent, bpfd-operator images.
@@ -269,7 +269,7 @@ load-images-kind: build-images ## Load bpfd, bpfd-agent, and bpfd-operator image
 
 .PHONY: bundle-build
 bundle-build: ## Build the bundle image.
-	docker build -f Containerfile.bundle -t $(BPFD_OPERATOR_BUNDLE_IMG) .
+	docker build --target bundle -f ../Containerfile -t $(BPFD_OPERATOR_BUNDLE_IMG) ../
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.

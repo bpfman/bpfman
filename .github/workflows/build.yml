@@ -33,7 +33,6 @@ jobs:
           sudo dnf groupinstall -y c-development
           sudo dnf install -y git clang llvm protobuf-compiler cmake perl
       - uses: actions/checkout@v2
-
       - uses: actions/checkout@v2
         with:
           repository: libbpf/libbpf
@@ -184,6 +183,7 @@ jobs:
       BPFD_IMG: "quay.io/bpfd/bpfd:int-test"
       BPFD_AGENT_IMG: "quay.io/bpfd/bpfd-agent:int-test"
       BPFD_OPERATOR_IMG: "quay.io/bpfd/bpfd-operator:int-test"
+      DOCKER_BUILDKIT: 1
       ## This should match what's found in bpfd/bpfd-operator/config/certmanager/kustomization.yaml
       CERTMANAGER_VERSION: "v1.10.1"
     steps:
@@ -199,6 +199,10 @@ jobs:
           key: ${{ runner.os }}-build-codegen-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-build-codegen-
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
       - name: checkout repository
         uses: actions/checkout@v3
         with:
