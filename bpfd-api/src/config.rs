@@ -146,8 +146,9 @@ pub enum Endpoint {
 
 impl Default for Endpoint {
     fn default() -> Self {
-        Endpoint::Unix {
-            path: default_unix(),
+        Endpoint::Tcp {
+            address: default_address(),
+            port: default_port(),
             enabled: default_enabled(),
         }
     }
@@ -285,8 +286,13 @@ mod test {
         assert_eq!(endpoints.len(), 1);
 
         match endpoints.get(0).unwrap() {
-            Endpoint::Unix { path, enabled } => {
-                assert_eq!(path, &default_unix());
+            Endpoint::Tcp {
+                address,
+                port,
+                enabled,
+            } => {
+                assert_eq!(address, &default_address());
+                assert_eq!(port, &default_port());
                 assert_eq!(enabled, &true);
             }
             _ => panic!("Failed to parse empty configuration"),

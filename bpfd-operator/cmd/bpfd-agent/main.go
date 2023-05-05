@@ -40,10 +40,8 @@ import (
 	"github.com/bpfd-dev/bpfd/bpfd-operator/internal/tls"
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	v1 "k8s.io/api/core/v1"
-
 	//+kubebuilder:scaffold:imports
-
-	"google.golang.org/grpc"
+	//"google.golang.org/grpc"
 	//"google.golang.org/grpc/credentials/insecure"
 )
 
@@ -110,9 +108,8 @@ func main() {
 	}
 
 	// Set up a connection to bpfd, block until bpfd is up.
-	addr := fmt.Sprintf("localhost:%d", configFileData.Grpc.Endpoint.Port)
-	setupLog.WithValues("addr", addr).WithValues("creds", creds).Info("Waiting for active connection to bpfd at %s")
-	conn, err := grpc.DialContext(context.Background(), addr, grpc.WithTransportCredentials(creds), grpc.WithBlock())
+	setupLog.WithValues("endpoints", configFileData.Grpc.Endpoints).WithValues("creds", creds).Info("Waiting for active connection to bpfd")
+	conn, err := tls.CreateConnection(configFileData.Grpc.Endpoints, context.Background(), creds)
 	if err != nil {
 		setupLog.Error(err, "unable to connect to bpfd")
 		os.Exit(1)
