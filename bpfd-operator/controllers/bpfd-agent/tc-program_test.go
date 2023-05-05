@@ -76,9 +76,10 @@ func TestTcProgramControllerCreate(t *testing.T) {
 			},
 			Priority:  0,
 			Direction: direction,
-			ProceedOn: []bpfdiov1alpha1.TcProceedOnValue{bpfdiov1alpha1.TcProceedOnValue("ok"),
+			ProceedOn: []bpfdiov1alpha1.TcProceedOnValue{
 				bpfdiov1alpha1.TcProceedOnValue("pipe"),
-				bpfdiov1alpha1.TcProceedOnValue("dispatcher_return")},
+				bpfdiov1alpha1.TcProceedOnValue("dispatcher_return"),
+			},
 		},
 	}
 
@@ -164,7 +165,7 @@ func TestTcProgramControllerCreate(t *testing.T) {
 				Iface:     fakeInt,
 				Priority:  0,
 				Direction: direction,
-				ProceedOn: []int32{0, 3, 30},
+				ProceedOn: []int32{3, 30},
 			},
 		},
 	}

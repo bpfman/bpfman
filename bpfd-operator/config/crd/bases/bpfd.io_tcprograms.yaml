@@ -175,7 +175,6 @@ spec:
                 type: integer
               proceedon:
                 default:
-                - ok
                 - pipe
                 - dispatcher_return
                 description: ProceedOn allows the user to call other tc programs in
