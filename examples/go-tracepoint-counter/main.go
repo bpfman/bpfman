@@ -20,11 +20,12 @@ import (
 )
 
 const (
-	BpfProgramConfigName = "go-tracepoint-counter-example"
-	BpfProgramMapIndex   = "tracepoint_stats_map"
-	DefaultByteCodeFile  = "bpf_bpfel.o"
-	DefaultConfigPath    = "/etc/bpfd/bpfd.toml"
-	DefaultMapDir        = "/run/bpfd/fs/maps"
+	BpfProgramConfigName  = "go-tracepoint-counter-example"
+	BpfProgramMapIndex    = "tracepoint_stats_map"
+	PrimaryByteCodeFile   = "/run/bpfd/examples/go-tracepoint-counter/bpf_bpfel.o"
+	SecondaryByteCodeFile = "bpf_bpfel.o"
+	DefaultConfigPath     = "/etc/bpfd/bpfd.toml"
+	DefaultMapDir         = "/run/bpfd/fs/maps"
 )
 
 type Stats struct {
@@ -38,7 +39,7 @@ func main() {
 
 	// pull the BPFD config management data to determine if we're running on a
 	// system with BPFD available.
-	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTracepoint, DefaultConfigPath, DefaultByteCodeFile)
+	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTracepoint, DefaultConfigPath, PrimaryByteCodeFile, SecondaryByteCodeFile)
 	if err != nil {
 		log.Printf("error processing parameters: %v\n", err)
 		return

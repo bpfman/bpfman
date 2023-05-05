@@ -25,11 +25,12 @@ type Stats struct {
 }
 
 const (
-	DefaultConfigPath    = "/etc/bpfd/bpfd.toml"
-	DefaultMapDir        = "/run/bpfd/fs/maps"
-	DefaultByteCodeFile  = "bpf_bpfel.o"
-	BpfProgramConfigName = "go-tc-counter-example"
-	BpfProgramMapIndex   = "tc_stats_map"
+	DefaultConfigPath     = "/etc/bpfd/bpfd.toml"
+	DefaultMapDir         = "/run/bpfd/fs/maps"
+	PrimaryByteCodeFile   = "/run/bpfd/examples/go-tc-counter/bpf_bpfel.o"
+	SecondaryByteCodeFile = "bpf_bpfel.o"
+	BpfProgramConfigName  = "go-tc-counter-example"
+	BpfProgramMapIndex    = "tc_stats_map"
 )
 
 const (
@@ -42,7 +43,7 @@ func main() {
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	// Parse Input Parameters (CmdLine and Config File)
-	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTc, DefaultConfigPath, DefaultByteCodeFile)
+	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTc, DefaultConfigPath, PrimaryByteCodeFile, SecondaryByteCodeFile)
 	if err != nil {
 		log.Printf("error processing parameters: %v\n", err)
 		return

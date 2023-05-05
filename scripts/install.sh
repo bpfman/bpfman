@@ -67,6 +67,38 @@ del_svc() {
     rm -f "${DST_SVC_PATH}/${svc_name}.service"
 }
 
+copy_examples_bytecode() {
+    example_name=$1
+    if [ -z "${example_name}" ]; then
+        echo "Example name required"
+        exit 1
+    fi
+    bytecode_name=$2
+    if [ -z "${bytecode_name}" ]; then
+        echo "Binary name required"
+        exit 1
+    fi
+    user_name=$3
+    if [ -z "${user_name}" ]; then
+        user_name=${bin_name}
+    fi
+    user_group=$4
+    if [ -z "${user_group}" ]; then
+        user_group=${bin_name}
+    fi
+
+    echo "  Copying \"${example_name}/${bytecode_name}\" and chown \"${user_name}:${user_group}\""
+    mkdir -p "${RTDIR_EXAMPLES}/${example_name}"
+    cp "${SRC_EXAMPLE_PATH}/${example_name}/${bytecode_name}" "${RTDIR_EXAMPLES}/${example_name}/${bytecode_name}"
+    chown -R ${user_name}:${user_group} "${RTDIR_EXAMPLES}"
+}
+
+copy_examples() {
+    copy_examples_bytecode "${SRC_EXAMPLE_TC}" "${SRC_EXAMPLE_BYTECODE}" "${USER_BPFD}" "${USER_GROUP}"
+    copy_examples_bytecode "${SRC_EXAMPLE_TRACEPOINT}" "${SRC_EXAMPLE_BYTECODE}" "${USER_BPFD}" "${USER_GROUP}"
+    copy_examples_bytecode "${SRC_EXAMPLE_XDP}" "${SRC_EXAMPLE_BYTECODE}" "${USER_BPFD}" "${USER_GROUP}"
+}
+
 install() {
     reinstall=$1
     if [ -z "${reinstall}" ]; then
@@ -97,6 +129,9 @@ install() {
             systemctl start ${BIN_BPFD}.service
         fi
     fi
+
+    echo "Copy examples bytecode:"
+    copy_examples
 }
 
 uninstall() {

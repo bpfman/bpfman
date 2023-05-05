@@ -59,7 +59,7 @@ type ParameterData struct {
 	BytecodeSrc    int
 }
 
-func ParseParamData(progType ProgType, configFilePath string, defaultBytecodeFile string) (ParameterData, error) {
+func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFile string, secondaryBytecodeFile string) (ParameterData, error) {
 	var paramData ParameterData
 	paramData.BytecodeSrc = SrcNone
 
@@ -170,9 +170,20 @@ func ParseParamData(progType ProgType, configFilePath string, defaultBytecodeFil
 	// If bytecode source not entered not entered on Commandline, set to default.
 	if paramData.BytecodeSrc == SrcNone {
 		// Else default to local bytecode file
-		path, err := filepath.Abs(defaultBytecodeFile)
+		path, err := filepath.Abs(primaryBytecodeFile)
+		if err == nil {
+			_, err = os.Stat(path);
+		}
 		if err != nil {
-			return paramData, fmt.Errorf("couldn't find bpf elf file: %v", err)
+			log.Printf("Unable to find primary bytecode file: %s", primaryBytecodeFile)
+			path, err = filepath.Abs(secondaryBytecodeFile)
+			if err == nil {
+				_, err = os.Stat(path);
+			}
+			if err != nil {
+				log.Printf("Unable to find secondary bytecode file: %s", secondaryBytecodeFile)
+				return paramData, fmt.Errorf("couldn't find bpf elf file: %v", err)
+			}
 		}
 
 		paramData.BytecodeSource = &gobpfd.LoadRequestCommon{
