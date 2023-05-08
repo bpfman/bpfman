@@ -9,7 +9,10 @@ use bpfd_api::{
     config::Config,
     util::directories::*,
     v1::{
-        list_response, load_request, load_request_common, loader_client::LoaderClient,
+        list_response,
+        load_request::{self, AttachInfo},
+        load_request_common,
+        loader_client::LoaderClient,
         BytecodeImage, ListRequest, LoadRequest, LoadRequestCommon, TcAttachInfo,
         TracepointAttachInfo, UnloadRequest, XdpAttachInfo,
     },
@@ -251,6 +254,66 @@ impl std::fmt::Display for ProgTable {
     }
 }
 
+impl LoadCommands {
+    fn get_prog_type(&self) -> ProgramType {
+        match self {
+            LoadCommands::Xdp { .. } => ProgramType::Xdp,
+            LoadCommands::Tc { .. } => ProgramType::Tc,
+            LoadCommands::Tracepoint { .. } => ProgramType::Tracepoint,
+        }
+    }
+
+    fn get_attach_type(&self) -> Result<Option<AttachInfo>, anyhow::Error> {
+        match self {
+            LoadCommands::Xdp {
+                iface,
+                priority,
+                proceed_on,
+            } => {
+                let proc_on = match XdpProceedOn::from_strings(proceed_on) {
+                    Ok(p) => p,
+                    Err(e) => bail!("error parsing proceed_on {e}"),
+                };
+                Ok(Some(load_request::AttachInfo::XdpAttachInfo(
+                    XdpAttachInfo {
+                        priority: *priority,
+                        iface: iface.to_string(),
+                        position: 0,
+                        proceed_on: proc_on.as_action_vec(),
+                    },
+                )))
+            }
+            LoadCommands::Tc {
+                direction,
+                iface,
+                priority,
+                proceed_on,
+            } => {
+                match direction.as_str() {
+                    "ingress" | "egress" => (),
+                    other => bail!("{} is not a valid direction", other),
+                };
+                let proc_on = match TcProceedOn::from_strings(proceed_on) {
+                    Ok(p) => p,
+                    Err(e) => bail!("error parsing proceed_on {e}"),
+                };
+                Ok(Some(load_request::AttachInfo::TcAttachInfo(TcAttachInfo {
+                    priority: *priority,
+                    iface: iface.to_string(),
+                    position: 0,
+                    direction: direction.to_string(),
+                    proceed_on: proc_on.as_action_vec(),
+                })))
+            }
+            LoadCommands::Tracepoint { tracepoint } => Ok(Some(
+                load_request::AttachInfo::TracepointAttachInfo(TracepointAttachInfo {
+                    tracepoint: tracepoint.to_string(),
+                }),
+            )),
+        }
+    }
+}
+
 fn parse_global_arg(global_arg: &str) -> Result<GlobalArg, std::io::Error> {
     let mut parts = global_arg.split('=');
 
@@ -353,57 +416,11 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
     let mut client = LoaderClient::new(channel);
     match command {
         Commands::LoadFromFile(l) => {
-            let prog_type = match l.command {
-                LoadCommands::Xdp { .. } => ProgramType::Xdp,
-                LoadCommands::Tc { .. } => ProgramType::Tc,
-                LoadCommands::Tracepoint { .. } => ProgramType::Tracepoint,
+            let prog_type = l.command.get_prog_type();
+            let attach_type = match l.command.get_attach_type() {
+                Ok(t) => t,
+                Err(e) => bail!(e),
             };
-            let attach_type = match &l.command {
-                LoadCommands::Xdp {
-                    iface,
-                    priority,
-                    proceed_on,
-                } => {
-                    let proc_on = match XdpProceedOn::from_strings(proceed_on) {
-                        Ok(p) => p,
-                        Err(e) => bail!("error parsing proceed_on {e}"),
-                    };
-                    Some(load_request::AttachInfo::XdpAttachInfo(XdpAttachInfo {
-                        priority: *priority,
-                        iface: iface.to_string(),
-                        position: 0,
-                        proceed_on: proc_on.as_action_vec(),
-                    }))
-                }
-                LoadCommands::Tc {
-                    direction,
-                    iface,
-                    priority,
-                    proceed_on,
-                } => {
-                    match direction.as_str() {
-                        "ingress" | "egress" => (),
-                        other => bail!("{} is not a valid direction", other),
-                    };
-                    let proc_on = match TcProceedOn::from_strings(proceed_on) {
-                        Ok(p) => p,
-                        Err(e) => bail!("error parsing proceed_on {e}"),
-                    };
-                    Some(load_request::AttachInfo::TcAttachInfo(TcAttachInfo {
-                        priority: *priority,
-                        iface: iface.to_string(),
-                        position: 0,
-                        direction: direction.to_string(),
-                        proceed_on: proc_on.as_action_vec(),
-                    }))
-                }
-                LoadCommands::Tracepoint { tracepoint } => Some(
-                    load_request::AttachInfo::TracepointAttachInfo(TracepointAttachInfo {
-                        tracepoint: tracepoint.to_string(),
-                    }),
-                ),
-            };
-
             let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
 
             if let Some(global) = &l.global {
@@ -427,57 +444,11 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
             println!("{}", response.id);
         }
         Commands::LoadFromImage(l) => {
-            let prog_type = match l.command {
-                LoadCommands::Xdp { .. } => ProgramType::Xdp,
-                LoadCommands::Tc { .. } => ProgramType::Tc,
-                LoadCommands::Tracepoint { .. } => ProgramType::Tracepoint,
+            let prog_type = l.command.get_prog_type();
+            let attach_type = match l.command.get_attach_type() {
+                Ok(t) => t,
+                Err(e) => bail!(e),
             };
-            let attach_type = match &l.command {
-                LoadCommands::Xdp {
-                    iface,
-                    priority,
-                    proceed_on,
-                } => {
-                    let proc_on = match XdpProceedOn::from_strings(proceed_on) {
-                        Ok(p) => p,
-                        Err(e) => bail!("error parsing proceed_on {e}"),
-                    };
-                    Some(load_request::AttachInfo::XdpAttachInfo(XdpAttachInfo {
-                        priority: *priority,
-                        iface: iface.to_string(),
-                        position: 0,
-                        proceed_on: proc_on.as_action_vec(),
-                    }))
-                }
-                LoadCommands::Tc {
-                    direction,
-                    iface,
-                    priority,
-                    proceed_on,
-                } => {
-                    match direction.as_str() {
-                        "ingress" | "egress" => (),
-                        other => bail!("{} is not a valid direction", other),
-                    };
-                    let proc_on = match TcProceedOn::from_strings(proceed_on) {
-                        Ok(p) => p,
-                        Err(e) => bail!("error parsing proceed_on {e}"),
-                    };
-                    Some(load_request::AttachInfo::TcAttachInfo(TcAttachInfo {
-                        priority: *priority,
-                        iface: iface.to_string(),
-                        position: 0,
-                        direction: direction.to_string(),
-                        proceed_on: proc_on.as_action_vec(),
-                    }))
-                }
-                LoadCommands::Tracepoint { tracepoint } => Some(
-                    load_request::AttachInfo::TracepointAttachInfo(TracepointAttachInfo {
-                        tracepoint: tracepoint.to_string(),
-                    }),
-                ),
-            };
-
             let image_pull_policy: ImagePullPolicy = l
                 .image_pull_policy
                 .as_str()
