@@ -66,7 +66,7 @@ type TcProgramSpec struct {
 	// Multiple values are supported by repeating the parameter.
 	// +optional
 	// +kubebuilder:validation:MaxItems=11
-	// +kubebuilder:default:={ok,pipe,dispatcher_return}
+	// +kubebuilder:default:={pipe,dispatcher_return}
 	ProceedOn []TcProceedOnValue `json:"proceedon"`
 }
 

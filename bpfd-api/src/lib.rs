@@ -402,7 +402,6 @@ pub struct TcProceedOn(pub(crate) Vec<TcProceedOnEntry>);
 impl Default for TcProceedOn {
     fn default() -> Self {
         TcProceedOn(vec![
-            TcProceedOnEntry::Ok,
             TcProceedOnEntry::Pipe,
             TcProceedOnEntry::DispatcherReturn,
         ])
