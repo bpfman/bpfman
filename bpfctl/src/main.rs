@@ -343,7 +343,7 @@ impl Commands {
                         .as_str()
                         .try_into()
                         .expect("invalid image pull policy");
-                    match l.registry_auth.clone() {
+                    let (username, password) = match l.registry_auth.clone() {
                         Some(a) => {
                             let auth_raw = general_purpose::STANDARD_NO_PAD.decode(a)?;
 
@@ -351,20 +351,17 @@ impl Commands {
 
                             let (username, password) = auth_string.split(':').next_tuple().unwrap();
 
-                            Some(load_request_common::Location::Image(BytecodeImage {
-                                url: l.image_url.clone(),
-                                image_pull_policy: image_pull_policy as i32,
-                                username: username.to_owned(),
-                                password: password.to_owned(),
-                            }))
+                            (username.to_owned(), password.to_owned())
                         }
-                        None => Some(load_request_common::Location::Image(BytecodeImage {
-                            url: l.image_url.clone(),
-                            image_pull_policy: image_pull_policy as i32,
-                            username: "".to_owned(),
-                            password: "".to_owned(),
-                        })),
-                    }
+                        None => ("".to_owned(), "".to_owned()),
+                    };
+
+                    Some(load_request_common::Location::Image(BytecodeImage {
+                        url: l.image_url.clone(),
+                        image_pull_policy: image_pull_policy as i32,
+                        username,
+                        password,
+                    }))
                 };
             }
             _ => bail!("Unknown command"),
