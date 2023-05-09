@@ -138,8 +138,8 @@ A good commit message should describe what changed and why.
 
   Examples:
 
-* bpfd: validate program section names
-* bpf: add dispatcher program test slot
+    * bpfd: validate program section names
+    * bpf: add dispatcher program test slot
 
 2. Keep the second line blank.
 3. Wrap all other lines at 72 columns (except for long URLs).
@@ -182,4 +182,4 @@ before you submit your code:
 * That Rust code has been formatted with `cargo +nightly fmt` and that all clippy lints have been fixed - you can find failing lints with `cargo +nightly clippy`
 * That Go code has been formatted and linted
 * That unit tests are passing locally with `cargo test`
-* That integration tests are passing locally
+* That integration tests are passing locally `cargo xtask integration-test`
