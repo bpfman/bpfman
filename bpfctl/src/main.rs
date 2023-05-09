@@ -9,7 +9,10 @@ use bpfd_api::{
     config::Config,
     util::directories::*,
     v1::{
-        list_response, load_request, load_request_common, loader_client::LoaderClient,
+        list_response,
+        load_request::{self, AttachInfo},
+        load_request_common,
+        loader_client::LoaderClient,
         BytecodeImage, ListRequest, LoadRequest, LoadRequestCommon, TcAttachInfo,
         TracepointAttachInfo, UnloadRequest, XdpAttachInfo,
     },
@@ -158,6 +161,236 @@ struct GlobalArg {
     value: Vec<u8>,
 }
 
+struct ProgTable(Table);
+
+impl ProgTable {
+    fn new() -> Self {
+        let mut table = Table::new();
+
+        table.load_preset(comfy_table::presets::NOTHING);
+        table.set_header(vec!["UUID", "Type", "Name", "Location", "Metadata"]);
+        ProgTable(table)
+    }
+
+    fn add_row(
+        &mut self,
+        uuid: String,
+        type_: String,
+        name: String,
+        location: String,
+        metadata: String,
+    ) {
+        self.0.add_row(vec![uuid, type_, name, location, metadata]);
+    }
+
+    fn add_response_prog(&mut self, r: list_response::ListResult) -> anyhow::Result<()> {
+        let prog_type: ProgramType = r.program_type.try_into()?;
+        match prog_type {
+            ProgramType::Xdp => {
+                if let Some(list_response::list_result::AttachInfo::XdpAttachInfo(
+                    XdpAttachInfo {
+                        priority,
+                        iface,
+                        position,
+                        proceed_on,
+                    },
+                )) = r.attach_info
+                {
+                    let proc_on = match XdpProceedOn::from_int32s(proceed_on) {
+                        Ok(p) => p,
+                        Err(e) => bail!("error parsing proceed_on {e}"),
+                    };
+                    self.add_row(r.id.to_string(),
+				  "xdp".to_string(),
+				  r.section_name.unwrap(),
+				  r.location.unwrap().to_string(),
+				  format!(r#"{{ priority: {priority}, iface: {iface}, position: {position}, proceed_on: {proc_on} }}"#));
+                }
+            }
+            ProgramType::Tc => {
+                if let Some(list_response::list_result::AttachInfo::TcAttachInfo(TcAttachInfo {
+                    priority,
+                    iface,
+                    position,
+                    direction,
+                    proceed_on,
+                })) = r.attach_info
+                {
+                    let proc_on = match TcProceedOn::from_int32s(proceed_on) {
+                        Ok(p) => p,
+                        Err(e) => bail!("error parsing proceed_on {e}"),
+                    };
+                    self.add_row(r.id.to_string(),
+				  "tc".to_string(),
+				  r.section_name.unwrap(),
+				  r.location.unwrap().to_string(),
+				  format!(r#"{{ priority: {priority}, iface: {iface}, position: {position}, direction: {direction}, proceed_on: {proc_on} }}"#))
+                }
+            }
+            ProgramType::Tracepoint => {
+                if let Some(list_response::list_result::AttachInfo::TracepointAttachInfo(
+                    TracepointAttachInfo { tracepoint },
+                )) = r.attach_info
+                {
+                    self.add_row(
+                        r.id.to_string(),
+                        "tracepoint".to_string(),
+                        r.section_name.unwrap(),
+                        r.location.unwrap().to_string(),
+                        format!(r#"{{ tracepoint: {tracepoint} }}"#),
+                    );
+                }
+            }
+            // skip unknown program types
+            _ => {}
+        }
+        Ok(())
+    }
+}
+
+impl std::fmt::Display for ProgTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl LoadCommands {
+    fn get_prog_type(&self) -> ProgramType {
+        match self {
+            LoadCommands::Xdp { .. } => ProgramType::Xdp,
+            LoadCommands::Tc { .. } => ProgramType::Tc,
+            LoadCommands::Tracepoint { .. } => ProgramType::Tracepoint,
+        }
+    }
+
+    fn get_attach_type(&self) -> Result<Option<AttachInfo>, anyhow::Error> {
+        match self {
+            LoadCommands::Xdp {
+                iface,
+                priority,
+                proceed_on,
+            } => {
+                let proc_on = match XdpProceedOn::from_strings(proceed_on) {
+                    Ok(p) => p,
+                    Err(e) => bail!("error parsing proceed_on {e}"),
+                };
+                Ok(Some(load_request::AttachInfo::XdpAttachInfo(
+                    XdpAttachInfo {
+                        priority: *priority,
+                        iface: iface.to_string(),
+                        position: 0,
+                        proceed_on: proc_on.as_action_vec(),
+                    },
+                )))
+            }
+            LoadCommands::Tc {
+                direction,
+                iface,
+                priority,
+                proceed_on,
+            } => {
+                match direction.as_str() {
+                    "ingress" | "egress" => (),
+                    other => bail!("{} is not a valid direction", other),
+                };
+                let proc_on = match TcProceedOn::from_strings(proceed_on) {
+                    Ok(p) => p,
+                    Err(e) => bail!("error parsing proceed_on {e}"),
+                };
+                Ok(Some(load_request::AttachInfo::TcAttachInfo(TcAttachInfo {
+                    priority: *priority,
+                    iface: iface.to_string(),
+                    position: 0,
+                    direction: direction.to_string(),
+                    proceed_on: proc_on.as_action_vec(),
+                })))
+            }
+            LoadCommands::Tracepoint { tracepoint } => Ok(Some(
+                load_request::AttachInfo::TracepointAttachInfo(TracepointAttachInfo {
+                    tracepoint: tracepoint.to_string(),
+                }),
+            )),
+        }
+    }
+}
+
+impl Commands {
+    fn get_request_common(&self) -> anyhow::Result<Option<LoadRequestCommon>> {
+        let id: &Option<String>;
+        let section_name: &String;
+        let global: &Option<Vec<GlobalArg>>;
+        let command: &LoadCommands;
+        let location: Option<load_request_common::Location>;
+
+        let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
+
+        match self {
+            Commands::LoadFromFile(l) => {
+                id = &l.id;
+                section_name = &l.section_name;
+                global = &l.global;
+                command = &l.command;
+                location = Some(load_request_common::Location::File(l.path.clone()));
+            }
+            Commands::LoadFromImage(l) => {
+                id = &l.id;
+                section_name = &l.section_name;
+                global = &l.global;
+                command = &l.command;
+                location = {
+                    let image_pull_policy: ImagePullPolicy = l
+                        .image_pull_policy
+                        .as_str()
+                        .try_into()
+                        .expect("invalid image pull policy");
+                    let (username, password) = match l.registry_auth.clone() {
+                        Some(a) => {
+                            let auth_raw = general_purpose::STANDARD_NO_PAD.decode(a)?;
+
+                            let auth_string = String::from_utf8(auth_raw)?;
+
+                            let (username, password) = auth_string.split(':').next_tuple().unwrap();
+
+                            (username.to_owned(), password.to_owned())
+                        }
+                        None => ("".to_owned(), "".to_owned()),
+                    };
+
+                    Some(load_request_common::Location::Image(BytecodeImage {
+                        url: l.image_url.clone(),
+                        image_pull_policy: image_pull_policy as i32,
+                        username,
+                        password,
+                    }))
+                };
+            }
+            _ => bail!("Unknown command"),
+        };
+
+        if let Some(global) = global {
+            for g in global.iter() {
+                global_data.insert(g.name.to_string(), g.value.clone());
+            }
+        }
+
+        Ok(Some(LoadRequestCommon {
+            id: id.clone(),
+            location,
+            section_name: section_name.to_string(),
+            program_type: command.get_prog_type() as i32,
+            global_data,
+        }))
+    }
+
+    fn get_attach_info(&self) -> anyhow::Result<Option<AttachInfo>> {
+        match self {
+            Commands::LoadFromFile(l) => l.command.get_attach_type(),
+            Commands::LoadFromImage(l) => l.command.get_attach_type(),
+            _ => bail!("Unknown command"),
+        }
+    }
+}
+
 fn parse_global_arg(global_arg: &str) -> Result<GlobalArg, std::io::Error> {
     let mut parts = global_arg.split('=');
 
@@ -259,180 +492,21 @@ async fn main() -> anyhow::Result<()> {
 async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result<()> {
     let mut client = LoaderClient::new(channel);
     match command {
-        Commands::LoadFromFile(l) => {
-            let prog_type = match l.command {
-                LoadCommands::Xdp { .. } => ProgramType::Xdp,
-                LoadCommands::Tc { .. } => ProgramType::Tc,
-                LoadCommands::Tracepoint { .. } => ProgramType::Tracepoint,
-            };
-            let attach_type = match &l.command {
-                LoadCommands::Xdp {
-                    iface,
-                    priority,
-                    proceed_on,
-                } => {
-                    let proc_on = match XdpProceedOn::from_strings(proceed_on) {
-                        Ok(p) => p,
-                        Err(e) => bail!("error parsing proceed_on {e}"),
-                    };
-                    Some(load_request::AttachInfo::XdpAttachInfo(XdpAttachInfo {
-                        priority: *priority,
-                        iface: iface.to_string(),
-                        position: 0,
-                        proceed_on: proc_on.as_action_vec(),
-                    }))
-                }
-                LoadCommands::Tc {
-                    direction,
-                    iface,
-                    priority,
-                    proceed_on,
-                } => {
-                    match direction.as_str() {
-                        "ingress" | "egress" => (),
-                        other => bail!("{} is not a valid direction", other),
-                    };
-                    let proc_on = match TcProceedOn::from_strings(proceed_on) {
-                        Ok(p) => p,
-                        Err(e) => bail!("error parsing proceed_on {e}"),
-                    };
-                    Some(load_request::AttachInfo::TcAttachInfo(TcAttachInfo {
-                        priority: *priority,
-                        iface: iface.to_string(),
-                        position: 0,
-                        direction: direction.to_string(),
-                        proceed_on: proc_on.as_action_vec(),
-                    }))
-                }
-                LoadCommands::Tracepoint { tracepoint } => Some(
-                    load_request::AttachInfo::TracepointAttachInfo(TracepointAttachInfo {
-                        tracepoint: tracepoint.to_string(),
-                    }),
-                ),
+        Commands::LoadFromFile(_) | Commands::LoadFromImage(_) => {
+            let attach_info = match command.get_attach_info() {
+                Ok(t) => t,
+                Err(e) => bail!(e),
             };
 
-            let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
-
-            if let Some(global) = &l.global {
-                for g in global.iter() {
-                    global_data.insert(g.name.to_string(), g.value.clone());
-                }
-            }
-            let location = Some(load_request_common::Location::File(l.path.clone()));
-
-            let request = tonic::Request::new(LoadRequest {
-                common: Some(LoadRequestCommon {
-                    id: l.id.clone(),
-                    location,
-                    section_name: l.section_name.to_string(),
-                    program_type: prog_type as i32,
-                    global_data,
-                }),
-                attach_info: attach_type,
-            });
-            let response = client.load(request).await?.into_inner();
-            println!("{}", response.id);
-        }
-        Commands::LoadFromImage(l) => {
-            let prog_type = match l.command {
-                LoadCommands::Xdp { .. } => ProgramType::Xdp,
-                LoadCommands::Tc { .. } => ProgramType::Tc,
-                LoadCommands::Tracepoint { .. } => ProgramType::Tracepoint,
-            };
-            let attach_type = match &l.command {
-                LoadCommands::Xdp {
-                    iface,
-                    priority,
-                    proceed_on,
-                } => {
-                    let proc_on = match XdpProceedOn::from_strings(proceed_on) {
-                        Ok(p) => p,
-                        Err(e) => bail!("error parsing proceed_on {e}"),
-                    };
-                    Some(load_request::AttachInfo::XdpAttachInfo(XdpAttachInfo {
-                        priority: *priority,
-                        iface: iface.to_string(),
-                        position: 0,
-                        proceed_on: proc_on.as_action_vec(),
-                    }))
-                }
-                LoadCommands::Tc {
-                    direction,
-                    iface,
-                    priority,
-                    proceed_on,
-                } => {
-                    match direction.as_str() {
-                        "ingress" | "egress" => (),
-                        other => bail!("{} is not a valid direction", other),
-                    };
-                    let proc_on = match TcProceedOn::from_strings(proceed_on) {
-                        Ok(p) => p,
-                        Err(e) => bail!("error parsing proceed_on {e}"),
-                    };
-                    Some(load_request::AttachInfo::TcAttachInfo(TcAttachInfo {
-                        priority: *priority,
-                        iface: iface.to_string(),
-                        position: 0,
-                        direction: direction.to_string(),
-                        proceed_on: proc_on.as_action_vec(),
-                    }))
-                }
-                LoadCommands::Tracepoint { tracepoint } => Some(
-                    load_request::AttachInfo::TracepointAttachInfo(TracepointAttachInfo {
-                        tracepoint: tracepoint.to_string(),
-                    }),
-                ),
-            };
-
-            let image_pull_policy: ImagePullPolicy = l
-                .image_pull_policy
-                .as_str()
-                .try_into()
-                .expect("invalid image pull policy");
-
-            let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
-
-            if let Some(global) = &l.global {
-                for g in global.iter() {
-                    global_data.insert(g.name.to_string(), g.value.clone());
-                }
-            }
-
-            let location = match l.registry_auth.clone() {
-                Some(a) => {
-                    let auth_raw = general_purpose::STANDARD_NO_PAD.decode(a)?;
-
-                    let auth_string = String::from_utf8(auth_raw)?;
-
-                    let (username, password) = auth_string.split(':').next_tuple().unwrap();
-
-                    Some(load_request_common::Location::Image(BytecodeImage {
-                        url: l.image_url.clone(),
-                        image_pull_policy: image_pull_policy as i32,
-                        username: username.to_owned(),
-                        password: password.to_owned(),
-                    }))
-                }
-                None => Some(load_request_common::Location::Image(BytecodeImage {
-                    url: l.image_url.clone(),
-                    image_pull_policy: image_pull_policy as i32,
-                    username: "".to_owned(),
-                    password: "".to_owned(),
-                })),
+            let common = match command.get_request_common() {
+                Ok(t) => t,
+                Err(e) => bail!(e),
             };
 
             let request = tonic::Request::new(LoadRequest {
-                common: Some(LoadRequestCommon {
-                    id: l.id.clone(),
-                    location,
-                    section_name: l.section_name.to_string(),
-                    program_type: prog_type as i32,
-                    global_data,
-                }),
-                attach_info: attach_type,
+                common,
+                attach_info,
             });
-
             let response = client.load(request).await?.into_inner();
             println!("{}", response.id);
         }
@@ -444,75 +518,11 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
         Commands::List {} => {
             let request = tonic::Request::new(ListRequest { program_type: None });
             let response = client.list(request).await?.into_inner();
-            let mut table = Table::new();
-            table.load_preset(comfy_table::presets::NOTHING);
-            table.set_header(vec!["UUID", "Type", "Name", "Location", "Metadata"]);
+            let mut table = ProgTable::new();
+
             for r in response.results {
-                let prog_type: ProgramType = r.program_type.try_into()?;
-                match prog_type {
-                    ProgramType::Xdp => {
-                        if let Some(list_response::list_result::AttachInfo::XdpAttachInfo(
-                            XdpAttachInfo {
-                                priority,
-                                iface,
-                                position,
-                                proceed_on,
-                            },
-                        )) = r.attach_info
-                        {
-                            let proc_on = match XdpProceedOn::from_int32s(proceed_on) {
-                                Ok(p) => p,
-                                Err(e) => bail!("error parsing proceed_on {e}"),
-                            };
-                            table.add_row(vec![
-                            r.id.to_string(),
-                            "xdp".to_string(),
-                            r.section_name.unwrap(),
-                            r.location.unwrap().to_string(),
-                            format!(r#"{{ priority: {priority}, iface: {iface}, position: {position}, proceed_on: {proc_on} }}"#)
-                        ]);
-                        }
-                    }
-                    ProgramType::Tc => {
-                        if let Some(list_response::list_result::AttachInfo::TcAttachInfo(
-                            TcAttachInfo {
-                                priority,
-                                iface,
-                                position,
-                                direction,
-                                proceed_on,
-                            },
-                        )) = r.attach_info
-                        {
-                            let proc_on = match TcProceedOn::from_int32s(proceed_on) {
-                                Ok(p) => p,
-                                Err(e) => bail!("error parsing proceed_on {e}"),
-                            };
-                            table.add_row(vec![
-                                r.id.to_string(),
-                                "tc".to_string(),
-                                r.section_name.unwrap(),
-                                r.location.unwrap().to_string(),
-                                format!(r#"{{ priority: {priority}, iface: {iface}, position: {position}, direction: {direction}, proceed_on: {proc_on} }}"#)
-                            ]);
-                        }
-                    }
-                    ProgramType::Tracepoint => {
-                        if let Some(list_response::list_result::AttachInfo::TracepointAttachInfo(
-                            TracepointAttachInfo { tracepoint },
-                        )) = r.attach_info
-                        {
-                            table.add_row(vec![
-                                r.id.to_string(),
-                                "tracepoint".to_string(),
-                                r.section_name.unwrap(),
-                                r.location.unwrap().to_string(),
-                                format!(r#"{{ tracepoint: {tracepoint} }}"#),
-                            ]);
-                        }
-                    }
-                    // skip unknown program types
-                    _ => {}
+                if let Err(e) = table.add_response_prog(r) {
+                    bail!(e)
                 }
             }
             println!("{table}");
