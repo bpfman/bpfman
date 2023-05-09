@@ -41,32 +41,35 @@ enum Commands {
     /// Load a BPF program packaged in a OCI container image from a given registry.
     LoadFromImage(LoadImageArgs),
     /// Unload a BPF program using the UUID.
-    Unload { id: String },
+    Unload(UnloadArgs),
     /// List all BPF programs loaded via bpfd.
     List,
 }
 
 #[derive(Args)]
 struct LoadFileArgs {
-    /// Optional: Program uuid to be used by bpfd. If not
-    /// specified, bpfd will generate a uuid.
-    #[clap(short, long)]
-    id: Option<String>,
+    /// Required: Location of local bytecode file
+    /// Example: --path /run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
+    #[clap(short, long, verbatim_doc_comment)]
+    path: String,
 
-    /// Name of the ELF section from the object file.
-    #[clap(short, long, default_value = "")]
+    /// Required: Name of the ELF section from the object file.
+    #[clap(short, long)]
     section_name: String,
 
-    /// Optional: Global variables to be set when program is loaded. Format: <NAME>=<Hex Value>
+    /// Optional: Program uuid to be used by bpfd. If not specified, bpfd will generate
+    /// a uuid.
+    #[clap(long, verbatim_doc_comment)]
+    id: Option<String>,
+
+    /// Optional: Global variables to be set when program is loaded.
+    /// Format: <NAME>=<Hex Value>
     ///
     /// This is a very low level primitive. The caller is responsible for formatting
     /// the byte string appropriately considering such things as size, endianness,
     /// alignment and packing of data structures.
-    #[clap(short, long, num_args(1..), value_parser=parse_global_arg)]
+    #[clap(short, long, verbatim_doc_comment, num_args(1..), value_parser=parse_global_arg)]
     global: Option<Vec<GlobalArg>>,
-
-    /// Required: Location of Local bytecode file
-    path: String,
 
     #[clap(subcommand)]
     command: LoadCommands,
@@ -74,35 +77,38 @@ struct LoadFileArgs {
 
 #[derive(Args)]
 struct LoadImageArgs {
-    /// Optional: Program uuid to be used by bpfd. If not
-    /// specified, bpfd will generate a uuid.
-    #[clap(short, long)]
-    id: Option<String>,
+    /// Required: Container Image URL.
+    /// Example: --image-url quay.io/bpfd-bytecode/xdp_pass:latest
+    #[clap(short, long, verbatim_doc_comment)]
+    image_url: String,
 
-    /// Name of the ELF section from the object file.
+    /// Optional: Pull policy for remote images. Valid values: [Always, IfNotPresent, Never]
+    #[clap(short, long, default_value = "IfNotPresent")]
+    pull_policy: String,
+
+    /// Optional: Registry auth for authenticating with the specified image registry.
+    /// This should be base64 encoded from the '<username>:<password>' string just like
+    /// it's stored in the docker/podman host config.
+    /// Example: --registry_auth "YnjrcKw63PhDcQodiU9hYxQ2"
+    #[clap(short, long, verbatim_doc_comment)]
+    registry_auth: Option<String>,
+
+    /// Optional: Name of the ELF section from the object file.
     #[clap(short, long, default_value = "")]
     section_name: String,
 
-    /// Required: Container Image URL
-    #[clap(long)]
-    image_url: String,
+    /// Optional: Program uuid to be used by bpfd. If not specified, bpfd will generate
+    /// a uuid.
+    #[clap(long, verbatim_doc_comment)]
+    id: Option<String>,
 
-    /// ImagePullPolicy defaults to 'IfNotPresent'
-    #[clap(long, default_value = "IfNotPresent")]
-    image_pull_policy: String,
-
-    /// registry auth for authenticating with the specified image registry this should
-    /// be base64 encoded from the '<username>:<password>' string just like it's stored
-    /// in the docker/podman host config.
-    #[clap(short, long)]
-    registry_auth: Option<String>,
-
-    /// Optional: Global variables to be set when program is loaded. Format: <NAME>=<Hex Value>
+    /// Optional: Global variables to be set when program is loaded.
+    /// Format: <NAME>=<Hex Value>
     ///
     /// This is a very low level primitive. The caller is responsible for formatting
     /// the byte string appropriately considering such things as size, endianness,
     /// alignment and packing of data structures.
-    #[clap(short, long, num_args(1..), value_parser=parse_global_arg)]
+    #[clap(short, long, verbatim_doc_comment, num_args(1..), value_parser=parse_global_arg)]
     global: Option<Vec<GlobalArg>>,
 
     #[clap(subcommand)]
@@ -111,53 +117,65 @@ struct LoadImageArgs {
 
 #[derive(Subcommand)]
 enum LoadCommands {
+    /// Install an eBPF program on the XDP hook point for a given interface.
     Xdp {
         /// Required: Interface to load program on.
         #[clap(short, long)]
         iface: String,
+
         /// Required: Priority to run program in chain. Lower value runs first.
-        #[clap(long)]
+        #[clap(short, long)]
         priority: i32,
+
         /// Optional: Proceed to call other programs in chain on this exit code.
         /// Multiple values supported by repeating the parameter.
-        /// Possible values: [aborted, drop, pass, tx, redirect, dispatcher_return]
-        /// Default values: pass and dispatcher_return
-        #[clap(long, num_args(1..))]
+        /// Valid values: [aborted, drop, pass, tx, redirect, dispatcher_return]
+        /// Example: --proceed-on "pass" --proceed-on "drop"
+        /// [default: pass, dispatcher_return]
+        #[clap(long, verbatim_doc_comment, num_args(1..))]
         proceed_on: Vec<String>,
     },
+    /// Install an eBPF program on the TC hook point for a given interface.
     Tc {
-        /// Required: Direction to apply program. "ingress" or "egress"
+        /// Required: Direction to apply program. Valid values: [ingress, egress]
         #[clap(short, long)]
         direction: String,
+
         /// Required: Interface to load program on.
         #[clap(short, long)]
         iface: String,
+
         /// Required: Priority to run program in chain. Lower value runs first.
-        #[clap(long)]
+        #[clap(short, long)]
         priority: i32,
+
         /// Optional: Proceed to call other programs in chain on this exit code.
         /// Multiple values supported by repeating the parameter.
-        /// Possible values: [unspec, ok, reclassify, shot, pipe, stolen, queued,
+        /// Valid values: [unspec, ok, reclassify, shot, pipe, stolen, queued,
         /// repeat, redirect, trap, dispatcher_return]
-        /// Default values: ok, pipe, and dispatcher_return
-        #[clap(long, num_args(1..))]
+        /// Example: --proceed-on "ok" --proceed-on "pipe"
+        /// [default: ok, pipe, dispatcher_return]
+        #[clap(long, verbatim_doc_comment, num_args(1..))]
         proceed_on: Vec<String>,
     },
+    /// Install an eBPF program on a Tracepoint.
     Tracepoint {
-        /// Required: The tracepoint to attach to. E.g sched/sched_switch
-        #[clap(short, long)]
+        /// Required: The tracepoint to attach to.
+        /// Example: --tracepoint "sched/sched_switch"
+        #[clap(short, long, verbatim_doc_comment)]
         tracepoint: String,
     },
 }
 
+#[derive(Args)]
+struct UnloadArgs {
+    /// Required: Program uuid to be unloaded
+    id: String,
+}
+
 #[derive(Clone, Debug)]
 struct GlobalArg {
-    /// Required: Name of global variable to set.
     name: String,
-    /// Value of global variable.
-    ///
-    /// This is a very low level API.  User is responsible for ensuring that
-    /// alignment and endianness are correct for target processor.
     value: Vec<u8>,
 }
 
@@ -338,8 +356,8 @@ impl Commands {
                 global = &l.global;
                 command = &l.command;
                 location = {
-                    let image_pull_policy: ImagePullPolicy = l
-                        .image_pull_policy
+                    let pull_policy: ImagePullPolicy = l
+                        .pull_policy
                         .as_str()
                         .try_into()
                         .expect("invalid image pull policy");
@@ -358,7 +376,7 @@ impl Commands {
 
                     Some(load_request_common::Location::Image(BytecodeImage {
                         url: l.image_url.clone(),
-                        image_pull_policy: image_pull_policy as i32,
+                        image_pull_policy: pull_policy as i32,
                         username,
                         password,
                     }))
@@ -511,8 +529,10 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
             println!("{}", response.id);
         }
 
-        Commands::Unload { id } => {
-            let request = tonic::Request::new(UnloadRequest { id: id.to_string() });
+        Commands::Unload(l) => {
+            let request = tonic::Request::new(UnloadRequest {
+                id: l.id.to_string(),
+            });
             let _response = client.unload(request).await?.into_inner();
         }
         Commands::List {} => {
