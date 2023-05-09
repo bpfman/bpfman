@@ -21,6 +21,7 @@ certs
 .vagrant
 tests/_tmp
 .history
+.DS_Store
 
 # Don't track vendor files
 **/vendor
