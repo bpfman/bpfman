@@ -26,8 +26,8 @@ import (
 // Is state equal, ignoring UUID and GRPC type fields.
 func DoesProgExist(actual *gobpfd.ListResponse_ListResult, expected *gobpfd.LoadRequest) bool {
 	// Check equality of all common fields
-	if actual.Id != *expected.Common.Id &&
-		*actual.SectionName != expected.Common.SectionName &&
+	if actual.Id != *expected.Common.Id ||
+		*actual.SectionName != expected.Common.SectionName ||
 		actual.ProgramType != expected.Common.ProgramType {
 		return false
 	}
@@ -36,7 +36,7 @@ func DoesProgExist(actual *gobpfd.ListResponse_ListResult, expected *gobpfd.Load
 	actualImage := actual.GetImage()
 	expectedImage := expected.Common.GetImage()
 	if actualImage != nil && expectedImage != nil {
-		if actualImage.Url != expectedImage.Url &&
+		if actualImage.Url != expectedImage.Url ||
 			actualImage.ImagePullPolicy != expectedImage.ImagePullPolicy {
 			return false
 		}
@@ -53,8 +53,8 @@ func DoesProgExist(actual *gobpfd.ListResponse_ListResult, expected *gobpfd.Load
 	actualXdp := actual.GetXdpAttachInfo()
 	expectedXdp := expected.GetXdpAttachInfo()
 	if actualXdp != nil && expectedXdp != nil {
-		if actualXdp.Priority != expectedXdp.Priority &&
-			actualXdp.Iface != expectedXdp.Iface &&
+		if actualXdp.Priority != expectedXdp.Priority ||
+			actualXdp.Iface != expectedXdp.Iface ||
 			!reflect.DeepEqual(actualXdp.ProceedOn, expectedXdp.ProceedOn) {
 			return false
 		}
@@ -63,8 +63,8 @@ func DoesProgExist(actual *gobpfd.ListResponse_ListResult, expected *gobpfd.Load
 	actualTc := actual.GetTcAttachInfo()
 	expectedTc := expected.GetTcAttachInfo()
 	if actualTc != nil && expectedTc != nil {
-		if actualTc.Priority != expectedTc.Priority &&
-			actualTc.Iface != expectedTc.Iface &&
+		if actualTc.Priority != expectedTc.Priority ||
+			actualTc.Iface != expectedTc.Iface ||
 			!reflect.DeepEqual(actualTc.ProceedOn, expectedTc.ProceedOn) {
 			return false
 		}
