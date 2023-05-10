@@ -22,6 +22,11 @@ DST_BIN_PATH="/usr/sbin"
 DST_SVC_PATH="/usr/lib/systemd/system"
 SRC_KUBECTL_PLUGIN_PATH="../bpfd-operator/hack"
 DST_KUBECTL_PLUGIN_PATH="/usr/local/bin"
+SRC_EXAMPLE_PATH="../examples"
+SRC_EXAMPLE_TC="go-tc-counter"
+SRC_EXAMPLE_TRACEPOINT="go-tracepoint-counter"
+SRC_EXAMPLE_XDP="go-xdp-counter"
+SRC_EXAMPLE_BYTECODE="bpf_bpfel.o"
 
 # ConfigurationDirectory: /etc/bpfd/
 CONFIGURATION_DIR="/etc/bpfd"
@@ -30,6 +35,7 @@ CFG_CA_CERT_DIR="/etc/bpfd/certs/ca"
 # RuntimeDirectory: /run/bpfd/
 RUNTIME_DIR="/run/bpfd"
 RTDIR_FS="/run/bpfd/fs"
+RTDIR_EXAMPLES="/run/bpfd/examples"
 
 # StateDirectory: /var/lib/bpfd/
 STATE_DIR="/var/lib/bpfd"
@@ -56,6 +62,10 @@ usage() {
     echo "    the \"bpfd\" service if it is running."
     echo "sudo ./scripts/setup.sh kubectl"
     echo "    Install kubectl plugins for \"bpfprogramconfigs\" and \"bpfprograms\"."
+    echo "sudo ./scripts/setup.sh examples"
+    echo "    Copy examples bytecode files to a bpfd owned directory (${RTDIR_EXAMPLES})."
+    echo "    This assumes bytecode has already been built. \"setup.sh install\" does"
+    echo "    this as well, so this is to overwrite after a rebuild."
     echo "sudo ./scripts/setup.sh certs"
     echo "    Debug only. Generate OpenSSL based certificates instead of rustls based certificates."
     echo ""
@@ -87,6 +97,9 @@ case "$1" in
         ;;
     "certs")
         cert_init true
+        ;;
+    "examples")
+        copy_examples
         ;;
     "help"|"--help"|"?")
         usage

@@ -591,30 +591,34 @@ impl BpfManager {
 
     async fn load_xdp_command(&mut self, args: LoadXDPArgs) -> anyhow::Result<()> {
         let res = if let Ok(if_index) = get_ifindex(&args.iface) {
-            let prog_data = ProgramData::new(
+            match ProgramData::new(
                 args.location,
                 args.section_name.clone(),
                 args.global_data,
                 args.username,
             )
-            .await?;
-
-            let prog = Program::Xdp(XdpProgram {
-                data: prog_data.clone(),
-                info: XdpProgramInfo {
-                    if_index,
-                    current_position: None,
-                    metadata: command::Metadata {
-                        priority: args.priority,
-                        // This could have been overridden by image tags
-                        name: prog_data.section_name,
-                        attached: false,
-                    },
-                    proceed_on: args.proceed_on,
-                    if_name: args.iface,
-                },
-            });
-            self.add_program(prog, args.id).await
+            .await
+            {
+                Ok(prog_data) => {
+                    let prog = Program::Xdp(XdpProgram {
+                        data: prog_data.clone(),
+                        info: XdpProgramInfo {
+                            if_index,
+                            current_position: None,
+                            metadata: command::Metadata {
+                                priority: args.priority,
+                                // This could have been overridden by image tags
+                                name: prog_data.section_name,
+                                attached: false,
+                            },
+                            proceed_on: args.proceed_on,
+                            if_name: args.iface,
+                        },
+                    });
+                    self.add_program(prog, args.id).await
+                }
+                Err(e) => Err(e),
+            }
         } else {
             Err(BpfdError::InvalidInterface)
         };
@@ -632,31 +636,35 @@ impl BpfManager {
 
     async fn load_tc_command(&mut self, args: LoadTCArgs) -> anyhow::Result<()> {
         let res = if let Ok(if_index) = get_ifindex(&args.iface) {
-            let prog_data = ProgramData::new(
+            match ProgramData::new(
                 args.location,
                 args.section_name,
                 args.global_data,
                 args.username,
             )
-            .await?;
-
-            let prog = Program::Tc(TcProgram {
-                data: prog_data.clone(),
-                direction: args.direction,
-                info: TcProgramInfo {
-                    if_index,
-                    current_position: None,
-                    metadata: command::Metadata {
-                        priority: args.priority,
-                        // This could have been overridden by image tags
-                        name: prog_data.section_name,
-                        attached: false,
-                    },
-                    proceed_on: args.proceed_on,
-                    if_name: args.iface,
-                },
-            });
-            self.add_program(prog, args.id).await
+            .await
+            {
+                Ok(prog_data) => {
+                    let prog = Program::Tc(TcProgram {
+                        data: prog_data.clone(),
+                        direction: args.direction,
+                        info: TcProgramInfo {
+                            if_index,
+                            current_position: None,
+                            metadata: command::Metadata {
+                                priority: args.priority,
+                                // This could have been overridden by image tags
+                                name: prog_data.section_name,
+                                attached: false,
+                            },
+                            proceed_on: args.proceed_on,
+                            if_name: args.iface,
+                        },
+                    });
+                    self.add_program(prog, args.id).await
+                }
+                Err(e) => Err(e),
+            }
         } else {
             Err(BpfdError::InvalidInterface)
         };
@@ -674,21 +682,25 @@ impl BpfManager {
 
     async fn load_tracepoint_command(&mut self, args: LoadTracepointArgs) -> anyhow::Result<()> {
         let res = {
-            let prog_data = ProgramData::new(
+            match ProgramData::new(
                 args.location,
                 args.section_name,
                 args.global_data,
                 args.username,
             )
-            .await?;
-
-            let prog = Program::Tracepoint(TracepointProgram {
-                data: prog_data,
-                info: TracepointProgramInfo {
-                    tracepoint: args.tracepoint,
-                },
-            });
-            self.add_program(prog, args.id).await
+            .await
+            {
+                Ok(prog_data) => {
+                    let prog = Program::Tracepoint(TracepointProgram {
+                        data: prog_data,
+                        info: TracepointProgramInfo {
+                            tracepoint: args.tracepoint,
+                        },
+                    });
+                    self.add_program(prog, args.id).await
+                }
+                Err(e) => Err(e),
+            }
         };
 
         // If program was successfully loaded, allow map access by bpfd group members.

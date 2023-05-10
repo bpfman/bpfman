@@ -60,7 +60,7 @@ func TestTcGoCounter(t *testing.T) {
 		_, err = io.Copy(output, logs)
 		require.NoError(t, err)
 		t.Logf("counter pod log %s", output.String())
-		if strings.Contains(output.String(), "packets sent") && strings.Contains(output.String(), "bytes sent") {
+		if strings.Contains(output.String(), "packets received") && strings.Contains(output.String(), "bytes received") {
 			return true
 		}
 		return false

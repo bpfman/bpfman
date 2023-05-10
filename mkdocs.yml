@@ -53,6 +53,8 @@ nav:
     - Configuration: configuration.md
     - Setup and Building bpfd: building-bpfd.md
     - Example BPF Programs: example-bpf.md
+    - Deploying Example BPF Programs On Local Host: example-bpf-local.md
+    - Deploying Example BPF Programs On Kubernetes: example-bpf-k8s.md
     - How to Deploy bpfd on Kubernetes: k8s-deployment.md
     - BPFD Container Images: image-build.md
     - Linux Capabilities: linux-capabilities.md

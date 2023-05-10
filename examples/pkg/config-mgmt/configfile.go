@@ -73,15 +73,16 @@ func LoadConfig(configFilePath string) ConfigFileData {
 		},
 	}
 
-	log.Printf("Reading %s ...\n", configFilePath)
 	file, err := os.ReadFile(configFilePath)
 	if err == nil {
 		err = toml.Unmarshal(file, &config)
 		if err != nil {
-			log.Printf("Unmarshal failed: err %+v\n", err)
+			log.Printf("Unable to parse %s, using default configuration values.\n", configFilePath)
+		} else {
+			log.Printf("Using configuration values from %s\n", configFilePath)
 		}
 	} else {
-		log.Printf("Read %s failed: err %+v\n", configFilePath, err)
+		log.Printf("Unable to read %s, using default configuration values.\n", configFilePath)
 	}
 
 	return config
