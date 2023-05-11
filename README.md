@@ -7,6 +7,7 @@ MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.or
 [![License: GPL
 v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 ![Build status][build-badge] [![Book][book-badge]][book-url]
+[![Netlify Status](https://api.netlify.com/api/v1/badges/557ca612-4b7f-480d-a1cc-43b453502992/deploy-status)](https://app.netlify.com/sites/bpfd/deploys)
 
 [build-badge]:
     https://img.shields.io/github/actions/workflow/status/bpfd-dev/bpfd/build.yml?branch=main
