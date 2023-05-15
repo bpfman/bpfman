@@ -11,5 +11,11 @@
 
 [[grpc.endpoints]]
   type = "tcp"
+  enabled = true
   address = "::1"
   port = 50051
+
+[[grpc.endpoints]]
+  type = "unix"
+  enabled = false
+  path = "/run/bpfd/bpfd.sock"
