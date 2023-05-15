@@ -71,7 +71,7 @@ To just test with the latest bpfd, containerized image are stored in `quay.io/bp
 [BPFD Container Images](./image-build.md)).
 To build with local changes, use the following commands.
 
-If you are building bpfd for the first time OR the BPF code has changed:
+If you are building bpfd for the first time OR the eBPF code has changed:
 
 ```console
 cargo xtask build-ebpf --libbpf-dir /path/to/libbpf

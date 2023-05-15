@@ -1,15 +1,17 @@
 # bpfd-operator
 
-The Bpfd-Operator repository exists in order to deploy and manage bpfd within a kubernetes cluster.
+The `bpfd-operator` repository exists in order to deploy and manage bpfd within a Kubernetes cluster.
 
-## Getting started
+## Getting Started
 
-This operator was built utilizing some great tooling provided by the [operator-sdk library](https://sdk.operatorframework.io/). A great first step in understanding some
-of the functionality can be to just run `make help`.
+This operator was built utilizing some great tooling provided by the
+[operator-sdk library](https://sdk.operatorframework.io/).
+A great first step in understanding some of the functionality can be to just run `make help`.
 
-### Deploy locally via KIND
+### Deploy Locally via KIND
 
-After reviewing the possible make targets it's quick and easy to get bpfd deployed locally on your system via a [KIND cluster](https://kind.sigs.k8s.io/). with:
+After reviewing the possible make targets it's quick and easy to get bpfd deployed locally on your system
+via a [KIND cluster](https://kind.sigs.k8s.io/) with:
 
 ```bash
 make run-on-kind
@@ -27,7 +29,7 @@ Then deploy the operator with one of the following two options:
 
 #### 1. Manually with Kustomize
 
-Then to install manually with Kustomize and raw manifests simply run:
+To install manually with Kustomize and raw manifests simply run:
 
 ```bash
 make deploy-openshift
@@ -67,7 +69,7 @@ followed by
 oc delete -f ./hack/ocp-scc-hacks.yaml
 ```
 
-### Verify the installation
+### Verify the Installation
 
 If the bpfd-operator came up successfully you will see the bpfd-daemon and bpfd-operator pods running without errors:
 
@@ -80,7 +82,7 @@ bpfd-daemon-w24pr                2/2     Running   0          130m
 bpfd-operator-78cf9c44c6-rv7f2   2/2     Running   0          132m
 ```
 
-### Deploy a bpf Program to the cluster
+### Deploy an eBPF Program to the cluster
 
 To test the deployment simply deploy one of the sample `xdpPrograms`:
 
@@ -88,7 +90,7 @@ To test the deployment simply deploy one of the sample `xdpPrograms`:
 kubectl apply -f config/samples/bpfd.io_v1alpha1_xdp_pass_xdpprogram.yaml
 ```
 
-If loading of the Xdp Program to the selected nodes was successful it will be reported
+If loading of the XDP Program to the selected nodes was successful it will be reported
 back to the user via the `xdpProgram`'s status field:
 
 ```bash
@@ -140,18 +142,23 @@ xdp-pass-all-nodes   pass          {"image":{"imagepullpolicy":"IfNotPresent","u
 
 ### API Types Overview
 
-see [api-spec.md](./api-spec.md) for a more detailed description of all the bpfd K8s API types.
+See [api-spec.md](./api-spec.md) for a more detailed description of all the bpfd Kubernetes API types.
 
-#### *Program
+#### Multiple Program CRDs
 
-The multiple `*Program` crds are the bpfd K8s API objects most relevant to users and can be used to understand clusterwide state for an ebpf program. It's designed to express how, and where bpf programs are to be deployed within a kubernetes cluster. Currently bpfd supports the use of `xdpProgram`, `tcProgram` and `tracepointProgram` objects.
+The multiple `*Program` CRDs are the bpfd Kubernetes API objects most relevant to users and can be used to
+understand clusterwide state for an eBPF program.
+It's designed to express how, and where eBPF programs are to be deployed within a Kubernetes cluster.
+Currently bpfd supports the use of `xdpProgram`, `tcProgram` and `tracepointProgram` objects.
 
-### BpfProgram
+### BpfProgram CRD
 
-The `BpfProgram` crd is used internally by the bpfd-deployment to keep track of per node bpfd state such as map pin points, and to report node specific errors back to the user. K8s users/controllers are only allowed to view these objects, NOT create or edit them.
+The `BpfProgram` CRD is used internally by the bpfd-deployment to keep track of per node bpfd state
+such as map pin points, and to report node specific errors back to the user.
+Kubernetes users/controllers are only allowed to view these objects, NOT create or edit them.
 
-Applications wishing to use bpfd to deploy/manage their bpf programs in kubernetes will make use of this
-object to find references to the bpfMap pin points (`spec.maps`) in order to configure their bpf programs.
+Applications wishing to use bpfd to deploy/manage their eBPF programs in Kubernetes will make use of this
+object to find references to the bpfMap pin points (`spec.maps`) in order to configure their eBPF programs.
 
 ## Contributing
 

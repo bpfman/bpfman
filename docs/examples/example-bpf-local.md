@@ -1,12 +1,12 @@
-# Deploying Example BPF Programs On Local Host
+# Deploying Example eBPF Programs On Local Host
 
-This section describes running bpfd and the example bpf programs on a local host.
+This section describes running bpfd and the example eBPF programs on a local host.
 When running bpfd, it can be run as a process or run as a systemd service.
 Examples run the same, independent of how bpfd is deployed, other than requiring `sudo` or not.
 
 > **_NOTE:_** When running bpfd as a systemd service, bpfd can only access files owned by the `bpfd`
 user, which is created by the install script (`./script/setup.sh install`).
-In this case, the install script also copies the examples BPF bytecode from the examples directory to a
+In this case, the install script also copies the examples eBPF bytecode from the examples directory to a
 directory owned by bpfd (`/run/bpfd/examples/`).
 When bpfd is run as a privileged process, the bytecode can be loaded from the examples directory.
 The example code looks in both locations (`/run/bpfd/examples/` first), so if the bytecode is recompiled
@@ -22,7 +22,7 @@ To build directly on a system, make sure all the prerequisites are met, then bui
 If not, see [Setup and Building bpfd](./building-bpfd.md).*
 
 1. All [requirements defined by the `cilium/ebpf` package](https://github.com/cilium/ebpf#requirements)
-2. libbpf development package to get the required bpf c headers
+2. libbpf development package to get the required eBPF c headers
 
     Fedora:
 
@@ -38,7 +38,7 @@ If not, see [Setup and Building bpfd](./building-bpfd.md).*
 
 #### Building Locally
 
-To build the C based BPF counter bytecode, run:
+To build the C based eBPF counter bytecode, run:
 
 ```console
     cd bpfd/examples/go-xdp-counter/
@@ -81,14 +81,14 @@ The diagram below shows `go-xdp-counter` example, but the `go-tc-counter` and
 Following the diagram (Purple numbers):
 
 1. When `go-xdp-counter` userspace is started, it will send a gRPC request
-over mTLS to `bpfd` requesting `bpfd` to load the `go-xdp-counter` BPF bytecode located on disk
+over mTLS to `bpfd` requesting `bpfd` to load the `go-xdp-counter` eBPF bytecode located on disk
 at `bpfd/examples/go-xdp-counter/bpf_bpfel.o` at a priority of 50 and on interface `ens3`.
 These values are configurable as we will see later, but for now we will use the defaults
 (except interface, which is required to be entered).
-2. `bpfd` will load it's `dispatcher` BPF program, which links to the `go-xdp-counter` BPF program
+2. `bpfd` will load it's `dispatcher` eBPF program, which links to the `go-xdp-counter` eBPF program
 and return a UUID referencing the running program.
-3. `bpfctl list` can be used to show that the BPF program was loaded.
-4. Once the `go-xdp-counter` BPF bytecode is loaded, the BPF program will write packet counts
+3. `bpfctl list` can be used to show that the eBPF program was loaded.
+4. Once the `go-xdp-counter` eBPF bytecode is loaded, the eBPF program will write packet counts
 and byte counts to a shared map.
 5. `go-xdp-counter` userspace program periodically reads counters from the shared map and logs
 the value.
@@ -96,7 +96,7 @@ the value.
 #### Running Privileged
 
 The most basic example, just use `sudo` to start the `go-xdp-counter` program.
-Determine the host interface to attach the BPF program to and then start the go program with:
+Determine the host interface to attach the eBPF program to and then start the go program with:
 
 ```console
     cd bpfd/examples/go-xdp-counter/
@@ -135,7 +135,7 @@ interface as shown below:
     :
 ```
 
-Use `bpfctl` to show the `go-xdp-counter` BPF bytecode was loaded.
+Use `bpfctl` to show the `go-xdp-counter` eBPF bytecode was loaded.
 
 ```console
     bpfctl list
@@ -185,7 +185,7 @@ be granted CAP_DAC_OVERRIDE capabilities (`sudo /sbin/setcap cap_dac_override=ep
 
 > **_NOTE:_** Only for kernel versions prior to **kernel 5.19**
 
-The examples use a map to share data between the userspace side of the program and the BPF portion.
+The examples use a map to share data between the userspace side of the program and the eBPF portion.
 Accessing this map requires access to the CAP_BPF capability for kernel versions prior to **kernel 5.19**.
 Run the following command to grant `go-xdp-counter` access to the CAP_BPF capability:
 
@@ -234,11 +234,11 @@ Start `go-xdp-counter` without `sudo`:
     2022/12/02 16:01:00 Unloading Program: b6b2107c-f1a3-48ac-a145-1073c0979ba4
 ```
 
-### Passing BPF Bytecode In A Container Image
+### Passing eBPF Bytecode In A Container Image
 
-bpfd can load BPF bytecode from a container image built following the spec described in
+bpfd can load eBPF bytecode from a container image built following the spec described in
 [EBPF Bytecode Image Specifications](./shipping-bytecode.md).
-Pre-built BPF container images for the examples can be loaded from:
+Pre-built eBPF container images for the examples can be loaded from:
 
 * `quay.io/bpfd-bytecode/go-xdp-counter:latest`
 * `quay.io/bpfd-bytecode/go-tc-counter:latest`
@@ -261,11 +261,11 @@ To use the container image, pass the URL to the userspace program:
     2022/12/02 16:28:42 Unloading Program: 8d89a6b6-bce2-4d3f-9cee-9cb0c689a90e
 ```
 
-#### Building BPF Bytecode Container Image
+#### Building eBPF Bytecode Container Image
 
 [EBPF Bytecode Image Specifications](./shipping-bytecode.md) provides detailed instructions on
 building and shipping bytecode in a container image.
-To build `go-xdp-counter` and `go-tc-counter` BPF bytecode container image, first make sure the
+To build `go-xdp-counter` and `go-tc-counter` eBPF bytecode container image, first make sure the
 bytecode has been built (i.e. `bpf_bpfel.o` has been built - see [Building](#building])), then
 run the build commands below:
 
@@ -340,11 +340,11 @@ Then run with the privately built bytecode container image:
     2022/12/02 16:38:51 Unloading Program: 0d313a4a-a17c-4c70-81ba-3ecc494b900e
 ```
 
-#### Preloading BPF Bytecode
+#### Preloading eBPF Bytecode
 
-Another way to load the BPF bytecode is to pre-load the BPF bytecode and
+Another way to load the eBPF bytecode is to pre-load the eBPF bytecode and
 pass the associated `bpfd` UUID to the userspace program.
-This is similar to how BPF programs will be loaded in Kubernetes, except `kubectl` commands will be
+This is similar to how eBPF programs will be loaded in Kubernetes, except `kubectl` commands will be
 used to create Kubernetes CRD objects instead of using `bpfctl`, but that is covered in the next section.
 The userspace programs will skip the loading portion and use the UUID to find the shared
 map and continue from there.
@@ -352,7 +352,7 @@ map and continue from there.
 Referring back to the diagram above, the `load` and `unload` are being done by `bpfctl` and not
 `go-xdp-counter` userspace program.
 
-First, use `bpfctl` to load the `go-xdp-counter` BPF bytecode:
+First, use `bpfctl` to load the `go-xdp-counter` eBPF bytecode:
 
 ```console
     bpfctl load-from-image --image-url quay.io/bpfd-bytecode/go-xdp-counter:latest xdp --iface ens3 --priority 50
@@ -373,7 +373,7 @@ Then run the `go-xdp-counter` userspace program, passing in the UUID:
     ^C2022/12/02 17:01:46 Exiting...
 ```
 
-Then use `bpfctl` to unload the BPF bytecode:
+Then use `bpfctl` to unload the eBPF bytecode:
 
 ```console
     bpfctl unload d541af30-69be-44cf-9397-407ee512547a

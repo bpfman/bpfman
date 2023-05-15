@@ -127,11 +127,11 @@ $ capsh --decode=000000c001201106
 
 ## Removing CAP_BPF from bpfd Clients
 
-One of the advantages of using bpfd is that it is doing all the loading and unloading of BPF programs,
+One of the advantages of using bpfd is that it is doing all the loading and unloading of eBPF programs,
 so it requires CAP_BPF, but clients of bpfd are just making gRPC calls to bpfd, so they do not need to
 be privileged or require CAP_BPF.
 It must be noted that this is only true for kernels 5.19 or higher.
-Prior to **kernel 5.19**, all BPF sys calls required CAP_BPF, which are used to access maps shared between
+Prior to **kernel 5.19**, all eBPF sys calls required CAP_BPF, which are used to access maps shared between
 the BFP program and the userspace program.
 In kernel 5.19, a change went in that only requires CAP_BPF for map creation (BPF_MAP_CREATE) and loading
 programs (BPF_PROG_LOAD).

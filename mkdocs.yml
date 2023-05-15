@@ -49,27 +49,30 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Bpfd on Linux:
-    - Tutorial: bpfd/tutorial.md
-    - Configuration: bpfd/configuration.md
+  - Community:
+    - Meetings: ../MEETINGS.md
+    - Governacne: ../GOVERNANCE.md
+    - Code of Conduct: ../CODE_OF_CONDUCT.md
+    - Maintainers: ../MAINTAINERS.md
+    - Security: ../SECURITY.md
+  - Getting Started:
     - Setup and Building: bpfd/building-bpfd.md
+    - Bpfd on Linux Tutorial: bpfd/tutorial.md
+    - bpfctl Guide: bpfctl-guide.md
+    - Example eBPF Programs: examples/example-bpf.md
+    - Deploying Example eBPF Programs On Local Host: examples/example-bpf-local.md
+    - Deploying Example eBPF Programs On Kubernetes: examples/example-bpf-k8s.md
+  - Developers:
+    - Contributing: ../CONTRIBUTING.md
+    - Reviewing Guide: ../REVIEWING.md
+    - bpfd-operator Quick start: bpfd-operator/quick-start.md
+    - bpfd-operator Developer Guide: bpfd-operator/developing.md
+    - Kubernetes CRD API-Reference: bpfd-operator/api-spec.md
+    - eBPF Bytecode Image Specifications: shipping-bytecode.md
     - BPFD Container Images: bpfd/image-build.md
     - Linux Capabilities: bpfd/linux-capabilities.md
-  - Bpfd on Kubernetes: 
-    - Quick start: bpfd-operator/quick-start.md
-    - Development: bpfd-operator/developing.md
-    - API-Reference: bpfd-operator/api-spec.md
-  - Examples:
-    - Example BPF Programs: examples/example-bpf.md
-    - Deploying Example BPF Programs On Local Host: examples/example-bpf-local.md
-    - Deploying Example BPF Programs On Kubernetes: examples/example-bpf-k8s.md
-  - Bytecode Container Images:
-    - EBPF Bytecode Image Specifications: shipping-bytecode.md
-  - Conributing:
-    - Guidelines: contributing.md
-    - Bpfd: contributing-bpfd.md
-
-
+    - Logging: logging.md
+    - Configuration: bpfd/configuration.md
 
 plugins:
   - search

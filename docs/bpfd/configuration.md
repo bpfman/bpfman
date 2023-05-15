@@ -42,11 +42,12 @@ Otherwise, bpfd will create them.
 Default values are shown above.
 
 Valid fields:
-- ca_cert: Certificate authority file location, intended to be used by bpfd and client.
-- cert: Certificate file location, intended to be used by bpfd.
-- key: Certificate key location, intended to be used by bpfd.
-- client_cert: Client certificate file location, intended to be used by bpfd clients (`bpfctl`, `bpfd-agent`, etc).
-- client_key: Client certificate key file location, intended to be used by bpfd clients (`bpfctl`, `bpfd-agent`, etc).
+
+- **ca_cert**: Certificate authority file location, intended to be used by bpfd and client.
+- **cert**: Certificate file location, intended to be used by bpfd.
+- **key**: Certificate key location, intended to be used by bpfd.
+- **client_cert**: Client certificate file location, intended to be used by bpfd clients (`bpfctl`, `bpfd-agent`, etc).
+- **client_key**: Client certificate key file location, intended to be used by bpfd clients (`bpfctl`, `bpfd-agent`, etc).
 
 If bpfd is running as a systemd service, then the certificates must be accessible by bpfd
 (owned by the bpfd User and User Group).
@@ -54,7 +55,7 @@ If bpfd is running as a systemd service, then the certificates must be accessibl
 #### Config Section: [interfaces]
 
 This section of the configuration file allows the XDP Mode for a given interface to be set.
-If not set, the default value of skb will be used.
+If not set, the default value of `skb` will be used.
 Multiple interfaces can be configured.
 
 ```toml
@@ -68,7 +69,8 @@ Multiple interfaces can be configured.
 ```
 
 Valid fields:
-- xdp_mode: XDP Mode for a given interface. Valid values: ["drv"|"hw"|"skb"]
+
+- **xdp_mode**: XDP Mode for a given interface. Valid values: ["drv"|"hw"|"skb"]
 
 #### Config Section: [grpc.endpoints]
 
@@ -79,15 +81,16 @@ Unix domain sockets provide a simpler communication with no encryption. These so
 user and user group when running as a systemd or non-root process.
 
 Valid fields:
-- type: Specify if the endpoint will listen on a TCP or Unix domain socket. Valid values: ["tcp"|"unix"]
-- enabled: Configure whether bpfd should listen on the endpoint. Valid values: ["true"|"false"]
-- address: Exclusive to TCP sockets. Specify the address the endpoint should listen on. Valid values: Any valid IPv4 or IPv6 address.
-- port: Exclusive to TCP sockets. Specify the port bpfd should listen on. Valid values: An integer between 1024 and 65535.
-- path: Exclusive to Unix sockets. Specify the path where the socket will be created. Valid values: A valid unix path.
 
-### Loading Programs at system launch time
+- **type**: Specify if the endpoint will listen on a TCP or Unix domain socket. Valid values: ["tcp"|"unix"]
+- **enabled**: Configure whether bpfd should listen on the endpoint. Valid values: ["true"|"false"]
+- **address**: Exclusive to TCP sockets. Specify the address the endpoint should listen on. Valid values: Any valid IPv4 or IPv6 address.
+- **port**: Exclusive to TCP sockets. Specify the port bpfd should listen on. Valid values: An integer between 1024 and 65535.
+- **path**: Exclusive to Unix sockets. Specify the path where the socket will be created. Valid values: A valid unix path.
 
-bpfd allows the user to specify certain bpf programs to always be loaded every time the daemon is started.
+### Loading Programs at System Launch
+
+bpfd allows the user to specify certain eBPF programs to always be loaded every time the daemon is started.
 To do so simply create `.toml` files in the `/etc/bpfd/programs.d` directory with the following syntax:
 
 **NOTE:** Users can specify multiple programs in a single `.toml` file OR multiple `.toml` files

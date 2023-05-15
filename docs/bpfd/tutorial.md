@@ -27,7 +27,7 @@ cargo build
 
 `bpfd` supports both mTLS for mutual authentication with clients and connecting via a Unix socket.
 This tutorial will be using `bpfctl`, which sends gRPC requests to `bpfd` over a Unix socket.
-In the [Example BPF Programs](./example-bpf.md), the GO examples use mTLS over TCP to interact
+In the [Example eBPF Programs](./example-ebpf.md), the GO examples use mTLS over TCP to interact
 with `bpfd`.
 If no local certificate authority exists when `bpfd` is started, `bpfd` will automatically
 create the certificate authority in `/etc/bpfd/certs/`.
@@ -192,7 +192,7 @@ exit
 <LOGIN>
 ```
 
-> **_NOTE:_** Prior to **kernel 5.19**, all BPF sys calls required CAP_BPF, which are used to access maps shared
+> **_NOTE:_** Prior to **kernel 5.19**, all eBPF sys calls required CAP_BPF, which are used to access maps shared
 between the BFP program and the userspace program.
 So userspace programs that are accessing maps and running on kernels older than 5.19 will require either `sudo`
 or the CAP_BPF capability (`sudo /sbin/setcap cap_bpf=ep ./<USERSPACE-PROGRAM>`).
@@ -256,9 +256,9 @@ sudo ./scripts/setup.sh uninstall
 and `/run/bpfd/bytecode/` are deleted. Save any changes or files that were created if needed.
 
 
-## Build and Run Local BPF Programs
+## Build and Run Local eBPF Programs
 
-In the examples above, all the BPF programs were pulled from pre-built images.
+In the examples above, all the eBPF programs were pulled from pre-built images.
 This tutorial uses examples from the [xdp-tutorial](https://github.com/xdp-project/xdp-tutorial).
 The pre-built container images can be found here:
 [https://quay.io/organization/bpfd-bytecode](https://quay.io/organization/bpfd-bytecode)
@@ -266,7 +266,7 @@ The pre-built container images can be found here:
 To build these examples locally, check out the
 [xdp-tutorial](https://github.com/xdp-project/xdp-tutorial) git repository and
 compile the examples.
-[EBPF Bytecode Image Specifications](./shipping-bytecode.md) describes how BPF bytecode is
+[EBPF Bytecode Image Specifications](./shipping-bytecode.md) describes how eBPF bytecode is
 packaged in container images.
 
 To load these programs locally, use the `bpfctl load-from-file` command in place of the
