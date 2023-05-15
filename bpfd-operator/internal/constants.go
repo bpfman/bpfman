@@ -34,7 +34,10 @@ const (
 	DefaultKeyPath                       = "/etc/bpfd/certs/bpfd/tls.key"
 	DefaultClientCertPath                = "/etc/bpfd/certs/bpfd-client/tls.crt"
 	DefaultClientKeyPath                 = "/etc/bpfd/certs/bpfd-client/tls.key"
+	DefaultType                          = "tcp"
+	DefaultPath                          = "/run/bpfd/bpfd.sock"
 	DefaultPort                          = 50051
+	DefaultEnabled                       = true
 )
 
 // Must match the internal bpfd-api mappings

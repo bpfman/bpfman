@@ -17,6 +17,7 @@ limitations under the License.
 package tls
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -25,7 +26,9 @@ import (
 
 	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	toml "github.com/pelletier/go-toml"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -40,11 +43,14 @@ type Tls struct {
 }
 
 type Endpoint struct {
-	Port uint16 `toml:"port"`
+	Type    string `toml:"type"`
+	Path    string `toml:"path"`
+	Port    uint16 `toml:"port"`
+	Enabled bool   `toml:"enabled"`
 }
 
 type Grpc struct {
-	Endpoint Endpoint `toml:"endpoint"`
+	Endpoints []Endpoint `toml:"endpoints"`
 }
 
 type ConfigFileData struct {
@@ -62,8 +68,12 @@ func LoadConfig() ConfigFileData {
 			ClientKey:  internal.DefaultClientKeyPath,
 		},
 		Grpc: Grpc{
-			Endpoint: Endpoint{
-				Port: internal.DefaultPort,
+			Endpoints: []Endpoint{
+				{
+					Type:    internal.DefaultType,
+					Port:    internal.DefaultPort,
+					Enabled: internal.DefaultEnabled,
+				},
 			},
 		},
 	}
@@ -112,4 +122,32 @@ func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) 
 	}
 
 	return credentials.NewTLS(config), nil
+}
+
+func CreateConnection(endpoints []Endpoint, ctx context.Context, creds credentials.TransportCredentials) (*grpc.ClientConn, error) {
+	var (
+		addr        string
+		local_creds credentials.TransportCredentials
+	)
+
+	for _, e := range endpoints {
+		if !e.Enabled {
+			continue
+		}
+
+		if e.Type == "tcp" {
+			addr = fmt.Sprintf("localhost:%d", e.Port)
+			local_creds = creds
+		} else if e.Type == "unix" {
+			addr = fmt.Sprintf("unix://%s", e.Path)
+			local_creds = insecure.NewCredentials()
+		}
+
+		conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(local_creds), grpc.WithBlock())
+		if err == nil {
+			return conn, nil
+		}
+	}
+
+	return nil, fmt.Errorf("unable to stablish connection")
 }

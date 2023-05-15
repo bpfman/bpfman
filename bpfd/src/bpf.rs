@@ -585,8 +585,8 @@ impl BpfManager {
                     }
                 }
             }
-            info!("Stopping processing commands");
         }
+        info!("Stopping processing commands");
     }
 
     async fn load_xdp_command(&mut self, args: LoadXDPArgs) -> anyhow::Result<()> {

@@ -17,6 +17,7 @@ limitations under the License.
 package configMgmt
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -24,7 +25,9 @@ import (
 	"os"
 
 	toml "github.com/pelletier/go-toml"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type Tls struct {
@@ -36,11 +39,14 @@ type Tls struct {
 }
 
 type Endpoint struct {
-	Port uint16 `toml:"port"`
+	Type    string `toml:"type"`
+	Path    string `toml:"path"`
+	Port    uint16 `toml:"port"`
+	Enabled bool   `toml:"enabled"`
 }
 
 type Grpc struct {
-	Endpoint Endpoint `toml:"endpoint"`
+	Endpoints []Endpoint `toml:"endpoints"`
 }
 
 type ConfigFileData struct {
@@ -54,7 +60,9 @@ const (
 	DefaultKeyPath        = "/etc/bpfd/certs/bpfd/tls.key"
 	DefaultClientCertPath = "/etc/bpfd/certs/bpfd-client/bpfd-client.pem"
 	DefaultClientKeyPath  = "/etc/bpfd/certs/bpfd-client/bpfd-client.key"
+	DefaultType           = "tcp"
 	DefaultPort           = 50051
+	DefaultEnabled        = true
 )
 
 func LoadConfig(configFilePath string) ConfigFileData {
@@ -67,8 +75,12 @@ func LoadConfig(configFilePath string) ConfigFileData {
 			ClientKey:  DefaultClientKeyPath,
 		},
 		Grpc: Grpc{
-			Endpoint: Endpoint{
-				Port: DefaultPort,
+			Endpoints: []Endpoint{
+				{
+					Type:    DefaultType,
+					Port:    DefaultPort,
+					Enabled: DefaultEnabled,
+				},
 			},
 		},
 	}
@@ -113,4 +125,33 @@ func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) 
 	}
 
 	return credentials.NewTLS(config), nil
+}
+
+func CreateConnection(endpoints []Endpoint, ctx context.Context, creds credentials.TransportCredentials) (*grpc.ClientConn, error) {
+	var (
+		addr        string
+		local_creds credentials.TransportCredentials
+	)
+
+	for _, e := range endpoints {
+		if !e.Enabled {
+			continue
+		}
+
+		if e.Type == "tcp" {
+			addr = fmt.Sprintf("localhost:%d", e.Port)
+			local_creds = creds
+		} else if e.Type == "unix" {
+			addr = fmt.Sprintf("unix://%s", e.Path)
+			local_creds = insecure.NewCredentials()
+		}
+
+		conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(local_creds))
+		if err == nil {
+			return conn, nil
+		}
+		log.Printf("did not connect: %v", err)
+	}
+
+	return nil, fmt.Errorf("unable to stablish connection")
 }

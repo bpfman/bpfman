@@ -9,6 +9,13 @@
   [interface.eth0]
   xdp_mode = "hw" # Valid xdp modes are "hw", "skb" and "drv". Default: "skb".
 
-[grpc.endpoint]
+[[grpc.endpoints]]
+  type = "tcp"
+  enabled = true
   address = "::1"
   port = 50051
+
+[[grpc.endpoints]]
+  type = "unix"
+  enabled = false
+  path = "/run/bpfd/bpfd.sock"

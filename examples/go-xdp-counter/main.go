@@ -16,7 +16,6 @@ import (
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	configMgmt "github.com/bpfd-dev/bpfd/examples/pkg/config-mgmt"
 	"github.com/cilium/ebpf"
-	"google.golang.org/grpc"
 )
 
 type Stats struct {
@@ -78,13 +77,12 @@ func main() {
 				return
 			}
 
-			// Set up a connection to the server.
-			addr := fmt.Sprintf("localhost:%d", configFileData.Grpc.Endpoint.Port)
-			conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(creds))
+			conn, err := configMgmt.CreateConnection(configFileData.Grpc.Endpoints, ctx, creds)
 			if err != nil {
-				log.Printf("did not connect: %v", err)
+				log.Printf("failed to create client connection: %v", err)
 				return
 			}
+
 			c := gobpfd.NewLoaderClient(conn)
 			loadRequestCommon := &gobpfd.LoadRequestCommon{
 				Location:    paramData.BytecodeSource.Location,
