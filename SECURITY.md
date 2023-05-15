@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-No released versions of bpfd, bpfctl, bpfd-agent or bpfd-operator will recieve regular security updates until a mainline release has been performed.
+No released versions of bpfd, bpfctl, bpfd-agent or bpfd-operator will receive regular security updates until a mainline release has been performed.
 A reported and fixed vulnerability will be included in the next minor release, which depending on the severity of the vulnerability may be immediate.
 
 ## Reporting a Vulnerability

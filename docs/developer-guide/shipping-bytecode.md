@@ -1,10 +1,10 @@
-# EBPF Bytecode Image Specifications
+# eBPF Bytecode Image Specifications
 
 ## Introduction
 
-The EBPF Bytecode Image specification defines how to package EBPF bytecode
+The eBPF Bytecode Image specification defines how to package eBPF bytecode
 as container images. The initial primary use case focuses on the containerization
-and deployment of EBPF programs within container orchestration systems such as
+and deployment of eBPF programs within container orchestration systems such as
 Kubernetes, where it is necessary to provide a portable way to distribute
 bytecode to all nodes which need it.
 
@@ -18,7 +18,7 @@ and packages which do no support the new custom media types defined here.
 
 ## Backwards compatible OCI compliant spec
 
-This variant makes use of existing OCI conventions to represent EBPF Bytecode
+This variant makes use of existing OCI conventions to represent eBPF Bytecode
 as container images.
 
 ### Image Layers
@@ -28,7 +28,7 @@ media type is one of the following:
 
 - `application/vnd.oci.image.layer.v1.tar+gzip` or the [compliant](https://github.com/opencontainers/image-spec/tree/main/media-types.md#applicationvndociimagelayerv1targzip) `application/vnd.docker.image.rootfs.diff.tar.gzip`
 
-Additionally the image layer must contain a valid EBPF object file (generally containing
+Additionally the image layer must contain a valid eBPF object file (generally containing
 a `.o` extension) placed at the root of the layer `./`.
 
 ### Image Labels
@@ -38,13 +38,13 @@ To provide relevant metadata regarding the bytecode to any consumers, some relev
 
 These labels are defined as follows:
 
-- `io.ebpf.program_type`: The EBPF program type (i.e `xdp`,`tc`, `sockops`, ...).
+- `io.ebpf.program_type`: The eBPF program type (i.e `xdp`,`tc`, `sockops`, ...).
 
 - `io.ebpf.filename`: The Filename of the bytecode stored in the image.
 
-- `io.ebpf.program_name`: The name of the EBPF Program represented in the bytecode.
+- `io.ebpf.program_name`: The name of the eBPF Program represented in the bytecode.
 
-- `io.ebpf.section_name`: The section name of the EBPF Program.
+- `io.ebpf.section_name`: The section name of the eBPF Program.
 
 - `io.ebpf.kernel_version`: The Kernel version for which this bytecode was compiled
 against.
@@ -113,8 +113,8 @@ skopeo inspect --raw  docker://quay.io/astoycos/xdp_pass:latest
 
 ## Custom OCI compatible spec
 
-This variant of the EBPF bytecode image spec uses custom OCI medium types
-to represent EBPF bytecode as container images. Many toolchains and registries
+This variant of the eBPF bytecode image spec uses custom OCI medium types
+to represent eBPF bytecode as container images. Many toolchains and registries
 may not support this yet.
 
 TODO(astoycos)

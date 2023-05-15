@@ -1,4 +1,4 @@
-# Example BPF Programs
+# Example eBPF Programs
 
 Example applications that use the `bpfd-go` bindings can be found in the
 [examples/](https://github.com/bpfd-dev/bpfd/tree/main/examples/) directory.
@@ -9,31 +9,31 @@ Current examples include:
 * [examples/go-xdp-counter/](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-xdp-counter)
 
 These examples and the associated documentation is intended to provide the basics on how to deploy
-and manage a BPF program using bpfd. Each of the examples contain a BPF Program written in C
+and manage a eBPF program using bpfd. Each of the examples contain an eBPF Program written in C
 ([tc_counter.c](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tc-counter/bpf/tc_counter.c),
 [tracepoint_counter.c](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tracepoint-counter/bpf/tracepoint_counter.c) and
 [xdp_counter.c](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-xdp-counter/bpf/xdp_counter.c))
-that is compiled into BPF bytecode.
-Each time the BPF program is called, it increments the packet and byte counts in a map that is accessible
+that is compiled into eBPF bytecode.
+Each time the eBPF program is called, it increments the packet and byte counts in a map that is accessible
 by the userspace portion.
 
 Each of the examples also have a userspace portion written in GO.
-When run locally, the userspace program makes gRPC calls to `bpfd` requesting `bpfd` to load the BPF program
+When run locally, the userspace program makes gRPC calls to `bpfd` requesting `bpfd` to load the eBPF program
 at the requested hook point (XDP hook point, TC hook point or Tracepoint).
 When run in a Kubernetes deployment, the `bpfd-agent` makes gRPC calls to `bpfd` requesting `bpfd` to load
-the BPF program based on a Custom Resource Definition (CRD), which is described in more detail in that section.
-Independent of the deployment, the userspace program then polls the BPF map every 3 seconds and logs the
+the eBPF program based on a Custom Resource Definition (CRD), which is described in more detail in that section.
+Independent of the deployment, the userspace program then polls the eBPF map every 3 seconds and logs the
 current counts.
 The userspace code is leveraging the [cilium/ebpf library](https://github.com/cilium/ebpf)
-to manage the maps shared with the BPF program.
-The example BPF programs are very similar in functionality, and only vary where in the Linux networking stack
+to manage the maps shared with the eBPF program.
+The example eBPF programs are very similar in functionality, and only vary where in the Linux networking stack
 they are inserted.
 Read more about XDP and TC programs [here](https://docs.cilium.io/en/latest/bpf/progtypes/).
 
 There are two ways to deploy these example applications:
 
-* Run locally on one machine: [Deploying Example BPF Programs On Local Host](./example-bpf-local.md)
-* Deploy to multiple nodes in a Kubernetes cluster: [Deploying Example BPF Programs On Kubernetes](./example-bpf-k8s.md)
+* Run locally on one machine: [Deploying Example eBPF Programs On Local Host](./example-bpf-local.md)
+* Deploy to multiple nodes in a Kubernetes cluster: [Deploying Example eBPF Programs On Kubernetes](./example-bpf-k8s.md)
 
 ## Notes
 

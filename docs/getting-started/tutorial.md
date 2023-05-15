@@ -27,7 +27,7 @@ cargo build
 
 `bpfd` supports both mTLS for mutual authentication with clients and connecting via a Unix socket.
 This tutorial will be using `bpfctl`, which sends gRPC requests to `bpfd` over a Unix socket.
-In the [Example BPF Programs](./example-bpf.md), the GO examples use mTLS over TCP to interact
+In the [Example eBPF Programs](./example-bpf.md), the GO examples use mTLS over TCP to interact
 with `bpfd`.
 If no local certificate authority exists when `bpfd` is started, `bpfd` will automatically
 create the certificate authority in `/etc/bpfd/certs/`.
@@ -37,7 +37,7 @@ For this step, no additional actions need to be taken.
 
 While learning and experimenting with `bpfd`, it may be useful to run `bpfd` in the foreground
 (which requires a second terminal to run the `bpfctl` commands below).
-For more details on how logging is handled in bpfd, see [Logging](./logging.md).
+For more details on how logging is handled in bpfd, see [Logging](../developer-guide/logging.md).
 
 ```console
 sudo RUST_LOG=info ./target/debug/bpfd
@@ -155,7 +155,7 @@ To run `bpfd` as a systemd service, the binaries will be placed in a well known 
 (`/usr/sbin/.`) and a service configuration file will be added
 (`/usr/lib/systemd/system/bpfd.service`).
 When run as a systemd service, the set of linux capabilities are limited to only the needed set.
-If permission errors are encountered, see [Linux Capabilities](./linux-capabilities.md)
+If permission errors are encountered, see [Linux Capabilities](../developer-guide/linux-capabilities.md)
 for help debugging.
 
 ### Step 1
@@ -192,7 +192,7 @@ exit
 <LOGIN>
 ```
 
-> **_NOTE:_** Prior to **kernel 5.19**, all BPF sys calls required CAP_BPF, which are used to access maps shared
+> **_NOTE:_** Prior to **kernel 5.19**, all eBPF sys calls required CAP_BPF, which are used to access maps shared
 between the BFP program and the userspace program.
 So userspace programs that are accessing maps and running on kernels older than 5.19 will require either `sudo`
 or the CAP_BPF capability (`sudo /sbin/setcap cap_bpf=ep ./<USERSPACE-PROGRAM>`).
@@ -256,9 +256,9 @@ sudo ./scripts/setup.sh uninstall
 and `/run/bpfd/bytecode/` are deleted. Save any changes or files that were created if needed.
 
 
-## Build and Run Local BPF Programs
+## Build and Run Local eBPF Programs
 
-In the examples above, all the BPF programs were pulled from pre-built images.
+In the examples above, all the eBPF programs were pulled from pre-built images.
 This tutorial uses examples from the [xdp-tutorial](https://github.com/xdp-project/xdp-tutorial).
 The pre-built container images can be found here:
 [https://quay.io/organization/bpfd-bytecode](https://quay.io/organization/bpfd-bytecode)
@@ -266,8 +266,8 @@ The pre-built container images can be found here:
 To build these examples locally, check out the
 [xdp-tutorial](https://github.com/xdp-project/xdp-tutorial) git repository and
 compile the examples.
-[EBPF Bytecode Image Specifications](./shipping-bytecode.md) describes how BPF bytecode is
-packaged in container images.
+[eBPF Bytecode Image Specifications](../developer-guide/shipping-bytecode.md) describes how eBPF
+bytecode ispackaged in container images.
 
 To load these programs locally, use the `bpfctl load-from-file` command in place of the
 `bpfctl load-from-image` command.
