@@ -42,8 +42,8 @@ import (
 type ProgramConditionType string
 
 const (
-	bpfdOperatorFinalizer                                       = "bpfd.io.operator/finalizer"
-	retryDurationOperator                                       = 5 * time.Second
+	bpfdOperatorFinalizer                              = "bpfd.io.operator/finalizer"
+	retryDurationOperator                              = 5 * time.Second
 	BpfProgConfigNotYetLoaded     ProgramConditionType = "NotYetLoaded"
 	BpfProgConfigReconcileError   ProgramConditionType = "ReconcileError"
 	BpfProgConfigReconcileSuccess ProgramConditionType = "ReconcileSuccess"

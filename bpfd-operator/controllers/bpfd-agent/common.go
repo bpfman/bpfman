@@ -46,6 +46,9 @@ import (
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfd.io,resources=tcprograms/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfd.io,resources=xdpprograms/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfd.io,resources=tracepointprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get
 
