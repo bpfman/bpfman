@@ -95,7 +95,7 @@ func tcProceedOnToInt(proceedOn []bpfdiov1alpha1.TcProceedOnValue) []int32 {
 }
 
 // SetupWithManager sets up the controller with the Manager.
-// The Bpfd-Agent should reconcile whenever a BpfProgramConfig is updated,
+// The Bpfd-Agent should reconcile whenever a TcProgram is updated,
 // load the program to the node via bpfd, and then create a bpfProgram object
 // to reflect per node state information.
 func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -103,7 +103,7 @@ func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&bpfdiov1alpha1.TcProgram{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
 		Owns(&bpfdiov1alpha1.BpfProgram{}, builder.WithPredicates(internal.BpfProgramTypePredicate(internal.Tc.String()))).
 		// Only trigger reconciliation if node labels change since that could
-		// make the BpfProgramConfig no longer select the Node. Additionally only
+		// make the TcProgram no longer select the Node. Additionally only
 		// care about node events specific to our node
 		Watches(
 			&source.Kind{Type: &v1.Node{}},
@@ -153,7 +153,7 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		r.currentTcProgram = &tcProgram
 		retry, err := reconcileProgram(ctx, r, r.currentTcProgram, &r.currentTcProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
 		if err != nil {
-			r.Logger.Error(err, "Reconciling BpfProgramConfig Failed", "BpfProgramConfigName", r.currentTcProgram.Name, "Retrying", retry)
+			r.Logger.Error(err, "Reconciling TcProgram Failed", "TcProgramName", r.currentTcProgram.Name, "Retrying", retry)
 			return ctrl.Result{Requeue: retry, RequeueAfter: retryDurationAgent}, nil
 		}
 	}
@@ -201,7 +201,7 @@ func (r *TcProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 		if !doesProgramExist {
 			r.Logger.V(1).Info("TcProgram doesn't exist on node")
 
-			// If BpfProgramConfig is being deleted just break out and remove finalizer
+			// If TcProgram is being deleted just break out and remove finalizer
 			if isBeingDeleted {
 				break
 			}
@@ -225,7 +225,7 @@ func (r *TcProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 			continue
 		}
 
-		// BpfProgram exists but either BpfProgramConfig is being deleted or node is no
+		// BpfProgram exists but either TcProgram is being deleted or node is no
 		// longer selected....unload program
 		if isBeingDeleted || !isNodeSelected {
 			r.Logger.V(1).Info("TcProgram exists on  ode but is scheduled for deletion or node is no longer selected...unload it",

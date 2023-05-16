@@ -85,7 +85,7 @@ func xdpProceedOnToInt(proceedOn []bpfdiov1alpha1.XdpProceedOnValue) []int32 {
 }
 
 // SetupWithManager sets up the controller with the Manager.
-// The Bpfd-Agent should reconcile whenever a BpfProgramConfig is updated,
+// The Bpfd-Agent should reconcile whenever a XdpProgram is updated,
 // load the program to the node via bpfd, and then create a bpfProgram object
 // to reflect per node state information.
 func (r *XdpProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -93,7 +93,7 @@ func (r *XdpProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&bpfdiov1alpha1.XdpProgram{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
 		Owns(&bpfdiov1alpha1.BpfProgram{}, builder.WithPredicates(internal.BpfProgramTypePredicate(internal.Xdp.String()))).
 		// Only trigger reconciliation if node labels change since that could
-		// make the BpfProgramConfig no longer select the Node. Additionally only
+		// make the XdpProgram no longer select the Node. Additionally only
 		// care about node events specific to our node
 		Watches(
 			&source.Kind{Type: &v1.Node{}},
@@ -139,11 +139,11 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Reconcile every XdpProgram Object
 	// note: This doesn't necessarily result in any extra grpc calls to bpfd
 	for _, XdpProgram := range xdpPrograms.Items {
-		r.Logger.Info("bpfd-agent is reconciling", "bpfProgramConfig", XdpProgram.Name)
+		r.Logger.Info("bpfd-agent is reconciling", "XdpProgram", XdpProgram.Name)
 		r.currentXdpProgram = &XdpProgram
 		retry, err := reconcileProgram(ctx, r, r.currentXdpProgram, &r.currentXdpProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
 		if err != nil {
-			r.Logger.Error(err, "Reconciling BpfProgramConfig Failed", "BpfProgramConfigName", r.currentXdpProgram.Name, "Retrying", retry)
+			r.Logger.Error(err, "Reconciling XdpProgram Failed", "XdpProgramName", r.currentXdpProgram.Name, "Retrying", retry)
 			return ctrl.Result{Requeue: retry, RequeueAfter: retryDurationAgent}, nil
 		}
 	}
@@ -190,7 +190,7 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 		if !doesProgramExist {
 			r.Logger.V(1).Info("XdpProgram doesn't exist on node")
 
-			// If BpfProgramConfig is being deleted just break out and remove finalizer
+			// If XdpProgram is being deleted just break out and remove finalizer
 			if isBeingDeleted {
 				break
 			}
@@ -214,7 +214,7 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 			continue
 		}
 
-		// BpfProgram exists but either BpfProgramConfig is being deleted or node is no
+		// BpfProgram exists but either XdpProgram is being deleted or node is no
 		// longer selected....unload program
 		if isBeingDeleted || !isNodeSelected {
 			r.Logger.V(1).Info("XdpProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", isBeingDeleted,

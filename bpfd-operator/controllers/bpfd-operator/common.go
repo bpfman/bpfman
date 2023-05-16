@@ -39,24 +39,24 @@ import (
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 
-type BpfProgramConfigConditionType string
+type ProgramConditionType string
 
 const (
 	bpfdOperatorFinalizer                                       = "bpfd.io.operator/finalizer"
 	retryDurationOperator                                       = 5 * time.Second
-	BpfProgConfigNotYetLoaded     BpfProgramConfigConditionType = "NotYetLoaded"
-	BpfProgConfigReconcileError   BpfProgramConfigConditionType = "ReconcileError"
-	BpfProgConfigReconcileSuccess BpfProgramConfigConditionType = "ReconcileSuccess"
-	BpfProgConfigDeleteError      BpfProgramConfigConditionType = "DeleteError"
+	BpfProgConfigNotYetLoaded     ProgramConditionType = "NotYetLoaded"
+	BpfProgConfigReconcileError   ProgramConditionType = "ReconcileError"
+	BpfProgConfigReconcileSuccess ProgramConditionType = "ReconcileSuccess"
+	BpfProgConfigDeleteError      ProgramConditionType = "DeleteError"
 )
 
-func (b BpfProgramConfigConditionType) Condition(message string) metav1.Condition {
+func (b ProgramConditionType) Condition(message string) metav1.Condition {
 	cond := metav1.Condition{}
 
 	switch b {
 	case BpfProgConfigNotYetLoaded:
 		if len(message) == 0 {
-			message = "Waiting for BpfProgramConfig Object to be reconciled to all nodes"
+			message = "Waiting for Program Object to be reconciled to all nodes"
 		}
 
 		cond = metav1.Condition{
@@ -89,7 +89,7 @@ func (b BpfProgramConfigConditionType) Condition(message string) metav1.Conditio
 		}
 	case BpfProgConfigDeleteError:
 		if len(message) == 0 {
-			message = "bpfProgramConfig Deletion failed"
+			message = "Program Deletion failed"
 		}
 
 		cond = metav1.Condition{
@@ -115,7 +115,7 @@ type ProgramReconciler interface {
 	getRecCommon() *ReconcilerCommon
 	updateStatus(ctx context.Context,
 		name string,
-		cond BpfProgramConfigConditionType,
+		cond ProgramConditionType,
 		message string) (ctrl.Result, error)
 	getFinalizer() string
 }
@@ -124,21 +124,21 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 	r := rec.getRecCommon()
 	progName := prog.GetName()
 
-	r.Logger.V(1).Info("Reconciling bpfProgramConfig", "bpfProgramConfig", progName)
+	r.Logger.V(1).Info("Reconciling Program", "ProgramName", progName)
 
 	if !controllerutil.ContainsFinalizer(prog, bpfdOperatorFinalizer) {
 		return r.addFinalizer(ctx, prog, bpfdOperatorFinalizer)
 	}
 
-	// reconcile BpfProgramConfig Object on all other events
-	// list all existing bpfProgram state for the given BpfProgramConfig
+	// reconcile Program Object on all other events
+	// list all existing bpfProgram state for the given Program
 	bpfPrograms := &bpfdiov1alpha1.BpfProgramList{}
 
-	// Only list bpfPrograms for this BpfProgramConfig
+	// Only list bpfPrograms for this Program
 	opts := []client.ListOption{client.MatchingLabels{"ownedByProgram": progName}}
 
 	if err := r.List(ctx, bpfPrograms, opts...); err != nil {
-		r.Logger.Error(err, "failed to get freshBpfProgramConfigs for full reconcile")
+		r.Logger.Error(err, "failed to get freshPrograms for full reconcile")
 		return ctrl.Result{}, nil
 	}
 
@@ -188,7 +188,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 		}
 
 		// Causes Requeue
-		return rec.updateStatus(ctx, progName, BpfProgConfigDeleteError, fmt.Sprintf("bpfProgramConfig Deletion failed on the following bpfProgram Objects: %v",
+		return rec.updateStatus(ctx, progName, BpfProgConfigDeleteError, fmt.Sprintf("Program Deletion failed on the following bpfProgram Objects: %v",
 			finalApplied))
 	}
 
@@ -221,7 +221,7 @@ func (r *ReconcilerCommon) addFinalizer(ctx context.Context, prog client.Object,
 
 	err := r.Update(ctx, prog)
 	if err != nil {
-		r.Logger.V(1).Info("failed adding bpfd-operator finalizer to BpfProgramConfig...requeuing")
+		r.Logger.V(1).Info("failed adding bpfd-operator finalizer to Program...requeuing")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}
 

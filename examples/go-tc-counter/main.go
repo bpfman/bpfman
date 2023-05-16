@@ -28,7 +28,7 @@ const (
 	DefaultMapDir         = "/run/bpfd/fs/maps"
 	PrimaryByteCodeFile   = "/run/bpfd/examples/go-tc-counter/bpf_bpfel.o"
 	SecondaryByteCodeFile = "bpf_bpfel.o"
-	BpfProgramConfigName  = "go-tc-counter-example"
+	TcProgramName  = "go-tc-counter-example"
 	BpfProgramMapIndex    = "tc_stats_map"
 )
 
@@ -64,7 +64,7 @@ func main() {
 	if paramData.CrdFlag {
 		c := bpfdHelpers.GetClientOrDie()
 
-		maps, err := bpfdHelpers.GetMaps(c, BpfProgramConfigName, []string{BpfProgramMapIndex})
+		maps, err := bpfdHelpers.GetMaps(c, TcProgramName, []string{BpfProgramMapIndex})
 		if err != nil {
 			log.Printf("error getting bpf stats map: %v\n", err)
 			return

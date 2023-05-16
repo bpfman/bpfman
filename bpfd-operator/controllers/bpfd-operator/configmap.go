@@ -108,6 +108,8 @@ func (r *BpfdConfigReconciler) ReconcileBpfdConfig(ctx context.Context, req ctrl
 			r.Logger.Error(err, "failed deleting bpfd DS")
 			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 		}
+		
+		return ctrl.Result{}, nil
 	}
 
 	if !reflect.DeepEqual(staticBpfdDeployment.Spec, bpfdDeployment.Spec) {

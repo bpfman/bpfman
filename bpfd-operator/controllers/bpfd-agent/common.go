@@ -147,7 +147,7 @@ func nodePredicate(nodeName string) predicate.Funcs {
 }
 
 func isNodeSelected(selector *metav1.LabelSelector, nodeLabels map[string]string) (bool, error) {
-	// Logic to check if this node is selected by the BpfProgramConfig object
+	// Logic to check if this node is selected by the *Program object
 	selectorTool, err := metav1.LabelSelectorAsSelector(selector)
 	if err != nil {
 		return false, fmt.Errorf("failed to parse nodeSelector: %v",
@@ -259,7 +259,7 @@ func reconcileProgram(ctx context.Context,
 				Status: bpfdiov1alpha1.BpfProgramStatus{Conditions: []metav1.Condition{}},
 			}
 
-			// Make the corresponding BpfProgramConfig the owner
+			// Make the corresponding *Program resource the owner
 			if err = ctrl.SetControllerReference(program, r.bpfProgram, r.Scheme); err != nil {
 				return false, fmt.Errorf("failed to bpfProgram object owner reference: %v", err)
 			}
