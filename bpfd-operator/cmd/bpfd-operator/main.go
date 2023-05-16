@@ -33,6 +33,7 @@ import (
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 	bpfdoperator "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-operator"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -110,6 +111,7 @@ func main() {
 
 	if err = (&bpfdoperator.BpfdConfigReconciler{
 		ReconcilerCommon: common,
+		StaticBpfdDsPath: internal.BpfdDaemonManifestPath,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create bpfdCofig controller", "controller", "BpfProgram")
 		os.Exit(1)

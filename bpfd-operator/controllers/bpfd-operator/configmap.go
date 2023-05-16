@@ -44,6 +44,7 @@ import (
 
 type BpfdConfigReconciler struct {
 	ReconcilerCommon
+	StaticBpfdDsPath string
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -87,7 +88,7 @@ func (r *BpfdConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 func (r *BpfdConfigReconciler) ReconcileBpfdConfig(ctx context.Context, req ctrl.Request, bpfdConfig *corev1.ConfigMap) (ctrl.Result, error) {
 	bpfdDeployment := &appsv1.DaemonSet{}
-	staticBpfdDeployment := LoadAndConfigureBpfdDs(bpfdConfig)
+	staticBpfdDeployment := LoadAndConfigureBpfdDs(bpfdConfig, r.StaticBpfdDsPath)
 	r.Logger.V(1).Info("StaticBpfdDeployment is", "DS", staticBpfdDeployment)
 
 	if err := r.Get(ctx, types.NamespacedName{Namespace: bpfdConfig.Namespace, Name: internal.BpfdDsName}, bpfdDeployment); err != nil {
@@ -179,9 +180,9 @@ func bpfdConfigPredicate() predicate.Funcs {
 	}
 }
 
-func LoadAndConfigureBpfdDs(config *corev1.ConfigMap) *appsv1.DaemonSet {
+func LoadAndConfigureBpfdDs(config *corev1.ConfigMap, path string) *appsv1.DaemonSet {
 	// Load static bpfd deployment from disk
-	file, err := os.Open(internal.BpfdDaemonManifestPath)
+	file, err := os.Open(path)
 	if err != nil {
 		panic(err)
 	}
