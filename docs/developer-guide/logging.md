@@ -136,7 +136,6 @@ data:
   bpfd.agent.image: quay.io/bpfd/bpfd-agent:main
   bpfd.image: quay.io/bpfd/bpfd:main
   bpfd.log.level: debug                 <==== Set Log Level Here
-  bpfd.namespace: bpfd
   bpfd.toml: |
     [tls] # REQUIRED
     ca_cert = "/etc/bpfd/certs/ca/ca.crt"

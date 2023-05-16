@@ -11,13 +11,4 @@ metadata:
     openshift.io/description: "Openshift bpfd components"
     workload.openshift.io/allowed: "management"
   name: system
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: config
-  namespace: kube-system
-data:
-  ## Can be configured at runtime
-  bpfd.namespace: openshift-bpfd
   

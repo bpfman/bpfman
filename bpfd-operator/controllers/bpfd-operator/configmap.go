@@ -90,7 +90,7 @@ func (r *BpfdConfigReconciler) ReconcileBpfdConfig(ctx context.Context, req ctrl
 	staticBpfdDeployment := LoadAndConfigureBpfdDs(bpfdConfig)
 	r.Logger.V(1).Info("StaticBpfdDeployment is", "DS", staticBpfdDeployment)
 
-	if err := r.Get(ctx, types.NamespacedName{Namespace: bpfdConfig.Data["bpfd.namespace"], Name: internal.BpfdDsName}, bpfdDeployment); err != nil {
+	if err := r.Get(ctx, types.NamespacedName{Namespace: bpfdConfig.Namespace, Name: internal.BpfdDsName}, bpfdDeployment); err != nil {
 		if errors.IsNotFound(err) {
 			r.Logger.Info("Creating Bpfd Daemon")
 			// Causes Requeue
@@ -197,7 +197,6 @@ func LoadAndConfigureBpfdDs(config *corev1.ConfigMap) *appsv1.DaemonSet {
 	staticBpfdDeployment := obj.(*appsv1.DaemonSet)
 
 	// Runtime Configurable fields
-	bpfdNamespace := config.Data["bpfd.namespace"]
 	bpfdImage := config.Data["bpfd.image"]
 	bpfdAgentImage := config.Data["bpfd.agent.image"]
 	bpfdLogLevel := config.Data["bpfd.log.level"]
@@ -208,7 +207,7 @@ func LoadAndConfigureBpfdDs(config *corev1.ConfigMap) *appsv1.DaemonSet {
 	}
 	staticBpfdDeployment.Spec.Template.ObjectMeta.Annotations["bpfd.io.bpfd.loglevel"] = bpfdLogLevel
 	staticBpfdDeployment.Name = "bpfd-daemon"
-	staticBpfdDeployment.Namespace = bpfdNamespace
+	staticBpfdDeployment.Namespace = config.Namespace
 	staticBpfdDeployment.Spec.Template.Spec.Containers[0].Image = bpfdImage
 	staticBpfdDeployment.Spec.Template.Spec.Containers[1].Image = bpfdAgentImage
 	controllerutil.AddFinalizer(staticBpfdDeployment, "bpfd.io.operator/finalizer")
