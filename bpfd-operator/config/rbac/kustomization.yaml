@@ -10,8 +10,6 @@ resources:
 - role_binding.yaml
 - leader_election_role.yaml
 - leader_election_role_binding.yaml
-- bpfprogramconfig_editor_role.yaml
-- bpfprogramconfig_viewer_role.yaml
 - bpfprogram_editor_role.yaml
 - bpfprogram_viewer_role.yaml
 # Comment the following 4 lines if you want to disable
