@@ -83,7 +83,7 @@ Openshift Deployment
 To run locally in a kind cluster with an up to date build simply run:
 
 ```bash
-make run on kind
+make run-on-kind
 ```
 
 The container images used for `bpfd`,`bpfd-agent`, and `bpfd-operator` can also be manually configured,
@@ -136,11 +136,11 @@ The following is a brief description of the main directories and their contents.
 **NOTE: Bolded directories contain auto-generated code**
 
 
-- **`/apis`**: Contains the K8s CRD api definitions(`*_tyeps.go`) for each version along with the
+- **`/apis`**: Contains the K8s CRD api definitions(`*_types.go`) for each version along with the
   auto-generated register and deepcopy methods(`zz_generated.deepcopy.go` and `zz_generate_register.go`).
 - `/bundle`: Contains the OLM bundle manifests and metadata for the operator.
   More details can be found in the operator-sdk documentation.
-- `/cmd`: Contains the main entry-points for the operator and bpfd-agent processes. 
+- `/cmd`: Contains the main entry-points for the bpfd-operator and bpfd-agent processes.
 - `/config`: Contains the configuration files for launching the bpfd-operator on a cluster.
     - `/bpfd-deployment`: Contains static deployment yamls for the bpfd-daemon, this includes two containers,
       one for `bpfd` and the other for the `bpfd-agent`.

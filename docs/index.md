@@ -127,7 +127,7 @@ For more details, please see the following:
   `bpfd`, managing logs, and using `bpfctl`.
 - [Example eBPF Programs](./getting-started/example-bpf.md) for some
   examples of eBPF programs written in Go, interacting with `bpfd`.
-- [bpfd-operator Quick Start](./developer-guide/operator-quick-start.md) for details on launching
+- [Deploying the bpfd-operator](./developer-guide/operator-quick-start.md) for details on launching
   bpfd in a Kubernetes cluster.
 - [Meet the Community](./governance/MEETINGS.md) for details on community meeting details.
 

@@ -6,7 +6,7 @@ The approach is slightly different when running on a Kubernetes cluster.
 The eBPF bytecode should be loaded by an administrator, not the userspace program itself.
 
 This section assumes there is already a Kubernetes cluster running and `bpfd` is running in the cluster.
-See [bpfd-operator Quick Start](../developer-guide/operator-quick-start.md) for details on
+See [Deploying the bpfd-operator](../developer-guide/operator-quick-start.md) for details on
 deploying bpfd on a Kubernetes cluster, but the quickest solution is to run a Kubernetes KIND Cluster:
 
 ```console

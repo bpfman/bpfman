@@ -25,12 +25,12 @@ safely deploy eBPF via custom resources across nodes in a cluster.
 Here are some links to help in your bpfd journey (all links are from the bpfd website https://bpfd.netlify.app/):
 
 - [Welcome to bpfd](https://bpfd.netlify.app/) for overview of bpfd.
-- [Setup and Building bpfd](https://bpfd.netlify.app/bpfd/building-bpfd/) for
+- [Setup and Building bpfd](https://bpfd.netlify.app/getting-started/building-bpfd/) for
   instructions on setting up your development environment and building bpfd.
-- [Tutorial](https://bpfd.netlify.app/bpfd/tutorial/) for some examples of starting
+- [Tutorial](https://bpfd.netlify.app/getting-started/tutorial/) for some examples of starting
   `bpfd`, managing logs, and using `bpfctl`.
-- [Example eBPF Programs](https://bpfd.netlify.app/examples/example-bpf/) for some
+- [Example eBPF Programs](https://bpfd.netlify.app/getting-started/example-bpf/) for some
   examples of eBPF programs written in Go, interacting with `bpfd`.
-- [How to Deploy bpfd on Kubernetes](https://bpfd.netlify.app/bpfd-operator/quick-start/) for details on launching
+- [How to Deploy bpfd on Kubernetes](https://bpfd.netlify.app/developer-guide/develop-operator/) for details on launching
   bpfd in a Kubernetes cluster.
 - [Meet the Community](https://bpfd.netlify.app/governance/meetings/) for details on community meeting details.

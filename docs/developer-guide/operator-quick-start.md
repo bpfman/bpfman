@@ -1,4 +1,4 @@
-# bpfd-operator Quick Start
+# Deploying the bpfd-operator
 
 The `bpfd-operator` repository exists in order to deploy and manage bpfd within a Kubernetes cluster.
 

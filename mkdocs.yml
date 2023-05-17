@@ -59,7 +59,7 @@ nav:
   - Developer Guide:
     - Contributing: governance/CONTRIBUTING.md
     - Reviewing Guide: governance/REVIEWING.md
-    - bpfd-operator Quick Start: developer-guide/operator-quick-start.md
+    - Deploying the bpfd-operator: developer-guide/operator-quick-start.md
     - Developing the bpfd-operator: developer-guide/develop-operator.md
     - Kubernetes CRD API-Reference: developer-guide/api-spec.md
     - eBPF Bytecode Image Specifications: developer-guide/shipping-bytecode.md
