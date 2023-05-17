@@ -46,6 +46,9 @@ import (
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfd.io,resources=tcprograms/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfd.io,resources=xdpprograms/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfd.io,resources=tracepointprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get
 
@@ -147,7 +150,7 @@ func nodePredicate(nodeName string) predicate.Funcs {
 }
 
 func isNodeSelected(selector *metav1.LabelSelector, nodeLabels map[string]string) (bool, error) {
-	// Logic to check if this node is selected by the BpfProgramConfig object
+	// Logic to check if this node is selected by the *Program object
 	selectorTool, err := metav1.LabelSelectorAsSelector(selector)
 	if err != nil {
 		return false, fmt.Errorf("failed to parse nodeSelector: %v",
@@ -259,7 +262,7 @@ func reconcileProgram(ctx context.Context,
 				Status: bpfdiov1alpha1.BpfProgramStatus{Conditions: []metav1.Condition{}},
 			}
 
-			// Make the corresponding BpfProgramConfig the owner
+			// Make the corresponding *Program resource the owner
 			if err = ctrl.SetControllerReference(program, r.bpfProgram, r.Scheme); err != nil {
 				return false, fmt.Errorf("failed to bpfProgram object owner reference: %v", err)
 			}

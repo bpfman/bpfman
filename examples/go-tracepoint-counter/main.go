@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	BpfProgramConfigName  = "go-tracepoint-counter-example"
+	TracepointProgramName  = "go-tracepoint-counter-example"
 	BpfProgramMapIndex    = "tracepoint_stats_map"
 	PrimaryByteCodeFile   = "/run/bpfd/examples/go-tracepoint-counter/bpf_bpfel.o"
 	SecondaryByteCodeFile = "bpf_bpfel.o"
@@ -51,7 +51,7 @@ func main() {
 	if paramData.CrdFlag { // get the map path from the API resource if on k8s
 		c := bpfdHelpers.GetClientOrDie()
 
-		maps, err := bpfdHelpers.GetMaps(c, BpfProgramConfigName, []string{BpfProgramMapIndex})
+		maps, err := bpfdHelpers.GetMaps(c, TracepointProgramName, []string{BpfProgramMapIndex})
 		if err != nil {
 			log.Printf("error getting bpf stats map: %v\n", err)
 			return

@@ -62,7 +62,7 @@ func (r *TracepointProgramReconciler) getRecType() string {
 }
 
 // SetupWithManager sets up the controller with the Manager.
-// The Bpfd-Agent should reconcile whenever a BpfProgramConfig is updated,
+// The Bpfd-Agent should reconcile whenever a TracepointProgram is updated,
 // load the program to the node via bpfd, and then create a bpfProgram object
 // to reflect per node state information.
 func (r *TracepointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -70,7 +70,7 @@ func (r *TracepointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&bpfdiov1alpha1.TracepointProgram{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
 		Owns(&bpfdiov1alpha1.BpfProgram{}, builder.WithPredicates(internal.BpfProgramTypePredicate(internal.Tracepoint.String()))).
 		// Only trigger reconciliation if node labels change since that could
-		// make the BpfProgramConfig no longer select the Node. Additionally only
+		// make the TracepointProgram no longer select the Node. Additionally only
 		// care about node events specific to our node
 		Watches(
 			&source.Kind{Type: &v1.Node{}},
@@ -120,7 +120,7 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		r.currentTracepointProgram = &tcProgram
 		retry, err := reconcileProgram(ctx, r, r.currentTracepointProgram, &r.currentTracepointProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
 		if err != nil {
-			r.Logger.Error(err, "Reconciling BpfProgramConfig Failed", "BpfProgramConfigName", r.currentTracepointProgram.Name, "Retrying", retry)
+			r.Logger.Error(err, "Reconciling TracepointProgram Failed", "TracepointProgramName", r.currentTracepointProgram.Name, "Retrying", retry)
 			return ctrl.Result{Requeue: retry, RequeueAfter: retryDurationAgent}, nil
 		}
 	}
@@ -160,7 +160,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 	if !doesProgramExist {
 		r.Logger.V(1).Info("TracepointProgram doesn't exist on node")
 
-		// If BpfProgramConfig is being deleted just exit
+		// If TracepointProgram is being deleted just exit
 		if isBeingDeleted {
 			return BpfProgCondNotLoaded, nil
 		}
@@ -182,7 +182,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 		return BpfProgCondLoaded, nil
 	}
 
-	// BpfProgram exists but either BpfProgramConfig is being deleted or node is no
+	// BpfProgram exists but either TracepointProgram is being deleted or node is no
 	// longer selected....unload program
 	if isBeingDeleted || !isNodeSelected {
 		r.Logger.V(1).Info("TcProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", isBeingDeleted,

@@ -39,106 +39,17 @@ spec:
                 type: string
               programs:
                 additionalProperties:
-                  description: BpfProgramMeta defines the relevant metadata needed
-                    for a single running BpfProgram.
-                  properties:
-                    attachpoint:
-                      description: AttachPoint specifies what this BpfProgram is attached
-                        to for some programs is may be nil.
-                      maxProperties: 1
-                      minProperties: 1
-                      properties:
-                        networkmultiattach:
-                          description: NetworkMultiAttach defines an attach point
-                            for programs which attach to network devices and must
-                            be ordered via bpfd.
-                          properties:
-                            direction:
-                              default: NONE
-                              description: Direction specifies the direction of traffic
-                                the bpfprogram should attach to for a given network
-                                device, this field should only be set for programs
-                                of type TC. TODO(astoycos) see if kubebuilder can
-                                handle more complicated validation for this.
-                              enum:
-                              - NONE
-                              - INGRESS
-                              - EGRESS
-                              type: string
-                            interfaceselector:
-                              description: Selector to determine the network interface
-                                (or interfaces)
-                              maxProperties: 1
-                              minProperties: 1
-                              properties:
-                                interface:
-                                  description: Interface refers to the name of a network
-                                    interface to attach BPF program too.
-                                  type: string
-                                primarynodeinterface:
-                                  description: Attach BPF program to the primary interface
-                                    on the node. Only 'true' accepted.
-                                  type: boolean
-                              type: object
-                            priority:
-                              description: Priority specifies the priority of the
-                                bpf program in relation to other programs of the same
-                                type with the same attach point. It is a value from
-                                0 to 1000 where lower values have higher precedence.
-                              format: int32
-                              maximum: 1000
-                              minimum: 0
-                              type: integer
-                            proceedon:
-                              description: 'ProceedOn allows the user to call other
-                                programs in chain on this exit code. Multiple values
-                                are supported by repeating the parameter. This feature
-                                is only applicable for XDP programs. NOTE: These values
-                                are not updatable following bpfProgramConfig creation.'
-                              items:
-                                enum:
-                                - ABORTED
-                                - DROP
-                                - PASS
-                                - TX
-                                - REDIRECT
-                                - DISPATCHER_RETURN
-                                type: string
-                              type: array
-                          required:
-                          - interfaceselector
-                          - priority
-                          type: object
-                        singleattach:
-                          description: SingleAttach defines an attach point for programs
-                            which attach to a single entity and do not need to be
-                            ordered.
-                          properties:
-                            name:
-                              description: Name refers to the name of the attach point
-                              type: string
-                          required:
-                          - name
-                          type: object
-                      type: object
-                    maps:
-                      additionalProperties:
-                        type: string
-                      description: 'Maps is a map with Keys: Map Names, and Values:
-                        Map Pin paths'
-                      type: object
-                  required:
-                  - maps
+                  additionalProperties:
+                    type: string
                   type: object
-                description: 'ProgramMap is is a map with Keys: UUIDs, Values: BpfProgramMeta'
+                description: 'ProgramMap is is a map with Keys: UUIDs, Values: map
+                  with Keys: Map Names, and Values: Map Pin paths'
                 type: object
               type:
-                description: Type specifies the bpf program type.
+                description: Type specifies the bpf program type
                 type: string
             required:
-            - node
             - programs
-            - type
             type: object
           status:
             description: BpfProgramStatus defines the observed state of BpfProgram

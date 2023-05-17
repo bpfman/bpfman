@@ -133,7 +133,7 @@ func GetClientOrDie() *bpfdclientset.Clientset {
 
 // GetMaps is meant to be used by applications wishing to use BPFD. It takes in a bpf program
 // name and a list of map names, and returns a map corelating map name to map pin path.
-func GetMaps(c *bpfdclientset.Clientset, bpfProgramConfigName string, mapNames []string) (map[string]map[string]string, error) {
+func GetMaps(c *bpfdclientset.Clientset, ProgramName string, mapNames []string) (map[string]map[string]string, error) {
 	ctx := context.Background()
 
 	// Get the nodename where this pod is running
@@ -141,7 +141,7 @@ func GetMaps(c *bpfdclientset.Clientset, bpfProgramConfigName string, mapNames [
 	if nodeName == "" {
 		return nil, fmt.Errorf("NODENAME env var not set")
 	}
-	bpfProgramName := bpfProgramConfigName + "-" + nodeName
+	bpfProgramName := ProgramName + "-" + nodeName
 
 	bpfProgram, err := c.BpfdV1alpha1().BpfPrograms().Get(ctx, bpfProgramName, metav1.GetOptions{})
 	if err != nil {
@@ -159,7 +159,7 @@ func GetMaps(c *bpfdclientset.Clientset, bpfProgramConfigName string, mapNames [
 	return bpfProgram.Spec.Programs, nil
 }
 
-// // CreateOrUpdateOwnedBpfProgConf creates or updates a bpfProgramConfig object while also setting the owner reference to
+// // CreateOrUpdateOwnedBpfProgConf creates or updates a Program object while also setting the owner reference to
 // // another Kubernetes core object or CRD.
 // func CreateOrUpdateOwnedBpfProgConf(c *bpfdclientset.Clientset, progConfig *bpfdiov1alpha1.BpfProgramConfig, owner client.Object, ownerScheme *runtime.Scheme) error {
 // 	progName := progConfig.GetName()
@@ -344,7 +344,7 @@ func isXdpbpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string) wait.C
 	}
 }
 
-// WaitForBpfProgConfLoad ensures the bpfProgramConfig object is loaded and deployed successfully, specifically
+// WaitForBpfProgConfLoad ensures the Program object is loaded and deployed successfully, specifically
 // it checks the config objects' conditions to look for the `Loaded` state.
 func WaitForBpfProgConfLoad(c *bpfdclientset.Clientset, progName string, timeout time.Duration, progType ProgramType) error {
 	switch progType {

@@ -68,7 +68,7 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	xdpProgram := &bpfdiov1alpha1.XdpProgram{}
 	if err := r.Get(ctx, req.NamespacedName, xdpProgram); err != nil {
-		// list all BpfProgramConfig objects with
+		// list all XdpProgram objects with
 		if errors.IsNotFound(err) {
 			// TODO(astoycos) we could simplify this logic by making the name of the
 			// generated bpfProgram object a bit more deterministic
@@ -82,7 +82,7 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				return ctrl.Result{}, nil
 			}
 
-			// Get owning BpfProgramConfig object from ownerRef
+			// Get owning XdpProgram object from ownerRef
 			ownerRef := metav1.GetControllerOf(bpfProgram)
 			if ownerRef == nil {
 				return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting bpfProgram Object owner")
@@ -106,8 +106,8 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return reconcileBpfProgram(ctx, r, xdpProgram)
 }
 
-func (r *XdpProgramReconciler) updateStatus(ctx context.Context, name string, cond BpfProgramConfigConditionType, message string) (ctrl.Result, error) {
-	// Sometimes we end up with a stale bpfProgramConfig due to races, do this
+func (r *XdpProgramReconciler) updateStatus(ctx context.Context, name string, cond ProgramConditionType, message string) (ctrl.Result, error) {
+	// Sometimes we end up with a stale XdpProgram due to races, do this
 	// get to ensure we're up to date before attempting a finalizer removal.
 	prog := &bpfdiov1alpha1.XdpProgram{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: name}, prog); err != nil {

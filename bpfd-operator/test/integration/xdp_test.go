@@ -49,7 +49,7 @@ data:
 		return clusters.DeleteManifestByYAML(ctx, env.Cluster(), xdpPassPrivateSecretYAML)
 	})
 
-	xdpPassPrivateBpfProgramConfigYAML := `---
+	xdpPassPrivateXdpProgramYAML := `---
 ---
 apiVersion: bpfd.io/v1alpha1
 kind: XdpProgram
@@ -73,10 +73,10 @@ spec:
 `
 
 	t.Log("deploying private xdp pass bpf program")
-	require.NoError(t, clusters.ApplyManifestByYAML(ctx, env.Cluster(), xdpPassPrivateBpfProgramConfigYAML))
+	require.NoError(t, clusters.ApplyManifestByYAML(ctx, env.Cluster(), xdpPassPrivateXdpProgramYAML))
 	addCleanup(func(ctx context.Context) error {
 		cleanupLog("cleaning up xdp pass private bpfd program")
-		return clusters.DeleteManifestByYAML(ctx, env.Cluster(), xdpPassPrivateBpfProgramConfigYAML)
+		return clusters.DeleteManifestByYAML(ctx, env.Cluster(), xdpPassPrivateXdpProgramYAML)
 	})
 
 	// Make sure the bpfProgram was successfully deployed

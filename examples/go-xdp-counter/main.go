@@ -28,7 +28,7 @@ const (
 	DefaultMapDir         = "/run/bpfd/fs/maps"
 	PrimaryByteCodeFile   = "/run/bpfd/examples/go-xdp-counter/bpf_bpfel.o"
 	SecondaryByteCodeFile = "bpf_bpfel.o"
-	BpfProgramConfigName  = "go-xdp-counter-example"
+	XdpProgramName  = "go-xdp-counter-example"
 	BpfProgramMapIndex    = "xdp_stats_map"
 )
 
@@ -54,7 +54,7 @@ func main() {
 	if paramData.CrdFlag {
 		c := bpfdHelpers.GetClientOrDie()
 
-		maps, err := bpfdHelpers.GetMaps(c, BpfProgramConfigName, []string{BpfProgramMapIndex})
+		maps, err := bpfdHelpers.GetMaps(c, XdpProgramName, []string{BpfProgramMapIndex})
 		if err != nil {
 			log.Printf("error getting bpf stats map: %v\n", err)
 			return

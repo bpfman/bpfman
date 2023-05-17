@@ -7,20 +7,6 @@ rules:
 - apiGroups:
   - bpfd.io
   resources:
-  - bpfprogramconfigs
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - bpfd.io
-  resources:
-  - bpfprogramconfigs/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - bpfd.io
-  resources:
   - bpfprograms
   verbs:
   - create
@@ -45,6 +31,48 @@ rules:
   - patch
   - update
 - apiGroups:
+  - bpfd.io
+  resources:
+  - tcprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfd.io
+  resources:
+  - tcprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfd.io
+  resources:
+  - tracepointprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfd.io
+  resources:
+  - tracepointprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfd.io
+  resources:
+  - xdpprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfd.io
+  resources:
+  - xdpprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
   - ""
   resources:
   - nodes
@@ -52,3 +80,9 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get

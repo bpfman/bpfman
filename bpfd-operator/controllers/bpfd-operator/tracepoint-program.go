@@ -68,7 +68,7 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	tracepointProgram := &bpfdiov1alpha1.TracepointProgram{}
 	if err := r.Get(ctx, req.NamespacedName, tracepointProgram); err != nil {
-		// list all BpfProgramConfig objects with
+		// list all TcProgram objects with
 		if errors.IsNotFound(err) {
 			bpfProgram := &bpfdiov1alpha1.BpfProgram{}
 			if err := r.Get(ctx, req.NamespacedName, bpfProgram); err != nil {
@@ -80,7 +80,7 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 				return ctrl.Result{}, nil
 			}
 
-			// Get owning BpfProgramConfig object from ownerRef
+			// Get owning TcProgram object from ownerRef
 			ownerRef := metav1.GetControllerOf(bpfProgram)
 			if ownerRef == nil {
 				return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting bpfProgram Object owner")
@@ -104,8 +104,8 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	return reconcileBpfProgram(ctx, r, tracepointProgram)
 }
 
-func (r *TracepointProgramReconciler) updateStatus(ctx context.Context, name string, cond BpfProgramConfigConditionType, message string) (ctrl.Result, error) {
-	// Sometimes we end up with a stale bpfProgramConfig due to races, do this
+func (r *TracepointProgramReconciler) updateStatus(ctx context.Context, name string, cond ProgramConditionType, message string) (ctrl.Result, error) {
+	// Sometimes we end up with a stale XdpProgram due to races, do this
 	// get to ensure we're up to date before attempting a finalizer removal.
 	prog := &bpfdiov1alpha1.TracepointProgram{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: name}, prog); err != nil {

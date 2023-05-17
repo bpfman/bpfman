@@ -28,6 +28,12 @@ rules:
 - apiGroups:
   - bpfd.io
   resources:
+  - configmaps/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfd.io
+  resources:
   - tcprograms
   verbs:
   - create
