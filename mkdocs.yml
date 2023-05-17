@@ -3,6 +3,7 @@ repo_url: https://github.com/bpfd-dev/bpfd
 edit_uri: edit/main/docs
 extra_css:
   - stylesheets/extra.css
+site_dir: site
 
 theme:
   name: material
@@ -47,20 +48,34 @@ markdown_extensions:
   - tables
 
 nav:
-  - Home:
-    - index.md
-    - Tutorial: tutorial.md
-    - Configuration: configuration.md
-    - Setup and Building bpfd: building-bpfd.md
-    - Example BPF Programs: example-bpf.md
-    - Deploying Example BPF Programs On Local Host: example-bpf-local.md
-    - Deploying Example BPF Programs On Kubernetes: example-bpf-k8s.md
-    - How to Deploy bpfd on Kubernetes: k8s-deployment.md
-    - BPFD Container Images: image-build.md
-    - Linux Capabilities: linux-capabilities.md
-    - EBPF Bytecode Image Specifications: shipping-bytecode.md
+  - Introduction: index.md
+  - Getting Started:
+    - Setup and Building: getting-started/building-bpfd.md
+    - Bpfd on Linux Tutorial: getting-started/tutorial.md
+    - bpfctl Guide: getting-started/bpfctl-guide.md
+    - Example eBPF Programs: getting-started/example-bpf.md
+    - Deploying Example eBPF Programs On Local Host: getting-started/example-bpf-local.md
+    - Deploying Example eBPF Programs On Kubernetes: getting-started/example-bpf-k8s.md
+  - Developer Guide:
+    - Contributing: governance/CONTRIBUTING.md
+    - Reviewing Guide: governance/REVIEWING.md
+    - Deploying the bpfd-operator: developer-guide/operator-quick-start.md
+    - Developing the bpfd-operator: developer-guide/develop-operator.md
+    - Kubernetes CRD API-Reference: developer-guide/api-spec.md
+    - eBPF Bytecode Image Specifications: developer-guide/shipping-bytecode.md
+    - bpfd Container Images: developer-guide/image-build.md
+    - Documentation: developer-guide/documentation.md
+    - Linux Capabilities: developer-guide/linux-capabilities.md
+    - Logging: developer-guide/logging.md
+    - Configuration: developer-guide/configuration.md
+  - Community:
+    - Meetings: governance/MEETINGS.md
+    - Governance: governance/GOVERNANCE.md
+    - Code of Conduct: governance/CODE_OF_CONDUCT.md
+    - Maintainers: governance/MAINTAINERS.md
+    - Security: governance/SECURITY.md
 
 plugins:
   - search
 
-copyright: Copyright &copy; 2021-2023 The bpfd contribtutors
+copyright: Copyright &copy; 2021-2023 The bpfd contributors

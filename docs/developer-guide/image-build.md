@@ -1,4 +1,4 @@
-# BPFD Container Images
+# bpfd Container Images
 
 Container images for the `bpfd` and `bpfctl` binaries are automatically built and
 pushed to `quay.io/bpfd` whenever code is merged into the `main` branch of the
@@ -9,13 +9,13 @@ pushed to `quay.io/bpfd` whenever code is merged into the `main` branch of the
 ### bpfd
 
 ```sh
-    docker build -f /packaging/container-deployment/Containerfile.bpfd . -t bpfd:local
+docker build -f /packaging/container-deployment/Containerfile.bpfd . -t bpfd:local
 ```
 
 ### bpfctl
 
 ```sh
-    docker build -f /packaging/container-deployment/Containerfile.bpfctl . -t bpfctl:local
+docker build -f /packaging/container-deployment/Containerfile.bpfctl . -t bpfctl:local
 ```
 
 ## Running locally in container

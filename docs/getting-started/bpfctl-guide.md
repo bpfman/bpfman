@@ -1,7 +1,7 @@
 # bpfctl Guide
 
 `bpfctl` is the command line tool for interacting with `bpfd`.
-`bpfctl` allows the user to `load`, `unload` and `list` BPF programs.
+`bpfctl` allows the user to `load`, `unload` and `list` eBPF programs.
 
 ## Notes For This Guide
 
@@ -37,7 +37,7 @@ use as your system is deployed.
 For security reasons, when `bpfd` is run as a systemd service, all linux capabilities are stripped
 from any spawned threads.
 Therefore, `bpfd` can only access files owned by the `bpfd` user group.
-This includes BPF object files.
+This includes eBPF object files.
 In the `bpfctl load-from-file` examples below, the files are located in `/run/bpfd/examples/`, which is
 a directory owned by `bpfd`.
 Below is an example of copying local files over for use in this scenario:
@@ -61,10 +61,10 @@ A client for working with bpfd
 Usage: bpfctl <COMMAND>
 
 Commands:
-  load-from-file   Load a BPF program from a local .o file
-  load-from-image  Load a BPF program packaged in a OCI container image from a given registry
-  unload           Unload a BPF program using the UUID
-  list             List all BPF programs loaded via bpfd
+  load-from-file   Load an eBPF program from a local .o file
+  load-from-image  Load an eBPF program packaged in a OCI container image from a given registry
+  unload           Unload an eBPF program using the UUID
+  list             List all eBPF programs loaded via bpfd
   help             Print this message or the help of the given subcommand(s)
 
 Options:
@@ -74,14 +74,14 @@ Options:
 
 ## bpfctl load
 
-The `bpfctl load-from-file` and `bpfctl load-from-image` commands are used to load BPF programs.
+The `bpfctl load-from-file` and `bpfctl load-from-image` commands are used to load eBPF programs.
 Each program type (i.e. `<COMMAND>`) has it's own set of attributes specific to the program type,
 and those attributes MUST come after the program type is entered.
 There are a common set of attributes, and those MUST come before the program type is entered.
 
 ```console
 bpfctl load-from-file --help
-Load a BPF program from a local .o file
+Load an eBPF program from a local .o file
 
 Usage: bpfctl load-from-file [OPTIONS] --path <PATH> --section-name <SECTION_NAME> <COMMAND>
 
@@ -168,7 +168,7 @@ bpfctl load-from-image --image-url quay.io/bpfd-bytecode/tracepoint:latest trace
 
 ## bpfctl list
 
-The `bpfctl list` command lists all the loaded BPF programs:
+The `bpfctl list` command lists all the loaded eBPF programs:
 
 ```console
 bpfctl list
@@ -181,7 +181,7 @@ bpfctl list
 ## bpfctl unload
 
 The `bpfctl unload` command takes the UUID from the load or list command as a parameter,
-and unloads the requested BPF program:
+and unloads the requested eBPF program:
 
 ```console
 bpfctl unload 84eff4d7-6dbb-4ed7-9ce4-d6b5478e8d91

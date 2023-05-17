@@ -1,26 +1,26 @@
-# Deploying Example BPF Programs On Kubernetes
+# Deploying Example eBPF Programs On Kubernetes
 
 This section will describe loading bytecode on a Kubernetes cluster and launching the userspace
 program.
 The approach is slightly different when running on a Kubernetes cluster.
-The BPF bytecode should be loaded by an administrator, not the userspace program itself.
+The eBPF bytecode should be loaded by an administrator, not the userspace program itself.
 
 This section assumes there is already a Kubernetes cluster running and `bpfd` is running in the cluster.
-See [How to Manually Deploy bpfd on Kubernetes](./k8s-deployment.md) for details on deploying
-bpfd on a Kubernetes cluster, but the quickest solution is to run a Kubernetes KIND Cluster:
+See [Deploying the bpfd-operator](../developer-guide/operator-quick-start.md) for details on
+deploying bpfd on a Kubernetes cluster, but the quickest solution is to run a Kubernetes KIND Cluster:
 
 ```console
 cd bpfd/bpfd-operator/
 make run-on-kind
 ```
 
-### Loading BPF Bytecode On Kubernetes
+### Loading eBPF Bytecode On Kubernetes
 
-![go-xdp-counter On Kubernetes](./img/gocounter-on-k8s.png)
+![go-xdp-counter On Kubernetes](../img/gocounter-on-k8s.png)
 
-Instead of using the userspace program or `bpfctl` to load the BPF bytecode as done in previous sections,
+Instead of using the userspace program or `bpfctl` to load the eBPF bytecode as done in previous sections,
 the bytecode will be loaded by creating a Kubernetes CRD object.
-There is a CRD object for each BPF program type bpfd supports.
+There is a CRD object for each eBPF program type bpfd supports.
 Edit the sample yaml files to customize any configuration values:
 
 * TcProgram CRD: [go-tc-counter-bytecode.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tc-counter/kubernetes-deployment/go-tc-counter-bytecode.yaml)
@@ -69,7 +69,7 @@ and `go-tracepoint-counter-bytecode.yaml` and then apply the updated yamls:
 Following the diagram for XDP example (Blue numbers):
 
 1. The user creates a `XdpProgram` object with the parameters
-associated with the BPF bytecode, like interface, priority and BFP bytecode image.
+associated with the eBPF bytecode, like interface, priority and BFP bytecode image.
 The name of the `XdpProgram` object in this example is `go-xdp-counter-example`.
 2. `bpfd-agent`, running on each node, is watching for all changes to `XdpProgram` objects.
 When it sees a `XdpProgram` object created or modified, it makes sure a `BpfProgram` object for that
@@ -80,7 +80,7 @@ by making gRPC calls the `bpfd`.
 `bpfd` behaves the same as described in the running locally example.
 4. `bpfd-agent` finally updates the status of the `BpfProgram` object.
 5. `bpfd-operator` watches all `BpfProgram` objects, and updates the status of the `XdpProgram`
-object indicating if the BPF program has been applied to all the desired nodes or not.
+object indicating if the eBPF program has been applied to all the desired nodes or not.
 
 To retrieve information on the `XdpProgram` objects:
 
