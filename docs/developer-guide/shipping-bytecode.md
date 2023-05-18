@@ -46,9 +46,6 @@ These labels are defined as follows:
 
 - `io.ebpf.section_name`: The section name of the eBPF Program.
 
-- `io.ebpf.kernel_version`: The Kernel version for which this bytecode was compiled
-against.
-
 ### Building a Backwards compatible OCI compliant image
 
 An Example Containerfile can be found at `/packaging/container/deployment/Containerfile.bytecode`
@@ -88,7 +85,6 @@ skopeo inspect docker://quay.io/astoycos/xdp_pass:latest
     "Labels": {
         "io.buildah.version": "1.26.1",
         "io.ebpf.filename": "pass.bpf.o",
-        "io.ebpf.kernel_version": "5.18.6-200.fc36.x86_64",
         "io.ebpf.program_name": "xdp_counter",
         "io.ebpf.program_type": "xdp",
         "io.ebpf.section_name": "pass"
