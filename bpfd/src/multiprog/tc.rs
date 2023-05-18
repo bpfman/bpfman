@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::{fs, io::BufReader};
+use std::{fs, io::BufReader, mem};
 
 use aya::{
     include_bytes_aligned,
@@ -46,8 +46,6 @@ pub struct TcDispatcher {
     handle: Option<u32>,
     #[serde(skip)]
     loader: Option<Bpf>,
-    #[serde(skip)]
-    link: Option<SchedClassifierLink>,
 }
 
 impl TcDispatcher {
@@ -106,7 +104,6 @@ impl TcDispatcher {
             priority: TC_DISPATCHER_PRIORITY,
             handle: None,
             loader: Some(loader),
-            link: None,
         };
         dispatcher.attach_extensions(&mut extensions).await?;
         dispatcher.attach(old_dispatcher)?;
@@ -144,15 +141,12 @@ impl TcDispatcher {
                 ..Default::default()
             },
         )?;
+
         let link = new_dispatcher.take_link(link_id)?;
         self.handle = Some(link.handle());
-        self.link = Some(link);
+        mem::forget(link);
 
         if let Some(Dispatcher::Tc(mut d)) = old_dispatcher {
-            // FIXME: TcLinks should detach on drop
-            if let Some(old_link) = d.link.take() {
-                old_link.detach()?;
-            }
             d.delete(false)?;
         }
 
@@ -294,31 +288,21 @@ impl TcDispatcher {
         let path = format!("{base}/dispatcher_{}_{}", self.if_index, self.revision);
         fs::remove_dir_all(path)
             .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {e}")))?;
-        // FIXME: Dispatcher *SHOULD* be detached when this object is dropped
-        if let Some(link) = self.link.take() {
-            link.detach()?;
-        }
+        if let Some(old_handle) = self.handle {
+            let attach_type = match self.direction {
+                Direction::Ingress => TcAttachType::Ingress,
+                Direction::Egress => TcAttachType::Egress,
+            };
+            if let Ok(old_link) =
+                SchedClassifierLink::attached(&self.if_name, attach_type, self.priority, old_handle)
+            {
+                old_link.detach()?;
+            }
+        };
         Ok(())
     }
 
     pub(crate) fn if_name(&self) -> String {
         self.if_name.clone()
-    }
-
-    pub(crate) fn set_link(&mut self) {
-        let iface = self.if_name.clone();
-
-        let attach_type = match self.direction {
-            Direction::Ingress => TcAttachType::Ingress,
-            Direction::Egress => TcAttachType::Egress,
-        };
-
-        if let Some(handle) = self.handle {
-            if let Ok(link) =
-                SchedClassifierLink::attached(&iface, attach_type, self.priority, handle)
-            {
-                self.link = Some(link);
-            }
-        };
     }
 }
