@@ -9,6 +9,6 @@ spec:
   # Select all nodes
   nodeselector: {}
   name: syscalls/sys_enter_kill
-  bytecode: 
+  bytecode:
     image:
       url: quay.io/bpfd-bytecode/go-tracepoint-counter:latest

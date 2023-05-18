@@ -9,7 +9,7 @@ Current examples include:
 * [examples/go-xdp-counter/](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-xdp-counter)
 
 These examples and the associated documentation is intended to provide the basics on how to deploy
-and manage a eBPF program using bpfd. Each of the examples contain an eBPF Program written in C
+and manage an eBPF program using bpfd. Each of the examples contain an eBPF Program written in C
 ([tc_counter.c](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tc-counter/bpf/tc_counter.c),
 [tracepoint_counter.c](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tracepoint-counter/bpf/tracepoint_counter.c) and
 [xdp_counter.c](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-xdp-counter/bpf/xdp_counter.c))

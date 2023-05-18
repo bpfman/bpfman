@@ -11,6 +11,6 @@ spec:
   interfaceselector:
     primarynodeinterface: true
   priority: 55
-  bytecode: 
+  bytecode:
     image:
       url: quay.io/bpfd-bytecode/go-xdp-counter:latest

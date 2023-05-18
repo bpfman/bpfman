@@ -12,6 +12,6 @@ spec:
     interface: eth0
   priority: 55
   direction: ingress
-  bytecode: 
+  bytecode:
     image:
       url: quay.io/bpfd-bytecode/go-tc-counter:latest
