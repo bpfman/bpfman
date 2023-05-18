@@ -4,7 +4,7 @@ on:
   push:
     branches: [ main ]
     tags:        
-      - '*' 
+      - 'v*'
 
   pull_request:
     paths: [ '.github/workflows/image-build.yaml' ]
@@ -26,14 +26,13 @@ env:
 jobs:
   ## Used to ensure image builds are successful on PRs if workflow file was changed
   build-and-push-images:
-    if: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
     runs-on: ubuntu-latest
     environment: image-repositories
     steps:
     - name: Check out rust source code
       uses: actions/checkout@v2
 
-# Build quay.io/bpfd images
+## Build quay.io/bpfd images
     - name: Login to quay.io/bpfd
       uses: redhat-actions/podman-login@v1
       if: ${{ github.event_name == 'push' }}
@@ -250,7 +249,6 @@ jobs:
         registry: ${{ env.REGISTRY }}/${{ env.BPFD_USERSPACE_REPOSITORY }}
 
 ## Build quay.io/bpfd-bytecode images
-
     - name: Login to quay.io/bpfd
       uses: redhat-actions/podman-login@v1
       if: ${{ github.event_name == 'push' }}
