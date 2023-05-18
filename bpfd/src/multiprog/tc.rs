@@ -193,12 +193,6 @@ impl TcDispatcher {
                 let path = format!("{base}/dispatcher_{if_index}_{}/link_{k}", self.revision);
                 new_link.pin(path).map_err(BpfdError::UnableToPinLink)?;
             } else {
-                let mut bpf = BpfLoader::new();
-
-                for (name, value) in &v.data.global_data {
-                    bpf.set_global(name, value.as_slice());
-                }
-
                 let program_bytes = if v.data.path.clone().contains(BYTECODE_IMAGE_CONTENT_STORE) {
                     get_bytecode_from_image_store(v.data.path.clone()).await?
                 } else {
@@ -207,7 +201,13 @@ impl TcDispatcher {
                     })?
                 };
 
-                let mut bpf = BpfLoader::new()
+                let mut bpf = BpfLoader::new();
+
+                for (name, value) in &v.data.global_data {
+                    bpf.set_global(name, value.as_slice());
+                }
+
+                let mut bpf = bpf
                     .map_pin_path(format!("{RTDIR_FS_MAPS}/{k}"))
                     .extension(&v.data.section_name)
                     .load(&program_bytes)

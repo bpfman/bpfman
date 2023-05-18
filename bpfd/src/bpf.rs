@@ -267,12 +267,6 @@ impl BpfManager {
                 .await
                 .map_err(|e| BpfdError::Error(format!("can't create map dir: {e}")))?;
 
-            let mut loader = BpfLoader::new();
-
-            for (name, value) in &program.data.global_data {
-                loader.set_global(name, value.as_slice());
-            }
-
             let program_bytes = if program
                 .data
                 .path
@@ -284,7 +278,13 @@ impl BpfManager {
                 read(program.data.path.clone()).await?
             };
 
-            let mut loader = BpfLoader::new()
+            let mut loader = BpfLoader::new();
+
+            for (name, value) in &program.data.global_data {
+                loader.set_global(name, value.as_slice());
+            }
+
+            let mut loader = loader
                 .map_pin_path(map_pin_path.clone())
                 .load(&program_bytes)?;
 
