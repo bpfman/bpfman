@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::{fs, io::BufReader};
+use std::{fs, io::BufReader, mem};
 
 use aya::{
     include_bytes_aligned,
@@ -46,8 +46,6 @@ pub struct TcDispatcher {
     handle: Option<u32>,
     #[serde(skip)]
     loader: Option<Bpf>,
-    #[serde(skip)]
-    link: Option<SchedClassifierLink>,
 }
 
 impl TcDispatcher {
@@ -106,7 +104,6 @@ impl TcDispatcher {
             priority: TC_DISPATCHER_PRIORITY,
             handle: None,
             loader: Some(loader),
-            link: None,
         };
         dispatcher.attach_extensions(&mut extensions).await?;
         dispatcher.attach(old_dispatcher)?;
@@ -144,16 +141,21 @@ impl TcDispatcher {
                 ..Default::default()
             },
         )?;
+
         let link = new_dispatcher.take_link(link_id)?;
         self.handle = Some(link.handle());
-        self.link = Some(link);
+        mem::forget(link);
 
         if let Some(Dispatcher::Tc(mut d)) = old_dispatcher {
-            // FIXME: TcLinks should detach on drop
-            if let Some(old_link) = d.link.take() {
-                old_link.detach()?;
+            // If the old dispatcher was not attached when the new dispatcher
+            // was attached above, the new dispatcher may get the same handle
+            // as the old one had.  If this happens, the new dispatcher will get
+            // detached if we do a full delete, so don't do it.
+            if d.handle != self.handle {
+                d.delete(true)?;
+            } else {
+                d.delete(false)?;
             }
-            d.delete(false)?;
         }
 
         Ok(())
@@ -274,7 +276,7 @@ impl TcDispatcher {
         Ok(prog)
     }
 
-    pub(crate) fn delete(&mut self, _full: bool) -> Result<(), BpfdError> {
+    pub(crate) fn delete(&mut self, full: bool) -> Result<(), BpfdError> {
         debug!(
             "TcDispatcher::delete() for if_index {}, revision {}",
             self.if_index, self.revision
@@ -294,31 +296,38 @@ impl TcDispatcher {
         let path = format!("{base}/dispatcher_{}_{}", self.if_index, self.revision);
         fs::remove_dir_all(path)
             .map_err(|e| BpfdError::Error(format!("unable to cleanup state: {e}")))?;
-        // FIXME: Dispatcher *SHOULD* be detached when this object is dropped
-        if let Some(link) = self.link.take() {
-            link.detach()?;
+
+        if full {
+            // Also detach the old dispatcher.
+            if let Some(old_handle) = self.handle {
+                let attach_type = match self.direction {
+                    Direction::Ingress => TcAttachType::Ingress,
+                    Direction::Egress => TcAttachType::Egress,
+                };
+                if let Ok(old_link) = SchedClassifierLink::attached(
+                    &self.if_name,
+                    attach_type,
+                    self.priority,
+                    old_handle,
+                ) {
+                    let detach_result = old_link.detach();
+                    match detach_result {
+                        Ok(_) => debug!(
+                            "TC dispatcher {}, {}, {}, {} sucessfully detached",
+                            self.if_name, self.direction, self.priority, old_handle
+                        ),
+                        Err(_) => debug!(
+                            "TC dispatcher {}, {}, {}, {} not attached when detach attempted",
+                            self.if_name, self.direction, self.priority, old_handle
+                        ),
+                    }
+                }
+            };
         }
         Ok(())
     }
 
     pub(crate) fn if_name(&self) -> String {
         self.if_name.clone()
-    }
-
-    pub(crate) fn set_link(&mut self) {
-        let iface = self.if_name.clone();
-
-        let attach_type = match self.direction {
-            Direction::Ingress => TcAttachType::Ingress,
-            Direction::Egress => TcAttachType::Egress,
-        };
-
-        if let Some(handle) = self.handle {
-            if let Ok(link) =
-                SchedClassifierLink::attached(&iface, attach_type, self.priority, handle)
-            {
-                self.link = Some(link);
-            }
-        };
     }
 }

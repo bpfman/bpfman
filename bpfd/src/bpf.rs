@@ -95,8 +95,7 @@ impl BpfManager {
                 }
                 ProgramType::Tc => {
                     if let Some(dir) = direction {
-                        let mut dispatcher = TcDispatcher::load(if_index, dir, revision).unwrap();
-                        dispatcher.set_link();
+                        let dispatcher = TcDispatcher::load(if_index, dir, revision).unwrap();
                         self.dispatchers.insert(
                             DispatcherId::Tc(DispatcherInfo(if_index, direction)),
                             Dispatcher::Tc(dispatcher),
