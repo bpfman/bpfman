@@ -1,6 +1,6 @@
 [package]
 name = "bpfd"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "A system daemon for loading BPF programs"
 license = "MIT OR Apache-2.0"
@@ -22,7 +22,7 @@ env_logger = "0.10"
 systemd-journal-logger = "1.0.0"
 tonic = "0.9.2"
 rustls = "0.21.1"
-bpfd-api = { version = "0.1.0", path = "../bpfd-api" }
+bpfd-api = { version = "0.2.0", path = "../bpfd-api" }
 caps = "0.5.4"
 nix = { version = "0.26", features = [ "socket", "fs", "mount"]}
 serde = { version = "1.0", features = ["derive"] }
