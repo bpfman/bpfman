@@ -156,7 +156,7 @@ jobs:
           if-no-files-found: error
 
   basic-integration-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     needs: ["build", "build-go"]
     env:
       CARGO_TERM_COLOR: always
