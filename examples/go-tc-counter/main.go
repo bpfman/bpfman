@@ -28,7 +28,7 @@ const (
 	DefaultMapDir         = "/run/bpfd/fs/maps"
 	PrimaryByteCodeFile   = "/run/bpfd/examples/go-tc-counter/bpf_bpfel.o"
 	SecondaryByteCodeFile = "bpf_bpfel.o"
-	TcProgramName  = "go-tc-counter-example"
+	TcProgramName         = "go-tc-counter-example"
 	BpfProgramMapIndex    = "tc_stats_map"
 )
 

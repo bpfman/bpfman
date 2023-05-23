@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	TracepointProgramName  = "go-tracepoint-counter-example"
+	TracepointProgramName = "go-tracepoint-counter-example"
 	BpfProgramMapIndex    = "tracepoint_stats_map"
 	PrimaryByteCodeFile   = "/run/bpfd/examples/go-tracepoint-counter/bpf_bpfel.o"
 	SecondaryByteCodeFile = "bpf_bpfel.o"

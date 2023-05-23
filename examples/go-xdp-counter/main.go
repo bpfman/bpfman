@@ -28,7 +28,7 @@ const (
 	DefaultMapDir         = "/run/bpfd/fs/maps"
 	PrimaryByteCodeFile   = "/run/bpfd/examples/go-xdp-counter/bpf_bpfel.o"
 	SecondaryByteCodeFile = "bpf_bpfel.o"
-	XdpProgramName  = "go-xdp-counter-example"
+	XdpProgramName        = "go-xdp-counter-example"
 	BpfProgramMapIndex    = "xdp_stats_map"
 )
 
