@@ -152,18 +152,84 @@ Example from image in remote repository (Note: `--section-name` is built into th
 bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethb2795c7 --priority 100
 ```
 
-### bpfctl Load Examples
+The `tc` command is similar to `xdp`, but it also requires the `direction` option
+and the `proceed-on` values are different.
 
-Below are some examples of `bpfctl load` commands:
+```console
+bpfctl load-from-file tc -h
+Install an eBPF program on the TC hook point for a given interface
+
+Usage: bpfctl load-from-file --path <PATH> --section-name <SECTION_NAME> tc [OPTIONS] --direction <DIRECTION> --iface <IFACE> --priority <PRIORITY>
+
+Options:
+  -d, --direction <DIRECTION>       Required: Direction to apply program. Valid values: [ingress, egress]
+  -i, --iface <IFACE>               Required: Interface to load program on
+  -p, --priority <PRIORITY>         Required: Priority to run program in chain. Lower value runs first
+      --proceed-on <PROCEED_ON>...  Optional: Proceed to call other programs in chain on this exit code.
+                                    Multiple values supported by repeating the parameter.
+                                    Valid values: [unspec, ok, reclassify, shot, pipe, stolen, queued,
+                                    repeat, redirect, trap, dispatcher_return]
+                                    Example: --proceed-on "ok" --proceed-on "pipe"
+                                    [default: ok, pipe, dispatcher_return]
+  -h, --help                        Print help
+```
+
+The following is an example of the `tc` command using short option names:
+
+```console
+bpfctl load-from-file -p /run/bpfd/examples/accept-all.o -s "accept" tc -d ingress -i mynet1 -p 40
+```
+
+For the `accept-all.o` program loaded with the command above, the section name
+would be set as shown in the following snippet:
+
+```c
+SEC("classifier/accept")
+int accept(struct __sk_buff *skb)
+{
+```
+
+### Additional bpfctl Load Examples
+
+Below are some additional examples of `bpfctl load` commands:
 
 ```console
 bpfctl load-from-file --path /run/bpfd/examples/xdp_pass_kern.o --section-name "xdp" xdp --iface vethb2795c7 --priority 35
 
-
 bpfctl load-from-file --path /run/bpfd/examples/filter.bpf.o --section-name classifier tc --direction ingress --iface vethb2795c7 --priority 110
 
-
 bpfctl load-from-image --image-url quay.io/bpfd-bytecode/tracepoint:latest tracepoint --tracepoint sched/sched_switch
+```
+
+### Setting Global Variables in eBPF Programs
+
+Global variables can be set for any eBPF program type when loading as follows:
+
+```console
+bpfctl load-from-file -p /run/bpfd/examples/accept-all.o -g GLOBAL_1=01020304 GLOBAL_2=0A0B0C0D -s "accept" tc -d ingress -i mynet1 -p 40
+```
+
+Note, that when setting global variables, the eBPF program being loaded must
+have global variables named with the strings given, and the size of the value
+provided must match the size of the given variable.  For example, the above
+command can be used to update the following global variables in an eBPF program.
+
+```c
+volatile const __u32 GLOBAL_1 = 0;
+volatile const __u32 GLOBAL_2 = 0;
+```
+
+### Modifying the Proceed-On Behavior
+
+The `proceed-on` setting applies to `xdp` and `tc` programs. For both of these
+program types, an ordered list of eBPF programs is maintained per attach point.
+The `proceed-on` setting determines whether processing will "proceed" to the
+next eBPF program in the list, or terminate processing and return, based on the
+program's return value. For example, the default `proceed-on` configuration for
+an `xdp` program can be modified as follows:
+
+```console
+bpfctl load-from-file -p /run/bpfd/examples/xdp_pass_kern.o -s "xdp" xdp -i mynet1 -p 30  --proceed-on drop pass dispatcher_return
 ```
 
 ## bpfctl list
