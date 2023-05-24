@@ -49,13 +49,25 @@ pub fn add_xdp_pass(iface: &str, priority: u32) -> Result<String> {
     let output = Command::cargo_bin("bpfctl")?
         .args([
             "load-from-image",
+            "--global",
+            "GLOBAL_1=01020304",
+            "GLOBAL_2=0A0B0C0D",
             "--image-url",
             XDP_PASS_IMAGE_LOC,
+            "--pull-policy",
+            "Always",
             "xdp",
             "--iface",
             iface,
             "--priority",
             priority.to_string().as_str(),
+            "--proceed-on",
+            "aborted",
+            "drop",
+            "pass",
+            "tx",
+            "redirect",
+            "dispatcher_return",
         ])
         .ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
@@ -66,13 +78,18 @@ pub fn add_xdp_pass(iface: &str, priority: u32) -> Result<String> {
     Ok(uuid.to_string())
 }
 
-/// Install an xdp_pass program with bpfctl
+/// Install a tc_pass program with bpfctl
 pub fn add_tc_pass(iface: &str, priority: u32) -> Result<String> {
     let output = Command::cargo_bin("bpfctl")?
         .args([
             "load-from-image",
+            "--global",
+            "GLOBAL_1=01020304",
+            "GLOBAL_2=0A0B0C0D",
             "--image-url",
             TC_PASS_IMAGE_LOC,
+            "--pull-policy",
+            "Always",
             "tc",
             "--direction",
             "ingress",
@@ -80,6 +97,18 @@ pub fn add_tc_pass(iface: &str, priority: u32) -> Result<String> {
             iface,
             "--priority",
             priority.to_string().as_str(),
+            "--proceed-on",
+            "unspec",
+            "ok",
+            "reclassify",
+            "shot",
+            "pipe",
+            "stolen",
+            "queued",
+            "repeat",
+            "redirect",
+            "trap",
+            "dispatcher_return",
         ])
         .ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
@@ -94,8 +123,13 @@ pub fn add_tracepoint() -> Result<String> {
     let output = Command::cargo_bin("bpfctl")?
         .args([
             "load-from-image",
+            "--global",
+            "GLOBAL_1=01020304",
+            "GLOBAL_2=0A0B0C0D",
             "--image-url",
             TRACEPOINT_IMAGE_LOC,
+            "--pull-policy",
+            "Always",
             "tracepoint",
             "--tracepoint",
             "syscalls/sys_enter_openat",
