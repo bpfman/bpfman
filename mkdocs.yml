@@ -9,7 +9,7 @@ theme:
   name: material
   language: en
   logo: img/bpfd_icon.svg
-  favicon: img/bpd_icon.svg
+  favicon: img/favicon.ico
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default

@@ -1,4 +1,4 @@
-# [![bpfd](./docs/img/bpfd.svg)](https://bpfd.netlify.app/)
+# [![bpfd](./docs/img/bpfd.svg)](https://bpfd.dev/)
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![License:
@@ -12,7 +12,7 @@ v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](https://www.gnu.org/l
 [build-badge]:
     https://img.shields.io/github/actions/workflow/status/bpfd-dev/bpfd/build.yml?branch=main
 [book-badge]: https://img.shields.io/badge/read%20the-book-9cf.svg
-[book-url]: https://bpfd.netlify.app/
+[book-url]: https://bpfd.dev/
 
 ## Welcome to bpfd
 
@@ -22,15 +22,15 @@ visibility and program-cooperation.
 bpfd includes a Kubernetes operator to bring those same features to Kubernetes, allowing users to
 safely deploy eBPF via custom resources across nodes in a cluster.
 
-Here are some links to help in your bpfd journey (all links are from the bpfd website https://bpfd.netlify.app/):
+Here are some links to help in your bpfd journey (all links are from the bpfd website https://bpfd.dev/):
 
-- [Welcome to bpfd](https://bpfd.netlify.app/) for overview of bpfd.
-- [Setup and Building bpfd](https://bpfd.netlify.app/getting-started/building-bpfd/) for
+- [Welcome to bpfd](https://bpfd.dev/) for overview of bpfd.
+- [Setup and Building bpfd](https://bpfd.dev/getting-started/building-bpfd/) for
   instructions on setting up your development environment and building bpfd.
-- [Tutorial](https://bpfd.netlify.app/getting-started/tutorial/) for some examples of starting
+- [Tutorial](https://bpfd.dev/getting-started/tutorial/) for some examples of starting
   `bpfd`, managing logs, and using `bpfctl`.
-- [Example eBPF Programs](https://bpfd.netlify.app/getting-started/example-bpf/) for some
+- [Example eBPF Programs](https://bpfd.dev/getting-started/example-bpf/) for some
   examples of eBPF programs written in Go, interacting with `bpfd`.
-- [How to Deploy bpfd on Kubernetes](https://bpfd.netlify.app/developer-guide/develop-operator/) for details on launching
+- [How to Deploy bpfd on Kubernetes](https://bpfd.dev/developer-guide/develop-operator/) for details on launching
   bpfd in a Kubernetes cluster.
-- [Meet the Community](https://bpfd.netlify.app/governance/meetings/) for details on community meeting details.
+- [Meet the Community](https://bpfd.dev/governance/meetings/) for details on community meeting details.
