@@ -7,7 +7,7 @@ kind: Kustomization
 images:
 - name: quay.io/bpfd/bpfd
   newName: quay.io/bpfd/bpfd
-  newTag: main
+  newTag: latest
 - name: quay.io/bpfd/bpfd-agent
   newName: quay.io/bpfd/bpfd-agent
-  newTag: main
+  newTag: latest

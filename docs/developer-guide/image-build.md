@@ -2,7 +2,7 @@
 
 Container images for the `bpfd` and `bpfctl` binaries are automatically built and
 pushed to `quay.io/bpfd` whenever code is merged into the `main` branch of the
-`github.com/bpfd-dev/bpfd` repository under the `:main` tag.
+`github.com/bpfd-dev/bpfd` repository under the `:latest` tag.
 
 ## Building the images locally
 
@@ -23,11 +23,11 @@ docker build -f /packaging/container-deployment/Containerfile.bpfctl . -t bpfctl
 ### bpfd
 
 ```sh
-sudo docker run --init --privileged --net=host -v /etc/bpfd/certs/:/etc/bpfd/certs/ -v /sys/fs/bpf:/sys/fs/bpf quay.io/bpfd/bpfd:main
+sudo docker run --init --privileged --net=host -v /etc/bpfd/certs/:/etc/bpfd/certs/ -v /sys/fs/bpf:/sys/fs/bpf quay.io/bpfd/bpfd:latest
 ```
 
 ### bpfctl 
 
 ```sh
-sudo docker run --init --privileged --net=host -v /etc/bpfd/certs/:/etc/bpfd/certs/ quay.io/bpfd/bpfctl:main <COMMANDS>
+sudo docker run --init --privileged --net=host -v /etc/bpfd/certs/:/etc/bpfd/certs/ quay.io/bpfd/bpfctl:latest <COMMANDS>
 ```

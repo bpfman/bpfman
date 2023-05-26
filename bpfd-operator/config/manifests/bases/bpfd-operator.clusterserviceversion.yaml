@@ -46,8 +46,8 @@ spec:
     Configuration\n\nThe `bpfd-config` configmap is automatically created in the `bpfd`
     namespace and used to configure the bpfd deployment.\n\nTo edit the config simply
     run\n\n```bash\nkubectl edit cm bpfd-config\n```\n\nThe following fields are adjustable\n\n-
-    `bpfd.agent.image`: The image used for the bpfd-agent, defaults to `quay.io/bpfd/bpfd-agent:main`\n-
-    `bpfd.image`: The image used for bpfd, defaults to `quay.io/bpfd/bpfd:main`\n-
+    `bpfd.agent.image`: The image used for the bpfd-agent, defaults to `quay.io/bpfd/bpfd-agent:latest`\n-
+    `bpfd.image`: The image used for bpfd, defaults to `quay.io/bpfd/bpfd:latest`\n-
     `bpfd.log.level`: the log level for bpfd and the bpfd-agent, currently supports
     `debug`, `info`, `warn`, `error`, and `fatal`, defaults to `info`\n- `bpfd.toml`:
     bpfd's custom configuration file.\n\n## Deploying eBPF Programs\n\nThe bpfd operator
