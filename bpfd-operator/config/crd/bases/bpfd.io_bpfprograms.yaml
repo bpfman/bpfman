@@ -35,22 +35,15 @@ spec:
           spec:
             description: BpfProgramSpec defines the desired state of BpfProgram
             properties:
-              node:
-                description: Node program is loaded on
-                type: string
-              programs:
+              maps:
                 additionalProperties:
-                  additionalProperties:
-                    type: string
-                  type: object
-                description: 'ProgramMap is is a map with Keys: UUIDs, Values: map
-                  with Keys: Map Names, and Values: Map Pin paths'
+                  type: string
+                description: 'ProgramMap is a map with Keys: Map Names, and Values:
+                  Map Pin paths'
                 type: object
               type:
                 description: Type specifies the bpf program type
                 type: string
-            required:
-            - programs
             type: object
           status:
             description: BpfProgramStatus defines the observed state of BpfProgram
