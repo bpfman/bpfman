@@ -35,7 +35,6 @@ import (
 	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
 
 	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
-
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	v1 "k8s.io/api/core/v1"
 )
@@ -68,7 +67,12 @@ func (r *TracepointProgramReconciler) getRecType() string {
 func (r *TracepointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bpfdiov1alpha1.TracepointProgram{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
-		Owns(&bpfdiov1alpha1.BpfProgram{}, builder.WithPredicates(internal.BpfProgramTypePredicate(internal.Tracepoint.String()))).
+		Owns(&bpfdiov1alpha1.BpfProgram{},
+			builder.WithPredicates(predicate.And(
+				internal.BpfProgramTypePredicate(internal.Tracepoint.String()),
+				internal.BpfProgramNodePredicate(r.NodeName)),
+			),
+		).
 		// Only trigger reconciliation if node labels change since that could
 		// make the TracepointProgram no longer select the Node. Additionally only
 		// care about node events specific to our node
@@ -80,11 +84,27 @@ func (r *TracepointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
+func (r *TracepointProgramReconciler) createBpfPrograms(ctx context.Context) (bool, error) {
+	bpfProgramName := fmt.Sprintf("%s-%s", r.currentTracepointProgram.Name, r.NodeName)
+	annotations := map[string]string{"tracepoint": r.currentTracepointProgram.Spec.Name}
+
+	_, exists := r.bpfPrograms[bpfProgramName]
+	if !exists {
+		err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentTracepointProgram, r.getRecType(), annotations)
+		if err != nil {
+			return false, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
+		}
+
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentTracepointProgram = &bpfdiov1alpha1.TracepointProgram{}
 	r.ourNode = &v1.Node{}
-
 	r.Logger = log.FromContext(ctx)
 
 	// Lookup K8s node object for this bpfd-agent This should always succeed
@@ -130,23 +150,15 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 // reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
 // It does interact with the k8s API in any way.
-func (r *TracepointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
+func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
 	bytecode interface{},
+	bpfProgram *bpfdiov1alpha1.BpfProgram,
 	isNodeSelected bool,
 	isBeingDeleted bool) (bpfdiov1alpha1.BpfProgramConditionType, error) {
 
-	r.expectedPrograms = map[string]map[string]string{}
-
-	r.Logger.V(1).Info("Existing bpfProgramEntries", "ExistingEntries", r.bpfProgram.Spec.Programs)
-	// DeepCopy the existing programs
-	for k, v := range r.bpfProgram.Spec.Programs {
-		r.expectedPrograms[k] = v
-	}
-
 	loadRequest := &gobpfd.LoadRequest{}
-
-	id := bpfdagentinternal.GenIdFromName(r.currentTracepointProgram.Name)
+	id := string(bpfProgram.UID)
 
 	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(bytecode, r.currentTracepointProgram.Spec.SectionName, internal.Tracepoint, id, r.currentTracepointProgram.Spec.GlobalData)
 
@@ -177,7 +189,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, err
 		}
 
-		r.expectedPrograms[id] = bpfProgramEntry
+		r.expectedMaps = bpfProgramEntry
 
 		return bpfdiov1alpha1.BpfProgCondLoaded, nil
 	}
@@ -189,11 +201,14 @@ func (r *TracepointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 			"isSelected", isNodeSelected)
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload TcProgram")
-			return bpfdiov1alpha1.BpfProgCondLoaded, err
+			return bpfdiov1alpha1.BpfProgCondNotUnloaded, err
 		}
-		delete(r.expectedPrograms, id)
+		r.expectedMaps = nil
 
-		// continue to next program
+		if isBeingDeleted {
+			return bpfdiov1alpha1.BpfProgCondUnloaded, nil
+		}
+
 		return bpfdiov1alpha1.BpfProgCondNotSelected, nil
 	}
 
@@ -201,31 +216,20 @@ func (r *TracepointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 	// BpfProgram exists but is not correct state, unload and recreate
 	if !bpfdagentinternal.DoesProgExist(existingProgram, loadRequest) {
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
-			r.Logger.Error(err, "Failed to unload TcProgram")
+			r.Logger.Error(err, "Failed to unload TracepointProgram")
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, err
 		}
 
 		bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
-			r.Logger.Error(err, "Failed to load TcProgram")
+			r.Logger.Error(err, "Failed to load TracepointProgram")
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, err
 		}
 
-		r.expectedPrograms[id] = bpfProgramEntry
+		r.expectedMaps = bpfProgramEntry
 	} else {
-		// Program already exists, but bpfProgram K8s Object might not be up to date
-		if _, ok := r.bpfProgram.Spec.Programs[id]; !ok {
-			maps, err := bpfdagentinternal.GetMapsForUUID(id)
-			if err != nil {
-				r.Logger.Error(err, "failed to get bpfProgram's Maps")
-				return bpfdiov1alpha1.BpfProgCondNotLoaded, err
-			}
-
-			r.expectedPrograms[id] = maps
-		} else {
-			// Program exists and bpfProgram K8s Object is up to date
-			r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")
-		}
+		// Program exists and bpfProgram K8s Object is up to date
+		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")
 	}
 
 	return bpfdiov1alpha1.BpfProgCondLoaded, nil

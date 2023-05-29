@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
-	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	testutils "github.com/bpfd-dev/bpfd/bpfd-operator/internal/test-utils"
 
 	"github.com/stretchr/testify/require"
@@ -47,7 +47,6 @@ func TestTcProgramReconcile(t *testing.T) {
 		fakeInt      = "eth0"
 		ctx          = context.TODO()
 		bpfProgName  = fmt.Sprintf("%s-%s", name, fakeNode.Name)
-		bpfdProgId   = fmt.Sprintf("%s-%s", name, fakeInt)
 	)
 	// A TcProgram object with metadata and spec.
 	tc := &bpfdiov1alpha1.TcProgram{
@@ -84,13 +83,12 @@ func TestTcProgramReconcile(t *testing.T) {
 					Controller: &[]bool{true}[0],
 				},
 			},
-			Labels:     map[string]string{"ownedByProgram": tc.Name},
+			Labels:     map[string]string{internal.BpfProgramOwnerLabel: tc.Name, internal.K8sHostLabel: fakeNode.Name},
 			Finalizers: []string{internal.TcProgramControllerFinalizer},
 		},
 		Spec: bpfdiov1alpha1.BpfProgramSpec{
-			Node:     fakeNode.Name,
-			Type:     "tc",
-			Programs: map[string]map[string]string{bpfdProgId: {}},
+			Type: "tc",
+			Maps: nil,
 		},
 		Status: bpfdiov1alpha1.BpfProgramStatus{
 			Conditions: []metav1.Condition{bpfdiov1alpha1.BpfProgCondLoaded.Condition()},

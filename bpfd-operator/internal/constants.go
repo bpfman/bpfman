@@ -22,6 +22,8 @@ const (
 	XdpProgramControllerFinalizer        = "bpfd.io.xdpprogramcontroller-finalizer"
 	TcProgramControllerFinalizer         = "bpfd.io.tcprogramcontroller/finalizer"
 	TracepointProgramControllerFinalizer = "bpfd.io.tracepointprogramcontroller/finalizer"
+	BpfProgramOwnerLabel                 = "ownedByProgram"
+	K8sHostLabel                         = "kubernetes.io/hostname"
 	BpfdNs                               = "bpfd"
 	BpfdOperatorName                     = "bpfd-operator"
 	BpfdDsName                           = "bpfd-daemon"

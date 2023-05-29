@@ -46,7 +46,6 @@ func TestXdpProgramReconcile(t *testing.T) {
 		fakeInt      = "eth0"
 		ctx          = context.TODO()
 		bpfProgName  = fmt.Sprintf("%s-%s", name, fakeNode.Name)
-		bpfdProgId   = fmt.Sprintf("%s-%s", name, fakeInt)
 	)
 	// A XdpProgram object with metadata and spec.
 	Xdp := &bpfdiov1alpha1.XdpProgram{
@@ -81,13 +80,11 @@ func TestXdpProgramReconcile(t *testing.T) {
 					Controller: &[]bool{true}[0],
 				},
 			},
-			Labels:     map[string]string{"ownedByProgram": Xdp.Name},
+			Labels:     map[string]string{internal.BpfProgramOwnerLabel: Xdp.Name, internal.K8sHostLabel: fakeNode.Name},
 			Finalizers: []string{internal.TcProgramControllerFinalizer},
 		},
 		Spec: bpfdiov1alpha1.BpfProgramSpec{
-			Node:     fakeNode.Name,
-			Type:     "tc",
-			Programs: map[string]map[string]string{bpfdProgId: {}},
+			Type: "tc",
 		},
 		Status: bpfdiov1alpha1.BpfProgramStatus{
 			Conditions: []metav1.Condition{bpfdiov1alpha1.BpfProgCondLoaded.Condition()},

@@ -25,7 +25,6 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
-	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
 	agenttestutils "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal/test-utils"
 	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	testutils "github.com/bpfd-dev/bpfd/bpfd-operator/internal/test-utils"
@@ -52,9 +51,9 @@ func TestXdpProgramControllerCreate(t *testing.T) {
 		fakeNode     = testutils.NewNode("fake-control-plane")
 		fakeInt      = "eth0"
 		ctx          = context.TODO()
-		bpfProgName  = fmt.Sprintf("%s-%s", name, fakeNode.Name)
-		bpfdProgId   = bpfdagentinternal.GenIdFromName(fmt.Sprintf("%s-%s", name, fakeInt))
+		bpfProgName  = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInt)
 		bpfProg      = &bpfdiov1alpha1.BpfProgram{}
+		fakeUID      = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)
 	// A XdpProgram object with metadata and spec.
 	Xdp := &bpfdiov1alpha1.XdpProgram{
@@ -94,12 +93,12 @@ func TestXdpProgramControllerCreate(t *testing.T) {
 	cli := agenttestutils.NewBpfdClientFake()
 
 	rc := ReconcilerCommon{
-		Client:           cl,
-		Scheme:           s,
-		BpfdClient:       cli,
-		NodeName:         fakeNode.Name,
-		bpfProgram:       &bpfdiov1alpha1.BpfProgram{},
-		expectedPrograms: map[string]map[string]string{},
+		Client:       cl,
+		Scheme:       s,
+		BpfdClient:   cli,
+		NodeName:     fakeNode.Name,
+		bpfPrograms:  map[string]*bpfdiov1alpha1.BpfProgram{},
+		expectedMaps: map[string]string{},
 	}
 
 	// Set development Logger so we can see all logs in tests.
@@ -130,12 +129,19 @@ func TestXdpProgramControllerCreate(t *testing.T) {
 	require.NotEmpty(t, bpfProg)
 	// Finalizer is written
 	require.Equal(t, r.getFinalizer(), bpfProg.Finalizers[0])
-	// Node is set
-	require.Equal(t, fakeNode.Name, bpfProg.Spec.Node)
+	// owningConfig Label was correctly set
+	require.Equal(t, bpfProg.Labels[internal.BpfProgramOwnerLabel], name)
+	// node Label was correctly set
+	require.Equal(t, bpfProg.Labels[internal.K8sHostLabel], fakeNode.Name)
 	// Type is set
 	require.Equal(t, r.getRecType(), bpfProg.Spec.Type)
 	// Require no requeue
 	require.False(t, res.Requeue)
+
+	// Update UID of bpfProgram with Fake UID since the fake API server won't
+	bpfProg.UID = types.UID(fakeUID)
+	err = cl.Update(ctx, bpfProg)
+	require.NoError(t, err)
 
 	// Second reconcile should create the bpfd Load Request and update the
 	// BpfProgram object's 'Programs' field.
@@ -146,6 +152,7 @@ func TestXdpProgramControllerCreate(t *testing.T) {
 
 	// Require no requeue
 	require.False(t, res.Requeue)
+	id := string(bpfProg.UID)
 
 	expectedLoadReq := &gobpfd.LoadRequest{
 		Common: &gobpfd.LoadRequestCommon{
@@ -154,7 +161,7 @@ func TestXdpProgramControllerCreate(t *testing.T) {
 			},
 			SectionName: sectionName,
 			ProgramType: *internal.Xdp.Int32(),
-			Id:          &bpfdProgId,
+			Id:          &id,
 		},
 		AttachInfo: &gobpfd.LoadRequest_XdpAttachInfo{
 			XdpAttachInfo: &gobpfd.XDPAttachInfo{
@@ -165,8 +172,8 @@ func TestXdpProgramControllerCreate(t *testing.T) {
 		},
 	}
 	// Check the bpfLoadRequest was correctly Built
-	if !cmp.Equal(expectedLoadReq, cli.LoadRequests[bpfdProgId], protocmp.Transform()) {
-		t.Logf("Diff %v", cmp.Diff(expectedLoadReq, cli.LoadRequests[bpfdProgId], protocmp.Transform()))
+	if !cmp.Equal(expectedLoadReq, cli.LoadRequests[id], protocmp.Transform()) {
+		t.Logf("Diff %v", cmp.Diff(expectedLoadReq, cli.LoadRequests[id], protocmp.Transform()))
 		t.Fatal("Built bpfd LoadRequest does not match expected")
 	}
 
@@ -174,7 +181,7 @@ func TestXdpProgramControllerCreate(t *testing.T) {
 	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: metav1.NamespaceAll}, bpfProg)
 	require.NoError(t, err)
 
-	require.Equal(t, map[string]map[string]string{bpfdProgId: {}}, bpfProg.Spec.Programs)
+	require.Nil(t, bpfProg.Spec.Maps)
 
 	// Third reconcile should update the bpfPrograms status to loaded
 	res, err = r.Reconcile(ctx, req)

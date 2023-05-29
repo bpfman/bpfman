@@ -18,17 +18,18 @@ package internal
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/binary"
+	//"crypto/sha256"
+	//"encoding/binary"
 	"fmt"
-	"math/rand"
+	//"math/rand"
 	"os"
 	"path/filepath"
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	"github.com/containers/image/docker/reference"
-	"github.com/google/uuid"
+
+	//"github.com/google/uuid"
 
 	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -142,7 +143,7 @@ func LoadBpfdProgram(ctx context.Context, bpfdClient gobpfd.LoaderClient,
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bpfProgram's Maps: %v", err)
 	}
-	//Convert to bpfProgramFormat map[uuid]map[mapName]mapPath
+
 	return maps, nil
 }
 
@@ -200,14 +201,14 @@ func GetMapsForUUID(uuid string) (map[string]string, error) {
 	return maps, nil
 }
 
-func GenIdFromName(name string) string {
-	// Hash this string and use it as seed to make the UUID deterministic
-	// for now. Eventually the BpfProgram UID will be used for this.
-	h := sha256.New()
-	h.Write([]byte(name))
-	seed := binary.BigEndian.Uint64(h.Sum(nil))
-	rnd := rand.New(rand.NewSource(int64(seed)))
-	uuid.SetRand(rnd)
-	uuid, _ := uuid.NewRandomFromReader(rnd)
-	return uuid.String()
-}
+// func GenIdFromName(name string) string {
+// 	// Hash this string and use it as seed to make the UUID deterministic
+// 	// for now. Eventually the BpfProgram UID will be used for this.
+// 	h := sha256.New()
+// 	h.Write([]byte(name))
+// 	seed := binary.BigEndian.Uint64(h.Sum(nil))
+// 	rnd := rand.New(rand.NewSource(int64(seed)))
+// 	uuid.SetRand(rnd)
+// 	uuid, _ := uuid.NewRandomFromReader(rnd)
+// 	return uuid.String()
+// }

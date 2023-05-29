@@ -70,11 +70,8 @@ func main() {
 			return
 		}
 
-		// Use first map
-		for _, v := range maps {
-			mapPath = v[BpfProgramMapIndex]
-			break
-		}
+		mapPath = maps[BpfProgramMapIndex]
+
 	} else {
 		// If the bytecode src is a UUID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcUuid {

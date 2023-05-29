@@ -30,6 +30,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//"k8s.io/apimachinery/pkg/labels"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
@@ -133,7 +135,7 @@ func GetClientOrDie() *bpfdclientset.Clientset {
 
 // GetMaps is meant to be used by applications wishing to use BPFD. It takes in a bpf program
 // name and a list of map names, and returns a map corelating map name to map pin path.
-func GetMaps(c *bpfdclientset.Clientset, ProgramName string, mapNames []string) (map[string]map[string]string, error) {
+func GetMaps(c *bpfdclientset.Clientset, ProgramName string, mapNames []string) (map[string]string, error) {
 	ctx := context.Background()
 
 	// Get the nodename where this pod is running
@@ -141,22 +143,34 @@ func GetMaps(c *bpfdclientset.Clientset, ProgramName string, mapNames []string) 
 	if nodeName == "" {
 		return nil, fmt.Errorf("NODENAME env var not set")
 	}
-	bpfProgramName := ProgramName + "-" + nodeName
 
-	bpfProgram, err := c.BpfdV1alpha1().BpfPrograms().Get(ctx, bpfProgramName, metav1.GetOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("error getting BpfProgram %s: %v", bpfProgramName, err)
+	nodeAndProg := map[string]string{internal.BpfProgramOwnerLabel: ProgramName, internal.K8sHostLabel: nodeName}
+
+	// Only list bpfPrograms for this Program
+	labelSelector := metav1.LabelSelector{MatchLabels: nodeAndProg}
+	opts := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}
 
-	for _, v := range bpfProgram.Spec.Programs {
-		for _, mapName := range mapNames {
-			if _, ok := v[mapName]; !ok {
-				return nil, fmt.Errorf("map: %s not found", mapName)
-			}
+	// This should only have len == 1
+	bpfProgramList, err := c.BpfdV1alpha1().BpfPrograms().List(ctx, opts)
+	if err != nil {
+		return nil, fmt.Errorf("error getting BpfProgram for %s: %v", ProgramName, err)
+	}
+
+	if len(bpfProgramList.Items) != 1 {
+		return nil, fmt.Errorf("error getting BpfProgram for %s, multiple bpfPrograms found", ProgramName)
+	}
+
+	prog := bpfProgramList.Items[0]
+
+	for _, mapName := range mapNames {
+		if _, ok := prog.Spec.Maps[mapName]; !ok {
+			return nil, fmt.Errorf("map: %s not found", mapName)
 		}
 	}
 
-	return bpfProgram.Spec.Programs, nil
+	return prog.Spec.Maps, nil
 }
 
 // // CreateOrUpdateOwnedBpfProgConf creates or updates a Program object while also setting the owner reference to
