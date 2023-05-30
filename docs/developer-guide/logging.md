@@ -133,8 +133,8 @@ The `bpfd-operator` will detect the change and restart the bpfd daemonset with t
 kubectl edit configmaps -n bpfd bpfd-config
 apiVersion: v1
 data:
-  bpfd.agent.image: quay.io/bpfd/bpfd-agent:main
-  bpfd.image: quay.io/bpfd/bpfd:main
+  bpfd.agent.image: quay.io/bpfd/bpfd-agent:latest
+  bpfd.image: quay.io/bpfd/bpfd:latest
   bpfd.log.level: debug                 <==== Set Log Level Here
   bpfd.toml: |
     [tls] # REQUIRED
@@ -147,7 +147,7 @@ kind: ConfigMap
 metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"v1","data":{"bpfd.agent.image":"quay.io/bpfd/bpfd-agent:main","bpfd.image":"quay.io/bpfd/bpfd:main","bpfd.log.level":"debug","bpfd.na>
+      {"apiVersion":"v1","data":{"bpfd.agent.image":"quay.io/bpfd/bpfd-agent:latest","bpfd.image":"quay.io/bpfd/bpfd:latest","bpfd.log.level":"debug","bpfd.na>
   creationTimestamp: "2023-05-05T14:41:19Z"
   name: bpfd-config
   namespace: bpfd
@@ -215,7 +215,7 @@ spec:
         env:
         - name: GO_LOG
           value: info                   <==== Set Log Level Here
-        image: quay.io/bpfd/bpfd-operator:main
+        image: quay.io/bpfd/bpfd-operator:latest
         imagePullPolicy: IfNotPresent
 :
 ```

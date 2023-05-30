@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: quay.io/bpfd/bpfd-operator
   newName: quay.io/bpfd/bpfd-operator
-  newTag: main
+  newTag: latest

@@ -38,21 +38,21 @@ If not, see [Setup and Building bpfd](./building-bpfd.md).*
 
 #### Building Locally
 
-To build the C based eBPF counter bytecode, run:
+To build all the C based eBPF counter bytecode, run:
 
 ```console
-    cd bpfd/examples/go-xdp-counter/
-    go generate
+    cd bpfd/examples/
+    make generate
 ```
 
-To build the Userspace GO Client run:
+To build all the Userspace GO Client examples, run:
 
 ```console
-    cd bpfd/examples/go-xdp-counter/
-    go build
+    cd bpfd/examples/
+    make build
 ```
 
-Repeat for TC and Tracepoint if desired:
+To build only a single example:
 
 ```console
     cd bpfd/examples/go-tc-counter/
@@ -62,6 +62,11 @@ Repeat for TC and Tracepoint if desired:
 
 ```console
     cd bpfd/examples/go-tracepoint-counter/
+    go generate
+    go build
+```
+```console
+    cd bpfd/examples/go-xdp-counter/
     go generate
     go build
 ```

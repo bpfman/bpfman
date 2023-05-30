@@ -23,13 +23,13 @@ the bytecode will be loaded by creating a Kubernetes CRD object.
 There is a CRD object for each eBPF program type bpfd supports.
 Edit the sample yaml files to customize any configuration values:
 
-* TcProgram CRD: [go-tc-counter-bytecode.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tc-counter/kubernetes-deployment/go-tc-counter-bytecode.yaml)
-* TracepointProgram CRD: [go-tracepoint-counter-bytecode.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tracepoint-counter/kubernetes-deployment/go-tracepoint-counter-bytecode.yaml)
-* XdpProgram CRD: [go-xdp-counter-bytecode.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml)
+* TcProgram CRD: [go-tc-counter/bytecode.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/config/base/go-tc-counter/bytecode.yaml)
+* TracepointProgram CRD: [go-tracepoint-counter/bytecode.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/config/base/go-tracepoint-counter/bytecode.yaml)
+* XdpProgram CRD: [go-xdp-counter/bytecode.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/config/base/go-xdp-counter/bytecode.yaml)
 
 Sample bytecode yaml with XdpProgram CRD:
 ```console
-    vi examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml
+    vi examples/config/base/go-xdp-counter/bytecode.yaml
     apiVersion: bpfd.io/v1alpha1
     kind: XdpProgram
     metadata:
@@ -56,13 +56,13 @@ Make any changes to the `go-xdp-counter-bytecode.yaml`, then repeat for `go-tc-c
 and `go-tracepoint-counter-bytecode.yaml` and then apply the updated yamls:
 
 ```console
-    kubectl apply -f examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml
+    kubectl apply -f examples/config/base/go-xdp-counter/bytecode.yaml
      xdpprogram.bpfd.io/go-xdp-counter-example created
 
-    kubectl apply -f examples/go-tc-counter/kubernetes-deployment/go-tc-counter-bytecode.yaml
+    kubectl apply -f examples/config/base/go-tc-counter/bytecode.yaml
      tcprogram.bpfd.io/go-tc-counter-example created
 
-    kubectl apply -f examples/go-tracepoint-counter/kubernetes-deployment/go-tracepoint-counter-bytecode.yaml
+    kubectl apply -f examples/config/base/go-tracepoint-counter/bytecode.yaml
      tracepointprogram.bpfd.io/go-tracepoint-counter-example created
 ```
 
@@ -193,9 +193,9 @@ The userspace programs have been pre-built and can be found here:
 
 The example yaml files below are loading from these image.
 
-* [go-tc-counter.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tc-counter/kubernetes-deployment/go-tc-counter.yaml)
-* [go-tracepoint-counter.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tracepoint-counter/kubernetes-deployment/go-tracepoint-counter.yaml)
-* [go-xdp-counter.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter.yaml)
+* [go-tc-counter/deployment.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/config/base/go-tc-counter/deployment.yaml)
+* [go-tracepoint-counter/deployment.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/config/base/go-tracepoint-counter/deployment.yaml)
+* [go-xdp-counter/deployment.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/config/base/go-xdp-counter/deployment.yaml)
 
 The userspace program in a Kubernetes Deployment no longer interacts directly with `bpfd`.
 Instead, the userspace program running on each node reads the `BpfProgram` to determine the
@@ -227,9 +227,9 @@ also need to be created.
 
 ```console
     cd bpfd/
-    kubectl create -f examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter.yaml
-    kubectl create -f examples/go-tc-counter/kubernetes-deployment/go-tc-counter.yaml
-    kubectl create -f examples/go-tracepoint-counter/kubernetes-deployment/go-tracepoint-counter.yaml
+    kubectl create -f examples/config/base/go-xdp-counter/deployment.yaml
+    kubectl create -f examples/config/base/go-tc-counter/deployment.yaml
+    kubectl create -f examples/config/base/go-tracepoint-counter/deployment.yaml
 ```
 
 Following the diagram for the XDP example (Green numbers):
@@ -273,56 +273,126 @@ To see if the userspace programs are working, view the logs:
 To cleanup:
 
 ```console
-    kubectl delete -f examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter.yaml
-    kubectl delete -f examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml
+    kubectl delete -f examples/config/base/go-xdp-counter/deployment.yaml
+    kubectl delete -f examples/config/base/go-xdp-counter/bytecode.yaml
 
-    kubectl delete -f examples/go-tc-counter/kubernetes-deployment/go-tc-counter.yaml
-    kubectl delete -f examples/go-tc-counter/kubernetes-deployment/go-tc-counter-bytecode.yaml
+    kubectl delete -f examples/config/base/go-tc-counter/deployment.yaml
+    kubectl delete -f examples/config/base/go-tc-counter/bytecode.yaml
 
-    kubectl delete -f examples/go-tracepoint-counter/kubernetes-deployment/go-tracepoint-counter.yaml
-    kubectl delete -f examples/go-tracepoint-counter/kubernetes-deployment/go-tracepoint-counter-bytecode.yaml
+    kubectl delete -f examples/config/base/go-tracepoint-counter/deployment.yaml
+    kubectl delete -f examples/config/base/go-tracepoint-counter/bytecode.yaml
 ```
 
-There are two scripts that will automate the steps described above:
+#### Automated Deployment
+
+The steps above are automated in the `Makefile` in the examples directory.
+Run `make deploy` to load each of the example bytecode and userspace yaml files, then
+`make undeploy` to unload them.
 
 ```console
-    cd bpfd
-    ./scripts/cr-k8s-examples.sh
-    xdpprogram.bpfd.io/go-xdp-counter-example created
-    namespace/go-xdp-counter created
-    serviceaccount/bpfd-app-go-xdp-counter created
-    clusterrolebinding.rbac.authorization.k8s.io/privileged-scc created
-    clusterrolebinding.rbac.authorization.k8s.io/bpfd-app-rolebinding-go-xdp-counter created
-    daemonset.apps/go-xdp-counter-ds created
-    tcprogram.bpfd.io/go-tc-counter-example created
-    namespace/go-tc-counter created
-    serviceaccount/bpfd-app-go-tc-counter created
-    clusterrolebinding.rbac.authorization.k8s.io/bpfd-app-rolebinding-go-tc-counter created
-    daemonset.apps/go-tc-counter-ds created
-    tracepointprogram.bpfd.io/go-tracepoint-counter-example created
-    namespace/go-tracepoint-counter created
-    serviceaccount/bpfd-app-go-tracepoint-counter created
-    clusterrolebinding.rbac.authorization.k8s.io/bpfd-app-rolebinding-go-tracepoint-counter created
-    daemonset.apps/go-tracepoint-counter-ds created
+    cd bpfd/examples/
+    make deploy
+     sed 's@URL_BC@quay.io/bpfd-bytecode/go-tc-counter:latest@' config/default/go-tc-counter/patch.yaml.env > config/default/go-tc-counter/patch.yaml
+     cd config/default/go-tc-counter && /home/$USER/src/bpfd/examples/bin/kustomize edit set image quay.io/bpfd-userspace/go-tc-counter=quay.io/bpfd-userspace/go-tc-counter:latest
+     /home/$USER/src/bpfd/examples/bin/kustomize build config/default/go-tc-counter | kubectl apply -f -
+     namespace/go-tc-counter created
+     serviceaccount/bpfd-app-go-tc-counter created
+     daemonset.apps/go-tc-counter-ds created
+     tcprogram.bpfd.io/go-tc-counter-example created
+     sed 's@URL_BC@quay.io/bpfd-bytecode/go-tracepoint-counter:latest@' config/default/go-tracepoint-counter/patch.yaml.env > config/default/go-tracepoint-counter/patch.yaml
+     cd config/default/go-tracepoint-counter && /home/$USER/src/bpfd/examples/bin/kustomize edit set image quay.io/bpfd-userspace/go-tracepoint-counter=quay.io/bpfd-userspace/go-tracepoint-counter:latest
+     /home/$USER/src/bpfd/examples/bin/kustomize build config/default/go-tracepoint-counter | kubectl apply -f -
+     namespace/go-tracepoint-counter created
+     serviceaccount/bpfd-app-go-tracepoint-counter created
+     clusterrolebinding.rbac.authorization.k8s.io/bpfd-app-rolebinding-go-tracepoint-counter created
+     daemonset.apps/go-tracepoint-counter-ds created
+     tracepointprogram.bpfd.io/go-tracepoint-counter-example created
+     sed 's@URL_BC@quay.io/bpfd-bytecode/go-xdp-counter:latest@' config/default/go-xdp-counter/patch.yaml.env > config/default/go-xdp-counter/patch.yaml
+     cd config/default/go-xdp-counter && /home/$USER/src/bpfd/examples/bin/kustomize edit set image quay.io/bpfd-userspace/go-xdp-counter=quay.io/bpfd-userspace/go-xdp-counter:latest
+     /home/$USER/src/bpfd/examples/bin/kustomize build config/default/go-xdp-counter | kubectl apply -f -
+     namespace/go-xdp-counter created
+     serviceaccount/bpfd-app-go-xdp-counter created
+     clusterrolebinding.rbac.authorization.k8s.io/bpfd-app-rolebinding-go-xdp-counter created
+     clusterrolebinding.rbac.authorization.k8s.io/privileged-scc created
+     daemonset.apps/go-xdp-counter-ds created
+     xdpprogram.bpfd.io/go-xdp-counter-example created
 
     # Test Away ...
 
-    ./scripts/del-k8s-examples.sh
-    serviceaccount "bpfd-app-go-xdp-counter" deleted
-    clusterrolebinding.rbac.authorization.k8s.io "privileged-scc" deleted
-    clusterrolebinding.rbac.authorization.k8s.io "bpfd-app-rolebinding-go-xdp-counter" deleted
-    daemonset.apps "go-xdp-counter-ds" deleted
-    xdpprogram.bpfd.io "go-xdp-counter-example" deleted
-    namespace "go-tc-counter" deleted
-    serviceaccount "bpfd-app-go-tc-counter" deleted
-    clusterrolebinding.rbac.authorization.k8s.io "bpfd-app-rolebinding-go-tc-counter" deleted
-    daemonset.apps "go-tc-counter-ds" deleted
-    tcprogram.bpfd.io "go-tc-counter-example" deleted
-    namespace "go-tracepoint-counter" deleted
-    serviceaccount "bpfd-app-go-tracepoint-counter" deleted
-    clusterrolebinding.rbac.authorization.k8s.io "bpfd-app-rolebinding-go-tracepoint-counter" deleted
-    daemonset.apps "go-tracepoint-counter-ds" deleted
-    tracepointprogram.bpfd.io "go-tracepoint-counter-example" deleted
+    make undeploy
+     sed 's@URL_BC@quay.io/bpfd-bytecode/go-tc-counter:latest@' config/default/go-tc-counter/patch.yaml.env > config/default/go-tc-counter/patch.yaml
+     cd config/default/go-tc-counter && /home/$USER/src/bpfd/examples/bin/kustomize edit set image quay.io/bpfd-userspace/go-tc-counter=quay.io/bpfd-userspace/go-tc-counter:latest
+     /home/$USER/src/bpfd/examples/bin/kustomize build config/default/go-tc-counter | kubectl delete --ignore-not-found=false -f -
+     namespace "go-tc-counter" deleted
+     serviceaccount "bpfd-app-go-tc-counter" deleted
+     clusterrolebinding.rbac.authorization.k8s.io "bpfd-app-rolebinding-go-tc-counter" deleted
+     daemonset.apps "go-tc-counter-ds" deleted
+     tcprogram.bpfd.io "go-tc-counter-example" deleted
+     sed 's@URL_BC@quay.io/bpfd-bytecode/go-tracepoint-counter:latest@' config/default/go-tracepoint-counter/patch.yaml.env > config/default/go-tracepoint-counter/patch.yaml
+     cd config/default/go-tracepoint-counter && /home/$USER/src/bpfd/examples/bin/kustomize edit set image quay.io/bpfd-userspace/go-tracepoint-counter=quay.io/bpfd-userspace/go-tracepoint-counter:latest
+     /home/$USER/src/bpfd/examples/bin/kustomize build config/default/go-tracepoint-counter | kubectl delete --ignore-not-found=false -f -
+     namespace "go-tracepoint-counter" deleted
+     serviceaccount "bpfd-app-go-tracepoint-counter" deleted
+     clusterrolebinding.rbac.authorization.k8s.io "bpfd-app-rolebinding-go-tracepoint-counter" deleted
+     daemonset.apps "go-tracepoint-counter-ds" deleted
+     tracepointprogram.bpfd.io "go-tracepoint-counter-example" deleted
+     sed 's@URL_BC@quay.io/bpfd-bytecode/go-xdp-counter:latest@' config/default/go-xdp-counter/patch.yaml.env > config/default/go-xdp-counter/patch.yaml
+     cd config/default/go-xdp-counter && /home/$USER/src/bpfd/examples/bin/kustomize edit set image quay.io/bpfd-userspace/go-xdp-counter=quay.io/bpfd-userspace/go-xdp-counter:latest
+     /home/$USER/src/bpfd/examples/bin/kustomize build config/default/go-xdp-counter | kubectl delete --ignore-not-found=false -f -
+     namespace "go-xdp-counter" deleted
+     serviceaccount "bpfd-app-go-xdp-counter" deleted
+     clusterrolebinding.rbac.authorization.k8s.io "bpfd-app-rolebinding-go-xdp-counter" deleted
+     clusterrolebinding.rbac.authorization.k8s.io "privileged-scc" deleted
+     daemonset.apps "go-xdp-counter-ds" deleted
+     xdpprogram.bpfd.io "go-xdp-counter-example" deleted
+```
+
+Individual examples can be loaded and unloaded as well, for example `make deploy-xdp` and
+`make undeploy-xdp`.
+To see the full set of available commands, run `make help`:
+
+```console
+    make help
+
+    Usage:
+      make <target>
+      make deploy TAG=v0.2.0
+      make deploy-xdp IMAGE_XDP_US=quay.io/user1/go-xdp-counter-userspace:test
+
+    General
+      help             Display this help.
+
+    Local Dependencies
+      kustomize        Download kustomize locally if necessary.
+
+    Development
+      fmt              Run go fmt against code.
+      verify           Verify all the autogenerated code
+      lint             Run golang-ci linter
+
+    Build
+      build            Build all the userspace example code.
+      generate         Run `go generate` to build the bytecode for each of the examples.
+
+    Deployment Variables (not commands)
+      TAG              Used to set all images to a fixed tag. Example: make deploy TAG=v0.2.0
+      IMAGE_TC_BC      TC Bytecode image. Example: make deploy-tc IMAGE_TC_BC=quay.io/user1/go-tc-counter-bytecode:test
+      IMAGE_TC_US      TC Userspace image. Example: make deploy-tc IMAGE_TC_US=quay.io/user1/go-tc-counter-userspace:test
+      IMAGE_TP_BC      Tracepoint Bytecode image. Example: make deploy-tracepoint IMAGE_TP_BC=quay.io/user1/go-tracepoint-counter-bytecode:test
+      IMAGE_TP_US      Tracepoint Userspace image. Example: make deploy-tracepoint IMAGE_TP_US=quay.io/user1/go-tracepoint-counter-userspace:test
+      IMAGE_XDP_BC     XDP Bytecode image. Example: make deploy-xdp IMAGE_XDP_BC=quay.io/user1/go-xdp-counter-bytecode:test
+      IMAGE_XDP_US     XDP Userspace image. Example: make deploy-xdp IMAGE_XDP_US=quay.io/user1/go-xdp-counter-userspace:test
+      ignore-not-found  For any undeploy command, set to true to ignore resource not found errors during deletion. Example: make undeploy ignore-not-found=true
+
+    Deployment
+      deploy-tc        Deploy go-tc-counter to the cluster specified in ~/.kube/config.
+      undeploy-tc      Undeploy go-tc-counter from the cluster specified in ~/.kube/config.
+      deploy-tracepoint  Deploy go-tracepoint-counter to the cluster specified in ~/.kube/config.
+      undeploy-tracepoint  Undeploy go-tracepoint-counter from the cluster specified in ~/.kube/config.
+      deploy-xdp       Deploy go-xdp-counter to the cluster specified in ~/.kube/config.ifdef TAG
+      undeploy-xdp     Undeploy go-xdp-counter from the cluster specified in ~/.kube/config.
+      deploy           Deploy all examples to the cluster specified in ~/.kube/config.
+      undeploy         Undeploy all examples to the cluster specified in ~/.kube/config.
 ```
 
 #### Building A Userspace Container Image
@@ -346,4 +416,16 @@ Then push images to a remote repository:
     docker push quay.io/$USER/go-tracepoint-counter:latest
 ```
 
-Update the yaml to use the private images.
+Update the yaml to use the private images or override the yaml files using the Makefile:
+
+```console
+    cd bpfd/examples/
+    make deploy-xdp IMAGE_XDP_US=quay.io/$USER/go-xdp-counter:latest
+    make undeploy-xdp
+
+    make deploy-tc IMAGE_TC_US=quay.io/$USER/go-tc-counter:latest
+    make undeploy-tc
+
+    make deploy-tracepoint IMAGE_TP_US=quay.io/$USER/go-tracepoint-counter:latest
+    make undeploy-tracepoint
+```

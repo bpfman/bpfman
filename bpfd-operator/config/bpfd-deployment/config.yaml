@@ -5,8 +5,8 @@ metadata:
   namespace: kube-system
 data:
   ## Can be configured at runtime
-  bpfd.agent.image: quay.io/bpfd/bpfd-agent:main
-  bpfd.image: quay.io/bpfd/bpfd:main
+  bpfd.agent.image: quay.io/bpfd/bpfd-agent:latest
+  bpfd.image: quay.io/bpfd/bpfd:latest
   bpfd.log.level: "info"
   ## Must be configured at startup
   bpfd.toml: |

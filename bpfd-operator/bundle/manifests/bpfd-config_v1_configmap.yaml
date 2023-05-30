@@ -1,7 +1,7 @@
 apiVersion: v1
 data:
-  bpfd.agent.image: quay.io/bpfd/bpfd-agent:main
-  bpfd.image: quay.io/bpfd/bpfd:main
+  bpfd.agent.image: quay.io/bpfd/bpfd-agent:latest
+  bpfd.image: quay.io/bpfd/bpfd:latest
   bpfd.log.level: info
   bpfd.toml: |
     [tls] # REQUIRED

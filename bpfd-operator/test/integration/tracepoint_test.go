@@ -19,25 +19,17 @@ import (
 )
 
 const (
-	tracepointCounterBytecodeYaml      = "../../../examples/go-tracepoint-counter/kubernetes-deployment/go-tracepoint-counter-bytecode.yaml"
-	tracepointGoCounterUserspaceYaml   = "../../../examples/go-tracepoint-counter/kubernetes-deployment/go-tracepoint-counter.yaml"
+	tracepointGoCounterKustomize       = "../../../examples/config/default/go-tracepoint-counter"
 	tracepointGoCounterUserspaceNs     = "go-tracepoint-counter"
 	tracepointGoCounterUserspaceDsName = "go-tracepoint-counter-ds"
 )
 
 func TestTracepointGoCounter(t *testing.T) {
-	t.Log("deploying tracepoint counter bpf program")
-	require.NoError(t, clusters.ApplyManifestByURL(ctx, env.Cluster(), tracepointCounterBytecodeYaml))
-	addCleanup(func(ctx context.Context) error {
-		cleanupLog("cleaning up tracepoint counter bpfd program")
-		return clusters.DeleteManifestByURL(ctx, env.Cluster(), tracepointCounterBytecodeYaml)
-	})
-
-	t.Log("deploying go tracepoint counter userspace daemon")
-	require.NoError(t, clusters.ApplyManifestByURL(ctx, env.Cluster(), tracepointGoCounterUserspaceYaml))
-	addCleanup(func(ctx context.Context) error {
-		cleanupLog("cleaning up tracepoint counter userspace daemon")
-		return clusters.DeleteManifestByURL(ctx, env.Cluster(), tracepointGoCounterUserspaceYaml)
+	t.Log("deploying tracepoint counter program")
+	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), tracepointGoCounterKustomize))
+	addCleanup(func(context.Context) error {
+		cleanupLog("cleaning up tracepoint counter program")
+		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), tracepointGoCounterKustomize)
 	})
 
 	t.Log("waiting for go tracepoint counter userspace daemon to be available")

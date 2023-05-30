@@ -37,7 +37,7 @@ in Kubernetes include:
     damage (either unintentionally or intentionally).
 - Handling multiple eBPF programs on the same eBPF hooks.
   - Not all eBPF hooks are designed to support multiple programs.
-  - Some software using eBPF assumes exclusive use of a eBPF hook and can
+  - Some software using eBPF assumes exclusive use of an eBPF hook and can
     unintentionally eject existing programs when being attached. This can result
     in silent failures and non-deterministic failures.
 - Debugging problems with deployments is hard.

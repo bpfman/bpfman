@@ -34,13 +34,15 @@ const (
 )
 
 type ProgType int
+
 const (
 	ProgTypeXdp ProgType = iota
 	ProgTypeTc
 	ProgTypeTracepoint
 )
+
 func (s ProgType) String() string {
-        return [...]string{"xdp", "tc", "tracepoint"}[s]
+	return [...]string{"xdp", "tc", "tracepoint"}[s]
 }
 
 const (
@@ -74,20 +76,20 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 			"Priority to load program in bpfd. Optional.")
 	}
 	flag.StringVar(&cmdlineUuid, "uuid", "",
-		"UUID of bytecode that has already been loaded. uuid and file/image are\n" +
-		"mutually exclusive.\n" +
-		"Example: -uuid 5471e2f5-2584-49ec-9ddc-381788446c2d")
+		"UUID of bytecode that has already been loaded. uuid and file/image are\n"+
+			"mutually exclusive.\n"+
+			"Example: -uuid 5471e2f5-2584-49ec-9ddc-381788446c2d")
 	flag.StringVar(&cmdlineImage, "image", "",
-		"Image repository URL of bytecode source. image and file/uuid are mutually\n" +
-		"exclusive.\n" +
-		"Example: -image quay.io/bpfd-bytecode/go-" + progType.String() + "-counter:latest")
+		"Image repository URL of bytecode source. image and file/uuid are mutually\n"+
+			"exclusive.\n"+
+			"Example: -image quay.io/bpfd-bytecode/go-"+progType.String()+"-counter:latest")
 	flag.StringVar(&cmdlineFile, "file", "",
-		"File path of bytecode source. file and image/uuid are mutually exclusive.\n" +
-		"Example: -file /home/$USER/src/bpfd/examples/go-" + progType.String() + "-counter/bpf_bpfel.o")
+		"File path of bytecode source. file and image/uuid are mutually exclusive.\n"+
+			"Example: -file /home/$USER/src/bpfd/examples/go-"+progType.String()+"-counter/bpf_bpfel.o")
 	flag.BoolVar(&paramData.CrdFlag, "crd", false,
-		"Flag to indicate all attributes should be pulled from the BpfProgram CRD.\n" +
-		"Used in Kubernetes deployments and is mutually exclusive with all other\n" +
-		"parameters.")
+		"Flag to indicate all attributes should be pulled from the BpfProgram CRD.\n"+
+			"Used in Kubernetes deployments and is mutually exclusive with all other\n"+
+			"parameters.")
 	if progType == ProgTypeTc {
 		flag.StringVar(&direction_str, "direction", "",
 			"Direction to apply program (ingress, egress). Required.")
@@ -172,13 +174,13 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 		// Else default to local bytecode file
 		path, err := filepath.Abs(primaryBytecodeFile)
 		if err == nil {
-			_, err = os.Stat(path);
+			_, err = os.Stat(path)
 		}
 		if err != nil {
 			log.Printf("Unable to find primary bytecode file: %s", primaryBytecodeFile)
 			path, err = filepath.Abs(secondaryBytecodeFile)
 			if err == nil {
-				_, err = os.Stat(path);
+				_, err = os.Stat(path)
 			}
 			if err != nil {
 				log.Printf("Unable to find secondary bytecode file: %s", secondaryBytecodeFile)

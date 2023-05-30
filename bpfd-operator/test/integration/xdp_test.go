@@ -19,8 +19,7 @@ import (
 )
 
 const (
-	xdpCounterBytecodeYaml      = "../../../examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter-bytecode.yaml"
-	xdpGoCounterUserspaceYaml   = "../../../examples/go-xdp-counter/kubernetes-deployment/go-xdp-counter.yaml"
+	xdpGoCounterKustomize       = "../../../examples/config/default/go-xdp-counter"
 	xdpGoCounterUserspaceNs     = "go-xdp-counter"
 	xdpGoCounterUserspaceDsName = "go-xdp-counter-ds"
 )
@@ -86,18 +85,11 @@ spec:
 }
 
 func TestXdpGoCounter(t *testing.T) {
-	t.Log("deploying xdp counter bpf program")
-	require.NoError(t, clusters.ApplyManifestByURL(ctx, env.Cluster(), xdpCounterBytecodeYaml))
-	addCleanup(func(ctx context.Context) error {
-		cleanupLog("cleaning up xdp counter bpfd program")
-		return clusters.DeleteManifestByURL(ctx, env.Cluster(), xdpCounterBytecodeYaml)
-	})
-
-	t.Log("deploying go xdp counter userspace daemon")
-	require.NoError(t, clusters.ApplyManifestByURL(ctx, env.Cluster(), xdpGoCounterUserspaceYaml))
-	addCleanup(func(ctx context.Context) error {
-		cleanupLog("cleaning up xdp counter userspace daemon")
-		return clusters.DeleteManifestByURL(ctx, env.Cluster(), xdpGoCounterUserspaceYaml)
+	t.Log("deploying xdp counter program")
+	require.NoError(t, clusters.KustomizeDeployForCluster(ctx, env.Cluster(), xdpGoCounterKustomize))
+	addCleanup(func(context.Context) error {
+		cleanupLog("cleaning up xdp counter program")
+		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), xdpGoCounterKustomize)
 	})
 
 	t.Log("waiting for go xdp counter userspace daemon to be available")
