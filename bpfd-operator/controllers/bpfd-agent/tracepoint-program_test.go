@@ -181,5 +181,5 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: metav1.NamespaceAll}, bpfProg)
 	require.NoError(t, err)
 
-	require.Equal(t, string(BpfProgCondLoaded), bpfProg.Status.Conditions[0].Type)
+	require.Equal(t, string(bpfdiov1alpha1.BpfProgCondLoaded), bpfProg.Status.Conditions[0].Type)
 }

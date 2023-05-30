@@ -52,6 +52,10 @@ import (
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get
 
+const (
+	retryDurationAgent = 5 * time.Second
+)
+
 // ReconcilerCommon provides a skeleton for a all Program Reconcilers.
 type ReconcilerCommon struct {
 	client.Client
@@ -71,64 +75,9 @@ type bpfdReconciler interface {
 		map[string]*gobpfd.ListResponse_ListResult,
 		interface{},
 		bool,
-		bool) (bpfProgramConditionType, error)
+		bool) (bpfdiov1alpha1.BpfProgramConditionType, error)
 	getFinalizer() string
 	getRecType() string
-}
-
-type bpfProgramConditionType string
-
-const (
-	retryDurationAgent                             = 5 * time.Second
-	BpfProgCondLoaded      bpfProgramConditionType = "Loaded"
-	BpfProgCondNotLoaded   bpfProgramConditionType = "NotLoaded"
-	BpfProgCondNotUnloaded bpfProgramConditionType = "NotUnLoaded"
-	BpfProgCondNotSelected bpfProgramConditionType = "NotSelected"
-	BpfProgCondUnloaded    bpfProgramConditionType = "Unloaded"
-)
-
-func (b bpfProgramConditionType) Condition() metav1.Condition {
-	cond := metav1.Condition{}
-
-	switch b {
-	case BpfProgCondLoaded:
-		cond = metav1.Condition{
-			Type:    string(BpfProgCondLoaded),
-			Status:  metav1.ConditionTrue,
-			Reason:  "bpfdLoaded",
-			Message: "Successfully loaded bpfProgram",
-		}
-	case BpfProgCondNotLoaded:
-		cond = metav1.Condition{
-			Type:    string(BpfProgCondNotLoaded),
-			Status:  metav1.ConditionTrue,
-			Reason:  "bpfdNotLoaded",
-			Message: "Failed to load bpfProgram",
-		}
-	case BpfProgCondNotUnloaded:
-		cond = metav1.Condition{
-			Type:    string(BpfProgCondNotUnloaded),
-			Status:  metav1.ConditionTrue,
-			Reason:  "bpfdNotUnloaded",
-			Message: "Failed to unload bpfProgram",
-		}
-	case BpfProgCondNotSelected:
-		cond = metav1.Condition{
-			Type:    string(BpfProgCondNotSelected),
-			Status:  metav1.ConditionTrue,
-			Reason:  "nodeNotSelected",
-			Message: "This node is not selected to run the bpfProgram",
-		}
-	case BpfProgCondUnloaded:
-		cond = metav1.Condition{
-			Type:    string(BpfProgCondUnloaded),
-			Status:  metav1.ConditionTrue,
-			Reason:  "bpfdUnloaded",
-			Message: "This BpfProgram object and all it's bpfd programs have been unloaded",
-		}
-	}
-
-	return cond
 }
 
 // Only return node updates for our node (all events)
@@ -207,7 +156,7 @@ func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, o client.Object,
 
 // updateStatus updates the status of the BpfProgram object if needed, returning
 // if the update should be retried and any errors.
-func (r *ReconcilerCommon) updateStatus(ctx context.Context, prog *bpfdiov1alpha1.BpfProgram, cond bpfProgramConditionType) (bool, error) {
+func (r *ReconcilerCommon) updateStatus(ctx context.Context, prog *bpfdiov1alpha1.BpfProgram, cond bpfdiov1alpha1.BpfProgramConditionType) (bool, error) {
 	// If status is already set just exit
 	if prog.Status.Conditions != nil {
 		// Get most recent condition

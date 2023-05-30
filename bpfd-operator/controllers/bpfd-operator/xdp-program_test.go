@@ -22,7 +22,6 @@ import (
 	"testing"
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
-	bpfdagent "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent"
 	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	testutils "github.com/bpfd-dev/bpfd/bpfd-operator/internal/test-utils"
 
@@ -91,7 +90,7 @@ func TestXdpProgramReconcile(t *testing.T) {
 			Programs: map[string]map[string]string{bpfdProgId: {}},
 		},
 		Status: bpfdiov1alpha1.BpfProgramStatus{
-			Conditions: []metav1.Condition{bpfdagent.BpfProgCondLoaded.Condition()},
+			Conditions: []metav1.Condition{bpfdiov1alpha1.BpfProgCondLoaded.Condition()},
 		},
 	}
 
@@ -141,7 +140,7 @@ func TestXdpProgramReconcile(t *testing.T) {
 	require.NoError(t, err)
 
 	// Check the bpfd-operator finalizer was successfully added
-	require.Contains(t, Xdp.GetFinalizers(), bpfdOperatorFinalizer)
+	require.Contains(t, Xdp.GetFinalizers(), internal.BpfdOperatorFinalizer)
 
 	// Second reconcile should check bpfProgram Status and write Success condition to tcProgram Status
 	res, err = r.Reconcile(ctx, req)
@@ -156,6 +155,6 @@ func TestXdpProgramReconcile(t *testing.T) {
 	err = cl.Get(ctx, types.NamespacedName{Name: Xdp.Name, Namespace: metav1.NamespaceAll}, Xdp)
 	require.NoError(t, err)
 
-	require.Equal(t, Xdp.Status.Conditions[0].Type, string(BpfProgConfigReconcileSuccess))
+	require.Equal(t, Xdp.Status.Conditions[0].Type, string(bpfdiov1alpha1.ProgramReconcileSuccess))
 
 }

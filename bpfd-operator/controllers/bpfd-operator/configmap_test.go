@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -113,7 +114,7 @@ client_key = "/etc/bpfd/certs/bpfd-client/tls.key"
 	require.NoError(t, err)
 
 	// Check the bpfd-operator finalizer was successfully added
-	require.Contains(t, bpfdConfig.GetFinalizers(), bpfdOperatorFinalizer)
+	require.Contains(t, bpfdConfig.GetFinalizers(), internal.BpfdOperatorFinalizer)
 
 	// Second reconcile will create bpfd daemonset
 	res, err = r.Reconcile(ctx, req)

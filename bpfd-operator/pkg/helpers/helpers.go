@@ -35,7 +35,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	bpfdoperator "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-operator"
+	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 )
 
 const (
@@ -275,7 +275,7 @@ func isTcbpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string) wait.Co
 
 		condition := bpfProgConfig.Status.Conditions[recentIdx]
 
-		if condition.Type != string(bpfdoperator.BpfProgConfigReconcileSuccess) {
+		if condition.Type != string(bpfdiov1alpha1.ProgramReconcileSuccess) {
 			log.Info("tcProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condition.Type)
 			return false, nil
 		}
@@ -305,7 +305,7 @@ func isTracepointbpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string)
 
 		condition := bpfProgConfig.Status.Conditions[recentIdx]
 
-		if condition.Type != string(bpfdoperator.BpfProgConfigReconcileSuccess) {
+		if condition.Type != string(bpfdiov1alpha1.ProgramReconcileSuccess) {
 			log.Info("tracepointProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condition.Type)
 			return false, nil
 		}
@@ -335,7 +335,7 @@ func isXdpbpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string) wait.C
 
 		condition := bpfProgConfig.Status.Conditions[recentIdx]
 
-		if condition.Type != string(bpfdoperator.BpfProgConfigReconcileSuccess) {
+		if condition.Type != string(bpfdiov1alpha1.ProgramReconcileSuccess) {
 			log.Info("xdpProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condition.Type)
 			return false, nil
 		}

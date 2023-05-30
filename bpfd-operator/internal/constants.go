@@ -82,3 +82,13 @@ func (p SupportedProgramType) String() string {
 		return ""
 	}
 }
+
+// -----------------------------------------------------------------------------
+// Finalizers
+// -----------------------------------------------------------------------------
+
+const (
+	// BpfdOperatorFinalizer is the finalizer that holds a BPF program from
+	// deletion until cleanup can be performed.
+	BpfdOperatorFinalizer = "bpfd.io.operator/finalizer"
+)

@@ -23,7 +23,6 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,76 +31,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
-	bpfdagent "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	"github.com/go-logr/logr"
 )
 
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 
-type ProgramConditionType string
-
 const (
-	bpfdOperatorFinalizer                              = "bpfd.io.operator/finalizer"
-	retryDurationOperator                              = 5 * time.Second
-	BpfProgConfigNotYetLoaded     ProgramConditionType = "NotYetLoaded"
-	BpfProgConfigReconcileError   ProgramConditionType = "ReconcileError"
-	BpfProgConfigReconcileSuccess ProgramConditionType = "ReconcileSuccess"
-	BpfProgConfigDeleteError      ProgramConditionType = "DeleteError"
+	retryDurationOperator = 5 * time.Second
 )
-
-func (b ProgramConditionType) Condition(message string) metav1.Condition {
-	cond := metav1.Condition{}
-
-	switch b {
-	case BpfProgConfigNotYetLoaded:
-		if len(message) == 0 {
-			message = "Waiting for Program Object to be reconciled to all nodes"
-		}
-
-		cond = metav1.Condition{
-			Type:    string(BpfProgConfigNotYetLoaded),
-			Status:  metav1.ConditionTrue,
-			Reason:  "ProgramsNotYetLoaded",
-			Message: message,
-		}
-	case BpfProgConfigReconcileError:
-		if len(message) == 0 {
-			message = "bpfProgramReconciliation failed"
-		}
-
-		cond = metav1.Condition{
-			Type:    string(BpfProgConfigReconcileError),
-			Status:  metav1.ConditionTrue,
-			Reason:  "ReconcileError",
-			Message: message,
-		}
-	case BpfProgConfigReconcileSuccess:
-		if len(message) == 0 {
-			message = "bpfProgramReconciliation Succeeded on all nodes"
-		}
-
-		cond = metav1.Condition{
-			Type:    string(BpfProgConfigReconcileSuccess),
-			Status:  metav1.ConditionTrue,
-			Reason:  "ReconcileSuccess",
-			Message: message,
-		}
-	case BpfProgConfigDeleteError:
-		if len(message) == 0 {
-			message = "Program Deletion failed"
-		}
-
-		cond = metav1.Condition{
-			Type:    string(BpfProgConfigDeleteError),
-			Status:  metav1.ConditionTrue,
-			Reason:  "DeleteError",
-			Message: message,
-		}
-	}
-
-	return cond
-}
 
 // ReconcilerCommon reconciles a BpfProgram object
 type ReconcilerCommon struct {
@@ -115,7 +54,7 @@ type ProgramReconciler interface {
 	getRecCommon() *ReconcilerCommon
 	updateStatus(ctx context.Context,
 		name string,
-		cond ProgramConditionType,
+		cond bpfdiov1alpha1.ProgramConditionType,
 		message string) (ctrl.Result, error)
 	getFinalizer() string
 }
@@ -126,8 +65,8 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 
 	r.Logger.V(1).Info("Reconciling Program", "ProgramName", progName)
 
-	if !controllerutil.ContainsFinalizer(prog, bpfdOperatorFinalizer) {
-		return r.addFinalizer(ctx, prog, bpfdOperatorFinalizer)
+	if !controllerutil.ContainsFinalizer(prog, internal.BpfdOperatorFinalizer) {
+		return r.addFinalizer(ctx, prog, internal.BpfdOperatorFinalizer)
 	}
 
 	// reconcile Program Object on all other events
@@ -154,7 +93,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 	// being deleted.
 	if len(nodes.Items) != len(bpfPrograms.Items) && prog.GetDeletionTimestamp().IsZero() {
 		// Causes Requeue
-		return rec.updateStatus(ctx, progName, BpfProgConfigNotYetLoaded, "")
+		return rec.updateStatus(ctx, progName, bpfdiov1alpha1.ProgramNotYetLoaded, "")
 	}
 
 	failedBpfPrograms := []string{}
@@ -175,7 +114,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 
 		condition := bpfProgram.Status.Conditions[recentIdx]
 
-		if condition.Type == string(bpfdagent.BpfProgCondNotLoaded) || condition.Type == string(bpfdagent.BpfProgCondNotUnloaded) {
+		if condition.Type == string(bpfdiov1alpha1.BpfProgCondNotLoaded) || condition.Type == string(bpfdiov1alpha1.BpfProgCondNotUnloaded) {
 			failedBpfPrograms = append(failedBpfPrograms, bpfProgram.Name)
 		}
 	}
@@ -184,22 +123,22 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 		// Only remove bpfd-operator finalizer if all bpfProgram Objects are ready to be pruned  (i.e finalizers have been removed)
 		if len(finalApplied) == 0 {
 			// Causes Requeue
-			return r.removeFinalizer(ctx, prog, bpfdOperatorFinalizer)
+			return r.removeFinalizer(ctx, prog, internal.BpfdOperatorFinalizer)
 		}
 
 		// Causes Requeue
-		return rec.updateStatus(ctx, progName, BpfProgConfigDeleteError, fmt.Sprintf("Program Deletion failed on the following bpfProgram Objects: %v",
+		return rec.updateStatus(ctx, progName, bpfdiov1alpha1.ProgramDeleteError, fmt.Sprintf("Program Deletion failed on the following bpfProgram Objects: %v",
 			finalApplied))
 	}
 
 	if len(failedBpfPrograms) != 0 {
 		// Causes Requeue
-		return rec.updateStatus(ctx, progName, BpfProgConfigReconcileError,
+		return rec.updateStatus(ctx, progName, bpfdiov1alpha1.ProgramReconcileError,
 			fmt.Sprintf("bpfProgramReconciliation failed on the following bpfProgram Objects: %v", failedBpfPrograms))
 	}
 
 	// Causes Requeue
-	return rec.updateStatus(ctx, progName, BpfProgConfigReconcileSuccess, "")
+	return rec.updateStatus(ctx, progName, bpfdiov1alpha1.ProgramReconcileSuccess, "")
 }
 
 func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, prog client.Object, finalizer string) (ctrl.Result, error) {
@@ -217,7 +156,7 @@ func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, prog client.Obje
 }
 
 func (r *ReconcilerCommon) addFinalizer(ctx context.Context, prog client.Object, finalizer string) (ctrl.Result, error) {
-	controllerutil.AddFinalizer(prog, bpfdOperatorFinalizer)
+	controllerutil.AddFinalizer(prog, internal.BpfdOperatorFinalizer)
 
 	err := r.Update(ctx, prog)
 	if err != nil {

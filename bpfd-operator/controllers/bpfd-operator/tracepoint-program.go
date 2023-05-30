@@ -104,7 +104,7 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	return reconcileBpfProgram(ctx, r, tracepointProgram)
 }
 
-func (r *TracepointProgramReconciler) updateStatus(ctx context.Context, name string, cond ProgramConditionType, message string) (ctrl.Result, error) {
+func (r *TracepointProgramReconciler) updateStatus(ctx context.Context, name string, cond bpfdiov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
 	// Sometimes we end up with a stale XdpProgram due to races, do this
 	// get to ensure we're up to date before attempting a finalizer removal.
 	prog := &bpfdiov1alpha1.TracepointProgram{}
