@@ -43,9 +43,15 @@ jobs:
 
     - name: Extract metadata (tags, labels) for bpfd image
       id: meta-bpfd
-      uses: docker/metadata-action@v3.6.2
+      uses: docker/metadata-action@v4.4.0
       with:
         images: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}/${{ env.BPFD_IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch,priority=200
+          type=ref,event=tag,priority=200
+          type=ref,event=pr,priority=200
+          # set latest tag for default branch
+          type=raw,value=latest,enable={{is_default_branch}},priority=200
 
     - name: Build bpfd image
       id: build-bpfd
@@ -67,9 +73,15 @@ jobs:
 
     - name: Extract metadata (tags, labels) for bpfctl image
       id: meta-bpfctl
-      uses: docker/metadata-action@v3.6.2
+      uses: docker/metadata-action@v4.4.0
       with:
         images: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}/${{ env.BPFCTL_IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch,priority=200
+          type=ref,event=tag,priority=200
+          type=ref,event=pr,priority=200
+          # set latest tag for default branch
+          type=raw,value=latest,enable={{is_default_branch}},priority=200
 
     - name: Build bpfctl image
       id: build-bpfctl
@@ -91,9 +103,15 @@ jobs:
 
     - name: Extract metadata (tags, labels) for bpfd-agent image
       id: meta-bpfd-agent
-      uses: docker/metadata-action@v3.6.2
+      uses: docker/metadata-action@v4.4.0
       with:
         images: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}/${{ env.BPFD_AGENT_IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch,priority=200
+          type=ref,event=tag,priority=200
+          type=ref,event=pr,priority=200
+          # set latest tag for default branch
+          type=raw,value=latest,enable={{is_default_branch}},priority=200
 
     - name: Build bpfd-agent image
       id: build-bpfd-agent
@@ -116,9 +134,15 @@ jobs:
     
     - name: Extract metadata (tags, labels) for bpfd-operator image
       id: meta-bpfd-operator
-      uses: docker/metadata-action@v3.6.2
+      uses: docker/metadata-action@v4.4.0
       with:
         images: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}/${{ env.BPFD_OPERATOR_IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch,priority=200
+          type=ref,event=tag,priority=200
+          type=ref,event=pr,priority=200
+          # set latest tag for default branch
+          type=raw,value=latest,enable={{is_default_branch}},priority=200
 
     - name: Build bpfd-operator image
       id: build-bpfd-operator
@@ -141,9 +165,15 @@ jobs:
 
     - name: Extract metadata (tags, labels) for bpfd-operator-bundle image
       id: meta-bpfd-operator-bundle
-      uses: docker/metadata-action@v3.6.2
+      uses: docker/metadata-action@v4.4.0
       with:
         images: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}/${{ env.BPFD_OPERATOR_BUNDLE_IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch,priority=200
+          type=ref,event=tag,priority=200
+          type=ref,event=pr,priority=200
+          # set latest tag for default branch
+          type=raw,value=latest,enable={{is_default_branch}},priority=200
 
     - name: Build bpfd-operator-bundle image
       id: build-bpfd-operator-bundle
@@ -175,9 +205,15 @@ jobs:
 
     - name: Extract metadata (tags, labels) for go-xdp-counter image
       id: meta-go-xdp-counter
-      uses: docker/metadata-action@v3.6.2
+      uses: docker/metadata-action@v4.4.0
       with:
         images: ${{ env.REGISTRY }}/${{ env.BPFD_USERSPACE_REPOSITORY }}/${{ env.GO_XDP_COUNTER_IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=tag
+          type=ref,event=pr
+          # set latest tag for default branch
+          type=raw,value=latest,enable={{is_default_branch}}
 
     - name: Build go-xdp-counter image
       id: build-go-xdp-counter
@@ -200,9 +236,15 @@ jobs:
 
     - name: Extract metadata (tags, labels) for go-tc-counter image
       id: meta-go-tc-counter
-      uses: docker/metadata-action@v3.6.2
+      uses: docker/metadata-action@v4.4.0
       with:
         images: ${{ env.REGISTRY }}/${{ env.BPFD_USERSPACE_REPOSITORY }}/${{ env.GO_TC_COUNTER_IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch,priority=200
+          type=ref,event=tag,priority=200
+          type=ref,event=pr,priority=200
+          # set latest tag for default branch
+          type=raw,value=latest,enable={{is_default_branch}},priority=200
 
     - name: Build go-tc-counter image
       id: build-go-tc-counter
@@ -225,9 +267,15 @@ jobs:
 
     - name: Extract metadata (tags, labels) for go-tracepoint-counter image
       id: meta-go-tracepoint-counter
-      uses: docker/metadata-action@v3.6.2
+      uses: docker/metadata-action@v4.4.0
       with:
         images: ${{ env.REGISTRY }}/${{ env.BPFD_USERSPACE_REPOSITORY }}/${{ env.GO_TRACEPOINT_COUNTER_IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch,priority=200
+          type=ref,event=tag,priority=200
+          type=ref,event=pr,priority=200
+          # set latest tag for default branch
+          type=raw,value=latest,enable={{is_default_branch}},priority=200
 
     - name: Build go-tracepoint-counter image
       id: build-go-tracepoint-counter
@@ -259,9 +307,15 @@ jobs:
 
     - name: Extract metadata (tags, labels) for go-xdp-counter-bytecode image
       id: meta-go-xdp-counter-bytecode
-      uses: docker/metadata-action@v3.6.2
+      uses: docker/metadata-action@v4.4.0
       with:
         images: ${{ env.REGISTRY }}/${{ env.BPFD_BYTECODE_REPOSITORY }}/${{ env.GO_XDP_COUNTER_IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch,priority=200
+          type=ref,event=tag,priority=200
+          type=ref,event=pr,priority=200
+          # set latest tag for default branch
+          type=raw,value=latest,enable={{is_default_branch}},priority=200
 
     - name: Build go-xdp-counter-bytecode image
       id: build-go-xdp-counter-bytecode
@@ -289,9 +343,15 @@ jobs:
       
     - name: Extract metadata (tags, labels) for go-tc-counter-bytecode image
       id: meta-go-tc-counter-bytecode
-      uses: docker/metadata-action@v3.6.2
+      uses: docker/metadata-action@v4.4.0
       with:
         images: ${{ env.REGISTRY }}/${{ env.BPFD_BYTECODE_REPOSITORY }}/${{ env.GO_TC_COUNTER_IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch,priority=200
+          type=ref,event=tag,priority=200
+          type=ref,event=pr,priority=200
+          # set latest tag for default branch
+          type=raw,value=latest,enable={{is_default_branch}},priority=200
 
     - name: Build go-tc-counter-bytecode image
       id: build-go-tc-counter-bytecode
@@ -319,9 +379,15 @@ jobs:
 
     - name: Extract metadata (tags, labels) for go-tracepoint-counter-bytecode image
       id: meta-go-tracepoint-counter-bytecode
-      uses: docker/metadata-action@v3.6.2
+      uses: docker/metadata-action@v4.4.0
       with:
         images: ${{ env.REGISTRY }}/${{ env.BPFD_BYTECODE_REPOSITORY }}/${{ env.GO_TRACEPOINT_COUNTER_IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch,priority=200
+          type=ref,event=tag,priority=200
+          type=ref,event=pr,priority=200
+          # set latest tag for default branch
+          type=raw,value=latest,enable={{is_default_branch}},priority=200
 
     - name: Build go-tracepoint-counter-bytecode image
       id: build-go-tracepoint-counter-bytecode
