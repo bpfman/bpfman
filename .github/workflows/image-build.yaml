@@ -85,6 +85,7 @@ jobs:
 
     - name: Build bpfctl image
       id: build-bpfctl
+      if: startsWith(github.event_name, 'pull_request') || (startsWith(github.event_name, 'push') && contains(github.event.changes.*.filename, 'bpfctl/'))
       uses: redhat-actions/buildah-build@v2
       with:
         image: bpfctl
@@ -95,12 +96,11 @@ jobs:
     
     - name: Push bpfctl to quay.io/bpfd
       uses: redhat-actions/push-to-registry@v2
-      if: ${{ github.event_name == 'push' }}
+      if: ${{ github.event_name == 'push' }} && contains(github.event.changes.*.filename, 'bpfctl/'))
       with:
         image: ${{ steps.build-bpfctl.outputs.image }}
         tags: ${{ steps.build-bpfctl.outputs.tags }}
         registry: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}
-
     - name: Extract metadata (tags, labels) for bpfd-agent image
       id: meta-bpfd-agent
       uses: docker/metadata-action@v4.4.0
