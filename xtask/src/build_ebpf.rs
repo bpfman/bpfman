@@ -81,17 +81,12 @@ fn get_libbpf_headers<P: AsRef<Path>>(libbpf_dir: P, include_path: P) -> anyhow:
     Ok(())
 }
 
-pub fn build_ebpf(opts: Options) -> anyhow::Result<()> {
-    let mut src = PathBuf::from(WORKSPACE_ROOT.to_string());
-    src.push("bpf");
-
-    let mut out_path = PathBuf::from(WORKSPACE_ROOT.to_string());
-    out_path.push(".output");
-    create_dir_all(&out_path)?;
-
-    let include_path = out_path.join("include");
-    get_libbpf_headers(&opts.libbpf_dir, &include_path)?;
-    let files = fs::read_dir(&src).unwrap();
+fn build_ebpf_files(
+    src_path: PathBuf,
+    include_path: PathBuf,
+    out_path: PathBuf,
+) -> anyhow::Result<()> {
+    let files = fs::read_dir(&src_path).unwrap();
     for file in files {
         let p = file.unwrap().path();
         if let Some(ext) = p.extension() {
@@ -103,6 +98,33 @@ pub fn build_ebpf(opts: Options) -> anyhow::Result<()> {
             }
         }
     }
+    Ok(())
+}
+
+pub fn build_ebpf(opts: Options) -> anyhow::Result<()> {
+    // build operational eBPF code
+    let mut src_path = PathBuf::from(WORKSPACE_ROOT.to_string());
+    src_path.push("bpf");
+
+    let mut out_path = PathBuf::from(WORKSPACE_ROOT.to_string());
+    out_path.push(".output");
+    create_dir_all(&out_path)?;
+
+    let include_path = out_path.join("include");
+    get_libbpf_headers(&opts.libbpf_dir, &include_path)?;
+
+    build_ebpf_files(src_path, include_path.clone(), out_path)?;
+
+    // build integration test eBPF code (reuse includ_path)
+    let mut src_path = PathBuf::from(WORKSPACE_ROOT.to_string());
+    src_path.push("tests/integration-test/bpf");
+
+    let mut out_path = PathBuf::from(WORKSPACE_ROOT.to_string());
+    out_path.push("tests/integration-test/bpf/.output");
+    create_dir_all(&out_path)?;
+
+    build_ebpf_files(src_path, include_path, out_path)?;
+
     Ok(())
 }
 
