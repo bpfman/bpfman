@@ -50,8 +50,8 @@ pub fn add_xdp_pass(iface: &str, priority: u32) -> Result<String> {
         .args([
             "load-from-image",
             "--global",
-            "GLOBAL_1=01020304",
-            "GLOBAL_2=0A0B0C0D",
+            "GLOBAL_u8=25",
+            "GLOBAL_u32=0A0B0C0D",
             "--image-url",
             XDP_PASS_IMAGE_LOC,
             "--pull-policy",
@@ -84,8 +84,8 @@ pub fn add_tc_pass(iface: &str, priority: u32) -> Result<String> {
         .args([
             "load-from-image",
             "--global",
-            "GLOBAL_1=01020304",
-            "GLOBAL_2=0A0B0C0D",
+            "GLOBAL_u8=25",
+            "GLOBAL_u32=0A0B0C0D",
             "--image-url",
             TC_PASS_IMAGE_LOC,
             "--pull-policy",
@@ -124,8 +124,8 @@ pub fn add_tracepoint() -> Result<String> {
         .args([
             "load-from-image",
             "--global",
-            "GLOBAL_1=01020304",
-            "GLOBAL_2=0A0B0C0D",
+            "GLOBAL_u8=25",
+            "GLOBAL_u32=0A0B0C0D",
             "--image-url",
             TRACEPOINT_IMAGE_LOC,
             "--pull-policy",
