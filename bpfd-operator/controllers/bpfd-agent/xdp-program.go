@@ -157,11 +157,11 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
 	bytecode interface{},
 	isNodeSelected bool,
-	isBeingDeleted bool) (bpfProgramConditionType, error) {
+	isBeingDeleted bool) (bpfdiov1alpha1.BpfProgramConditionType, error) {
 
 	ifaces, err := getInterfaces(&r.currentXdpProgram.Spec.InterfaceSelector, r.ourNode)
 	if err != nil {
-		return BpfProgCondNotLoaded, fmt.Errorf("failed to get interfaces for XdpProgram %s: %v", r.currentXdpProgram.Name, err)
+		return bpfdiov1alpha1.BpfProgCondNotLoaded, fmt.Errorf("failed to get interfaces for XdpProgram %s: %v", r.currentXdpProgram.Name, err)
 	}
 
 	r.Logger.V(1).Info("Existing bpfProgramEntries", "ExistingEntries", r.bpfProgram.Spec.Programs)
@@ -204,7 +204,7 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 			bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 			if err != nil {
 				r.Logger.Error(err, "Failed to load XdpProgram")
-				return BpfProgCondNotLoaded, err
+				return bpfdiov1alpha1.BpfProgCondNotLoaded, err
 			}
 
 			bpfProgramEntries[id] = bpfProgramEntry
@@ -221,7 +221,7 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 				"isSelected", isNodeSelected)
 			if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 				r.Logger.Error(err, "Failed to unload XdpProgram")
-				return BpfProgCondLoaded, err
+				return bpfdiov1alpha1.BpfProgCondLoaded, err
 			}
 			delete(bpfProgramEntries, id)
 
@@ -235,13 +235,13 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 			r.Logger.V(1).Info("XdpProgram is in wrong state, unloading and reloading")
 			if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 				r.Logger.Error(err, "Failed to unload XdpProgram")
-				return BpfProgCondNotUnloaded, err
+				return bpfdiov1alpha1.BpfProgCondNotUnloaded, err
 			}
 
 			bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 			if err != nil {
 				r.Logger.Error(err, "Failed to load XdpProgram")
-				return BpfProgCondNotLoaded, err
+				return bpfdiov1alpha1.BpfProgCondNotLoaded, err
 			}
 
 			r.Logger.V(1).WithValues("UUID", id, "ProgramEntry", bpfProgramEntry).Info("ReLoaded XdpProgram on Node")
@@ -253,7 +253,7 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 				maps, err := bpfdagentinternal.GetMapsForUUID(id)
 				if err != nil {
 					r.Logger.Error(err, "failed to get bpfProgram's Maps")
-					return BpfProgCondNotLoaded, err
+					return bpfdiov1alpha1.BpfProgCondNotLoaded, err
 				}
 
 				bpfProgramEntries[id] = maps
@@ -268,12 +268,12 @@ func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 	r.expectedPrograms = bpfProgramEntries
 
 	if isBeingDeleted {
-		return BpfProgCondUnloaded, nil
+		return bpfdiov1alpha1.BpfProgCondUnloaded, nil
 	}
 
 	if !isNodeSelected {
-		return BpfProgCondNotSelected, nil
+		return bpfdiov1alpha1.BpfProgCondNotSelected, nil
 	}
 
-	return BpfProgCondLoaded, nil
+	return bpfdiov1alpha1.BpfProgCondLoaded, nil
 }

@@ -134,7 +134,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
 	bytecode interface{},
 	isNodeSelected bool,
-	isBeingDeleted bool) (bpfProgramConditionType, error) {
+	isBeingDeleted bool) (bpfdiov1alpha1.BpfProgramConditionType, error) {
 
 	r.expectedPrograms = map[string]map[string]string{}
 
@@ -162,24 +162,24 @@ func (r *TracepointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 
 		// If TracepointProgram is being deleted just exit
 		if isBeingDeleted {
-			return BpfProgCondNotLoaded, nil
+			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 		}
 
 		// Make sure if we're not selected just exit
 		if !isNodeSelected {
-			return BpfProgCondNotSelected, nil
+			return bpfdiov1alpha1.BpfProgCondNotSelected, nil
 		}
 
 		// otherwise load it
 		bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load TcProgram")
-			return BpfProgCondNotLoaded, err
+			return bpfdiov1alpha1.BpfProgCondNotLoaded, err
 		}
 
 		r.expectedPrograms[id] = bpfProgramEntry
 
-		return BpfProgCondLoaded, nil
+		return bpfdiov1alpha1.BpfProgCondLoaded, nil
 	}
 
 	// BpfProgram exists but either TracepointProgram is being deleted or node is no
@@ -189,12 +189,12 @@ func (r *TracepointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 			"isSelected", isNodeSelected)
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload TcProgram")
-			return BpfProgCondLoaded, err
+			return bpfdiov1alpha1.BpfProgCondLoaded, err
 		}
 		delete(r.expectedPrograms, id)
 
 		// continue to next program
-		return BpfProgCondNotSelected, nil
+		return bpfdiov1alpha1.BpfProgCondNotSelected, nil
 	}
 
 	r.Logger.V(1).WithValues("expectedProgram", loadRequest).WithValues("existingProgram", existingProgram).Info("StateMatch")
@@ -202,13 +202,13 @@ func (r *TracepointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 	if !bpfdagentinternal.DoesProgExist(existingProgram, loadRequest) {
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload TcProgram")
-			return BpfProgCondNotUnloaded, err
+			return bpfdiov1alpha1.BpfProgCondNotUnloaded, err
 		}
 
 		bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load TcProgram")
-			return BpfProgCondNotLoaded, err
+			return bpfdiov1alpha1.BpfProgCondNotLoaded, err
 		}
 
 		r.expectedPrograms[id] = bpfProgramEntry
@@ -218,7 +218,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 			maps, err := bpfdagentinternal.GetMapsForUUID(id)
 			if err != nil {
 				r.Logger.Error(err, "failed to get bpfProgram's Maps")
-				return BpfProgCondNotLoaded, err
+				return bpfdiov1alpha1.BpfProgCondNotLoaded, err
 			}
 
 			r.expectedPrograms[id] = maps
@@ -228,5 +228,5 @@ func (r *TracepointProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
 		}
 	}
 
-	return BpfProgCondLoaded, nil
+	return bpfdiov1alpha1.BpfProgCondLoaded, nil
 }

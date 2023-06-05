@@ -108,7 +108,7 @@ func (r *BpfdConfigReconciler) ReconcileBpfdConfig(ctx context.Context, req ctrl
 
 	if !bpfdConfig.DeletionTimestamp.IsZero() {
 		r.Logger.Info("Deleting bpfd daemon and config")
-		controllerutil.RemoveFinalizer(bpfdDeployment, bpfdOperatorFinalizer)
+		controllerutil.RemoveFinalizer(bpfdDeployment, internal.BpfdOperatorFinalizer)
 
 		err := r.Update(ctx, bpfdDeployment)
 		if err != nil {
@@ -121,7 +121,7 @@ func (r *BpfdConfigReconciler) ReconcileBpfdConfig(ctx context.Context, req ctrl
 			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 		}
 
-		controllerutil.RemoveFinalizer(bpfdConfig, bpfdOperatorFinalizer)
+		controllerutil.RemoveFinalizer(bpfdConfig, internal.BpfdOperatorFinalizer)
 		err = r.Update(ctx, bpfdConfig)
 		if err != nil {
 			r.Logger.Error(err, "failed removing bpfd-operator finalizer from bpfd config")
