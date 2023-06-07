@@ -60,15 +60,17 @@ impl XdpDispatcher {
             chain_call_actions[p.info.current_position.unwrap()] = p.info.proceed_on.mask();
         }
 
-        let config = XdpDispatcherConfig {
-            num_progs_enabled: extensions.len() as u8,
+        let config = XdpDispatcherConfig::new(
+            extensions.len() as u8,
+            0x0,
             chain_call_actions,
-            run_prios: [DEFAULT_PRIORITY; 10],
-        };
+            [DEFAULT_PRIORITY; 10],
+            [0; 10],
+        );
 
         debug!("xdp dispatcher config: {:?}", config);
         let image = BytecodeImage::new(
-            "quay.io/bpfd/xdp-dispatcher:v1".to_string(),
+            "quay.io/bpfd/xdp-dispatcher:v2".to_string(),
             ImagePullPolicy::IfNotPresent as i32,
             None,
             None,
@@ -79,7 +81,7 @@ impl XdpDispatcher {
             .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
         let program_bytes = get_bytecode_from_image_store(overrides.path).await?;
         let mut loader = BpfLoader::new()
-            .set_global("CONFIG", &config)
+            .set_global("conf", &config)
             .load(&program_bytes)?;
 
         let dispatcher: &mut Xdp = loader
