@@ -70,7 +70,7 @@ endif
 SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
-.PHONY: all 
+.PHONY: all
 all: build
 
 ##@ General
@@ -336,7 +336,7 @@ undeploy-certmanager: ## Undeploy certmanager from the cluster specified in ~/.k
 
 .PHONY: setup-kind
 setup-kind: cm-verifier ## Setup Kind cluster with certmanager ready for bpfd deployment
-	kind delete cluster --name bpfd-deployment && kind create cluster --config hack/kind-config.yaml --name bpfd-deployment
+	kind delete cluster --name ${KIND_CLUSTER_NAME} && kind create cluster --config hack/kind-config.yaml --name ${KIND_CLUSTER_NAME}
 
 ## Default deploy target is KIND based.
 .PHONY: deploy
