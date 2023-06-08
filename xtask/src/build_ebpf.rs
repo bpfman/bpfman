@@ -115,7 +115,7 @@ pub fn build_ebpf(opts: Options) -> anyhow::Result<()> {
 
     build_ebpf_files(src_path, include_path.clone(), out_path)?;
 
-    // build integration test eBPF code (reuse includ_path)
+    // build integration test eBPF code (reuse include_path)
     let mut src_path = PathBuf::from(WORKSPACE_ROOT.to_string());
     src_path.push("tests/integration-test/bpf");
 

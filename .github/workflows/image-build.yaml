@@ -3,14 +3,14 @@ name: bpfd-image-build
 on:
   push:
     branches: [ main ]
-    tags:        
+    tags:
       - 'v*'
 
   pull_request:
     paths: [ '.github/workflows/image-build.yaml' ]
 
 env:
-  REGISTRY: quay.io 
+  REGISTRY: quay.io
   BPFD_REPOSITORY: bpfd
   BPFD_USERSPACE_REPOSITORY: bpfd-userspace
   BPFD_BYTECODE_REPOSITORY: bpfd-bytecode
@@ -29,10 +29,18 @@ jobs:
     runs-on: ubuntu-latest
     environment: image-repositories
     steps:
-    - name: Check out rust source code
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
+      with:
+        repository: libbpf/libbpf
+        path: libbpf
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+    - name: Install libelf-dev
+      run: sudo apt-get install -y linux-headers-generic clang lldb lld libelf-dev gcc-multilib
 
-## Build quay.io/bpfd images
     - name: Login to quay.io/bpfd
       uses: redhat-actions/podman-login@v1
       if: ${{ github.event_name == 'push' }}
@@ -41,6 +49,48 @@ jobs:
         username: ${{ secrets.BPFD_USERNAME }}
         password: ${{ secrets.BPFD_ROBOT_TOKEN }}
 
+## Build XDP dispatchers
+    - name: Build eBPF
+      run: |
+        cargo xtask build-ebpf --libbpf-dir ./libbpf
+
+    - name: Build xdp-dispatcher:v1 image
+      id: build-xdp-dispatcher-v1-bytecode
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: xdp_dispatcher
+        tags: v1
+        context: .
+        containerfiles: |
+          Containerfile.xdp_dispatcher_v1
+
+    - name: Push xdp-dispatcher:v1 to quay.io/bpfd-bytecode
+      uses: redhat-actions/push-to-registry@v2
+      if: ${{ github.event_name == 'push' }}
+      with:
+        image: ${{ steps.build-xdp-dispatcher-v1-bytecode.outputs.image }}
+        tags: ${{ steps.build-xdp-dispatcher-v1-bytecode.outputs.tags }}
+        registry: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}
+
+    - name: Build xdp-dispatcher:v2 image
+      id: build-xdp-dispatcher-v2-bytecode
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: xdp_dispatcher
+        tags: v2
+        context: .
+        containerfiles: |
+          Containerfile.xdp_dispatcher_v2
+
+    - name: Push xdp-dispatcher:v2 to quay.io/bpfd-bytecode
+      uses: redhat-actions/push-to-registry@v2
+      if: ${{ github.event_name == 'push' }}
+      with:
+        image: ${{ steps.build-xdp-dispatcher-v2-bytecode.outputs.image }}
+        tags: ${{ steps.build-xdp-dispatcher-v2-bytecode.outputs.tags }}
+        registry: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}
+
+## Build quay.io/bpfd images
     - name: Extract metadata (tags, labels) for bpfd image
       id: meta-bpfd
       uses: docker/metadata-action@v4.4.0
@@ -92,7 +142,7 @@ jobs:
         labels: ${{ steps.meta-bpfctl.outputs.labels }}
         containerfiles: |
           ./packaging/container-deployment/Containerfile.bpfctl
-    
+
     - name: Push bpfctl to quay.io/bpfd
       uses: redhat-actions/push-to-registry@v2
       if: ${{ github.event_name == 'push' }}
@@ -123,7 +173,7 @@ jobs:
         context: ./
         containerfiles: |
           ./bpfd-operator/Containerfile.bpfd-agent
-    
+
     - name: Push bpfd-agent to quay.io/bpfd
       uses: redhat-actions/push-to-registry@v2
       if: ${{ github.event_name == 'push' }}
@@ -131,7 +181,7 @@ jobs:
         image: ${{ steps.build-bpfd-agent.outputs.image }}
         tags: ${{ steps.build-bpfd-agent.outputs.tags }}
         registry: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}
-    
+
     - name: Extract metadata (tags, labels) for bpfd-operator image
       id: meta-bpfd-operator
       uses: docker/metadata-action@v4.4.0
@@ -256,7 +306,7 @@ jobs:
         context: ./
         containerfiles: |
           ./examples/go-tc-counter/container-deployment/Containerfile.go-tc-counter
- 
+
     - name: Push go-tc-counter to quay.io/bpfd-userspace
       uses: redhat-actions/push-to-registry@v2
       if: ${{ github.event_name == 'push' }}
@@ -340,7 +390,7 @@ jobs:
         image: ${{ steps.build-go-xdp-counter-bytecode.outputs.image }}
         tags: ${{ steps.build-go-xdp-counter-bytecode.outputs.tags }}
         registry: ${{ env.REGISTRY }}/${{ env.BPFD_BYTECODE_REPOSITORY }}
-      
+
     - name: Extract metadata (tags, labels) for go-tc-counter-bytecode image
       id: meta-go-tc-counter-bytecode
       uses: docker/metadata-action@v4.4.0
