@@ -193,7 +193,7 @@ jobs:
         run: systemctl is-active bpfd
 
       - name: Verify the bpfctl can reach bpfd
-        run: sudo bpfctl --help
+        run: sudo bpfctl list
 
       - name: Stop the bpfd systemd service
         run: sudo systemctl stop bpfd
