@@ -33,7 +33,7 @@ serde_json = "1.0"
 tar = "0.4"
 flate2 = "1.0"
 openssl = { version = "0.10.54", features = ["vendored"] }
-url = "2.3.1"
+url = "2.4.0"
 users = "0.11.0"
 tokio-stream = { version = "0.1.12", features = ["net"] }
 sha2 = "0.10.6"
