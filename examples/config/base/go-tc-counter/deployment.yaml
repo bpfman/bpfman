@@ -61,7 +61,7 @@ spec:
       containers:
       - name: go-tc-counter
         image: quay.io/bpfd-userspace/go-tc-counter:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
         env:

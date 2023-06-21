@@ -104,6 +104,22 @@ build: fmt ## Build all the userspace example code.
 generate: ## Run `go generate` to build the bytecode for each of the examples.
 	go generate ./...
 
+.PHONY: build-us-images
+build-us-images: ## Build all example userspace images
+	docker build -t ${IMAGE_TC_US} -f ./go-tc-counter/container-deployment/Containerfile.go-tc-counter ../
+	docker build -t ${IMAGE_TP_US} -f ./go-tracepoint-counter/container-deployment/Containerfile.go-tracepoint-counter ../
+	docker build -t ${IMAGE_XDP_US} -f ./go-xdp-counter/container-deployment/Containerfile.go-xdp-counter ../
+
+.PHONY: push-us-images
+push-us-images: ## Push all example userspace images
+	docker push ${IMAGE_TC_US}
+	docker push ${IMAGE_TP_US}
+	docker pus ${IMAGE_XDP_US}
+
+.PHONY: load-us-images-kind
+load-us-images-kind: build-us-images ## Build and load all example userspace images into kind
+	kind load docker-image ${IMAGE_TC_US} ${IMAGE_TP_US} ${IMAGE_XDP_US} --name ${KIND_CLUSTER_NAME}
+
 ##@ Deployment Variables (not commands)
 TAG: ## Used to set all images to a fixed tag. Example: make deploy TAG=v0.2.0
 IMAGE_TC_BC: ## TC Bytecode image. Example: make deploy-tc IMAGE_TC_BC=quay.io/user1/go-tc-counter-bytecode:test
@@ -112,6 +128,7 @@ IMAGE_TP_BC: ## Tracepoint Bytecode image. Example: make deploy-tracepoint IMAGE
 IMAGE_TP_US: ## Tracepoint Userspace image. Example: make deploy-tracepoint IMAGE_TP_US=quay.io/user1/go-tracepoint-counter-userspace:test
 IMAGE_XDP_BC: ## XDP Bytecode image. Example: make deploy-xdp IMAGE_XDP_BC=quay.io/user1/go-xdp-counter-bytecode:test
 IMAGE_XDP_US: ## XDP Userspace image. Example: make deploy-xdp IMAGE_XDP_US=quay.io/user1/go-xdp-counter-userspace:test
+KIND_CLUSTER_NAME: ## Name of the deployed cluster to load example images to, defaults to `bpfd-deployment`
 ignore-not-found: ## For any undeploy command, set to true to ignore resource not found errors during deletion. Example: make undeploy ignore-not-found=true
 
 ##@ Deployment
@@ -122,6 +139,7 @@ IMAGE_TP_US ?= quay.io/bpfd-userspace/go-tracepoint-counter:latest
 IMAGE_XDP_BC ?= quay.io/bpfd-bytecode/go-xdp-counter:latest
 IMAGE_XDP_US ?= quay.io/bpfd-userspace/go-xdp-counter:latest
 KUST_DIR=default
+KIND_CLUSTER_NAME ?= bpfd-deployment
 
 .PHONY: deploy-tc
 deploy-tc: kustomize ## Deploy go-tc-counter to the cluster specified in ~/.kube/config.
