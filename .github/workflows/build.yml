@@ -231,6 +231,9 @@ jobs:
       - name: build images
         run: cd bpfd-operator && make build-images
 
+      - name: build example images
+        run: cd examples && make build-us-images
+
       - name: run integration tests
         run: cd bpfd-operator && make test-integration
 

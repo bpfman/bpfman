@@ -30,21 +30,26 @@ var (
 	env        environments.Environment
 	bpfdClient *versioned.Clientset
 
+	// These images should already be built on the node so they can
+	// be loaded into kind.
 	bpfdImage             = os.Getenv("BPFD_IMG")
 	bpfdAgentImage        = os.Getenv("BPFD_AGENT_IMG")
 	bpfdOperatorImage     = os.Getenv("BPFD_OPERATOR_IMG")
+	tcExampleUsImage      = "quay.io/bpfd-userspace/go-tc-counter:latest"
+	xdpExampleUsImage     = "quay.io/bpfd-userspace/go-xdp-counter:latest"
+	tpExampleUsImage      = "quay.io/bpfd-userspace/go-tracepoint-counter:latest"
 	certmanagerVersionStr = os.Getenv("CERTMANAGER_VERSION")
 
-	existingCluster = os.Getenv("USE_EXISTING_KIND_CLUSTER")
-	keepTestCluster = func() bool { return os.Getenv("TEST_KEEP_CLUSTER") == "true" || existingCluster != "" }()
-	// TODO (astoycos) add this back after fixing bpfd-operator deletion issues
-	//keepKustomizeDeploys = func() bool { return os.Getenv("TEST_KEEP_KUSTOMIZE_DEPLOYS") == "true" }()
+	existingCluster      = os.Getenv("USE_EXISTING_KIND_CLUSTER")
+	keepTestCluster      = func() bool { return os.Getenv("TEST_KEEP_CLUSTER") == "true" || existingCluster != "" }()
+	keepKustomizeDeploys = func() bool { return os.Getenv("TEST_KEEP_KUSTOMIZE_DEPLOYS") == "true" }()
 
 	cleanup = []func(context.Context) error{}
 )
 
 const (
 	bpfdKustomize = "../../config/test"
+	bpfdConfigMap = "../../config/bpfd-deployment/config.yaml"
 )
 
 func TestMain(m *testing.M) {
@@ -77,6 +82,12 @@ func TestMain(m *testing.M) {
 		exitOnErr(err)
 		loadImages, err = loadImages.WithImage(bpfdOperatorImage)
 		exitOnErr(err)
+		loadImages, err = loadImages.WithImage(tcExampleUsImage)
+		exitOnErr(err)
+		loadImages, err = loadImages.WithImage(xdpExampleUsImage)
+		exitOnErr(err)
+		loadImages, err = loadImages.WithImage(tpExampleUsImage)
+		exitOnErr(err)
 
 		certManagerBuilder := certmanager.NewBuilder()
 
@@ -103,13 +114,16 @@ func TestMain(m *testing.M) {
 		// deploy the BPFD Operator and revelevant CRDs
 		fmt.Println("INFO: deploying bpfd operator to test cluster")
 		exitOnErr(clusters.KustomizeDeployForCluster(ctx, env.Cluster(), bpfdKustomize))
-		// TODO (astoycos) add this back after fixing bpfd-operator deletion issues
-		// if !keepKustomizeDeploys {
-		// 	addCleanup(func(context.Context) error {
-		// 		cleanupLog("cleaning up bpfd operator")
-		// 		return clusters.KustomizeDeleteForCluster(ctx, env.Cluster(), bpfdKustomize)
-		// 	})
-		// }
+		if !keepKustomizeDeploys {
+			addCleanup(func(context.Context) error {
+				cleanupLog("delete bpfd configmap to cleanup bpfd daemon")
+				env.Cluster().Client().CoreV1().ConfigMaps(internal.BpfdNs).Delete(ctx, internal.BpfdConfigName, metav1.DeleteOptions{})
+				clusters.DeleteManifestByYAML(ctx, env.Cluster(), bpfdConfigMap)
+				waitForBpfdConfigDelete(ctx, env)
+				cleanupLog("deleting bpfd namespace")
+				return  env.Cluster().Client().CoreV1().Namespaces().Delete(ctx, internal.BpfdNs, metav1.DeleteOptions{})
+			})
+		}
 	}
 
 	bpfdClient = bpfdHelpers.GetClientOrDie()
@@ -206,6 +220,30 @@ func waitForBpfdReadiness(ctx context.Context, env environments.Environment) err
 			if controlplaneReady && dataplaneReady {
 				fmt.Println("INFO: bpfd-operator is ready")
 				return nil
+			}
+		}
+	}
+}
+
+func waitForBpfdConfigDelete(ctx context.Context, env environments.Environment) error {
+	for {
+		time.Sleep(2 * time.Second)
+		select {
+		case <-ctx.Done():
+			if err := ctx.Err(); err != nil {
+				return fmt.Errorf("context completed while waiting for components: %w", err)
+			}
+			return fmt.Errorf("context completed while waiting for components")
+		default:
+			fmt.Println("INFO: waiting for bpfd config deletion")
+
+			_, err := env.Cluster().Client().CoreV1().ConfigMaps(internal.BpfdNs).Get(ctx, internal.BpfdConfigName, metav1.GetOptions{})
+			if err != nil {
+				if errors.IsNotFound(err) {
+					fmt.Println("INFO: bpfd configmap deleted successfully")
+					return nil
+				}
+				return err
 			}
 		}
 	}
