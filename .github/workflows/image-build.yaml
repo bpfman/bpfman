@@ -39,7 +39,7 @@ jobs:
         toolchain: stable
         override: true
     - name: Install libelf-dev
-      run: sudo apt-get install -y linux-headers-generic clang lldb lld libelf-dev gcc-multilib
+      run: sudo apt-get install -y linux-headers-`uname -r` clang lldb lld libelf-dev gcc-multilib
 
     - name: Login to quay.io/bpfd
       uses: redhat-actions/podman-login@v1
