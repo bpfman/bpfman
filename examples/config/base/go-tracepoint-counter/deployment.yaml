@@ -61,7 +61,7 @@ spec:
       containers:
       - name: go-tracepoint-counter
         image: quay.io/bpfd-userspace/go-tracepoint-counter:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
         env:

@@ -373,6 +373,9 @@ To see the full set of available commands, run `make help`:
     Build
       build            Build all the userspace example code.
       generate         Run `go generate` to build the bytecode for each of the examples.
+      build-us-images  Build all example userspace images
+      push-us-images   Push all example userspace images
+      load-us-images-kind  Build and load all example userspace images into kind
 
     Deployment Variables (not commands)
       TAG              Used to set all images to a fixed tag. Example: make deploy TAG=v0.2.0
@@ -382,6 +385,7 @@ To see the full set of available commands, run `make help`:
       IMAGE_TP_US      Tracepoint Userspace image. Example: make deploy-tracepoint IMAGE_TP_US=quay.io/user1/go-tracepoint-counter-userspace:test
       IMAGE_XDP_BC     XDP Bytecode image. Example: make deploy-xdp IMAGE_XDP_BC=quay.io/user1/go-xdp-counter-bytecode:test
       IMAGE_XDP_US     XDP Userspace image. Example: make deploy-xdp IMAGE_XDP_US=quay.io/user1/go-xdp-counter-userspace:test
+      KIND_CLUSTER_NAME  Name of the deployed cluster to load example images to, defaults to `bpfd-deployment`
       ignore-not-found  For any undeploy command, set to true to ignore resource not found errors during deletion. Example: make undeploy ignore-not-found=true
 
     Deployment
@@ -389,7 +393,7 @@ To see the full set of available commands, run `make help`:
       undeploy-tc      Undeploy go-tc-counter from the cluster specified in ~/.kube/config.
       deploy-tracepoint  Deploy go-tracepoint-counter to the cluster specified in ~/.kube/config.
       undeploy-tracepoint  Undeploy go-tracepoint-counter from the cluster specified in ~/.kube/config.
-      deploy-xdp       Deploy go-xdp-counter to the cluster specified in ~/.kube/config.ifdef TAG
+      deploy-xdp       Deploy go-xdp-counter to the cluster specified in ~/.kube/config.
       undeploy-xdp     Undeploy go-xdp-counter from the cluster specified in ~/.kube/config.
       deploy           Deploy all examples to the cluster specified in ~/.kube/config.
       undeploy         Undeploy all examples to the cluster specified in ~/.kube/config.
@@ -398,25 +402,40 @@ To see the full set of available commands, run `make help`:
 #### Building A Userspace Container Image
 
 To build the userspace examples in a container instead of using the pre-built ones,
-from the bpfd code source directory, run the following build commands:
+from the bpfd code source directory (`quay.io/bpfd-userspace/`), run the following build commands:
 
 ```console
-    cd bpfd/
-    docker build -f examples/go-xdp-counter/container-deployment/Containerfile.go-xdp-counter . -t quay.io/$USER/go-xdp-counter:latest
-    docker build -f examples/go-tc-counter/container-deployment/Containerfile.go-tc-counter . -t quay.io/$USER/go-tc-counter:latest
-    docker build -f examples/go-tracepoint-counter/container-deployment/Containerfile.go-tracepoint-counter . -t quay.io/$USER/go-tracepoint-counter:latest
+    cd bpfd/examples
+    make IMAGE_TC_US=quay.io/$USER/go-tc-counter:latest \
+    IMAGE_TP_US=quay.io/$USER/go-tracepoint-counter:latest \
+    IMAGE_XDP_US=quay.io/$USER/go-xdp-counter:latest \
+    build-us-images
 ```
 
-Then push images to a remote repository:
+Then **EITHER** push images to a remote repository:
 
 ```console
     docker login quay.io
-    docker push quay.io/$USER/go-xdp-counter:latest
-    docker push quay.io/$USER/go-tc-counter:latest
-    docker push quay.io/$USER/go-tracepoint-counter:latest
+    cd bpfd/examples
+    make IMAGE_TC_US=quay.io/$USER/go-tc-counter:latest \
+    IMAGE_TP_US=quay.io/$USER/go-tracepoint-counter:latest \
+    IMAGE_XDP_US=quay.io/$USER/go-xdp-counter:latest \
+
+    push-us-images
 ```
 
-Update the yaml to use the private images or override the yaml files using the Makefile:
+**OR** load the images directly to a specified kind cluster:
+
+```console
+    cd bpfd/examples
+    make IMAGE_TC_US=quay.io/$USER/go-tc-counter:latest \
+    IMAGE_TP_US=quay.io/$USER/go-tracepoint-counter:latest \
+    IMAGE_XDP_US=quay.io/$USER/go-xdp-counter:latest \
+    KIND_CLUSTER_NAME=bpfd-deployment \
+    load-us-images-kind
+```
+
+Lastly, update the yaml to use the private images or override the yaml files using the Makefile:
 
 ```console
     cd bpfd/examples/

@@ -74,7 +74,7 @@ spec:
       containers:
       - name: go-xdp-counter
         image: quay.io/bpfd-userspace/go-xdp-counter:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
         env:
