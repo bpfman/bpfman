@@ -75,10 +75,24 @@ pub struct TracepointAttachInfo {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UprobeAttachInfo {
+    #[prost(string, optional, tag = "1")]
+    pub fn_name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(uint64, optional, tag = "2")]
+    pub offset: ::core::option::Option<u64>,
+    #[prost(string, tag = "3")]
+    pub target: ::prost::alloc::string::String,
+    #[prost(int32, optional, tag = "4")]
+    pub pid: ::core::option::Option<i32>,
+    #[prost(string, optional, tag = "5")]
+    pub namespace: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadRequest {
     #[prost(message, optional, tag = "1")]
     pub common: ::core::option::Option<LoadRequestCommon>,
-    #[prost(oneof = "load_request::AttachInfo", tags = "2, 3, 4")]
+    #[prost(oneof = "load_request::AttachInfo", tags = "2, 3, 4, 5")]
     pub attach_info: ::core::option::Option<load_request::AttachInfo>,
 }
 /// Nested message and enum types in `LoadRequest`.
@@ -92,6 +106,8 @@ pub mod load_request {
         TcAttachInfo(super::TcAttachInfo),
         #[prost(message, tag = "4")]
         TracepointAttachInfo(super::TracepointAttachInfo),
+        #[prost(message, tag = "5")]
+        UprobeAttachInfo(super::UprobeAttachInfo),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -134,7 +150,7 @@ pub mod list_response {
         pub program_type: i32,
         #[prost(oneof = "list_result::Location", tags = "3, 4")]
         pub location: ::core::option::Option<list_result::Location>,
-        #[prost(oneof = "list_result::AttachInfo", tags = "6, 7, 8, 9")]
+        #[prost(oneof = "list_result::AttachInfo", tags = "6, 7, 8, 9, 10")]
         pub attach_info: ::core::option::Option<list_result::AttachInfo>,
     }
     /// Nested message and enum types in `ListResult`.
@@ -158,6 +174,8 @@ pub mod list_response {
             TcAttachInfo(super::super::TcAttachInfo),
             #[prost(message, tag = "9")]
             TracepointAttachInfo(super::super::TracepointAttachInfo),
+            #[prost(message, tag = "10")]
+            UprobeAttachInfo(super::super::UprobeAttachInfo),
         }
     }
 }

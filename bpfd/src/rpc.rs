@@ -19,7 +19,7 @@ use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
 use crate::{
-    command::{Command, LoadTCArgs, LoadTracepointArgs, LoadXDPArgs, UnloadArgs},
+    command::{Command, LoadTCArgs, LoadTracepointArgs, LoadUprobeArgs, LoadXDPArgs, UnloadArgs},
     oci_utils::BytecodeImage,
 };
 
@@ -126,6 +126,20 @@ impl Loader for BpfdLoader {
                     global_data: common.global_data,
                     location: bytecode_source,
                     tracepoint: attach.tracepoint,
+                    section_name: common.section_name,
+                    username,
+                })
+            }
+            load_request::AttachInfo::UprobeAttachInfo(attach) => {
+                Command::LoadUprobe(LoadUprobeArgs {
+                    responder: resp_tx,
+                    id,
+                    global_data: common.global_data,
+                    location: bytecode_source,
+                    fn_name: attach.fn_name,
+                    offset: attach.offset,
+                    target: attach.target,
+                    pid: attach.pid,
                     section_name: common.section_name,
                     username,
                 })
@@ -354,6 +368,7 @@ mod test {
                 Command::LoadXDP(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
                 Command::LoadTC(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
                 Command::LoadTracepoint(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
+                Command::LoadUprobe(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
                 Command::Unload(args) => args.responder.send(Ok(())).unwrap(),
                 Command::List { responder, .. } => responder.send(Ok(vec![])).unwrap(),
             }

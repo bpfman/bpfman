@@ -32,6 +32,8 @@ pub(crate) enum Command {
     LoadTC(LoadTCArgs),
     // Load a Tracepoint Program
     LoadTracepoint(LoadTracepointArgs),
+    // Load a Tracepoint Program
+    LoadUprobe(LoadUprobeArgs),
     Unload(UnloadArgs),
     List {
         responder: Responder<Result<Vec<ProgramInfo>, BpfdError>>,
@@ -72,6 +74,20 @@ pub(crate) struct LoadTracepointArgs {
     pub(crate) section_name: String,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
     pub(crate) tracepoint: String,
+    pub(crate) username: String,
+    pub(crate) responder: Responder<Result<Uuid, BpfdError>>,
+}
+
+#[derive(Debug)]
+pub(crate) struct LoadUprobeArgs {
+    pub(crate) location: Location,
+    pub(crate) id: Option<Uuid>,
+    pub(crate) section_name: String,
+    pub(crate) global_data: HashMap<String, Vec<u8>>,
+    pub(crate) fn_name: Option<String>,
+    pub(crate) offset: Option<u64>,
+    pub(crate) target: String,
+    pub(crate) pid: Option<i32>,
     pub(crate) username: String,
     pub(crate) responder: Responder<Result<Uuid, BpfdError>>,
 }

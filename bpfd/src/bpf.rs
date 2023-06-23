@@ -9,17 +9,18 @@ use aya::{
     BpfLoader,
 };
 use bpfd_api::{config::Config, util::directories::*, ProgramType};
-use log::{debug, info};
+use log::{debug, error, info};
 use tokio::{fs, select, sync::mpsc};
 use uuid::Uuid;
 
+use crate::errors::BpfdError::Error;
 use crate::{
     command::{
         self, Command, Direction,
         Direction::{Egress, Ingress},
-        LoadTCArgs, LoadTracepointArgs, LoadXDPArgs, Program, ProgramData, ProgramInfo, TcProgram,
-        TcProgramInfo, TracepointProgram, TracepointProgramInfo, UnloadArgs, XdpProgram,
-        XdpProgramInfo,
+        LoadTCArgs, LoadTracepointArgs, LoadUprobeArgs, LoadXDPArgs, Program, ProgramData,
+        ProgramInfo, TcProgram, TcProgramInfo, TracepointProgram, TracepointProgramInfo,
+        UnloadArgs, XdpProgram, XdpProgramInfo,
     },
     errors::BpfdError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
@@ -575,6 +576,7 @@ impl BpfManager {
                         Command::LoadXDP(args) => self.load_xdp_command(args).await.unwrap(),
                         Command::LoadTC(args) => self.load_tc_command(args).await.unwrap(),
                         Command::LoadTracepoint(args) => self.load_tracepoint_command(args).await.unwrap(),
+                        Command::LoadUprobe(args) => self.load_uprobe_command(args).unwrap(),
                         Command::Unload(args) => self.unload_command(args).await.unwrap(),
                         Command::List { responder } => {
                             let progs = self.list_programs();
@@ -709,6 +711,24 @@ impl BpfManager {
         }
 
         // Ignore errors as they'll be propagated to caller in the RPC status
+        let _ = args.responder.send(res);
+        Ok(())
+    }
+
+    fn load_uprobe_command(&mut self, args: LoadUprobeArgs) -> anyhow::Result<()> {
+        error!(
+            "uprobe programs not supported yet: {:?} {:?} {:?} {:?} {:?} {:?} {:?} {:?} {:?}",
+            args.location,
+            args.id,
+            args.section_name,
+            args.global_data,
+            args.fn_name,
+            args.offset,
+            args.target,
+            args.pid,
+            args.username,
+        );
+        let res = Err(Error("uprobes not supported yet".to_string()));
         let _ = args.responder.send(res);
         Ok(())
     }
