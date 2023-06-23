@@ -62,6 +62,7 @@ pub enum ProgramType {
     Lsm,
     SkLookup,
     Syscall,
+    Uprobe,
 }
 
 impl TryFrom<String> for ProgramType {
@@ -101,6 +102,7 @@ impl TryFrom<String> for ProgramType {
             "lsm" => ProgramType::Lsm,
             "sk_lookup" => ProgramType::SkLookup,
             "syscall" => ProgramType::Syscall,
+            "uprobe" => ProgramType::Uprobe,
             other => {
                 return Err(ParseError::InvalidProgramType {
                     program: other.to_string(),
@@ -147,6 +149,7 @@ impl TryFrom<i32> for ProgramType {
             29 => ProgramType::Lsm,
             30 => ProgramType::SkLookup,
             31 => ProgramType::Syscall,
+            32 => ProgramType::Uprobe,
             other => {
                 return Err(ParseError::InvalidProgramType {
                     program: other.to_string(),
@@ -162,6 +165,7 @@ impl std::fmt::Display for ProgramType {
             ProgramType::Unspec => "unspec",
             ProgramType::SocketFilter => "socket_filter",
             ProgramType::Kprobe => "kprobe",
+            ProgramType::Uprobe => "uprobe",
             ProgramType::Tc => "tc",
             ProgramType::SchedAct => "sched_act",
             ProgramType::Tracepoint => "tracepoint",

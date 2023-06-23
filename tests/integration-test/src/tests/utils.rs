@@ -199,7 +199,6 @@ pub fn bpfd_del_program(uuid: &str) {
 pub fn bpfd_list() -> Result<String> {
     let output = Command::cargo_bin("bpfctl")?.args(["list"]).ok();
     let stdout = String::from_utf8(output.unwrap().stdout);
-
     Ok(stdout.unwrap())
 }
 

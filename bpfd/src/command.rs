@@ -32,7 +32,7 @@ pub(crate) enum Command {
     LoadTC(LoadTCArgs),
     // Load a Tracepoint Program
     LoadTracepoint(LoadTracepointArgs),
-    // Load a Tracepoint Program
+    // Load a uprobe Program
     LoadUprobe(LoadUprobeArgs),
     Unload(UnloadArgs),
     List {

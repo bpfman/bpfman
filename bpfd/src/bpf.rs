@@ -13,7 +13,6 @@ use log::{debug, error, info};
 use tokio::{fs, select, sync::mpsc};
 use uuid::Uuid;
 
-use crate::errors::BpfdError::Error;
 use crate::{
     command::{
         self, Command, Direction,
@@ -22,7 +21,7 @@ use crate::{
         ProgramInfo, TcProgram, TcProgramInfo, TracepointProgram, TracepointProgramInfo,
         UnloadArgs, XdpProgram, XdpProgramInfo,
     },
-    errors::BpfdError,
+    errors::{BpfdError, BpfdError::Error},
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
     oci_utils::image_manager::get_bytecode_from_image_store,
     serve::shutdown_handler,
@@ -717,7 +716,7 @@ impl BpfManager {
 
     fn load_uprobe_command(&mut self, args: LoadUprobeArgs) -> anyhow::Result<()> {
         error!(
-            "uprobe programs not supported yet: {:?} {:?} {:?} {:?} {:?} {:?} {:?} {:?} {:?}",
+            "uprobe programs not supported yet: \n{:?} \n{:?} {:?} {:?} {:?} {:?} {:?} {:?} {:?}",
             args.location,
             args.id,
             args.section_name,
