@@ -61,7 +61,7 @@ func TestXdpProgramReconcile(t *testing.T) {
 				},
 			},
 			InterfaceSelector: bpfdiov1alpha1.InterfaceSelector{
-				Interface: &fakeInt,
+				Interfaces: &[]string{fakeInt},
 			},
 			Priority: 0,
 			ProceedOn: []bpfdiov1alpha1.XdpProceedOnValue{bpfdiov1alpha1.XdpProceedOnValue("pass"),

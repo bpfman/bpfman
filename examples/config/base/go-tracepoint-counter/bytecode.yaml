@@ -8,7 +8,8 @@ spec:
   sectionname: tracepoint_kill_recorder
   # Select all nodes
   nodeselector: {}
-  name: syscalls/sys_enter_kill
+  names:
+  - syscalls/sys_enter_kill
   bytecode:
     image:
       url: quay.io/bpfd-bytecode/go-tracepoint-counter:latest

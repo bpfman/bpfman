@@ -109,23 +109,22 @@ func (r *XdpProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *XdpProgramReconciler) createBpfPrograms(ctx context.Context) (bool, error) {
+func (r *XdpProgramReconciler) buildBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
+	progs := &bpfdiov1alpha1.BpfProgramList{}
+
 	for _, iface := range r.interfaces {
 		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentXdpProgram.Name, r.NodeName, iface)
 		annotations := map[string]string{"interface": iface}
 
-		_, exists := r.bpfPrograms[bpfProgramName]
-		if !exists {
-			err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentXdpProgram, r.getRecType(), annotations)
-			if err != nil {
-				return false, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
-			}
-
-			return false, nil
+		prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentXdpProgram, r.getRecType(), annotations)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 		}
+
+		progs.Items = append(progs.Items, *prog)
 	}
 
-	return true, nil
+	return progs, nil
 }
 
 func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -142,7 +141,6 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	xdpPrograms := &bpfdiov1alpha1.XdpProgramList{}
-
 	opts := []client.ListOption{}
 
 	if err := r.List(ctx, xdpPrograms, opts...); err != nil {
@@ -155,17 +153,18 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Get existing ebpf state from bpfd.
-	programMap, err := bpfdagentinternal.ListBpfdPrograms(ctx, r.BpfdClient, internal.Tc)
+	programMap, err := bpfdagentinternal.ListBpfdPrograms(ctx, r.BpfdClient, internal.Xdp)
 	if err != nil {
 		r.Logger.Error(err, "failed to list loaded bpfd programs")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 	}
+	r.Logger.V(1).WithValues("loaded-xdp-programs", programMap).Info("Existing XDP programs")
 
 	// Reconcile every XdpProgram Object
 	// note: This doesn't necessarily result in any extra grpc calls to bpfd
-	for _, XdpProgram := range xdpPrograms.Items {
-		r.Logger.Info("bpfd-agent is reconciling", "XdpProgram", XdpProgram.Name)
-		r.currentXdpProgram = &XdpProgram
+	for _, xdpProgram := range xdpPrograms.Items {
+		r.Logger.Info("XdpProgramController is reconciling", "currentXdpProgram", xdpProgram.Name)
+		r.currentXdpProgram = &xdpProgram
 
 		r.interfaces, err = getInterfaces(&r.currentXdpProgram.Spec.InterfaceSelector, r.ourNode)
 		if err != nil {
@@ -184,7 +183,7 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 }
 
 // reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
-// It does interact with the k8s API in any way.
+// It does not interact with the k8s API in any way.
 func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
 	bytecode interface{},
@@ -192,7 +191,7 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	isNodeSelected bool,
 	isBeingDeleted bool) (bpfdiov1alpha1.BpfProgramConditionType, error) {
 
-	r.Logger.V(1).Info("Existing bpfProgramMaps", "ExistingMaps", bpfProgram.Spec.Maps)
+	r.Logger.V(1).Info("Existing bpfProgram", "ExistingMaps", bpfProgram.Spec.Maps, "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentXdpProgram", r.currentXdpProgram.Name)
 	iface := bpfProgram.Annotations["interface"]
 
 	loadRequest := &gobpfd.LoadRequest{}
@@ -226,7 +225,7 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load XdpProgram")
-			return bpfdiov1alpha1.BpfProgCondNotLoaded, err
+			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 		}
 
 		r.Logger.V(1).WithValues("UUID", id, "maps", r.expectedMaps).Info("Loaded XdpProgram on Node")
@@ -240,7 +239,7 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			"isSelected", isNodeSelected)
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload XdpProgram")
-			return bpfdiov1alpha1.BpfProgCondNotUnloaded, err
+			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 		r.expectedMaps = nil
 
@@ -257,19 +256,20 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		r.Logger.V(1).Info("XdpProgram is in wrong state, unloading and reloading")
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload XdpProgram")
-			return bpfdiov1alpha1.BpfProgCondNotUnloaded, err
+			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 
 		r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load XdpProgram")
-			return bpfdiov1alpha1.BpfProgCondNotLoaded, err
+			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 		}
 
 		r.Logger.V(1).WithValues("UUID", id, "ProgramEntry", r.expectedMaps).Info("ReLoaded XdpProgram on Node")
 	} else {
 		// Program exists and bpfProgram K8s Object is up to date
 		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")
+		r.expectedMaps = bpfProgram.Spec.Maps
 	}
 
 	return bpfdiov1alpha1.BpfProgCondLoaded, nil

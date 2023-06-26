@@ -51,7 +51,7 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 		tracepointName = "syscalls/sys_enter_setitimer"
 		fakeNode       = testutils.NewNode("fake-control-plane")
 		ctx            = context.TODO()
-		bpfProgName    = fmt.Sprintf("%s-%s", name, fakeNode.Name)
+		bpfProgName    = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, "syscalls-sys-enter-setitimer")
 		bpfProg        = &bpfdiov1alpha1.BpfProgram{}
 		fakeUID        = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)
@@ -68,7 +68,7 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 					Path: &bytecodePath,
 				},
 			},
-			Name: tracepointName,
+			Names: []string{tracepointName},
 		},
 	}
 
@@ -92,7 +92,7 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 		Scheme:       s,
 		BpfdClient:   cli,
 		NodeName:     fakeNode.Name,
-		bpfPrograms:  map[string]*bpfdiov1alpha1.BpfProgram{},
+		bpfPrograms:  map[string]bpfdiov1alpha1.BpfProgram{},
 		expectedMaps: map[string]string{},
 	}
 

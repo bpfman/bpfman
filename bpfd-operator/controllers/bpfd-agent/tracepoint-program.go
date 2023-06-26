@@ -19,6 +19,7 @@ package bpfdagent
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/types"
 
@@ -84,21 +85,25 @@ func (r *TracepointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *TracepointProgramReconciler) createBpfPrograms(ctx context.Context) (bool, error) {
-	bpfProgramName := fmt.Sprintf("%s-%s", r.currentTracepointProgram.Name, r.NodeName)
-	annotations := map[string]string{"tracepoint": r.currentTracepointProgram.Spec.Name}
+func (r *TracepointProgramReconciler) buildBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
+	progs := &bpfdiov1alpha1.BpfProgramList{}
 
-	_, exists := r.bpfPrograms[bpfProgramName]
-	if !exists {
-		err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentTracepointProgram, r.getRecType(), annotations)
+	for _, tracepoint := range r.currentTracepointProgram.Spec.Names {
+		// sanitize tracepoint name to work in a bpfProgram name
+		sanatizedTrace := strings.Replace(strings.Replace(tracepoint, "/", "-", -1), "_", "-", -1)
+		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentTracepointProgram.Name, r.NodeName, sanatizedTrace)
+
+		annotations := map[string]string{"tracepoint": tracepoint}
+
+		prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentTracepointProgram, r.getRecType(), annotations)
 		if err != nil {
-			return false, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
+			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 		}
 
-		return false, nil
+		progs.Items = append(progs.Items, *prog)
 	}
 
-	return true, nil
+	return progs, nil
 }
 
 func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -127,7 +132,7 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	// Get existing ebpf state from bpfd.
-	programMap, err := bpfdagentinternal.ListBpfdPrograms(ctx, r.BpfdClient, internal.Tc)
+	programMap, err := bpfdagentinternal.ListBpfdPrograms(ctx, r.BpfdClient, internal.Tracepoint)
 	if err != nil {
 		r.Logger.Error(err, "failed to list loaded bpfd programs")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
@@ -149,7 +154,7 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 }
 
 // reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
-// It does interact with the k8s API in any way.
+// It does not interact with the k8s API in any way.
 func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
 	bytecode interface{},
@@ -157,6 +162,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	isNodeSelected bool,
 	isBeingDeleted bool) (bpfdiov1alpha1.BpfProgramConditionType, error) {
 
+	r.Logger.V(1).Info("Existing bpfProgram", "ExistingMaps", bpfProgram.Spec.Maps, "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentXdpProgram", r.currentTracepointProgram.Name)
 	loadRequest := &gobpfd.LoadRequest{}
 	id := string(bpfProgram.UID)
 
@@ -164,7 +170,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 
 	loadRequest.AttachInfo = &gobpfd.LoadRequest_TracepointAttachInfo{
 		TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
-			Tracepoint: r.currentTracepointProgram.Spec.Name,
+			Tracepoint: bpfProgram.Annotations["tracepoint"],
 		},
 	}
 
@@ -186,7 +192,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load TcProgram")
-			return bpfdiov1alpha1.BpfProgCondNotLoaded, err
+			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 		}
 
 		r.expectedMaps = bpfProgramEntry
@@ -201,7 +207,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			"isSelected", isNodeSelected)
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload TcProgram")
-			return bpfdiov1alpha1.BpfProgCondNotUnloaded, err
+			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 		r.expectedMaps = nil
 
@@ -217,7 +223,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	if !bpfdagentinternal.DoesProgExist(existingProgram, loadRequest) {
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload TracepointProgram")
-			return bpfdiov1alpha1.BpfProgCondNotUnloaded, err
+			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 
 		bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
@@ -230,6 +236,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	} else {
 		// Program exists and bpfProgram K8s Object is up to date
 		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")
+		r.expectedMaps = bpfProgram.Spec.Maps
 	}
 
 	return bpfdiov1alpha1.BpfProgCondLoaded, nil

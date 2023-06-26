@@ -61,7 +61,8 @@ spec:
   # Select all nodes
   nodeselector: {}
   interfaceselector:
-    interface: eth0
+    interfaces:
+    - eth0
   priority: 0
   bytecode:
     image:

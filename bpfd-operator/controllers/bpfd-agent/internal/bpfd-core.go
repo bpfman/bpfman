@@ -18,10 +18,7 @@ package internal
 
 import (
 	"context"
-	//"crypto/sha256"
-	//"encoding/binary"
 	"fmt"
-	//"math/rand"
 	"os"
 	"path/filepath"
 
@@ -200,15 +197,3 @@ func GetMapsForUUID(uuid string) (map[string]string, error) {
 
 	return maps, nil
 }
-
-// func GenIdFromName(name string) string {
-// 	// Hash this string and use it as seed to make the UUID deterministic
-// 	// for now. Eventually the BpfProgram UID will be used for this.
-// 	h := sha256.New()
-// 	h.Write([]byte(name))
-// 	seed := binary.BigEndian.Uint64(h.Sum(nil))
-// 	rnd := rand.New(rand.NewSource(int64(seed)))
-// 	uuid.SetRand(rnd)
-// 	uuid, _ := uuid.NewRandomFromReader(rnd)
-// 	return uuid.String()
-// }

@@ -60,7 +60,7 @@ func TestTracepointProgramReconcile(t *testing.T) {
 					Path: &bytecodePath,
 				},
 			},
-			Name: tracepointName,
+			Names: []string{tracepointName},
 		},
 	}
 

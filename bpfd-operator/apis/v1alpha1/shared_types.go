@@ -25,9 +25,9 @@ import (
 // +kubebuilder:validation:MaxProperties=1
 // +kubebuilder:validation:MinProperties=1
 type InterfaceSelector struct {
-	// Interface refers to the name of a network interface to attach BPF program too.
+	// Interfaces refers to a list of network interfaces to attach BPF programs too.
 	// +optional
-	Interface *string `json:"interface,omitempty"`
+	Interfaces *[]string `json:"interfaces,omitempty"`
 
 	// Attach BPF program to the primary interface on the node. Only 'true' accepted.
 	// +optional

@@ -98,7 +98,7 @@ func tcProceedOnToInt(proceedOn []bpfdiov1alpha1.TcProceedOnValue) []int32 {
 
 // SetupWithManager sets up the controller with the Manager.
 // The Bpfd-Agent should reconcile whenever a TcProgram is updated,
-// load the program to the node via bpfd, and then create a bpfProgram object
+// load the program to the node via bpfd, and then create bpfProgram object(s)
 // to reflect per node state information.
 func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -111,7 +111,7 @@ func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		).
 		// Only trigger reconciliation if node labels change since that could
 		// make the TcProgram no longer select the Node. Additionally only
-		// care about node events specific to our node
+		// care about events specific to our node
 		Watches(
 			&source.Kind{Type: &v1.Node{}},
 			&handler.EnqueueRequestForObject{},
@@ -120,23 +120,21 @@ func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *TcProgramReconciler) createBpfPrograms(ctx context.Context) (bool, error) {
+func (r *TcProgramReconciler) buildBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
+	progs := &bpfdiov1alpha1.BpfProgramList{}
 	for _, iface := range r.interfaces {
 		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentTcProgram.Name, r.NodeName, iface)
 		annotations := map[string]string{"interface": iface}
 
-		_, exists := r.bpfPrograms[bpfProgramName]
-		if !exists {
-			err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentTcProgram, r.getRecType(), annotations)
-			if err != nil {
-				return false, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
-			}
-
-			return false, nil
+		prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentTcProgram, r.getRecType(), annotations)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 		}
+
+		progs.Items = append(progs.Items, *prog)
 	}
 
-	return true, nil
+	return progs, nil
 }
 
 func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -238,7 +236,7 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load TcProgram")
-			return bpfdiov1alpha1.BpfProgCondNotLoaded, err
+			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 		}
 
 		r.Logger.V(1).WithValues("UUID", id, "maps", r.expectedMaps).Info("Loaded TcProgram on Node")
@@ -252,7 +250,7 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			"isSelected", isNodeSelected)
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload TcProgram")
-			return bpfdiov1alpha1.BpfProgCondNotUnloaded, err
+			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 		r.expectedMaps = nil
 
@@ -270,13 +268,13 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		r.Logger.V(1).Info("TcProgram is in wrong state, unloading and reloading")
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload TcProgram")
-			return bpfdiov1alpha1.BpfProgCondNotUnloaded, err
+			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 
 		r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load TcProgram")
-			return bpfdiov1alpha1.BpfProgCondNotLoaded, err
+			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 		}
 
 		r.Logger.V(1).WithValues("UUID", id, "ProgramMaps", r.expectedMaps).Info("ReLoaded TcProgram on Node")
@@ -284,7 +282,7 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	} else {
 		// Program exists and bpfProgram K8s Object is up to date
 		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")
-
+		r.expectedMaps = bpfProgram.Spec.Maps
 	}
 
 	return bpfdiov1alpha1.BpfProgCondLoaded, nil

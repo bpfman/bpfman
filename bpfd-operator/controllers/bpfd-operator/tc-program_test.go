@@ -62,7 +62,7 @@ func TestTcProgramReconcile(t *testing.T) {
 				},
 			},
 			InterfaceSelector: bpfdiov1alpha1.InterfaceSelector{
-				Interface: &fakeInt,
+				Interfaces: &[]string{fakeInt},
 			},
 			Priority:  0,
 			Direction: direction,

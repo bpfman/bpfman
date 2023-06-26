@@ -112,10 +112,12 @@ spec:
                 maxProperties: 1
                 minProperties: 1
                 properties:
-                  interface:
-                    description: Interface refers to the name of a network interface
-                      to attach BPF program too.
-                    type: string
+                  interfaces:
+                    description: Interfaces refers to a list of network interfaces
+                      to attach BPF programs too.
+                    items:
+                      type: string
+                    type: array
                   primarynodeinterface:
                     description: Attach BPF program to the primary interface on the
                       node. Only 'true' accepted.

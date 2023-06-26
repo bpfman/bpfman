@@ -99,10 +99,12 @@ spec:
                   the byte string appropriately considering such things as size, endianness,
                   alignment and packing of data structures.
                 type: object
-              name:
-                description: Name refers to the name of the desired kernel tracepoint
+              names:
+                description: Name refers to the name of the desired kernel tracepoints
                   to attach this tracepoint bpf program to.
-                type: string
+                items:
+                  type: string
+                type: array
               nodeselector:
                 description: NodeSelector allows the user to specify which nodes to
                   deploy the bpf program to.  This field must be specified, to select
@@ -157,7 +159,7 @@ spec:
                 type: string
             required:
             - bytecode
-            - name
+            - names
             - nodeselector
             - sectionname
             type: object
