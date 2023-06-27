@@ -114,7 +114,7 @@ func (r *XdpProgramReconciler) buildBpfPrograms(ctx context.Context) (*bpfdiov1a
 
 	for _, iface := range r.interfaces {
 		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentXdpProgram.Name, r.NodeName, iface)
-		annotations := map[string]string{"interface": iface}
+		annotations := map[string]string{internal.XdpProgramInterface: iface}
 
 		prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentXdpProgram, r.getRecType(), annotations)
 		if err != nil {
@@ -192,7 +192,7 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	isBeingDeleted bool) (bpfdiov1alpha1.BpfProgramConditionType, error) {
 
 	r.Logger.V(1).Info("Existing bpfProgram", "ExistingMaps", bpfProgram.Spec.Maps, "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentXdpProgram", r.currentXdpProgram.Name)
-	iface := bpfProgram.Annotations["interface"]
+	iface := bpfProgram.Annotations[internal.XdpProgramInterface]
 
 	loadRequest := &gobpfd.LoadRequest{}
 	var err error
@@ -209,7 +209,7 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 
 	existingProgram, doesProgramExist := existingBpfPrograms[id]
 	if !doesProgramExist {
-		r.Logger.V(1).Info("XdpProgram doesn't exist on node")
+		r.Logger.V(1).Info("XdpProgram doesn't exist on node for iface", "interface", iface)
 
 		// If XdpProgram is being deleted just break out and remove finalizer
 		if isBeingDeleted {

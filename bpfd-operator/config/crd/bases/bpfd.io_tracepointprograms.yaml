@@ -100,8 +100,8 @@ spec:
                   alignment and packing of data structures.
                 type: object
               names:
-                description: Name refers to the name of the desired kernel tracepoints
-                  to attach this tracepoint bpf program to.
+                description: Names refers to the names of kernel tracepoints to attach
+                  the bpf program to.
                 items:
                   type: string
                 type: array

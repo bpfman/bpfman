@@ -74,7 +74,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 	bpfPrograms := &bpfdiov1alpha1.BpfProgramList{}
 
 	// Only list bpfPrograms for this Program
-	opts := []client.ListOption{client.MatchingLabels{"ownedByProgram": progName}}
+	opts := []client.ListOption{client.MatchingLabels{internal.BpfProgramOwnerLabel: progName}}
 
 	if err := r.List(ctx, bpfPrograms, opts...); err != nil {
 		r.Logger.Error(err, "failed to get freshPrograms for full reconcile")

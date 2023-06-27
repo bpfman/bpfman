@@ -93,7 +93,7 @@ func (r *TracepointProgramReconciler) buildBpfPrograms(ctx context.Context) (*bp
 		sanatizedTrace := strings.Replace(strings.Replace(tracepoint, "/", "-", -1), "_", "-", -1)
 		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentTracepointProgram.Name, r.NodeName, sanatizedTrace)
 
-		annotations := map[string]string{"tracepoint": tracepoint}
+		annotations := map[string]string{internal.TracepointProgramTracepoint: tracepoint}
 
 		prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentTracepointProgram, r.getRecType(), annotations)
 		if err != nil {
@@ -170,7 +170,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 
 	loadRequest.AttachInfo = &gobpfd.LoadRequest_TracepointAttachInfo{
 		TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
-			Tracepoint: bpfProgram.Annotations["tracepoint"],
+			Tracepoint: bpfProgram.Annotations[internal.TracepointProgramTracepoint],
 		},
 	}
 

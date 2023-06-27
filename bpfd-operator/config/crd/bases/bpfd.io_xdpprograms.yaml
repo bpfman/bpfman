@@ -114,7 +114,7 @@ spec:
                 properties:
                   interfaces:
                     description: Interfaces refers to a list of network interfaces
-                      to attach BPF programs too.
+                      to attach the BPF program to.
                     items:
                       type: string
                     type: array

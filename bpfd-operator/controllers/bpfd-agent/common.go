@@ -66,7 +66,8 @@ type ReconcilerCommon struct {
 	expectedMaps map[string]string
 }
 
-// bpfdReconciler defines a bpfProgram K8s object reconciler which can program bpfd.
+// bpfdReconciler defines a generic bpfProgram K8s object reconciler which can
+// program bpfd from user intent in K8s CRDs.
 type bpfdReconciler interface {
 	getRecCommon() *ReconcilerCommon
 	reconcileBpfdProgram(context.Context,
@@ -154,7 +155,7 @@ func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, o client.Object,
 }
 
 // updateStatus updates the status of a BpfProgram object if needed, returning
-// if the status was already set for the given bpfProgram meaning reconciliation
+// if the status was already set for the given bpfProgram, meaning reconciliation
 // may continue.
 func (r *ReconcilerCommon) updateStatus(ctx context.Context, prog *bpfdiov1alpha1.BpfProgram, cond bpfdiov1alpha1.BpfProgramConditionType) (bool, error) {
 	if prog.Status.Conditions != nil {
@@ -229,8 +230,8 @@ func (r *ReconcilerCommon) createBpfProgram(ctx context.Context,
 }
 
 // reconcileProgram is called by ALL *Program controllers, and contains much of
-// the core logic for taking *Program objects turning them into bpfProgram
-// object(s) and ultimately telling the custom controller types to load real
+// the core logic for taking *Program objects, turning them into bpfProgram
+// object(s), and ultimately telling the custom controller types to load real
 // bpf programs on the node via bpfd. Additionally it acts as a central point for
 // interacting with the K8s API.
 func reconcileProgram(ctx context.Context,
@@ -240,19 +241,18 @@ func reconcileProgram(ctx context.Context,
 	ourNode *v1.Node,
 	programMap map[string]*gobpfd.ListResponse_ListResult) (bool, error) {
 
-	// Initialize bpfProgram
 	r := rec.getRecCommon()
 	r.bpfPrograms = map[string]bpfdiov1alpha1.BpfProgram{}
 
-	// Populate already existing bpfPrograms for *Program
+	// Populate already existing bpfPrograms for *Program.
 	err := r.getBpfPrograms(ctx, program)
 	if err != nil {
 		return false, fmt.Errorf("failed to get bpfPrograms: %v", err)
 	}
 
 	// Get and Create any new bpfPrograms exiting after each creation since
-	// the K8s API create action will re-trigger the reconcile loop allowing the
-	// logic to continue incrementally
+	// the K8s API "create" action will re-trigger the reconcile loop allowing the
+	// logic to continue incrementally.
 	progList, err := rec.buildBpfPrograms(ctx)
 	if err != nil {
 		r.Logger.Error(err, "failed to create bpfPrograms")

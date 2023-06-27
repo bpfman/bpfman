@@ -23,12 +23,10 @@ import (
 	"path/filepath"
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	"github.com/containers/image/docker/reference"
 
-	//"github.com/google/uuid"
-
-	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

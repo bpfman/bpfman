@@ -48,6 +48,7 @@ func TestTcProgramReconcile(t *testing.T) {
 		ctx          = context.TODO()
 		bpfProgName  = fmt.Sprintf("%s-%s", name, fakeNode.Name)
 	)
+
 	// A TcProgram object with metadata and spec.
 	tc := &bpfdiov1alpha1.TcProgram{
 		ObjectMeta: metav1.ObjectMeta{

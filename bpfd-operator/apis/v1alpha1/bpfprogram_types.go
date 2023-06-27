@@ -44,7 +44,7 @@ type BpfProgramSpec struct {
 	// +optional
 	Type string `json:"type,omitempty"`
 
-	// ProgramMap is a map with Keys: Map Names, and Values: Map Pin paths
+	// Maps is a map with Keys: Map Names, and Values: Map Pin paths
 	// +optional
 	Maps map[string]string `json:"maps,omitempty"`
 }

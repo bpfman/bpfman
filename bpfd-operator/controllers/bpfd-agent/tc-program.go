@@ -41,7 +41,7 @@ import (
 
 //+kubebuilder:rbac:groups=bpfd.io,resources=tcprograms,verbs=get;list;watch
 
-// BpfProgramReconciler reconciles a tcProgram object by creating multiple
+// TcProgramReconciler reconciles a tcProgram object by creating multiple
 // bpfProgram objects and managing bpfd for each one.
 type TcProgramReconciler struct {
 	ReconcilerCommon
@@ -102,7 +102,11 @@ func tcProceedOnToInt(proceedOn []bpfdiov1alpha1.TcProceedOnValue) []int32 {
 // to reflect per node state information.
 func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&bpfdiov1alpha1.TcProgram{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
+		For(&bpfdiov1alpha1.TcProgram{}, builder.WithPredicates(predicate.And(
+			predicate.GenerationChangedPredicate{},
+			predicate.ResourceVersionChangedPredicate{}),
+		),
+		).
 		Owns(&bpfdiov1alpha1.BpfProgram{},
 			builder.WithPredicates(predicate.And(
 				internal.BpfProgramTypePredicate(internal.Tc.String()),
@@ -124,7 +128,7 @@ func (r *TcProgramReconciler) buildBpfPrograms(ctx context.Context) (*bpfdiov1al
 	progs := &bpfdiov1alpha1.BpfProgramList{}
 	for _, iface := range r.interfaces {
 		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentTcProgram.Name, r.NodeName, iface)
-		annotations := map[string]string{"interface": iface}
+		annotations := map[string]string{internal.TcProgramInterface: iface}
 
 		prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentTcProgram, r.getRecType(), annotations)
 		if err != nil {
@@ -202,7 +206,7 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	isBeingDeleted bool) (bpfdiov1alpha1.BpfProgramConditionType, error) {
 
 	r.Logger.V(1).Info("Existing bpfProgramMaps", "ExistingMaps", bpfProgram.Spec.Maps)
-	iface := bpfProgram.Annotations["interface"]
+	iface := bpfProgram.Annotations[internal.TcProgramInterface]
 
 	loadRequest := &gobpfd.LoadRequest{}
 	var err error
