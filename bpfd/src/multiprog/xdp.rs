@@ -79,7 +79,7 @@ impl XdpDispatcher {
             .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
         let program_bytes = get_bytecode_from_image_store(overrides.path).await?;
         let mut loader = BpfLoader::new()
-            .set_global("CONFIG", &config)
+            .set_global("conf", &config)
             .load(&program_bytes)?;
 
         let dispatcher: &mut Xdp = loader
