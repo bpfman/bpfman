@@ -22,11 +22,9 @@ import (
 	"reflect"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -37,10 +35,10 @@ import (
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	"github.com/go-logr/logr"
 	"google.golang.org/grpc"
-	v1 "k8s.io/api/core/v1"
 )
 
 //+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms,verbs=get;list;watch;create;update;patch;delete
@@ -56,28 +54,31 @@ const (
 	retryDurationAgent = 5 * time.Second
 )
 
-// ReconcilerCommon provides a skeleton for a all Program Reconcilers.
+// ReconcilerCommon provides a skeleton for all *Program Reconcilers.
 type ReconcilerCommon struct {
 	client.Client
-	Scheme           *runtime.Scheme
-	GrpcConn         *grpc.ClientConn
-	BpfdClient       gobpfd.LoaderClient
-	Logger           logr.Logger
-	NodeName         string
-	bpfProgram       *bpfdiov1alpha1.BpfProgram
-	expectedPrograms map[string]map[string]string
+	Scheme       *runtime.Scheme
+	GrpcConn     *grpc.ClientConn
+	BpfdClient   gobpfd.LoaderClient
+	Logger       logr.Logger
+	NodeName     string
+	bpfPrograms  map[string]bpfdiov1alpha1.BpfProgram
+	expectedMaps map[string]string
 }
 
-// bpfdReconciler defines a k8s reconciler which can program bpfd.
+// bpfdReconciler defines a generic bpfProgram K8s object reconciler which can
+// program bpfd from user intent in K8s CRDs.
 type bpfdReconciler interface {
 	getRecCommon() *ReconcilerCommon
-	reconcileBpfdPrograms(context.Context,
+	reconcileBpfdProgram(context.Context,
 		map[string]*gobpfd.ListResponse_ListResult,
 		interface{},
+		*bpfdiov1alpha1.BpfProgram,
 		bool,
 		bool) (bpfdiov1alpha1.BpfProgramConditionType, error)
 	getFinalizer() string
 	getRecType() string
+	buildBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error)
 }
 
 // Only return node updates for our node (all events)
@@ -118,9 +119,8 @@ func isNodeSelected(selector *metav1.LabelSelector, nodeLabels map[string]string
 func getInterfaces(interfaceSelector *bpfdiov1alpha1.InterfaceSelector, ourNode *v1.Node) ([]string, error) {
 	var interfaces []string
 
-	if interfaceSelector.Interface != nil {
-		interfaces = append(interfaces, *interfaceSelector.Interface)
-		return interfaces, nil
+	if interfaceSelector.Interfaces != nil {
+		return *interfaceSelector.Interfaces, nil
 	}
 
 	if interfaceSelector.PrimaryNodeInterface != nil {
@@ -133,7 +133,7 @@ func getInterfaces(interfaceSelector *bpfdiov1alpha1.InterfaceSelector, ourNode 
 		return interfaces, nil
 	}
 
-	return interfaces, fmt.Errorf("no interfaces selected")
+	return nil, fmt.Errorf("no interfaces selected")
 
 }
 
@@ -154,10 +154,10 @@ func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, o client.Object,
 	return changed, nil
 }
 
-// updateStatus updates the status of the BpfProgram object if needed, returning
-// if the update should be retried and any errors.
+// updateStatus updates the status of a BpfProgram object if needed, returning
+// if the status was already set for the given bpfProgram, meaning reconciliation
+// may continue.
 func (r *ReconcilerCommon) updateStatus(ctx context.Context, prog *bpfdiov1alpha1.BpfProgram, cond bpfdiov1alpha1.BpfProgramConditionType) (bool, error) {
-	// If status is already set just exit
 	if prog.Status.Conditions != nil {
 		// Get most recent condition
 		recentIdx := len(prog.Status.Conditions) - 1
@@ -165,20 +165,75 @@ func (r *ReconcilerCommon) updateStatus(ctx context.Context, prog *bpfdiov1alpha
 		condition := prog.Status.Conditions[recentIdx]
 
 		if condition.Type == string(cond) {
-			return false, nil
+			return true, nil
 		}
 	}
 
 	meta.SetStatusCondition(&prog.Status.Conditions, cond.Condition())
-
+	r.Logger.V(1).WithValues("bpfProgram", prog.Name, "condition", cond.Condition().Type).Info("Updating bpfProgram condition")
 	if err := r.Status().Update(ctx, prog); err != nil {
 		r.Logger.Error(err, "failed to set bpfProgram object status")
-		return true, nil
+		return false, nil
 	}
 
 	return false, nil
 }
 
+func (r *ReconcilerCommon) getBpfPrograms(ctx context.Context, owner metav1.Object) error {
+	bpfProgramList := &bpfdiov1alpha1.BpfProgramList{}
+
+	// Only list bpfPrograms for this *Program and the controller's node
+	opts := []client.ListOption{
+		client.MatchingLabels{internal.BpfProgramOwnerLabel: owner.GetName(), internal.K8sHostLabel: r.NodeName},
+	}
+
+	err := r.List(ctx, bpfProgramList, opts...)
+	if err != nil {
+		return err
+	}
+
+	for _, bpfProg := range bpfProgramList.Items {
+		r.bpfPrograms[bpfProg.GetName()] = bpfProg
+	}
+
+	return nil
+}
+
+// createBpfProgram moves some shared logic for building bpfProgram objects
+// into a central location.
+func (r *ReconcilerCommon) createBpfProgram(ctx context.Context,
+	bpfProgramName string,
+	finalizer string,
+	owner metav1.Object,
+	ownerType string,
+	annotations map[string]string) (*bpfdiov1alpha1.BpfProgram, error) {
+	bpfProg := &bpfdiov1alpha1.BpfProgram{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       bpfProgramName,
+			Finalizers: []string{finalizer},
+			Labels: map[string]string{internal.BpfProgramOwnerLabel: owner.GetName(),
+				internal.K8sHostLabel: r.NodeName},
+			Annotations: annotations,
+		},
+		Spec: bpfdiov1alpha1.BpfProgramSpec{
+			Type: ownerType,
+		},
+		Status: bpfdiov1alpha1.BpfProgramStatus{Conditions: []metav1.Condition{}},
+	}
+
+	// Make the corresponding BpfProgramConfig the owner
+	if err := ctrl.SetControllerReference(owner, bpfProg, r.Scheme); err != nil {
+		return nil, fmt.Errorf("failed to bpfProgram object owner reference: %v", err)
+	}
+
+	return bpfProg, nil
+}
+
+// reconcileProgram is called by ALL *Program controllers, and contains much of
+// the core logic for taking *Program objects, turning them into bpfProgram
+// object(s), and ultimately telling the custom controller types to load real
+// bpf programs on the node via bpfd. Additionally it acts as a central point for
+// interacting with the K8s API.
 func reconcileProgram(ctx context.Context,
 	rec bpfdReconciler,
 	program client.Object,
@@ -186,46 +241,34 @@ func reconcileProgram(ctx context.Context,
 	ourNode *v1.Node,
 	programMap map[string]*gobpfd.ListResponse_ListResult) (bool, error) {
 
-	// Initialize bpfProgram
 	r := rec.getRecCommon()
-	r.bpfProgram = &bpfdiov1alpha1.BpfProgram{}
+	r.bpfPrograms = map[string]bpfdiov1alpha1.BpfProgram{}
 
-	bpfProgramName := fmt.Sprintf("%s-%s", program.GetName(), r.NodeName)
-
-	// Always create the bpfProgram Object if it doesn't exist
-	err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: bpfProgramName}, r.bpfProgram)
+	// Populate already existing bpfPrograms for *Program.
+	err := r.getBpfPrograms(ctx, program)
 	if err != nil {
-		if errors.IsNotFound(err) {
-			r.Logger.Info("bpfProgram object doesn't exist creating...", "Name", bpfProgramName)
-			r.bpfProgram = &bpfdiov1alpha1.BpfProgram{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       bpfProgramName,
-					Finalizers: []string{rec.getFinalizer()},
-					Labels:     map[string]string{"ownedByProgram": program.GetName()},
-				},
-				Spec: bpfdiov1alpha1.BpfProgramSpec{
-					Node:     r.NodeName,
-					Type:     rec.getRecType(),
-					Programs: make(map[string]map[string]string),
-				},
-				Status: bpfdiov1alpha1.BpfProgramStatus{Conditions: []metav1.Condition{}},
-			}
+		return false, fmt.Errorf("failed to get bpfPrograms: %v", err)
+	}
 
-			// Make the corresponding *Program resource the owner
-			if err = ctrl.SetControllerReference(program, r.bpfProgram, r.Scheme); err != nil {
-				return false, fmt.Errorf("failed to bpfProgram object owner reference: %v", err)
-			}
+	// Get and Create any new bpfPrograms exiting after each creation since
+	// the K8s API "create" action will re-trigger the reconcile loop allowing the
+	// logic to continue incrementally.
+	progList, err := rec.buildBpfPrograms(ctx)
+	if err != nil {
+		r.Logger.Error(err, "failed to create bpfPrograms")
+		return true, nil
+	}
 
+	for _, prog := range progList.Items {
+		_, exists := r.bpfPrograms[prog.Name]
+		if !exists {
 			opts := client.CreateOptions{}
-			if err = r.Create(ctx, r.bpfProgram, &opts); err != nil {
-				return false, fmt.Errorf("failed to create bpfProgram object: %v",
-					err)
+			r.Logger.Info("creating bpfProgram", "Name", prog.Name)
+			if err := r.Create(ctx, &prog, &opts); err != nil {
+				return true, fmt.Errorf("failed to create bpfProgram object: %v", err)
 			}
-
+			r.bpfPrograms[prog.Name] = prog
 			return false, nil
-		} else {
-			return false, fmt.Errorf("failed getting bpfProgram %s : %v",
-				bpfProgramName, err)
 		}
 	}
 
@@ -241,45 +284,58 @@ func reconcileProgram(ctx context.Context,
 		return false, fmt.Errorf("failed to process bytecode selector: %v", err)
 	}
 
-	progCond, err := rec.reconcileBpfdPrograms(ctx, programMap, bytecode, isNodeSelected, isBeingDeleted)
-	if err != nil {
-		r.Logger.Error(err, "Failed to reconcile bpfd")
-	}
-
-	// Deletion of a bpfProgram takes two reconciles
-	// 1. Remove the finalizer
-	// 2. Update the condition to 'BpfProgCondUnloaded' so the operator knows it's
-	//    safe to remove the parent Program Object, which is when the bpfProgram
-	//	  is automatically deleted by the owner-reference.
-	if isBeingDeleted {
-		changed, err := r.removeFinalizer(ctx, r.bpfProgram, rec.getFinalizer())
+	for _, bpfProg := range r.bpfPrograms {
+		progCond, err := rec.reconcileBpfdProgram(ctx, programMap, bytecode, &bpfProg, isNodeSelected, isBeingDeleted)
 		if err != nil {
-			r.Logger.Error(err, "failed to set remove bpfProgram Finalizer")
-			return true, nil
+			r.Logger.Error(err, "Failed to reconcile bpfd")
 		}
-		if changed {
+
+		// Deletion of a bpfProgram takes two reconciles
+		// 1. Remove the finalizer
+		// 2. Update the condition to BpfProgCondUnloaded so the operator knows it's
+		//    safe to remove the parent Program Object, which is when the bpfProgram
+		//	  is automatically deleted by the owner-reference.
+		if isBeingDeleted {
+			changed, err := r.removeFinalizer(ctx, &bpfProg, rec.getFinalizer())
+			if err != nil {
+				r.Logger.Error(err, "failed to set remove bpfProgram Finalizer")
+				return true, nil
+			}
+			if changed {
+				return false, nil
+			}
+			return r.updateStatus(ctx, &bpfProg, progCond)
+		}
+
+		// Make sure if we're not selected exit and write correct condition
+		if !isNodeSelected {
+			r.Logger.V(1).Info("Program does not select this node")
+			// Write NodeNodeSelected status
+			return r.updateStatus(ctx, &bpfProg, progCond)
+		}
+
+		// If bpfProgram Maps isn't up to date just update it and return
+		if !reflect.DeepEqual(bpfProg.Spec.Maps, r.expectedMaps) && len(r.expectedMaps) != 0 {
+			r.Logger.V(1).Info("Updating bpfProgram Object", "Maps", r.expectedMaps, "bpfProgram", bpfProg.Name)
+			bpfProg.Spec.Maps = r.expectedMaps
+			if err := r.Update(ctx, &bpfProg, &client.UpdateOptions{}); err != nil {
+				r.Logger.Error(err, "failed to update bpfProgram's Programs")
+				return true, nil
+			}
 			return false, nil
 		}
-		return r.updateStatus(ctx, r.bpfProgram, progCond)
-	}
 
-	// Make sure if we're not selected exit and write correct condition
-	if !isNodeSelected {
-		r.Logger.V(1).Info("Program does not select this node")
-		// Write NodeNodeSelected status
-		return r.updateStatus(ctx, r.bpfProgram, progCond)
-	}
-
-	// If bpfProgram isn't up to date just update it and return
-	if !reflect.DeepEqual(r.bpfProgram.Spec.Programs, r.expectedPrograms) {
-		r.Logger.V(1).Info("Updating bpfProgram Object", "Programs", r.expectedPrograms)
-		r.bpfProgram.Spec.Programs = r.expectedPrograms
-		if err := r.Update(ctx, r.bpfProgram, &client.UpdateOptions{}); err != nil {
-			r.Logger.Error(err, "failed to update bpfProgram's Programs")
+		alreadySet, err := r.updateStatus(ctx, &bpfProg, progCond)
+		if err != nil {
+			r.Logger.Error(err, "failed to update bpfProgram's Status")
 			return true, nil
 		}
-		return false, nil
+
+		// Only stop reconcile loop if we updated the status for a bpfprogram
+		if !alreadySet {
+			return false, nil
+		}
 	}
 
-	return r.updateStatus(ctx, r.bpfProgram, progCond)
+	return false, nil
 }

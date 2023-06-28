@@ -230,7 +230,7 @@ lint: ## Run golang-ci linter
 	./hack/verify-golint.sh
 
 .PHONY: test
-test: generate fmt envtest ## Run Unit tests.
+test: fmt envtest ## Run Unit tests.
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
 
 

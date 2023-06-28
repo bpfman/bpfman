@@ -19,9 +19,14 @@ package internal
 import "fmt"
 
 const (
-	XdpProgramControllerFinalizer        = "bpfd.io.xdpprogramcontroller-finalizer"
+	XdpProgramControllerFinalizer        = "bpfd.io.xdpprogramcontroller/finalizer"
 	TcProgramControllerFinalizer         = "bpfd.io.tcprogramcontroller/finalizer"
 	TracepointProgramControllerFinalizer = "bpfd.io.tracepointprogramcontroller/finalizer"
+	XdpProgramInterface                  = "bpfd.io.xdpprogramcontroller/interface"
+	TcProgramInterface                   = "bpfd.io.tcprogramcontroller/interface"
+	TracepointProgramTracepoint          = "bpfd.io.tracepointprogramcontroller/tracepoint"
+	BpfProgramOwnerLabel                 = "bpfd.io/ownedByProgram"
+	K8sHostLabel                         = "kubernetes.io/hostname"
 	BpfdNs                               = "bpfd"
 	BpfdOperatorName                     = "bpfd-operator"
 	BpfdDsName                           = "bpfd-daemon"

@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
-	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
+	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	"github.com/go-logr/logr"
 )
 
@@ -74,7 +74,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 	bpfPrograms := &bpfdiov1alpha1.BpfProgramList{}
 
 	// Only list bpfPrograms for this Program
-	opts := []client.ListOption{client.MatchingLabels{"ownedByProgram": progName}}
+	opts := []client.ListOption{client.MatchingLabels{internal.BpfProgramOwnerLabel: progName}}
 
 	if err := r.List(ctx, bpfPrograms, opts...); err != nil {
 		r.Logger.Error(err, "failed to get freshPrograms for full reconcile")
@@ -147,7 +147,7 @@ func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, prog client.Obje
 	if changed := controllerutil.RemoveFinalizer(prog, finalizer); changed {
 		err := r.Update(ctx, prog)
 		if err != nil {
-			r.Logger.Error(err, "failed to set remove bpfProgram Finalizer")
+			r.Logger.Error(err, "failed to remove bpfProgram Finalizer")
 			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 		}
 	}

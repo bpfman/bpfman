@@ -63,31 +63,31 @@ func TestMain(m *testing.M) {
 	ctx, cancel = context.WithCancel(context.Background())
 	defer cancel()
 
+	// to use the provided bpfd, bpfd-agent, and bpfd-operator images we will need to add
+	// them as images to load in the test cluster via an addon.
+	loadImages, err := loadimage.NewBuilder().WithImage(bpfdImage)
+	exitOnErr(err)
+	loadImages, err = loadImages.WithImage(bpfdAgentImage)
+	exitOnErr(err)
+	loadImages, err = loadImages.WithImage(bpfdOperatorImage)
+	exitOnErr(err)
+	loadImages, err = loadImages.WithImage(tcExampleUsImage)
+	exitOnErr(err)
+	loadImages, err = loadImages.WithImage(xdpExampleUsImage)
+	exitOnErr(err)
+	loadImages, err = loadImages.WithImage(tpExampleUsImage)
+	exitOnErr(err)
+
 	if existingCluster != "" {
 		fmt.Printf("INFO: existing kind cluster %s was provided\n", existingCluster)
 
 		// if an existing cluster was provided, build a test env out of that instead
 		cluster, err := kind.NewFromExisting(existingCluster)
 		exitOnErr(err)
-		env, err = environments.NewBuilder().WithExistingCluster(cluster).Build(ctx)
+		env, err = environments.NewBuilder().WithAddons(loadImages.Build()).WithExistingCluster(cluster).Build(ctx)
 		exitOnErr(err)
 	} else {
 		fmt.Println("INFO: creating a new kind cluster")
-
-		// to use the provided bpfd, bpfd-agent, and bpfd-operator images we will need to add
-		// them as images to load in the test cluster via an addon.
-		loadImages, err := loadimage.NewBuilder().WithImage(bpfdImage)
-		exitOnErr(err)
-		loadImages, err = loadImages.WithImage(bpfdAgentImage)
-		exitOnErr(err)
-		loadImages, err = loadImages.WithImage(bpfdOperatorImage)
-		exitOnErr(err)
-		loadImages, err = loadImages.WithImage(tcExampleUsImage)
-		exitOnErr(err)
-		loadImages, err = loadImages.WithImage(xdpExampleUsImage)
-		exitOnErr(err)
-		loadImages, err = loadImages.WithImage(tpExampleUsImage)
-		exitOnErr(err)
 
 		certManagerBuilder := certmanager.NewBuilder()
 
@@ -102,29 +102,30 @@ func TestMain(m *testing.M) {
 		env, err = environments.NewBuilder().WithAddons(certManagerBuilder.Build(), loadImages.Build()).Build(ctx)
 		exitOnErr(err)
 
-		if !keepTestCluster {
-			addCleanup(func(context.Context) error {
-				cleanupLog("cleaning up test environment and cluster %s\n", env.Cluster().Name())
-				return env.Cleanup(ctx)
-			})
-		}
-
 		fmt.Printf("INFO: new kind cluster %s was created\n", env.Cluster().Name())
-
-		// deploy the BPFD Operator and revelevant CRDs
-		fmt.Println("INFO: deploying bpfd operator to test cluster")
-		exitOnErr(clusters.KustomizeDeployForCluster(ctx, env.Cluster(), bpfdKustomize))
-		if !keepKustomizeDeploys {
-			addCleanup(func(context.Context) error {
-				cleanupLog("delete bpfd configmap to cleanup bpfd daemon")
-				env.Cluster().Client().CoreV1().ConfigMaps(internal.BpfdNs).Delete(ctx, internal.BpfdConfigName, metav1.DeleteOptions{})
-				clusters.DeleteManifestByYAML(ctx, env.Cluster(), bpfdConfigMap)
-				waitForBpfdConfigDelete(ctx, env)
-				cleanupLog("deleting bpfd namespace")
-				return  env.Cluster().Client().CoreV1().Namespaces().Delete(ctx, internal.BpfdNs, metav1.DeleteOptions{})
-			})
-		}
 	}
+
+	if !keepTestCluster {
+		addCleanup(func(context.Context) error {
+			cleanupLog("cleaning up test environment and cluster %s\n", env.Cluster().Name())
+			return env.Cleanup(ctx)
+		})
+	}
+
+	// deploy the BPFD Operator and revelevant CRDs
+	fmt.Println("INFO: deploying bpfd operator to test cluster")
+	exitOnErr(clusters.KustomizeDeployForCluster(ctx, env.Cluster(), bpfdKustomize))
+	if !keepKustomizeDeploys {
+		addCleanup(func(context.Context) error {
+			cleanupLog("delete bpfd configmap to cleanup bpfd daemon")
+			env.Cluster().Client().CoreV1().ConfigMaps(internal.BpfdNs).Delete(ctx, internal.BpfdConfigName, metav1.DeleteOptions{})
+			clusters.DeleteManifestByYAML(ctx, env.Cluster(), bpfdConfigMap)
+			waitForBpfdConfigDelete(ctx, env)
+			cleanupLog("deleting bpfd namespace")
+			return  env.Cluster().Client().CoreV1().Namespaces().Delete(ctx, internal.BpfdNs, metav1.DeleteOptions{})
+		})
+	}
+	
 
 	bpfdClient = bpfdHelpers.GetClientOrDie()
 	exitOnErr(waitForBpfdReadiness(ctx, env))

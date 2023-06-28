@@ -23,7 +23,7 @@ import (
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 )
 
-// Only reconcile if a bpfprogram has been created for the controller's type.
+// Only reconcile if a bpfprogram has been created for the controller's program type.
 func BpfProgramTypePredicate(kind string) predicate.Funcs {
 	return predicate.Funcs{
 		GenericFunc: func(e event.GenericEvent) bool {
@@ -34,10 +34,27 @@ func BpfProgramTypePredicate(kind string) predicate.Funcs {
 		},
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			return e.ObjectNew.(*bpfdiov1alpha1.BpfProgram).Spec.Type == kind
-
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return e.Object.(*bpfdiov1alpha1.BpfProgram).Spec.Type == kind
+		},
+	}
+}
+
+// Only reconcile if a bpfprogram has been created for a controller's node.
+func BpfProgramNodePredicate(nodeName string) predicate.Funcs {
+	return predicate.Funcs{
+		GenericFunc: func(e event.GenericEvent) bool {
+			return e.Object.GetLabels()[K8sHostLabel] == nodeName
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return e.Object.GetLabels()[K8sHostLabel] == nodeName
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return e.ObjectNew.GetLabels()[K8sHostLabel] == nodeName
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return e.Object.GetLabels()[K8sHostLabel] == nodeName
 		},
 	}
 }

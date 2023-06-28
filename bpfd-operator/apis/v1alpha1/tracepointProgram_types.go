@@ -46,9 +46,9 @@ type TracepointProgram struct {
 type TracepointProgramSpec struct {
 	BpfProgramCommon `json:",inline"`
 
-	// Name refers to the name of the desired kernel tracepoint to attach this
-	// tracepoint bpf program to.
-	Name string `json:"name"`
+	// Names refers to the names of kernel tracepoints to attach the
+	// bpf program to.
+	Names []string `json:"names"`
 }
 
 // TracepointProgramStatus defines the observed state of TracepointProgram

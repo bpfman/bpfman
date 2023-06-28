@@ -352,7 +352,7 @@ Individual examples can be loaded and unloaded as well, for example `make deploy
 To see the full set of available commands, run `make help`:
 
 ```console
-    make help
+  make help
 
     Usage:
       make <target>

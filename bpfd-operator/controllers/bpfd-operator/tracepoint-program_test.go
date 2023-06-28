@@ -43,11 +43,9 @@ func TestTracepointProgramReconcile(t *testing.T) {
 		bytecodePath   = "/tmp/hello.o"
 		sectionName    = "test"
 		fakeNode       = testutils.NewNode("fake-control-plane")
-		fakeInt        = "eth0"
 		tracepointName = "syscalls/sys_enter_setitimer"
 		ctx            = context.TODO()
 		bpfProgName    = fmt.Sprintf("%s-%s", name, fakeNode.Name)
-		bpfdProgId     = fmt.Sprintf("%s-%s", name, fakeInt)
 	)
 	// A TracepointProgram object with metadata and spec.
 	Tracepoint := &bpfdiov1alpha1.TracepointProgram{
@@ -62,7 +60,7 @@ func TestTracepointProgramReconcile(t *testing.T) {
 					Path: &bytecodePath,
 				},
 			},
-			Name: tracepointName,
+			Names: []string{tracepointName},
 		},
 	}
 
@@ -76,13 +74,11 @@ func TestTracepointProgramReconcile(t *testing.T) {
 					Controller: &[]bool{true}[0],
 				},
 			},
-			Labels:     map[string]string{"ownedByProgram": Tracepoint.Name},
+			Labels:     map[string]string{internal.BpfProgramOwnerLabel: Tracepoint.Name, internal.K8sHostLabel: fakeNode.Name},
 			Finalizers: []string{internal.TracepointProgramControllerFinalizer},
 		},
 		Spec: bpfdiov1alpha1.BpfProgramSpec{
-			Node:     fakeNode.Name,
-			Type:     "tracepoint",
-			Programs: map[string]map[string]string{bpfdProgId: {}},
+			Type: "tracepoint",
 		},
 		Status: bpfdiov1alpha1.BpfProgramStatus{
 			Conditions: []metav1.Condition{bpfdiov1alpha1.BpfProgCondLoaded.Condition()},

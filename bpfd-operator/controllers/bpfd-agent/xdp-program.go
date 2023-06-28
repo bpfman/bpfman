@@ -46,6 +46,7 @@ type XdpProgramReconciler struct {
 	ReconcilerCommon
 	currentXdpProgram *bpfdiov1alpha1.XdpProgram
 	ourNode           *v1.Node
+	interfaces        []string
 }
 
 func (r *XdpProgramReconciler) getRecCommon() *ReconcilerCommon {
@@ -91,7 +92,12 @@ func xdpProceedOnToInt(proceedOn []bpfdiov1alpha1.XdpProceedOnValue) []int32 {
 func (r *XdpProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bpfdiov1alpha1.XdpProgram{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
-		Owns(&bpfdiov1alpha1.BpfProgram{}, builder.WithPredicates(internal.BpfProgramTypePredicate(internal.Xdp.String()))).
+		Owns(&bpfdiov1alpha1.BpfProgram{},
+			builder.WithPredicates(predicate.And(
+				internal.BpfProgramTypePredicate(internal.Xdp.String()),
+				internal.BpfProgramNodePredicate(r.NodeName)),
+			),
+		).
 		// Only trigger reconciliation if node labels change since that could
 		// make the XdpProgram no longer select the Node. Additionally only
 		// care about node events specific to our node
@@ -103,12 +109,30 @@ func (r *XdpProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
+func (r *XdpProgramReconciler) buildBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
+	progs := &bpfdiov1alpha1.BpfProgramList{}
+
+	for _, iface := range r.interfaces {
+		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentXdpProgram.Name, r.NodeName, iface)
+		annotations := map[string]string{internal.XdpProgramInterface: iface}
+
+		prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentXdpProgram, r.getRecType(), annotations)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
+		}
+
+		progs.Items = append(progs.Items, *prog)
+	}
+
+	return progs, nil
+}
+
 func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Initialize node and current program
 	r.currentXdpProgram = &bpfdiov1alpha1.XdpProgram{}
 	r.ourNode = &v1.Node{}
-
 	r.Logger = log.FromContext(ctx)
+	var err error
 
 	// Lookup K8s node object for this bpfd-agent This should always succeed
 	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.NodeName}, r.ourNode); err != nil {
@@ -117,7 +141,6 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	xdpPrograms := &bpfdiov1alpha1.XdpProgramList{}
-
 	opts := []client.ListOption{}
 
 	if err := r.List(ctx, xdpPrograms, opts...); err != nil {
@@ -130,17 +153,25 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Get existing ebpf state from bpfd.
-	programMap, err := bpfdagentinternal.ListBpfdPrograms(ctx, r.BpfdClient, internal.Tc)
+	programMap, err := bpfdagentinternal.ListBpfdPrograms(ctx, r.BpfdClient, internal.Xdp)
 	if err != nil {
 		r.Logger.Error(err, "failed to list loaded bpfd programs")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 	}
+	r.Logger.V(1).WithValues("loaded-xdp-programs", programMap).Info("Existing XDP programs")
 
 	// Reconcile every XdpProgram Object
 	// note: This doesn't necessarily result in any extra grpc calls to bpfd
-	for _, XdpProgram := range xdpPrograms.Items {
-		r.Logger.Info("bpfd-agent is reconciling", "XdpProgram", XdpProgram.Name)
-		r.currentXdpProgram = &XdpProgram
+	for _, xdpProgram := range xdpPrograms.Items {
+		r.Logger.Info("XdpProgramController is reconciling", "currentXdpProgram", xdpProgram.Name)
+		r.currentXdpProgram = &xdpProgram
+
+		r.interfaces, err = getInterfaces(&r.currentXdpProgram.Spec.InterfaceSelector, r.ourNode)
+		if err != nil {
+			r.Logger.Error(err, "failed to get interfaces for XdpProgram")
+			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+		}
+
 		retry, err := reconcileProgram(ctx, r, r.currentXdpProgram, &r.currentXdpProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
 		if err != nil {
 			r.Logger.Error(err, "Reconciling XdpProgram Failed", "XdpProgramName", r.currentXdpProgram.Name, "Retrying", retry)
@@ -152,127 +183,93 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 }
 
 // reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
-// It does interact with the k8s API in any way.
-func (r *XdpProgramReconciler) reconcileBpfdPrograms(ctx context.Context,
+// It does not interact with the k8s API in any way.
+func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
 	bytecode interface{},
+	bpfProgram *bpfdiov1alpha1.BpfProgram,
 	isNodeSelected bool,
 	isBeingDeleted bool) (bpfdiov1alpha1.BpfProgramConditionType, error) {
 
-	ifaces, err := getInterfaces(&r.currentXdpProgram.Spec.InterfaceSelector, r.ourNode)
-	if err != nil {
-		return bpfdiov1alpha1.BpfProgCondNotLoaded, fmt.Errorf("failed to get interfaces for XdpProgram %s: %v", r.currentXdpProgram.Name, err)
+	r.Logger.V(1).Info("Existing bpfProgram", "ExistingMaps", bpfProgram.Spec.Maps, "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentXdpProgram", r.currentXdpProgram.Name)
+	iface := bpfProgram.Annotations[internal.XdpProgramInterface]
+
+	loadRequest := &gobpfd.LoadRequest{}
+	var err error
+	id := string(bpfProgram.UID)
+	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(bytecode, r.currentXdpProgram.Spec.SectionName, internal.Xdp, id, r.currentXdpProgram.Spec.GlobalData)
+
+	loadRequest.AttachInfo = &gobpfd.LoadRequest_XdpAttachInfo{
+		XdpAttachInfo: &gobpfd.XDPAttachInfo{
+			Priority:  r.currentXdpProgram.Spec.Priority,
+			Iface:     iface,
+			ProceedOn: xdpProceedOnToInt(r.currentXdpProgram.Spec.ProceedOn),
+		},
 	}
 
-	r.Logger.V(1).Info("Existing bpfProgramEntries", "ExistingEntries", r.bpfProgram.Spec.Programs)
-	bpfProgramEntries := make(map[string]map[string]string)
-	// DeepCopy the existing programs
-	for k, v := range r.bpfProgram.Spec.Programs {
-		bpfProgramEntries[k] = v
+	existingProgram, doesProgramExist := existingBpfPrograms[id]
+	if !doesProgramExist {
+		r.Logger.V(1).Info("XdpProgram doesn't exist on node for iface", "interface", iface)
+
+		// If XdpProgram is being deleted just break out and remove finalizer
+		if isBeingDeleted {
+			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
+		}
+
+		// Make sure if we're not selected just exit
+		if !isNodeSelected {
+			return bpfdiov1alpha1.BpfProgCondNotSelected, nil
+		}
+
+		// otherwise load it
+		r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
+		if err != nil {
+			r.Logger.Error(err, "Failed to load XdpProgram")
+			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
+		}
+
+		r.Logger.V(1).WithValues("UUID", id, "maps", r.expectedMaps).Info("Loaded XdpProgram on Node")
+		return bpfdiov1alpha1.BpfProgCondLoaded, nil
 	}
 
-	for _, iface := range ifaces {
-		loadRequest := &gobpfd.LoadRequest{}
+	// BpfProgram exists but either XdpProgram is being deleted or node is no
+	// longer selected....unload program
+	if isBeingDeleted || !isNodeSelected {
+		r.Logger.V(1).Info("XdpProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", isBeingDeleted,
+			"isSelected", isNodeSelected)
+		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
+			r.Logger.Error(err, "Failed to unload XdpProgram")
+			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
+		}
+		r.expectedMaps = nil
 
-		id := bpfdagentinternal.GenIdFromName(fmt.Sprintf("%s-%s", r.currentXdpProgram.Name, iface))
-
-		loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(bytecode, r.currentXdpProgram.Spec.SectionName, internal.Xdp, id, r.currentXdpProgram.Spec.GlobalData)
-
-		loadRequest.AttachInfo = &gobpfd.LoadRequest_XdpAttachInfo{
-			XdpAttachInfo: &gobpfd.XDPAttachInfo{
-				Priority:  r.currentXdpProgram.Spec.Priority,
-				Iface:     iface,
-				ProceedOn: xdpProceedOnToInt(r.currentXdpProgram.Spec.ProceedOn),
-			},
+		if isBeingDeleted {
+			return bpfdiov1alpha1.BpfProgCondUnloaded, nil
 		}
 
-		existingProgram, doesProgramExist := existingBpfPrograms[id]
-		if !doesProgramExist {
-			r.Logger.V(1).Info("XdpProgram doesn't exist on node")
-
-			// If XdpProgram is being deleted just break out and remove finalizer
-			if isBeingDeleted {
-				break
-			}
-
-			// Make sure if we're not selected just exit
-			if !isNodeSelected {
-				break
-			}
-
-			// otherwise load it
-			bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
-			if err != nil {
-				r.Logger.Error(err, "Failed to load XdpProgram")
-				return bpfdiov1alpha1.BpfProgCondNotLoaded, err
-			}
-
-			bpfProgramEntries[id] = bpfProgramEntry
-			r.Logger.V(1).WithValues("UUID", id, "ProgramEntry", bpfProgramEntries).Info("Loaded XdpProgram on Node")
-
-			// Move to next program
-			continue
-		}
-
-		// BpfProgram exists but either XdpProgram is being deleted or node is no
-		// longer selected....unload program
-		if isBeingDeleted || !isNodeSelected {
-			r.Logger.V(1).Info("XdpProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", isBeingDeleted,
-				"isSelected", isNodeSelected)
-			if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
-				r.Logger.Error(err, "Failed to unload XdpProgram")
-				return bpfdiov1alpha1.BpfProgCondLoaded, err
-			}
-			delete(bpfProgramEntries, id)
-
-			// continue to next program
-			continue
-		}
-
-		r.Logger.V(1).WithValues("expectedProgram", loadRequest).WithValues("existingProgram", existingProgram).Info("StateMatch")
-		// BpfProgram exists but is not correct state, unload and recreate
-		if !bpfdagentinternal.DoesProgExist(existingProgram, loadRequest) {
-			r.Logger.V(1).Info("XdpProgram is in wrong state, unloading and reloading")
-			if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
-				r.Logger.Error(err, "Failed to unload XdpProgram")
-				return bpfdiov1alpha1.BpfProgCondNotUnloaded, err
-			}
-
-			bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
-			if err != nil {
-				r.Logger.Error(err, "Failed to load XdpProgram")
-				return bpfdiov1alpha1.BpfProgCondNotLoaded, err
-			}
-
-			r.Logger.V(1).WithValues("UUID", id, "ProgramEntry", bpfProgramEntry).Info("ReLoaded XdpProgram on Node")
-			bpfProgramEntries[id] = bpfProgramEntry
-		} else {
-			// Program already exists, but bpfProgram K8s Object might not be up to date
-			r.Logger.V(1).Info("XdpProgram already loaded on Node")
-			if _, ok := r.bpfProgram.Spec.Programs[id]; !ok {
-				maps, err := bpfdagentinternal.GetMapsForUUID(id)
-				if err != nil {
-					r.Logger.Error(err, "failed to get bpfProgram's Maps")
-					return bpfdiov1alpha1.BpfProgCondNotLoaded, err
-				}
-
-				bpfProgramEntries[id] = maps
-			} else {
-				// Program exists and bpfProgram K8s Object is up to date
-				r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")
-			}
-		}
-	}
-
-	r.Logger.V(1).Info("Setting bpfProgramEntries", "Entries", bpfProgramEntries)
-	r.expectedPrograms = bpfProgramEntries
-
-	if isBeingDeleted {
-		return bpfdiov1alpha1.BpfProgCondUnloaded, nil
-	}
-
-	if !isNodeSelected {
 		return bpfdiov1alpha1.BpfProgCondNotSelected, nil
+	}
+
+	r.Logger.V(1).WithValues("expectedProgram", loadRequest).WithValues("existingProgram", existingProgram).Info("StateMatch")
+	// BpfProgram exists but is not correct state, unload and recreate
+	if !bpfdagentinternal.DoesProgExist(existingProgram, loadRequest) {
+		r.Logger.V(1).Info("XdpProgram is in wrong state, unloading and reloading")
+		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
+			r.Logger.Error(err, "Failed to unload XdpProgram")
+			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
+		}
+
+		r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
+		if err != nil {
+			r.Logger.Error(err, "Failed to load XdpProgram")
+			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
+		}
+
+		r.Logger.V(1).WithValues("UUID", id, "ProgramEntry", r.expectedMaps).Info("ReLoaded XdpProgram on Node")
+	} else {
+		// Program exists and bpfProgram K8s Object is up to date
+		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")
+		r.expectedMaps = bpfProgram.Spec.Maps
 	}
 
 	return bpfdiov1alpha1.BpfProgCondLoaded, nil
