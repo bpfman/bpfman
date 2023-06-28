@@ -288,7 +288,7 @@ dependencies = [
 
 [[package]]
 name = "bpfctl"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "base64 0.21.2",
@@ -309,7 +309,7 @@ dependencies = [
 
 [[package]]
 name = "bpfd"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "aya",
@@ -343,7 +343,7 @@ dependencies = [
 
 [[package]]
 name = "bpfd-api"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "aya",
