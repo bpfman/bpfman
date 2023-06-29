@@ -35,3 +35,15 @@ docker build \
 
 docker push quay.io/bpfd-bytecode/tracepoint
 
+docker build \
+ --build-arg PROGRAM_NAME=mallocprobe \
+ --build-arg SECTION_NAME=malloc \
+ --build-arg PROGRAM_TYPE=uprobe \
+ --build-arg BYTECODE_FILENAME=mallocprobe.bpf.o \
+ --build-arg KERNEL_COMPILE_VER=$(uname -r) \
+ -f ../../../packaging/container-deployment//Containerfile.bytecode \
+ ./.output -t quay.io/bpfd-bytecode/mallocprobe:latest
+
+docker push quay.io/bpfd-bytecode/mallocprobe
+
+

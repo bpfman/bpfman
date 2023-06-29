@@ -199,3 +199,26 @@ fn test_load_unload_tracepoint() {
     let bpfctl_list = bpfd_list().unwrap();
     assert!(!bpfctl_list.contains(&uuid));
 }
+
+#[integration_test]
+fn test_load_unload_uprobe() {
+    let _bpfd_guard = start_bpfd().unwrap();
+
+    debug!("Installing uprobe program");
+
+    let globals = vec!["GLOBAL_u8=63", "GLOBAL_u32=0D0C0B0A"];
+
+    let uuid = add_uprobe(Some(globals)).unwrap();
+    // Verify bpfctl list contains the uuids of each program
+    let bpfctl_list = bpfd_list().unwrap();
+    assert!(bpfctl_list.contains(uuid.trim()));
+
+    // Delete the installed program
+    debug!("Deleting bpfd programs");
+    bpfd_del_program(&uuid);
+
+    // Verify bpfctl list does not contain the uuids of the deleted programs
+    // and that there are no panics if bpfctl does not contain any programs.
+    let bpfctl_list = bpfd_list().unwrap();
+    assert!(!bpfctl_list.contains(&uuid));
+}

@@ -23,6 +23,7 @@ const TC_EG_GLOBAL_4_LOG: &str = "bpf_trace_printk:  TC: GLOBAL_u8: 0x35";
 const TC_EG_GLOBAL_5_LOG: &str = "bpf_trace_printk:  TC: GLOBAL_u8: 0x3B";
 const TC_EG_GLOBAL_6_LOG: &str = "bpf_trace_printk:  TC: GLOBAL_u8: 0x3D";
 const TRACEPOINT_GLOBAL_1_LOG: &str = "bpf_trace_printk:  TP: GLOBAL_u8: 0x25";
+const UPROBE_GLOBAL_1_LOG: &str = "bpf_trace_printk:  TP: GLOBAL_u8: 0x25";
 
 #[integration_test]
 fn test_proceed_on_xdp() {
@@ -360,6 +361,15 @@ fn test_program_execution_with_global_variables() {
 
     uuids.push(uuid);
 
+    debug!("Installing uprobe program");
+    let uuid = add_uprobe(Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec())).unwrap();
+
+    // Verify bpfctl list contains the uuid
+    let bpfctl_list = bpfd_list().unwrap();
+    assert!(bpfctl_list.contains(&uuid));
+
+    uuids.push(uuid);
+
     debug!("wait for some traffic to generate logs...");
     sleep(Duration::from_secs(2));
 
@@ -377,6 +387,8 @@ fn test_program_execution_with_global_variables() {
     debug!("Successfully validated tc egress global variable");
     assert!(trace_pipe_log.contains(TRACEPOINT_GLOBAL_1_LOG));
     debug!("Successfully validated tracepoint global variable");
+    assert!(trace_pipe_log.contains(UPROBE_GLOBAL_1_LOG));
+    debug!("Successfully validated uprobe global variable");
 
     // Delete the installed programs
     debug!("Deleting bpfd programs");
