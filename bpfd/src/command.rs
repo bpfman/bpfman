@@ -88,6 +88,7 @@ pub(crate) struct LoadUprobeArgs {
     pub(crate) offset: Option<u64>,
     pub(crate) target: String,
     pub(crate) pid: Option<i32>,
+    pub(crate) _namespace: Option<String>,
     pub(crate) username: String,
     pub(crate) responder: Responder<Result<Uuid, BpfdError>>,
 }
@@ -148,6 +149,7 @@ pub(crate) enum AttachInfo {
     Xdp(XdpAttachInfo),
     Tc(TcAttachInfo),
     Tracepoint(TracepointAttachInfo),
+    Uprobe(UprobeAttachInfo),
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -172,6 +174,15 @@ pub(crate) struct TracepointAttachInfo {
     pub(crate) tracepoint: String,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub(crate) struct UprobeAttachInfo {
+    pub(crate) fn_name: Option<String>,
+    pub(crate) offset: Option<u64>,
+    pub(crate) target: String,
+    pub(crate) pid: Option<i32>,
+    pub(crate) namespace: Option<String>,
+}
+
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize, Clone)]
 pub(crate) struct Metadata {
     pub(crate) priority: i32,
@@ -194,6 +205,7 @@ pub(crate) enum Program {
     Xdp(XdpProgram),
     Tracepoint(TracepointProgram),
     Tc(TcProgram),
+    Uprobe(UprobeProgram),
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -223,6 +235,18 @@ pub(crate) struct TracepointProgram {
 
 impl TracepointProgram {
     pub(crate) fn new(data: ProgramData, info: TracepointProgramInfo) -> Self {
+        Self { data, info }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct UprobeProgram {
+    pub(crate) data: ProgramData,
+    pub(crate) info: UprobeProgramInfo,
+}
+
+impl UprobeProgram {
+    pub(crate) fn _new(data: ProgramData, info: UprobeProgramInfo) -> Self {
         Self { data, info }
     }
 }
@@ -306,12 +330,22 @@ pub(crate) struct TracepointProgramInfo {
     pub(crate) tracepoint: String,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct UprobeProgramInfo {
+    pub(crate) fn_name: Option<String>,
+    pub(crate) offset: Option<u64>,
+    pub(crate) target: String,
+    pub(crate) pid: Option<i32>,
+    pub(crate) namespace: Option<String>,
+}
+
 impl Program {
     pub(crate) fn kind(&self) -> ProgramType {
         match self {
             Program::Xdp(_) => ProgramType::Xdp,
             Program::Tc(_) => ProgramType::Tc,
             Program::Tracepoint(_) => ProgramType::Tracepoint,
+            Program::Uprobe(_) => ProgramType::Uprobe,
         }
     }
 
@@ -331,6 +365,7 @@ impl Program {
             Program::Xdp(p) => &p.data,
             Program::Tracepoint(p) => &p.data,
             Program::Tc(p) => &p.data,
+            Program::Uprobe(p) => &p.data,
         }
     }
 
@@ -339,6 +374,7 @@ impl Program {
             Program::Xdp(p) => Some(&p.info.metadata),
             Program::Tracepoint(_) => None,
             Program::Tc(p) => Some(&p.info.metadata),
+            Program::Uprobe(_) => None,
         }
     }
 
@@ -347,6 +383,7 @@ impl Program {
             Program::Xdp(p) => &p.data.owner,
             Program::Tracepoint(p) => &p.data.owner,
             Program::Tc(p) => &p.data.owner,
+            Program::Uprobe(p) => &p.data.owner,
         }
     }
 
@@ -355,6 +392,7 @@ impl Program {
             Program::Xdp(p) => p.info.metadata.attached = true,
             Program::Tc(p) => p.info.metadata.attached = true,
             Program::Tracepoint(_) => (),
+            Program::Uprobe(_) => (),
         }
     }
 
@@ -363,6 +401,7 @@ impl Program {
             Program::Xdp(p) => p.info.current_position = pos,
             Program::Tc(p) => p.info.current_position = pos,
             Program::Tracepoint(_) => (),
+            Program::Uprobe(_) => (),
         }
     }
 
@@ -402,6 +441,7 @@ impl Program {
             Program::Xdp(p) => Some(p.info.if_index),
             Program::Tracepoint(_) => None,
             Program::Tc(p) => Some(p.info.if_index),
+            Program::Uprobe(_) => None,
         }
     }
 
@@ -410,6 +450,7 @@ impl Program {
             Program::Xdp(p) => Some(p.info.if_name.clone()),
             Program::Tracepoint(_) => None,
             Program::Tc(p) => Some(p.info.if_name.clone()),
+            Program::Uprobe(_) => None,
         }
     }
 
@@ -418,6 +459,7 @@ impl Program {
             Program::Xdp(_) => None,
             Program::Tracepoint(_) => None,
             Program::Tc(p) => Some(p.direction),
+            Program::Uprobe(_) => None,
         }
     }
 }

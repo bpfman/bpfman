@@ -9,7 +9,7 @@ use bpfd_api::{
         load_request_common::Location,
         loader_server::Loader,
         ListRequest, ListResponse, LoadRequest, LoadResponse, TcAttachInfo, TracepointAttachInfo,
-        UnloadRequest, UnloadResponse, XdpAttachInfo,
+        UnloadRequest, UnloadResponse, UprobeAttachInfo, XdpAttachInfo,
     },
     TcProceedOn, XdpProceedOn,
 };
@@ -140,6 +140,7 @@ impl Loader for BpfdLoader {
                     offset: attach.offset,
                     target: attach.target,
                     pid: attach.pid,
+                    _namespace: attach.namespace,
                     section_name: common.section_name,
                     username,
                 })
@@ -250,6 +251,15 @@ impl Loader for BpfdLoader {
                             crate::command::AttachInfo::Tracepoint(info) => {
                                 AttachInfo::TracepointAttachInfo(TracepointAttachInfo {
                                     tracepoint: info.tracepoint,
+                                })
+                            }
+                            crate::command::AttachInfo::Uprobe(info) => {
+                                AttachInfo::UprobeAttachInfo(UprobeAttachInfo {
+                                    fn_name: info.fn_name,
+                                    offset: info.offset,
+                                    target: info.target,
+                                    pid: info.pid,
+                                    namespace: info.namespace,
                                 })
                             }
                         };
