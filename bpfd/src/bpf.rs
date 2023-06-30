@@ -237,7 +237,7 @@ impl BpfManager {
                 let prog = self.programs.remove(&id).unwrap();
                 prog.delete(id).map_err(|_| {
                     BpfdError::Error(
-                        "new dispatcher cleanup failed, unable to delete program data".to_string(),
+                        "new program cleanup failed, unable to delete program data".to_string(),
                     )
                 })?;
                 Err(e)
@@ -310,7 +310,7 @@ impl BpfManager {
                 let prog = self.programs.remove(&id).unwrap();
                 prog.delete(id).map_err(|_| {
                     BpfdError::Error(
-                        "new dispatcher cleanup failed, unable to delete program data".to_string(),
+                        "new program cleanup failed, unable to delete program data".to_string(),
                     )
                 })?;
                 Err(BpfdError::BpfProgramError(e))
@@ -601,7 +601,7 @@ impl BpfManager {
                     id: *id,
                     name: p.data.section_name.to_string(),
                     location: p.data.location.clone(),
-                    program_type: ProgramType::Uprobe as i32,
+                    program_type: ProgramType::Kprobe as i32,
                     attach_info: crate::command::AttachInfo::Uprobe(
                         crate::command::UprobeAttachInfo {
                             fn_name: p.info.fn_name.clone(),

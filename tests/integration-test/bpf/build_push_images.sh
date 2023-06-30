@@ -7,7 +7,6 @@ docker build \
  --build-arg SECTION_NAME=pass \
  --build-arg PROGRAM_TYPE=xdp \
  --build-arg BYTECODE_FILENAME=xdp_pass.bpf.o \
- --build-arg KERNEL_COMPILE_VER=$(uname -r) \
  -f ../../../packaging/container-deployment/Containerfile.bytecode \
  ./.output -t quay.io/bpfd-bytecode/xdp_pass:latest
 
@@ -18,7 +17,6 @@ docker build \
  --build-arg SECTION_NAME=pass \
  --build-arg PROGRAM_TYPE=tc \
  --build-arg BYTECODE_FILENAME=tc_pass.bpf.o \
- --build-arg KERNEL_COMPILE_VER=$(uname -r) \
  -f ../../../packaging/container-deployment/Containerfile.bytecode \
  ./.output -t quay.io/bpfd-bytecode/tc_pass:latest
 
@@ -29,7 +27,6 @@ docker build \
  --build-arg SECTION_NAME=sys_enter_openat \
  --build-arg PROGRAM_TYPE=tracepoint \
  --build-arg BYTECODE_FILENAME=tp_openat.bpf.o \
- --build-arg KERNEL_COMPILE_VER=$(uname -r) \
  -f ../../../packaging/container-deployment//Containerfile.bytecode \
  ./.output -t quay.io/bpfd-bytecode/tracepoint:latest
 
@@ -40,7 +37,6 @@ docker build \
  --build-arg SECTION_NAME=malloc \
  --build-arg PROGRAM_TYPE=uprobe \
  --build-arg BYTECODE_FILENAME=mallocprobe.bpf.o \
- --build-arg KERNEL_COMPILE_VER=$(uname -r) \
  -f ../../../packaging/container-deployment//Containerfile.bytecode \
  ./.output -t quay.io/bpfd-bytecode/mallocprobe:latest
 

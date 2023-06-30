@@ -176,13 +176,13 @@ enum LoadCommands {
         #[clap(short, long)]
         offset: Option<u64>,
 
-        /// Required: absolute path to a binary or library, or a library name
+        /// Required: library name or the absolute path to a binary or library
         /// Example: --target "libc".
         #[clap(short, long)]
         target: String,
 
-        /// Optional: process identification number (PID) to run uprobe for.
-        /// If PID is not provided, uprobe runs for all PIDs.
+        /// Optional: only execute uprobe for given process identification number (PID)
+        /// If PID is not provided, uprobe executes for all PIDs.
         #[clap(short, long)]
         pid: Option<i32>,
 
@@ -284,7 +284,7 @@ impl ProgTable {
                     );
                 }
             }
-            ProgramType::Uprobe => {
+            ProgramType::Kprobe => {
                 if let Some(list_response::list_result::AttachInfo::UprobeAttachInfo(
                     UprobeAttachInfo {
                         fn_name,
@@ -340,7 +340,7 @@ impl LoadCommands {
             LoadCommands::Xdp { .. } => ProgramType::Xdp,
             LoadCommands::Tc { .. } => ProgramType::Tc,
             LoadCommands::Tracepoint { .. } => ProgramType::Tracepoint,
-            LoadCommands::Uprobe { .. } => ProgramType::Uprobe,
+            LoadCommands::Uprobe { .. } => ProgramType::Kprobe,
         }
     }
 
@@ -398,7 +398,7 @@ impl LoadCommands {
                 pid,
                 namespace,
             } => {
-                if !namespace.is_none() {
+                if namespace.is_some() {
                     bail!("uprobe namespace option not supported yet");
                 }
                 Ok(Some(load_request::AttachInfo::UprobeAttachInfo(

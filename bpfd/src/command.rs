@@ -345,7 +345,7 @@ impl Program {
             Program::Xdp(_) => ProgramType::Xdp,
             Program::Tc(_) => ProgramType::Tc,
             Program::Tracepoint(_) => ProgramType::Tracepoint,
-            Program::Uprobe(_) => ProgramType::Uprobe,
+            Program::Uprobe(_) => ProgramType::Kprobe,
         }
     }
 
