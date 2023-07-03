@@ -518,6 +518,7 @@ impl ToString for Location {
                 TryInto::<ImagePullPolicy>::try_into(i.image_pull_policy).unwrap()
             ),
             Location::File(p) => format!("file: {{ path: {p} }}"),
+            _ => "".to_owned()
         }
     }
 }
