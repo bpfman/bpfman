@@ -23,7 +23,7 @@ message LoadRequestCommon {
         string file = 2;
     } ;
     string section_name = 3;
-    int32 program_type = 4;
+    uint32 program_type = 4;
     optional string id = 5;
     map<string, bytes> global_data = 6;
 }

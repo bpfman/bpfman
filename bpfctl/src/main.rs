@@ -572,7 +572,7 @@ impl Commands {
             id: id.clone(),
             location,
             section_name: section_name.to_string(),
-            program_type: command.get_prog_type() as i32,
+            program_type: command.get_prog_type() as u32,
             global_data,
         }))
     }

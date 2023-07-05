@@ -18,8 +18,8 @@ pub struct NoLocation {}
 pub struct LoadRequestCommon {
     #[prost(string, tag = "3")]
     pub section_name: ::prost::alloc::string::String,
-    #[prost(int32, tag = "4")]
-    pub program_type: i32,
+    #[prost(uint32, tag = "4")]
+    pub program_type: u32,
     #[prost(string, optional, tag = "5")]
     pub id: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(map = "string, bytes", tag = "6")]
