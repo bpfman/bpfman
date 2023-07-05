@@ -26,8 +26,8 @@ import (
 // Is state equal, ignoring UUID and GRPC type fields.
 func DoesProgExist(actual *gobpfd.ListResponse_ListResult, expected *gobpfd.LoadRequest) bool {
 	// Check equality of all common fields
-	if actual.Id != *expected.Common.Id ||
-		*actual.SectionName != expected.Common.SectionName ||
+	if actual.Id != expected.Common.Id ||
+		actual.Name != expected.Common.SectionName ||
 		actual.ProgramType != expected.Common.ProgramType {
 		return false
 	}

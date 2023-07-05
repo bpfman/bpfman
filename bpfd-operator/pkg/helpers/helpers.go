@@ -53,8 +53,8 @@ const (
 	Xdp        ProgramType = 6
 )
 
-func (p ProgramType) Int32() *int32 {
-	progTypeInt := int32(p)
+func (p ProgramType) Uint32() *uint32 {
+	progTypeInt := uint32(p)
 	return &progTypeInt
 }
 

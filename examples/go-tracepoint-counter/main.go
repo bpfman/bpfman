@@ -146,7 +146,7 @@ func loadProgram(paramData *configMgmt.ParameterData) (func(string), error) {
 	loadRequestCommon := &gobpfd.LoadRequestCommon{
 		Location:    paramData.BytecodeSource.Location,
 		SectionName: "tracepoint_kill_recorder",
-		ProgramType: *bpfdHelpers.Xdp.Int32(),
+		ProgramType: *bpfdHelpers.Xdp.Uint32(),
 	}
 
 	loadRequest := &gobpfd.LoadRequest{
