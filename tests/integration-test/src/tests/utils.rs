@@ -24,6 +24,7 @@ const TRACE_PIPE_FILE_NAME: &str = "/tmp/bpfd_trace_pipe.log";
 const XDP_PASS_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/xdp_pass:latest";
 const TC_PASS_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/tc_pass:latest";
 const TRACEPOINT_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/tracepoint:latest";
+const UPROBE_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/mallocprobe:latest";
 
 /// Exit on panic as well as the passing of a test
 #[derive(Debug)]
@@ -183,6 +184,35 @@ pub fn add_tracepoint(globals: Option<Vec<&str>>) -> Result<String> {
     Ok(uuid.to_string())
 }
 
+/// Install a uprobe program with bpfctl
+pub fn add_uprobe(globals: Option<Vec<&str>>) -> Result<String> {
+    let mut args = vec!["load-from-image"];
+
+    if let Some(g) = globals {
+        args.extend(["--global"]);
+        args.extend(g);
+    }
+
+    args.extend([
+        "--image-url",
+        UPROBE_IMAGE_LOC,
+        "--pull-policy",
+        "Always",
+        "uprobe",
+        "-f",
+        "malloc",
+        "-t",
+        "libc",
+    ]);
+
+    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
+    let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
+    let uuid = stdout.trim();
+    assert!(!uuid.is_empty());
+    debug!("Successfully added uprobe program: {:?}", uuid);
+    Ok(uuid.to_string())
+}
+
 /// Delete a bpfd program using bpfctl
 pub fn bpfd_del_program(uuid: &str) {
     Command::cargo_bin("bpfctl")
@@ -199,7 +229,6 @@ pub fn bpfd_del_program(uuid: &str) {
 pub fn bpfd_list() -> Result<String> {
     let output = Command::cargo_bin("bpfctl")?.args(["list"]).ok();
     let stdout = String::from_utf8(output.unwrap().stdout);
-
     Ok(stdout.unwrap())
 }
 

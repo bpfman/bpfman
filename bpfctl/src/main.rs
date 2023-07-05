@@ -14,7 +14,7 @@ use bpfd_api::{
         load_request_common,
         loader_client::LoaderClient,
         BytecodeImage, ListRequest, LoadRequest, LoadRequestCommon, TcAttachInfo,
-        TracepointAttachInfo, UnloadRequest, XdpAttachInfo,
+        TracepointAttachInfo, UnloadRequest, UprobeAttachInfo, XdpAttachInfo,
     },
     ImagePullPolicy, ProgramType, TcProceedOn, XdpProceedOn,
 };
@@ -22,7 +22,7 @@ use clap::{Args, Parser, Subcommand};
 use comfy_table::Table;
 use hex::FromHex;
 use itertools::Itertools;
-use log::{info, warn};
+use log::{debug, info, warn};
 use tokio::net::UnixStream;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity, Uri};
 use tower::service_fn;
@@ -165,6 +165,31 @@ enum LoadCommands {
         #[clap(short, long, verbatim_doc_comment)]
         tracepoint: String,
     },
+    /// Install an eBPF uprobe
+    Uprobe {
+        /// Optional: function to attach the uprobe to.
+        #[clap(short, long)]
+        fn_name: Option<String>,
+
+        /// Optional: offset added to the address of the target function
+        /// (or beginning of target if no function is identified)
+        #[clap(short, long)]
+        offset: Option<u64>,
+
+        /// Required: library name or the absolute path to a binary or library
+        /// Example: --target "libc".
+        #[clap(short, long)]
+        target: String,
+
+        /// Optional: only execute uprobe for given process identification number (PID)
+        /// If PID is not provided, uprobe executes for all PIDs.
+        #[clap(short, long)]
+        pid: Option<i32>,
+
+        /// Optional: namespace to attach the uprobe in. (NOT CURRENTLY SUPPORTED)
+        #[clap(short, long)]
+        namespace: Option<String>,
+    },
 }
 
 #[derive(Args)]
@@ -259,8 +284,45 @@ impl ProgTable {
                     );
                 }
             }
+            ProgramType::Kprobe => {
+                if let Some(list_response::list_result::AttachInfo::UprobeAttachInfo(
+                    UprobeAttachInfo {
+                        fn_name,
+                        offset,
+                        target,
+                        pid,
+                        namespace,
+                    },
+                )) = r.attach_info
+                {
+                    let fn_name = fn_name.unwrap_or("None".to_string());
+
+                    let offset = match offset {
+                        Some(o) => o.to_string(),
+                        None => "None".to_string(),
+                    };
+                    let pid = match pid {
+                        Some(p) => p.to_string(),
+                        None => "None".to_string(),
+                    };
+                    let namespace = namespace.unwrap_or("None".to_string());
+                    self.add_row(
+                        r.id.to_string(),
+                        "uprobe".to_string(),
+                        r.section_name.unwrap(),
+                        r.location.unwrap().to_string(),
+                        format!(r#"{{ fn_name: {fn_name}, offset: {offset}, target: {target}, pid: {pid}, namespace: {namespace} }}"#),
+                    );
+                }
+            }
             // skip unknown program types
-            _ => {}
+            _ => {
+                debug!(
+                    "Unexpected program type: {:?} ({})",
+                    prog_type,
+                    prog_type.to_string()
+                )
+            }
         }
         Ok(())
     }
@@ -278,6 +340,7 @@ impl LoadCommands {
             LoadCommands::Xdp { .. } => ProgramType::Xdp,
             LoadCommands::Tc { .. } => ProgramType::Tc,
             LoadCommands::Tracepoint { .. } => ProgramType::Tracepoint,
+            LoadCommands::Uprobe { .. } => ProgramType::Kprobe,
         }
     }
 
@@ -328,6 +391,26 @@ impl LoadCommands {
                     tracepoint: tracepoint.to_string(),
                 }),
             )),
+            LoadCommands::Uprobe {
+                fn_name,
+                offset,
+                target,
+                pid,
+                namespace,
+            } => {
+                if namespace.is_some() {
+                    bail!("uprobe namespace option not supported yet");
+                }
+                Ok(Some(load_request::AttachInfo::UprobeAttachInfo(
+                    UprobeAttachInfo {
+                        fn_name: fn_name.clone(),
+                        offset: *offset,
+                        target: target.to_string(),
+                        pid: *pid,
+                        namespace: namespace.clone(),
+                    },
+                )))
+            }
         }
     }
 }
@@ -339,7 +422,6 @@ impl Commands {
         let global: &Option<Vec<GlobalArg>>;
         let command: &LoadCommands;
         let location: Option<load_request_common::Location>;
-
         let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
 
         match self {

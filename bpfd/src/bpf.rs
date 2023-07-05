@@ -5,7 +5,9 @@ use std::{collections::HashMap, convert::TryInto};
 
 use anyhow::anyhow;
 use aya::{
-    programs::{links::FdLink, trace_point::TracePointLink, TracePoint},
+    programs::{
+        links::FdLink, trace_point::TracePointLink, uprobe::UProbeLink, TracePoint, UProbe,
+    },
     BpfLoader,
 };
 use bpfd_api::{config::Config, util::directories::*, ProgramType};
@@ -17,9 +19,9 @@ use crate::{
     command::{
         self, Command, Direction,
         Direction::{Egress, Ingress},
-        LoadTCArgs, LoadTracepointArgs, LoadXDPArgs, Program, ProgramData, ProgramInfo, TcProgram,
-        TcProgramInfo, TracepointProgram, TracepointProgramInfo, UnloadArgs, XdpProgram,
-        XdpProgramInfo,
+        LoadTCArgs, LoadTracepointArgs, LoadUprobeArgs, LoadXDPArgs, Program, ProgramData,
+        ProgramInfo, TcProgram, TcProgramInfo, TracepointProgram, TracepointProgramInfo,
+        UnloadArgs, UprobeProgram, UprobeProgramInfo, XdpProgram, XdpProgramInfo,
     },
     errors::BpfdError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
@@ -142,7 +144,9 @@ impl BpfManager {
 
         match program {
             Program::Xdp(_) | Program::Tc(_) => self.add_multi_attach_program(program, uuid).await,
-            Program::Tracepoint(_) => self.add_single_attach_program(program, uuid).await,
+            Program::Tracepoint(_) | Program::Uprobe(_) => {
+                self.add_single_attach_program(program, uuid).await
+            }
         }
     }
 
@@ -233,7 +237,7 @@ impl BpfManager {
                 let prog = self.programs.remove(&id).unwrap();
                 prog.delete(id).map_err(|_| {
                     BpfdError::Error(
-                        "new dispatcher cleanup failed, unable to delete program data".to_string(),
+                        "new program cleanup failed, unable to delete program data".to_string(),
                     )
                 })?;
                 Err(e)
@@ -306,7 +310,7 @@ impl BpfManager {
                 let prog = self.programs.remove(&id).unwrap();
                 prog.delete(id).map_err(|_| {
                     BpfdError::Error(
-                        "new dispatcher cleanup failed, unable to delete program data".to_string(),
+                        "new program cleanup failed, unable to delete program data".to_string(),
                     )
                 })?;
                 Err(BpfdError::BpfProgramError(e))
@@ -334,8 +338,87 @@ impl BpfManager {
                 })?;
 
             Ok(id)
+        } else if let Program::Uprobe(ref program) = p {
+            let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
+            fs::create_dir_all(map_pin_path.clone())
+                .await
+                .map_err(|e| BpfdError::Error(format!("can't create map dir: {e}")))?;
+
+            let program_bytes = if program
+                .data
+                .path
+                .clone()
+                .contains(BYTECODE_IMAGE_CONTENT_STORE)
+            {
+                get_bytecode_from_image_store(program.data.path.clone()).await?
+            } else {
+                read(program.data.path.clone()).await?
+            };
+
+            let mut loader = BpfLoader::new();
+
+            for (name, value) in &program.data.global_data {
+                loader.set_global(name, value.as_slice());
+            }
+
+            let mut loader = loader
+                .map_pin_path(map_pin_path.clone())
+                .load(&program_bytes)?;
+
+            let uprobe: &mut UProbe = match loader.program_mut(&program.data.section_name) {
+                Some(p) => p.try_into(),
+                None => {
+                    let _ = fs::remove_dir_all(map_pin_path).await;
+                    return Err(BpfdError::SectionNameNotValid(
+                        program.data.section_name.clone(),
+                    ));
+                }
+            }?;
+
+            uprobe.load()?;
+            p.save(id)
+                .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
+
+            let link_id = uprobe
+                .attach(
+                    program.info.fn_name.as_deref(),
+                    program.info.offset.unwrap_or_default(),
+                    program.info.target.clone(),
+                    program.info.pid,
+                )
+                .or_else(|e| {
+                    p.delete(id).map_err(|_| {
+                        BpfdError::Error(
+                            "new dispatcher cleanup failed, unable to delete program data"
+                                .to_string(),
+                        )
+                    })?;
+                    Err(BpfdError::BpfProgramError(e))
+                })?;
+
+            self.programs.insert(id, p);
+
+            let owned_link: UProbeLink = uprobe.take_link(link_id)?;
+            let fd_link: FdLink = owned_link
+                .try_into()
+                .expect("unable to get owned uprobe attach link");
+            fd_link
+                .pin(format!("{RTDIR_FS}/prog_{}_link", id))
+                .map_err(BpfdError::UnableToPinLink)?;
+
+            uprobe.pin(format!("{RTDIR_FS}/prog_{id}")).or_else(|e| {
+                let prog = self.programs.remove(&id).unwrap();
+                prog.delete(id).map_err(|_| {
+                    BpfdError::Error(
+                        "new program cleanup failed, unable to delete program data".to_string(),
+                    )
+                })?;
+                Err(BpfdError::UnableToPinProgram(e))
+            })?;
+
+            Ok(id)
         } else {
-            panic!("not a tracepoint program")
+            panic!("not a supported single attach program")
         }
     }
 
@@ -361,7 +444,7 @@ impl BpfManager {
 
         match prog {
             Program::Xdp(_) | Program::Tc(_) => self.remove_multi_attach_program(prog).await,
-            Program::Tracepoint(_) => Ok(()),
+            Program::Tracepoint(_) | Program::Uprobe(_) => Ok(()),
         }
     }
 
@@ -514,6 +597,21 @@ impl BpfManager {
                         position: p.info.current_position.unwrap_or_default() as i32,
                     }),
                 },
+                Program::Uprobe(p) => ProgramInfo {
+                    id: *id,
+                    name: p.data.section_name.to_string(),
+                    location: p.data.location.clone(),
+                    program_type: ProgramType::Kprobe as i32,
+                    attach_info: crate::command::AttachInfo::Uprobe(
+                        crate::command::UprobeAttachInfo {
+                            fn_name: p.info.fn_name.clone(),
+                            offset: p.info.offset,
+                            target: p.info.target.clone(),
+                            pid: p.info.pid,
+                            namespace: p.info.namespace.clone(),
+                        },
+                    ),
+                },
             })
             .collect();
         Ok(programs)
@@ -575,6 +673,7 @@ impl BpfManager {
                         Command::LoadXDP(args) => self.load_xdp_command(args).await.unwrap(),
                         Command::LoadTC(args) => self.load_tc_command(args).await.unwrap(),
                         Command::LoadTracepoint(args) => self.load_tracepoint_command(args).await.unwrap(),
+                        Command::LoadUprobe(args) => self.load_uprobe_command(args).await.unwrap(),
                         Command::Unload(args) => self.unload_command(args).await.unwrap(),
                         Command::List { responder } => {
                             let progs = self.list_programs();
@@ -694,6 +793,44 @@ impl BpfManager {
                         data: prog_data,
                         info: TracepointProgramInfo {
                             tracepoint: args.tracepoint,
+                        },
+                    });
+                    self.add_program(prog, args.id).await
+                }
+                Err(e) => Err(e),
+            }
+        };
+
+        // If program was successfully loaded, allow map access by bpfd group members.
+        if let Ok(uuid) = &res {
+            let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
+            set_dir_permissions(&maps_dir, MAPS_MODE).await;
+        }
+
+        // Ignore errors as they'll be propagated to caller in the RPC status
+        let _ = args.responder.send(res);
+        Ok(())
+    }
+
+    async fn load_uprobe_command(&mut self, args: LoadUprobeArgs) -> anyhow::Result<()> {
+        let res = {
+            match ProgramData::new(
+                args.location,
+                args.section_name,
+                args.global_data,
+                args.username,
+            )
+            .await
+            {
+                Ok(prog_data) => {
+                    let prog = Program::Uprobe(UprobeProgram {
+                        data: prog_data,
+                        info: UprobeProgramInfo {
+                            fn_name: args.fn_name,
+                            offset: args.offset,
+                            target: args.target,
+                            pid: args.pid,
+                            namespace: args._namespace,
                         },
                     });
                     self.add_program(prog, args.id).await
