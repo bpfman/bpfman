@@ -6,12 +6,17 @@ use std::{collections::HashMap, convert::TryInto};
 use anyhow::anyhow;
 use aya::{
     programs::{
-        links::FdLink, loaded_programs, trace_point::TracePointLink, uprobe::UProbeLink,
-        TracePoint, UProbe,
+        kprobe::KProbeLink, links::FdLink, loaded_programs, trace_point::TracePointLink,
+        uprobe::UProbeLink, KProbe, TracePoint, UProbe,
     },
     BpfLoader,
 };
-use bpfd_api::{config::Config, util::directories::*, ProgramType};
+use bpfd_api::{
+    config::Config,
+    util::directories::*,
+    ProbeType::{self, *},
+    ProgramType,
+};
 use log::{debug, info};
 use tokio::{fs, select, sync::mpsc};
 use uuid::Uuid;
@@ -20,10 +25,10 @@ use crate::{
     command::{
         self, Command, Direction,
         Direction::{Egress, Ingress},
-        LoadTCArgs, LoadTracepointArgs, LoadUprobeArgs, LoadXDPArgs, Program, ProgramData,
-        ProgramInfo, PullBytecodeArgs, TcProgram, TcProgramInfo, TracepointProgram,
-        TracepointProgramInfo, UnloadArgs, UprobeProgram, UprobeProgramInfo, XdpProgram,
-        XdpProgramInfo,
+        KprobeProgram, KprobeProgramInfo, LoadKprobeArgs, LoadTCArgs, LoadTracepointArgs,
+        LoadUprobeArgs, LoadXDPArgs, Program, ProgramData, ProgramInfo, PullBytecodeArgs,
+        TcProgram, TcProgramInfo, TracepointProgram, TracepointProgramInfo, UnloadArgs,
+        UprobeProgram, UprobeProgramInfo, XdpProgram, XdpProgramInfo,
     },
     errors::BpfdError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
@@ -146,7 +151,7 @@ impl BpfManager {
 
         match program {
             Program::Xdp(_) | Program::Tc(_) => self.add_multi_attach_program(program, uuid).await,
-            Program::Tracepoint(_) | Program::Uprobe(_) => {
+            Program::Tracepoint(_) | Program::Kprobe(_) | Program::Uprobe(_) => {
                 self.add_single_attach_program(program, uuid).await
             }
         }
@@ -337,7 +342,7 @@ impl BpfManager {
                         let prog = self.programs.remove(&id).unwrap();
                         prog.delete(id).map_err(|_| {
                             BpfdError::Error(
-                                "new dispatcher cleanup failed, unable to delete program data"
+                                "new program cleanup failed, unable to delete program data"
                                     .to_string(),
                             )
                         })?;
@@ -346,10 +351,86 @@ impl BpfManager {
 
                 Ok(id)
             }
-            Program::Uprobe(program) => {
-                let uprobe: &mut UProbe = raw_program.try_into()?;
+            Program::Kprobe(program) => {
+                let requested_probe_type = match program.info.retprobe {
+                    true => Kretprobe,
+                    false => Kprobe,
+                };
 
+                if requested_probe_type == Kretprobe && program.info.offset != 0 {
+                    return Err(BpfdError::Error(format!(
+                        "offset not allowed for {Kretprobe}"
+                    )));
+                }
+
+                let kprobe: &mut KProbe = raw_program.try_into()?;
+                kprobe.load()?;
+
+                // verify that the program loaded was the same type as the
+                // user requested
+                let loaded_probe_type = ProbeType::from(kprobe.kind());
+                if requested_probe_type != loaded_probe_type {
+                    return Err(BpfdError::Error(format!(
+                        "expected {requested_probe_type}, loaded program is {loaded_probe_type}"
+                    )));
+                }
+
+                p.set_kernel_info(kprobe.program_info()?.try_into()?);
+                p.save(id)
+                    .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
+
+                let link_id = kprobe
+                    .attach(program.info.fn_name.as_str(), program.info.offset)
+                    .or_else(|e| {
+                        p.delete(id).map_err(|_| {
+                            BpfdError::Error(
+                                "new program cleanup failed, unable to delete program data"
+                                    .to_string(),
+                            )
+                        })?;
+                        Err(BpfdError::BpfProgramError(e))
+                    })?;
+
+                self.programs.insert(id, p);
+
+                let owned_link: KProbeLink = kprobe.take_link(link_id)?;
+                let fd_link: FdLink = owned_link
+                    .try_into()
+                    .expect("unable to get owned kprobe attach link");
+                fd_link
+                    .pin(format!("{RTDIR_FS}/prog_{}_link", id))
+                    .map_err(BpfdError::UnableToPinLink)?;
+
+                kprobe.pin(format!("{RTDIR_FS}/prog_{id}")).or_else(|e| {
+                    let prog = self.programs.remove(&id).unwrap();
+                    prog.delete(id).map_err(|_| {
+                        BpfdError::Error(
+                            "new program cleanup failed, unable to delete program data".to_string(),
+                        )
+                    })?;
+                    Err(BpfdError::UnableToPinProgram(e))
+                })?;
+
+                Ok(id)
+            }
+            Program::Uprobe(ref program) => {
+                let requested_probe_type = match program.info.retprobe {
+                    true => Uretprobe,
+                    false => Uprobe,
+                };
+
+                let uprobe: &mut UProbe = raw_program.try_into()?;
                 uprobe.load()?;
+
+                // verify that the program loaded was the same type as the
+                // user requested
+                let loaded_probe_type = ProbeType::from(uprobe.kind());
+                if requested_probe_type != loaded_probe_type {
+                    return Err(BpfdError::Error(format!(
+                        "expected {requested_probe_type}, loaded program is {loaded_probe_type}"
+                    )));
+                }
+
                 p.set_kernel_info(uprobe.program_info()?.try_into()?);
                 p.save(id)
                     .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
@@ -357,14 +438,14 @@ impl BpfManager {
                 let link_id = uprobe
                     .attach(
                         program.info.fn_name.as_deref(),
-                        program.info.offset.unwrap_or_default(),
+                        program.info.offset,
                         program.info.target.clone(),
                         program.info.pid,
                     )
                     .or_else(|e| {
                         p.delete(id).map_err(|_| {
                             BpfdError::Error(
-                                "new dispatcher cleanup failed, unable to delete program data"
+                                "new program cleanup failed, unable to delete program data"
                                     .to_string(),
                             )
                         })?;
@@ -419,7 +500,7 @@ impl BpfManager {
 
         match prog {
             Program::Xdp(_) | Program::Tc(_) => self.remove_multi_attach_program(prog).await,
-            Program::Tracepoint(_) | Program::Uprobe(_) => Ok(()),
+            Program::Tracepoint(_) | Program::Kprobe(_) | Program::Uprobe(_) => Ok(()),
         }
     }
 
@@ -598,18 +679,37 @@ impl BpfManager {
                             kernel_info,
                         },
                     ),
+                    Program::Kprobe(p) => (
+                        prog_id,
+                        ProgramInfo {
+                            id: Some(*id),
+                            name: Some(p.data.section_name.to_string()),
+                            location,
+                            program_type: Some(ProgramType::Probe as u32),
+                            attach_info: Some(crate::command::AttachInfo::Kprobe(
+                                crate::command::KprobeAttachInfo {
+                                    fn_name: p.info.fn_name.clone(),
+                                    offset: p.info.offset,
+                                    retprobe: p.info.retprobe,
+                                    namespace: p.info.namespace.clone(),
+                                },
+                            )),
+                            kernel_info,
+                        },
+                    ),
                     Program::Uprobe(p) => (
                         prog_id,
                         ProgramInfo {
                             id: Some(*id),
                             name: Some(p.data.section_name.to_string()),
                             location,
-                            program_type: Some(ProgramType::Kprobe as u32),
+                            program_type: Some(ProgramType::Probe as u32),
                             attach_info: Some(crate::command::AttachInfo::Uprobe(
                                 crate::command::UprobeAttachInfo {
                                     fn_name: p.info.fn_name.clone(),
                                     offset: p.info.offset,
                                     target: p.info.target.clone(),
+                                    retprobe: p.info.retprobe,
                                     pid: p.info.pid,
                                     namespace: p.info.namespace.clone(),
                                 },
@@ -710,6 +810,7 @@ impl BpfManager {
                         Command::LoadXDP(args) => self.load_xdp_command(args).await.unwrap(),
                         Command::LoadTC(args) => self.load_tc_command(args).await.unwrap(),
                         Command::LoadTracepoint(args) => self.load_tracepoint_command(args).await.unwrap(),
+                        Command::LoadKprobe(args) => self.load_kprobe_command(args).await.unwrap(),
                         Command::LoadUprobe(args) => self.load_uprobe_command(args).await.unwrap(),
                         Command::Unload(args) => self.unload_command(args).await.unwrap(),
                         Command::List { responder } => {
@@ -850,6 +951,43 @@ impl BpfManager {
         Ok(())
     }
 
+    async fn load_kprobe_command(&mut self, args: LoadKprobeArgs) -> anyhow::Result<()> {
+        let res = {
+            match ProgramData::new(
+                args.location,
+                args.section_name,
+                args.global_data,
+                args.username,
+            )
+            .await
+            {
+                Ok(prog_data) => {
+                    let prog = Program::Kprobe(KprobeProgram {
+                        data: prog_data,
+                        info: KprobeProgramInfo {
+                            fn_name: args.fn_name,
+                            offset: args.offset,
+                            retprobe: args.retprobe,
+                            namespace: args._namespace,
+                        },
+                    });
+                    self.add_program(prog, args.id).await
+                }
+                Err(e) => Err(e),
+            }
+        };
+
+        // If program was successfully loaded, allow map access by bpfd group members.
+        if let Ok(uuid) = &res {
+            let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
+            set_dir_permissions(&maps_dir, MAPS_MODE).await;
+        }
+
+        // Ignore errors as they'll be propagated to caller in the RPC status
+        let _ = args.responder.send(res);
+        Ok(())
+    }
+
     async fn load_uprobe_command(&mut self, args: LoadUprobeArgs) -> anyhow::Result<()> {
         let res = {
             match ProgramData::new(
@@ -867,6 +1005,7 @@ impl BpfManager {
                             fn_name: args.fn_name,
                             offset: args.offset,
                             target: args.target,
+                            retprobe: args.retprobe,
                             pid: args.pid,
                             namespace: args._namespace,
                         },

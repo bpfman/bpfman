@@ -27,13 +27,15 @@ pub enum ParseError {
     InvalidBytecodeLocation { location: String },
     #[error("Invalid bytecode image pull policy: {pull_policy}")]
     InvalidBytecodeImagePullPolicy { pull_policy: String },
+    #[error("{probe} is not a valid probe type")]
+    InvalidProbeType { probe: String },
 }
 
 #[derive(ValueEnum, Copy, Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub enum ProgramType {
     Unspec,
     SocketFilter,
-    Kprobe,
+    Probe, // kprobe, kretprobe, uprobe, uretprobe
     Tc,
     SchedAct,
     Tracepoint,
@@ -72,7 +74,7 @@ impl TryFrom<String> for ProgramType {
         Ok(match value.as_str() {
             "unspec" => ProgramType::Unspec,
             "socket_filter" => ProgramType::SocketFilter,
-            "kprobe" => ProgramType::Kprobe,
+            "probe" => ProgramType::Probe,
             "tc" => ProgramType::Tc,
             "sched_act" => ProgramType::SchedAct,
             "tracepoint" => ProgramType::Tracepoint,
@@ -118,7 +120,7 @@ impl TryFrom<u32> for ProgramType {
         Ok(match value {
             0 => ProgramType::Unspec,
             1 => ProgramType::SocketFilter,
-            2 => ProgramType::Kprobe,
+            2 => ProgramType::Probe,
             3 => ProgramType::Tc,
             4 => ProgramType::SchedAct,
             5 => ProgramType::Tracepoint,
@@ -162,7 +164,7 @@ impl std::fmt::Display for ProgramType {
         let v = match self {
             ProgramType::Unspec => "unspec",
             ProgramType::SocketFilter => "socket_filter",
-            ProgramType::Kprobe => "kprobe",
+            ProgramType::Probe => "probe",
             ProgramType::Tc => "tc",
             ProgramType::SchedAct => "sched_act",
             ProgramType::Tracepoint => "tracepoint",
@@ -192,6 +194,55 @@ impl std::fmt::Display for ProgramType {
             ProgramType::Lsm => "lsm",
             ProgramType::SkLookup => "sk_lookup",
             ProgramType::Syscall => "syscall",
+        };
+        write!(f, "{v}")
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+pub enum ProbeType {
+    Kprobe,
+    Kretprobe,
+    Uprobe,
+    Uretprobe,
+}
+
+impl TryFrom<i32> for ProbeType {
+    type Error = ParseError;
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        Ok(match value {
+            0 => ProbeType::Kprobe,
+            1 => ProbeType::Kretprobe,
+            2 => ProbeType::Uprobe,
+            3 => ProbeType::Uretprobe,
+            other => {
+                return Err(ParseError::InvalidProbeType {
+                    probe: other.to_string(),
+                })
+            }
+        })
+    }
+}
+
+impl From<aya::programs::ProbeKind> for ProbeType {
+    fn from(value: aya::programs::ProbeKind) -> Self {
+        match value {
+            aya::programs::ProbeKind::KProbe => ProbeType::Kprobe,
+            aya::programs::ProbeKind::KRetProbe => ProbeType::Kretprobe,
+            aya::programs::ProbeKind::UProbe => ProbeType::Uprobe,
+            aya::programs::ProbeKind::URetProbe => ProbeType::Uretprobe,
+        }
+    }
+}
+
+impl std::fmt::Display for ProbeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let v = match self {
+            ProbeType::Kprobe => "kprobe",
+            ProbeType::Kretprobe => "kretprobe",
+            ProbeType::Uprobe => "uprobe",
+            ProbeType::Uretprobe => "uretprobe",
         };
         write!(f, "{v}")
     }

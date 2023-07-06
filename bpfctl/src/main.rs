@@ -13,16 +13,19 @@ use bpfd_api::{
         load_request::{self, AttachInfo},
         load_request_common,
         loader_client::LoaderClient,
-        BytecodeImage, ListRequest, LoadRequest, LoadRequestCommon, PullBytecodeRequest,
-        TcAttachInfo, TracepointAttachInfo, UnloadRequest, UprobeAttachInfo, XdpAttachInfo,
+        BytecodeImage, KprobeAttachInfo, ListRequest, LoadRequest, LoadRequestCommon,
+        PullBytecodeRequest, TcAttachInfo, TracepointAttachInfo, UnloadRequest, UprobeAttachInfo,
+        XdpAttachInfo,
     },
-    ImagePullPolicy, ProgramType, TcProceedOn, XdpProceedOn,
+    ImagePullPolicy,
+    ProbeType::*,
+    ProgramType, TcProceedOn, XdpProceedOn,
 };
 use clap::{Args, Parser, Subcommand};
 use comfy_table::Table;
 use hex::FromHex;
 use itertools::Itertools;
-use log::{info, warn};
+use log::{debug, info, warn};
 use tokio::net::UnixStream;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity, Uri};
 use tower::service_fn;
@@ -179,14 +182,35 @@ enum LoadCommands {
         #[clap(short, long, verbatim_doc_comment)]
         tracepoint: String,
     },
-    /// Install an eBPF uprobe
+    /// Install an eBPF kprobe or kretprobe
+    Kprobe {
+        /// Required: function to attach the kprobe to.
+        #[clap(short, long)]
+        fn_name: String,
+
+        /// Optional: offset added to the address of the function for kprobe.
+        /// Not allowed for kretprobes.
+        #[clap(short, long)]
+        offset: Option<u64>,
+
+        /// Optional: whether the program is a kretprobe.  Default is false
+        #[clap(short, long)]
+        retprobe: bool,
+
+        /// Optional: namespace to attach the uprobe in. (NOT CURRENTLY SUPPORTED)
+        #[clap(short, long)]
+        namespace: Option<String>,
+    },
+    /// Install an eBPF uprobe or uretprobe
     Uprobe {
         /// Optional: function to attach the uprobe to.
         #[clap(short, long)]
         fn_name: Option<String>,
 
-        /// Optional: offset added to the address of the target function
-        /// (or beginning of target if no function is identified)
+        /// Optional: offset added to the address of the target function (or
+        /// beginning of target if no function is identified) Offsets are
+        /// supported for uretprobes, but use with caution because they can
+        /// result in unintended side effects.
         #[clap(short, long)]
         offset: Option<u64>,
 
@@ -194,6 +218,10 @@ enum LoadCommands {
         /// Example: --target "libc".
         #[clap(short, long)]
         target: String,
+
+        /// Optional: whether the program is a uretprobe.  Default is false
+        #[clap(short, long)]
+        retprobe: bool,
 
         /// Optional: only execute uprobe for given process identification number (PID)
         /// If PID is not provided, uprobe executes for all PIDs.
@@ -382,36 +410,54 @@ Tracepoint:                         {tracepoint}"#
                     "".to_string()
                 }
             }
-            ProgramType::Kprobe => {
-                if let Some(list_response::list_result::AttachInfo::UprobeAttachInfo(
-                    UprobeAttachInfo {
-                        fn_name,
-                        offset,
-                        target,
-                        pid,
-                        namespace,
-                    },
-                )) = r.clone().attach_info
-                {
-                    let fn_name = fn_name.unwrap_or("None".to_string());
-
-                    let offset = match offset {
-                        Some(o) => o.to_string(),
-                        None => "None".to_string(),
-                    };
-                    let pid = match pid {
-                        Some(p) => p.to_string(),
-                        None => "None".to_string(),
-                    };
-                    let namespace = namespace.unwrap_or("None".to_string());
-
-                    format!(
-                        r#"fn_name:                            {fn_name}
+            ProgramType::Probe => {
+                if let Some(attach_info) = r.clone().attach_info {
+                    match attach_info {
+                        list_response::list_result::AttachInfo::KprobeAttachInfo(attach_info) => {
+                            let fn_name = attach_info.fn_name;
+                            let offset = attach_info.offset.to_string();
+                            let namespace = attach_info.namespace.unwrap_or("None".to_string());
+                            let probe_type = match attach_info.retprobe {
+                                true => Kretprobe,
+                                false => Kprobe,
+                            };
+                            format!(
+                                r#"Probe Type:                         {probe_type}
+Function Name:                      {fn_name}
+offset:                             {offset}
+Namespace:                          {namespace}"#
+                            )
+                        }
+                        list_response::list_result::AttachInfo::UprobeAttachInfo(attach_info) => {
+                            let fn_name = attach_info.fn_name.unwrap_or("None".to_string());
+                            let offset = attach_info.offset.to_string();
+                            let pid = match attach_info.pid {
+                                Some(p) => p.to_string(),
+                                None => "None".to_string(),
+                            };
+                            let namespace = attach_info.namespace.unwrap_or("None".to_string());
+                            let target = attach_info.target;
+                            let probe_type = match attach_info.retprobe {
+                                true => Uretprobe,
+                                false => Uprobe,
+                            };
+                            format!(
+                                r#"Probe Type:                         {probe_type}
+Function Name:                      {fn_name}
 Offset:                             {offset}
 Target:                             {target}
-Pid:                                {pid}
-Namespace:                          {namespace}"#
-                    )
+PID:                                {pid}
+Namespace:                          {namespace}"# //fn_name: {fn_name}, offset: {offset}, target: {target}, pid: {pid}, namespace: {namespace} }}"#
+                            )
+                        }
+                        _ => {
+                            debug!(
+                                "invalid AttachInfo message for ProgramType::Probe: {:?}",
+                                attach_info
+                            );
+                            "".to_string()
+                        }
+                    }
                 } else {
                     "".to_string()
                 }
@@ -478,7 +524,8 @@ impl LoadCommands {
             LoadCommands::Xdp { .. } => ProgramType::Xdp,
             LoadCommands::Tc { .. } => ProgramType::Tc,
             LoadCommands::Tracepoint { .. } => ProgramType::Tracepoint,
-            LoadCommands::Uprobe { .. } => ProgramType::Kprobe,
+            LoadCommands::Kprobe { .. } => ProgramType::Probe,
+            LoadCommands::Uprobe { .. } => ProgramType::Probe,
         }
     }
 
@@ -529,21 +576,43 @@ impl LoadCommands {
                     tracepoint: tracepoint.to_string(),
                 }),
             )),
+            LoadCommands::Kprobe {
+                fn_name,
+                offset,
+                retprobe,
+                namespace,
+            } => {
+                if namespace.is_some() {
+                    bail!("kprobe namespace option not supported yet");
+                }
+                let offset = offset.unwrap_or(0);
+                Ok(Some(load_request::AttachInfo::KprobeAttachInfo(
+                    KprobeAttachInfo {
+                        fn_name: fn_name.to_string(),
+                        offset,
+                        retprobe: *retprobe,
+                        namespace: namespace.clone(),
+                    },
+                )))
+            }
             LoadCommands::Uprobe {
                 fn_name,
                 offset,
                 target,
+                retprobe,
                 pid,
                 namespace,
             } => {
                 if namespace.is_some() {
                     bail!("uprobe namespace option not supported yet");
                 }
+                let offset = offset.unwrap_or(0);
                 Ok(Some(load_request::AttachInfo::UprobeAttachInfo(
                     UprobeAttachInfo {
                         fn_name: fn_name.clone(),
-                        offset: *offset,
-                        target: target.to_string(),
+                        offset,
+                        target: target.clone(),
+                        retprobe: *retprobe,
                         pid: *pid,
                         namespace: namespace.clone(),
                     },

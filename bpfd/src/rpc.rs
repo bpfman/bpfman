@@ -8,8 +8,8 @@ use bpfd_api::{
         load_request,
         load_request_common::Location,
         loader_server::Loader,
-        ListRequest, ListResponse, LoadRequest, LoadResponse, NoAttachInfo, NoLocation,
-        PullBytecodeRequest, PullBytecodeResponse, TcAttachInfo, TracepointAttachInfo,
+        KprobeAttachInfo, ListRequest, ListResponse, LoadRequest, LoadResponse, NoAttachInfo,
+        NoLocation, PullBytecodeRequest, PullBytecodeResponse, TcAttachInfo, TracepointAttachInfo,
         UnloadRequest, UnloadResponse, UprobeAttachInfo, XdpAttachInfo,
     },
     TcProceedOn, XdpProceedOn,
@@ -20,8 +20,8 @@ use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
 use crate::command::{
-    Command, LoadTCArgs, LoadTracepointArgs, LoadUprobeArgs, LoadXDPArgs, PullBytecodeArgs,
-    UnloadArgs,
+    Command, LoadKprobeArgs, LoadTCArgs, LoadTracepointArgs, LoadUprobeArgs, LoadXDPArgs,
+    PullBytecodeArgs, UnloadArgs,
 };
 
 #[derive(Debug, Default)]
@@ -120,6 +120,20 @@ impl Loader for BpfdLoader {
                     username,
                 })
             }
+            load_request::AttachInfo::KprobeAttachInfo(attach) => {
+                Command::LoadKprobe(LoadKprobeArgs {
+                    responder: resp_tx,
+                    id,
+                    global_data: common.global_data,
+                    location: bytecode_source,
+                    fn_name: attach.fn_name,
+                    offset: attach.offset,
+                    retprobe: attach.retprobe,
+                    _namespace: attach.namespace,
+                    section_name: common.section_name,
+                    username,
+                })
+            }
             load_request::AttachInfo::UprobeAttachInfo(attach) => {
                 Command::LoadUprobe(LoadUprobeArgs {
                     responder: resp_tx,
@@ -129,6 +143,7 @@ impl Loader for BpfdLoader {
                     fn_name: attach.fn_name,
                     offset: attach.offset,
                     target: attach.target,
+                    retprobe: attach.retprobe,
                     pid: attach.pid,
                     _namespace: attach.namespace,
                     section_name: common.section_name,
@@ -273,11 +288,20 @@ impl Loader for BpfdLoader {
                                             tracepoint: info.tracepoint,
                                         }),
                                     ),
+                                    crate::command::AttachInfo::Kprobe(info) => {
+                                        Some(AttachInfo::KprobeAttachInfo(KprobeAttachInfo {
+                                            fn_name: info.fn_name,
+                                            offset: info.offset,
+                                            retprobe: info.retprobe,
+                                            namespace: info.namespace,
+                                        }))
+                                    }
                                     crate::command::AttachInfo::Uprobe(info) => {
                                         Some(AttachInfo::UprobeAttachInfo(UprobeAttachInfo {
                                             fn_name: info.fn_name,
                                             offset: info.offset,
                                             target: info.target,
+                                            retprobe: info.retprobe,
                                             pid: info.pid,
                                             namespace: info.namespace,
                                         }))
@@ -490,6 +514,7 @@ mod test {
                 Command::LoadXDP(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
                 Command::LoadTC(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
                 Command::LoadTracepoint(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
+                Command::LoadKprobe(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
                 Command::LoadUprobe(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
                 Command::Unload(args) => args.responder.send(Ok(())).unwrap(),
                 Command::List { responder, .. } => responder.send(Ok(vec![])).unwrap(),
