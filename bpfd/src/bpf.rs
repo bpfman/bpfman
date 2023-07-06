@@ -255,170 +255,133 @@ impl BpfManager {
         id: Uuid,
     ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_single_attach_program()");
-        if let Program::Tracepoint(ref program) = p {
-            let parts: Vec<&str> = program.info.tracepoint.split('/').collect();
-            if parts.len() != 2 {
-                return Err(BpfdError::InvalidAttach(
-                    program.info.tracepoint.to_string(),
-                ));
-            }
-            let category = parts[0].to_owned();
-            let name = parts[1].to_owned();
 
-            let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
-            fs::create_dir_all(map_pin_path.clone())
-                .await
-                .map_err(|e| BpfdError::Error(format!("can't create map dir: {e}")))?;
+        let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
+        fs::create_dir_all(map_pin_path.clone())
+            .await
+            .map_err(|e| BpfdError::Error(format!("can't create map dir: {e}")))?;
 
-            let program_bytes = if program
-                .data
-                .path
-                .clone()
-                .contains(BYTECODE_IMAGE_CONTENT_STORE)
-            {
-                get_bytecode_from_image_store(program.data.path.clone()).await?
-            } else {
-                read(program.data.path.clone()).await?
-            };
+        let program_bytes = if p.data().path.clone().contains(BYTECODE_IMAGE_CONTENT_STORE) {
+            get_bytecode_from_image_store(p.data().path.clone()).await?
+        } else {
+            read(p.data().path.clone()).await?
+        };
 
-            let mut loader = BpfLoader::new();
+        let mut loader = BpfLoader::new();
 
-            for (name, value) in &program.data.global_data {
-                loader.set_global(name, value.as_slice());
-            }
+        for (name, value) in &p.data().global_data {
+            loader.set_global(name, value.as_slice());
+        }
 
-            let mut loader = loader
-                .map_pin_path(map_pin_path.clone())
-                .load(&program_bytes)?;
+        let mut loader = loader
+            .map_pin_path(map_pin_path.clone())
+            .load(&program_bytes)?;
 
-            let tracepoint: &mut TracePoint = match loader.program_mut(&program.data.section_name) {
-                Some(p) => p.try_into(),
-                None => {
-                    let _ = fs::remove_dir_all(map_pin_path).await;
-                    return Err(BpfdError::SectionNameNotValid(
-                        program.data.section_name.clone(),
+        let raw_program =
+            loader
+                .program_mut(&p.data().section_name)
+                .ok_or(BpfdError::SectionNameNotValid(
+                    p.data().section_name.clone(),
+                ))?;
+
+        match p.clone() {
+            Program::Tracepoint(program) => {
+                let parts: Vec<&str> = program.info.tracepoint.split('/').collect();
+                if parts.len() != 2 {
+                    return Err(BpfdError::InvalidAttach(
+                        program.info.tracepoint.to_string(),
                     ));
                 }
-            }?;
+                let category = parts[0].to_owned();
+                let name = parts[1].to_owned();
 
-            tracepoint.load()?;
-            p.save(id)
-                .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
-            self.programs.insert(id, p);
+                let tracepoint: &mut TracePoint = raw_program.try_into()?;
 
-            let link_id = tracepoint.attach(&category, &name).or_else(|e| {
-                let prog = self.programs.remove(&id).unwrap();
-                prog.delete(id).map_err(|_| {
-                    BpfdError::Error(
-                        "new program cleanup failed, unable to delete program data".to_string(),
-                    )
-                })?;
-                Err(BpfdError::BpfProgramError(e))
-            })?;
+                tracepoint.load()?;
+                p.save(id)
+                    .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
+                self.programs.insert(id, p);
 
-            let owned_link: TracePointLink = tracepoint.take_link(link_id)?;
-            let fd_link: FdLink = owned_link
-                .try_into()
-                .expect("unable to get owned tracepoint attach link");
-            fd_link
-                .pin(format!("{RTDIR_FS}/prog_{}_link", id))
-                .map_err(BpfdError::UnableToPinLink)?;
-
-            tracepoint
-                .pin(format!("{RTDIR_FS}/prog_{id}"))
-                .or_else(|e| {
+                let link_id = tracepoint.attach(&category, &name).or_else(|e| {
                     let prog = self.programs.remove(&id).unwrap();
                     prog.delete(id).map_err(|_| {
                         BpfdError::Error(
-                            "new dispatcher cleanup failed, unable to delete program data"
-                                .to_string(),
-                        )
-                    })?;
-                    Err(BpfdError::UnableToPinProgram(e))
-                })?;
-
-            Ok(id)
-        } else if let Program::Uprobe(ref program) = p {
-            let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
-            fs::create_dir_all(map_pin_path.clone())
-                .await
-                .map_err(|e| BpfdError::Error(format!("can't create map dir: {e}")))?;
-
-            let program_bytes = if program
-                .data
-                .path
-                .clone()
-                .contains(BYTECODE_IMAGE_CONTENT_STORE)
-            {
-                get_bytecode_from_image_store(program.data.path.clone()).await?
-            } else {
-                read(program.data.path.clone()).await?
-            };
-
-            let mut loader = BpfLoader::new();
-
-            for (name, value) in &program.data.global_data {
-                loader.set_global(name, value.as_slice());
-            }
-
-            let mut loader = loader
-                .map_pin_path(map_pin_path.clone())
-                .load(&program_bytes)?;
-
-            let uprobe: &mut UProbe = match loader.program_mut(&program.data.section_name) {
-                Some(p) => p.try_into(),
-                None => {
-                    let _ = fs::remove_dir_all(map_pin_path).await;
-                    return Err(BpfdError::SectionNameNotValid(
-                        program.data.section_name.clone(),
-                    ));
-                }
-            }?;
-
-            uprobe.load()?;
-            p.save(id)
-                .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
-
-            let link_id = uprobe
-                .attach(
-                    program.info.fn_name.as_deref(),
-                    program.info.offset.unwrap_or_default(),
-                    program.info.target.clone(),
-                    program.info.pid,
-                )
-                .or_else(|e| {
-                    p.delete(id).map_err(|_| {
-                        BpfdError::Error(
-                            "new dispatcher cleanup failed, unable to delete program data"
-                                .to_string(),
+                            "new program cleanup failed, unable to delete program data".to_string(),
                         )
                     })?;
                     Err(BpfdError::BpfProgramError(e))
                 })?;
 
-            self.programs.insert(id, p);
+                let owned_link: TracePointLink = tracepoint.take_link(link_id)?;
+                let fd_link: FdLink = owned_link
+                    .try_into()
+                    .expect("unable to get owned tracepoint attach link");
+                fd_link
+                    .pin(format!("{RTDIR_FS}/prog_{}_link", id))
+                    .map_err(BpfdError::UnableToPinLink)?;
 
-            let owned_link: UProbeLink = uprobe.take_link(link_id)?;
-            let fd_link: FdLink = owned_link
-                .try_into()
-                .expect("unable to get owned uprobe attach link");
-            fd_link
-                .pin(format!("{RTDIR_FS}/prog_{}_link", id))
-                .map_err(BpfdError::UnableToPinLink)?;
+                tracepoint
+                    .pin(format!("{RTDIR_FS}/prog_{id}"))
+                    .or_else(|e| {
+                        let prog = self.programs.remove(&id).unwrap();
+                        prog.delete(id).map_err(|_| {
+                            BpfdError::Error(
+                                "new dispatcher cleanup failed, unable to delete program data"
+                                    .to_string(),
+                            )
+                        })?;
+                        Err(BpfdError::UnableToPinProgram(e))
+                    })?;
 
-            uprobe.pin(format!("{RTDIR_FS}/prog_{id}")).or_else(|e| {
-                let prog = self.programs.remove(&id).unwrap();
-                prog.delete(id).map_err(|_| {
-                    BpfdError::Error(
-                        "new program cleanup failed, unable to delete program data".to_string(),
+                Ok(id)
+            }
+            Program::Uprobe(ref program) => {
+                let uprobe: &mut UProbe = raw_program.try_into()?;
+
+                uprobe.load()?;
+                p.save(id)
+                    .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
+
+                let link_id = uprobe
+                    .attach(
+                        program.info.fn_name.as_deref(),
+                        program.info.offset.unwrap_or_default(),
+                        program.info.target.clone(),
+                        program.info.pid,
                     )
-                })?;
-                Err(BpfdError::UnableToPinProgram(e))
-            })?;
+                    .or_else(|e| {
+                        p.delete(id).map_err(|_| {
+                            BpfdError::Error(
+                                "new dispatcher cleanup failed, unable to delete program data"
+                                    .to_string(),
+                            )
+                        })?;
+                        Err(BpfdError::BpfProgramError(e))
+                    })?;
 
-            Ok(id)
-        } else {
-            panic!("not a supported single attach program")
+                self.programs.insert(id, p);
+
+                let owned_link: UProbeLink = uprobe.take_link(link_id)?;
+                let fd_link: FdLink = owned_link
+                    .try_into()
+                    .expect("unable to get owned uprobe attach link");
+                fd_link
+                    .pin(format!("{RTDIR_FS}/prog_{}_link", id))
+                    .map_err(BpfdError::UnableToPinLink)?;
+
+                uprobe.pin(format!("{RTDIR_FS}/prog_{id}")).or_else(|e| {
+                    let prog = self.programs.remove(&id).unwrap();
+                    prog.delete(id).map_err(|_| {
+                        BpfdError::Error(
+                            "new program cleanup failed, unable to delete program data".to_string(),
+                        )
+                    })?;
+                    Err(BpfdError::UnableToPinProgram(e))
+                })?;
+
+                Ok(id)
+            }
+            _ => panic!("not a supported single attach program"),
         }
     }
 
