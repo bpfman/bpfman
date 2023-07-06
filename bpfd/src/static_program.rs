@@ -116,6 +116,7 @@ pub(crate) async fn get_static_programs<P: AsRef<Path>>(
                                 location,
                                 program.section_name.clone(),
                                 program.global_data,
+                                None,
                                 String::from("bpfd"),
                             )
                             .await?,
@@ -140,6 +141,7 @@ pub(crate) async fn get_static_programs<P: AsRef<Path>>(
                                 location,
                                 program.section_name.clone(),
                                 program.global_data,
+                                None,
                                 String::from("bpfd"),
                             )
                             .await?,
@@ -163,6 +165,7 @@ pub(crate) async fn get_static_programs<P: AsRef<Path>>(
                                 location,
                                 program.section_name.clone(),
                                 program.global_data,
+                                None,
                                 String::from("bpfd"),
                             )
                             .await?,

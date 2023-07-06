@@ -77,11 +77,23 @@ impl Loader for BpfdLoader {
             None => None,
         };
 
+        let map_owner_uuid = if common.map_owner_uuid.is_none()
+            || common.map_owner_uuid.clone().unwrap().is_empty()
+        {
+            None
+        } else {
+            Some(
+                Uuid::parse_str(&common.map_owner_uuid.unwrap())
+                    .map_err(|_| Status::aborted("invalid UUID for map_owner_uuid"))?,
+            )
+        };
+
         let cmd = match request.attach_info.unwrap() {
             load_request::AttachInfo::XdpAttachInfo(attach) => Command::LoadXDP(LoadXDPArgs {
                 responder: resp_tx,
                 id,
                 global_data: common.global_data,
+                map_owner_uuid,
                 location: bytecode_source,
                 iface: attach.iface,
                 priority: attach.priority,
@@ -100,6 +112,7 @@ impl Loader for BpfdLoader {
                     location: bytecode_source,
                     id,
                     global_data: common.global_data,
+                    map_owner_uuid,
                     iface: attach.iface,
                     priority: attach.priority,
                     direction,
@@ -114,6 +127,7 @@ impl Loader for BpfdLoader {
                     responder: resp_tx,
                     id,
                     global_data: common.global_data,
+                    map_owner_uuid,
                     location: bytecode_source,
                     tracepoint: attach.tracepoint,
                     section_name: common.section_name,
@@ -125,6 +139,7 @@ impl Loader for BpfdLoader {
                     responder: resp_tx,
                     id,
                     global_data: common.global_data,
+                    map_owner_uuid,
                     location: bytecode_source,
                     fn_name: attach.fn_name,
                     offset: attach.offset,
@@ -139,6 +154,7 @@ impl Loader for BpfdLoader {
                     responder: resp_tx,
                     id,
                     global_data: common.global_data,
+                    map_owner_uuid,
                     location: bytecode_source,
                     fn_name: attach.fn_name,
                     offset: attach.offset,
@@ -345,6 +361,19 @@ impl Loader for BpfdLoader {
                             }
                         };
 
+                        // Map UUID to String for response
+                        let map_owner_uuid = match r.map_owner_uuid {
+                            Some(uuid) => uuid.to_string(),
+                            None => String::new(),
+                        };
+                        // Map Vec<UUID> to Vec<String> for response
+                        let mut map_used_by: Vec<String> = vec![];
+                        if let Some(uuid_list) = r.map_used_by.clone() {
+                            for ref_uuid in uuid_list {
+                                map_used_by.push(ref_uuid.to_string());
+                            }
+                        };
+
                         debug!("Pushing list result for {:?}", id);
                         reply.results.push(ListResult {
                             id,
@@ -352,6 +381,10 @@ impl Loader for BpfdLoader {
                             attach_info,
                             location: loc,
                             program_type,
+                            global_data: r.global_data.unwrap_or_default(),
+                            map_owner_uuid,
+                            map_pin_path: r.map_pin_path.unwrap_or_default(),
+                            map_used_by,
                             bpf_id: r.kernel_info.id,
                             loaded_at: r.kernel_info.loaded_at,
                             tag: r.kernel_info.tag,

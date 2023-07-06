@@ -27,6 +27,7 @@ message LoadRequestCommon {
     uint32 program_type = 4;
     optional string id = 5;
     map<string, bytes> global_data = 6;
+    optional string map_owner_uuid = 7;
 }
 
 message NoAttachInfo {}
@@ -102,27 +103,31 @@ message ListResponse {
         string file = 5;
     } ;
     uint32 program_type = 6;
+    map<string, bytes> global_data = 7;
+    string map_owner_uuid = 8;
+    string map_pin_path = 9;
+    repeated string map_used_by = 10;
     oneof attach_info {
-        NoAttachInfo none = 7;
-        XDPAttachInfo xdp_attach_info = 8;
-        TCAttachInfo tc_attach_info = 9;
-        TracepointAttachInfo tracepoint_attach_info = 10;
-        KprobeAttachInfo kprobe_attach_info = 11;
-        UprobeAttachInfo uprobe_attach_info = 12;
+        NoAttachInfo none = 11;
+        XDPAttachInfo xdp_attach_info = 12;
+        TCAttachInfo tc_attach_info = 13;
+        TracepointAttachInfo tracepoint_attach_info = 14;
+        KprobeAttachInfo kprobe_attach_info = 15;
+        UprobeAttachInfo uprobe_attach_info = 16;
     }
-    uint32 bpf_id = 13;
-    string loaded_at = 14;
-    string tag = 15;
-    bool gpl_compatible = 16;
-    repeated uint32 map_ids = 17;
-    uint32 btf_id = 18;
-    uint32 bytes_xlated = 19;
-    bool jited = 20;
-    uint32 bytes_jited = 21;
-    uint32 bytes_memlock = 22;
-    uint32 verified_insns = 23;
+    uint32 bpf_id = 17;
+    string loaded_at = 18;
+    string tag = 19;
+    bool gpl_compatible = 20;
+    repeated uint32 map_ids = 21;
+    uint32 btf_id = 22;
+    uint32 bytes_xlated = 23;
+    bool jited = 24;
+    uint32 bytes_jited = 25;
+    uint32 bytes_memlock = 26;
+    uint32 verified_insns = 27;
   } 
-  repeated ListResult results = 24;
+  repeated ListResult results = 28;
 }
 
 message PullBytecodeRequest {

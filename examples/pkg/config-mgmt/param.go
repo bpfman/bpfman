@@ -17,6 +17,7 @@ limitations under the License.
 package configMgmt
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -51,11 +52,12 @@ const (
 )
 
 type ParameterData struct {
-	Iface     string
-	Priority  int
-	Direction int
-	CrdFlag   bool
-	Uuid      string
+	Iface        string
+	Priority     int
+	Direction    int
+	CrdFlag      bool
+	Uuid         string
+	MapOwnerUuid string
 	// The bytecodesource type has to be encapsulated in a complete LoadRequest because isLoadRequest_Location is not Public
 	BytecodeSource *gobpfd.LoadRequestCommon
 	BytecodeSrc    int
@@ -94,6 +96,9 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 		flag.StringVar(&direction_str, "direction", "",
 			"Direction to apply program (ingress, egress). Required.")
 	}
+	flag.StringVar(&paramData.MapOwnerUuid, "map_owner_uuid", "",
+		"Uuid of loaded eBPF program this eBPF program will share a map with.\n"+
+			"Example: -map_owner_uuid 989958a5-b47b-47a5-8b4c-b5962292437d")
 	flag.Parse()
 
 	if paramData.CrdFlag {
@@ -204,4 +209,29 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 	}
 
 	return paramData, nil
+}
+
+func RetrieveMapPinPath(ctx context.Context, c gobpfd.LoaderClient, paramData ParameterData, programType *uint32, map_name string) (string, error) {
+	var mapPath string;
+
+	listRequest := &gobpfd.ListRequest{
+		ProgramType: programType,
+	}
+	//var listResponse *gobpfd.ListResponse
+	listResponse, err := c.List(ctx, listRequest)
+	if err != nil {
+		return mapPath, err
+	}
+	results := listResponse.GetResults()
+	for _, result := range results {
+		if result.GetId() == paramData.Uuid {
+			mapPath = fmt.Sprintf("%s/%s", result.GetMapPinPath(), map_name)
+			break
+		}
+	}
+	if mapPath == "" {
+		return mapPath, fmt.Errorf("couldn't find map path in response")
+	}
+
+	return mapPath, nil
 }

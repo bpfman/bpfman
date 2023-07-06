@@ -17,6 +17,7 @@ use uuid::Uuid;
 
 use super::Dispatcher;
 use crate::{
+    bpf::calc_map_pin_path,
     command::{Program, XdpProgram},
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfdError,
@@ -190,8 +191,9 @@ impl XdpDispatcher {
                     bpf.set_global(name, value.as_slice(), true);
                 }
 
+                let (_, map_pin_path) = calc_map_pin_path(**k, v.data.map_owner_uuid);
                 let mut bpf = bpf
-                    .map_pin_path(format!("{RTDIR_FS_MAPS}/{k}"))
+                    .map_pin_path(map_pin_path.clone())
                     .extension(&v.data.section_name)
                     .load(&program_bytes)
                     .map_err(BpfdError::BpfLoadError)?;

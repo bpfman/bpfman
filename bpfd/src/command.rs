@@ -6,7 +6,7 @@ use std::{collections::HashMap, fmt, fs, io::BufReader, path::PathBuf};
 
 use aya::programs::ProgramInfo as AyaProgInfo;
 use bpfd_api::{
-    util::directories::{RTDIR_FS, RTDIR_FS_MAPS, RTDIR_PROGRAMS},
+    util::directories::{RTDIR_FS, RTDIR_PROGRAMS},
     ParseError, ProgramType, TcProceedOn, XdpProceedOn,
 };
 use chrono::{prelude::DateTime, Local};
@@ -51,6 +51,7 @@ pub(crate) struct LoadXDPArgs {
     pub(crate) section_name: String,
     pub(crate) id: Option<Uuid>,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
+    pub(crate) map_owner_uuid: Option<Uuid>,
     pub(crate) iface: String,
     pub(crate) priority: i32,
     pub(crate) proceed_on: XdpProceedOn,
@@ -64,6 +65,7 @@ pub(crate) struct LoadTCArgs {
     pub(crate) section_name: String,
     pub(crate) id: Option<Uuid>,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
+    pub(crate) map_owner_uuid: Option<Uuid>,
     pub(crate) iface: String,
     pub(crate) priority: i32,
     pub(crate) direction: Direction,
@@ -78,6 +80,7 @@ pub(crate) struct LoadTracepointArgs {
     pub(crate) id: Option<Uuid>,
     pub(crate) section_name: String,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
+    pub(crate) map_owner_uuid: Option<Uuid>,
     pub(crate) tracepoint: String,
     pub(crate) username: String,
     pub(crate) responder: Responder<Result<Uuid, BpfdError>>,
@@ -89,6 +92,7 @@ pub(crate) struct LoadKprobeArgs {
     pub(crate) id: Option<Uuid>,
     pub(crate) section_name: String,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
+    pub(crate) map_owner_uuid: Option<Uuid>,
     pub(crate) fn_name: String,
     pub(crate) offset: u64,
     pub(crate) retprobe: bool,
@@ -103,6 +107,7 @@ pub(crate) struct LoadUprobeArgs {
     pub(crate) id: Option<Uuid>,
     pub(crate) section_name: String,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
+    pub(crate) map_owner_uuid: Option<Uuid>,
     pub(crate) fn_name: Option<String>,
     pub(crate) offset: u64,
     pub(crate) target: String,
@@ -212,6 +217,10 @@ pub(crate) struct ProgramInfo {
     pub(crate) name: Option<String>,
     pub(crate) program_type: Option<u32>,
     pub(crate) location: Option<Location>,
+    pub(crate) global_data: Option<HashMap<String, Vec<u8>>>,
+    pub(crate) map_pin_path: Option<String>,
+    pub(crate) map_used_by: Option<Vec<Uuid>>,
+    pub(crate) map_owner_uuid: Option<Uuid>,
     pub(crate) attach_info: Option<AttachInfo>,
     pub(crate) kernel_info: KernelProgramInfo,
 }
@@ -353,6 +362,7 @@ pub(crate) struct ProgramData {
     pub(crate) global_data: HashMap<String, Vec<u8>>,
     pub(crate) path: String,
     pub(crate) owner: String,
+    pub(crate) map_owner_uuid: Option<Uuid>,
     pub(crate) kernel_info: Option<KernelProgramInfo>,
 }
 
@@ -361,6 +371,7 @@ impl ProgramData {
         location: Location,
         mut section_name: String,
         global_data: HashMap<String, Vec<u8>>,
+        map_owner_uuid: Option<Uuid>,
         owner: String,
     ) -> Result<Self, BpfdError> {
         match location.clone() {
@@ -370,6 +381,7 @@ impl ProgramData {
                 section_name,
                 owner,
                 global_data,
+                map_owner_uuid,
                 kernel_info: None,
             }),
             Location::Image(l) => {
@@ -396,6 +408,7 @@ impl ProgramData {
                     section_name,
                     global_data,
                     owner,
+                    map_owner_uuid,
                     // this is populated when the programs bytecode in loaded into
                     // the kernel.
                     kernel_info: None,
@@ -548,8 +561,6 @@ impl Program {
         if PathBuf::from(&path).exists() {
             fs::remove_file(path)?;
         }
-        let path = format!("{RTDIR_FS_MAPS}/{uuid}");
-        fs::remove_dir_all(path)?;
         Ok(())
     }
 
@@ -590,4 +601,10 @@ impl Program {
             Program::Uprobe(_) => None,
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct BpfMap {
+    pub(crate) map_pin_path: String,
+    pub(crate) used_by: Vec<Uuid>,
 }
