@@ -9,7 +9,7 @@ use bpfd_api::{
     config::{self, Config},
     util::directories::*,
     v1::{
-        list_response,
+        list_response::{self, list_result::Location},
         load_request::{self, AttachInfo},
         load_request_common,
         loader_client::LoaderClient,
@@ -22,7 +22,7 @@ use clap::{Args, Parser, Subcommand};
 use comfy_table::Table;
 use hex::FromHex;
 use itertools::Itertools;
-use log::{debug, info, warn};
+use log::{info, warn};
 use tokio::net::UnixStream;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity, Uri};
 use tower::service_fn;
@@ -43,7 +43,21 @@ enum Commands {
     /// Unload a BPF program using the UUID.
     Unload(UnloadArgs),
     /// List all BPF programs loaded via bpfd.
-    List,
+    List(ListArgs),
+    /// Get a program's metadata information specified by kernel id.
+    Get { kernel_id: u32 },
+}
+
+#[derive(Args)]
+struct ListArgs {
+    /// Optional: Program type to list
+    /// Example: --program-type xdp
+    #[clap(short, long, verbatim_doc_comment)]
+    program_type: Option<ProgramType>,
+
+    // Optional: List all programs
+    #[clap(short, long, verbatim_doc_comment)]
+    all: bool,
 }
 
 #[derive(Args)]
@@ -211,24 +225,58 @@ impl ProgTable {
         let mut table = Table::new();
 
         table.load_preset(comfy_table::presets::NOTHING);
-        table.set_header(vec!["UUID", "Type", "Name", "Location", "Metadata"]);
+        table.set_header(vec!["Kernel_ID", "Name", "UUID", "Type", "Load_Time"]);
         ProgTable(table)
     }
 
     fn add_row(
         &mut self,
-        uuid: String,
-        type_: String,
         name: String,
-        location: String,
-        metadata: String,
+        uuid: String,
+        kernel_id: String,
+        type_: String,
+        load_time: String,
     ) {
-        self.0.add_row(vec![uuid, type_, name, location, metadata]);
+        self.0
+            .add_row(vec![kernel_id, name, uuid, type_, load_time]);
     }
 
     fn add_response_prog(&mut self, r: list_response::ListResult) -> anyhow::Result<()> {
+        self.add_row(
+            r.name,
+            r.id.unwrap_or("".to_string()),
+            r.bpf_id.to_string(),
+            (ProgramType::try_from(r.program_type)?).to_string(),
+            r.loaded_at,
+        );
+
+        Ok(())
+    }
+}
+
+impl std::fmt::Display for ProgTable {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+fn print_get(r: &list_response::ListResult) -> anyhow::Result<()> {
+    // if program is managed by bpfd print UUID, Location and Metadata
+    let bpfd_info = if let Some(uuid) = r.clone().id {
         let prog_type: ProgramType = r.program_type.try_into()?;
-        match prog_type {
+        let location = match &r.clone().location.unwrap() {
+            // Cast imagePullPolicy into it's concrete type so we can easily print.
+            Location::Image(i) => format!(
+                r#"Image:                              {} 
+ImagePullpolicy:                    {}"#,
+                i.url,
+                TryInto::<ImagePullPolicy>::try_into(i.image_pull_policy)?
+            ),
+            Location::File(p) => format!(r#"Path:                           {p}"#),
+            _ => "".to_owned(),
+        };
+
+        let metadata = match prog_type {
             ProgramType::Xdp => {
                 if let Some(list_response::list_result::AttachInfo::XdpAttachInfo(
                     XdpAttachInfo {
@@ -237,17 +285,20 @@ impl ProgTable {
                         position,
                         proceed_on,
                     },
-                )) = r.attach_info
+                )) = r.clone().attach_info
                 {
                     let proc_on = match XdpProceedOn::from_int32s(proceed_on) {
                         Ok(p) => p,
                         Err(e) => bail!("error parsing proceed_on {e}"),
                     };
-                    self.add_row(r.id.to_string(),
-				  "xdp".to_string(),
-				  r.section_name.unwrap(),
-				  r.location.unwrap().to_string(),
-				  format!(r#"{{ priority: {priority}, iface: {iface}, position: {position}, proceed_on: {proc_on} }}"#));
+                    format!(
+                        r#"Priority:                           {priority}
+Iface:                              {iface}
+Position:                           {position}
+Proceed_on:                         {proc_on} "#
+                    )
+                } else {
+                    "".to_string()
                 }
             }
             ProgramType::Tc => {
@@ -257,31 +308,35 @@ impl ProgTable {
                     position,
                     direction,
                     proceed_on,
-                })) = r.attach_info
+                })) = r.clone().attach_info
                 {
                     let proc_on = match TcProceedOn::from_int32s(proceed_on) {
                         Ok(p) => p,
                         Err(e) => bail!("error parsing proceed_on {e}"),
                     };
-                    self.add_row(r.id.to_string(),
-				  "tc".to_string(),
-				  r.section_name.unwrap(),
-				  r.location.unwrap().to_string(),
-				  format!(r#"{{ priority: {priority}, iface: {iface}, position: {position}, direction: {direction}, proceed_on: {proc_on} }}"#))
+
+                    format!(
+                        r#"Priority:                           {priority}
+Iface:                              {iface}
+Position:                           {position}
+Direction:                          {direction}
+Proceed_on:                         {proc_on}"#
+                    )
+                } else {
+                    "".to_string()
                 }
             }
             ProgramType::Tracepoint => {
                 if let Some(list_response::list_result::AttachInfo::TracepointAttachInfo(
                     TracepointAttachInfo { tracepoint },
-                )) = r.attach_info
+                )) = r.clone().attach_info
                 {
-                    self.add_row(
-                        r.id.to_string(),
-                        "tracepoint".to_string(),
-                        r.section_name.unwrap(),
-                        r.location.unwrap().to_string(),
-                        format!(r#"{{ tracepoint: {tracepoint} }}"#),
-                    );
+                    format!(
+                        r#"
+Tracepoint:                         {tracepoint}"#
+                    )
+                } else {
+                    "".to_string()
                 }
             }
             ProgramType::Kprobe => {
@@ -293,7 +348,7 @@ impl ProgTable {
                         pid,
                         namespace,
                     },
-                )) = r.attach_info
+                )) = r.clone().attach_info
                 {
                     let fn_name = fn_name.unwrap_or("None".to_string());
 
@@ -306,32 +361,72 @@ impl ProgTable {
                         None => "None".to_string(),
                     };
                     let namespace = namespace.unwrap_or("None".to_string());
-                    self.add_row(
-                        r.id.to_string(),
-                        "uprobe".to_string(),
-                        r.section_name.unwrap(),
-                        r.location.unwrap().to_string(),
-                        format!(r#"{{ fn_name: {fn_name}, offset: {offset}, target: {target}, pid: {pid}, namespace: {namespace} }}"#),
-                    );
+
+                    format!(
+                        r#"fn_name:                            {fn_name}
+Offset:                             {offset}
+Target:                             {target}
+Pid:                                {pid}
+Namespace:                          {namespace}"#
+                    )
+                } else {
+                    "".to_string()
                 }
             }
             // skip unknown program types
             _ => {
-                debug!(
-                    "Unexpected program type: {:?} ({})",
-                    prog_type,
-                    prog_type.to_string()
-                )
+                bail!("program has bpfd UUID but no attach info")
             }
-        }
-        Ok(())
-    }
-}
+        };
+        format!(
+            r#"
+UUID:                               {}                              
+{}             
+{}"#,
+            uuid, location, metadata
+        )
+    } else {
+        "NONE".to_string()
+    };
 
-impl std::fmt::Display for ProgTable {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
+    let global_info = format!(
+        r#"
+Kernel_ID:                          {}
+Name:                               {}
+Type:                               {}
+Loaded At:                          {}
+Tag:                                {}
+GPL Compatible:                     {}
+Map IDs:                            {:?}
+BTF ID:                             {}
+Size Translated (bytes):            {}
+JITed:                              {}
+Size JITed (bytes):                 {}
+Kernel Allocated Memory (bytes):    {}
+Verified Instruction Count:         {}
+"#,
+        r.bpf_id,
+        r.name,
+        ProgramType::try_from(r.program_type)?,
+        r.loaded_at,
+        r.tag,
+        r.gpl_compatible,
+        r.map_ids,
+        r.btf_id,
+        r.bytes_xlated,
+        r.jited,
+        r.bytes_jited,
+        r.bytes_memlock,
+        r.verified_insns
+    );
+    println!();
+    println!("#################### Bpfd State ####################");
+    println!("{}", bpfd_info);
+    println!();
+    println!("#################### Kernel State ##################");
+    println!("{}", global_info);
+
+    Ok(())
 }
 
 impl LoadCommands {
@@ -639,8 +734,13 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
             });
             let _response = client.unload(request).await?.into_inner();
         }
-        Commands::List {} => {
-            let request = tonic::Request::new(ListRequest { program_type: None });
+        Commands::List(l) => {
+            let prog_type_filter = l.program_type.map(|p| p as u32);
+
+            let request = tonic::Request::new(ListRequest {
+                program_type: prog_type_filter,
+                bpfd_programs_only: Some(!l.all),
+            });
             let response = client.list(request).await?.into_inner();
             let mut table = ProgTable::new();
 
@@ -650,6 +750,23 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                 }
             }
             println!("{table}");
+        }
+        Commands::Get { kernel_id } => {
+            let request = tonic::Request::new(ListRequest {
+                program_type: None,
+                bpfd_programs_only: None,
+            });
+            let response = client.list(request).await?.into_inner();
+
+            let prog = response
+                .results
+                .iter()
+                .find(|r| r.bpf_id == *kernel_id)
+                .unwrap_or_else(|| panic!("No program with kernel ID {}", kernel_id));
+
+            if let Err(e) = print_get(prog) {
+                bail!(e)
+            }
         }
     }
     Ok(())
