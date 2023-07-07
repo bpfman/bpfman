@@ -42,13 +42,13 @@ impl XdpDispatcher {
         mode: XdpMode,
         if_index: &u32,
         if_name: String,
-        programs: &[(Uuid, Program)],
+        programs: &mut [(Uuid, Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
     ) -> Result<XdpDispatcher, BpfdError> {
         debug!("XdpDispatcher::new() for if_index {if_index}, revision {revision}");
-        let mut extensions: Vec<(&Uuid, &XdpProgram)> = programs
-            .iter()
+        let mut extensions: Vec<(&mut Uuid, &mut XdpProgram)> = programs
+            .iter_mut()
             .filter_map(|(k, v)| match v {
                 Program::Xdp(p) => Some((k, p)),
                 _ => None,
@@ -147,7 +147,7 @@ impl XdpDispatcher {
 
     async fn attach_extensions(
         &mut self,
-        extensions: &mut [(&Uuid, &XdpProgram)],
+        extensions: &mut [(&mut Uuid, &mut XdpProgram)],
     ) -> Result<(), BpfdError> {
         debug!(
             "XdpDispatcher::attach_extensions() for if_index {}, revision {}",
@@ -204,6 +204,8 @@ impl XdpDispatcher {
                 let target_fn = format!("prog{i}");
 
                 ext.load(dispatcher.fd().unwrap(), &target_fn)?;
+                v.data.kernel_info = Some(ext.program_info()?.try_into()?);
+
                 ext.pin(format!("{RTDIR_FS}/prog_{k}"))
                     .map_err(BpfdError::UnableToPinProgram)?;
                 let new_link_id = ext.attach()?;

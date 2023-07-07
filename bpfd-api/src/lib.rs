@@ -7,6 +7,7 @@ pub mod util;
 #[rustfmt::skip]
 #[allow(clippy::all)]
 pub mod v1;
+use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::ParseError as urlParseError;
@@ -28,7 +29,7 @@ pub enum ParseError {
     InvalidBytecodeImagePullPolicy { pull_policy: String },
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(ValueEnum, Copy, Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub enum ProgramType {
     Unspec,
     SocketFilter,
@@ -110,10 +111,10 @@ impl TryFrom<String> for ProgramType {
     }
 }
 
-impl TryFrom<i32> for ProgramType {
+impl TryFrom<u32> for ProgramType {
     type Error = ParseError;
 
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
         Ok(match value {
             0 => ProgramType::Unspec,
             1 => ProgramType::SocketFilter,
@@ -518,7 +519,7 @@ impl ToString for Location {
                 TryInto::<ImagePullPolicy>::try_into(i.image_pull_policy).unwrap()
             ),
             Location::File(p) => format!("file: {{ path: {p} }}"),
-            _ => "".to_owned()
+            _ => "".to_owned(),
         }
     }
 }
