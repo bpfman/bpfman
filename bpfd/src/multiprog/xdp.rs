@@ -81,7 +81,7 @@ impl XdpDispatcher {
             .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
         let program_bytes = get_bytecode_from_image_store(overrides.path).await?;
         let mut loader = BpfLoader::new()
-            .set_global("conf", &config)
+            .set_global("conf", &config, true)
             .load(&program_bytes)?;
 
         let dispatcher: &mut Xdp = loader
@@ -187,7 +187,7 @@ impl XdpDispatcher {
                 let mut bpf = BpfLoader::new();
 
                 for (name, value) in &v.data.global_data {
-                    bpf.set_global(name, value.as_slice());
+                    bpf.set_global(name, value.as_slice(), true);
                 }
 
                 let mut bpf = bpf

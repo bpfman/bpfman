@@ -279,7 +279,7 @@ impl BpfManager {
         let mut loader = BpfLoader::new();
 
         for (name, value) in &p.data().global_data {
-            loader.set_global(name, value.as_slice());
+            loader.set_global(name, value.as_slice(), true);
         }
 
         let mut loader = loader
@@ -543,8 +543,6 @@ impl BpfManager {
                     .clone()
                     .expect("Loaded program should have kernel information");
                 let prog_id = kernel_info.id;
-
-                debug!("LISTED PROG INFO {:?}, {:?}", kernel_info, id);
 
                 match p {
                     Program::Xdp(p) => (

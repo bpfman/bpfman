@@ -79,7 +79,7 @@ impl TcDispatcher {
         debug!("tc dispatcher config: {:?}", config);
 
         let mut loader = BpfLoader::new()
-            .set_global("CONFIG", &config)
+            .set_global("CONFIG", &config, true)
             .load(DISPATCHER_BYTES)?;
 
         let dispatcher: &mut SchedClassifier = loader
@@ -206,7 +206,7 @@ impl TcDispatcher {
                 let mut bpf = BpfLoader::new();
 
                 for (name, value) in &v.data.global_data {
-                    bpf.set_global(name, value.as_slice());
+                    bpf.set_global(name, value.as_slice(), true);
                 }
 
                 let mut bpf = bpf

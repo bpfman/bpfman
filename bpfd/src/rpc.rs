@@ -231,7 +231,6 @@ impl Loader for BpfdLoader {
             Ok(res) => match res {
                 Ok(results) => {
                     for r in results {
-                        debug!("RESULTS {:?}", r.clone());
                         let loc;
                         let attach_info;
                         let name;

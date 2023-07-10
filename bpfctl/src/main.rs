@@ -45,14 +45,24 @@ enum Commands {
     /// List all BPF programs loaded via bpfd.
     List(ListArgs),
     /// Get a program's metadata information specified by kernel id.
-    Get { kernel_id: u32 },
+    Get {
+        /// A BPF program's kernel id.
+        kernel_id: u32,
+    },
 }
 
 #[derive(Args)]
 struct ListArgs {
-    /// Optional: Program type to list
     /// Example: --program-type xdp
-    #[clap(short, long, verbatim_doc_comment)]
+    /// [possible values: unspec, socket-filter, kprobe, tc, sched-act,
+    ///                   tracepoint, xdp, perf-event, cgroup-skb,
+    ///                   cgroup-sock, lwt-in, lwt-out, lwt-xmit, sock-ops,
+    ///                   sk-skb, cgroup-device, sk-msg, raw-tracepoint,
+    ///                   cgroup-sock-addr, lwt-seg6-local, lirc-mode2,
+    ///                   sk-reuseport, flow-dissector, cgroup-sysctl,
+    ///                   raw-tracepoint-writable, cgroup-sockopt, tracing,
+    ///                   struct-ops, ext, lsm, sk-lookup, syscall]
+    #[clap(short, long, verbatim_doc_comment, hide_possible_values = true)]
     program_type: Option<ProgramType>,
 
     // Optional: List all programs
@@ -225,27 +235,27 @@ impl ProgTable {
         let mut table = Table::new();
 
         table.load_preset(comfy_table::presets::NOTHING);
-        table.set_header(vec!["Kernel_ID", "Name", "UUID", "Type", "Load_Time"]);
+        table.set_header(vec!["Kernel_ID", "Bpfd_UUID", "Name", "Type", "Load_Time"]);
         ProgTable(table)
     }
 
     fn add_row(
         &mut self,
-        name: String,
-        uuid: String,
         kernel_id: String,
+        uuid: String,
+        name: String,
         type_: String,
         load_time: String,
     ) {
         self.0
-            .add_row(vec![kernel_id, name, uuid, type_, load_time]);
+            .add_row(vec![kernel_id, uuid, name, type_, load_time]);
     }
 
     fn add_response_prog(&mut self, r: list_response::ListResult) -> anyhow::Result<()> {
         self.add_row(
-            r.name,
-            r.id.unwrap_or("".to_string()),
             r.bpf_id.to_string(),
+            r.id.unwrap_or("".to_string()),
+            r.name,
             (ProgramType::try_from(r.program_type)?).to_string(),
             r.loaded_at,
         );
@@ -272,7 +282,7 @@ ImagePullpolicy:                    {}"#,
                 i.url,
                 TryInto::<ImagePullPolicy>::try_into(i.image_pull_policy)?
             ),
-            Location::File(p) => format!(r#"Path:                           {p}"#),
+            Location::File(p) => format!(r#"Path:                               {p}"#),
             _ => "".to_owned(),
         };
 

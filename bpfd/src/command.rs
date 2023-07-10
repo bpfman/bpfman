@@ -9,6 +9,7 @@ use bpfd_api::{
     util::directories::{RTDIR_FS, RTDIR_FS_MAPS, RTDIR_PROGRAMS},
     ParseError, ProgramType, TcProceedOn, XdpProceedOn,
 };
+use chrono::{prelude::DateTime, Local};
 use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
 use uuid::Uuid;
@@ -163,8 +164,10 @@ impl TryFrom<AyaProgInfo> for KernelProgramInfo {
             id: prog.id(),
             name: prog.name_as_str().unwrap().to_string(),
             program_type: prog.type_(),
-            loaded_at: prog.loaded_at_as_string(),
-            tag: prog.tag_as_str(),
+            loaded_at: DateTime::<Local>::from(prog.loaded_at())
+                .format("%Y-%m-%dT%H:%M:%S%z")
+                .to_string(),
+            tag: format!("{:x}", prog.tag()),
             gpl_compatible: prog.gpl_compatible(),
             map_ids: prog.map_ids().map_err(BpfdError::BpfProgramError)?,
             btf_id: prog.btf_id(),
