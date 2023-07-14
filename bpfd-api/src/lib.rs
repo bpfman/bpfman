@@ -509,6 +509,16 @@ impl TryFrom<&str> for ImagePullPolicy {
     }
 }
 
+impl From<ImagePullPolicy> for i32 {
+    fn from(value: ImagePullPolicy) -> Self {
+        match value {
+            ImagePullPolicy::Always => 0,
+            ImagePullPolicy::IfNotPresent => 1,
+            ImagePullPolicy::Never => 2,
+        }
+    }
+}
+
 impl ToString for Location {
     fn to_string(&self) -> String {
         match &self {

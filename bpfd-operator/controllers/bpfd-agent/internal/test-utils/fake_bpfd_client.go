@@ -24,18 +24,20 @@ import (
 )
 
 type BpfdClientFake struct {
-	LoadRequests   map[string]*gobpfd.LoadRequest
-	UnloadRequests map[string]*gobpfd.UnloadRequest
-	ListRequests   []*gobpfd.ListRequest
-	Programs       map[string]*gobpfd.ListResponse_ListResult
+	LoadRequests         map[string]*gobpfd.LoadRequest
+	UnloadRequests       map[string]*gobpfd.UnloadRequest
+	ListRequests         []*gobpfd.ListRequest
+	Programs             map[string]*gobpfd.ListResponse_ListResult
+	PullBytecodeRequests map[string]*gobpfd.PullBytecodeRequest
 }
 
 func NewBpfdClientFake() *BpfdClientFake {
 	return &BpfdClientFake{
-		LoadRequests:   map[string]*gobpfd.LoadRequest{},
-		UnloadRequests: map[string]*gobpfd.UnloadRequest{},
-		ListRequests:   []*gobpfd.ListRequest{},
-		Programs:       map[string]*gobpfd.ListResponse_ListResult{},
+		LoadRequests:         map[string]*gobpfd.LoadRequest{},
+		UnloadRequests:       map[string]*gobpfd.UnloadRequest{},
+		ListRequests:         []*gobpfd.ListRequest{},
+		Programs:             map[string]*gobpfd.ListResponse_ListResult{},
+		PullBytecodeRequests: map[string]*gobpfd.PullBytecodeRequest{},
 	}
 }
 
@@ -95,4 +97,8 @@ func loadRequestToListResult(loadReq *gobpfd.LoadRequest) *gobpfd.ListResponse_L
 	listResult.ProgramType = loadReq.Common.ProgramType
 
 	return listResult
+}
+
+func (b *BpfdClientFake) PullBytecode(ctx context.Context, in *gobpfd.PullBytecodeRequest, opts ...grpc.CallOption) (*gobpfd.PullBytecodeResponse, error) {
+	return &gobpfd.PullBytecodeResponse{}, nil
 }

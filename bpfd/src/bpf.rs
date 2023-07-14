@@ -21,8 +21,9 @@ use crate::{
         self, Command, Direction,
         Direction::{Egress, Ingress},
         LoadTCArgs, LoadTracepointArgs, LoadUprobeArgs, LoadXDPArgs, Program, ProgramData,
-        ProgramInfo, TcProgram, TcProgramInfo, TracepointProgram, TracepointProgramInfo,
-        UnloadArgs, UprobeProgram, UprobeProgramInfo, XdpProgram, XdpProgramInfo,
+        ProgramInfo, PullBytecodeArgs, TcProgram, TcProgramInfo, TracepointProgram,
+        TracepointProgramInfo, UnloadArgs, UprobeProgram, UprobeProgramInfo, XdpProgram,
+        XdpProgramInfo,
     },
     errors::BpfdError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
@@ -682,6 +683,19 @@ impl BpfManager {
         results
     }
 
+    async fn pull_bytecode(&self, args: PullBytecodeArgs) -> anyhow::Result<()> {
+        let res = match args.image.get_image(None).await {
+            Ok(_) => {
+                info!("Successfully pulled bytecode");
+                Ok(())
+            }
+            Err(e) => Err(e).map_err(|e| BpfdError::BpfBytecodeError(e.into())),
+        };
+
+        let _ = args.responder.send(res);
+        Ok(())
+    }
+
     pub(crate) async fn process_commands(&mut self) {
         loop {
             // Start receiving messages
@@ -703,6 +717,7 @@ impl BpfManager {
                             // Ignore errors as they'll be propagated to caller in the RPC status
                             let _ = responder.send(progs);
                         }
+                        Command::PullBytecode (args) => self.pull_bytecode(args).await.unwrap(),
                     }
                 }
             }
