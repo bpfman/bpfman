@@ -99,7 +99,7 @@ func BuildBpfdCommon(bytecode interface{}, sectionName string, programType inter
 		return &gobpfd.LoadRequestCommon{
 			Location:    imageBytecode,
 			SectionName: sectionName,
-			ProgramType: *programType.Int32(),
+			ProgramType: *programType.Uint32(),
 			Id:          &Id,
 			GlobalData:  globalData,
 		}
@@ -109,7 +109,7 @@ func BuildBpfdCommon(bytecode interface{}, sectionName string, programType inter
 		return &gobpfd.LoadRequestCommon{
 			Location:    fileBytecode,
 			SectionName: sectionName,
-			ProgramType: *programType.Int32(),
+			ProgramType: *programType.Uint32(),
 			Id:          &Id,
 			GlobalData:  globalData,
 		}
@@ -152,8 +152,10 @@ func UnloadBpfdProgram(ctx context.Context, bpfdClient gobpfd.LoaderClient, id s
 }
 
 func ListBpfdPrograms(ctx context.Context, bpfdClient gobpfd.LoaderClient, programType internal.SupportedProgramType) (map[string]*gobpfd.ListResponse_ListResult, error) {
+	listOnlyBpfdPrograms := true
 	listReq := gobpfd.ListRequest{
-		ProgramType: programType.Int32(),
+		ProgramType:      programType.Uint32(),
+		BpfdProgramsOnly: &listOnlyBpfdPrograms,
 	}
 
 	out := map[string]*gobpfd.ListResponse_ListResult{}
@@ -164,7 +166,7 @@ func ListBpfdPrograms(ctx context.Context, bpfdClient gobpfd.LoaderClient, progr
 	}
 
 	for _, result := range listResponse.Results {
-		out[result.Id] = result
+		out[*result.Id] = result
 	}
 
 	return out, nil

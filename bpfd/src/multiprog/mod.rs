@@ -26,7 +26,7 @@ pub(crate) enum Dispatcher {
 impl Dispatcher {
     pub async fn new(
         config: Option<&InterfaceConfig>,
-        programs: &[(Uuid, Program)],
+        programs: &mut [(Uuid, Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
     ) -> Result<Dispatcher, BpfdError> {

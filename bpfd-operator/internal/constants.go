@@ -54,8 +54,8 @@ const (
 	Tracepoint SupportedProgramType = 5
 )
 
-func (p SupportedProgramType) Int32() *int32 {
-	progTypeInt := int32(p)
+func (p SupportedProgramType) Uint32() *uint32 {
+	progTypeInt := uint32(p)
 	return &progTypeInt
 }
 

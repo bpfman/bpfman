@@ -6,7 +6,8 @@ use std::{collections::HashMap, convert::TryInto};
 use anyhow::anyhow;
 use aya::{
     programs::{
-        links::FdLink, trace_point::TracePointLink, uprobe::UProbeLink, TracePoint, UProbe,
+        links::FdLink, loaded_programs, trace_point::TracePointLink, uprobe::UProbeLink,
+        TracePoint, UProbe,
     },
     BpfLoader,
 };
@@ -214,12 +215,10 @@ impl BpfManager {
         let did = program
             .dispatcher_id()
             .ok_or(BpfdError::DispatcherNotRequired)?;
-        program
-            .save(id)
-            .map_err(|e| BpfdError::Error(format!("unable to save program state: {e}")))?;
+
         self.programs.insert(id, program);
         self.sort_programs(program_type, if_index, direction);
-        let programs = self.collect_programs(program_type, if_index, direction);
+        let mut programs = self.collect_programs(program_type, if_index, direction);
         let old_dispatcher = self.dispatchers.remove(&did);
         let if_config = if let Some(ref i) = self.config.interfaces {
             i.get(&if_name)
@@ -231,7 +230,7 @@ impl BpfManager {
         } else {
             1
         };
-        let dispatcher = Dispatcher::new(if_config, &programs, next_revision, old_dispatcher)
+        let dispatcher = Dispatcher::new(if_config, &mut programs, next_revision, old_dispatcher)
             .await
             .or_else(|e| {
                 let prog = self.programs.remove(&id).unwrap();
@@ -243,15 +242,25 @@ impl BpfManager {
                 Err(e)
             })?;
         self.dispatchers.insert(did, dispatcher);
+
+        // update programs with now populated kernel info
+        // TODO this data flow should be optimized so that we don't have
+        // to re-iterate through the programs.
+        programs.iter().for_each(|(i, p)| {
+            self.programs.insert(i.to_owned(), p.to_owned());
+        });
+
         if let Some(p) = self.programs.get_mut(&id) {
-            p.set_attached()
+            p.set_attached();
+            p.save(id)
+                .map_err(|e| BpfdError::Error(format!("unable to save program state: {e}")))?;
         };
         Ok(id)
     }
 
     pub(crate) async fn add_single_attach_program(
         &mut self,
-        p: Program,
+        mut p: Program,
         id: Uuid,
     ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_single_attach_program()");
@@ -270,7 +279,7 @@ impl BpfManager {
         let mut loader = BpfLoader::new();
 
         for (name, value) in &p.data().global_data {
-            loader.set_global(name, value.as_slice());
+            loader.set_global(name, value.as_slice(), true);
         }
 
         let mut loader = loader
@@ -298,6 +307,7 @@ impl BpfManager {
                 let tracepoint: &mut TracePoint = raw_program.try_into()?;
 
                 tracepoint.load()?;
+                p.set_kernel_info(tracepoint.program_info()?.try_into()?);
                 p.save(id)
                     .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
                 self.programs.insert(id, p);
@@ -335,10 +345,11 @@ impl BpfManager {
 
                 Ok(id)
             }
-            Program::Uprobe(ref program) => {
+            Program::Uprobe(program) => {
                 let uprobe: &mut UProbe = raw_program.try_into()?;
 
                 uprobe.load()?;
+                p.set_kernel_info(uprobe.program_info()?.try_into()?);
                 p.save(id)
                     .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
 
@@ -451,7 +462,7 @@ impl BpfManager {
 
         self.sort_programs(program_type, if_index, direction);
 
-        let programs = self.collect_programs(program_type, if_index, direction);
+        let mut programs = self.collect_programs(program_type, if_index, direction);
 
         let if_config = if let Some(ref i) = self.config.interfaces {
             i.get(&if_name)
@@ -465,7 +476,7 @@ impl BpfManager {
         };
         debug!("next_revision = {next_revision}");
         let dispatcher =
-            Dispatcher::new(if_config, &programs, next_revision, old_dispatcher).await?;
+            Dispatcher::new(if_config, &mut programs, next_revision, old_dispatcher).await?;
         self.dispatchers.insert(did, dispatcher);
         Ok(())
     }
@@ -485,7 +496,7 @@ impl BpfManager {
             let if_index = Some(if_index);
 
             self.sort_programs(program_type, if_index, direction);
-            let programs = self.collect_programs(program_type, if_index, direction);
+            let mut programs = self.collect_programs(program_type, if_index, direction);
 
             debug!("programs loaded: {}", programs.len());
 
@@ -510,7 +521,7 @@ impl BpfManager {
             };
 
             let dispatcher =
-                Dispatcher::new(if_config, &programs, next_revision, old_dispatcher).await?;
+                Dispatcher::new(if_config, &mut programs, next_revision, old_dispatcher).await?;
             self.dispatchers.insert(did, dispatcher);
         } else {
             debug!("No dispatcher found in rebuild_multiattach_dispatcher() for {did:?}");
@@ -520,64 +531,113 @@ impl BpfManager {
 
     pub(crate) fn list_programs(&mut self) -> Result<Vec<ProgramInfo>, BpfdError> {
         debug!("BpfManager::list_programs()");
-        let programs = self
+
+        let mut bpfd_progs: HashMap<u32, ProgramInfo> = self
             .programs
             .iter()
-            .map(|(id, p)| match p {
-                Program::Xdp(p) => ProgramInfo {
-                    id: *id,
-                    name: p.data.section_name.to_string(),
-                    location: p.data.location.clone(),
-                    program_type: ProgramType::Xdp as i32,
-                    attach_info: crate::command::AttachInfo::Xdp(crate::command::XdpAttachInfo {
-                        iface: p.info.if_name.to_string(),
-                        priority: p.info.metadata.priority,
-                        proceed_on: p.info.proceed_on.clone(),
-                        position: p.info.current_position.unwrap_or_default() as i32,
-                    }),
-                },
-                Program::Tracepoint(p) => ProgramInfo {
-                    id: *id,
-                    name: p.data.section_name.to_string(),
-                    location: p.data.location.clone(),
-                    program_type: ProgramType::Tracepoint as i32,
-                    attach_info: crate::command::AttachInfo::Tracepoint(
-                        crate::command::TracepointAttachInfo {
-                            tracepoint: p.info.tracepoint.to_string(),
+            .map(|(id, p)| {
+                let location = Some(p.data().location.clone());
+                let kernel_info = p
+                    .data()
+                    .kernel_info
+                    .clone()
+                    .expect("Loaded program should have kernel information");
+                let prog_id = kernel_info.id;
+
+                match p {
+                    Program::Xdp(p) => (
+                        prog_id,
+                        ProgramInfo {
+                            id: Some(*id),
+                            name: Some(p.data.section_name.to_string()),
+                            program_type: Some(ProgramType::Xdp as u32),
+                            location,
+                            attach_info: Some(crate::command::AttachInfo::Xdp(
+                                crate::command::XdpAttachInfo {
+                                    iface: p.info.if_name.to_string(),
+                                    priority: p.info.metadata.priority,
+                                    proceed_on: p.info.proceed_on.clone(),
+                                    position: p.info.current_position.unwrap_or_default() as i32,
+                                },
+                            )),
+                            kernel_info,
                         },
                     ),
-                },
-                Program::Tc(p) => ProgramInfo {
-                    id: *id,
-                    name: p.data.section_name.to_string(),
-                    location: p.data.location.clone(),
-                    program_type: ProgramType::Tc as i32,
-                    attach_info: crate::command::AttachInfo::Tc(crate::command::TcAttachInfo {
-                        iface: p.info.if_name.to_string(),
-                        priority: p.info.metadata.priority,
-                        proceed_on: p.info.proceed_on.clone(),
-                        direction: p.direction,
-                        position: p.info.current_position.unwrap_or_default() as i32,
-                    }),
-                },
-                Program::Uprobe(p) => ProgramInfo {
-                    id: *id,
-                    name: p.data.section_name.to_string(),
-                    location: p.data.location.clone(),
-                    program_type: ProgramType::Kprobe as i32,
-                    attach_info: crate::command::AttachInfo::Uprobe(
-                        crate::command::UprobeAttachInfo {
-                            fn_name: p.info.fn_name.clone(),
-                            offset: p.info.offset,
-                            target: p.info.target.clone(),
-                            pid: p.info.pid,
-                            namespace: p.info.namespace.clone(),
+                    Program::Tracepoint(p) => (
+                        prog_id,
+                        ProgramInfo {
+                            id: Some(*id),
+                            name: Some(p.data.section_name.to_string()),
+                            location,
+                            program_type: Some(ProgramType::Tracepoint as u32),
+                            attach_info: Some(crate::command::AttachInfo::Tracepoint(
+                                crate::command::TracepointAttachInfo {
+                                    tracepoint: p.info.tracepoint.to_string(),
+                                },
+                            )),
+                            kernel_info,
                         },
                     ),
-                },
+                    Program::Tc(p) => (
+                        prog_id,
+                        ProgramInfo {
+                            id: Some(*id),
+                            name: Some(p.data.section_name.to_string()),
+                            location,
+                            program_type: Some(ProgramType::Tc as u32),
+                            attach_info: Some(crate::command::AttachInfo::Tc(
+                                crate::command::TcAttachInfo {
+                                    iface: p.info.if_name.to_string(),
+                                    priority: p.info.metadata.priority,
+                                    proceed_on: p.info.proceed_on.clone(),
+                                    direction: p.direction,
+                                    position: p.info.current_position.unwrap_or_default() as i32,
+                                },
+                            )),
+                            kernel_info,
+                        },
+                    ),
+                    Program::Uprobe(p) => (
+                        prog_id,
+                        ProgramInfo {
+                            id: Some(*id),
+                            name: Some(p.data.section_name.to_string()),
+                            location,
+                            program_type: Some(ProgramType::Kprobe as u32),
+                            attach_info: Some(crate::command::AttachInfo::Uprobe(
+                                crate::command::UprobeAttachInfo {
+                                    fn_name: p.info.fn_name.clone(),
+                                    offset: p.info.offset,
+                                    target: p.info.target.clone(),
+                                    pid: p.info.pid,
+                                    namespace: p.info.namespace.clone(),
+                                },
+                            )),
+                            kernel_info,
+                        },
+                    ),
+                }
             })
             .collect();
-        Ok(programs)
+
+        loaded_programs()
+            .map(|p| {
+                let prog = p.map_err(BpfdError::BpfProgramError)?;
+                let prog_id = prog.id();
+
+                match bpfd_progs.remove(&prog_id) {
+                    Some(p) => Ok(p),
+                    None => Ok(ProgramInfo {
+                        id: None,
+                        name: None,
+                        program_type: None,
+                        location: None,
+                        attach_info: None,
+                        kernel_info: prog.try_into()?,
+                    }),
+                }
+            })
+            .collect()
     }
 
     fn sort_programs(

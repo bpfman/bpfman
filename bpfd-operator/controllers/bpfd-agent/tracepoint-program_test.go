@@ -155,7 +155,7 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 				File: bytecodePath,
 			},
 			SectionName: sectionName,
-			ProgramType: *internal.Tracepoint.Int32(),
+			ProgramType: *internal.Tracepoint.Uint32(),
 			Id:          &id,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TracepointAttachInfo{

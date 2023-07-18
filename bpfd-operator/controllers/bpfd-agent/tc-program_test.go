@@ -165,7 +165,7 @@ func TestTcProgramControllerCreate(t *testing.T) {
 				File: bytecodePath,
 			},
 			SectionName: sectionName,
-			ProgramType: *internal.Tc.Int32(),
+			ProgramType: *internal.Tc.Uint32(),
 			Id:          &id,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
@@ -367,7 +367,7 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 				File: bytecodePath,
 			},
 			SectionName: sectionName,
-			ProgramType: *internal.Tc.Int32(),
+			ProgramType: *internal.Tc.Uint32(),
 			Id:          &id0,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
@@ -388,7 +388,7 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 				File: bytecodePath,
 			},
 			SectionName: sectionName,
-			ProgramType: *internal.Tc.Int32(),
+			ProgramType: *internal.Tc.Uint32(),
 			Id:          &id1,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{

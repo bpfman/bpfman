@@ -90,8 +90,8 @@ func loadRequestToListResult(loadReq *gobpfd.LoadRequest) *gobpfd.ListResponse_L
 		}
 	}
 
-	listResult.Id = *loadReq.Common.Id
-	listResult.SectionName = &loadReq.Common.SectionName
+	listResult.Id = loadReq.Common.Id
+	listResult.Name = loadReq.Common.SectionName
 	listResult.ProgramType = loadReq.Common.ProgramType
 
 	return listResult

@@ -15,13 +15,15 @@ message BytecodeImage {
     string password = 4;
 }
 
+message NoLocation{}
+
 message LoadRequestCommon {
     oneof location {
         BytecodeImage image = 1;
         string file = 2;
     } ;
     string section_name = 3;
-    int32 program_type = 4;
+    uint32 program_type = 4;
     optional string id = 5;
     map<string, bytes> global_data = 6;
 }
@@ -76,25 +78,38 @@ message UnloadRequest {
 message UnloadResponse {}
 
 message ListRequest {
-    optional int32 program_type = 1;
+    optional uint32 program_type = 1;
+    optional bool bpfd_programs_only = 2;
 }
 
 message ListResponse {
   message ListResult {
-    string id = 1;
-    optional string section_name = 2;
+    optional string id = 1;
+    string name = 2;
     oneof location {
-        BytecodeImage image = 3;
-        string file = 4;
+        NoLocation no_location = 3;
+        BytecodeImage image = 4;
+        string file = 5;
     } ;
-    int32 program_type = 5;
+    uint32 program_type = 6;
     oneof attach_info {
-        NoAttachInfo none = 6;
-        XDPAttachInfo xdp_attach_info = 7;
-        TCAttachInfo tc_attach_info = 8;
-        TracepointAttachInfo tracepoint_attach_info = 9;
-        UprobeAttachInfo uprobe_attach_info = 10;
+        NoAttachInfo none = 7;
+        XDPAttachInfo xdp_attach_info = 8;
+        TCAttachInfo tc_attach_info = 9;
+        TracepointAttachInfo tracepoint_attach_info = 10;
+        UprobeAttachInfo uprobe_attach_info = 11;
     }
+    uint32 bpf_id = 12;
+    string loaded_at = 13;
+    string tag = 14;
+    bool gpl_compatible = 15;
+    repeated uint32 map_ids = 16;
+    uint32 btf_id = 17;
+    uint32 bytes_xlated = 18;
+    bool jited = 19;
+    uint32 bytes_jited = 20;
+    uint32 bytes_memlock = 21;
+    uint32 verified_insns = 22;
   } 
-  repeated ListResult results = 10;
+  repeated ListResult results = 23;
 }

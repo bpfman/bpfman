@@ -160,7 +160,7 @@ func TestXdpProgramControllerCreate(t *testing.T) {
 				File: bytecodePath,
 			},
 			SectionName: sectionName,
-			ProgramType: *internal.Xdp.Int32(),
+			ProgramType: *internal.Xdp.Uint32(),
 			Id:          &id,
 		},
 		AttachInfo: &gobpfd.LoadRequest_XdpAttachInfo{
@@ -357,7 +357,7 @@ func TestXdpProgramControllerCreateMultiIntf(t *testing.T) {
 				File: bytecodePath,
 			},
 			SectionName: sectionName,
-			ProgramType: *internal.Xdp.Int32(),
+			ProgramType: *internal.Xdp.Uint32(),
 			Id:          &id0,
 		},
 		AttachInfo: &gobpfd.LoadRequest_XdpAttachInfo{
@@ -377,7 +377,7 @@ func TestXdpProgramControllerCreateMultiIntf(t *testing.T) {
 				File: bytecodePath,
 			},
 			SectionName: sectionName,
-			ProgramType: *internal.Xdp.Int32(),
+			ProgramType: *internal.Xdp.Uint32(),
 			Id:          &id1,
 		},
 		AttachInfo: &gobpfd.LoadRequest_XdpAttachInfo{

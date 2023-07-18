@@ -4,10 +4,12 @@
 //! Commands between the RPC thread and the BPF thread
 use std::{collections::HashMap, fmt, fs, io::BufReader, path::PathBuf};
 
+use aya::programs::ProgramInfo as AyaProgInfo;
 use bpfd_api::{
     util::directories::{RTDIR_FS, RTDIR_FS_MAPS, RTDIR_PROGRAMS},
     ParseError, ProgramType, TcProceedOn, XdpProceedOn,
 };
+use chrono::{prelude::DateTime, Local};
 use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
 use uuid::Uuid;
@@ -135,13 +137,59 @@ impl std::fmt::Display for Direction {
     }
 }
 
+/// KernelProgramInfo stores information about ALL bpf programs loaded
+/// on a system.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub(crate) struct KernelProgramInfo {
+    pub(crate) id: u32,
+    pub(crate) name: String,
+    pub(crate) program_type: u32,
+    pub(crate) loaded_at: String,
+    pub(crate) tag: String,
+    pub(crate) gpl_compatible: bool,
+    pub(crate) map_ids: Vec<u32>,
+    pub(crate) btf_id: u32,
+    pub(crate) bytes_xlated: u32,
+    pub(crate) jited: bool,
+    pub(crate) bytes_jited: u32,
+    pub(crate) bytes_memlock: u32,
+    pub(crate) verified_insns: u32,
+}
+
+impl TryFrom<AyaProgInfo> for KernelProgramInfo {
+    type Error = BpfdError;
+
+    fn try_from(prog: AyaProgInfo) -> Result<Self, Self::Error> {
+        Ok(KernelProgramInfo {
+            id: prog.id(),
+            name: prog.name_as_str().unwrap().to_string(),
+            program_type: prog.type_(),
+            loaded_at: DateTime::<Local>::from(prog.loaded_at())
+                .format("%Y-%m-%dT%H:%M:%S%z")
+                .to_string(),
+            tag: format!("{:x}", prog.tag()),
+            gpl_compatible: prog.gpl_compatible(),
+            map_ids: prog.map_ids().map_err(BpfdError::BpfProgramError)?,
+            btf_id: prog.btf_id(),
+            bytes_xlated: prog.bytes_xlated(),
+            jited: prog.bytes_jited() != 0,
+            bytes_jited: prog.bytes_jited(),
+            bytes_memlock: prog.bytes_memlock().map_err(BpfdError::BpfProgramError)?,
+            verified_insns: prog.verified_insns(),
+        })
+    }
+}
+
+/// ProgramInfo stores information about bpf programs loaded on a system
+/// which are managed via bpfd.
 #[derive(Debug, Clone)]
 pub(crate) struct ProgramInfo {
-    pub(crate) id: Uuid,
-    pub(crate) name: String,
-    pub(crate) location: Location,
-    pub(crate) program_type: i32,
-    pub(crate) attach_info: AttachInfo,
+    pub(crate) id: Option<Uuid>,
+    pub(crate) name: Option<String>,
+    pub(crate) program_type: Option<u32>,
+    pub(crate) location: Option<Location>,
+    pub(crate) attach_info: Option<AttachInfo>,
+    pub(crate) kernel_info: KernelProgramInfo,
 }
 
 #[derive(Debug, Clone)]
@@ -258,6 +306,7 @@ pub(crate) struct ProgramData {
     pub(crate) global_data: HashMap<String, Vec<u8>>,
     pub(crate) path: String,
     pub(crate) owner: String,
+    pub(crate) kernel_info: Option<KernelProgramInfo>,
 }
 
 impl ProgramData {
@@ -274,6 +323,7 @@ impl ProgramData {
                 section_name,
                 owner,
                 global_data,
+                kernel_info: None,
             }),
             Location::Image(l) => {
                 let program_overrides = l
@@ -299,6 +349,9 @@ impl ProgramData {
                     section_name,
                     global_data,
                     owner,
+                    // this is populated when the programs bytecode in loaded into
+                    // the kernel.
+                    kernel_info: None,
                 })
             }
         }
@@ -402,6 +455,15 @@ impl Program {
             Program::Tc(p) => p.info.current_position = pos,
             Program::Tracepoint(_) => (),
             Program::Uprobe(_) => (),
+        }
+    }
+
+    pub(crate) fn set_kernel_info(&mut self, info: KernelProgramInfo) {
+        match self {
+            Program::Xdp(p) => p.data.kernel_info = Some(info),
+            Program::Tc(p) => p.data.kernel_info = Some(info),
+            Program::Tracepoint(p) => p.data.kernel_info = Some(info),
+            Program::Uprobe(p) => p.data.kernel_info = Some(info),
         }
     }
 

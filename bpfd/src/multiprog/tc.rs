@@ -53,13 +53,13 @@ impl TcDispatcher {
         direction: Direction,
         if_index: &u32,
         if_name: String,
-        programs: &[(Uuid, Program)],
+        programs: &mut [(Uuid, Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
     ) -> Result<TcDispatcher, BpfdError> {
         debug!("TcDispatcher::new() for if_index {if_index}, revision {revision}");
-        let mut extensions: Vec<(&Uuid, &TcProgram)> = programs
-            .iter()
+        let mut extensions: Vec<(&mut Uuid, &mut TcProgram)> = programs
+            .iter_mut()
             .filter_map(|(k, v)| match v {
                 Program::Tc(p) => Some((k, p)),
                 _ => None,
@@ -79,7 +79,7 @@ impl TcDispatcher {
         debug!("tc dispatcher config: {:?}", config);
 
         let mut loader = BpfLoader::new()
-            .set_global("CONFIG", &config)
+            .set_global("CONFIG", &config, true)
             .load(DISPATCHER_BYTES)?;
 
         let dispatcher: &mut SchedClassifier = loader
@@ -163,7 +163,7 @@ impl TcDispatcher {
 
     async fn attach_extensions(
         &mut self,
-        extensions: &mut [(&Uuid, &TcProgram)],
+        extensions: &mut [(&mut Uuid, &mut TcProgram)],
     ) -> Result<(), BpfdError> {
         debug!(
             "TcDispatcher::attach_extensions() for if_index {}, revision {}",
@@ -206,7 +206,7 @@ impl TcDispatcher {
                 let mut bpf = BpfLoader::new();
 
                 for (name, value) in &v.data.global_data {
-                    bpf.set_global(name, value.as_slice());
+                    bpf.set_global(name, value.as_slice(), true);
                 }
 
                 let mut bpf = bpf
@@ -223,6 +223,8 @@ impl TcDispatcher {
                 let target_fn = format!("prog{i}");
 
                 ext.load(dispatcher.fd().unwrap(), &target_fn)?;
+                v.data.kernel_info = Some(ext.program_info()?.try_into()?);
+
                 ext.pin(format!("{RTDIR_FS}/prog_{k}"))
                     .map_err(BpfdError::UnableToPinProgram)?;
                 let new_link_id = ext.attach()?;
