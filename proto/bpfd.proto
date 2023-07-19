@@ -50,12 +50,20 @@ message TracepointAttachInfo {
     string tracepoint = 1;
 }
 
+message KprobeAttachInfo {
+    string fn_name = 1;
+    uint64 offset = 2;
+    bool retprobe = 3;
+    optional string namespace = 4;
+}
+
 message UprobeAttachInfo {
     optional string fn_name = 1;
-    optional uint64 offset = 2;
+    uint64 offset = 2;
     string target = 3;
-    optional int32 pid = 4;
-    optional string namespace = 5;
+    bool retprobe = 4;
+    optional int32 pid = 5;
+    optional string namespace = 6;
 }
 
 message LoadRequest {
@@ -64,7 +72,8 @@ message LoadRequest {
         XDPAttachInfo xdp_attach_info = 2;
         TCAttachInfo tc_attach_info = 3;
         TracepointAttachInfo tracepoint_attach_info = 4;
-        UprobeAttachInfo uprobe_attach_info = 5;
+        KprobeAttachInfo kprobe_attach_info = 5;
+        UprobeAttachInfo uprobe_attach_info = 6;
     }
 };
 
@@ -98,21 +107,22 @@ message ListResponse {
         XDPAttachInfo xdp_attach_info = 8;
         TCAttachInfo tc_attach_info = 9;
         TracepointAttachInfo tracepoint_attach_info = 10;
-        UprobeAttachInfo uprobe_attach_info = 11;
+        KprobeAttachInfo kprobe_attach_info = 11;
+        UprobeAttachInfo uprobe_attach_info = 12;
     }
-    uint32 bpf_id = 12;
-    string loaded_at = 13;
-    string tag = 14;
-    bool gpl_compatible = 15;
-    repeated uint32 map_ids = 16;
-    uint32 btf_id = 17;
-    uint32 bytes_xlated = 18;
-    bool jited = 19;
-    uint32 bytes_jited = 20;
-    uint32 bytes_memlock = 21;
-    uint32 verified_insns = 22;
-  }
-  repeated ListResult results = 23;
+    uint32 bpf_id = 13;
+    string loaded_at = 14;
+    string tag = 15;
+    bool gpl_compatible = 16;
+    repeated uint32 map_ids = 17;
+    uint32 btf_id = 18;
+    uint32 bytes_xlated = 19;
+    bool jited = 20;
+    uint32 bytes_jited = 21;
+    uint32 bytes_memlock = 22;
+    uint32 verified_insns = 23;
+  } 
+  repeated ListResult results = 24;
 }
 
 message PullBytecodeRequest {

@@ -33,13 +33,43 @@ docker build \
 docker push quay.io/bpfd-bytecode/tracepoint
 
 docker build \
- --build-arg PROGRAM_NAME=mallocprobe \
- --build-arg SECTION_NAME=malloc \
- --build-arg PROGRAM_TYPE=uprobe \
- --build-arg BYTECODE_FILENAME=mallocprobe.bpf.o \
+ --build-arg PROGRAM_NAME=uprobe \
+ --build-arg SECTION_NAME=my_uprobe \
+ --build-arg PROGRAM_TYPE=kprobe \
+ --build-arg BYTECODE_FILENAME=uprobe.bpf.o \
  -f ../../../packaging/container-deployment//Containerfile.bytecode \
- ./.output -t quay.io/bpfd-bytecode/mallocprobe:latest
+ ./.output -t quay.io/bpfd-bytecode/uprobe:latest
 
-docker push quay.io/bpfd-bytecode/mallocprobe
+docker push quay.io/bpfd-bytecode/uprobe
+
+docker build \
+ --build-arg PROGRAM_NAME=uretprobe \
+ --build-arg SECTION_NAME=my_uretprobe \
+ --build-arg PROGRAM_TYPE=kprobe \
+ --build-arg BYTECODE_FILENAME=uprobe.bpf.o \
+ -f ../../../packaging/container-deployment//Containerfile.bytecode \
+ ./.output -t quay.io/bpfd-bytecode/uretprobe:latest
+
+docker push quay.io/bpfd-bytecode/uretprobe
+
+docker build \
+ --build-arg PROGRAM_NAME=kprobe \
+ --build-arg SECTION_NAME=my_kprobe \
+ --build-arg PROGRAM_TYPE=kprobe \
+ --build-arg BYTECODE_FILENAME=kprobe.bpf.o \
+ -f ../../../packaging/container-deployment//Containerfile.bytecode \
+ ./.output -t quay.io/bpfd-bytecode/kprobe:latest
+
+docker push quay.io/bpfd-bytecode/kprobe
+
+docker build \
+ --build-arg PROGRAM_NAME=kretprobe \
+ --build-arg SECTION_NAME=my_kretprobe \
+ --build-arg PROGRAM_TYPE=kprobe \
+ --build-arg BYTECODE_FILENAME=kprobe.bpf.o \
+ -f ../../../packaging/container-deployment//Containerfile.bytecode \
+ ./.output -t quay.io/bpfd-bytecode/kretprobe:latest
+
+docker push quay.io/bpfd-bytecode/kretprobe
 
 

@@ -32,7 +32,10 @@ const TRACE_PIPE_FILE_NAME: &str = "/tmp/bpfd_trace_pipe.log";
 const XDP_PASS_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/xdp_pass:latest";
 const TC_PASS_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/tc_pass:latest";
 const TRACEPOINT_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/tracepoint:latest";
-const UPROBE_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/mallocprobe:latest";
+const UPROBE_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/uprobe:latest";
+const URETPROBE_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/uretprobe:latest";
+const KPROBE_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/kprobe:latest";
+const KRETPROBE_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/kretprobe:latest";
 
 /// Exit on panic as well as the passing of a test
 #[derive(Debug)]
@@ -192,8 +195,11 @@ pub fn add_tracepoint(globals: Option<Vec<&str>>) -> Result<String> {
     Ok(uuid.to_string())
 }
 
-/// Install a uprobe program with bpfctl
+/// Attach a uprobe program to bpfctl with bpfctl
 pub fn add_uprobe(globals: Option<Vec<&str>>) -> Result<String> {
+    let bpfctl_cmd = Command::cargo_bin("bpfctl")?;
+    let bpfctl_path = bpfctl_cmd.get_program().to_str().unwrap();
+
     let mut args = vec!["load-from-image"];
 
     if let Some(g) = globals {
@@ -208,9 +214,9 @@ pub fn add_uprobe(globals: Option<Vec<&str>>) -> Result<String> {
         "Always",
         "uprobe",
         "-f",
-        "malloc",
+        "main",
         "-t",
-        "libc",
+        bpfctl_path,
     ]);
 
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
@@ -218,6 +224,94 @@ pub fn add_uprobe(globals: Option<Vec<&str>>) -> Result<String> {
     let uuid = stdout.trim();
     assert!(!uuid.is_empty());
     debug!("Successfully added uprobe program: {:?}", uuid);
+    Ok(uuid.to_string())
+}
+
+/// Attach a uretprobe program to bpfctl with bpfctl
+pub fn add_uretprobe(globals: Option<Vec<&str>>) -> Result<String> {
+    let bpfctl_cmd = Command::cargo_bin("bpfctl")?;
+    let bpfctl_path = bpfctl_cmd.get_program().to_str().unwrap();
+
+    let mut args = vec!["load-from-image"];
+
+    if let Some(g) = globals {
+        args.extend(["--global"]);
+        args.extend(g);
+    }
+
+    args.extend([
+        "--image-url",
+        URETPROBE_IMAGE_LOC,
+        "--pull-policy",
+        "Always",
+        "uprobe",
+        "-f",
+        "main",
+        "-t",
+        bpfctl_path,
+        "-r",
+    ]);
+
+    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
+    let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
+    let uuid = stdout.trim();
+    assert!(!uuid.is_empty());
+    debug!("Successfully added uretprobe program: {:?}", uuid);
+    Ok(uuid.to_string())
+}
+
+/// Install a kprobe program with bpfctl
+pub fn add_kprobe(globals: Option<Vec<&str>>) -> Result<String> {
+    let mut args = vec!["load-from-image"];
+
+    if let Some(g) = globals {
+        args.extend(["--global"]);
+        args.extend(g);
+    }
+
+    args.extend([
+        "--image-url",
+        KPROBE_IMAGE_LOC,
+        "--pull-policy",
+        "Always",
+        "kprobe",
+        "-f",
+        "try_to_wake_up",
+    ]);
+
+    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
+    let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
+    let uuid = stdout.trim();
+    assert!(!uuid.is_empty());
+    debug!("Successfully added kprobe program: {:?}", uuid);
+    Ok(uuid.to_string())
+}
+
+/// Install a kprobe program with bpfctl
+pub fn add_kretprobe(globals: Option<Vec<&str>>) -> Result<String> {
+    let mut args = vec!["load-from-image"];
+
+    if let Some(g) = globals {
+        args.extend(["--global"]);
+        args.extend(g);
+    }
+
+    args.extend([
+        "--image-url",
+        KRETPROBE_IMAGE_LOC,
+        "--pull-policy",
+        "Always",
+        "kprobe",
+        "-f",
+        "try_to_wake_up",
+        "-r",
+    ]);
+
+    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
+    let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
+    let uuid = stdout.trim();
+    assert!(!uuid.is_empty());
+    debug!("Successfully added kretprobe program: {:?}", uuid);
     Ok(uuid.to_string())
 }
 

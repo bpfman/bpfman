@@ -78,16 +78,30 @@ pub struct TracepointAttachInfo {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct KprobeAttachInfo {
+    #[prost(string, tag = "1")]
+    pub fn_name: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub offset: u64,
+    #[prost(bool, tag = "3")]
+    pub retprobe: bool,
+    #[prost(string, optional, tag = "4")]
+    pub namespace: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UprobeAttachInfo {
     #[prost(string, optional, tag = "1")]
     pub fn_name: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(uint64, optional, tag = "2")]
-    pub offset: ::core::option::Option<u64>,
+    #[prost(uint64, tag = "2")]
+    pub offset: u64,
     #[prost(string, tag = "3")]
     pub target: ::prost::alloc::string::String,
-    #[prost(int32, optional, tag = "4")]
+    #[prost(bool, tag = "4")]
+    pub retprobe: bool,
+    #[prost(int32, optional, tag = "5")]
     pub pid: ::core::option::Option<i32>,
-    #[prost(string, optional, tag = "5")]
+    #[prost(string, optional, tag = "6")]
     pub namespace: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -95,7 +109,7 @@ pub struct UprobeAttachInfo {
 pub struct LoadRequest {
     #[prost(message, optional, tag = "1")]
     pub common: ::core::option::Option<LoadRequestCommon>,
-    #[prost(oneof = "load_request::AttachInfo", tags = "2, 3, 4, 5")]
+    #[prost(oneof = "load_request::AttachInfo", tags = "2, 3, 4, 5, 6")]
     pub attach_info: ::core::option::Option<load_request::AttachInfo>,
 }
 /// Nested message and enum types in `LoadRequest`.
@@ -110,6 +124,8 @@ pub mod load_request {
         #[prost(message, tag = "4")]
         TracepointAttachInfo(super::TracepointAttachInfo),
         #[prost(message, tag = "5")]
+        KprobeAttachInfo(super::KprobeAttachInfo),
+        #[prost(message, tag = "6")]
         UprobeAttachInfo(super::UprobeAttachInfo),
     }
 }
@@ -139,7 +155,7 @@ pub struct ListRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListResponse {
-    #[prost(message, repeated, tag = "23")]
+    #[prost(message, repeated, tag = "24")]
     pub results: ::prost::alloc::vec::Vec<list_response::ListResult>,
 }
 /// Nested message and enum types in `ListResponse`.
@@ -153,31 +169,31 @@ pub mod list_response {
         pub name: ::prost::alloc::string::String,
         #[prost(uint32, tag = "6")]
         pub program_type: u32,
-        #[prost(uint32, tag = "12")]
+        #[prost(uint32, tag = "13")]
         pub bpf_id: u32,
-        #[prost(string, tag = "13")]
-        pub loaded_at: ::prost::alloc::string::String,
         #[prost(string, tag = "14")]
+        pub loaded_at: ::prost::alloc::string::String,
+        #[prost(string, tag = "15")]
         pub tag: ::prost::alloc::string::String,
-        #[prost(bool, tag = "15")]
+        #[prost(bool, tag = "16")]
         pub gpl_compatible: bool,
-        #[prost(uint32, repeated, tag = "16")]
+        #[prost(uint32, repeated, tag = "17")]
         pub map_ids: ::prost::alloc::vec::Vec<u32>,
-        #[prost(uint32, tag = "17")]
-        pub btf_id: u32,
         #[prost(uint32, tag = "18")]
+        pub btf_id: u32,
+        #[prost(uint32, tag = "19")]
         pub bytes_xlated: u32,
-        #[prost(bool, tag = "19")]
+        #[prost(bool, tag = "20")]
         pub jited: bool,
-        #[prost(uint32, tag = "20")]
-        pub bytes_jited: u32,
         #[prost(uint32, tag = "21")]
-        pub bytes_memlock: u32,
+        pub bytes_jited: u32,
         #[prost(uint32, tag = "22")]
+        pub bytes_memlock: u32,
+        #[prost(uint32, tag = "23")]
         pub verified_insns: u32,
         #[prost(oneof = "list_result::Location", tags = "3, 4, 5")]
         pub location: ::core::option::Option<list_result::Location>,
-        #[prost(oneof = "list_result::AttachInfo", tags = "7, 8, 9, 10, 11")]
+        #[prost(oneof = "list_result::AttachInfo", tags = "7, 8, 9, 10, 11, 12")]
         pub attach_info: ::core::option::Option<list_result::AttachInfo>,
     }
     /// Nested message and enum types in `ListResult`.
@@ -204,6 +220,8 @@ pub mod list_response {
             #[prost(message, tag = "10")]
             TracepointAttachInfo(super::super::TracepointAttachInfo),
             #[prost(message, tag = "11")]
+            KprobeAttachInfo(super::super::KprobeAttachInfo),
+            #[prost(message, tag = "12")]
             UprobeAttachInfo(super::super::UprobeAttachInfo),
         }
     }

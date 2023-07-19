@@ -30,11 +30,13 @@ type Responder<T> = oneshot::Sender<T>;
 pub(crate) enum Command {
     /// Load an XDP program
     LoadXDP(LoadXDPArgs),
-    /// Load a TC Program
+    /// Load a TC program
     LoadTC(LoadTCArgs),
-    // Load a Tracepoint Program
+    // Load a Tracepoint program
     LoadTracepoint(LoadTracepointArgs),
-    // Load a uprobe Program
+    // Load a kprobe program
+    LoadKprobe(LoadKprobeArgs),
+    // Load a uprobe program
     LoadUprobe(LoadUprobeArgs),
     Unload(UnloadArgs),
     List {
@@ -82,14 +84,29 @@ pub(crate) struct LoadTracepointArgs {
 }
 
 #[derive(Debug)]
+pub(crate) struct LoadKprobeArgs {
+    pub(crate) location: Location,
+    pub(crate) id: Option<Uuid>,
+    pub(crate) section_name: String,
+    pub(crate) global_data: HashMap<String, Vec<u8>>,
+    pub(crate) fn_name: String,
+    pub(crate) offset: u64,
+    pub(crate) retprobe: bool,
+    pub(crate) _namespace: Option<String>,
+    pub(crate) username: String,
+    pub(crate) responder: Responder<Result<Uuid, BpfdError>>,
+}
+
+#[derive(Debug)]
 pub(crate) struct LoadUprobeArgs {
     pub(crate) location: Location,
     pub(crate) id: Option<Uuid>,
     pub(crate) section_name: String,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
     pub(crate) fn_name: Option<String>,
-    pub(crate) offset: Option<u64>,
+    pub(crate) offset: u64,
     pub(crate) target: String,
+    pub(crate) retprobe: bool,
     pub(crate) pid: Option<i32>,
     pub(crate) _namespace: Option<String>,
     pub(crate) username: String,
@@ -204,6 +221,7 @@ pub(crate) enum AttachInfo {
     Xdp(XdpAttachInfo),
     Tc(TcAttachInfo),
     Tracepoint(TracepointAttachInfo),
+    Kprobe(KprobeAttachInfo),
     Uprobe(UprobeAttachInfo),
 }
 
@@ -230,10 +248,19 @@ pub(crate) struct TracepointAttachInfo {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub(crate) struct KprobeAttachInfo {
+    pub(crate) fn_name: String,
+    pub(crate) offset: u64,
+    pub(crate) retprobe: bool,
+    pub(crate) namespace: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct UprobeAttachInfo {
     pub(crate) fn_name: Option<String>,
-    pub(crate) offset: Option<u64>,
+    pub(crate) offset: u64,
     pub(crate) target: String,
+    pub(crate) retprobe: bool,
     pub(crate) pid: Option<i32>,
     pub(crate) namespace: Option<String>,
 }
@@ -260,6 +287,7 @@ pub(crate) enum Program {
     Xdp(XdpProgram),
     Tracepoint(TracepointProgram),
     Tc(TcProgram),
+    Kprobe(KprobeProgram),
     Uprobe(UprobeProgram),
 }
 
@@ -295,9 +323,21 @@ impl TracepointProgram {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct KprobeProgram {
+    pub(crate) data: ProgramData,
+    pub(crate) info: KprobeProgramInfo,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct UprobeProgram {
     pub(crate) data: ProgramData,
     pub(crate) info: UprobeProgramInfo,
+}
+
+impl KprobeProgram {
+    pub(crate) fn _new(data: ProgramData, info: KprobeProgramInfo) -> Self {
+        Self { data, info }
+    }
 }
 
 impl UprobeProgram {
@@ -391,10 +431,19 @@ pub(crate) struct TracepointProgramInfo {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+pub(crate) struct KprobeProgramInfo {
+    pub(crate) fn_name: String,
+    pub(crate) offset: u64,
+    pub(crate) retprobe: bool,
+    pub(crate) namespace: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct UprobeProgramInfo {
     pub(crate) fn_name: Option<String>,
-    pub(crate) offset: Option<u64>,
+    pub(crate) offset: u64,
     pub(crate) target: String,
+    pub(crate) retprobe: bool,
     pub(crate) pid: Option<i32>,
     pub(crate) namespace: Option<String>,
 }
@@ -405,7 +454,8 @@ impl Program {
             Program::Xdp(_) => ProgramType::Xdp,
             Program::Tc(_) => ProgramType::Tc,
             Program::Tracepoint(_) => ProgramType::Tracepoint,
-            Program::Uprobe(_) => ProgramType::Kprobe,
+            Program::Kprobe(_) => ProgramType::Probe,
+            Program::Uprobe(_) => ProgramType::Probe,
         }
     }
 
@@ -425,6 +475,7 @@ impl Program {
             Program::Xdp(p) => &p.data,
             Program::Tracepoint(p) => &p.data,
             Program::Tc(p) => &p.data,
+            Program::Kprobe(p) => &p.data,
             Program::Uprobe(p) => &p.data,
         }
     }
@@ -434,6 +485,7 @@ impl Program {
             Program::Xdp(p) => Some(&p.info.metadata),
             Program::Tracepoint(_) => None,
             Program::Tc(p) => Some(&p.info.metadata),
+            Program::Kprobe(_) => None,
             Program::Uprobe(_) => None,
         }
     }
@@ -443,6 +495,7 @@ impl Program {
             Program::Xdp(p) => &p.data.owner,
             Program::Tracepoint(p) => &p.data.owner,
             Program::Tc(p) => &p.data.owner,
+            Program::Kprobe(p) => &p.data.owner,
             Program::Uprobe(p) => &p.data.owner,
         }
     }
@@ -452,6 +505,7 @@ impl Program {
             Program::Xdp(p) => p.info.metadata.attached = true,
             Program::Tc(p) => p.info.metadata.attached = true,
             Program::Tracepoint(_) => (),
+            Program::Kprobe(_) => (),
             Program::Uprobe(_) => (),
         }
     }
@@ -461,6 +515,7 @@ impl Program {
             Program::Xdp(p) => p.info.current_position = pos,
             Program::Tc(p) => p.info.current_position = pos,
             Program::Tracepoint(_) => (),
+            Program::Kprobe(_) => (),
             Program::Uprobe(_) => (),
         }
     }
@@ -470,6 +525,7 @@ impl Program {
             Program::Xdp(p) => p.data.kernel_info = Some(info),
             Program::Tc(p) => p.data.kernel_info = Some(info),
             Program::Tracepoint(p) => p.data.kernel_info = Some(info),
+            Program::Kprobe(p) => p.data.kernel_info = Some(info),
             Program::Uprobe(p) => p.data.kernel_info = Some(info),
         }
     }
@@ -510,6 +566,7 @@ impl Program {
             Program::Xdp(p) => Some(p.info.if_index),
             Program::Tracepoint(_) => None,
             Program::Tc(p) => Some(p.info.if_index),
+            Program::Kprobe(_) => None,
             Program::Uprobe(_) => None,
         }
     }
@@ -519,6 +576,7 @@ impl Program {
             Program::Xdp(p) => Some(p.info.if_name.clone()),
             Program::Tracepoint(_) => None,
             Program::Tc(p) => Some(p.info.if_name.clone()),
+            Program::Kprobe(_) => None,
             Program::Uprobe(_) => None,
         }
     }
@@ -528,6 +586,7 @@ impl Program {
             Program::Xdp(_) => None,
             Program::Tracepoint(_) => None,
             Program::Tc(p) => Some(p.direction),
+            Program::Kprobe(_) => None,
             Program::Uprobe(_) => None,
         }
     }
