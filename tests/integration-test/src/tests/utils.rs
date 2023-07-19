@@ -1,7 +1,15 @@
-use std::{fs::File, io::Read, process::Command, thread::sleep, time::Duration};
+use std::{
+    fs::File,
+    io::Read,
+    path::{Path, PathBuf},
+    process::Command,
+    thread::sleep,
+    time::Duration,
+};
 
 use anyhow::Result;
 use assert_cmd::prelude::*;
+use bpfd_api::util::directories::BYTECODE_IMAGE_CONTENT_STORE;
 use log::debug;
 use predicates::str::is_empty;
 
@@ -232,6 +240,26 @@ pub fn bpfd_list() -> Result<String> {
     Ok(stdout.unwrap())
 }
 
+pub fn bpfd_pull_bytecode() -> Result<String> {
+    let mut args = vec!["pull-bytecode"];
+
+    args.extend([
+        "--image-url",
+        TRACEPOINT_IMAGE_LOC,
+        "--pull-policy",
+        "Always",
+    ]);
+
+    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
+    let stdout = String::from_utf8(output.unwrap().stdout);
+    Ok(stdout.unwrap())
+}
+
+pub fn get_image_path() -> PathBuf {
+    let relative_path = str::replace(TRACEPOINT_IMAGE_LOC, ":", "/");
+    Path::new(BYTECODE_IMAGE_CONTENT_STORE).join(relative_path)
+}
+
 /// Retrieve the output of bpfctl list
 pub fn tc_filter_list(iface: &str) -> Result<String> {
     let output = Command::new("tc")
@@ -373,7 +401,7 @@ pub fn create_namespace() -> Result<NamespaceGuard> {
         delete_namespace(NS_NAME);
         panic!(
             "failed to add ip address {ns_ip_mask} to {NS_VETH}: {status}\n
-        if {ns_ip_mask} is not available, specify a usable prefix with env BPFD_IT_PREFIX.\n 
+        if {ns_ip_mask} is not available, specify a usable prefix with env BPFD_IT_PREFIX.\n
         for example: export BPFD_IT_PREFIX=\"192.168.1\""
         );
     }

@@ -40,6 +40,7 @@ pub(crate) enum Command {
     List {
         responder: Responder<Result<Vec<ProgramInfo>, BpfdError>>,
     },
+    PullBytecode(PullBytecodeArgs),
 }
 
 #[derive(Debug)]
@@ -99,6 +100,12 @@ pub(crate) struct LoadUprobeArgs {
 pub(crate) struct UnloadArgs {
     pub(crate) id: Uuid,
     pub(crate) username: String,
+    pub(crate) responder: Responder<Result<(), BpfdError>>,
+}
+
+#[derive(Debug)]
+pub(crate) struct PullBytecodeArgs {
+    pub(crate) image: BytecodeImage,
     pub(crate) responder: Responder<Result<(), BpfdError>>,
 }
 

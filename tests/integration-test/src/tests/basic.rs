@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-use bpfd_api::util::directories::{RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP};
+use bpfd_api::util::directories::{
+    BYTECODE_IMAGE_CONTENT_STORE, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP,
+};
 use log::debug;
 use rand::Rng;
 
@@ -221,4 +223,18 @@ fn test_load_unload_uprobe() {
     // and that there are no panics if bpfctl does not contain any programs.
     let bpfctl_list = bpfd_list().unwrap();
     assert!(!bpfctl_list.contains(&uuid));
+}
+
+#[integration_test]
+fn test_pull_bytecode() {
+    std::fs::remove_dir_all(BYTECODE_IMAGE_CONTENT_STORE).unwrap();
+
+    let _bpfd_guard = start_bpfd().unwrap();
+
+    debug!("Pull bytecode image");
+
+    let _result = bpfd_pull_bytecode().unwrap();
+
+    let path = get_image_path();
+    assert!(path.exists());
 }

@@ -9,8 +9,8 @@ use bpfd_api::{
         load_request_common::Location,
         loader_server::Loader,
         ListRequest, ListResponse, LoadRequest, LoadResponse, NoAttachInfo, NoLocation,
-        TcAttachInfo, TracepointAttachInfo, UnloadRequest, UnloadResponse, UprobeAttachInfo,
-        XdpAttachInfo,
+        PullBytecodeRequest, PullBytecodeResponse, TcAttachInfo, TracepointAttachInfo,
+        UnloadRequest, UnloadResponse, UprobeAttachInfo, XdpAttachInfo,
     },
     TcProceedOn, XdpProceedOn,
 };
@@ -19,9 +19,9 @@ use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
-use crate::{
-    command::{Command, LoadTCArgs, LoadTracepointArgs, LoadUprobeArgs, LoadXDPArgs, UnloadArgs},
-    oci_utils::BytecodeImage,
+use crate::command::{
+    Command, LoadTCArgs, LoadTracepointArgs, LoadUprobeArgs, LoadXDPArgs, PullBytecodeArgs,
+    UnloadArgs,
 };
 
 #[derive(Debug, Default)]
@@ -68,18 +68,7 @@ impl Loader for BpfdLoader {
             return Err(Status::aborted("missing attach info"));
         }
         let bytecode_source = match common.location.unwrap() {
-            Location::Image(i) => crate::command::Location::Image(BytecodeImage::new(
-                i.url,
-                i.image_pull_policy,
-                match i.username.as_ref() {
-                    "" => None,
-                    u => Some(u.to_string()),
-                },
-                match i.password.as_ref() {
-                    "" => None,
-                    p => Some(p.to_string()),
-                },
-            )),
+            Location::Image(i) => crate::command::Location::Image(i.into()),
             Location::File(p) => crate::command::Location::File(p),
         };
 
@@ -365,6 +354,44 @@ impl Loader for BpfdLoader {
             }
         }
     }
+
+    async fn pull_bytecode(
+        &self,
+        request: tonic::Request<PullBytecodeRequest>,
+    ) -> std::result::Result<tonic::Response<PullBytecodeResponse>, tonic::Status> {
+        let request = request.into_inner();
+        let image = match request.image {
+            Some(i) => i.into(),
+            None => return Err(Status::aborted("Empty pull_bytecode request received")),
+        };
+        let (resp_tx, resp_rx) = oneshot::channel();
+        let cmd = Command::PullBytecode(PullBytecodeArgs {
+            image,
+            responder: resp_tx,
+        });
+
+        let tx = self.tx.lock().unwrap().clone();
+        tx.send(cmd).await.unwrap();
+
+        // Await the response
+        match resp_rx.await {
+            Ok(res) => match res {
+                Ok(_) => {
+                    let reply = PullBytecodeResponse {};
+                    Ok(Response::new(reply))
+                }
+                Err(e) => {
+                    warn!("BPFD pull_bytecode error: {:#?}", e);
+                    Err(Status::aborted(format!("{e}")))
+                }
+            },
+
+            Err(e) => {
+                warn!("RPC pull_bytecode error: {:#?}", e);
+                Err(Status::aborted(format!("{e}")))
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -437,6 +464,26 @@ mod test {
         assert!(res.is_err());
     }
 
+    #[tokio::test]
+    async fn test_pull_bytecode() {
+        let (tx, rx) = mpsc::channel(32);
+        let loader = BpfdLoader::new(tx.clone());
+
+        let request = PullBytecodeRequest {
+            image: Some(bpfd_api::v1::BytecodeImage {
+                url: String::from("quay.io/bpfd-bytecode/xdp_pass:latest"),
+                image_pull_policy: bpfd_api::ImagePullPolicy::Always.into(),
+                username: String::from("someone"),
+                password: String::from("secret"),
+            }),
+        };
+
+        tokio::spawn(async move { mock_serve(rx).await });
+
+        let res = loader.pull_bytecode(Request::new(request)).await;
+        assert!(res.is_ok());
+    }
+
     async fn mock_serve(mut rx: Receiver<Command>) {
         while let Some(cmd) = rx.recv().await {
             match cmd {
@@ -446,6 +493,7 @@ mod test {
                 Command::LoadUprobe(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
                 Command::Unload(args) => args.responder.send(Ok(())).unwrap(),
                 Command::List { responder, .. } => responder.send(Ok(vec![])).unwrap(),
+                Command::PullBytecode(args) => args.responder.send(Ok(())).unwrap(),
             }
         }
     }

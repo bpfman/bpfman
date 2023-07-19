@@ -13,8 +13,8 @@ use bpfd_api::{
         load_request::{self, AttachInfo},
         load_request_common,
         loader_client::LoaderClient,
-        BytecodeImage, ListRequest, LoadRequest, LoadRequestCommon, TcAttachInfo,
-        TracepointAttachInfo, UnloadRequest, UprobeAttachInfo, XdpAttachInfo,
+        BytecodeImage, ListRequest, LoadRequest, LoadRequestCommon, PullBytecodeRequest,
+        TcAttachInfo, TracepointAttachInfo, UnloadRequest, UprobeAttachInfo, XdpAttachInfo,
     },
     ImagePullPolicy, ProgramType, TcProceedOn, XdpProceedOn,
 };
@@ -49,6 +49,8 @@ enum Commands {
         /// A BPF program's kernel id.
         kernel_id: u32,
     },
+    /// Pull a bytecode image for future use by a load command.
+    PullBytecode(PullBytecodeArgs),
 }
 
 #[derive(Args)]
@@ -101,21 +103,9 @@ struct LoadFileArgs {
 
 #[derive(Args)]
 struct LoadImageArgs {
-    /// Required: Container Image URL.
-    /// Example: --image-url quay.io/bpfd-bytecode/xdp_pass:latest
-    #[clap(short, long, verbatim_doc_comment)]
-    image_url: String,
-
-    /// Optional: Pull policy for remote images. Valid values: [Always, IfNotPresent, Never]
-    #[clap(short, long, default_value = "IfNotPresent")]
-    pull_policy: String,
-
-    /// Optional: Registry auth for authenticating with the specified image registry.
-    /// This should be base64 encoded from the '<username>:<password>' string just like
-    /// it's stored in the docker/podman host config.
-    /// Example: --registry_auth "YnjrcKw63PhDcQodiU9hYxQ2"
-    #[clap(short, long, verbatim_doc_comment)]
-    registry_auth: Option<String>,
+    /// Specify how the bytecode image should be pulled.
+    #[command(flatten)]
+    pull_args: PullBytecodeArgs,
 
     /// Optional: Name of the ELF section from the object file.
     #[clap(short, long, default_value = "")]
@@ -222,6 +212,49 @@ struct UnloadArgs {
     id: String,
 }
 
+#[derive(Args)]
+struct PullBytecodeArgs {
+    /// Required: Container Image URL.
+    /// Example: --image-url quay.io/bpfd-bytecode/xdp_pass:latest
+    #[clap(short, long, verbatim_doc_comment)]
+    image_url: String,
+
+    /// Optional: Registry auth for authenticating with the specified image registry.
+    /// This should be base64 encoded from the '<username>:<password>' string just like
+    /// it's stored in the docker/podman host config.
+    /// Example: --registry_auth "YnjrcKw63PhDcQodiU9hYxQ2"
+    #[clap(short, long, verbatim_doc_comment)]
+    registry_auth: Option<String>,
+
+    /// Optional: Pull policy for remote images. Valid values: [Always, IfNotPresent, Never]
+    #[clap(short, long, default_value = "IfNotPresent")]
+    pull_policy: String,
+}
+
+impl TryFrom<&PullBytecodeArgs> for BytecodeImage {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &PullBytecodeArgs) -> Result<Self, Self::Error> {
+        let pull_policy: ImagePullPolicy = value.pull_policy.as_str().try_into()?;
+        let (username, password) = match &value.registry_auth {
+            Some(a) => {
+                let auth_raw = general_purpose::STANDARD.decode(a)?;
+                let auth_string = String::from_utf8(auth_raw)?;
+                let (username, password) = auth_string.split(':').next_tuple().unwrap();
+                (username.to_owned(), password.to_owned())
+            }
+            None => ("".to_owned(), "".to_owned()),
+        };
+
+        Ok(BytecodeImage {
+            url: value.image_url.clone(),
+            image_pull_policy: pull_policy.into(),
+            username,
+            password,
+        })
+    }
+}
+
 #[derive(Clone, Debug)]
 struct GlobalArg {
     name: String,
@@ -277,7 +310,7 @@ fn print_get(r: &list_response::ListResult) -> anyhow::Result<()> {
         let location = match &r.clone().location.unwrap() {
             // Cast imagePullPolicy into it's concrete type so we can easily print.
             Location::Image(i) => format!(
-                r#"Image:                              {} 
+                r#"Image:                              {}
 ImagePullpolicy:                    {}"#,
                 i.url,
                 TryInto::<ImagePullPolicy>::try_into(i.image_pull_policy)?
@@ -390,8 +423,8 @@ Namespace:                          {namespace}"#
         };
         format!(
             r#"
-UUID:                               {}                              
-{}             
+UUID:                               {}
+{}
 {}"#,
             uuid, location, metadata
         )
@@ -542,32 +575,8 @@ impl Commands {
                 section_name = &l.section_name;
                 global = &l.global;
                 command = &l.command;
-                location = {
-                    let pull_policy: ImagePullPolicy = l
-                        .pull_policy
-                        .as_str()
-                        .try_into()
-                        .expect("invalid image pull policy");
-                    let (username, password) = match l.registry_auth.clone() {
-                        Some(a) => {
-                            let auth_raw = general_purpose::STANDARD_NO_PAD.decode(a)?;
-
-                            let auth_string = String::from_utf8(auth_raw)?;
-
-                            let (username, password) = auth_string.split(':').next_tuple().unwrap();
-
-                            (username.to_owned(), password.to_owned())
-                        }
-                        None => ("".to_owned(), "".to_owned()),
-                    };
-
-                    Some(load_request_common::Location::Image(BytecodeImage {
-                        url: l.image_url.clone(),
-                        image_pull_policy: pull_policy as i32,
-                        username,
-                        password,
-                    }))
-                };
+                let pull_args = &l.pull_args;
+                location = Some(load_request_common::Location::Image(pull_args.try_into()?));
             }
             _ => bail!("Unknown command"),
         };
@@ -777,6 +786,13 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
             if let Err(e) = print_get(prog) {
                 bail!(e)
             }
+        }
+        Commands::PullBytecode(l) => {
+            let image: BytecodeImage = l.try_into()?;
+            let request = tonic::Request::new(PullBytecodeRequest { image: Some(image) });
+            let _response = client.pull_bytecode(request).await?;
+
+            println!("Successfully downloaded bytecode");
         }
     }
     Ok(())

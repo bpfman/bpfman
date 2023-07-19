@@ -269,6 +269,23 @@ impl BytecodeImage {
     }
 }
 
+impl From<bpfd_api::v1::BytecodeImage> for BytecodeImage {
+    fn from(value: bpfd_api::v1::BytecodeImage) -> Self {
+        BytecodeImage::new(
+            value.url,
+            value.image_pull_policy,
+            match value.username.as_ref() {
+                "" => None,
+                u => Some(u.to_string()),
+            },
+            match value.password.as_ref() {
+                "" => None,
+                p => Some(p.to_string()),
+            },
+        )
+    }
+}
+
 fn get_image_content_dir(image: Reference) -> PathBuf {
     // Try to get the tag, if it doesn't exist, get the digest
     // if neither exist, return "latest" as the tag
