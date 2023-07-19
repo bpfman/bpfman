@@ -19,30 +19,47 @@ package internal
 import "fmt"
 
 const (
-	XdpProgramControllerFinalizer        = "bpfd.io.xdpprogramcontroller/finalizer"
-	TcProgramControllerFinalizer         = "bpfd.io.tcprogramcontroller/finalizer"
-	TracepointProgramControllerFinalizer = "bpfd.io.tracepointprogramcontroller/finalizer"
-	XdpProgramInterface                  = "bpfd.io.xdpprogramcontroller/interface"
-	TcProgramInterface                   = "bpfd.io.tcprogramcontroller/interface"
-	TracepointProgramTracepoint          = "bpfd.io.tracepointprogramcontroller/tracepoint"
-	BpfProgramOwnerLabel                 = "bpfd.io/ownedByProgram"
-	K8sHostLabel                         = "kubernetes.io/hostname"
-	BpfdNs                               = "bpfd"
-	BpfdOperatorName                     = "bpfd-operator"
-	BpfdDsName                           = "bpfd-daemon"
-	BpfdConfigName                       = "bpfd-config"
-	BpfdDaemonManifestPath               = "./config/bpfd-deployment/daemonset.yaml"
-	BpfdMapFs                            = "/run/bpfd/fs/maps"
-	DefaultConfigPath                    = "/etc/bpfd/bpfd.toml"
-	DefaultRootCaPath                    = "/etc/bpfd/certs/ca/ca.crt"
-	DefaultCertPath                      = "/etc/bpfd/certs/bpfd/tls.crt"
-	DefaultKeyPath                       = "/etc/bpfd/certs/bpfd/tls.key"
-	DefaultClientCertPath                = "/etc/bpfd/certs/bpfd-client/tls.crt"
-	DefaultClientKeyPath                 = "/etc/bpfd/certs/bpfd-client/tls.key"
-	DefaultType                          = "tcp"
-	DefaultPath                          = "/run/bpfd/bpfd.sock"
-	DefaultPort                          = 50051
-	DefaultEnabled                       = true
+	XdpProgramInterface         = "bpfd.dev.xdpprogramcontroller/interface"
+	TcProgramInterface          = "bpfd.dev.tcprogramcontroller/interface"
+	TracepointProgramTracepoint = "bpfd.dev.tracepointprogramcontroller/tracepoint"
+	BpfProgramOwnerLabel        = "bpfd.dev/ownedByProgram"
+	K8sHostLabel                = "kubernetes.io/hostname"
+	DiscoveredLabel             = "bpfd.dev/discoveredProgram"
+	BpfdNs                      = "bpfd"
+	BpfdOperatorName            = "bpfd-operator"
+	BpfdDsName                  = "bpfd-daemon"
+	BpfdConfigName              = "bpfd-config"
+	BpfdDaemonManifestPath      = "./config/bpfd-deployment/daemonset.yaml"
+	BpfdMapFs                   = "/run/bpfd/fs/maps"
+	DefaultConfigPath           = "/etc/bpfd/bpfd.toml"
+	DefaultRootCaPath           = "/etc/bpfd/certs/ca/ca.crt"
+	DefaultCertPath             = "/etc/bpfd/certs/bpfd/tls.crt"
+	DefaultKeyPath              = "/etc/bpfd/certs/bpfd/tls.key"
+	DefaultClientCertPath       = "/etc/bpfd/certs/bpfd-client/tls.crt"
+	DefaultClientKeyPath        = "/etc/bpfd/certs/bpfd-client/tls.key"
+	DefaultType                 = "tcp"
+	DefaultPath                 = "/run/bpfd/bpfd.sock"
+	DefaultPort                 = 50051
+	DefaultEnabled              = true
+)
+
+// -----------------------------------------------------------------------------
+// Finalizers
+// -----------------------------------------------------------------------------
+
+const (
+	// BpfdOperatorFinalizer is the finalizer that holds a *Program from
+	// deletion until cleanup can be performed.
+	BpfdOperatorFinalizer = "bpfd.dev.operator/finalizer"
+	// XdpProgramControllerFinalizer is the finalizer that holds an Xdp BpfProgram
+	// object from deletion until cleanup can be performed.
+	XdpProgramControllerFinalizer = "bpfd.dev.xdpprogramcontroller/finalizer"
+	// TcProgramControllerFinalizer is the finalizer that holds an Tc BpfProgram
+	// object from deletion until cleanup can be performed.
+	TcProgramControllerFinalizer = "bpfd.dev.tcprogramcontroller/finalizer"
+	// TracepointProgramControllerFinalizer is the finalizer that holds an Tracepoint
+	// BpfProgram object from deletion until cleanup can be performed.
+	TracepointProgramControllerFinalizer = "bpfd.dev.tracepointprogramcontroller/finalizer"
 )
 
 // Must match the internal bpfd-api mappings
@@ -87,13 +104,3 @@ func (p SupportedProgramType) String() string {
 		return ""
 	}
 }
-
-// -----------------------------------------------------------------------------
-// Finalizers
-// -----------------------------------------------------------------------------
-
-const (
-	// BpfdOperatorFinalizer is the finalizer that holds a BPF program from
-	// deletion until cleanup can be performed.
-	BpfdOperatorFinalizer = "bpfd.dev.operator/finalizer"
-)
