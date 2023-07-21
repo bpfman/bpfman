@@ -23,7 +23,7 @@ use bpfd_api::{
 };
 use clap::{Args, Parser, Subcommand};
 use comfy_table::Table;
-use hex::FromHex;
+use hex::{encode_upper, FromHex};
 use itertools::Itertools;
 use log::{debug, info, warn};
 use tokio::net::UnixStream;
@@ -100,6 +100,14 @@ struct LoadFileArgs {
     #[clap(short, long, verbatim_doc_comment, num_args(1..), value_parser=parse_global_arg)]
     global: Option<Vec<GlobalArg>>,
 
+    /// Optional: Uuid of loaded eBPF program this eBPF program will share a map with.
+    /// Only used when multiple eBPF programs need to share a map. If a map is being
+    /// shared with another eBPF program, the eBPF program that created the map can not
+    /// be unloaded until all eBPF programs referencing the map are unloaded.
+    /// Example: --map-owner-uuid 989958a5-b47b-47a5-8b4c-b5962292437d
+    #[clap(long, verbatim_doc_comment)]
+    map_owner_uuid: Option<String>,
+
     #[clap(subcommand)]
     command: LoadCommands,
 }
@@ -127,6 +135,14 @@ struct LoadImageArgs {
     /// alignment and packing of data structures.
     #[clap(short, long, verbatim_doc_comment, num_args(1..), value_parser=parse_global_arg)]
     global: Option<Vec<GlobalArg>>,
+
+    /// Optional: Uuid of loaded eBPF program this eBPF program will share a map with.
+    /// Only used when multiple eBPF programs need to share a map. If a map is being
+    /// shared with another eBPF program, the eBPF program that created the map can not
+    /// be unloaded until all eBPF programs referencing the map are unloaded.
+    /// Example: --map-owner-uuid 989958a5-b47b-47a5-8b4c-b5962292437d
+    #[clap(long, verbatim_doc_comment)]
+    map_owner_uuid: Option<String>,
 
     #[clap(subcommand)]
     command: LoadCommands,
@@ -296,7 +312,7 @@ impl ProgTable {
         let mut table = Table::new();
 
         table.load_preset(comfy_table::presets::NOTHING);
-        table.set_header(vec!["Kernel_ID", "Bpfd_UUID", "Name", "Type", "Load_Time"]);
+        table.set_header(vec!["Kernel ID", "Bpfd UUID", "Name", "Type", "Load Time"]);
         ProgTable(table)
     }
 
@@ -338,13 +354,67 @@ fn print_get(r: &list_response::ListResult) -> anyhow::Result<()> {
         let location = match &r.clone().location.unwrap() {
             // Cast imagePullPolicy into it's concrete type so we can easily print.
             Location::Image(i) => format!(
-                r#"Image:                              {}
-ImagePullpolicy:                    {}"#,
+                r#"Image URL:                          {}
+Pull Policy:                        {}"#,
                 i.url,
                 TryInto::<ImagePullPolicy>::try_into(i.image_pull_policy)?
             ),
             Location::File(p) => format!(r#"Path:                               {p}"#),
             _ => "".to_owned(),
+        };
+        let global_data = if r.global_data.clone().is_empty() {
+            r#"Global:                             None"#.to_string()
+        } else {
+            let mut first = true;
+            let mut output = String::new();
+            for (key, value) in r.global_data.clone() {
+                if first {
+                    first = false;
+                    output.push_str(&format!(
+                        r#"Global:                             {key}={}"#,
+                        encode_upper(value)
+                    ));
+                } else {
+                    output.push_str(&format!(
+                        r#"
+                                    {key}={}"#,
+                        encode_upper(value)
+                    ));
+                }
+            }
+            output
+        };
+        let map_pin_path = format!(
+            r#"Map Pin Path:                       {}"#,
+            r.map_pin_path.clone()
+        );
+        let map_owner_uuid = if r.map_owner_uuid.clone().is_empty() {
+            r#"Map Owner UUID:                     None"#.to_string()
+        } else {
+            format!(
+                r#"Map Owner UUID:                     {}"#,
+                r.map_owner_uuid.clone()
+            )
+        };
+        let map_used_by = if r.map_used_by.clone().is_empty() {
+            r#"Maps Used By:                       None"#.to_string()
+        } else {
+            let mut first = true;
+            let mut output = String::new();
+            for prog_uuid in r.clone().map_used_by {
+                if first {
+                    first = false;
+                    output.push_str(&format!(
+                        r#"Maps Used By:                       {prog_uuid}"#
+                    ));
+                } else {
+                    output.push_str(&format!(
+                        r#"
+                                    {prog_uuid}"#
+                    ));
+                }
+            }
+            output
         };
 
         let metadata = match prog_type {
@@ -366,7 +436,7 @@ ImagePullpolicy:                    {}"#,
                         r#"Priority:                           {priority}
 Iface:                              {iface}
 Position:                           {position}
-Proceed_on:                         {proc_on} "#
+Proceed On:                         {proc_on}"#
                     )
                 } else {
                     "".to_string()
@@ -391,7 +461,7 @@ Proceed_on:                         {proc_on} "#
 Iface:                              {iface}
 Position:                           {position}
 Direction:                          {direction}
-Proceed_on:                         {proc_on}"#
+Proceed On:                         {proc_on}"#
                     )
                 } else {
                     "".to_string()
@@ -471,8 +541,12 @@ Namespace:                          {namespace}"# //fn_name: {fn_name}, offset: 
             r#"
 UUID:                               {}
 {}
+{}
+{}
+{}
+{}
 {}"#,
-            uuid, location, metadata
+            uuid, location, global_data, map_pin_path, map_owner_uuid, map_used_by, metadata
         )
     } else {
         "NONE".to_string()
@@ -480,7 +554,7 @@ UUID:                               {}
 
     let global_info = format!(
         r#"
-Kernel_ID:                          {}
+Kernel ID:                          {}
 Name:                               {}
 Type:                               {}
 Loaded At:                          {}
@@ -629,6 +703,8 @@ impl Commands {
         let global: &Option<Vec<GlobalArg>>;
         let command: &LoadCommands;
         let location: Option<load_request_common::Location>;
+        let map_owner_uuid: &Option<String>;
+
         let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
 
         match self {
@@ -638,6 +714,7 @@ impl Commands {
                 global = &l.global;
                 command = &l.command;
                 location = Some(load_request_common::Location::File(l.path.clone()));
+                map_owner_uuid = &l.map_owner_uuid;
             }
             Commands::LoadFromImage(l) => {
                 id = &l.id;
@@ -646,6 +723,7 @@ impl Commands {
                 command = &l.command;
                 let pull_args = &l.pull_args;
                 location = Some(load_request_common::Location::Image(pull_args.try_into()?));
+                map_owner_uuid = &l.map_owner_uuid;
             }
             _ => bail!("Unknown command"),
         };
@@ -662,6 +740,7 @@ impl Commands {
             section_name: section_name.to_string(),
             program_type: command.get_prog_type() as u32,
             global_data,
+            map_owner_uuid: map_owner_uuid.clone(),
         }))
     }
 

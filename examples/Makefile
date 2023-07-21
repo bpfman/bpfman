@@ -114,7 +114,7 @@ build-us-images: ## Build all example userspace images
 push-us-images: ## Push all example userspace images
 	docker push ${IMAGE_TC_US}
 	docker push ${IMAGE_TP_US}
-	docker pus ${IMAGE_XDP_US}
+	docker push ${IMAGE_XDP_US}
 
 .PHONY: load-us-images-kind
 load-us-images-kind: build-us-images ## Build and load all example userspace images into kind

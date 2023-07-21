@@ -27,6 +27,8 @@ pub struct LoadRequestCommon {
         ::prost::alloc::string::String,
         ::prost::alloc::vec::Vec<u8>,
     >,
+    #[prost(string, optional, tag = "7")]
+    pub map_owner_uuid: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(oneof = "load_request_common::Location", tags = "1, 2")]
     pub location: ::core::option::Option<load_request_common::Location>,
 }
@@ -155,7 +157,7 @@ pub struct ListRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListResponse {
-    #[prost(message, repeated, tag = "24")]
+    #[prost(message, repeated, tag = "28")]
     pub results: ::prost::alloc::vec::Vec<list_response::ListResult>,
 }
 /// Nested message and enum types in `ListResponse`.
@@ -169,31 +171,42 @@ pub mod list_response {
         pub name: ::prost::alloc::string::String,
         #[prost(uint32, tag = "6")]
         pub program_type: u32,
-        #[prost(uint32, tag = "13")]
+        #[prost(map = "string, bytes", tag = "7")]
+        pub global_data: ::std::collections::HashMap<
+            ::prost::alloc::string::String,
+            ::prost::alloc::vec::Vec<u8>,
+        >,
+        #[prost(string, tag = "8")]
+        pub map_owner_uuid: ::prost::alloc::string::String,
+        #[prost(string, tag = "9")]
+        pub map_pin_path: ::prost::alloc::string::String,
+        #[prost(string, repeated, tag = "10")]
+        pub map_used_by: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+        #[prost(uint32, tag = "17")]
         pub bpf_id: u32,
-        #[prost(string, tag = "14")]
+        #[prost(string, tag = "18")]
         pub loaded_at: ::prost::alloc::string::String,
-        #[prost(string, tag = "15")]
+        #[prost(string, tag = "19")]
         pub tag: ::prost::alloc::string::String,
-        #[prost(bool, tag = "16")]
-        pub gpl_compatible: bool,
-        #[prost(uint32, repeated, tag = "17")]
-        pub map_ids: ::prost::alloc::vec::Vec<u32>,
-        #[prost(uint32, tag = "18")]
-        pub btf_id: u32,
-        #[prost(uint32, tag = "19")]
-        pub bytes_xlated: u32,
         #[prost(bool, tag = "20")]
-        pub jited: bool,
-        #[prost(uint32, tag = "21")]
-        pub bytes_jited: u32,
+        pub gpl_compatible: bool,
+        #[prost(uint32, repeated, tag = "21")]
+        pub map_ids: ::prost::alloc::vec::Vec<u32>,
         #[prost(uint32, tag = "22")]
-        pub bytes_memlock: u32,
+        pub btf_id: u32,
         #[prost(uint32, tag = "23")]
+        pub bytes_xlated: u32,
+        #[prost(bool, tag = "24")]
+        pub jited: bool,
+        #[prost(uint32, tag = "25")]
+        pub bytes_jited: u32,
+        #[prost(uint32, tag = "26")]
+        pub bytes_memlock: u32,
+        #[prost(uint32, tag = "27")]
         pub verified_insns: u32,
         #[prost(oneof = "list_result::Location", tags = "3, 4, 5")]
         pub location: ::core::option::Option<list_result::Location>,
-        #[prost(oneof = "list_result::AttachInfo", tags = "7, 8, 9, 10, 11, 12")]
+        #[prost(oneof = "list_result::AttachInfo", tags = "11, 12, 13, 14, 15, 16")]
         pub attach_info: ::core::option::Option<list_result::AttachInfo>,
     }
     /// Nested message and enum types in `ListResult`.
@@ -211,17 +224,17 @@ pub mod list_response {
         #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Oneof)]
         pub enum AttachInfo {
-            #[prost(message, tag = "7")]
-            None(super::super::NoAttachInfo),
-            #[prost(message, tag = "8")]
-            XdpAttachInfo(super::super::XdpAttachInfo),
-            #[prost(message, tag = "9")]
-            TcAttachInfo(super::super::TcAttachInfo),
-            #[prost(message, tag = "10")]
-            TracepointAttachInfo(super::super::TracepointAttachInfo),
             #[prost(message, tag = "11")]
-            KprobeAttachInfo(super::super::KprobeAttachInfo),
+            None(super::super::NoAttachInfo),
             #[prost(message, tag = "12")]
+            XdpAttachInfo(super::super::XdpAttachInfo),
+            #[prost(message, tag = "13")]
+            TcAttachInfo(super::super::TcAttachInfo),
+            #[prost(message, tag = "14")]
+            TracepointAttachInfo(super::super::TracepointAttachInfo),
+            #[prost(message, tag = "15")]
+            KprobeAttachInfo(super::super::KprobeAttachInfo),
+            #[prost(message, tag = "16")]
             UprobeAttachInfo(super::super::UprobeAttachInfo),
         }
     }

@@ -23,7 +23,7 @@ use uuid::Uuid;
 
 use crate::{
     command::{
-        self, Command, Direction,
+        self, BpfMap, Command, Direction,
         Direction::{Egress, Ingress},
         KprobeProgram, KprobeProgramInfo, LoadKprobeArgs, LoadTCArgs, LoadTracepointArgs,
         LoadUprobeArgs, LoadXDPArgs, Program, ProgramData, ProgramInfo, PullBytecodeArgs,
@@ -44,6 +44,7 @@ pub(crate) struct BpfManager {
     config: Config,
     dispatchers: HashMap<DispatcherId, Dispatcher>,
     programs: HashMap<Uuid, Program>,
+    maps: HashMap<Uuid, BpfMap>,
     commands: mpsc::Receiver<Command>,
 }
 
@@ -53,6 +54,7 @@ impl BpfManager {
             config,
             dispatchers: HashMap::new(),
             programs: HashMap::new(),
+            maps: HashMap::new(),
             commands,
         }
     }
@@ -67,6 +69,7 @@ impl BpfManager {
             // TODO: Should probably check for pinned prog on bpffs rather than assuming they are attached
             program.set_attached();
             debug!("rebuilding state for program {}", uuid);
+            self.rebuild_map_entry(uuid, program.data().map_owner_uuid);
             self.programs.insert(uuid, program);
         }
         self.rebuild_dispatcher_state(ProgramType::Xdp, None, RTDIR_XDP_DISPATCHER)
@@ -149,24 +152,39 @@ impl BpfManager {
             }
         };
 
-        match program {
-            Program::Xdp(_) | Program::Tc(_) => self.add_multi_attach_program(program, uuid).await,
-            Program::Tracepoint(_) | Program::Kprobe(_) | Program::Uprobe(_) => {
-                self.add_single_attach_program(program, uuid).await
+        let map_owner_uuid = program.data().map_owner_uuid;
+        let map_pin_path = self.manage_map_pin_path(uuid, map_owner_uuid).await?;
+
+        let result = match program {
+            Program::Xdp(_) | Program::Tc(_) => {
+                self.add_multi_attach_program(program, uuid, map_pin_path.clone())
+                    .await
             }
+            Program::Tracepoint(_) | Program::Kprobe(_) | Program::Uprobe(_) => {
+                self.add_single_attach_program(program, uuid, map_pin_path.clone())
+                    .await
+            }
+        };
+
+        if result.is_ok() {
+            // Now that program is successfully loaded, update the maps hash table
+            // and allow access to all maps by bpfd group members.
+            self.save_map(uuid, map_owner_uuid, map_pin_path.clone())
+                .await?;
+        } else {
+            let _ = self.cleanup_map_pin_path(uuid, map_owner_uuid).await;
         }
+
+        result
     }
 
     pub(crate) async fn add_multi_attach_program(
         &mut self,
         program: Program,
         id: Uuid,
+        map_pin_path: String,
     ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_multi_attach_program()");
-        let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
-        fs::create_dir_all(map_pin_path.clone())
-            .await
-            .map_err(|e| BpfdError::Error(format!("can't create map dir: {e}")))?;
 
         let program_bytes = if program
             .data()
@@ -179,19 +197,18 @@ impl BpfManager {
             read(program.data().path.clone()).await?
         };
 
+        // This load is just to verify the Section Name is valid.
+        // The actual load is performed in the XDP or TC logic.
         let mut ext_loader = BpfLoader::new()
             .extension(&program.data().section_name)
             .map_pin_path(map_pin_path.clone())
             .load(&program_bytes)?;
 
         match ext_loader.program_mut(&program.data().section_name) {
-            Some(_) => Ok(()),
-            None => {
-                let _ = fs::remove_dir_all(map_pin_path).await;
-                Err(BpfdError::SectionNameNotValid(
-                    program.data().section_name.clone(),
-                ))
-            }
+            Some(_) => Ok(()), // BILLY: Do we need an unload here?
+            None => Err(BpfdError::SectionNameNotValid(
+                program.data().section_name.clone(),
+            )),
         }?;
 
         // Calculate the next_available_id
@@ -261,6 +278,7 @@ impl BpfManager {
             p.save(id)
                 .map_err(|e| BpfdError::Error(format!("unable to save program state: {e}")))?;
         };
+
         Ok(id)
     }
 
@@ -268,14 +286,9 @@ impl BpfManager {
         &mut self,
         mut p: Program,
         id: Uuid,
+        map_pin_path: String,
     ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_single_attach_program()");
-
-        let map_pin_path = format!("{RTDIR_FS_MAPS}/{id}");
-        fs::create_dir_all(map_pin_path.clone())
-            .await
-            .map_err(|e| BpfdError::Error(format!("can't create map dir: {e}")))?;
-
         let program_bytes = if p.data().path.clone().contains(BYTECODE_IMAGE_CONTENT_STORE) {
             get_bytecode_from_image_store(p.data().path.clone()).await?
         } else {
@@ -488,6 +501,11 @@ impl BpfManager {
             if !(prog.owner() == &owner || owner == SUPERUSER) {
                 return Err(BpfdError::NotAuthorized);
             }
+            if !self.is_map_safe_to_delete(id, prog.data().map_owner_uuid) {
+                return Err(BpfdError::Error(
+                    "map being used by other eBPF program".to_string(),
+                ));
+            }
         } else {
             debug!("InvalidID: {id}");
             return Err(BpfdError::InvalidID);
@@ -495,13 +513,18 @@ impl BpfManager {
 
         let prog = self.programs.remove(&id).unwrap();
 
+        let map_owner_uuid = prog.data().map_owner_uuid;
+
         prog.delete(id)
             .map_err(|_| BpfdError::Error("unable to delete program data".to_string()))?;
 
         match prog {
-            Program::Xdp(_) | Program::Tc(_) => self.remove_multi_attach_program(prog).await,
-            Program::Tracepoint(_) | Program::Kprobe(_) | Program::Uprobe(_) => Ok(()),
+            Program::Xdp(_) | Program::Tc(_) => self.remove_multi_attach_program(prog).await?,
+            Program::Tracepoint(_) | Program::Kprobe(_) | Program::Uprobe(_) => (),
         }
+
+        self.delete_map(id, map_owner_uuid).await?;
+        Ok(())
     }
 
     pub(crate) async fn remove_multi_attach_program(
@@ -634,6 +657,16 @@ impl BpfManager {
                             name: Some(p.data.section_name.to_string()),
                             program_type: Some(ProgramType::Xdp as u32),
                             location,
+                            global_data: Some(p.data.global_data.clone()),
+                            map_owner_uuid: p.data.map_owner_uuid,
+                            map_pin_path: Some(
+                                self.get_map_pin_path(*id, p.data.map_owner_uuid)
+                                    .unwrap_or_default(),
+                            ),
+                            map_used_by: Some(
+                                self.get_map_used_by(*id, p.data.map_owner_uuid)
+                                    .unwrap_or_default(),
+                            ),
                             attach_info: Some(crate::command::AttachInfo::Xdp(
                                 crate::command::XdpAttachInfo {
                                     iface: p.info.if_name.to_string(),
@@ -652,6 +685,16 @@ impl BpfManager {
                             name: Some(p.data.section_name.to_string()),
                             location,
                             program_type: Some(ProgramType::Tracepoint as u32),
+                            global_data: Some(p.data.global_data.clone()),
+                            map_owner_uuid: p.data.map_owner_uuid,
+                            map_pin_path: Some(
+                                self.get_map_pin_path(*id, p.data.map_owner_uuid)
+                                    .unwrap_or_default(),
+                            ),
+                            map_used_by: Some(
+                                self.get_map_used_by(*id, p.data.map_owner_uuid)
+                                    .unwrap_or_default(),
+                            ),
                             attach_info: Some(crate::command::AttachInfo::Tracepoint(
                                 crate::command::TracepointAttachInfo {
                                     tracepoint: p.info.tracepoint.to_string(),
@@ -667,6 +710,16 @@ impl BpfManager {
                             name: Some(p.data.section_name.to_string()),
                             location,
                             program_type: Some(ProgramType::Tc as u32),
+                            global_data: Some(p.data.global_data.clone()),
+                            map_owner_uuid: p.data.map_owner_uuid,
+                            map_pin_path: Some(
+                                self.get_map_pin_path(*id, p.data.map_owner_uuid)
+                                    .unwrap_or_default(),
+                            ),
+                            map_used_by: Some(
+                                self.get_map_used_by(*id, p.data.map_owner_uuid)
+                                    .unwrap_or_default(),
+                            ),
                             attach_info: Some(crate::command::AttachInfo::Tc(
                                 crate::command::TcAttachInfo {
                                     iface: p.info.if_name.to_string(),
@@ -686,6 +739,16 @@ impl BpfManager {
                             name: Some(p.data.section_name.to_string()),
                             location,
                             program_type: Some(ProgramType::Probe as u32),
+                            global_data: Some(p.data.global_data.clone()),
+                            map_owner_uuid: p.data.map_owner_uuid,
+                            map_pin_path: Some(
+                                self.get_map_pin_path(*id, p.data.map_owner_uuid)
+                                    .unwrap_or_default(),
+                            ),
+                            map_used_by: Some(
+                                self.get_map_used_by(*id, p.data.map_owner_uuid)
+                                    .unwrap_or_default(),
+                            ),
                             attach_info: Some(crate::command::AttachInfo::Kprobe(
                                 crate::command::KprobeAttachInfo {
                                     fn_name: p.info.fn_name.clone(),
@@ -704,6 +767,16 @@ impl BpfManager {
                             name: Some(p.data.section_name.to_string()),
                             location,
                             program_type: Some(ProgramType::Probe as u32),
+                            global_data: Some(p.data.global_data.clone()),
+                            map_owner_uuid: p.data.map_owner_uuid,
+                            map_pin_path: Some(
+                                self.get_map_pin_path(*id, p.data.map_owner_uuid)
+                                    .unwrap_or_default(),
+                            ),
+                            map_used_by: Some(
+                                self.get_map_used_by(*id, p.data.map_owner_uuid)
+                                    .unwrap_or_default(),
+                            ),
                             attach_info: Some(crate::command::AttachInfo::Uprobe(
                                 crate::command::UprobeAttachInfo {
                                     fn_name: p.info.fn_name.clone(),
@@ -733,6 +806,10 @@ impl BpfManager {
                         name: None,
                         program_type: None,
                         location: None,
+                        global_data: None,
+                        map_owner_uuid: None,
+                        map_pin_path: None,
+                        map_used_by: None,
                         attach_info: None,
                         kernel_info: prog.try_into()?,
                     }),
@@ -832,6 +909,7 @@ impl BpfManager {
                 args.location,
                 args.section_name.clone(),
                 args.global_data,
+                args.map_owner_uuid,
                 args.username,
             )
             .await
@@ -860,12 +938,6 @@ impl BpfManager {
             Err(BpfdError::InvalidInterface)
         };
 
-        // If program was successfully loaded, allow map access by bpfd group members.
-        if let Ok(uuid) = &res {
-            let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
-            set_dir_permissions(&maps_dir, MAPS_MODE).await;
-        }
-
         // Ignore errors as they'll be propagated to caller in the RPC status
         let _ = args.responder.send(res);
         Ok(())
@@ -877,6 +949,7 @@ impl BpfManager {
                 args.location,
                 args.section_name,
                 args.global_data,
+                args.map_owner_uuid,
                 args.username,
             )
             .await
@@ -906,12 +979,6 @@ impl BpfManager {
             Err(BpfdError::InvalidInterface)
         };
 
-        // If program was successfully loaded, allow map access by bpfd group members.
-        if let Ok(uuid) = &res {
-            let maps_dir = format!("{RTDIR_FS_MAPS}/{}", uuid.clone());
-            set_dir_permissions(&maps_dir, MAPS_MODE).await;
-        }
-
         // Ignore errors as they'll be propagated to caller in the RPC status
         let _ = args.responder.send(res);
         Ok(())
@@ -923,6 +990,7 @@ impl BpfManager {
                 args.location,
                 args.section_name,
                 args.global_data,
+                args.map_owner_uuid,
                 args.username,
             )
             .await
@@ -940,12 +1008,6 @@ impl BpfManager {
             }
         };
 
-        // If program was successfully loaded, allow map access by bpfd group members.
-        if let Ok(uuid) = &res {
-            let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
-            set_dir_permissions(&maps_dir, MAPS_MODE).await;
-        }
-
         // Ignore errors as they'll be propagated to caller in the RPC status
         let _ = args.responder.send(res);
         Ok(())
@@ -957,6 +1019,7 @@ impl BpfManager {
                 args.location,
                 args.section_name,
                 args.global_data,
+                args.map_owner_uuid,
                 args.username,
             )
             .await
@@ -994,6 +1057,7 @@ impl BpfManager {
                 args.location,
                 args.section_name,
                 args.global_data,
+                args.map_owner_uuid,
                 args.username,
             )
             .await
@@ -1016,12 +1080,6 @@ impl BpfManager {
             }
         };
 
-        // If program was successfully loaded, allow map access by bpfd group members.
-        if let Ok(uuid) = &res {
-            let maps_dir = format!("{RTDIR_FS_MAPS}/{uuid}");
-            set_dir_permissions(&maps_dir, MAPS_MODE).await;
-        }
-
         // Ignore errors as they'll be propagated to caller in the RPC status
         let _ = args.responder.send(res);
         Ok(())
@@ -1032,5 +1090,298 @@ impl BpfManager {
         // Ignore errors as they'll be propagated to caller in the RPC status
         let _ = args.responder.send(res);
         Ok(())
+    }
+
+    // This function reads the map_pin_path from the map hash table. If there
+    // is not an entry for the given input, an error is returned.
+    fn get_map_pin_path(
+        &self,
+        id: Uuid,
+        map_owner_uuid: Option<Uuid>,
+    ) -> Result<String, BpfdError> {
+        let (_, map_index) = get_map_index(id, map_owner_uuid);
+
+        if let Some(map) = self.maps.get(&map_index) {
+            Ok(map.map_pin_path.clone())
+        } else {
+            Err(BpfdError::Error("map does not exists".to_string()))
+        }
+    }
+
+    // This function reads the map.used_by from the map hash table. If there
+    // is not an entry for the given input, an error is returned. Internally,
+    // the owner's UUID is also stored in the list. This function strips it out.
+    fn get_map_used_by(
+        &self,
+        id: Uuid,
+        map_owner_uuid: Option<Uuid>,
+    ) -> Result<Vec<Uuid>, BpfdError> {
+        let (map_owner, map_index) = get_map_index(id, map_owner_uuid);
+
+        if let Some(map) = self.maps.get(&map_index) {
+            let map_owner_id = if map_owner {
+                id
+            } else {
+                map_owner_uuid.unwrap()
+            };
+
+            let mut used_by = map.used_by.clone();
+            if let Some(index) = used_by.iter().position(|value| *value == map_owner_id) {
+                used_by.swap_remove(index);
+            }
+            Ok(used_by)
+        } else {
+            Err(BpfdError::Error("map does not exists".to_string()))
+        }
+    }
+
+    // This function returns the map_pin_path, and if this eBPF program is
+    // the map owner, creates the directory to store the associate maps.
+    async fn manage_map_pin_path(
+        &mut self,
+        id: Uuid,
+        map_owner_uuid: Option<Uuid>,
+    ) -> Result<String, BpfdError> {
+        let (map_owner, map_pin_path) = calc_map_pin_path(id, map_owner_uuid);
+
+        // If the user provided a UUID of an eBPF program to share a map with,
+        // then use that UUID in the directory to create the maps in
+        // (path already exists).
+        // Otherwise, use the UUID of this program and create the directory.
+        if map_owner {
+            fs::create_dir_all(map_pin_path.clone())
+                .await
+                .map_err(|e| BpfdError::Error(format!("can't create map dir: {e}")))?;
+
+            // Return the map_pin_path
+            Ok(map_pin_path)
+        } else {
+            if self.maps.contains_key(&map_owner_uuid.unwrap()) {
+                // Return the map_pin_path
+                return Ok(map_pin_path);
+            }
+            Err(BpfdError::Error(
+                "map_owner_uuid does not exists".to_string(),
+            ))
+        }
+    }
+
+    // This function is called if manage_map_pin_path() was already called,
+    // but the eBPF program failed to load. save_map() has not been called,
+    // so self.maps has not been updated for this program.
+    // If the user provided a UUID of program to share a map with,
+    // then map the directory is still in use and there is nothing to do.
+    // Otherwise, manage_map_pin_path() created the map directory so it must
+    // deleted.
+    async fn cleanup_map_pin_path(
+        &mut self,
+        id: Uuid,
+        map_owner_uuid: Option<Uuid>,
+    ) -> Result<(), BpfdError> {
+        let (map_owner, map_pin_path) = calc_map_pin_path(id, map_owner_uuid);
+
+        if map_owner {
+            let _ = fs::remove_dir_all(map_pin_path.clone())
+                .await
+                .map_err(|e| BpfdError::Error(format!("can't delete map dir: {e}")));
+            Ok(())
+        } else {
+            Ok(())
+        }
+    }
+
+    // This function writes the map to the map hash table. If this eBPF
+    // program is the map owner, then a new entry is add to the map hash
+    // table and permissions on the directory are updated to grant bpfd
+    // user group access to all the maps in the directory. If this eBPF
+    // program is not the owner, then the eBPF program UUID is added to
+    // the Used-By array.
+    async fn save_map(
+        &mut self,
+        id: Uuid,
+        map_owner_uuid: Option<Uuid>,
+        map_pin_path: String,
+    ) -> Result<(), BpfdError> {
+        let (map_owner, _) = get_map_index(id, map_owner_uuid);
+
+        if map_owner {
+            let map = BpfMap {
+                map_pin_path: map_pin_path.clone(),
+                used_by: vec![id],
+            };
+
+            self.maps.insert(id, map);
+
+            set_dir_permissions(&map_pin_path.clone(), MAPS_MODE).await;
+        } else if let Some(map) = self.maps.get_mut(&map_owner_uuid.unwrap()) {
+            map.used_by.push(id);
+        } else {
+            return Err(BpfdError::Error(
+                "map_owner_uuid does not exists".to_string(),
+            ));
+        };
+        Ok(())
+    }
+
+    // This function is a pre-check to make sure the map can be deleted,
+    // and thus the associated eBPF program can be unloaded. This function
+    // returns false if this program is the map owner and other programs
+    // are referencing the map, true otherwise.
+    fn is_map_safe_to_delete(&mut self, id: Uuid, map_owner_uuid: Option<Uuid>) -> bool {
+        let (map_owner, _) = get_map_index(id, map_owner_uuid);
+
+        if map_owner {
+            // If this eBPF program is eBPF program that created the map,
+            // make sure no other eBPF programs are referencing the maps before
+            // allowing it to be deleted.
+            if let Some(map) = self.maps.get_mut(&id) {
+                if map.used_by.len() > 1 {
+                    // USed by more than one eBPF program (one would be this program),
+                    // so block the unload.
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+
+    // This function cleans up a map entry when an eBPF program is
+    // being unloaded. If the eBPF program is the map owner, then
+    // the map is removed from the hash table and the associated
+    // directory is removed. If this eBPF program is referencing a
+    // map from another eBPF program, then this eBPF programs UUID
+    // is removed from the UsedBy array.
+    async fn delete_map(
+        &mut self,
+        id: Uuid,
+        map_owner_uuid: Option<Uuid>,
+    ) -> Result<(), BpfdError> {
+        let (_, map_index) = get_map_index(id, map_owner_uuid);
+
+        if let Some(map) = self.maps.get_mut(&map_index.clone()) {
+            if let Some(index) = map.used_by.iter().position(|value| *value == id) {
+                map.used_by.swap_remove(index);
+            }
+
+            if map.used_by.is_empty() {
+                let (_, path) = calc_map_pin_path(id, map_owner_uuid);
+                self.maps.remove(&map_index.clone());
+                fs::remove_dir_all(path)
+                    .await
+                    .map_err(|e| BpfdError::Error(format!("can't delete map dir: {e}")))?;
+            }
+        } else {
+            return Err(BpfdError::Error("map_pin_path does not exists".to_string()));
+        }
+
+        Ok(())
+    }
+
+    fn rebuild_map_entry(&mut self, id: Uuid, map_owner_uuid: Option<Uuid>) {
+        let (_, map_index) = get_map_index(id, map_owner_uuid);
+
+        if let Some(map) = self.maps.get_mut(&map_index) {
+            map.used_by.push(id);
+        } else {
+            let (_, map_pin_path) = calc_map_pin_path(id, map_owner_uuid);
+            let map = BpfMap {
+                map_pin_path: map_pin_path.clone(),
+                used_by: vec![id],
+            };
+            self.maps.insert(id, map);
+        }
+    }
+}
+
+// map_index is a UUID. It is either the programs UUID, or the UUID
+// of another program that map_owner_uuid references.
+// This function also returns a bool, which indicates if the input UUID
+// is the owner of the map (map_owner_uuid is not set) or not (map_owner_uuid
+// is set so the eBPF program is referencing another eBPF programs maps).
+fn get_map_index(id: Uuid, map_owner_uuid: Option<Uuid>) -> (bool, Uuid) {
+    if let Some(uuid) = map_owner_uuid {
+        (false, uuid)
+    } else {
+        (true, id)
+    }
+}
+
+// map_pin_path is a the directory the maps are located. Currently, it
+// is a fixed bpfd location containing the map_index, which is a UUID.
+// The UUID is either the programs UUID, or the UUID of another program
+// that map_owner_uuid references.
+pub fn calc_map_pin_path(id: Uuid, map_owner_uuid: Option<Uuid>) -> (bool, String) {
+    let (map_owner, map_index) = get_map_index(id, map_owner_uuid);
+    (map_owner, format!("{RTDIR_FS_MAPS}/{}", map_index))
+}
+
+#[cfg(test)]
+mod tests {
+    use uuid::{uuid, Uuid};
+
+    use super::*;
+
+    #[test]
+    fn test_map_index() {
+        struct Case {
+            i_id: Uuid,
+            i_map_owner_uuid: Option<Uuid>,
+            o_map_owner: bool,
+            o_map_index: Uuid,
+        }
+        const UUID_1: Uuid = uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
+        const UUID_2: Uuid = uuid!("084282a5-a43f-41c3-8f85-c302dc90e091");
+        let tt = vec![
+            Case {
+                i_id: UUID_1.clone(),
+                i_map_owner_uuid: None,
+                o_map_owner: true,
+                o_map_index: UUID_1.clone(),
+            },
+            Case {
+                i_id: UUID_2.clone(),
+                i_map_owner_uuid: Some(UUID_1.clone()),
+                o_map_owner: false,
+                o_map_index: UUID_1.clone(),
+            },
+        ];
+        for t in tt {
+            let (map_owner, map_index) = get_map_index(t.i_id, t.i_map_owner_uuid);
+            assert_eq!(map_owner, t.o_map_owner);
+            assert_eq!(map_index, t.o_map_index);
+        }
+    }
+
+    #[test]
+    fn test_calc_map_pin_path() {
+        struct Case {
+            i_id: Uuid,
+            i_map_owner_uuid: Option<Uuid>,
+            o_map_owner: bool,
+            o_map_pin_path: String,
+        }
+        const UUID_1: Uuid = uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
+        const UUID_2: Uuid = uuid!("084282a5-a43f-41c3-8f85-c302dc90e091");
+        let tt = vec![
+            Case {
+                i_id: UUID_1.clone(),
+                i_map_owner_uuid: None,
+                o_map_owner: true,
+                o_map_pin_path: format!("{RTDIR_FS_MAPS}/{}", UUID_1.clone().to_string()),
+            },
+            Case {
+                i_id: UUID_2.clone(),
+                i_map_owner_uuid: Some(UUID_1.clone()),
+                o_map_owner: false,
+                o_map_pin_path: format!("{RTDIR_FS_MAPS}/{}", UUID_1.clone().to_string()),
+            },
+        ];
+        for t in tt {
+            let (map_owner, map_pin_path) = calc_map_pin_path(t.i_id, t.i_map_owner_uuid);
+            info!("{map_owner} {map_pin_path}");
+            assert_eq!(map_owner, t.o_map_owner);
+            assert_eq!(map_pin_path, t.o_map_pin_path);
+        }
     }
 }
