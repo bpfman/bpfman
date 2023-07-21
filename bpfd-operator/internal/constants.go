@@ -62,22 +62,52 @@ const (
 	TracepointProgramControllerFinalizer = "bpfd.dev.tracepointprogramcontroller/finalizer"
 )
 
-// Must match the internal bpfd-api mappings
-type SupportedProgramType int32
+// Must match the kernel's `bpf_prog_type` enum.
+// https://elixir.bootlin.com/linux/v6.4.4/source/include/uapi/linux/bpf.h#L948
+type ProgramType int32
 
 const (
-	Tc         SupportedProgramType = 3
-	Xdp        SupportedProgramType = 6
-	Tracepoint SupportedProgramType = 5
+	Unspec ProgramType = iota
+	SocketFilter
+	Kprobe
+	Tc
+	SchedAct
+	Tracepoint
+	Xdp
+	PerfEvent
+	CgroupSkb
+	CgroupSock
+	LwtIn
+	LwtOut
+	LwtXmit
+	SockOps
+	SkSkb
+	CgroupDevice
+	SkMsg
+	RawTracepoint
+	CgroupSockAddr
+	LwtSeg6Local
+	LircMode2
+	SkReuseport
+	FlowDissector
+	CgroupSysctl
+	RawTracepointWritable
+	CgroupSockopt
+	Tracing
+	StructOps
+	Ext
+	Lsm
+	SkLookup
+	Syscall
 )
 
-func (p SupportedProgramType) Uint32() *uint32 {
+func (p ProgramType) Uint32() *uint32 {
 	progTypeInt := uint32(p)
 	return &progTypeInt
 }
 
-func FromString(p string) (*SupportedProgramType, error) {
-	var programType SupportedProgramType
+func FromString(p string) (*ProgramType, error) {
+	var programType ProgramType
 	switch p {
 	case "tc":
 		programType = Tc
@@ -92,15 +122,73 @@ func FromString(p string) (*SupportedProgramType, error) {
 	return &programType, nil
 }
 
-func (p SupportedProgramType) String() string {
+func (p ProgramType) String() string {
 	switch p {
+	case Unspec:
+		return "unspec"
+	case SocketFilter:
+		return "socket_filter"
+	case Kprobe:
+		return "kprobe"
 	case Tc:
 		return "tc"
-	case Xdp:
-		return "xdp"
+	case SchedAct:
+		return "sched_act"
 	case Tracepoint:
 		return "tracepoint"
+	case Xdp:
+		return "xdp"
+	case PerfEvent:
+		return "perf_event"
+	case CgroupSkb:
+		return "cgroup_skb"
+	case CgroupSock:
+		return "cgroup_sock"
+	case LwtIn:
+		return "lwt_in"
+	case LwtOut:
+		return "lwt_out"
+	case LwtXmit:
+		return "lwt_xmit"
+	case SockOps:
+		return "sock_ops"
+	case SkSkb:
+		return "sk_skb"
+	case CgroupDevice:
+		return "cgroup_device"
+	case SkMsg:
+		return "sk_msg"
+	case RawTracepoint:
+		return "raw_tracepoint"
+	case CgroupSockAddr:
+		return "cgroup_sock_addr"
+	case LwtSeg6Local:
+		return "lwt_seg6local"
+	case LircMode2:
+		return "lirc_mode2"
+	case SkReuseport:
+		return "sk_reuseport"
+	case FlowDissector:
+		return "flow_dissector"
+	case CgroupSysctl:
+		return "cgroup_sysctl"
+	case RawTracepointWritable:
+		return "raw_tracepoint_writable"
+	case CgroupSockopt:
+		return "cgroup_sockopt"
+	case Tracing:
+		return "tracing"
+	case StructOps:
+		return "struct_ops"
+	case Ext:
+		return "ext"
+	case Lsm:
+		return "lsm"
+	case SkLookup:
+		return "sk_lookup"
+	case Syscall:
+		return "syscall"
 	default:
-		return ""
+		return "INVALID_PROG_TYPE"
 	}
 }

@@ -94,7 +94,7 @@ func GetBytecode(c client.Client, b *bpfdiov1alpha1.BytecodeSelector) (interface
 	}
 }
 
-func BuildBpfdCommon(bytecode interface{}, sectionName string, programType internal.SupportedProgramType, Id string, globalData map[string][]byte) *gobpfd.LoadRequestCommon {
+func BuildBpfdCommon(bytecode interface{}, sectionName string, programType internal.ProgramType, Id string, globalData map[string][]byte) *gobpfd.LoadRequestCommon {
 	if imageBytecode, ok := bytecode.(*gobpfd.LoadRequestCommon_Image); ok {
 		return &gobpfd.LoadRequestCommon{
 			Location:    imageBytecode,
@@ -151,7 +151,7 @@ func UnloadBpfdProgram(ctx context.Context, bpfdClient gobpfd.LoaderClient, id s
 	return nil
 }
 
-func ListBpfdPrograms(ctx context.Context, bpfdClient gobpfd.LoaderClient, programType internal.SupportedProgramType) (map[string]*gobpfd.ListResponse_ListResult, error) {
+func ListBpfdPrograms(ctx context.Context, bpfdClient gobpfd.LoaderClient, programType internal.ProgramType) (map[string]*gobpfd.ListResponse_ListResult, error) {
 	listOnlyBpfdPrograms := true
 	listReq := gobpfd.ListRequest{
 		ProgramType:      programType.Uint32(),
@@ -170,6 +170,15 @@ func ListBpfdPrograms(ctx context.Context, bpfdClient gobpfd.LoaderClient, progr
 	}
 
 	return out, nil
+}
+
+func ListAllPrograms(ctx context.Context, bpfdClient gobpfd.LoaderClient) ([]*gobpfd.ListResponse_ListResult, error) {
+	listResponse, err := bpfdClient.List(ctx, &gobpfd.ListRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	return listResponse.Results, nil
 }
 
 // GetMapsForUUID returns any maps for the specified bpf program
@@ -196,4 +205,23 @@ func GetMapsForUUID(uuid string) (map[string]string, error) {
 	}
 
 	return maps, nil
+}
+
+// Convert a list result into a set of kernel info annotations
+func Build_kernel_info_annotations(p *gobpfd.ListResponse_ListResult) map[string]string {
+	return map[string]string{
+		"Kernel-ID":                     fmt.Sprint(p.BpfId),
+		"Name":                          p.Name,
+		"Type":                          internal.ProgramType(p.ProgramType).String(),
+		"Loaded-At":                     p.LoadedAt,
+		"Tag":                           p.Tag,
+		"GPL-Compatible":                fmt.Sprintf("%v", p.GplCompatible),
+		"Map-IDs":                       fmt.Sprintf("%v", p.MapIds),
+		"BTF-ID":                        fmt.Sprint(p.BtfId),
+		"Size-Translated-Bytes":         fmt.Sprint(p.BytesXlated),
+		"JITed":                         fmt.Sprintf("%v", p.Jited),
+		"Size-JITed-Bytes":              fmt.Sprint(p.BytesJited),
+		"Kernel-Allocated-Memory-Bytes": fmt.Sprint(p.BytesMemlock),
+		"Verified-Instruction-Count":    fmt.Sprint(p.VerifiedInsns),
+	}
 }
