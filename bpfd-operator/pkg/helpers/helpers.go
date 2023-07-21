@@ -435,3 +435,14 @@ func IsBpfdDeployed() bool {
 	}
 	return false
 }
+
+func IsBpfProgramConditionFailure(conditionType string) bool {
+	if conditionType == string(bpfdiov1alpha1.BpfProgCondNotLoaded) ||
+		conditionType == string(bpfdiov1alpha1.BpfProgCondNotUnloaded) ||
+		conditionType == string(bpfdiov1alpha1.BpfProgCondMapOwnerNotFound) ||
+		conditionType == string(bpfdiov1alpha1.BpfProgCondMapOwnerNotLoaded) {
+		return true
+	}
+
+	return false
+}

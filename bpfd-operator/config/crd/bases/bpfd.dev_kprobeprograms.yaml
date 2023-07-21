@@ -116,6 +116,55 @@ spec:
                   the byte string appropriately considering such things as size, endianness,
                   alignment and packing of data structures.
                 type: object
+              mapownerselector:
+                description: MapOwnerSelector is used to select the loaded eBPF program
+                  this eBPF program will share a map with. The value is a label applied
+                  to the BpfProgram to select. The selector must resolve to exactly
+                  one instance of a BpfProgram on a given node or the eBPF program
+                  will not load.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: A label selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: operator represents a key's relationship to
+                            a set of values. Valid operators are In, NotIn, Exists
+                            and DoesNotExist.
+                          type: string
+                        values:
+                          description: values is an array of string values. If the
+                            operator is In or NotIn, the values array must be non-empty.
+                            If the operator is Exists or DoesNotExist, the values
+                            array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: matchLabels is a map of {key,value} pairs. A single
+                      {key,value} in the matchLabels map is equivalent to an element
+                      of matchExpressions, whose key field is "key", the operator
+                      is "In", and the values array contains only "value". The requirements
+                      are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
               nodeselector:
                 description: NodeSelector allows the user to specify which nodes to
                   deploy the bpf program to.  This field must be specified, to select

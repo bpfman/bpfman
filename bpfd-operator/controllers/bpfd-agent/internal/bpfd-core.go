@@ -27,6 +27,7 @@ import (
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	"github.com/containers/image/docker/reference"
 
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -94,24 +95,32 @@ func GetBytecode(c client.Client, b *bpfdiov1alpha1.BytecodeSelector) (interface
 	}
 }
 
-func BuildBpfdCommon(bytecode interface{}, sectionName string, programType internal.ProgramType, Id string, globalData map[string][]byte) *gobpfd.LoadRequestCommon {
+func BuildBpfdCommon(bytecode interface{},
+	sectionName string,
+	programType internal.ProgramType,
+	Id string,
+	globalData map[string][]byte,
+	mapOwnerUuid types.UID) *gobpfd.LoadRequestCommon {
+	uuid := string(mapOwnerUuid)
 	if imageBytecode, ok := bytecode.(*gobpfd.LoadRequestCommon_Image); ok {
 		return &gobpfd.LoadRequestCommon{
-			Location:    imageBytecode,
-			SectionName: sectionName,
-			ProgramType: *programType.Uint32(),
-			Id:          &Id,
-			GlobalData:  globalData,
+			Location:     imageBytecode,
+			SectionName:  sectionName,
+			ProgramType:  *programType.Uint32(),
+			Id:           &Id,
+			GlobalData:   globalData,
+			MapOwnerUuid: &uuid,
 		}
 	}
 
 	if fileBytecode, ok := bytecode.(*gobpfd.LoadRequestCommon_File); ok {
 		return &gobpfd.LoadRequestCommon{
-			Location:    fileBytecode,
-			SectionName: sectionName,
-			ProgramType: *programType.Uint32(),
-			Id:          &Id,
-			GlobalData:  globalData,
+			Location:     fileBytecode,
+			SectionName:  sectionName,
+			ProgramType:  *programType.Uint32(),
+			Id:           &Id,
+			GlobalData:   globalData,
+			MapOwnerUuid: &uuid,
 		}
 	}
 
@@ -185,6 +194,7 @@ func ListAllPrograms(ctx context.Context, bpfdClient gobpfd.LoaderClient) ([]*go
 // which bpfd is managing
 func GetMapsForUUID(uuid string) (map[string]string, error) {
 	maps := map[string]string{}
+	// TODO: Pull from MapPinPath instead of hardcoding
 	programMapPath := fmt.Sprintf("%s/%s", internal.BpfdMapFs, uuid)
 
 	if err := filepath.Walk(programMapPath, func(path string, info os.FileInfo, err error) error {

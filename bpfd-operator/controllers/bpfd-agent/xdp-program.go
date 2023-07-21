@@ -191,7 +191,8 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	bytecode interface{},
 	bpfProgram *bpfdiov1alpha1.BpfProgram,
 	isNodeSelected bool,
-	isBeingDeleted bool) (bpfdiov1alpha1.BpfProgramConditionType, error) {
+	isBeingDeleted bool,
+	mapOwnerStatus *MapOwnerParamStatus) (bpfdiov1alpha1.BpfProgramConditionType, error) {
 
 	r.Logger.V(1).Info("Existing bpfProgram", "ExistingMaps", bpfProgram.Spec.Maps, "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentXdpProgram", r.currentXdpProgram.Name)
 	iface := bpfProgram.Annotations[internal.XdpProgramInterface]
@@ -199,7 +200,14 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	loadRequest := &gobpfd.LoadRequest{}
 	var err error
 	id := string(bpfProgram.UID)
-	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(bytecode, r.currentXdpProgram.Spec.SectionName, internal.Xdp, id, r.currentXdpProgram.Spec.GlobalData)
+	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
+		bytecode,
+		r.currentXdpProgram.Spec.SectionName,
+		internal.Xdp,
+		id,
+		r.currentXdpProgram.Spec.GlobalData,
+		mapOwnerStatus.mapOwnerUuid,
+	)
 
 	loadRequest.AttachInfo = &gobpfd.LoadRequest_XdpAttachInfo{
 		XdpAttachInfo: &gobpfd.XDPAttachInfo{
@@ -223,6 +231,16 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return bpfdiov1alpha1.BpfProgCondNotSelected, nil
 		}
 
+		// Make sure if the Map Owner is set but not found then just exit
+		if mapOwnerStatus.isSet && !mapOwnerStatus.isFound {
+			return bpfdiov1alpha1.BpfProgCondMapOwnerNotFound, nil
+		}
+
+		// Make sure if the Map Owner is set but not loaded then just exit
+		if mapOwnerStatus.isSet && !mapOwnerStatus.isLoaded {
+			return bpfdiov1alpha1.BpfProgCondMapOwnerNotLoaded, nil
+		}
+
 		// otherwise load it
 		r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
@@ -234,11 +252,14 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		return bpfdiov1alpha1.BpfProgCondLoaded, nil
 	}
 
-	// BpfProgram exists but either XdpProgram is being deleted or node is no
-	// longer selected....unload program
-	if isBeingDeleted || !isNodeSelected {
-		r.Logger.V(1).Info("XdpProgram exists on Node but is scheduled for deletion or node is no longer selected", "isDeleted", isBeingDeleted,
-			"isSelected", isNodeSelected)
+	// BpfProgram exists but either XdpProgram is being deleted, node is no
+	// longer selected, or map is not available....unload program
+	if isBeingDeleted || !isNodeSelected ||
+		(mapOwnerStatus.isSet && (!mapOwnerStatus.isFound || !mapOwnerStatus.isLoaded)) {
+		r.Logger.V(1).Info("XdpProgram exists on Node but is scheduled for deletion, not selected, or map not available",
+			"isDeleted", isBeingDeleted, "isSelected", isNodeSelected, "mapIsSet", mapOwnerStatus.isSet,
+			"mapIsFound", mapOwnerStatus.isFound, "mapIsLoaded", mapOwnerStatus.isLoaded)
+
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload XdpProgram")
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
@@ -249,13 +270,24 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return bpfdiov1alpha1.BpfProgCondUnloaded, nil
 		}
 
-		return bpfdiov1alpha1.BpfProgCondNotSelected, nil
+		if !isNodeSelected {
+			return bpfdiov1alpha1.BpfProgCondNotSelected, nil
+		}
+
+		if mapOwnerStatus.isSet && !mapOwnerStatus.isFound {
+			return bpfdiov1alpha1.BpfProgCondMapOwnerNotFound, nil
+		}
+
+		if mapOwnerStatus.isSet && !mapOwnerStatus.isLoaded {
+			return bpfdiov1alpha1.BpfProgCondMapOwnerNotLoaded, nil
+		}
 	}
 
 	// BpfProgram exists but is not correct state, unload and recreate
 	isSame, reasons := bpfdagentinternal.DoesProgExist(existingProgram, loadRequest)
 	if !isSame {
 		r.Logger.V(1).Info("XdpProgram is in wrong state, unloading and reloading", "Reason", reasons)
+
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload XdpProgram")
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil

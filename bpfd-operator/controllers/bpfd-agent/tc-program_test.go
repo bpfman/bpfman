@@ -157,15 +157,17 @@ func TestTcProgramControllerCreate(t *testing.T) {
 	// Require no requeue
 	require.False(t, res.Requeue)
 	id := string(bpfProg.UID)
+	mapOwnerUuid := ""
 
 	expectedLoadReq := &gobpfd.LoadRequest{
 		Common: &gobpfd.LoadRequestCommon{
 			Location: &gobpfd.LoadRequestCommon_File{
 				File: bytecodePath,
 			},
-			SectionName: sectionName,
-			ProgramType: *internal.Tc.Uint32(),
-			Id:          &id,
+			SectionName:  sectionName,
+			ProgramType:  *internal.Tc.Uint32(),
+			Id:           &id,
+			MapOwnerUuid: &mapOwnerUuid,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
 			TcAttachInfo: &gobpfd.TCAttachInfo{
@@ -358,15 +360,17 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	require.False(t, res.Requeue)
 
 	id0 := string(bpfProgEth0.UID)
+	mapOwnerUuid := ""
 
 	expectedLoadReq0 := &gobpfd.LoadRequest{
 		Common: &gobpfd.LoadRequestCommon{
 			Location: &gobpfd.LoadRequestCommon_File{
 				File: bytecodePath,
 			},
-			SectionName: sectionName,
-			ProgramType: *internal.Tc.Uint32(),
-			Id:          &id0,
+			SectionName:  sectionName,
+			ProgramType:  *internal.Tc.Uint32(),
+			Id:           &id0,
+			MapOwnerUuid: &mapOwnerUuid,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
 			TcAttachInfo: &gobpfd.TCAttachInfo{
@@ -385,9 +389,10 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 			Location: &gobpfd.LoadRequestCommon_File{
 				File: bytecodePath,
 			},
-			SectionName: sectionName,
-			ProgramType: *internal.Tc.Uint32(),
-			Id:          &id1,
+			SectionName:  sectionName,
+			ProgramType:  *internal.Tc.Uint32(),
+			Id:           &id1,
+			MapOwnerUuid: &mapOwnerUuid,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
 			TcAttachInfo: &gobpfd.TCAttachInfo{

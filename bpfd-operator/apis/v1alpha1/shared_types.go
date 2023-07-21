@@ -55,6 +55,13 @@ type BpfProgramCommon struct {
 	// such things as size, endianness, alignment and packing of data structures.
 	// +optional
 	GlobalData map[string][]byte `json:"globaldata,omitempty"`
+
+	// MapOwnerSelector is used to select the loaded eBPF program this eBPF program
+	// will share a map with. The value is a label applied to the BpfProgram to select.
+	// The selector must resolve to exactly one instance of a BpfProgram on a given node
+	// or the eBPF program will not load.
+	// +optional
+	MapOwnerSelector metav1.LabelSelector `json:"mapownerselector"`
 }
 
 // PullPolicy describes a policy for if/when to pull a container image
@@ -202,16 +209,16 @@ func (b ProgramConditionType) Condition(message string) metav1.Condition {
 type BpfProgramConditionType string
 
 const (
-	// BpfProgCondLoaded indicates that the BPF program was successfully loaded
+	// BpfProgCondLoaded indicates that the eBPF program was successfully loaded
 	// into the kernel on a specific node.
 	BpfProgCondLoaded BpfProgramConditionType = "Loaded"
 
-	// BpfProgCondNotLoaded indicates that the BPF program has not yet been
+	// BpfProgCondNotLoaded indicates that the eBPF program has not yet been
 	// loaded into the kernel on a specific node.
 	BpfProgCondNotLoaded BpfProgramConditionType = "NotLoaded"
 
-	// BpfProgCondUnloaded indicates that in the midst of trying to remove a
-	// BPF program from the kernel on the node, that program has not yet been
+	// BpfProgCondUnloaded indicates that in the midst of trying to remove the
+	// eBPF program from the kernel on the node, that program has not yet been
 	// removed.
 	BpfProgCondNotUnloaded BpfProgramConditionType = "NotUnLoaded"
 
@@ -219,9 +226,17 @@ const (
 	// on a specific node.
 	BpfProgCondNotSelected BpfProgramConditionType = "NotSelected"
 
-	// BpfProgCondUnloaded indicates that a BPF program has been unloaded from
+	// BpfProgCondUnloaded indicates that the eBPF program has been unloaded from
 	// the kernel on a specific node.
 	BpfProgCondUnloaded BpfProgramConditionType = "Unloaded"
+
+	// BpfProgCondMapOwnerNotFound indicates that the eBPF program sharing a map with another
+	// eBPF program and that program does not exist.
+	BpfProgCondMapOwnerNotFound BpfProgramConditionType = "MapOwnerNotFound"
+
+	// BpfProgCondMapOwnerNotLoaded indicates that the eBPF program sharing a map with another
+	// eBPF program and that program is not loaded.
+	BpfProgCondMapOwnerNotLoaded BpfProgramConditionType = "MapOwnerNotLoaded"
 )
 
 // Condition is a helper method to promote any given BpfProgramConditionType to
@@ -264,6 +279,20 @@ func (b BpfProgramConditionType) Condition() metav1.Condition {
 			Status:  metav1.ConditionTrue,
 			Reason:  "bpfdUnloaded",
 			Message: "This BpfProgram object and all it's bpfd programs have been unloaded",
+		}
+	case BpfProgCondMapOwnerNotFound:
+		cond = metav1.Condition{
+			Type:    string(BpfProgCondMapOwnerNotFound),
+			Status:  metav1.ConditionTrue,
+			Reason:  "mapOwnerNotFound",
+			Message: "BpfProgram map owner not found",
+		}
+	case BpfProgCondMapOwnerNotLoaded:
+		cond = metav1.Condition{
+			Type:    string(BpfProgCondMapOwnerNotLoaded),
+			Status:  metav1.ConditionTrue,
+			Reason:  "mapOwnerNotLoaded",
+			Message: "BpfProgram map owner not loaded",
 		}
 	}
 

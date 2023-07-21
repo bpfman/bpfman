@@ -1,3 +1,4 @@
+---
 apiVersion: bpfd.dev/v1alpha1
 kind: XdpProgram
 metadata:
@@ -14,3 +15,23 @@ spec:
   bytecode:
     image:
       url: quay.io/bpfd-bytecode/go-xdp-counter:latest
+---
+apiVersion: bpfd.dev/v1alpha1
+kind: XdpProgram
+metadata:
+  labels:
+    app.kubernetes.io/name: xdpprogram
+  name: go-xdp-counter-sharing-map-example
+spec:
+  sectionname: stats
+  # Select all nodes
+  nodeselector: {}
+  interfaceselector:
+    primarynodeinterface: true
+  priority: 55
+  bytecode:
+    image:
+      url: quay.io/bpfd-bytecode/go-xdp-counter:latest
+  mapownerselector:
+    matchLabels:
+      bpfd.dev/ownedByProgram: go-xdp-counter-example

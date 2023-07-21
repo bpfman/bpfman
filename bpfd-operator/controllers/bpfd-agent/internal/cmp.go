@@ -71,6 +71,14 @@ func DoesProgExist(actual *gobpfd.ListResponse_ListResult, expected *gobpfd.Load
 			expectedFile, actualFile))
 	}
 
+	// Check equality of Map Owner
+	actualMapOwnerUuid := actual.GetMapOwnerUuid()
+	expectedMapOwnerUuid := expected.Common.GetMapOwnerUuid()
+	if actualMapOwnerUuid != expectedMapOwnerUuid {
+		reasons = append(reasons, fmt.Sprintf("Expected File to be %s but found %s",
+			expectedMapOwnerUuid, actualMapOwnerUuid))
+	}
+
 	// Check equality of program specific fields
 	actualXdp := actual.GetXdpAttachInfo()
 	expectedXdp := expected.GetXdpAttachInfo()
