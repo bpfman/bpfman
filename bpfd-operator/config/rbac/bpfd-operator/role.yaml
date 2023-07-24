@@ -18,7 +18,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - bpfd.io
+  - bpfd.dev
   resources:
   - bpfprograms
   verbs:
@@ -26,13 +26,13 @@ rules:
   - list
   - watch
 - apiGroups:
-  - bpfd.io
+  - bpfd.dev
   resources:
   - configmaps/finalizers
   verbs:
   - update
 - apiGroups:
-  - bpfd.io
+  - bpfd.dev
   resources:
   - tcprograms
   verbs:
@@ -44,13 +44,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - bpfd.io
+  - bpfd.dev
   resources:
   - tcprograms/finalizers
   verbs:
   - update
 - apiGroups:
-  - bpfd.io
+  - bpfd.dev
   resources:
   - tcprograms/status
   verbs:
@@ -58,7 +58,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - bpfd.io
+  - bpfd.dev
   resources:
   - tracepointprograms
   verbs:
@@ -70,13 +70,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - bpfd.io
+  - bpfd.dev
   resources:
   - tracepointprograms/finalizers
   verbs:
   - update
 - apiGroups:
-  - bpfd.io
+  - bpfd.dev
   resources:
   - tracepointprograms/status
   verbs:
@@ -84,7 +84,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - bpfd.io
+  - bpfd.dev
   resources:
   - xdpprograms
   verbs:
@@ -96,13 +96,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - bpfd.io
+  - bpfd.dev
   resources:
   - xdpprograms/finalizers
   verbs:
   - update
 - apiGroups:
-  - bpfd.io
+  - bpfd.dev
   resources:
   - xdpprograms/status
   verbs:

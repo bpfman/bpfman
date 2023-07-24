@@ -34,9 +34,9 @@ import (
 	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 )
 
-//+kubebuilder:rbac:groups=bpfd.io,resources=tracepointprograms,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=bpfd.io,resources=tracepointprograms/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=bpfd.io,resources=tracepointprograms/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfd.dev,resources=tracepointprograms,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=bpfd.dev,resources=tracepointprograms/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=bpfd.dev,resources=tracepointprograms/finalizers,verbs=update
 
 type TracepointProgramReconciler struct {
 	ReconcilerCommon

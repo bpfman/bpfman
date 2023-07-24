@@ -5,7 +5,7 @@ metadata:
     alm-examples: |-
       [
         {
-          "apiVersion": "bpfd.io/v1alpha1",
+          "apiVersion": "bpfd.dev/v1alpha1",
           "kind": "TcProgram",
           "metadata": {
             "labels": {
@@ -29,7 +29,7 @@ metadata:
           }
         },
         {
-          "apiVersion": "bpfd.io/v1alpha1",
+          "apiVersion": "bpfd.dev/v1alpha1",
           "kind": "TracepointProgram",
           "metadata": {
             "labels": {
@@ -49,7 +49,7 @@ metadata:
           }
         },
         {
-          "apiVersion": "bpfd.io/v1alpha1",
+          "apiVersion": "bpfd.dev/v1alpha1",
           "kind": "XdpProgram",
           "metadata": {
             "labels": {
@@ -87,22 +87,22 @@ spec:
     - description: BpfProgram is the Schema for the BpfProgram API
       displayName: Bpf Program
       kind: BpfProgram
-      name: bpfprograms.bpfd.io
+      name: bpfprograms.bpfd.dev
       version: v1alpha1
     - description: TcProgram is the Schema for the Tcprograms API
       displayName: Tc Program
       kind: TcProgram
-      name: tcprograms.bpfd.io
+      name: tcprograms.bpfd.dev
       version: v1alpha1
     - description: TracepointProgram is the Schema for the Tracepointprograms API
       displayName: Tracepoint Program
       kind: TracepointProgram
-      name: tracepointprograms.bpfd.io
+      name: tracepointprograms.bpfd.dev
       version: v1alpha1
     - description: XdpProgram is the Schema for the Xdpprograms API
       displayName: Xdp Program
       kind: XdpProgram
-      name: xdpprograms.bpfd.io
+      name: xdpprograms.bpfd.dev
       version: v1alpha1
   description: "The bpfd Operator is a Kubernetes Operator for deploying [bpfd](https://bpfd.netlify.app/),
     a system daemon\nfor managing eBPF programs. It deploys bpfd itself along with
@@ -147,7 +147,7 @@ spec:
           - update
           - watch
         - apiGroups:
-          - bpfd.io
+          - bpfd.dev
           resources:
           - bpfprograms
           verbs:
@@ -155,13 +155,13 @@ spec:
           - list
           - watch
         - apiGroups:
-          - bpfd.io
+          - bpfd.dev
           resources:
           - configmaps/finalizers
           verbs:
           - update
         - apiGroups:
-          - bpfd.io
+          - bpfd.dev
           resources:
           - tcprograms
           verbs:
@@ -173,13 +173,13 @@ spec:
           - update
           - watch
         - apiGroups:
-          - bpfd.io
+          - bpfd.dev
           resources:
           - tcprograms/finalizers
           verbs:
           - update
         - apiGroups:
-          - bpfd.io
+          - bpfd.dev
           resources:
           - tcprograms/status
           verbs:
@@ -187,7 +187,7 @@ spec:
           - patch
           - update
         - apiGroups:
-          - bpfd.io
+          - bpfd.dev
           resources:
           - tracepointprograms
           verbs:
@@ -199,13 +199,13 @@ spec:
           - update
           - watch
         - apiGroups:
-          - bpfd.io
+          - bpfd.dev
           resources:
           - tracepointprograms/finalizers
           verbs:
           - update
         - apiGroups:
-          - bpfd.io
+          - bpfd.dev
           resources:
           - tracepointprograms/status
           verbs:
@@ -213,7 +213,7 @@ spec:
           - patch
           - update
         - apiGroups:
-          - bpfd.io
+          - bpfd.dev
           resources:
           - xdpprograms
           verbs:
@@ -225,13 +225,13 @@ spec:
           - update
           - watch
         - apiGroups:
-          - bpfd.io
+          - bpfd.dev
           resources:
           - xdpprograms/finalizers
           verbs:
           - update
         - apiGroups:
-          - bpfd.io
+          - bpfd.dev
           resources:
           - xdpprograms/status
           verbs:

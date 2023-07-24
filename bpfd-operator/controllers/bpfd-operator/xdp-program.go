@@ -34,9 +34,9 @@ import (
 	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 )
 
-//+kubebuilder:rbac:groups=bpfd.io,resources=xdpprograms,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=bpfd.io,resources=xdpprograms/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=bpfd.io,resources=xdpprograms/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfd.dev,resources=xdpprograms,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=bpfd.dev,resources=xdpprograms/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=bpfd.dev,resources=xdpprograms/finalizers,verbs=update
 
 type XdpProgramReconciler struct {
 	ReconcilerCommon

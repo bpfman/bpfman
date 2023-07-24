@@ -95,12 +95,12 @@ back to the user via the `xdpProgram`'s status field:
 
 ```bash
 kubectl get xdpprogram xdp-pass-all-nodes -o yaml
-apiVersion: bpfd.io/v1alpha1
+apiVersion: bpfd.dev/v1alpha1
   kind: XdpProgram
   metadata:
     creationTimestamp: "2023-05-04T18:28:46Z"
     finalizers:
-    - bpfd.io.operator/finalizer
+    - bpfd.dev.operator/finalizer
     generation: 1
     labels:
       app.kubernetes.io/name: xdpprogram

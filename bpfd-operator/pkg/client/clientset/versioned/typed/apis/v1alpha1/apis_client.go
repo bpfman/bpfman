@@ -33,7 +33,7 @@ type BpfdV1alpha1Interface interface {
 	XdpProgramsGetter
 }
 
-// BpfdV1alpha1Client is used to interact with features provided by the bpfd.io group.
+// BpfdV1alpha1Client is used to interact with features provided by the bpfd.dev group.
 type BpfdV1alpha1Client struct {
 	restClient rest.Interface
 }

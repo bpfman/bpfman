@@ -34,9 +34,9 @@ type FakeXdpPrograms struct {
 	Fake *FakeBpfdV1alpha1
 }
 
-var xdpprogramsResource = schema.GroupVersionResource{Group: "bpfd.io", Version: "v1alpha1", Resource: "xdpprograms"}
+var xdpprogramsResource = schema.GroupVersionResource{Group: "bpfd.dev", Version: "v1alpha1", Resource: "xdpprograms"}
 
-var xdpprogramsKind = schema.GroupVersionKind{Group: "bpfd.io", Version: "v1alpha1", Kind: "XdpProgram"}
+var xdpprogramsKind = schema.GroupVersionKind{Group: "bpfd.dev", Version: "v1alpha1", Kind: "XdpProgram"}
 
 // Get takes name of the xdpProgram, and returns the corresponding xdpProgram object, and an error if there is any.
 func (c *FakeXdpPrograms) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.XdpProgram, err error) {

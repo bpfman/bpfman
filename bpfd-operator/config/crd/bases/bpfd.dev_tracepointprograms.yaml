@@ -5,14 +5,14 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: xdpprograms.bpfd.io
+  name: tracepointprograms.bpfd.dev
 spec:
-  group: bpfd.io
+  group: bpfd.dev
   names:
-    kind: XdpProgram
-    listKind: XdpProgramList
-    plural: xdpprograms
-    singular: xdpprogram
+    kind: TracepointProgram
+    listKind: TracepointProgramList
+    plural: tracepointprograms
+    singular: tracepointprogram
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -22,22 +22,14 @@ spec:
     - jsonPath: .spec.nodeselector
       name: NodeSelector
       type: string
-    - jsonPath: .spec.priority
-      name: Priority
-      priority: 1
-      type: string
-    - jsonPath: .spec.interfaceselector
-      name: InterfaceSelector
-      priority: 1
-      type: string
-    - jsonPath: .spec.proceedon
-      name: ProceedOn
+    - jsonPath: .spec.name
+      name: TracePoint
       priority: 1
       type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: XdpProgram is the Schema for the XdpPrograms API
+        description: TracepointProgram is the Schema for the TracepointPrograms API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -52,7 +44,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: XdpProgramSpec defines the desired state of XdpProgram
+            description: TracepointProgramSpec defines the desired state of TracepointProgram
             properties:
               bytecode:
                 description: Bytecode configures where the bpf program's bytecode
@@ -107,22 +99,12 @@ spec:
                   the byte string appropriately considering such things as size, endianness,
                   alignment and packing of data structures.
                 type: object
-              interfaceselector:
-                description: Selector to determine the network interface (or interfaces)
-                maxProperties: 1
-                minProperties: 1
-                properties:
-                  interfaces:
-                    description: Interfaces refers to a list of network interfaces
-                      to attach the BPF program to.
-                    items:
-                      type: string
-                    type: array
-                  primarynodeinterface:
-                    description: Attach BPF program to the primary interface on the
-                      node. Only 'true' accepted.
-                    type: boolean
-                type: object
+              names:
+                description: Names refers to the names of kernel tracepoints to attach
+                  the bpf program to.
+                items:
+                  type: string
+                type: array
               nodeselector:
                 description: NodeSelector allows the user to specify which nodes to
                   deploy the bpf program to.  This field must be specified, to select
@@ -171,46 +153,21 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
-              priority:
-                description: Priority specifies the priority of the bpf program in
-                  relation to other programs of the same type with the same attach
-                  point. It is a value from 0 to 1000 where lower values have higher
-                  precedence.
-                format: int32
-                maximum: 1000
-                minimum: 0
-                type: integer
-              proceedon:
-                default:
-                - pass
-                - dispatcher_return
-                items:
-                  enum:
-                  - aborted
-                  - drop
-                  - pass
-                  - tx
-                  - redirect
-                  - dispatcher_return
-                  type: string
-                maxItems: 6
-                type: array
               sectionname:
                 description: SectionName is the the section name described in the
                   bpf Program
                 type: string
             required:
             - bytecode
-            - interfaceselector
+            - names
             - nodeselector
-            - priority
             - sectionname
             type: object
           status:
-            description: XdpProgramStatus defines the observed state of XdpProgram
+            description: TracepointProgramStatus defines the observed state of TracepointProgram
             properties:
               conditions:
-                description: Conditions houses the global cluster state for the XdpProgram.
+                description: Conditions houses the global cluster state for the TracepointProgram.
                   The explicit condition types are defined internally.
                 items:
                   description: "Condition contains details for one aspect of the current

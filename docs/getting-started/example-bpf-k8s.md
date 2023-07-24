@@ -30,7 +30,7 @@ Edit the sample yaml files to customize any configuration values:
 Sample bytecode yaml with XdpProgram CRD:
 ```console
     vi examples/config/base/go-xdp-counter/bytecode.yaml
-    apiVersion: bpfd.io/v1alpha1
+    apiVersion: bpfd.dev/v1alpha1
     kind: XdpProgram
     metadata:
       labels:
@@ -57,13 +57,13 @@ and `go-tracepoint-counter-bytecode.yaml` and then apply the updated yamls:
 
 ```console
     kubectl apply -f examples/config/base/go-xdp-counter/bytecode.yaml
-     xdpprogram.bpfd.io/go-xdp-counter-example created
+     xdpprogram.bpfd.dev/go-xdp-counter-example created
 
     kubectl apply -f examples/config/base/go-tc-counter/bytecode.yaml
-     tcprogram.bpfd.io/go-tc-counter-example created
+     tcprogram.bpfd.dev/go-tc-counter-example created
 
     kubectl apply -f examples/config/base/go-tracepoint-counter/bytecode.yaml
-     tracepointprogram.bpfd.io/go-tracepoint-counter-example created
+     tracepointprogram.bpfd.dev/go-tracepoint-counter-example created
 ```
 
 Following the diagram for XDP example (Blue numbers):
@@ -91,12 +91,12 @@ To retrieve information on the `XdpProgram` objects:
 
 
     kubectl get xdpprograms go-xdp-counter-example -o yaml
-    apiVersion: bpfd.io/v1alpha1
+    apiVersion: bpfd.dev/v1alpha1
     kind: XdpProgram
     metadata:
       creationTimestamp: "2023-05-04T15:41:45Z"
       finalizers:
-      - bpfd.io.operator/finalizer
+      - bpfd.dev.operator/finalizer
       generation: 1
       labels:
         app.kubernetes.io/name: xdpprogram
@@ -147,18 +147,18 @@ To retrieve information on the `BpfProgram` objects:
 
 
     kubectl get bpfprograms go-xdp-counter-example-bpfd-deployment-worker -o yaml
-    apiVersion: bpfd.io/v1alpha1
+    apiVersion: bpfd.dev/v1alpha1
     kind: BpfProgram
     metadata:
       creationTimestamp: "2023-05-04T15:41:45Z"
       finalizers:
-      - bpfd.io.xdpprogramcontroller-finalizer
+      - bpfd.dev.xdpprogramcontroller-finalizer
       generation: 2
       labels:
         ownedByProgram: go-xdp-counter-example
       name: go-xdp-counter-example-bpfd-deployment-worker
       ownerReferences:
-      - apiVersion: bpfd.io/v1alpha1
+      - apiVersion: bpfd.dev/v1alpha1
         blockOwnerDeletion: true
         controller: true
         kind: XdpProgram
@@ -298,7 +298,7 @@ Run `make deploy` to load each of the example bytecode and userspace yaml files,
      namespace/go-tc-counter created
      serviceaccount/bpfd-app-go-tc-counter created
      daemonset.apps/go-tc-counter-ds created
-     tcprogram.bpfd.io/go-tc-counter-example created
+     tcprogram.bpfd.dev/go-tc-counter-example created
      sed 's@URL_BC@quay.io/bpfd-bytecode/go-tracepoint-counter:latest@' config/default/go-tracepoint-counter/patch.yaml.env > config/default/go-tracepoint-counter/patch.yaml
      cd config/default/go-tracepoint-counter && /home/$USER/src/bpfd/examples/bin/kustomize edit set image quay.io/bpfd-userspace/go-tracepoint-counter=quay.io/bpfd-userspace/go-tracepoint-counter:latest
      /home/$USER/src/bpfd/examples/bin/kustomize build config/default/go-tracepoint-counter | kubectl apply -f -
@@ -306,7 +306,7 @@ Run `make deploy` to load each of the example bytecode and userspace yaml files,
      serviceaccount/bpfd-app-go-tracepoint-counter created
      clusterrolebinding.rbac.authorization.k8s.io/bpfd-app-rolebinding-go-tracepoint-counter created
      daemonset.apps/go-tracepoint-counter-ds created
-     tracepointprogram.bpfd.io/go-tracepoint-counter-example created
+     tracepointprogram.bpfd.dev/go-tracepoint-counter-example created
      sed 's@URL_BC@quay.io/bpfd-bytecode/go-xdp-counter:latest@' config/default/go-xdp-counter/patch.yaml.env > config/default/go-xdp-counter/patch.yaml
      cd config/default/go-xdp-counter && /home/$USER/src/bpfd/examples/bin/kustomize edit set image quay.io/bpfd-userspace/go-xdp-counter=quay.io/bpfd-userspace/go-xdp-counter:latest
      /home/$USER/src/bpfd/examples/bin/kustomize build config/default/go-xdp-counter | kubectl apply -f -
@@ -315,7 +315,7 @@ Run `make deploy` to load each of the example bytecode and userspace yaml files,
      clusterrolebinding.rbac.authorization.k8s.io/bpfd-app-rolebinding-go-xdp-counter created
      clusterrolebinding.rbac.authorization.k8s.io/privileged-scc created
      daemonset.apps/go-xdp-counter-ds created
-     xdpprogram.bpfd.io/go-xdp-counter-example created
+     xdpprogram.bpfd.dev/go-xdp-counter-example created
 
     # Test Away ...
 
@@ -327,7 +327,7 @@ Run `make deploy` to load each of the example bytecode and userspace yaml files,
      serviceaccount "bpfd-app-go-tc-counter" deleted
      clusterrolebinding.rbac.authorization.k8s.io "bpfd-app-rolebinding-go-tc-counter" deleted
      daemonset.apps "go-tc-counter-ds" deleted
-     tcprogram.bpfd.io "go-tc-counter-example" deleted
+     tcprogram.bpfd.dev "go-tc-counter-example" deleted
      sed 's@URL_BC@quay.io/bpfd-bytecode/go-tracepoint-counter:latest@' config/default/go-tracepoint-counter/patch.yaml.env > config/default/go-tracepoint-counter/patch.yaml
      cd config/default/go-tracepoint-counter && /home/$USER/src/bpfd/examples/bin/kustomize edit set image quay.io/bpfd-userspace/go-tracepoint-counter=quay.io/bpfd-userspace/go-tracepoint-counter:latest
      /home/$USER/src/bpfd/examples/bin/kustomize build config/default/go-tracepoint-counter | kubectl delete --ignore-not-found=false -f -
@@ -335,7 +335,7 @@ Run `make deploy` to load each of the example bytecode and userspace yaml files,
      serviceaccount "bpfd-app-go-tracepoint-counter" deleted
      clusterrolebinding.rbac.authorization.k8s.io "bpfd-app-rolebinding-go-tracepoint-counter" deleted
      daemonset.apps "go-tracepoint-counter-ds" deleted
-     tracepointprogram.bpfd.io "go-tracepoint-counter-example" deleted
+     tracepointprogram.bpfd.dev "go-tracepoint-counter-example" deleted
      sed 's@URL_BC@quay.io/bpfd-bytecode/go-xdp-counter:latest@' config/default/go-xdp-counter/patch.yaml.env > config/default/go-xdp-counter/patch.yaml
      cd config/default/go-xdp-counter && /home/$USER/src/bpfd/examples/bin/kustomize edit set image quay.io/bpfd-userspace/go-xdp-counter=quay.io/bpfd-userspace/go-xdp-counter:latest
      /home/$USER/src/bpfd/examples/bin/kustomize build config/default/go-xdp-counter | kubectl delete --ignore-not-found=false -f -
@@ -344,7 +344,7 @@ Run `make deploy` to load each of the example bytecode and userspace yaml files,
      clusterrolebinding.rbac.authorization.k8s.io "bpfd-app-rolebinding-go-xdp-counter" deleted
      clusterrolebinding.rbac.authorization.k8s.io "privileged-scc" deleted
      daemonset.apps "go-xdp-counter-ds" deleted
-     xdpprogram.bpfd.io "go-xdp-counter-example" deleted
+     xdpprogram.bpfd.dev "go-xdp-counter-example" deleted
 ```
 
 Individual examples can be loaded and unloaded as well, for example `make deploy-xdp` and

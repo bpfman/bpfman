@@ -35,7 +35,7 @@ import (
 	"github.com/go-logr/logr"
 )
 
-//+kubebuilder:rbac:groups=bpfd.io,resources=bpfprograms,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfd.dev,resources=bpfprograms,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 
 const (

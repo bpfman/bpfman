@@ -50,7 +50,7 @@ data:
 
 	xdpPassPrivateXdpProgramYAML := `---
 ---
-apiVersion: bpfd.io/v1alpha1
+apiVersion: bpfd.dev/v1alpha1
 kind: XdpProgram
 metadata:
   labels:

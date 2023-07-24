@@ -5,14 +5,14 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: tracepointprograms.bpfd.io
+  name: tcprograms.bpfd.dev
 spec:
-  group: bpfd.io
+  group: bpfd.dev
   names:
-    kind: TracepointProgram
-    listKind: TracepointProgramList
-    plural: tracepointprograms
-    singular: tracepointprogram
+    kind: TcProgram
+    listKind: TcProgramList
+    plural: tcprograms
+    singular: tcprogram
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -22,14 +22,26 @@ spec:
     - jsonPath: .spec.nodeselector
       name: NodeSelector
       type: string
-    - jsonPath: .spec.name
-      name: TracePoint
+    - jsonPath: .spec.priority
+      name: Priority
+      priority: 1
+      type: string
+    - jsonPath: .spec.direction
+      name: Direction
+      priority: 1
+      type: string
+    - jsonPath: .spec.interfaceselector
+      name: InterfaceSelector
+      priority: 1
+      type: string
+    - jsonPath: .spec.proceedon
+      name: ProceedOn
       priority: 1
       type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: TracepointProgram is the Schema for the TracepointPrograms API
+        description: TcProgram is the Schema for the TcProgram API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -44,7 +56,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: TracepointProgramSpec defines the desired state of TracepointProgram
+            description: TcProgramSpec defines the desired state of TcProgram
             properties:
               bytecode:
                 description: Bytecode configures where the bpf program's bytecode
@@ -89,6 +101,13 @@ spec:
                     description: Path is used to specify a bytecode object via filepath.
                     type: string
                 type: object
+              direction:
+                description: Direction specifies the direction of traffic the tc program
+                  should attach to for a given network device.
+                enum:
+                - ingress
+                - egress
+                type: string
               globaldata:
                 additionalProperties:
                   format: byte
@@ -99,12 +118,22 @@ spec:
                   the byte string appropriately considering such things as size, endianness,
                   alignment and packing of data structures.
                 type: object
-              names:
-                description: Names refers to the names of kernel tracepoints to attach
-                  the bpf program to.
-                items:
-                  type: string
-                type: array
+              interfaceselector:
+                description: Selector to determine the network interface (or interfaces)
+                maxProperties: 1
+                minProperties: 1
+                properties:
+                  interfaces:
+                    description: Interfaces refers to a list of network interfaces
+                      to attach the BPF program to.
+                    items:
+                      type: string
+                    type: array
+                  primarynodeinterface:
+                    description: Attach BPF program to the primary interface on the
+                      node. Only 'true' accepted.
+                    type: boolean
+                type: object
               nodeselector:
                 description: NodeSelector allows the user to specify which nodes to
                   deploy the bpf program to.  This field must be specified, to select
@@ -153,21 +182,55 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+              priority:
+                description: Priority specifies the priority of the tc program in
+                  relation to other programs of the same type with the same attach
+                  point. It is a value from 0 to 1000 where lower values have higher
+                  precedence.
+                format: int32
+                maximum: 1000
+                minimum: 0
+                type: integer
+              proceedon:
+                default:
+                - pipe
+                - dispatcher_return
+                description: ProceedOn allows the user to call other tc programs in
+                  chain on this exit code. Multiple values are supported by repeating
+                  the parameter.
+                items:
+                  enum:
+                  - unspec
+                  - ok
+                  - reclassify
+                  - shot
+                  - pipe
+                  - stolen
+                  - queued
+                  - repeat
+                  - redirect
+                  - trap
+                  - dispatcher_return
+                  type: string
+                maxItems: 11
+                type: array
               sectionname:
                 description: SectionName is the the section name described in the
                   bpf Program
                 type: string
             required:
             - bytecode
-            - names
+            - direction
+            - interfaceselector
             - nodeselector
+            - priority
             - sectionname
             type: object
           status:
-            description: TracepointProgramStatus defines the observed state of TracepointProgram
+            description: TcProgramStatus defines the observed state of TcProgram
             properties:
               conditions:
-                description: Conditions houses the global cluster state for the TracepointProgram.
+                description: Conditions houses the global cluster state for the TcProgram.
                   The explicit condition types are defined internally.
                 items:
                   description: "Condition contains details for one aspect of the current

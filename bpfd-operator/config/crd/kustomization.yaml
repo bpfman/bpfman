@@ -2,10 +2,10 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/bpfd.io_bpfprograms.yaml
-- bases/bpfd.io_tcprograms.yaml
-- bases/bpfd.io_tracepointprograms.yaml
-- bases/bpfd.io_xdpprograms.yaml
+- bases/bpfd.dev_bpfprograms.yaml
+- bases/bpfd.dev_tcprograms.yaml
+- bases/bpfd.dev_tracepointprograms.yaml
+- bases/bpfd.dev_xdpprograms.yaml
 
 #+kubebuilder:scaffold:crdkustomizeresource
 

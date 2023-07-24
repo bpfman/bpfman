@@ -167,8 +167,8 @@ kubectl logs -n bpfd bpfd-operator-7fbf4888c4-z8w76 -c bpfd-operator
 {"level":"info","ts":"2023-05-09T18:37:11Z","logger":"setup","msg":"starting manager"}
 {"level":"info","ts":"2023-05-09T18:37:11Z","msg":"Starting server","kind":"health probe","addr":"[::]:8081"}
 {"level":"info","ts":"2023-05-09T18:37:11Z","msg":"Starting server","path":"/metrics","kind":"metrics","addr":"127.0.0.1:8080"}
-I0509 18:37:11.262885       1 leaderelection.go:248] attempting to acquire leader lease bpfd/8730d955.bpfd.io...
-I0509 18:37:11.268918       1 leaderelection.go:258] successfully acquired lease bpfd/8730d955.bpfd.io
+I0509 18:37:11.262885       1 leaderelection.go:248] attempting to acquire leader lease bpfd/8730d955.bpfd.dev...
+I0509 18:37:11.268918       1 leaderelection.go:258] successfully acquired lease bpfd/8730d955.bpfd.dev
 {"level":"info","ts":"2023-05-09T18:37:11Z","msg":"Starting EventSource","controller":"configmap","controllerGroup":"","controllerKind":"ConfigMap","source":"kind source: *v1.ConfigMap"}
 :
 ```
