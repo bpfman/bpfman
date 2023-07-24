@@ -4,9 +4,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: tracepointprograms.bpfd.io
+  name: tracepointprograms.bpfd.dev
 spec:
-  group: bpfd.io
+  group: bpfd.dev
   names:
     kind: TracepointProgram
     listKind: TracepointProgramList

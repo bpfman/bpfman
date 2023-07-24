@@ -34,9 +34,9 @@ type FakeTracepointPrograms struct {
 	Fake *FakeBpfdV1alpha1
 }
 
-var tracepointprogramsResource = schema.GroupVersionResource{Group: "bpfd.io", Version: "v1alpha1", Resource: "tracepointprograms"}
+var tracepointprogramsResource = schema.GroupVersionResource{Group: "bpfd.dev", Version: "v1alpha1", Resource: "tracepointprograms"}
 
-var tracepointprogramsKind = schema.GroupVersionKind{Group: "bpfd.io", Version: "v1alpha1", Kind: "TracepointProgram"}
+var tracepointprogramsKind = schema.GroupVersionKind{Group: "bpfd.dev", Version: "v1alpha1", Kind: "TracepointProgram"}
 
 // Get takes name of the tracepointProgram, and returns the corresponding tracepointProgram object, and an error if there is any.
 func (c *FakeTracepointPrograms) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.TracepointProgram, err error) {

@@ -5,14 +5,14 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: tcprograms.bpfd.io
+  name: xdpprograms.bpfd.dev
 spec:
-  group: bpfd.io
+  group: bpfd.dev
   names:
-    kind: TcProgram
-    listKind: TcProgramList
-    plural: tcprograms
-    singular: tcprogram
+    kind: XdpProgram
+    listKind: XdpProgramList
+    plural: xdpprograms
+    singular: xdpprogram
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -26,10 +26,6 @@ spec:
       name: Priority
       priority: 1
       type: string
-    - jsonPath: .spec.direction
-      name: Direction
-      priority: 1
-      type: string
     - jsonPath: .spec.interfaceselector
       name: InterfaceSelector
       priority: 1
@@ -41,7 +37,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: TcProgram is the Schema for the TcProgram API
+        description: XdpProgram is the Schema for the XdpPrograms API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -56,7 +52,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: TcProgramSpec defines the desired state of TcProgram
+            description: XdpProgramSpec defines the desired state of XdpProgram
             properties:
               bytecode:
                 description: Bytecode configures where the bpf program's bytecode
@@ -101,13 +97,6 @@ spec:
                     description: Path is used to specify a bytecode object via filepath.
                     type: string
                 type: object
-              direction:
-                description: Direction specifies the direction of traffic the tc program
-                  should attach to for a given network device.
-                enum:
-                - ingress
-                - egress
-                type: string
               globaldata:
                 additionalProperties:
                   format: byte
@@ -183,7 +172,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               priority:
-                description: Priority specifies the priority of the tc program in
+                description: Priority specifies the priority of the bpf program in
                   relation to other programs of the same type with the same attach
                   point. It is a value from 0 to 1000 where lower values have higher
                   precedence.
@@ -193,26 +182,18 @@ spec:
                 type: integer
               proceedon:
                 default:
-                - pipe
+                - pass
                 - dispatcher_return
-                description: ProceedOn allows the user to call other tc programs in
-                  chain on this exit code. Multiple values are supported by repeating
-                  the parameter.
                 items:
                   enum:
-                  - unspec
-                  - ok
-                  - reclassify
-                  - shot
-                  - pipe
-                  - stolen
-                  - queued
-                  - repeat
+                  - aborted
+                  - drop
+                  - pass
+                  - tx
                   - redirect
-                  - trap
                   - dispatcher_return
                   type: string
-                maxItems: 11
+                maxItems: 6
                 type: array
               sectionname:
                 description: SectionName is the the section name described in the
@@ -220,17 +201,16 @@ spec:
                 type: string
             required:
             - bytecode
-            - direction
             - interfaceselector
             - nodeselector
             - priority
             - sectionname
             type: object
           status:
-            description: TcProgramStatus defines the observed state of TcProgram
+            description: XdpProgramStatus defines the observed state of XdpProgram
             properties:
               conditions:
-                description: Conditions houses the global cluster state for the TcProgram.
+                description: Conditions houses the global cluster state for the XdpProgram.
                   The explicit condition types are defined internally.
                 items:
                   description: "Condition contains details for one aspect of the current

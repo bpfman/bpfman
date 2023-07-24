@@ -172,7 +172,7 @@ The following is a brief description of the main directories and their contents.
 - `/controllers`: Contains the controller implementations for all of the bpfd-operator APIs.
   Each controller is responsible for reconciling the state of the cluster with the desired state defined by the user.
   This is where the source of truth for the auto-generated RBAC can be found, keep an eye out for
-  `//+kubebuilder:rbac:groups=bpfd.io` comment tags.
+  `//+kubebuilder:rbac:groups=bpfd.dev` comment tags.
     - `/bpfdagent`: Contains the controller implementations which reconcile user created `*Program` types to multiple
       `BpfProgram` objects.
     - `/bpfdoperator`: Contains the controller implementations which reconcile global `BpfProgram` object state back to

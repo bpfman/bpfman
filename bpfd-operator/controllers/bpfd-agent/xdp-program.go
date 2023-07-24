@@ -39,7 +39,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-//+kubebuilder:rbac:groups=bpfd.io,resources=xdpprograms,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfd.dev,resources=xdpprograms,verbs=get;list;watch
 
 // BpfProgramReconciler reconciles a BpfProgram object
 type XdpProgramReconciler struct {

@@ -40,7 +40,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-//+kubebuilder:rbac:groups=bpfd.io,resources=tracepointprograms,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfd.dev,resources=tracepointprograms,verbs=get;list;watch
 
 // BpfProgramReconciler reconciles a BpfProgram object
 type TracepointProgramReconciler struct {

@@ -40,7 +40,7 @@ import (
 
 // +kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create
-// +kubebuilder:rbac:groups=bpfd.io,resources=configmaps/finalizers,verbs=update
+// +kubebuilder:rbac:groups=bpfd.dev,resources=configmaps/finalizers,verbs=update
 
 type BpfdConfigReconciler struct {
 	ReconcilerCommon
@@ -73,7 +73,7 @@ func (r *BpfdConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, nil
 		}
 	} else {
-		if updated := controllerutil.AddFinalizer(bpfdConfig, "bpfd.io.operator/finalizer"); updated {
+		if updated := controllerutil.AddFinalizer(bpfdConfig, "bpfd.dev.operator/finalizer"); updated {
 			if err := r.Update(ctx, bpfdConfig); err != nil {
 				r.Logger.Error(err, "failed adding bpfd-operator finalizer to bpfd config")
 				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
@@ -206,12 +206,12 @@ func LoadAndConfigureBpfdDs(config *corev1.ConfigMap, path string) *appsv1.Daemo
 	if staticBpfdDeployment.Spec.Template.ObjectMeta.Annotations == nil {
 		staticBpfdDeployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 	}
-	staticBpfdDeployment.Spec.Template.ObjectMeta.Annotations["bpfd.io.bpfd.loglevel"] = bpfdLogLevel
+	staticBpfdDeployment.Spec.Template.ObjectMeta.Annotations["bpfd.dev.bpfd.loglevel"] = bpfdLogLevel
 	staticBpfdDeployment.Name = "bpfd-daemon"
 	staticBpfdDeployment.Namespace = config.Namespace
 	staticBpfdDeployment.Spec.Template.Spec.Containers[0].Image = bpfdImage
 	staticBpfdDeployment.Spec.Template.Spec.Containers[1].Image = bpfdAgentImage
-	controllerutil.AddFinalizer(staticBpfdDeployment, "bpfd.io.operator/finalizer")
+	controllerutil.AddFinalizer(staticBpfdDeployment, "bpfd.dev.operator/finalizer")
 
 	return staticBpfdDeployment
 }

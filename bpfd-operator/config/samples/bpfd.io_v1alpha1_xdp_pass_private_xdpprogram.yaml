@@ -1,6 +1,6 @@
 # Try this out by first creating the secret:
 # kubectl create secret -n bpfd docker-registry regcred --docker-server=quay.io --docker-username=bpfd-bytecode+bpfdcreds --docker-password=JOGZ3FA6A9L2297JAT4FFN6CJU87LKTIY6X1ZGKWJ0W0XLKY0KPT5YKTBBEAGSF5
-apiVersion: bpfd.io/v1alpha1
+apiVersion: bpfd.dev/v1alpha1
 kind: XdpProgram
 metadata:
   labels:

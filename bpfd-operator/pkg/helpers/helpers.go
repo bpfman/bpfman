@@ -374,7 +374,7 @@ func WaitForBpfProgConfLoad(c *bpfdclientset.Clientset, progName string, timeout
 }
 
 // IsBpfdDeployed is used to check for the existence of bpfd in a Kubernetes cluster. Specifically it checks for
-// the existence of the bpfd.io CRD api group within the apiserver. If getting the k8s config fails this will panic.
+// the existence of the bpfd.dev CRD api group within the apiserver. If getting the k8s config fails this will panic.
 func IsBpfdDeployed() bool {
 	config := getk8sConfigOrDie()
 
@@ -390,9 +390,9 @@ func IsBpfdDeployed() bool {
 	}
 
 	for _, v := range apiList.Groups {
-		if v.Name == "bpfd.io" {
+		if v.Name == "bpfd.dev" {
 
-			log.Info("bpfd.io found in apis, bpfd is deployed")
+			log.Info("bpfd.dev found in apis, bpfd is deployed")
 			return true
 		}
 	}

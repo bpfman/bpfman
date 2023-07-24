@@ -1,4 +1,4 @@
-domain: bpfd.io
+domain: bpfd.dev
 layout:
 - go.kubebuilder.io/v3
 plugins:
@@ -11,7 +11,7 @@ resources:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: bpfd.io
+  domain: bpfd.dev
   kind: BpfProgram
   path: github.com/bpfd-dev/bpfd/api/v1alpha1
   version: v1alpha1
@@ -19,7 +19,7 @@ resources:
     crdVersion: v1
     namespaced: false
   controller: true
-  domain: bpfd.io
+  domain: bpfd.dev
   kind: XdpProgram
   path: github.com/bpfd-dev/bpfd/api/v1alpha1
   version: v1alpha1
@@ -27,7 +27,7 @@ resources:
     crdVersion: v1
     namespaced: false
   controller: true
-  domain: bpfd.io
+  domain: bpfd.dev
   kind: TcProgram
   path: github.com/bpfd-dev/bpfd/api/v1alpha1
   version: v1alpha1
@@ -35,7 +35,7 @@ resources:
     crdVersion: v1
     namespaced: false
   controller: true
-  domain: bpfd.io
+  domain: bpfd.dev
   kind: TracePointProgram
   path: github.com/bpfd-dev/bpfd/api/v1alpha1
   version: v1alpha1

@@ -39,7 +39,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-//+kubebuilder:rbac:groups=bpfd.io,resources=tcprograms,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfd.dev,resources=tcprograms,verbs=get;list;watch
 
 // TcProgramReconciler reconciles a tcProgram object by creating multiple
 // bpfProgram objects and managing bpfd for each one.

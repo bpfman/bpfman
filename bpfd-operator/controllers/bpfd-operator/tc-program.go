@@ -59,9 +59,9 @@ func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-//+kubebuilder:rbac:groups=bpfd.io,resources=tcprograms,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=bpfd.io,resources=tcprograms/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=bpfd.io,resources=tcprograms/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfd.dev,resources=tcprograms,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=bpfd.dev,resources=tcprograms/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=bpfd.dev,resources=tcprograms/finalizers,verbs=update
 
 func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Logger = log.FromContext(ctx)

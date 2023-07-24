@@ -24,7 +24,7 @@ import (
 )
 
 // GroupName specifies the group name used to register the objects.
-const GroupName = "bpfd.io"
+const GroupName = "bpfd.dev"
 
 // GroupVersion specifies the group and the version used to register the objects.
 var GroupVersion = v1.GroupVersion{Group: GroupName, Version: "v1alpha1"}
