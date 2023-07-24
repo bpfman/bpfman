@@ -29,7 +29,7 @@ readonly HERE=$(cd $(dirname $0) && pwd)
 readonly REPO=$(cd ${HERE}/../.. && pwd)
 
 gendoc::build() {
-    go install github.com/ahmetb/gen-crd-api-reference-docs
+    go install github.com/ahmetb/gen-crd-api-reference-docs@latest
 }
 
 # Exec the doc generator.
