@@ -41,6 +41,15 @@ func NewBpfdClientFake() *BpfdClientFake {
 	}
 }
 
+func NewBpfdClientFakeWithPrograms(programs map[string]*gobpfd.ListResponse_ListResult) *BpfdClientFake {
+	return &BpfdClientFake{
+		LoadRequests:   map[string]*gobpfd.LoadRequest{},
+		UnloadRequests: map[string]*gobpfd.UnloadRequest{},
+		ListRequests:   []*gobpfd.ListRequest{},
+		Programs:       programs,
+	}
+}
+
 func (b *BpfdClientFake) Load(ctx context.Context, in *gobpfd.LoadRequest, opts ...grpc.CallOption) (*gobpfd.LoadResponse, error) {
 	b.LoadRequests[*in.Common.Id] = in
 

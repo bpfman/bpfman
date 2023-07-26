@@ -17,6 +17,8 @@ limitations under the License.
 package internal
 
 import (
+	"reflect"
+
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
@@ -55,6 +57,47 @@ func BpfProgramNodePredicate(nodeName string) predicate.Funcs {
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return e.Object.GetLabels()[K8sHostLabel] == nodeName
+		},
+	}
+}
+
+// Only reconcile if a bpfprogram has been created for a controller's node.
+func DiscoveredBpfProgramPredicate() predicate.Funcs {
+	return predicate.Funcs{
+		GenericFunc: func(e event.GenericEvent) bool {
+			_, ok := e.Object.GetLabels()[DiscoveredLabel]
+			return ok
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			_, ok := e.Object.GetLabels()[DiscoveredLabel]
+			return ok
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			_, ok := e.ObjectNew.GetLabels()[DiscoveredLabel]
+			return ok
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			_, ok := e.Object.GetLabels()[DiscoveredLabel]
+			return ok
+		},
+	}
+}
+
+func StatusChangedPredicate() predicate.Funcs {
+	return predicate.Funcs{
+		GenericFunc: func(e event.GenericEvent) bool {
+			return false
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return false
+		},
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldObject := e.ObjectOld.(*bpfdiov1alpha1.BpfProgram)
+			newObject := e.ObjectNew.(*bpfdiov1alpha1.BpfProgram)
+			return !reflect.DeepEqual(oldObject.Status, newObject.Status)
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return false
 		},
 	}
 }

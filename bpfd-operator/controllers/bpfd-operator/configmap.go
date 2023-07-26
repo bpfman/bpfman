@@ -73,7 +73,7 @@ func (r *BpfdConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, nil
 		}
 	} else {
-		if updated := controllerutil.AddFinalizer(bpfdConfig, "bpfd.dev.operator/finalizer"); updated {
+		if updated := controllerutil.AddFinalizer(bpfdConfig, internal.BpfdOperatorFinalizer); updated {
 			if err := r.Update(ctx, bpfdConfig); err != nil {
 				r.Logger.Error(err, "failed adding bpfd-operator finalizer to bpfd config")
 				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
@@ -211,7 +211,7 @@ func LoadAndConfigureBpfdDs(config *corev1.ConfigMap, path string) *appsv1.Daemo
 	staticBpfdDeployment.Namespace = config.Namespace
 	staticBpfdDeployment.Spec.Template.Spec.Containers[0].Image = bpfdImage
 	staticBpfdDeployment.Spec.Template.Spec.Containers[1].Image = bpfdAgentImage
-	controllerutil.AddFinalizer(staticBpfdDeployment, "bpfd.dev.operator/finalizer")
+	controllerutil.AddFinalizer(staticBpfdDeployment, internal.BpfdOperatorFinalizer)
 
 	return staticBpfdDeployment
 }
