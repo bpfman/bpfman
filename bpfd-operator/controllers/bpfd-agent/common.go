@@ -47,6 +47,7 @@ import (
 //+kubebuilder:rbac:groups=bpfd.dev,resources=tcprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=bpfd.dev,resources=xdpprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=bpfd.dev,resources=tracepointprograms/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfd.dev,resources=kprobeprograms/finalizers,verbs=update
 //+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=secrets,verbs=get
 

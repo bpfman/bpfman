@@ -161,6 +161,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&bpfdagent.KprobeProgramReconciler{
+		ReconcilerCommon: common,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create kprobeProgram controller", "controller", "BpfProgram")
+		os.Exit(1)
+	}
+
 	if err = (&bpfdagent.DiscoveredProgramReconciler{
 		ReconcilerCommon: common,
 	}).SetupWithManager(mgr); err != nil {

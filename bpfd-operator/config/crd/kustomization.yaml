@@ -3,6 +3,7 @@
 # It should be run by config/default
 resources:
 - bases/bpfd.dev_bpfprograms.yaml
+- bases/bpfd.dev_kprobeprograms.yaml
 - bases/bpfd.dev_tcprograms.yaml
 - bases/bpfd.dev_tracepointprograms.yaml
 - bases/bpfd.dev_xdpprograms.yaml
@@ -13,6 +14,7 @@ patchesStrategicMerge:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
 #- patches/webhook_in_bpfprograms.yaml
+#- patches/webhook_in_kprobeprograms.yaml
 #- patches/webhook_in_tcprograms.yaml
 #- patches/webhook_in_xdpprograms.yaml
 #- patches/webhook_in_tracepointprograms.yaml
@@ -21,6 +23,7 @@ patchesStrategicMerge:
 # [CERTMANAGER] To enable cert-manager, uncomment all the sections with [CERTMANAGER] prefix.
 # patches here are for enabling the CA injection for each CRD
 #- patches/cainjection_in_bpfprograms.yaml
+#- patches/cainjection_in_kprobeprograms.yaml
 #- patches/cainjection_in_tcprograms.yaml
 #- patches/cainjection_in_xdpprograms.yaml
 #- patches/cainjection_in_tracepointprograms.yaml

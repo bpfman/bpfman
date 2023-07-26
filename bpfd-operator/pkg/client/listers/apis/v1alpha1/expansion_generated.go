@@ -21,6 +21,10 @@ package v1alpha1
 // BpfProgramLister.
 type BpfProgramListerExpansion interface{}
 
+// KprobeProgramListerExpansion allows custom methods to be added to
+// KprobeProgramLister.
+type KprobeProgramListerExpansion interface{}
+
 // TcProgramListerExpansion allows custom methods to be added to
 // TcProgramLister.
 type TcProgramListerExpansion interface{}

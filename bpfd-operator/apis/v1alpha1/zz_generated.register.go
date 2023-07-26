@@ -59,6 +59,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&BpfProgram{},
 		&BpfProgramList{},
+		&KprobeProgram{},
+		&KprobeProgramList{},
 		&TcProgram{},
 		&TcProgramList{},
 		&TracepointProgram{},

@@ -22,6 +22,7 @@ const (
 	XdpProgramInterface         = "bpfd.dev.xdpprogramcontroller/interface"
 	TcProgramInterface          = "bpfd.dev.tcprogramcontroller/interface"
 	TracepointProgramTracepoint = "bpfd.dev.tracepointprogramcontroller/tracepoint"
+	KprobeProgramFunction       = "bpfd.dev.kprobeprogramcontroller/function"
 	BpfProgramOwnerLabel        = "bpfd.dev/ownedByProgram"
 	K8sHostLabel                = "kubernetes.io/hostname"
 	DiscoveredLabel             = "bpfd.dev/discoveredProgram"
@@ -60,6 +61,9 @@ const (
 	// TracepointProgramControllerFinalizer is the finalizer that holds an Tracepoint
 	// BpfProgram object from deletion until cleanup can be performed.
 	TracepointProgramControllerFinalizer = "bpfd.dev.tracepointprogramcontroller/finalizer"
+	// KprobeProgramControllerFinalizer is the finalizer that holds a Kprobe
+	// BpfProgram object from deletion until cleanup can be performed.
+	KprobeProgramControllerFinalizer = "bpfd.dev.kprobeprogramcontroller/finalizer"
 )
 
 // Must match the kernel's `bpf_prog_type` enum.
@@ -109,6 +113,8 @@ func (p ProgramType) Uint32() *uint32 {
 func FromString(p string) (*ProgramType, error) {
 	var programType ProgramType
 	switch p {
+	case "kprobe":
+		programType = Kprobe
 	case "tc":
 		programType = Tc
 	case "xdp":
