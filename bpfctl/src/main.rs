@@ -39,17 +39,17 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Load a BPF program from a local .o file.
+    /// Load an eBPF program from a local .o file.
     LoadFromFile(LoadFileArgs),
-    /// Load a BPF program packaged in a OCI container image from a given registry.
+    /// Load an eBPF program packaged in a OCI container image from a given registry.
     LoadFromImage(LoadImageArgs),
-    /// Unload a BPF program using the UUID.
+    /// Unload an eBPF program using the UUID.
     Unload(UnloadArgs),
-    /// List all BPF programs loaded via bpfd.
+    /// List all eBPF programs loaded via bpfd.
     List(ListArgs),
-    /// Get a program's metadata information specified by kernel id.
+    /// Get a program's metadata by kernel id.
     Get {
-        /// A BPF program's kernel id.
+        /// An eBPF program's kernel id.
         kernel_id: u32,
     },
     /// Pull a bytecode image for future use by a load command.
@@ -59,6 +59,7 @@ enum Commands {
 #[derive(Args)]
 struct ListArgs {
     /// Example: --program-type xdp
+    ///
     /// [possible values: unspec, socket-filter, kprobe, tc, sched-act,
     ///                   tracepoint, xdp, perf-event, cgroup-skb,
     ///                   cgroup-sock, lwt-in, lwt-out, lwt-xmit, sock-ops,
@@ -100,7 +101,7 @@ struct LoadFileArgs {
     #[clap(short, long, verbatim_doc_comment, num_args(1..), value_parser=parse_global_arg)]
     global: Option<Vec<GlobalArg>>,
 
-    /// Optional: Uuid of loaded eBPF program this eBPF program will share a map with.
+    /// Optional: UUID of loaded eBPF program this eBPF program will share a map with.
     /// Only used when multiple eBPF programs need to share a map. If a map is being
     /// shared with another eBPF program, the eBPF program that created the map can not
     /// be unloaded until all eBPF programs referencing the map are unloaded.
@@ -136,7 +137,7 @@ struct LoadImageArgs {
     #[clap(short, long, verbatim_doc_comment, num_args(1..), value_parser=parse_global_arg)]
     global: Option<Vec<GlobalArg>>,
 
-    /// Optional: Uuid of loaded eBPF program this eBPF program will share a map with.
+    /// Optional: UUID of loaded eBPF program this eBPF program will share a map with.
     /// Only used when multiple eBPF programs need to share a map. If a map is being
     /// shared with another eBPF program, the eBPF program that created the map can not
     /// be unloaded until all eBPF programs referencing the map are unloaded.
@@ -162,16 +163,20 @@ enum LoadCommands {
 
         /// Optional: Proceed to call other programs in chain on this exit code.
         /// Multiple values supported by repeating the parameter.
-        /// Valid values: [aborted, drop, pass, tx, redirect, dispatcher_return]
         /// Example: --proceed-on "pass" --proceed-on "drop"
+        ///
+        /// [possible values: aborted, drop, pass, tx, redirect, dispatcher_return]
+        ///
         /// [default: pass, dispatcher_return]
         #[clap(long, verbatim_doc_comment, num_args(1..))]
         proceed_on: Vec<String>,
     },
     /// Install an eBPF program on the TC hook point for a given interface.
     Tc {
-        /// Required: Direction to apply program. Valid values: [ingress, egress]
-        #[clap(short, long)]
+        /// Required: Direction to apply program.
+        ///
+        /// [possible values: ingress, egress]
+        #[clap(short, long, verbatim_doc_comment)]
         direction: String,
 
         /// Required: Interface to load program on.
@@ -184,9 +189,11 @@ enum LoadCommands {
 
         /// Optional: Proceed to call other programs in chain on this exit code.
         /// Multiple values supported by repeating the parameter.
-        /// Valid values: [unspec, ok, reclassify, shot, pipe, stolen, queued,
-        /// repeat, redirect, trap, dispatcher_return]
         /// Example: --proceed-on "ok" --proceed-on "pipe"
+        ///
+        /// [possible values: unspec, ok, reclassify, shot, pipe, stolen, queued,
+        ///                   repeat, redirect, trap, dispatcher_return]
+        ///
         /// [default: ok, pipe, dispatcher_return]
         #[clap(long, verbatim_doc_comment, num_args(1..))]
         proceed_on: Vec<String>,
@@ -200,51 +207,55 @@ enum LoadCommands {
     },
     /// Install an eBPF kprobe or kretprobe
     Kprobe {
-        /// Required: function to attach the kprobe to.
+        /// Required: Function to attach the kprobe to.
         #[clap(short, long)]
         fn_name: String,
 
-        /// Optional: offset added to the address of the function for kprobe.
+        /// Optional: Offset added to the address of the function for kprobe.
         /// Not allowed for kretprobes.
-        #[clap(short, long)]
+        #[clap(short, long, verbatim_doc_comment)]
         offset: Option<u64>,
 
-        /// Optional: whether the program is a kretprobe.  Default is false
-        #[clap(short, long)]
+        /// Optional: Whether the program is a kretprobe.
+        ///
+        /// [default: false]
+        #[clap(short, long, verbatim_doc_comment)]
         retprobe: bool,
 
-        /// Optional: namespace to attach the uprobe in. (NOT CURRENTLY SUPPORTED)
+        /// Optional: Namespace to attach the kprobe in. (NOT CURRENTLY SUPPORTED)
         #[clap(short, long)]
         namespace: Option<String>,
     },
     /// Install an eBPF uprobe or uretprobe
     Uprobe {
-        /// Optional: function to attach the uprobe to.
+        /// Optional: Function to attach the uprobe to.
         #[clap(short, long)]
         fn_name: Option<String>,
 
-        /// Optional: offset added to the address of the target function (or
-        /// beginning of target if no function is identified) Offsets are
+        /// Optional: Offset added to the address of the target function (or
+        /// beginning of target if no function is identified). Offsets are
         /// supported for uretprobes, but use with caution because they can
         /// result in unintended side effects.
-        #[clap(short, long)]
+        #[clap(short, long, verbatim_doc_comment)]
         offset: Option<u64>,
 
-        /// Required: library name or the absolute path to a binary or library
+        /// Required: Library name or the absolute path to a binary or library.
         /// Example: --target "libc".
-        #[clap(short, long)]
+        #[clap(short, long, verbatim_doc_comment)]
         target: String,
 
-        /// Optional: whether the program is a uretprobe.  Default is false
-        #[clap(short, long)]
+        /// Optional: Whether the program is a uretprobe.
+        ///
+        /// [default: false]
+        #[clap(short, long, verbatim_doc_comment)]
         retprobe: bool,
 
-        /// Optional: only execute uprobe for given process identification number (PID)
+        /// Optional: Only execute uprobe for given process identification number (PID).
         /// If PID is not provided, uprobe executes for all PIDs.
-        #[clap(short, long)]
+        #[clap(short, long, verbatim_doc_comment)]
         pid: Option<i32>,
 
-        /// Optional: namespace to attach the uprobe in. (NOT CURRENTLY SUPPORTED)
+        /// Optional: Namespace to attach the uprobe in. (NOT CURRENTLY SUPPORTED)
         #[clap(short, long)]
         namespace: Option<String>,
     },
@@ -270,8 +281,10 @@ struct PullBytecodeArgs {
     #[clap(short, long, verbatim_doc_comment)]
     registry_auth: Option<String>,
 
-    /// Optional: Pull policy for remote images. Valid values: [Always, IfNotPresent, Never]
-    #[clap(short, long, default_value = "IfNotPresent")]
+    /// Optional: Pull policy for remote images.
+    ///
+    /// [possible values: Always, IfNotPresent, Never]
+    #[clap(short, long, verbatim_doc_comment, default_value = "IfNotPresent")]
     pull_policy: String,
 }
 
@@ -552,6 +565,12 @@ UUID:                               {}
         "NONE".to_string()
     };
 
+    let kernel_name = if r.name.clone().is_empty() {
+        "None".to_string()
+    } else {
+        r.name.clone()
+    };
+
     let global_info = format!(
         r#"
 Kernel ID:                          {}
@@ -569,7 +588,7 @@ Kernel Allocated Memory (bytes):    {}
 Verified Instruction Count:         {}
 "#,
         r.bpf_id,
-        r.name,
+        kernel_name,
         ProgramType::try_from(r.program_type)?,
         r.loaded_at,
         r.tag,

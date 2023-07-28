@@ -49,6 +49,8 @@ sudo chown bpfd:bpfd -R /run/bpfd/examples/
 ```
 
 This is only needed if `bpfd` is run as a systemd service.
+When `sudo ./scripts/setup.sh install` is run to launch bpfd as a systemd service, all the
+eBPF object files from the `examples/` directory are copied to `/run/bpfd/examples/`.
 
 ## Basic Syntax
 
@@ -65,6 +67,7 @@ Commands:
   load-from-image  Load an eBPF program packaged in a OCI container image from a given registry
   unload           Unload an eBPF program using the UUID
   list             List all eBPF programs loaded via bpfd
+  get              Get a program's metadata by kernel id
   help             Print this message or the help of the given subcommand(s)
 
 Options:
@@ -86,18 +89,15 @@ Load an eBPF program from a local .o file
 Usage: bpfctl load-from-file [OPTIONS] --path <PATH> --section-name <SECTION_NAME> <COMMAND>
 
 Commands:
-  xdp
-          Install an eBPF program on an XDP hook point for a given interface
-  tc
-          Install an eBPF program on a TC hook point for a given interface
-  tracepoint
-          Install an eBPF program on a Tracepoint
-  help
-          Print this message or the help of the given subcommand(s)
+  xdp         Install an eBPF program on the XDP hook point for a given interface
+  tc          Install an eBPF program on the TC hook point for a given interface
+  tracepoint  Install an eBPF program on a Tracepoint
+  uprobe      Install an eBPF uprobe
+  help        Print this message or the help of the given subcommand(s)
 
 Options:
   -p, --path <PATH>
-          Required: Location of Local bytecode file
+          Required: Location of local bytecode file
           Example: --path /run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
 
   -s, --section-name <SECTION_NAME>
@@ -110,17 +110,25 @@ Options:
   -g, --global <GLOBAL>...
           Optional: Global variables to be set when program is loaded.
           Format: <NAME>=<Hex Value>
-
+          
           This is a very low level primitive. The caller is responsible for formatting
           the byte string appropriately considering such things as size, endianness,
           alignment and packing of data structures.
+
+      --map-owner-uuid <MAP_OWNER_UUID>
+          Optional: UUID of loaded eBPF program this eBPF program will share a map with.
+          Only used when multiple eBPF programs need to share a map. If a map is being
+          shared with another eBPF program, the eBPF program that created the map can not
+          be unloaded until all eBPF programs referencing the map are unloaded.
+          Example: --map-owner-uuid 989958a5-b47b-47a5-8b4c-b5962292437d
 
   -h, --help
           Print help (see a summary with '-h')
 ```
 
-So when using `bpfctl load-from-file`, `--path`, `--section-name`, `--id` and `--global` must
-be entered before the `<COMMAND>` (`xdp`, `tc` or `tracepoint`) is entered.
+So when using `bpfctl load-from-file`, `--path`, `--section-name`, `--id`, `--global`
+and `--map-owner-uuid` must be entered before the `<COMMAND>` (`xdp`, `tc` or `tracepoint`)
+is entered.
 Then each `<COMMAND>` has it's own custom parameters:
 
 ```console
@@ -229,19 +237,211 @@ program's return value. For example, the default `proceed-on` configuration for
 an `xdp` program can be modified as follows:
 
 ```console
-bpfctl load-from-file -p /run/bpfd/examples/xdp_pass_kern.o -s "xdp" xdp -i mynet1 -p 30  --proceed-on drop pass dispatcher_return
+bpfctl load-from-file -p /run/bpfd/examples/xdp_pass_kern.o -s "xdp" xdp -i mynet1 -p 30 --proceed-on drop pass dispatcher_return
+```
+
+### Sharing Maps Between eBPF Programs
+
+To share maps between eBPF programs, first load the eBPF program that owns the
+maps.
+One eBPF program must own the maps.
+
+```console
+bpfctl load-from-file --path /run/bpfd/examples/go-xdp-counter/bpf_bpfel.o -s "stats" xdp --iface vethb2795c7 --priority 100
+87100e16-4481-4f97-be89-f68d269d6062
+```
+
+Next, load additional eBPF programs that will share the existing maps by passing
+the UUID of the eBPF program that owns the maps using the `--map-owner-uuid`
+parameter:
+
+```console
+bpfctl load-from-file --path /run/bpfd/examples/go-xdp-counter/bpf_bpfel.o -s "stats" --map-owner-uuid 87100e16-4481-4f97-be89-f68d269d6062 xdp --iface vethff657c7 --priority 100
+d6939812-5f6a-42ff-9b55-d3668d8527d0
+```
+
+Use the `bpfctl get <Kernel_ID>` command to display the configuration:
+
+```console
+bpfctl list
+ Kernel ID  Bpfd UUID                             Name   Type  Load Time                
+ 6371       87100e16-4481-4f97-be89-f68d269d6062  stats  xdp   2023-07-18T16:50:46-0400 
+ 6373       d6939812-5f6a-42ff-9b55-d3668d8527d0  stats  xdp   2023-07-18T16:51:06-0400 
+
+bpfctl get 6371
+
+#################### Bpfd State ####################
+
+UUID:                               87100e16-4481-4f97-be89-f68d269d6062
+Path:                               /run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
+Global:                             None
+Map Pin Path:                       /run/bpfd/fs/maps/87100e16-4481-4f97-be89-f68d269d6062
+Map Owner UUID:                     None
+Map Used By:                        d6939812-5f6a-42ff-9b55-d3668d8527d0
+Priority:                           50
+Iface:                              vethff657c7
+Position:                           1
+Proceed On:                         pass, dispatcher_return
+:
+
+bpfctl get 6373
+
+#################### Bpfd State ####################
+
+UUID:                               d6939812-5f6a-42ff-9b55-d3668d8527d0
+Path:                               /run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
+Global:                             None
+Map Pin Path:                       /run/bpfd/fs/maps/87100e16-4481-4f97-be89-f68d269d6062
+Map Owner UUID:                     87100e16-4481-4f97-be89-f68d269d6062
+Map Used By:                        d6939812-5f6a-42ff-9b55-d3668d8527d0
+Priority:                           50
+Iface:                              vethff657c7
+Position:                           0
+Proceed On:                         pass, dispatcher_return
+:
+```
+
+As the output shows, the first program (`87100e16-4481-4f97-be89-f68d269d6062`)
+owns the map, with `Map Program UUID` blank and the `Map Pin Path`
+(`/run/bpfd/fs/maps/87100e16-4481-4f97-be89-f68d269d6062`) that includes its own
+UUID.
+
+The second program (`d6939812-5f6a-42ff-9b55-d3668d8527d0`) references the first
+program via the `Map Program UUID` set to `87100e16-4481-4f97-be89-f68d269d6062`
+and the `Map Pin Path` (`/run/bpfd/fs/maps/87100e16-4481-4f97-be89-f68d269d6062`)
+set to same directory as the first program, which includes the first program's UUID.
+The output for both commands shows the map is being used by the second program via
+the `Map Used By` with a value of `d6939812-5f6a-42ff-9b55-d3668d8527d0`.
+
+The eBPF program that owns the maps cannot be unloaded until all eBPF programs
+referencing the maps have been unloaded.
+Otherwise an error will be returned:
+
+```console
+bpfctl unload 87100e16-4481-4f97-be89-f68d269d6062
+Error = status: Aborted, message: "An error occurred. map being used by other eBPF program", details: [], metadata: MetadataMap { headers: {"content-type": "application/grpc", "date": "Mon, 17 Jul 2023 20:30:42 GMT", "content-length": "0"} }
+Error: Failed to execute request
+```
+
+So first unload the eBPF program referencing the map, then unload the map owner:
+
+```console
+bpfctl unload d6939812-5f6a-42ff-9b55-d3668d8527d0
+bpfctl unload 87100e16-4481-4f97-be89-f68d269d6062
 ```
 
 ## bpfctl list
 
-The `bpfctl list` command lists all the loaded eBPF programs:
+The `bpfctl list` command lists all the bpfd loaded eBPF programs:
 
 ```console
 bpfctl list
- UUID                                  Type        Name        Location                                                                           Metadata
- 9d37c6c7-d988-41da-ac89-200655f61584  xdp         xdp         file: { path: /run/bpfd/examples/xdp_pass_kern.o }                                 { priority: 35, iface: vethb2795c7, position: 0, proceed_on: pass, dispatcher_return }
- c1e8691e-bfd7-48a7-bdeb-e2b429bfc2f4  tracepoint  hello       image: { url: quay.io/bpfd-bytecode/tracepoint:latest, pullpolicy: IfNotPresent }  { tracepoint: sched/sched_switch }
- 84eff4d7-6dbb-4ed7-9ce4-d6b5478e8d91  tc          classifier  file: { path: /run/bpfd/examples/filter.bpf.o }                                    { priority: 110, iface: vethb2795c7, position: 0, direction: in, proceed_on: pipe, dispatcher_return }
+ Kernel ID  Bpfd UUID                             Name              Type        Load Time
+ 6201       96c4671c-e764-4016-8e79-ee99b2d58c12  pass              xdp         2023-07-17T17:17:53-0400
+ 6202       995e87fe-4d1d-48ce-b348-3411342cf661  sys_enter_openat  tracepoint  2023-07-17T17:19:09-0400
+ 6204       665954eb-0532-4849-8db6-e127e3fe3072  stats             tc          2023-07-17T17:20:14-0400
+```
+
+To see all eBPF programs loaded on the system, include the `--all` option.
+eBPF Programs loaded via bpfd will have a `Bpfd UUID` and a `Kernel ID`.
+eBPF Programs loaded outside of bpfd will only have a `Kernel ID`.
+
+
+```console
+bpfctl list --all
+ Kernel ID  Bpfd UUID                             Name              Type           Load Time
+ 52                                               restrict_filesy   lsm            2023-05-03T12:53:34-0400
+ 166                                              dump_bpf_map      tracing        2023-05-03T12:53:52-0400
+ 167                                              dump_bpf_prog     tracing        2023-05-03T12:53:52-0400
+ 455                                                                cgroup_device  2023-05-03T12:58:26-0400
+ :
+ 6190                                                               cgroup_skb     2023-07-17T17:15:23-0400
+ 6191                                                               cgroup_device  2023-07-17T17:15:23-0400
+ 6192                                                               cgroup_skb     2023-07-17T17:15:23-0400
+ 6193                                                               cgroup_skb     2023-07-17T17:15:23-0400
+ 6194                                                               cgroup_device  2023-07-17T17:15:23-0400
+ 6201       96c4671c-e764-4016-8e79-ee99b2d58c12  pass              xdp            2023-07-17T17:17:53-0400
+ 6202       995e87fe-4d1d-48ce-b348-3411342cf661  sys_enter_openat  tracepoint     2023-07-17T17:19:09-0400
+ 6203                                             dispatcher        tc             2023-07-17T17:20:14-0400
+ 6204       665954eb-0532-4849-8db6-e127e3fe3072  stats             tc             2023-07-17T17:20:14-0400
+ 6207                                             xdp               xdp            2023-07-17T17:27:13-0400
+```
+
+To filter on a given program type, include the `--program-type` parameter:
+
+```console
+bpfctl list --all --program-type tc
+ Kernel ID  Bpfd UUID                             Name        Type  Load Time
+ 6203                                             dispatcher  tc    2023-07-17T17:20:14-0400
+ 6204       665954eb-0532-4849-8db6-e127e3fe3072  stats       tc    2023-07-17T17:20:14-0400
+```
+
+## bpfctl get
+
+To retrieve detailed information for a loaded eBPF program, use the
+`bpfctl get <Kernel_ID>` command.
+If the eBPF program was loaded via bpfd, then there will be a `Bpfd State`
+section with bpfd related attributes and a `Kernel State` section with
+kernel information.
+If the eBPF program was loaded outside of bpfd, then the `Bpfd State`
+section will be empty and `Kernel State` section will be populated.
+
+```console
+bpfctl get 6204
+
+#################### Bpfd State ####################
+
+UUID:                               665954eb-0532-4849-8db6-e127e3fe3072
+Image URL:                          quay.io/bpfd-bytecode/go-tc-counter:latest
+Pull Policy:                        IfNotPresent
+Global:                             None
+Map Pin Path:                       /run/bpfd/fs/maps/665954eb-0532-4849-8db6-e127e3fe3072
+Map Owner UUID:                     None
+Map Used By:                        None
+Priority:                           100
+Iface:                              vethff657c7
+Position:                           0
+Direction:                          eg
+Proceed On:                         pipe, dispatcher_return
+
+#################### Kernel State ##################
+
+Kernel ID:                          6204
+Name:                               stats
+Type:                               tc
+Loaded At:                          2023-07-17T17:20:14-0400
+Tag:                                ead94553702a3742
+GPL Compatible:                     true
+Map IDs:                            [2705]
+BTF ID:                             2821
+Size Translated (bytes):            176
+JITed:                              true
+Size JITed (bytes):                 116
+Kernel Allocated Memory (bytes):    4096
+Verified Instruction Count:         24
+```
+
+```console
+bpfctl get 6190
+
+#################### Bpfd State ####################
+NONE
+
+#################### Kernel State ##################
+
+Kernel ID:                          6190
+Name:                               None
+Type:                               cgroup_skb
+Loaded At:                          2023-07-17T17:15:23-0400
+Tag:                                6deef7357e7b4530
+GPL Compatible:                     true
+Map IDs:                            []
+BTF ID:                             0
+Size Translated (bytes):            64
+JITed:                              true
+Size JITed (bytes):                 55
+Kernel Allocated Memory (bytes):    4096
+Verified Instruction Count:         8
 ```
 
 ## bpfctl unload
@@ -250,12 +450,11 @@ The `bpfctl unload` command takes the UUID from the load or list command as a pa
 and unloads the requested eBPF program:
 
 ```console
-bpfctl unload 84eff4d7-6dbb-4ed7-9ce4-d6b5478e8d91
+bpfctl unload 665954eb-0532-4849-8db6-e127e3fe3072
 
 
 bpfctl list
- UUID                                  Type        Name        Location                                                                           Metadata
- 9d37c6c7-d988-41da-ac89-200655f61584  xdp         xdp         file: { path: /run/bpfd/examples/xdp_pass_kern.o }                                 { priority: 35, iface: vethb2795c7, position: 0, proceed_on: pass, dispatcher_return }
- c1e8691e-bfd7-48a7-bdeb-e2b429bfc2f4  tracepoint  hello       image: { url: quay.io/bpfd-bytecode/tracepoint:latest, pullpolicy: IfNotPresent }  { tracepoint: sched/sched_switch }
-dispatcher_return }
+ Kernel ID  Bpfd UUID                             Name              Type        Load Time
+ 6201       96c4671c-e764-4016-8e79-ee99b2d58c12  pass              xdp         2023-07-17T17:17:53-0400
+ 6202       995e87fe-4d1d-48ce-b348-3411342cf661  sys_enter_openat  tracepoint  2023-07-17T17:19:09-0400
 ```

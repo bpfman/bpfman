@@ -126,16 +126,18 @@ The output should show the count and total bytes of packets as they pass through
 interface as shown below:
 
 ```console
-    sudo ./go-xdp-counter -iface ens3
-    2022/12/02 15:59:34 Unable to read /etc/bpfd/bpfd.toml, using default configuration values.
-    2022/12/02 15:59:34 Unable to find primary bytecode file: /run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
-    2022/12/02 15:59:34 Using Input: Interface=ens3 Priority=50 Source=/home/$USER/src/bpfd/examples/go-xdp-counter/bpf_bpfel.o
-    2022/12/02 15:59:35 Program registered with b6b2107c-f1a3-48ac-a145-1073c0979ba4 id
-    2022/12/02 15:59:38 0 packets received
-    2022/12/02 15:59:38 0 bytes received
+    sudo ./go-xdp-counter --iface vethff657c7
+    2023/07/17 17:43:58 Using Input: Interface=vethff657c7 Priority=50 Source=/run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
+    2023/07/17 17:43:58 Unable to read /etc/bpfd/bpfd.toml, using default configuration values.
+    2023/07/17 17:43:58 Program registered with 72db6fb0-d6d1-4e1e-931b-2edcd3610d66 id
+    2023/07/17 17:44:01 4 packets received
+    2023/07/17 17:44:01 580 bytes received
 
-    2022/12/02 15:59:41 4 packets received
-    2022/12/02 15:59:41 580 bytes received
+    2023/07/17 17:44:04 4 packets received
+    2023/07/17 17:44:04 580 bytes received
+
+    2023/07/17 17:44:07 8 packets received
+    2023/07/17 17:44:07 1160 bytes received
 
     :
 ```
@@ -144,8 +146,8 @@ Use `bpfctl` to show the `go-xdp-counter` eBPF bytecode was loaded.
 
 ```console
     bpfctl list
-    UUID                                  Type  Name   Location                                                                  Metadata
-    b6b2107c-f1a3-48ac-a145-1073c0979ba4  xdp   stats  file: { path: /home/$USER/src/bpfd/examples/go-xdp-counter/bpf_bpfel.o }  { priority: 50, iface: ens3, position: 0, proceed_on: pass, dispatcher_return }
+     Kernel ID  Bpfd UUID                             Name   Type  Load Time
+     6211       72db6fb0-d6d1-4e1e-931b-2edcd3610d66  stats  xdp   2023-07-17T17:43:58-0400
 ```
 
 Finally, press `<CTRL>+c` when finished with `go-xdp-counter`.
@@ -153,14 +155,11 @@ Finally, press `<CTRL>+c` when finished with `go-xdp-counter`.
 ```console
     :
 
-    2022/12/02 16:00:56 64 packets received
-    2022/12/02 16:00:56 9280 bytes received
+    2023/07/17 17:44:34 28 packets received
+    2023/07/17 17:44:34 4060 bytes received
 
-    2022/12/02 16:00:59 64 packets received
-    2022/12/02 16:00:59 9280 bytes received
-
-    ^C2022/12/02 16:01:00 Exiting...
-    2022/12/02 16:01:00 Unloading Program: b6b2107c-f1a3-48ac-a145-1073c0979ba4
+    ^C2023/07/17 17:44:35 Exiting...
+    2023/07/17 17:44:35 Unloading Program: 72db6fb0-d6d1-4e1e-931b-2edcd3610d66
 ```
 
 #### Running Unprivileged
