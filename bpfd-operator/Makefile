@@ -239,6 +239,10 @@ test-integration: ## Run Integration tests.
 	go clean -testcache
 	GOFLAGS="-tags=integration_tests" go test -race -v ./test/integration/...
 
+## The physical bundle is no longer tracked in git since it should be considered
+## and treated as a release artifact, rather than something that's updated 
+## as part of a pull request.
+## See https://github.com/operator-framework/operator-sdk/issues/6285.
 .PHONY: bundle
 bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
 	operator-sdk generate kustomize manifests -q

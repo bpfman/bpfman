@@ -32,6 +32,9 @@ A release for the bpfd project is comprised of the following major components:
   - `quay.io/bpfd-userspace/go_xdp_counter`
   - `quay.io/bpfd-userspace/go_tc_counter`
   - `quay.io/bpfd-userspace/go_tracepoint_counter`
+- The OLM (Operator Lifecycle Manager) for the Kubernetes Operator.
+  - This includes a `bundle` directory on disk as well as the
+    `quay.io/bpfd/bpfd-operator-bundle` with the tag <RELEASE_VERSION>.
 
 ## Versioning strategy
 
@@ -78,11 +81,13 @@ For a **PATCH** release:
 - Use `git` to cherry-pick all relevant PRs into your branch.
 - Create a branch from the major-minor tag of interest i.e:
   `git checkout -b release-x.x.x <major.minor.patch>`
-- Create a pull request of the `<githubuser>/release-x.x.x` branch into the `release-x.x` branch upstream
+- Create a pull request of the `<githubuser>/release-x.x.x` branch into the `release-x.x` branch upstream.
   Add a hold on this PR waiting for at least one maintainer/codeowner to provide a `lgtm`. This PR should:
   - Add a new changelog for the release
   - Update the cargo.toml versions for the bpfd-api, bpfd, and bpfctl crates
-  - Update the bpfd-operator version in it's MAKEFILE and run `make bundle` to update the bundle version
+  - Update the bpfd-operator version in it's MAKEFILE and run `make bundle` to update the bundle version.
+    This will generate a new `/bpfd-operator/bundle` directory which will ONLY be tracked in the
+    `release-x.x` branch not `main`.
 - Verify the CI tests pass and merge the PR into `release-x.x`.
 - Create a tag using the `HEAD` of the `release-x.x.x` branch. This can be done using the `git` CLI or
   Github's [release][release] page.
@@ -95,6 +100,11 @@ For a **PATCH** release:
     - `go-tc-counter-install-vx.x.x.yaml`
     - `go-tracepoint-counter-install-vx.x.x.yaml`
     so that the examples for a given release can be easily deployed.
+- Update the [community-operator](https://github.com/k8s-operatorhub/community-operators) and
+  [community-operators-prod](https://github.com/redhat-openshift-ecosystem/community-operators-prod) repositories with
+  the latest bundle manifests. See the following PRs as examples:
+    - https://github.com/redhat-openshift-ecosystem/community-operators-prod/pull/2696
+    - https://github.com/k8s-operatorhub/community-operators/pull/2790
 
 For a **MAJOR** or **MINOR** release:
 
