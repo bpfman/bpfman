@@ -212,7 +212,7 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 }
 
 func RetrieveMapPinPath(ctx context.Context, c gobpfd.LoaderClient, paramData ParameterData, programType *uint32, map_name string) (string, error) {
-	var mapPath string;
+	var mapPath string
 
 	listRequest := &gobpfd.ListRequest{
 		ProgramType: programType,

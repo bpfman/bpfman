@@ -58,7 +58,7 @@ func main() {
 		}
 
 		mapPath = maps[BpfProgramMapIndex]
-	
+
 	} else { // if not on k8s, find the map path from the system
 
 		// if the bytecode src is not a UUID provided by BPFD, we'll need to

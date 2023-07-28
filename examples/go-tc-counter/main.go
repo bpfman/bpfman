@@ -139,7 +139,7 @@ func main() {
 		}
 
 		// 3. Get access to our map
-		mapPath, err = configMgmt.RetrieveMapPinPath(ctx, c, paramData, bpfdHelpers.Tc.Uint32(), "tc_stats_map");
+		mapPath, err = configMgmt.RetrieveMapPinPath(ctx, c, paramData, bpfdHelpers.Tc.Uint32(), "tc_stats_map")
 		if err != nil {
 			log.Printf("Unable to retrieve maps\n")
 			conn.Close()
