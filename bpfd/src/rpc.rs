@@ -367,12 +367,12 @@ impl Loader for BpfdLoader {
                             None => String::new(),
                         };
                         // Map Vec<UUID> to Vec<String> for response
-                        let mut map_used_by: Vec<String> = vec![];
-                        if let Some(uuid_list) = r.map_used_by.clone() {
-                            for ref_uuid in uuid_list {
-                                map_used_by.push(ref_uuid.to_string());
-                            }
-                        };
+                        let map_used_by: Vec<String> = r
+                            .map_used_by
+                            .unwrap_or(vec![])
+                            .iter()
+                            .map(|u| u.to_string())
+                            .collect();
 
                         debug!("Pushing list result for {:?}", id);
                         reply.results.push(ListResult {

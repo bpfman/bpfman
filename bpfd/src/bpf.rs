@@ -195,7 +195,7 @@ impl BpfManager {
             .load(&program_bytes)?;
 
         match ext_loader.program_mut(&program.data().section_name) {
-            Some(_) => Ok(()), // BILLY: Do we need an unload here?
+            Some(_) => Ok(()),
             None => Err(BpfdError::SectionNameNotValid(
                 program.data().section_name.clone(),
             )),
