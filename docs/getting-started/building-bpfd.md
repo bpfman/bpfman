@@ -5,6 +5,21 @@ If this is the first time building bpfd, jump to the
 [Development Environment Setup](#development-environment-setup) section for help installing
 the tooling.
 
+## Clone the bpfd Repo
+
+You can build and run bpfd from anywhere. However, if you plan to make changes
+to the bpfd operator, it will need to be under your `GOPATH` because Kubernetes
+Code-generator does not work outside of `GOPATH` [issue
+86753](https://github.com/kubernetes/kubernetes/issues/86753).  Assuming your
+`GOPATH` is set to the typical `$HOME/go`, your repo should live in
+`$HOME/go/src/github.com/bpfd-dev/bpfd`
+
+```
+mkdir -p $HOME/go/src/github.com/bpfd-dev
+cd $HOME/go/src/github.com/bpfd-dev
+git clone git@github.com:bpfd-dev/bpfd.git
+```
+
 ## Building bpfd
 
 To just test with the latest bpfd, containerized image are stored in `quay.io/bpfd`
@@ -62,7 +77,6 @@ sudo apt install clang lldb lld libelf-dev gcc-multilib
 ```
 
 ### Install Protobuf Compiler
-
 
 For further detailed instructions, see [protoc](https://grpc.io/docs/protoc-installation/).
 
