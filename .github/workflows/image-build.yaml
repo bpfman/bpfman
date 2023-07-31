@@ -24,24 +24,32 @@ env:
   GO_TRACEPOINT_COUNTER_IMAGE_NAME: go-tracepoint-counter
 
 jobs:
-  ## Used to ensure image builds are successful on PRs if workflow file was changed
+  ## Build and push all core bpfd images 
   build-and-push-images:
     runs-on: ubuntu-latest
+
     environment: image-repositories
     steps:
     - uses: actions/checkout@v2
+
     - uses: actions/checkout@v2
       with:
         repository: libbpf/libbpf
         path: libbpf
+
     - uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         override: true
+
     - name: Install libelf-dev
       run: |
         sudo apt-get update
         sudo apt-get install -y linux-headers-`uname -r` clang lldb lld libelf-dev gcc-multilib
+
+    - name: Generate olm bundle on disk
+      run: |
+        cd bpfd-operator && make bundle
 
     - name: Login to quay.io/bpfd
       uses: redhat-actions/podman-login@v1
