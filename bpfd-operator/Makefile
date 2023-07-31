@@ -244,12 +244,11 @@ test-integration: ## Run Integration tests.
 ## as part of a pull request.
 ## See https://github.com/operator-framework/operator-sdk/issues/6285.
 .PHONY: bundle
-bundle: manifests kustomize ## Generate bundle manifests and metadata, then validate generated files.
-	operator-sdk generate kustomize manifests -q
+bundle: operator-sdk generate kustomize manifests ## Generate bundle manifests and metadata, then validate generated files.
 	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-operator=${BPFD_OPERATOR_IMG}
 	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd=${BPFD_IMG} && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-agent=${BPFD_AGENT_IMG}
-	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle $(BUNDLE_GEN_FLAGS)
-	operator-sdk bundle validate ./bundle
+	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
+	$(OPERATOR_SDK) bundle validate ./bundle
 
 .PHONY: build-crd-install-yaml
 build-crd-install-yaml: generate ## Generate the crd install bundle for a specific release version.
