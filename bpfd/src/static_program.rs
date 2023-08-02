@@ -145,13 +145,13 @@ pub(crate) async fn get_static_programs<P: AsRef<Path>>(
                                 String::from("bpfd"),
                             )
                             .await?,
-                            direction: m.direction,
                             info: TcProgramInfo {
                                 if_index,
                                 current_position: None,
                                 metadata,
                                 proceed_on: m.proceed_on,
                                 if_name: m.iface,
+                                direction: m.direction,
                             },
                         })
                     } else {

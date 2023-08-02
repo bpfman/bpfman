@@ -725,7 +725,7 @@ impl BpfManager {
                                     iface: p.info.if_name.to_string(),
                                     priority: p.info.metadata.priority,
                                     proceed_on: p.info.proceed_on.clone(),
-                                    direction: p.direction,
+                                    direction: p.info.direction,
                                     position: p.info.current_position.unwrap_or_default() as i32,
                                 },
                             )),
@@ -957,7 +957,6 @@ impl BpfManager {
                 Ok(prog_data) => {
                     let prog = Program::Tc(TcProgram {
                         data: prog_data.clone(),
-                        direction: args.direction,
                         info: TcProgramInfo {
                             if_index,
                             current_position: None,
@@ -969,6 +968,7 @@ impl BpfManager {
                             },
                             proceed_on: args.proceed_on,
                             if_name: args.iface,
+                            direction: args.direction,
                         },
                     });
                     self.add_program(prog, args.id).await
