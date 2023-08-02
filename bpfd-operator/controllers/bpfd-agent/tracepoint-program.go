@@ -220,7 +220,9 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 
 	r.Logger.V(1).WithValues("expectedProgram", loadRequest).WithValues("existingProgram", existingProgram).Info("StateMatch")
 	// BpfProgram exists but is not correct state, unload and recreate
-	if !bpfdagentinternal.DoesProgExist(existingProgram, loadRequest) {
+	isSame, reasons := bpfdagentinternal.DoesProgExist(existingProgram, loadRequest)
+	if !isSame {
+		r.Logger.V(1).Info("TracepointProgram is in wrong state, unloading and reloading", "Reason", reasons)
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload TracepointProgram")
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
