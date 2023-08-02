@@ -250,10 +250,10 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		return bpfdiov1alpha1.BpfProgCondNotSelected, nil
 	}
 
-	r.Logger.V(1).WithValues("expectedProgram", loadRequest).WithValues("existingProgram", existingProgram).Info("StateMatch")
 	// BpfProgram exists but is not correct state, unload and recreate
-	if !bpfdagentinternal.DoesProgExist(existingProgram, loadRequest) {
-		r.Logger.V(1).Info("XdpProgram is in wrong state, unloading and reloading")
+	isSame, reasons := bpfdagentinternal.DoesProgExist(existingProgram, loadRequest)
+	if !isSame {
+		r.Logger.V(1).Info("XdpProgram is in wrong state, unloading and reloading", "Reason", reasons)
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload XdpProgram")
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil

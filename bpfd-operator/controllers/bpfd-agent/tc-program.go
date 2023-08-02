@@ -266,10 +266,10 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 
 	}
 
-	r.Logger.V(1).WithValues("expectedProgram", loadRequest).WithValues("existingProgram", existingProgram).Info("StateMatch")
 	// BpfProgram exists but is not correct state, unload and recreate
-	if !bpfdagentinternal.DoesProgExist(existingProgram, loadRequest) {
-		r.Logger.V(1).Info("TcProgram is in wrong state, unloading and reloading")
+	isSame, reasons := bpfdagentinternal.DoesProgExist(existingProgram, loadRequest)
+	if !isSame {
+		r.Logger.V(1).Info("TcProgram is in wrong state, unloading and reloading", "Reason", reasons)
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
 			r.Logger.Error(err, "Failed to unload TcProgram")
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
@@ -282,7 +282,6 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		}
 
 		r.Logger.V(1).WithValues("UUID", id, "ProgramMaps", r.expectedMaps).Info("ReLoaded TcProgram on Node")
-
 	} else {
 		// Program exists and bpfProgram K8s Object is up to date
 		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")
