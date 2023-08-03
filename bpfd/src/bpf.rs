@@ -874,7 +874,6 @@ impl BpfManager {
                     current_position: None,
                     metadata: command::Metadata {
                         priority: args.priority,
-                        name: args.section_name,
                         attached: false,
                     },
                     proceed_on: args.proceed_on,
@@ -908,8 +907,6 @@ impl BpfManager {
                     current_position: None,
                     metadata: command::Metadata {
                         priority: args.priority,
-                        // This could have been overridden by image tags
-                        name: prog_data.section_name,
                         attached: false,
                     },
                     proceed_on: args.proceed_on,

@@ -110,7 +110,7 @@ pub(crate) async fn get_static_programs<P: AsRef<Path>>(
                 ProgramType::Xdp => {
                     if let Some(m) = program.xdp_attach {
                         let if_index = get_ifindex(&m.iface)?;
-                        let metadata = Metadata::new(m.priority, program.section_name.clone());
+                        let metadata = Metadata::new(m.priority);
                         Program::Xdp(XdpProgram::new(
                             ProgramData::new(
                                 location,
@@ -134,7 +134,7 @@ pub(crate) async fn get_static_programs<P: AsRef<Path>>(
                 ProgramType::Tc => {
                     if let Some(m) = program.tc_attach {
                         let if_index = get_ifindex(&m.iface)?;
-                        let metadata = Metadata::new(m.priority, program.section_name.clone());
+                        let metadata = Metadata::new(m.priority);
                         Program::Tc(TcProgram {
                             data: ProgramData::new(
                                 location,

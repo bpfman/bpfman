@@ -299,15 +299,13 @@ pub(crate) struct UprobeAttachInfo {
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize, Clone)]
 pub(crate) struct Metadata {
     pub(crate) priority: i32,
-    pub(crate) name: String,
     pub(crate) attached: bool,
 }
 
 impl Metadata {
-    pub(crate) fn new(priority: i32, name: String) -> Self {
+    pub(crate) fn new(priority: i32) -> Self {
         Metadata {
             priority,
-            name,
             attached: false,
         }
     }

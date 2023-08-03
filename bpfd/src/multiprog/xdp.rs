@@ -188,8 +188,8 @@ impl XdpDispatcher {
                     .map_err(BpfdError::BpfLoadError)?;
 
                 let ext: &mut Extension = bpf
-                    .program_mut(&v.info.metadata.name)
-                    .ok_or_else(|| BpfdError::SectionNameNotValid(v.info.metadata.name.clone()))?
+                    .program_mut(&v.data.section_name.clone())
+                    .ok_or_else(|| BpfdError::SectionNameNotValid(v.data.section_name.clone()))?
                     .try_into()?;
 
                 let target_fn = format!("prog{i}");
