@@ -247,11 +247,7 @@ impl BpfManager {
             .await
             .or_else(|e| {
                 let prog = self.programs.remove(&id).unwrap();
-                prog.delete(id).map_err(|_| {
-                    BpfdError::Error(
-                        "new program cleanup failed, unable to delete program data".to_string(),
-                    )
-                })?;
+                prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
                 Err(e)
             })?;
         self.dispatchers.insert(did, dispatcher);
@@ -319,11 +315,7 @@ impl BpfManager {
 
                 let link_id = tracepoint.attach(&category, &name).or_else(|e| {
                     let prog = self.programs.remove(&id).unwrap();
-                    prog.delete(id).map_err(|_| {
-                        BpfdError::Error(
-                            "new program cleanup failed, unable to delete program data".to_string(),
-                        )
-                    })?;
+                    prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
                     Err(BpfdError::BpfProgramError(e))
                 })?;
 
@@ -339,12 +331,7 @@ impl BpfManager {
                     .pin(format!("{RTDIR_FS}/prog_{id}"))
                     .or_else(|e| {
                         let prog = self.programs.remove(&id).unwrap();
-                        prog.delete(id).map_err(|_| {
-                            BpfdError::Error(
-                                "new program cleanup failed, unable to delete program data"
-                                    .to_string(),
-                            )
-                        })?;
+                        prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
                         Err(BpfdError::UnableToPinProgram(e))
                     })?;
 
@@ -381,12 +368,7 @@ impl BpfManager {
                 let link_id = kprobe
                     .attach(program.info.fn_name.as_str(), program.info.offset)
                     .or_else(|e| {
-                        p.delete(id).map_err(|_| {
-                            BpfdError::Error(
-                                "new program cleanup failed, unable to delete program data"
-                                    .to_string(),
-                            )
-                        })?;
+                        p.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
                         Err(BpfdError::BpfProgramError(e))
                     })?;
 
@@ -402,11 +384,7 @@ impl BpfManager {
 
                 kprobe.pin(format!("{RTDIR_FS}/prog_{id}")).or_else(|e| {
                     let prog = self.programs.remove(&id).unwrap();
-                    prog.delete(id).map_err(|_| {
-                        BpfdError::Error(
-                            "new program cleanup failed, unable to delete program data".to_string(),
-                        )
-                    })?;
+                    prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
                     Err(BpfdError::UnableToPinProgram(e))
                 })?;
 
@@ -442,12 +420,7 @@ impl BpfManager {
                         program.info.pid,
                     )
                     .or_else(|e| {
-                        p.delete(id).map_err(|_| {
-                            BpfdError::Error(
-                                "new program cleanup failed, unable to delete program data"
-                                    .to_string(),
-                            )
-                        })?;
+                        p.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
                         Err(BpfdError::BpfProgramError(e))
                     })?;
 
@@ -463,11 +436,7 @@ impl BpfManager {
 
                 uprobe.pin(format!("{RTDIR_FS}/prog_{id}")).or_else(|e| {
                     let prog = self.programs.remove(&id).unwrap();
-                    prog.delete(id).map_err(|_| {
-                        BpfdError::Error(
-                            "new program cleanup failed, unable to delete program data".to_string(),
-                        )
-                    })?;
+                    prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
                     Err(BpfdError::UnableToPinProgram(e))
                 })?;
 
@@ -501,8 +470,7 @@ impl BpfManager {
 
         let map_owner_uuid = prog.data().map_owner_uuid;
 
-        prog.delete(id)
-            .map_err(|_| BpfdError::Error("unable to delete program data".to_string()))?;
+        prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
 
         match prog {
             Program::Xdp(_) | Program::Tc(_) => self.remove_multi_attach_program(prog).await?,

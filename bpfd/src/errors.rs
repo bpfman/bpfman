@@ -43,4 +43,6 @@ pub enum BpfdError {
     PassedUUIDError(#[from] uuid::Error),
     #[error("Passed UUID already in use {0}")]
     PassedUUIDInUse(Uuid),
+    #[error("Unable to delete program {0}")]
+    BpfdProgramDeleteError(#[source] anyhow::Error),
 }
