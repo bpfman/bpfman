@@ -316,7 +316,6 @@ impl XdpProgram {
 pub(crate) struct TcProgram {
     pub(crate) data: ProgramData,
     pub(crate) info: TcProgramInfo,
-    pub(crate) direction: Direction,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -355,6 +354,8 @@ impl UprobeProgram {
     }
 }
 
+// ProgramData represents all of the core information needed to load
+// a program reguardless of ProgramType.
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct ProgramData {
     pub(crate) location: Location,
@@ -436,6 +437,7 @@ pub(crate) struct TcProgramInfo {
     pub(crate) current_position: Option<usize>,
     pub(crate) metadata: Metadata,
     pub(crate) proceed_on: TcProceedOn,
+    pub(crate) direction: Direction,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -477,7 +479,7 @@ impl Program {
             Program::Xdp(p) => Some(DispatcherId::Xdp(DispatcherInfo(p.info.if_index, None))),
             Program::Tc(p) => Some(DispatcherId::Tc(DispatcherInfo(
                 p.info.if_index,
-                Some(p.direction),
+                Some(p.info.direction),
             ))),
             _ => None,
         }
@@ -596,7 +598,7 @@ impl Program {
         match self {
             Program::Xdp(_) => None,
             Program::Tracepoint(_) => None,
-            Program::Tc(p) => Some(p.direction),
+            Program::Tc(p) => Some(p.info.direction),
             Program::Kprobe(_) => None,
             Program::Uprobe(_) => None,
         }
