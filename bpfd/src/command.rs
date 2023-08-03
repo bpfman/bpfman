@@ -139,24 +139,23 @@ pub(crate) enum Location {
 
 impl Location {
     async fn get_program_bytes(&self) -> Result<(Vec<u8>, String), BpfdError> {
-        let mut section_name = String::new();
         match self {
-            Location::File(l) => crate::utils::read(l).await,
+            Location::File(l) => Ok((crate::utils::read(l).await?, "".to_owned())),
             Location::Image(l) => {
-                let program_overrides = l
+                let (path, section_name) = l
                     .clone()
                     .get_image(None)
                     .await
                     .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
 
-                section_name = program_overrides.image_meta.section_name;
-
-                get_bytecode_from_image_store(program_overrides.path)
-                    .await
-                    .map_err(|e| BpfdError::Error(format!("Bytecode loading error: {e}")))
+                Ok((
+                    get_bytecode_from_image_store(path)
+                        .await
+                        .map_err(|e| BpfdError::Error(format!("Bytecode loading error: {e}")))?,
+                    section_name,
+                ))
             }
         }
-        .map(|v| (v, section_name))
     }
 }
 
@@ -382,7 +381,7 @@ impl UprobeProgram {
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct ProgramData {
     pub(crate) location: Location,
-    pub(crate) section_name: std::cell::RefCell<String>,
+    pub(crate) section_name: String,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
     pub(crate) owner: String,
     pub(crate) map_owner_uuid: Option<Uuid>,
@@ -399,7 +398,7 @@ impl ProgramData {
     ) -> Self {
         Self {
             location,
-            section_name: std::cell::RefCell::new(section_name),
+            section_name,
             owner,
             global_data,
             map_owner_uuid,
@@ -407,20 +406,21 @@ impl ProgramData {
         }
     }
 
-    pub(crate) async fn program_bytes(&self) -> Result<Vec<u8>, BpfdError> {
+    pub(crate) async fn program_bytes(&mut self) -> Result<Vec<u8>, BpfdError> {
         match self.location.get_program_bytes().await {
             Err(e) => Err(e),
             Ok((v, s)) => {
                 // If section name isn't provided and we're loading from a container
                 // image use the section name provided in the image metadata, otherwise
                 // always use the provided section name.
+                let provided_sec_name = self.section_name.clone();
 
-                if self.section_name.borrow().is_empty() {
-                    *self.section_name.borrow_mut() = s;
-                } else if s != *self.section_name.borrow() {
+                if provided_sec_name.is_empty() {
+                    self.section_name = s;
+                } else if s != provided_sec_name {
                     return Err(BpfdError::BytecodeMetaDataMismatch {
                         image_sec_name: s,
-                        provided_sec_name: self.section_name.borrow().clone(),
+                        provided_sec_name,
                     });
                 }
 
@@ -493,6 +493,16 @@ impl Program {
                 Some(p.info.direction),
             ))),
             _ => None,
+        }
+    }
+
+    pub(crate) fn data_mut(&mut self) -> &mut ProgramData {
+        match self {
+            Program::Xdp(p) => &mut p.data,
+            Program::Tracepoint(p) => &mut p.data,
+            Program::Tc(p) => &mut p.data,
+            Program::Kprobe(p) => &mut p.data,
+            Program::Uprobe(p) => &mut p.data,
         }
     }
 

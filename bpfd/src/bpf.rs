@@ -179,25 +179,25 @@ impl BpfManager {
 
     pub(crate) async fn add_multi_attach_program(
         &mut self,
-        program: Program,
+        mut program: Program,
         id: Uuid,
         map_pin_path: String,
     ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_multi_attach_program()");
 
-        let program_bytes = program.data().program_bytes().await?;
+        let program_bytes = program.data_mut().program_bytes().await?;
 
         // This load is just to verify the Section Name is valid.
         // The actual load is performed in the XDP or TC logic.
         let mut ext_loader = BpfLoader::new()
-            .extension(&program.data().section_name.borrow())
+            .extension(&program.data().section_name)
             .map_pin_path(map_pin_path.clone())
             .load(&program_bytes)?;
 
-        match ext_loader.program_mut(&program.data().section_name.borrow()) {
+        match ext_loader.program_mut(&program.data().section_name) {
             Some(_) => Ok(()), // BILLY: Do we need an unload here?
             None => Err(BpfdError::SectionNameNotValid(
-                program.data().section_name.borrow().clone(),
+                program.data().section_name.clone(),
             )),
         }?;
 
@@ -279,7 +279,7 @@ impl BpfManager {
         map_pin_path: String,
     ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_single_attach_program()");
-        let program_bytes = p.data().program_bytes().await?;
+        let program_bytes = p.data_mut().program_bytes().await?;
 
         let mut loader = BpfLoader::new();
 
@@ -291,9 +291,12 @@ impl BpfManager {
             .map_pin_path(map_pin_path.clone())
             .load(&program_bytes)?;
 
-        let raw_program = loader.program_mut(&p.data().section_name.borrow()).ok_or(
-            BpfdError::SectionNameNotValid(p.data().section_name.borrow().clone()),
-        )?;
+        let raw_program =
+            loader
+                .program_mut(&p.data().section_name)
+                .ok_or(BpfdError::SectionNameNotValid(
+                    p.data().section_name.clone(),
+                ))?;
 
         match p.clone() {
             Program::Tracepoint(program) => {
@@ -637,7 +640,7 @@ impl BpfManager {
                         prog_id,
                         ProgramInfo {
                             id: Some(*id),
-                            name: Some(p.data.section_name.borrow().to_string()),
+                            name: Some(p.data.section_name.clone()),
                             program_type: Some(ProgramType::Xdp as u32),
                             location,
                             global_data: Some(p.data.global_data.clone()),
@@ -665,7 +668,7 @@ impl BpfManager {
                         prog_id,
                         ProgramInfo {
                             id: Some(*id),
-                            name: Some(p.data.section_name.borrow().to_string()),
+                            name: Some(p.data.section_name.clone()),
                             location,
                             program_type: Some(ProgramType::Tracepoint as u32),
                             global_data: Some(p.data.global_data.clone()),
@@ -690,7 +693,7 @@ impl BpfManager {
                         prog_id,
                         ProgramInfo {
                             id: Some(*id),
-                            name: Some(p.data.section_name.borrow().to_string()),
+                            name: Some(p.data.section_name.clone()),
                             location,
                             program_type: Some(ProgramType::Tc as u32),
                             global_data: Some(p.data.global_data.clone()),
@@ -719,7 +722,7 @@ impl BpfManager {
                         prog_id,
                         ProgramInfo {
                             id: Some(*id),
-                            name: Some(p.data.section_name.borrow().to_string()),
+                            name: Some(p.data.section_name.clone()),
                             location,
                             program_type: Some(ProgramType::Probe as u32),
                             global_data: Some(p.data.global_data.clone()),
@@ -747,7 +750,7 @@ impl BpfManager {
                         prog_id,
                         ProgramInfo {
                             id: Some(*id),
-                            name: Some(p.data.section_name.borrow().to_string()),
+                            name: Some(p.data.section_name.clone()),
                             location,
                             program_type: Some(ProgramType::Probe as u32),
                             global_data: Some(p.data.global_data.clone()),

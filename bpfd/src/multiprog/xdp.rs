@@ -75,19 +75,16 @@ impl XdpDispatcher {
             None,
             None,
         );
-        let overrides = image
+        let (path, section_name) = image
             .get_image(None)
             .await
             .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
-        let program_bytes = get_bytecode_from_image_store(overrides.path).await?;
+        let program_bytes = get_bytecode_from_image_store(path).await?;
         let mut loader = BpfLoader::new()
             .set_global("conf", &config, true)
             .load(&program_bytes)?;
 
-        let dispatcher: &mut Xdp = loader
-            .program_mut(&overrides.image_meta.section_name)
-            .unwrap()
-            .try_into()?;
+        let dispatcher: &mut Xdp = loader.program_mut(&section_name).unwrap().try_into()?;
 
         dispatcher.load()?;
 
@@ -100,7 +97,7 @@ impl XdpDispatcher {
             revision,
             mode,
             loader: Some(loader),
-            progam_name: Some(overrides.image_meta.section_name.clone()),
+            progam_name: Some(section_name),
         };
         dispatcher.attach_extensions(&mut extensions).await?;
         dispatcher.attach()?;
@@ -186,7 +183,7 @@ impl XdpDispatcher {
                 let (_, map_pin_path) = calc_map_pin_path(**k, v.data.map_owner_uuid);
                 let mut bpf = bpf
                     .map_pin_path(map_pin_path.clone())
-                    .extension(&v.data.section_name.borrow())
+                    .extension(&v.data.section_name)
                     .load(&program_bytes)
                     .map_err(BpfdError::BpfLoadError)?;
 

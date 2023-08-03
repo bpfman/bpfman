@@ -204,7 +204,7 @@ impl TcDispatcher {
                 let (_, map_pin_path) = calc_map_pin_path(**k, v.data.map_owner_uuid);
                 let mut bpf = bpf
                     .map_pin_path(map_pin_path.clone())
-                    .extension(&v.data.section_name.borrow())
+                    .extension(&v.data.section_name)
                     .load(&program_bytes)
                     .map_err(BpfdError::BpfLoadError)?;
 
