@@ -574,7 +574,9 @@ impl Program {
 
     pub(crate) fn delete(&self, uuid: Uuid) -> Result<(), anyhow::Error> {
         let path = format!("{RTDIR_PROGRAMS}/{uuid}");
-        fs::remove_file(path)?;
+        if PathBuf::from(&path).exists() {
+            fs::remove_file(path)?;
+        }
 
         let path = format!("{RTDIR_FS}/prog_{uuid}");
         if PathBuf::from(&path).exists() {
