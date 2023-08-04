@@ -7,6 +7,7 @@ service Loader {
     rpc Unload (UnloadRequest) returns (UnloadResponse);
     rpc List (ListRequest) returns (ListResponse);
     rpc PullBytecode (PullBytecodeRequest) returns (PullBytecodeResponse);
+    rpc Get (GetRequest) returns ( GetResponse );
 }
 
 message BytecodeImage {
@@ -23,11 +24,47 @@ message LoadRequestCommon {
         BytecodeImage image = 1;
         string file = 2;
     } ;
-    string section_name = 3;
+    string name = 3;
     uint32 program_type = 4;
     optional string id = 5;
     map<string, bytes> global_data = 6;
     optional string map_owner_uuid = 7;
+}
+
+message KernelProgramInfo { 
+    uint32 id = 1;
+    uint32 program_type = 2;
+    string loaded_at = 3;
+    string tag = 4;
+    bool gpl_compatible = 5;
+    repeated uint32 map_ids = 6;
+    uint32 btf_id = 7;
+    uint32 bytes_xlated = 8;
+    bool jited = 9;
+    uint32 bytes_jited = 10;
+    uint32 bytes_memlock = 11;
+    uint32 verified_insns = 12;
+}
+
+message ProgramInfo {
+    optional string uuid  = 1;
+    oneof location {
+        NoLocation no_location = 2;
+        BytecodeImage image = 3;
+        string file = 4;
+    } ;
+    map<string, bytes> global_data = 5;
+    string map_owner_uuid = 6;
+    string map_pin_path = 7;
+    repeated string map_used_by = 8;
+    oneof attach_info {
+        NoAttachInfo none = 9;
+        XDPAttachInfo xdp_attach_info = 10;
+        TCAttachInfo tc_attach_info = 11;
+        TracepointAttachInfo tracepoint_attach_info = 12;
+        KprobeAttachInfo kprobe_attach_info = 13;
+        UprobeAttachInfo uprobe_attach_info = 14;
+    }
 }
 
 message NoAttachInfo {}
@@ -79,8 +116,10 @@ message LoadRequest {
 };
 
 message LoadResponse {
-    string id = 1;
+    ProgramInfo info  = 1;
+    KernelProgramInfo kernel_info = 2;
 }
+
 
 message UnloadRequest {
     string id = 1;
@@ -94,40 +133,11 @@ message ListRequest {
 }
 
 message ListResponse {
-  message ListResult {
-    optional string id = 1;
-    string name = 2;
-    oneof location {
-        NoLocation no_location = 3;
-        BytecodeImage image = 4;
-        string file = 5;
-    } ;
-    uint32 program_type = 6;
-    map<string, bytes> global_data = 7;
-    string map_owner_uuid = 8;
-    string map_pin_path = 9;
-    repeated string map_used_by = 10;
-    oneof attach_info {
-        NoAttachInfo none = 11;
-        XDPAttachInfo xdp_attach_info = 12;
-        TCAttachInfo tc_attach_info = 13;
-        TracepointAttachInfo tracepoint_attach_info = 14;
-        KprobeAttachInfo kprobe_attach_info = 15;
-        UprobeAttachInfo uprobe_attach_info = 16;
-    }
-    uint32 bpf_id = 17;
-    string loaded_at = 18;
-    string tag = 19;
-    bool gpl_compatible = 20;
-    repeated uint32 map_ids = 21;
-    uint32 btf_id = 22;
-    uint32 bytes_xlated = 23;
-    bool jited = 24;
-    uint32 bytes_jited = 25;
-    uint32 bytes_memlock = 26;
-    uint32 verified_insns = 27;
-  } 
-  repeated ListResult results = 28;
+  message ListResult { 
+    ProgramInfo info = 1;
+    KernelProgramInfo kernel_info = 2;
+  }
+  repeated ProgramInfo results = 1;
 }
 
 message PullBytecodeRequest {
@@ -135,3 +145,11 @@ message PullBytecodeRequest {
 }
 
 message PullBytecodeResponse {}
+
+message GetRequest {
+    string id = 1;
+}
+
+message GetResponse { 
+    ProgramInfo program_info = 1;
+}
