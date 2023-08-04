@@ -501,11 +501,6 @@ impl BpfManager {
             if !(prog.owner() == &owner || owner == SUPERUSER) {
                 return Err(BpfdError::NotAuthorized);
             }
-            if !self.is_map_safe_to_delete(id, prog.data().map_owner_uuid) {
-                return Err(BpfdError::Error(
-                    "map being used by other eBPF program".to_string(),
-                ));
-            }
         } else {
             debug!("InvalidID: {id}");
             return Err(BpfdError::InvalidID);
@@ -1109,27 +1104,16 @@ impl BpfManager {
     }
 
     // This function reads the map.used_by from the map hash table. If there
-    // is not an entry for the given input, an error is returned. Internally,
-    // the owner's UUID is also stored in the list. This function strips it out.
+    // is not an entry for the given input, an error is returned.
     fn get_map_used_by(
         &self,
         id: Uuid,
         map_owner_uuid: Option<Uuid>,
     ) -> Result<Vec<Uuid>, BpfdError> {
-        let (map_owner, map_index) = get_map_index(id, map_owner_uuid);
+        let (_, map_index) = get_map_index(id, map_owner_uuid);
 
         if let Some(map) = self.maps.get(&map_index) {
-            let map_owner_id = if map_owner {
-                id
-            } else {
-                map_owner_uuid.unwrap()
-            };
-
-            let mut used_by = map.used_by.clone();
-            if let Some(index) = used_by.iter().position(|value| *value == map_owner_id) {
-                used_by.swap_remove(index);
-            }
-            Ok(used_by)
+            Ok(map.used_by.clone())
         } else {
             Err(BpfdError::Error("map does not exists".to_string()))
         }
@@ -1223,29 +1207,6 @@ impl BpfManager {
         Ok(())
     }
 
-    // This function is a pre-check to make sure the map can be deleted,
-    // and thus the associated eBPF program can be unloaded. This function
-    // returns false if this program is the map owner and other programs
-    // are referencing the map, true otherwise.
-    fn is_map_safe_to_delete(&mut self, id: Uuid, map_owner_uuid: Option<Uuid>) -> bool {
-        let (map_owner, _) = get_map_index(id, map_owner_uuid);
-
-        if map_owner {
-            // If this eBPF program is eBPF program that created the map,
-            // make sure no other eBPF programs are referencing the maps before
-            // allowing it to be deleted.
-            if let Some(map) = self.maps.get_mut(&id) {
-                if map.used_by.len() > 1 {
-                    // USed by more than one eBPF program (one would be this program),
-                    // so block the unload.
-                    return false;
-                }
-            }
-        }
-
-        true
-    }
-
     // This function cleans up a map entry when an eBPF program is
     // being unloaded. If the eBPF program is the map owner, then
     // the map is removed from the hash table and the associated
@@ -1289,7 +1250,7 @@ impl BpfManager {
                 map_pin_path: map_pin_path.clone(),
                 used_by: vec![id],
             };
-            self.maps.insert(id, map);
+            self.maps.insert(map_index, map);
         }
     }
 }

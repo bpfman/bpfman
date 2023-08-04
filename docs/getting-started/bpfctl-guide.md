@@ -313,17 +313,8 @@ set to same directory as the first program, which includes the first program's U
 The output for both commands shows the map is being used by the second program via
 the `Map Used By` with a value of `d6939812-5f6a-42ff-9b55-d3668d8527d0`.
 
-The eBPF program that owns the maps cannot be unloaded until all eBPF programs
-referencing the maps have been unloaded.
-Otherwise an error will be returned:
-
-```console
-bpfctl unload 87100e16-4481-4f97-be89-f68d269d6062
-Error = status: Aborted, message: "An error occurred. map being used by other eBPF program", details: [], metadata: MetadataMap { headers: {"content-type": "application/grpc", "date": "Mon, 17 Jul 2023 20:30:42 GMT", "content-length": "0"} }
-Error: Failed to execute request
-```
-
-So first unload the eBPF program referencing the map, then unload the map owner:
+The eBPF programs can be unloaded any order, the `Map Pin Path` will not be deleted
+until all the programs referencing the maps are unloaded:
 
 ```console
 bpfctl unload d6939812-5f6a-42ff-9b55-d3668d8527d0
