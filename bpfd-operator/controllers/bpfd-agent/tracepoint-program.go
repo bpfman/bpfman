@@ -85,7 +85,7 @@ func (r *TracepointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *TracepointProgramReconciler) buildBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
+func (r *TracepointProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
 	progs := &bpfdiov1alpha1.BpfProgramList{}
 
 	for _, tracepoint := range r.currentTracepointProgram.Spec.Names {

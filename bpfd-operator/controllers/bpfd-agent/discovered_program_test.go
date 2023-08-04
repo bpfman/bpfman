@@ -137,7 +137,6 @@ func TestDiscoveredProgramControllerCreate(t *testing.T) {
 		Scheme:       s,
 		BpfdClient:   cli,
 		NodeName:     fakeNode.Name,
-		bpfPrograms:  map[string]bpfdiov1alpha1.BpfProgram{},
 		expectedMaps: map[string]string{},
 	}
 
@@ -321,7 +320,6 @@ func TestDiscoveredProgramControllerCreateAndDeleteStale(t *testing.T) {
 		Scheme:       s,
 		BpfdClient:   cli,
 		NodeName:     fakeNode.Name,
-		bpfPrograms:  map[string]bpfdiov1alpha1.BpfProgram{},
 		expectedMaps: map[string]string{},
 	}
 

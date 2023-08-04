@@ -109,7 +109,7 @@ func (r *XdpProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *XdpProgramReconciler) buildBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
+func (r *XdpProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
 	progs := &bpfdiov1alpha1.BpfProgramList{}
 
 	for _, iface := range r.interfaces {

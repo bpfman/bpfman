@@ -124,7 +124,7 @@ func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *TcProgramReconciler) buildBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
+func (r *TcProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
 	progs := &bpfdiov1alpha1.BpfProgramList{}
 	for _, iface := range r.interfaces {
 		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentTcProgram.Name, r.NodeName, iface)

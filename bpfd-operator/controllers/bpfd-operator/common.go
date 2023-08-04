@@ -120,7 +120,8 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 	}
 
 	if !prog.GetDeletionTimestamp().IsZero() {
-		// Only remove bpfd-operator finalizer if all bpfProgram Objects are ready to be pruned  (i.e finalizers have been removed)
+		// Only remove bpfd-operator finalizer if all bpfProgram Objects are ready to be pruned  (i.e there are no
+		// bpfPrograms with a finalizer)
 		if len(finalApplied) == 0 {
 			// Causes Requeue
 			return r.removeFinalizer(ctx, prog, internal.BpfdOperatorFinalizer)

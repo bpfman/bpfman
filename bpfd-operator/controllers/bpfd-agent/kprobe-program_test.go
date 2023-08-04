@@ -97,7 +97,6 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 		Scheme:       s,
 		BpfdClient:   cli,
 		NodeName:     fakeNode.Name,
-		bpfPrograms:  map[string]bpfdiov1alpha1.BpfProgram{},
 		expectedMaps: map[string]string{},
 	}
 

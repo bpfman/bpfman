@@ -85,7 +85,7 @@ func (r *KprobeProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *KprobeProgramReconciler) buildBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
+func (r *KprobeProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
 	progs := &bpfdiov1alpha1.BpfProgramList{}
 
 	for _, function := range r.currentKprobeProgram.Spec.FunctionNames {
