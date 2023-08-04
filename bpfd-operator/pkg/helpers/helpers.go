@@ -48,6 +48,7 @@ const (
 type ProgramType int32
 
 const (
+	Kprobe     ProgramType = 2
 	Tc         ProgramType = 3
 	Tracepoint ProgramType = 5
 	Xdp        ProgramType = 6
@@ -61,6 +62,8 @@ func (p ProgramType) Uint32() *uint32 {
 func FromString(p string) (*ProgramType, error) {
 	var programType ProgramType
 	switch p {
+	case "Kprobe":
+		programType = Kprobe
 	case "tc":
 		programType = Tc
 	case "xdp":
@@ -76,6 +79,8 @@ func FromString(p string) (*ProgramType, error) {
 
 func (p ProgramType) String() string {
 	switch p {
+	case Kprobe:
+		return "kprobe"
 	case Tc:
 		return "tc"
 	case Xdp:
@@ -268,6 +273,36 @@ func GetMaps(c *bpfdclientset.Clientset, ProgramName string, mapNames []string) 
 // 	return nil
 // }
 
+func isKprobebpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string) wait.ConditionFunc {
+	ctx := context.Background()
+
+	return func() (bool, error) {
+		log.Info(".") // progress bar!
+		bpfProgConfig, err := c.BpfdV1alpha1().KprobePrograms().Get(ctx, progConfName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		// Get most recent condition
+		conLen := len(bpfProgConfig.Status.Conditions)
+
+		if conLen <= 0 {
+			return false, nil
+		}
+
+		recentIdx := len(bpfProgConfig.Status.Conditions) - 1
+
+		condition := bpfProgConfig.Status.Conditions[recentIdx]
+
+		if condition.Type != string(bpfdiov1alpha1.ProgramReconcileSuccess) {
+			log.Info("kprobeProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condition.Type)
+			return false, nil
+		}
+
+		return true, nil
+	}
+}
+
 func isTcbpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string) wait.ConditionFunc {
 	ctx := context.Background()
 
@@ -362,6 +397,8 @@ func isXdpbpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string) wait.C
 // it checks the config objects' conditions to look for the `Loaded` state.
 func WaitForBpfProgConfLoad(c *bpfdclientset.Clientset, progName string, timeout time.Duration, progType ProgramType) error {
 	switch progType {
+	case Kprobe:
+		return wait.PollImmediate(time.Second, timeout, isKprobebpfdProgLoaded(c, progName))
 	case Tc:
 		return wait.PollImmediate(time.Second, timeout, isTcbpfdProgLoaded(c, progName))
 	case Xdp:

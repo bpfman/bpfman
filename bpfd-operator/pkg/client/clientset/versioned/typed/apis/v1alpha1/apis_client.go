@@ -28,6 +28,7 @@ import (
 type BpfdV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	BpfProgramsGetter
+	KprobeProgramsGetter
 	TcProgramsGetter
 	TracepointProgramsGetter
 	XdpProgramsGetter
@@ -40,6 +41,10 @@ type BpfdV1alpha1Client struct {
 
 func (c *BpfdV1alpha1Client) BpfPrograms() BpfProgramInterface {
 	return newBpfPrograms(c)
+}
+
+func (c *BpfdV1alpha1Client) KprobePrograms() KprobeProgramInterface {
+	return newKprobePrograms(c)
 }
 
 func (c *BpfdV1alpha1Client) TcPrograms() TcProgramInterface {

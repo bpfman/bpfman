@@ -19,6 +19,8 @@ package v1alpha1
 
 type BpfProgramExpansion interface{}
 
+type KprobeProgramExpansion interface{}
+
 type TcProgramExpansion interface{}
 
 type TracepointProgramExpansion interface{}

@@ -32,6 +32,11 @@ spec:
       kind: TracepointProgram
       name: tracepointprograms.bpfd.dev
       version: v1alpha1
+    - description: KprobeProgram is the Schema for the Kprobeprograms API
+      displayName: Kprobe Program
+      kind: KprobeProgram
+      name: kprobeprograms.bpfd.dev
+      version: v1alpha1
   description: "The bpfd Operator is a Kubernetes Operator for deploying [bpfd](https://bpfd.netlify.app/),
     a system daemon\nfor managing eBPF programs. It deploys bpfd itself along with
     CRDs to make deploying\neBPF programs in Kubernetes much easier.\n\n## Dependencies\n\n###

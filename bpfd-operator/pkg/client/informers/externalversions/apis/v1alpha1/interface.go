@@ -25,6 +25,8 @@ import (
 type Interface interface {
 	// BpfPrograms returns a BpfProgramInformer.
 	BpfPrograms() BpfProgramInformer
+	// KprobePrograms returns a KprobeProgramInformer.
+	KprobePrograms() KprobeProgramInformer
 	// TcPrograms returns a TcProgramInformer.
 	TcPrograms() TcProgramInformer
 	// TracepointPrograms returns a TracepointProgramInformer.
@@ -47,6 +49,11 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // BpfPrograms returns a BpfProgramInformer.
 func (v *version) BpfPrograms() BpfProgramInformer {
 	return &bpfProgramInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// KprobePrograms returns a KprobeProgramInformer.
+func (v *version) KprobePrograms() KprobeProgramInformer {
+	return &kprobeProgramInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // TcPrograms returns a TcProgramInformer.
