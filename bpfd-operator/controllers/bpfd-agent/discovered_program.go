@@ -23,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -32,8 +33,6 @@ import (
 	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
 	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -78,16 +77,32 @@ func (r *DiscoveredProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 	}
 
-	for _, p := range programs {
+	// get all existing "discovered" bpfProgram Objects for this node
+	opts := []client.ListOption{
+		client.MatchingLabels{internal.DiscoveredLabel: "", internal.K8sHostLabel: r.NodeName},
+	}
 
+	existingPrograms := bpfdiov1alpha1.BpfProgramList{}
+	err = r.Client.List(ctx, &existingPrograms, opts...)
+	if err != nil {
+		r.Logger.Error(err, "failed to list existing discovered bpfProgram objects")
+	}
+
+	// build an indexable map of existing programs based on bpfProgram name
+	existingProgramIndex := map[string]bpfdiov1alpha1.BpfProgram{}
+	for _, p := range existingPrograms.Items {
+		existingProgramIndex[p.Name] = p
+	}
+
+	for _, p := range programs {
 		// skip bpf programs loaded by bpfd, their corresponding bpfProgram object
 		// will be managed by another controller.
 		if p.Id != nil {
 			continue
 		}
 
-		// TODO(astoycos) across the operator we need a better way to validate that
-		// the name we're building is a valid k8's object name i.e meets the
+		// TODO(astoycos) across the agent we need a better way to validate that
+		// the object name we're building is a valid k8's object name i.e meets the
 		// regex: '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*'
 		// laid out here -> https://github.com/kubernetes/apimachinery/blob/v0.27.4/pkg/util/validation/validation.go#L43C6-L43C21
 		bpfProgName := ""
@@ -96,8 +111,6 @@ func (r *DiscoveredProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		} else {
 			bpfProgName = fmt.Sprintf("%s-%d-%s", strings.ReplaceAll(p.Name, "_", "-"), p.BpfId, r.NodeName)
 		}
-
-		existingBpfProg := &bpfdiov1alpha1.BpfProgram{}
 
 		expectedBpfProg := &bpfdiov1alpha1.BpfProgram{
 			ObjectMeta: metav1.ObjectMeta{
@@ -112,36 +125,42 @@ func (r *DiscoveredProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			Status: bpfdiov1alpha1.BpfProgramStatus{Conditions: []metav1.Condition{}},
 		}
 
+		existingBpfProg, ok := existingProgramIndex[bpfProgName]
 		// If the bpfProgram object doesn't exist create it.
-		err = r.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: v1.NamespaceAll}, existingBpfProg)
-		if err != nil {
-			if errors.IsNotFound(err) {
-				r.Logger.V(1).Info("Creating discovered bpfProgram object", "name", expectedBpfProg.Name)
-				err = r.Create(ctx, expectedBpfProg)
-				if err != nil {
-					r.Logger.Error(err, "failed to create bpfProgram object")
-					return ctrl.Result{Requeue: false}, nil
-				}
-
+		if !ok {
+			r.Logger.V(1).Info("Creating discovered bpfProgram object", "name", expectedBpfProg.Name)
+			err = r.Create(ctx, expectedBpfProg)
+			if err != nil {
+				r.Logger.Error(err, "failed to create bpfProgram object")
 				return ctrl.Result{Requeue: false}, nil
 			}
 
-			r.Logger.Error(err, "failed to build bpfProgram object")
 			return ctrl.Result{Requeue: false}, nil
 		}
 
 		// If the bpfProgram object does exist but is stale update it.
 		if !reflect.DeepEqual(expectedBpfProg.Annotations, existingBpfProg.Annotations) {
 			if err := r.Update(ctx, expectedBpfProg); err != nil {
-				r.Logger.Error(err, "failed to build bpfProgram object")
+				r.Logger.Error(err, "failed to update discovered bpfProgram object", "name", expectedBpfProg.Name)
 			}
 
 			return ctrl.Result{Requeue: false}, nil
 		}
 
+		delete(existingProgramIndex, bpfProgName)
 	}
 
-	// If we've created all of the programs, make sure to exit with a retry
+	// Delete any stale discovered programs
+	for _, prog := range existingProgramIndex {
+		r.Logger.V(1).Info("Deleting stale discovered bpfProgram object", "name", prog.Name)
+		if err := r.Delete(ctx, &prog, &client.DeleteOptions{}); err != nil {
+			r.Logger.Error(err, "failed to delete stale discoverd bpfProgram object", "name", prog.Name)
+		}
+
+		return ctrl.Result{Requeue: false}, nil
+	}
+
+	// If we've finished reconciling everything, make sure to exit with a retry
 	// so that we resync on a 30 second interval.
 	return ctrl.Result{Requeue: true, RequeueAfter: syncDurationDiscoveredController}, nil
 }
