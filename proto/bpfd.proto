@@ -19,16 +19,17 @@ message BytecodeImage {
 
 message NoLocation{}
 
-message LoadRequestCommon {
+message ProgramInfoCommon {
     oneof location {
-        BytecodeImage image = 1;
-        string file = 2;
+        NoLocation no_location = 1;
+        BytecodeImage image = 2;
+        string file = 3;
     } ;
-    string name = 3;
-    uint32 program_type = 4;
-    optional string id = 5;
-    map<string, bytes> global_data = 6;
-    optional string map_owner_uuid = 7;
+    string name = 4;
+    uint32 program_type = 5;
+    optional string id = 6;
+    map<string, bytes> global_data = 7;
+    optional string map_owner_uuid = 8;
 }
 
 message KernelProgramInfo { 
@@ -46,25 +47,22 @@ message KernelProgramInfo {
     uint32 verified_insns = 12;
 }
 
-message ProgramInfo {
-    optional string uuid  = 1;
-    oneof location {
-        NoLocation no_location = 2;
-        BytecodeImage image = 3;
-        string file = 4;
-    } ;
-    map<string, bytes> global_data = 5;
-    string map_owner_uuid = 6;
-    string map_pin_path = 7;
-    repeated string map_used_by = 8;
+message AttachInfo {
     oneof attach_info {
-        NoAttachInfo none = 9;
-        XDPAttachInfo xdp_attach_info = 10;
-        TCAttachInfo tc_attach_info = 11;
-        TracepointAttachInfo tracepoint_attach_info = 12;
-        KprobeAttachInfo kprobe_attach_info = 13;
-        UprobeAttachInfo uprobe_attach_info = 14;
+        NoAttachInfo none = 1;
+        XDPAttachInfo xdp_attach_info = 2;
+        TCAttachInfo tc_attach_info = 3;
+        TracepointAttachInfo tracepoint_attach_info = 4;
+        KprobeAttachInfo kprobe_attach_info = 5;
+        UprobeAttachInfo uprobe_attach_info = 6;
     }
+}
+
+message ProgramInfo {
+    ProgramInfoCommon common = 1;
+    string map_pin_path = 2;
+    repeated string map_used_by = 3;
+    AttachInfo attach_info = 4;
 }
 
 message NoAttachInfo {}
@@ -105,14 +103,8 @@ message UprobeAttachInfo {
 }
 
 message LoadRequest {
-    LoadRequestCommon common = 1;
-    oneof attach_info {
-        XDPAttachInfo xdp_attach_info = 2;
-        TCAttachInfo tc_attach_info = 3;
-        TracepointAttachInfo tracepoint_attach_info = 4;
-        KprobeAttachInfo kprobe_attach_info = 5;
-        UprobeAttachInfo uprobe_attach_info = 6;
-    }
+    ProgramInfoCommon common = 1;
+    AttachInfo attach_info = 2;
 };
 
 message LoadResponse {
