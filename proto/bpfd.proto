@@ -10,26 +10,19 @@ service Loader {
     rpc Get (GetRequest) returns ( GetResponse );
 }
 
+/* BytecodeImage represents a bpf program that is packaged and contained within
+ * an OCI container image. */
+
 message BytecodeImage {
     string url = 1;
     int32 image_pull_policy = 2;
-    string username = 3;
-    string password = 4;
+    optional string username = 3;
+    optional string password = 4;
 }
 
-message NoLocation{}
-
-message LoadRequestCommon {
-    oneof location {
-        BytecodeImage image = 1;
-        string file = 2;
-    } ;
-    string name = 3;
-    uint32 program_type = 4;
-    optional string id = 5;
-    map<string, bytes> global_data = 6;
-    optional string map_owner_uuid = 7;
-}
+/* KernelProgramInfo represents the state for a single bpf program that is
+ * maintained internally by the Linux kernel within its bpf_prog_info
+ * structure.  */
 
 message KernelProgramInfo { 
     uint32 id = 1;
@@ -46,28 +39,22 @@ message KernelProgramInfo {
     uint32 verified_insns = 12;
 }
 
+/* ProgramInfo represents the state for a single bpf program that is maintained
+ * internally by bpfd.  */
+
 message ProgramInfo {
     optional string uuid  = 1;
-    oneof location {
-        NoLocation no_location = 2;
-        BytecodeImage image = 3;
-        string file = 4;
-    } ;
+    BytecodeLocation bytecode = 2;
+    AttachInfo attach = 3;
+    string name = 4;
     map<string, bytes> global_data = 5;
-    string map_owner_uuid = 6;
-    string map_pin_path = 7;
+    optional string map_owner_uuid = 6;
+    optional string map_pin_path = 7;
     repeated string map_used_by = 8;
-    oneof attach_info {
-        NoAttachInfo none = 9;
-        XDPAttachInfo xdp_attach_info = 10;
-        TCAttachInfo tc_attach_info = 11;
-        TracepointAttachInfo tracepoint_attach_info = 12;
-        KprobeAttachInfo kprobe_attach_info = 13;
-        UprobeAttachInfo uprobe_attach_info = 14;
-    }
 }
 
-message NoAttachInfo {}
+/* XDPAttachInfo represents the program specific metadata which bpfd needs to 
+ * attach and observe a XDP program on a given network interface.  */
 
 message XDPAttachInfo {
     int32 priority = 1;
@@ -75,6 +62,9 @@ message XDPAttachInfo {
     int32 position = 3;
     repeated int32 proceed_on = 4;
 }
+
+/* TCAttachInfo represents the program specific metadata which bpfd needs to 
+ * attach and observe a TC program on a given network interface.  */
 
 message TCAttachInfo {
     int32 priority = 1;
@@ -84,9 +74,16 @@ message TCAttachInfo {
     repeated int32 proceed_on = 5;
 }
 
+/* TracepointAttachInfo represents the program specific metadata which bpfd
+ * needs to attach and observe a Tracepoint program for a given kernel
+ * tracepoint.  */
+
 message TracepointAttachInfo {
     string tracepoint = 1;
 }
+
+/* KprobeAttachInfo represents the program specific metadata which bpfd
+ * needs to attach and observe a Kprobe program for a given kernel probe.  */
 
 message KprobeAttachInfo {
     string fn_name = 1;
@@ -94,6 +91,9 @@ message KprobeAttachInfo {
     bool retprobe = 3;
     optional string namespace = 4;
 }
+
+/* UprobeAttachInfo represents the program specific metadata which bpfd
+ * needs to attach and observe a Uprobe program for a given user-space probe.  */
 
 message UprobeAttachInfo {
     optional string fn_name = 1;
@@ -104,22 +104,46 @@ message UprobeAttachInfo {
     optional string namespace = 6;
 }
 
-message LoadRequest {
-    LoadRequestCommon common = 1;
-    oneof attach_info {
+message AttachInfo { 
+    oneof info { 
         XDPAttachInfo xdp_attach_info = 2;
         TCAttachInfo tc_attach_info = 3;
         TracepointAttachInfo tracepoint_attach_info = 4;
         KprobeAttachInfo kprobe_attach_info = 5;
         UprobeAttachInfo uprobe_attach_info = 6;
     }
+}
+
+message BytecodeLocation { 
+    oneof location {
+        BytecodeImage image = 2;
+        string file = 3;
+    }
+}
+
+/* LoadRequest represents a request to load and attach a bpf program. */
+
+message LoadRequest {
+    optional string uuid = 1;
+    string name = 4;
+    BytecodeLocation bytecode = 2;
+    AttachInfo attach = 3;
+    map<string, bytes> global_data = 5;
+    optional string map_owner_uuid = 6;
 };
+
+/* LoadResponse represents a response from loading and attaching a bpf program. 
+ * It includes all of the state kept by bpfd and the Linux kernel for the
+ * program. */
 
 message LoadResponse {
     ProgramInfo info  = 1;
     KernelProgramInfo kernel_info = 2;
 }
 
+/* UnloadRequest represents a request to unload a bpf program that was loaded
+ * and attached by bpfd. To identify a program pass in a valid kernel ID OR
+ * bpfd UUID. */
 
 message UnloadRequest {
     string id = 1;
@@ -127,18 +151,31 @@ message UnloadRequest {
 
 message UnloadResponse {}
 
+/* ListRequest represents a request to get information regarding bpf programs
+ * that are loaded and attached by bpfd AND/OR programs that are loaded by other
+ * users. */
+
 message ListRequest {
     optional uint32 program_type = 1;
     optional bool bpfd_programs_only = 2;
 }
+
+/* ListResponse represents a response a request to list loaded and attached
+ * bpf programs. Based on the corresponding ListRequest programs will include
+ * those loaded by bpfd AND/OR those loaded by other users. the ListResults
+ * will ALWAYS contain a program's kernel info and if loaded by bpfd, will
+ * also contain the state kept by bpfd. */
 
 message ListResponse {
   message ListResult { 
     ProgramInfo info = 1;
     KernelProgramInfo kernel_info = 2;
   }
-  repeated ProgramInfo results = 1;
+  repeated ListResult results = 1;
 }
+
+/* PullBytecodeRequest represents a request to pull a bpf program stored in an 
+ * OCI container image to the local machine for use at a later date. */
 
 message PullBytecodeRequest {
     BytecodeImage image = 1;
@@ -146,9 +183,18 @@ message PullBytecodeRequest {
 
 message PullBytecodeResponse {}
 
+/* GetRequest represents a request to get information regarding a single
+ * bpf program that is loaded and attached by bpfd AND/OR that is loaded by
+ * another user. To identify a program pass in a valid kernel ID OR
+ * bpfd UUID. */
+
 message GetRequest {
     string id = 1;
 }
+
+/* GetResponse represents a response from getting a bpf program. 
+ * It will ALWAYS contain a program's kernel info and if loaded by bpfd, will
+ * contain the state kept by bpfd. */
 
 message GetResponse { 
     ProgramInfo info = 1;

@@ -5,43 +5,10 @@ pub struct BytecodeImage {
     pub url: ::prost::alloc::string::String,
     #[prost(int32, tag = "2")]
     pub image_pull_policy: i32,
-    #[prost(string, tag = "3")]
-    pub username: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub password: ::prost::alloc::string::String,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NoLocation {}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LoadRequestCommon {
-    #[prost(string, tag = "3")]
-    pub name: ::prost::alloc::string::String,
-    #[prost(uint32, tag = "4")]
-    pub program_type: u32,
-    #[prost(string, optional, tag = "5")]
-    pub id: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(map = "string, bytes", tag = "6")]
-    pub global_data: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::vec::Vec<u8>,
-    >,
-    #[prost(string, optional, tag = "7")]
-    pub map_owner_uuid: ::core::option::Option<::prost::alloc::string::String>,
-    #[prost(oneof = "load_request_common::Location", tags = "1, 2")]
-    pub location: ::core::option::Option<load_request_common::Location>,
-}
-/// Nested message and enum types in `LoadRequestCommon`.
-pub mod load_request_common {
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Location {
-        #[prost(message, tag = "1")]
-        Image(super::BytecodeImage),
-        #[prost(string, tag = "2")]
-        File(::prost::alloc::string::String),
-    }
+    #[prost(string, optional, tag = "3")]
+    pub username: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "4")]
+    pub password: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -76,54 +43,24 @@ pub struct KernelProgramInfo {
 pub struct ProgramInfo {
     #[prost(string, optional, tag = "1")]
     pub uuid: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "2")]
+    pub bytecode: ::core::option::Option<BytecodeLocation>,
+    #[prost(message, optional, tag = "3")]
+    pub attach: ::core::option::Option<AttachInfo>,
+    #[prost(string, tag = "4")]
+    pub name: ::prost::alloc::string::String,
     #[prost(map = "string, bytes", tag = "5")]
     pub global_data: ::std::collections::HashMap<
         ::prost::alloc::string::String,
         ::prost::alloc::vec::Vec<u8>,
     >,
-    #[prost(string, tag = "6")]
-    pub map_owner_uuid: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub map_pin_path: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "6")]
+    pub map_owner_uuid: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "7")]
+    pub map_pin_path: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(string, repeated, tag = "8")]
     pub map_used_by: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(oneof = "program_info::Location", tags = "2, 3, 4")]
-    pub location: ::core::option::Option<program_info::Location>,
-    #[prost(oneof = "program_info::AttachInfo", tags = "9, 10, 11, 12, 13, 14")]
-    pub attach_info: ::core::option::Option<program_info::AttachInfo>,
 }
-/// Nested message and enum types in `ProgramInfo`.
-pub mod program_info {
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Location {
-        #[prost(message, tag = "2")]
-        NoLocation(super::NoLocation),
-        #[prost(message, tag = "3")]
-        Image(super::BytecodeImage),
-        #[prost(string, tag = "4")]
-        File(::prost::alloc::string::String),
-    }
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum AttachInfo {
-        #[prost(message, tag = "9")]
-        None(super::NoAttachInfo),
-        #[prost(message, tag = "10")]
-        XdpAttachInfo(super::XdpAttachInfo),
-        #[prost(message, tag = "11")]
-        TcAttachInfo(super::TcAttachInfo),
-        #[prost(message, tag = "12")]
-        TracepointAttachInfo(super::TracepointAttachInfo),
-        #[prost(message, tag = "13")]
-        KprobeAttachInfo(super::KprobeAttachInfo),
-        #[prost(message, tag = "14")]
-        UprobeAttachInfo(super::UprobeAttachInfo),
-    }
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NoAttachInfo {}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct XdpAttachInfo {
@@ -186,17 +123,15 @@ pub struct UprobeAttachInfo {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LoadRequest {
-    #[prost(message, optional, tag = "1")]
-    pub common: ::core::option::Option<LoadRequestCommon>,
-    #[prost(oneof = "load_request::AttachInfo", tags = "2, 3, 4, 5, 6")]
-    pub attach_info: ::core::option::Option<load_request::AttachInfo>,
+pub struct AttachInfo {
+    #[prost(oneof = "attach_info::Info", tags = "2, 3, 4, 5, 6")]
+    pub info: ::core::option::Option<attach_info::Info>,
 }
-/// Nested message and enum types in `LoadRequest`.
-pub mod load_request {
+/// Nested message and enum types in `AttachInfo`.
+pub mod attach_info {
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum AttachInfo {
+    pub enum Info {
         #[prost(message, tag = "2")]
         XdpAttachInfo(super::XdpAttachInfo),
         #[prost(message, tag = "3")]
@@ -208,6 +143,42 @@ pub mod load_request {
         #[prost(message, tag = "6")]
         UprobeAttachInfo(super::UprobeAttachInfo),
     }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BytecodeLocation {
+    #[prost(oneof = "bytecode_location::Location", tags = "2, 3")]
+    pub location: ::core::option::Option<bytecode_location::Location>,
+}
+/// Nested message and enum types in `BytecodeLocation`.
+pub mod bytecode_location {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Location {
+        #[prost(message, tag = "2")]
+        Image(super::BytecodeImage),
+        #[prost(string, tag = "3")]
+        File(::prost::alloc::string::String),
+    }
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LoadRequest {
+    #[prost(string, optional, tag = "1")]
+    pub uuid: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, tag = "4")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub bytecode: ::core::option::Option<BytecodeLocation>,
+    #[prost(message, optional, tag = "3")]
+    pub attach: ::core::option::Option<AttachInfo>,
+    #[prost(map = "string, bytes", tag = "5")]
+    pub global_data: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::vec::Vec<u8>,
+    >,
+    #[prost(string, optional, tag = "6")]
+    pub map_owner_uuid: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -238,7 +209,7 @@ pub struct ListRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListResponse {
     #[prost(message, repeated, tag = "1")]
-    pub results: ::prost::alloc::vec::Vec<ProgramInfo>,
+    pub results: ::prost::alloc::vec::Vec<list_response::ListResult>,
 }
 /// Nested message and enum types in `ListResponse`.
 pub mod list_response {
