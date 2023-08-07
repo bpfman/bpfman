@@ -97,7 +97,6 @@ func TestXdpProgramControllerCreate(t *testing.T) {
 		Scheme:       s,
 		BpfdClient:   cli,
 		NodeName:     fakeNode.Name,
-		bpfPrograms:  map[string]bpfdiov1alpha1.BpfProgram{},
 		expectedMaps: map[string]string{},
 	}
 
@@ -258,7 +257,6 @@ func TestXdpProgramControllerCreateMultiIntf(t *testing.T) {
 		Scheme:       s,
 		BpfdClient:   cli,
 		NodeName:     fakeNode.Name,
-		bpfPrograms:  map[string]bpfdiov1alpha1.BpfProgram{},
 		expectedMaps: map[string]string{},
 	}
 
@@ -304,7 +302,16 @@ func TestXdpProgramControllerCreateMultiIntf(t *testing.T) {
 	err = cl.Update(ctx, bpfProgEth0)
 	require.NoError(t, err)
 
-	// Second reconcile should create the second bpf program object
+	// Second reconcile should create the bpfd Load Requests for the first bpfProgram.
+	res, err = r.Reconcile(ctx, req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	// Require no requeue
+	require.False(t, res.Requeue)
+
+	// Third reconcile should create the second bpf program object
 	res, err = r.Reconcile(ctx, req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
@@ -330,15 +337,6 @@ func TestXdpProgramControllerCreateMultiIntf(t *testing.T) {
 	bpfProgEth1.UID = types.UID(fakeUID1)
 	err = cl.Update(ctx, bpfProgEth1)
 	require.NoError(t, err)
-
-	// Third reconcile should create the bpfd Load Requests for the first bpfProgram.
-	res, err = r.Reconcile(ctx, req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	// Require no requeue
-	require.False(t, res.Requeue)
 
 	// Fourth reconcile should create the bpfd Load Requests for the second bpfProgram.
 	res, err = r.Reconcile(ctx, req)

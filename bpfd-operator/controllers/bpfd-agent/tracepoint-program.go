@@ -85,7 +85,7 @@ func (r *TracepointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *TracepointProgramReconciler) buildBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
+func (r *TracepointProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
 	progs := &bpfdiov1alpha1.BpfProgramList{}
 
 	for _, tracepoint := range r.currentTracepointProgram.Spec.Names {
@@ -138,8 +138,8 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 	}
 
-	// Reconcile every TracepointProgram Object
-	// note: This doesn't necessarily result in any extra grpc calls to bpfd
+	// Reconcile each Tracepoint. Don't return error here because it will trigger an infinite reconcile loop, instead
+	// report the error to user and retry if specified. For some errors the controller may not decide to retry.
 	for _, tracepointProgram := range tracepointPrograms.Items {
 		r.Logger.Info("TracepointProgramController is reconciling", "key", req)
 		r.currentTracepointProgram = &tracepointProgram

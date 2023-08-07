@@ -124,7 +124,7 @@ func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *TcProgramReconciler) buildBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
+func (r *TcProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
 	progs := &bpfdiov1alpha1.BpfProgramList{}
 	for _, iface := range r.interfaces {
 		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentTcProgram.Name, r.NodeName, iface)
@@ -174,8 +174,8 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 	}
 
-	// Reconcile every TcProgram Object
-	// note: This doesn't necessarily result in any extra grpc calls to bpfd
+	// Reconcile each TcProgram. Don't return error here because it will trigger an infinite reconcile loop, instead
+	// report the error to user and retry if specified. For some errors the controller may not decide to retry.
 	for _, tcProgram := range tcPrograms.Items {
 		r.Logger.Info("TcProgramController is reconciling", "key", req)
 		r.currentTcProgram = &tcProgram

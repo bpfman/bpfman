@@ -434,7 +434,7 @@ mod tests {
 
     #[tokio::test]
     #[should_panic]
-    async fn private_image_pull_faiure() {
+    async fn private_image_pull_failure() {
         let tmpdir = tempfile::tempdir().unwrap();
         std::env::set_current_dir(&tmpdir).unwrap();
 

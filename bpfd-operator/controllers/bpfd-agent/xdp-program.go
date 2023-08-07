@@ -109,7 +109,7 @@ func (r *XdpProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *XdpProgramReconciler) buildBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
+func (r *XdpProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpfdiov1alpha1.BpfProgramList, error) {
 	progs := &bpfdiov1alpha1.BpfProgramList{}
 
 	for _, iface := range r.interfaces {
@@ -172,6 +172,8 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 		}
 
+		// Reconcile each XdpProgram. Don't return error here because it will trigger an infinite reconcile loop, instead
+		// report the error to user and retry if specified. For some errors the controller may not decide to retry.
 		retry, err := reconcileProgram(ctx, r, r.currentXdpProgram, &r.currentXdpProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
 		if err != nil {
 			r.Logger.Error(err, "Reconciling XdpProgram Failed", "XdpProgramName", r.currentXdpProgram.Name, "Retrying", retry)
