@@ -17,7 +17,7 @@ use uuid::Uuid;
 use crate::{
     errors::BpfdError,
     multiprog::{DispatcherId, DispatcherInfo},
-    oci_utils::BytecodeImage,
+    oci_utils::{image_manager::get_bytecode_from_image_store, BytecodeImage},
 };
 
 /// Provided by the requester and used by the manager task to send
@@ -135,6 +135,28 @@ pub(crate) struct PullBytecodeArgs {
 pub(crate) enum Location {
     Image(BytecodeImage),
     File(String),
+}
+
+impl Location {
+    async fn get_program_bytes(&self) -> Result<(Vec<u8>, String), BpfdError> {
+        match self {
+            Location::File(l) => Ok((crate::utils::read(l).await?, "".to_owned())),
+            Location::Image(l) => {
+                let (path, section_name) = l
+                    .clone()
+                    .get_image(None)
+                    .await
+                    .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
+
+                Ok((
+                    get_bytecode_from_image_store(path)
+                        .await
+                        .map_err(|e| BpfdError::Error(format!("Bytecode loading error: {e}")))?,
+                    section_name,
+                ))
+            }
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Hash, Deserialize, Eq, PartialEq, Copy, Clone)]
@@ -277,15 +299,13 @@ pub(crate) struct UprobeAttachInfo {
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize, Clone)]
 pub(crate) struct Metadata {
     pub(crate) priority: i32,
-    pub(crate) name: String,
     pub(crate) attached: bool,
 }
 
 impl Metadata {
-    pub(crate) fn new(priority: i32, name: String) -> Self {
+    pub(crate) fn new(priority: i32) -> Self {
         Metadata {
             priority,
-            name,
             attached: false,
         }
     }
@@ -361,59 +381,48 @@ pub(crate) struct ProgramData {
     pub(crate) location: Location,
     pub(crate) section_name: String,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
-    pub(crate) path: String,
     pub(crate) owner: String,
     pub(crate) map_owner_uuid: Option<Uuid>,
     pub(crate) kernel_info: Option<KernelProgramInfo>,
 }
 
 impl ProgramData {
-    pub(crate) async fn new(
+    pub(crate) fn new(
         location: Location,
-        mut section_name: String,
+        section_name: String,
         global_data: HashMap<String, Vec<u8>>,
         map_owner_uuid: Option<Uuid>,
         owner: String,
-    ) -> Result<Self, BpfdError> {
-        match location.clone() {
-            Location::File(l) => Ok(ProgramData {
-                location,
-                path: l,
-                section_name,
-                owner,
-                global_data,
-                map_owner_uuid,
-                kernel_info: None,
-            }),
-            Location::Image(l) => {
-                let program_overrides = l
-                    .get_image(None)
-                    .await
-                    .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
+    ) -> Self {
+        Self {
+            location,
+            section_name,
+            owner,
+            global_data,
+            map_owner_uuid,
+            kernel_info: None,
+        }
+    }
 
+    pub(crate) async fn program_bytes(&mut self) -> Result<Vec<u8>, BpfdError> {
+        match self.location.get_program_bytes().await {
+            Err(e) => Err(e),
+            Ok((v, s)) => {
                 // If section name isn't provided and we're loading from a container
                 // image use the section name provided in the image metadata, otherwise
                 // always use the provided section name.
-                if section_name.is_empty() {
-                    section_name = program_overrides.image_meta.section_name
-                } else if program_overrides.image_meta.section_name != section_name {
+                let provided_sec_name = self.section_name.clone();
+
+                if provided_sec_name.is_empty() {
+                    self.section_name = s;
+                } else if s != provided_sec_name {
                     return Err(BpfdError::BytecodeMetaDataMismatch {
-                        image_sec_name: program_overrides.image_meta.section_name,
-                        provided_sec_name: section_name,
+                        image_sec_name: s,
+                        provided_sec_name,
                     });
                 }
 
-                Ok(ProgramData {
-                    location,
-                    path: program_overrides.path,
-                    section_name,
-                    global_data,
-                    owner,
-                    map_owner_uuid,
-                    // this is populated when the programs bytecode in loaded into
-                    // the kernel.
-                    kernel_info: None,
-                })
+                Ok(v)
             }
         }
     }
@@ -485,6 +494,16 @@ impl Program {
         }
     }
 
+    pub(crate) fn data_mut(&mut self) -> &mut ProgramData {
+        match self {
+            Program::Xdp(p) => &mut p.data,
+            Program::Tracepoint(p) => &mut p.data,
+            Program::Tc(p) => &mut p.data,
+            Program::Kprobe(p) => &mut p.data,
+            Program::Uprobe(p) => &mut p.data,
+        }
+    }
+
     pub(crate) fn data(&self) -> &ProgramData {
         match self {
             Program::Xdp(p) => &p.data,
@@ -553,7 +572,9 @@ impl Program {
 
     pub(crate) fn delete(&self, uuid: Uuid) -> Result<(), anyhow::Error> {
         let path = format!("{RTDIR_PROGRAMS}/{uuid}");
-        fs::remove_file(path)?;
+        if PathBuf::from(&path).exists() {
+            fs::remove_file(path)?;
+        }
 
         let path = format!("{RTDIR_FS}/prog_{uuid}");
         if PathBuf::from(&path).exists() {

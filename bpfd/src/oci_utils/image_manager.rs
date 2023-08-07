@@ -43,12 +43,6 @@ pub(crate) struct BytecodeImage {
     password: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Default)]
-pub struct ProgramOverrides {
-    pub path: String,
-    pub image_meta: ContainerImageMetadata,
-}
-
 impl BytecodeImage {
     pub(crate) fn new(
         image_url: String,
@@ -77,7 +71,7 @@ impl BytecodeImage {
     pub(crate) async fn get_image(
         self,
         base_dir: Option<String>,
-    ) -> Result<ProgramOverrides, ImageError> {
+    ) -> Result<(String, String), ImageError> {
         // The reference created here is created using the krustlet oci-distribution
         // crate. It currently contains many defaults more of which can be seen
         // here: https://github.com/krustlet/oci-distribution/blob/main/src/reference.rs#L58
@@ -115,10 +109,10 @@ impl BytecodeImage {
             }
         };
 
-        Ok(ProgramOverrides {
-            path: image_content_path.into_os_string().into_string().unwrap(),
-            image_meta,
-        })
+        Ok((
+            image_content_path.into_os_string().into_string().unwrap(),
+            image_meta.section_name,
+        ))
     }
 
     pub async fn pull_image(
@@ -424,14 +418,14 @@ mod tests {
             password: None,
         };
 
-        let program_overrides = image
+        let (path, _) = image
             .get_image(Some(tmpdir.path().to_str().unwrap().to_owned()))
             .await
             .expect("failed to pull bytecode");
 
-        assert!(Path::new(&program_overrides.path).exists());
+        assert!(Path::new(&path).exists());
 
-        let program_bytes = get_bytecode_from_image_store(program_overrides.path)
+        let program_bytes = get_bytecode_from_image_store(path)
             .await
             .expect("failed to get bytecode from image store");
 
@@ -471,14 +465,14 @@ mod tests {
             ),
         };
 
-        let program_overrides = image
+        let (path, _) = image
             .get_image(Some(tmpdir.path().to_str().unwrap().to_owned()))
             .await
             .expect("failed to pull bytecode");
 
-        assert!(Path::new(&program_overrides.path).exists());
+        assert!(Path::new(&path).exists());
 
-        let program_bytes = get_bytecode_from_image_store(program_overrides.path)
+        let program_bytes = get_bytecode_from_image_store(path)
             .await
             .expect("failed to get bytecode from image store");
 

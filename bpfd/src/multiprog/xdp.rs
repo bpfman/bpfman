@@ -22,7 +22,6 @@ use crate::{
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfdError,
     oci_utils::{image_manager::get_bytecode_from_image_store, BytecodeImage},
-    utils::read,
 };
 
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
@@ -76,19 +75,16 @@ impl XdpDispatcher {
             None,
             None,
         );
-        let overrides = image
+        let (path, section_name) = image
             .get_image(None)
             .await
             .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
-        let program_bytes = get_bytecode_from_image_store(overrides.path).await?;
+        let program_bytes = get_bytecode_from_image_store(path).await?;
         let mut loader = BpfLoader::new()
             .set_global("conf", &config, true)
             .load(&program_bytes)?;
 
-        let dispatcher: &mut Xdp = loader
-            .program_mut(&overrides.image_meta.section_name)
-            .unwrap()
-            .try_into()?;
+        let dispatcher: &mut Xdp = loader.program_mut(&section_name).unwrap().try_into()?;
 
         dispatcher.load()?;
 
@@ -101,7 +97,7 @@ impl XdpDispatcher {
             revision,
             mode,
             loader: Some(loader),
-            progam_name: Some(overrides.image_meta.section_name.clone()),
+            progam_name: Some(section_name),
         };
         dispatcher.attach_extensions(&mut extensions).await?;
         dispatcher.attach()?;
@@ -177,14 +173,7 @@ impl XdpDispatcher {
                 );
                 new_link.pin(path).map_err(BpfdError::UnableToPinLink)?;
             } else {
-                let program_bytes = if v.data.path.clone().contains(BYTECODE_IMAGE_CONTENT_STORE) {
-                    get_bytecode_from_image_store(v.data.path.clone()).await?
-                } else {
-                    read(v.data.path.clone()).await.map_err(|e| {
-                        BpfdError::Error(format!("can't read bytecode file from disk {e}"))
-                    })?
-                };
-
+                let program_bytes = v.data.program_bytes().await?;
                 let mut bpf = BpfLoader::new();
 
                 for (name, value) in &v.data.global_data {
@@ -199,8 +188,8 @@ impl XdpDispatcher {
                     .map_err(BpfdError::BpfLoadError)?;
 
                 let ext: &mut Extension = bpf
-                    .program_mut(&v.info.metadata.name)
-                    .ok_or_else(|| BpfdError::SectionNameNotValid(v.info.metadata.name.clone()))?
+                    .program_mut(&v.data.section_name.clone())
+                    .ok_or_else(|| BpfdError::SectionNameNotValid(v.data.section_name.clone()))?
                     .try_into()?;
 
                 let target_fn = format!("prog{i}");

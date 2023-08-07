@@ -32,9 +32,8 @@ use crate::{
     },
     errors::BpfdError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
-    oci_utils::image_manager::get_bytecode_from_image_store,
     serve::shutdown_handler,
-    utils::{get_ifindex, read, set_dir_permissions},
+    utils::{get_ifindex, set_dir_permissions},
 };
 
 const SUPERUSER: &str = "bpfctl";
@@ -180,22 +179,13 @@ impl BpfManager {
 
     pub(crate) async fn add_multi_attach_program(
         &mut self,
-        program: Program,
+        mut program: Program,
         id: Uuid,
         map_pin_path: String,
     ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_multi_attach_program()");
 
-        let program_bytes = if program
-            .data()
-            .path
-            .clone()
-            .contains(BYTECODE_IMAGE_CONTENT_STORE)
-        {
-            get_bytecode_from_image_store(program.data().path.clone()).await?
-        } else {
-            read(program.data().path.clone()).await?
-        };
+        let program_bytes = program.data_mut().program_bytes().await?;
 
         // This load is just to verify the Section Name is valid.
         // The actual load is performed in the XDP or TC logic.
@@ -257,11 +247,7 @@ impl BpfManager {
             .await
             .or_else(|e| {
                 let prog = self.programs.remove(&id).unwrap();
-                prog.delete(id).map_err(|_| {
-                    BpfdError::Error(
-                        "new program cleanup failed, unable to delete program data".to_string(),
-                    )
-                })?;
+                prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
                 Err(e)
             })?;
         self.dispatchers.insert(did, dispatcher);
@@ -289,11 +275,7 @@ impl BpfManager {
         map_pin_path: String,
     ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_single_attach_program()");
-        let program_bytes = if p.data().path.clone().contains(BYTECODE_IMAGE_CONTENT_STORE) {
-            get_bytecode_from_image_store(p.data().path.clone()).await?
-        } else {
-            read(p.data().path.clone()).await?
-        };
+        let program_bytes = p.data_mut().program_bytes().await?;
 
         let mut loader = BpfLoader::new();
 
@@ -333,11 +315,7 @@ impl BpfManager {
 
                 let link_id = tracepoint.attach(&category, &name).or_else(|e| {
                     let prog = self.programs.remove(&id).unwrap();
-                    prog.delete(id).map_err(|_| {
-                        BpfdError::Error(
-                            "new program cleanup failed, unable to delete program data".to_string(),
-                        )
-                    })?;
+                    prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
                     Err(BpfdError::BpfProgramError(e))
                 })?;
 
@@ -353,12 +331,7 @@ impl BpfManager {
                     .pin(format!("{RTDIR_FS}/prog_{id}"))
                     .or_else(|e| {
                         let prog = self.programs.remove(&id).unwrap();
-                        prog.delete(id).map_err(|_| {
-                            BpfdError::Error(
-                                "new program cleanup failed, unable to delete program data"
-                                    .to_string(),
-                            )
-                        })?;
+                        prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
                         Err(BpfdError::UnableToPinProgram(e))
                     })?;
 
@@ -395,12 +368,7 @@ impl BpfManager {
                 let link_id = kprobe
                     .attach(program.info.fn_name.as_str(), program.info.offset)
                     .or_else(|e| {
-                        p.delete(id).map_err(|_| {
-                            BpfdError::Error(
-                                "new program cleanup failed, unable to delete program data"
-                                    .to_string(),
-                            )
-                        })?;
+                        p.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
                         Err(BpfdError::BpfProgramError(e))
                     })?;
 
@@ -416,11 +384,7 @@ impl BpfManager {
 
                 kprobe.pin(format!("{RTDIR_FS}/prog_{id}")).or_else(|e| {
                     let prog = self.programs.remove(&id).unwrap();
-                    prog.delete(id).map_err(|_| {
-                        BpfdError::Error(
-                            "new program cleanup failed, unable to delete program data".to_string(),
-                        )
-                    })?;
+                    prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
                     Err(BpfdError::UnableToPinProgram(e))
                 })?;
 
@@ -456,12 +420,7 @@ impl BpfManager {
                         program.info.pid,
                     )
                     .or_else(|e| {
-                        p.delete(id).map_err(|_| {
-                            BpfdError::Error(
-                                "new program cleanup failed, unable to delete program data"
-                                    .to_string(),
-                            )
-                        })?;
+                        p.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
                         Err(BpfdError::BpfProgramError(e))
                     })?;
 
@@ -477,11 +436,7 @@ impl BpfManager {
 
                 uprobe.pin(format!("{RTDIR_FS}/prog_{id}")).or_else(|e| {
                     let prog = self.programs.remove(&id).unwrap();
-                    prog.delete(id).map_err(|_| {
-                        BpfdError::Error(
-                            "new program cleanup failed, unable to delete program data".to_string(),
-                        )
-                    })?;
+                    prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
                     Err(BpfdError::UnableToPinProgram(e))
                 })?;
 
@@ -510,8 +465,7 @@ impl BpfManager {
 
         let map_owner_uuid = prog.data().map_owner_uuid;
 
-        prog.delete(id)
-            .map_err(|_| BpfdError::Error("unable to delete program data".to_string()))?;
+        prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
 
         match prog {
             Program::Xdp(_) | Program::Tc(_) => self.remove_multi_attach_program(prog).await?,
@@ -649,7 +603,7 @@ impl BpfManager {
                         prog_id,
                         ProgramInfo {
                             id: Some(*id),
-                            name: Some(p.data.section_name.to_string()),
+                            name: Some(p.data.section_name.clone()),
                             program_type: Some(ProgramType::Xdp as u32),
                             location,
                             global_data: Some(p.data.global_data.clone()),
@@ -677,7 +631,7 @@ impl BpfManager {
                         prog_id,
                         ProgramInfo {
                             id: Some(*id),
-                            name: Some(p.data.section_name.to_string()),
+                            name: Some(p.data.section_name.clone()),
                             location,
                             program_type: Some(ProgramType::Tracepoint as u32),
                             global_data: Some(p.data.global_data.clone()),
@@ -702,7 +656,7 @@ impl BpfManager {
                         prog_id,
                         ProgramInfo {
                             id: Some(*id),
-                            name: Some(p.data.section_name.to_string()),
+                            name: Some(p.data.section_name.clone()),
                             location,
                             program_type: Some(ProgramType::Tc as u32),
                             global_data: Some(p.data.global_data.clone()),
@@ -731,7 +685,7 @@ impl BpfManager {
                         prog_id,
                         ProgramInfo {
                             id: Some(*id),
-                            name: Some(p.data.section_name.to_string()),
+                            name: Some(p.data.section_name.clone()),
                             location,
                             program_type: Some(ProgramType::Probe as u32),
                             global_data: Some(p.data.global_data.clone()),
@@ -759,7 +713,7 @@ impl BpfManager {
                         prog_id,
                         ProgramInfo {
                             id: Some(*id),
-                            name: Some(p.data.section_name.to_string()),
+                            name: Some(p.data.section_name.clone()),
                             location,
                             program_type: Some(ProgramType::Probe as u32),
                             global_data: Some(p.data.global_data.clone()),
@@ -900,35 +854,28 @@ impl BpfManager {
 
     async fn load_xdp_command(&mut self, args: LoadXDPArgs) -> anyhow::Result<()> {
         let res = if let Ok(if_index) = get_ifindex(&args.iface) {
-            match ProgramData::new(
+            let prog_data = ProgramData::new(
                 args.location,
                 args.section_name.clone(),
                 args.global_data,
                 args.map_owner_uuid,
                 args.username,
-            )
-            .await
-            {
-                Ok(prog_data) => {
-                    let prog = Program::Xdp(XdpProgram {
-                        data: prog_data.clone(),
-                        info: XdpProgramInfo {
-                            if_index,
-                            current_position: None,
-                            metadata: command::Metadata {
-                                priority: args.priority,
-                                // This could have been overridden by image tags
-                                name: prog_data.section_name,
-                                attached: false,
-                            },
-                            proceed_on: args.proceed_on,
-                            if_name: args.iface,
-                        },
-                    });
-                    self.add_program(prog, args.id).await
-                }
-                Err(e) => Err(e),
-            }
+            );
+
+            let prog = Program::Xdp(XdpProgram {
+                data: prog_data.clone(),
+                info: XdpProgramInfo {
+                    if_index,
+                    current_position: None,
+                    metadata: command::Metadata {
+                        priority: args.priority,
+                        attached: false,
+                    },
+                    proceed_on: args.proceed_on,
+                    if_name: args.iface,
+                },
+            });
+            self.add_program(prog, args.id).await
         } else {
             Err(BpfdError::InvalidInterface)
         };
@@ -940,36 +887,30 @@ impl BpfManager {
 
     async fn load_tc_command(&mut self, args: LoadTCArgs) -> anyhow::Result<()> {
         let res = if let Ok(if_index) = get_ifindex(&args.iface) {
-            match ProgramData::new(
+            let prog_data = ProgramData::new(
                 args.location,
-                args.section_name,
+                args.section_name.clone(),
                 args.global_data,
                 args.map_owner_uuid,
                 args.username,
-            )
-            .await
-            {
-                Ok(prog_data) => {
-                    let prog = Program::Tc(TcProgram {
-                        data: prog_data.clone(),
-                        info: TcProgramInfo {
-                            if_index,
-                            current_position: None,
-                            metadata: command::Metadata {
-                                priority: args.priority,
-                                // This could have been overridden by image tags
-                                name: prog_data.section_name,
-                                attached: false,
-                            },
-                            proceed_on: args.proceed_on,
-                            if_name: args.iface,
-                            direction: args.direction,
-                        },
-                    });
-                    self.add_program(prog, args.id).await
-                }
-                Err(e) => Err(e),
-            }
+            );
+
+            let prog = Program::Tc(TcProgram {
+                data: prog_data.clone(),
+                info: TcProgramInfo {
+                    if_index,
+                    current_position: None,
+                    metadata: command::Metadata {
+                        priority: args.priority,
+                        attached: false,
+                    },
+                    proceed_on: args.proceed_on,
+                    if_name: args.iface,
+                    direction: args.direction,
+                },
+            });
+
+            self.add_program(prog, args.id).await
         } else {
             Err(BpfdError::InvalidInterface)
         };
@@ -981,26 +922,21 @@ impl BpfManager {
 
     async fn load_tracepoint_command(&mut self, args: LoadTracepointArgs) -> anyhow::Result<()> {
         let res = {
-            match ProgramData::new(
+            let prog_data = ProgramData::new(
                 args.location,
                 args.section_name,
                 args.global_data,
                 args.map_owner_uuid,
                 args.username,
-            )
-            .await
-            {
-                Ok(prog_data) => {
-                    let prog = Program::Tracepoint(TracepointProgram {
-                        data: prog_data,
-                        info: TracepointProgramInfo {
-                            tracepoint: args.tracepoint,
-                        },
-                    });
-                    self.add_program(prog, args.id).await
-                }
-                Err(e) => Err(e),
-            }
+            );
+
+            let prog = Program::Tracepoint(TracepointProgram {
+                data: prog_data,
+                info: TracepointProgramInfo {
+                    tracepoint: args.tracepoint,
+                },
+            });
+            self.add_program(prog, args.id).await
         };
 
         // Ignore errors as they'll be propagated to caller in the RPC status
@@ -1010,29 +946,24 @@ impl BpfManager {
 
     async fn load_kprobe_command(&mut self, args: LoadKprobeArgs) -> anyhow::Result<()> {
         let res = {
-            match ProgramData::new(
+            let prog_data = ProgramData::new(
                 args.location,
                 args.section_name,
                 args.global_data,
                 args.map_owner_uuid,
                 args.username,
-            )
-            .await
-            {
-                Ok(prog_data) => {
-                    let prog = Program::Kprobe(KprobeProgram {
-                        data: prog_data,
-                        info: KprobeProgramInfo {
-                            fn_name: args.fn_name,
-                            offset: args.offset,
-                            retprobe: args.retprobe,
-                            namespace: args._namespace,
-                        },
-                    });
-                    self.add_program(prog, args.id).await
-                }
-                Err(e) => Err(e),
-            }
+            );
+
+            let prog = Program::Kprobe(KprobeProgram {
+                data: prog_data,
+                info: KprobeProgramInfo {
+                    fn_name: args.fn_name,
+                    offset: args.offset,
+                    retprobe: args.retprobe,
+                    namespace: args._namespace,
+                },
+            });
+            self.add_program(prog, args.id).await
         };
 
         // If program was successfully loaded, allow map access by bpfd group members.
@@ -1048,31 +979,26 @@ impl BpfManager {
 
     async fn load_uprobe_command(&mut self, args: LoadUprobeArgs) -> anyhow::Result<()> {
         let res = {
-            match ProgramData::new(
+            let prog_data = ProgramData::new(
                 args.location,
                 args.section_name,
                 args.global_data,
                 args.map_owner_uuid,
                 args.username,
-            )
-            .await
-            {
-                Ok(prog_data) => {
-                    let prog = Program::Uprobe(UprobeProgram {
-                        data: prog_data,
-                        info: UprobeProgramInfo {
-                            fn_name: args.fn_name,
-                            offset: args.offset,
-                            target: args.target,
-                            retprobe: args.retprobe,
-                            pid: args.pid,
-                            namespace: args._namespace,
-                        },
-                    });
-                    self.add_program(prog, args.id).await
-                }
-                Err(e) => Err(e),
-            }
+            );
+
+            let prog = Program::Uprobe(UprobeProgram {
+                data: prog_data,
+                info: UprobeProgramInfo {
+                    fn_name: args.fn_name,
+                    offset: args.offset,
+                    target: args.target,
+                    retprobe: args.retprobe,
+                    pid: args.pid,
+                    namespace: args._namespace,
+                },
+            });
+            self.add_program(prog, args.id).await
         };
 
         // Ignore errors as they'll be propagated to caller in the RPC status
