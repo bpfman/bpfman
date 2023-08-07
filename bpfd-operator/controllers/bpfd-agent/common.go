@@ -236,7 +236,9 @@ func (r *ReconcilerCommon) createBpfProgram(ctx context.Context,
 // object(s), and ultimately telling the custom controller types to load real
 // bpf programs on the node via bpfd. Additionally it acts as a central point for
 // interacting with the K8s API. This function will exit if any action is taken
-// against the K8s API.
+// against the K8s API. If the function returns a retry boolean and error, the
+// reconcile will be retried based on a default 5 second interval if the retry
+// boolean is set to `true`.
 func reconcileProgram(ctx context.Context,
 	rec bpfdReconciler,
 	program client.Object,
@@ -247,7 +249,13 @@ func reconcileProgram(ctx context.Context,
 	// initialize reconciler state
 	r := rec.getRecCommon()
 
-	// determine which node local actions should be taken based on wether the node is selected
+	// Get program bytecode, source could be an OCI container image or filepath
+	bytecode, err := bpfdagentinternal.GetBytecode(r.Client, &common.ByteCode)
+	if err != nil {
+		return false, fmt.Errorf("failed to process bytecode selector: %v", err)
+	}
+
+	// Determine which node local actions should be taken based on whether the node is selected
 	// OR if the *Program is being deleted.
 	isNodeSelected, err := isNodeSelected(&common.NodeSelector, ourNode.Labels)
 	if err != nil {
@@ -256,23 +264,19 @@ func reconcileProgram(ctx context.Context,
 
 	isBeingDeleted := !program.GetDeletionTimestamp().IsZero()
 
-	// Get existing bpfPrograms for a *Program.
+	// Query the K8s API to get a list of existing bpfPrograms for this *Program
+	// on this node.
 	existingPrograms, err := r.getExistingBpfProgs(ctx, program)
 	if err != nil {
-		return false, fmt.Errorf("failed to get bpfPrograms: %v", err)
+		return false, fmt.Errorf("failed to get existing bpfPrograms: %v", err)
 	}
 
-	// Get expected bpfPrograms for a *Program.
+	// Generate the list of BpfPrograms for this *Program. This handles the one
+	// *Program to many BpfPrograms (i.e. One *Program maps to multiple
+	// interfaces because of PodSelector)
 	expectedPrograms, err := rec.expectedBpfPrograms(ctx)
 	if err != nil {
-		r.Logger.Error(err, "failed to create bpfPrograms")
-		return true, nil
-	}
-
-	// Get program bytecode, source could be an OCI container image or filepath
-	bytecode, err := bpfdagentinternal.GetBytecode(r.Client, &common.ByteCode)
-	if err != nil {
-		return false, fmt.Errorf("failed to process bytecode selector: %v", err)
+		return true, fmt.Errorf("failed to get expected bpfPrograms: %v", err)
 	}
 
 	// multiplex signals into kubernetes API actions
@@ -284,18 +288,21 @@ func reconcileProgram(ctx context.Context,
 	//    operator knows it's safe to remove the parent Program Object, which
 	//	  is when the bpfProgram is automatically deleted by the owner-reference.
 	case true:
-		for _, bpfProg := range existingPrograms {
-			progCond, err := rec.reconcileBpfdProgram(ctx, programMap, bytecode, &bpfProg, isNodeSelected, isBeingDeleted)
+		for _, prog := range existingPrograms {
+			// Reconcile the bpfProgram if error write condition and exit with
+			// retry.
+			cond, err := rec.reconcileBpfdProgram(ctx, programMap, bytecode, &prog, isNodeSelected, isBeingDeleted)
 			if err != nil {
-				r.Logger.Error(err, "Failed to reconcile bpfd")
+				r.updateStatus(ctx, &prog, cond)
+				return true, fmt.Errorf("failed to delete bpfd program: %v", err)
 			}
 
-			updatedFinalizers := r.removeFinalizer(ctx, &bpfProg, rec.getFinalizer())
+			updatedFinalizers := r.removeFinalizer(ctx, &prog, rec.getFinalizer())
 			if updatedFinalizers {
 				return false, nil
 			}
 
-			updatedStatus := r.updateStatus(ctx, &bpfProg, progCond)
+			updatedStatus := r.updateStatus(ctx, &prog, cond)
 			if updatedStatus {
 				return false, nil
 			}
@@ -315,10 +322,12 @@ func reconcileProgram(ctx context.Context,
 				return false, nil
 			}
 
-			// bpfProgram Object exists go ahead and reconcile it.
+			// bpfProgram Object exists go ahead and reconcile it, if there is
+			// an error write condition and exit with retry.
 			cond, err := rec.reconcileBpfdProgram(ctx, programMap, bytecode, &prog, isNodeSelected, isBeingDeleted)
 			if err != nil {
-				r.Logger.Error(err, "Failed to reconcile bpfd")
+				r.updateStatus(ctx, &prog, cond)
+				return true, fmt.Errorf("failed to reconcile bpfd program: %v", err)
 			}
 
 			// Make sure if we're not selected exit and write correct condition
@@ -336,8 +345,7 @@ func reconcileProgram(ctx context.Context,
 				r.Logger.V(1).Info("Updating bpfProgram Object", "Maps", r.expectedMaps, "bpfProgram", prog.Name)
 				prog.Spec.Maps = r.expectedMaps
 				if err := r.Update(ctx, &prog, &client.UpdateOptions{}); err != nil {
-					r.Logger.Error(err, "failed to update bpfProgram's Programs")
-					return true, nil
+					return true, fmt.Errorf("failed to update bpfProgram's Programs: %v", err)
 				}
 				return false, nil
 			}

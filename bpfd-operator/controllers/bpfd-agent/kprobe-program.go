@@ -138,8 +138,8 @@ func (r *KprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 	}
 
-	// Reconcile every KprobeProgram Object
-	// note: This doesn't necessarily result in any extra grpc calls to bpfd
+	// Reconcile each KprobeProgram. Don't return error here because it will trigger an infinite reconcile loop, instead
+	// report the error to user and retry if specified. For some errors the controller may not decide to retry.
 	for _, kprobeProgram := range kprobePrograms.Items {
 		r.Logger.Info("KprobeProgramController is reconciling", "key", req)
 		r.currentKprobeProgram = &kprobeProgram
