@@ -237,6 +237,9 @@ const (
 	// BpfProgCondMapOwnerNotLoaded indicates that the eBPF program sharing a map with another
 	// eBPF program and that program is not loaded.
 	BpfProgCondMapOwnerNotLoaded BpfProgramConditionType = "MapOwnerNotLoaded"
+	// BpfProgCondByteCodeError indicates that an error occured when trying to
+	// process the bytecode selector.
+	BpfProgCondBytecodeSelectorError BpfProgramConditionType = "BytecodeSelectorError"
 )
 
 // Condition is a helper method to promote any given BpfProgramConditionType to
@@ -293,6 +296,14 @@ func (b BpfProgramConditionType) Condition() metav1.Condition {
 			Status:  metav1.ConditionTrue,
 			Reason:  "mapOwnerNotLoaded",
 			Message: "BpfProgram map owner not loaded",
+		}
+
+	case BpfProgCondBytecodeSelectorError:
+		cond = metav1.Condition{
+			Type:    string(BpfProgCondBytecodeSelectorError),
+			Status:  metav1.ConditionTrue,
+			Reason:  "bytecodeSelectorError",
+			Message: "There was an error processing the provided bytecode selector",
 		}
 	}
 

@@ -73,7 +73,7 @@ type bpfdReconciler interface {
 	getRecCommon() *ReconcilerCommon
 	reconcileBpfdProgram(context.Context,
 		map[string]*gobpfd.ListResponse_ListResult,
-		interface{},
+		*bpfdiov1alpha1.BytecodeSelector,
 		*bpfdiov1alpha1.BpfProgram,
 		bool,
 		bool,
@@ -254,12 +254,6 @@ func reconcileProgram(ctx context.Context,
 	// initialize reconciler state
 	r := rec.getRecCommon()
 
-	// Get program bytecode, source could be an OCI container image or filepath
-	bytecode, err := bpfdagentinternal.GetBytecode(r.Client, &common.ByteCode)
-	if err != nil {
-		return false, fmt.Errorf("failed to process bytecode selector: %v", err)
-	}
-
 	// Determine which node local actions should be taken based on whether the node is selected
 	// OR if the *Program is being deleted.
 	isNodeSelected, err := isNodeSelected(&common.NodeSelector, ourNode.Labels)
@@ -310,7 +304,7 @@ func reconcileProgram(ctx context.Context,
 			// retry.
 			cond, err := rec.reconcileBpfdProgram(ctx,
 				programMap,
-				bytecode,
+				&common.ByteCode,
 				&prog,
 				isNodeSelected,
 				isBeingDeleted,
@@ -321,13 +315,11 @@ func reconcileProgram(ctx context.Context,
 				return true, fmt.Errorf("failed to delete bpfd program: %v", err)
 			}
 
-			updatedFinalizers := r.removeFinalizer(ctx, &prog, rec.getFinalizer())
-			if updatedFinalizers {
+			if r.removeFinalizer(ctx, &prog, rec.getFinalizer()) {
 				return false, nil
 			}
 
-			updatedStatus := r.updateStatus(ctx, &prog, cond)
-			if updatedStatus {
+			if r.updateStatus(ctx, &prog, cond) {
 				return false, nil
 			}
 		}
@@ -350,15 +342,19 @@ func reconcileProgram(ctx context.Context,
 			// an error write condition and exit with retry.
 			cond, err := rec.reconcileBpfdProgram(ctx,
 				programMap,
-				bytecode,
+				&common.ByteCode,
 				&prog,
 				isNodeSelected,
 				isBeingDeleted,
 				mapOwnerStatus,
 			)
 			if err != nil {
-				r.updateStatus(ctx, &prog, cond)
-				return true, fmt.Errorf("failed to reconcile bpfd program: %v", err)
+				if r.updateStatus(ctx, &prog, cond) {
+					// Return an error the first time.
+					return false, fmt.Errorf("failed to reconcile bpfd program: %v", err)
+				} else {
+					continue
+				}
 			}
 
 			// Make sure if we're not selected exit and write correct condition
@@ -366,8 +362,7 @@ func reconcileProgram(ctx context.Context,
 				cond == bpfdiov1alpha1.BpfProgCondMapOwnerNotFound ||
 				cond == bpfdiov1alpha1.BpfProgCondMapOwnerNotLoaded {
 				// Write NodeNodeSelected status
-				updatedStatus := r.updateStatus(ctx, &prog, cond)
-				if updatedStatus {
+				if r.updateStatus(ctx, &prog, cond) {
 					r.Logger.V(1).Info("Update condition from bpfd reconcile", "condition", cond)
 					return false, nil
 				}
@@ -383,8 +378,7 @@ func reconcileProgram(ctx context.Context,
 				return false, nil
 			}
 
-			updatedStatus := r.updateStatus(ctx, &prog, cond)
-			if updatedStatus {
+			if r.updateStatus(ctx, &prog, cond) {
 				return false, nil
 			}
 		}

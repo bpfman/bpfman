@@ -153,32 +153,21 @@ func (r *KprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return ctrl.Result{Requeue: false}, nil
 }
 
-// reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
-// It does not interact with the k8s API in any way.
-func (r *KprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
-	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
+func (r *KprobeProgramReconciler) buildKprobeLoadRequest(
 	bytecode interface{},
+	id string,
 	bpfProgram *bpfdiov1alpha1.BpfProgram,
-	isNodeSelected bool,
-	isBeingDeleted bool,
-	mapOwnerStatus *MapOwnerParamStatus) (bpfdiov1alpha1.BpfProgramConditionType, error) {
-
-	r.Logger.V(1).Info("Existing bpfProgram", "ExistingMaps", bpfProgram.Spec.Maps, "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentKprobeProgram", r.currentKprobeProgram.Name)
+	mapOwnerUuid types.UID) *gobpfd.LoadRequest {
 	loadRequest := &gobpfd.LoadRequest{}
-	id := string(bpfProgram.UID)
-
 	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
 		bytecode,
 		r.currentKprobeProgram.Spec.SectionName,
-		internal.Kprobe,
-		id,
+		internal.Kprobe, id,
 		r.currentKprobeProgram.Spec.GlobalData,
-		mapOwnerStatus.mapOwnerUuid,
+		mapOwnerUuid,
 	)
-
 	// Namespace isn't supported yet in bpfd, so set it to an empty string.
 	namespace := ""
-
 	loadRequest.AttachInfo = &gobpfd.LoadRequest_KprobeAttachInfo{
 		KprobeAttachInfo: &gobpfd.KprobeAttachInfo{
 			FnName:    bpfProgram.Annotations[internal.KprobeProgramFunction],
@@ -187,6 +176,23 @@ func (r *KprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			Namespace: &namespace,
 		},
 	}
+
+	return loadRequest
+}
+
+// reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
+// It does not interact with the k8s API in any way.
+func (r *KprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
+	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
+	bytecodeSelector *bpfdiov1alpha1.BytecodeSelector,
+	bpfProgram *bpfdiov1alpha1.BpfProgram,
+	isNodeSelected bool,
+	isBeingDeleted bool,
+	mapOwnerStatus *MapOwnerParamStatus) (bpfdiov1alpha1.BpfProgramConditionType, error) {
+
+	r.Logger.V(1).Info("Existing bpfProgram", "ExistingMaps", bpfProgram.Spec.Maps, "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentKprobeProgram", r.currentKprobeProgram.Name)
+
+	id := string(bpfProgram.UID)
 
 	existingProgram, doesProgramExist := existingBpfPrograms[id]
 	if !doesProgramExist {
@@ -213,6 +219,13 @@ func (r *KprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		}
 
 		// otherwise load it
+		bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
+		if err != nil {
+			return bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
+		}
+
+		loadRequest := r.buildKprobeLoadRequest(bytecode, id, bpfProgram, mapOwnerStatus.mapOwnerUuid)
+
 		bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load KprobeProgram")
@@ -255,8 +268,16 @@ func (r *KprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		}
 	}
 
-	r.Logger.V(1).WithValues("expectedProgram", loadRequest).WithValues("existingProgram", existingProgram).Info("StateMatch")
 	// BpfProgram exists but is not correct state, unload and recreate
+	bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
+	if err != nil {
+		return bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
+	}
+
+	loadRequest := r.buildKprobeLoadRequest(bytecode, id, bpfProgram, mapOwnerStatus.mapOwnerUuid)
+
+	r.Logger.V(1).WithValues("expectedProgram", loadRequest).WithValues("existingProgram", existingProgram).Info("StateMatch")
+
 	isSame, reasons := bpfdagentinternal.DoesProgExist(existingProgram, loadRequest)
 	if !isSame {
 		r.Logger.V(1).Info("KprobeProgram is in wrong state, unloading and reloading", "Reason", reasons)

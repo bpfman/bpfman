@@ -153,34 +153,41 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	return ctrl.Result{Requeue: false}, nil
 }
 
-// reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
-// It does not interact with the k8s API in any way.
-func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
-	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
+func (r *TracepointProgramReconciler) buildTracepointLoadRequest(
 	bytecode interface{},
+	id string,
 	bpfProgram *bpfdiov1alpha1.BpfProgram,
-	isNodeSelected bool,
-	isBeingDeleted bool,
-	mapOwnerStatus *MapOwnerParamStatus) (bpfdiov1alpha1.BpfProgramConditionType, error) {
-
-	r.Logger.V(1).Info("Existing bpfProgram", "ExistingMaps", bpfProgram.Spec.Maps, "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentTracepointProgram", r.currentTracepointProgram.Name)
+	mapOwnerUuid types.UID) *gobpfd.LoadRequest {
 	loadRequest := &gobpfd.LoadRequest{}
-	id := string(bpfProgram.UID)
-
 	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
 		bytecode,
 		r.currentTracepointProgram.Spec.SectionName,
 		internal.Tracepoint,
 		id,
 		r.currentTracepointProgram.Spec.GlobalData,
-		mapOwnerStatus.mapOwnerUuid,
+		mapOwnerUuid,
 	)
-
 	loadRequest.AttachInfo = &gobpfd.LoadRequest_TracepointAttachInfo{
 		TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
 			Tracepoint: bpfProgram.Annotations[internal.TracepointProgramTracepoint],
 		},
 	}
+
+	return loadRequest
+}
+
+// reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
+// It does not interact with the k8s API in any way.
+func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
+	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
+	bytecodeSelector *bpfdiov1alpha1.BytecodeSelector,
+	bpfProgram *bpfdiov1alpha1.BpfProgram,
+	isNodeSelected bool,
+	isBeingDeleted bool,
+	mapOwnerStatus *MapOwnerParamStatus) (bpfdiov1alpha1.BpfProgramConditionType, error) {
+
+	r.Logger.V(1).Info("Existing bpfProgram", "ExistingMaps", bpfProgram.Spec.Maps, "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentTracepointProgram", r.currentTracepointProgram.Name)
+	id := string(bpfProgram.UID)
 
 	existingProgram, doesProgramExist := existingBpfPrograms[id]
 	if !doesProgramExist {
@@ -207,6 +214,13 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		}
 
 		// otherwise load it
+		bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
+		if err != nil {
+			return bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
+		}
+
+		loadRequest := r.buildTracepointLoadRequest(bytecode, id, bpfProgram, mapOwnerStatus.mapOwnerUuid)
+
 		bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load TracepointProgram")
@@ -249,8 +263,16 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		}
 	}
 
-	r.Logger.V(1).WithValues("expectedProgram", loadRequest).WithValues("existingProgram", existingProgram).Info("StateMatch")
 	// BpfProgram exists but is not correct state, unload and recreate
+	bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
+	if err != nil {
+		return bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
+	}
+
+	loadRequest := r.buildTracepointLoadRequest(bytecode, id, bpfProgram, mapOwnerStatus.mapOwnerUuid)
+
+	r.Logger.V(1).WithValues("expectedProgram", loadRequest).WithValues("existingProgram", existingProgram).Info("StateMatch")
+
 	isSame, reasons := bpfdagentinternal.DoesProgExist(existingProgram, loadRequest)
 	if !isSame {
 		r.Logger.V(1).Info("TracepointProgram is in wrong state, unloading and reloading", "Reason", reasons)

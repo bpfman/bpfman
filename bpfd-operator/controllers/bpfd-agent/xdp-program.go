@@ -184,11 +184,36 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{Requeue: false}, nil
 }
 
+func (r *XdpProgramReconciler) buildXdpLoadRequest(
+	bytecode interface{},
+	id string,
+	iface string,
+	mapOwnerUuid types.UID) *gobpfd.LoadRequest {
+	loadRequest := &gobpfd.LoadRequest{}
+	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
+		bytecode,
+		r.currentXdpProgram.Spec.SectionName,
+		internal.Xdp,
+		id,
+		r.currentXdpProgram.Spec.GlobalData,
+		mapOwnerUuid,
+	)
+	loadRequest.AttachInfo = &gobpfd.LoadRequest_XdpAttachInfo{
+		XdpAttachInfo: &gobpfd.XDPAttachInfo{
+			Priority:  r.currentXdpProgram.Spec.Priority,
+			Iface:     iface,
+			ProceedOn: xdpProceedOnToInt(r.currentXdpProgram.Spec.ProceedOn),
+		},
+	}
+
+	return loadRequest
+}
+
 // reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
 // It does not interact with the k8s API in any way.
 func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
-	bytecode interface{},
+	bytecodeSelector *bpfdiov1alpha1.BytecodeSelector,
 	bpfProgram *bpfdiov1alpha1.BpfProgram,
 	isNodeSelected bool,
 	isBeingDeleted bool,
@@ -197,25 +222,8 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	r.Logger.V(1).Info("Existing bpfProgram", "ExistingMaps", bpfProgram.Spec.Maps, "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentXdpProgram", r.currentXdpProgram.Name)
 	iface := bpfProgram.Annotations[internal.XdpProgramInterface]
 
-	loadRequest := &gobpfd.LoadRequest{}
 	var err error
 	id := string(bpfProgram.UID)
-	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
-		bytecode,
-		r.currentXdpProgram.Spec.SectionName,
-		internal.Xdp,
-		id,
-		r.currentXdpProgram.Spec.GlobalData,
-		mapOwnerStatus.mapOwnerUuid,
-	)
-
-	loadRequest.AttachInfo = &gobpfd.LoadRequest_XdpAttachInfo{
-		XdpAttachInfo: &gobpfd.XDPAttachInfo{
-			Priority:  r.currentXdpProgram.Spec.Priority,
-			Iface:     iface,
-			ProceedOn: xdpProceedOnToInt(r.currentXdpProgram.Spec.ProceedOn),
-		},
-	}
 
 	existingProgram, doesProgramExist := existingBpfPrograms[id]
 	if !doesProgramExist {
@@ -242,6 +250,13 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		}
 
 		// otherwise load it
+		bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
+		if err != nil {
+			return bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
+		}
+
+		loadRequest := r.buildXdpLoadRequest(bytecode, id, iface, mapOwnerStatus.mapOwnerUuid)
+
 		r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load XdpProgram")
@@ -284,6 +299,13 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	}
 
 	// BpfProgram exists but is not correct state, unload and recreate
+	bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
+	if err != nil {
+		return bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
+	}
+
+	loadRequest := r.buildXdpLoadRequest(bytecode, id, iface, mapOwnerStatus.mapOwnerUuid)
+
 	isSame, reasons := bpfdagentinternal.DoesProgExist(existingProgram, loadRequest)
 	if !isSame {
 		r.Logger.V(1).Info("XdpProgram is in wrong state, unloading and reloading", "Reason", reasons)

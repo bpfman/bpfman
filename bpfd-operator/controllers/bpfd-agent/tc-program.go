@@ -196,31 +196,20 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{Requeue: false}, nil
 }
 
-// reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
-// It does not interact with the k8s API in any way.
-func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
-	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
+func (r *TcProgramReconciler) buildTcLoadRequest(
 	bytecode interface{},
-	bpfProgram *bpfdiov1alpha1.BpfProgram,
-	isNodeSelected bool,
-	isBeingDeleted bool,
-	mapOwnerStatus *MapOwnerParamStatus) (bpfdiov1alpha1.BpfProgramConditionType, error) {
-
-	r.Logger.V(1).Info("Existing bpfProgramMaps", "ExistingMaps", bpfProgram.Spec.Maps)
-	iface := bpfProgram.Annotations[internal.TcProgramInterface]
-
+	id string,
+	iface string,
+	mapOwnerUuid types.UID) *gobpfd.LoadRequest {
 	loadRequest := &gobpfd.LoadRequest{}
-	var err error
-	id := string(bpfProgram.UID)
 	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
 		bytecode,
 		r.currentTcProgram.Spec.SectionName,
 		internal.Tc,
 		string(id),
 		r.currentTcProgram.Spec.GlobalData,
-		mapOwnerStatus.mapOwnerUuid,
+		mapOwnerUuid,
 	)
-
 	loadRequest.AttachInfo = &gobpfd.LoadRequest_TcAttachInfo{
 		TcAttachInfo: &gobpfd.TCAttachInfo{
 			Priority:  r.currentTcProgram.Spec.Priority,
@@ -229,6 +218,25 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			ProceedOn: tcProceedOnToInt(r.currentTcProgram.Spec.ProceedOn),
 		},
 	}
+
+	return loadRequest
+}
+
+// reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
+// It does not interact with the k8s API in any way.
+func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
+	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
+	bytecodeSelector *bpfdiov1alpha1.BytecodeSelector,
+	bpfProgram *bpfdiov1alpha1.BpfProgram,
+	isNodeSelected bool,
+	isBeingDeleted bool,
+	mapOwnerStatus *MapOwnerParamStatus) (bpfdiov1alpha1.BpfProgramConditionType, error) {
+
+	r.Logger.V(1).Info("Existing bpfProgramMaps", "ExistingMaps", bpfProgram.Spec.Maps)
+	iface := bpfProgram.Annotations[internal.TcProgramInterface]
+
+	var err error
+	id := string(bpfProgram.UID)
 
 	existingProgram, doesProgramExist := existingBpfPrograms[id]
 	if !doesProgramExist {
@@ -255,6 +263,13 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		}
 
 		// otherwise load it
+		bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
+		if err != nil {
+			return bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
+		}
+
+		loadRequest := r.buildTcLoadRequest(bytecode, id, iface, mapOwnerStatus.mapOwnerUuid)
+
 		r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load TcProgram")
@@ -299,6 +314,13 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	}
 
 	// BpfProgram exists but is not correct state, unload and recreate
+	bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
+	if err != nil {
+		return bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
+	}
+
+	loadRequest := r.buildTcLoadRequest(bytecode, id, iface, mapOwnerStatus.mapOwnerUuid)
+
 	isSame, reasons := bpfdagentinternal.DoesProgExist(existingProgram, loadRequest)
 	if !isSame {
 		r.Logger.V(1).Info("TcProgram is in wrong state, unloading and reloading", "Reason", reasons)
