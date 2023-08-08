@@ -3,7 +3,7 @@ kind: XdpProgram
 metadata:
   labels:
     app.kubernetes.io/name: xdpprogram
-  name: go-xdp-counter-example
+  name: go-xdp-counter-sharing-map-example
 spec:
   sectionname: stats
   # Select all nodes
@@ -14,3 +14,6 @@ spec:
   bytecode:
     image:
       url: quay.io/bpfd-bytecode/go-xdp-counter:latest
+  mapownerselector:
+    matchLabels:
+      bpfd.dev/ownedByProgram: go-xdp-counter-example
