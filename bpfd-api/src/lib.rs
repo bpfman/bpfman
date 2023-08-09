@@ -11,7 +11,7 @@ use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::ParseError as urlParseError;
-use v1::list_response::list_result::Location;
+use v1::bytecode_location::Location;
 
 #[derive(Error, Debug)]
 pub enum ParseError {
@@ -580,7 +580,6 @@ impl ToString for Location {
                 TryInto::<ImagePullPolicy>::try_into(i.image_pull_policy).unwrap()
             ),
             Location::File(p) => format!("file: {{ path: {p} }}"),
-            _ => "".to_owned(),
         }
     }
 }

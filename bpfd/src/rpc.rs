@@ -4,11 +4,16 @@ use std::sync::{Arc, Mutex};
 
 use bpfd_api::{
     v1::{
-        list_response::{list_result, list_result::AttachInfo, ListResult},
+        ProgramInfo,
+        KernelProgramInfo,
+        ListResponse,
+        GetRequest,
+        GetResponse,
+        //list_response::{list_result, list_result::AttachInfo, ListResult},
         load_request,
         load_request_common::Location,
         loader_server::Loader,
-        KprobeAttachInfo, ListRequest, ListResponse, LoadRequest, LoadResponse, NoAttachInfo,
+        KprobeAttachInfo, ListRequest, LoadRequest, LoadResponse, NoAttachInfo,
         NoLocation, PullBytecodeRequest, PullBytecodeResponse, TcAttachInfo, TracepointAttachInfo,
         UnloadRequest, UnloadResponse, UprobeAttachInfo, XdpAttachInfo,
     },
@@ -48,7 +53,7 @@ impl BpfdLoader {
 #[tonic::async_trait]
 impl Loader for BpfdLoader {
     async fn load(&self, request: Request<LoadRequest>) -> Result<Response<LoadResponse>, Status> {
-        let mut reply = LoadResponse { id: String::new() };
+        //let mut reply = LoadResponse { id: String::new() };
         let username = request
             .extensions()
             .get::<User>()
@@ -445,6 +450,50 @@ impl Loader for BpfdLoader {
 
             Err(e) => {
                 warn!("RPC pull_bytecode error: {:#?}", e);
+                Err(Status::aborted(format!("{e}")))
+            }
+        }
+    }
+
+    async fn get(
+        &self,
+        request: Request<GetRequest>,
+    ) -> Result<Response<GetResponse>, Status> {
+        let reply = GetResponse {};
+        let username = request
+            .extensions()
+            .get::<User>()
+            .unwrap_or(&DEFAULT_USER)
+            .username
+            .to_string();
+        let request = request.into_inner();
+        let id = request
+            .id
+            .parse()
+            .map_err(|_| Status::invalid_argument("invalid id"))?;
+
+        let (resp_tx, resp_rx) = oneshot::channel();
+        let cmd = Command::Unload(UnloadArgs {
+            id,
+            username,
+            responder: resp_tx,
+        });
+
+        let tx = self.tx.lock().unwrap().clone();
+        // Send the GET request
+        tx.send(cmd).await.unwrap();
+
+        // Await the response
+        match resp_rx.await {
+            Ok(res) => match res {
+                Ok(_) => Ok(Response::new(reply)),
+                Err(e) => {
+                    warn!("BPFD unload error: {}", e);
+                    Err(Status::aborted(format!("{e}")))
+                }
+            },
+            Err(e) => {
+                warn!("RPC unload error: {}", e);
                 Err(Status::aborted(format!("{e}")))
             }
         }

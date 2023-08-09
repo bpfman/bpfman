@@ -268,14 +268,8 @@ impl From<bpfd_api::v1::BytecodeImage> for BytecodeImage {
         BytecodeImage::new(
             value.url,
             value.image_pull_policy,
-            match value.username.as_ref() {
-                "" => None,
-                u => Some(u.to_string()),
-            },
-            match value.password.as_ref() {
-                "" => None,
-                p => Some(p.to_string()),
-            },
+            value.username,
+            value.password,
         )
     }
 }

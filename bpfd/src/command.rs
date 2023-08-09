@@ -39,6 +39,7 @@ pub(crate) enum Command {
     // Load a uprobe program
     LoadUprobe(LoadUprobeArgs),
     Unload(UnloadArgs),
+    Get(GetArgs),
     List {
         responder: Responder<Result<Vec<ProgramInfo>, BpfdError>>,
     },
@@ -49,7 +50,7 @@ pub(crate) enum Command {
 pub(crate) struct LoadXDPArgs {
     pub(crate) location: Location,
     pub(crate) section_name: String,
-    pub(crate) id: Option<Uuid>,
+    pub(crate) uuid: Option<Uuid>,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
     pub(crate) map_owner_uuid: Option<Uuid>,
     pub(crate) iface: String,
@@ -63,7 +64,7 @@ pub(crate) struct LoadXDPArgs {
 pub(crate) struct LoadTCArgs {
     pub(crate) location: Location,
     pub(crate) section_name: String,
-    pub(crate) id: Option<Uuid>,
+    pub(crate) uuid: Option<Uuid>,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
     pub(crate) map_owner_uuid: Option<Uuid>,
     pub(crate) iface: String,
@@ -77,7 +78,7 @@ pub(crate) struct LoadTCArgs {
 #[derive(Debug)]
 pub(crate) struct LoadTracepointArgs {
     pub(crate) location: Location,
-    pub(crate) id: Option<Uuid>,
+    pub(crate) uuid: Option<Uuid>,
     pub(crate) section_name: String,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
     pub(crate) map_owner_uuid: Option<Uuid>,
@@ -89,7 +90,7 @@ pub(crate) struct LoadTracepointArgs {
 #[derive(Debug)]
 pub(crate) struct LoadKprobeArgs {
     pub(crate) location: Location,
-    pub(crate) id: Option<Uuid>,
+    pub(crate) uuid: Option<Uuid>,
     pub(crate) section_name: String,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
     pub(crate) map_owner_uuid: Option<Uuid>,
@@ -104,7 +105,7 @@ pub(crate) struct LoadKprobeArgs {
 #[derive(Debug)]
 pub(crate) struct LoadUprobeArgs {
     pub(crate) location: Location,
-    pub(crate) id: Option<Uuid>,
+    pub(crate) uuid: Option<Uuid>,
     pub(crate) section_name: String,
     pub(crate) global_data: HashMap<String, Vec<u8>>,
     pub(crate) map_owner_uuid: Option<Uuid>,
@@ -120,7 +121,7 @@ pub(crate) struct LoadUprobeArgs {
 
 #[derive(Debug)]
 pub(crate) struct UnloadArgs {
-    pub(crate) id: Uuid,
+    pub(crate) id: u32,
     pub(crate) username: String,
     pub(crate) responder: Responder<Result<(), BpfdError>>,
 }
@@ -235,7 +236,7 @@ impl TryFrom<AyaProgInfo> for KernelProgramInfo {
 /// which are managed via bpfd.
 #[derive(Debug, Clone)]
 pub(crate) struct ProgramInfo {
-    pub(crate) id: Option<Uuid>,
+    pub(crate) uuid: Option<Uuid>,
     pub(crate) name: Option<String>,
     pub(crate) program_type: Option<u32>,
     pub(crate) location: Option<Location>,
@@ -378,6 +379,7 @@ impl UprobeProgram {
 // a program reguardless of ProgramType.
 #[derive(Serialize, Deserialize, Clone)]
 pub(crate) struct ProgramData {
+    pub(crate) uuid: Option<Uuid>,
     pub(crate) location: Location,
     pub(crate) section_name: String,
     pub(crate) global_data: HashMap<String, Vec<u8>>,

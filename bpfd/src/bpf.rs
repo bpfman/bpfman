@@ -839,6 +839,7 @@ impl BpfManager {
                         Command::LoadKprobe(args) => self.load_kprobe_command(args).await.unwrap(),
                         Command::LoadUprobe(args) => self.load_uprobe_command(args).await.unwrap(),
                         Command::Unload(args) => self.unload_command(args).await.unwrap(),
+                        Command::Get(args) => self.get_program().await.unwrap()
                         Command::List { responder } => {
                             let progs = self.list_programs();
                             // Ignore errors as they'll be propagated to caller in the RPC status

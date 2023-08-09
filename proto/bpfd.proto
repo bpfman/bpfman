@@ -142,8 +142,7 @@ message LoadResponse {
 }
 
 /* UnloadRequest represents a request to unload a bpf program that was loaded
- * and attached by bpfd. To identify a program pass in a valid kernel ID OR
- * bpfd UUID. */
+ * and attached by bpfd. To identify a program pass in a valid kernel ID. */
 
 message UnloadRequest {
     string id = 1;
@@ -185,8 +184,7 @@ message PullBytecodeResponse {}
 
 /* GetRequest represents a request to get information regarding a single
  * bpf program that is loaded and attached by bpfd AND/OR that is loaded by
- * another user. To identify a program pass in a valid kernel ID OR
- * bpfd UUID. */
+ * another user. To identify a program pass in a valid kernel ID. */
 
 message GetRequest {
     string id = 1;
