@@ -29,6 +29,7 @@ pub fn build(_opts: Options) -> anyhow::Result<()> {
     let protos = &["bpfd.proto"];
     let includes = &[proto_dir.to_str().unwrap()];
     tonic_build::configure()
+        .build_client(true)
         .out_dir(out_dir)
         .compile(protos, includes)?;
 
