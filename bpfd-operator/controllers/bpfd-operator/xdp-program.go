@@ -114,6 +114,19 @@ func (r *XdpProgramReconciler) updateStatus(ctx context.Context, name string, co
 		r.Logger.V(1).Error(err, "failed to get fresh XdpProgram object...requeuing")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}
+	if prog.Status.Conditions != nil {
+		// Get most recent condition
+		recentIdx := len(prog.Status.Conditions) - 1
+
+		// If the most recent condition is the same as input, just return.
+		if prog.Status.Conditions[recentIdx].Type == string(cond) {
+			return ctrl.Result{}, nil
+		} else {
+			// Remove the input condition from the list if it exists (may no exist)
+			// because the SetStatusCondition() doesn't append if it is already in the list.
+			meta.RemoveStatusCondition(&prog.Status.Conditions, string(cond))
+		}
+	}
 	meta.SetStatusCondition(&prog.Status.Conditions, cond.Condition(message))
 
 	if err := r.Status().Update(ctx, prog); err != nil {
@@ -122,5 +135,4 @@ func (r *XdpProgramReconciler) updateStatus(ctx context.Context, name string, co
 	}
 
 	return ctrl.Result{}, nil
-
 }

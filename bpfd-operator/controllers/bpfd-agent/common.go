@@ -158,17 +158,20 @@ func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, o client.Object,
 }
 
 // updateStatus updates the status of a BpfProgram object if needed, returning
-// if the status was already set for the given bpfProgram, meaning reconciliation
+// false if the status was already set for the given bpfProgram, meaning reconciliation
 // may continue.
 func (r *ReconcilerCommon) updateStatus(ctx context.Context, prog *bpfdiov1alpha1.BpfProgram, cond bpfdiov1alpha1.BpfProgramConditionType) bool {
 	if prog.Status.Conditions != nil {
 		// Get most recent condition
 		recentIdx := len(prog.Status.Conditions) - 1
 
-		condition := prog.Status.Conditions[recentIdx]
-
-		if condition.Type == string(cond) {
+		// If the most recent condition is the same as input, just return.
+		if prog.Status.Conditions[recentIdx].Type == string(cond) {
 			return false
+		} else {
+			// Remove the input condition from the list if it exists (may not exist)
+			// because the SetStatusCondition() doesn't append if it is already in the list.
+			meta.RemoveStatusCondition(&prog.Status.Conditions, string(cond))
 		}
 	}
 
