@@ -7,11 +7,9 @@ metadata:
 spec:
   sectionname: stats
   # Select all nodes
-  nodeselector:
-    matchLabels: 
-      deploy-ebpf: "true"
+  nodeselector: {}
   interfaceselector:
-    interface: eth0
+    primarynodeinterface: true
   priority: 5
   bytecode:
     image:

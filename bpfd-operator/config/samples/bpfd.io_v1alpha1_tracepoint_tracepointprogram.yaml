@@ -5,10 +5,11 @@ metadata:
     app.kubernetes.io/name: tracepointprogram
   name: tracepoint-example
 spec:
-  sectionname: hello
+  sectionname: sys_enter_openat
   # Select all nodes
   nodeselector: {}
-  name: syscalls/sys_enter_openat
+  names: 
+  - syscalls/sys_enter_openat
   bytecode:
     image:
       url: quay.io/bpfd-bytecode/tracepoint:latest
