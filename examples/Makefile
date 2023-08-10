@@ -204,8 +204,29 @@ endif
 	$(KUSTOMIZE) build config/$(KUST_DIR)/go-xdp-counter | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 
+.PHONY: deploy-xdp-ms
+deploy-xdp-ms: kustomize ## Deploy go-xdp-counter-sharing-map (shares map with go-xdp-counter) to the cluster specified in ~/.kube/config.
+ifndef TAG
+	sed 's@URL_BC@$(IMAGE_XDP_BC)@' config/default/go-xdp-counter-sharing-map/patch.yaml.env > config/default/go-xdp-counter-sharing-map/patch.yaml
+	cd config/default/go-xdp-counter-sharing-map && $(KUSTOMIZE) edit set image quay.io/bpfd-userspace/go-xdp-counter=${IMAGE_XDP_US}
+else
+	$(eval KUST_DIR=$(TAG))
+endif
+	$(KUSTOMIZE) build config/$(KUST_DIR)/go-xdp-counter-sharing-map | kubectl apply -f -
+
+.PHONY: undeploy-xdp-ms
+undeploy-xdp-ms: ## Undeploy go-xdp-counter-sharing-map from the cluster specified in ~/.kube/config.
+ifndef TAG
+	sed 's@URL_BC@$(IMAGE_XDP_BC)@' config/default/go-xdp-counter-sharing-map/patch.yaml.env > config/default/go-xdp-counter-sharing-map/patch.yaml
+	cd config/default/go-xdp-counter-sharing-map && $(KUSTOMIZE) edit set image quay.io/bpfd-userspace/go-xdp-counter=${IMAGE_XDP_US}
+else
+	$(eval KUST_DIR=$(TAG))
+endif
+	$(KUSTOMIZE) build config/$(KUST_DIR)/go-xdp-counter-sharing-map | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+
+
 .PHONY: deploy
-deploy: deploy-tc deploy-tracepoint deploy-xdp  ## Deploy all examples to the cluster specified in ~/.kube/config.
+deploy: deploy-tc deploy-tracepoint deploy-xdp deploy-xdp-ms  ## Deploy all examples to the cluster specified in ~/.kube/config.
 
 .PHONY: undeploy
-undeploy: undeploy-tc undeploy-tracepoint undeploy-xdp  ## Undeploy all examples to the cluster specified in ~/.kube/config.
+undeploy: undeploy-tc undeploy-tracepoint undeploy-xdp undeploy-xdp-ms  ## Undeploy all examples to the cluster specified in ~/.kube/config.

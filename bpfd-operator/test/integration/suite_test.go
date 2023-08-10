@@ -122,10 +122,9 @@ func TestMain(m *testing.M) {
 			clusters.DeleteManifestByYAML(ctx, env.Cluster(), bpfdConfigMap)
 			waitForBpfdConfigDelete(ctx, env)
 			cleanupLog("deleting bpfd namespace")
-			return  env.Cluster().Client().CoreV1().Namespaces().Delete(ctx, internal.BpfdNs, metav1.DeleteOptions{})
+			return env.Cluster().Client().CoreV1().Namespaces().Delete(ctx, internal.BpfdNs, metav1.DeleteOptions{})
 		})
 	}
-	
 
 	bpfdClient = bpfdHelpers.GetClientOrDie()
 	exitOnErr(waitForBpfdReadiness(ctx, env))

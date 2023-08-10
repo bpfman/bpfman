@@ -154,15 +154,17 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 	// Require no requeue
 	require.False(t, res.Requeue)
 	id := string(bpfProg.UID)
+	mapOwnerUuid := ""
 
 	expectedLoadReq := &gobpfd.LoadRequest{
 		Common: &gobpfd.LoadRequestCommon{
 			Location: &gobpfd.LoadRequestCommon_File{
 				File: bytecodePath,
 			},
-			SectionName: sectionName,
-			ProgramType: *internal.Kprobe.Uint32(),
-			Id:          &id,
+			SectionName:  sectionName,
+			ProgramType:  *internal.Kprobe.Uint32(),
+			Id:           &id,
+			MapOwnerUuid: &mapOwnerUuid,
 		},
 		AttachInfo: &gobpfd.LoadRequest_KprobeAttachInfo{
 			KprobeAttachInfo: &gobpfd.KprobeAttachInfo{
@@ -176,6 +178,7 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 	// Check the bpfLoadRequest was correctly Built
 	if !cmp.Equal(expectedLoadReq, cli.LoadRequests[id], protocmp.Transform()) {
 		cmp.Diff(expectedLoadReq, cli.LoadRequests[id], protocmp.Transform())
+		t.Logf("Diff %v", cmp.Diff(expectedLoadReq, cli.LoadRequests[id], protocmp.Transform()))
 		t.Fatal("Built bpfd LoadRequest does not match expected")
 	}
 

@@ -32,6 +32,7 @@ import (
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
+	bpfdHelpers "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/helpers"
 	"github.com/go-logr/logr"
 )
 
@@ -114,7 +115,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 
 		condition := bpfProgram.Status.Conditions[recentIdx]
 
-		if condition.Type == string(bpfdiov1alpha1.BpfProgCondNotLoaded) || condition.Type == string(bpfdiov1alpha1.BpfProgCondNotUnloaded) {
+		if bpfdHelpers.IsBpfProgramConditionFailure(condition.Type) {
 			failedBpfPrograms = append(failedBpfPrograms, bpfProgram.Name)
 		}
 	}

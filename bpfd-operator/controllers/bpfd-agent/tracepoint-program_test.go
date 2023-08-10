@@ -147,15 +147,17 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 	// Require no requeue
 	require.False(t, res.Requeue)
 	id := string(bpfProg.UID)
+	mapOwnerUuid := ""
 
 	expectedLoadReq := &gobpfd.LoadRequest{
 		Common: &gobpfd.LoadRequestCommon{
 			Location: &gobpfd.LoadRequestCommon_File{
 				File: bytecodePath,
 			},
-			SectionName: sectionName,
-			ProgramType: *internal.Tracepoint.Uint32(),
-			Id:          &id,
+			SectionName:  sectionName,
+			ProgramType:  *internal.Tracepoint.Uint32(),
+			Id:           &id,
+			MapOwnerUuid: &mapOwnerUuid,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TracepointAttachInfo{
 			TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
