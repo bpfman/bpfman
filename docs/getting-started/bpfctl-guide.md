@@ -115,7 +115,7 @@ Options:
           the byte string appropriately considering such things as size, endianness,
           alignment and packing of data structures.
 
-      --map-owner-uuid <MAP_OWNER_UUID>
+      --map-owner-uuid <map_owner_id>
           Optional: UUID of loaded eBPF program this eBPF program will share a map with.
           Only used when multiple eBPF programs need to share a map. If a map is being
           shared with another eBPF program, the eBPF program that created the map can not

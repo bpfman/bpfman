@@ -3,14 +3,12 @@
 
 mod tc;
 mod xdp;
-
 use bpfd_api::{
     config::{InterfaceConfig, XdpMode},
     ProgramType,
 };
 use log::debug;
 pub use tc::TcDispatcher;
-use uuid::Uuid;
 pub use xdp::XdpDispatcher;
 
 use crate::{
@@ -26,12 +24,12 @@ pub(crate) enum Dispatcher {
 impl Dispatcher {
     pub async fn new(
         config: Option<&InterfaceConfig>,
-        programs: &mut [(Uuid, Program)],
+        programs: &mut [Program],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
     ) -> Result<Dispatcher, BpfdError> {
         debug!("Dispatcher::new()");
-        let (_, p) = programs
+        let p = programs
             .first()
             .ok_or_else(|| BpfdError::Error("No programs to load".to_string()))?;
         let if_index = p
@@ -40,7 +38,11 @@ impl Dispatcher {
         let if_name = p
             .if_name()
             .ok_or_else(|| BpfdError::Error("missing ifname".to_string()))?;
-        let direction = p.direction();
+        let direction = if let Program::Tc(a) = p.clone() {
+            Some(a.direction)
+        } else {
+            None
+        };
         let xdp_mode = if let Some(c) = config {
             c.xdp_mode
         } else {

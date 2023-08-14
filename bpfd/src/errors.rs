@@ -2,7 +2,6 @@
 // Copyright Authors of bpfd
 
 use thiserror::Error;
-use uuid::Uuid;
 
 #[derive(Debug, Error)]
 pub enum BpfdError {
@@ -16,16 +15,16 @@ pub enum BpfdError {
     SectionNameNotValid(String),
     #[error("No room to attach program. Please remove one and try again.")]
     TooManyPrograms,
-    #[error("Invalid ID")]
-    InvalidID,
-    #[error("Not authorized")]
-    NotAuthorized,
+    #[error("Invalid ID: {0}")]
+    InvalidID(String),
     #[error("Invalid Interface")]
     InvalidInterface,
     #[error("Failed to pin link {0}")]
     UnableToPinLink(#[source] aya::pin::PinError),
     #[error("Failed to pin program {0}")]
     UnableToPinProgram(#[source] aya::pin::PinError),
+    #[error("Failed to pin map {0}")]
+    UnableToPinMap(#[source] aya::pin::PinError),
     #[error("{0} is not a valid attach point for this program")]
     InvalidAttach(String),
     #[error("dispatcher is not loaded")]
@@ -34,15 +33,11 @@ pub enum BpfdError {
     DispatcherNotRequired,
     #[error(transparent)]
     BpfBytecodeError(#[from] anyhow::Error),
-    #[error("Bytecode image has section name: {image_sec_name} isn't equal to the provided section name {provided_sec_name}")]
+    #[error("Bytecode image has section name: {image_program_name} isn't equal to the provided section name {provided_program_name}")]
     BytecodeMetaDataMismatch {
-        image_sec_name: String,
-        provided_sec_name: String,
+        image_program_name: String,
+        provided_program_name: String,
     },
-    #[error("Unable to parse passed UUID {0}")]
-    PassedUUIDError(#[from] uuid::Error),
-    #[error("Passed UUID already in use {0}")]
-    PassedUUIDInUse(Uuid),
     #[error("Unable to delete program {0}")]
     BpfdProgramDeleteError(#[source] anyhow::Error),
 }

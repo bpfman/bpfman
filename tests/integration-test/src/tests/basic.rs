@@ -296,7 +296,11 @@ fn test_load_unload_kretprobe() {
 
 #[integration_test]
 fn test_pull_bytecode() {
-    std::fs::remove_dir_all(BYTECODE_IMAGE_CONTENT_STORE).unwrap();
+    let path = PathBuf::from(BYTECODE_IMAGE_CONTENT_STORE);
+
+    if path.exists() {
+        std::fs::remove_dir_all(path).unwrap();
+    }
 
     let _bpfd_guard = start_bpfd().unwrap();
 

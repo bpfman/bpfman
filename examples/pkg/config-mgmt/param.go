@@ -96,9 +96,9 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 		flag.StringVar(&direction_str, "direction", "",
 			"Direction to apply program (ingress, egress). Required.")
 	}
-	flag.StringVar(&paramData.MapOwnerUuid, "map_owner_uuid", "",
+	flag.StringVar(&paramData.MapOwnerUuid, "map_owner_id", "",
 		"Uuid of loaded eBPF program this eBPF program will share a map with.\n"+
-			"Example: -map_owner_uuid 989958a5-b47b-47a5-8b4c-b5962292437d")
+			"Example: -map_owner_id 989958a5-b47b-47a5-8b4c-b5962292437d")
 	flag.Parse()
 
 	if paramData.CrdFlag {

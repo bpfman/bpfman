@@ -107,7 +107,7 @@ struct LoadFileArgs {
     /// be unloaded until all eBPF programs referencing the map are unloaded.
     /// Example: --map-owner-uuid 989958a5-b47b-47a5-8b4c-b5962292437d
     #[clap(long, verbatim_doc_comment)]
-    map_owner_uuid: Option<String>,
+    map_owner_id: Option<String>,
 
     #[clap(subcommand)]
     command: LoadCommands,
@@ -143,7 +143,7 @@ struct LoadImageArgs {
     /// be unloaded until all eBPF programs referencing the map are unloaded.
     /// Example: --map-owner-uuid 989958a5-b47b-47a5-8b4c-b5962292437d
     #[clap(long, verbatim_doc_comment)]
-    map_owner_uuid: Option<String>,
+    map_owner_id: Option<String>,
 
     #[clap(subcommand)]
     command: LoadCommands,
@@ -401,12 +401,12 @@ Pull Policy:                        {}"#,
             r#"Map Pin Path:                       {}"#,
             r.map_pin_path.clone()
         );
-        let map_owner_uuid = if r.map_owner_uuid.clone().is_empty() {
+        let map_owner_id = if r.map_owner_id.clone().is_empty() {
             r#"Map Owner UUID:                     None"#.to_string()
         } else {
             format!(
                 r#"Map Owner UUID:                     {}"#,
-                r.map_owner_uuid.clone()
+                r.map_owner_id.clone()
             )
         };
         let map_used_by = if r.map_used_by.clone().is_empty() {
@@ -559,7 +559,7 @@ UUID:                               {}
 {}
 {}
 {}"#,
-            uuid, location, global_data, map_pin_path, map_owner_uuid, map_used_by, metadata
+            uuid, location, global_data, map_pin_path, map_owner_id, map_used_by, metadata
         )
     } else {
         "NONE".to_string()
@@ -722,7 +722,7 @@ impl Commands {
         let global: &Option<Vec<GlobalArg>>;
         let command: &LoadCommands;
         let location: Option<load_request_common::Location>;
-        let map_owner_uuid: &Option<String>;
+        let map_owner_id: &Option<String>;
 
         let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
 
@@ -733,7 +733,7 @@ impl Commands {
                 global = &l.global;
                 command = &l.command;
                 location = Some(load_request_common::Location::File(l.path.clone()));
-                map_owner_uuid = &l.map_owner_uuid;
+                map_owner_id = &l.map_owner_id;
             }
             Commands::LoadFromImage(l) => {
                 id = &l.id;
@@ -742,7 +742,7 @@ impl Commands {
                 command = &l.command;
                 let pull_args = &l.pull_args;
                 location = Some(load_request_common::Location::Image(pull_args.try_into()?));
-                map_owner_uuid = &l.map_owner_uuid;
+                map_owner_id = &l.map_owner_id;
             }
             _ => bail!("Unknown command"),
         };
@@ -759,7 +759,7 @@ impl Commands {
             section_name: section_name.to_string(),
             program_type: command.get_prog_type() as u32,
             global_data,
-            map_owner_uuid: map_owner_uuid.clone(),
+            map_owner_id: map_owner_id.clone(),
         }))
     }
 

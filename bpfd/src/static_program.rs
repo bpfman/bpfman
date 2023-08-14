@@ -6,27 +6,65 @@ use std::{
 };
 
 use anyhow::bail;
-use bpfd_api::{util::directories::CFGDIR_STATIC_PROGRAMS, ProgramType};
+use bpfd_api::{util::directories::CFGDIR_STATIC_PROGRAMS, ProgramType, TcProceedOn, XdpProceedOn};
 use log::{info, warn};
 use serde::Deserialize;
 use tokio::fs;
 
 use crate::{
     command::{
+        Direction,
         Location::{File, Image},
-        Metadata, Program, ProgramData, TcAttachInfo, TcProgram, TcProgramInfo,
-        TracepointAttachInfo, TracepointProgram, TracepointProgramInfo, XdpAttachInfo, XdpProgram,
-        XdpProgramInfo,
+        Program, ProgramData, TcProgram, TracepointProgram, XdpProgram,
     },
     oci_utils::BytecodeImage,
-    utils::{get_ifindex, read_to_string},
+    utils::read_to_string,
 };
+
+#[derive(Debug, Clone, Deserialize)]
+pub(crate) struct XdpAttachInfo {
+    pub(crate) priority: i32,
+    pub(crate) iface: String,
+    pub(crate) proceed_on: XdpProceedOn,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub(crate) struct TcAttachInfo {
+    pub(crate) priority: i32,
+    pub(crate) iface: String,
+    pub(crate) proceed_on: TcProceedOn,
+    pub(crate) direction: Direction,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub(crate) struct TracepointAttachInfo {
+    pub(crate) tracepoint: String,
+}
+
+// TODO not yet implemented
+// #[derive(Debug, Clone, Deserialize)]
+// pub(crate) struct KprobeAttachInfo {
+//     pub(crate) fn_name: String,
+//     pub(crate) offset: u64,
+//     pub(crate) retprobe: bool,
+//     pub(crate) namespace: Option<String>,
+// }
+
+// #[derive(Debug, Clone, Deserialize)]
+// pub(crate) struct UprobeAttachInfo {
+//     pub(crate) fn_name: Option<String>,
+//     pub(crate) offset: u64,
+//     pub(crate) target: String,
+//     pub(crate) retprobe: bool,
+//     pub(crate) pid: Option<i32>,
+//     pub(crate) namespace: Option<String>,
+// }
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct StaticProgramEntry {
     bytecode_image: Option<BytecodeImage>,
     file_path: Option<String>,
-    section_name: String,
+    name: String,
     global_data: HashMap<String, Vec<u8>>,
     program_type: ProgramType,
     xdp_attach: Option<XdpAttachInfo>,
@@ -106,75 +144,43 @@ pub(crate) async fn get_static_programs<P: AsRef<Path>>(
                         .expect("static program did not provide bytecode"),
                 ),
             };
+
+            let data = ProgramData::new(
+                location,
+                program.name,
+                HashMap::new(),
+                Some(program.global_data),
+                None,
+            );
             let prog = match program.program_type {
                 ProgramType::Xdp => {
                     if let Some(m) = program.xdp_attach {
-                        let if_index = get_ifindex(&m.iface)?;
-                        let metadata = Metadata::new(m.priority);
-                        Program::Xdp(XdpProgram::new(
-                            ProgramData::new(
-                                location,
-                                program.section_name.clone(),
-                                program.global_data,
-                                None,
-                                String::from("bpfd"),
-                            ),
-                            XdpProgramInfo {
-                                if_index,
-                                current_position: None,
-                                metadata,
-                                proceed_on: m.proceed_on,
-                                if_name: m.iface,
-                            },
-                        ))
+                        Program::Xdp(XdpProgram::new(data, m.priority, m.iface, m.proceed_on))
                     } else {
-                        bail!("invalid attach type for xdp program")
+                        bail!("invalid info for xdp program")
                     }
                 }
                 ProgramType::Tc => {
                     if let Some(m) = program.tc_attach {
-                        let if_index = get_ifindex(&m.iface)?;
-                        let metadata = Metadata::new(m.priority);
-                        Program::Tc(TcProgram {
-                            data: ProgramData::new(
-                                location,
-                                program.section_name.clone(),
-                                program.global_data,
-                                None,
-                                String::from("bpfd"),
-                            ),
-                            info: TcProgramInfo {
-                                if_index,
-                                current_position: None,
-                                metadata,
-                                proceed_on: m.proceed_on,
-                                if_name: m.iface,
-                                direction: m.direction,
-                            },
-                        })
+                        Program::Tc(TcProgram::new(
+                            data,
+                            m.priority,
+                            m.iface,
+                            m.proceed_on,
+                            m.direction,
+                        ))
                     } else {
                         bail!("invalid attach type for tc program")
                     }
                 }
                 ProgramType::Tracepoint => {
                     if let Some(m) = program.tracepoint_attach {
-                        Program::Tracepoint(TracepointProgram::new(
-                            ProgramData::new(
-                                location,
-                                program.section_name.clone(),
-                                program.global_data,
-                                None,
-                                String::from("bpfd"),
-                            ),
-                            TracepointProgramInfo {
-                                tracepoint: m.tracepoint,
-                            },
-                        ))
+                        Program::Tracepoint(TracepointProgram::new(data, m.tracepoint))
                     } else {
                         bail!("invalid attach type for tc program")
                     }
                 }
-                m => bail!("program type not yet supported: {:?}", m),
+                m => bail!("program type not yet supported to load statically: {:?}", m),
             };
 
             programs.push(prog)

@@ -27,8 +27,8 @@ pub struct LoadRequestCommon {
         ::prost::alloc::string::String,
         ::prost::alloc::vec::Vec<u8>,
     >,
-    #[prost(string, optional, tag = "7")]
-    pub map_owner_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(uint32, optional, tag = "7")]
+    pub map_owner_id: ::core::option::Option<u32>,
     #[prost(oneof = "load_request_common::Location", tags = "1, 2")]
     pub location: ::core::option::Option<load_request_common::Location>,
 }

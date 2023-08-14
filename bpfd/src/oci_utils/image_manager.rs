@@ -35,7 +35,7 @@ pub struct ContainerImageMetadata {
     pub filename: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub(crate) struct BytecodeImage {
     image_url: String,
     image_pull_policy: ImagePullPolicy,

@@ -248,7 +248,7 @@ impl std::fmt::Display for ProbeType {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq)]
 pub enum XdpProceedOnEntry {
     Aborted,
     Drop,
@@ -310,7 +310,7 @@ impl std::fmt::Display for XdpProceedOnEntry {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct XdpProceedOn(Vec<XdpProceedOnEntry>);
 impl Default for XdpProceedOn {
     fn default() -> Self {
@@ -367,7 +367,7 @@ impl std::fmt::Display for XdpProceedOn {
     }
 }
 
-#[derive(Serialize, Deserialize, Copy, Clone, Debug)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq)]
 pub enum TcProceedOnEntry {
     Unspec = -1,
     Ok = 0,
@@ -449,7 +449,7 @@ impl std::fmt::Display for TcProceedOnEntry {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct TcProceedOn(pub(crate) Vec<TcProceedOnEntry>);
 impl Default for TcProceedOn {
     fn default() -> Self {
@@ -510,7 +510,7 @@ impl std::fmt::Display for TcProceedOn {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum ImagePullPolicy {
     Always,
     IfNotPresent,

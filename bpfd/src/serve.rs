@@ -6,7 +6,7 @@ use std::{fs::remove_file, net::SocketAddr, path::Path};
 use anyhow::Context;
 use bpfd_api::{
     config::{self, Config},
-    v1::loader_server::LoaderServer,
+    v1::bpfd_server::BpfdServer,
 };
 use log::{debug, info};
 use tokio::{
@@ -32,7 +32,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
     let (tx, rx) = mpsc::channel(32);
 
     let loader = BpfdLoader::new(tx.clone());
-    let service = LoaderServer::new(loader);
+    let service = BpfdServer::new(loader);
 
     let (ca_cert, identity) = get_tls_config(&config.tls)
         .await
@@ -83,8 +83,8 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
     // Load any static programs first
     if !static_programs.is_empty() {
         for prog in static_programs {
-            let uuid = bpf_manager.add_program(prog, None).await?;
-            info!("Loaded static program with UUID {}", uuid)
+            let id = bpf_manager.add_program(prog).await?;
+            info!("Loaded static program with id {}", id)
         }
     };
     join!(join_listeners(listeners), bpf_manager.process_commands());
@@ -111,7 +111,7 @@ async fn join_listeners(listeners: Vec<JoinHandle<()>>) {
 
 async fn serve_unix(
     path: String,
-    service: LoaderServer<BpfdLoader>,
+    service: BpfdServer<BpfdLoader>,
 ) -> anyhow::Result<JoinHandle<()>> {
     // Listen on Unix socket
     if Path::new(&path).exists() {
@@ -140,7 +140,7 @@ async fn serve_tcp(
     address: &String,
     port: u16,
     tls_config: ServerTlsConfig,
-    service: LoaderServer<BpfdLoader>,
+    service: BpfdServer<BpfdLoader>,
 ) -> anyhow::Result<JoinHandle<()>> {
     let ip = address
         .parse()

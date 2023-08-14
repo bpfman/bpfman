@@ -25,7 +25,7 @@ message LoadRequestCommon {
     uint32 program_type = 4;
     map<string,string> metadata = 5;
     map<string, bytes> global_data = 6;
-    optional string map_owner_id = 7;
+    optional uint32 map_owner_id = 7;
 }
 
 
