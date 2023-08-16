@@ -9,23 +9,25 @@ use bpfd_api::{
     config::{self, Config},
     util::directories::*,
     v1::{
-        list_response::{self, list_result::Location},
-        load_request::{self, AttachInfo},
-        load_request_common,
-        loader_client::LoaderClient,
-        BytecodeImage, KprobeAttachInfo, ListRequest, LoadRequest, LoadRequestCommon,
-        PullBytecodeRequest, TcAttachInfo, TracepointAttachInfo, UnloadRequest, UprobeAttachInfo,
-        XdpAttachInfo,
+        bpfd_client::BpfdClient,
+        list_response::{
+            list_result::{AttachInfo as ListAttachInfo, Location},
+            ListResult,
+        },
+        load_request::{self, AttachInfo as LoadAttachInfo},
+        load_request_common, BytecodeImage, KprobeAttachInfo, ListRequest, LoadRequest,
+        LoadRequestCommon, PullBytecodeRequest, TcAttachInfo, TracepointAttachInfo, UnloadRequest,
+        UprobeAttachInfo, XdpAttachInfo,
     },
     ImagePullPolicy,
     ProbeType::*,
     ProgramType, TcProceedOn, XdpProceedOn,
 };
 use clap::{Args, Parser, Subcommand};
-use comfy_table::Table;
+use comfy_table::{Cell, Color, Table};
 use hex::{encode_upper, FromHex};
 use itertools::Itertools;
-use log::{debug, info, warn};
+use log::{info, warn};
 use tokio::net::UnixStream;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity, Uri};
 use tower::service_fn;
@@ -43,14 +45,14 @@ enum Commands {
     LoadFromFile(LoadFileArgs),
     /// Load an eBPF program packaged in a OCI container image from a given registry.
     LoadFromImage(LoadImageArgs),
-    /// Unload an eBPF program using the UUID.
+    /// Unload an eBPF program using the ID.
     Unload(UnloadArgs),
     /// List all eBPF programs loaded via bpfd.
     List(ListArgs),
     /// Get a program's metadata by kernel id.
     Get {
         /// An eBPF program's kernel id.
-        kernel_id: u32,
+        id: u32,
     },
     /// Pull a bytecode image for future use by a load command.
     PullBytecode(PullBytecodeArgs),
@@ -58,6 +60,7 @@ enum Commands {
 
 #[derive(Args)]
 struct ListArgs {
+    /// Optional: List a specific program type
     /// Example: --program-type xdp
     ///
     /// [possible values: unspec, socket-filter, kprobe, tc, sched-act,
@@ -70,6 +73,10 @@ struct ListArgs {
     ///                   struct-ops, ext, lsm, sk-lookup, syscall]
     #[clap(short, long, verbatim_doc_comment, hide_possible_values = true)]
     program_type: Option<ProgramType>,
+
+    // Optional: List programs which contain a specific set of metadata labels
+    #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+    metadata_selector: Option<Vec<(String, String)>>,
 
     // Optional: List all programs
     #[clap(short, long, verbatim_doc_comment)]
@@ -87,11 +94,6 @@ struct LoadFileArgs {
     #[clap(short, long)]
     section_name: String,
 
-    /// Optional: Program uuid to be used by bpfd. If not specified, bpfd will generate
-    /// a uuid.
-    #[clap(long, verbatim_doc_comment)]
-    id: Option<String>,
-
     /// Optional: Global variables to be set when program is loaded.
     /// Format: <NAME>=<Hex Value>
     ///
@@ -101,13 +103,22 @@ struct LoadFileArgs {
     #[clap(short, long, verbatim_doc_comment, num_args(1..), value_parser=parse_global_arg)]
     global: Option<Vec<GlobalArg>>,
 
-    /// Optional: UUID of loaded eBPF program this eBPF program will share a map with.
+    /// Optional: Specify Key/Value metadata to be attached to a program when it
+    /// is loaded by bpfd.
+    /// Format: <KEY>=<VALUE>
+    ///
+    /// This can later be used to list a certain subset of programs which contain
+    /// the specified metadata.
+    #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+    metadata: Option<Vec<(String, String)>>,
+
+    /// Optional: ID of loaded eBPF program this eBPF program will share a map with.
     /// Only used when multiple eBPF programs need to share a map. If a map is being
     /// shared with another eBPF program, the eBPF program that created the map can not
     /// be unloaded until all eBPF programs referencing the map are unloaded.
-    /// Example: --map-owner-uuid 989958a5-b47b-47a5-8b4c-b5962292437d
+    /// Example: --map-owner-id 63178
     #[clap(long, verbatim_doc_comment)]
-    map_owner_id: Option<String>,
+    map_owner_id: Option<u32>,
 
     #[clap(subcommand)]
     command: LoadCommands,
@@ -123,11 +134,6 @@ struct LoadImageArgs {
     #[clap(short, long, default_value = "")]
     section_name: String,
 
-    /// Optional: Program uuid to be used by bpfd. If not specified, bpfd will generate
-    /// a uuid.
-    #[clap(long, verbatim_doc_comment)]
-    id: Option<String>,
-
     /// Optional: Global variables to be set when program is loaded.
     /// Format: <NAME>=<Hex Value>
     ///
@@ -137,13 +143,22 @@ struct LoadImageArgs {
     #[clap(short, long, verbatim_doc_comment, num_args(1..), value_parser=parse_global_arg)]
     global: Option<Vec<GlobalArg>>,
 
-    /// Optional: UUID of loaded eBPF program this eBPF program will share a map with.
+    /// Optional: Specify Key/Value metadata to be attached to a program when it
+    /// is loaded by bpfd.
+    /// Format: <KEY>=<VALUE>
+    ///
+    /// This can later be used to list a certain subset of programs which contain
+    /// the specified metadata.
+    #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+    metadata: Option<Vec<(String, String)>>,
+
+    /// Optional: ID of loaded eBPF program this eBPF program will share a map with.
     /// Only used when multiple eBPF programs need to share a map. If a map is being
     /// shared with another eBPF program, the eBPF program that created the map can not
     /// be unloaded until all eBPF programs referencing the map are unloaded.
-    /// Example: --map-owner-uuid 989958a5-b47b-47a5-8b4c-b5962292437d
+    /// Example: --map-owner-id 63178
     #[clap(long, verbatim_doc_comment)]
-    map_owner_id: Option<String>,
+    map_owner_id: Option<u32>,
 
     #[clap(subcommand)]
     command: LoadCommands,
@@ -263,8 +278,8 @@ enum LoadCommands {
 
 #[derive(Args)]
 struct UnloadArgs {
-    /// Required: Program uuid to be unloaded
-    id: String,
+    /// Required: Program id to be unloaded
+    id: u32,
 }
 
 #[derive(Args)]
@@ -321,30 +336,230 @@ struct GlobalArg {
 struct ProgTable(Table);
 
 impl ProgTable {
-    fn new() -> Self {
+    fn new_list() -> Self {
         let mut table = Table::new();
 
         table.load_preset(comfy_table::presets::NOTHING);
-        table.set_header(vec!["Kernel ID", "Bpfd UUID", "Name", "Type", "Load Time"]);
+        table.set_header(vec!["ID", "Name", "Type", "Load Time"]);
         ProgTable(table)
     }
 
-    fn add_row(
-        &mut self,
-        kernel_id: String,
-        uuid: String,
-        name: String,
-        type_: String,
-        load_time: String,
-    ) {
-        self.0
-            .add_row(vec![kernel_id, uuid, name, type_, load_time]);
+    fn new_get_bpfd(r: &ListResult) -> Result<Self, anyhow::Error> {
+        let mut table = Table::new();
+
+        table.load_preset(comfy_table::presets::NOTHING);
+        table.set_header(vec![Cell::new("Bpfd State")
+            .add_attribute(comfy_table::Attribute::Bold)
+            .fg(Color::Green)]);
+
+        if r.metadata.is_empty() {
+            table.add_row(vec!["Metadata:", "None"]);
+        } else {
+            let mut first = true;
+            for (key, value) in r.metadata.clone() {
+                let data = &format! {"{key}={}", encode_upper(value)};
+                if first {
+                    first = false;
+                    table.add_row(vec!["Metadata:", data]);
+                } else {
+                    table.add_row(vec!["", data]);
+                }
+            }
+        }
+
+        match r.location.clone() {
+            Some(l) => match l {
+                Location::Image(i) => {
+                    table.add_row(vec!["Image URL:", &i.url]);
+                    table.add_row(vec!["Pull Policy:", &format!{ "{}", TryInto::<ImagePullPolicy>::try_into(i.image_pull_policy)?}]);
+                }
+                Location::File(p) => {
+                    table.add_row(vec!["Path:", &p]);
+                }
+            },
+            // not a bpfd program
+            None => {
+                table.add_row(vec!["NONE"]);
+                return Ok(ProgTable(table));
+            }
+        }
+
+        if r.global_data.is_empty() {
+            table.add_row(vec!["Global:", "None"]);
+        } else {
+            let mut first = true;
+            for (key, value) in r.global_data.clone() {
+                let data = &format! {"{key}={}", encode_upper(value)};
+                if first {
+                    first = false;
+                    table.add_row(vec!["Global:", data]);
+                } else {
+                    table.add_row(vec!["", data]);
+                }
+            }
+        }
+
+        table.add_row(vec![
+            "Map Pin Path:",
+            &r.map_pin_path.is_empty().then_some("None").unwrap(),
+        ]);
+        if r.map_owner_id.is_none() {
+            table.add_row(vec!["Map Owner ID:", "None"]);
+        } else {
+            table.add_row(vec![
+                "Map Owner ID:",
+                &r.map_owner_id
+                    .map(|i| i.to_string())
+                    .unwrap_or("None".to_owned()),
+            ]);
+        };
+
+        if r.map_used_by.clone().is_empty() {
+            table.add_row(vec!["Maps Used By:", "None"]);
+        } else {
+            let mut first = true;
+            for prog_id in r.clone().map_used_by {
+                if first {
+                    first = false;
+                    table.add_row(vec!["Maps Used By:", &prog_id]);
+                } else {
+                    table.add_row(vec!["", &prog_id]);
+                }
+            }
+        };
+
+        match r.clone().attach_info.unwrap() {
+            ListAttachInfo::XdpAttachInfo(XdpAttachInfo {
+                priority,
+                iface,
+                position,
+                proceed_on,
+            }) => {
+                let proc_on = match XdpProceedOn::from_int32s(proceed_on) {
+                    Ok(p) => p,
+                    Err(e) => bail!("error parsing proceed_on {e}"),
+                };
+
+                table.add_row(vec!["Priority:", &priority.to_string()]);
+                table.add_row(vec!["Iface:", &iface]);
+                table.add_row(vec!["Position:", &position.to_string()]);
+                table.add_row(vec!["Proceed On:", &format!("{proc_on}")]);
+            }
+            ListAttachInfo::TcAttachInfo(TcAttachInfo {
+                priority,
+                iface,
+                position,
+                direction,
+                proceed_on,
+            }) => {
+                let proc_on = match TcProceedOn::from_int32s(proceed_on) {
+                    Ok(p) => p,
+                    Err(e) => bail!("error parsing proceed_on {e}"),
+                };
+
+                table.add_row(vec!["Priority:", &priority.to_string()]);
+                table.add_row(vec!["Iface:", &iface]);
+                table.add_row(vec!["Position:", &position.to_string()]);
+                table.add_row(vec!["Direction:", &direction]);
+                table.add_row(vec!["Proceed On:", &format!("{proc_on}")]);
+            }
+            ListAttachInfo::TracepointAttachInfo(TracepointAttachInfo { tracepoint }) => {
+                table.add_row(vec!["Tracepoint:", &tracepoint]);
+            }
+            ListAttachInfo::KprobeAttachInfo(KprobeAttachInfo {
+                fn_name,
+                offset,
+                retprobe,
+                namespace,
+            }) => {
+                let probe_type = match retprobe {
+                    true => Kretprobe,
+                    false => Kprobe,
+                };
+
+                table.add_row(vec!["Probe Type:", &format!["{probe_type}"]]);
+                table.add_row(vec!["Function Name:", &fn_name]);
+                table.add_row(vec!["Offset:", &offset.to_string()]);
+                table.add_row(vec!["Namespace", &namespace.unwrap_or("".to_string())]);
+            }
+            ListAttachInfo::UprobeAttachInfo(UprobeAttachInfo {
+                fn_name,
+                offset,
+                target,
+                retprobe,
+                pid,
+                namespace,
+            }) => {
+                let probe_type = match retprobe {
+                    true => Uretprobe,
+                    false => Uprobe,
+                };
+
+                table.add_row(vec!["Probe Type:", &format!["{probe_type}"]]);
+                table.add_row(vec!["Function Name:", &fn_name.unwrap_or("".to_string())]);
+                table.add_row(vec!["Offset:", &offset.to_string()]);
+                table.add_row(vec!["Target:", &target]);
+                table.add_row(vec!["PID", &pid.unwrap_or(0).to_string()]);
+                table.add_row(vec!["Namespace", &namespace.unwrap_or("".to_string())]);
+            }
+        }
+
+        Ok(ProgTable(table))
     }
 
-    fn add_response_prog(&mut self, r: list_response::ListResult) -> anyhow::Result<()> {
-        self.add_row(
-            r.bpf_id.to_string(),
-            r.id.unwrap_or("".to_string()),
+    fn new_get_unsupported(r: &ListResult) -> Result<Self, anyhow::Error> {
+        let mut table = Table::new();
+
+        table.load_preset(comfy_table::presets::NOTHING);
+        table.set_header(vec![Cell::new("Kernel State")
+            .add_attribute(comfy_table::Attribute::Bold)
+            .fg(Color::Green)]);
+
+        let rows = vec![
+            vec!["Kernel ID:".to_string(), r.id.to_string()],
+            vec![
+                "Name:".to_string(),
+                r.name
+                    .is_empty()
+                    .then(|| "None".to_string())
+                    .unwrap_or(r.name.clone()),
+            ],
+            vec![
+                "Type:".to_string(),
+                format!("{}", ProgramType::try_from(r.program_type)?),
+            ],
+            vec!["Loaded At:".to_string(), r.loaded_at.clone()],
+            vec!["Tag:".to_string(), r.tag.clone()],
+            vec!["GPL Compatible:".to_string(), r.gpl_compatible.to_string()],
+            vec!["Map IDs:".to_string(), format!("{:?}", r.map_ids)],
+            vec!["BTF ID:".to_string(), r.btf_id.to_string()],
+            vec![
+                "Size Translated (bytes):".to_string(),
+                r.bytes_xlated.to_string(),
+            ],
+            vec!["JITted:".to_string(), r.jited.to_string()],
+            vec!["Size JITted:".to_string(), r.bytes_jited.to_string()],
+            vec![
+                "Kernel Allocated Memory (bytes):".to_string(),
+                r.bytes_memlock.to_string(),
+            ],
+            vec![
+                "Verified Instruction Count:".to_string(),
+                r.verified_insns.to_string(),
+            ],
+        ];
+        table.add_rows(rows);
+
+        Ok(ProgTable(table))
+    }
+
+    fn add_row_list(&mut self, kernel_id: String, name: String, type_: String, load_time: String) {
+        self.0.add_row(vec![kernel_id, name, type_, load_time]);
+    }
+
+    fn add_response_prog(&mut self, r: ListResult) -> anyhow::Result<()> {
+        self.add_row_list(
+            r.id.to_string(),
             r.name,
             (ProgramType::try_from(r.program_type)?).to_string(),
             r.loaded_at,
@@ -352,263 +567,16 @@ impl ProgTable {
 
         Ok(())
     }
+
+    fn print(&self) {
+        println!("{self}")
+    }
 }
 
 impl std::fmt::Display for ProgTable {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
-}
-
-fn print_get(r: &list_response::ListResult) -> anyhow::Result<()> {
-    // if program is managed by bpfd print UUID, Location and Metadata
-    let bpfd_info = if let Some(uuid) = r.clone().id {
-        let prog_type: ProgramType = r.program_type.try_into()?;
-        let location = match &r.clone().location.unwrap() {
-            // Cast imagePullPolicy into it's concrete type so we can easily print.
-            Location::Image(i) => format!(
-                r#"Image URL:                          {}
-Pull Policy:                        {}"#,
-                i.url,
-                TryInto::<ImagePullPolicy>::try_into(i.image_pull_policy)?
-            ),
-            Location::File(p) => format!(r#"Path:                               {p}"#),
-            _ => "".to_owned(),
-        };
-        let global_data = if r.global_data.clone().is_empty() {
-            r#"Global:                             None"#.to_string()
-        } else {
-            let mut first = true;
-            let mut output = String::new();
-            for (key, value) in r.global_data.clone() {
-                if first {
-                    first = false;
-                    output.push_str(&format!(
-                        r#"Global:                             {key}={}"#,
-                        encode_upper(value)
-                    ));
-                } else {
-                    output.push_str(&format!(
-                        r#"
-                                    {key}={}"#,
-                        encode_upper(value)
-                    ));
-                }
-            }
-            output
-        };
-        let map_pin_path = format!(
-            r#"Map Pin Path:                       {}"#,
-            r.map_pin_path.clone()
-        );
-        let map_owner_id = if r.map_owner_id.clone().is_empty() {
-            r#"Map Owner UUID:                     None"#.to_string()
-        } else {
-            format!(
-                r#"Map Owner UUID:                     {}"#,
-                r.map_owner_id.clone()
-            )
-        };
-        let map_used_by = if r.map_used_by.clone().is_empty() {
-            r#"Maps Used By:                       None"#.to_string()
-        } else {
-            let mut first = true;
-            let mut output = String::new();
-            for prog_uuid in r.clone().map_used_by {
-                if first {
-                    first = false;
-                    output.push_str(&format!(
-                        r#"Maps Used By:                       {prog_uuid}"#
-                    ));
-                } else {
-                    output.push_str(&format!(
-                        r#"
-                                    {prog_uuid}"#
-                    ));
-                }
-            }
-            output
-        };
-
-        let metadata = match prog_type {
-            ProgramType::Xdp => {
-                if let Some(list_response::list_result::AttachInfo::XdpAttachInfo(
-                    XdpAttachInfo {
-                        priority,
-                        iface,
-                        position,
-                        proceed_on,
-                    },
-                )) = r.clone().attach_info
-                {
-                    let proc_on = match XdpProceedOn::from_int32s(proceed_on) {
-                        Ok(p) => p,
-                        Err(e) => bail!("error parsing proceed_on {e}"),
-                    };
-                    format!(
-                        r#"Priority:                           {priority}
-Iface:                              {iface}
-Position:                           {position}
-Proceed On:                         {proc_on}"#
-                    )
-                } else {
-                    "".to_string()
-                }
-            }
-            ProgramType::Tc => {
-                if let Some(list_response::list_result::AttachInfo::TcAttachInfo(TcAttachInfo {
-                    priority,
-                    iface,
-                    position,
-                    direction,
-                    proceed_on,
-                })) = r.clone().attach_info
-                {
-                    let proc_on = match TcProceedOn::from_int32s(proceed_on) {
-                        Ok(p) => p,
-                        Err(e) => bail!("error parsing proceed_on {e}"),
-                    };
-
-                    format!(
-                        r#"Priority:                           {priority}
-Iface:                              {iface}
-Position:                           {position}
-Direction:                          {direction}
-Proceed On:                         {proc_on}"#
-                    )
-                } else {
-                    "".to_string()
-                }
-            }
-            ProgramType::Tracepoint => {
-                if let Some(list_response::list_result::AttachInfo::TracepointAttachInfo(
-                    TracepointAttachInfo { tracepoint },
-                )) = r.clone().attach_info
-                {
-                    format!(
-                        r#"
-Tracepoint:                         {tracepoint}"#
-                    )
-                } else {
-                    "".to_string()
-                }
-            }
-            ProgramType::Probe => {
-                if let Some(attach_info) = r.clone().attach_info {
-                    match attach_info {
-                        list_response::list_result::AttachInfo::KprobeAttachInfo(attach_info) => {
-                            let fn_name = attach_info.fn_name;
-                            let offset = attach_info.offset.to_string();
-                            let namespace = attach_info.namespace.unwrap_or("None".to_string());
-                            let probe_type = match attach_info.retprobe {
-                                true => Kretprobe,
-                                false => Kprobe,
-                            };
-                            format!(
-                                r#"Probe Type:                         {probe_type}
-Function Name:                      {fn_name}
-offset:                             {offset}
-Namespace:                          {namespace}"#
-                            )
-                        }
-                        list_response::list_result::AttachInfo::UprobeAttachInfo(attach_info) => {
-                            let fn_name = attach_info.fn_name.unwrap_or("None".to_string());
-                            let offset = attach_info.offset.to_string();
-                            let pid = match attach_info.pid {
-                                Some(p) => p.to_string(),
-                                None => "None".to_string(),
-                            };
-                            let namespace = attach_info.namespace.unwrap_or("None".to_string());
-                            let target = attach_info.target;
-                            let probe_type = match attach_info.retprobe {
-                                true => Uretprobe,
-                                false => Uprobe,
-                            };
-                            format!(
-                                r#"Probe Type:                         {probe_type}
-Function Name:                      {fn_name}
-Offset:                             {offset}
-Target:                             {target}
-PID:                                {pid}
-Namespace:                          {namespace}"# //fn_name: {fn_name}, offset: {offset}, target: {target}, pid: {pid}, namespace: {namespace} }}"#
-                            )
-                        }
-                        _ => {
-                            debug!(
-                                "invalid AttachInfo message for ProgramType::Probe: {:?}",
-                                attach_info
-                            );
-                            "".to_string()
-                        }
-                    }
-                } else {
-                    "".to_string()
-                }
-            }
-            // skip unknown program types
-            _ => {
-                bail!("program has bpfd UUID but no attach info")
-            }
-        };
-        format!(
-            r#"
-UUID:                               {}
-{}
-{}
-{}
-{}
-{}
-{}"#,
-            uuid, location, global_data, map_pin_path, map_owner_id, map_used_by, metadata
-        )
-    } else {
-        "NONE".to_string()
-    };
-
-    let kernel_name = if r.name.clone().is_empty() {
-        "None".to_string()
-    } else {
-        r.name.clone()
-    };
-
-    let global_info = format!(
-        r#"
-Kernel ID:                          {}
-Name:                               {}
-Type:                               {}
-Loaded At:                          {}
-Tag:                                {}
-GPL Compatible:                     {}
-Map IDs:                            {:?}
-BTF ID:                             {}
-Size Translated (bytes):            {}
-JITed:                              {}
-Size JITed (bytes):                 {}
-Kernel Allocated Memory (bytes):    {}
-Verified Instruction Count:         {}
-"#,
-        r.bpf_id,
-        kernel_name,
-        ProgramType::try_from(r.program_type)?,
-        r.loaded_at,
-        r.tag,
-        r.gpl_compatible,
-        r.map_ids,
-        r.btf_id,
-        r.bytes_xlated,
-        r.jited,
-        r.bytes_jited,
-        r.bytes_memlock,
-        r.verified_insns
-    );
-    println!();
-    println!("#################### Bpfd State ####################");
-    println!("{}", bpfd_info);
-    println!();
-    println!("#################### Kernel State ##################");
-    println!("{}", global_info);
-
-    Ok(())
 }
 
 impl LoadCommands {
@@ -622,7 +590,7 @@ impl LoadCommands {
         }
     }
 
-    fn get_attach_type(&self) -> Result<Option<AttachInfo>, anyhow::Error> {
+    fn get_attach_type(&self) -> Result<Option<LoadAttachInfo>, anyhow::Error> {
         match self {
             LoadCommands::Xdp {
                 iface,
@@ -717,59 +685,76 @@ impl LoadCommands {
 
 impl Commands {
     fn get_request_common(&self) -> anyhow::Result<Option<LoadRequestCommon>> {
-        let id: &Option<String>;
-        let section_name: &String;
-        let global: &Option<Vec<GlobalArg>>;
-        let command: &LoadCommands;
-        let location: Option<load_request_common::Location>;
-        let map_owner_id: &Option<String>;
-
-        let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
-
         match self {
-            Commands::LoadFromFile(l) => {
-                id = &l.id;
-                section_name = &l.section_name;
-                global = &l.global;
-                command = &l.command;
-                location = Some(load_request_common::Location::File(l.path.clone()));
-                map_owner_id = &l.map_owner_id;
-            }
-            Commands::LoadFromImage(l) => {
-                id = &l.id;
-                section_name = &l.section_name;
-                global = &l.global;
-                command = &l.command;
-                let pull_args = &l.pull_args;
-                location = Some(load_request_common::Location::Image(pull_args.try_into()?));
-                map_owner_id = &l.map_owner_id;
-            }
-            _ => bail!("Unknown command"),
-        };
-
-        if let Some(global) = global {
-            for g in global.iter() {
-                global_data.insert(g.name.to_string(), g.value.clone());
-            }
+            Commands::LoadFromFile(LoadFileArgs {
+                path,
+                section_name,
+                metadata,
+                global,
+                map_owner_id,
+                command,
+            }) => Ok(Some(LoadRequestCommon {
+                metadata: metadata
+                    .clone()
+                    .unwrap_or(vec![])
+                    .iter()
+                    .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                    .collect(),
+                location: Some(load_request_common::Location::File(path.clone())),
+                section_name: section_name.to_string(),
+                program_type: command.get_prog_type() as u32,
+                global_data: parse_global(global),
+                map_owner_id: *map_owner_id,
+            })),
+            Commands::LoadFromImage(LoadImageArgs {
+                pull_args,
+                section_name,
+                metadata,
+                global,
+                map_owner_id,
+                command,
+            }) => Ok(Some(LoadRequestCommon {
+                metadata: metadata
+                    .clone()
+                    .unwrap_or(vec![])
+                    .iter()
+                    .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                    .collect(),
+                location: Some(load_request_common::Location::Image(pull_args.try_into()?)),
+                section_name: section_name.to_string(),
+                program_type: command.get_prog_type() as u32,
+                global_data: parse_global(global),
+                map_owner_id: *map_owner_id,
+            })),
+            _ => bail!("Unknown Command"),
         }
-
-        Ok(Some(LoadRequestCommon {
-            id: id.clone(),
-            location,
-            section_name: section_name.to_string(),
-            program_type: command.get_prog_type() as u32,
-            global_data,
-            map_owner_id: map_owner_id.clone(),
-        }))
     }
 
-    fn get_attach_info(&self) -> anyhow::Result<Option<AttachInfo>> {
+    fn get_attach_info(&self) -> anyhow::Result<Option<LoadAttachInfo>> {
         match self {
             Commands::LoadFromFile(l) => l.command.get_attach_type(),
             Commands::LoadFromImage(l) => l.command.get_attach_type(),
             _ => bail!("Unknown command"),
         }
     }
+}
+
+/// Parse a single key-value pair
+fn parse_key_val(s: &str) -> Result<(String, String), std::io::Error> {
+    let pos = s.find('=').ok_or(std::io::ErrorKind::InvalidInput)?;
+    Ok((s[..pos].to_string(), s[pos + 1..].to_string()))
+}
+
+fn parse_global(global: &Option<Vec<GlobalArg>>) -> HashMap<String, Vec<u8>> {
+    let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
+
+    if let Some(global) = global {
+        for g in global.iter() {
+            global_data.insert(g.name.to_string(), g.value.clone());
+        }
+    }
+
+    global_data
 }
 
 fn parse_global_arg(global_arg: &str) -> Result<GlobalArg, std::io::Error> {
@@ -893,7 +878,7 @@ async fn execute_request_tcp(
 }
 
 async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result<()> {
-    let mut client = LoaderClient::new(channel);
+    let mut client = BpfdClient::new(channel);
     match command {
         Commands::LoadFromFile(_) | Commands::LoadFromImage(_) => {
             let attach_info = match command.get_attach_info() {
@@ -915,9 +900,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
         }
 
         Commands::Unload(l) => {
-            let request = tonic::Request::new(UnloadRequest {
-                id: l.id.to_string(),
-            });
+            let request = tonic::Request::new(UnloadRequest { id: l.id });
             let _response = client.unload(request).await?.into_inner();
         }
         Commands::List(l) => {
@@ -925,21 +908,29 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
 
             let request = tonic::Request::new(ListRequest {
                 program_type: prog_type_filter,
+                match_metadata: l
+                    .metadata_selector
+                    .clone()
+                    .unwrap_or(vec![])
+                    .iter()
+                    .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                    .collect(),
                 bpfd_programs_only: Some(!l.all),
             });
             let response = client.list(request).await?.into_inner();
-            let mut table = ProgTable::new();
+            let mut table = ProgTable::new_list();
 
             for r in response.results {
                 if let Err(e) = table.add_response_prog(r) {
                     bail!(e)
                 }
             }
-            println!("{table}");
+            table.print();
         }
-        Commands::Get { kernel_id } => {
+        Commands::Get { id } => {
             let request = tonic::Request::new(ListRequest {
                 program_type: None,
+                match_metadata: HashMap::new(),
                 bpfd_programs_only: None,
             });
             let response = client.list(request).await?.into_inner();
@@ -947,12 +938,12 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
             let prog = response
                 .results
                 .iter()
-                .find(|r| r.bpf_id == *kernel_id)
-                .unwrap_or_else(|| panic!("No program with kernel ID {}", kernel_id));
+                .find(|r| r.id == *id)
+                .unwrap_or_else(|| panic!("No program with ID {}", id));
 
-            if let Err(e) = print_get(prog) {
-                bail!(e)
-            }
+            ProgTable::new_get_bpfd(prog)?.print();
+            println!("-------");
+            ProgTable::new_get_unsupported(prog)?.print();
         }
         Commands::PullBytecode(l) => {
             let image: BytecodeImage = l.try_into()?;
