@@ -160,8 +160,10 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 	r.Logger.V(1).WithValues("loaded-xdp-programs", programMap).Info("Existing XDP programs")
 
-	// Reconcile every XdpProgram Object
-	// note: This doesn't necessarily result in any extra grpc calls to bpfd
+	// Reconcile each XdpProgram. Don't return error here because it will trigger an infinite reconcile loop, instead
+	// report the error to user and retry if specified. For some errors the controller may not decide to retry.
+	// Note: This only results in grpc calls to bpfd if we need to change something
+	requeue := false // initialize requeue to false
 	for _, xdpProgram := range xdpPrograms.Items {
 		r.Logger.Info("XdpProgramController is reconciling", "currentXdpProgram", xdpProgram.Name)
 		r.currentXdpProgram = &xdpProgram
@@ -174,14 +176,35 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 		// Reconcile each XdpProgram. Don't return error here because it will trigger an infinite reconcile loop, instead
 		// report the error to user and retry if specified. For some errors the controller may not decide to retry.
-		retry, err := reconcileProgram(ctx, r, r.currentXdpProgram, &r.currentXdpProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
+		result, err := reconcileProgram(ctx, r, r.currentXdpProgram, &r.currentXdpProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
 		if err != nil {
-			r.Logger.Error(err, "Reconciling XdpProgram Failed", "XdpProgramName", r.currentXdpProgram.Name, "Retrying", retry)
-			return ctrl.Result{Requeue: retry, RequeueAfter: retryDurationAgent}, nil
+			r.Logger.Error(err, "Reconciling XdpProgram Failed", "XdpProgramName", r.currentXdpProgram.Name, "ReconcileResult", ReconcileResultToString(result))
+		}
+
+		switch result {
+		case Unchanged:
+			// Nothing changed, so continue to the next program in the list if there is one.
+		case Updated:
+			// Since a k8s object has been updated that will trigger a new
+			// reconcile for this object type, we want to exit the loop now to
+			// avoid having multiple reconciles happening concurrently.
+			return ctrl.Result{Requeue: false}, nil
+		case Requeue:
+			// A requeue has been requested.  Since there weren't any changes to
+			// k8s objects, we don't need to exit this loop now and can continue
+			// processing the rest of the programs in the list.
+			requeue = true
 		}
 	}
 
-	return ctrl.Result{Requeue: false}, nil
+	if requeue {
+		// A requeue has been requested
+		return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
+	} else {
+		// We've made it through all the programs in the list without anything being
+		// updated and a reque has not been requested.
+		return ctrl.Result{Requeue: false}, nil
+	}
 }
 
 func (r *XdpProgramReconciler) buildXdpLoadRequest(

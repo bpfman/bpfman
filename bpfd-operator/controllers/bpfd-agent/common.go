@@ -236,6 +236,36 @@ func (r *ReconcilerCommon) createBpfProgram(ctx context.Context,
 	return bpfProg, nil
 }
 
+type ReconcileResult uint8
+
+const (
+	// No changes were made to k8s objects, and rescheduling another reconcile
+	// is not necessary.
+	Unchanged ReconcileResult = 0
+	// Changes were made to k8s objects that we know will trigger another
+	// reconcile.  Calling code should return immediately to avoid multiple
+	// concurrent reconcile threads.
+	Updated ReconcileResult = 1
+	// A retry should be scheduled. This should only be used when "Updated"
+	// doesn't apply, but we want to trigger another reconcile anyway.  For
+	// example, there was a transient error. The calling code may continue
+	// reconciling other programs in it's list.
+	Requeue ReconcileResult = 2
+)
+
+func ReconcileResultToString(result ReconcileResult) string {
+	switch result {
+	case Unchanged:
+		return "Unchanged"
+	case Updated:
+		return "Updated"
+	case Requeue:
+		return "Requeue"
+	default:
+		return fmt.Sprintf("Unknown (%d)", result)
+	}
+}
+
 // reconcileProgram is called by ALL *Program controllers, and contains much of
 // the core logic for taking *Program objects, turning them into bpfProgram
 // object(s), and ultimately telling the custom controller types to load real
@@ -249,7 +279,7 @@ func reconcileProgram(ctx context.Context,
 	program client.Object,
 	common *bpfdiov1alpha1.BpfProgramCommon,
 	ourNode *v1.Node,
-	programMap map[string]*gobpfd.ListResponse_ListResult) (bool, error) {
+	programMap map[string]*gobpfd.ListResponse_ListResult) (ReconcileResult, error) {
 
 	// initialize reconciler state
 	r := rec.getRecCommon()
@@ -258,7 +288,7 @@ func reconcileProgram(ctx context.Context,
 	// OR if the *Program is being deleted.
 	isNodeSelected, err := isNodeSelected(&common.NodeSelector, ourNode.Labels)
 	if err != nil {
-		return false, fmt.Errorf("failed to check if node is selected: %v", err)
+		return Requeue, fmt.Errorf("failed to check if node is selected: %v", err)
 	}
 
 	isBeingDeleted := !program.GetDeletionTimestamp().IsZero()
@@ -267,7 +297,7 @@ func reconcileProgram(ctx context.Context,
 	// on this node.
 	existingPrograms, err := r.getExistingBpfProgs(ctx, program)
 	if err != nil {
-		return false, fmt.Errorf("failed to get existing bpfPrograms: %v", err)
+		return Requeue, fmt.Errorf("failed to get existing bpfPrograms: %v", err)
 	}
 
 	// Generate the list of BpfPrograms for this *Program. This handles the one
@@ -275,14 +305,14 @@ func reconcileProgram(ctx context.Context,
 	// interfaces because of PodSelector)
 	expectedPrograms, err := rec.expectedBpfPrograms(ctx)
 	if err != nil {
-		return true, fmt.Errorf("failed to get expected bpfPrograms: %v", err)
+		return Requeue, fmt.Errorf("failed to get expected bpfPrograms: %v", err)
 	}
 
 	// Determine if the MapOwnerSelector was set, and if so, see if the MapOwner
 	// UUID can be found.
 	mapOwnerStatus, err := ProcessMapOwnerParam(ctx, &common.MapOwnerSelector, r)
 	if err != nil {
-		return false, fmt.Errorf("failed to determine map owner: %v", err)
+		return Requeue, fmt.Errorf("failed to determine map owner: %v", err)
 	}
 	r.Logger.V(1).Info("ProcessMapOwnerParam",
 		"isSet", mapOwnerStatus.isSet,
@@ -312,15 +342,15 @@ func reconcileProgram(ctx context.Context,
 			)
 			if err != nil {
 				r.updateStatus(ctx, &prog, cond)
-				return true, fmt.Errorf("failed to delete bpfd program: %v", err)
+				return Requeue, fmt.Errorf("failed to delete bpfd program: %v", err)
 			}
 
 			if r.removeFinalizer(ctx, &prog, rec.getFinalizer()) {
-				return false, nil
+				return Updated, nil
 			}
 
 			if r.updateStatus(ctx, &prog, cond) {
-				return false, nil
+				return Updated, nil
 			}
 		}
 	// If the *Program isn't being deleted ALWAYS create the bpfPrograms
@@ -332,10 +362,10 @@ func reconcileProgram(ctx context.Context,
 				opts := client.CreateOptions{}
 				r.Logger.Info("creating bpfProgram", "Name", expectedProg.Name, "Owner", program.GetName())
 				if err := r.Create(ctx, &expectedProg, &opts); err != nil {
-					return true, fmt.Errorf("failed to create bpfProgram object: %v", err)
+					return Requeue, fmt.Errorf("failed to create bpfProgram object: %v", err)
 				}
 				existingPrograms[expectedProg.Name] = prog
-				return false, nil
+				return Updated, nil
 			}
 
 			// bpfProgram Object exists go ahead and reconcile it, if there is
@@ -351,41 +381,40 @@ func reconcileProgram(ctx context.Context,
 			if err != nil {
 				if r.updateStatus(ctx, &prog, cond) {
 					// Return an error the first time.
-					return false, fmt.Errorf("failed to reconcile bpfd program: %v", err)
-				} else {
-					continue
+					return Updated, fmt.Errorf("failed to reconcile bpfd program: %v", err)
 				}
-			}
+			} else {
+				// Make sure if we're not selected exit and write correct condition
+				if cond == bpfdiov1alpha1.BpfProgCondNotSelected ||
+					cond == bpfdiov1alpha1.BpfProgCondMapOwnerNotFound ||
+					cond == bpfdiov1alpha1.BpfProgCondMapOwnerNotLoaded {
+					// Write NodeNodeSelected status
+					if r.updateStatus(ctx, &prog, cond) {
+						r.Logger.V(1).Info("Update condition from bpfd reconcile", "condition", cond)
+						return Updated, nil
+					}
+				}
 
-			// Make sure if we're not selected exit and write correct condition
-			if cond == bpfdiov1alpha1.BpfProgCondNotSelected ||
-				cond == bpfdiov1alpha1.BpfProgCondMapOwnerNotFound ||
-				cond == bpfdiov1alpha1.BpfProgCondMapOwnerNotLoaded {
-				// Write NodeNodeSelected status
+				// If bpfProgram Maps isn't up to date just update it and return
+				if !reflect.DeepEqual(prog.Spec.Maps, r.expectedMaps) && len(r.expectedMaps) != 0 {
+					r.Logger.V(1).Info("Updating bpfProgram Object", "Maps", r.expectedMaps, "bpfProgram", prog.Name)
+					prog.Spec.Maps = r.expectedMaps
+					if err := r.Update(ctx, &prog, &client.UpdateOptions{}); err != nil {
+						return Requeue, fmt.Errorf("failed to update bpfProgram's Programs: %v", err)
+					}
+					return Updated, nil
+				}
+
 				if r.updateStatus(ctx, &prog, cond) {
-					r.Logger.V(1).Info("Update condition from bpfd reconcile", "condition", cond)
-					return false, nil
+					return Updated, nil
 				}
-			}
 
-			// If bpfProgram Maps isn't up to date just update it and return
-			if !reflect.DeepEqual(prog.Spec.Maps, r.expectedMaps) && len(r.expectedMaps) != 0 {
-				r.Logger.V(1).Info("Updating bpfProgram Object", "Maps", r.expectedMaps, "bpfProgram", prog.Name)
-				prog.Spec.Maps = r.expectedMaps
-				if err := r.Update(ctx, &prog, &client.UpdateOptions{}); err != nil {
-					return true, fmt.Errorf("failed to update bpfProgram's Programs: %v", err)
-				}
-				return false, nil
-			}
-
-			if r.updateStatus(ctx, &prog, cond) {
-				return false, nil
 			}
 		}
 	}
 
-	// nothing to do
-	return false, nil
+	// We didn't already return something else, so there's nothing to do
+	return Unchanged, nil
 }
 
 // MapOwnerParamStatus provides the output from a MapOwerSelector being parsed.
