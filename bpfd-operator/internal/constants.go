@@ -198,3 +198,34 @@ func (p ProgramType) String() string {
 		return "INVALID_PROG_TYPE"
 	}
 }
+
+type ReconcileResult uint8
+
+const (
+	// No changes were made to k8s objects, and rescheduling another reconcile
+	// is not necessary. The calling code may continue reconciling other
+	// programs in it's list.
+	Unchanged ReconcileResult = 0
+	// Changes were made to k8s objects that we know will trigger another
+	// reconcile.  Calling code should stop reconciling additional programs and
+	// return immediately to avoid multiple concurrent reconcile threads.
+	Updated ReconcileResult = 1
+	// A retry should be scheduled. This should only be used when "Updated"
+	// doesn't apply, but we want to trigger another reconcile anyway.  For
+	// example, there was a transient error. The calling code may continue
+	// reconciling other programs in it's list.
+	Requeue ReconcileResult = 2
+)
+
+func (r ReconcileResult) String() string {
+	switch r {
+	case Unchanged:
+		return "Unchanged"
+	case Updated:
+		return "Updated"
+	case Requeue:
+		return "Requeue"
+	default:
+		return fmt.Sprintf("INVALID RECONCILE RESULT (%d)", r)
+	}
+}

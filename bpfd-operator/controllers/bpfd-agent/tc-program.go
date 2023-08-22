@@ -190,20 +190,17 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 		result, err := reconcileProgram(ctx, r, r.currentTcProgram, &r.currentTcProgram.Spec.BpfProgramCommon, r.ourNode, existingPrograms)
 		if err != nil {
-			r.Logger.Error(err, "Reconciling TcProgram Failed", "TcProgramName", r.currentTcProgram.Name, "ReconcileResult", ReconcileResultToString(result))
+			r.Logger.Error(err, "Reconciling TcProgram Failed", "TcProgramName", r.currentTcProgram.Name, "ReconcileResult", result.String())
 		}
+
 		switch result {
-		case Unchanged:
-			// Nothing changed, so continue to the next program in the list if there is one.
-		case Updated:
-			// Since a k8s object has been updated that will trigger a new
-			// reconcile for this object type, we want to exit the loop now to
-			// avoid having multiple reconciles happening concurrently.
+		case internal.Unchanged:
+			// continue with next program
+		case internal.Updated:
+			// return
 			return ctrl.Result{Requeue: false}, nil
-		case Requeue:
-			// A requeue has been requested.  Since there weren't any changes to
-			// k8s objects, we don't need to exit this loop now and can continue
-			// processing the rest of the programs in the list.
+		case internal.Requeue:
+			// remember to do a requeue when we're done and continue with next program
 			requeue = true
 		}
 	}
@@ -260,6 +257,15 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	var err error
 	id := string(bpfProgram.UID)
 
+	getLoadRequest := func() (*gobpfd.LoadRequest, bpfdiov1alpha1.BpfProgramConditionType, error) {
+		bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
+		if err != nil {
+			return nil, bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
+		}
+		loadRequest := r.buildTcLoadRequest(bytecode, id, iface, mapOwnerStatus.mapOwnerUuid)
+		return loadRequest, bpfdiov1alpha1.BpfProgCondNone, nil
+	}
+
 	existingProgram, doesProgramExist := existingBpfPrograms[id]
 	if !doesProgramExist {
 		r.Logger.V(1).Info("TcProgram doesn't exist on node for iface", "interface", iface)
@@ -285,12 +291,10 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		}
 
 		// otherwise load it
-		bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
+		loadRequest, condition, err := getLoadRequest()
 		if err != nil {
-			return bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
+			return condition, err
 		}
-
-		loadRequest := r.buildTcLoadRequest(bytecode, id, iface, mapOwnerStatus.mapOwnerUuid)
 
 		r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
@@ -336,12 +340,10 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	}
 
 	// BpfProgram exists but is not correct state, unload and recreate
-	bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
+	loadRequest, condition, err := getLoadRequest()
 	if err != nil {
-		return bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
+		return condition, err
 	}
-
-	loadRequest := r.buildTcLoadRequest(bytecode, id, iface, mapOwnerStatus.mapOwnerUuid)
 
 	isSame, reasons := bpfdagentinternal.DoesProgExist(existingProgram, loadRequest)
 	if !isSame {
