@@ -194,7 +194,7 @@ impl XdpDispatcher {
 
                 let target_fn = format!("prog{i}");
 
-                ext.load(dispatcher.fd().unwrap(), &target_fn)?;
+                ext.load(dispatcher.fd()?.try_clone()?, &target_fn)?;
                 v.data.kernel_info = Some(ext.program_info()?.try_into()?);
 
                 ext.pin(format!("{RTDIR_FS}/prog_{k}"))

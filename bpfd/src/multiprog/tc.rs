@@ -31,7 +31,7 @@ use crate::{
 
 const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the dispatcher
 const TC_DISPATCHER_PRIORITY: u16 = 50; // Default TC priority for TC Dispatcher
-const DISPATCHER_PROGRAM_NAME: &str = "dispatcher";
+const DISPATCHER_PROGRAM_NAME: &str = "tc_dispatcher";
 
 static DISPATCHER_BYTES: &[u8] = include_bytes_aligned!("../../../.output/tc_dispatcher.bpf.o");
 
@@ -215,7 +215,7 @@ impl TcDispatcher {
 
                 let target_fn = format!("prog{i}");
 
-                ext.load(dispatcher.fd().unwrap(), &target_fn)?;
+                ext.load(dispatcher.fd()?.try_clone()?, &target_fn)?;
                 v.data.kernel_info = Some(ext.program_info()?.try_into()?);
 
                 ext.pin(format!("{RTDIR_FS}/prog_{k}"))
