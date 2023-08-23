@@ -176,6 +176,8 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	// Reconcile each TcProgram. Don't return error here because it will trigger an infinite reconcile loop, instead
 	// report the error to user and retry if specified. For some errors the controller may not decide to retry.
+	// Note: This only results in grpc calls to bpfd if we need to change something
+	requeue := false // initialize requeue to false
 	for _, tcProgram := range tcPrograms.Items {
 		r.Logger.Info("TcProgramController is reconciling", "key", req)
 		r.currentTcProgram = &tcProgram
@@ -186,21 +188,64 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 		}
 
-		retry, err := reconcileProgram(ctx, r, r.currentTcProgram, &r.currentTcProgram.Spec.BpfProgramCommon, r.ourNode, existingPrograms)
+		result, err := reconcileProgram(ctx, r, r.currentTcProgram, &r.currentTcProgram.Spec.BpfProgramCommon, r.ourNode, existingPrograms)
 		if err != nil {
-			r.Logger.Error(err, "Reconciling TcProgram Failed", "TcProgramName", r.currentTcProgram.Name, "Retrying", retry)
-			return ctrl.Result{Requeue: retry, RequeueAfter: retryDurationAgent}, nil
+			r.Logger.Error(err, "Reconciling TcProgram Failed", "TcProgramName", r.currentTcProgram.Name, "ReconcileResult", result.String())
+		}
+
+		switch result {
+		case internal.Unchanged:
+			// continue with next program
+		case internal.Updated:
+			// return
+			return ctrl.Result{Requeue: false}, nil
+		case internal.Requeue:
+			// remember to do a requeue when we're done and continue with next program
+			requeue = true
 		}
 	}
 
-	return ctrl.Result{Requeue: false}, nil
+	if requeue {
+		// A requeue has been requested
+		return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
+	} else {
+		// We've made it through all the programs in the list without anything being
+		// updated and a reque has not been requested.
+		return ctrl.Result{Requeue: false}, nil
+	}
+}
+
+func (r *TcProgramReconciler) buildTcLoadRequest(
+	bytecode interface{},
+	id string,
+	iface string,
+	mapOwnerUuid types.UID) *gobpfd.LoadRequest {
+	loadRequest := &gobpfd.LoadRequest{}
+	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
+		bytecode,
+		r.currentTcProgram.Spec.SectionName,
+		internal.Tc,
+		string(id),
+		r.currentTcProgram.Spec.GlobalData,
+		mapOwnerUuid,
+	)
+	loadRequest.AttachInfo = &gobpfd.LoadRequest_TcAttachInfo{
+		TcAttachInfo: &gobpfd.TCAttachInfo{
+			Priority:  r.currentTcProgram.Spec.Priority,
+			Iface:     iface,
+			Direction: r.currentTcProgram.Spec.Direction,
+			ProceedOn: tcProceedOnToInt(r.currentTcProgram.Spec.ProceedOn),
+		},
+	}
+
+	return loadRequest
 }
 
 // reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
 // It does not interact with the k8s API in any way.
 func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	existingBpfPrograms map[string]*gobpfd.ListResponse_ListResult,
-	bytecode interface{},
+	bytecodeSelector *bpfdiov1alpha1.BytecodeSelector,
 	bpfProgram *bpfdiov1alpha1.BpfProgram,
 	isNodeSelected bool,
 	isBeingDeleted bool,
@@ -209,25 +254,16 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	r.Logger.V(1).Info("Existing bpfProgramMaps", "ExistingMaps", bpfProgram.Spec.Maps)
 	iface := bpfProgram.Annotations[internal.TcProgramInterface]
 
-	loadRequest := &gobpfd.LoadRequest{}
 	var err error
 	id := string(bpfProgram.UID)
-	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
-		bytecode,
-		r.currentTcProgram.Spec.SectionName,
-		internal.Tc,
-		string(id),
-		r.currentTcProgram.Spec.GlobalData,
-		mapOwnerStatus.mapOwnerUuid,
-	)
 
-	loadRequest.AttachInfo = &gobpfd.LoadRequest_TcAttachInfo{
-		TcAttachInfo: &gobpfd.TCAttachInfo{
-			Priority:  r.currentTcProgram.Spec.Priority,
-			Iface:     iface,
-			Direction: r.currentTcProgram.Spec.Direction,
-			ProceedOn: tcProceedOnToInt(r.currentTcProgram.Spec.ProceedOn),
-		},
+	getLoadRequest := func() (*gobpfd.LoadRequest, bpfdiov1alpha1.BpfProgramConditionType, error) {
+		bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
+		if err != nil {
+			return nil, bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
+		}
+		loadRequest := r.buildTcLoadRequest(bytecode, id, iface, mapOwnerStatus.mapOwnerUuid)
+		return loadRequest, bpfdiov1alpha1.BpfProgCondNone, nil
 	}
 
 	existingProgram, doesProgramExist := existingBpfPrograms[id]
@@ -255,6 +291,11 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		}
 
 		// otherwise load it
+		loadRequest, condition, err := getLoadRequest()
+		if err != nil {
+			return condition, err
+		}
+
 		r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load TcProgram")
@@ -299,6 +340,11 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	}
 
 	// BpfProgram exists but is not correct state, unload and recreate
+	loadRequest, condition, err := getLoadRequest()
+	if err != nil {
+		return condition, err
+	}
+
 	isSame, reasons := bpfdagentinternal.DoesProgExist(existingProgram, loadRequest)
 	if !isSame {
 		r.Logger.V(1).Info("TcProgram is in wrong state, unloading and reloading", "Reason", reasons)

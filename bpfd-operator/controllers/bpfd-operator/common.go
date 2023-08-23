@@ -82,7 +82,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 		return ctrl.Result{}, nil
 	}
 
-	// List all nodes since an bpfprogram object will always be created for each
+	// List all nodes since a bpfprogram object will always be created for each
 	nodes := &corev1.NodeList{}
 	if err := r.List(ctx, nodes, &client.ListOptions{}); err != nil {
 		r.Logger.Error(err, "failed getting nodes for full reconcile")
