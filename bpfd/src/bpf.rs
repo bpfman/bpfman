@@ -190,6 +190,7 @@ impl BpfManager {
         // This load is just to verify the Section Name is valid.
         // The actual load is performed in the XDP or TC logic.
         let mut ext_loader = BpfLoader::new()
+            .allow_unsupported_maps()
             .extension(&program.data().section_name)
             .map_pin_path(map_pin_path.clone())
             .load(&program_bytes)?;
@@ -284,6 +285,7 @@ impl BpfManager {
         }
 
         let mut loader = loader
+            .allow_unsupported_maps()
             .map_pin_path(map_pin_path.clone())
             .load(&program_bytes)?;
 
