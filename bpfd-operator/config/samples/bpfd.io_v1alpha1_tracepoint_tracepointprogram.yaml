@@ -13,3 +13,11 @@ spec:
   bytecode:
     image:
       url: quay.io/bpfd-bytecode/tracepoint:latest
+  globaldata:
+    GLOBAL_u8:
+      - 0x01 
+    GLOBAL_u32:
+      - 0x0D
+      - 0x0C
+      - 0x0B
+      - 0x0A
