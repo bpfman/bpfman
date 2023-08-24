@@ -13,6 +13,16 @@ docker build \
 docker push quay.io/bpfd-bytecode/xdp_pass
 
 docker build \
+ --build-arg PROGRAM_NAME=xdp_pass_private \
+ --build-arg SECTION_NAME=pass \
+ --build-arg PROGRAM_TYPE=xdp \
+ --build-arg BYTECODE_FILENAME=xdp_pass.bpf.o \
+ -f ../../../packaging/container-deployment/Containerfile.bytecode \
+ ./.output -t quay.io/bpfd-bytecode/xdp_pass_private:latest
+
+docker push quay.io/bpfd-bytecode/xdp_pass_private
+
+docker build \
  --build-arg PROGRAM_NAME=tc_pass \
  --build-arg SECTION_NAME=pass \
  --build-arg PROGRAM_TYPE=tc \
@@ -24,7 +34,7 @@ docker push quay.io/bpfd-bytecode/tc_pass
 
 docker build \
  --build-arg PROGRAM_NAME=tracepoint \
- --build-arg SECTION_NAME=sys_enter_openat \
+ --build-arg SECTION_NAME=enter_openat \
  --build-arg PROGRAM_TYPE=tracepoint \
  --build-arg BYTECODE_FILENAME=tp_openat.bpf.o \
  -f ../../../packaging/container-deployment//Containerfile.bytecode \

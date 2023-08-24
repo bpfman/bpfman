@@ -110,11 +110,22 @@ build-us-images: ## Build all example userspace images
 	docker build -t ${IMAGE_TP_US} -f ./go-tracepoint-counter/container-deployment/Containerfile.go-tracepoint-counter ../
 	docker build -t ${IMAGE_XDP_US} -f ./go-xdp-counter/container-deployment/Containerfile.go-xdp-counter ../
 
+.PHONY: build-bc-images
+build-bc-images: ## Build bytecode example userspace images
+	IMAGE_TC_BC=${IMAGE_TC_US} IMAGE_TP_BC=${IMAGE_TP_US} IMAGE_XDP_BC=${IMAGE_XDP_US} ./build-bytecode-images.sh
+
 .PHONY: push-us-images
 push-us-images: ## Push all example userspace images
 	docker push ${IMAGE_TC_US}
 	docker push ${IMAGE_TP_US}
 	docker push ${IMAGE_XDP_US}
+
+.PHONY: push-bc-images
+push-bc-images: ## Push all example userspace images
+	docker push ${IMAGE_TC_BC}
+	docker push ${IMAGE_TP_BC}
+	docker push ${IMAGE_XDP_BC}
+
 
 .PHONY: load-us-images-kind
 load-us-images-kind: build-us-images ## Build and load all example userspace images into kind

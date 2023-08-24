@@ -182,6 +182,7 @@ impl XdpDispatcher {
 
                 let (_, map_pin_path) = calc_map_pin_path(**k, v.data.map_owner_uuid);
                 let mut bpf = bpf
+                    .allow_unsupported_maps()
                     .map_pin_path(map_pin_path.clone())
                     .extension(&v.data.section_name)
                     .load(&program_bytes)
@@ -194,7 +195,7 @@ impl XdpDispatcher {
 
                 let target_fn = format!("prog{i}");
 
-                ext.load(dispatcher.fd().unwrap(), &target_fn)?;
+                ext.load(dispatcher.fd()?.try_clone()?, &target_fn)?;
                 v.data.kernel_info = Some(ext.program_info()?.try_into()?);
 
                 ext.pin(format!("{RTDIR_FS}/prog_{k}"))

@@ -214,19 +214,19 @@ impl TryFrom<AyaProgInfo> for KernelProgramInfo {
         Ok(KernelProgramInfo {
             id: prog.id(),
             name: prog.name_as_str().unwrap().to_string(),
-            program_type: prog.type_(),
+            program_type: prog.program_type(),
             loaded_at: DateTime::<Local>::from(prog.loaded_at())
                 .format("%Y-%m-%dT%H:%M:%S%z")
                 .to_string(),
             tag: format!("{:x}", prog.tag()),
             gpl_compatible: prog.gpl_compatible(),
             map_ids: prog.map_ids().map_err(BpfdError::BpfProgramError)?,
-            btf_id: prog.btf_id(),
-            bytes_xlated: prog.bytes_xlated(),
-            jited: prog.bytes_jited() != 0,
-            bytes_jited: prog.bytes_jited(),
-            bytes_memlock: prog.bytes_memlock().map_err(BpfdError::BpfProgramError)?,
-            verified_insns: prog.verified_insns(),
+            btf_id: prog.btf_id().map_or(0, |n| n.into()),
+            bytes_xlated: prog.size_translated(),
+            jited: prog.size_jitted() != 0,
+            bytes_jited: prog.size_jitted(),
+            bytes_memlock: prog.memory_locked().map_err(BpfdError::BpfProgramError)?,
+            verified_insns: prog.verified_instruction_count(),
         })
     }
 }
