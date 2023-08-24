@@ -68,7 +68,12 @@ func (r *DiscoveredProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // Reconcile ALL discovered bpf programs on the system whenever an event is received.
 func (r *DiscoveredProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Logger = log.FromContext(ctx)
+	r.Logger = ctrl.Log.WithName("discvr")
+
+	// The Discovery Reconciler gets called more than others so this tends to be a noisy log,
+	// so moved to a Trace log.
+	ctxLogger := log.FromContext(ctx)
+	ctxLogger.V(2).Info("Reconcile DiscoveredProgs: Enter", "ReconcileKey", req)
 
 	// Get existing ebpf state from bpfd.
 	programs, err := bpfdagentinternal.ListAllPrograms(ctx, r.BpfdClient)
@@ -128,11 +133,10 @@ func (r *DiscoveredProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		existingBpfProg, ok := existingProgramIndex[bpfProgName]
 		// If the bpfProgram object doesn't exist create it.
 		if !ok {
-			r.Logger.V(1).Info("Creating discovered bpfProgram object", "name", expectedBpfProg.Name)
+			r.Logger.Info("Creating discovered bpfProgram object", "name", expectedBpfProg.Name)
 			err = r.Create(ctx, expectedBpfProg)
 			if err != nil {
 				r.Logger.Error(err, "failed to create bpfProgram object")
-				return ctrl.Result{Requeue: false}, nil
 			}
 
 			return ctrl.Result{Requeue: false}, nil
@@ -152,7 +156,7 @@ func (r *DiscoveredProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Delete any stale discovered programs
 	for _, prog := range existingProgramIndex {
-		r.Logger.V(1).Info("Deleting stale discovered bpfProgram object", "name", prog.Name)
+		r.Logger.Info("Deleting stale discovered bpfProgram object", "name", prog.Name)
 		if err := r.Delete(ctx, &prog, &client.DeleteOptions{}); err != nil {
 			r.Logger.Error(err, "failed to delete stale discoverd bpfProgram object", "name", prog.Name)
 		}

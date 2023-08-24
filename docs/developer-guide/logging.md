@@ -92,7 +92,7 @@ sudo systemctl stop bpfd.service
 ## Kubernetes Deployment
 
 When `bpfd` is run in a Kubernetes deployment, there is the bpfd Daemonset that runs on every node
-and the bpd Operator that runns on the control plane:
+and the bpd Operator that runs on the control plane:
 
 ```console
 kubectl get pods -A
@@ -107,7 +107,10 @@ bpfd                 bpfd-operator-7fbf4888c4-z8w76                          2/2
 ### bpfd Daemonset
 
 `bpfd` and `bpfd-agent` are running in the bpfd daemonset.
-To see the logs:
+
+#### View Logs
+
+To view the `bpfd` logs:
 
 ```console
 kubectl logs -n bpfd bpfd-daemon-dgqzw -c bpfd
@@ -116,6 +119,8 @@ kubectl logs -n bpfd bpfd-daemon-dgqzw -c bpfd
 [2023-05-05T14:41:26Z INFO  bpfd] Has CAP_SYS_ADMIN: true
 :
 ```
+
+To view the `bpfd-agent` logs:
 
 ```console
 kubectl logs -n bpfd bpfd-daemon-dgqzw -c bpfd-agent
@@ -126,6 +131,8 @@ kubectl logs -n bpfd bpfd-daemon-dgqzw -c bpfd-agent
 :
 ```
 
+#### Change Log Level
+
 To change the log level, edit the `bpfd-config` ConfigMap.
 The `bpfd-operator` will detect the change and restart the bpfd daemonset with the updated values.
 
@@ -135,7 +142,7 @@ apiVersion: v1
 data:
   bpfd.agent.image: quay.io/bpfd/bpfd-agent:latest
   bpfd.image: quay.io/bpfd/bpfd:latest
-  bpfd.log.level: debug                 <==== Set Log Level Here
+  bpfd.log.level: debug                 <==== Set bpfd-agent Log Level Here
   bpfd.toml: |
     [tls] # REQUIRED
     ca_cert = "/etc/bpfd/certs/ca/ca.crt"
@@ -148,6 +155,7 @@ metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
       {"apiVersion":"v1","data":{"bpfd.agent.image":"quay.io/bpfd/bpfd-agent:latest","bpfd.image":"quay.io/bpfd/bpfd:latest","bpfd.log.level":"debug","bpfd.na>
+                                                                              Set bpfd Log Level Here =========================================^^^^^
   creationTimestamp: "2023-05-05T14:41:19Z"
   name: bpfd-config
   namespace: bpfd
@@ -155,11 +163,23 @@ metadata:
   uid: 0cc04af4-032c-4712-b824-748b321d319b
 ```
 
+Valid values are:
+
+* `error`
+* `info`
+* `debug`
+* `trace`
+
+`trace` can be very verbose.
+
 ### bpfd Operator
 
 The bpfd Operator is running as a Deployment with a ReplicaSet of one.
 It runs with the containers `bpfd-operator` and `kube-rbac-proxy`.
-To see the logs:
+
+#### View Logs
+
+To view the `bpfd-operator` logs:
 
 ```console
 kubectl logs -n bpfd bpfd-operator-7fbf4888c4-z8w76 -c bpfd-operator
@@ -173,6 +193,8 @@ I0509 18:37:11.268918       1 leaderelection.go:258] successfully acquired lease
 :
 ```
 
+To view the `kube-rbac-proxy` logs:
+
 ```console
 kubectl logs -n bpfd bpfd-operator-7fbf4888c4-z8w76 -c kube-rbac-proxy
 I0509 18:37:11.063386       1 main.go:186] Valid token audiences: 
@@ -181,9 +203,10 @@ I0509 18:37:11.955256       1 main.go:366] Starting TCP socket on 0.0.0.0:8443
 I0509 18:37:11.955849       1 main.go:373] Listening securely on 0.0.0.0:8443
 ```
 
+#### Change Log Level
+
 To change the log level, edit the `bpfd-operator` Deployment.
 The change will get detected and the bpfd operator pod will get restarted with the updated log level.
-
 
 ```console
 kubectl edit deployment -n bpfd bpfd-operator
@@ -219,3 +242,10 @@ spec:
         imagePullPolicy: IfNotPresent
 :
 ```
+
+Valid values are:
+
+* `error`
+* `info`
+* `debug`
+* `trace`
