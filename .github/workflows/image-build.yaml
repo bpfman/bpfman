@@ -389,7 +389,7 @@ jobs:
           ./packaging/container-deployment/Containerfile.bytecode
         build-args: |
           PROGRAM_NAME=go-xdp-counter
-          SECTION_NAME=stats
+          SECTION_NAME=xdp_stats
           PROGRAM_TYPE=xdp
           BYTECODE_FILENAME=bpf_bpfel.o
 

@@ -13,3 +13,4 @@ spec:
   bytecode:
     image:
       url: quay.io/bpfd-bytecode/go-tracepoint-counter:latest
+      imagepullpolicy: Always
