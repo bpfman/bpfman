@@ -408,20 +408,24 @@ impl ProgramData {
         match self.location.get_program_bytes().await {
             Err(e) => Err(e),
             Ok((v, s)) => {
-                // If section name isn't provided and we're loading from a container
-                // image use the section name provided in the image metadata, otherwise
-                // always use the provided section name.
-                let provided_sec_name = self.section_name.clone();
+                match self.location {
+                    Location::Image(_) => {
+                        // If section name isn't provided and we're loading from a container
+                        // image use the section name provided in the image metadata, otherwise
+                        // always use the provided section name.
+                        let provided_sec_name = self.section_name.clone();
 
-                if provided_sec_name.is_empty() {
-                    self.section_name = s;
-                } else if s != provided_sec_name {
-                    return Err(BpfdError::BytecodeMetaDataMismatch {
-                        image_sec_name: s,
-                        provided_sec_name,
-                    });
+                        if provided_sec_name.is_empty() {
+                            self.section_name = s;
+                        } else if s != provided_sec_name {
+                            return Err(BpfdError::BytecodeMetaDataMismatch {
+                                image_sec_name: s,
+                                provided_sec_name,
+                            });
+                        }
+                    }
+                    Location::File(_) => {}
                 }
-
                 Ok(v)
             }
         }
