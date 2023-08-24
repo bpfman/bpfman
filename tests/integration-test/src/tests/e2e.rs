@@ -1,4 +1,4 @@
-use std::{path::PathBuf, thread::sleep, time::Duration};
+use std::{thread::sleep, time::Duration};
 
 use bpfd_api::util::directories::{RTDIR_FS_TC_EGRESS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP};
 use log::debug;
@@ -45,6 +45,7 @@ fn test_proceed_on_xdp() {
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
+        &LoadType::Image,
     )
     .unwrap();
     uuids.push(uuid);
@@ -70,6 +71,7 @@ fn test_proceed_on_xdp() {
         50,
         Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["drop", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
     )
     .unwrap();
     uuids.push(uuid);
@@ -96,6 +98,7 @@ fn test_proceed_on_xdp() {
         50,
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["pass", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
     )
     .unwrap();
     uuids.push(uuid);
@@ -116,18 +119,7 @@ fn test_proceed_on_xdp() {
     assert!(trace_pipe_log.contains(XDP_GLOBAL_3_LOG));
     debug!("Successfully completed xdp proceed-on test");
 
-    // Delete the installed programs
-    debug!("Deleting bpfd programs");
-    for id in uuids.iter() {
-        bpfd_del_program(id)
-    }
-
-    // Verify bpfctl list does not contain the uuids of the deleted programs
-    // and that there are no panics if bpfctl does not contain any programs.
-    let bpfctl_list = bpfd_list().unwrap();
-    for id in uuids.iter() {
-        assert!(!bpfctl_list.contains(id));
-    }
+    verify_and_delete_programs(uuids);
 }
 
 #[integration_test]
@@ -148,6 +140,7 @@ fn test_proceed_on_tc() {
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
+        &LoadType::Image,
     )
     .unwrap();
     uuids.push(uuid);
@@ -159,6 +152,7 @@ fn test_proceed_on_tc() {
         75,
         Some([GLOBAL_4, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
+        &LoadType::Image,
     )
     .unwrap();
     uuids.push(uuid);
@@ -186,6 +180,7 @@ fn test_proceed_on_tc() {
         50,
         Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["shot", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
     )
     .unwrap();
     uuids.push(uuid);
@@ -197,6 +192,7 @@ fn test_proceed_on_tc() {
         50,
         Some([GLOBAL_5, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["shot", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
     )
     .unwrap();
     uuids.push(uuid);
@@ -227,6 +223,7 @@ fn test_proceed_on_tc() {
         50,
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
     )
     .unwrap();
     uuids.push(uuid);
@@ -238,6 +235,7 @@ fn test_proceed_on_tc() {
         50,
         Some([GLOBAL_6, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
     )
     .unwrap();
     uuids.push(uuid);
@@ -262,18 +260,7 @@ fn test_proceed_on_tc() {
     assert!(trace_pipe_log.contains(TC_EG_GLOBAL_6_LOG));
     debug!("Successfully completed tc egress proceed-on test");
 
-    // Delete the installed programs
-    debug!("Deleting bpfd programs");
-    for id in uuids.iter() {
-        bpfd_del_program(id)
-    }
-
-    // Verify bpfctl list does not contain the uuids of the deleted programs
-    // and that there are no panics if bpfctl does not contain any programs.
-    let bpfctl_list = bpfd_list().unwrap();
-    for id in uuids.iter() {
-        assert!(!bpfctl_list.contains(id));
-    }
+    verify_and_delete_programs(uuids);
 }
 
 #[integration_test]
@@ -293,21 +280,13 @@ fn test_program_execution_with_global_variables() {
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
+        &LoadType::Image,
     )
     .unwrap();
 
-    // Verify bpfctl list contains the uuid
-    let bpfctl_list = bpfd_list().unwrap();
-    assert!(bpfctl_list.contains(&uuid));
-
     uuids.push(uuid);
 
-    // Verify the bppfs has entries
-    assert!(PathBuf::from(RTDIR_FS_XDP)
-        .read_dir()
-        .unwrap()
-        .next()
-        .is_some());
+    assert!(bpffs_has_entries(RTDIR_FS_XDP));
 
     debug!("Installing tc ingress program");
     let uuid = add_tc_pass(
@@ -316,21 +295,13 @@ fn test_program_execution_with_global_variables() {
         50,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
+        &LoadType::Image,
     )
     .unwrap();
 
-    // Verify bpfctl list contains the uuid
-    let bpfctl_list = bpfd_list().unwrap();
-    assert!(bpfctl_list.contains(&uuid));
-
     uuids.push(uuid);
 
-    // Verify the bppfs has entries
-    assert!(PathBuf::from(RTDIR_FS_TC_INGRESS)
-        .read_dir()
-        .unwrap()
-        .next()
-        .is_some());
+    assert!(bpffs_has_entries(RTDIR_FS_TC_INGRESS));
 
     debug!("Installing tc egress program");
     let uuid = add_tc_pass(
@@ -339,64 +310,56 @@ fn test_program_execution_with_global_variables() {
         50,
         Some([GLOBAL_4, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
+        &LoadType::Image,
     )
     .unwrap();
 
-    // Verify bpfctl list contains the uuid
-    let bpfctl_list = bpfd_list().unwrap();
-    assert!(bpfctl_list.contains(&uuid));
-
     uuids.push(uuid);
 
-    // Verify the bppfs has entries
-    assert!(PathBuf::from(RTDIR_FS_TC_EGRESS)
-        .read_dir()
-        .unwrap()
-        .next()
-        .is_some());
+    assert!(bpffs_has_entries(RTDIR_FS_TC_EGRESS));
 
     debug!("Installing tracepoint program");
-    let uuid = add_tracepoint(Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec())).unwrap();
-
-    // Verify bpfctl list contains the uuid
-    let bpfctl_list = bpfd_list().unwrap();
-    assert!(bpfctl_list.contains(&uuid));
+    let uuid = add_tracepoint(
+        Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        &LoadType::Image,
+    )
+    .unwrap();
 
     uuids.push(uuid);
 
     debug!("Installing uprobe program");
-    let uuid = add_uprobe(Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec())).unwrap();
-
-    // Verify bpfctl list contains the uuid
-    let bpfctl_list = bpfd_list().unwrap();
-    assert!(bpfctl_list.contains(&uuid));
+    let uuid = add_uprobe(
+        Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        &LoadType::Image,
+    )
+    .unwrap();
 
     uuids.push(uuid);
 
     debug!("Installing uretprobe program");
-    let uuid = add_uretprobe(Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec())).unwrap();
-
-    // Verify bpfctl list contains the uuid
-    let bpfctl_list = bpfd_list().unwrap();
-    assert!(bpfctl_list.contains(&uuid));
+    let uuid = add_uretprobe(
+        Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        &LoadType::Image,
+    )
+    .unwrap();
 
     uuids.push(uuid);
 
     debug!("Installing kprobe program");
-    let uuid = add_kprobe(Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec())).unwrap();
-
-    // Verify bpfctl list contains the uuid
-    let bpfctl_list = bpfd_list().unwrap();
-    assert!(bpfctl_list.contains(&uuid));
+    let uuid = add_kprobe(
+        Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        &LoadType::Image,
+    )
+    .unwrap();
 
     uuids.push(uuid);
 
     debug!("Installing kretprobe program");
-    let uuid = add_kretprobe(Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec())).unwrap();
-
-    // Verify bpfctl list contains the uuid
-    let bpfctl_list = bpfd_list().unwrap();
-    assert!(bpfctl_list.contains(&uuid));
+    let uuid = add_kretprobe(
+        Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        &LoadType::Image,
+    )
+    .unwrap();
 
     uuids.push(uuid);
 
@@ -426,33 +389,10 @@ fn test_program_execution_with_global_variables() {
     assert!(trace_pipe_log.contains(URETPROBE_GLOBAL_1_LOG));
     debug!("Successfully validated uretprobe global variable");
 
-    // Delete the installed programs
-    debug!("Deleting bpfd programs");
-    for id in uuids.iter() {
-        bpfd_del_program(id)
-    }
+    verify_and_delete_programs(uuids);
 
-    // Verify bpfctl list does not contain the uuids of the deleted programs
-    // and that there are no panics if bpfctl does not contain any programs.
-    let bpfctl_list = bpfd_list().unwrap();
-    for id in uuids.iter() {
-        assert!(!bpfctl_list.contains(id));
-    }
-
-    // Verify the bppfs is empty
-    assert!(PathBuf::from(RTDIR_FS_XDP)
-        .read_dir()
-        .unwrap()
-        .next()
-        .is_none());
-    assert!(PathBuf::from(RTDIR_FS_TC_INGRESS)
-        .read_dir()
-        .unwrap()
-        .next()
-        .is_none());
-    assert!(PathBuf::from(RTDIR_FS_TC_EGRESS)
-        .read_dir()
-        .unwrap()
-        .next()
-        .is_none());
+    // Verify the bpffs is empty
+    assert!(!bpffs_has_entries(RTDIR_FS_XDP));
+    assert!(!bpffs_has_entries(RTDIR_FS_TC_INGRESS));
+    assert!(!bpffs_has_entries(RTDIR_FS_TC_EGRESS));
 }

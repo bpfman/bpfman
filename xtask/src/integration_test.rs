@@ -11,8 +11,11 @@ pub struct Options {
     /// The command used to wrap your application
     #[clap(short, long, default_value = "sudo -E")]
     pub runner: String,
-    /// Arguments to pass to your application
-    #[clap(name = "args", last = true)]
+    /// An optional list of test cases to execute. All test cases will be
+    /// executed if not provided.
+    /// Example: "cargo xtask integration-test -- test1 test2"
+    /// will execute only the test cases with names "test1" and "test2"
+    #[clap(name = "tests", last = true)]
     pub run_args: Vec<String>,
 }
 

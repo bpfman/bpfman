@@ -4,7 +4,7 @@ pub mod utils;
 
 pub use integration_test_macros::integration_test;
 
-#[derive(Debug)]
+#[derive(Debug, Ord, PartialOrd, PartialEq, Eq)]
 pub struct IntegrationTest {
     pub name: &'static str,
     pub test_fn: fn(),

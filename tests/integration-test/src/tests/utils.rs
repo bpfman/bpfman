@@ -29,6 +29,14 @@ pub const DEFAULT_BPFD_IFACE: &str = HOST_VETH;
 const PING_FILE_NAME: &str = "/tmp/bpfd_ping.log";
 const TRACE_PIPE_FILE_NAME: &str = "/tmp/bpfd_trace_pipe.log";
 
+#[derive(Debug)]
+pub enum LoadType {
+    Image,
+    File,
+}
+
+pub static LOAD_TYPES: &[LoadType] = &[LoadType::Image, LoadType::File];
+
 const XDP_PASS_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/xdp_pass:latest";
 const TC_PASS_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/tc_pass:latest";
 const TRACEPOINT_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/tracepoint:latest";
@@ -37,6 +45,13 @@ const URETPROBE_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/uretprobe:latest";
 const KPROBE_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/kprobe:latest";
 const KRETPROBE_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/kretprobe:latest";
 
+const XDP_PASS_FILE_LOC: &str = "tests/integration-test/bpf/.output/xdp_pass.bpf.o";
+const TC_PASS_FILE_LOC: &str = "tests/integration-test/bpf/.output/tc_pass.bpf.o";
+const TRACEPOINT_FILE_LOC: &str = "tests/integration-test/bpf/.output/tp_openat.bpf.o";
+const UPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/uprobe.bpf.o";
+const URETPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/uprobe.bpf.o";
+const KPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/kprobe.bpf.o";
+const KRETPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/kprobe.bpf.o";
 /// Exit on panic as well as the passing of a test
 #[derive(Debug)]
 pub struct ChildGuard {
@@ -88,30 +103,37 @@ pub fn add_xdp_pass(
     priority: u32,
     globals: Option<Vec<&str>>,
     proceed_on: Option<Vec<&str>>,
+    load_type: &LoadType,
 ) -> Result<String> {
     let p = priority.to_string();
 
-    let mut args = vec!["load-from-image"];
+    let mut args = Vec::new();
+
+    match load_type {
+        LoadType::Image => {
+            args.push("load-from-image");
+        }
+        LoadType::File => {
+            args.push("load-from-file");
+        }
+    }
 
     if let Some(g) = globals {
-        args.extend(["--global"]);
+        args.push("--global");
         args.extend(g);
     }
 
-    args.extend([
-        "--image-url",
-        XDP_PASS_IMAGE_LOC,
-        "--pull-policy",
-        "Always",
-        "xdp",
-        "--iface",
-        iface,
-        "--priority",
-        p.as_str(),
-    ]);
+    match load_type {
+        LoadType::Image => {
+            args.extend(["--image-url", XDP_PASS_IMAGE_LOC, "--pull-policy", "Always"])
+        }
+        LoadType::File => args.extend(["-s", "pass", "--path", XDP_PASS_FILE_LOC]),
+    }
+
+    args.extend(["xdp", "--iface", iface, "--priority", p.as_str()]);
 
     if let Some(p_o) = proceed_on {
-        args.extend(["--proceed-on"]);
+        args.push("--proceed-on");
         args.extend(p_o);
     }
 
@@ -119,7 +141,10 @@ pub fn add_xdp_pass(
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
     let uuid = stdout.trim();
     assert!(!uuid.is_empty());
-    debug!("Successfully added xdp_pass program: {:?}", uuid);
+    debug!(
+        "Successfully added xdp_pass program: {:?} from: {:?}",
+        uuid, load_type
+    );
 
     Ok(uuid.to_string())
 }
@@ -131,21 +156,34 @@ pub fn add_tc_pass(
     priority: u32,
     globals: Option<Vec<&str>>,
     proceed_on: Option<Vec<&str>>,
+    load_type: &LoadType,
 ) -> Result<String> {
     let p = priority.to_string();
 
-    let mut args = vec!["load-from-image"];
+    let mut args = Vec::new();
+
+    match load_type {
+        LoadType::Image => {
+            args.push("load-from-image");
+        }
+        LoadType::File => {
+            args.push("load-from-file");
+        }
+    }
 
     if let Some(g) = globals {
-        args.extend(["--global"]);
+        args.push("--global");
         args.extend(g);
     }
 
+    match load_type {
+        LoadType::Image => {
+            args.extend(["--image-url", TC_PASS_IMAGE_LOC, "--pull-policy", "Always"])
+        }
+        LoadType::File => args.extend(["-s", "pass", "--path", TC_PASS_FILE_LOC]),
+    }
+
     args.extend([
-        "--image-url",
-        TC_PASS_IMAGE_LOC,
-        "--pull-policy",
-        "Always",
         "tc",
         "--direction",
         direction,
@@ -156,7 +194,7 @@ pub fn add_tc_pass(
     ]);
 
     if let Some(p_o) = proceed_on {
-        args.extend(["--proceed-on"]);
+        args.push("--proceed-on");
         args.extend(p_o);
     }
 
@@ -164,154 +202,215 @@ pub fn add_tc_pass(
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
     let uuid = stdout.trim();
     assert!(!uuid.is_empty());
-    debug!("Successfully added tc {} program: {:?}", direction, uuid);
+    debug!(
+        "Successfully added tc {} program: {:?} from: {:?}",
+        direction, uuid, load_type
+    );
     Ok(uuid.to_string())
 }
 
 /// Install a tracepoint program with bpfctl
-pub fn add_tracepoint(globals: Option<Vec<&str>>) -> Result<String> {
-    let mut args = vec!["load-from-image"];
+pub fn add_tracepoint(globals: Option<Vec<&str>>, load_type: &LoadType) -> Result<String> {
+    let mut args = Vec::new();
+
+    match load_type {
+        LoadType::Image => {
+            args.push("load-from-image");
+        }
+        LoadType::File => {
+            args.push("load-from-file");
+        }
+    }
 
     if let Some(g) = globals {
-        args.extend(["--global"]);
+        args.push("--global");
         args.extend(g);
     }
 
-    args.extend([
-        "--image-url",
-        TRACEPOINT_IMAGE_LOC,
-        "--pull-policy",
-        "Always",
-        "tracepoint",
-        "--tracepoint",
-        "syscalls/sys_enter_openat",
-    ]);
+    match load_type {
+        LoadType::Image => args.extend([
+            "--image-url",
+            TRACEPOINT_IMAGE_LOC,
+            "--pull-policy",
+            "Always",
+        ]),
+        LoadType::File => args.extend(["-s", "enter_openat", "--path", TRACEPOINT_FILE_LOC]),
+    }
+
+    args.extend(["tracepoint", "--tracepoint", "syscalls/sys_enter_openat"]);
 
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
     let uuid = stdout.trim();
     assert!(!uuid.is_empty());
-    debug!("Successfully added tracepoint program: {:?}", uuid);
+    debug!(
+        "Successfully added tracepoint program: {:?} from: {:?}",
+        uuid, load_type
+    );
     Ok(uuid.to_string())
 }
 
 /// Attach a uprobe program to bpfctl with bpfctl
-pub fn add_uprobe(globals: Option<Vec<&str>>) -> Result<String> {
+pub fn add_uprobe(globals: Option<Vec<&str>>, load_type: &LoadType) -> Result<String> {
     let bpfctl_cmd = Command::cargo_bin("bpfctl")?;
     let bpfctl_path = bpfctl_cmd.get_program().to_str().unwrap();
 
-    let mut args = vec!["load-from-image"];
+    let mut args = Vec::new();
+
+    match load_type {
+        LoadType::Image => {
+            args.push("load-from-image");
+        }
+        LoadType::File => {
+            args.push("load-from-file");
+        }
+    }
 
     if let Some(g) = globals {
-        args.extend(["--global"]);
+        args.push("--global");
         args.extend(g);
     }
 
-    args.extend([
-        "--image-url",
-        UPROBE_IMAGE_LOC,
-        "--pull-policy",
-        "Always",
-        "uprobe",
-        "-f",
-        "main",
-        "-t",
-        bpfctl_path,
-    ]);
+    match load_type {
+        LoadType::Image => {
+            args.extend(["--image-url", UPROBE_IMAGE_LOC, "--pull-policy", "Always"])
+        }
+        LoadType::File => args.extend(["-s", "my_uprobe", "--path", UPROBE_FILE_LOC]),
+    }
+
+    args.extend(["uprobe", "-f", "main", "-t", bpfctl_path]);
 
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
     let uuid = stdout.trim();
     assert!(!uuid.is_empty());
-    debug!("Successfully added uprobe program: {:?}", uuid);
+    debug!(
+        "Successfully added uprobe program: {:?} from: {:?}",
+        uuid, load_type
+    );
     Ok(uuid.to_string())
 }
 
 /// Attach a uretprobe program to bpfctl with bpfctl
-pub fn add_uretprobe(globals: Option<Vec<&str>>) -> Result<String> {
+pub fn add_uretprobe(globals: Option<Vec<&str>>, load_type: &LoadType) -> Result<String> {
     let bpfctl_cmd = Command::cargo_bin("bpfctl")?;
     let bpfctl_path = bpfctl_cmd.get_program().to_str().unwrap();
 
-    let mut args = vec!["load-from-image"];
+    let mut args = Vec::new();
+
+    match load_type {
+        LoadType::Image => {
+            args.push("load-from-image");
+        }
+        LoadType::File => {
+            args.push("load-from-file");
+        }
+    }
 
     if let Some(g) = globals {
-        args.extend(["--global"]);
+        args.push("--global");
         args.extend(g);
     }
 
-    args.extend([
-        "--image-url",
-        URETPROBE_IMAGE_LOC,
-        "--pull-policy",
-        "Always",
-        "uprobe",
-        "-f",
-        "main",
-        "-t",
-        bpfctl_path,
-        "-r",
-    ]);
+    match load_type {
+        LoadType::Image => args.extend([
+            "--image-url",
+            URETPROBE_IMAGE_LOC,
+            "--pull-policy",
+            "Always",
+        ]),
+        LoadType::File => args.extend(["-s", "my_uretprobe", "--path", URETPROBE_FILE_LOC]),
+    }
+
+    args.extend(["uprobe", "-f", "main", "-t", bpfctl_path, "-r"]);
 
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
     let uuid = stdout.trim();
     assert!(!uuid.is_empty());
-    debug!("Successfully added uretprobe program: {:?}", uuid);
+    debug!(
+        "Successfully added uretprobe program: {:?} from: {:?}",
+        uuid, load_type
+    );
     Ok(uuid.to_string())
 }
 
 /// Install a kprobe program with bpfctl
-pub fn add_kprobe(globals: Option<Vec<&str>>) -> Result<String> {
-    let mut args = vec!["load-from-image"];
+pub fn add_kprobe(globals: Option<Vec<&str>>, load_type: &LoadType) -> Result<String> {
+    let mut args = Vec::new();
+
+    match load_type {
+        LoadType::Image => {
+            args.push("load-from-image");
+        }
+        LoadType::File => {
+            args.push("load-from-file");
+        }
+    }
 
     if let Some(g) = globals {
-        args.extend(["--global"]);
+        args.push("--global");
         args.extend(g);
     }
 
-    args.extend([
-        "--image-url",
-        KPROBE_IMAGE_LOC,
-        "--pull-policy",
-        "Always",
-        "kprobe",
-        "-f",
-        "try_to_wake_up",
-    ]);
+    match load_type {
+        LoadType::Image => {
+            args.extend(["--image-url", KPROBE_IMAGE_LOC, "--pull-policy", "Always"])
+        }
+        LoadType::File => args.extend(["-s", "my_kprobe", "--path", KPROBE_FILE_LOC]),
+    }
+
+    args.extend(["kprobe", "-f", "try_to_wake_up"]);
 
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
     let uuid = stdout.trim();
     assert!(!uuid.is_empty());
-    debug!("Successfully added kprobe program: {:?}", uuid);
+    debug!(
+        "Successfully added kprobe program: {:?} from: {:?}",
+        uuid, load_type
+    );
     Ok(uuid.to_string())
 }
 
-/// Install a kprobe program with bpfctl
-pub fn add_kretprobe(globals: Option<Vec<&str>>) -> Result<String> {
-    let mut args = vec!["load-from-image"];
+/// Install a kretprobe program with bpfctl
+pub fn add_kretprobe(globals: Option<Vec<&str>>, load_type: &LoadType) -> Result<String> {
+    let mut args = Vec::new();
+
+    match load_type {
+        LoadType::Image => {
+            args.push("load-from-image");
+        }
+        LoadType::File => {
+            args.push("load-from-file");
+        }
+    }
 
     if let Some(g) = globals {
-        args.extend(["--global"]);
+        args.push("--global");
         args.extend(g);
     }
 
-    args.extend([
-        "--image-url",
-        KRETPROBE_IMAGE_LOC,
-        "--pull-policy",
-        "Always",
-        "kprobe",
-        "-f",
-        "try_to_wake_up",
-        "-r",
-    ]);
+    match load_type {
+        LoadType::Image => args.extend([
+            "--image-url",
+            KRETPROBE_IMAGE_LOC,
+            "--pull-policy",
+            "Always",
+        ]),
+        LoadType::File => args.extend(["-s", "my_kretprobe", "--path", KRETPROBE_FILE_LOC]),
+    }
+
+    args.extend(["kprobe", "-f", "try_to_wake_up", "-r"]);
 
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
     let uuid = stdout.trim();
     assert!(!uuid.is_empty());
-    debug!("Successfully added kretprobe program: {:?}", uuid);
+    debug!(
+        "Successfully added kretprobe program: {:?} from: {:?}",
+        uuid, load_type
+    );
     Ok(uuid.to_string())
 }
 
@@ -616,4 +715,32 @@ pub fn read_trace_pipe_log() -> Result<String> {
     f.read_to_string(&mut buffer)?;
     debug!("trace_pipe output read to string");
     Ok(buffer)
+}
+
+/// Verify that the programs in the uuid list have been loaded.  Then delete them
+/// and verify that they have been deleted.
+pub fn verify_and_delete_programs(uuids: Vec<String>) {
+    // Verify bpfctl list contains the uuids of each program
+    let bpfctl_list = bpfd_list().unwrap();
+    for id in uuids.iter() {
+        assert!(bpfctl_list.contains(id.trim()));
+    }
+
+    // Delete the installed programs
+    debug!("Deleting bpfd program");
+    for id in uuids.iter() {
+        bpfd_del_program(id)
+    }
+
+    // Verify bpfctl list does not contain the uuids of the deleted programs
+    // and that there are no panics if bpfctl does not contain any programs.
+    let bpfctl_list = bpfd_list().unwrap();
+    for id in uuids.iter() {
+        assert!(!bpfctl_list.contains(id.trim()));
+    }
+}
+
+/// Returns true if the bpffs has entries and false if it doesn't
+pub fn bpffs_has_entries(path: &str) -> bool {
+    PathBuf::from(path).read_dir().unwrap().next().is_some()
 }
