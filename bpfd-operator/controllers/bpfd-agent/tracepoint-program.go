@@ -26,7 +26,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -110,7 +109,10 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Initialize node and current program
 	r.currentTracepointProgram = &bpfdiov1alpha1.TracepointProgram{}
 	r.ourNode = &v1.Node{}
-	r.Logger = log.FromContext(ctx)
+	r.Logger = ctrl.Log.WithName("tracept")
+
+	ctxLogger := log.FromContext(ctx)
+	ctxLogger.Info("Reconcile Tracepoint: Enter", "ReconcileKey", req)
 
 	// Lookup K8s node object for this bpfd-agent This should always succeed
 	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.NodeName}, r.ourNode); err != nil {
@@ -128,6 +130,7 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	if len(tracepointPrograms.Items) == 0 {
+		r.Logger.Info("TracepointProgramController found no Tracepoint Programs")
 		return ctrl.Result{Requeue: false}, nil
 	}
 
@@ -143,7 +146,7 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Note: This only results in grpc calls to bpfd if we need to change something
 	requeue := false // initialize requeue to false
 	for _, tracepointProgram := range tracepointPrograms.Items {
-		r.Logger.Info("TracepointProgramController is reconciling", "key", req)
+		r.Logger.Info("TracepointProgramController is reconciling", "currentTracePtProgram", tracepointProgram.Name)
 		r.currentTracepointProgram = &tracepointProgram
 		result, err := reconcileProgram(ctx, r, r.currentTracepointProgram, &r.currentTracepointProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
 		if err != nil {
@@ -255,6 +258,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 
 		r.expectedMaps = bpfProgramEntry
 
+		r.Logger.Info("bpfd called to load TracepointProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 		return bpfdiov1alpha1.BpfProgCondLoaded, nil
 	}
 
@@ -271,6 +275,8 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 		r.expectedMaps = nil
+
+		r.Logger.Info("bpfd called to unload XdpProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 
 		if isBeingDeleted {
 			return bpfdiov1alpha1.BpfProgCondUnloaded, nil
@@ -313,6 +319,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		}
 
 		r.expectedMaps = bpfProgramEntry
+		r.Logger.Info("bpfd called to reload TracepointProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 	} else {
 		// Program exists and bpfProgram K8s Object is up to date
 		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")

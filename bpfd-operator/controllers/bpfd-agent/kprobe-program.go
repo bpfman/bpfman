@@ -26,7 +26,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -110,7 +109,10 @@ func (r *KprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Initialize node and current program
 	r.currentKprobeProgram = &bpfdiov1alpha1.KprobeProgram{}
 	r.ourNode = &v1.Node{}
-	r.Logger = log.FromContext(ctx)
+	r.Logger = ctrl.Log.WithName("kprobe")
+
+	ctxLogger := log.FromContext(ctx)
+	ctxLogger.Info("Reconcile Kprobe: Enter", "ReconcileKey", req)
 
 	// Lookup K8s node object for this bpfd-agent This should always succeed
 	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.NodeName}, r.ourNode); err != nil {
@@ -128,6 +130,7 @@ func (r *KprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	if len(kprobePrograms.Items) == 0 {
+		r.Logger.Info("KprobeProgramController found no Kprobe Programs")
 		return ctrl.Result{Requeue: false}, nil
 	}
 
@@ -143,7 +146,7 @@ func (r *KprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Note: This only results in grpc calls to bpfd if we need to change something
 	requeue := false // initialize requeue to false
 	for _, kprobeProgram := range kprobePrograms.Items {
-		r.Logger.Info("KprobeProgramController is reconciling", "key", req)
+		r.Logger.Info("KprobeProgramController is reconciling", "currentKprobeProgram", kprobeProgram.Name)
 		r.currentKprobeProgram = &kprobeProgram
 		result, err := reconcileProgram(ctx, r, r.currentKprobeProgram, &r.currentKprobeProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
 		if err != nil {
@@ -260,6 +263,7 @@ func (r *KprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 
 		r.expectedMaps = bpfProgramEntry
 
+		r.Logger.Info("bpfd called to load KprobeProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 		return bpfdiov1alpha1.BpfProgCondLoaded, nil
 	}
 
@@ -276,6 +280,8 @@ func (r *KprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 		r.expectedMaps = nil
+
+		r.Logger.Info("bpfd called to unload KprobeProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 
 		if isBeingDeleted {
 			return bpfdiov1alpha1.BpfProgCondUnloaded, nil
@@ -317,6 +323,7 @@ func (r *KprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		}
 
 		r.expectedMaps = bpfProgramEntry
+		r.Logger.Info("bpfd called to reload KprobeProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 	} else {
 		// Program exists and bpfProgram K8s Object is up to date
 		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")

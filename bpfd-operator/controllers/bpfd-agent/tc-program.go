@@ -25,7 +25,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -145,8 +144,11 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Initialize node and current program
 	r.currentTcProgram = &bpfdiov1alpha1.TcProgram{}
 	r.ourNode = &v1.Node{}
-	r.Logger = log.FromContext(ctx)
+	r.Logger = ctrl.Log.WithName("tc")
 	var err error
+
+	ctxLogger := log.FromContext(ctx)
+	ctxLogger.Info("Reconcile TC: Enter", "ReconcileKey", req)
 
 	// Lookup K8s node object for this bpfd-agent This should always succeed
 	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.NodeName}, r.ourNode); err != nil {
@@ -164,6 +166,7 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	if len(tcPrograms.Items) == 0 {
+		r.Logger.Info("TcProgramController found no TC Programs")
 		return ctrl.Result{Requeue: false}, nil
 	}
 
@@ -179,7 +182,7 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	// Note: This only results in grpc calls to bpfd if we need to change something
 	requeue := false // initialize requeue to false
 	for _, tcProgram := range tcPrograms.Items {
-		r.Logger.Info("TcProgramController is reconciling", "key", req)
+		r.Logger.Info("TcProgramController is reconciling", "currentTcProgram", tcProgram.Name)
 		r.currentTcProgram = &tcProgram
 
 		r.interfaces, err = getInterfaces(&r.currentTcProgram.Spec.InterfaceSelector, r.ourNode)
@@ -251,7 +254,7 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	isBeingDeleted bool,
 	mapOwnerStatus *MapOwnerParamStatus) (bpfdiov1alpha1.BpfProgramConditionType, error) {
 
-	r.Logger.V(1).Info("Existing bpfProgramMaps", "ExistingMaps", bpfProgram.Spec.Maps)
+	r.Logger.V(1).Info("Existing bpfProgram", "ExistingMaps", bpfProgram.Spec.Maps, "UUID", bpfProgram.UID, "Name", bpfProgram.Name)
 	iface := bpfProgram.Annotations[internal.TcProgramInterface]
 
 	var err error
@@ -302,7 +305,7 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 		}
 
-		r.Logger.V(1).WithValues("UUID", id, "maps", r.expectedMaps).Info("Loaded TcProgram on Node")
+		r.Logger.Info("bpfd called to load TcProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 		return bpfdiov1alpha1.BpfProgCondLoaded, nil
 	}
 
@@ -321,6 +324,8 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 		r.expectedMaps = nil
+
+		r.Logger.Info("bpfd called to unload TcProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 
 		if isBeingDeleted {
 			return bpfdiov1alpha1.BpfProgCondUnloaded, nil
@@ -360,7 +365,7 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 		}
 
-		r.Logger.V(1).WithValues("UUID", id, "ProgramMaps", r.expectedMaps).Info("ReLoaded TcProgram on Node")
+		r.Logger.Info("bpfd called to reload TcProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 	} else {
 		// Program exists and bpfProgram K8s Object is up to date
 		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")

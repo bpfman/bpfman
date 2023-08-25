@@ -24,6 +24,8 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+
+	"go.uber.org/zap/zapcore"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -76,6 +78,11 @@ func main() {
 		opts = zap.Options{
 			Development: true,
 		}
+	case "trace":
+		opts = zap.Options{
+			Development: true,
+			Level:       zapcore.Level(-2),
+		}
 	default:
 		opts = zap.Options{
 			Development: false,
@@ -108,7 +115,7 @@ func main() {
 	}
 
 	// Set up a connection to bpfd, block until bpfd is up.
-	setupLog.WithValues("endpoints", configFileData.Grpc.Endpoints).WithValues("creds", creds).Info("Waiting for active connection to bpfd")
+	setupLog.Info("Waiting for active connection to bpfd", "endpoints", configFileData.Grpc.Endpoints, "creds", creds)
 	conn, err := tls.CreateConnection(configFileData.Grpc.Endpoints, context.Background(), creds)
 	if err != nil {
 		setupLog.Error(err, "unable to connect to bpfd")
@@ -118,7 +125,7 @@ func main() {
 	// TODO(ASTOYCOS) add support for connecting over unix sockets.
 	// Set up a connection to bpfd, block until bpfd is up.
 	// addr := "unix:/var/lib/bpfd/bpfd.sock"
-	// setupLog.WithValues("addr", addr).Info("Waiting for active connection to bpfd at %s")
+	// setupLog.Info("Waiting for active connection to bpfd at %s", "addr", addr)
 	// conn, err := grpc.DialContext(context.Background(), addr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	// if err != nil {
 	// 	setupLog.Error(err, "unable to connect to bpfd")

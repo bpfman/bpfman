@@ -32,7 +32,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-var log = ctrl.Log.WithName("tls-internal")
+var log = ctrl.Log.WithName("tls-intern")
 
 type Tls struct {
 	CaCert     string `toml:"ca_cert"`

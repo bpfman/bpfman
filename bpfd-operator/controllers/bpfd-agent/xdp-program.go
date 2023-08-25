@@ -25,7 +25,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -131,8 +130,11 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Initialize node and current program
 	r.currentXdpProgram = &bpfdiov1alpha1.XdpProgram{}
 	r.ourNode = &v1.Node{}
-	r.Logger = log.FromContext(ctx)
+	r.Logger = ctrl.Log.WithName("xdp")
 	var err error
+
+	ctxLogger := log.FromContext(ctx)
+	ctxLogger.Info("Reconcile XDP: Enter", "ReconcileKey", req)
 
 	// Lookup K8s node object for this bpfd-agent This should always succeed
 	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.NodeName}, r.ourNode); err != nil {
@@ -149,6 +151,7 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	if len(xdpPrograms.Items) == 0 {
+		r.Logger.Info("XdpProgramController found no XDP Programs")
 		return ctrl.Result{Requeue: false}, nil
 	}
 
@@ -158,7 +161,7 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		r.Logger.Error(err, "failed to list loaded bpfd programs")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
 	}
-	r.Logger.V(1).WithValues("loaded-xdp-programs", programMap).Info("Existing XDP programs")
+	r.Logger.V(1).Info("Existing XDP programs", "loaded-xdp-programs", programMap)
 
 	// Reconcile each XdpProgram. Don't return error here because it will trigger an infinite reconcile loop, instead
 	// report the error to user and retry if specified. For some errors the controller may not decide to retry.
@@ -289,7 +292,7 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 		}
 
-		r.Logger.V(1).WithValues("UUID", id, "maps", r.expectedMaps).Info("Loaded XdpProgram on Node")
+		r.Logger.Info("bpfd called to load XdpProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 		return bpfdiov1alpha1.BpfProgCondLoaded, nil
 	}
 
@@ -306,6 +309,8 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 		r.expectedMaps = nil
+
+		r.Logger.Info("bpfd called to unload XdpProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 
 		if isBeingDeleted {
 			return bpfdiov1alpha1.BpfProgCondUnloaded, nil
@@ -345,7 +350,7 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 		}
 
-		r.Logger.V(1).WithValues("UUID", id, "ProgramEntry", r.expectedMaps).Info("ReLoaded XdpProgram on Node")
+		r.Logger.Info("bpfd called to reload XdpProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 	} else {
 		// Program exists and bpfProgram K8s Object is up to date
 		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")

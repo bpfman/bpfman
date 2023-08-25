@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var log = ctrl.Log.WithName("bpfd-agent-internal")
+var log = ctrl.Log.WithName("agent-intern")
 
 func imagePullPolicyConversion(policy bpfdiov1alpha1.PullPolicy) int32 {
 	switch policy {

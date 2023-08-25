@@ -143,10 +143,9 @@ func getInterfaces(interfaceSelector *bpfdiov1alpha1.InterfaceSelector, ourNode 
 // returning if the action resulted in a kube API update or not along with any
 // errors.
 func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, o client.Object, finalizer string) bool {
-	r.Logger.V(1).WithValues("object name", o.GetName()).Info("bpfProgram is deleted, don't load program, remove finalizer")
-
 	changed := controllerutil.RemoveFinalizer(o, finalizer)
 	if changed {
+		r.Logger.Info("Removing finalizer from bpfProgram", "object name", o.GetName())
 		err := r.Update(ctx, o)
 		if err != nil {
 			r.Logger.Error(err, "failed to remove bpfProgram Finalizer")
@@ -176,7 +175,7 @@ func (r *ReconcilerCommon) updateStatus(ctx context.Context, prog *bpfdiov1alpha
 	}
 
 	meta.SetStatusCondition(&prog.Status.Conditions, cond.Condition())
-	r.Logger.V(1).WithValues("bpfProgram", prog.Name, "condition", cond.Condition().Type).Info("Updating bpfProgram condition")
+	r.Logger.Info("Updating bpfProgram condition", "bpfProgram", prog.Name, "condition", cond.Condition().Type)
 	if err := r.Status().Update(ctx, prog); err != nil {
 		r.Logger.Error(err, "failed to set bpfProgram object status")
 		return true
@@ -330,7 +329,7 @@ func reconcileProgram(ctx context.Context,
 			prog, exists := existingPrograms[expectedProg.Name]
 			if !exists {
 				opts := client.CreateOptions{}
-				r.Logger.Info("creating bpfProgram", "Name", expectedProg.Name, "Owner", program.GetName())
+				r.Logger.Info("Creating bpfProgram", "Name", expectedProg.Name, "Owner", program.GetName())
 				if err := r.Create(ctx, &expectedProg, &opts); err != nil {
 					return internal.Requeue, fmt.Errorf("failed to create bpfProgram object: %v", err)
 				}
@@ -367,7 +366,7 @@ func reconcileProgram(ctx context.Context,
 
 				// If bpfProgram Maps isn't up to date just update it and return
 				if !reflect.DeepEqual(prog.Spec.Maps, r.expectedMaps) && len(r.expectedMaps) != 0 {
-					r.Logger.V(1).Info("Updating bpfProgram Object", "Maps", r.expectedMaps, "bpfProgram", prog.Name)
+					r.Logger.Info("Updating bpfProgram Object", "Maps", r.expectedMaps, "bpfProgram", prog.Name)
 					prog.Spec.Maps = r.expectedMaps
 					if err := r.Update(ctx, &prog, &client.UpdateOptions{}); err != nil {
 						return internal.Requeue, fmt.Errorf("failed to update bpfProgram's Programs: %v", err)
@@ -378,12 +377,12 @@ func reconcileProgram(ctx context.Context,
 				if r.updateStatus(ctx, &prog, cond) {
 					return internal.Updated, nil
 				}
-
 			}
 		}
 	}
 
 	// We didn't already return something else, so there's nothing to do
+	r.Logger.Info("Nothing to do for this program")
 	return internal.Unchanged, nil
 }
 

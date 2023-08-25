@@ -69,7 +69,7 @@ func (r *BpfdConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	bpfdConfig := &corev1.ConfigMap{}
 	if err := r.Get(ctx, req.NamespacedName, bpfdConfig); err != nil {
 		if !errors.IsNotFound(err) {
-			r.Logger.Error(err, "failed getting bpfd config", "req", req.NamespacedName)
+			r.Logger.Error(err, "failed getting bpfd config", "ReconcileObject", req.NamespacedName)
 			return ctrl.Result{}, nil
 		}
 	} else {
