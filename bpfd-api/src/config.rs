@@ -16,6 +16,21 @@ pub struct Config {
     pub interfaces: Option<HashMap<String, InterfaceConfig>>,
     #[serde(default)]
     pub grpc: Grpc,
+    pub signing: Option<SigningConfig>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SigningConfig {
+    pub allow_unsigned: bool,
+}
+
+impl Default for SigningConfig {
+    fn default() -> Self {
+        Self {
+            // Allow unsigned programs by default
+            allow_unsigned: true,
+        }
+    }
 }
 
 #[derive(Debug, Error)]

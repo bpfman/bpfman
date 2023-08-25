@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
+pub(crate) mod cosign;
 pub(crate) mod image_manager;
 pub(crate) use image_manager::ImageManager;
 use thiserror::Error;

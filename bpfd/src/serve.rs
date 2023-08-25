@@ -83,8 +83,10 @@ pub async fn serve(
         }
     }
 
+    let allow_unsigned = config.signing.as_ref().map_or(true, |s| s.allow_unsigned);
     let (itx, irx) = mpsc::channel(32);
-    let mut image_manager = ImageManager::new(BYTECODE_IMAGE_CONTENT_STORE, irx);
+    let mut image_manager =
+        ImageManager::new(BYTECODE_IMAGE_CONTENT_STORE, allow_unsigned, irx).await?;
 
     let mut bpf_manager = BpfManager::new(config, rx, itx);
     bpf_manager.rebuild_state().await?;
