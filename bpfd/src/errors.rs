@@ -2,6 +2,7 @@
 // Copyright Authors of bpfd
 
 use thiserror::Error;
+use tokio::sync::oneshot;
 use uuid::Uuid;
 
 #[derive(Debug, Error)]
@@ -41,4 +42,6 @@ pub enum BpfdError {
     PassedUUIDInUse(Uuid),
     #[error("Unable to delete program {0}")]
     BpfdProgramDeleteError(#[source] anyhow::Error),
+    #[error(transparent)]
+    RpcError(#[from] oneshot::error::RecvError),
 }

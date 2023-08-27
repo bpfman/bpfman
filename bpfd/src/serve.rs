@@ -6,6 +6,7 @@ use std::{fs::remove_file, net::SocketAddr, path::Path};
 use anyhow::Context;
 use bpfd_api::{
     config::{self, Config},
+    util::directories::BYTECODE_IMAGE_CONTENT_STORE,
     v1::loader_server::LoaderServer,
 };
 use log::{debug, info};
@@ -22,8 +23,8 @@ use tonic::transport::{Server, ServerTlsConfig};
 
 pub use crate::certs::get_tls_config;
 use crate::{
-    bpf::BpfManager, errors::BpfdError, rpc::BpfdLoader, static_program::get_static_programs,
-    utils::set_file_permissions,
+    bpf::BpfManager, errors::BpfdError, oci_utils::ImageManager, rpc::BpfdLoader,
+    static_program::get_static_programs, utils::set_file_permissions,
 };
 
 const SOCK_MODE: u32 = 0o0770;
@@ -75,7 +76,10 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
         }
     }
 
-    let mut bpf_manager = BpfManager::new(config, rx);
+    let (itx, irx) = mpsc::channel(32);
+    let mut image_manager = ImageManager::new(BYTECODE_IMAGE_CONTENT_STORE, irx);
+
+    let mut bpf_manager = BpfManager::new(config, rx, itx);
     bpf_manager.rebuild_state().await?;
 
     let static_programs = get_static_programs(static_program_path).await?;
@@ -87,7 +91,11 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
             info!("Loaded static program with UUID {}", uuid)
         }
     };
-    join!(join_listeners(listeners), bpf_manager.process_commands());
+    join!(
+        join_listeners(listeners),
+        bpf_manager.process_commands(),
+        image_manager.run()
+    );
     Ok(())
 }
 

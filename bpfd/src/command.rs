@@ -16,13 +16,13 @@ use bpfd_api::{
 };
 use chrono::{prelude::DateTime, Local};
 use serde::{Deserialize, Serialize};
-use tokio::sync::oneshot;
+use tokio::sync::{mpsc::Sender, oneshot};
 use uuid::Uuid;
 
 use crate::{
     errors::BpfdError,
     multiprog::{DispatcherId, DispatcherInfo},
-    oci_utils::{image_manager::get_bytecode_from_image_store, BytecodeImage},
+    oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
 };
 
 /// Provided by the requester and used by the manager task to send
@@ -31,7 +31,6 @@ type Responder<T> = oneshot::Sender<T>;
 
 /// Multiple different commands are multiplexed over a single channel.
 #[derive(Debug)]
-#[allow(clippy::large_enum_variant)]
 pub(crate) enum Command {
     /// Load a program
     Load(LoadArgs),
@@ -77,22 +76,40 @@ pub(crate) enum Location {
 }
 
 impl Location {
-    async fn get_program_bytes(&self) -> Result<(Vec<u8>, String), BpfdError> {
+    async fn get_program_bytes(
+        &self,
+        image_manager: Sender<ImageManagerCommand>,
+    ) -> Result<(Vec<u8>, String), BpfdError> {
         match self {
             Location::File(l) => Ok((crate::utils::read(l).await?, "".to_owned())),
             Location::Image(l) => {
-                let (path, section_name) = l
-                    .clone()
-                    .get_image(None)
+                let (tx, rx) = oneshot::channel();
+                image_manager
+                    .send(ImageManagerCommand::Pull {
+                        image: l.image_url.clone(),
+                        pull_policy: l.image_pull_policy.clone(),
+                        username: l.username.clone(),
+                        password: l.password.clone(),
+                        resp: tx,
+                    })
                     .await
                     .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
+                let (path, section_name) = rx
+                    .await
+                    .map_err(BpfdError::RpcError)?
+                    .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
 
-                Ok((
-                    get_bytecode_from_image_store(path)
-                        .await
-                        .map_err(|e| BpfdError::Error(format!("Bytecode loading error: {e}")))?,
-                    section_name,
-                ))
+                let (tx, rx) = oneshot::channel();
+                image_manager
+                    .send(ImageManagerCommand::GetBytecode { path, resp: tx })
+                    .await
+                    .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
+                let bytecode = rx
+                    .await
+                    .map_err(BpfdError::RpcError)?
+                    .map_err(|e| BpfdError::Error(format!("Bytecode loading error: {e}")))?;
+
+                Ok((bytecode, section_name))
             }
         }
     }
@@ -254,8 +271,11 @@ impl ProgramData {
         self.maps_used_by.as_ref()
     }
 
-    pub(crate) async fn program_bytes(&mut self) -> Result<Vec<u8>, BpfdError> {
-        match self.location.get_program_bytes().await {
+    pub(crate) async fn program_bytes(
+        &mut self,
+        image_manager: Sender<ImageManagerCommand>,
+    ) -> Result<Vec<u8>, BpfdError> {
+        match self.location.get_program_bytes(image_manager).await {
             Err(e) => Err(e),
             Ok((v, s)) => {
                 match self.location {

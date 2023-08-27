@@ -22,7 +22,13 @@ use bpfd_api::{
     ProgramType,
 };
 use log::{debug, info};
-use tokio::{fs, select, sync::mpsc};
+use tokio::{
+    fs, select,
+    sync::{
+        mpsc::{Receiver, Sender},
+        oneshot,
+    },
+};
 use uuid::Uuid;
 
 use crate::{
@@ -33,6 +39,7 @@ use crate::{
     },
     errors::BpfdError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
+    oci_utils::image_manager::Command as ImageManagerCommand,
     serve::shutdown_handler,
     utils::{get_ifindex, set_dir_permissions},
 };
@@ -44,17 +51,23 @@ pub(crate) struct BpfManager {
     dispatchers: HashMap<DispatcherId, Dispatcher>,
     programs: HashMap<Uuid, Program>,
     maps: HashMap<Uuid, BpfMap>,
-    commands: mpsc::Receiver<Command>,
+    commands: Receiver<Command>,
+    image_manager: Sender<ImageManagerCommand>,
 }
 
 impl BpfManager {
-    pub(crate) fn new(config: Config, commands: mpsc::Receiver<Command>) -> Self {
+    pub(crate) fn new(
+        config: Config,
+        commands: Receiver<Command>,
+        image_manager: Sender<ImageManagerCommand>,
+    ) -> Self {
         Self {
             config,
             dispatchers: HashMap::new(),
             programs: HashMap::new(),
             maps: HashMap::new(),
             commands,
+            image_manager,
         }
     }
 
@@ -156,14 +169,20 @@ impl BpfManager {
             .data_mut()?
             .set_map_pin_path(Some(map_pin_path.clone()));
 
+        let program_bytes = program
+            .data_mut()?
+            .program_bytes(self.image_manager.clone())
+            .await?;
         let result = match program {
             Program::Xdp(_) | Program::Tc(_) => {
                 program.set_if_index(get_ifindex(&program.if_name().unwrap())?);
 
-                self.add_multi_attach_program(program, uuid).await
+                self.add_multi_attach_program(program, uuid, program_bytes)
+                    .await
             }
             Program::Tracepoint(_) | Program::Kprobe(_) | Program::Uprobe(_) => {
-                self.add_single_attach_program(program, uuid).await
+                self.add_single_attach_program(program, uuid, program_bytes)
+                    .await
             }
             Program::Unsupported(_) => panic!("Cannot add unsupported program"),
         };
@@ -181,11 +200,11 @@ impl BpfManager {
 
     pub(crate) async fn add_multi_attach_program(
         &mut self,
-        mut program: Program,
+        program: Program,
         id: Uuid,
+        program_bytes: Vec<u8>,
     ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_multi_attach_program()");
-        let program_bytes = program.data_mut()?.program_bytes().await?;
         let name = program.data()?.name();
         let map_pin_path = program.data()?.map_pin_path();
 
@@ -244,13 +263,19 @@ impl BpfManager {
         } else {
             1
         };
-        let dispatcher = Dispatcher::new(if_config, &mut programs, next_revision, old_dispatcher)
-            .await
-            .or_else(|e| {
-                let prog = self.programs.remove(&id).unwrap();
-                prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
-                Err(e)
-            })?;
+        let dispatcher = Dispatcher::new(
+            if_config,
+            &mut programs,
+            next_revision,
+            old_dispatcher,
+            self.image_manager.clone(),
+        )
+        .await
+        .or_else(|e| {
+            let prog = self.programs.remove(&id).unwrap();
+            prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
+            Err(e)
+        })?;
         self.dispatchers.insert(did, dispatcher);
 
         // update programs with now populated kernel info
@@ -273,9 +298,9 @@ impl BpfManager {
         &mut self,
         mut p: Program,
         id: Uuid,
+        program_bytes: Vec<u8>,
     ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_single_attach_program()");
-        let program_bytes = p.data_mut()?.program_bytes().await?;
         let name = p.data()?.name();
         let map_pin_path = p.data()?.map_pin_path();
 
@@ -525,8 +550,14 @@ impl BpfManager {
             1
         };
         debug!("next_revision = {next_revision}");
-        let dispatcher =
-            Dispatcher::new(if_config, &mut programs, next_revision, old_dispatcher).await?;
+        let dispatcher = Dispatcher::new(
+            if_config,
+            &mut programs,
+            next_revision,
+            old_dispatcher,
+            self.image_manager.clone(),
+        )
+        .await?;
         self.dispatchers.insert(did, dispatcher);
         Ok(())
     }
@@ -570,8 +601,14 @@ impl BpfManager {
                 1
             };
 
-            let dispatcher =
-                Dispatcher::new(if_config, &mut programs, next_revision, old_dispatcher).await?;
+            let dispatcher = Dispatcher::new(
+                if_config,
+                &mut programs,
+                next_revision,
+                old_dispatcher,
+                self.image_manager.clone(),
+            )
+            .await?;
             self.dispatchers.insert(did, dispatcher);
         } else {
             debug!("No dispatcher found in rebuild_multiattach_dispatcher() for {did:?}");
@@ -662,14 +699,23 @@ impl BpfManager {
     }
 
     async fn pull_bytecode(&self, args: PullBytecodeArgs) -> anyhow::Result<()> {
-        let res = match args.image.get_image(None).await {
+        let (tx, rx) = oneshot::channel();
+        self.image_manager
+            .send(ImageManagerCommand::Pull {
+                image: args.image.image_url,
+                pull_policy: args.image.image_pull_policy.clone(),
+                username: args.image.username.clone(),
+                password: args.image.password.clone(),
+                resp: tx,
+            })
+            .await?;
+        let res = match rx.await? {
             Ok(_) => {
                 info!("Successfully pulled bytecode");
                 Ok(())
             }
             Err(e) => Err(e).map_err(|e| BpfdError::BpfBytecodeError(e.into())),
         };
-
         let _ = args.responder.send(res);
         Ok(())
     }
@@ -906,16 +952,16 @@ mod tests {
         const UUID_2: Uuid = uuid!("084282a5-a43f-41c3-8f85-c302dc90e091");
         let tt = vec![
             Case {
-                i_id: UUID_1.clone(),
+                i_id: UUID_1,
                 i_map_owner_uuid: None,
                 o_map_owner: true,
-                o_map_index: UUID_1.clone(),
+                o_map_index: UUID_1,
             },
             Case {
-                i_id: UUID_2.clone(),
-                i_map_owner_uuid: Some(UUID_1.clone()),
+                i_id: UUID_2,
+                i_map_owner_uuid: Some(UUID_1),
                 o_map_owner: false,
-                o_map_index: UUID_1.clone(),
+                o_map_index: UUID_1,
             },
         ];
         for t in tt {
@@ -937,22 +983,16 @@ mod tests {
         const UUID_2: Uuid = uuid!("084282a5-a43f-41c3-8f85-c302dc90e091");
         let tt = vec![
             Case {
-                i_id: UUID_1.clone(),
+                i_id: UUID_1,
                 i_map_owner_uuid: None,
                 o_map_owner: true,
-                o_map_pin_path: PathBuf::from(format!(
-                    "{RTDIR_FS_MAPS}/{}",
-                    UUID_1.clone().to_string()
-                )),
+                o_map_pin_path: PathBuf::from(format!("{RTDIR_FS_MAPS}/{}", UUID_1)),
             },
             Case {
-                i_id: UUID_2.clone(),
-                i_map_owner_uuid: Some(UUID_1.clone()),
+                i_id: UUID_2,
+                i_map_owner_uuid: Some(UUID_1),
                 o_map_owner: false,
-                o_map_pin_path: PathBuf::from(format!(
-                    "{RTDIR_FS_MAPS}/{}",
-                    UUID_1.clone().to_string()
-                )),
+                o_map_pin_path: PathBuf::from(format!("{RTDIR_FS_MAPS}/{}", UUID_1)),
             },
         ];
         for t in tt {

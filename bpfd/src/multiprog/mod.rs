@@ -10,12 +10,14 @@ use bpfd_api::{
 };
 use log::debug;
 pub use tc::TcDispatcher;
+use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 pub use xdp::XdpDispatcher;
 
 use crate::{
     command::{Direction, Program},
     errors::BpfdError,
+    oci_utils::image_manager::Command as ImageManagerCommand,
 };
 
 pub(crate) enum Dispatcher {
@@ -29,6 +31,7 @@ impl Dispatcher {
         programs: &mut [(Uuid, Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
+        image_manager: Sender<ImageManagerCommand>,
     ) -> Result<Dispatcher, BpfdError> {
         debug!("Dispatcher::new()");
         let (_, p) = programs
@@ -55,6 +58,7 @@ impl Dispatcher {
                     programs,
                     revision,
                     old_dispatcher,
+                    image_manager,
                 )
                 .await?;
                 Dispatcher::Xdp(x)
@@ -69,6 +73,7 @@ impl Dispatcher {
                     programs,
                     revision,
                     old_dispatcher,
+                    image_manager,
                 )
                 .await?;
                 Dispatcher::Tc(t)

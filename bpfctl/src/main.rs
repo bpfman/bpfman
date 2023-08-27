@@ -24,7 +24,6 @@ use bpfd_api::{
 use clap::{Args, Parser, Subcommand};
 use comfy_table::Table;
 use hex::{encode_upper, FromHex};
-use itertools::Itertools;
 use log::{debug, info, warn};
 use tokio::net::UnixStream;
 use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity, Uri};
@@ -297,7 +296,7 @@ impl TryFrom<&PullBytecodeArgs> for BytecodeImage {
             Some(a) => {
                 let auth_raw = general_purpose::STANDARD.decode(a)?;
                 let auth_string = String::from_utf8(auth_raw)?;
-                let (username, password) = auth_string.split(':').next_tuple().unwrap();
+                let (username, password) = auth_string.split_once(':').unwrap();
                 (username.to_owned(), password.to_owned())
             }
             None => ("".to_owned(), "".to_owned()),
