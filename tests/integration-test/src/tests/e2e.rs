@@ -93,7 +93,7 @@ fn test_proceed_on_xdp() {
     debug!("Installing 3rd xdp program");
     let uuid = add_xdp_pass(
         DEFAULT_BPFD_IFACE,
-        50,
+        45,
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["pass", "dispatcher_return"].to_vec()),
     )
@@ -224,7 +224,7 @@ fn test_proceed_on_tc() {
     let uuid = add_tc_pass(
         "ingress",
         DEFAULT_BPFD_IFACE,
-        50,
+        45,
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
     )
@@ -235,7 +235,7 @@ fn test_proceed_on_tc() {
     let uuid = add_tc_pass(
         "egress",
         DEFAULT_BPFD_IFACE,
-        50,
+        45,
         Some([GLOBAL_6, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
     )
