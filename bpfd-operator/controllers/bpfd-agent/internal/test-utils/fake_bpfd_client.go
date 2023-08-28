@@ -18,49 +18,51 @@ package testutils
 
 import (
 	"context"
+	"math/rand"
 
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	grpc "google.golang.org/grpc"
 )
 
 type BpfdClientFake struct {
-	LoadRequests         map[string]*gobpfd.LoadRequest
-	UnloadRequests       map[string]*gobpfd.UnloadRequest
+	LoadRequests         map[int]*gobpfd.LoadRequest
+	UnloadRequests       map[int]*gobpfd.UnloadRequest
 	ListRequests         []*gobpfd.ListRequest
-	Programs             map[string]*gobpfd.ListResponse_ListResult
-	PullBytecodeRequests map[string]*gobpfd.PullBytecodeRequest
+	Programs             map[int]*gobpfd.ListResponse_ListResult
+	PullBytecodeRequests map[int]*gobpfd.PullBytecodeRequest
 }
 
 func NewBpfdClientFake() *BpfdClientFake {
 	return &BpfdClientFake{
-		LoadRequests:         map[string]*gobpfd.LoadRequest{},
-		UnloadRequests:       map[string]*gobpfd.UnloadRequest{},
+		LoadRequests:         map[int]*gobpfd.LoadRequest{},
+		UnloadRequests:       map[int]*gobpfd.UnloadRequest{},
 		ListRequests:         []*gobpfd.ListRequest{},
-		Programs:             map[string]*gobpfd.ListResponse_ListResult{},
-		PullBytecodeRequests: map[string]*gobpfd.PullBytecodeRequest{},
+		Programs:             map[int]*gobpfd.ListResponse_ListResult{},
+		PullBytecodeRequests: map[int]*gobpfd.PullBytecodeRequest{},
 	}
 }
 
-func NewBpfdClientFakeWithPrograms(programs map[string]*gobpfd.ListResponse_ListResult) *BpfdClientFake {
+func NewBpfdClientFakeWithPrograms(programs map[int]*gobpfd.ListResponse_ListResult) *BpfdClientFake {
 	return &BpfdClientFake{
-		LoadRequests:   map[string]*gobpfd.LoadRequest{},
-		UnloadRequests: map[string]*gobpfd.UnloadRequest{},
+		LoadRequests:   map[int]*gobpfd.LoadRequest{},
+		UnloadRequests: map[int]*gobpfd.UnloadRequest{},
 		ListRequests:   []*gobpfd.ListRequest{},
 		Programs:       programs,
 	}
 }
 
 func (b *BpfdClientFake) Load(ctx context.Context, in *gobpfd.LoadRequest, opts ...grpc.CallOption) (*gobpfd.LoadResponse, error) {
-	b.LoadRequests[*in.Common.Id] = in
+	id := rand.Intn(100)
+	b.LoadRequests[id] = in
 
-	b.Programs[*in.Common.Id] = loadRequestToListResult(in)
+	b.Programs[id] = loadRequestToListResult(in)
 
-	return &gobpfd.LoadResponse{}, nil
+	return &gobpfd.LoadResponse{Id: uint32(id)}, nil
 }
 
 func (b *BpfdClientFake) Unload(ctx context.Context, in *gobpfd.UnloadRequest, opts ...grpc.CallOption) (*gobpfd.UnloadResponse, error) {
-	b.UnloadRequests[in.Id] = in
-	delete(b.Programs, in.Id)
+	b.UnloadRequests[int(in.Id)] = in
+	delete(b.Programs, int(in.Id))
 
 	return &gobpfd.UnloadResponse{}, nil
 }
@@ -101,7 +103,7 @@ func loadRequestToListResult(loadReq *gobpfd.LoadRequest) *gobpfd.ListResponse_L
 		}
 	}
 
-	listResult.Id = loadReq.Common.Id
+	listResult.Metadata = loadReq.Common.Metadata
 	listResult.Name = loadReq.Common.SectionName
 	listResult.ProgramType = loadReq.Common.ProgramType
 

@@ -65,6 +65,10 @@ spec:
         - name: bpfd-content-store
           mountPath: /var/lib/bpfd
           mountPropagation: Bidirectional
+        # Needed for the aya PIN_BY_NAME feature to function correctly
+        - name: default-bpf-fs
+          mountPath: /sys/fs/bpf
+          mountPropagation: Bidirectional
       - name: bpfd-agent 
         command:
         - /bpfd-agent      
@@ -126,3 +130,7 @@ spec:
       - name: bpfd-content-store
         hostPath:
           path: /var/lib/bpfd
+      - name: default-bpf-fs
+        hostPath:
+          path: /sys/fs/bpf
+          type: DirectoryOrCreate

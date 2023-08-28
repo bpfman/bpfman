@@ -26,6 +26,8 @@ const (
 	BpfProgramOwnerLabel        = "bpfd.dev/ownedByProgram"
 	K8sHostLabel                = "kubernetes.io/hostname"
 	DiscoveredLabel             = "bpfd.dev/discoveredProgram"
+	IdAnnotation                = "bpfd.dev/ProgramId"
+	UuidMetadataKey             = "bpfd.dev/uuid"
 	BpfdNs                      = "bpfd"
 	BpfdOperatorName            = "bpfd-operator"
 	BpfdDsName                  = "bpfd-daemon"

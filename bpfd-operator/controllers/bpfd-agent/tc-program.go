@@ -220,17 +220,17 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 func (r *TcProgramReconciler) buildTcLoadRequest(
 	bytecode interface{},
-	id string,
+	uuid string,
 	iface string,
-	mapOwnerUuid types.UID) *gobpfd.LoadRequest {
+	mapOwnerId *uint32) *gobpfd.LoadRequest {
 	loadRequest := &gobpfd.LoadRequest{}
 	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
 		bytecode,
 		r.currentTcProgram.Spec.SectionName,
 		internal.Tc,
-		string(id),
+		map[string]string{internal.UuidMetadataKey: uuid},
 		r.currentTcProgram.Spec.GlobalData,
-		mapOwnerUuid,
+		mapOwnerId,
 	)
 	loadRequest.AttachInfo = &gobpfd.LoadRequest_TcAttachInfo{
 		TcAttachInfo: &gobpfd.TCAttachInfo{
@@ -258,18 +258,18 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	iface := bpfProgram.Annotations[internal.TcProgramInterface]
 
 	var err error
-	id := string(bpfProgram.UID)
+	uuid := string(bpfProgram.UID)
 
 	getLoadRequest := func() (*gobpfd.LoadRequest, bpfdiov1alpha1.BpfProgramConditionType, error) {
 		bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
 		if err != nil {
 			return nil, bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
 		}
-		loadRequest := r.buildTcLoadRequest(bytecode, id, iface, mapOwnerStatus.mapOwnerUuid)
+		loadRequest := r.buildTcLoadRequest(bytecode, string(uuid), iface, mapOwnerStatus.mapOwnerId)
 		return loadRequest, bpfdiov1alpha1.BpfProgCondNone, nil
 	}
 
-	existingProgram, doesProgramExist := existingBpfPrograms[id]
+	existingProgram, doesProgramExist := existingBpfPrograms[string(uuid)]
 	if !doesProgramExist {
 		r.Logger.V(1).Info("TcProgram doesn't exist on node for iface", "interface", iface)
 
@@ -299,14 +299,21 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return condition, err
 		}
 
-		r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
+		r.progId, r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load TcProgram")
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 		}
 
-		r.Logger.Info("bpfd called to load TcProgram on Node", "Name", bpfProgram.Name, "UUID", id)
+		r.Logger.Info("bpfd called to load TcProgram on Node", "Name", bpfProgram.Name, "UUID", uuid)
 		return bpfdiov1alpha1.BpfProgCondLoaded, nil
+	}
+
+	// prog ID should already have been set
+	id, err := bpfdagentinternal.GetID(bpfProgram)
+	if err != nil {
+		r.Logger.Error(err, "Failed to get program ID")
+		return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 	}
 
 	// BpfProgram exists but either BpfProgramConfig is being deleted or node is no
@@ -319,7 +326,7 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			"isDeleted", isBeingDeleted, "isSelected", isNodeSelected, "mapIsSet", mapOwnerStatus.isSet,
 			"mapIsFound", mapOwnerStatus.isFound, "mapIsLoaded", mapOwnerStatus.isLoaded)
 
-		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
+		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, *id); err != nil {
 			r.Logger.Error(err, "Failed to unload TcProgram")
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
@@ -354,12 +361,12 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	if !isSame {
 		r.Logger.V(1).Info("TcProgram is in wrong state, unloading and reloading", "Reason", reasons)
 
-		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
+		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, *id); err != nil {
 			r.Logger.Error(err, "Failed to unload TcProgram")
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 
-		r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
+		r.progId, r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load TcProgram")
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
@@ -369,6 +376,7 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	} else {
 		// Program exists and bpfProgram K8s Object is up to date
 		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")
+		r.progId = id
 		r.expectedMaps = bpfProgram.Spec.Maps
 	}
 

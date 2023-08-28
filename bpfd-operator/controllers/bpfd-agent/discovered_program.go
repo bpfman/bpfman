@@ -102,7 +102,7 @@ func (r *DiscoveredProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	for _, p := range programs {
 		// skip bpf programs loaded by bpfd, their corresponding bpfProgram object
 		// will be managed by another controller.
-		if p.Id != nil {
+		if _, ok := p.Metadata[internal.UuidMetadataKey]; ok {
 			continue
 		}
 
@@ -112,9 +112,9 @@ func (r *DiscoveredProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		// laid out here -> https://github.com/kubernetes/apimachinery/blob/v0.27.4/pkg/util/validation/validation.go#L43C6-L43C21
 		bpfProgName := ""
 		if len(p.Name) == 0 {
-			bpfProgName = fmt.Sprintf("%d-%s", p.BpfId, r.NodeName)
+			bpfProgName = fmt.Sprintf("%d-%s", p.Id, r.NodeName)
 		} else {
-			bpfProgName = fmt.Sprintf("%s-%d-%s", strings.ReplaceAll(p.Name, "_", "-"), p.BpfId, r.NodeName)
+			bpfProgName = fmt.Sprintf("%s-%d-%s", strings.ReplaceAll(p.Name, "_", "-"), p.Id, r.NodeName)
 		}
 
 		expectedBpfProg := &bpfdiov1alpha1.BpfProgram{
