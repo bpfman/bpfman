@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strconv"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -27,7 +28,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -59,12 +59,15 @@ const (
 // ReconcilerCommon provides a skeleton for all *Program Reconcilers.
 type ReconcilerCommon struct {
 	client.Client
-	Scheme       *runtime.Scheme
-	GrpcConn     *grpc.ClientConn
-	BpfdClient   gobpfd.LoaderClient
-	Logger       logr.Logger
-	NodeName     string
+	Scheme     *runtime.Scheme
+	GrpcConn   *grpc.ClientConn
+	BpfdClient gobpfd.BpfdClient
+	Logger     logr.Logger
+	NodeName   string
+	// TODO(astoycos) these shouldn't be passed via the reconciler, use return
+	// values instead or refactor by removing duplicated code.
 	expectedMaps map[string]string
+	progId       *uint32
 }
 
 // bpfdReconciler defines a generic bpfProgram K8s object reconciler which can
@@ -278,7 +281,7 @@ func reconcileProgram(ctx context.Context,
 	}
 
 	// Determine if the MapOwnerSelector was set, and if so, see if the MapOwner
-	// UUID can be found.
+	// ID can be found.
 	mapOwnerStatus, err := ProcessMapOwnerParam(ctx, &common.MapOwnerSelector, r)
 	if err != nil {
 		return internal.Requeue, fmt.Errorf("failed to determine map owner: %v", err)
@@ -287,7 +290,7 @@ func reconcileProgram(ctx context.Context,
 		"isSet", mapOwnerStatus.isSet,
 		"isFound", mapOwnerStatus.isFound,
 		"isLoaded", mapOwnerStatus.isLoaded,
-		"mapOwnerUuid", mapOwnerStatus.mapOwnerUuid)
+		"mapOwnerid", mapOwnerStatus.mapOwnerId)
 
 	// multiplex signals into kubernetes API actions
 	switch isBeingDeleted {
@@ -364,10 +367,17 @@ func reconcileProgram(ctx context.Context,
 					}
 				}
 
-				// If bpfProgram Maps isn't up to date just update it and return
-				if !reflect.DeepEqual(prog.Spec.Maps, r.expectedMaps) && len(r.expectedMaps) != 0 {
-					r.Logger.Info("Updating bpfProgram Object", "Maps", r.expectedMaps, "bpfProgram", prog.Name)
+				existingId, err := bpfdagentinternal.GetID(&prog)
+				if err != nil {
+					return internal.Requeue, fmt.Errorf("failed to get kernel id from bpfProgram: %v", err)
+				}
+
+				// If bpfProgram Maps OR the program ID annotation isn't up to date just update it and return
+				if !reflect.DeepEqual(prog.Spec.Maps, r.expectedMaps) || !reflect.DeepEqual(existingId, r.progId) {
+					r.Logger.Info("Updating bpfProgram Object", "Maps", r.expectedMaps, "Id", r.progId, "bpfProgram", prog.Name)
 					prog.Spec.Maps = r.expectedMaps
+					// annotations should be populate on create
+					prog.Annotations[internal.IdAnnotation] = strconv.FormatUint(uint64(*r.progId), 10)
 					if err := r.Update(ctx, &prog, &client.UpdateOptions{}); err != nil {
 						return internal.Requeue, fmt.Errorf("failed to update bpfProgram's Programs: %v", err)
 					}
@@ -388,16 +398,16 @@ func reconcileProgram(ctx context.Context,
 
 // MapOwnerParamStatus provides the output from a MapOwerSelector being parsed.
 type MapOwnerParamStatus struct {
-	isSet        bool
-	isFound      bool
-	isLoaded     bool
-	mapOwnerUuid types.UID
+	isSet      bool
+	isFound    bool
+	isLoaded   bool
+	mapOwnerId *uint32
 }
 
 // This function parses the MapOwnerSelector Labor Selector field from the
 // BpfProgramCommon struct in the *Program Objects. The labels should map to
 // a BpfProgram Object that this *Program wants to share maps with. If found, this
-// function returns the UUID of the BpfProgram that owns the map on this node.
+// function returns the ID of the BpfProgram that owns the map on this node.
 // Found or not, this function also returns some flags (isSet, isFound, isLoaded)
 // to help with the processing and setting of the proper condition on the BpfProgram Object.
 func ProcessMapOwnerParam(ctx context.Context,
@@ -440,7 +450,14 @@ func ProcessMapOwnerParam(ctx context.Context,
 			return mapOwnerStatus, fmt.Errorf("MapOwnerSelector resolved to multiple bpfProgram Objects")
 		} else {
 			mapOwnerStatus.isFound = true
-			mapOwnerStatus.mapOwnerUuid = bpfProgramList.Items[0].GetUID()
+
+			// Get bpfProgram based on UUID meta
+			prog, err := bpfdagentinternal.GetBpfdProgram(ctx, r.BpfdClient, bpfProgramList.Items[0].GetUID())
+			if err != nil {
+				return nil, fmt.Errorf("failed to get bpfd program for BpfProgram with UUID %s: %v", bpfProgramList.Items[0].GetUID(), err)
+			}
+
+			mapOwnerStatus.mapOwnerId = &prog.Id
 
 			// Get most recent condition from the one eBPF Program and determine
 			// if the BpfProgram is loaded or not.

@@ -29,15 +29,15 @@ func DoesProgExist(actual *gobpfd.ListResponse_ListResult, expected *gobpfd.Load
 	var reasons []string
 
 	// Check equality of all common fields
-	actualId := actual.GetId()
-	expectedId := expected.Common.GetId()
-	if actualId != expectedId {
-		reasons = append(reasons, fmt.Sprintf("Expected ID to be %s but found %s",
-			expectedId, actualId))
+	actualMeta := actual.GetMetadata()
+	expectedMeta := expected.Common.GetMetadata()
+	if !reflect.DeepEqual(actualMeta, expectedMeta) {
+		reasons = append(reasons, fmt.Sprintf("Expected ID to be %v but found %v",
+			actualMeta, expectedMeta))
 	}
 
 	actualName := actual.GetName()
-	expectedSectionName := expected.Common.GetSectionName()
+	expectedSectionName := expected.Common.GetName()
 	if actualName != expectedSectionName {
 		reasons = append(reasons, fmt.Sprintf("Expected Name to be %s but found %s",
 			expectedSectionName, actualName))
@@ -72,11 +72,11 @@ func DoesProgExist(actual *gobpfd.ListResponse_ListResult, expected *gobpfd.Load
 	}
 
 	// Check equality of Map Owner
-	actualMapOwnerUuid := actual.GetMapOwnerUuid()
-	expectedMapOwnerUuid := expected.Common.GetMapOwnerUuid()
-	if actualMapOwnerUuid != expectedMapOwnerUuid {
-		reasons = append(reasons, fmt.Sprintf("Expected File to be %s but found %s",
-			expectedMapOwnerUuid, actualMapOwnerUuid))
+	actualMapOwnerId := actual.GetMapOwnerId()
+	expectedMapOwnerId := expected.Common.GetMapOwnerId()
+	if actualMapOwnerId != expectedMapOwnerId {
+		reasons = append(reasons, fmt.Sprintf("Expected File to be %d but found %d",
+			expectedMapOwnerId, actualMapOwnerId))
 	}
 
 	// Check equality of program specific fields

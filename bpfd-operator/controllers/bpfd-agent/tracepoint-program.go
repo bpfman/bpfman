@@ -177,17 +177,17 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 func (r *TracepointProgramReconciler) buildTracepointLoadRequest(
 	bytecode interface{},
-	id string,
+	uuid string,
 	bpfProgram *bpfdiov1alpha1.BpfProgram,
-	mapOwnerUuid types.UID) *gobpfd.LoadRequest {
+	mapOwnerId *uint32) *gobpfd.LoadRequest {
 	loadRequest := &gobpfd.LoadRequest{}
 	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
 		bytecode,
 		r.currentTracepointProgram.Spec.SectionName,
 		internal.Tracepoint,
-		id,
+		map[string]string{internal.UuidMetadataKey: uuid},
 		r.currentTracepointProgram.Spec.GlobalData,
-		mapOwnerUuid,
+		mapOwnerId,
 	)
 	loadRequest.AttachInfo = &gobpfd.LoadRequest_TracepointAttachInfo{
 		TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
@@ -209,18 +209,18 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	mapOwnerStatus *MapOwnerParamStatus) (bpfdiov1alpha1.BpfProgramConditionType, error) {
 
 	r.Logger.V(1).Info("Existing bpfProgram", "ExistingMaps", bpfProgram.Spec.Maps, "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentTracepointProgram", r.currentTracepointProgram.Name)
-	id := string(bpfProgram.UID)
+	uuid := string(bpfProgram.UID)
 
 	getLoadRequest := func() (*gobpfd.LoadRequest, bpfdiov1alpha1.BpfProgramConditionType, error) {
 		bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
 		if err != nil {
 			return nil, bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
 		}
-		loadRequest := r.buildTracepointLoadRequest(bytecode, id, bpfProgram, mapOwnerStatus.mapOwnerUuid)
+		loadRequest := r.buildTracepointLoadRequest(bytecode, uuid, bpfProgram, mapOwnerStatus.mapOwnerId)
 		return loadRequest, bpfdiov1alpha1.BpfProgCondNone, nil
 	}
 
-	existingProgram, doesProgramExist := existingBpfPrograms[id]
+	existingProgram, doesProgramExist := existingBpfPrograms[uuid]
 	if !doesProgramExist {
 		r.Logger.V(1).Info("TracepointProgram doesn't exist on node")
 
@@ -250,16 +250,21 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return condition, err
 		}
 
-		bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
+		r.progId, r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load TracepointProgram")
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 		}
 
-		r.expectedMaps = bpfProgramEntry
-
-		r.Logger.Info("bpfd called to load TracepointProgram on Node", "Name", bpfProgram.Name, "UUID", id)
+		r.Logger.Info("bpfd called to load TracepointProgram on Node", "Name", bpfProgram.Name, "ID", uuid)
 		return bpfdiov1alpha1.BpfProgCondLoaded, nil
+	}
+
+	// prog ID should already have been set if program doesn't exist
+	id, err := bpfdagentinternal.GetID(bpfProgram)
+	if err != nil {
+		r.Logger.Error(err, "Failed to get program ID")
+		return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 	}
 
 	// BpfProgram exists but either TracepointProgram is being deleted, node is no
@@ -270,7 +275,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			"isDeleted", isBeingDeleted, "isSelected", isNodeSelected, "mapIsSet", mapOwnerStatus.isSet,
 			"mapIsFound", mapOwnerStatus.isFound, "mapIsLoaded", mapOwnerStatus.isLoaded)
 
-		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
+		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, *id); err != nil {
 			r.Logger.Error(err, "Failed to unload TracepointProgram")
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
@@ -307,22 +312,22 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	if !isSame {
 		r.Logger.V(1).Info("TracepointProgram is in wrong state, unloading and reloading", "Reason", reasons)
 
-		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
+		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, *id); err != nil {
 			r.Logger.Error(err, "Failed to unload TracepointProgram")
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 
-		bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
+		r.progId, r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load TracepointProgram")
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, err
 		}
 
-		r.expectedMaps = bpfProgramEntry
 		r.Logger.Info("bpfd called to reload TracepointProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 	} else {
 		// Program exists and bpfProgram K8s Object is up to date
 		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")
+		r.progId = id
 		r.expectedMaps = bpfProgram.Spec.Maps
 	}
 

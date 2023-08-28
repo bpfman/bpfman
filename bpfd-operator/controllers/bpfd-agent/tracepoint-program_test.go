@@ -25,6 +25,7 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
+	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
 	agenttestutils "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal/test-utils"
 	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	testutils "github.com/bpfd-dev/bpfd/bpfd-operator/internal/test-utils"
@@ -146,18 +147,17 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 
 	// Require no requeue
 	require.False(t, res.Requeue)
-	id := string(bpfProg.UID)
-	mapOwnerUuid := ""
+	uuid := string(bpfProg.UID)
 
 	expectedLoadReq := &gobpfd.LoadRequest{
 		Common: &gobpfd.LoadRequestCommon{
 			Location: &gobpfd.LoadRequestCommon_File{
 				File: bytecodePath,
 			},
-			SectionName:  sectionName,
-			ProgramType:  *internal.Tracepoint.Uint32(),
-			Id:           &id,
-			MapOwnerUuid: &mapOwnerUuid,
+			Name:        sectionName,
+			ProgramType: *internal.Tracepoint.Uint32(),
+			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid)},
+			MapOwnerId:  nil,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TracepointAttachInfo{
 			TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
@@ -165,9 +165,18 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 			},
 		},
 	}
+
+	// Check that the bpfProgram's programs was correctly updated
+	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: metav1.NamespaceAll}, bpfProg)
+	require.NoError(t, err)
+
+	// prog ID should already have been set
+	id, err := bpfdagentinternal.GetID(bpfProg)
+	require.NoError(t, err)
+
 	// Check the bpfLoadRequest was correctly Built
-	if !cmp.Equal(expectedLoadReq, cli.LoadRequests[id], protocmp.Transform()) {
-		cmp.Diff(expectedLoadReq, cli.LoadRequests[id], protocmp.Transform())
+	if !cmp.Equal(expectedLoadReq, cli.LoadRequests[int(*id)], protocmp.Transform()) {
+		cmp.Diff(expectedLoadReq, cli.LoadRequests[int(*id)], protocmp.Transform())
 		t.Fatal("Built bpfd LoadRequest does not match expected")
 	}
 

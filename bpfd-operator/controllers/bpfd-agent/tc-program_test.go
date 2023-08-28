@@ -25,6 +25,7 @@ import (
 	"google.golang.org/protobuf/testing/protocmp"
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
+	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
 	agenttestutils "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal/test-utils"
 	testutils "github.com/bpfd-dev/bpfd/bpfd-operator/internal/test-utils"
 
@@ -156,18 +157,17 @@ func TestTcProgramControllerCreate(t *testing.T) {
 
 	// Require no requeue
 	require.False(t, res.Requeue)
-	id := string(bpfProg.UID)
-	mapOwnerUuid := ""
+	uuid := string(bpfProg.UID)
 
 	expectedLoadReq := &gobpfd.LoadRequest{
 		Common: &gobpfd.LoadRequestCommon{
 			Location: &gobpfd.LoadRequestCommon_File{
 				File: bytecodePath,
 			},
-			SectionName:  sectionName,
-			ProgramType:  *internal.Tc.Uint32(),
-			Id:           &id,
-			MapOwnerUuid: &mapOwnerUuid,
+			Name:        sectionName,
+			ProgramType: *internal.Tc.Uint32(),
+			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid)},
+			MapOwnerId:  nil,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
 			TcAttachInfo: &gobpfd.TCAttachInfo{
@@ -179,15 +179,19 @@ func TestTcProgramControllerCreate(t *testing.T) {
 		},
 	}
 
-	// Check the bpfLoadRequest was correctly built
-	if !cmp.Equal(expectedLoadReq, cli.LoadRequests[id], protocmp.Transform()) {
-		t.Logf("Diff %v", cmp.Diff(expectedLoadReq, cli.LoadRequests[id], protocmp.Transform()))
-		t.Fatal("Built bpfd LoadRequest does not match expected")
-	}
-
-	// Check that the bpfProgram's maps was correctly updated
+	// Check that the bpfProgram's programs was correctly updated
 	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: metav1.NamespaceAll}, bpfProg)
 	require.NoError(t, err)
+
+	// prog ID should already have been set
+	id, err := bpfdagentinternal.GetID(bpfProg)
+	require.NoError(t, err)
+
+	// Check the bpfLoadRequest was correctly built
+	if !cmp.Equal(expectedLoadReq, cli.LoadRequests[int(*id)], protocmp.Transform()) {
+		t.Logf("Diff %v", cmp.Diff(expectedLoadReq, cli.LoadRequests[int(*id)], protocmp.Transform()))
+		t.Fatal("Built bpfd LoadRequest does not match expected")
+	}
 
 	require.Nil(t, bpfProg.Spec.Maps)
 
@@ -314,7 +318,7 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	err = cl.Update(ctx, bpfProgEth0)
 	require.NoError(t, err)
 
-	// Second reconcile should create the bpfd Load Requests for the first bpfProgram.
+	// Second reconcile should create the bpfd Load Requests for the first bpfProgram and update the prog id.
 	res, err = r.Reconcile(ctx, req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
@@ -323,11 +327,23 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	// Require no requeue
 	require.False(t, res.Requeue)
 
-	// Third reconcile should create the second bpf program object
+	// Third reconcile should set the second bpf program object's status.
 	res, err = r.Reconcile(ctx, req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
+
+	// Fourth reconcile should create the bpfd Load Requests for the second bpfProgram.
+	res, err = r.Reconcile(ctx, req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	// Require no requeue
+	require.False(t, res.Requeue)
+
+	// Require no requeue
+	require.False(t, res.Requeue)
 
 	// Check the Second BpfProgram Object was created successfully
 	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
@@ -342,15 +358,13 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	require.Equal(t, r.getFinalizer(), bpfProgEth1.Finalizers[0])
 	// Type is set
 	require.Equal(t, r.getRecType(), bpfProgEth1.Spec.Type)
-	// Require no requeue
-	require.False(t, res.Requeue)
 
 	// Update UID of bpfProgram with Fake UID since the fake API server won't
 	bpfProgEth1.UID = types.UID(fakeUID1)
 	err = cl.Update(ctx, bpfProgEth1)
 	require.NoError(t, err)
 
-	// Fourth reconcile should create the bpfd Load Requests for the second bpfProgram.
+	// Fifth reconcile should create the second bpfProgram.
 	res, err = r.Reconcile(ctx, req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
@@ -359,18 +373,23 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	// Require no requeue
 	require.False(t, res.Requeue)
 
-	id0 := string(bpfProgEth0.UID)
-	mapOwnerUuid := ""
+	// Sixth reconcile should update the second bpfProgram's status.
+	res, err = r.Reconcile(ctx, req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	uuid0 := string(bpfProgEth0.UID)
 
 	expectedLoadReq0 := &gobpfd.LoadRequest{
 		Common: &gobpfd.LoadRequestCommon{
 			Location: &gobpfd.LoadRequestCommon_File{
 				File: bytecodePath,
 			},
-			SectionName:  sectionName,
-			ProgramType:  *internal.Tc.Uint32(),
-			Id:           &id0,
-			MapOwnerUuid: &mapOwnerUuid,
+			Name:        sectionName,
+			ProgramType: *internal.Tc.Uint32(),
+			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid0)},
+			MapOwnerId:  nil,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
 			TcAttachInfo: &gobpfd.TCAttachInfo{
@@ -382,17 +401,17 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 		},
 	}
 
-	id1 := string(bpfProgEth1.UID)
+	uuid1 := string(bpfProgEth1.UID)
 
 	expectedLoadReq1 := &gobpfd.LoadRequest{
 		Common: &gobpfd.LoadRequestCommon{
 			Location: &gobpfd.LoadRequestCommon_File{
 				File: bytecodePath,
 			},
-			SectionName:  sectionName,
-			ProgramType:  *internal.Tc.Uint32(),
-			Id:           &id1,
-			MapOwnerUuid: &mapOwnerUuid,
+			Name:        sectionName,
+			ProgramType: *internal.Tc.Uint32(),
+			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid1)},
+			MapOwnerId:  nil,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
 			TcAttachInfo: &gobpfd.TCAttachInfo{
@@ -404,15 +423,31 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 		},
 	}
 
+	// Check that the bpfProgram's maps was correctly updated
+	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName0, Namespace: metav1.NamespaceAll}, bpfProgEth0)
+	require.NoError(t, err)
+
+	// prog ID should already have been set
+	id0, err := bpfdagentinternal.GetID(bpfProgEth0)
+	require.NoError(t, err)
+
+	// Check that the bpfProgram's maps was correctly updated
+	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
+	require.NoError(t, err)
+
+	// prog ID should already have been set
+	id1, err := bpfdagentinternal.GetID(bpfProgEth1)
+	require.NoError(t, err)
+
 	// Check the bpfLoadRequest was correctly built
-	if !cmp.Equal(expectedLoadReq0, cli.LoadRequests[id0], protocmp.Transform()) {
-		t.Logf("Diff %v", cmp.Diff(expectedLoadReq0, cli.LoadRequests[id0], protocmp.Transform()))
+	if !cmp.Equal(expectedLoadReq0, cli.LoadRequests[int(*id0)], protocmp.Transform()) {
+		t.Logf("Diff %v", cmp.Diff(expectedLoadReq0, cli.LoadRequests[int(*id0)], protocmp.Transform()))
 		t.Fatal("Built bpfd LoadRequest does not match expected")
 	}
 
 	// Check the bpfLoadRequest was correctly built
-	if !cmp.Equal(expectedLoadReq1, cli.LoadRequests[id1], protocmp.Transform()) {
-		t.Logf("Diff %v", cmp.Diff(expectedLoadReq1, cli.LoadRequests[id1], protocmp.Transform()))
+	if !cmp.Equal(expectedLoadReq1, cli.LoadRequests[int(*id1)], protocmp.Transform()) {
+		t.Logf("Diff %v", cmp.Diff(expectedLoadReq1, cli.LoadRequests[int(*id1)], protocmp.Transform()))
 		t.Fatal("Built bpfd LoadRequest does not match expected")
 	}
 

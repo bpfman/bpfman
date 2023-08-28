@@ -59,5 +59,5 @@ func GetPrimaryNodeInterface(ourNode *v1.Node) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("Unable to find Node Interface")
+	return "", fmt.Errorf("unable to find Node Interface")
 }
