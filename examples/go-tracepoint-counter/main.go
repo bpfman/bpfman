@@ -61,18 +61,18 @@ func main() {
 
 	} else { // if not on k8s, find the map path from the system
 
-		// if the bytecode src is not a UUID provided by BPFD, we'll need to
+		// if the bytecode src is not a Program ID provided by BPFD, we'll need to
 		// load the program ourselves
-		if paramData.BytecodeSrc != configMgmt.SrcUuid {
+		if paramData.BytecodeSrc != configMgmt.SrcProgId {
 			cleanup, err := loadProgram(&paramData)
 			if err != nil {
 				log.Printf("Failed to load BPF program: %v", err)
 				return
 			}
-			defer cleanup(paramData.Uuid)
+			defer cleanup(paramData.ProgId)
 		}
 
-		mapPath = fmt.Sprintf("%s/%s/tracepoint_stats_map", DefaultMapDir, paramData.Uuid)
+		mapPath = fmt.Sprintf("%s/%s/tracepoint_stats_map", DefaultMapDir, paramData.ProgId)
 	}
 
 	// load the pinned stats map which is keeping count of kill -SIGUSR1 calls
@@ -128,7 +128,7 @@ func main() {
 	log.Printf("Exiting...\n")
 }
 
-func loadProgram(paramData *configMgmt.ParameterData) (func(string), error) {
+func loadProgram(paramData *configMgmt.ParameterData) (func(uint), error) {
 	// get the BPFD TLS credentials
 	configFileData := configMgmt.LoadConfig(DefaultConfigPath)
 	creds, err := configMgmt.LoadTLSCredentials(configFileData.Tls)
@@ -142,10 +142,10 @@ func loadProgram(paramData *configMgmt.ParameterData) (func(string), error) {
 	if err != nil {
 		return nil, err
 	}
-	c := gobpfd.NewLoaderClient(conn)
+	c := gobpfd.NewBpfdClient(conn)
 	loadRequestCommon := &gobpfd.LoadRequestCommon{
 		Location:    paramData.BytecodeSource.Location,
-		SectionName: "tracepoint_kill_recorder",
+		Name:        "tracepoint_kill_recorder",
 		ProgramType: *bpfdHelpers.Xdp.Uint32(),
 	}
 
@@ -165,14 +165,14 @@ func loadProgram(paramData *configMgmt.ParameterData) (func(string), error) {
 		conn.Close()
 		return nil, err
 	}
-	paramData.Uuid = res.GetId()
-	log.Printf("program registered with %s id\n", paramData.Uuid)
+	paramData.ProgId = uint(res.GetId())
+	log.Printf("Program registered with id %d\n", paramData.ProgId)
 
 	// provide a cleanup to unload the program
-	return func(id string) {
+	return func(id uint) {
 		defer conn.Close()
 		log.Printf("unloading program: %s\n", id)
-		_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: id})
+		_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: uint32(id)})
 		if err != nil {
 			conn.Close()
 			log.Printf("failed to unload program %s: %v", id, err)

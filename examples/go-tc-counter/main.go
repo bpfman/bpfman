@@ -86,15 +86,25 @@ func main() {
 			log.Printf("failed to create client connection: %v", err)
 			return
 		}
-		c := gobpfd.NewLoaderClient(conn)
+		c := gobpfd.NewBpfdClient(conn)
 
-		// If the bytecode src is a UUID, skip the loading and unloading of the bytecode.
-		if paramData.BytecodeSrc != configMgmt.SrcUuid {
-			loadRequestCommon := &gobpfd.LoadRequestCommon{
-				Location:     paramData.BytecodeSource.Location,
-				SectionName:  "stats",
-				ProgramType:  *bpfdHelpers.Tc.Uint32(),
-				MapOwnerUuid: &paramData.MapOwnerUuid,
+		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
+		if paramData.BytecodeSrc != configMgmt.SrcProgId {
+			var loadRequestCommon *gobpfd.LoadRequestCommon
+			if paramData.MapOwnerId != 0 {
+				mapOwnerId := uint32(paramData.MapOwnerId)
+				loadRequestCommon = &gobpfd.LoadRequestCommon{
+					Location:    paramData.BytecodeSource.Location,
+					Name:        "stats",
+					ProgramType: *bpfdHelpers.Tc.Uint32(),
+					MapOwnerId:  &mapOwnerId,
+				}
+			} else {
+				loadRequestCommon = &gobpfd.LoadRequestCommon{
+					Location:    paramData.BytecodeSource.Location,
+					Name:        "stats",
+					ProgramType: *bpfdHelpers.Tc.Uint32(),
+				}
 			}
 
 			loadRequest := &gobpfd.LoadRequest{
@@ -116,30 +126,30 @@ func main() {
 				log.Print(err)
 				return
 			}
-			paramData.Uuid = res.GetId()
-			log.Printf("Program registered with %s id\n", paramData.Uuid)
+			paramData.ProgId = uint(res.GetId())
+			log.Printf("Program registered with id %d\n", paramData.ProgId)
 
 			// 2. Set up defer to unload program when this is closed
-			defer func(id string) {
-				log.Printf("Unloading Program: %s\n", id)
-				_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: id})
+			defer func(id uint) {
+				log.Printf("Unloading Program: %d\n", id)
+				_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: uint32(id)})
 				if err != nil {
 					conn.Close()
 					log.Print(err)
 					return
 				}
 				conn.Close()
-			}(paramData.Uuid)
+			}(paramData.ProgId)
 		} else {
 			// 2. Set up defer to close connection
-			defer func(id string) {
-				log.Printf("Closing Connection for Program: %s\n", id)
+			defer func(id uint) {
+				log.Printf("Closing Connection for Program: %d\n", id)
 				conn.Close()
-			}(paramData.Uuid)
+			}(paramData.ProgId)
 		}
 
 		// 3. Get access to our map
-		mapPath, err = configMgmt.RetrieveMapPinPath(ctx, c, paramData, bpfdHelpers.Tc.Uint32(), "tc_stats_map")
+		mapPath, err = configMgmt.RetrieveMapPinPath(ctx, c, paramData.ProgId, bpfdHelpers.Tc.Uint32(), "tc_stats_map")
 		if err != nil {
 			log.Printf("Unable to retrieve maps\n")
 			conn.Close()
