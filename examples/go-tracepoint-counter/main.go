@@ -142,11 +142,12 @@ func loadProgram(paramData *configMgmt.ParameterData) (func(string), error) {
 	if err != nil {
 		return nil, err
 	}
-	c := gobpfd.NewLoaderClient(conn)
+	c := gobpfd.NewBpfdClient(conn)
 	loadRequestCommon := &gobpfd.LoadRequestCommon{
 		Location:    paramData.BytecodeSource.Location,
 		SectionName: "tracepoint_kill_recorder",
 		ProgramType: *bpfdHelpers.Xdp.Uint32(),
+		Metadata:    map[string]string{configMgmt.UuidMetadataKey: paramData.Uuid},
 	}
 
 	loadRequest := &gobpfd.LoadRequest{
@@ -165,14 +166,14 @@ func loadProgram(paramData *configMgmt.ParameterData) (func(string), error) {
 		conn.Close()
 		return nil, err
 	}
-	paramData.Uuid = res.GetId()
-	log.Printf("program registered with %s id\n", paramData.Uuid)
+	progId := res.GetId()
+	log.Printf("program registered with %d id\n", progId)
 
 	// provide a cleanup to unload the program
 	return func(id string) {
 		defer conn.Close()
 		log.Printf("unloading program: %s\n", id)
-		_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: id})
+		_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: progId})
 		if err != nil {
 			conn.Close()
 			log.Printf("failed to unload program %s: %v", id, err)

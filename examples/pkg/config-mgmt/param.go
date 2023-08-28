@@ -28,6 +28,10 @@ import (
 )
 
 const (
+	UuidMetadataKey = "bpfd.dev/uuid"
+)
+
+const (
 	SrcNone = iota
 	SrcUuid
 	SrcImage
@@ -52,12 +56,12 @@ const (
 )
 
 type ParameterData struct {
-	Iface        string
-	Priority     int
-	Direction    int
-	CrdFlag      bool
-	Uuid         string
-	MapOwnerUuid string
+	Iface      string
+	Priority   int
+	Direction  int
+	CrdFlag    bool
+	Uuid       string
+	MapOwnerId int
 	// The bytecodesource type has to be encapsulated in a complete LoadRequest because isLoadRequest_Location is not Public
 	BytecodeSource *gobpfd.LoadRequestCommon
 	BytecodeSrc    int
@@ -78,8 +82,7 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 			"Priority to load program in bpfd. Optional.")
 	}
 	flag.StringVar(&cmdlineUuid, "uuid", "",
-		"UUID of bytecode that has already been loaded. uuid and file/image are\n"+
-			"mutually exclusive.\n"+
+		"Optional program UUID.\n"+
 			"Example: -uuid 5471e2f5-2584-49ec-9ddc-381788446c2d")
 	flag.StringVar(&cmdlineImage, "image", "",
 		"Image repository URL of bytecode source. image and file/uuid are mutually\n"+
@@ -96,14 +99,14 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 		flag.StringVar(&direction_str, "direction", "",
 			"Direction to apply program (ingress, egress). Required.")
 	}
-	flag.StringVar(&paramData.MapOwnerUuid, "map_owner_id", "",
-		"Uuid of loaded eBPF program this eBPF program will share a map with.\n"+
-			"Example: -map_owner_id 989958a5-b47b-47a5-8b4c-b5962292437d")
+	flag.IntVar(&paramData.MapOwnerId, "map_owner_id", 0,
+		"Id of loaded eBPF program this eBPF program will share a map with.\n"+
+			"Example: -map_owner_id 9785")
 	flag.Parse()
 
 	if paramData.CrdFlag {
 		if flag.NFlag() != 1 {
-			return paramData, fmt.Errorf("\"crd\" is mutually exclusive with all other parameters.")
+			return paramData, fmt.Errorf("\"crd\" is mutually exclusive with all other parameters")
 		} else {
 			return paramData, nil
 		}
@@ -128,7 +131,7 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 		} else if direction_str == "egress" {
 			paramData.Direction = TcDirectionEgress
 		} else {
-			return paramData, fmt.Errorf("invalid direction (%s). valid options are ingress or egress.", direction_str)
+			return paramData, fmt.Errorf("invalid direction (%s). valid options are ingress or egress", direction_str)
 		}
 	}
 
@@ -168,7 +171,7 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 			source = cmdlineImage
 		}
 	} else {
-		// "-uuid" was entered so it is a UUID
+		// "-id" was entered so it is a UUID
 		paramData.Uuid = cmdlineUuid
 		paramData.BytecodeSrc = SrcUuid
 		source = cmdlineUuid
@@ -211,11 +214,12 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 	return paramData, nil
 }
 
-func RetrieveMapPinPath(ctx context.Context, c gobpfd.LoaderClient, paramData ParameterData, programType *uint32, map_name string) (string, error) {
+func RetrieveMapPinPath(ctx context.Context, c gobpfd.BpfdClient, paramData ParameterData, programType *uint32, map_name string) (string, error) {
 	var mapPath string
 
 	listRequest := &gobpfd.ListRequest{
-		ProgramType: programType,
+		ProgramType:   programType,
+		MatchMetadata: map[string]string{UuidMetadataKey: paramData.Uuid},
 	}
 	//var listResponse *gobpfd.ListResponse
 	listResponse, err := c.List(ctx, listRequest)
@@ -223,12 +227,13 @@ func RetrieveMapPinPath(ctx context.Context, c gobpfd.LoaderClient, paramData Pa
 		return mapPath, err
 	}
 	results := listResponse.GetResults()
-	for _, result := range results {
-		if result.GetId() == paramData.Uuid {
-			mapPath = fmt.Sprintf("%s/%s", result.GetMapPinPath(), map_name)
-			break
-		}
+
+	if len(results) != 1 {
+		return mapPath, fmt.Errorf("more than one program found with UUID %s", paramData.Uuid)
 	}
+
+	mapPath = fmt.Sprintf("%s/%s", results[0].GetMapPinPath(), map_name)
+
 	if mapPath == "" {
 		return mapPath, fmt.Errorf("couldn't find map path in response")
 	}

@@ -86,15 +86,18 @@ func main() {
 			log.Printf("failed to create client connection: %v", err)
 			return
 		}
-		c := gobpfd.NewLoaderClient(conn)
+		c := gobpfd.NewBpfdClient(conn)
+
+		mapOwnerId := uint32(paramData.MapOwnerId)
 
 		// If the bytecode src is a UUID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcUuid {
 			loadRequestCommon := &gobpfd.LoadRequestCommon{
-				Location:     paramData.BytecodeSource.Location,
-				SectionName:  "stats",
-				ProgramType:  *bpfdHelpers.Tc.Uint32(),
-				MapOwnerUuid: &paramData.MapOwnerUuid,
+				Location:    paramData.BytecodeSource.Location,
+				SectionName: "stats",
+				ProgramType: *bpfdHelpers.Tc.Uint32(),
+				Metadata:    map[string]string{configMgmt.UuidMetadataKey: paramData.Uuid},
+				MapOwnerId:  &mapOwnerId,
 			}
 
 			loadRequest := &gobpfd.LoadRequest{
@@ -116,13 +119,13 @@ func main() {
 				log.Print(err)
 				return
 			}
-			paramData.Uuid = res.GetId()
+			progId := res.GetId()
 			log.Printf("Program registered with %s id\n", paramData.Uuid)
 
 			// 2. Set up defer to unload program when this is closed
 			defer func(id string) {
 				log.Printf("Unloading Program: %s\n", id)
-				_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: id})
+				_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: progId})
 				if err != nil {
 					conn.Close()
 					log.Print(err)
