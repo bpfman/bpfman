@@ -1,7 +1,5 @@
 use std::env;
 
-use inventory::iter;
-
 use log::{info, LevelFilter};
 use tests::IntegrationTest;
 
@@ -23,15 +21,7 @@ fn main() -> anyhow::Result<()> {
         info!("Executing all test cases");
     }
 
-    // Get the tests into a collection that can be sorted.
-    let mut tests: Vec<<iter<IntegrationTest> as IntoIterator>::Item> =
-        inventory::iter::<IntegrationTest>.into_iter().collect();
-
-    // Sort the tests so we can excute them in the desired order
-    tests.sort();
-
-    // Run the tests
-    for t in tests {
+    for t in inventory::iter::<IntegrationTest> {
         let test_name: String = t
             .name
             .split("::")
