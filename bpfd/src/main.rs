@@ -73,8 +73,20 @@ fn main() -> anyhow::Result<()> {
                 .context("unable to create dispatcher directory")?;
             create_dir_all(RTDIR_PROGRAMS).context("unable to create programs directory")?;
 
-            if !is_bpffs_mounted()? {
-                debug!("Creating bpffs at {}", RTDIR_FS);
+            let (default_bpf_fs, bpfd_bpf_fs) = is_bpffs_mounted()?;
+
+            if !default_bpf_fs {
+                debug!("Creating default bpffs at {}", "/sys/fs/bpf");
+                let flags = MsFlags::MS_NOSUID
+                    | MsFlags::MS_NODEV
+                    | MsFlags::MS_NOEXEC
+                    | MsFlags::MS_RELATIME;
+                mount::<str, str, str, str>(Some("bpf"), "/sys/fs/bpf", Some("bpf"), flags, None)
+                    .context("unable to mount bpffs")?;
+            }
+
+            if !bpfd_bpf_fs {
+                debug!("Creating bpfd bpffs at {}", RTDIR_FS);
                 let flags = MsFlags::MS_NOSUID
                     | MsFlags::MS_NODEV
                     | MsFlags::MS_NOEXEC
@@ -172,22 +184,35 @@ fn drop_linux_capabilities() {
     }
 }
 
-fn is_bpffs_mounted() -> Result<bool, anyhow::Error> {
+// ensure both the default bpf fs and bpfd fs is mounted
+fn is_bpffs_mounted() -> Result<(bool, bool), anyhow::Error> {
     let file = File::open("/proc/mounts").context("Failed to open /proc/mounts")?;
     let reader = BufReader::new(file);
+    let mut bpfd_fs_found = false;
+    let mut sys_fs_found = false;
+
     for l in reader.lines() {
         match l {
             Ok(line) => {
+                // exit early
+                if bpfd_fs_found && sys_fs_found {
+                    return Ok((true, true));
+                }
+
                 let parts: Vec<&str> = line.split(' ').collect();
                 if parts.len() != 6 {
                     bail!("expected 6 parts in proc mount")
                 }
-                if parts[0] == "none" && parts[1].contains("bpfd") && parts[2] == "bpf" {
-                    return Ok(true);
+                if parts[0] == "none" && parts[1] == "/run/bpfd/fs" && parts[2] == "bpf" {
+                    bpfd_fs_found = true;
+                }
+
+                if parts[0] == "bpf" && parts[1] == "/sys/fs/bpf" && parts[2] == "bpf" {
+                    sys_fs_found = true;
                 }
             }
             Err(e) => bail!("problem reading lines {}", e),
         }
     }
-    Ok(false)
+    Ok((sys_fs_found, bpfd_fs_found))
 }
