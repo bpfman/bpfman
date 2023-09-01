@@ -2,7 +2,12 @@
 // Copyright Authors of bpfd
 
 //! Commands between the RPC thread and the BPF thread
-use std::{collections::HashMap, fmt, fs, io::BufReader, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fmt, fs,
+    io::BufReader,
+    path::{Path, PathBuf},
+};
 
 use aya::programs::ProgramInfo as AyaProgInfo;
 use bpfd_api::{
@@ -28,100 +33,34 @@ type Responder<T> = oneshot::Sender<T>;
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub(crate) enum Command {
-    /// Load an XDP program
-    LoadXDP(LoadXDPArgs),
-    /// Load a TC program
-    LoadTC(LoadTCArgs),
-    // Load a Tracepoint program
-    LoadTracepoint(LoadTracepointArgs),
-    // Load a kprobe program
-    LoadKprobe(LoadKprobeArgs),
-    // Load a uprobe program
-    LoadUprobe(LoadUprobeArgs),
+    /// Load a program
+    Load(LoadArgs),
     Unload(UnloadArgs),
     List {
-        responder: Responder<Result<Vec<ProgramInfo>, BpfdError>>,
+        responder: Responder<Result<Vec<Program>, BpfdError>>,
     },
     PullBytecode(PullBytecodeArgs),
 }
 
 #[derive(Debug)]
-pub(crate) struct LoadXDPArgs {
-    pub(crate) location: Location,
-    pub(crate) section_name: String,
-    pub(crate) id: Option<Uuid>,
-    pub(crate) global_data: HashMap<String, Vec<u8>>,
-    pub(crate) map_owner_uuid: Option<Uuid>,
-    pub(crate) iface: String,
-    pub(crate) priority: i32,
-    pub(crate) proceed_on: XdpProceedOn,
-    pub(crate) username: String,
+pub(crate) struct LoadArgs {
+    pub(crate) program: Program,
     pub(crate) responder: Responder<Result<Uuid, BpfdError>>,
 }
 
-#[derive(Debug)]
-pub(crate) struct LoadTCArgs {
-    pub(crate) location: Location,
-    pub(crate) section_name: String,
-    pub(crate) id: Option<Uuid>,
-    pub(crate) global_data: HashMap<String, Vec<u8>>,
-    pub(crate) map_owner_uuid: Option<Uuid>,
-    pub(crate) iface: String,
-    pub(crate) priority: i32,
-    pub(crate) direction: Direction,
-    pub(crate) proceed_on: TcProceedOn,
-    pub(crate) username: String,
-    pub(crate) responder: Responder<Result<Uuid, BpfdError>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct LoadTracepointArgs {
-    pub(crate) location: Location,
-    pub(crate) id: Option<Uuid>,
-    pub(crate) section_name: String,
-    pub(crate) global_data: HashMap<String, Vec<u8>>,
-    pub(crate) map_owner_uuid: Option<Uuid>,
-    pub(crate) tracepoint: String,
-    pub(crate) username: String,
-    pub(crate) responder: Responder<Result<Uuid, BpfdError>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct LoadKprobeArgs {
-    pub(crate) location: Location,
-    pub(crate) id: Option<Uuid>,
-    pub(crate) section_name: String,
-    pub(crate) global_data: HashMap<String, Vec<u8>>,
-    pub(crate) map_owner_uuid: Option<Uuid>,
-    pub(crate) fn_name: String,
-    pub(crate) offset: u64,
-    pub(crate) retprobe: bool,
-    pub(crate) _namespace: Option<String>,
-    pub(crate) username: String,
-    pub(crate) responder: Responder<Result<Uuid, BpfdError>>,
-}
-
-#[derive(Debug)]
-pub(crate) struct LoadUprobeArgs {
-    pub(crate) location: Location,
-    pub(crate) id: Option<Uuid>,
-    pub(crate) section_name: String,
-    pub(crate) global_data: HashMap<String, Vec<u8>>,
-    pub(crate) map_owner_uuid: Option<Uuid>,
-    pub(crate) fn_name: Option<String>,
-    pub(crate) offset: u64,
-    pub(crate) target: String,
-    pub(crate) retprobe: bool,
-    pub(crate) pid: Option<i32>,
-    pub(crate) _namespace: Option<String>,
-    pub(crate) username: String,
-    pub(crate) responder: Responder<Result<Uuid, BpfdError>>,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) enum Program {
+    Xdp(XdpProgram),
+    Tc(TcProgram),
+    Tracepoint(TracepointProgram),
+    Kprobe(KprobeProgram),
+    Uprobe(UprobeProgram),
+    Unsupported(KernelProgramInfo),
 }
 
 #[derive(Debug)]
 pub(crate) struct UnloadArgs {
     pub(crate) id: Uuid,
-    pub(crate) username: String,
     pub(crate) responder: Responder<Result<(), BpfdError>>,
 }
 
@@ -213,7 +152,10 @@ impl TryFrom<AyaProgInfo> for KernelProgramInfo {
     fn try_from(prog: AyaProgInfo) -> Result<Self, Self::Error> {
         Ok(KernelProgramInfo {
             id: prog.id(),
-            name: prog.name_as_str().unwrap().to_string(),
+            name: prog
+                .name_as_str()
+                .expect("Program name is not valid unicode")
+                .to_string(),
             program_type: prog.program_type(),
             loaded_at: DateTime::<Local>::from(prog.loaded_at())
                 .format("%Y-%m-%dT%H:%M:%S%z")
@@ -231,177 +173,85 @@ impl TryFrom<AyaProgInfo> for KernelProgramInfo {
     }
 }
 
-/// ProgramInfo stores information about bpf programs loaded on a system
-/// which are managed via bpfd.
-#[derive(Debug, Clone)]
-pub(crate) struct ProgramInfo {
-    pub(crate) id: Option<Uuid>,
-    pub(crate) name: Option<String>,
-    pub(crate) program_type: Option<u32>,
-    pub(crate) location: Option<Location>,
-    pub(crate) global_data: Option<HashMap<String, Vec<u8>>>,
-    pub(crate) map_pin_path: Option<String>,
-    pub(crate) map_used_by: Option<Vec<Uuid>>,
-    pub(crate) map_owner_uuid: Option<Uuid>,
-    pub(crate) attach_info: Option<AttachInfo>,
-    pub(crate) kernel_info: KernelProgramInfo,
-}
-
-#[derive(Debug, Clone)]
-pub(crate) enum AttachInfo {
-    Xdp(XdpAttachInfo),
-    Tc(TcAttachInfo),
-    Tracepoint(TracepointAttachInfo),
-    Kprobe(KprobeAttachInfo),
-    Uprobe(UprobeAttachInfo),
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub(crate) struct XdpAttachInfo {
-    pub(crate) priority: i32,
-    pub(crate) iface: String,
-    pub(crate) position: i32,
-    pub(crate) proceed_on: XdpProceedOn,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub(crate) struct TcAttachInfo {
-    pub(crate) priority: i32,
-    pub(crate) iface: String,
-    pub(crate) position: i32,
-    pub(crate) proceed_on: TcProceedOn,
-    pub(crate) direction: Direction,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub(crate) struct TracepointAttachInfo {
-    pub(crate) tracepoint: String,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub(crate) struct KprobeAttachInfo {
-    pub(crate) fn_name: String,
-    pub(crate) offset: u64,
-    pub(crate) retprobe: bool,
-    pub(crate) namespace: Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub(crate) struct UprobeAttachInfo {
-    pub(crate) fn_name: Option<String>,
-    pub(crate) offset: u64,
-    pub(crate) target: String,
-    pub(crate) retprobe: bool,
-    pub(crate) pid: Option<i32>,
-    pub(crate) namespace: Option<String>,
-}
-
-#[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Serialize, Deserialize, Clone)]
-pub(crate) struct Metadata {
-    pub(crate) priority: i32,
-    pub(crate) attached: bool,
-}
-
-impl Metadata {
-    pub(crate) fn new(priority: i32) -> Self {
-        Metadata {
-            priority,
-            attached: false,
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub(crate) enum Program {
-    Xdp(XdpProgram),
-    Tracepoint(TracepointProgram),
-    Tc(TcProgram),
-    Kprobe(KprobeProgram),
-    Uprobe(UprobeProgram),
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub(crate) struct XdpProgram {
-    pub(crate) data: ProgramData,
-    pub(crate) info: XdpProgramInfo,
-}
-
-impl XdpProgram {
-    pub(crate) fn new(data: ProgramData, info: XdpProgramInfo) -> Self {
-        Self { data, info }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub(crate) struct TcProgram {
-    pub(crate) data: ProgramData,
-    pub(crate) info: TcProgramInfo,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub(crate) struct TracepointProgram {
-    pub(crate) data: ProgramData,
-    pub(crate) info: TracepointProgramInfo,
-}
-
-impl TracepointProgram {
-    pub(crate) fn new(data: ProgramData, info: TracepointProgramInfo) -> Self {
-        Self { data, info }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub(crate) struct KprobeProgram {
-    pub(crate) data: ProgramData,
-    pub(crate) info: KprobeProgramInfo,
-}
-
-#[derive(Serialize, Deserialize, Clone)]
-pub(crate) struct UprobeProgram {
-    pub(crate) data: ProgramData,
-    pub(crate) info: UprobeProgramInfo,
-}
-
-impl KprobeProgram {
-    pub(crate) fn _new(data: ProgramData, info: KprobeProgramInfo) -> Self {
-        Self { data, info }
-    }
-}
-
-impl UprobeProgram {
-    pub(crate) fn _new(data: ProgramData, info: UprobeProgramInfo) -> Self {
-        Self { data, info }
-    }
-}
-
-// ProgramData represents all of the core information needed to load
-// a program reguardless of ProgramType.
-#[derive(Serialize, Deserialize, Clone)]
+/// ProgramInfo stores information about bpf programs that are loaded and managed
+/// by bpfd.
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub(crate) struct ProgramData {
-    pub(crate) location: Location,
-    pub(crate) section_name: String,
-    pub(crate) global_data: HashMap<String, Vec<u8>>,
-    pub(crate) owner: String,
-    pub(crate) map_owner_uuid: Option<Uuid>,
-    pub(crate) kernel_info: Option<KernelProgramInfo>,
+    // known at load time, set by user
+    name: String,
+    location: Location,
+    id: Option<Uuid>,
+    global_data: HashMap<String, Vec<u8>>,
+    map_owner_id: Option<Uuid>,
+
+    // populated after load
+    kernel_info: Option<KernelProgramInfo>,
+    map_pin_path: Option<PathBuf>,
+    maps_used_by: Option<Vec<Uuid>>,
 }
 
 impl ProgramData {
     pub(crate) fn new(
         location: Location,
-        section_name: String,
+        name: String,
+        id: Option<Uuid>,
         global_data: HashMap<String, Vec<u8>>,
-        map_owner_uuid: Option<Uuid>,
-        owner: String,
+        map_owner_id: Option<Uuid>,
     ) -> Self {
         Self {
+            name,
             location,
-            section_name,
-            owner,
+            id,
             global_data,
-            map_owner_uuid,
+            map_owner_id,
             kernel_info: None,
+            map_pin_path: None,
+            maps_used_by: None,
         }
+    }
+
+    pub(crate) fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub(crate) fn id(&self) -> Option<Uuid> {
+        self.id
+    }
+
+    pub(crate) fn set_id(&mut self, id: Option<Uuid>) {
+        self.id = id
+    }
+
+    pub(crate) fn set_kernel_info(&mut self, info: Option<KernelProgramInfo>) {
+        self.kernel_info = info
+    }
+
+    pub(crate) fn kernel_info(&self) -> Option<&KernelProgramInfo> {
+        self.kernel_info.as_ref()
+    }
+
+    pub(crate) fn global_data(&self) -> &HashMap<String, Vec<u8>> {
+        &self.global_data
+    }
+
+    pub(crate) fn set_map_pin_path(&mut self, path: Option<PathBuf>) {
+        self.map_pin_path = path
+    }
+
+    pub(crate) fn map_pin_path(&self) -> Option<&Path> {
+        self.map_pin_path.as_deref()
+    }
+
+    pub(crate) fn map_owner_id(&self) -> Option<Uuid> {
+        self.map_owner_id
+    }
+
+    pub(crate) fn set_maps_used_by(&mut self, used_by: Option<Vec<Uuid>>) {
+        self.maps_used_by = used_by
+    }
+
+    pub(crate) fn maps_used_by(&self) -> Option<&Vec<Uuid>> {
+        self.maps_used_by.as_ref()
     }
 
     pub(crate) async fn program_bytes(&mut self) -> Result<Vec<u8>, BpfdError> {
@@ -410,17 +260,17 @@ impl ProgramData {
             Ok((v, s)) => {
                 match self.location {
                     Location::Image(_) => {
-                        // If section name isn't provided and we're loading from a container
-                        // image use the section name provided in the image metadata, otherwise
-                        // always use the provided section name.
-                        let provided_sec_name = self.section_name.clone();
+                        // If program name isn't provided and we're loading from a container
+                        // image use the program name provided in the image metadata, otherwise
+                        // always use the provided program name.
+                        let provided_name = self.name.clone();
 
-                        if provided_sec_name.is_empty() {
-                            self.section_name = s;
-                        } else if s != provided_sec_name {
+                        if provided_name.is_empty() {
+                            self.name = s;
+                        } else if s != provided_name {
                             return Err(BpfdError::BytecodeMetaDataMismatch {
-                                image_sec_name: s,
-                                provided_sec_name,
+                                image_prog_name: s,
+                                provided_prog_name: provided_name,
                             });
                         }
                     }
@@ -432,48 +282,148 @@ impl ProgramData {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub(crate) struct XdpProgramInfo {
-    pub(crate) if_name: String,
-    pub(crate) if_index: u32,
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) struct XdpProgram {
+    pub(crate) data: ProgramData,
+    // known at load time
+    pub(crate) priority: i32,
+    pub(crate) iface: String,
+    pub(crate) proceed_on: XdpProceedOn,
+    // populated after load
     #[serde(skip)]
     pub(crate) current_position: Option<usize>,
-    pub(crate) metadata: Metadata,
-    pub(crate) proceed_on: XdpProceedOn,
+    pub(crate) if_index: Option<u32>,
+    pub(crate) attached: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub(crate) struct TcProgramInfo {
-    pub(crate) if_name: String,
-    pub(crate) if_index: u32,
-    #[serde(skip)]
-    pub(crate) current_position: Option<usize>,
-    pub(crate) metadata: Metadata,
+impl XdpProgram {
+    pub(crate) fn new(
+        data: ProgramData,
+        priority: i32,
+        iface: String,
+        proceed_on: XdpProceedOn,
+    ) -> Self {
+        Self {
+            data,
+            priority,
+            iface,
+            proceed_on,
+            current_position: None,
+            if_index: None,
+            attached: false,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) struct TcProgram {
+    pub(crate) data: ProgramData,
+    // known at load time
+    pub(crate) priority: i32,
+    pub(crate) iface: String,
     pub(crate) proceed_on: TcProceedOn,
     pub(crate) direction: Direction,
+    // populated after load
+    #[serde(skip)]
+    pub(crate) current_position: Option<usize>,
+    pub(crate) if_index: Option<u32>,
+    pub(crate) attached: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub(crate) struct TracepointProgramInfo {
+impl TcProgram {
+    pub(crate) fn new(
+        data: ProgramData,
+        priority: i32,
+        iface: String,
+        proceed_on: TcProceedOn,
+        direction: Direction,
+    ) -> Self {
+        Self {
+            data,
+            priority,
+            iface,
+            proceed_on,
+            direction,
+            current_position: None,
+            if_index: None,
+            attached: false,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) struct TracepointProgram {
+    pub(crate) data: ProgramData,
+    // known at load time
     pub(crate) tracepoint: String,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub(crate) struct KprobeProgramInfo {
+impl TracepointProgram {
+    pub(crate) fn new(data: ProgramData, tracepoint: String) -> Self {
+        Self { data, tracepoint }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) struct KprobeProgram {
+    pub(crate) data: ProgramData,
+    // Known at load time
     pub(crate) fn_name: String,
     pub(crate) offset: u64,
     pub(crate) retprobe: bool,
     pub(crate) namespace: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub(crate) struct UprobeProgramInfo {
+impl KprobeProgram {
+    pub(crate) fn new(
+        data: ProgramData,
+        fn_name: String,
+        offset: u64,
+        retprobe: bool,
+        namespace: Option<String>,
+    ) -> Self {
+        Self {
+            data,
+            fn_name,
+            offset,
+            retprobe,
+            namespace,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub(crate) struct UprobeProgram {
+    pub(crate) data: ProgramData,
+    // Known at load time
     pub(crate) fn_name: Option<String>,
     pub(crate) offset: u64,
     pub(crate) target: String,
     pub(crate) retprobe: bool,
     pub(crate) pid: Option<i32>,
     pub(crate) namespace: Option<String>,
+}
+
+impl UprobeProgram {
+    pub(crate) fn new(
+        data: ProgramData,
+        fn_name: Option<String>,
+        offset: u64,
+        target: String,
+        retprobe: bool,
+        pid: Option<i32>,
+        namespace: Option<String>,
+    ) -> Self {
+        Self {
+            data,
+            fn_name,
+            offset,
+            target,
+            retprobe,
+            pid,
+            namespace,
+        }
+    }
 }
 
 impl Program {
@@ -484,115 +434,111 @@ impl Program {
             Program::Tracepoint(_) => ProgramType::Tracepoint,
             Program::Kprobe(_) => ProgramType::Probe,
             Program::Uprobe(_) => ProgramType::Probe,
+            Program::Unsupported(i) => i.program_type.try_into().unwrap(),
         }
     }
 
     pub(crate) fn dispatcher_id(&self) -> Option<DispatcherId> {
         match self {
-            Program::Xdp(p) => Some(DispatcherId::Xdp(DispatcherInfo(p.info.if_index, None))),
+            Program::Xdp(p) => Some(DispatcherId::Xdp(DispatcherInfo(
+                p.if_index.expect("if_index should be known at this point"),
+                None,
+            ))),
             Program::Tc(p) => Some(DispatcherId::Tc(DispatcherInfo(
-                p.info.if_index,
-                Some(p.info.direction),
+                p.if_index.expect("if_index should be known at this point"),
+                Some(p.direction),
             ))),
             _ => None,
         }
     }
 
-    pub(crate) fn data_mut(&mut self) -> &mut ProgramData {
+    pub(crate) fn data_mut(&mut self) -> Result<&mut ProgramData, BpfdError> {
         match self {
-            Program::Xdp(p) => &mut p.data,
-            Program::Tracepoint(p) => &mut p.data,
-            Program::Tc(p) => &mut p.data,
-            Program::Kprobe(p) => &mut p.data,
-            Program::Uprobe(p) => &mut p.data,
+            Program::Xdp(p) => Ok(&mut p.data),
+            Program::Tracepoint(p) => Ok(&mut p.data),
+            Program::Tc(p) => Ok(&mut p.data),
+            Program::Kprobe(p) => Ok(&mut p.data),
+            Program::Uprobe(p) => Ok(&mut p.data),
+            Program::Unsupported(_) => Err(BpfdError::Error(
+                "Unsupported program type has no ProgramData".to_string(),
+            )),
         }
     }
 
-    pub(crate) fn data(&self) -> &ProgramData {
+    pub(crate) fn data(&self) -> Result<&ProgramData, BpfdError> {
         match self {
-            Program::Xdp(p) => &p.data,
-            Program::Tracepoint(p) => &p.data,
-            Program::Tc(p) => &p.data,
-            Program::Kprobe(p) => &p.data,
-            Program::Uprobe(p) => &p.data,
+            Program::Xdp(p) => Ok(&p.data),
+            Program::Tracepoint(p) => Ok(&p.data),
+            Program::Tc(p) => Ok(&p.data),
+            Program::Kprobe(p) => Ok(&p.data),
+            Program::Uprobe(p) => Ok(&p.data),
+            Program::Unsupported(_) => Err(BpfdError::Error(
+                "Unsupported program type has no ProgramData".to_string(),
+            )),
         }
     }
 
-    pub(crate) fn metadata(&self) -> Option<&Metadata> {
+    pub(crate) fn attached(&self) -> Option<bool> {
         match self {
-            Program::Xdp(p) => Some(&p.info.metadata),
-            Program::Tracepoint(_) => None,
-            Program::Tc(p) => Some(&p.info.metadata),
-            Program::Kprobe(_) => None,
-            Program::Uprobe(_) => None,
-        }
-    }
-
-    pub(crate) fn owner(&self) -> &String {
-        match self {
-            Program::Xdp(p) => &p.data.owner,
-            Program::Tracepoint(p) => &p.data.owner,
-            Program::Tc(p) => &p.data.owner,
-            Program::Kprobe(p) => &p.data.owner,
-            Program::Uprobe(p) => &p.data.owner,
+            Program::Xdp(p) => Some(p.attached),
+            Program::Tc(p) => Some(p.attached),
+            _ => None,
         }
     }
 
     pub(crate) fn set_attached(&mut self) {
         match self {
-            Program::Xdp(p) => p.info.metadata.attached = true,
-            Program::Tc(p) => p.info.metadata.attached = true,
-            Program::Tracepoint(_) => (),
-            Program::Kprobe(_) => (),
-            Program::Uprobe(_) => (),
+            Program::Xdp(p) => p.attached = true,
+            Program::Tc(p) => p.attached = true,
+            _ => (),
         }
     }
 
     pub(crate) fn set_position(&mut self, pos: Option<usize>) {
         match self {
-            Program::Xdp(p) => p.info.current_position = pos,
-            Program::Tc(p) => p.info.current_position = pos,
-            Program::Tracepoint(_) => (),
-            Program::Kprobe(_) => (),
-            Program::Uprobe(_) => (),
+            Program::Xdp(p) => p.current_position = pos,
+            Program::Tc(p) => p.current_position = pos,
+            _ => (),
         }
     }
 
-    pub(crate) fn set_kernel_info(&mut self, info: KernelProgramInfo) {
+    pub(crate) fn kernel_info(&self) -> Option<&KernelProgramInfo> {
         match self {
-            Program::Xdp(p) => p.data.kernel_info = Some(info),
-            Program::Tc(p) => p.data.kernel_info = Some(info),
-            Program::Tracepoint(p) => p.data.kernel_info = Some(info),
-            Program::Kprobe(p) => p.data.kernel_info = Some(info),
-            Program::Uprobe(p) => p.data.kernel_info = Some(info),
+            Program::Xdp(p) => p.data.kernel_info.as_ref(),
+            Program::Tc(p) => p.data.kernel_info.as_ref(),
+            Program::Tracepoint(p) => p.data.kernel_info.as_ref(),
+            Program::Kprobe(p) => p.data.kernel_info.as_ref(),
+            Program::Uprobe(p) => p.data.kernel_info.as_ref(),
+            // KernelProgramInfo will never be nil for Unsupported programs
+            Program::Unsupported(p) => Some(p),
         }
     }
 
-    pub(crate) fn save(&self, uuid: Uuid) -> Result<(), anyhow::Error> {
-        let path = format!("{RTDIR_PROGRAMS}/{uuid}");
+    pub(crate) fn save(&self, id: Uuid) -> Result<(), anyhow::Error> {
+        let path = format!("{RTDIR_PROGRAMS}/{id}");
         serde_json::to_writer(&fs::File::create(path)?, &self)?;
         Ok(())
     }
 
-    pub(crate) fn delete(&self, uuid: Uuid) -> Result<(), anyhow::Error> {
-        let path = format!("{RTDIR_PROGRAMS}/{uuid}");
+    pub(crate) fn delete(&self, id: Uuid) -> Result<(), anyhow::Error> {
+        let path = format!("{RTDIR_PROGRAMS}/{id}");
         if PathBuf::from(&path).exists() {
             fs::remove_file(path)?;
         }
 
-        let path = format!("{RTDIR_FS}/prog_{uuid}");
+        let path = format!("{RTDIR_FS}/prog_{id}");
         if PathBuf::from(&path).exists() {
             fs::remove_file(path)?;
         }
-        let path = format!("{RTDIR_FS}/prog_{uuid}_link");
+        let path = format!("{RTDIR_FS}/prog_{id}_link");
         if PathBuf::from(&path).exists() {
             fs::remove_file(path)?;
         }
         Ok(())
     }
 
-    pub(crate) fn load(uuid: Uuid) -> Result<Self, anyhow::Error> {
-        let path = format!("{RTDIR_PROGRAMS}/{uuid}");
+    pub(crate) fn load(id: Uuid) -> Result<Self, anyhow::Error> {
+        let path = format!("{RTDIR_PROGRAMS}/{id}");
         let file = fs::File::open(path)?;
         let reader = BufReader::new(file);
         let prog = serde_json::from_reader(reader)?;
@@ -601,37 +547,71 @@ impl Program {
 
     pub(crate) fn if_index(&self) -> Option<u32> {
         match self {
-            Program::Xdp(p) => Some(p.info.if_index),
-            Program::Tracepoint(_) => None,
-            Program::Tc(p) => Some(p.info.if_index),
-            Program::Kprobe(_) => None,
-            Program::Uprobe(_) => None,
+            Program::Xdp(p) => p.if_index,
+            Program::Tc(p) => p.if_index,
+            _ => None,
+        }
+    }
+
+    pub(crate) fn set_if_index(&mut self, if_index: u32) {
+        match self {
+            Program::Xdp(p) => p.if_index = Some(if_index),
+            Program::Tc(p) => p.if_index = Some(if_index),
+            _ => (),
         }
     }
 
     pub(crate) fn if_name(&self) -> Option<String> {
         match self {
-            Program::Xdp(p) => Some(p.info.if_name.clone()),
-            Program::Tracepoint(_) => None,
-            Program::Tc(p) => Some(p.info.if_name.clone()),
-            Program::Kprobe(_) => None,
-            Program::Uprobe(_) => None,
+            Program::Xdp(p) => Some(p.iface.clone()),
+            Program::Tc(p) => Some(p.iface.clone()),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn priority(&self) -> Option<i32> {
+        match self {
+            Program::Xdp(p) => Some(p.priority),
+            Program::Tc(p) => Some(p.priority),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn location(&self) -> Option<&Location> {
+        match self {
+            Program::Xdp(p) => Some(&p.data.location),
+            Program::Tracepoint(p) => Some(&p.data.location),
+            Program::Tc(p) => Some(&p.data.location),
+            Program::Kprobe(p) => Some(&p.data.location),
+            Program::Uprobe(p) => Some(&p.data.location),
+            Program::Unsupported(_) => None,
         }
     }
 
     pub(crate) fn direction(&self) -> Option<Direction> {
         match self {
-            Program::Xdp(_) => None,
-            Program::Tracepoint(_) => None,
-            Program::Tc(p) => Some(p.info.direction),
-            Program::Kprobe(_) => None,
-            Program::Uprobe(_) => None,
+            Program::Tc(p) => Some(p.direction),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn name(&self) -> &str {
+        match self {
+            Program::Xdp(p) => &p.data.name,
+            Program::Tracepoint(p) => &p.data.name,
+            Program::Tc(p) => &p.data.name,
+            Program::Kprobe(p) => &p.data.name,
+            Program::Uprobe(p) => &p.data.name,
+            Program::Unsupported(k) => &k.name,
         }
     }
 }
 
+// BpfMap represents a single map pin path used by a Program.  It has to be a
+// separate object becuase it's lifetime is slightly different from a Program.
+// More specifically a BpfMap can outlive a Program if other Programs are using
+// it.
 #[derive(Debug, Clone)]
 pub(crate) struct BpfMap {
-    pub(crate) map_pin_path: String,
     pub(crate) used_by: Vec<Uuid>,
 }

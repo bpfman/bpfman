@@ -66,7 +66,7 @@ impl TcDispatcher {
             .collect();
         let mut chain_call_actions = [0; 10];
         for (_, v) in extensions.iter() {
-            chain_call_actions[v.info.current_position.unwrap()] = v.info.proceed_on.mask()
+            chain_call_actions[v.current_position.unwrap()] = v.proceed_on.mask()
         }
 
         let config = TcDispatcherConfig {
@@ -177,10 +177,10 @@ impl TcDispatcher {
             .unwrap()
             .try_into()?;
 
-        extensions.sort_by(|(_, a), (_, b)| a.info.current_position.cmp(&b.info.current_position));
+        extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
 
         for (i, (k, v)) in extensions.iter_mut().enumerate() {
-            if v.info.metadata.attached {
+            if v.attached {
                 let mut ext = Extension::from_pin(format!("{RTDIR_FS}/prog_{k}"))?;
                 let target_fn = format!("prog{i}");
                 let new_link_id = ext
@@ -195,29 +195,33 @@ impl TcDispatcher {
                 new_link.pin(path).map_err(BpfdError::UnableToPinLink)?;
             } else {
                 let program_bytes = v.data.program_bytes().await?;
+                let name = v.data.name();
+                let global_data = v.data.global_data();
+
                 let mut bpf = BpfLoader::new();
 
-                for (name, value) in &v.data.global_data {
+                for (name, value) in global_data {
                     bpf.set_global(name, value.as_slice(), true);
                 }
 
-                let (_, map_pin_path) = calc_map_pin_path(**k, v.data.map_owner_uuid);
+                let (_, map_pin_path) = calc_map_pin_path(**k, v.data.map_owner_id());
                 let mut bpf = bpf
                     .allow_unsupported_maps()
                     .map_pin_path(map_pin_path.clone())
-                    .extension(&v.data.section_name)
+                    .extension(name)
                     .load(&program_bytes)
                     .map_err(BpfdError::BpfLoadError)?;
 
                 let ext: &mut Extension = bpf
-                    .program_mut(&v.data.section_name.clone())
-                    .ok_or_else(|| BpfdError::SectionNameNotValid(v.data.section_name.clone()))?
+                    .program_mut(name)
+                    .ok_or_else(|| BpfdError::SectionNameNotValid(name.to_string()))?
                     .try_into()?;
 
                 let target_fn = format!("prog{i}");
 
                 ext.load(dispatcher.fd()?.try_clone()?, &target_fn)?;
-                v.data.kernel_info = Some(ext.program_info()?.try_into()?);
+                v.data
+                    .set_kernel_info(Some(ext.program_info()?.try_into()?));
 
                 ext.pin(format!("{RTDIR_FS}/prog_{k}"))
                     .map_err(BpfdError::UnableToPinProgram)?;

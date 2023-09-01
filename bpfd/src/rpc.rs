@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use bpfd_api::{
     v1::{
@@ -8,29 +11,20 @@ use bpfd_api::{
         load_request,
         load_request_common::Location,
         loader_server::Loader,
-        KprobeAttachInfo, ListRequest, ListResponse, LoadRequest, LoadResponse, NoAttachInfo,
-        NoLocation, PullBytecodeRequest, PullBytecodeResponse, TcAttachInfo, TracepointAttachInfo,
+        KprobeAttachInfo, ListRequest, ListResponse, LoadRequest, LoadResponse,
+        PullBytecodeRequest, PullBytecodeResponse, TcAttachInfo, TracepointAttachInfo,
         UnloadRequest, UnloadResponse, UprobeAttachInfo, XdpAttachInfo,
     },
     TcProceedOn, XdpProceedOn,
 };
-use log::{debug, warn};
+use log::warn;
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
 use crate::command::{
-    Command, LoadKprobeArgs, LoadTCArgs, LoadTracepointArgs, LoadUprobeArgs, LoadXDPArgs,
-    PullBytecodeArgs, UnloadArgs,
-};
-
-#[derive(Debug, Default)]
-struct User {
-    username: String,
-}
-
-static DEFAULT_USER: User = User {
-    username: String::new(),
+    Command, KprobeProgram, LoadArgs, Program, ProgramData, PullBytecodeArgs, TcProgram,
+    TracepointProgram, UnloadArgs, UprobeProgram, XdpProgram,
 };
 
 #[derive(Debug)]
@@ -48,13 +42,6 @@ impl BpfdLoader {
 #[tonic::async_trait]
 impl Loader for BpfdLoader {
     async fn load(&self, request: Request<LoadRequest>) -> Result<Response<LoadResponse>, Status> {
-        let mut reply = LoadResponse { id: String::new() };
-        let username = request
-            .extensions()
-            .get::<User>()
-            .unwrap_or(&DEFAULT_USER)
-            .username
-            .to_string();
         let request = request.into_inner();
 
         let (resp_tx, resp_rx) = oneshot::channel();
@@ -88,97 +75,72 @@ impl Loader for BpfdLoader {
             )
         };
 
-        let cmd = match request.attach_info.unwrap() {
-            load_request::AttachInfo::XdpAttachInfo(attach) => Command::LoadXDP(LoadXDPArgs {
-                responder: resp_tx,
-                id,
-                global_data: common.global_data,
-                map_owner_uuid,
-                location: bytecode_source,
-                iface: attach.iface,
-                priority: attach.priority,
-                proceed_on: XdpProceedOn::from_int32s(attach.proceed_on)
-                    .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
-                section_name: common.section_name,
-                username,
-            }),
-            load_request::AttachInfo::TcAttachInfo(attach) => {
-                let direction = attach
-                    .direction
-                    .try_into()
-                    .map_err(|_| Status::aborted("direction is not a string"))?;
-                Command::LoadTC(LoadTCArgs {
-                    responder: resp_tx,
-                    location: bytecode_source,
-                    id,
-                    global_data: common.global_data,
-                    map_owner_uuid,
-                    iface: attach.iface,
-                    priority: attach.priority,
-                    direction,
-                    proceed_on: TcProceedOn::from_int32s(attach.proceed_on)
+        let data = ProgramData::new(
+            bytecode_source,
+            common.section_name,
+            id,
+            common.global_data,
+            map_owner_uuid,
+        );
+
+        let load_args = LoadArgs {
+            program: match request.attach_info.unwrap() {
+                load_request::AttachInfo::XdpAttachInfo(attach) => Program::Xdp(XdpProgram::new(
+                    data,
+                    attach.priority,
+                    attach.iface,
+                    XdpProceedOn::from_int32s(attach.proceed_on)
                         .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
-                    section_name: common.section_name,
-                    username,
-                })
-            }
-            load_request::AttachInfo::TracepointAttachInfo(attach) => {
-                Command::LoadTracepoint(LoadTracepointArgs {
-                    responder: resp_tx,
-                    id,
-                    global_data: common.global_data,
-                    map_owner_uuid,
-                    location: bytecode_source,
-                    tracepoint: attach.tracepoint,
-                    section_name: common.section_name,
-                    username,
-                })
-            }
-            load_request::AttachInfo::KprobeAttachInfo(attach) => {
-                Command::LoadKprobe(LoadKprobeArgs {
-                    responder: resp_tx,
-                    id,
-                    global_data: common.global_data,
-                    map_owner_uuid,
-                    location: bytecode_source,
-                    fn_name: attach.fn_name,
-                    offset: attach.offset,
-                    retprobe: attach.retprobe,
-                    _namespace: attach.namespace,
-                    section_name: common.section_name,
-                    username,
-                })
-            }
-            load_request::AttachInfo::UprobeAttachInfo(attach) => {
-                Command::LoadUprobe(LoadUprobeArgs {
-                    responder: resp_tx,
-                    id,
-                    global_data: common.global_data,
-                    map_owner_uuid,
-                    location: bytecode_source,
-                    fn_name: attach.fn_name,
-                    offset: attach.offset,
-                    target: attach.target,
-                    retprobe: attach.retprobe,
-                    pid: attach.pid,
-                    _namespace: attach.namespace,
-                    section_name: common.section_name,
-                    username,
-                })
-            }
+                )),
+                load_request::AttachInfo::TcAttachInfo(attach) => {
+                    let direction = attach
+                        .direction
+                        .try_into()
+                        .map_err(|_| Status::aborted("direction is not a string"))?;
+                    Program::Tc(TcProgram::new(
+                        data,
+                        attach.priority,
+                        attach.iface,
+                        TcProceedOn::from_int32s(attach.proceed_on)
+                            .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
+                        direction,
+                    ))
+                }
+                load_request::AttachInfo::TracepointAttachInfo(attach) => {
+                    Program::Tracepoint(TracepointProgram::new(data, attach.tracepoint))
+                }
+                load_request::AttachInfo::KprobeAttachInfo(attach) => {
+                    Program::Kprobe(KprobeProgram::new(
+                        data,
+                        attach.fn_name,
+                        attach.offset,
+                        attach.retprobe,
+                        attach.namespace,
+                    ))
+                }
+                load_request::AttachInfo::UprobeAttachInfo(attach) => {
+                    Program::Uprobe(UprobeProgram::new(
+                        data,
+                        attach.fn_name,
+                        attach.offset,
+                        attach.target,
+                        attach.retprobe,
+                        attach.pid,
+                        attach.namespace,
+                    ))
+                }
+            },
+            responder: resp_tx,
         };
 
         let tx = self.tx.lock().unwrap().clone();
         // Send the GET request
-        tx.send(cmd).await.unwrap();
+        tx.send(Command::Load(load_args)).await.unwrap();
 
         // Await the response
         match resp_rx.await {
             Ok(res) => match res {
-                Ok(id) => {
-                    reply.id = id.to_string();
-                    Ok(Response::new(reply))
-                }
+                Ok(id) => Ok(Response::new(LoadResponse { id: id.to_string() })),
                 Err(e) => {
                     warn!("BPFD load error: {:#?}", e);
                     Err(Status::aborted(format!("{e}")))
@@ -197,12 +159,6 @@ impl Loader for BpfdLoader {
         request: Request<UnloadRequest>,
     ) -> Result<Response<UnloadResponse>, Status> {
         let reply = UnloadResponse {};
-        let username = request
-            .extensions()
-            .get::<User>()
-            .unwrap_or(&DEFAULT_USER)
-            .username
-            .to_string();
         let request = request.into_inner();
         let id = request
             .id
@@ -212,7 +168,6 @@ impl Loader for BpfdLoader {
         let (resp_tx, resp_rx) = oneshot::channel();
         let cmd = Command::Unload(UnloadArgs {
             id,
-            username,
             responder: resp_tx,
         });
 
@@ -251,20 +206,7 @@ impl Loader for BpfdLoader {
             Ok(res) => match res {
                 Ok(results) => {
                     for r in results {
-                        let loc;
-                        let attach_info;
-                        let name;
-                        // With bpfd "multi-attach" programs are loaded as
-                        // extensions to a dispatcher. The kernel see's these
-                        // programs as type "BPF_PROG_TYPE_EXT" rather than
-                        // their actual type.  Therefore we check here if the
-                        // program is owned by bpfd and use our stored "real"
-                        // type for the filtering. Otherwise we use what's stored
-                        // in the kernel.
-                        let program_type = match r.program_type {
-                            Some(t) => t,
-                            None => r.kernel_info.program_type,
-                        };
+                        let program_type = r.kind() as u32;
 
                         // initial prog type filtering
                         if let Some(p) = request.get_ref().program_type {
@@ -273,130 +215,135 @@ impl Loader for BpfdLoader {
                             }
                         }
 
-                        // If there's a bpfd ID we know the program has an
-                        // attach info and location
-                        let id = match r.id {
-                            Some(i) => {
-                                // populate bpfd attach info
-                                attach_info = match r
-                                    .attach_info
-                                    .expect("program should have attach info")
-                                {
-                                    crate::command::AttachInfo::Xdp(info) => {
-                                        Some(AttachInfo::XdpAttachInfo(XdpAttachInfo {
-                                            priority: info.priority,
-                                            iface: info.iface,
-                                            position: info.position,
-                                            proceed_on: info.proceed_on.as_action_vec(),
-                                        }))
-                                    }
-                                    crate::command::AttachInfo::Tc(info) => {
-                                        Some(AttachInfo::TcAttachInfo(TcAttachInfo {
-                                            priority: info.priority,
-                                            iface: info.iface,
-                                            position: info.position,
-                                            direction: info.direction.to_string(),
-                                            proceed_on: info.proceed_on.as_action_vec(),
-                                        }))
-                                    }
-                                    crate::command::AttachInfo::Tracepoint(info) => Some(
-                                        AttachInfo::TracepointAttachInfo(TracepointAttachInfo {
-                                            tracepoint: info.tracepoint,
-                                        }),
-                                    ),
-                                    crate::command::AttachInfo::Kprobe(info) => {
-                                        Some(AttachInfo::KprobeAttachInfo(KprobeAttachInfo {
-                                            fn_name: info.fn_name,
-                                            offset: info.offset,
-                                            retprobe: info.retprobe,
-                                            namespace: info.namespace,
-                                        }))
-                                    }
-                                    crate::command::AttachInfo::Uprobe(info) => {
-                                        Some(AttachInfo::UprobeAttachInfo(UprobeAttachInfo {
-                                            fn_name: info.fn_name,
-                                            offset: info.offset,
-                                            target: info.target,
-                                            retprobe: info.retprobe,
-                                            pid: info.pid,
-                                            namespace: info.namespace,
-                                        }))
-                                    }
-                                };
+                        let kernel_info = r
+                            .kernel_info()
+                            .expect("kernel info should be set for all loaded programs");
+
+                        let mut reply_entry = ListResult {
+                            id: None,
+                            name: r.name().to_owned(),
+                            attach_info: None,
+                            location: None,
+                            program_type,
+                            global_data: HashMap::new(),
+                            map_owner_uuid: String::new(),
+                            map_pin_path: String::new(),
+                            map_used_by: Vec::new(),
+                            bpf_id: kernel_info.id,
+                            loaded_at: kernel_info.loaded_at.clone(),
+                            tag: kernel_info.tag.clone(),
+                            gpl_compatible: kernel_info.gpl_compatible,
+                            map_ids: kernel_info.map_ids.clone(),
+                            btf_id: kernel_info.btf_id,
+                            bytes_xlated: kernel_info.bytes_xlated,
+                            jited: kernel_info.jited,
+                            bytes_jited: kernel_info.bytes_jited,
+                            bytes_memlock: kernel_info.bytes_memlock,
+                            verified_insns: kernel_info.verified_insns,
+                        };
+
+                        match r.data() {
+                            // program is of type Unsupported
+                            Err(_) => {
+                                if !request.get_ref().bpfd_programs_only() {
+                                    reply.results.push(reply_entry);
+                                }
+                                continue;
+                            }
+                            // Bpfd Program
+                            Ok(data) => {
+                                // populate id
+                                reply_entry.id = data.id().map(|v| v.to_string());
+
+                                reply_entry.map_pin_path = data
+                                    .map_pin_path()
+                                    .map_or(String::new(), |v| v.to_str().unwrap().to_string());
+
+                                reply_entry.map_used_by = data
+                                    .maps_used_by()
+                                    .map_or(vec![], |m| m.iter().map(|m| m.to_string()).collect());
+
+                                reply_entry.map_owner_uuid = data
+                                    .map_owner_id()
+                                    .map_or("".to_string(), |v| v.to_string());
 
                                 // populate bpfd location
-                                loc = match r.location.expect("program should have location info") {
-                                    crate::command::Location::Image(m) => {
-                                        Some(list_result::Location::Image(
-                                            bpfd_api::v1::BytecodeImage {
-                                                url: m.get_url().to_string(),
-                                                image_pull_policy: m.get_pull_policy() as i32,
-                                                // Never dump Plaintext Credentials
-                                                username: "".to_string(),
-                                                password: "".to_string(),
-                                            },
-                                        ))
-                                    }
-                                    crate::command::Location::File(m) => {
-                                        Some(list_result::Location::File(m))
+                                reply_entry.location = match r.location() {
+                                    Some(l) => match l {
+                                        crate::command::Location::Image(m) => {
+                                            Some(list_result::Location::Image(
+                                                bpfd_api::v1::BytecodeImage {
+                                                    url: m.get_url().to_string(),
+                                                    image_pull_policy: m
+                                                        .get_pull_policy()
+                                                        .to_owned()
+                                                        as i32,
+                                                    // Never dump Plaintext Credentials
+                                                    username: String::new(),
+                                                    password: String::new(),
+                                                },
+                                            ))
+                                        }
+                                        crate::command::Location::File(m) => {
+                                            Some(list_result::Location::File(m.to_string()))
+                                        }
+                                    },
+                                    None => {
+                                        // skip programs not owned by bpfd
+                                        if request.get_ref().bpfd_programs_only() {
+                                            continue;
+                                        }
+                                        None
                                     }
                                 };
 
-                                // Program names are sometimes abbreviated to a 16 byte length
-                                // by the program. If the program is owned by bpfd override the name
-                                //  with the full one stored by bpfd.
-                                name = r.name.expect("program should have a name tracked by bpfd");
-                                // return bpfd UUID
-                                Some(i.to_string())
-                            }
-                            None => {
-                                attach_info = Some(AttachInfo::None(NoAttachInfo {}));
-                                loc = Some(list_result::Location::NoLocation(NoLocation {}));
-                                name = r.kernel_info.name;
-                                // skip programs not owned by bpfd
-                                if request.get_ref().bpfd_programs_only() {
-                                    continue;
-                                }
-                                None
-                            }
-                        };
+                                reply_entry.attach_info = match r.clone() {
+                                    Program::Xdp(p) => {
+                                        Some(AttachInfo::XdpAttachInfo(XdpAttachInfo {
+                                            priority: p.priority,
+                                            iface: p.iface,
+                                            position: p.current_position.unwrap_or(0) as i32,
+                                            proceed_on: p.proceed_on.as_action_vec(),
+                                        }))
+                                    }
+                                    Program::Tc(p) => {
+                                        Some(AttachInfo::TcAttachInfo(TcAttachInfo {
+                                            priority: p.priority,
+                                            iface: p.iface,
+                                            position: p.current_position.unwrap_or(0) as i32,
+                                            direction: p.direction.to_string(),
+                                            proceed_on: p.proceed_on.as_action_vec(),
+                                        }))
+                                    }
+                                    Program::Tracepoint(p) => Some(
+                                        AttachInfo::TracepointAttachInfo(TracepointAttachInfo {
+                                            tracepoint: p.tracepoint,
+                                        }),
+                                    ),
+                                    Program::Kprobe(p) => {
+                                        Some(AttachInfo::KprobeAttachInfo(KprobeAttachInfo {
+                                            fn_name: p.fn_name,
+                                            offset: p.offset,
+                                            retprobe: p.retprobe,
+                                            namespace: p.namespace,
+                                        }))
+                                    }
+                                    Program::Uprobe(p) => {
+                                        Some(AttachInfo::UprobeAttachInfo(UprobeAttachInfo {
+                                            fn_name: p.fn_name,
+                                            offset: p.offset,
+                                            target: p.target,
+                                            retprobe: p.retprobe,
+                                            pid: p.pid,
+                                            namespace: p.namespace,
+                                        }))
+                                    }
+                                    Program::Unsupported(_) => None,
+                                };
 
-                        // Map UUID to String for response
-                        let map_owner_uuid = match r.map_owner_uuid {
-                            Some(uuid) => uuid.to_string(),
-                            None => String::new(),
-                        };
-                        // Map Vec<UUID> to Vec<String> for response
-                        let map_used_by: Vec<String> = r
-                            .map_used_by
-                            .unwrap_or(vec![])
-                            .iter()
-                            .map(|u| u.to_string())
-                            .collect();
-
-                        debug!("Pushing list result for {:?}", id);
-                        reply.results.push(ListResult {
-                            id,
-                            name,
-                            attach_info,
-                            location: loc,
-                            program_type,
-                            global_data: r.global_data.unwrap_or_default(),
-                            map_owner_uuid,
-                            map_pin_path: r.map_pin_path.unwrap_or_default(),
-                            map_used_by,
-                            bpf_id: r.kernel_info.id,
-                            loaded_at: r.kernel_info.loaded_at,
-                            tag: r.kernel_info.tag,
-                            gpl_compatible: r.kernel_info.gpl_compatible,
-                            map_ids: r.kernel_info.map_ids,
-                            btf_id: r.kernel_info.btf_id,
-                            bytes_xlated: r.kernel_info.bytes_xlated,
-                            jited: r.kernel_info.jited,
-                            bytes_jited: r.kernel_info.bytes_jited,
-                            bytes_memlock: r.kernel_info.bytes_memlock,
-                            verified_insns: r.kernel_info.verified_insns,
-                        })
+                                reply.results.push(reply_entry)
+                            }
+                        }
                     }
                     Ok(Response::new(reply))
                 }
@@ -544,11 +491,7 @@ mod test {
     async fn mock_serve(mut rx: Receiver<Command>) {
         while let Some(cmd) = rx.recv().await {
             match cmd {
-                Command::LoadXDP(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
-                Command::LoadTC(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
-                Command::LoadTracepoint(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
-                Command::LoadKprobe(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
-                Command::LoadUprobe(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
+                Command::Load(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
                 Command::Unload(args) => args.responder.send(Ok(())).unwrap(),
                 Command::List { responder, .. } => responder.send(Ok(vec![])).unwrap(),
                 Command::PullBytecode(args) => args.responder.send(Ok(())).unwrap(),

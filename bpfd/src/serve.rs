@@ -83,7 +83,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
     // Load any static programs first
     if !static_programs.is_empty() {
         for prog in static_programs {
-            let uuid = bpf_manager.add_program(prog, None).await?;
+            let uuid = bpf_manager.add_program(prog).await?;
             info!("Loaded static program with UUID {}", uuid)
         }
     };
