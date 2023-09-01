@@ -2,473 +2,287 @@ name: bpfd-image-build
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     tags:
-      - 'v*'
+      - "v*"
 
   pull_request:
-    paths: [ '.github/workflows/image-build.yaml' ]
-
-env:
-  REGISTRY: quay.io
-  BPFD_REPOSITORY: bpfd
-  BPFD_USERSPACE_REPOSITORY: bpfd-userspace
-  BPFD_BYTECODE_REPOSITORY: bpfd-bytecode
-  BPFD_IMAGE_NAME: bpfd
-  BPFCTL_IMAGE_NAME: bpfctl
-  BPFD_AGENT_IMAGE_NAME: bpfd-agent
-  BPFD_OPERATOR_IMAGE_NAME: bpfd-operator
-  BPFD_OPERATOR_BUNDLE_IMAGE_NAME: bpfd-operator-bundle
-  GO_XDP_COUNTER_IMAGE_NAME: go-xdp-counter
-  GO_TC_COUNTER_IMAGE_NAME: go-tc-counter
-  GO_TRACEPOINT_COUNTER_IMAGE_NAME: go-tracepoint-counter
+    paths: [".github/workflows/image-build.yaml"]
 
 jobs:
-  ## Build and push all core bpfd images 
   build-and-push-images:
-    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # needed for signing the images with GitHub OIDC Token
 
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - registry: quay.io
+            repository: bpfd
+            image: bpfd
+            dockerfile: ./packaging/container-deployment/Containerfile.bpfd
+            context: .
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            repository: bpfd
+            image: bpfctl
+            dockerfile: ./packaging/container-deployment/Containerfile.bpfctl
+            context: .
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            repository: bpfd
+            image: bpfd-agent
+            dockerfile: ./bpfd-operator/Containerfile.bpfd-agent
+            context: .
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            repository: bpfd
+            image: bpfd-operator
+            dockerfile: ./bpfd-operator/Containerfile.bpfd-operator
+            context: .
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            repository: bpfd
+            image: bpfd-operator-bundle
+            context: ./bpfd-operator
+            dockerfile: ./bpfd-operator/Containerfile.bundle
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            repository: bpfd-userspace
+            image: go-xdp-counter
+            context: .
+            dockerfile: ./examples/go-xdp-counter/container-deployment/Containerfile.go-xdp-counter
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            repository: bpfd-userspace
+            image: go-tc-counter
+            context: .
+            dockerfile: ./examples/go-tc-counter/container-deployment/Containerfile.go-tc-counter
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            repository: bpfd-userspace
+            image: go-tracepoint-counter
+            context: .
+            dockerfile: ./examples/go-tracepoint-counter/container-deployment/Containerfile.go-tracepoint-counter
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            repository: bpfd-bytecode
+            image: go-xdp-counter
+            context: ./examples/go-xdp-counter
+            dockerfile: ./packaging/container-deployment/Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=go-xdp-counter
+              SECTION_NAME=xdp_stats
+              PROGRAM_TYPE=xdp
+              BYTECODE_FILENAME=bpf_bpfel.o
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            repository: bpfd-bytecode
+            image: go-tc-counter
+            context: ./examples/go-tc-counter
+            dockerfile: ./packaging/container-deployment/Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=go-tc-counter
+              SECTION_NAME=stats
+              PROGRAM_TYPE=tc
+              BYTECODE_FILENAME=bpf_bpfel.o
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            repository: bpfd-bytecode
+            image: go-tracepoint-counter
+            context: ./examples/go-tracepoint-counter
+            dockerfile: ./packaging/container-deployment/Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=go-tracepoint-counter
+              SECTION_NAME=tracepoint_kill_recorder
+              PROGRAM_TYPE=tracepoint
+              BYTECODE_FILENAME=bpf_bpfel.o
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            repository: bpfd
+            image: xdp_dispatcher
+            context: .
+            dockerfile: ./Containerfile.xdp_dispatcher_v1
+            tags: |
+              type=raw,value=v1,enable=true,priority=200
+
+          - registry: quay.io
+            repository: bpfd
+            image: xdp_dispatcher
+            context: .
+            dockerfile: ./Containerfile.xdp_dispatcher_v2
+            tags: |
+              type=raw,value=v2,enable=true,priority=200
+
+    name: Build Image (${{ matrix.image.image }})
     environment: image-repositories
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - uses: actions/checkout@v2
-      with:
-        repository: libbpf/libbpf
-        path: libbpf
+      - uses: sigstore/cosign-installer@v3.1.1
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        override: true
+      - uses: actions/checkout@v2
+        if: ${{ matrix.image.repository == 'bpfd-bytecode' || matrix.image.image == 'xdp_dispatcher'}}
+        with:
+          repository: libbpf/libbpf
+          path: libbpf
 
-    - name: Install libelf-dev
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y linux-headers-`uname -r` clang lldb lld libelf-dev gcc-multilib
+      - uses: actions-rs/toolchain@v1
+        if: ${{ matrix.image.image == 'xdp_dispatcher' }}
+        with:
+          toolchain: stable
+          override: true
 
-    - name: Generate olm bundle on disk
-      run: |
-        cd bpfd-operator && make bundle
+      - name: Install libelf-dev
+        if: ${{ matrix.image.image == 'xdp_dispatcher'}}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y linux-headers-`uname -r` clang lldb lld libelf-dev gcc-multilib
 
-    - name: Login to quay.io/bpfd
-      uses: redhat-actions/podman-login@v1
-      if: ${{ github.event_name == 'push' }}
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ secrets.BPFD_USERNAME }}
-        password: ${{ secrets.BPFD_ROBOT_TOKEN }}
-        
-## Build XDP dispatchers
-    - name: Build eBPF
-      run: |
-        cargo xtask build-ebpf --libbpf-dir ./libbpf
+      - name: Build eBPF
+        if: ${{ matrix.image.image == 'xdp_dispatcher'}}
+        run: |
+          cargo xtask build-ebpf --libbpf-dir ./libbpf
 
-    - name: Build xdp-dispatcher:v1 image
-      id: build-xdp-dispatcher-v1-bytecode
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: xdp-dispatcher
-        tags: v1
-        context: .
-        containerfiles: |
-          Containerfile.xdp_dispatcher_v1
+      - name: Generate olm bundle on disk
+        if: ${{ matrix.image.image == 'bpfd-operator-bundle' }}
+        run: |
+          cd bpfd-operator && make bundle
 
-    - name: Push xdp-dispatcher:v1 to quay.io/bpfd
-      uses: redhat-actions/push-to-registry@v2
-      if: ${{ github.event_name == 'push' }}
-      with:
-        image: ${{ steps.build-xdp-dispatcher-v1-bytecode.outputs.image }}
-        tags: ${{ steps.build-xdp-dispatcher-v1-bytecode.outputs.tags }}
-        registry: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}
+      - name: Login to quay.io/bpfd
+        uses: redhat-actions/podman-login@v1
+        if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfd'}}
+        with:
+          registry: ${{ matrix.image.registry }}
+          username: ${{ secrets.BPFD_USERNAME }}
+          password: ${{ secrets.BPFD_ROBOT_TOKEN }}
 
-    - name: Build xdp-dispatcher:v2 image
-      id: build-xdp-dispatcher-v2-bytecode
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: xdp-dispatcher
-        tags: v2
-        context: .
-        containerfiles: |
-          Containerfile.xdp_dispatcher_v2
+      - name: Login to quay.io/bpfd-userspace
+        uses: redhat-actions/podman-login@v1
+        if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfd-userspace'}}
+        with:
+          registry: ${{ matrix.image.registry }}
+          username: ${{ secrets.BPFD_USERSPACE_USERNAME }}
+          password: ${{ secrets.BPFD_USERSPACE_ROBOT_TOKEN }}
 
-    - name: Push xdp-dispatcher:v2 to quay.io/bpfd
-      uses: redhat-actions/push-to-registry@v2
-      if: ${{ github.event_name == 'push' }}
-      with:
-        image: ${{ steps.build-xdp-dispatcher-v2-bytecode.outputs.image }}
-        tags: ${{ steps.build-xdp-dispatcher-v2-bytecode.outputs.tags }}
-        registry: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}
+      - name: Login to quay.io/bpfd-bytecode
+        uses: redhat-actions/podman-login@v1
+        if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfd-bytecode' }}
+        with:
+          registry: ${{ matrix.image.registry }}
+          username: ${{ secrets.BPFD_BYTECODE_USERNAME }}
+          password: ${{ secrets.BPFD_BYTECODE_ROBOT_TOKEN }}
 
-## Build quay.io/bpfd images
-    - name: Extract metadata (tags, labels) for bpfd image
-      id: meta-bpfd
-      uses: docker/metadata-action@v4.4.0
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}/${{ env.BPFD_IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch,priority=200
-          type=ref,event=tag,priority=200
-          type=ref,event=pr,priority=200
-          # set latest tag for default branch
-          type=raw,value=latest,enable={{is_default_branch}},priority=200
+      - name: Extract metadata (tags, labels) for image
+        id: meta
+        uses: docker/metadata-action@v4.4.0
+        with:
+          images: ${{ matrix.image.registry }}/${{ matrix.image.repository }}/${{ matrix.image.image }}
+          tags: ${{ matrix.image.tags }}
 
-    - name: Build bpfd image
-      id: build-bpfd
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: bpfd
-        tags: ${{ steps.meta-bpfd.outputs.tags }}
-        labels: ${{ steps.meta-bpfd.outputs.labels }}
-        containerfiles: |
-          ./packaging/container-deployment/Containerfile.bpfd
+      - name: Build image
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ matrix.image.image }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          containerfiles: ${{ matrix.image.dockerfile }}
+          build-args: ${{ matrix.image.build_args }}
+          context: ${{ matrix.image.context }}
 
-    - name: Push bpfd to quay.io/bpfd
-      uses: redhat-actions/push-to-registry@v2
-      if: ${{ github.event_name == 'push' }}
-      with:
-        image: ${{ steps.build-bpfd.outputs.image }}
-        tags: ${{ steps.build-bpfd.outputs.tags }}
-        registry: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}
+      - name: Push to registry
+        id: push-image
+        uses: redhat-actions/push-to-registry@v2
+        if: ${{ github.event_name == 'push' }}
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.meta.outputs.tags }}
+          registry: ${{ matrix.image.registry }}/${{ matrix.image.repository }}
 
-    - name: Extract metadata (tags, labels) for bpfctl image
-      id: meta-bpfctl
-      uses: docker/metadata-action@v4.4.0
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}/${{ env.BPFCTL_IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch,priority=200
-          type=ref,event=tag,priority=200
-          type=ref,event=pr,priority=200
-          # set latest tag for default branch
-          type=raw,value=latest,enable={{is_default_branch}},priority=200
+      - name: Sign with key
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY "${TAGS}@${DIGEST}"
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          DIGEST: ${{ steps.push-image.outputs.digest }}
 
-    - name: Build bpfctl image
-      id: build-bpfctl
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: bpfctl
-        tags: ${{ steps.meta-bpfctl.outputs.tags }}
-        labels: ${{ steps.meta-bpfctl.outputs.labels }}
-        containerfiles: |
-          ./packaging/container-deployment/Containerfile.bpfctl
-
-    - name: Push bpfctl to quay.io/bpfd
-      uses: redhat-actions/push-to-registry@v2
-      if: ${{ github.event_name == 'push' }}
-      with:
-        image: ${{ steps.build-bpfctl.outputs.image }}
-        tags: ${{ steps.build-bpfctl.outputs.tags }}
-        registry: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}
-
-    - name: Extract metadata (tags, labels) for bpfd-agent image
-      id: meta-bpfd-agent
-      uses: docker/metadata-action@v4.4.0
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}/${{ env.BPFD_AGENT_IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch,priority=200
-          type=ref,event=tag,priority=200
-          type=ref,event=pr,priority=200
-          # set latest tag for default branch
-          type=raw,value=latest,enable={{is_default_branch}},priority=200
-
-    - name: Build bpfd-agent image
-      id: build-bpfd-agent
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: bpfd-agent
-        tags: ${{ steps. meta-bpfd-agent.outputs.tags }}
-        labels: ${{ steps. meta-bpfd-agent.outputs.labels }}
-        context: ./
-        containerfiles: |
-          ./bpfd-operator/Containerfile.bpfd-agent
-
-    - name: Push bpfd-agent to quay.io/bpfd
-      uses: redhat-actions/push-to-registry@v2
-      if: ${{ github.event_name == 'push' }}
-      with:
-        image: ${{ steps.build-bpfd-agent.outputs.image }}
-        tags: ${{ steps.build-bpfd-agent.outputs.tags }}
-        registry: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}
-
-    - name: Extract metadata (tags, labels) for bpfd-operator image
-      id: meta-bpfd-operator
-      uses: docker/metadata-action@v4.4.0
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}/${{ env.BPFD_OPERATOR_IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch,priority=200
-          type=ref,event=tag,priority=200
-          type=ref,event=pr,priority=200
-          # set latest tag for default branch
-          type=raw,value=latest,enable={{is_default_branch}},priority=200
-
-    - name: Build bpfd-operator image
-      id: build-bpfd-operator
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: bpfd-operator
-        tags: ${{ steps. meta-bpfd-operator.outputs.tags }}
-        labels: ${{ steps. meta-bpfd-operator.outputs.labels }}
-        context: ./
-        containerfiles: |
-          ./bpfd-operator/Containerfile.bpfd-operator
-
-    - name: Push bpfd-operator to quay.io/bpfd
-      uses: redhat-actions/push-to-registry@v2
-      if: ${{ github.event_name == 'push' }}
-      with:
-        image: ${{ steps.build-bpfd-operator.outputs.image }}
-        tags: ${{ steps.build-bpfd-operator.outputs.tags }}
-        registry: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}
-
-    - name: Extract metadata (tags, labels) for bpfd-operator-bundle image
-      id: meta-bpfd-operator-bundle
-      uses: docker/metadata-action@v4.4.0
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}/${{ env.BPFD_OPERATOR_BUNDLE_IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch,priority=200
-          type=ref,event=tag,priority=200
-          type=ref,event=pr,priority=200
-          # set latest tag for default branch
-          type=raw,value=latest,enable={{is_default_branch}},priority=200
-
-    - name: Build bpfd-operator-bundle image
-      id: build-bpfd-operator-bundle
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: bpfd-operator-bundle
-        tags: ${{ steps. meta-bpfd-operator-bundle.outputs.tags }}
-        labels: ${{ steps. meta-bpfd-operator-bundle.outputs.labels }}
-        context: ./bpfd-operator
-        containerfiles: |
-          ./bpfd-operator/Containerfile.bundle
-
-    - name: Push bpfd-operator-bundle to quay.io/bpfd
-      uses: redhat-actions/push-to-registry@v2
-      if: ${{ github.event_name == 'push' }}
-      with:
-        image: ${{ steps.build-bpfd-operator-bundle.outputs.image }}
-        tags: ${{ steps.build-bpfd-operator-bundle.outputs.tags }}
-        registry: ${{ env.REGISTRY }}/${{ env.BPFD_REPOSITORY }}
-
-## Build quay.io/bpfd-userspace images
-    - name: Login to quay.io/bpfd-userspace
-      uses: redhat-actions/podman-login@v1
-      if: ${{ github.event_name == 'push' }}
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ secrets.BPFD_USERSPACE_USERNAME }}
-        password: ${{ secrets.BPFD_USERSPACE_ROBOT_TOKEN }}
-
-    - name: Extract metadata (tags, labels) for go-xdp-counter image
-      id: meta-go-xdp-counter
-      uses: docker/metadata-action@v4.4.0
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.BPFD_USERSPACE_REPOSITORY }}/${{ env.GO_XDP_COUNTER_IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=tag
-          type=ref,event=pr
-          # set latest tag for default branch
-          type=raw,value=latest,enable={{is_default_branch}}
-
-    - name: Build go-xdp-counter image
-      id: build-go-xdp-counter
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: bpfd-go-xdp-counter
-        tags: ${{ steps. meta-go-xdp-counter.outputs.tags }}
-        labels: ${{ steps. meta-go-xdp-counter.outputs.labels }}
-        context: ./
-        containerfiles: |
-          ./examples/go-xdp-counter/container-deployment/Containerfile.go-xdp-counter
-
-    - name: Push go-xdp-counter to quay.io/bpfd-userspace
-      uses: redhat-actions/push-to-registry@v2
-      if: ${{ github.event_name == 'push' }}
-      with:
-        image: ${{ steps.build-go-xdp-counter.outputs.image }}
-        tags: ${{ steps.build-go-xdp-counter.outputs.tags }}
-        registry: ${{ env.REGISTRY }}/${{ env.BPFD_USERSPACE_REPOSITORY }}
-
-    - name: Extract metadata (tags, labels) for go-tc-counter image
-      id: meta-go-tc-counter
-      uses: docker/metadata-action@v4.4.0
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.BPFD_USERSPACE_REPOSITORY }}/${{ env.GO_TC_COUNTER_IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch,priority=200
-          type=ref,event=tag,priority=200
-          type=ref,event=pr,priority=200
-          # set latest tag for default branch
-          type=raw,value=latest,enable={{is_default_branch}},priority=200
-
-    - name: Build go-tc-counter image
-      id: build-go-tc-counter
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: bpfd-go-tc-counter
-        tags: ${{ steps. meta-go-tc-counter.outputs.tags }}
-        labels: ${{ steps. meta-go-tc-counter.outputs.labels }}
-        context: ./
-        containerfiles: |
-          ./examples/go-tc-counter/container-deployment/Containerfile.go-tc-counter
-
-    - name: Push go-tc-counter to quay.io/bpfd-userspace
-      uses: redhat-actions/push-to-registry@v2
-      if: ${{ github.event_name == 'push' }}
-      with:
-        image: ${{ steps.build-go-tc-counter.outputs.image }}
-        tags: ${{ steps.build-go-tc-counter.outputs.tags }}
-        registry: ${{ env.REGISTRY }}/${{ env.BPFD_USERSPACE_REPOSITORY }}
-
-    - name: Extract metadata (tags, labels) for go-tracepoint-counter image
-      id: meta-go-tracepoint-counter
-      uses: docker/metadata-action@v4.4.0
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.BPFD_USERSPACE_REPOSITORY }}/${{ env.GO_TRACEPOINT_COUNTER_IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch,priority=200
-          type=ref,event=tag,priority=200
-          type=ref,event=pr,priority=200
-          # set latest tag for default branch
-          type=raw,value=latest,enable={{is_default_branch}},priority=200
-
-    - name: Build go-tracepoint-counter image
-      id: build-go-tracepoint-counter
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: bpfd-go-tracepoint-counter
-        tags: ${{ steps. meta-go-tracepoint-counter.outputs.tags }}
-        labels: ${{ steps. meta-go-tracepoint-counter.outputs.labels }}
-        context: ./
-        containerfiles: |
-          ./examples/go-tracepoint-counter/container-deployment/Containerfile.go-tracepoint-counter
-
-    - name: Push go-tracepoint-counter to quay.io/bpfd-userspace
-      uses: redhat-actions/push-to-registry@v2
-      if: ${{ github.event_name == 'push' }}
-      with:
-        image: ${{ steps.build-go-tracepoint-counter.outputs.image }}
-        tags: ${{ steps.build-go-tracepoint-counter.outputs.tags }}
-        registry: ${{ env.REGISTRY }}/${{ env.BPFD_USERSPACE_REPOSITORY }}
-
-## Build quay.io/bpfd-bytecode images
-    - name: Login to quay.io/bpfd-bytecode
-      uses: redhat-actions/podman-login@v1
-      if: ${{ github.event_name == 'push' }}
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ secrets.BPFD_BYTECODE_USERNAME }}
-        password: ${{ secrets.BPFD_BYTECODE_ROBOT_TOKEN }}
-
-    - name: Extract metadata (tags, labels) for go-xdp-counter-bytecode image
-      id: meta-go-xdp-counter-bytecode
-      uses: docker/metadata-action@v4.4.0
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.BPFD_BYTECODE_REPOSITORY }}/${{ env.GO_XDP_COUNTER_IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch,priority=200
-          type=ref,event=tag,priority=200
-          type=ref,event=pr,priority=200
-          # set latest tag for default branch
-          type=raw,value=latest,enable={{is_default_branch}},priority=200
-
-    - name: Build go-xdp-counter-bytecode image
-      id: build-go-xdp-counter-bytecode
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: bpfd-go-xdp-counter-bytecode
-        tags: ${{ steps. meta-go-xdp-counter-bytecode.outputs.tags }}
-        labels: ${{ steps. meta-go-xdp-counter-bytecode.outputs.labels }}
-        context: ./examples/go-xdp-counter
-        containerfiles: |
-          ./packaging/container-deployment/Containerfile.bytecode
-        build-args: |
-          PROGRAM_NAME=go-xdp-counter
-          SECTION_NAME=xdp_stats
-          PROGRAM_TYPE=xdp
-          BYTECODE_FILENAME=bpf_bpfel.o
-
-    - name: Push go-xdp-counter-bytecode to quay.io/bpfd-bytecode
-      uses: redhat-actions/push-to-registry@v2
-      if: ${{ github.event_name == 'push' }}
-      with:
-        image: ${{ steps.build-go-xdp-counter-bytecode.outputs.image }}
-        tags: ${{ steps.build-go-xdp-counter-bytecode.outputs.tags }}
-        registry: ${{ env.REGISTRY }}/${{ env.BPFD_BYTECODE_REPOSITORY }}
-
-    - name: Extract metadata (tags, labels) for go-tc-counter-bytecode image
-      id: meta-go-tc-counter-bytecode
-      uses: docker/metadata-action@v4.4.0
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.BPFD_BYTECODE_REPOSITORY }}/${{ env.GO_TC_COUNTER_IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch,priority=200
-          type=ref,event=tag,priority=200
-          type=ref,event=pr,priority=200
-          # set latest tag for default branch
-          type=raw,value=latest,enable={{is_default_branch}},priority=200
-
-    - name: Build go-tc-counter-bytecode image
-      id: build-go-tc-counter-bytecode
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: bpfd-go-tc-counter-bytecode
-        tags: ${{ steps. meta-go-tc-counter-bytecode.outputs.tags }}
-        labels: ${{ steps. meta-go-tc-counter-bytecode.outputs.labels }}
-        context: ./examples/go-tc-counter
-        containerfiles: |
-          ./packaging/container-deployment/Containerfile.bytecode
-        build-args: |
-          PROGRAM_NAME=go-tc-counter
-          SECTION_NAME=stats
-          PROGRAM_TYPE=tc
-          BYTECODE_FILENAME=bpf_bpfel.o
-
-    - name: Push go-tc-counter-bytecode to quay.io/bpfd-bytecode
-      uses: redhat-actions/push-to-registry@v2
-      if: ${{ github.event_name == 'push' }}
-      with:
-        image: ${{ steps.build-go-tc-counter-bytecode.outputs.image }}
-        tags: ${{ steps.build-go-tc-counter-bytecode.outputs.tags }}
-        registry: ${{ env.REGISTRY }}/${{ env.BPFD_BYTECODE_REPOSITORY }}
-
-    - name: Extract metadata (tags, labels) for go-tracepoint-counter-bytecode image
-      id: meta-go-tracepoint-counter-bytecode
-      uses: docker/metadata-action@v4.4.0
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.BPFD_BYTECODE_REPOSITORY }}/${{ env.GO_TRACEPOINT_COUNTER_IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch,priority=200
-          type=ref,event=tag,priority=200
-          type=ref,event=pr,priority=200
-          # set latest tag for default branch
-          type=raw,value=latest,enable={{is_default_branch}},priority=200
-
-    - name: Build go-tracepoint-counter-bytecode image
-      id: build-go-tracepoint-counter-bytecode
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: bpfd-go-tracepoint-counter-bytecode
-        tags: ${{ steps. meta-go-tracepoint-counter-bytecode.outputs.tags }}
-        labels: ${{ steps. meta-go-tracepoint-counter-bytecode.outputs.labels }}
-        context: ./examples/go-tracepoint-counter
-        containerfiles: |
-          ./packaging/container-deployment/Containerfile.bytecode
-        build-args: |
-          PROGRAM_NAME=go-tracepoint-counter
-          SECTION_NAME=tracepoint_kill_recorder
-          PROGRAM_TYPE=tracepoint
-          BYTECODE_FILENAME=bpf_bpfel.o
-
-    - name: Push go-tracepoint-counter-bytecode to quay.io/bpfd-bytecode
-      uses: redhat-actions/push-to-registry@v2
-      if: ${{ github.event_name == 'push' }}
-      with:
-        image: ${{ steps.build-go-tracepoint-counter-bytecode.outputs.image }}
-        tags: ${{ steps.build-go-tracepoint-counter-bytecode.outputs.tags }}
-        registry: ${{ env.REGISTRY }}/${{ env.BPFD_BYTECODE_REPOSITORY }}
+      - name: Sign the images with GitHub OIDC Token
+        if: ${{ github.event_name == 'push' }}
+        env:
+          DIGEST: ${{ steps.push-image.outputs.digest }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: cosign sign --yes "${TAGS}@${DIGEST}"
