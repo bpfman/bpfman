@@ -268,17 +268,6 @@ jobs:
         with:
           tags: ${{ steps.meta.outputs.tags }}
 
-      - name: Sign with key
-        if: ${{ github.event_name == 'push' }}
-        run: |
-          readarray -t tags <<<"${{ steps.meta.outputs.tags }}"
-          for tag in ${tags[@]}; do
-            cosign sign -y --key env://COSIGN_PRIVATE_KEY "${tag}@${{ steps.push-image.outputs.digest }}"
-          done
-        env:
-          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
-          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-
       - name: Sign the images with GitHub OIDC Token
         if: ${{ github.event_name == 'push' }}
         run: |
