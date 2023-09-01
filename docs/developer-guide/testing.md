@@ -16,8 +16,19 @@ Detailed description TBD
 
 ## Basic Integration Tests
 
-Basic integration tests are executed by running the `cargo xtask
-integration-test` command in the top-level bpfd directory.
+The full set of basic integration tests are executed by running the following
+command in the top-level bpfd directory.
+
+```bash
+cargo xtask integration-test
+```
+
+Optionally, a subset of the integration tests can be run by adding the "--" and
+a list of one or more names at the end of the command as shown below.
+
+```bash
+cargo xtask integration-test -- test_load_unload_xdp test_proceed_on_xdp
+```
 
 The integration tests start a `bpfd` daemon process, and issue `bpfctl` commands
 to verify a range of functionality.  For XDP and TC programs that are installed
@@ -39,11 +50,13 @@ of global variables, priority, and proceed-on by installing the programs,
 creating traffic if needed, and examining logs to confirm that things are
 running as expected.
 
-eBPF test programs are loaded from container images stored on
+Most eBPF test programs are loaded from container images stored on
 [quay.io](https://quay.io/repository/bpfd-bytecode/tc_pass). The source code for
 the eBPF test programs can be found in the `tests/integration-test/bpf`
 directory.  These programs are compiled by executing `cargo xtask build-ebpf
 --libbpf-dir <libbpf dir>`
+
+We also load some tests from local files to test the `load-from-file` option.
 
 The `bpf` directory also contains a script called `build_push_images.sh` that
 can be used to build and push new images to quay if the code is changed.  We
