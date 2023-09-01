@@ -273,7 +273,7 @@ jobs:
         run: |
           readarray -t tags <<<"${{ steps.meta.outputs.tags }}"
           for tag in ${tags[@]}; do
-            cosign sign --key env://COSIGN_PRIVATE_KEY "${tag}@${{ steps.push-image.outputs.digest }}"
+            cosign sign -y --key env://COSIGN_PRIVATE_KEY "${tag}@${{ steps.push-image.outputs.digest }}"
           done
         env:
           COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
@@ -284,5 +284,5 @@ jobs:
         run: |
           readarray -t tags <<<"${{ steps.meta.outputs.tags }}"
           for tag in ${tags[@]}; do
-            cosign sign "${tag}@${{ steps.push-image.outputs.digest }}"
+            cosign sign -y "${tag}@${{ steps.push-image.outputs.digest }}"
           done
