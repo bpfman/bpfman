@@ -62,7 +62,7 @@ func (p ProgramType) Uint32() *uint32 {
 func FromString(p string) (*ProgramType, error) {
 	var programType ProgramType
 	switch p {
-	case "Kprobe":
+	case "kprobe":
 		programType = Kprobe
 	case "tc":
 		programType = Tc
@@ -405,6 +405,10 @@ func WaitForBpfProgConfLoad(c *bpfdclientset.Clientset, progName string, timeout
 		return wait.PollImmediate(time.Second, timeout, isXdpbpfdProgLoaded(c, progName))
 	case Tracepoint:
 		return wait.PollImmediate(time.Second, timeout, isTracepointbpfdProgLoaded(c, progName))
+	// case Uprobe: not covered because it doesn't have a ProgramType.  However,
+	// the only case currently used is Xdp, so it's not needed now.  If we need
+	// to support uprobes in the future, we could replace ProgramType with
+	// something else, like the string representation of the program type.
 	default:
 		return fmt.Errorf("unknown bpf program type: %s", progType)
 	}

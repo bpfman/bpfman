@@ -23,6 +23,7 @@ const (
 	TcProgramInterface          = "bpfd.dev.tcprogramcontroller/interface"
 	TracepointProgramTracepoint = "bpfd.dev.tracepointprogramcontroller/tracepoint"
 	KprobeProgramFunction       = "bpfd.dev.kprobeprogramcontroller/function"
+	UprobeProgramTarget         = "bpfd.dev.uprobeprogramcontroller/target"
 	BpfProgramOwnerLabel        = "bpfd.dev/ownedByProgram"
 	K8sHostLabel                = "kubernetes.io/hostname"
 	DiscoveredLabel             = "bpfd.dev/discoveredProgram"
@@ -66,6 +67,9 @@ const (
 	// KprobeProgramControllerFinalizer is the finalizer that holds a Kprobe
 	// BpfProgram object from deletion until cleanup can be performed.
 	KprobeProgramControllerFinalizer = "bpfd.dev.kprobeprogramcontroller/finalizer"
+	// KprobeProgramControllerFinalizer is the finalizer that holds a Uprobe
+	// BpfProgram object from deletion until cleanup can be performed.
+	UprobeProgramControllerFinalizer = "bpfd.dev.uprobeprogramcontroller/finalizer"
 )
 
 // Must match the kernel's `bpf_prog_type` enum.
@@ -115,14 +119,16 @@ func (p ProgramType) Uint32() *uint32 {
 func FromString(p string) (*ProgramType, error) {
 	var programType ProgramType
 	switch p {
-	case "kprobe":
-		programType = Kprobe
 	case "tc":
 		programType = Tc
 	case "xdp":
 		programType = Xdp
 	case "tracepoint":
 		programType = Tracepoint
+	case "kprobe":
+		programType = Kprobe
+	case "uprobe":
+		programType = Kprobe
 	default:
 		return nil, fmt.Errorf("unknown program type: %s", p)
 	}
@@ -200,6 +206,10 @@ func (p ProgramType) String() string {
 		return "INVALID_PROG_TYPE"
 	}
 }
+
+// Define a constant string for Uprobe.  It has the same kernel ProgramType as
+// Kprobe, so we can't use the ProgramType String() method above.
+const UprobeString = "uprobe"
 
 type ReconcileResult uint8
 

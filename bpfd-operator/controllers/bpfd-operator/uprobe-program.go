@@ -34,41 +34,41 @@ import (
 	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 )
 
-//+kubebuilder:rbac:groups=bpfd.dev,resources=tracepointprograms,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=bpfd.dev,resources=tracepointprograms/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=bpfd.dev,resources=tracepointprograms/finalizers,verbs=update
+//+kubebuilder:rbac:groups=bpfd.dev,resources=uprobeprograms,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=bpfd.dev,resources=uprobeprograms/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=bpfd.dev,resources=uprobeprograms/finalizers,verbs=update
 
-type TracepointProgramReconciler struct {
+type UprobeProgramReconciler struct {
 	ReconcilerCommon
 }
 
-func (r *TracepointProgramReconciler) getRecCommon() *ReconcilerCommon {
+func (r *UprobeProgramReconciler) getRecCommon() *ReconcilerCommon {
 	return &r.ReconcilerCommon
 }
 
-func (r *TracepointProgramReconciler) getFinalizer() string {
-	return internal.TracepointProgramControllerFinalizer
+func (r *UprobeProgramReconciler) getFinalizer() string {
+	return internal.UprobeProgramControllerFinalizer
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *TracepointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *UprobeProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&bpfdiov1alpha1.TracepointProgram{}).
-		// Watch bpfPrograms which are owned by TracepointPrograms
+		For(&bpfdiov1alpha1.UprobeProgram{}).
+		// Watch bpfPrograms which are owned by UprobePrograms
 		Watches(
 			&source.Kind{Type: &bpfdiov1alpha1.BpfProgram{}},
 			&handler.EnqueueRequestForObject{},
-			builder.WithPredicates(predicate.And(statusChangedPredicate(), internal.BpfProgramTypePredicate(internal.Tracepoint.String()))),
+			builder.WithPredicates(predicate.And(statusChangedPredicate(), internal.BpfProgramTypePredicate(internal.UprobeString))),
 		).
 		Complete(r)
 }
 
-func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *UprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Logger = log.FromContext(ctx)
 
-	tracepointProgram := &bpfdiov1alpha1.TracepointProgram{}
-	if err := r.Get(ctx, req.NamespacedName, tracepointProgram); err != nil {
-		// list all TracepointProgram objects with
+	uprobeProgram := &bpfdiov1alpha1.UprobeProgram{}
+	if err := r.Get(ctx, req.NamespacedName, uprobeProgram); err != nil {
+		// Reconcile was triggered by bpfProgram event, get parent UprobeProgram Object.
 		if errors.IsNotFound(err) {
 			bpfProgram := &bpfdiov1alpha1.BpfProgram{}
 			if err := r.Get(ctx, req.NamespacedName, bpfProgram); err != nil {
@@ -80,36 +80,36 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 				return ctrl.Result{}, nil
 			}
 
-			// Get owning TracepointProgram object from ownerRef
+			// Get owning UprobeProgram object from ownerRef
 			ownerRef := metav1.GetControllerOf(bpfProgram)
 			if ownerRef == nil {
 				return ctrl.Result{Requeue: false}, fmt.Errorf("failed getting bpfProgram Object owner")
 			}
 
-			if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: ownerRef.Name}, tracepointProgram); err != nil {
+			if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: ownerRef.Name}, uprobeProgram); err != nil {
 				if errors.IsNotFound(err) {
-					r.Logger.Info("Tracepoint Program from ownerRef not found stale reconcile exiting", "Name", req.NamespacedName)
+					r.Logger.Info("Uprobe Program from ownerRef not found stale reconcile exiting", "Name", req.NamespacedName)
 				} else {
-					r.Logger.Error(err, "failed getting TracepointProgram Object from ownerRef", "Name", req.NamespacedName)
+					r.Logger.Error(err, "failed getting UprobeProgram Object from ownerRef", "Name", req.NamespacedName)
 				}
 				return ctrl.Result{}, nil
 			}
 
 		} else {
-			r.Logger.Error(err, "failed getting TracepointProgram Object", "Name", req.NamespacedName)
+			r.Logger.Error(err, "failed getting UprobeProgram Object", "Name", req.NamespacedName)
 			return ctrl.Result{}, nil
 		}
 	}
 
-	return reconcileBpfProgram(ctx, r, tracepointProgram)
+	return reconcileBpfProgram(ctx, r, uprobeProgram)
 }
 
-func (r *TracepointProgramReconciler) updateStatus(ctx context.Context, name string, cond bpfdiov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
-	// Sometimes we end up with a stale TracepointProgram due to races, do this
-	// get to ensure we're up to date before attempting a finalizer removal.
-	prog := &bpfdiov1alpha1.TracepointProgram{}
+func (r *UprobeProgramReconciler) updateStatus(ctx context.Context, name string, cond bpfdiov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
+	// Sometimes we end up with a stale UprobeProgram due to races, do this
+	// get to ensure we're up to date before attempting a status update.
+	prog := &bpfdiov1alpha1.UprobeProgram{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: name}, prog); err != nil {
-		r.Logger.V(1).Info("failed to get fresh Tracepoint  object...requeuing")
+		r.Logger.V(1).Info("failed to get fresh UprobeProgram object...requeuing")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}
 
@@ -129,7 +129,7 @@ func (r *TracepointProgramReconciler) updateStatus(ctx context.Context, name str
 	meta.SetStatusCondition(&prog.Status.Conditions, cond.Condition(message))
 
 	if err := r.Status().Update(ctx, prog); err != nil {
-		r.Logger.V(1).Info("failed to set Tracepoint object status...requeuing")
+		r.Logger.V(1).Info("failed to set UprobeProgram object status...requeuing")
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}
 

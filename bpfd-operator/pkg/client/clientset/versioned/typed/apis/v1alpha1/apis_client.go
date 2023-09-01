@@ -31,6 +31,7 @@ type BpfdV1alpha1Interface interface {
 	KprobeProgramsGetter
 	TcProgramsGetter
 	TracepointProgramsGetter
+	UprobeProgramsGetter
 	XdpProgramsGetter
 }
 
@@ -53,6 +54,10 @@ func (c *BpfdV1alpha1Client) TcPrograms() TcProgramInterface {
 
 func (c *BpfdV1alpha1Client) TracepointPrograms() TracepointProgramInterface {
 	return newTracepointPrograms(c)
+}
+
+func (c *BpfdV1alpha1Client) UprobePrograms() UprobeProgramInterface {
+	return newUprobePrograms(c)
 }
 
 func (c *BpfdV1alpha1Client) XdpPrograms() XdpProgramInterface {

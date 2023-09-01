@@ -31,6 +31,8 @@ type Interface interface {
 	TcPrograms() TcProgramInformer
 	// TracepointPrograms returns a TracepointProgramInformer.
 	TracepointPrograms() TracepointProgramInformer
+	// UprobePrograms returns a UprobeProgramInformer.
+	UprobePrograms() UprobeProgramInformer
 	// XdpPrograms returns a XdpProgramInformer.
 	XdpPrograms() XdpProgramInformer
 }
@@ -64,6 +66,11 @@ func (v *version) TcPrograms() TcProgramInformer {
 // TracepointPrograms returns a TracepointProgramInformer.
 func (v *version) TracepointPrograms() TracepointProgramInformer {
 	return &tracepointProgramInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// UprobePrograms returns a UprobeProgramInformer.
+func (v *version) UprobePrograms() UprobeProgramInformer {
+	return &uprobeProgramInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // XdpPrograms returns a XdpProgramInformer.

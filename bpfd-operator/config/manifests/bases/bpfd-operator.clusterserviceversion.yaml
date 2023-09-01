@@ -37,6 +37,11 @@ spec:
       kind: KprobeProgram
       name: kprobeprograms.bpfd.dev
       version: v1alpha1
+    - description: UprobeProgram is the Schema for the Uprobeprograms API
+      displayName: Uprobe Program
+      kind: UprobeProgram
+      name: kprobeprograms.bpfd.dev
+      version: v1alpha1
   description: "The bpfd Operator is a Kubernetes Operator for deploying [bpfd](https://bpfd.netlify.app/),
     a system daemon\nfor managing eBPF programs. It deploys bpfd itself along with
     CRDs to make deploying\neBPF programs in Kubernetes much easier.\n\n## Dependencies\n\n###

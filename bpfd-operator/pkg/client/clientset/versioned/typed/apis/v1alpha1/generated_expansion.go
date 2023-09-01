@@ -25,4 +25,6 @@ type TcProgramExpansion interface{}
 
 type TracepointProgramExpansion interface{}
 
+type UprobeProgramExpansion interface{}
+
 type XdpProgramExpansion interface{}

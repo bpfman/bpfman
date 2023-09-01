@@ -76,6 +76,20 @@ rules:
 - apiGroups:
   - bpfd.dev
   resources:
+  - uprobeprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfd.dev
+  resources:
+  - uprobeprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfd.dev
+  resources:
   - xdpprograms
   verbs:
   - get

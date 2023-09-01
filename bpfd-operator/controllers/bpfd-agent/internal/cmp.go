@@ -117,9 +117,24 @@ func DoesProgExist(actual *gobpfd.ListResponse_ListResult, expected *gobpfd.Load
 		if actualKprobe.FnName != expectedKprobe.FnName ||
 			actualKprobe.Offset != expectedKprobe.Offset ||
 			actualKprobe.Retprobe != expectedKprobe.Retprobe ||
-			actualKprobe.Namespace != expectedKprobe.Namespace {
+			!strPntrsEqual(actualKprobe.Namespace, expectedKprobe.Namespace) {
 			reasons = append(reasons, fmt.Sprintf("Expected Kprobe to be %v but found %v",
 				expectedKprobe, actualKprobe))
+		}
+	}
+
+	actualUprobe := actual.GetUprobeAttachInfo()
+	expectedUprobe := expected.GetUprobeAttachInfo()
+
+	if actualUprobe != nil && expectedUprobe != nil {
+		if !strPntrsEqual(actualUprobe.FnName, expectedUprobe.FnName) ||
+			actualUprobe.Offset != expectedUprobe.Offset ||
+			actualUprobe.Target != expectedUprobe.Target ||
+			actualUprobe.Retprobe != expectedUprobe.Retprobe ||
+			actualUprobe.Pid != expectedUprobe.Pid ||
+			!strPntrsEqual(actualUprobe.Namespace, expectedUprobe.Namespace) {
+			reasons = append(reasons, fmt.Sprintf("Expected Uprobe to be %v but found %v",
+				expectedUprobe, actualUprobe))
 		}
 	}
 
@@ -127,5 +142,15 @@ func DoesProgExist(actual *gobpfd.ListResponse_ListResult, expected *gobpfd.Load
 		return true, reasons
 	} else {
 		return false, reasons
+	}
+}
+
+func strPntrsEqual(str1 *string, str2 *string) bool {
+	if str1 != nil && str2 != nil {
+		return *str1 == *str2
+	} else if str1 == nil && str2 == nil {
+		return true
+	} else {
+		return false
 	}
 }

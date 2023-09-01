@@ -28,51 +28,62 @@ import (
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:scope=Cluster
 
-// KprobeProgram is the Schema for the KprobePrograms API
+// UprobeProgram is the Schema for the UprobePrograms API
 // +kubebuilder:printcolumn:name="SectionName",type=string,JSONPath=`.spec.sectionname`
 // +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
 // +kubebuilder:printcolumn:name="FunctionName",type=string,JSONPath=`.spec.func_name`,priority=1
 // +kubebuilder:printcolumn:name="Offset",type=integer,JSONPath=`.spec.offset`,priority=1
+// +kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`,priority=1
 // +kubebuilder:printcolumn:name="RetProbe",type=boolean,JSONPath=`.spec.retprobe`,priority=1
-type KprobeProgram struct {
+// +kubebuilder:printcolumn:name="Pid",type=integer,JSONPath=`.spec.pid`,priority=1
+type UprobeProgram struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec KprobeProgramSpec `json:"spec"`
+	Spec UprobeProgramSpec `json:"spec"`
 	// +optional
-	Status KprobeProgramStatus `json:"status,omitempty"`
+	Status UprobeProgramStatus `json:"status,omitempty"`
 }
 
-// KprobeProgramSpec defines the desired state of KprobeProgram
+// UprobeProgramSpec defines the desired state of UprobeProgram
 // +kubebuilder:printcolumn:name="FunctionName",type=string,JSONPath=`.spec.func_name`
 // +kubebuilder:printcolumn:name="Offset",type=integer,JSONPath=`.spec.offset`
+// +kubebuilder:printcolumn:name="Target",type=string,JSONPath=`.spec.target`
 // +kubebuilder:printcolumn:name="RetProbe",type=boolean,JSONPath=`.spec.retprobe`
-// +kubebuilder:validation:XValidation:message="offset cannot be set for kretprobes",rule="self.retprobe == false || self.offset == 0"
-type KprobeProgramSpec struct {
+// +kubebuilder:printcolumn:name="Pid",type=integer,JSONPath=`.spec.pid`
+type UprobeProgramSpec struct {
 	BpfProgramCommon `json:",inline"`
 
-	// Functions to attach the kprobe to.
-	FunctionNames []string `json:"func_names"`
+	// Function to attach the uprobe to.
+	// +optional
+	FunctionName string `json:"func_name"`
 
-	// Offset added to the address of the function for kprobe.
-	// Not allowed for kretprobes.
+	// Offset added to the address of the function for uprobe.
 	// +optional
 	// +kubebuilder:default:=0
 	Offset uint64 `json:"offset"`
 
-	// Whether the program is a kretprobe.  Default is false
+	// Library name or the absolute path to a binary or library.
+	Targets []string `json:"target"`
+
+	// Whether the program is a uretprobe.  Default is false
 	// +optional
 	// +kubebuilder:default:=false
 	RetProbe bool `json:"retprobe"`
+
+	// Only execute uprobe for given process identification number (PID). If PID
+	// is not provided, uprobe executes for all PIDs.
+	// +optional
+	Pid int32 `json:"pid"`
 
 	// // Namespace to attach the uprobe in. (Not supported yet by bpfd.)
 	// // +optional
 	// Namespace string `json:"namespace"`
 }
 
-// KprobeProgramStatus defines the observed state of KprobeProgram
-type KprobeProgramStatus struct {
-	// Conditions houses the global cluster state for the KprobeProgram. The explicit
+// UprobeProgramStatus defines the observed state of UprobeProgram
+type UprobeProgramStatus struct {
+	// Conditions houses the global cluster state for the UprobeProgram. The explicit
 	// condition types are defined internally.
 	// +patchMergeKey=type
 	// +patchStrategy=merge
@@ -82,9 +93,9 @@ type KprobeProgramStatus struct {
 }
 
 // +kubebuilder:object:root=true
-// KprobeProgramList contains a list of KprobePrograms
-type KprobeProgramList struct {
+// UprobeProgramList contains a list of UprobePrograms
+type UprobeProgramList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KprobeProgram `json:"items"`
+	Items           []UprobeProgram `json:"items"`
 }
