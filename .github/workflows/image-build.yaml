@@ -192,25 +192,25 @@ jobs:
       - uses: sigstore/cosign-installer@v3.1.1
 
       - uses: actions/checkout@v2
-        if: ${{ matrix.image.repository == 'bpfd-bytecode' || matrix.image.image == 'xdp_dispatcher'}}
+        if: ${{ matrix.image.repository == 'bpfd-bytecode' || matrix.image.image == 'xdp-dispatcher'}}
         with:
           repository: libbpf/libbpf
           path: libbpf
 
       - uses: actions-rs/toolchain@v1
-        if: ${{ matrix.image.image == 'xdp_dispatcher' }}
+        if: ${{ matrix.image.image == 'xdp-dispatcher' }}
         with:
           toolchain: stable
           override: true
 
       - name: Install libelf-dev
-        if: ${{ matrix.image.image == 'xdp_dispatcher'}}
+        if: ${{ matrix.image.image == 'xdp-dispatcher'}}
         run: |
           sudo apt-get update
           sudo apt-get install -y linux-headers-`uname -r` clang lldb lld libelf-dev gcc-multilib
 
       - name: Build eBPF
-        if: ${{ matrix.image.image == 'xdp_dispatcher'}}
+        if: ${{ matrix.image.image == 'xdp-dispatcher'}}
         run: |
           cargo xtask build-ebpf --libbpf-dir ./libbpf
 
@@ -271,7 +271,7 @@ jobs:
       - name: Sign with key
         if: ${{ github.event_name == 'push' }}
         run: |
-          readarray -t tags <<<"$(jq -r '.[]' <<<'${{ steps.meta.outputs.tags }}')"
+          readarray -t tags <<<"${{ steps.meta.outputs.tags }}"
           for tag in ${tags[@]}; do
             cosign sign --key env://COSIGN_PRIVATE_KEY "${tag}@${{ steps.push-image.outputs.digest }}"
           done
@@ -282,7 +282,7 @@ jobs:
       - name: Sign the images with GitHub OIDC Token
         if: ${{ github.event_name == 'push' }}
         run: |
-          readarray -t tags <<<"$(jq -r '.[]' <<<'${{ steps.meta.outputs.tags }}')"
+          readarray -t tags <<<"${{ steps.meta.outputs.tags }}"
           for tag in ${tags[@]}; do
             cosign sign "${tag}@${{ steps.push-image.outputs.digest }}"
           done
