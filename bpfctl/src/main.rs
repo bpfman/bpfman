@@ -399,10 +399,12 @@ impl ProgTable {
             }
         }
 
-        table.add_row(vec![
-            "Map Pin Path:",
-            &r.map_pin_path.is_empty().then_some("None").unwrap(),
-        ]);
+        if r.map_pin_path.is_empty() {
+            table.add_row(vec!["Map Pin Path:", "None"]);
+        } else {
+            table.add_row(vec!["Map Pin Path:", &r.map_pin_path]);
+        }
+
         if r.map_owner_id.is_none() {
             table.add_row(vec!["Map Owner ID:", "None"]);
         } else {

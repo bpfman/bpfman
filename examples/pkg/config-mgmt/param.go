@@ -28,12 +28,12 @@ import (
 )
 
 const (
-	UuidMetadataKey = "bpfd.dev/uuid"
+	UnusedProgramId = 0
 )
 
 const (
 	SrcNone = iota
-	SrcUuid
+	SrcProgId
 	SrcImage
 	SrcFile
 )
@@ -60,7 +60,7 @@ type ParameterData struct {
 	Priority   int
 	Direction  int
 	CrdFlag    bool
-	Uuid       string
+	ProgId     uint
 	MapOwnerId int
 	// The bytecodesource type has to be encapsulated in a complete LoadRequest because isLoadRequest_Location is not Public
 	BytecodeSource *gobpfd.LoadRequestCommon
@@ -71,7 +71,7 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 	var paramData ParameterData
 	paramData.BytecodeSrc = SrcNone
 
-	var cmdlineUuid, cmdlineImage, cmdlineFile, direction_str, source string
+	var cmdlineImage, cmdlineFile, direction_str, source string
 
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
@@ -81,15 +81,16 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 		flag.IntVar(&paramData.Priority, "priority", 50,
 			"Priority to load program in bpfd. Optional.")
 	}
-	flag.StringVar(&cmdlineUuid, "uuid", "",
-		"Optional program UUID.\n"+
-			"Example: -uuid 5471e2f5-2584-49ec-9ddc-381788446c2d")
+	flag.UintVar(&paramData.ProgId, "id", UnusedProgramId,
+		"Optional Program ID of bytecode that has already been loaded. \"id\" and\n"+
+			"\"file\"/\"image\" are mutually exclusive.\n"+
+			"Example: -id 28341")
 	flag.StringVar(&cmdlineImage, "image", "",
-		"Image repository URL of bytecode source. image and file/uuid are mutually\n"+
-			"exclusive.\n"+
+		"Image repository URL of bytecode source. \"image\" and \"file\"/\"id\" are\n"+
+			"mutually exclusive.\n"+
 			"Example: -image quay.io/bpfd-bytecode/go-"+progType.String()+"-counter:latest")
 	flag.StringVar(&cmdlineFile, "file", "",
-		"File path of bytecode source. file and image/uuid are mutually exclusive.\n"+
+		"File path of bytecode source. \"file\" and \"image\"/\"id\" are mutually exclusive.\n"+
 			"Example: -file /home/$USER/src/bpfd/examples/go-"+progType.String()+"-counter/bpf_bpfel.o")
 	flag.BoolVar(&paramData.CrdFlag, "crd", false,
 		"Flag to indicate all attributes should be pulled from the BpfProgram CRD.\n"+
@@ -100,7 +101,7 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 			"Direction to apply program (ingress, egress). Required.")
 	}
 	flag.IntVar(&paramData.MapOwnerId, "map_owner_id", 0,
-		"Id of loaded eBPF program this eBPF program will share a map with.\n"+
+		"Program Id of loaded eBPF program this eBPF program will share a map with.\n"+
 			"Example: -map_owner_id 9785")
 	flag.Parse()
 
@@ -139,13 +140,13 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 	// defaults to 50 from the commandline.
 	//    ./go-xdp-counter -iface eth0 -priority 45
 
-	// "-uuid" and "-location" are mutually exclusive and "-uuid" takes precedence.
+	// "-id" and "-location" are mutually exclusive and "-id" takes precedence.
 	// Parse Commandline first.
 
-	// "-uuid" is a UUID for the bytecode that has already loaded into bpfd. If not
+	// "-id" is a ProgramID for the bytecode that has already loaded into bpfd. If not
 	// provided, check "-file" and "-image".
-	//    ./go-xdp-counter -iface eth0 -uuid 53ac77fc-18a9-42e2-8dd3-152fc31ba979
-	if len(cmdlineUuid) == 0 {
+	//    ./go-xdp-counter -iface eth0 -id 23415
+	if paramData.ProgId == UnusedProgramId {
 		// "-path" is a file path for the bytecode source. If not provided, check toml file.
 		//    ./go-xdp-counter -iface eth0 -path /var/bpfd/bytecode/bpf_bpfel.o
 		if len(cmdlineFile) != 0 {
@@ -171,10 +172,8 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 			source = cmdlineImage
 		}
 	} else {
-		// "-id" was entered so it is a UUID
-		paramData.Uuid = cmdlineUuid
-		paramData.BytecodeSrc = SrcUuid
-		source = cmdlineUuid
+		// "-id" was entered so it is a Program ID
+		paramData.BytecodeSrc = SrcProgId
 	}
 
 	// If bytecode source not entered not entered on Commandline, set to default.
@@ -203,9 +202,9 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 		source = path
 	}
 
-	if paramData.BytecodeSrc == SrcUuid {
-		log.Printf("Using Input: Interface=%s Source=%s",
-			paramData.Iface, source)
+	if paramData.BytecodeSrc == SrcProgId {
+		log.Printf("Using Input: Interface=%s Source=%d",
+			paramData.Iface, paramData.ProgId)
 	} else {
 		log.Printf("Using Input: Interface=%s Priority=%d Source=%+v",
 			paramData.Iface, paramData.Priority, source)
@@ -214,12 +213,11 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 	return paramData, nil
 }
 
-func RetrieveMapPinPath(ctx context.Context, c gobpfd.BpfdClient, paramData ParameterData, programType *uint32, map_name string) (string, error) {
+func RetrieveMapPinPath(ctx context.Context, c gobpfd.BpfdClient, progId uint, programType *uint32, map_name string) (string, error) {
 	var mapPath string
 
 	listRequest := &gobpfd.ListRequest{
-		ProgramType:   programType,
-		MatchMetadata: map[string]string{UuidMetadataKey: paramData.Uuid},
+		ProgramType: programType,
 	}
 	//var listResponse *gobpfd.ListResponse
 	listResponse, err := c.List(ctx, listRequest)
@@ -227,12 +225,12 @@ func RetrieveMapPinPath(ctx context.Context, c gobpfd.BpfdClient, paramData Para
 		return mapPath, err
 	}
 	results := listResponse.GetResults()
-
-	if len(results) != 1 {
-		return mapPath, fmt.Errorf("more than one program found with UUID %s", paramData.Uuid)
+	for _, result := range results {
+		if result.GetId() == uint32(progId) {
+			mapPath = fmt.Sprintf("%s/%s", result.GetMapPinPath(), map_name)
+			break
+		}
 	}
-
-	mapPath = fmt.Sprintf("%s/%s", results[0].GetMapPinPath(), map_name)
 
 	if mapPath == "" {
 		return mapPath, fmt.Errorf("couldn't find map path in response")

@@ -723,9 +723,15 @@ impl BpfManager {
 
                 match self.programs.get(&prog_id) {
                     Some(p) => {
-                        let map_used_by = self.get_map_used_by(prog_id, p.data().map_owner_id)?;
-                        p.clone().data_mut().map_used_by = Some(map_used_by);
-                        Ok(p.to_owned())
+                        let map_owner_id = p.data().map_owner_id;
+                        let map_used_by = self.get_map_used_by(prog_id, map_owner_id)?;
+                        match self.programs.get_mut(&prog_id) {
+                            Some(p_mut) => {
+                                p_mut.data_mut().map_used_by = Some(map_used_by);
+                                Ok(p_mut.to_owned())
+                            }
+                            None => Ok(Program::Unsupported(prog.try_into()?)),
+                        }
                     }
                     None => Ok(Program::Unsupported(prog.try_into()?)),
                 }

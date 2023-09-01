@@ -339,6 +339,12 @@ impl Bpfd for BpfdLoader {
                                     }
                                 };
 
+                                // Copy map_pin_path if it is set.
+                                if let Some(map_pin_path) = r.data().map_pin_path.clone() {
+                                    reply_entry.map_pin_path =
+                                        map_pin_path.into_os_string().into_string().unwrap();
+                                };
+
                                 reply.results.push(reply_entry)
                             }
                         }
