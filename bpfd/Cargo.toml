@@ -39,4 +39,4 @@ tokio-stream = { version = "0.1.12", features = ["net"] }
 sha2 = "0.10.7"
 base16ct = { version = "0.2.0", features = ["alloc"] }
 tempfile = "3.7.1"
-chrono = "0.4.9"
+chrono = "0.4.28"
