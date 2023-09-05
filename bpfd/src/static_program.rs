@@ -17,7 +17,7 @@ use crate::{
         Location::{File, Image},
         Program, ProgramData, TcProgram, TracepointProgram, XdpProgram,
     },
-    oci_utils::BytecodeImage,
+    oci_utils::image_manager::BytecodeImage,
     utils::read_to_string,
 };
 

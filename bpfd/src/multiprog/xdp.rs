@@ -13,6 +13,7 @@ use aya::{
 use bpfd_api::{config::XdpMode, util::directories::*, ImagePullPolicy};
 use log::debug;
 use serde::{Deserialize, Serialize};
+use tokio::sync::{mpsc::Sender, oneshot};
 use uuid::Uuid;
 
 use super::Dispatcher;
@@ -21,7 +22,7 @@ use crate::{
     command::{Program, XdpProgram},
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfdError,
-    oci_utils::{image_manager::get_bytecode_from_image_store, BytecodeImage},
+    oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
 };
 
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
@@ -45,6 +46,7 @@ impl XdpDispatcher {
         programs: &mut [(Uuid, Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
+        image_manager: Sender<ImageManagerCommand>,
     ) -> Result<XdpDispatcher, BpfdError> {
         debug!("XdpDispatcher::new() for if_index {if_index}, revision {revision}");
         let mut extensions: Vec<(&mut Uuid, &mut XdpProgram)> = programs
@@ -75,11 +77,32 @@ impl XdpDispatcher {
             None,
             None,
         );
-        let (path, section_name) = image
-            .get_image(None)
+        let (tx, rx) = oneshot::channel();
+        image_manager
+            .send(ImageManagerCommand::Pull {
+                image: image.image_url.clone(),
+                pull_policy: image.image_pull_policy.clone(),
+                username: image.username.clone(),
+                password: image.password.clone(),
+                resp: tx,
+            })
             .await
             .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
-        let program_bytes = get_bytecode_from_image_store(path).await?;
+
+        let (path, section_name) = rx
+            .await
+            .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?
+            .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
+
+        let (tx, rx) = oneshot::channel();
+        image_manager
+            .send(ImageManagerCommand::GetBytecode { path, resp: tx })
+            .await
+            .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
+        let program_bytes = rx
+            .await
+            .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?
+            .map_err(BpfdError::BpfBytecodeError)?;
         let mut loader = BpfLoader::new()
             .set_global("conf", &config, true)
             .load(&program_bytes)?;
@@ -99,7 +122,9 @@ impl XdpDispatcher {
             loader: Some(loader),
             progam_name: Some(section_name),
         };
-        dispatcher.attach_extensions(&mut extensions).await?;
+        dispatcher
+            .attach_extensions(&mut extensions, image_manager)
+            .await?;
         dispatcher.attach()?;
         dispatcher.save()?;
         if let Some(mut old) = old_dispatcher {
@@ -145,6 +170,7 @@ impl XdpDispatcher {
     async fn attach_extensions(
         &mut self,
         extensions: &mut [(&mut Uuid, &mut XdpProgram)],
+        image_manager: Sender<ImageManagerCommand>,
     ) -> Result<(), BpfdError> {
         debug!(
             "XdpDispatcher::attach_extensions() for if_index {}, revision {}",
@@ -173,7 +199,7 @@ impl XdpDispatcher {
                 );
                 new_link.pin(path).map_err(BpfdError::UnableToPinLink)?;
             } else {
-                let program_bytes = v.data.program_bytes().await?;
+                let program_bytes = v.data.program_bytes(image_manager.clone()).await?;
                 let name = v.data.name();
                 let global_data = v.data.global_data();
 

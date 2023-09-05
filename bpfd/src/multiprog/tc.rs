@@ -15,6 +15,7 @@ use aya::{
 use bpfd_api::util::directories::*;
 use log::debug;
 use serde::{Deserialize, Serialize};
+use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use super::Dispatcher;
@@ -27,6 +28,7 @@ use crate::{
     },
     dispatcher_config::TcDispatcherConfig,
     errors::BpfdError,
+    oci_utils::image_manager::Command as ImageManagerCommand,
 };
 
 const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the dispatcher
@@ -55,6 +57,7 @@ impl TcDispatcher {
         programs: &mut [(Uuid, Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
+        image_manager: Sender<ImageManagerCommand>,
     ) -> Result<TcDispatcher, BpfdError> {
         debug!("TcDispatcher::new() for if_index {if_index}, revision {revision}");
         let mut extensions: Vec<(&mut Uuid, &mut TcProgram)> = programs
@@ -104,7 +107,9 @@ impl TcDispatcher {
             handle: None,
             loader: Some(loader),
         };
-        dispatcher.attach_extensions(&mut extensions).await?;
+        dispatcher
+            .attach_extensions(&mut extensions, image_manager)
+            .await?;
         dispatcher.attach(old_dispatcher)?;
         dispatcher.save()?;
         Ok(dispatcher)
@@ -163,6 +168,7 @@ impl TcDispatcher {
     async fn attach_extensions(
         &mut self,
         extensions: &mut [(&mut Uuid, &mut TcProgram)],
+        image_manager: Sender<ImageManagerCommand>,
     ) -> Result<(), BpfdError> {
         debug!(
             "TcDispatcher::attach_extensions() for if_index {}, revision {}",
@@ -194,7 +200,7 @@ impl TcDispatcher {
                 let path = format!("{base}/dispatcher_{if_index}_{}/link_{k}", self.revision);
                 new_link.pin(path).map_err(BpfdError::UnableToPinLink)?;
             } else {
-                let program_bytes = v.data.program_bytes().await?;
+                let program_bytes = v.data.program_bytes(image_manager.clone()).await?;
                 let name = v.data.name();
                 let global_data = v.data.global_data();
 
