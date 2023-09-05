@@ -16,10 +16,6 @@ pub enum BpfdError {
     SectionNameNotValid(String),
     #[error("No room to attach program. Please remove one and try again.")]
     TooManyPrograms,
-    #[error("Invalid ID")]
-    InvalidID,
-    #[error("Not authorized")]
-    NotAuthorized,
     #[error("Invalid Interface")]
     InvalidInterface,
     #[error("Failed to pin link {0}")]
@@ -34,10 +30,10 @@ pub enum BpfdError {
     DispatcherNotRequired,
     #[error(transparent)]
     BpfBytecodeError(#[from] anyhow::Error),
-    #[error("Bytecode image has section name: {image_sec_name} isn't equal to the provided section name {provided_sec_name}")]
+    #[error("Bytecode image has section name: {image_prog_name} isn't equal to the provided section name {provided_prog_name}")]
     BytecodeMetaDataMismatch {
-        image_sec_name: String,
-        provided_sec_name: String,
+        image_prog_name: String,
+        provided_prog_name: String,
     },
     #[error("Unable to parse passed UUID {0}")]
     PassedUUIDError(#[from] uuid::Error),

@@ -64,8 +64,8 @@ impl BytecodeImage {
         &self.image_url
     }
 
-    pub(crate) fn get_pull_policy(self) -> ImagePullPolicy {
-        self.image_pull_policy
+    pub(crate) fn get_pull_policy(&self) -> &ImagePullPolicy {
+        &self.image_pull_policy
     }
 
     pub(crate) async fn get_image(
