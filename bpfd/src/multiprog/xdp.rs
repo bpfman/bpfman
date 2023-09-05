@@ -29,13 +29,14 @@ pub(crate) const DEFAULT_PRIORITY: u32 = 50;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct XdpDispatcher {
-    pub(crate) revision: u32,
+    revision: u32,
     if_index: u32,
     if_name: String,
     mode: XdpMode,
+    num_extensions: usize,
     #[serde(skip)]
     loader: Option<Bpf>,
-    progam_name: Option<String>,
+    program_name: Option<String>,
 }
 
 impl XdpDispatcher {
@@ -43,19 +44,20 @@ impl XdpDispatcher {
         mode: XdpMode,
         if_index: &u32,
         if_name: String,
-        programs: &mut [(Uuid, Program)],
+        programs: &mut [(&Uuid, &mut Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
         image_manager: Sender<ImageManagerCommand>,
     ) -> Result<XdpDispatcher, BpfdError> {
         debug!("XdpDispatcher::new() for if_index {if_index}, revision {revision}");
-        let mut extensions: Vec<(&mut Uuid, &mut XdpProgram)> = programs
+        let mut extensions: Vec<(&Uuid, &mut XdpProgram)> = programs
             .iter_mut()
-            .filter_map(|(k, v)| match v {
-                Program::Xdp(p) => Some((k, p)),
-                _ => None,
+            .map(|(k, v)| match v {
+                Program::Xdp(p) => (*k, p),
+                _ => panic!("All programs should be of type XDP"),
             })
             .collect();
+
         let mut chain_call_actions = [0; 10];
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
         for (_, p) in extensions.iter() {
@@ -119,8 +121,9 @@ impl XdpDispatcher {
             if_name,
             revision,
             mode,
+            num_extensions: extensions.len(),
             loader: Some(loader),
-            progam_name: Some(section_name),
+            program_name: Some(section_name),
         };
         dispatcher
             .attach_extensions(&mut extensions, image_manager)
@@ -144,7 +147,7 @@ impl XdpDispatcher {
             .loader
             .as_mut()
             .ok_or(BpfdError::NotLoaded)?
-            .program_mut(self.progam_name.clone().unwrap().as_str())
+            .program_mut(self.program_name.clone().unwrap().as_str())
             .unwrap()
             .try_into()?;
 
@@ -169,7 +172,7 @@ impl XdpDispatcher {
 
     async fn attach_extensions(
         &mut self,
-        extensions: &mut [(&mut Uuid, &mut XdpProgram)],
+        extensions: &mut [(&Uuid, &mut XdpProgram)],
         image_manager: Sender<ImageManagerCommand>,
     ) -> Result<(), BpfdError> {
         debug!(
@@ -181,7 +184,7 @@ impl XdpDispatcher {
             .loader
             .as_mut()
             .ok_or(BpfdError::NotLoaded)?
-            .program_mut(self.progam_name.clone().unwrap().as_str())
+            .program_mut(self.program_name.clone().unwrap().as_str())
             .unwrap()
             .try_into()?;
         extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
@@ -290,5 +293,13 @@ impl XdpDispatcher {
 
     pub(crate) fn if_name(&self) -> String {
         self.if_name.clone()
+    }
+
+    pub(crate) fn revision(&self) -> u32 {
+        self.revision
+    }
+
+    pub(crate) fn num_extensions(&self) -> usize {
+        self.num_extensions
     }
 }

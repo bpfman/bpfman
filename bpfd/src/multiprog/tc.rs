@@ -45,6 +45,7 @@ pub struct TcDispatcher {
     direction: Direction,
     priority: u16,
     handle: Option<u32>,
+    num_extensions: usize,
     #[serde(skip)]
     loader: Option<Bpf>,
 }
@@ -54,17 +55,17 @@ impl TcDispatcher {
         direction: Direction,
         if_index: &u32,
         if_name: String,
-        programs: &mut [(Uuid, Program)],
+        programs: &mut [(&Uuid, &mut Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
         image_manager: Sender<ImageManagerCommand>,
     ) -> Result<TcDispatcher, BpfdError> {
         debug!("TcDispatcher::new() for if_index {if_index}, revision {revision}");
-        let mut extensions: Vec<(&mut Uuid, &mut TcProgram)> = programs
+        let mut extensions: Vec<(Uuid, &mut TcProgram)> = programs
             .iter_mut()
-            .filter_map(|(k, v)| match v {
-                Program::Tc(p) => Some((k, p)),
-                _ => None,
+            .map(|(k, v)| match v {
+                Program::Tc(p) => (k.to_owned(), p),
+                _ => panic!("All programs should be of type TC"),
             })
             .collect();
         let mut chain_call_actions = [0; 10];
@@ -103,6 +104,7 @@ impl TcDispatcher {
             if_index: *if_index,
             if_name,
             direction,
+            num_extensions: extensions.len(),
             priority: TC_DISPATCHER_PRIORITY,
             handle: None,
             loader: Some(loader),
@@ -167,7 +169,7 @@ impl TcDispatcher {
 
     async fn attach_extensions(
         &mut self,
-        extensions: &mut [(&mut Uuid, &mut TcProgram)],
+        extensions: &mut [(Uuid, &mut TcProgram)],
         image_manager: Sender<ImageManagerCommand>,
     ) -> Result<(), BpfdError> {
         debug!(
@@ -210,7 +212,7 @@ impl TcDispatcher {
                     bpf.set_global(name, value.as_slice(), true);
                 }
 
-                let (_, map_pin_path) = calc_map_pin_path(**k, v.data.map_owner_id());
+                let (_, map_pin_path) = calc_map_pin_path(k.to_owned(), v.data.map_owner_id());
                 let mut bpf = bpf
                     .allow_unsupported_maps()
                     .map_pin_path(map_pin_path.clone())
@@ -335,5 +337,13 @@ impl TcDispatcher {
 
     pub(crate) fn if_name(&self) -> String {
         self.if_name.clone()
+    }
+
+    pub(crate) fn revision(&self) -> u32 {
+        self.revision
+    }
+
+    pub(crate) fn num_extensions(&self) -> usize {
+        self.num_extensions
     }
 }
