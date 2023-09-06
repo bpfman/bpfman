@@ -332,14 +332,13 @@ impl BpfManager {
     ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_multi_attach_program()");
         let name = program.data()?.name();
-        let map_pin_path = program.data()?.map_pin_path();
 
         // This load is just to verify the Section Name is valid.
         // The actual load is performed in the XDP or TC logic.
+        // don't pin maps here.
         let mut ext_loader = BpfLoader::new()
             .allow_unsupported_maps()
             .extension(name)
-            .map_pin_path(map_pin_path.expect("map_pin_path should be set"))
             .load(&program_bytes)?;
 
         match ext_loader.program_mut(name) {
@@ -416,18 +415,19 @@ impl BpfManager {
     ) -> Result<Uuid, BpfdError> {
         debug!("BpfManager::add_single_attach_program()");
         let name = p.data()?.name();
-        let map_pin_path = p.data()?.map_pin_path();
+        let (map_owner, map_pin_path) = calc_map_pin_path(id, p.data()?.map_owner_id());
 
-        let mut loader = BpfLoader::new();
+        let mut bpf = BpfLoader::new();
 
         for (key, value) in p.data()?.global_data() {
-            loader.set_global(key, value.as_slice(), true);
+            bpf.set_global(key, value.as_slice(), true);
         }
 
-        let mut loader = loader
-            .allow_unsupported_maps()
-            .map_pin_path(map_pin_path.expect("map_pin_path should be set"))
-            .load(&program_bytes)?;
+        if !map_owner {
+            bpf.map_pin_path(map_pin_path.clone());
+        }
+
+        let mut loader = bpf.allow_unsupported_maps().load(&program_bytes)?;
 
         let raw_program = loader
             .program_mut(name)
@@ -578,6 +578,17 @@ impl BpfManager {
         };
 
         if res.is_ok() {
+            // If this program is the map(s) owner pin all maps (except for .rodata and .bss) by name.
+            if map_owner {
+                for (name, map) in loader.maps_mut() {
+                    if name.contains(".rodata") || name.contains(".bss") {
+                        continue;
+                    }
+                    map.pin(map_pin_path.join(name))
+                        .map_err(BpfdError::UnableToPinMap)?;
+                }
+            }
+
             self.programs.insert(id, p);
             self.programs
                 .get(&id)

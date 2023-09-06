@@ -208,19 +208,25 @@ impl XdpDispatcher {
 
                 let mut bpf = BpfLoader::new();
 
+                bpf.allow_unsupported_maps().extension(name);
+
                 for (name, value) in global_data {
                     bpf.set_global(name, value.as_slice(), true);
                 }
 
-                let (_, map_pin_path) = calc_map_pin_path(**k, v.data.map_owner_id());
-                let mut bpf = bpf
-                    .allow_unsupported_maps()
-                    .map_pin_path(map_pin_path.clone())
-                    .extension(name)
-                    .load(&program_bytes)
-                    .map_err(BpfdError::BpfLoadError)?;
+                let (map_owner, map_pin_path) = calc_map_pin_path(**k, v.data.map_owner_id());
 
-                let ext: &mut Extension = bpf
+                if !map_owner {
+                    debug!(
+                        "xdp program {name} is using maps from {:?}",
+                        map_pin_path.clone()
+                    );
+                    bpf.map_pin_path(map_pin_path.clone());
+                }
+
+                let mut loader = bpf.load(&program_bytes).map_err(BpfdError::BpfLoadError)?;
+
+                let ext: &mut Extension = loader
                     .program_mut(name)
                     .ok_or_else(|| BpfdError::SectionNameNotValid(name.to_string()))?
                     .try_into()?;
@@ -242,6 +248,17 @@ impl XdpDispatcher {
                         self.revision,
                     ))
                     .map_err(BpfdError::UnableToPinLink)?;
+
+                // If this program is the map(s) owner pin all maps (except for .rodata and .bss) by name.
+                if map_owner {
+                    for (name, map) in loader.maps_mut() {
+                        if name.contains(".rodata") || name.contains(".bss") {
+                            continue;
+                        }
+                        map.pin(map_pin_path.join(name))
+                            .map_err(BpfdError::UnableToPinMap)?;
+                    }
+                }
             }
         }
         Ok(())
