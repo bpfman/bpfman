@@ -15,7 +15,6 @@ struct {
 	__type(key, __u32);
 	__type(value, datarec);
 	__uint(max_entries, 8);
-	__uint(pinning, LIBBPF_PIN_BY_NAME);
 } tracepoint_stats_map SEC(".maps");
 
 struct kill_args {
