@@ -51,10 +51,16 @@ jobs:
           components: rust-src
           override: false
 
+      - uses: Swatinem/rust-cache@v1
+
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
 
-      - uses: Swatinem/rust-cache@v1
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: taplo-cli
+
+      - run: taplo fmt --check
 
       - name: Build eBPF
         run: |

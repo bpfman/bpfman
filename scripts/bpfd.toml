@@ -1,21 +1,21 @@
 [tls] # REQUIRED
-  ca_cert = "/etc/bpfd/certs/ca/ca.pem"
-  cert = "/etc/bpfd/certs/bpfd/bpfd.pem"
-  key = "/etc/bpfd/certs/bpfd/bpfd.key"
-  client_cert = "/etc/bpfd/certs/bpfd-client/bpfd-client.pem"
-  client_key = "/etc/bpfd/certs/bpfd-client/bpfd-client.key"
+ca_cert = "/etc/bpfd/certs/ca/ca.pem"
+cert = "/etc/bpfd/certs/bpfd/bpfd.pem"
+client_cert = "/etc/bpfd/certs/bpfd-client/bpfd-client.pem"
+client_key = "/etc/bpfd/certs/bpfd-client/bpfd-client.key"
+key = "/etc/bpfd/certs/bpfd/bpfd.key"
 
 [interfaces]
-  [interface.eth0]
-  xdp_mode = "hw" # Valid xdp modes are "hw", "skb" and "drv". Default: "skb".
+[interface.eth0]
+xdp_mode = "hw" # Valid xdp modes are "hw", "skb" and "drv". Default: "skb".
 
 [[grpc.endpoints]]
-  type = "tcp"
-  enabled = true
-  address = "::1"
-  port = 50051
+address = "::1"
+enabled = true
+port = 50051
+type = "tcp"
 
 [[grpc.endpoints]]
-  type = "unix"
-  enabled = false
-  path = "/run/bpfd/bpfd.sock"
+enabled = false
+path = "/run/bpfd/bpfd.sock"
+type = "unix"

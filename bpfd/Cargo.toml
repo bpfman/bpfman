@@ -1,45 +1,55 @@
 [package]
-name = "bpfd"
-version = "0.2.0"
-edition = "2021"
 description = "A system daemon for loading BPF programs"
+edition = "2021"
 license = "MIT OR Apache-2.0"
+name = "bpfd"
 repository = "https://github.com/bpfd-dev/bpfd"
+version = "0.2.0"
 
 [[bin]]
-    name = "bpfd"
-    path = "src/main.rs"
+name = "bpfd"
+path = "src/main.rs"
 
 [dependencies]
-anyhow = "1"
-thiserror = "1"
-clap = { version = "4", features = ["derive"]}
-aya = "0.11"
-tokio = { version = "1.31.0", features = ["full", "signal"] }
-uuid = { version = "1", features = ["v4"] }
-log = "0.4"
-env_logger = "0.10"
-systemd-journal-logger = "1.0.0"
-tonic = "0.9.2"
-rustls = "0.21.7"
-bpfd-api = { version = "0.2.0", path = "../bpfd-api" }
-caps = "0.5.4"
-nix = { version = "0.26", features = [ "socket", "fs", "mount"]}
-serde = { version = "1.0", features = ["derive"] }
-toml = "0.7"
-x509-certificate = "0.21"
-oci-distribution = {version = "0.9", default-features = false, features = ["rustls-tls", "trust-dns"] }
-serde_json = "1.0"
-tar = "0.4"
-flate2 = "1.0"
-openssl = { version = "0.10.57", features = ["vendored"] }
-url = "2.4.0"
-users = "0.11.0"
-tokio-stream = { version = "0.1.12", features = ["net"] }
-sha2 = "0.10.7"
-base16ct = { version = "0.2.0", features = ["alloc"] }
-tempfile = "3.7.1"
-chrono = "0.4.28"
+anyhow = { workspace = true, features = ["std"] }
+aya = { workspace = true }
+base16ct = { workspace = true, features = ["alloc"] }
+bpfd-api = { workspace = true }
+caps = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true, features = ["derive", "std"] }
+env_logger = { workspace = true }
+flate2 = { workspace = true, features = ["zlib"] }
+log = { workspace = true }
+nix = { workspace = true, features = [
+    "fs",
+    "mount",
+    "net",
+    "resource",
+    "socket",
+    "user",
+] }
+oci-distribution = { workspace = true, default-features = false, features = [
+    "rustls-tls",
+    "trust-dns",
+] }
+openssl = { workspace = true, features = ["vendored"] }
+rustls = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["std"] }
+sha2 = { workspace = true }
+systemd-journal-logger = { workspace = true }
+tar = { workspace = true }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["full", "signal"] }
+tokio-stream = { workspace = true, features = ["net"] }
+toml = { workspace = true }
+tonic = { workspace = true }
+url = { workspace = true }
+users = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
+x509-certificate = { workspace = true }
 
 [dev-dependencies]
-assert_matches = "1.5.0"
+assert_matches = { workspace = true }

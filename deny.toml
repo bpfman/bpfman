@@ -1,23 +1,14 @@
 [licenses]
-unlicensed = "deny"
-allow = [
-    "MIT",
-    "Apache-2.0",
-    "BSD-2-Clause",
-    "BSD-3-Clause",
-    "ISC",
-    "OpenSSL",
-]
-copyleft = "warn"
+allow = ["Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "MIT", "OpenSSL"]
 allow-osi-fsf-free = "neither"
+copyleft = "warn"
 default = "deny"
+unlicensed = "deny"
 [[licenses.clarify]]
+expression = "MIT AND ISC AND OpenSSL"
+license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
 name = "ring"
 version = "*"
-expression = "MIT AND ISC AND OpenSSL"
-license-files = [
-    { path = "LICENSE", hash = 0xbd0eed23 }
-]
 
 [licenses.private]
 ignore = true

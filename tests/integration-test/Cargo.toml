@@ -1,16 +1,16 @@
 [package]
-name = "integration-test"
-version = "0.1.0"
 edition = "2021"
+name = "integration-test"
 publish = false
+version = "0.1.0"
 
 [dependencies]
-anyhow = "1"
-assert_cmd = "2"
-inventory = "0.3"
-integration-test-macros = { path = "../integration-test-macros" }
-log = "0.4"
-env_logger = "0.10"
-predicates = "3.0.1"
-rand = "0.8"
-bpfd-api = { path = "../../bpfd-api" }
+anyhow = { workspace = true, features = ["std"] }
+assert_cmd = { workspace = true }
+bpfd-api = { workspace = true }
+env_logger = { workspace = true }
+integration-test-macros = { workspace = true }
+inventory = { workspace = true }
+log = { workspace = true }
+predicates = { workspace = true }
+rand = { workspace = true }

@@ -1,6 +1,60 @@
 [workspace]
-members = ["bpfd", "bpfd-api", "bpfctl", "xtask", "tests/integration-test", "tests/integration-test-macros"]
+members = [
+    "bpfctl",
+    "bpfd",
+    "bpfd-api",
+    "tests/integration-test",
+    "tests/integration-test-macros",
+    "xtask",
+]
 resolver = "2"
 
 [patch.crates-io]
-aya = { git = "https://github.com/aya-rs/aya", branch="main" }
+aya = { git = "https://github.com/aya-rs/aya", branch = "main" }
+
+[workspace.dependencies]
+anyhow = { version = "1", default-features = false }
+assert_cmd = { version = "2", default-features = false }
+assert_matches = { version = "1", default-features = false }
+aya = { version = "0.11", default-features = false }
+base16ct = { version = "0.2.0", default-features = false }
+base64 = { version = "0.21.3", default-features = false }
+bpfd-api = { version = "0.2.0", path = "./bpfd-api" }
+caps = { version = "0.5.4", default-features = false }
+chrono = { version = "0.4.28", default-features = false }
+clap = { version = "4", default-features = false }
+comfy-table = { version = "7.0.1", default-features = false }
+env_logger = { version = "0.10", default-features = false }
+flate2 = { version = "1.0", default-features = false }
+hex = { version = "0.4.3", default-features = false }
+integration-test-macros = { path = "./tests/integration-test-macros" }
+inventory = { version = "0.3", default-features = false }
+itertools = { version = "0.11.0", default-features = false }
+lazy_static = { version = "1", default-features = false }
+log = { version = "0.4", default-features = false }
+nix = { version = "0.27", default-features = false }
+oci-distribution = { version = "0.9", default-features = false }
+openssl = { version = "0.10.57", default-features = false }
+predicates = { version = "3.0.1", default-features = false }
+prost = { version = "0.11", default-features = false }
+quote = { version = "1", default-features = false }
+rand = { version = "0.8", default-features = false }
+rustls = { version = "0.21.7", default-features = false }
+serde = { version = "1.0", default-features = false }
+serde_json = { version = "1", default-features = false }
+sha2 = { version = "0.10.7", default-features = false }
+syn = { version = "2.0", default-features = false }
+systemd-journal-logger = { version = "1.0.0", default-features = false }
+tar = { version = "0.4", default-features = false }
+tempfile = { version = "3.7.1", default-features = false }
+thiserror = { version = "1", default-features = false }
+tokio = { version = "1.31.0", default-features = false }
+tokio-stream = { version = "0.1.12", default-features = false }
+toml = { version = "0.7", default-features = false }
+tonic = { version = "0.9.2", default-features = false }
+tonic-build = { version = "0.10.0", default-features = false }
+tower = { version = "0.4.13", default-features = false }
+url = { version = "2.4.0", default-features = false }
+users = { version = "0.11.0", default-features = false }
+uuid = { version = "1", default-features = false }
+x509-certificate = { version = "0.21", default-features = false }
