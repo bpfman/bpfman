@@ -28,7 +28,7 @@ pub(crate) enum Dispatcher {
 impl Dispatcher {
     pub async fn new(
         config: Option<&InterfaceConfig>,
-        programs: &mut [(Uuid, Program)],
+        programs: &mut [(&Uuid, &mut Program)],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
         image_manager: Sender<ImageManagerCommand>,
@@ -93,16 +93,23 @@ impl Dispatcher {
 
     pub(crate) fn next_revision(&self) -> u32 {
         let current = match self {
-            Dispatcher::Xdp(d) => d.revision,
-            Dispatcher::Tc(d) => d.revision,
+            Dispatcher::Xdp(d) => d.revision(),
+            Dispatcher::Tc(d) => d.revision(),
         };
         current.wrapping_add(1)
     }
 
-    pub(crate) fn if_name(&mut self) -> String {
+    pub(crate) fn if_name(&self) -> String {
         match self {
             Dispatcher::Xdp(d) => d.if_name(),
             Dispatcher::Tc(d) => d.if_name(),
+        }
+    }
+
+    pub(crate) fn num_extensions(&self) -> usize {
+        match self {
+            Dispatcher::Xdp(d) => d.num_extensions(),
+            Dispatcher::Tc(d) => d.num_extensions(),
         }
     }
 }

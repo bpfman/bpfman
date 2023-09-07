@@ -48,11 +48,137 @@ const MAPS_MODE: u32 = 0o0660;
 
 pub(crate) struct BpfManager {
     config: Config,
-    dispatchers: HashMap<DispatcherId, Dispatcher>,
-    programs: HashMap<Uuid, Program>,
+    dispatchers: DispatcherMap,
+    programs: ProgramMap,
     maps: HashMap<Uuid, BpfMap>,
     commands: Receiver<Command>,
     image_manager: Sender<ImageManagerCommand>,
+}
+
+pub(crate) struct ProgramMap {
+    programs: HashMap<Uuid, Program>,
+}
+
+impl ProgramMap {
+    fn new() -> Self {
+        ProgramMap {
+            programs: HashMap::new(),
+        }
+    }
+
+    fn insert(&mut self, id: Uuid, prog: Program) -> Option<Program> {
+        self.programs.insert(id, prog)
+    }
+
+    fn remove(&mut self, id: &Uuid) -> Option<Program> {
+        self.programs.remove(id)
+    }
+
+    fn get_mut(&mut self, id: &Uuid) -> Option<&mut Program> {
+        self.programs.get_mut(id)
+    }
+
+    fn get(&self, id: &Uuid) -> Option<&Program> {
+        self.programs.get(id)
+    }
+
+    fn contains_key(&self, id: &Uuid) -> bool {
+        self.programs.contains_key(id)
+    }
+
+    fn programs_mut<'a>(
+        &'a mut self,
+        program_type: &'a ProgramType,
+        if_index: &'a Option<u32>,
+        direction: &'a Option<Direction>,
+    ) -> impl Iterator<Item = (&'a Uuid, &'a mut Program)> {
+        self.programs.iter_mut().filter(|(_, p)| {
+            p.kind() == *program_type && p.if_index() == *if_index && p.direction() == *direction
+        })
+    }
+
+    // Sets the positions of programs that are to be attached via a dispatcher.
+    // Positions are set based on order of priority. Ties are broken based on:
+    // - Already attached programs are preferred
+    // - Program name. Lowest lexical order wins.
+    fn set_program_positions(
+        &mut self,
+        program_type: ProgramType,
+        if_index: Option<u32>,
+        direction: Option<Direction>,
+    ) {
+        let mut extensions = self
+            .programs
+            .iter_mut()
+            .filter_map(|(k, v)| {
+                if v.kind() == program_type {
+                    if v.if_index() == if_index && v.direction() == direction {
+                        Some((k, v))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<(&Uuid, &mut Program)>>();
+
+        extensions.sort_by_key(|(_, b)| {
+            (
+                b.priority(),
+                b.attached().unwrap(),
+                b.data()
+                    .expect("All Bpfd programs should have ProgramData")
+                    .name()
+                    .to_owned(),
+            )
+        });
+        for (i, (_, v)) in extensions.iter_mut().enumerate() {
+            v.set_position(Some(i));
+        }
+    }
+
+    fn kernel_infos(&self) -> impl Iterator<Item = (u32, &Program)> {
+        self.programs.values().map(|p| {
+            let kernel_info = p
+                .data()
+                .expect("All Bpfd programs should have ProgramData")
+                .kernel_info()
+                .expect("Loaded Bpfd programs should have kernel information");
+
+            (kernel_info.id, p)
+        })
+    }
+}
+
+pub(crate) struct DispatcherMap {
+    dispatchers: HashMap<DispatcherId, Dispatcher>,
+}
+
+impl DispatcherMap {
+    fn new() -> Self {
+        DispatcherMap {
+            dispatchers: HashMap::new(),
+        }
+    }
+
+    fn remove(&mut self, id: &DispatcherId) -> Option<Dispatcher> {
+        self.dispatchers.remove(id)
+    }
+
+    fn insert(&mut self, id: DispatcherId, dis: Dispatcher) -> Option<Dispatcher> {
+        self.dispatchers.insert(id, dis)
+    }
+
+    /// Returns the number of extension programs currently attached to the dispatcher that
+    /// would be used to attach the provided [`Program`].
+    fn attached_programs(&self, did: &DispatcherId) -> usize {
+        if let Some(d) = self.dispatchers.get(did) {
+            d.num_extensions()
+        } else {
+            0
+        }
+    }
 }
 
 impl BpfManager {
@@ -63,8 +189,8 @@ impl BpfManager {
     ) -> Self {
         Self {
             config,
-            dispatchers: HashMap::new(),
-            programs: HashMap::new(),
+            dispatchers: DispatcherMap::new(),
+            programs: ProgramMap::new(),
             maps: HashMap::new(),
             commands,
             image_manager,
@@ -221,19 +347,11 @@ impl BpfManager {
             None => Err(BpfdError::SectionNameNotValid(name.to_owned())),
         }?;
 
-        // Calculate the next_available_id
-        let next_available_id = self
-            .programs
-            .iter()
-            .filter(|(_, p)| {
-                if p.kind() == program.kind() {
-                    p.if_index() == program.if_index() && p.direction() == program.direction()
-                } else {
-                    false
-                }
-            })
-            .collect::<HashMap<_, _>>()
-            .len();
+        let did = program
+            .dispatcher_id()
+            .ok_or(BpfdError::DispatcherNotRequired)?;
+
+        let next_available_id = self.dispatchers.attached_programs(&did);
         if next_available_id >= 10 {
             return Err(BpfdError::TooManyPrograms);
         }
@@ -245,13 +363,14 @@ impl BpfManager {
         let if_name = program.if_name().unwrap();
         let direction = program.direction();
 
-        let did = program
-            .dispatcher_id()
-            .ok_or(BpfdError::DispatcherNotRequired)?;
-
         self.programs.insert(id, program);
-        self.sort_programs(program_type, if_index, direction);
-        let mut programs = self.collect_programs(program_type, if_index, direction);
+        self.programs
+            .set_program_positions(program_type, if_index, direction);
+        let mut programs: Vec<(&Uuid, &mut Program)> = self
+            .programs
+            .programs_mut(&program_type, &if_index, &direction)
+            .collect();
+
         let old_dispatcher = self.dispatchers.remove(&did);
         let if_config = if let Some(ref i) = self.config.interfaces {
             i.get(&if_name)
@@ -263,6 +382,7 @@ impl BpfManager {
         } else {
             1
         };
+
         let dispatcher = Dispatcher::new(
             if_config,
             &mut programs,
@@ -276,14 +396,8 @@ impl BpfManager {
             prog.delete(id).map_err(BpfdError::BpfdProgramDeleteError)?;
             Err(e)
         })?;
-        self.dispatchers.insert(did, dispatcher);
 
-        // update programs with now populated kernel info
-        // TODO this data flow should be optimized so that we don't have
-        // to re-iterate through the programs.
-        programs.iter().for_each(|(i, p)| {
-            self.programs.insert(i.to_owned(), p.to_owned());
-        });
+        self.dispatchers.insert(did, dispatcher);
 
         if let Some(p) = self.programs.get_mut(&id) {
             p.set_attached();
@@ -502,24 +616,13 @@ impl BpfManager {
         program: Program,
     ) -> Result<(), BpfdError> {
         debug!("BpfManager::remove_multi_attach_program()");
-        // Calculate the next_available_id
-        let next_available_id = self
-            .programs
-            .iter()
-            .filter(|(_, p)| {
-                if p.kind() == program.kind() {
-                    p.if_index() == program.if_index() && p.direction() == program.direction()
-                } else {
-                    false
-                }
-            })
-            .collect::<HashMap<_, _>>()
-            .len();
-        debug!("next_available_id = {next_available_id}");
 
         let did = program
             .dispatcher_id()
             .ok_or(BpfdError::DispatcherNotRequired)?;
+
+        let next_available_id = self.dispatchers.attached_programs(&did) - 1;
+        debug!("next_available_id = {next_available_id}");
 
         let mut old_dispatcher = self.dispatchers.remove(&did);
 
@@ -535,9 +638,13 @@ impl BpfManager {
         let if_name = program.if_name().unwrap();
         let direction = program.direction();
 
-        self.sort_programs(program_type, if_index, direction);
+        self.programs
+            .set_program_positions(program_type, if_index, direction);
 
-        let mut programs = self.collect_programs(program_type, if_index, direction);
+        let mut programs: Vec<(&Uuid, &mut Program)> = self
+            .programs
+            .programs_mut(&program_type, &if_index, &direction)
+            .collect();
 
         let if_config = if let Some(ref i) = self.config.interfaces {
             i.get(&if_name)
@@ -576,8 +683,13 @@ impl BpfManager {
             debug!("Rebuild Multiattach Dispatcher for {did:?}");
             let if_index = Some(if_index);
 
-            self.sort_programs(program_type, if_index, direction);
-            let mut programs = self.collect_programs(program_type, if_index, direction);
+            self.programs
+                .set_program_positions(program_type, if_index, direction);
+
+            let mut programs: Vec<(&Uuid, &mut Program)> = self
+                .programs
+                .programs_mut(&program_type, &if_index, &direction)
+                .collect();
 
             debug!("programs loaded: {}", programs.len());
 
@@ -619,19 +731,7 @@ impl BpfManager {
     pub(crate) fn list_programs(&mut self) -> Result<Vec<Program>, BpfdError> {
         debug!("BpfManager::list_programs()");
 
-        let mut bpfd_progs: HashMap<u32, Program> = self
-            .programs
-            .values()
-            .map(|p| {
-                let kernel_info = p
-                    .data()
-                    .expect("All Bpfd programs should have ProgramData")
-                    .kernel_info()
-                    .expect("Loaded Bpfd programs should have kernel information");
-
-                (kernel_info.id, p.to_owned())
-            })
-            .collect();
+        let mut bpfd_progs: HashMap<u32, &Program> = self.programs.kernel_infos().collect();
 
         loaded_programs()
             .map(|p| {
@@ -639,63 +739,11 @@ impl BpfManager {
                 let prog_id = prog.id();
 
                 match bpfd_progs.remove(&prog_id) {
-                    Some(p) => Ok(p),
+                    Some(p) => Ok(p.to_owned()),
                     None => Ok(Program::Unsupported(prog.try_into()?)),
                 }
             })
             .collect()
-    }
-
-    fn sort_programs(
-        &mut self,
-        program_type: ProgramType,
-        if_index: Option<u32>,
-        direction: Option<Direction>,
-    ) {
-        let mut extensions = self
-            .programs
-            .iter_mut()
-            .filter_map(|(k, v)| {
-                if v.kind() == program_type {
-                    if v.if_index() == if_index && v.direction() == direction {
-                        Some((k, v))
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<(&Uuid, &mut Program)>>();
-
-        extensions.sort_by_key(|(_, b)| {
-            (
-                b.priority(),
-                b.attached().unwrap(),
-                b.data()
-                    .expect("All Bpfd programs should have ProgramData")
-                    .name()
-                    .to_owned(),
-            )
-        });
-        for (i, (_, v)) in extensions.iter_mut().enumerate() {
-            v.set_position(Some(i));
-        }
-    }
-
-    fn collect_programs(
-        &self,
-        program_type: ProgramType,
-        if_index: Option<u32>,
-        direction: Option<Direction>,
-    ) -> Vec<(Uuid, Program)> {
-        let mut results = vec![];
-        for (k, v) in self.programs.iter() {
-            if v.kind() == program_type && v.if_index() == if_index && v.direction() == direction {
-                results.push((k.to_owned(), v.clone()))
-            }
-        }
-        results
     }
 
     async fn pull_bytecode(&self, args: PullBytecodeArgs) -> anyhow::Result<()> {
