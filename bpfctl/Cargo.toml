@@ -17,7 +17,7 @@ bpfd-api = { workspace = true }
 clap = { workspace = true, features = ["derive", "std"] }
 comfy-table = { workspace = true, features = ["tty"] }
 env_logger = { workspace = true }
-hex = { workspace = true }
+hex = { workspace = true, features = ["std"] }
 itertools = { workspace = true }
 log = { workspace = true }
 prost = { workspace = true }
