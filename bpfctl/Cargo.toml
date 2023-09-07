@@ -1,28 +1,28 @@
 [package]
-name = "bpfctl"
-version = "0.2.0"
-edition = "2021"
 description = "A client for working with bpfd"
+edition = "2021"
 license = "MIT OR Apache-2.0"
+name = "bpfctl"
 repository = "https://github.com/bpfd-dev/bpfd"
+version = "0.2.0"
 
 [[bin]]
-    name = "bpfctl"
-    path = "src/main.rs"
+name = "bpfctl"
+path = "src/main.rs"
 
 [dependencies]
-bpfd-api = { version = "0.2.0", path = "../bpfd-api" }
-tonic = { version = "0.9.2", features = ["tls"] }
-prost = "0.11"
-anyhow = "1"
-clap = { version = "4", features = ["derive"]}
-tokio = { version = "1.31.0", features = ["full"] }
-log = "0.4"
-env_logger = "0.10"
-serde = { version = "1.0", features = ["derive"] }
-toml = "0.7"
-comfy-table = "7.0.1"
-hex = "0.4.3"
-tower = "0.4.13"
-base64 = "0.21.3"
-itertools = "0.11.0"
+anyhow = { workspace = true, features = ["std"] }
+base64 = { workspace = true }
+bpfd-api = { workspace = true }
+clap = { workspace = true, features = ["derive", "std"] }
+comfy-table = { workspace = true, features = ["tty"] }
+env_logger = { workspace = true }
+hex = { workspace = true }
+itertools = { workspace = true }
+log = { workspace = true }
+prost = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["full"] }
+toml = { workspace = true }
+tonic = { workspace = true, features = ["tls"] }
+tower = { workspace = true }

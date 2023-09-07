@@ -1,13 +1,13 @@
 [package]
-name = "xtask"
-version = "0.1.0"
 edition = "2021"
+name = "xtask"
 publish = false
+version = "0.1.0"
 
 [dependencies]
-anyhow = "1"
-clap = { version = "4", features = ["derive"] }
-lazy_static = "1"
-serde_json = "1"
-tonic-build = "0.10.0"
-tonic = "0.9.2"
+anyhow = { workspace = true, features = ["std"] }
+clap = { workspace = true, features = ["derive", "std"] }
+lazy_static = { workspace = true }
+serde_json = { workspace = true, features = ["std"] }
+tonic = { workspace = true }
+tonic-build = { workspace = true, features = ["prost"] }
