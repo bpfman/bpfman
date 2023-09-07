@@ -1,6 +1,8 @@
-use std::{thread::sleep, time::Duration};
+use std::{path::PathBuf, thread::sleep, time::Duration};
 
-use bpfd_api::util::directories::{RTDIR_FS_TC_EGRESS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP};
+use bpfd_api::util::directories::{
+    RTDIR_FS_MAPS, RTDIR_FS_TC_EGRESS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP,
+};
 use log::debug;
 
 use super::{integration_test, IntegrationTest};
@@ -40,12 +42,14 @@ fn test_proceed_on_xdp() {
     let mut uuids = vec![];
 
     debug!("Installing 1st xdp program");
-    let uuid = add_xdp_pass(
+    let uuid = add_xdp(
         DEFAULT_BPFD_IFACE,
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
         &LoadType::Image,
+        XDP_PASS_IMAGE_LOC,
+        XDP_PASS_FILE_LOC,
     )
     .unwrap();
     uuids.push(uuid);
@@ -66,12 +70,14 @@ fn test_proceed_on_xdp() {
     // "pass", which this program will return.  This should prevent the first
     // program from being executed.
     debug!("Installing 2nd xdp program");
-    let uuid = add_xdp_pass(
+    let uuid = add_xdp(
         DEFAULT_BPFD_IFACE,
         50,
         Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["drop", "dispatcher_return"].to_vec()),
         &LoadType::Image,
+        XDP_PASS_IMAGE_LOC,
+        XDP_PASS_FILE_LOC,
     )
     .unwrap();
     uuids.push(uuid);
@@ -93,12 +99,14 @@ fn test_proceed_on_xdp() {
     // "pass", which this program will return.  We should see logs from the 2nd
     // and 3rd programs, but still not the first.
     debug!("Installing 3rd xdp program");
-    let uuid = add_xdp_pass(
+    let uuid = add_xdp(
         DEFAULT_BPFD_IFACE,
         50,
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["pass", "dispatcher_return"].to_vec()),
         &LoadType::Image,
+        XDP_PASS_IMAGE_LOC,
+        XDP_PASS_FILE_LOC,
     )
     .unwrap();
     uuids.push(uuid);
@@ -134,25 +142,29 @@ fn test_proceed_on_tc() {
     let mut uuids = vec![];
 
     debug!("Installing 1st tc ingress program");
-    let uuid = add_tc_pass(
+    let uuid = add_tc(
         "ingress",
         DEFAULT_BPFD_IFACE,
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
         &LoadType::Image,
+        TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
     )
     .unwrap();
     uuids.push(uuid);
 
     debug!("Installing 1st tc egress program");
-    let uuid = add_tc_pass(
+    let uuid = add_tc(
         "egress",
         DEFAULT_BPFD_IFACE,
         75,
         Some([GLOBAL_4, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
         &LoadType::Image,
+        TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
     )
     .unwrap();
     uuids.push(uuid);
@@ -174,25 +186,29 @@ fn test_proceed_on_tc() {
     // doesn't proceed on "ok", which this program will return.  We should see
     // logs from the 2nd programs, but still not the first.
     debug!("Installing 2nd tc ingress program");
-    let uuid = add_tc_pass(
+    let uuid = add_tc(
         "ingress",
         DEFAULT_BPFD_IFACE,
         50,
         Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["shot", "dispatcher_return"].to_vec()),
         &LoadType::Image,
+        TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
     )
     .unwrap();
     uuids.push(uuid);
 
     debug!("Installing 2nd tc egress program");
-    let uuid = add_tc_pass(
+    let uuid = add_tc(
         "egress",
         DEFAULT_BPFD_IFACE,
         50,
         Some([GLOBAL_5, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["shot", "dispatcher_return"].to_vec()),
         &LoadType::Image,
+        TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
     )
     .unwrap();
     uuids.push(uuid);
@@ -217,25 +233,29 @@ fn test_proceed_on_tc() {
     // proceeds on "ok", which this program will return.  We should see logs
     // from the 2nd and 3rd programs, but still not the first.
     debug!("Installing 3rd tc ingress program");
-    let uuid = add_tc_pass(
+    let uuid = add_tc(
         "ingress",
         DEFAULT_BPFD_IFACE,
         50,
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
         &LoadType::Image,
+        TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
     )
     .unwrap();
     uuids.push(uuid);
 
     debug!("Installing 3rd tc egress program");
-    let uuid = add_tc_pass(
+    let uuid = add_tc(
         "egress",
         DEFAULT_BPFD_IFACE,
         50,
         Some([GLOBAL_6, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
         &LoadType::Image,
+        TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
     )
     .unwrap();
     uuids.push(uuid);
@@ -275,12 +295,14 @@ fn test_program_execution_with_global_variables() {
     let mut uuids = vec![];
 
     debug!("Installing xdp program");
-    let uuid = add_xdp_pass(
+    let uuid = add_xdp(
         DEFAULT_BPFD_IFACE,
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
         &LoadType::Image,
+        XDP_PASS_IMAGE_LOC,
+        XDP_PASS_FILE_LOC,
     )
     .unwrap();
 
@@ -289,13 +311,15 @@ fn test_program_execution_with_global_variables() {
     assert!(bpffs_has_entries(RTDIR_FS_XDP));
 
     debug!("Installing tc ingress program");
-    let uuid = add_tc_pass(
+    let uuid = add_tc(
         "ingress",
         DEFAULT_BPFD_IFACE,
         50,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
         &LoadType::Image,
+        TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
     )
     .unwrap();
 
@@ -304,13 +328,15 @@ fn test_program_execution_with_global_variables() {
     assert!(bpffs_has_entries(RTDIR_FS_TC_INGRESS));
 
     debug!("Installing tc egress program");
-    let uuid = add_tc_pass(
+    let uuid = add_tc(
         "egress",
         DEFAULT_BPFD_IFACE,
         50,
         Some([GLOBAL_4, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
         &LoadType::Image,
+        TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
     )
     .unwrap();
 
@@ -322,6 +348,8 @@ fn test_program_execution_with_global_variables() {
     let uuid = add_tracepoint(
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         &LoadType::Image,
+        TRACEPOINT_IMAGE_LOC,
+        TRACEPOINT_FILE_LOC,
     )
     .unwrap();
 
@@ -331,6 +359,8 @@ fn test_program_execution_with_global_variables() {
     let uuid = add_uprobe(
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         &LoadType::Image,
+        UPROBE_IMAGE_LOC,
+        UPROBE_FILE_LOC,
     )
     .unwrap();
 
@@ -340,6 +370,8 @@ fn test_program_execution_with_global_variables() {
     let uuid = add_uretprobe(
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         &LoadType::Image,
+        URETPROBE_IMAGE_LOC,
+        URETPROBE_FILE_LOC,
     )
     .unwrap();
 
@@ -349,6 +381,8 @@ fn test_program_execution_with_global_variables() {
     let uuid = add_kprobe(
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         &LoadType::Image,
+        KPROBE_IMAGE_LOC,
+        KPROBE_FILE_LOC,
     )
     .unwrap();
 
@@ -358,6 +392,8 @@ fn test_program_execution_with_global_variables() {
     let uuid = add_kretprobe(
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         &LoadType::Image,
+        KRETPROBE_IMAGE_LOC,
+        KRETPROBE_FILE_LOC,
     )
     .unwrap();
 
@@ -395,4 +431,109 @@ fn test_program_execution_with_global_variables() {
     assert!(!bpffs_has_entries(RTDIR_FS_XDP));
     assert!(!bpffs_has_entries(RTDIR_FS_TC_INGRESS));
     assert!(!bpffs_has_entries(RTDIR_FS_TC_EGRESS));
+}
+
+#[integration_test]
+fn test_load_unload_xdp_maps() {
+    let _namespace_guard = create_namespace().unwrap();
+    let _ping_guard = start_ping().unwrap();
+    let bpfd_guard = start_bpfd().unwrap();
+
+    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+
+    debug!("Installing xdp_counter program");
+
+    // Install an xdp counter program
+    let uuid = add_xdp(
+        DEFAULT_BPFD_IFACE,
+        100,
+        None,
+        None,
+        &LoadType::Image,
+        XDP_COUNTER_IMAGE_LOC,
+        "",
+    )
+    .unwrap();
+
+    assert!(bpffs_has_entries(RTDIR_FS_XDP));
+
+    debug!("Verify xdp_counter map pin directory was created, and maps were pinned");
+
+    assert!(PathBuf::from(RTDIR_FS_MAPS)
+        .join(uuid.clone())
+        .join("xdp_stats_map")
+        .exists());
+
+    // Verify rule persistence between restarts
+    drop(bpfd_guard);
+    let _bpfd_guard = start_bpfd().unwrap();
+
+    verify_and_delete_programs(vec![uuid]);
+
+    assert!(!bpffs_has_entries(RTDIR_FS_XDP));
+}
+
+#[integration_test]
+fn test_load_unload_tc_maps() {
+    let _namespace_guard = create_namespace().unwrap();
+    let _ping_guard = start_ping().unwrap();
+    let bpfd_guard = start_bpfd().unwrap();
+
+    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+
+    debug!("Installing tc_counter program");
+
+    // Install an  counter program
+    let uuid = add_tc(
+        "ingress",
+        DEFAULT_BPFD_IFACE,
+        100,
+        None,
+        None,
+        &LoadType::Image,
+        TC_COUNTER_IMAGE_LOC,
+        "",
+    )
+    .unwrap();
+
+    assert!(bpffs_has_entries(RTDIR_FS_TC_INGRESS));
+
+    debug!("Verify tc_counter map pin directory was created, and maps were pinned");
+
+    assert!(PathBuf::from(RTDIR_FS_MAPS)
+        .join(uuid.clone())
+        .join("tc_stats_map")
+        .exists());
+
+    // Verify rule persistence between restarts
+    drop(bpfd_guard);
+    let _bpfd_guard = start_bpfd().unwrap();
+
+    verify_and_delete_programs(vec![uuid]);
+
+    assert!(!bpffs_has_entries(RTDIR_FS_TC_INGRESS));
+}
+
+#[integration_test]
+fn test_load_unload_tracepoint_maps() {
+    let _namespace_guard = create_namespace().unwrap();
+    let _ping_guard = start_ping().unwrap();
+    let bpfd_guard = start_bpfd().unwrap();
+
+    debug!("Installing tracepoint_counter program");
+
+    let uuid = add_tracepoint(None, &LoadType::Image, TRACEPOINT_COUNTER_IMAGE_LOC, "").unwrap();
+
+    debug!("Verify tracepiont_counter map pin directory was created, and maps were pinned");
+
+    assert!(PathBuf::from(RTDIR_FS_MAPS)
+        .join(uuid.clone())
+        .join("tracepoint_stats_map")
+        .exists());
+
+    // Verify rule persistence between restarts
+    drop(bpfd_guard);
+    let _bpfd_guard = start_bpfd().unwrap();
+
+    verify_and_delete_programs(vec![uuid]);
 }
