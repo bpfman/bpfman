@@ -334,7 +334,7 @@ impl ProgTable {
             .fg(Color::Green)]);
 
         if let Some(uuid) = &r.id {
-            table.add_row(vec!["UUID:", &uuid]);
+            table.add_row(vec!["UUID:", uuid]);
         } else {
             table.add_row(vec!["NONE"]);
             return Ok(ProgTable(table));
