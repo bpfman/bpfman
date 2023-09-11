@@ -2,7 +2,7 @@ syntax = "proto3";
 package bpfd.v1;
 option go_package = "github.com/bpfd-dev/clients/gobpfd/v1;v1";
 
-service Loader {
+service Bpfd {
     rpc Load (LoadRequest) returns (LoadResponse);
     rpc Unload (UnloadRequest) returns (UnloadResponse);
     rpc List (ListRequest) returns (ListResponse);
@@ -16,21 +16,18 @@ message BytecodeImage {
     string password = 4;
 }
 
-message NoLocation{}
-
 message LoadRequestCommon {
     oneof location {
         BytecodeImage image = 1;
         string file = 2;
     } ;
-    string section_name = 3;
+    string name = 3;
     uint32 program_type = 4;
-    optional string id = 5;
+    map<string,string> metadata = 5;
     map<string, bytes> global_data = 6;
-    optional string map_owner_uuid = 7;
+    optional uint32 map_owner_id = 7;
 }
 
-message NoAttachInfo {}
 
 message XDPAttachInfo {
     int32 priority = 1;
@@ -79,11 +76,11 @@ message LoadRequest {
 };
 
 message LoadResponse {
-    string id = 1;
+    uint32 id = 1;
 }
 
 message UnloadRequest {
-    string id = 1;
+    uint32 id = 1;
 }
 
 message UnloadResponse {}
@@ -91,43 +88,42 @@ message UnloadResponse {}
 message ListRequest {
     optional uint32 program_type = 1;
     optional bool bpfd_programs_only = 2;
+    map<string, string> match_metadata = 3;
 }
 
 message ListResponse {
   message ListResult {
-    optional string id = 1;
+    uint32 id = 1;
     string name = 2;
     oneof location {
-        NoLocation no_location = 3;
-        BytecodeImage image = 4;
-        string file = 5;
+        BytecodeImage image = 3;
+        string file = 4;
     } ;
-    uint32 program_type = 6;
-    map<string, bytes> global_data = 7;
-    string map_owner_uuid = 8;
-    string map_pin_path = 9;
-    repeated string map_used_by = 10;
+    uint32 program_type = 5;
+    map<string, bytes> global_data = 6;
+    optional uint32 map_owner_id = 7;
+    string map_pin_path = 8;
+    repeated string map_used_by = 9;
     oneof attach_info {
-        NoAttachInfo none = 11;
-        XDPAttachInfo xdp_attach_info = 12;
-        TCAttachInfo tc_attach_info = 13;
-        TracepointAttachInfo tracepoint_attach_info = 14;
-        KprobeAttachInfo kprobe_attach_info = 15;
-        UprobeAttachInfo uprobe_attach_info = 16;
+        XDPAttachInfo xdp_attach_info = 10;
+        TCAttachInfo tc_attach_info = 11;
+        TracepointAttachInfo tracepoint_attach_info = 12;
+        KprobeAttachInfo kprobe_attach_info = 13;
+        UprobeAttachInfo uprobe_attach_info = 14;
     }
-    uint32 bpf_id = 17;
-    string loaded_at = 18;
-    string tag = 19;
-    bool gpl_compatible = 20;
-    repeated uint32 map_ids = 21;
-    uint32 btf_id = 22;
-    uint32 bytes_xlated = 23;
-    bool jited = 24;
-    uint32 bytes_jited = 25;
-    uint32 bytes_memlock = 26;
-    uint32 verified_insns = 27;
+    map<string, string> metadata = 15;
+    string loaded_at = 16;
+    string tag = 17;
+    bool gpl_compatible = 18;
+    repeated uint32 map_ids = 19;
+    uint32 btf_id = 20;
+    uint32 bytes_xlated = 21;
+    bool jited = 22;
+    uint32 bytes_jited = 23;
+    uint32 bytes_memlock = 24;
+    uint32 verified_insns = 25;
   } 
-  repeated ListResult results = 28;
+  repeated ListResult results = 26;
 }
 
 message PullBytecodeRequest {

@@ -12,23 +12,23 @@ pub struct BytecodeImage {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NoLocation {}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadRequestCommon {
     #[prost(string, tag = "3")]
-    pub section_name: ::prost::alloc::string::String,
+    pub name: ::prost::alloc::string::String,
     #[prost(uint32, tag = "4")]
     pub program_type: u32,
-    #[prost(string, optional, tag = "5")]
-    pub id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(map = "string, string", tag = "5")]
+    pub metadata: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
     #[prost(map = "string, bytes", tag = "6")]
     pub global_data: ::std::collections::HashMap<
         ::prost::alloc::string::String,
         ::prost::alloc::vec::Vec<u8>,
     >,
-    #[prost(string, optional, tag = "7")]
-    pub map_owner_uuid: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(uint32, optional, tag = "7")]
+    pub map_owner_id: ::core::option::Option<u32>,
     #[prost(oneof = "load_request_common::Location", tags = "1, 2")]
     pub location: ::core::option::Option<load_request_common::Location>,
 }
@@ -43,9 +43,6 @@ pub mod load_request_common {
         File(::prost::alloc::string::String),
     }
 }
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NoAttachInfo {}
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct XdpAttachInfo {
@@ -134,14 +131,14 @@ pub mod load_request {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadResponse {
-    #[prost(string, tag = "1")]
-    pub id: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UnloadRequest {
-    #[prost(string, tag = "1")]
-    pub id: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -153,11 +150,16 @@ pub struct ListRequest {
     pub program_type: ::core::option::Option<u32>,
     #[prost(bool, optional, tag = "2")]
     pub bpfd_programs_only: ::core::option::Option<bool>,
+    #[prost(map = "string, string", tag = "3")]
+    pub match_metadata: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListResponse {
-    #[prost(message, repeated, tag = "28")]
+    #[prost(message, repeated, tag = "26")]
     pub results: ::prost::alloc::vec::Vec<list_response::ListResult>,
 }
 /// Nested message and enum types in `ListResponse`.
@@ -165,48 +167,51 @@ pub mod list_response {
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct ListResult {
-        #[prost(string, optional, tag = "1")]
-        pub id: ::core::option::Option<::prost::alloc::string::String>,
+        #[prost(uint32, tag = "1")]
+        pub id: u32,
         #[prost(string, tag = "2")]
         pub name: ::prost::alloc::string::String,
-        #[prost(uint32, tag = "6")]
+        #[prost(uint32, tag = "5")]
         pub program_type: u32,
-        #[prost(map = "string, bytes", tag = "7")]
+        #[prost(map = "string, bytes", tag = "6")]
         pub global_data: ::std::collections::HashMap<
             ::prost::alloc::string::String,
             ::prost::alloc::vec::Vec<u8>,
         >,
+        #[prost(uint32, optional, tag = "7")]
+        pub map_owner_id: ::core::option::Option<u32>,
         #[prost(string, tag = "8")]
-        pub map_owner_uuid: ::prost::alloc::string::String,
-        #[prost(string, tag = "9")]
         pub map_pin_path: ::prost::alloc::string::String,
-        #[prost(string, repeated, tag = "10")]
+        #[prost(string, repeated, tag = "9")]
         pub map_used_by: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-        #[prost(uint32, tag = "17")]
-        pub bpf_id: u32,
-        #[prost(string, tag = "18")]
+        #[prost(map = "string, string", tag = "15")]
+        pub metadata: ::std::collections::HashMap<
+            ::prost::alloc::string::String,
+            ::prost::alloc::string::String,
+        >,
+        #[prost(string, tag = "16")]
         pub loaded_at: ::prost::alloc::string::String,
-        #[prost(string, tag = "19")]
+        #[prost(string, tag = "17")]
         pub tag: ::prost::alloc::string::String,
-        #[prost(bool, tag = "20")]
+        #[prost(bool, tag = "18")]
         pub gpl_compatible: bool,
-        #[prost(uint32, repeated, tag = "21")]
+        #[prost(uint32, repeated, tag = "19")]
         pub map_ids: ::prost::alloc::vec::Vec<u32>,
-        #[prost(uint32, tag = "22")]
+        #[prost(uint32, tag = "20")]
         pub btf_id: u32,
-        #[prost(uint32, tag = "23")]
+        #[prost(uint32, tag = "21")]
         pub bytes_xlated: u32,
-        #[prost(bool, tag = "24")]
+        #[prost(bool, tag = "22")]
         pub jited: bool,
-        #[prost(uint32, tag = "25")]
+        #[prost(uint32, tag = "23")]
         pub bytes_jited: u32,
-        #[prost(uint32, tag = "26")]
+        #[prost(uint32, tag = "24")]
         pub bytes_memlock: u32,
-        #[prost(uint32, tag = "27")]
+        #[prost(uint32, tag = "25")]
         pub verified_insns: u32,
-        #[prost(oneof = "list_result::Location", tags = "3, 4, 5")]
+        #[prost(oneof = "list_result::Location", tags = "3, 4")]
         pub location: ::core::option::Option<list_result::Location>,
-        #[prost(oneof = "list_result::AttachInfo", tags = "11, 12, 13, 14, 15, 16")]
+        #[prost(oneof = "list_result::AttachInfo", tags = "10, 11, 12, 13, 14")]
         pub attach_info: ::core::option::Option<list_result::AttachInfo>,
     }
     /// Nested message and enum types in `ListResult`.
@@ -215,26 +220,22 @@ pub mod list_response {
         #[derive(Clone, PartialEq, ::prost::Oneof)]
         pub enum Location {
             #[prost(message, tag = "3")]
-            NoLocation(super::super::NoLocation),
-            #[prost(message, tag = "4")]
             Image(super::super::BytecodeImage),
-            #[prost(string, tag = "5")]
+            #[prost(string, tag = "4")]
             File(::prost::alloc::string::String),
         }
         #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Oneof)]
         pub enum AttachInfo {
-            #[prost(message, tag = "11")]
-            None(super::super::NoAttachInfo),
-            #[prost(message, tag = "12")]
+            #[prost(message, tag = "10")]
             XdpAttachInfo(super::super::XdpAttachInfo),
-            #[prost(message, tag = "13")]
+            #[prost(message, tag = "11")]
             TcAttachInfo(super::super::TcAttachInfo),
-            #[prost(message, tag = "14")]
+            #[prost(message, tag = "12")]
             TracepointAttachInfo(super::super::TracepointAttachInfo),
-            #[prost(message, tag = "15")]
+            #[prost(message, tag = "13")]
             KprobeAttachInfo(super::super::KprobeAttachInfo),
-            #[prost(message, tag = "16")]
+            #[prost(message, tag = "14")]
             UprobeAttachInfo(super::super::UprobeAttachInfo),
         }
     }
@@ -249,26 +250,15 @@ pub struct PullBytecodeRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PullBytecodeResponse {}
 /// Generated client implementations.
-pub mod loader_client {
+pub mod bpfd_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
     #[derive(Debug, Clone)]
-    pub struct LoaderClient<T> {
+    pub struct BpfdClient<T> {
         inner: tonic::client::Grpc<T>,
     }
-    impl LoaderClient<tonic::transport::Channel> {
-        /// Attempt to create a new client by connecting to a given endpoint.
-        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
-        where
-            D: TryInto<tonic::transport::Endpoint>,
-            D::Error: Into<StdError>,
-        {
-            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
-            Ok(Self::new(conn))
-        }
-    }
-    impl<T> LoaderClient<T>
+    impl<T> BpfdClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
@@ -286,7 +276,7 @@ pub mod loader_client {
         pub fn with_interceptor<F>(
             inner: T,
             interceptor: F,
-        ) -> LoaderClient<InterceptedService<T, F>>
+        ) -> BpfdClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
@@ -300,7 +290,7 @@ pub mod loader_client {
                 http::Request<tonic::body::BoxBody>,
             >>::Error: Into<StdError> + Send + Sync,
         {
-            LoaderClient::new(InterceptedService::new(inner, interceptor))
+            BpfdClient::new(InterceptedService::new(inner, interceptor))
         }
         /// Compress requests with the given encoding.
         ///
@@ -347,9 +337,9 @@ pub mod loader_client {
                     )
                 })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static("/bpfd.v1.Loader/Load");
+            let path = http::uri::PathAndQuery::from_static("/bpfd.v1.Bpfd/Load");
             let mut req = request.into_request();
-            req.extensions_mut().insert(GrpcMethod::new("bpfd.v1.Loader", "Load"));
+            req.extensions_mut().insert(GrpcMethod::new("bpfd.v1.Bpfd", "Load"));
             self.inner.unary(req, path, codec).await
         }
         pub async fn unload(
@@ -366,9 +356,9 @@ pub mod loader_client {
                     )
                 })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static("/bpfd.v1.Loader/Unload");
+            let path = http::uri::PathAndQuery::from_static("/bpfd.v1.Bpfd/Unload");
             let mut req = request.into_request();
-            req.extensions_mut().insert(GrpcMethod::new("bpfd.v1.Loader", "Unload"));
+            req.extensions_mut().insert(GrpcMethod::new("bpfd.v1.Bpfd", "Unload"));
             self.inner.unary(req, path, codec).await
         }
         pub async fn list(
@@ -385,9 +375,9 @@ pub mod loader_client {
                     )
                 })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static("/bpfd.v1.Loader/List");
+            let path = http::uri::PathAndQuery::from_static("/bpfd.v1.Bpfd/List");
             let mut req = request.into_request();
-            req.extensions_mut().insert(GrpcMethod::new("bpfd.v1.Loader", "List"));
+            req.extensions_mut().insert(GrpcMethod::new("bpfd.v1.Bpfd", "List"));
             self.inner.unary(req, path, codec).await
         }
         pub async fn pull_bytecode(
@@ -408,22 +398,21 @@ pub mod loader_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/bpfd.v1.Loader/PullBytecode",
+                "/bpfd.v1.Bpfd/PullBytecode",
             );
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("bpfd.v1.Loader", "PullBytecode"));
+            req.extensions_mut().insert(GrpcMethod::new("bpfd.v1.Bpfd", "PullBytecode"));
             self.inner.unary(req, path, codec).await
         }
     }
 }
 /// Generated server implementations.
-pub mod loader_server {
+pub mod bpfd_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with LoaderServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with BpfdServer.
     #[async_trait]
-    pub trait Loader: Send + Sync + 'static {
+    pub trait Bpfd: Send + Sync + 'static {
         async fn load(
             &self,
             request: tonic::Request<super::LoadRequest>,
@@ -445,7 +434,7 @@ pub mod loader_server {
         >;
     }
     #[derive(Debug)]
-    pub struct LoaderServer<T: Loader> {
+    pub struct BpfdServer<T: Bpfd> {
         inner: _Inner<T>,
         accept_compression_encodings: EnabledCompressionEncodings,
         send_compression_encodings: EnabledCompressionEncodings,
@@ -453,7 +442,7 @@ pub mod loader_server {
         max_encoding_message_size: Option<usize>,
     }
     struct _Inner<T>(Arc<T>);
-    impl<T: Loader> LoaderServer<T> {
+    impl<T: Bpfd> BpfdServer<T> {
         pub fn new(inner: T) -> Self {
             Self::from_arc(Arc::new(inner))
         }
@@ -505,9 +494,9 @@ pub mod loader_server {
             self
         }
     }
-    impl<T, B> tonic::codegen::Service<http::Request<B>> for LoaderServer<T>
+    impl<T, B> tonic::codegen::Service<http::Request<B>> for BpfdServer<T>
     where
-        T: Loader,
+        T: Bpfd,
         B: Body + Send + 'static,
         B::Error: Into<StdError> + Send + 'static,
     {
@@ -523,10 +512,10 @@ pub mod loader_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/bpfd.v1.Loader/Load" => {
+                "/bpfd.v1.Bpfd/Load" => {
                     #[allow(non_camel_case_types)]
-                    struct LoadSvc<T: Loader>(pub Arc<T>);
-                    impl<T: Loader> tonic::server::UnaryService<super::LoadRequest>
+                    struct LoadSvc<T: Bpfd>(pub Arc<T>);
+                    impl<T: Bpfd> tonic::server::UnaryService<super::LoadRequest>
                     for LoadSvc<T> {
                         type Response = super::LoadResponse;
                         type Future = BoxFuture<
@@ -538,7 +527,9 @@ pub mod loader_server {
                             request: tonic::Request<super::LoadRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
-                            let fut = async move { (*inner).load(request).await };
+                            let fut = async move {
+                                <T as Bpfd>::load(&inner, request).await
+                            };
                             Box::pin(fut)
                         }
                     }
@@ -565,10 +556,10 @@ pub mod loader_server {
                     };
                     Box::pin(fut)
                 }
-                "/bpfd.v1.Loader/Unload" => {
+                "/bpfd.v1.Bpfd/Unload" => {
                     #[allow(non_camel_case_types)]
-                    struct UnloadSvc<T: Loader>(pub Arc<T>);
-                    impl<T: Loader> tonic::server::UnaryService<super::UnloadRequest>
+                    struct UnloadSvc<T: Bpfd>(pub Arc<T>);
+                    impl<T: Bpfd> tonic::server::UnaryService<super::UnloadRequest>
                     for UnloadSvc<T> {
                         type Response = super::UnloadResponse;
                         type Future = BoxFuture<
@@ -580,7 +571,9 @@ pub mod loader_server {
                             request: tonic::Request<super::UnloadRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
-                            let fut = async move { (*inner).unload(request).await };
+                            let fut = async move {
+                                <T as Bpfd>::unload(&inner, request).await
+                            };
                             Box::pin(fut)
                         }
                     }
@@ -607,10 +600,10 @@ pub mod loader_server {
                     };
                     Box::pin(fut)
                 }
-                "/bpfd.v1.Loader/List" => {
+                "/bpfd.v1.Bpfd/List" => {
                     #[allow(non_camel_case_types)]
-                    struct ListSvc<T: Loader>(pub Arc<T>);
-                    impl<T: Loader> tonic::server::UnaryService<super::ListRequest>
+                    struct ListSvc<T: Bpfd>(pub Arc<T>);
+                    impl<T: Bpfd> tonic::server::UnaryService<super::ListRequest>
                     for ListSvc<T> {
                         type Response = super::ListResponse;
                         type Future = BoxFuture<
@@ -622,7 +615,9 @@ pub mod loader_server {
                             request: tonic::Request<super::ListRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
-                            let fut = async move { (*inner).list(request).await };
+                            let fut = async move {
+                                <T as Bpfd>::list(&inner, request).await
+                            };
                             Box::pin(fut)
                         }
                     }
@@ -649,12 +644,10 @@ pub mod loader_server {
                     };
                     Box::pin(fut)
                 }
-                "/bpfd.v1.Loader/PullBytecode" => {
+                "/bpfd.v1.Bpfd/PullBytecode" => {
                     #[allow(non_camel_case_types)]
-                    struct PullBytecodeSvc<T: Loader>(pub Arc<T>);
-                    impl<
-                        T: Loader,
-                    > tonic::server::UnaryService<super::PullBytecodeRequest>
+                    struct PullBytecodeSvc<T: Bpfd>(pub Arc<T>);
+                    impl<T: Bpfd> tonic::server::UnaryService<super::PullBytecodeRequest>
                     for PullBytecodeSvc<T> {
                         type Response = super::PullBytecodeResponse;
                         type Future = BoxFuture<
@@ -667,7 +660,7 @@ pub mod loader_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                (*inner).pull_bytecode(request).await
+                                <T as Bpfd>::pull_bytecode(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -710,7 +703,7 @@ pub mod loader_server {
             }
         }
     }
-    impl<T: Loader> Clone for LoaderServer<T> {
+    impl<T: Bpfd> Clone for BpfdServer<T> {
         fn clone(&self) -> Self {
             let inner = self.inner.clone();
             Self {
@@ -722,7 +715,7 @@ pub mod loader_server {
             }
         }
     }
-    impl<T: Loader> Clone for _Inner<T> {
+    impl<T: Bpfd> Clone for _Inner<T> {
         fn clone(&self) -> Self {
             Self(Arc::clone(&self.0))
         }
@@ -732,7 +725,7 @@ pub mod loader_server {
             write!(f, "{:?}", self.0)
         }
     }
-    impl<T: Loader> tonic::server::NamedService for LoaderServer<T> {
-        const NAME: &'static str = "bpfd.v1.Loader";
+    impl<T: Bpfd> tonic::server::NamedService for BpfdServer<T> {
+        const NAME: &'static str = "bpfd.v1.Bpfd";
     }
 }
