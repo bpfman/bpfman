@@ -112,7 +112,7 @@ build-us-images: ## Build all example userspace images
 
 .PHONY: build-bc-images
 build-bc-images: ## Build bytecode example userspace images
-	IMAGE_TC_BC=${IMAGE_TC_US} IMAGE_TP_BC=${IMAGE_TP_US} IMAGE_XDP_BC=${IMAGE_XDP_US} ./build-bytecode-images.sh
+	IMAGE_TC_BC=${IMAGE_TC_BC} IMAGE_TP_BC=${IMAGE_TP_BC} IMAGE_XDP_BC=${IMAGE_XDP_BC} ./build-bytecode-images.sh
 
 .PHONY: push-us-images
 push-us-images: ## Push all example userspace images

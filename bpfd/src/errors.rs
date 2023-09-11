@@ -44,4 +44,6 @@ pub enum BpfdError {
     BpfdProgramDeleteError(#[source] anyhow::Error),
     #[error(transparent)]
     RpcError(#[from] oneshot::error::RecvError),
+    #[error("Failed to pin map {0}")]
+    UnableToPinMap(#[source] aya::pin::PinError),
 }

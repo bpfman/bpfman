@@ -29,37 +29,25 @@ fn test_load_unload_xdp() {
     ];
 
     let mut uuids = vec![];
+    let mut rng = rand::thread_rng();
 
     // Install a few xdp programs
     for lt in LOAD_TYPES {
-        let uuid = add_xdp_pass(
-            DEFAULT_BPFD_IFACE,
-            75,
-            Some(globals.clone()),
-            Some(proceed_on.clone()),
-            lt,
-        );
-        uuids.push(uuid.unwrap());
-        let uuid = add_xdp_pass(
-            DEFAULT_BPFD_IFACE,
-            50,
-            Some(globals.clone()),
-            Some(proceed_on.clone()),
-            lt,
-        );
-        uuids.push(uuid.unwrap());
-        let uuid = add_xdp_pass(
-            DEFAULT_BPFD_IFACE,
-            100,
-            Some(globals.clone()),
-            Some(proceed_on.clone()),
-            lt,
-        );
-        uuids.push(uuid.unwrap());
-        let uuid = add_xdp_pass(DEFAULT_BPFD_IFACE, 25, None, None, lt);
-        uuids.push(uuid.unwrap());
+        for _ in 0..5 {
+            let priority = rng.gen_range(1..255);
+            let uuid = add_xdp(
+                DEFAULT_BPFD_IFACE,
+                priority,
+                Some(globals.clone()),
+                Some(proceed_on.clone()),
+                lt,
+                XDP_PASS_IMAGE_LOC,
+                XDP_PASS_FILE_LOC,
+            );
+            uuids.push(uuid.unwrap());
+        }
     }
-    assert_eq!(uuids.len(), 8);
+    assert_eq!(uuids.len(), 10);
 
     assert!(bpffs_has_entries(RTDIR_FS_XDP));
 
@@ -105,13 +93,15 @@ fn test_load_unload_tc() {
     for lt in LOAD_TYPES {
         for _ in 0..5 {
             let priority = rng.gen_range(1..255);
-            let uuid = add_tc_pass(
+            let uuid = add_tc(
                 "ingress",
                 DEFAULT_BPFD_IFACE,
                 priority,
                 Some(globals.clone()),
                 Some(proceed_on.clone()),
                 lt,
+                TC_PASS_IMAGE_LOC,
+                TC_PASS_FILE_LOC,
             );
             uuids.push(uuid.unwrap());
         }
@@ -144,7 +134,13 @@ fn test_load_unload_tracepoint() {
     let mut uuids = vec![];
 
     for lt in LOAD_TYPES {
-        let uuid = add_tracepoint(Some(globals.clone()), lt).unwrap();
+        let uuid = add_tracepoint(
+            Some(globals.clone()),
+            lt,
+            TRACEPOINT_IMAGE_LOC,
+            TRACEPOINT_FILE_LOC,
+        )
+        .unwrap();
         uuids.push(uuid);
     }
 
@@ -162,7 +158,13 @@ fn test_load_unload_uprobe() {
     let mut uuids = vec![];
 
     for lt in LOAD_TYPES {
-        let uuid = add_uprobe(Some(globals.clone()), lt).unwrap();
+        let uuid = add_uprobe(
+            Some(globals.clone()),
+            lt,
+            UPROBE_IMAGE_LOC,
+            URETPROBE_FILE_LOC,
+        )
+        .unwrap();
         uuids.push(uuid);
     }
 
@@ -180,7 +182,13 @@ fn test_load_unload_uretprobe() {
     let mut uuids = vec![];
 
     for lt in LOAD_TYPES {
-        let uuid = add_uretprobe(Some(globals.clone()), lt).unwrap();
+        let uuid = add_uretprobe(
+            Some(globals.clone()),
+            lt,
+            URETPROBE_IMAGE_LOC,
+            URETPROBE_FILE_LOC,
+        )
+        .unwrap();
         uuids.push(uuid);
     }
 
@@ -198,7 +206,8 @@ fn test_load_unload_kprobe() {
     let mut uuids = vec![];
 
     for lt in LOAD_TYPES {
-        let uuid = add_kprobe(Some(globals.clone()), lt).unwrap();
+        let uuid =
+            add_kprobe(Some(globals.clone()), lt, KPROBE_IMAGE_LOC, KPROBE_FILE_LOC).unwrap();
         uuids.push(uuid);
     }
 
@@ -217,7 +226,13 @@ fn test_load_unload_kretprobe() {
 
     // Load some kretprobes
     for lt in LOAD_TYPES {
-        let uuid = add_kretprobe(Some(globals.clone()), lt).unwrap();
+        let uuid = add_kretprobe(
+            Some(globals.clone()),
+            lt,
+            KRETPROBE_IMAGE_LOC,
+            KRETPROBE_FILE_LOC,
+        )
+        .unwrap();
         uuids.push(uuid);
     }
 
@@ -226,7 +241,9 @@ fn test_load_unload_kretprobe() {
 
 #[integration_test]
 fn test_pull_bytecode() {
-    std::fs::remove_dir_all(BYTECODE_IMAGE_CONTENT_STORE).unwrap();
+    if std::path::PathBuf::from(BYTECODE_IMAGE_CONTENT_STORE).exists() {
+        std::fs::remove_dir_all(BYTECODE_IMAGE_CONTENT_STORE).unwrap();
+    }
 
     let _bpfd_guard = start_bpfd().unwrap();
 
