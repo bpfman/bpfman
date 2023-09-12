@@ -131,7 +131,7 @@ pub fn add_xdp(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-s", "pass", "--path", file_path]),
+        LoadType::File => args.extend(["-n", "pass", "--path", file_path]),
     }
 
     args.extend(["xdp", "--iface", iface, "--priority", p.as_str()]);
@@ -185,7 +185,7 @@ pub fn add_tc(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-s", "pass", "--path", file_path]),
+        LoadType::File => args.extend(["-n", "pass", "--path", file_path]),
     }
 
     args.extend([
@@ -239,7 +239,7 @@ pub fn add_tracepoint(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-s", "enter_openat", "--path", file_path]),
+        LoadType::File => args.extend(["-n", "enter_openat", "--path", file_path]),
     }
 
     args.extend(["tracepoint", "--tracepoint", "syscalls/sys_enter_openat"]);
@@ -283,7 +283,7 @@ pub fn add_uprobe(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-s", "my_uprobe", "--path", file_path]),
+        LoadType::File => args.extend(["-n", "my_uprobe", "--path", file_path]),
     }
 
     args.extend(["uprobe", "-f", "main", "-t", bpfctl_path]);
@@ -327,7 +327,7 @@ pub fn add_uretprobe(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-s", "my_uretprobe", "--path", file_path]),
+        LoadType::File => args.extend(["-n", "my_uretprobe", "--path", file_path]),
     }
 
     args.extend(["uprobe", "-f", "main", "-t", bpfctl_path, "-r"]);
@@ -368,7 +368,7 @@ pub fn add_kprobe(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-s", "my_kprobe", "--path", file_path]),
+        LoadType::File => args.extend(["-n", "my_kprobe", "--path", file_path]),
     }
 
     args.extend(["kprobe", "-f", "try_to_wake_up"]);
@@ -409,7 +409,7 @@ pub fn add_kretprobe(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-s", "my_kretprobe", "--path", file_path]),
+        LoadType::File => args.extend(["-n", "my_kretprobe", "--path", file_path]),
     }
 
     args.extend(["kprobe", "--retprobe", "-f", "try_to_wake_up"]);

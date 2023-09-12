@@ -9,17 +9,16 @@ use bpfd_api::{
     config::{self, Config},
     util::directories::*,
     v1::{
+        bpfd_client::BpfdClient,
         list_response::{
             self,
             list_result::{AttachInfo as ListAttachInfo, Location},
             ListResult,
         },
         load_request::{self, AttachInfo as LoadAttachInfo},
-        load_request_common,
-        loader_client::LoaderClient,
-        BytecodeImage, KprobeAttachInfo, ListRequest, LoadRequest, LoadRequestCommon,
-        PullBytecodeRequest, TcAttachInfo, TracepointAttachInfo, UnloadRequest, UprobeAttachInfo,
-        XdpAttachInfo,
+        load_request_common, BytecodeImage, KprobeAttachInfo, ListRequest, LoadRequest,
+        LoadRequestCommon, PullBytecodeRequest, TcAttachInfo, TracepointAttachInfo, UnloadRequest,
+        UprobeAttachInfo, XdpAttachInfo,
     },
     ImagePullPolicy,
     ProbeType::*,
@@ -46,14 +45,14 @@ enum Commands {
     LoadFromFile(LoadFileArgs),
     /// Load an eBPF program packaged in a OCI container image from a given registry.
     LoadFromImage(LoadImageArgs),
-    /// Unload an eBPF program using the UUID.
+    /// Unload an eBPF program using the ID.
     Unload(UnloadArgs),
     /// List all eBPF programs loaded via bpfd.
     List(ListArgs),
     /// Get a program's metadata by kernel id.
     Get {
         /// An eBPF program's kernel id.
-        kernel_id: u32,
+        id: u32,
     },
     /// Pull a bytecode image for future use by a load command.
     PullBytecode(PullBytecodeArgs),
@@ -61,6 +60,7 @@ enum Commands {
 
 #[derive(Args)]
 struct ListArgs {
+    /// Optional: List a specific program type
     /// Example: --program-type xdp
     ///
     /// [possible values: unspec, socket-filter, kprobe, tc, sched-act,
@@ -73,6 +73,10 @@ struct ListArgs {
     ///                   struct-ops, ext, lsm, sk-lookup, syscall]
     #[clap(short, long, verbatim_doc_comment, hide_possible_values = true)]
     program_type: Option<ProgramType>,
+
+    // Optional: List programs which contain a specific set of metadata labels
+    #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+    metadata_selector: Option<Vec<(String, String)>>,
 
     // Optional: List all programs
     #[clap(short, long, verbatim_doc_comment)]
@@ -88,12 +92,7 @@ struct LoadFileArgs {
 
     /// Required: Name of the ELF section from the object file.
     #[clap(short, long)]
-    section_name: String,
-
-    /// Optional: Program uuid to be used by bpfd. If not specified, bpfd will generate
-    /// a uuid.
-    #[clap(long, verbatim_doc_comment)]
-    id: Option<String>,
+    name: String,
 
     /// Optional: Global variables to be set when program is loaded.
     /// Format: <NAME>=<Hex Value>
@@ -104,13 +103,22 @@ struct LoadFileArgs {
     #[clap(short, long, verbatim_doc_comment, num_args(1..), value_parser=parse_global_arg)]
     global: Option<Vec<GlobalArg>>,
 
-    /// Optional: UUID of loaded eBPF program this eBPF program will share a map with.
+    /// Optional: Specify Key/Value metadata to be attached to a program when it
+    /// is loaded by bpfd.
+    /// Format: <KEY>=<VALUE>
+    ///
+    /// This can later be used to list a certain subset of programs which contain
+    /// the specified metadata.
+    #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+    metadata: Option<Vec<(String, String)>>,
+
+    /// Optional: ID of loaded eBPF program this eBPF program will share a map with.
     /// Only used when multiple eBPF programs need to share a map. If a map is being
     /// shared with another eBPF program, the eBPF program that created the map can not
     /// be unloaded until all eBPF programs referencing the map are unloaded.
-    /// Example: --map-owner-uuid 989958a5-b47b-47a5-8b4c-b5962292437d
+    /// Example: --map-owner-id 63178
     #[clap(long, verbatim_doc_comment)]
-    map_owner_uuid: Option<String>,
+    map_owner_id: Option<u32>,
 
     #[clap(subcommand)]
     command: LoadCommands,
@@ -124,12 +132,7 @@ struct LoadImageArgs {
 
     /// Optional: Name of the ELF section from the object file.
     #[clap(short, long, default_value = "")]
-    section_name: String,
-
-    /// Optional: Program uuid to be used by bpfd. If not specified, bpfd will generate
-    /// a uuid.
-    #[clap(long, verbatim_doc_comment)]
-    id: Option<String>,
+    name: String,
 
     /// Optional: Global variables to be set when program is loaded.
     /// Format: <NAME>=<Hex Value>
@@ -140,13 +143,22 @@ struct LoadImageArgs {
     #[clap(short, long, verbatim_doc_comment, num_args(1..), value_parser=parse_global_arg)]
     global: Option<Vec<GlobalArg>>,
 
-    /// Optional: UUID of loaded eBPF program this eBPF program will share a map with.
+    /// Optional: Specify Key/Value metadata to be attached to a program when it
+    /// is loaded by bpfd.
+    /// Format: <KEY>=<VALUE>
+    ///
+    /// This can later be used to list a certain subset of programs which contain
+    /// the specified metadata.
+    #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+    metadata: Option<Vec<(String, String)>>,
+
+    /// Optional: ID of loaded eBPF program this eBPF program will share a map with.
     /// Only used when multiple eBPF programs need to share a map. If a map is being
     /// shared with another eBPF program, the eBPF program that created the map can not
     /// be unloaded until all eBPF programs referencing the map are unloaded.
-    /// Example: --map-owner-uuid 989958a5-b47b-47a5-8b4c-b5962292437d
+    /// Example: --map-owner-id 63178
     #[clap(long, verbatim_doc_comment)]
-    map_owner_uuid: Option<String>,
+    map_owner_id: Option<u32>,
 
     #[clap(subcommand)]
     command: LoadCommands,
@@ -266,8 +278,8 @@ enum LoadCommands {
 
 #[derive(Args)]
 struct UnloadArgs {
-    /// Required: Program uuid to be unloaded
-    id: String,
+    /// Required: Program id to be unloaded
+    id: u32,
 }
 
 #[derive(Args)]
@@ -333,13 +345,6 @@ impl ProgTable {
             .add_attribute(comfy_table::Attribute::Underlined)
             .fg(Color::Green)]);
 
-        if let Some(uuid) = &r.id {
-            table.add_row(vec!["UUID:", uuid]);
-        } else {
-            table.add_row(vec!["NONE"]);
-            return Ok(ProgTable(table));
-        }
-
         match r.location.clone() {
             Some(l) => match l {
                 Location::Image(i) => {
@@ -349,7 +354,6 @@ impl ProgTable {
                 Location::File(p) => {
                     table.add_row(vec!["Path:", &p]);
                 }
-                _ => (),
             },
             // not a bpfd program
             None => {
@@ -373,16 +377,30 @@ impl ProgTable {
             }
         }
 
+        if r.metadata.is_empty() {
+            table.add_row(vec!["Metadata:", "None"]);
+        } else {
+            let mut first = true;
+            for (key, value) in r.metadata.clone() {
+                let data = &format! {"{key}={}", encode_upper(value)};
+                if first {
+                    first = false;
+                    table.add_row(vec!["Metadata:", data]);
+                } else {
+                    table.add_row(vec!["", data]);
+                }
+            }
+        }
+
         if r.map_pin_path.is_empty() {
             table.add_row(vec!["Map Pin Path:", "None"]);
         } else {
             table.add_row(vec!["Map Pin Path:", &r.map_pin_path]);
         }
 
-        if r.map_owner_uuid.is_empty() {
-            table.add_row(vec!["Map Owner ID:", "None"]);
-        } else {
-            table.add_row(vec!["Map Owner ID:", &r.map_owner_uuid]);
+        match r.map_owner_id {
+            Some(id) => table.add_row(vec!["Map Owner ID:", &id.to_string()]),
+            None => table.add_row(vec!["Map Owner ID:", "None"]),
         };
 
         if r.map_used_by.clone().is_empty() {
@@ -473,7 +491,6 @@ impl ProgTable {
                 table.add_row(vec!["PID", &pid.unwrap_or(0).to_string()]);
                 table.add_row(vec!["Namespace", &namespace.unwrap_or("".to_string())]);
             }
-            _ => (),
         }
 
         Ok(ProgTable(table))
@@ -489,7 +506,7 @@ impl ProgTable {
             .fg(Color::Green)]);
 
         let rows = vec![
-            vec!["Kernel ID:".to_string(), r.bpf_id.to_string()],
+            vec!["ID:".to_string(), r.id.to_string()],
             vec![
                 "Name:".to_string(),
                 r.name
@@ -530,26 +547,17 @@ impl ProgTable {
         let mut table = Table::new();
 
         table.load_preset(comfy_table::presets::NOTHING);
-        table.set_header(vec!["Kernel ID", "Bpfd UUID", "Name", "Type", "Load Time"]);
+        table.set_header(vec!["Kernel ID", "Name", "Type", "Load Time"]);
         ProgTable(table)
     }
 
-    fn add_row_list(
-        &mut self,
-        kernel_id: String,
-        uuid: String,
-        name: String,
-        type_: String,
-        load_time: String,
-    ) {
-        self.0
-            .add_row(vec![kernel_id, uuid, name, type_, load_time]);
+    fn add_row_list(&mut self, kernel_id: String, name: String, type_: String, load_time: String) {
+        self.0.add_row(vec![kernel_id, name, type_, load_time]);
     }
 
     fn add_response_prog(&mut self, r: list_response::ListResult) -> anyhow::Result<()> {
         self.add_row_list(
-            r.bpf_id.to_string(),
-            r.id.unwrap_or("".to_string()),
+            r.id.to_string(),
             r.name,
             (ProgramType::try_from(r.program_type)?).to_string(),
             r.loaded_at,
@@ -675,50 +683,49 @@ impl LoadCommands {
 
 impl Commands {
     fn get_request_common(&self) -> anyhow::Result<Option<LoadRequestCommon>> {
-        let id: &Option<String>;
-        let section_name: &String;
-        let global: &Option<Vec<GlobalArg>>;
-        let command: &LoadCommands;
-        let location: Option<load_request_common::Location>;
-        let map_owner_uuid: &Option<String>;
-
-        let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
-
         match self {
-            Commands::LoadFromFile(l) => {
-                id = &l.id;
-                section_name = &l.section_name;
-                global = &l.global;
-                command = &l.command;
-                location = Some(load_request_common::Location::File(l.path.clone()));
-                map_owner_uuid = &l.map_owner_uuid;
-            }
-            Commands::LoadFromImage(l) => {
-                id = &l.id;
-                section_name = &l.section_name;
-                global = &l.global;
-                command = &l.command;
-                let pull_args = &l.pull_args;
-                location = Some(load_request_common::Location::Image(pull_args.try_into()?));
-                map_owner_uuid = &l.map_owner_uuid;
-            }
-            _ => bail!("Unknown command"),
-        };
-
-        if let Some(global) = global {
-            for g in global.iter() {
-                global_data.insert(g.name.to_string(), g.value.clone());
-            }
+            Commands::LoadFromFile(LoadFileArgs {
+                path,
+                name,
+                metadata,
+                global,
+                map_owner_id,
+                command,
+            }) => Ok(Some(LoadRequestCommon {
+                metadata: metadata
+                    .clone()
+                    .unwrap_or(vec![])
+                    .iter()
+                    .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                    .collect(),
+                location: Some(load_request_common::Location::File(path.clone())),
+                name: name.to_string(),
+                program_type: command.get_prog_type() as u32,
+                global_data: parse_global(global),
+                map_owner_id: *map_owner_id,
+            })),
+            Commands::LoadFromImage(LoadImageArgs {
+                pull_args,
+                name,
+                metadata,
+                global,
+                map_owner_id,
+                command,
+            }) => Ok(Some(LoadRequestCommon {
+                metadata: metadata
+                    .clone()
+                    .unwrap_or(vec![])
+                    .iter()
+                    .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                    .collect(),
+                location: Some(load_request_common::Location::Image(pull_args.try_into()?)),
+                name: name.to_string(),
+                program_type: command.get_prog_type() as u32,
+                global_data: parse_global(global),
+                map_owner_id: *map_owner_id,
+            })),
+            _ => bail!("Unknown Command"),
         }
-
-        Ok(Some(LoadRequestCommon {
-            id: id.clone(),
-            location,
-            section_name: section_name.to_string(),
-            program_type: command.get_prog_type() as u32,
-            global_data,
-            map_owner_uuid: map_owner_uuid.clone(),
-        }))
     }
 
     fn get_attach_info(&self) -> anyhow::Result<Option<LoadAttachInfo>> {
@@ -728,6 +735,24 @@ impl Commands {
             _ => bail!("Unknown command"),
         }
     }
+}
+
+/// Parse a single key-value pair
+fn parse_key_val(s: &str) -> Result<(String, String), std::io::Error> {
+    let pos = s.find('=').ok_or(std::io::ErrorKind::InvalidInput)?;
+    Ok((s[..pos].to_string(), s[pos + 1..].to_string()))
+}
+
+fn parse_global(global: &Option<Vec<GlobalArg>>) -> HashMap<String, Vec<u8>> {
+    let mut global_data: HashMap<String, Vec<u8>> = HashMap::new();
+
+    if let Some(global) = global {
+        for g in global.iter() {
+            global_data.insert(g.name.to_string(), g.value.clone());
+        }
+    }
+
+    global_data
 }
 
 fn parse_global_arg(global_arg: &str) -> Result<GlobalArg, std::io::Error> {
@@ -851,7 +876,7 @@ async fn execute_request_tcp(
 }
 
 async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result<()> {
-    let mut client = LoaderClient::new(channel);
+    let mut client = BpfdClient::new(channel);
     match command {
         Commands::LoadFromFile(_) | Commands::LoadFromImage(_) => {
             let attach_info = match command.get_attach_info() {
@@ -873,9 +898,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
         }
 
         Commands::Unload(l) => {
-            let request = tonic::Request::new(UnloadRequest {
-                id: l.id.to_string(),
-            });
+            let request = tonic::Request::new(UnloadRequest { id: l.id });
             let _response = client.unload(request).await?.into_inner();
         }
         Commands::List(l) => {
@@ -883,6 +906,14 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
 
             let request = tonic::Request::new(ListRequest {
                 program_type: prog_type_filter,
+                // Transform metadata from a vec of tuples to an owned map.
+                match_metadata: l
+                    .metadata_selector
+                    .clone()
+                    .unwrap_or(vec![])
+                    .iter()
+                    .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                    .collect(),
                 bpfd_programs_only: Some(!l.all),
             });
             let response = client.list(request).await?.into_inner();
@@ -896,9 +927,10 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
 
             table.print()
         }
-        Commands::Get { kernel_id } => {
+        Commands::Get { id } => {
             let request = tonic::Request::new(ListRequest {
                 program_type: None,
+                match_metadata: HashMap::new(),
                 bpfd_programs_only: None,
             });
             let response = client.list(request).await?.into_inner();
@@ -906,8 +938,8 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
             let prog = response
                 .results
                 .iter()
-                .find(|r| r.bpf_id == *kernel_id)
-                .unwrap_or_else(|| panic!("No program with kernel ID {}", kernel_id));
+                .find(|r| r.id == *id)
+                .unwrap_or_else(|| panic!("No program with kernel ID {id}"));
 
             ProgTable::new_get_bpfd(prog)?.print();
             ProgTable::new_get_unsupported(prog)?.print();
