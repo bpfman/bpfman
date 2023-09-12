@@ -72,7 +72,7 @@ func main() {
 			defer cleanup(paramData.ProgId)
 		}
 
-		mapPath = fmt.Sprintf("%s/%s/tracepoint_stats_map", DefaultMapDir, paramData.ProgId)
+		mapPath = fmt.Sprintf("%s/%d/tracepoint_stats_map", DefaultMapDir, paramData.ProgId)
 	}
 
 	// load the pinned stats map which is keeping count of kill -SIGUSR1 calls
@@ -171,11 +171,11 @@ func loadProgram(paramData *configMgmt.ParameterData) (func(uint), error) {
 	// provide a cleanup to unload the program
 	return func(id uint) {
 		defer conn.Close()
-		log.Printf("unloading program: %s\n", id)
+		log.Printf("unloading program: %d\n", id)
 		_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: uint32(id)})
 		if err != nil {
 			conn.Close()
-			log.Printf("failed to unload program %s: %v", id, err)
+			log.Printf("failed to unload program %d: %v", id, err)
 			return
 		}
 	}, nil

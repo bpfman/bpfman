@@ -129,9 +129,9 @@ jobs:
       - name: Lint
         uses: golangci/golangci-lint-action@v3
         with:
-          # Keep this version synced with /bpfd/bpfd-operator/scripts/verify-golint.sh
+          # Keep this version synced with /bpfd/scripts/verify-golint.sh
           working-directory: ${{ env.GOPATH }}/src/github.com/bpfd-dev/bpfd
-          version: v1.51.1
+          version: v1.54.2
           skip-cache: true
           skip-pkg-cache: true
           skip-build-cache: true

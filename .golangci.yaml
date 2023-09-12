@@ -1,2 +1,9 @@
 run:
   allow-parallel-runners: true
+  # Enables skipping of directories:
+  # - vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
+  # Default: true
+  skip-dirs-use-default: false
+  enable:
+    - gofmt
+    - typecheck
