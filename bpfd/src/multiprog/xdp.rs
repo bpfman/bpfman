@@ -14,11 +14,10 @@ use bpfd_api::{config::XdpMode, util::directories::*, ImagePullPolicy};
 use log::debug;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc::Sender, oneshot};
-use uuid::Uuid;
 
 use super::Dispatcher;
 use crate::{
-    bpf::calc_map_pin_path,
+    bpf::{calc_map_pin_path, create_map_pin_path},
     command::{Program, XdpProgram},
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfdError,
@@ -44,23 +43,23 @@ impl XdpDispatcher {
         mode: XdpMode,
         if_index: &u32,
         if_name: String,
-        programs: &mut [(&Uuid, &mut Program)],
+        programs: &mut [&mut Program],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
         image_manager: Sender<ImageManagerCommand>,
     ) -> Result<XdpDispatcher, BpfdError> {
         debug!("XdpDispatcher::new() for if_index {if_index}, revision {revision}");
-        let mut extensions: Vec<(&Uuid, &mut XdpProgram)> = programs
+        let mut extensions: Vec<&mut XdpProgram> = programs
             .iter_mut()
-            .map(|(k, v)| match v {
-                Program::Xdp(p) => (*k, p),
+            .map(|v| match v {
+                Program::Xdp(p) => p,
                 _ => panic!("All programs should be of type XDP"),
             })
             .collect();
 
         let mut chain_call_actions = [0; 10];
-        extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
-        for (_, p) in extensions.iter() {
+        extensions.sort_by(|a, b| a.current_position.cmp(&b.current_position));
+        for p in extensions.iter() {
             chain_call_actions[p.current_position.unwrap()] = p.proceed_on.mask();
         }
 
@@ -172,7 +171,7 @@ impl XdpDispatcher {
 
     async fn attach_extensions(
         &mut self,
-        extensions: &mut [(&Uuid, &mut XdpProgram)],
+        extensions: &mut [&mut XdpProgram],
         image_manager: Sender<ImageManagerCommand>,
     ) -> Result<(), BpfdError> {
         debug!(
@@ -187,17 +186,22 @@ impl XdpDispatcher {
             .program_mut(self.program_name.clone().unwrap().as_str())
             .unwrap()
             .try_into()?;
-        extensions.sort_by(|(_, a), (_, b)| a.current_position.cmp(&b.current_position));
-        for (i, (k, v)) in extensions.iter_mut().enumerate() {
+        extensions.sort_by(|a, b| a.current_position.cmp(&b.current_position));
+        for (i, v) in extensions.iter_mut().enumerate() {
             if v.attached {
-                let mut ext = Extension::from_pin(format!("{RTDIR_FS}/prog_{k}"))?;
+                let id = v
+                    .data
+                    .kernel_info()
+                    .expect("XdpProgram is loaded kernel_info should be set")
+                    .id;
+                let mut ext = Extension::from_pin(format!("{RTDIR_FS}/prog_{id}"))?;
                 let target_fn = format!("prog{i}");
                 let new_link_id = ext
                     .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
                     .unwrap();
                 let new_link: FdLink = ext.take_link(new_link_id)?.into();
                 let path = format!(
-                    "{RTDIR_FS_XDP}/dispatcher_{if_index}_{}/link_{k}",
+                    "{RTDIR_FS_XDP}/dispatcher_{if_index}_{}/link_{id}",
                     self.revision
                 );
                 new_link.pin(path).map_err(BpfdError::UnableToPinLink)?;
@@ -214,14 +218,11 @@ impl XdpDispatcher {
                     bpf.set_global(name, value.as_slice(), true);
                 }
 
-                let (map_owner, map_pin_path) = calc_map_pin_path(**k, v.data.map_owner_id());
-
-                if !map_owner {
-                    debug!(
-                        "xdp program {name} is using maps from {:?}",
-                        map_pin_path.clone()
-                    );
-                    bpf.map_pin_path(map_pin_path.clone());
+                // If map_pin_path is set already it means we need to use a pin
+                // path which should already exist on the system.
+                if let Some(map_pin_path) = v.data.map_pin_path() {
+                    debug!("xdp program {name} is using maps from {:?}", map_pin_path);
+                    bpf.map_pin_path(map_pin_path);
                 }
 
                 let mut loader = bpf.load(&program_bytes).map_err(BpfdError::BpfLoadError)?;
@@ -237,20 +238,30 @@ impl XdpDispatcher {
                 v.data
                     .set_kernel_info(Some(ext.program_info()?.try_into()?));
 
-                ext.pin(format!("{RTDIR_FS}/prog_{k}"))
+                let id = v
+                    .data
+                    .kernel_info()
+                    .expect("kernel info should be set after load")
+                    .id;
+
+                ext.pin(format!("{RTDIR_FS}/prog_{id}"))
                     .map_err(BpfdError::UnableToPinProgram)?;
                 let new_link_id = ext.attach()?;
                 let new_link = ext.take_link(new_link_id)?;
                 let fd_link: FdLink = new_link.into();
                 fd_link
                     .pin(format!(
-                        "{RTDIR_FS_XDP}/dispatcher_{if_index}_{}/link_{k}",
+                        "{RTDIR_FS_XDP}/dispatcher_{if_index}_{}/link_{id}",
                         self.revision,
                     ))
                     .map_err(BpfdError::UnableToPinLink)?;
 
                 // If this program is the map(s) owner pin all maps (except for .rodata and .bss) by name.
-                if map_owner {
+                if v.data.map_pin_path().is_none() {
+                    let map_pin_path = calc_map_pin_path(id);
+                    v.data.set_map_pin_path(Some(map_pin_path.clone()));
+                    create_map_pin_path(&map_pin_path).await?;
+
                     for (name, map) in loader.maps_mut() {
                         if name.contains(".rodata") || name.contains(".bss") {
                             continue;

@@ -17,7 +17,6 @@ use bpfd_api::{
 use chrono::{prelude::DateTime, Local};
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc::Sender, oneshot};
-use uuid::Uuid;
 
 use crate::{
     errors::BpfdError,
@@ -44,7 +43,7 @@ pub(crate) enum Command {
 #[derive(Debug)]
 pub(crate) struct LoadArgs {
     pub(crate) program: Program,
-    pub(crate) responder: Responder<Result<Uuid, BpfdError>>,
+    pub(crate) responder: Responder<Result<u32, BpfdError>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -59,7 +58,7 @@ pub(crate) enum Program {
 
 #[derive(Debug)]
 pub(crate) struct UnloadArgs {
-    pub(crate) id: Uuid,
+    pub(crate) id: u32,
     pub(crate) responder: Responder<Result<(), BpfdError>>,
 }
 
@@ -73,6 +72,14 @@ pub(crate) struct PullBytecodeArgs {
 pub(crate) enum Location {
     Image(BytecodeImage),
     File(String),
+}
+
+// TODO astoycos remove this impl, as it's only needed for a hack in the rebuild
+// dispatcher code.
+impl Default for Location {
+    fn default() -> Self {
+        Location::File(String::new())
+    }
 }
 
 impl Location {
@@ -192,33 +199,33 @@ impl TryFrom<AyaProgInfo> for KernelProgramInfo {
 
 /// ProgramInfo stores information about bpf programs that are loaded and managed
 /// by bpfd.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub(crate) struct ProgramData {
     // known at load time, set by user
     name: String,
     location: Location,
-    id: Option<Uuid>,
+    metadata: HashMap<String, String>,
     global_data: HashMap<String, Vec<u8>>,
-    map_owner_id: Option<Uuid>,
+    map_owner_id: Option<u32>,
 
     // populated after load
     kernel_info: Option<KernelProgramInfo>,
     map_pin_path: Option<PathBuf>,
-    maps_used_by: Option<Vec<Uuid>>,
+    maps_used_by: Option<Vec<u32>>,
 }
 
 impl ProgramData {
     pub(crate) fn new(
         location: Location,
         name: String,
-        id: Option<Uuid>,
+        metadata: HashMap<String, String>,
         global_data: HashMap<String, Vec<u8>>,
-        map_owner_id: Option<Uuid>,
+        map_owner_id: Option<u32>,
     ) -> Self {
         Self {
             name,
             location,
-            id,
+            metadata,
             global_data,
             map_owner_id,
             kernel_info: None,
@@ -231,12 +238,9 @@ impl ProgramData {
         &self.name
     }
 
-    pub(crate) fn id(&self) -> Option<Uuid> {
-        self.id
-    }
-
-    pub(crate) fn set_id(&mut self, id: Option<Uuid>) {
-        self.id = id
+    pub(crate) fn id(&self) -> Option<u32> {
+        // use as_ref here so we don't consume self.
+        self.kernel_info.as_ref().map(|i| i.id)
     }
 
     pub(crate) fn set_kernel_info(&mut self, info: Option<KernelProgramInfo>) {
@@ -251,6 +255,10 @@ impl ProgramData {
         &self.global_data
     }
 
+    pub(crate) fn metadata(&self) -> &HashMap<String, String> {
+        &self.metadata
+    }
+
     pub(crate) fn set_map_pin_path(&mut self, path: Option<PathBuf>) {
         self.map_pin_path = path
     }
@@ -259,15 +267,15 @@ impl ProgramData {
         self.map_pin_path.as_deref()
     }
 
-    pub(crate) fn map_owner_id(&self) -> Option<Uuid> {
+    pub(crate) fn map_owner_id(&self) -> Option<u32> {
         self.map_owner_id
     }
 
-    pub(crate) fn set_maps_used_by(&mut self, used_by: Option<Vec<Uuid>>) {
+    pub(crate) fn set_maps_used_by(&mut self, used_by: Option<Vec<u32>>) {
         self.maps_used_by = used_by
     }
 
-    pub(crate) fn maps_used_by(&self) -> Option<&Vec<Uuid>> {
+    pub(crate) fn maps_used_by(&self) -> Option<&Vec<u32>> {
         self.maps_used_by.as_ref()
     }
 
@@ -534,13 +542,13 @@ impl Program {
         }
     }
 
-    pub(crate) fn save(&self, id: Uuid) -> Result<(), anyhow::Error> {
+    pub(crate) fn save(&self, id: u32) -> Result<(), anyhow::Error> {
         let path = format!("{RTDIR_PROGRAMS}/{id}");
         serde_json::to_writer(&fs::File::create(path)?, &self)?;
         Ok(())
     }
 
-    pub(crate) fn delete(&self, id: Uuid) -> Result<(), anyhow::Error> {
+    pub(crate) fn delete(&self, id: u32) -> Result<(), anyhow::Error> {
         let path = format!("{RTDIR_PROGRAMS}/{id}");
         if PathBuf::from(&path).exists() {
             fs::remove_file(path)?;
@@ -557,7 +565,7 @@ impl Program {
         Ok(())
     }
 
-    pub(crate) fn load(id: Uuid) -> Result<Self, anyhow::Error> {
+    pub(crate) fn load(id: u32) -> Result<Self, anyhow::Error> {
         let path = format!("{RTDIR_PROGRAMS}/{id}");
         let file = fs::File::open(path)?;
         let reader = BufReader::new(file);
@@ -633,5 +641,5 @@ impl Program {
 // it.
 #[derive(Debug, Clone)]
 pub(crate) struct BpfMap {
-    pub(crate) used_by: Vec<Uuid>,
+    pub(crate) used_by: Vec<u32>,
 }

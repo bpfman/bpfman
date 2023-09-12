@@ -11,7 +11,6 @@ use bpfd_api::{
 use log::debug;
 pub use tc::TcDispatcher;
 use tokio::sync::mpsc::Sender;
-use uuid::Uuid;
 pub use xdp::XdpDispatcher;
 
 use crate::{
@@ -28,13 +27,13 @@ pub(crate) enum Dispatcher {
 impl Dispatcher {
     pub async fn new(
         config: Option<&InterfaceConfig>,
-        programs: &mut [(&Uuid, &mut Program)],
+        programs: &mut [&mut Program],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
         image_manager: Sender<ImageManagerCommand>,
     ) -> Result<Dispatcher, BpfdError> {
         debug!("Dispatcher::new()");
-        let (_, p) = programs
+        let p = programs
             .first()
             .ok_or_else(|| BpfdError::Error("No programs to load".to_string()))?;
         let if_index = p

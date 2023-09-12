@@ -3,7 +3,6 @@
 
 use thiserror::Error;
 use tokio::sync::oneshot;
-use uuid::Uuid;
 
 #[derive(Debug, Error)]
 pub enum BpfdError {
@@ -36,10 +35,6 @@ pub enum BpfdError {
         image_prog_name: String,
         provided_prog_name: String,
     },
-    #[error("Unable to parse passed UUID {0}")]
-    PassedUUIDError(#[from] uuid::Error),
-    #[error("Passed UUID already in use {0}")]
-    PassedUUIDInUse(Uuid),
     #[error("Unable to delete program {0}")]
     BpfdProgramDeleteError(#[source] anyhow::Error),
     #[error(transparent)]
