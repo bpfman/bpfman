@@ -22,7 +22,7 @@ base64 = { version = "0.21.4", default-features = false }
 bpfd-api = { version = "0.2.0", path = "./bpfd-api" }
 caps = { version = "0.5.4", default-features = false }
 chrono = { version = "0.4.28", default-features = false }
-clap = { version = "4", default-features = false }
+clap = { version = "4", default-features = true }
 comfy-table = { version = "7.0.1", default-features = false }
 env_logger = { version = "0.10", default-features = false }
 flate2 = { version = "1.0", default-features = false }
