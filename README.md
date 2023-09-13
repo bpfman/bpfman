@@ -22,7 +22,7 @@ visibility and program-cooperation.
 bpfd includes a Kubernetes operator to bring those same features to Kubernetes, allowing users to
 safely deploy eBPF via custom resources across nodes in a cluster.
 
-Here are some links to help in your bpfd journey (all links are from the bpfd website https://bpfd.dev/):
+Here are some links to help in your bpfd journey (all links are from the bpfd website <https://bpfd.dev/>):
 
 - [Welcome to bpfd](https://bpfd.dev/) for overview of bpfd.
 - [Setup and Building bpfd](https://bpfd.dev/getting-started/building-bpfd/) for
@@ -34,3 +34,26 @@ Here are some links to help in your bpfd journey (all links are from the bpfd we
 - [How to Deploy bpfd on Kubernetes](https://bpfd.dev/developer-guide/develop-operator/) for details on launching
   bpfd in a Kubernetes cluster.
 - [Meet the Community](https://bpfd.dev/governance/meetings/) for details on community meeting details.
+
+## License
+
+With the exception of eBPF code, everything is distributed under the terms of
+either the [MIT license] or the [Apache License] (version 2.0), at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
+be dual licensed as above, without any additional terms or conditions.
+
+### eBPF
+
+All [eBPF code](./bpf) is distributed under the terms of the [GNU General Public
+License, Version 2] or the [BSD 2 Clause] license, at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in this project by you, as defined in the GPL-2 license, shall be
+dual licensed as above, without any additional terms or conditions.
+
+[MIT license]: LICENSE-MIT
+[Apache license]: LICENSE-APACHE
+[GNU General Public License, Version 2]: LICENSE-GPL2
+[BSD 2 Clause]: LICENSE-BSD2
