@@ -102,6 +102,7 @@ pub fn start_bpfd() -> Result<ChildGuard> {
 }
 
 /// Install an xdp program with bpfctl
+#[allow(clippy::too_many_arguments)]
 pub fn add_xdp(
     iface: &str,
     priority: u32,
@@ -110,6 +111,7 @@ pub fn add_xdp(
     load_type: &LoadType,
     image_url: &str,
     file_path: &str,
+    metadata: Option<Vec<&str>>,
 ) -> Result<String> {
     let p = priority.to_string();
 
@@ -126,6 +128,11 @@ pub fn add_xdp(
 
     if let Some(g) = globals {
         args.push("--global");
+        args.extend(g);
+    }
+
+    if let Some(g) = metadata {
+        args.push("--metadata");
         args.extend(g);
     }
 
@@ -438,8 +445,14 @@ pub fn bpfd_del_program(uuid: &str) {
 }
 
 /// Retrieve the output of bpfctl list
-pub fn bpfd_list() -> Result<String> {
-    let output = Command::cargo_bin("bpfctl")?.args(["list"]).ok();
+pub fn bpfd_list(metadata_selector: Option<Vec<&str>>) -> Result<String> {
+    let mut args = vec!["list"];
+    if let Some(g) = metadata_selector {
+        args.push("--metadata-selector");
+        args.extend(g);
+    }
+
+    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout);
     Ok(stdout.unwrap())
 }
@@ -732,7 +745,7 @@ pub fn read_trace_pipe_log() -> Result<String> {
 /// and verify that they have been deleted.
 pub fn verify_and_delete_programs(uuids: Vec<String>) {
     // Verify bpfctl list contains the uuids of each program
-    let bpfctl_list = bpfd_list().unwrap();
+    let bpfctl_list = bpfd_list(None).unwrap();
     for id in uuids.iter() {
         assert!(bpfctl_list.contains(id.trim()));
     }
@@ -745,7 +758,7 @@ pub fn verify_and_delete_programs(uuids: Vec<String>) {
 
     // Verify bpfctl list does not contain the uuids of the deleted programs
     // and that there are no panics if bpfctl does not contain any programs.
-    let bpfctl_list = bpfd_list().unwrap();
+    let bpfctl_list = bpfd_list(None).unwrap();
     for id in uuids.iter() {
         assert!(!bpfctl_list.contains(id.trim()));
     }

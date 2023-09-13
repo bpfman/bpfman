@@ -382,7 +382,7 @@ impl ProgTable {
         } else {
             let mut first = true;
             for (key, value) in r.metadata.clone() {
-                let data = &format! {"{key}={}", encode_upper(value)};
+                let data = &format! {"{key}={value}"};
                 if first {
                     first = false;
                     table.add_row(vec!["Metadata:", data]);

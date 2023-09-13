@@ -232,6 +232,23 @@ impl Bpfd for BpfdLoader {
                             }
                             // Bpfd Program
                             Ok(data) => {
+                                // prog metadata filtering
+                                let mut meta_match = true;
+                                for (key, value) in &request.get_ref().match_metadata {
+                                    if let Some(v) = data.metadata().get(key) {
+                                        if *value != *v {
+                                            meta_match = false;
+                                            break;
+                                        }
+                                    } else {
+                                        meta_match = false;
+                                        break;
+                                    }
+                                }
+
+                                if !meta_match {
+                                    continue;
+                                }
                                 // populate id
                                 reply_entry.id = data
                                     .id()
