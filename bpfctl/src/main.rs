@@ -45,13 +45,13 @@ enum Commands {
     LoadFromFile(LoadFileArgs),
     /// Load an eBPF program packaged in a OCI container image from a given registry.
     LoadFromImage(LoadImageArgs),
-    /// Unload an eBPF program using the ID.
+    /// Unload an eBPF program using the program id.
     Unload(UnloadArgs),
     /// List all eBPF programs loaded via bpfd.
     List(ListArgs),
-    /// Get a program's metadata by kernel id.
+    /// Get a program's metadata by program id.
     Get {
-        /// An eBPF program's kernel id.
+        /// An eBPF program's program id.
         id: u32,
     },
     /// Pull a bytecode image for future use by a load command.
@@ -112,10 +112,8 @@ struct LoadFileArgs {
     #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
     metadata: Option<Vec<(String, String)>>,
 
-    /// Optional: ID of loaded eBPF program this eBPF program will share a map with.
-    /// Only used when multiple eBPF programs need to share a map. If a map is being
-    /// shared with another eBPF program, the eBPF program that created the map can not
-    /// be unloaded until all eBPF programs referencing the map are unloaded.
+    /// Optional: Program id of loaded eBPF program this eBPF program will share a map with.
+    /// Only used when multiple eBPF programs need to share a map.
     /// Example: --map-owner-id 63178
     #[clap(long, verbatim_doc_comment)]
     map_owner_id: Option<u32>,
@@ -130,7 +128,8 @@ struct LoadImageArgs {
     #[command(flatten)]
     pull_args: PullBytecodeArgs,
 
-    /// Optional: Name of the ELF section from the object file.
+    /// Optional: Name of the ELF section from the object file. If not provided
+    /// the program name defined as part of the bytecode image will be used.
     #[clap(short, long, default_value = "")]
     name: String,
 
@@ -152,10 +151,8 @@ struct LoadImageArgs {
     #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
     metadata: Option<Vec<(String, String)>>,
 
-    /// Optional: ID of loaded eBPF program this eBPF program will share a map with.
-    /// Only used when multiple eBPF programs need to share a map. If a map is being
-    /// shared with another eBPF program, the eBPF program that created the map can not
-    /// be unloaded until all eBPF programs referencing the map are unloaded.
+    /// Optional: Program id of loaded eBPF program this eBPF program will share a map with.
+    /// Only used when multiple eBPF programs need to share a map.
     /// Example: --map-owner-id 63178
     #[clap(long, verbatim_doc_comment)]
     map_owner_id: Option<u32>,
@@ -547,12 +544,12 @@ impl ProgTable {
         let mut table = Table::new();
 
         table.load_preset(comfy_table::presets::NOTHING);
-        table.set_header(vec!["Kernel ID", "Name", "Type", "Load Time"]);
+        table.set_header(vec!["Program ID", "Name", "Type", "Load Time"]);
         ProgTable(table)
     }
 
-    fn add_row_list(&mut self, kernel_id: String, name: String, type_: String, load_time: String) {
-        self.0.add_row(vec![kernel_id, name, type_, load_time]);
+    fn add_row_list(&mut self, id: String, name: String, type_: String, load_time: String) {
+        self.0.add_row(vec![id, name, type_, load_time]);
     }
 
     fn add_response_prog(&mut self, r: list_response::ListResult) -> anyhow::Result<()> {
@@ -939,7 +936,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                 .results
                 .iter()
                 .find(|r| r.id == *id)
-                .unwrap_or_else(|| panic!("No program with kernel ID {id}"));
+                .unwrap_or_else(|| panic!("No program with program id: {id}"));
 
             ProgTable::new_get_bpfd(prog)?.print();
             ProgTable::new_get_unsupported(prog)?.print();

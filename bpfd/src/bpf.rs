@@ -877,14 +877,12 @@ impl BpfManager {
         map_pin_path: &Path,
     ) -> Result<(), BpfdError> {
         match map_owner_id {
-            Some(id) => {
-                if let Some(map) = self.maps.get_mut(&id) {
+            Some(m) => {
+                if let Some(map) = self.maps.get_mut(&m) {
                     map.used_by.push(id);
 
                     // If map owner program still exists update it's maps_used_by_field
-                    if let Some(program) = self.programs.get_mut(&id) {
-                        // TODO(astoycos) remove external self.maps, keep all map tracking info in Program
-                        // update programs map_used_by
+                    if let Some(program) = self.programs.get_mut(&m) {
                         program
                             .data_mut()?
                             .set_maps_used_by(Some(map.used_by.clone()));
