@@ -3,6 +3,7 @@ members = [
     "bpfctl",
     "bpfd",
     "bpfd-api",
+    "csi",
     "tests/integration-test",
     "tests/integration-test-macros",
     "xtask",
@@ -37,6 +38,7 @@ oci-distribution = { version = "0.9", default-features = false }
 openssl = { version = "0.10.57", default-features = false }
 predicates = { version = "3.0.1", default-features = false }
 prost = { version = "0.11", default-features = false }
+prost-types = { version = "0.11", default-features = false }
 quote = { version = "1", default-features = false }
 rand = { version = "0.8", default-features = false }
 rustls = { version = "0.21.7", default-features = false }
