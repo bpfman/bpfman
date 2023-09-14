@@ -1,3 +1,6 @@
+use std::process::Command;
+
+use assert_cmd::prelude::*;
 use bpfd_api::util::directories::{
     BYTECODE_IMAGE_CONTENT_STORE, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP,
 };
@@ -6,6 +9,19 @@ use rand::Rng;
 
 use super::{integration_test, IntegrationTest};
 use crate::tests::utils::*;
+
+#[integration_test]
+fn test_bpfctl_helptext() {
+    let args = vec!["list", "-help"];
+
+    assert!(!Command::cargo_bin("bpfctl")
+        .unwrap()
+        .args(args)
+        .ok()
+        .expect("bpfctl list --help failed")
+        .stdout
+        .is_empty());
+}
 
 #[integration_test]
 fn test_load_unload_xdp() {

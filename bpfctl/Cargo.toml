@@ -14,7 +14,14 @@ path = "src/main.rs"
 anyhow = { workspace = true, features = ["std"] }
 base64 = { workspace = true }
 bpfd-api = { workspace = true }
-clap = { workspace = true, features = ["derive", "std"] }
+clap = { workspace = true, features = [
+    "color",
+    "derive",
+    "help",
+    "std",
+    "suggestions",
+    "usage",
+] }
 comfy-table = { workspace = true, features = ["tty"] }
 env_logger = { workspace = true }
 hex = { workspace = true, features = ["std"] }
