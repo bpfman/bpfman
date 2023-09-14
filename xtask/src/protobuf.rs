@@ -22,6 +22,12 @@ fn workspace_root() -> String {
 }
 
 pub fn build(_opts: Options) -> anyhow::Result<()> {
+    build_bpfd(&_opts)?;
+    build_csi(&_opts)?;
+    Ok(())
+}
+
+fn build_bpfd(_opts: &Options) -> anyhow::Result<()> {
     let root = PathBuf::from(WORKSPACE_ROOT.to_string());
     let out_dir = root.join("bpfd-api/src");
     let proto_dir = root.join("proto");
@@ -54,5 +60,19 @@ pub fn build(_opts: Options) -> anyhow::Result<()> {
         .status()
         .expect("failed to build bpf program");
     assert!(status.success());
+    Ok(())
+}
+
+fn build_csi(_opts: &Options) -> anyhow::Result<()> {
+    let root = PathBuf::from(WORKSPACE_ROOT.to_string());
+    let out_dir = root.join("csi/src");
+    let proto_dir = root.join("proto");
+
+    let protos = &["csi.proto"];
+    let includes = &[proto_dir.to_str().unwrap()];
+
+    tonic_build::configure()
+        .out_dir(out_dir)
+        .compile(protos, includes)?;
     Ok(())
 }
