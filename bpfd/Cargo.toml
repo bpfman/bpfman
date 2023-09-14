@@ -12,9 +12,11 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = { workspace = true, features = ["std"] }
+async-trait = { workspace = true }
 aya = { workspace = true }
 base16ct = { workspace = true, features = ["alloc"] }
 bpfd-api = { workspace = true }
+bpfd-csi = { workspace = true }
 caps = { workspace = true }
 chrono = { workspace = true }
 clap = { workspace = true, features = ["derive", "std"] }

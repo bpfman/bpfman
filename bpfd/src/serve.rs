@@ -24,12 +24,16 @@ use tonic::transport::{Server, ServerTlsConfig};
 pub use crate::certs::get_tls_config;
 use crate::{
     bpf::BpfManager, errors::BpfdError, oci_utils::ImageManager, rpc::BpfdLoader,
-    static_program::get_static_programs, utils::set_file_permissions,
+    static_program::get_static_programs, storage::StorageManager, utils::set_file_permissions,
 };
 
 const SOCK_MODE: u32 = 0o0770;
 
-pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<()> {
+pub async fn serve(
+    config: Config,
+    static_program_path: &str,
+    csi_support: bool,
+) -> anyhow::Result<()> {
     let (tx, rx) = mpsc::channel(32);
 
     let loader = BpfdLoader::new(tx.clone());
@@ -76,6 +80,8 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
         }
     }
 
+    let storage_manager = StorageManager::new();
+
     let (itx, irx) = mpsc::channel(32);
     let mut image_manager = ImageManager::new(BYTECODE_IMAGE_CONTENT_STORE, irx);
 
@@ -91,11 +97,21 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
             info!("Loaded static program with UUID {}", uuid)
         }
     };
-    join!(
-        join_listeners(listeners),
-        bpf_manager.process_commands(),
-        image_manager.run()
-    );
+    if csi_support {
+        join!(
+            join_listeners(listeners),
+            bpf_manager.process_commands(),
+            image_manager.run(),
+            storage_manager.run()
+        );
+    } else {
+        join!(
+            join_listeners(listeners),
+            bpf_manager.process_commands(),
+            image_manager.run(),
+        );
+    }
+
     Ok(())
 }
 

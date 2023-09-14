@@ -18,10 +18,12 @@ mod oci_utils;
 mod rpc;
 mod serve;
 mod static_program;
+mod storage;
 mod utils;
 
 use anyhow::{bail, Context};
 use bpfd_api::{config::Config, util::directories::*};
+use clap::Parser;
 use log::{debug, error, info, warn};
 use nix::{
     libc::RLIM_INFINITY,
@@ -34,6 +36,13 @@ use systemd_journal_logger::{connected_to_journal, JournalLog};
 use crate::{serve::serve, utils::read_to_string};
 const BPFD_ENV_LOG_LEVEL: &str = "RUST_LOG";
 
+#[derive(Parser)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    #[clap(long)]
+    experimental_csi_support: bool,
+}
+
 fn main() -> anyhow::Result<()> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -43,6 +52,7 @@ fn main() -> anyhow::Result<()> {
         .build()
         .unwrap()
         .block_on(async {
+            let args = Args::parse();
             if connected_to_journal() {
                 // If bpfd is running as a service, log to journald.
                 JournalLog::default()
@@ -111,7 +121,12 @@ fn main() -> anyhow::Result<()> {
                 Config::default()
             };
 
-            serve(config, CFGDIR_STATIC_PROGRAMS).await?;
+            serve(
+                config,
+                CFGDIR_STATIC_PROGRAMS,
+                args.experimental_csi_support,
+            )
+            .await?;
             Ok(())
         })
 }
