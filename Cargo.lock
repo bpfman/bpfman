@@ -342,9 +342,11 @@ version = "0.2.0"
 dependencies = [
  "anyhow",
  "assert_matches",
+ "async-trait",
  "aya",
  "base16ct",
  "bpfd-api",
+ "bpfd-csi",
  "caps",
  "chrono",
  "clap",
