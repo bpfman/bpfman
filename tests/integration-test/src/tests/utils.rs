@@ -102,6 +102,7 @@ pub fn start_bpfd() -> Result<ChildGuard> {
 }
 
 /// Install an xdp program with bpfctl
+#[allow(clippy::too_many_arguments)]
 pub fn add_xdp(
     iface: &str,
     priority: u32,
@@ -110,6 +111,7 @@ pub fn add_xdp(
     load_type: &LoadType,
     image_url: &str,
     file_path: &str,
+    metadata: Option<Vec<&str>>,
 ) -> Result<String> {
     let p = priority.to_string();
 
@@ -129,9 +131,14 @@ pub fn add_xdp(
         args.extend(g);
     }
 
+    if let Some(g) = metadata {
+        args.push("--metadata");
+        args.extend(g);
+    }
+
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-s", "pass", "--path", file_path]),
+        LoadType::File => args.extend(["-n", "pass", "--path", file_path]),
     }
 
     args.extend(["xdp", "--iface", iface, "--priority", p.as_str()]);
@@ -185,7 +192,7 @@ pub fn add_tc(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-s", "pass", "--path", file_path]),
+        LoadType::File => args.extend(["-n", "pass", "--path", file_path]),
     }
 
     args.extend([
@@ -239,7 +246,7 @@ pub fn add_tracepoint(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-s", "enter_openat", "--path", file_path]),
+        LoadType::File => args.extend(["-n", "enter_openat", "--path", file_path]),
     }
 
     args.extend(["tracepoint", "--tracepoint", "syscalls/sys_enter_openat"]);
@@ -283,7 +290,7 @@ pub fn add_uprobe(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-s", "my_uprobe", "--path", file_path]),
+        LoadType::File => args.extend(["-n", "my_uprobe", "--path", file_path]),
     }
 
     args.extend(["uprobe", "-f", "main", "-t", bpfctl_path]);
@@ -327,7 +334,7 @@ pub fn add_uretprobe(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-s", "my_uretprobe", "--path", file_path]),
+        LoadType::File => args.extend(["-n", "my_uretprobe", "--path", file_path]),
     }
 
     args.extend(["uprobe", "-f", "main", "-t", bpfctl_path, "-r"]);
@@ -368,7 +375,7 @@ pub fn add_kprobe(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-s", "my_kprobe", "--path", file_path]),
+        LoadType::File => args.extend(["-n", "my_kprobe", "--path", file_path]),
     }
 
     args.extend(["kprobe", "-f", "try_to_wake_up"]);
@@ -409,7 +416,7 @@ pub fn add_kretprobe(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-s", "my_kretprobe", "--path", file_path]),
+        LoadType::File => args.extend(["-n", "my_kretprobe", "--path", file_path]),
     }
 
     args.extend(["kprobe", "--retprobe", "-f", "try_to_wake_up"]);
@@ -438,8 +445,14 @@ pub fn bpfd_del_program(uuid: &str) {
 }
 
 /// Retrieve the output of bpfctl list
-pub fn bpfd_list() -> Result<String> {
-    let output = Command::cargo_bin("bpfctl")?.args(["list"]).ok();
+pub fn bpfd_list(metadata_selector: Option<Vec<&str>>) -> Result<String> {
+    let mut args = vec!["list"];
+    if let Some(g) = metadata_selector {
+        args.push("--metadata-selector");
+        args.extend(g);
+    }
+
+    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout);
     Ok(stdout.unwrap())
 }
@@ -732,7 +745,7 @@ pub fn read_trace_pipe_log() -> Result<String> {
 /// and verify that they have been deleted.
 pub fn verify_and_delete_programs(uuids: Vec<String>) {
     // Verify bpfctl list contains the uuids of each program
-    let bpfctl_list = bpfd_list().unwrap();
+    let bpfctl_list = bpfd_list(None).unwrap();
     for id in uuids.iter() {
         assert!(bpfctl_list.contains(id.trim()));
     }
@@ -745,7 +758,7 @@ pub fn verify_and_delete_programs(uuids: Vec<String>) {
 
     // Verify bpfctl list does not contain the uuids of the deleted programs
     // and that there are no panics if bpfctl does not contain any programs.
-    let bpfctl_list = bpfd_list().unwrap();
+    let bpfctl_list = bpfd_list(None).unwrap();
     for id in uuids.iter() {
         assert!(!bpfctl_list.contains(id.trim()));
     }

@@ -7,10 +7,10 @@ use std::{
 
 use bpfd_api::{
     v1::{
+        bpfd_server::Bpfd,
         list_response::{list_result, list_result::AttachInfo, ListResult},
         load_request,
         load_request_common::Location,
-        loader_server::Loader,
         KprobeAttachInfo, ListRequest, ListResponse, LoadRequest, LoadResponse,
         PullBytecodeRequest, PullBytecodeResponse, TcAttachInfo, TracepointAttachInfo,
         UnloadRequest, UnloadResponse, UprobeAttachInfo, XdpAttachInfo,
@@ -20,7 +20,6 @@ use bpfd_api::{
 use log::warn;
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
-use uuid::Uuid;
 
 use crate::command::{
     Command, KprobeProgram, LoadArgs, Program, ProgramData, PullBytecodeArgs, TcProgram,
@@ -40,7 +39,7 @@ impl BpfdLoader {
 }
 
 #[tonic::async_trait]
-impl Loader for BpfdLoader {
+impl Bpfd for BpfdLoader {
     async fn load(&self, request: Request<LoadRequest>) -> Result<Response<LoadResponse>, Status> {
         let request = request.into_inner();
 
@@ -59,28 +58,12 @@ impl Loader for BpfdLoader {
             Location::File(p) => crate::command::Location::File(p),
         };
 
-        let id = match common.id {
-            Some(id) => Some(Uuid::parse_str(&id).map_err(|_| Status::aborted("invalid UUID"))?),
-            None => None,
-        };
-
-        let map_owner_uuid = if common.map_owner_uuid.is_none()
-            || common.map_owner_uuid.clone().unwrap().is_empty()
-        {
-            None
-        } else {
-            Some(
-                Uuid::parse_str(&common.map_owner_uuid.unwrap())
-                    .map_err(|_| Status::aborted("invalid UUID for map_owner_uuid"))?,
-            )
-        };
-
         let data = ProgramData::new(
             bytecode_source,
-            common.section_name,
-            id,
+            common.name,
+            common.metadata,
             common.global_data,
-            map_owner_uuid,
+            common.map_owner_id,
         );
 
         let load_args = LoadArgs {
@@ -140,7 +123,7 @@ impl Loader for BpfdLoader {
         // Await the response
         match resp_rx.await {
             Ok(res) => match res {
-                Ok(id) => Ok(Response::new(LoadResponse { id: id.to_string() })),
+                Ok(id) => Ok(Response::new(LoadResponse { id })),
                 Err(e) => {
                     warn!("BPFD load error: {:#?}", e);
                     Err(Status::aborted(format!("{e}")))
@@ -160,10 +143,7 @@ impl Loader for BpfdLoader {
     ) -> Result<Response<UnloadResponse>, Status> {
         let reply = UnloadResponse {};
         let request = request.into_inner();
-        let id = request
-            .id
-            .parse()
-            .map_err(|_| Status::invalid_argument("invalid id"))?;
+        let id = request.id;
 
         let (resp_tx, resp_rx) = oneshot::channel();
         let cmd = Command::Unload(UnloadArgs {
@@ -220,16 +200,16 @@ impl Loader for BpfdLoader {
                             .expect("kernel info should be set for all loaded programs");
 
                         let mut reply_entry = ListResult {
-                            id: None,
+                            id: kernel_info.id,
                             name: r.name().to_owned(),
                             attach_info: None,
                             location: None,
                             program_type,
+                            metadata: HashMap::new(),
                             global_data: HashMap::new(),
-                            map_owner_uuid: String::new(),
+                            map_owner_id: None,
                             map_pin_path: String::new(),
                             map_used_by: Vec::new(),
-                            bpf_id: kernel_info.id,
                             loaded_at: kernel_info.loaded_at.clone(),
                             tag: kernel_info.tag.clone(),
                             gpl_compatible: kernel_info.gpl_compatible,
@@ -252,20 +232,41 @@ impl Loader for BpfdLoader {
                             }
                             // Bpfd Program
                             Ok(data) => {
+                                // prog metadata filtering
+                                let mut meta_match = true;
+                                for (key, value) in &request.get_ref().match_metadata {
+                                    if let Some(v) = data.metadata().get(key) {
+                                        if *value != *v {
+                                            meta_match = false;
+                                            break;
+                                        }
+                                    } else {
+                                        meta_match = false;
+                                        break;
+                                    }
+                                }
+
+                                if !meta_match {
+                                    continue;
+                                }
                                 // populate id
-                                reply_entry.id = data.id().map(|v| v.to_string());
+                                reply_entry.id = data
+                                    .id()
+                                    .expect("Every Bpf Program should have a kernel id");
 
                                 reply_entry.map_pin_path = data
                                     .map_pin_path()
                                     .map_or(String::new(), |v| v.to_str().unwrap().to_string());
 
+                                reply_entry.global_data = data.global_data().to_owned();
+
+                                reply_entry.metadata = data.metadata().to_owned();
+
                                 reply_entry.map_used_by = data
                                     .maps_used_by()
                                     .map_or(vec![], |m| m.iter().map(|m| m.to_string()).collect());
 
-                                reply_entry.map_owner_uuid = data
-                                    .map_owner_id()
-                                    .map_or("".to_string(), |v| v.to_string());
+                                reply_entry.map_owner_id = data.map_owner_id();
 
                                 // populate bpfd location
                                 reply_entry.location = match r.location() {
@@ -415,7 +416,6 @@ mod test {
 
         let request = LoadRequest {
             common: Some(LoadRequestCommon {
-                id: Some("4eee7d98-ffb5-49aa-bab8-b6d5d39c638e".to_string()),
                 location: Some(Location::Image(bpfd_api::v1::BytecodeImage {
                     url: "quay.io/bpfd-bytecode/xdp:latest".to_string(),
                     ..Default::default()
@@ -436,36 +436,6 @@ mod test {
 
         let res = loader.load(Request::new(request)).await;
         assert!(res.is_ok());
-    }
-
-    #[tokio::test]
-    async fn test_load_with_invalid_id() {
-        let (tx, rx) = mpsc::channel(32);
-        let loader = BpfdLoader::new(tx.clone());
-
-        let request = LoadRequest {
-            common: Some(LoadRequestCommon {
-                id: Some("notauuid".to_string()),
-                location: Some(Location::Image(bpfd_api::v1::BytecodeImage {
-                    url: "quay.io/bpfd-bytecode/xdp:latest".to_string(),
-                    ..Default::default()
-                })),
-                ..Default::default()
-            }),
-            attach_info: Some(AttachInfo::XdpAttachInfo(XdpAttachInfo {
-                iface: "eth0".to_string(),
-                priority: 50,
-                position: 0,
-                proceed_on: vec![2, 31],
-            })),
-        };
-
-        tokio::spawn(async move {
-            mock_serve(rx).await;
-        });
-
-        let res = loader.load(Request::new(request)).await;
-        assert!(res.is_err());
     }
 
     #[tokio::test]
@@ -491,7 +461,7 @@ mod test {
     async fn mock_serve(mut rx: Receiver<Command>) {
         while let Some(cmd) = rx.recv().await {
             match cmd {
-                Command::Load(args) => args.responder.send(Ok(Uuid::new_v4())).unwrap(),
+                Command::Load(args) => args.responder.send(Ok(9999)).unwrap(),
                 Command::Unload(args) => args.responder.send(Ok(())).unwrap(),
                 Command::List { responder, .. } => responder.send(Ok(vec![])).unwrap(),
                 Command::PullBytecode(args) => args.responder.send(Ok(())).unwrap(),

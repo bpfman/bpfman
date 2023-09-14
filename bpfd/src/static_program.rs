@@ -145,7 +145,13 @@ pub(crate) async fn get_static_programs<P: AsRef<Path>>(
                 ),
             };
 
-            let data = ProgramData::new(location, program.name, None, program.global_data, None);
+            let data = ProgramData::new(
+                location,
+                program.name,
+                HashMap::new(),
+                program.global_data,
+                None,
+            );
             let prog = match program.program_type {
                 ProgramType::Xdp => {
                     if let Some(m) = program.xdp_attach {

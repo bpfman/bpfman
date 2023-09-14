@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
@@ -96,62 +97,61 @@ func GetBytecode(c client.Client, b *bpfdiov1alpha1.BytecodeSelector) (interface
 }
 
 func BuildBpfdCommon(bytecode interface{},
-	sectionName string,
+	name string,
 	programType internal.ProgramType,
-	Id string,
+	metadata map[string]string,
 	globalData map[string][]byte,
-	mapOwnerUuid types.UID) *gobpfd.LoadRequestCommon {
-	uuid := string(mapOwnerUuid)
+	mapOwnerId *uint32) *gobpfd.LoadRequestCommon {
 	if imageBytecode, ok := bytecode.(*gobpfd.LoadRequestCommon_Image); ok {
 		return &gobpfd.LoadRequestCommon{
-			Location:     imageBytecode,
-			SectionName:  sectionName,
-			ProgramType:  *programType.Uint32(),
-			Id:           &Id,
-			GlobalData:   globalData,
-			MapOwnerUuid: &uuid,
+			Location:    imageBytecode,
+			Name:        name,
+			ProgramType: *programType.Uint32(),
+			Metadata:    metadata,
+			GlobalData:  globalData,
+			MapOwnerId:  mapOwnerId,
 		}
 	}
 
 	if fileBytecode, ok := bytecode.(*gobpfd.LoadRequestCommon_File); ok {
 		return &gobpfd.LoadRequestCommon{
-			Location:     fileBytecode,
-			SectionName:  sectionName,
-			ProgramType:  *programType.Uint32(),
-			Id:           &Id,
-			GlobalData:   globalData,
-			MapOwnerUuid: &uuid,
+			Location:    fileBytecode,
+			Name:        name,
+			ProgramType: *programType.Uint32(),
+			Metadata:    metadata,
+			GlobalData:  globalData,
+			MapOwnerId:  mapOwnerId,
 		}
 	}
 
 	return nil
 }
 
-func buildBpfdUnloadRequest(uuid string) *gobpfd.UnloadRequest {
+func buildBpfdUnloadRequest(id uint32) *gobpfd.UnloadRequest {
 	return &gobpfd.UnloadRequest{
-		Id: uuid,
+		Id: id,
 	}
 }
 
-func LoadBpfdProgram(ctx context.Context, bpfdClient gobpfd.LoaderClient,
-	loadRequest *gobpfd.LoadRequest) (map[string]string, error) {
+func LoadBpfdProgram(ctx context.Context, bpfdClient gobpfd.BpfdClient,
+	loadRequest *gobpfd.LoadRequest) (*uint32, map[string]string, error) {
 	var res *gobpfd.LoadResponse
 
 	res, err := bpfdClient.Load(ctx, loadRequest)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load bpfProgram via bpfd: %w", err)
+		return nil, nil, fmt.Errorf("failed to load bpfProgram via bpfd: %w", err)
 	}
-	uuid := res.GetId()
+	id := res.GetId()
 
-	maps, err := GetMapsForUUID(uuid)
+	maps, err := GetMapsForID(id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get bpfProgram's Maps: %v", err)
+		return nil, nil, fmt.Errorf("failed to get bpfProgram's Maps: %v", err)
 	}
 
-	return maps, nil
+	return &id, maps, nil
 }
 
-func UnloadBpfdProgram(ctx context.Context, bpfdClient gobpfd.LoaderClient, id string) error {
+func UnloadBpfdProgram(ctx context.Context, bpfdClient gobpfd.BpfdClient, id uint32) error {
 	_, err := bpfdClient.Unload(ctx, buildBpfdUnloadRequest(id))
 	if err != nil {
 		return fmt.Errorf("failed to unload bpfProgram via bpfd: %v",
@@ -160,7 +160,7 @@ func UnloadBpfdProgram(ctx context.Context, bpfdClient gobpfd.LoaderClient, id s
 	return nil
 }
 
-func ListBpfdPrograms(ctx context.Context, bpfdClient gobpfd.LoaderClient, programType internal.ProgramType) (map[string]*gobpfd.ListResponse_ListResult, error) {
+func ListBpfdPrograms(ctx context.Context, bpfdClient gobpfd.BpfdClient, programType internal.ProgramType) (map[string]*gobpfd.ListResponse_ListResult, error) {
 	listOnlyBpfdPrograms := true
 	listReq := gobpfd.ListRequest{
 		ProgramType:      programType.Uint32(),
@@ -175,13 +175,35 @@ func ListBpfdPrograms(ctx context.Context, bpfdClient gobpfd.LoaderClient, progr
 	}
 
 	for _, result := range listResponse.Results {
-		out[*result.Id] = result
+		if uuid, ok := result.Metadata[internal.UuidMetadataKey]; ok {
+			out[uuid] = result
+		} else {
+			return nil, fmt.Errorf("Unable to get uuid from program metadata")
+		}
 	}
 
 	return out, nil
 }
 
-func ListAllPrograms(ctx context.Context, bpfdClient gobpfd.LoaderClient) ([]*gobpfd.ListResponse_ListResult, error) {
+func GetBpfdProgram(ctx context.Context, bpfdClient gobpfd.BpfdClient, uuid types.UID) (*gobpfd.ListResponse_ListResult, error) {
+
+	listReq := gobpfd.ListRequest{
+		MatchMetadata: map[string]string{internal.UuidMetadataKey: string(uuid)},
+	}
+
+	listResponse, err := bpfdClient.List(ctx, &listReq)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(listResponse.Results) != 1 {
+		return nil, fmt.Errorf("multible programs found for uuid: %+v ", uuid)
+	}
+
+	return listResponse.Results[0], nil
+}
+
+func ListAllPrograms(ctx context.Context, bpfdClient gobpfd.BpfdClient) ([]*gobpfd.ListResponse_ListResult, error) {
 	listResponse, err := bpfdClient.List(ctx, &gobpfd.ListRequest{})
 	if err != nil {
 		return nil, err
@@ -190,12 +212,12 @@ func ListAllPrograms(ctx context.Context, bpfdClient gobpfd.LoaderClient) ([]*go
 	return listResponse.Results, nil
 }
 
-// GetMapsForUUID returns any maps for the specified bpf program
-// which bpfd is managing
-func GetMapsForUUID(uuid string) (map[string]string, error) {
+// GetMapsForId returns any maps for the specified bpf program
+// which bpfd is managing, if there are none return nil.
+func GetMapsForID(id uint32) (map[string]string, error) {
 	maps := map[string]string{}
 	// TODO: Pull from MapPinPath instead of hardcoding
-	programMapPath := fmt.Sprintf("%s/%s", internal.BpfdMapFs, uuid)
+	programMapPath := fmt.Sprintf("%s/%d", internal.BpfdMapFs, id)
 
 	if err := filepath.Walk(programMapPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -209,9 +231,14 @@ func GetMapsForUUID(uuid string) (map[string]string, error) {
 		return nil
 	}); err != nil {
 		if os.IsNotExist(err) {
-			return maps, nil
+			log.Info("Program Map Path does not exist", "map path", programMapPath)
+			return nil, nil
 		}
 		return nil, err
+	}
+
+	if len(maps) == 0 {
+		return nil, nil
 	}
 
 	return maps, nil
@@ -220,7 +247,7 @@ func GetMapsForUUID(uuid string) (map[string]string, error) {
 // Convert a list result into a set of kernel info annotations
 func Build_kernel_info_annotations(p *gobpfd.ListResponse_ListResult) map[string]string {
 	return map[string]string{
-		"Kernel-ID":                     fmt.Sprint(p.BpfId),
+		"Kernel-ID":                     fmt.Sprint(p.Id),
 		"Name":                          p.Name,
 		"Type":                          internal.ProgramType(p.ProgramType).String(),
 		"Loaded-At":                     p.LoadedAt,
@@ -234,4 +261,19 @@ func Build_kernel_info_annotations(p *gobpfd.ListResponse_ListResult) map[string
 		"Kernel-Allocated-Memory-Bytes": fmt.Sprint(p.BytesMemlock),
 		"Verified-Instruction-Count":    fmt.Sprint(p.VerifiedInsns),
 	}
+}
+
+// get the program ID from a bpfProgram
+func GetID(p *bpfdiov1alpha1.BpfProgram) (*uint32, error) {
+	idString, ok := p.Annotations[internal.IdAnnotation]
+	if !ok {
+		return nil, nil
+	}
+
+	id, err := strconv.ParseUint(idString, 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get program ID: %v", err)
+	}
+	uid := uint32(id)
+	return &uid, nil
 }

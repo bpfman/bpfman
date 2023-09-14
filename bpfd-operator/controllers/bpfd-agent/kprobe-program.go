@@ -21,8 +21,13 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/types"
+	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
+	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
+	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,13 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
-	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
-
-	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
-	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
-	v1 "k8s.io/api/core/v1"
 )
 
 //+kubebuilder:rbac:groups=bpfd.dev,resources=kprobeprograms,verbs=get;list;watch
@@ -177,16 +175,16 @@ func (r *KprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 func (r *KprobeProgramReconciler) buildKprobeLoadRequest(
 	bytecode interface{},
-	id string,
+	uuid string,
 	bpfProgram *bpfdiov1alpha1.BpfProgram,
-	mapOwnerUuid types.UID) *gobpfd.LoadRequest {
+	mapOwnerId *uint32) *gobpfd.LoadRequest {
 	loadRequest := &gobpfd.LoadRequest{}
 	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
 		bytecode,
 		r.currentKprobeProgram.Spec.SectionName,
-		internal.Kprobe, id,
+		internal.Kprobe, map[string]string{internal.UuidMetadataKey: uuid},
 		r.currentKprobeProgram.Spec.GlobalData,
-		mapOwnerUuid,
+		mapOwnerId,
 	)
 	// Namespace isn't supported yet in bpfd, so set it to an empty string.
 	namespace := ""
@@ -214,18 +212,18 @@ func (r *KprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 
 	r.Logger.V(1).Info("Existing bpfProgram", "ExistingMaps", bpfProgram.Spec.Maps, "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentKprobeProgram", r.currentKprobeProgram.Name)
 
-	id := string(bpfProgram.UID)
+	uuid := bpfProgram.UID
 
 	getLoadRequest := func() (*gobpfd.LoadRequest, bpfdiov1alpha1.BpfProgramConditionType, error) {
 		bytecode, err := bpfdagentinternal.GetBytecode(r.Client, bytecodeSelector)
 		if err != nil {
 			return nil, bpfdiov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
 		}
-		loadRequest := r.buildKprobeLoadRequest(bytecode, id, bpfProgram, mapOwnerStatus.mapOwnerUuid)
+		loadRequest := r.buildKprobeLoadRequest(bytecode, string(uuid), bpfProgram, mapOwnerStatus.mapOwnerId)
 		return loadRequest, bpfdiov1alpha1.BpfProgCondNone, nil
 	}
 
-	existingProgram, doesProgramExist := existingBpfPrograms[id]
+	existingProgram, doesProgramExist := existingBpfPrograms[string(uuid)]
 	if !doesProgramExist {
 		r.Logger.V(1).Info("KprobeProgram doesn't exist on node")
 
@@ -255,16 +253,21 @@ func (r *KprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return condition, err
 		}
 
-		bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
+		r.progId, r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load KprobeProgram")
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 		}
 
-		r.expectedMaps = bpfProgramEntry
-
-		r.Logger.Info("bpfd called to load KprobeProgram on Node", "Name", bpfProgram.Name, "UUID", id)
+		r.Logger.Info("bpfd called to load KprobeProgram on Node", "Name", bpfProgram.Name, "UUID", uuid)
 		return bpfdiov1alpha1.BpfProgCondLoaded, nil
+	}
+
+	// prog ID should already have been set if program exists
+	id, err := bpfdagentinternal.GetID(bpfProgram)
+	if err != nil {
+		r.Logger.Error(err, "Failed to get program ID")
+		return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
 	}
 
 	// BpfProgram exists but either KprobeProgram is being deleted, node is no
@@ -275,13 +278,13 @@ func (r *KprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			"isDeleted", isBeingDeleted, "isSelected", isNodeSelected, "mapIsSet", mapOwnerStatus.isSet,
 			"mapIsFound", mapOwnerStatus.isFound, "mapIsLoaded", mapOwnerStatus.isLoaded)
 
-		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
+		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, *id); err != nil {
 			r.Logger.Error(err, "Failed to unload KprobeProgram")
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 		r.expectedMaps = nil
 
-		r.Logger.Info("bpfd called to unload KprobeProgram on Node", "Name", bpfProgram.Name, "UUID", id)
+		r.Logger.Info("bpfd called to unload KprobeProgram on Node", "Name", bpfProgram.Name, "UUID", uuid)
 
 		if isBeingDeleted {
 			return bpfdiov1alpha1.BpfProgCondUnloaded, nil
@@ -311,22 +314,22 @@ func (r *KprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	isSame, reasons := bpfdagentinternal.DoesProgExist(existingProgram, loadRequest)
 	if !isSame {
 		r.Logger.V(1).Info("KprobeProgram is in wrong state, unloading and reloading", "Reason", reasons)
-		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, id); err != nil {
+		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, *id); err != nil {
 			r.Logger.Error(err, "Failed to unload KprobeProgram")
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 
-		bpfProgramEntry, err := bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
+		r.progId, r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load KprobeProgram")
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, err
 		}
 
-		r.expectedMaps = bpfProgramEntry
-		r.Logger.Info("bpfd called to reload KprobeProgram on Node", "Name", bpfProgram.Name, "UUID", id)
+		r.Logger.Info("bpfd called to reload KprobeProgram on Node", "Name", bpfProgram.Name, "UUID", uuid)
 	} else {
 		// Program exists and bpfProgram K8s Object is up to date
 		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")
+		r.progId = id
 		r.expectedMaps = bpfProgram.Spec.Maps
 	}
 

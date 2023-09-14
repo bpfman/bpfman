@@ -24,7 +24,7 @@ import (
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
 	agenttestutils "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal/test-utils"
-	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 	testutils "github.com/bpfd-dev/bpfd/bpfd-operator/internal/test-utils"
 
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
@@ -47,16 +47,16 @@ func TestDiscoveredProgramControllerCreate(t *testing.T) {
 		ctx          = context.TODO()
 		bpfProgName0 = fmt.Sprintf("%s-%d-%s", "dump-bpf-map", 693, fakeNode.Name)
 		bpfProgName1 = fmt.Sprintf("%s-%d-%s", "dump-bpf-prog", 694, fakeNode.Name)
-		bpfProgName2 = fmt.Sprintf("%d-%s", 93149, fakeNode.Name)
+		bpfProgName2 = fmt.Sprintf("%d-%s", 695, fakeNode.Name)
 		bpfProg      = &bpfdiov1alpha1.BpfProgram{}
 		fakeUID      = "ef71d42c-aa21-48e8-a697-82391d801a81"
-		programs     = map[string]*gobpfd.ListResponse_ListResult{
-			"dump_bpf_map": {
+		programs     = map[int]*gobpfd.ListResponse_ListResult{
+			693: {
 				Name:          "dump_bpf_map",
-				Location:      &gobpfd.ListResponse_ListResult_NoLocation{},
+				Location:      nil,
 				ProgramType:   26,
-				AttachInfo:    &gobpfd.ListResponse_ListResult_None{},
-				BpfId:         693,
+				AttachInfo:    nil,
+				Id:            693,
 				LoadedAt:      "2023-03-02T18:15:06+0000",
 				Tag:           "749172daffada61f",
 				GplCompatible: true,
@@ -68,12 +68,12 @@ func TestDiscoveredProgramControllerCreate(t *testing.T) {
 				BytesMemlock:  4096,
 				VerifiedInsns: 34,
 			},
-			"dump_bpf_prog": {
+			694: {
 				Name:          "dump_bpf_prog",
-				Location:      &gobpfd.ListResponse_ListResult_NoLocation{},
+				Location:      nil,
 				ProgramType:   26,
-				AttachInfo:    &gobpfd.ListResponse_ListResult_None{},
-				BpfId:         694,
+				AttachInfo:    nil,
+				Id:            694,
 				LoadedAt:      "2023-03-02T18:15:06+0000",
 				Tag:           "bc36dd738319ea32",
 				GplCompatible: true,
@@ -86,11 +86,11 @@ func TestDiscoveredProgramControllerCreate(t *testing.T) {
 				VerifiedInsns: 84,
 			},
 			// test program with no name
-			"": {
-				Location:      &gobpfd.ListResponse_ListResult_NoLocation{},
+			695: {
+				Location:      nil,
 				ProgramType:   8,
-				AttachInfo:    &gobpfd.ListResponse_ListResult_None{},
-				BpfId:         93149,
+				AttachInfo:    nil,
+				Id:            695,
 				LoadedAt:      "2023-07-20T19:11:11+0000",
 				Tag:           "6deef7357e7b4530",
 				GplCompatible: true,
@@ -101,12 +101,12 @@ func TestDiscoveredProgramControllerCreate(t *testing.T) {
 				VerifiedInsns: 8,
 			},
 			// skip program loaded by bpfd
-			"bpfd-prog": {
-				Id:            &fakeUID,
-				Location:      &gobpfd.ListResponse_ListResult_NoLocation{},
+			696: {
+				Metadata:      map[string]string{internal.UuidMetadataKey: fakeUID},
+				Location:      nil,
 				ProgramType:   8,
-				AttachInfo:    &gobpfd.ListResponse_ListResult_None{},
-				BpfId:         93149,
+				AttachInfo:    nil,
+				Id:            696,
 				LoadedAt:      "2023-07-20T19:11:11+0000",
 				Tag:           "6deef7357e7b4530",
 				GplCompatible: true,
@@ -187,7 +187,7 @@ func TestDiscoveredProgramControllerCreate(t *testing.T) {
 	// node Label was correctly set
 	require.Equal(t, bpfProg.Labels[internal.K8sHostLabel], fakeNode.Name)
 	// ensure annotations were correct
-	require.Equal(t, bpfProg.Annotations, bpfdagentinternal.Build_kernel_info_annotations(programs["dump_bpf_map"]))
+	require.Equal(t, bpfProg.Annotations, bpfdagentinternal.Build_kernel_info_annotations(programs[693]))
 
 	// Check the second discovered BpfProgram Object was created successfully
 	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProg)
@@ -199,7 +199,7 @@ func TestDiscoveredProgramControllerCreate(t *testing.T) {
 	// node Label was correctly set
 	require.Equal(t, bpfProg.Labels[internal.K8sHostLabel], fakeNode.Name)
 	// ensure annotations were correct
-	require.Equal(t, bpfProg.Annotations, bpfdagentinternal.Build_kernel_info_annotations(programs["dump_bpf_prog"]))
+	require.Equal(t, bpfProg.Annotations, bpfdagentinternal.Build_kernel_info_annotations(programs[694]))
 
 	// Check the third discovered BpfProgram Object was created successfully
 	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName2, Namespace: metav1.NamespaceAll}, bpfProg)
@@ -211,7 +211,7 @@ func TestDiscoveredProgramControllerCreate(t *testing.T) {
 	// node Label was correctly set
 	require.Equal(t, bpfProg.Labels[internal.K8sHostLabel], fakeNode.Name)
 	// ensure annotations were correct
-	require.Equal(t, bpfProg.Annotations, bpfdagentinternal.Build_kernel_info_annotations(programs[""]))
+	require.Equal(t, bpfProg.Annotations, bpfdagentinternal.Build_kernel_info_annotations(programs[695]))
 
 	// The fourth reconcile will end up exiting with a 30 second requeue
 	res, err = r.Reconcile(ctx, req)
@@ -230,16 +230,16 @@ func TestDiscoveredProgramControllerCreateAndDeleteStale(t *testing.T) {
 		ctx          = context.TODO()
 		bpfProgName0 = fmt.Sprintf("%s-%d-%s", "dump-bpf-map", 693, fakeNode.Name)
 		bpfProgName1 = fmt.Sprintf("%s-%d-%s", "dump-bpf-prog", 694, fakeNode.Name)
-		bpfProgName2 = fmt.Sprintf("%d-%s", 93149, fakeNode.Name)
+		bpfProgName2 = fmt.Sprintf("%d-%s", 695, fakeNode.Name)
 		bpfProg      = &bpfdiov1alpha1.BpfProgram{}
 		fakeUID      = "ef71d42c-aa21-48e8-a697-82391d801a81"
-		programs     = map[string]*gobpfd.ListResponse_ListResult{
-			"dump_bpf_map": {
+		programs     = map[int]*gobpfd.ListResponse_ListResult{
+			693: {
 				Name:          "dump_bpf_map",
-				Location:      &gobpfd.ListResponse_ListResult_NoLocation{},
+				Location:      nil,
 				ProgramType:   26,
-				AttachInfo:    &gobpfd.ListResponse_ListResult_None{},
-				BpfId:         693,
+				AttachInfo:    nil,
+				Id:            693,
 				LoadedAt:      "2023-03-02T18:15:06+0000",
 				Tag:           "749172daffada61f",
 				GplCompatible: true,
@@ -251,12 +251,12 @@ func TestDiscoveredProgramControllerCreateAndDeleteStale(t *testing.T) {
 				BytesMemlock:  4096,
 				VerifiedInsns: 34,
 			},
-			"dump_bpf_prog": {
+			694: {
 				Name:          "dump_bpf_prog",
-				Location:      &gobpfd.ListResponse_ListResult_NoLocation{},
+				Location:      nil,
 				ProgramType:   26,
-				AttachInfo:    &gobpfd.ListResponse_ListResult_None{},
-				BpfId:         694,
+				AttachInfo:    nil,
+				Id:            694,
 				LoadedAt:      "2023-03-02T18:15:06+0000",
 				Tag:           "bc36dd738319ea32",
 				GplCompatible: true,
@@ -269,11 +269,11 @@ func TestDiscoveredProgramControllerCreateAndDeleteStale(t *testing.T) {
 				VerifiedInsns: 84,
 			},
 			// test program with no name
-			"": {
-				Location:      &gobpfd.ListResponse_ListResult_NoLocation{},
+			695: {
+				Location:      nil,
 				ProgramType:   8,
-				AttachInfo:    &gobpfd.ListResponse_ListResult_None{},
-				BpfId:         93149,
+				AttachInfo:    nil,
+				Id:            695,
 				LoadedAt:      "2023-07-20T19:11:11+0000",
 				Tag:           "6deef7357e7b4530",
 				GplCompatible: true,
@@ -284,12 +284,12 @@ func TestDiscoveredProgramControllerCreateAndDeleteStale(t *testing.T) {
 				VerifiedInsns: 8,
 			},
 			// skip program loaded by bpfd
-			"bpfd-prog": {
-				Id:            &fakeUID,
-				Location:      &gobpfd.ListResponse_ListResult_NoLocation{},
+			696: {
+				Metadata:      map[string]string{internal.UuidMetadataKey: fakeUID},
+				Location:      nil,
 				ProgramType:   8,
-				AttachInfo:    &gobpfd.ListResponse_ListResult_None{},
-				BpfId:         93149,
+				AttachInfo:    nil,
+				Id:            696,
 				LoadedAt:      "2023-07-20T19:11:11+0000",
 				Tag:           "6deef7357e7b4530",
 				GplCompatible: true,
@@ -370,7 +370,7 @@ func TestDiscoveredProgramControllerCreateAndDeleteStale(t *testing.T) {
 	// node Label was correctly set
 	require.Equal(t, bpfProg.Labels[internal.K8sHostLabel], fakeNode.Name)
 	// ensure annotations were correct
-	require.Equal(t, bpfProg.Annotations, bpfdagentinternal.Build_kernel_info_annotations(programs["dump_bpf_map"]))
+	require.Equal(t, bpfProg.Annotations, bpfdagentinternal.Build_kernel_info_annotations(programs[693]))
 
 	// Check the second discovered BpfProgram Object was created successfully
 	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProg)
@@ -382,7 +382,7 @@ func TestDiscoveredProgramControllerCreateAndDeleteStale(t *testing.T) {
 	// node Label was correctly set
 	require.Equal(t, bpfProg.Labels[internal.K8sHostLabel], fakeNode.Name)
 	// ensure annotations were correct
-	require.Equal(t, bpfProg.Annotations, bpfdagentinternal.Build_kernel_info_annotations(programs["dump_bpf_prog"]))
+	require.Equal(t, bpfProg.Annotations, bpfdagentinternal.Build_kernel_info_annotations(programs[694]))
 
 	// Check the third discovered BpfProgram Object was created successfully
 	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName2, Namespace: metav1.NamespaceAll}, bpfProg)
@@ -394,10 +394,10 @@ func TestDiscoveredProgramControllerCreateAndDeleteStale(t *testing.T) {
 	// node Label was correctly set
 	require.Equal(t, bpfProg.Labels[internal.K8sHostLabel], fakeNode.Name)
 	// ensure annotations were correct
-	require.Equal(t, bpfProg.Annotations, bpfdagentinternal.Build_kernel_info_annotations(programs[""]))
+	require.Equal(t, bpfProg.Annotations, bpfdagentinternal.Build_kernel_info_annotations(programs[695]))
 
 	// delete program
-	_, err = rc.BpfdClient.Unload(ctx, &gobpfd.UnloadRequest{Id: "dump_bpf_map"})
+	_, err = rc.BpfdClient.Unload(ctx, &gobpfd.UnloadRequest{Id: 693})
 	require.NoError(t, err)
 
 	// The fourth reconcile will end up deleting the extra bpfProgram

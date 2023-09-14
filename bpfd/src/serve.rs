@@ -7,7 +7,7 @@ use anyhow::Context;
 use bpfd_api::{
     config::{self, Config},
     util::directories::BYTECODE_IMAGE_CONTENT_STORE,
-    v1::loader_server::LoaderServer,
+    v1::bpfd_server::BpfdServer,
 };
 use log::{debug, info};
 use tokio::{
@@ -33,7 +33,7 @@ pub async fn serve(config: Config, static_program_path: &str) -> anyhow::Result<
     let (tx, rx) = mpsc::channel(32);
 
     let loader = BpfdLoader::new(tx.clone());
-    let service = LoaderServer::new(loader);
+    let service = BpfdServer::new(loader);
 
     let (ca_cert, identity) = get_tls_config(&config.tls)
         .await
@@ -119,7 +119,7 @@ async fn join_listeners(listeners: Vec<JoinHandle<()>>) {
 
 async fn serve_unix(
     path: String,
-    service: LoaderServer<BpfdLoader>,
+    service: BpfdServer<BpfdLoader>,
 ) -> anyhow::Result<JoinHandle<()>> {
     // Listen on Unix socket
     if Path::new(&path).exists() {
@@ -148,7 +148,7 @@ async fn serve_tcp(
     address: &String,
     port: u16,
     tls_config: ServerTlsConfig,
-    service: LoaderServer<BpfdLoader>,
+    service: BpfdServer<BpfdLoader>,
 ) -> anyhow::Result<JoinHandle<()>> {
     let ip = address
         .parse()

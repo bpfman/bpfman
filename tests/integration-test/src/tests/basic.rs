@@ -59,6 +59,7 @@ fn test_load_unload_xdp() {
                 lt,
                 XDP_PASS_IMAGE_LOC,
                 XDP_PASS_FILE_LOC,
+                None,
             );
             uuids.push(uuid.unwrap());
         }
@@ -269,4 +270,80 @@ fn test_pull_bytecode() {
 
     let path = get_image_path();
     assert!(path.exists());
+}
+
+#[integration_test]
+fn test_list_with_metadata() {
+    let _namespace_guard = create_namespace().unwrap();
+    let bpfd_guard = start_bpfd().unwrap();
+
+    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+
+    debug!("Installing xdp_pass programs");
+
+    let globals = vec!["GLOBAL_u8=61", "GLOBAL_u32=0D0C0B0A"];
+
+    let proceed_on = vec![
+        "aborted",
+        "drop",
+        "pass",
+        "tx",
+        "redirect",
+        "dispatcher_return",
+    ];
+
+    let mut uuids = vec![];
+    let mut rng = rand::thread_rng();
+
+    // Install a few xdp programs
+    for lt in LOAD_TYPES {
+        for _ in 0..2 {
+            let priority = rng.gen_range(1..255);
+            let uuid = add_xdp(
+                DEFAULT_BPFD_IFACE,
+                priority,
+                Some(globals.clone()),
+                Some(proceed_on.clone()),
+                lt,
+                XDP_PASS_IMAGE_LOC,
+                XDP_PASS_FILE_LOC,
+                None,
+            );
+            uuids.push(uuid.unwrap());
+        }
+    }
+
+    let key = "uuid=ITS_BPF_NOT_EBPF";
+    let priority = rng.gen_range(1..255);
+    let uuid = add_xdp(
+        DEFAULT_BPFD_IFACE,
+        priority,
+        Some(globals.clone()),
+        Some(proceed_on.clone()),
+        &LoadType::Image,
+        XDP_PASS_IMAGE_LOC,
+        XDP_PASS_FILE_LOC,
+        Some(vec![key]),
+    )
+    .unwrap();
+
+    debug!("Listing programs with metadata {key}");
+    // ensure listing with metadata works
+    let list_output = bpfd_list(Some(vec![key])).unwrap();
+
+    assert!(list_output.contains(&uuid));
+
+    uuids.push(uuid);
+
+    assert_eq!(uuids.len(), 5);
+
+    assert!(bpffs_has_entries(RTDIR_FS_XDP));
+
+    // Verify rule persistence between restarts
+    drop(bpfd_guard);
+    let _bpfd_guard = start_bpfd().unwrap();
+
+    verify_and_delete_programs(uuids);
+
+    assert!(!bpffs_has_entries(RTDIR_FS_XDP));
 }

@@ -143,7 +143,7 @@ func main() {
 		Client:     mgr.GetClient(),
 		Scheme:     mgr.GetScheme(),
 		GrpcConn:   conn,
-		BpfdClient: gobpfd.NewLoaderClient(conn),
+		BpfdClient: gobpfd.NewBpfdClient(conn),
 		NodeName:   nodeName,
 	}
 
