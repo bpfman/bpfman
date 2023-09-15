@@ -177,31 +177,33 @@ func (r *UprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func (r *UprobeProgramReconciler) buildUprobeLoadRequest(
-	bytecode interface{},
+	bytecode *gobpfd.BytecodeLocation,
 	uuid string,
 	bpfProgram *bpfdiov1alpha1.BpfProgram,
 	mapOwnerId *uint32) *gobpfd.LoadRequest {
-	loadRequest := &gobpfd.LoadRequest{}
-	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
-		bytecode,
-		r.currentUprobeProgram.Spec.SectionName,
-		internal.Kprobe, map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentUprobeProgram.Name},
-		r.currentUprobeProgram.Spec.GlobalData,
-		mapOwnerId,
-	)
+
 	// Namespace isn't supported yet in bpfd, so set it to an empty string.
 	namespace := ""
-	loadRequest.AttachInfo = &gobpfd.LoadRequest_UprobeAttachInfo{
-		UprobeAttachInfo: &gobpfd.UprobeAttachInfo{
-			FnName:    &r.currentUprobeProgram.Spec.FunctionName,
-			Offset:    r.currentUprobeProgram.Spec.Offset,
-			Target:    bpfProgram.Annotations[internal.UprobeProgramTarget],
-			Retprobe:  r.currentUprobeProgram.Spec.RetProbe,
-			Namespace: &namespace,
-		},
-	}
 
-	return loadRequest
+	return &gobpfd.LoadRequest{
+		Bytecode:    bytecode,
+		Name:        r.currentUprobeProgram.Spec.SectionName,
+		ProgramType: uint32(internal.Kprobe),
+		Attach: &gobpfd.AttachInfo{
+			Info: &gobpfd.AttachInfo_UprobeAttachInfo{
+				UprobeAttachInfo: &gobpfd.UprobeAttachInfo{
+					FnName:    &r.currentUprobeProgram.Spec.FunctionName,
+					Offset:    r.currentUprobeProgram.Spec.Offset,
+					Target:    bpfProgram.Annotations[internal.UprobeProgramTarget],
+					Retprobe:  r.currentUprobeProgram.Spec.RetProbe,
+					Namespace: &namespace,
+				},
+			},
+		},
+		Metadata:   map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentUprobeProgram.Name},
+		GlobalData: r.currentUprobeProgram.Spec.GlobalData,
+		MapOwnerId: mapOwnerId,
+	}
 }
 
 // reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.

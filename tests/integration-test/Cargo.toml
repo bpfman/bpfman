@@ -14,3 +14,4 @@ inventory = { workspace = true }
 log = { workspace = true }
 predicates = { workspace = true }
 rand = { workspace = true }
+regex = { workspace = true, features = ["unicode-perl"] }

@@ -44,14 +44,14 @@ fn test_load_unload_xdp() {
         "dispatcher_return",
     ];
 
-    let mut uuids = vec![];
+    let mut loaded_ids = vec![];
     let mut rng = rand::thread_rng();
 
     // Install a few xdp programs
     for lt in LOAD_TYPES {
         for _ in 0..5 {
             let priority = rng.gen_range(1..255);
-            let uuid = add_xdp(
+            let (prog_id, _) = add_xdp(
                 DEFAULT_BPFD_IFACE,
                 priority,
                 Some(globals.clone()),
@@ -61,10 +61,10 @@ fn test_load_unload_xdp() {
                 XDP_PASS_FILE_LOC,
                 None,
             );
-            uuids.push(uuid.unwrap());
+            loaded_ids.push(prog_id.unwrap());
         }
     }
-    assert_eq!(uuids.len(), 10);
+    assert_eq!(loaded_ids.len(), 10);
 
     assert!(bpffs_has_entries(RTDIR_FS_XDP));
 
@@ -72,7 +72,7 @@ fn test_load_unload_xdp() {
     drop(bpfd_guard);
     let _bpfd_guard = start_bpfd().unwrap();
 
-    verify_and_delete_programs(uuids);
+    verify_and_delete_programs(loaded_ids);
 
     assert!(!bpffs_has_entries(RTDIR_FS_XDP));
 }
@@ -103,14 +103,14 @@ fn test_load_unload_tc() {
         "dispatcher_return",
     ];
 
-    let mut uuids = vec![];
+    let mut loaded_ids = vec![];
     let mut rng = rand::thread_rng();
 
     // Install a few tc programs
     for lt in LOAD_TYPES {
         for _ in 0..5 {
             let priority = rng.gen_range(1..255);
-            let uuid = add_tc(
+            let (prog_id, _) = add_tc(
                 "ingress",
                 DEFAULT_BPFD_IFACE,
                 priority,
@@ -120,10 +120,10 @@ fn test_load_unload_tc() {
                 TC_PASS_IMAGE_LOC,
                 TC_PASS_FILE_LOC,
             );
-            uuids.push(uuid.unwrap());
+            loaded_ids.push(prog_id.unwrap());
         }
     }
-    assert_eq!(uuids.len(), 10);
+    assert_eq!(loaded_ids.len(), 10);
 
     // Verify TC filter is using correct priority
     let output = tc_filter_list(DEFAULT_BPFD_IFACE).unwrap();
@@ -132,7 +132,7 @@ fn test_load_unload_tc() {
 
     assert!(bpffs_has_entries(RTDIR_FS_TC_INGRESS));
 
-    verify_and_delete_programs(uuids);
+    verify_and_delete_programs(loaded_ids);
 
     assert!(!bpffs_has_entries(RTDIR_FS_TC_INGRESS));
 
@@ -148,20 +148,19 @@ fn test_load_unload_tracepoint() {
 
     let globals = vec!["GLOBAL_u8=61", "GLOBAL_u32=0D0C0B0A"];
 
-    let mut uuids = vec![];
+    let mut loaded_ids = vec![];
 
     for lt in LOAD_TYPES {
-        let uuid = add_tracepoint(
+        let (prog_id, _) = add_tracepoint(
             Some(globals.clone()),
             lt,
             TRACEPOINT_IMAGE_LOC,
             TRACEPOINT_FILE_LOC,
-        )
-        .unwrap();
-        uuids.push(uuid);
+        );
+        loaded_ids.push(prog_id.unwrap());
     }
 
-    verify_and_delete_programs(uuids);
+    verify_and_delete_programs(loaded_ids);
 }
 
 #[integration_test]
@@ -172,20 +171,20 @@ fn test_load_unload_uprobe() {
 
     let globals = vec!["GLOBAL_u8=63", "GLOBAL_u32=0D0C0B0A"];
 
-    let mut uuids = vec![];
+    let mut loaded_ids = vec![];
 
     for lt in LOAD_TYPES {
-        let uuid = add_uprobe(
+        let prog_id = add_uprobe(
             Some(globals.clone()),
             lt,
             UPROBE_IMAGE_LOC,
             URETPROBE_FILE_LOC,
         )
         .unwrap();
-        uuids.push(uuid);
+        loaded_ids.push(prog_id);
     }
 
-    verify_and_delete_programs(uuids);
+    verify_and_delete_programs(loaded_ids);
 }
 
 #[integration_test]
@@ -196,20 +195,20 @@ fn test_load_unload_uretprobe() {
 
     let globals = vec!["GLOBAL_u8=63", "GLOBAL_u32=0D0C0B0A"];
 
-    let mut uuids = vec![];
+    let mut loaded_ids = vec![];
 
     for lt in LOAD_TYPES {
-        let uuid = add_uretprobe(
+        let prog_id = add_uretprobe(
             Some(globals.clone()),
             lt,
             URETPROBE_IMAGE_LOC,
             URETPROBE_FILE_LOC,
         )
         .unwrap();
-        uuids.push(uuid);
+        loaded_ids.push(prog_id);
     }
 
-    verify_and_delete_programs(uuids);
+    verify_and_delete_programs(loaded_ids);
 }
 
 #[integration_test]
@@ -220,15 +219,15 @@ fn test_load_unload_kprobe() {
 
     let globals = vec!["GLOBAL_u8=63", "GLOBAL_u32=0D0C0B0A"];
 
-    let mut uuids = vec![];
+    let mut loaded_ids = vec![];
 
     for lt in LOAD_TYPES {
-        let uuid =
+        let prog_id =
             add_kprobe(Some(globals.clone()), lt, KPROBE_IMAGE_LOC, KPROBE_FILE_LOC).unwrap();
-        uuids.push(uuid);
+        loaded_ids.push(prog_id);
     }
 
-    verify_and_delete_programs(uuids);
+    verify_and_delete_programs(loaded_ids);
 }
 
 #[integration_test]
@@ -239,21 +238,21 @@ fn test_load_unload_kretprobe() {
 
     let globals = vec!["GLOBAL_u8=63", "GLOBAL_u32=0D0C0B0A"];
 
-    let mut uuids: Vec<String> = vec![];
+    let mut loaded_ids: Vec<String> = vec![];
 
     // Load some kretprobes
     for lt in LOAD_TYPES {
-        let uuid = add_kretprobe(
+        let prog_id = add_kretprobe(
             Some(globals.clone()),
             lt,
             KRETPROBE_IMAGE_LOC,
             KRETPROBE_FILE_LOC,
         )
         .unwrap();
-        uuids.push(uuid);
+        loaded_ids.push(prog_id);
     }
 
-    verify_and_delete_programs(uuids);
+    verify_and_delete_programs(loaded_ids);
 }
 
 #[integration_test]
@@ -292,14 +291,14 @@ fn test_list_with_metadata() {
         "dispatcher_return",
     ];
 
-    let mut uuids = vec![];
+    let mut loaded_ids = vec![];
     let mut rng = rand::thread_rng();
 
     // Install a few xdp programs
     for lt in LOAD_TYPES {
         for _ in 0..2 {
             let priority = rng.gen_range(1..255);
-            let uuid = add_xdp(
+            let (prog_id, _) = add_xdp(
                 DEFAULT_BPFD_IFACE,
                 priority,
                 Some(globals.clone()),
@@ -309,13 +308,13 @@ fn test_list_with_metadata() {
                 XDP_PASS_FILE_LOC,
                 None,
             );
-            uuids.push(uuid.unwrap());
+            loaded_ids.push(prog_id.unwrap());
         }
     }
 
     let key = "uuid=ITS_BPF_NOT_EBPF";
     let priority = rng.gen_range(1..255);
-    let uuid = add_xdp(
+    let (prog_id, _) = add_xdp(
         DEFAULT_BPFD_IFACE,
         priority,
         Some(globals.clone()),
@@ -324,18 +323,18 @@ fn test_list_with_metadata() {
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
         Some(vec![key]),
-    )
-    .unwrap();
+    );
+    let id = prog_id.unwrap();
 
     debug!("Listing programs with metadata {key}");
     // ensure listing with metadata works
     let list_output = bpfd_list(Some(vec![key])).unwrap();
 
-    assert!(list_output.contains(&uuid));
+    assert!(list_output.contains(&id));
 
-    uuids.push(uuid);
+    loaded_ids.push(id);
 
-    assert_eq!(uuids.len(), 5);
+    assert_eq!(loaded_ids.len(), 5);
 
     assert!(bpffs_has_entries(RTDIR_FS_XDP));
 
@@ -343,7 +342,7 @@ fn test_list_with_metadata() {
     drop(bpfd_guard);
     let _bpfd_guard = start_bpfd().unwrap();
 
-    verify_and_delete_programs(uuids);
+    verify_and_delete_programs(loaded_ids);
 
     assert!(!bpffs_has_entries(RTDIR_FS_XDP));
 }

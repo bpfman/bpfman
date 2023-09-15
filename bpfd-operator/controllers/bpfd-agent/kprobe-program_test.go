@@ -155,21 +155,21 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 	// Require no requeue
 	require.False(t, res.Requeue)
 	expectedLoadReq := &gobpfd.LoadRequest{
-		Common: &gobpfd.LoadRequestCommon{
-			Location: &gobpfd.LoadRequestCommon_File{
-				File: bytecodePath,
-			},
-			Name:        sectionName,
-			ProgramType: *internal.Kprobe.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: string(bpfProg.UID), internal.ProgramNameKey: name},
-			MapOwnerId:  nil,
+		Bytecode: &gobpfd.BytecodeLocation{
+			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 		},
-		AttachInfo: &gobpfd.LoadRequest_KprobeAttachInfo{
-			KprobeAttachInfo: &gobpfd.KprobeAttachInfo{
-				FnName:    functionName,
-				Offset:    uint64(offset),
-				Retprobe:  retprobe,
-				Namespace: &kprobenamespace,
+		Name:        sectionName,
+		ProgramType: *internal.Kprobe.Uint32(),
+		Metadata:    map[string]string{internal.UuidMetadataKey: string(bpfProg.UID), internal.ProgramNameKey: name},
+		MapOwnerId:  nil,
+		Attach: &gobpfd.AttachInfo{
+			Info: &gobpfd.AttachInfo_KprobeAttachInfo{
+				KprobeAttachInfo: &gobpfd.KprobeAttachInfo{
+					FnName:    functionName,
+					Offset:    uint64(offset),
+					Retprobe:  retprobe,
+					Namespace: &kprobenamespace,
+				},
 			},
 		},
 	}

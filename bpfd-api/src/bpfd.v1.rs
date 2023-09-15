@@ -5,43 +5,89 @@ pub struct BytecodeImage {
     pub url: ::prost::alloc::string::String,
     #[prost(int32, tag = "2")]
     pub image_pull_policy: i32,
-    #[prost(string, tag = "3")]
-    pub username: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub password: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "3")]
+    pub username: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "4")]
+    pub password: ::core::option::Option<::prost::alloc::string::String>,
+}
+/// BytecodeLocation is either:
+/// - Parameters to pull an eBPF program stored in an OCI container image.
+/// - Local file path for an image.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BytecodeLocation {
+    #[prost(oneof = "bytecode_location::Location", tags = "2, 3")]
+    pub location: ::core::option::Option<bytecode_location::Location>,
+}
+/// Nested message and enum types in `BytecodeLocation`.
+pub mod bytecode_location {
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Location {
+        #[prost(message, tag = "2")]
+        Image(super::BytecodeImage),
+        #[prost(string, tag = "3")]
+        File(::prost::alloc::string::String),
+    }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LoadRequestCommon {
-    #[prost(string, tag = "3")]
+pub struct KernelProgramInfo {
+    /// Name as seen by the kernel. May be truncated version of user enter
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+    /// name since limited to 16 byte by kernel
+    #[prost(string, tag = "2")]
     pub name: ::prost::alloc::string::String,
-    #[prost(uint32, tag = "4")]
+    #[prost(uint32, tag = "3")]
     pub program_type: u32,
-    #[prost(map = "string, string", tag = "5")]
-    pub metadata: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
-    #[prost(map = "string, bytes", tag = "6")]
+    #[prost(string, tag = "4")]
+    pub loaded_at: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub tag: ::prost::alloc::string::String,
+    #[prost(bool, tag = "6")]
+    pub gpl_compatible: bool,
+    #[prost(uint32, repeated, tag = "7")]
+    pub map_ids: ::prost::alloc::vec::Vec<u32>,
+    #[prost(uint32, tag = "8")]
+    pub btf_id: u32,
+    #[prost(uint32, tag = "9")]
+    pub bytes_xlated: u32,
+    #[prost(bool, tag = "10")]
+    pub jited: bool,
+    #[prost(uint32, tag = "11")]
+    pub bytes_jited: u32,
+    #[prost(uint32, tag = "12")]
+    pub bytes_memlock: u32,
+    #[prost(uint32, tag = "13")]
+    pub verified_insns: u32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ProgramInfo {
+    /// Name entered by user
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "2")]
+    pub bytecode: ::core::option::Option<BytecodeLocation>,
+    #[prost(message, optional, tag = "3")]
+    pub attach: ::core::option::Option<AttachInfo>,
+    #[prost(map = "string, bytes", tag = "4")]
     pub global_data: ::std::collections::HashMap<
         ::prost::alloc::string::String,
         ::prost::alloc::vec::Vec<u8>,
     >,
-    #[prost(uint32, optional, tag = "7")]
+    #[prost(uint32, optional, tag = "5")]
     pub map_owner_id: ::core::option::Option<u32>,
-    #[prost(oneof = "load_request_common::Location", tags = "1, 2")]
-    pub location: ::core::option::Option<load_request_common::Location>,
-}
-/// Nested message and enum types in `LoadRequestCommon`.
-pub mod load_request_common {
-    #[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum Location {
-        #[prost(message, tag = "1")]
-        Image(super::BytecodeImage),
-        #[prost(string, tag = "2")]
-        File(::prost::alloc::string::String),
-    }
+    #[prost(string, tag = "6")]
+    pub map_pin_path: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "7")]
+    pub map_used_by: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(map = "string, string", tag = "8")]
+    pub metadata: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -105,17 +151,15 @@ pub struct UprobeAttachInfo {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LoadRequest {
-    #[prost(message, optional, tag = "1")]
-    pub common: ::core::option::Option<LoadRequestCommon>,
-    #[prost(oneof = "load_request::AttachInfo", tags = "2, 3, 4, 5, 6")]
-    pub attach_info: ::core::option::Option<load_request::AttachInfo>,
+pub struct AttachInfo {
+    #[prost(oneof = "attach_info::Info", tags = "2, 3, 4, 5, 6")]
+    pub info: ::core::option::Option<attach_info::Info>,
 }
-/// Nested message and enum types in `LoadRequest`.
-pub mod load_request {
+/// Nested message and enum types in `AttachInfo`.
+pub mod attach_info {
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum AttachInfo {
+    pub enum Info {
         #[prost(message, tag = "2")]
         XdpAttachInfo(super::XdpAttachInfo),
         #[prost(message, tag = "3")]
@@ -130,9 +174,37 @@ pub mod load_request {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LoadRequest {
+    #[prost(message, optional, tag = "1")]
+    pub bytecode: ::core::option::Option<BytecodeLocation>,
+    #[prost(string, tag = "2")]
+    pub name: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "3")]
+    pub program_type: u32,
+    #[prost(message, optional, tag = "4")]
+    pub attach: ::core::option::Option<AttachInfo>,
+    #[prost(map = "string, string", tag = "5")]
+    pub metadata: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    #[prost(map = "string, bytes", tag = "6")]
+    pub global_data: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::vec::Vec<u8>,
+    >,
+    #[prost(string, optional, tag = "7")]
+    pub uuid: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(uint32, optional, tag = "8")]
+    pub map_owner_id: ::core::option::Option<u32>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadResponse {
-    #[prost(uint32, tag = "1")]
-    pub id: u32,
+    #[prost(message, optional, tag = "1")]
+    pub info: ::core::option::Option<ProgramInfo>,
+    #[prost(message, optional, tag = "2")]
+    pub kernel_info: ::core::option::Option<KernelProgramInfo>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -159,7 +231,7 @@ pub struct ListRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListResponse {
-    #[prost(message, repeated, tag = "26")]
+    #[prost(message, repeated, tag = "3")]
     pub results: ::prost::alloc::vec::Vec<list_response::ListResult>,
 }
 /// Nested message and enum types in `ListResponse`.
@@ -167,77 +239,10 @@ pub mod list_response {
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct ListResult {
-        #[prost(uint32, tag = "1")]
-        pub id: u32,
-        #[prost(string, tag = "2")]
-        pub name: ::prost::alloc::string::String,
-        #[prost(uint32, tag = "5")]
-        pub program_type: u32,
-        #[prost(map = "string, bytes", tag = "6")]
-        pub global_data: ::std::collections::HashMap<
-            ::prost::alloc::string::String,
-            ::prost::alloc::vec::Vec<u8>,
-        >,
-        #[prost(uint32, optional, tag = "7")]
-        pub map_owner_id: ::core::option::Option<u32>,
-        #[prost(string, tag = "8")]
-        pub map_pin_path: ::prost::alloc::string::String,
-        #[prost(string, repeated, tag = "9")]
-        pub map_used_by: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-        #[prost(map = "string, string", tag = "15")]
-        pub metadata: ::std::collections::HashMap<
-            ::prost::alloc::string::String,
-            ::prost::alloc::string::String,
-        >,
-        #[prost(string, tag = "16")]
-        pub loaded_at: ::prost::alloc::string::String,
-        #[prost(string, tag = "17")]
-        pub tag: ::prost::alloc::string::String,
-        #[prost(bool, tag = "18")]
-        pub gpl_compatible: bool,
-        #[prost(uint32, repeated, tag = "19")]
-        pub map_ids: ::prost::alloc::vec::Vec<u32>,
-        #[prost(uint32, tag = "20")]
-        pub btf_id: u32,
-        #[prost(uint32, tag = "21")]
-        pub bytes_xlated: u32,
-        #[prost(bool, tag = "22")]
-        pub jited: bool,
-        #[prost(uint32, tag = "23")]
-        pub bytes_jited: u32,
-        #[prost(uint32, tag = "24")]
-        pub bytes_memlock: u32,
-        #[prost(uint32, tag = "25")]
-        pub verified_insns: u32,
-        #[prost(oneof = "list_result::Location", tags = "3, 4")]
-        pub location: ::core::option::Option<list_result::Location>,
-        #[prost(oneof = "list_result::AttachInfo", tags = "10, 11, 12, 13, 14")]
-        pub attach_info: ::core::option::Option<list_result::AttachInfo>,
-    }
-    /// Nested message and enum types in `ListResult`.
-    pub mod list_result {
-        #[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Oneof)]
-        pub enum Location {
-            #[prost(message, tag = "3")]
-            Image(super::super::BytecodeImage),
-            #[prost(string, tag = "4")]
-            File(::prost::alloc::string::String),
-        }
-        #[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Oneof)]
-        pub enum AttachInfo {
-            #[prost(message, tag = "10")]
-            XdpAttachInfo(super::super::XdpAttachInfo),
-            #[prost(message, tag = "11")]
-            TcAttachInfo(super::super::TcAttachInfo),
-            #[prost(message, tag = "12")]
-            TracepointAttachInfo(super::super::TracepointAttachInfo),
-            #[prost(message, tag = "13")]
-            KprobeAttachInfo(super::super::KprobeAttachInfo),
-            #[prost(message, tag = "14")]
-            UprobeAttachInfo(super::super::UprobeAttachInfo),
-        }
+        #[prost(message, optional, tag = "1")]
+        pub info: ::core::option::Option<super::ProgramInfo>,
+        #[prost(message, optional, tag = "2")]
+        pub kernel_info: ::core::option::Option<super::KernelProgramInfo>,
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -249,6 +254,20 @@ pub struct PullBytecodeRequest {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PullBytecodeResponse {}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetRequest {
+    #[prost(uint32, tag = "1")]
+    pub id: u32,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetResponse {
+    #[prost(message, optional, tag = "1")]
+    pub info: ::core::option::Option<ProgramInfo>,
+    #[prost(message, optional, tag = "2")]
+    pub kernel_info: ::core::option::Option<KernelProgramInfo>,
+}
 /// Generated client implementations.
 pub mod bpfd_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
@@ -404,6 +423,25 @@ pub mod bpfd_client {
             req.extensions_mut().insert(GrpcMethod::new("bpfd.v1.Bpfd", "PullBytecode"));
             self.inner.unary(req, path, codec).await
         }
+        pub async fn get(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetRequest>,
+        ) -> std::result::Result<tonic::Response<super::GetResponse>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static("/bpfd.v1.Bpfd/Get");
+            let mut req = request.into_request();
+            req.extensions_mut().insert(GrpcMethod::new("bpfd.v1.Bpfd", "Get"));
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -432,6 +470,10 @@ pub mod bpfd_server {
             tonic::Response<super::PullBytecodeResponse>,
             tonic::Status,
         >;
+        async fn get(
+            &self,
+            request: tonic::Request<super::GetRequest>,
+        ) -> std::result::Result<tonic::Response<super::GetResponse>, tonic::Status>;
     }
     #[derive(Debug)]
     pub struct BpfdServer<T: Bpfd> {
@@ -673,6 +715,50 @@ pub mod bpfd_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = PullBytecodeSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/bpfd.v1.Bpfd/Get" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetSvc<T: Bpfd>(pub Arc<T>);
+                    impl<T: Bpfd> tonic::server::UnaryService<super::GetRequest>
+                    for GetSvc<T> {
+                        type Response = super::GetResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as Bpfd>::get(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = GetSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

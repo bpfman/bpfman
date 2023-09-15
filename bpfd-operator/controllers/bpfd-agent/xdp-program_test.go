@@ -155,20 +155,20 @@ func TestXdpProgramControllerCreate(t *testing.T) {
 	uuid := string(bpfProg.UID)
 
 	expectedLoadReq := &gobpfd.LoadRequest{
-		Common: &gobpfd.LoadRequestCommon{
-			Location: &gobpfd.LoadRequestCommon_File{
-				File: bytecodePath,
-			},
-			Name:        sectionName,
-			ProgramType: *internal.Xdp.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: name},
-			MapOwnerId:  nil,
+		Bytecode: &gobpfd.BytecodeLocation{
+			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 		},
-		AttachInfo: &gobpfd.LoadRequest_XdpAttachInfo{
-			XdpAttachInfo: &gobpfd.XDPAttachInfo{
-				Iface:     fakeInt,
-				Priority:  0,
-				ProceedOn: []int32{2, 31},
+		Name:        sectionName,
+		ProgramType: *internal.Xdp.Uint32(),
+		Metadata:    map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: name},
+		MapOwnerId:  nil,
+		Attach: &gobpfd.AttachInfo{
+			Info: &gobpfd.AttachInfo_XdpAttachInfo{
+				XdpAttachInfo: &gobpfd.XDPAttachInfo{
+					Priority:  0,
+					Iface:     fakeInt,
+					ProceedOn: []int32{2, 31},
+				},
 			},
 		},
 	}
@@ -377,20 +377,20 @@ func TestXdpProgramControllerCreateMultiIntf(t *testing.T) {
 	uuid0 := string(bpfProgEth0.UID)
 
 	expectedLoadReq0 := &gobpfd.LoadRequest{
-		Common: &gobpfd.LoadRequestCommon{
-			Location: &gobpfd.LoadRequestCommon_File{
-				File: bytecodePath,
-			},
-			Name:        sectionName,
-			ProgramType: *internal.Xdp.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: uuid0, internal.ProgramNameKey: name},
-			MapOwnerId:  nil,
+		Bytecode: &gobpfd.BytecodeLocation{
+			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 		},
-		AttachInfo: &gobpfd.LoadRequest_XdpAttachInfo{
-			XdpAttachInfo: &gobpfd.XDPAttachInfo{
-				Iface:     fakeInts[0],
-				Priority:  0,
-				ProceedOn: []int32{2, 31},
+		Name:        sectionName,
+		ProgramType: *internal.Xdp.Uint32(),
+		Metadata:    map[string]string{internal.UuidMetadataKey: uuid0, internal.ProgramNameKey: name},
+		MapOwnerId:  nil,
+		Attach: &gobpfd.AttachInfo{
+			Info: &gobpfd.AttachInfo_XdpAttachInfo{
+				XdpAttachInfo: &gobpfd.XDPAttachInfo{
+					Priority:  0,
+					Iface:     fakeInts[0],
+					ProceedOn: []int32{2, 31},
+				},
 			},
 		},
 	}
@@ -398,20 +398,20 @@ func TestXdpProgramControllerCreateMultiIntf(t *testing.T) {
 	uuid1 := string(bpfProgEth1.UID)
 
 	expectedLoadReq1 := &gobpfd.LoadRequest{
-		Common: &gobpfd.LoadRequestCommon{
-			Location: &gobpfd.LoadRequestCommon_File{
-				File: bytecodePath,
-			},
-			Name:        sectionName,
-			ProgramType: *internal.Xdp.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: uuid1, internal.ProgramNameKey: name},
-			MapOwnerId:  nil,
+		Bytecode: &gobpfd.BytecodeLocation{
+			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 		},
-		AttachInfo: &gobpfd.LoadRequest_XdpAttachInfo{
-			XdpAttachInfo: &gobpfd.XDPAttachInfo{
-				Iface:     fakeInts[1],
-				Priority:  0,
-				ProceedOn: []int32{2, 31},
+		Name:        sectionName,
+		ProgramType: *internal.Xdp.Uint32(),
+		Metadata:    map[string]string{internal.UuidMetadataKey: uuid1, internal.ProgramNameKey: name},
+		MapOwnerId:  nil,
+		Attach: &gobpfd.AttachInfo{
+			Info: &gobpfd.AttachInfo_XdpAttachInfo{
+				XdpAttachInfo: &gobpfd.XDPAttachInfo{
+					Priority:  0,
+					Iface:     fakeInts[1],
+					ProceedOn: []int32{2, 31},
+				},
 			},
 		},
 	}
