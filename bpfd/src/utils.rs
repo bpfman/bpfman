@@ -15,6 +15,8 @@ use users::get_group_by_name;
 
 use crate::errors::BpfdError;
 
+pub(crate) const SOCK_MODE: u32 = 0o0770;
+
 // Like tokio::fs::read, but with O_NOCTTY set
 pub(crate) async fn read<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, BpfdError> {
     let mut data = vec![];

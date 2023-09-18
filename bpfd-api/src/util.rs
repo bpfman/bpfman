@@ -32,9 +32,13 @@ pub mod directories {
     pub const RTDIR_FS_XDP: &str = "/run/bpfd/fs/xdp";
     pub const RTDIR_FS_MAPS: &str = "/run/bpfd/fs/maps";
     pub const RTDIR_PROGRAMS: &str = "/run/bpfd/programs";
+    pub const STPATH_BPFD_SOCKET: &str = "/run/bpfd/bpfd.sock";
+    // The CSI socket must be in it's own sub directory so we can easily create a dedicated
+    // K8s volume mount for it.
+    pub const RTDIR_BPFD_CSI: &str = "/run/bpfd/csi";
+    pub const STPATH_BPFD_CSI_SOCKET: &str = "/run/bpfd/csi/csi.sock";
+
     // StateDirectory: /var/lib/bpfd/
     pub const STDIR: &str = "/var/lib/bpfd";
-    pub const STDIR_SOCKET: &str = "/var/lib/bpfd/sock";
-    pub const STPATH_BPFD_SOCKET: &str = "/var/lib/bpfd/sock/bpfd.sock";
     pub const BYTECODE_IMAGE_CONTENT_STORE: &str = "/var/lib/bpfd/io.bpfd.image.content";
 }
