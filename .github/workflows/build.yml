@@ -86,7 +86,7 @@ jobs:
 
       - name: Package-Binaries
         if: startsWith(github.ref, 'refs/tags/v')
-        run: | 
+        run: |
           tar -czvf bpfctl-linux-x86_64.tar.gz ./target/x86_64-unknown-linux-musl/release/bpfctl
           tar -czvf bpfd-linux-x86_64.tar.gz ./target/x86_64-unknown-linux-musl/release/bpfd
 
@@ -125,6 +125,12 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: "1.20"
+
+      - name: Go mod check
+        working-directory: ${{ env.GOPATH }}/src/github.com/bpfd-dev/bpfd
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
 
       - name: Lint
         uses: golangci/golangci-lint-action@v3
@@ -172,7 +178,7 @@ jobs:
       - name: Install deps
         run: |
           sudo apt-get update
-          sudo apt-get install -y git clang llvm protobuf-compiler cmake perl acl openssl pkgconf gcc-multilib 
+          sudo apt-get install -y git clang llvm protobuf-compiler cmake perl acl openssl pkgconf gcc-multilib
 
       - uses: actions/checkout@v2
         with:
@@ -301,8 +307,8 @@ jobs:
 
       ## TODO once we're using an aya mainline version
       # - name: publish bpfd crate
-      #   run: cargo publish -p bpfd --token ${{ secrets.BPFD_DEV_TOKEN }} 
- 
+      #   run: cargo publish -p bpfd --token ${{ secrets.BPFD_DEV_TOKEN }}
+
       - name: publish bpfd-api crate
         run: cargo publish -p bpfd-api --token ${{ secrets.BPFD_DEV_TOKEN }}
 
