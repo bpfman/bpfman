@@ -26,6 +26,8 @@ Edit the sample yaml files to customize any configuration values:
 * TcProgram CRD: [go-tc-counter/bytecode.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/config/base/go-tc-counter/bytecode.yaml)
 * TracepointProgram CRD: [go-tracepoint-counter/bytecode.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/config/base/go-tracepoint-counter/bytecode.yaml)
 * XdpProgram CRD: [go-xdp-counter/bytecode.yaml](https://github.com/bpfd-dev/bpfd/tree/main/examples/config/base/go-xdp-counter/bytecode.yaml)
+* KprobeProgram CRD: [bpfd-operator/config/samples/bpfd.io_v1alpha1_kprobe_kprobeprogram.yaml](https://github.com/bpfd-dev/bpfd/blob/main/bpfd-operator/config/samples/bpfd.io_v1alpha1_kprobe_kprobeprogram.yaml)
+* UprobeProgram CRD: [bpfd-operator/config/samples/bpfd.io_v1alpha1_uprobe_uprobeprogram.yaml](https://github.com/bpfd-dev/bpfd/blob/main/bpfd-operator/config/samples/bpfd.io_v1alpha1_uprobe_uprobeprogram.yaml)
 
 Sample bytecode yaml with XdpProgram CRD:
 ```console

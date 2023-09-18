@@ -86,13 +86,14 @@ There are a common set of attributes, and those MUST come before the program typ
 bpfctl load-from-file --help
 Load an eBPF program from a local .o file
 
-Usage: bpfctl load-from-file [OPTIONS] --path <PATH> --section-name <SECTION_NAME> <COMMAND>
+Usage: bpfctl load-from-file [OPTIONS] --path <PATH> --name <NAME> <COMMAND>
 
 Commands:
   xdp         Install an eBPF program on the XDP hook point for a given interface
   tc          Install an eBPF program on the TC hook point for a given interface
   tracepoint  Install an eBPF program on a Tracepoint
-  uprobe      Install an eBPF uprobe
+  kprobe      Install an eBPF kprobe or kretprobe
+  uprobe      Install an eBPF uprobe or uretprobe
   help        Print this message or the help of the given subcommand(s)
 
 Options:
@@ -100,12 +101,8 @@ Options:
           Required: Location of local bytecode file
           Example: --path /run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
 
-  -s, --section-name <SECTION_NAME>
+  -n, --name <NAME>
           Required: Name of the ELF section from the object file
-
-      --id <ID>
-          Optional: Program uuid to be used by bpfd. If not specified, bpfd will generate
-          a uuid.
 
   -g, --global <GLOBAL>...
           Optional: Global variables to be set when program is loaded.
@@ -115,18 +112,24 @@ Options:
           the byte string appropriately considering such things as size, endianness,
           alignment and packing of data structures.
 
-      --map-owner-uuid <MAP_OWNER_UUID>
-          Optional: UUID of loaded eBPF program this eBPF program will share a map with.
-          Only used when multiple eBPF programs need to share a map. If a map is being
-          shared with another eBPF program, the eBPF program that created the map can not
-          be unloaded until all eBPF programs referencing the map are unloaded.
-          Example: --map-owner-uuid 989958a5-b47b-47a5-8b4c-b5962292437d
+  -m, --metadata <METADATA>
+          Optional: Specify Key/Value metadata to be attached to a program when it
+          is loaded by bpfd.
+          Format: <KEY>=<VALUE>
+          
+          This can later be used to list a certain subset of programs which contain
+          the specified metadata.
+
+      --map-owner-id <MAP_OWNER_ID>
+          Optional: Program id of loaded eBPF program this eBPF program will share a map with.
+          Only used when multiple eBPF programs need to share a map.
+          Example: --map-owner-id 63178
 
   -h, --help
           Print help (see a summary with '-h')
 ```
 
-So when using `bpfctl load-from-file`, `--path`, `--section-name`, `--id`, `--global`
+When using `bpfctl load-from-file`, `--path`, `--section-name`, `--id`, `--global`
 and `--map-owner-uuid` must be entered before the `<COMMAND>` (`xdp`, `tc` or `tracepoint`)
 is entered.
 Then each `<COMMAND>` has it's own custom parameters:
@@ -201,12 +204,40 @@ int accept(struct __sk_buff *skb)
 
 Below are some additional examples of `bpfctl load` commands:
 
+XDP
+
 ```console
 bpfctl load-from-file --path /run/bpfd/examples/xdp_pass_kern.o --section-name "xdp" xdp --iface vethb2795c7 --priority 35
+```
 
+TC
+
+```console
 bpfctl load-from-file --path /run/bpfd/examples/filter.bpf.o --section-name classifier tc --direction ingress --iface vethb2795c7 --priority 110
+```
 
-bpfctl load-from-image --image-url quay.io/bpfd-bytecode/tracepoint:latest tracepoint --tracepoint sched/sched_switch
+Kprobe
+
+```console
+bpfctl load-from-image --image-url quay.io/bpfd-bytecode/kprobe:latest kprobe -f try_to_wake_up
+```
+
+Kretprobe
+
+```console
+bpfctl load-from-image --image-url quay.io/bpfd-bytecode/kretprobe:latest kprobe -f try_to_wake_up -r
+```
+
+Uprobe
+
+```console
+bpfctl load-from-image --image-url quay.io/bpfd-bytecode/uprobe:latest uprobe -f "malloc" -t "libc"
+```
+
+Uretprobe
+
+```console
+bpfctl load-from-image --image-url quay.io/bpfd-bytecode/uretprobe:latest uprobe -f "malloc" -t "libc" -r
 ```
 
 ### Setting Global Variables in eBPF Programs
