@@ -88,7 +88,7 @@ func (r *KprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 			if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: ownerRef.Name}, kprobeProgram); err != nil {
 				if errors.IsNotFound(err) {
-					r.Logger.Info("Kprobe Program from ownerRef not found stale reconcile exiting", "Bame", req.NamespacedName)
+					r.Logger.Info("Kprobe Program from ownerRef not found stale reconcile exiting", "Name", req.NamespacedName)
 				} else {
 					r.Logger.Error(err, "failed getting KprobeProgram Object from ownerRef", "Name", req.NamespacedName)
 				}

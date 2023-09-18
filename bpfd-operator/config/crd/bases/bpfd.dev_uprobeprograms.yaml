@@ -5,14 +5,14 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
-  name: kprobeprograms.bpfd.dev
+  name: uprobeprograms.bpfd.dev
 spec:
   group: bpfd.dev
   names:
-    kind: KprobeProgram
-    listKind: KprobeProgramList
-    plural: kprobeprograms
-    singular: kprobeprogram
+    kind: UprobeProgram
+    listKind: UprobeProgramList
+    plural: uprobeprograms
+    singular: uprobeprogram
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -30,14 +30,22 @@ spec:
       name: Offset
       priority: 1
       type: integer
+    - jsonPath: .spec.target
+      name: Target
+      priority: 1
+      type: string
     - jsonPath: .spec.retprobe
       name: RetProbe
       priority: 1
       type: boolean
+    - jsonPath: .spec.pid
+      name: Pid
+      priority: 1
+      type: integer
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: KprobeProgram is the Schema for the KprobePrograms API
+        description: UprobeProgram is the Schema for the UprobePrograms API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -52,7 +60,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: KprobeProgramSpec defines the desired state of KprobeProgram
+            description: UprobeProgramSpec defines the desired state of UprobeProgram
             properties:
               bytecode:
                 description: Bytecode configures where the bpf program's bytecode
@@ -97,11 +105,9 @@ spec:
                     description: Path is used to specify a bytecode object via filepath.
                     type: string
                 type: object
-              func_names:
-                description: Functions to attach the kprobe to.
-                items:
-                  type: string
-                type: array
+              func_name:
+                description: Function to attach the uprobe to.
+                type: string
               globaldata:
                 additionalProperties:
                   format: byte
@@ -211,32 +217,38 @@ spec:
                 x-kubernetes-map-type: atomic
               offset:
                 default: 0
-                description: Offset added to the address of the function for kprobe.
-                  Not allowed for kretprobes.
+                description: Offset added to the address of the function for uprobe.
                 format: int64
+                type: integer
+              pid:
+                description: Only execute uprobe for given process identification
+                  number (PID). If PID is not provided, uprobe executes for all PIDs.
+                format: int32
                 type: integer
               retprobe:
                 default: false
-                description: Whether the program is a kretprobe.  Default is false
+                description: Whether the program is a uretprobe.  Default is false
                 type: boolean
               sectionname:
                 description: SectionName is the the section name described in the
                   bpf Program
                 type: string
+              target:
+                description: Library name or the absolute path to a binary or library.
+                items:
+                  type: string
+                type: array
             required:
             - bytecode
-            - func_names
             - nodeselector
             - sectionname
+            - target
             type: object
-            x-kubernetes-validations:
-            - message: offset cannot be set for kretprobes
-              rule: self.retprobe == false || self.offset == 0
           status:
-            description: KprobeProgramStatus defines the observed state of KprobeProgram
+            description: UprobeProgramStatus defines the observed state of UprobeProgram
             properties:
               conditions:
-                description: Conditions houses the global cluster state for the KprobeProgram.
+                description: Conditions houses the global cluster state for the UprobeProgram.
                   The explicit condition types are defined internally.
                 items:
                   description: "Condition contains details for one aspect of the current

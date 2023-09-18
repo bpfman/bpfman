@@ -112,6 +112,32 @@ rules:
 - apiGroups:
   - bpfd.dev
   resources:
+  - uprobeprograms
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - bpfd.dev
+  resources:
+  - uprobeprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfd.dev
+  resources:
+  - uprobeprograms/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - bpfd.dev
+  resources:
   - xdpprograms
   verbs:
   - create

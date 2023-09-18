@@ -43,6 +43,10 @@ func (c *FakeBpfdV1alpha1) TracepointPrograms() v1alpha1.TracepointProgramInterf
 	return &FakeTracepointPrograms{c}
 }
 
+func (c *FakeBpfdV1alpha1) UprobePrograms() v1alpha1.UprobeProgramInterface {
+	return &FakeUprobePrograms{c}
+}
+
 func (c *FakeBpfdV1alpha1) XdpPrograms() v1alpha1.XdpProgramInterface {
 	return &FakeXdpPrograms{c}
 }

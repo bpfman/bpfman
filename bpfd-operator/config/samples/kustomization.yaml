@@ -4,4 +4,5 @@ resources:
 - bpfd.io_v1alpha1_tracepoint_tracepointprogram.yaml
 - bpfd.io_v1alpha1_tc_pass_tcprogram.yaml
 - bpfd.io_v1alpha1_kprobe_kprobeprogram.yaml
+- bpfd.io_v1alpha1_uprobe_uprobeprogram.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

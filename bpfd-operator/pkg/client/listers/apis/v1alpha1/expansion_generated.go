@@ -33,6 +33,10 @@ type TcProgramListerExpansion interface{}
 // TracepointProgramLister.
 type TracepointProgramListerExpansion interface{}
 
+// UprobeProgramListerExpansion allows custom methods to be added to
+// UprobeProgramLister.
+type UprobeProgramListerExpansion interface{}
+
 // XdpProgramListerExpansion allows custom methods to be added to
 // XdpProgramLister.
 type XdpProgramListerExpansion interface{}
