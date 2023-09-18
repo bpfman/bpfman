@@ -24,6 +24,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -40,11 +41,13 @@ import (
 
 // +kubebuilder:rbac:groups=apps,resources=daemonsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create
+// +kubebuilder:rbac:groups=storage.k8s.io,resources=csidrivers,verbs=get;list;watch;create;delete
 // +kubebuilder:rbac:groups=bpfd.dev,resources=configmaps/finalizers,verbs=update
 
 type BpfdConfigReconciler struct {
 	ReconcilerCommon
-	StaticBpfdDsPath string
+	BpfdStandardDeployment string
+	BpfdCsiDeployment      string
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -88,8 +91,28 @@ func (r *BpfdConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 func (r *BpfdConfigReconciler) ReconcileBpfdConfig(ctx context.Context, req ctrl.Request, bpfdConfig *corev1.ConfigMap) (ctrl.Result, error) {
 	bpfdDeployment := &appsv1.DaemonSet{}
-	staticBpfdDeployment := LoadAndConfigureBpfdDs(bpfdConfig, r.StaticBpfdDsPath)
-	r.Logger.V(1).Info("StaticBpfdDeployment is", "DS", staticBpfdDeployment)
+	staticBpfdDeployment := &appsv1.DaemonSet{}
+
+	if bpfdConfig.Data["bpfd.enable.csi"] == "true" {
+		staticBpfdDeployment = LoadAndConfigureBpfdDs(bpfdConfig, r.BpfdCsiDeployment)
+		r.Logger.V(1).Info("StaticBpfdDeployment with CSI", "DS", staticBpfdDeployment)
+		bpfdCsiDriver := &storagev1.CSIDriver{}
+		// one-shot try to create bpfd's CSIDriver object if it doesn't exist, does not re-trigger reconcile.
+		if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: internal.BpfdCsiDriverName}, bpfdCsiDriver); err != nil {
+			if errors.IsNotFound(err) {
+				bpfdCsiDriver = LoadCsiDriver(internal.BpfdCsiDriverPath)
+
+				r.Logger.Info("Creating Bpfd csi driver object")
+				if err := r.Create(ctx, bpfdCsiDriver); err != nil {
+					r.Logger.Error(err, "Failed to create Bpfd csi driver")
+					return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+				}
+			}
+		}
+	} else {
+		staticBpfdDeployment = LoadAndConfigureBpfdDs(bpfdConfig, r.BpfdStandardDeployment)
+		r.Logger.V(1).Info("StaticBpfdDeployment", "DS", staticBpfdDeployment)
+	}
 
 	if err := r.Get(ctx, types.NamespacedName{Namespace: bpfdConfig.Namespace, Name: internal.BpfdDsName}, bpfdDeployment); err != nil {
 		if errors.IsNotFound(err) {
@@ -114,6 +137,17 @@ func (r *BpfdConfigReconciler) ReconcileBpfdConfig(ctx context.Context, req ctrl
 		if err != nil {
 			r.Logger.Error(err, "failed removing bpfd-operator finalizer from bpfdDs")
 			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+		}
+
+		bpfdCsiDriver := &storagev1.CSIDriver{}
+
+		// one-shot try to delete bpfd's CSIDriver object only if it exists.
+		if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: internal.BpfdCsiDriverName}, bpfdCsiDriver); err == nil {
+			r.Logger.Info("Deleting Bpfd csi driver object")
+			if err := r.Delete(ctx, bpfdCsiDriver); err != nil {
+				r.Logger.Error(err, "Failed to delete Bpfd csi driver")
+				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+			}
 		}
 
 		if err = r.Delete(ctx, bpfdDeployment); err != nil {
@@ -178,6 +212,24 @@ func bpfdConfigPredicate() predicate.Funcs {
 			return e.Object.GetName() == internal.BpfdConfigName
 		},
 	}
+}
+
+func LoadCsiDriver(path string) *storagev1.CSIDriver {
+	// Load static bpfd deployment from disk
+	file, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+
+	b, err := io.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+
+	decode := scheme.Codecs.UniversalDeserializer().Decode
+	obj, _, _ := decode(b, nil, nil)
+
+	return obj.(*storagev1.CSIDriver)
 }
 
 func LoadAndConfigureBpfdDs(config *corev1.ConfigMap, path string) *appsv1.DaemonSet {

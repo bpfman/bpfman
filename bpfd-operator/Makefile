@@ -278,7 +278,7 @@ push-images: ## Push bpfd, bpfd-agent, bpfd-operator images.
 	docker push ${BPFD_IMG}
 
 .PHONY: load-images-kind
-load-images-kind: build-images ## Load bpfd, bpfd-agent, and bpfd-operator images into the running local kind devel cluster.
+load-images-kind: ## Load bpfd, bpfd-agent, and bpfd-operator images into the running local kind devel cluster.
 	kind load docker-image  ${BPFD_IMG} ${BPFD_OPERATOR_IMG} ${BPFD_AGENT_IMG} --name ${KIND_CLUSTER_NAME}
 
 .PHONY: bundle-build
@@ -344,10 +344,17 @@ setup-kind: cm-verifier ## Setup Kind cluster with certmanager ready for bpfd de
 
 ## Default deploy target is KIND based.
 .PHONY: deploy
-deploy: manifests kustomize cm-verifier load-images-kind ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
+deploy: manifests kustomize cm-verifier ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
 	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-operator=${BPFD_OPERATOR_IMG}
 	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd=${BPFD_IMG} && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-agent=${BPFD_AGENT_IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
+
+## Deploy bpfd with its CSI driver initialized.
+.PHONY: deploy-csi
+deploy-csi: manifests kustomize cm-verifier ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config with the optional csi driver initalized.
+	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-operator=${BPFD_OPERATOR_IMG}
+	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd=${BPFD_IMG} && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-agent=${BPFD_AGENT_IMG}
+	$(KUSTOMIZE) build config/csi | kubectl apply -f -
 
 .PHONY: undeploy
 undeploy: ## Undeploy bpfd-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
@@ -359,7 +366,10 @@ kind-reload-images: load-images-kind ## Reload locally build images into a kind 
 	kubectl rollout restart deployment bpfd-operator -n bpfd
 
 .PHONY: run-on-kind
-run-on-kind: kustomize setup-kind deploy-certmanager load-images-kind deploy ## Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator
+run-on-kind: kustomize setup-kind deploy-certmanager build-images load-images-kind deploy ## Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator
+
+.PHONY: run-on-kind-csi
+run-on-kind-csi: kustomize setup-kind deploy-certmanager build-images load-images-kind deploy-csi ## Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator while also deploying bpfd's custom CSI setup.
 
 ##@ Openshift Deployment
 

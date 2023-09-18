@@ -32,6 +32,8 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bp
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=bpfd-operator-build /usr/src/bpfd/bpfd-operator/config/bpfd-deployment/daemonset.yaml ./config/bpfd-deployment/daemonset.yaml
+COPY --from=bpfd-operator-build /usr/src/bpfd/bpfd-operator/config/bpfd-deployment/daemonset-csi.yaml ./config/bpfd-deployment/daemonset-csi.yaml
+COPY --from=bpfd-operator-build /usr/src/bpfd/bpfd-operator/config/bpfd-deployment/csidriverinfo.yaml ./config/bpfd-deployment/csidriverinfo.yaml
 COPY --from=bpfd-operator-build /usr/src/bpfd/bpfd-operator/bpfd-operator .
 USER 65532:65532
 

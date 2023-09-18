@@ -89,7 +89,7 @@ client_key = "/etc/bpfd/certs/bpfd-client/tls.key"
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	// Create a ReconcileMemcached object with the scheme and fake client.
-	r := &BpfdConfigReconciler{ReconcilerCommon: rc, StaticBpfdDsPath: staticDsPath}
+	r := &BpfdConfigReconciler{ReconcilerCommon: rc, BpfdStandardDeployment: staticDsPath}
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
