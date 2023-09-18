@@ -121,7 +121,7 @@ func TestKprobeProgramReconcile(t *testing.T) {
 		},
 	}
 
-	// First reconcile should add the finalzier to the tcProgram object
+	// First reconcile should add the finalzier to the kprobeProgram object
 	res, err := r.Reconcile(ctx, req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
