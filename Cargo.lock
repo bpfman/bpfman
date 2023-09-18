@@ -395,7 +395,7 @@ name = "bpfd-csi"
 version = "1.8.0"
 dependencies = [
  "prost 0.11.9",
- "prost-types 0.11.9",
+ "prost-types",
  "tonic",
 ]
 
@@ -1697,7 +1697,7 @@ dependencies = [
  "petgraph",
  "prettyplease",
  "prost 0.12.0",
- "prost-types 0.12.0",
+ "prost-types",
  "regex",
  "syn 2.0.36",
  "tempfile",
@@ -1728,15 +1728,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.36",
-]
-
-[[package]]
-name = "prost-types"
-version = "0.11.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "213622a1460818959ac1181aaeb2dc9c7f63df720db7d788b3e24eacd1983e13"
-dependencies = [
- "prost 0.11.9",
 ]
 
 [[package]]
