@@ -328,7 +328,7 @@ dependencies = [
  "hex",
  "itertools 0.11.0",
  "log",
- "prost 0.11.9",
+ "prost 0.12.0",
  "serde",
  "tokio",
  "toml",
@@ -381,7 +381,7 @@ dependencies = [
  "aya",
  "clap",
  "log",
- "prost 0.11.9",
+ "prost 0.12.0",
  "serde",
  "thiserror",
  "tokio",
@@ -394,7 +394,7 @@ dependencies = [
 name = "bpfd-csi"
 version = "1.8.0"
 dependencies = [
- "prost 0.11.9",
+ "prost 0.12.0",
  "prost-types 0.11.9",
  "tonic",
 ]
