@@ -839,7 +839,7 @@ async fn main() -> anyhow::Result<()> {
 
 async fn execute_request_unix(command: &Commands, path: String) -> anyhow::Result<()> {
     // URI is ignored on UDS, so any parsable string works.
-    let address = String::from("http://localhost");
+    let address = String::from("https://localhost");
     let channel = Endpoint::try_from(address)?
         .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(path.clone())))
         .await?;
@@ -861,8 +861,7 @@ async fn execute_request_tcp(
         port,
     );
 
-    // TODO: Use https (https://github.com/bpfd-dev/bpfd/issues/396)
-    let address = format!("http://{address}");
+    let address = format!("https://{address}");
     let channel = Channel::from_shared(address)?
         .tls_config(tls_config)?
         .connect()
