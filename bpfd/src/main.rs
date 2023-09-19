@@ -27,11 +27,11 @@ use clap::Parser;
 use log::{debug, error, info, warn};
 use nix::{
     libc::RLIM_INFINITY,
-    mount::{mount, MsFlags},
     sys::resource::{setrlimit, Resource},
     unistd::{getuid, User},
 };
 use systemd_journal_logger::{connected_to_journal, JournalLog};
+use utils::create_bpffs;
 
 use crate::{serve::serve, utils::read_to_string};
 const BPFD_ENV_LOG_LEVEL: &str = "RUST_LOG";
@@ -84,13 +84,7 @@ fn main() -> anyhow::Result<()> {
             create_dir_all(RTDIR_PROGRAMS).context("unable to create programs directory")?;
 
             if !is_bpffs_mounted()? {
-                debug!("Creating bpffs at {}", RTDIR_FS);
-                let flags = MsFlags::MS_NOSUID
-                    | MsFlags::MS_NODEV
-                    | MsFlags::MS_NOEXEC
-                    | MsFlags::MS_RELATIME;
-                mount::<str, str, str, str>(None, RTDIR_FS, Some("bpf"), flags, None)
-                    .context("unable to mount bpffs")?;
+                create_bpffs(RTDIR_FS)?;
             }
             create_dir_all(RTDIR_FS_XDP).context("unable to create xdp distpacher dir")?;
             create_dir_all(RTDIR_FS_TC_INGRESS)

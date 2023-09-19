@@ -220,7 +220,7 @@ dependencies = [
 [[package]]
 name = "aya"
 version = "0.11.0"
-source = "git+https://github.com/bpfd-dev/aya?branch=main#58084d07a58da1851dc2016de89dc614daf549c5"
+source = "git+https://github.com/bpfd-dev/aya?branch=main#27df828e2f95799ecf1f977a003477bbb1b2c011"
 dependencies = [
  "aya-obj",
  "bitflags 2.4.0",
@@ -235,7 +235,7 @@ dependencies = [
 [[package]]
 name = "aya-obj"
 version = "0.1.0"
-source = "git+https://github.com/bpfd-dev/aya?branch=main#58084d07a58da1851dc2016de89dc614daf549c5"
+source = "git+https://github.com/bpfd-dev/aya?branch=main#27df828e2f95799ecf1f977a003477bbb1b2c011"
 dependencies = [
  "bytes",
  "core-error",

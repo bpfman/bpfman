@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
+use std::path::Path;
+
 use async_trait::async_trait;
+use aya::maps::MapData;
 use bpfd_csi::v1::{
     controller_server::{Controller, ControllerServer},
     node_server::{Node, NodeServer},
@@ -25,7 +28,7 @@ use bpfd_csi::v1::{
 use log::info;
 use tonic::{transport::Server, Request, Response, Status};
 
-use crate::serve::shutdown_handler;
+use crate::{serve::shutdown_handler, utils::create_bpffs};
 pub(crate) struct StorageManager {
     csi_controller: CsiController,
     csi_node: CsiNode,
@@ -202,5 +205,26 @@ impl StorageManager {
             }
             info!("Shutdown CSI Plugin {}", addr);
         });
+    }
+
+    #[allow(dead_code)] // TODO: Remove this when the storage manager is fully implemented
+    fn create_bpffs(&self, path: &Path) -> anyhow::Result<()> {
+        create_bpffs(
+            path.as_os_str()
+                .to_str()
+                .expect("unable to convert path to str"),
+        )
+    }
+
+    #[allow(dead_code)] // TODO: Remove this when the storage manager is fully implemented
+    fn pin_map_to_bpffs(
+        &self,
+        source_object: &mut MapData,
+        dest_bpffs: &Path,
+    ) -> anyhow::Result<()> {
+        source_object
+            .pin(dest_bpffs)
+            .map_err(|e| anyhow::anyhow!("unable to pin map to bpffs: {}", e))?;
+        Ok(())
     }
 }

@@ -3,9 +3,13 @@
 
 use std::{os::unix::fs::PermissionsExt, path::Path, str};
 
+use anyhow::Context;
 use bpfd_api::util::USRGRP_BPFD;
-use log::{info, warn};
-use nix::net::if_::if_nametoindex;
+use log::{debug, info, warn};
+use nix::{
+    mount::{mount, MsFlags},
+    net::if_::if_nametoindex,
+};
 use tokio::{fs, io::AsyncReadExt};
 use users::get_group_by_name;
 
@@ -75,4 +79,11 @@ pub(crate) async fn set_dir_permissions(directory: &str, mode: u32) {
             set_file_permissions(&file.path().into_os_string().into_string().unwrap(), mode).await;
         }
     }
+}
+
+pub(crate) fn create_bpffs(directory: &str) -> anyhow::Result<()> {
+    debug!("Creating bpffs at {}", directory);
+    let flags = MsFlags::MS_NOSUID | MsFlags::MS_NODEV | MsFlags::MS_NOEXEC | MsFlags::MS_RELATIME;
+    mount::<str, str, str, str>(None, directory, Some("bpf"), flags, None)
+        .context("unable to mount bpffs")
 }
