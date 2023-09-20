@@ -23,11 +23,14 @@ use tonic::transport::{Server, ServerTlsConfig};
 
 pub use crate::certs::get_tls_config;
 use crate::{
-    bpf::BpfManager, errors::BpfdError, oci_utils::ImageManager, rpc::BpfdLoader,
-    static_program::get_static_programs, storage::StorageManager, utils::set_file_permissions,
+    bpf::BpfManager,
+    errors::BpfdError,
+    oci_utils::ImageManager,
+    rpc::BpfdLoader,
+    static_program::get_static_programs,
+    storage::StorageManager,
+    utils::{set_file_permissions, SOCK_MODE},
 };
-
-const SOCK_MODE: u32 = 0o0770;
 
 pub async fn serve(
     config: Config,
@@ -80,8 +83,6 @@ pub async fn serve(
         }
     }
 
-    let storage_manager = StorageManager::new();
-
     let (itx, irx) = mpsc::channel(32);
     let mut image_manager = ImageManager::new(BYTECODE_IMAGE_CONTENT_STORE, irx);
 
@@ -98,6 +99,8 @@ pub async fn serve(
         }
     };
     if csi_support {
+        let storage_manager = StorageManager::new();
+
         join!(
             join_listeners(listeners),
             bpf_manager.process_commands(),
