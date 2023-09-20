@@ -31,7 +31,7 @@ use tokio::{
     },
 };
 
-use super::ImageError;
+use super::{cosign::CosignVerifier, ImageError};
 use crate::{serve::shutdown_handler, utils::read};
 
 #[derive(Debug, Deserialize, Default)]
@@ -100,6 +100,7 @@ impl From<bpfd_api::v1::BytecodeImage> for BytecodeImage {
 pub(crate) struct ImageManager {
     base_dir: PathBuf,
     client: Client,
+    cosign_verifier: CosignVerifier,
     rx: Receiver<Command>,
 }
 
@@ -123,17 +124,23 @@ pub(crate) enum Command {
 }
 
 impl ImageManager {
-    pub(crate) fn new<P: AsRef<Path>>(base_dir: P, rx: mpsc::Receiver<Command>) -> Self {
+    pub(crate) async fn new<P: AsRef<Path>>(
+        base_dir: P,
+        allow_unsigned: bool,
+        rx: mpsc::Receiver<Command>,
+    ) -> Result<Self, anyhow::Error> {
+        let cosign_verifier = CosignVerifier::new(allow_unsigned).await?;
         let config = ClientConfig {
             protocol: ClientProtocol::Https,
             ..Default::default()
         };
         let client = Client::new(config);
-        Self {
+        Ok(Self {
             base_dir: base_dir.as_ref().to_path_buf(),
+            cosign_verifier,
             client,
             rx,
-        }
+        })
     }
 
     pub(crate) async fn run(&mut self) {
@@ -173,6 +180,10 @@ impl ImageManager {
         // crate. It currently contains many defaults more of which can be seen
         // here: https://github.com/krustlet/oci-distribution/blob/main/src/reference.rs#L58
         let image: Reference = image_url.parse().map_err(ImageError::InvalidImageUrl)?;
+
+        self.cosign_verifier
+            .verify(image_url, username.as_deref(), password.as_deref())
+            .await?;
 
         let image_content_path = self.get_image_content_dir(&image);
 
@@ -498,7 +509,7 @@ mod tests {
         std::env::set_current_dir(&tmpdir).unwrap();
 
         let (_tx, rx) = mpsc::channel(32);
-        let mut mgr = ImageManager::new(tmpdir, rx);
+        let mut mgr = ImageManager::new(tmpdir, true, rx).await.unwrap();
 
         let (path, _) = mgr
             .get_image(
@@ -527,7 +538,7 @@ mod tests {
         std::env::set_current_dir(&tmpdir).unwrap();
 
         let (_tx, rx) = mpsc::channel(32);
-        let mut mgr = ImageManager::new(&tmpdir, rx);
+        let mut mgr = ImageManager::new(&tmpdir, true, rx).await.unwrap();
 
         mgr.get_image(
             "quay.io/bpfd-bytecode/xdp_pass_private:latest",
@@ -544,7 +555,7 @@ mod tests {
         let tmpdir = tempfile::tempdir().unwrap();
         std::env::set_current_dir(&tmpdir).unwrap();
         let (_tx, rx) = mpsc::channel(32);
-        let mut mgr = ImageManager::new(&tmpdir, rx);
+        let mut mgr = ImageManager::new(&tmpdir, true, rx).await.unwrap();
 
         let (path, _) = mgr
             .get_image(
@@ -572,7 +583,7 @@ mod tests {
         std::env::set_current_dir(&tmpdir).unwrap();
 
         let (_tx, rx) = mpsc::channel(32);
-        let mut mgr = ImageManager::new(&tmpdir, rx);
+        let mut mgr = ImageManager::new(&tmpdir, true, rx).await.unwrap();
 
         let result = mgr
             .get_image(
@@ -586,8 +597,8 @@ mod tests {
         assert_matches!(result, Err(ImageError::ByteCodeImageNotfound(_)));
     }
 
-    #[test]
-    fn test_good_image_content_path() {
+    #[tokio::test]
+    async fn test_good_image_content_path() {
         let tmpdir = tempfile::tempdir().unwrap();
         std::env::set_current_dir(&tmpdir).unwrap();
 
@@ -608,7 +619,7 @@ mod tests {
         ];
 
         let (_tx, rx) = mpsc::channel(32);
-        let mgr = ImageManager::new(&tmpdir, rx);
+        let mgr = ImageManager::new(&tmpdir, true, rx).await.unwrap();
 
         for t in tt {
             let good_reference: Reference = t.input.parse().unwrap();

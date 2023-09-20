@@ -40,6 +40,11 @@ rustls = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }
+sigstore = { workspace = true, features = [
+    "cached-client",
+    "cosign-rustls-tls",
+    "tuf",
+] }
 systemd-journal-logger = { workspace = true }
 tar = { workspace = true }
 tempfile = { workspace = true }
