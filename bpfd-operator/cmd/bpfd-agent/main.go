@@ -133,9 +133,9 @@ func main() {
 	// }
 
 	// Get the nodename where this pod is running
-	nodeName := os.Getenv("NODENAME")
+	nodeName := os.Getenv("KUBE_NODE_NAME")
 	if nodeName == "" {
-		setupLog.Error(fmt.Errorf("NODENAME env var not set"), "Couldn't determine bpfd-agent's node")
+		setupLog.Error(fmt.Errorf("KUBE_NODE_NAME env var not set"), "Couldn't determine bpfd-agent's node")
 		os.Exit(1)
 	}
 
