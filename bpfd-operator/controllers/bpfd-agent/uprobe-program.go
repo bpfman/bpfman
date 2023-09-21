@@ -185,7 +185,7 @@ func (r *UprobeProgramReconciler) buildUprobeLoadRequest(
 	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
 		bytecode,
 		r.currentUprobeProgram.Spec.SectionName,
-		internal.Kprobe, map[string]string{internal.UuidMetadataKey: uuid},
+		internal.Kprobe, map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentUprobeProgram.Name},
 		r.currentUprobeProgram.Spec.GlobalData,
 		mapOwnerId,
 	)

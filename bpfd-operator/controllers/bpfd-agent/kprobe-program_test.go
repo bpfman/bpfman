@@ -161,7 +161,7 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 			},
 			Name:        sectionName,
 			ProgramType: *internal.Kprobe.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: string(bpfProg.UID)},
+			Metadata:    map[string]string{internal.UuidMetadataKey: string(bpfProg.UID), internal.ProgramNameKey: name},
 			MapOwnerId:  nil,
 		},
 		AttachInfo: &gobpfd.LoadRequest_KprobeAttachInfo{

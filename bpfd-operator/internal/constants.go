@@ -29,6 +29,7 @@ const (
 	DiscoveredLabel             = "bpfd.dev/discoveredProgram"
 	IdAnnotation                = "bpfd.dev/ProgramId"
 	UuidMetadataKey             = "bpfd.dev/uuid"
+	ProgramNameKey              = "bpfd.dev/ProgramName"
 	BpfdNs                      = "bpfd"
 	BpfdOperatorName            = "bpfd-operator"
 	BpfdDsName                  = "bpfd-daemon"

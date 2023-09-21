@@ -182,7 +182,7 @@ func (r *KprobeProgramReconciler) buildKprobeLoadRequest(
 	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
 		bytecode,
 		r.currentKprobeProgram.Spec.SectionName,
-		internal.Kprobe, map[string]string{internal.UuidMetadataKey: uuid},
+		internal.Kprobe, map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentKprobeProgram.Name},
 		r.currentKprobeProgram.Spec.GlobalData,
 		mapOwnerId,
 	)
