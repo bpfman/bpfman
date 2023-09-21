@@ -3,7 +3,7 @@
 
 use std::{os::unix::fs::PermissionsExt, path::Path, str};
 
-use anyhow::Context;
+use anyhow::{Context, Result};
 use bpfd_api::util::USRGRP_BPFD;
 use log::{debug, info, warn};
 use nix::{
@@ -84,8 +84,8 @@ pub(crate) async fn set_dir_permissions(directory: &str, mode: u32) {
 }
 
 pub(crate) fn create_bpffs(directory: &str) -> anyhow::Result<()> {
-    debug!("Creating bpffs at {}", directory);
+    debug!("Creating bpffs at {directory}");
     let flags = MsFlags::MS_NOSUID | MsFlags::MS_NODEV | MsFlags::MS_NOEXEC | MsFlags::MS_RELATIME;
     mount::<str, str, str, str>(None, directory, Some("bpf"), flags, None)
-        .context("unable to mount bpffs")
+        .with_context(|| format!("unable to create bpffs at {directory}"))
 }

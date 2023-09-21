@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::{collections::HashMap, fs::remove_file, path::Path};
+use std::{
+    collections::HashMap,
+    fs::{create_dir_all, remove_dir_all, remove_file},
+    path::Path,
+};
 
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use aya::maps::MapData;
-use bpfd_api::util::directories::STPATH_BPFD_CSI_SOCKET;
+use bpfd_api::util::directories::{RTDIR_BPFD_CSI_FS, STPATH_BPFD_CSI_SOCKET};
 use bpfd_csi::v1::{
     identity_server::{Identity, IdentityServer},
     node_server::{Node, NodeServer},
@@ -18,17 +23,28 @@ use bpfd_csi::v1::{
     NodeUnpublishVolumeResponse, NodeUnstageVolumeRequest, NodeUnstageVolumeResponse, ProbeRequest,
     ProbeResponse,
 };
-use log::info;
-use tokio::net::UnixListener;
+use log::{debug, info, warn};
+use nix::mount::{mount, umount, MsFlags};
+use tokio::{
+    net::UnixListener,
+    sync::{mpsc, mpsc::Sender, oneshot},
+};
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::{transport::Server, Request, Response, Status};
 
 use crate::{
+    command::Command,
     serve::shutdown_handler,
-    utils::{create_bpffs, set_file_permissions, SOCK_MODE},
+    utils::{create_bpffs, set_dir_permissions, set_file_permissions, SOCK_MODE},
 };
 
 const DRIVER_NAME: &str = "csi.bpfd.dev";
+const MAPS_KEY: &str = "csi.bpfd.dev/maps";
+const PROGRAM_KEY: &str = "csi.bpfd.dev/program";
+const OPERATOR_PROGRAM_KEY: &str = "bpfd.dev/ProgramName";
+// Node Publish Volume Error code constant mirrored from: https://github.com/container-storage-interface/spec/blob/master/spec.md#nodepublishvolume-errors
+const NPV_NOT_FOUND: i32 = 5;
+const OWNER_READ_WRITE: u32 = 0o0750;
 
 pub(crate) struct StorageManager {
     csi_identity: CsiIdentity,
@@ -42,6 +58,7 @@ struct CsiIdentity {
 
 struct CsiNode {
     node_id: String,
+    tx: Sender<Command>,
 }
 
 #[async_trait]
@@ -100,21 +117,150 @@ impl Node for CsiNode {
         let volume_id = &req.volume_id;
         let target_path = &req.target_path;
         let volume_context = &req.volume_context;
+        // TODO (astoycos) support readonly bpf pins.
         let read_only = &req.readonly;
 
-        info!(
+        debug!(
             "Received publish volume request with :\n\
-        volume_caps: {volume_cap:#?},\n\
-        volume_id: {volume_id},\n\
-        target_path: {target_path},\n\
-        volume_context: {volume_context:#?},\n\
-        read_only: {read_only}\n\
-        Sleeping for 60 seconds"
+                volume_caps: {volume_cap:#?},\n\
+                volume_id: {volume_id},\n\
+                target_path: {target_path},\n\
+                volume_context: {volume_context:#?},\n\
+                read_only: {read_only}"
         );
 
-        tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+        match (
+            volume_context.get(MAPS_KEY),
+            volume_context.get(PROGRAM_KEY),
+        ) {
+            (Some(m), Some(program_name)) => {
+                let maps: Vec<&str> = m.split(',').collect();
 
-        Ok(Response::new(NodePublishVolumeResponse {}))
+                // Get the program information from the BpfManager
+                let (resp_tx, resp_rx) = oneshot::channel();
+                let cmd = Command::List { responder: resp_tx };
+
+                // Send the LIST request
+                self.tx.send(cmd).await.unwrap();
+
+                // Await the response
+                let core_map_path = match resp_rx.await {
+                    Ok(res) => match res {
+                        // Find the Program with the specified *Program CRD name
+                        Ok(results) => {
+                            let prog_data = results
+                                .into_iter()
+                                .find(|p| {
+                                    if let Ok(data) = p.data() {
+                                        data.metadata().get(OPERATOR_PROGRAM_KEY)
+                                            == Some(program_name)
+                                    } else {
+                                        false
+                                    }
+                                })
+                                .ok_or(Status::new(
+                                    NPV_NOT_FOUND.into(),
+                                    format!("Bpfd Program {program_name} not found"),
+                                ))?;
+                            Ok(prog_data
+                                .data().expect("program data is valid because we just checked it")
+                                .map_pin_path()
+                                .expect("map pin path should be set since the program is already loaded")
+                                .to_owned())
+                        }
+                        Err(_) => Err(Status::new(
+                            NPV_NOT_FOUND.into(),
+                            format!("Bpfd Program {program_name} not found"),
+                        )),
+                    },
+                    Err(_) => Err(Status::new(
+                        NPV_NOT_FOUND.into(),
+                        format!("Unable to list bpfd programs {program_name} not found"),
+                    )),
+                }?;
+
+                // Create the Target Path if it doesn't exist
+                let target = Path::new(target_path);
+                if !target.exists() {
+                    create_dir_all(target).map_err(|e| {
+                        Status::new(
+                            NPV_NOT_FOUND.into(),
+                            format!("failed creating target path {target_path:?}: {e}"),
+                        )
+                    })?;
+                    set_dir_permissions(target_path, OWNER_READ_WRITE).await;
+                }
+
+                // Make a new bpf fs specifically for the pod.
+                let path = &Path::new(RTDIR_BPFD_CSI_FS).join(volume_id);
+
+                // Volume_id is unique to the instance of the pod, if it get's restarted it will
+                // be new.
+                create_dir_all(path)?;
+
+                create_bpffs(
+                    path.as_os_str()
+                        .to_str()
+                        .expect("unable to convert path to str"),
+                )
+                .map_err(|e| {
+                    Status::new(
+                        NPV_NOT_FOUND.into(),
+                        format!("failed creating bpf-fs for pod {volume_id}: {e}"),
+                    )
+                })?;
+
+                // Load the desired maps from the fs and re-pin to new fs.
+                // TODO(astoycos) all aya calls should be completed by main bpfManager thread.
+                maps.iter().try_for_each(|m| {
+                    debug!("Loading map {m} from {core_map_path:?}");
+                    let mut map = MapData::from_pin(core_map_path.join(m)).map_err(|e| {
+                        Status::new(
+                            NPV_NOT_FOUND.into(),
+                            format!("map {m} not found in {program_name}'s pinned maps: {e}"),
+                        )
+                    })?;
+                    debug!("Re-pinning map {m} to {path:?}");
+                    map.pin(path.join(m)).map_err(|e| {
+                        Status::new(
+                            NPV_NOT_FOUND.into(),
+                            format!(
+                                "failed re-pinning map {m} for {program_name}'s bpf-fs: {e:#?}"
+                            ),
+                        )
+                    })
+                })?;
+
+                // mount the bpffs into the container
+                mount_fs_in_container(path.to_str().unwrap(), target_path).map_err(|e| {
+                    Status::new(
+                        NPV_NOT_FOUND.into(),
+                        format!("failed mounting bpffs {path:?} to container {target_path}: {e}"),
+                    )
+                })?;
+
+                Ok(Response::new(NodePublishVolumeResponse {}))
+            }
+            (_, Some(program)) => {
+                let err_msg = format!("No {MAPS_KEY} set in volume context from {program}");
+                warn!("{}", err_msg);
+
+                Err(Status::new(NPV_NOT_FOUND.into(), err_msg))
+            }
+            (Some(m), _) => {
+                let err_msg =
+                    format!("No {PROGRAM_KEY} set in volume context in for requested maps {m}");
+                warn!("{}", err_msg);
+
+                Err(Status::new(NPV_NOT_FOUND.into(), err_msg))
+            }
+            (_, _) => {
+                let err_msg = format!("No {MAPS_KEY} or {PROGRAM_KEY} set in volume context");
+                warn!("{}", err_msg);
+
+                Err(Status::new(NPV_NOT_FOUND.into(), err_msg))
+            }
+        }
     }
     async fn node_unpublish_volume(
         &self,
@@ -123,11 +269,35 @@ impl Node for CsiNode {
         let req = request.get_ref();
         let volume_id = &req.volume_id;
         let target_path = &req.target_path;
-        info!(
+        debug!(
             "Received unpublish volume request with :\n\
-        volume_id: {volume_id},\n\
-        target_path: {target_path}"
+                volume_id: {volume_id},\n\
+                target_path: {target_path}"
         );
+
+        // unmount bpffs from the container
+        unmount(target_path).map_err(|e| {
+            Status::new(
+                5.into(),
+                format!("Failed to unmount bpffs from container at {target_path}: {e}"),
+            )
+        })?;
+
+        // unmount the bpffs
+        let path = &Path::new(RTDIR_BPFD_CSI_FS).join(volume_id);
+        unmount(path.to_str().unwrap()).map_err(|e| {
+            Status::new(
+                5.into(),
+                format!("Failed to unmount bpffs at {path:?}: {e}"),
+            )
+        })?;
+
+        let path = &Path::new(path);
+        if path.exists() {
+            remove_dir_all(path).map_err(|e| {
+                Status::new(5.into(), format!("Failed to remove bpffs at {path:?}: {e}"))
+            })?;
+        }
 
         Ok(Response::new(NodeUnpublishVolumeResponse {}))
     }
@@ -173,7 +343,7 @@ impl Node for CsiNode {
 }
 
 impl StorageManager {
-    pub fn new() -> Self {
+    pub fn new(tx: mpsc::Sender<Command>) -> Self {
         const VERSION: &str = env!("CARGO_PKG_VERSION");
         let node_id = std::env::var("KUBE_NODE_NAME")
             .expect("cannot start bpfd csi driver if KUBE_NODE_NAME not set");
@@ -182,7 +352,8 @@ impl StorageManager {
             name: DRIVER_NAME.to_string(),
             version: VERSION.to_string(),
         };
-        let csi_node = CsiNode { node_id };
+
+        let csi_node = CsiNode { node_id, tx };
 
         Self {
             csi_node,
@@ -239,4 +410,16 @@ impl StorageManager {
             .map_err(|e| anyhow::anyhow!("unable to pin map to bpffs: {}", e))?;
         Ok(())
     }
+}
+
+pub(crate) fn unmount(directory: &str) -> anyhow::Result<()> {
+    debug!("Unmounting fs at {directory}");
+    umount(directory).with_context(|| format!("unable to unmount fs at {directory}"))
+}
+
+pub(crate) fn mount_fs_in_container(path: &str, target_path: &str) -> anyhow::Result<()> {
+    debug!("Mounting {path} at {target_path}");
+    let flags = MsFlags::MS_BIND;
+    mount::<str, str, str, str>(Some(path), target_path, None, flags, None)
+        .with_context(|| format!("unable to mount bpffs {path} in container at {target_path}"))
 }

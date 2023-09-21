@@ -37,6 +37,7 @@ pub mod directories {
     // K8s volume mount for it.
     pub const RTDIR_BPFD_CSI: &str = "/run/bpfd/csi";
     pub const STPATH_BPFD_CSI_SOCKET: &str = "/run/bpfd/csi/csi.sock";
+    pub const RTDIR_BPFD_CSI_FS: &str = "/run/bpfd/csi/fs";
 
     // StateDirectory: /var/lib/bpfd/
     pub const STDIR: &str = "/var/lib/bpfd";

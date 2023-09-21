@@ -102,6 +102,8 @@ fn main() -> anyhow::Result<()> {
 
             create_dir_all(RTDIR_BPFD_CSI).context("unable to create socket directory")?;
 
+            create_dir_all(RTDIR_BPFD_CSI_FS).context("unable to create socket directory")?;
+
             create_dir_all(BYTECODE_IMAGE_CONTENT_STORE)
                 .context("unable to create bytecode image store directory")?;
 
