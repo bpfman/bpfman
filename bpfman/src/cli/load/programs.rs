@@ -93,9 +93,10 @@ pub(crate) enum LoadCommands {
         #[clap(short, long, verbatim_doc_comment)]
         retprobe: bool,
 
-        /// Optional: Namespace to attach the kprobe in. (NOT CURRENTLY SUPPORTED)
+        /// Optional: Host PID of container to attach the kprobe in.
+        /// (NOT CURRENTLY SUPPORTED)
         #[clap(short, long)]
-        namespace: Option<String>,
+        container_pid: Option<i32>,
     },
     /// Install an eBPF uprobe or uretprobe
     Uprobe {
@@ -126,9 +127,10 @@ pub(crate) enum LoadCommands {
         #[clap(short, long, verbatim_doc_comment)]
         pid: Option<i32>,
 
-        /// Optional: Namespace to attach the uprobe in. (NOT CURRENTLY SUPPORTED)
+        /// Optional: Host PID of container to attach the uprobe in.
+        /// (NOT CURRENTLY SUPPORTED)
         #[clap(short, long)]
-        namespace: Option<String>,
+        container_pid: Option<i32>,
     },
 }
 
@@ -196,10 +198,10 @@ impl LoadCommands {
                 fn_name,
                 offset,
                 retprobe,
-                namespace,
+                container_pid,
             } => {
-                if namespace.is_some() {
-                    bail!("kprobe namespace option not supported yet");
+                if container_pid.is_some() {
+                    bail!("kprobe container option not supported yet");
                 }
                 let offset = offset.unwrap_or(0);
                 Ok(Some(AttachInfo {
@@ -207,7 +209,7 @@ impl LoadCommands {
                         fn_name: fn_name.to_string(),
                         offset,
                         retprobe: *retprobe,
-                        namespace: namespace.clone(),
+                        container_pid: *container_pid,
                     })),
                 }))
             }
@@ -217,11 +219,8 @@ impl LoadCommands {
                 target,
                 retprobe,
                 pid,
-                namespace,
+                container_pid,
             } => {
-                if namespace.is_some() {
-                    bail!("uprobe namespace option not supported yet");
-                }
                 let offset = offset.unwrap_or(0);
                 Ok(Some(AttachInfo {
                     info: Some(Info::UprobeAttachInfo(UprobeAttachInfo {
@@ -230,7 +229,7 @@ impl LoadCommands {
                         target: target.clone(),
                         retprobe: *retprobe,
                         pid: *pid,
-                        namespace: namespace.clone(),
+                        container_pid: *container_pid,
                     })),
                 }))
             }

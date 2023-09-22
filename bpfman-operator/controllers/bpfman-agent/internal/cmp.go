@@ -136,7 +136,7 @@ func DoesProgExist(actual *gobpfman.ListResponse_ListResult, expected *gobpfman.
 			if actualKprobe.FnName != expectedKprobe.FnName ||
 				actualKprobe.Offset != expectedKprobe.Offset ||
 				actualKprobe.Retprobe != expectedKprobe.Retprobe ||
-				!reflect.DeepEqual(actualKprobe.Namespace, expectedKprobe.Namespace) {
+				!reflect.DeepEqual(actualKprobe.ContainerPid, expectedKprobe.ContainerPid) {
 				reasons = append(reasons, fmt.Sprintf("Expected Kprobe to be %v but found %v",
 					expectedKprobe, actualKprobe))
 			}
@@ -150,7 +150,7 @@ func DoesProgExist(actual *gobpfman.ListResponse_ListResult, expected *gobpfman.
 				actualUprobe.Target != expectedUprobe.Target ||
 				actualUprobe.Retprobe != expectedUprobe.Retprobe ||
 				actualUprobe.Pid != expectedUprobe.Pid ||
-				!reflect.DeepEqual(actualUprobe.Namespace, expectedUprobe.Namespace) {
+				!reflect.DeepEqual(actualUprobe.ContainerPid, expectedUprobe.ContainerPid) {
 				reasons = append(reasons, fmt.Sprintf("Expected Uprobe to be %v but found %v",
 					expectedUprobe, actualUprobe))
 			}

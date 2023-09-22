@@ -49,7 +49,7 @@ pub(crate) struct TracepointAttachInfo {
 //     pub(crate) fn_name: String,
 //     pub(crate) offset: u64,
 //     pub(crate) retprobe: bool,
-//     pub(crate) namespace: Option<String>,
+//     pub(crate) container_pid: Option<i32>,
 // }
 
 // #[derive(Debug, Clone, Deserialize)]
@@ -59,7 +59,7 @@ pub(crate) struct TracepointAttachInfo {
 //     pub(crate) target: String,
 //     pub(crate) retprobe: bool,
 //     pub(crate) pid: Option<i32>,
-//     pub(crate) namespace: Option<String>,
+//     pub(crate) container_pid: Option<i32>,
 // }
 
 #[derive(Debug, Deserialize, Clone)]

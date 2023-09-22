@@ -45,20 +45,20 @@ import (
 
 func TestUprobeProgramControllerCreate(t *testing.T) {
 	var (
-		name            = "fakeUprobeProgram"
-		namespace       = "bpfman"
-		bytecodePath    = "/tmp/hello.o"
-		bpfFunctionName = "test"
-		functionName    = "malloc"
-		target          = "libc"
-		offset          = 0
-		retprobe        = false
-		uprobenamespace = ""
-		fakeNode        = testutils.NewNode("fake-control-plane")
-		ctx             = context.TODO()
-		bpfProgName     = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, "libc")
-		bpfProg         = &bpfmaniov1alpha1.BpfProgram{}
-		fakeUID         = "ef71d42c-aa21-48e8-a697-82391d801a81"
+		name                     = "fakeUprobeProgram"
+		namespace                = "bpfman"
+		bytecodePath             = "/tmp/hello.o"
+		bpfFunctionName          = "test"
+		functionName             = "malloc"
+		target                   = "libc"
+		offset                   = 0
+		retprobe                 = false
+		uprobecontainerpid int32 = 0
+		fakeNode                 = testutils.NewNode("fake-control-plane")
+		ctx                      = context.TODO()
+		bpfProgName              = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, "libc")
+		bpfProg                  = &bpfmaniov1alpha1.BpfProgram{}
+		fakeUID                  = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)
 	// A UprobeProgram object with metadata and spec.
 	Uprobe := &bpfmaniov1alpha1.UprobeProgram{
@@ -166,11 +166,11 @@ func TestUprobeProgramControllerCreate(t *testing.T) {
 		Attach: &gobpfman.AttachInfo{
 			Info: &gobpfman.AttachInfo_UprobeAttachInfo{
 				UprobeAttachInfo: &gobpfman.UprobeAttachInfo{
-					FnName:    &functionName,
-					Target:    target,
-					Offset:    uint64(offset),
-					Retprobe:  retprobe,
-					Namespace: &uprobenamespace,
+					FnName:       &functionName,
+					Target:       target,
+					Offset:       uint64(offset),
+					Retprobe:     retprobe,
+					ContainerPid: &uprobecontainerpid,
 				},
 			},
 		},

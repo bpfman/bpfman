@@ -1,0 +1,27 @@
+[package]
+description = "An executable to attach an eBPF program inside a container"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+name = "bpfman-ns"
+repository = "https://github.com/bpfman/bpfman"
+version = "0.3.1"
+
+[[bin]]
+name = "bpfman-ns"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true, features = ["std"] }
+aya = { workspace = true }
+caps = { workspace = true }
+clap = { workspace = true, features = [
+    "color",
+    "derive",
+    "help",
+    "std",
+    "suggestions",
+    "usage",
+] }
+env_logger = { workspace = true }
+log = { workspace = true }
+nix = { workspace = true, features = ["sched"] }

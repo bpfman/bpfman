@@ -130,8 +130,8 @@ pub struct KprobeAttachInfo {
     pub offset: u64,
     #[prost(bool, tag = "3")]
     pub retprobe: bool,
-    #[prost(string, optional, tag = "4")]
-    pub namespace: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(int32, optional, tag = "4")]
+    pub container_pid: ::core::option::Option<i32>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -146,8 +146,8 @@ pub struct UprobeAttachInfo {
     pub retprobe: bool,
     #[prost(int32, optional, tag = "5")]
     pub pid: ::core::option::Option<i32>,
-    #[prost(string, optional, tag = "6")]
-    pub namespace: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(int32, optional, tag = "6")]
+    pub container_pid: ::core::option::Option<i32>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

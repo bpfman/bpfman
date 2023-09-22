@@ -43,4 +43,9 @@ pub enum BpfmanError {
     RpcError(#[from] oneshot::error::RecvError),
     #[error("Failed to pin map {0}")]
     UnableToPinMap(#[source] aya::pin::PinError),
+    #[error("Unable to attach {program_type} in container with pid {container_pid}")]
+    ContainerAttachError {
+        program_type: String,
+        container_pid: i32,
+    },
 }

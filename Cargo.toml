@@ -3,6 +3,7 @@ members = [
     "bpf-metrics-exporter",
     "bpfman",
     "bpfman-api",
+    "bpfman-ns",
     "csi",
     "tests/integration-test",
     "tests/integration-test-macros",

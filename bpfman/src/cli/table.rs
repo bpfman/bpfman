@@ -158,7 +158,7 @@ impl ProgTable {
                     fn_name,
                     offset,
                     retprobe,
-                    namespace,
+                    container_pid,
                 }) => {
                     let probe_type = match retprobe {
                         true => Kretprobe,
@@ -168,7 +168,10 @@ impl ProgTable {
                     table.add_row(vec!["Probe Type:", &format!["{probe_type}"]]);
                     table.add_row(vec!["Function Name:", &fn_name]);
                     table.add_row(vec!["Offset:", &offset.to_string()]);
-                    table.add_row(vec!["Namespace", &namespace.unwrap_or("".to_string())]);
+                    table.add_row(vec![
+                        "Container PID",
+                        &container_pid.unwrap_or(0).to_string(),
+                    ]);
                 }
                 Info::UprobeAttachInfo(UprobeAttachInfo {
                     fn_name,
@@ -176,7 +179,7 @@ impl ProgTable {
                     target,
                     retprobe,
                     pid,
-                    namespace,
+                    container_pid,
                 }) => {
                     let probe_type = match retprobe {
                         true => Uretprobe,
@@ -188,7 +191,10 @@ impl ProgTable {
                     table.add_row(vec!["Offset:", &offset.to_string()]);
                     table.add_row(vec!["Target:", &target]);
                     table.add_row(vec!["PID", &pid.unwrap_or(0).to_string()]);
-                    table.add_row(vec!["Namespace", &namespace.unwrap_or("".to_string())]);
+                    table.add_row(vec![
+                        "Container PID",
+                        &container_pid.unwrap_or(0).to_string(),
+                    ]);
                 }
             }
         }
