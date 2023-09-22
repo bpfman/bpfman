@@ -1,0 +1,8 @@
+anfredette:
+  name: Andre Fredette
+  description: Senior Principal Software Engineer at Red Hat.  Maintainer on bpfd project.
+  avatar: https://github.com/anfredette.png
+shaneutt:
+  name: Shane Utt
+  description: Staff Software Engineer at Kong. Kubernetes SIG Network Chair and Gateway API Maintainer.
+  avatar: https://github.com/shaneutt.png

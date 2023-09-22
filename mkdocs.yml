@@ -69,6 +69,8 @@ nav:
     - Logging: developer-guide/logging.md
     - Configuration: developer-guide/configuration.md
     - Testing: developer-guide/testing.md
+  - Blog:
+    - blog/index.md
   - Community:
     - Meetings: governance/MEETINGS.md
     - Governance: governance/GOVERNANCE.md
@@ -77,6 +79,13 @@ nav:
     - Security: governance/SECURITY.md
 
 plugins:
+  - blog:
+      # NOTE: configuration options can be found at
+      # https://squidfunk.github.io/mkdocs-material/setup/setting-up-a-blog/
+      blog_dir: blog
+      blog_toc: true
+      post_excerpt: required
+      post_excerpt_max_authors: 2
   - search
 
 copyright: Copyright &copy; 2021-2023 The bpfd contributors
