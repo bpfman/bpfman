@@ -21,7 +21,7 @@ use bpfd_api::{
     ProbeType::{self, *},
     ProgramType, TcProceedOn,
 };
-use log::{debug, info};
+use log::{debug, info, trace};
 use tokio::{
     fs, select,
     sync::{
@@ -39,6 +39,7 @@ use crate::{
     errors::BpfdError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
     oci_utils::image_manager::Command as ImageManagerCommand,
+    qdisc::QdiscEvent,
     serve::shutdown_handler,
     utils::{get_ifindex, set_dir_permissions},
 };
@@ -52,6 +53,7 @@ pub(crate) struct BpfManager {
     maps: HashMap<u32, BpfMap>,
     commands: Receiver<Command>,
     image_manager: Sender<ImageManagerCommand>,
+    qdisc_destroy_event: Receiver<QdiscEvent>,
 }
 
 pub(crate) struct ProgramMap {
@@ -175,6 +177,7 @@ impl BpfManager {
         config: Config,
         commands: Receiver<Command>,
         image_manager: Sender<ImageManagerCommand>,
+        qdisc_destroy_event: Receiver<QdiscEvent>,
     ) -> Self {
         Self {
             config,
@@ -183,6 +186,7 @@ impl BpfManager {
             maps: HashMap::new(),
             commands,
             image_manager,
+            qdisc_destroy_event,
         }
     }
 
@@ -821,7 +825,8 @@ impl BpfManager {
         Ok(())
     }
 
-    pub(crate) async fn process_commands(&mut self) {
+    // Run receives commands and qdisc destroy events.
+    pub(crate) async fn run(&mut self) {
         loop {
             // Start receiving messages
             select! {
@@ -849,6 +854,49 @@ impl BpfManager {
                             let _ = args.responder.send(prog);
                         },
                         Command::PullBytecode (args) => self.pull_bytecode(args).await.unwrap(),
+                    }
+                }
+                Some(qdisc_event) = self.qdisc_destroy_event.recv() => {
+                let null_pos_dev = qdisc_event
+                    .dev
+                    .iter()
+                    .position(|&c| c == 0)
+                    .unwrap_or(qdisc_event.dev.len());
+                let dev_str = String::from_utf8_lossy(&qdisc_event.dev[0..null_pos_dev]);
+
+                let null_pos_kind = qdisc_event
+                    .kind
+                    .iter()
+                    .position(|&c| c == 0)
+                    .unwrap_or(qdisc_event.kind.len());
+                let kind_str = String::from_utf8_lossy(&qdisc_event.kind[0..null_pos_kind]);
+
+                trace!("Qdisc destroy event on dev: {:?}, kind: {:?}", dev_str, kind_str);
+
+                // check if the qdisc is clsact.
+                if kind_str != "clsact" {
+                    continue;
+                }
+
+                debug!("Qdisc destroy event on dev: {:?}, kind: {:?}", dev_str, kind_str);
+
+                // the qdisc is clsact. let's remove all tc programs for this device.
+                match self.get_programs_id(
+                        &dev_str,
+                        &ProgramType::Tc,
+                        &Some(Direction::Ingress),
+                    ) {
+                        Ok(if_indexes) => {
+                            for if_index in if_indexes {
+                                debug!("Found program with UUID: {}", if_index);
+                                self.remove_program(if_index)
+                                    .await
+                                    .unwrap();
+                            }
+                        }
+                        Err(e) => {
+                            debug!("Error: {:?}", e);
+                        }
                     }
                 }
             }
@@ -995,6 +1043,50 @@ impl BpfManager {
         } else {
             let map = BpfMap { used_by: vec![id] };
             self.maps.insert(index, map);
+        }
+    }
+
+    pub(crate) fn get_programs_id(
+        &mut self,
+        iface: &str,
+        program_type: &ProgramType,
+        direction: &Option<Direction>,
+    ) -> Result<Vec<u32>, BpfdError> {
+        debug!("BpfManager::get_program()");
+        debug!("iface: {}", iface);
+        let programs = match self.list_programs() {
+            Ok(p) => p,
+            Err(e) => return Err(e),
+        };
+
+        let mut targets: Vec<Program> = programs
+            .iter()
+            .filter(|program| {
+                let if_name = match program.if_name() {
+                    Some(i) => i,
+                    None => return false,
+                };
+                if_name == iface
+                    && program.kind() == *program_type
+                    && program.direction() == *direction
+            })
+            .cloned()
+            .collect();
+
+        match targets.len() {
+            0 => Err(BpfdError::NotLoaded),
+            _ => {
+                let ids = targets
+                    .iter_mut()
+                    .map(|program| {
+                        program
+                            .kernel_info()
+                            .expect("kernel info should be set after load")
+                            .id
+                    })
+                    .collect();
+                Ok(ids)
+            }
         }
     }
 }

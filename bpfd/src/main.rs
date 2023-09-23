@@ -15,6 +15,7 @@ mod dispatcher_config;
 mod errors;
 mod multiprog;
 mod oci_utils;
+mod qdisc;
 mod rpc;
 mod serve;
 mod static_program;
