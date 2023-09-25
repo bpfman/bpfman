@@ -38,7 +38,7 @@ log = { version = "0.4", default-features = false }
 nix = { version = "0.27", default-features = false }
 oci-distribution = { version = "0.9", default-features = false }
 openssl = { version = "0.10.57", default-features = false }
-predicates = { version = "3.0.1", default-features = false }
+predicates = { version = "3.0.4", default-features = false }
 prost = { version = "0.12.1", default-features = false }
 prost-types = { version = "0.12.1", default-features = false }
 quote = { version = "1", default-features = false }
