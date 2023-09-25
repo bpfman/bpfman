@@ -57,7 +57,7 @@ tokio = { version = "1.31.0", default-features = false }
 tokio-stream = { version = "0.1.12", default-features = false }
 toml = { version = "0.7", default-features = false }
 tonic = { version = "0.10.1", default-features = false }
-tonic-build = { version = "0.10.0", default-features = false }
+tonic-build = { version = "0.10.1", default-features = false }
 tower = { version = "0.4.13", default-features = false }
 url = { version = "2.4.0", default-features = false }
 users = { version = "0.11.0", default-features = false }
