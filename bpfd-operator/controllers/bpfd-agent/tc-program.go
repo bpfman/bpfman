@@ -32,7 +32,7 @@ import (
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 	bpfdagentinternal "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent/internal"
-	internal "github.com/bpfd-dev/bpfd/bpfd-operator/internal"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
 
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	v1 "k8s.io/api/core/v1"
@@ -228,7 +228,7 @@ func (r *TcProgramReconciler) buildTcLoadRequest(
 		bytecode,
 		r.currentTcProgram.Spec.SectionName,
 		internal.Tc,
-		map[string]string{internal.UuidMetadataKey: uuid},
+		map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentTcProgram.Name},
 		r.currentTcProgram.Spec.GlobalData,
 		mapOwnerId,
 	)

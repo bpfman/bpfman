@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::collections::HashMap;
 
 use bpfd_api::{
     v1::{
@@ -28,12 +25,11 @@ use crate::command::{
 
 #[derive(Debug)]
 pub struct BpfdLoader {
-    tx: Arc<Mutex<Sender<Command>>>,
+    tx: Sender<Command>,
 }
 
 impl BpfdLoader {
     pub(crate) fn new(tx: mpsc::Sender<Command>) -> BpfdLoader {
-        let tx = Arc::new(Mutex::new(tx));
         BpfdLoader { tx }
     }
 }
@@ -116,9 +112,8 @@ impl Bpfd for BpfdLoader {
             responder: resp_tx,
         };
 
-        let tx = self.tx.lock().unwrap().clone();
         // Send the GET request
-        tx.send(Command::Load(load_args)).await.unwrap();
+        self.tx.send(Command::Load(load_args)).await.unwrap();
 
         // Await the response
         match resp_rx.await {
@@ -151,9 +146,8 @@ impl Bpfd for BpfdLoader {
             responder: resp_tx,
         });
 
-        let tx = self.tx.lock().unwrap().clone();
         // Send the GET request
-        tx.send(cmd).await.unwrap();
+        self.tx.send(cmd).await.unwrap();
 
         // Await the response
         match resp_rx.await {
@@ -177,9 +171,8 @@ impl Bpfd for BpfdLoader {
         let (resp_tx, resp_rx) = oneshot::channel();
         let cmd = Command::List { responder: resp_tx };
 
-        let tx = self.tx.lock().unwrap().clone();
         // Send the GET request
-        tx.send(cmd).await.unwrap();
+        self.tx.send(cmd).await.unwrap();
 
         // Await the response
         match resp_rx.await {
@@ -375,8 +368,7 @@ impl Bpfd for BpfdLoader {
             responder: resp_tx,
         });
 
-        let tx = self.tx.lock().unwrap().clone();
-        tx.send(cmd).await.unwrap();
+        self.tx.send(cmd).await.unwrap();
 
         // Await the response
         match resp_rx.await {

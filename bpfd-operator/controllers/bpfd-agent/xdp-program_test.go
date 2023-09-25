@@ -161,7 +161,7 @@ func TestXdpProgramControllerCreate(t *testing.T) {
 			},
 			Name:        sectionName,
 			ProgramType: *internal.Xdp.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: uuid},
+			Metadata:    map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: name},
 			MapOwnerId:  nil,
 		},
 		AttachInfo: &gobpfd.LoadRequest_XdpAttachInfo{
@@ -383,7 +383,7 @@ func TestXdpProgramControllerCreateMultiIntf(t *testing.T) {
 			},
 			Name:        sectionName,
 			ProgramType: *internal.Xdp.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: uuid0},
+			Metadata:    map[string]string{internal.UuidMetadataKey: uuid0, internal.ProgramNameKey: name},
 			MapOwnerId:  nil,
 		},
 		AttachInfo: &gobpfd.LoadRequest_XdpAttachInfo{
@@ -404,7 +404,7 @@ func TestXdpProgramControllerCreateMultiIntf(t *testing.T) {
 			},
 			Name:        sectionName,
 			ProgramType: *internal.Xdp.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: uuid1},
+			Metadata:    map[string]string{internal.UuidMetadataKey: uuid1, internal.ProgramNameKey: name},
 			MapOwnerId:  nil,
 		},
 		AttachInfo: &gobpfd.LoadRequest_XdpAttachInfo{

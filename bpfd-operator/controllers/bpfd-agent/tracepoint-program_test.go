@@ -156,7 +156,7 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 			},
 			Name:        sectionName,
 			ProgramType: *internal.Tracepoint.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid)},
+			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid), internal.ProgramNameKey: name},
 			MapOwnerId:  nil,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TracepointAttachInfo{

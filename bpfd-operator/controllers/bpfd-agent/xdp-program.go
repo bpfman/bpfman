@@ -216,7 +216,7 @@ func (r *XdpProgramReconciler) buildXdpLoadRequest(
 		bytecode,
 		r.currentXdpProgram.Spec.SectionName,
 		internal.Xdp,
-		map[string]string{internal.UuidMetadataKey: uuid},
+		map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentXdpProgram.Name},
 		r.currentXdpProgram.Spec.GlobalData,
 		mapOwnerId,
 	)

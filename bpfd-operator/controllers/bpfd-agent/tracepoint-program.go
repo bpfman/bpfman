@@ -185,7 +185,7 @@ func (r *TracepointProgramReconciler) buildTracepointLoadRequest(
 		bytecode,
 		r.currentTracepointProgram.Spec.SectionName,
 		internal.Tracepoint,
-		map[string]string{internal.UuidMetadataKey: uuid},
+		map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentTracepointProgram.Name},
 		r.currentTracepointProgram.Spec.GlobalData,
 		mapOwnerId,
 	)

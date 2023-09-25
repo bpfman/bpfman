@@ -101,7 +101,7 @@ pub async fn serve(
         }
     };
     if csi_support {
-        let storage_manager = StorageManager::new();
+        let storage_manager = StorageManager::new(tx);
 
         join!(
             join_listeners(listeners),

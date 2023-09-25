@@ -166,7 +166,7 @@ func TestTcProgramControllerCreate(t *testing.T) {
 			},
 			Name:        sectionName,
 			ProgramType: *internal.Tc.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid)},
+			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid), internal.ProgramNameKey: name},
 			MapOwnerId:  nil,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
@@ -388,7 +388,7 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 			},
 			Name:        sectionName,
 			ProgramType: *internal.Tc.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid0)},
+			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid0), internal.ProgramNameKey: name},
 			MapOwnerId:  nil,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
@@ -410,7 +410,7 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 			},
 			Name:        sectionName,
 			ProgramType: *internal.Tc.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid1)},
+			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid1), internal.ProgramNameKey: name},
 			MapOwnerId:  nil,
 		},
 		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
