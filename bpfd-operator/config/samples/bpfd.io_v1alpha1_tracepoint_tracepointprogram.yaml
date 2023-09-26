@@ -5,7 +5,7 @@ metadata:
     app.kubernetes.io/name: tracepointprogram
   name: tracepoint-example
 spec:
-  sectionname: sys_enter_openat
+  sectionname: enter_openat
   # Select all nodes
   nodeselector: {}
   names: 
