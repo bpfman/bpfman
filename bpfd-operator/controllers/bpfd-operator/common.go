@@ -23,6 +23,8 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	meta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -78,7 +80,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 	opts := []client.ListOption{client.MatchingLabels{internal.BpfProgramOwnerLabel: progName}}
 
 	if err := r.List(ctx, bpfPrograms, opts...); err != nil {
-		r.Logger.Error(err, "failed to get freshPrograms for full reconcile")
+		r.Logger.V(1).Error(err, "failed to get freshPrograms for full reconcile")
 		return ctrl.Result{}, nil
 	}
 
@@ -149,7 +151,7 @@ func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, prog client.Obje
 	if changed := controllerutil.RemoveFinalizer(prog, finalizer); changed {
 		err := r.Update(ctx, prog)
 		if err != nil {
-			r.Logger.Error(err, "failed to remove bpfProgram Finalizer")
+			r.Logger.V(1).Error(err, "failed to remove bpfProgram Finalizer")
 			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 		}
 	}
@@ -187,4 +189,47 @@ func statusChangedPredicate() predicate.Funcs {
 			return false
 		},
 	}
+}
+
+func (r *ReconcilerCommon) updateCondition(ctx context.Context, obj client.Object, conditions *[]metav1.Condition, cond bpfdiov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
+
+	r.Logger.V(1).Info("updateCondition()", "existing conds", conditions, "new cond", cond)
+
+	if conditions != nil {
+		numConditions := len(*conditions)
+
+		switch {
+		case numConditions == 1:
+			{
+				if (*conditions)[0].Type == string(cond) {
+					return ctrl.Result{}, nil
+				} else {
+					// We're changing the condition, so delete this one.  The
+					// new condition will be added below.
+					r.Logger.V(1).Info("removing condition", "condition", (*conditions)[0].Type)
+					meta.RemoveStatusCondition(conditions, (*conditions)[0].Type)
+				}
+			}
+		case numConditions > 1:
+			{
+				// We should only ever have one condition, so we shouldn't hit
+				// this case.  However, if we do, delete the existing conditions
+				// and add the new one below.
+				r.Logger.Info("more than one BpfProgramCondition", "numConditions", numConditions)
+				for _, c := range *conditions {
+					r.Logger.Info("removing condition", "condition", c.Type)
+					meta.RemoveStatusCondition(conditions, c.Type)
+				}
+			}
+		}
+	}
+
+	meta.SetStatusCondition(conditions, cond.Condition(message))
+
+	if err := r.Status().Update(ctx, obj); err != nil {
+		r.Logger.V(1).Info("failed to set *Program object status...requeuing")
+		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+	}
+
+	return ctrl.Result{}, nil
 }

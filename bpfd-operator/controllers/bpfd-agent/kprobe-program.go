@@ -278,7 +278,7 @@ func (r *KprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		(mapOwnerStatus.isSet && (!mapOwnerStatus.isFound || !mapOwnerStatus.isLoaded)) {
 		r.Logger.V(1).Info("KprobeProgram exists on Node but is scheduled for deletion, not selected, or map not available",
 			"isDeleted", isBeingDeleted, "isSelected", isNodeSelected, "mapIsSet", mapOwnerStatus.isSet,
-			"mapIsFound", mapOwnerStatus.isFound, "mapIsLoaded", mapOwnerStatus.isLoaded)
+			"mapIsFound", mapOwnerStatus.isFound, "mapIsLoaded", mapOwnerStatus.isLoaded, "id", id)
 
 		if err := bpfdagentinternal.UnloadBpfdProgram(ctx, r.BpfdClient, *id); err != nil {
 			r.Logger.Error(err, "Failed to unload KprobeProgram")

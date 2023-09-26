@@ -26,6 +26,7 @@ import (
 	testutils "github.com/bpfd-dev/bpfd/bpfd-operator/internal/test-utils"
 
 	"github.com/stretchr/testify/require"
+	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,7 +38,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-func TestKprobeProgramReconcile(t *testing.T) {
+// Runs the KprobeProgramReconcile test.  If multiCondition == true, it runs it
+// with an error case in which the program object has multiple conditions.
+func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
 	var (
 		name         = "fakeKprobeProgram"
 		bytecodePath = "/tmp/hello.o"
@@ -137,6 +140,23 @@ func TestKprobeProgramReconcile(t *testing.T) {
 	// Check the bpfd-operator finalizer was successfully added
 	require.Contains(t, Kprobe.GetFinalizers(), internal.BpfdOperatorFinalizer)
 
+	// NOTE: THIS IS A TEST FOR AN ERROR PATH. THERE SHOULD NEVER BE MORE THAN
+	// ONE CONDITION.
+	if multiCondition {
+		// Add some random conditions and verify that the condition still gets
+		// updated correctly.
+		meta.SetStatusCondition(&Kprobe.Status.Conditions, bpfdiov1alpha1.ProgramDeleteError.Condition("bogus condition #1"))
+		if err := r.Status().Update(ctx, Kprobe); err != nil {
+			r.Logger.V(1).Info("failed to set KprobeProgram object status")
+		}
+		meta.SetStatusCondition(&Kprobe.Status.Conditions, bpfdiov1alpha1.ProgramReconcileError.Condition("bogus condition #2"))
+		if err := r.Status().Update(ctx, Kprobe); err != nil {
+			r.Logger.V(1).Info("failed to set KprobeProgram object status")
+		}
+		// Make sure we have 2 conditions
+		require.Equal(t, 2, len(Kprobe.Status.Conditions))
+	}
+
 	// Second reconcile should check bpfProgram Status and write Success condition to tcProgram Status
 	res, err = r.Reconcile(ctx, req)
 	if err != nil {
@@ -150,6 +170,16 @@ func TestKprobeProgramReconcile(t *testing.T) {
 	err = cl.Get(ctx, types.NamespacedName{Name: Kprobe.Name, Namespace: metav1.NamespaceAll}, Kprobe)
 	require.NoError(t, err)
 
+	// Make sure we only have 1 condition now
+	require.Equal(t, 1, len(Kprobe.Status.Conditions))
+	// Make sure it's the right one.
 	require.Equal(t, Kprobe.Status.Conditions[0].Type, string(bpfdiov1alpha1.ProgramReconcileSuccess))
+}
 
+func TestKprobeProgramReconcile(t *testing.T) {
+	kprobeProgramReconcile(t, false)
+}
+
+func TestUpdateStatus(t *testing.T) {
+	kprobeProgramReconcile(t, true)
 }

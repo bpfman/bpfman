@@ -32,6 +32,7 @@ import (
 
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -43,183 +44,34 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-func TestXdpProgramControllerCreate(t *testing.T) {
+// Runs the XdpProgramControllerCreate test.  If multiInterface = true, it
+// installs the program on two interfaces.  If multiCondition == true, it runs
+// it with an error case in which the program object has multiple conditions.
+func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiCondition bool) {
 	var (
 		name         = "fakeXdpProgram"
 		namespace    = "bpfd"
 		bytecodePath = "/tmp/hello.o"
 		sectionName  = "test"
 		fakeNode     = testutils.NewNode("fake-control-plane")
-		fakeInt      = "eth0"
+		fakeInt0     = "eth0"
+		fakeInt1     = "eth1"
 		ctx          = context.TODO()
-		bpfProgName  = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInt)
-		bpfProg      = &bpfdiov1alpha1.BpfProgram{}
-		fakeUID      = "ef71d42c-aa21-48e8-a697-82391d801a81"
-	)
-	// A XdpProgram object with metadata and spec.
-	Xdp := &bpfdiov1alpha1.XdpProgram{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Spec: bpfdiov1alpha1.XdpProgramSpec{
-			BpfProgramCommon: bpfdiov1alpha1.BpfProgramCommon{
-				SectionName:  sectionName,
-				NodeSelector: metav1.LabelSelector{},
-				ByteCode: bpfdiov1alpha1.BytecodeSelector{
-					Path: &bytecodePath,
-				},
-			},
-			InterfaceSelector: bpfdiov1alpha1.InterfaceSelector{
-				Interfaces: &[]string{fakeInt},
-			},
-			Priority: 0,
-			ProceedOn: []bpfdiov1alpha1.XdpProceedOnValue{bpfdiov1alpha1.XdpProceedOnValue("pass"),
-				bpfdiov1alpha1.XdpProceedOnValue("dispatcher_return"),
-			},
-		},
-	}
-
-	// Objects to track in the fake client.
-	objs := []runtime.Object{fakeNode, Xdp}
-
-	// Register operator types with the runtime scheme.
-	s := scheme.Scheme
-	s.AddKnownTypes(bpfdiov1alpha1.SchemeGroupVersion, Xdp)
-	s.AddKnownTypes(bpfdiov1alpha1.SchemeGroupVersion, &bpfdiov1alpha1.XdpProgramList{})
-	s.AddKnownTypes(bpfdiov1alpha1.SchemeGroupVersion, &bpfdiov1alpha1.BpfProgram{})
-
-	// Create a fake client to mock API calls.
-	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
-
-	cli := agenttestutils.NewBpfdClientFake()
-
-	rc := ReconcilerCommon{
-		Client:     cl,
-		Scheme:     s,
-		BpfdClient: cli,
-		NodeName:   fakeNode.Name,
-	}
-
-	// Set development Logger so we can see all logs in tests.
-	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
-
-	// Create a ReconcileMemcached object with the scheme and fake client.
-	r := &XdpProgramReconciler{ReconcilerCommon: rc, ourNode: fakeNode}
-
-	// Mock request to simulate Reconcile() being called on an event for a
-	// watched resource .
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-
-	// First reconcile should create the bpf program object
-	res, err := r.Reconcile(ctx, req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	// Check the BpfProgram Object was created successfully
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: metav1.NamespaceAll}, bpfProg)
-	require.NoError(t, err)
-
-	require.NotEmpty(t, bpfProg)
-	// Finalizer is written
-	require.Equal(t, r.getFinalizer(), bpfProg.Finalizers[0])
-	// owningConfig Label was correctly set
-	require.Equal(t, bpfProg.Labels[internal.BpfProgramOwnerLabel], name)
-	// node Label was correctly set
-	require.Equal(t, bpfProg.Labels[internal.K8sHostLabel], fakeNode.Name)
-	// Type is set
-	require.Equal(t, r.getRecType(), bpfProg.Spec.Type)
-	// Require no requeue
-	require.False(t, res.Requeue)
-
-	// Update UID of bpfProgram with Fake UID since the fake API server won't
-	bpfProg.UID = types.UID(fakeUID)
-	err = cl.Update(ctx, bpfProg)
-	require.NoError(t, err)
-
-	// Second reconcile should create the bpfd Load Request and update the
-	// BpfProgram object's 'Programs' field.
-	res, err = r.Reconcile(ctx, req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	// Require no requeue
-	require.False(t, res.Requeue)
-	uuid := string(bpfProg.UID)
-
-	expectedLoadReq := &gobpfd.LoadRequest{
-		Bytecode: &gobpfd.BytecodeLocation{
-			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
-		},
-		Name:        sectionName,
-		ProgramType: *internal.Xdp.Uint32(),
-		Metadata:    map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: name},
-		MapOwnerId:  nil,
-		Attach: &gobpfd.AttachInfo{
-			Info: &gobpfd.AttachInfo_XdpAttachInfo{
-				XdpAttachInfo: &gobpfd.XDPAttachInfo{
-					Priority:  0,
-					Iface:     fakeInt,
-					ProceedOn: []int32{2, 31},
-				},
-			},
-		},
-	}
-
-	// Check that the bpfProgram's programs was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: metav1.NamespaceAll}, bpfProg)
-	require.NoError(t, err)
-
-	// prog ID should already have been set
-	id, err := bpfdagentinternal.GetID(bpfProg)
-	require.NoError(t, err)
-
-	// Check the bpfLoadRequest was correctly Built
-	if !cmp.Equal(expectedLoadReq, cli.LoadRequests[int(*id)], protocmp.Transform()) {
-		t.Logf("Diff %v", cmp.Diff(expectedLoadReq, cli.LoadRequests[int(*id)], protocmp.Transform()))
-		t.Fatal("Built bpfd LoadRequest does not match expected")
-	}
-
-	require.Nil(t, bpfProg.Spec.Maps)
-
-	// Third reconcile should update the bpfPrograms status to loaded
-	res, err = r.Reconcile(ctx, req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	// Require no requeue
-	require.False(t, res.Requeue)
-
-	// Check that the bpfProgram's status was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: metav1.NamespaceAll}, bpfProg)
-	require.NoError(t, err)
-
-	require.Equal(t, string(bpfdiov1alpha1.BpfProgCondLoaded), bpfProg.Status.Conditions[0].Type)
-}
-
-func TestXdpProgramControllerCreateMultiIntf(t *testing.T) {
-	var (
-		name         = "fakeXdpProgram"
-		namespace    = "bpfd"
-		bytecodePath = "/tmp/hello.o"
-		sectionName  = "test"
-		fakeNode     = testutils.NewNode("fake-control-plane")
-		fakeInts     = []string{"eth0", "eth1"}
-		ctx          = context.TODO()
-		bpfProgName0 = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInts[0])
-		bpfProgName1 = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInts[1])
+		bpfProgName0 = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInt0)
+		bpfProgName1 = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInt1)
 		bpfProgEth0  = &bpfdiov1alpha1.BpfProgram{}
 		bpfProgEth1  = &bpfdiov1alpha1.BpfProgram{}
 		fakeUID0     = "ef71d42c-aa21-48e8-a697-82391d801a80"
 		fakeUID1     = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)
+
+	var fakeInts []string
+	if multiInterface {
+		fakeInts = []string{fakeInt0, fakeInt1}
+	} else {
+		fakeInts = []string{fakeInt0}
+	}
+
 	// A XdpProgram object with metadata and spec.
 	xdp := &bpfdiov1alpha1.XdpProgram{
 		ObjectMeta: metav1.ObjectMeta{
@@ -316,62 +168,6 @@ func TestXdpProgramControllerCreateMultiIntf(t *testing.T) {
 	// Require no requeue
 	require.False(t, res.Requeue)
 
-	// Third reconcile should update the first bpf program object's status
-	res, err = r.Reconcile(ctx, req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	require.False(t, res.Requeue)
-
-	// Fourth reconcile should create the second bpfProgram.
-	res, err = r.Reconcile(ctx, req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	// Require no requeue
-	require.False(t, res.Requeue)
-
-	// Check the Second BpfProgram Object was created successfully
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
-	require.NoError(t, err)
-
-	require.NotEmpty(t, bpfProgEth1)
-	// owningConfig Label was correctly set
-	require.Equal(t, bpfProgEth1.Labels[internal.BpfProgramOwnerLabel], name)
-	// node Label was correctly set
-	require.Equal(t, bpfProgEth1.Labels[internal.K8sHostLabel], fakeNode.Name)
-	// Finalizer is written
-	require.Equal(t, r.getFinalizer(), bpfProgEth1.Finalizers[0])
-	// Type is set
-	require.Equal(t, r.getRecType(), bpfProgEth1.Spec.Type)
-	// Require no requeue
-	require.False(t, res.Requeue)
-
-	// Update UID of bpfProgram with Fake UID since the fake API server won't
-	bpfProgEth1.UID = types.UID(fakeUID1)
-	err = cl.Update(ctx, bpfProgEth1)
-	require.NoError(t, err)
-
-	// Fifth reconcile should create the second bpfProgram.
-	res, err = r.Reconcile(ctx, req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	// Require no requeue
-	require.False(t, res.Requeue)
-
-	// Sixth reconcile should update the second bpfProgram's status.
-	res, err = r.Reconcile(ctx, req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	// Require no requeue
-	require.False(t, res.Requeue)
-
 	uuid0 := string(bpfProgEth0.UID)
 
 	expectedLoadReq0 := &gobpfd.LoadRequest{
@@ -393,27 +189,6 @@ func TestXdpProgramControllerCreateMultiIntf(t *testing.T) {
 		},
 	}
 
-	uuid1 := string(bpfProgEth1.UID)
-
-	expectedLoadReq1 := &gobpfd.LoadRequest{
-		Bytecode: &gobpfd.BytecodeLocation{
-			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
-		},
-		Name:        sectionName,
-		ProgramType: *internal.Xdp.Uint32(),
-		Metadata:    map[string]string{internal.UuidMetadataKey: uuid1, internal.ProgramNameKey: name},
-		MapOwnerId:  nil,
-		Attach: &gobpfd.AttachInfo{
-			Info: &gobpfd.AttachInfo_XdpAttachInfo{
-				XdpAttachInfo: &gobpfd.XDPAttachInfo{
-					Priority:  0,
-					Iface:     fakeInts[1],
-					ProceedOn: []int32{2, 31},
-				},
-			},
-		},
-	}
-
 	// Check that the bpfProgram's maps was correctly updated
 	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName0, Namespace: metav1.NamespaceAll}, bpfProgEth0)
 	require.NoError(t, err)
@@ -422,43 +197,155 @@ func TestXdpProgramControllerCreateMultiIntf(t *testing.T) {
 	id0, err := bpfdagentinternal.GetID(bpfProgEth0)
 	require.NoError(t, err)
 
-	// Check that the bpfProgram's maps was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
-	require.NoError(t, err)
-
-	// prog ID should already have been set
-	id1, err := bpfdagentinternal.GetID(bpfProgEth1)
-	require.NoError(t, err)
-
 	// Check the bpfLoadRequest was correctly built
 	if !cmp.Equal(expectedLoadReq0, cli.LoadRequests[int(*id0)], protocmp.Transform()) {
 		t.Logf("Diff %v", cmp.Diff(expectedLoadReq0, cli.LoadRequests[int(*id0)], protocmp.Transform()))
 		t.Fatal("Built bpfd LoadRequest does not match expected")
 	}
 
-	// Check the bpfLoadRequest was correctly built
-	if !cmp.Equal(expectedLoadReq1, cli.LoadRequests[int(*id1)], protocmp.Transform()) {
-		t.Logf("Diff %v", cmp.Diff(expectedLoadReq1, cli.LoadRequests[int(*id1)], protocmp.Transform()))
-		t.Fatal("Built bpfd LoadRequest does not match expected")
+	// NOTE: THIS IS A TEST FOR AN ERROR PATH. THERE SHOULD NEVER BE MORE THAN
+	// ONE CONDITION.
+	if multiCondition {
+		// Add some random conditions and verify that the condition still gets
+		// updated correctly.
+		meta.SetStatusCondition(&bpfProgEth0.Status.Conditions, bpfdiov1alpha1.BpfProgCondBytecodeSelectorError.Condition())
+		if err := r.Status().Update(ctx, bpfProgEth0); err != nil {
+			r.Logger.V(1).Info("failed to set KprobeProgram object status")
+		}
+		meta.SetStatusCondition(&bpfProgEth0.Status.Conditions, bpfdiov1alpha1.BpfProgCondNotSelected.Condition())
+		if err := r.Status().Update(ctx, bpfProgEth0); err != nil {
+			r.Logger.V(1).Info("failed to set KprobeProgram object status")
+		}
+		// Make sure we have 2 conditions
+		require.Equal(t, 2, len(bpfProgEth0.Status.Conditions))
 	}
 
-	require.Nil(t, bpfProgEth0.Spec.Maps)
+	// Third reconcile should update the bpfPrograms status to loaded
+	res, err = r.Reconcile(ctx, req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
 
-	// Check that the bpfProgram's maps was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
-	require.NoError(t, err)
-
-	require.Nil(t, bpfProgEth1.Spec.Maps)
+	// Require no requeue
+	require.False(t, res.Requeue)
 
 	// Check that the bpfProgram's status was correctly updated
 	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName0, Namespace: metav1.NamespaceAll}, bpfProgEth0)
 	require.NoError(t, err)
 
+	// Make sure we only have 1 condition now
+	require.Equal(t, 1, len(bpfProgEth0.Status.Conditions))
+	// Make sure it's the right one.
 	require.Equal(t, string(bpfdiov1alpha1.BpfProgCondLoaded), bpfProgEth0.Status.Conditions[0].Type)
 
-	// Check that the bpfProgram's status was correctly updated
-	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
-	require.NoError(t, err)
+	if multiInterface {
+		// Fourth reconcile should create the second bpfProgram.
+		res, err = r.Reconcile(ctx, req)
+		if err != nil {
+			t.Fatalf("reconcile: (%v)", err)
+		}
 
-	require.Equal(t, string(bpfdiov1alpha1.BpfProgCondLoaded), bpfProgEth1.Status.Conditions[0].Type)
+		// Require no requeue
+		require.False(t, res.Requeue)
+
+		// Check the Second BpfProgram Object was created successfully
+		err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
+		require.NoError(t, err)
+
+		require.NotEmpty(t, bpfProgEth1)
+		// owningConfig Label was correctly set
+		require.Equal(t, bpfProgEth1.Labels[internal.BpfProgramOwnerLabel], name)
+		// node Label was correctly set
+		require.Equal(t, bpfProgEth1.Labels[internal.K8sHostLabel], fakeNode.Name)
+		// Finalizer is written
+		require.Equal(t, r.getFinalizer(), bpfProgEth1.Finalizers[0])
+		// Type is set
+		require.Equal(t, r.getRecType(), bpfProgEth1.Spec.Type)
+		// Require no requeue
+		require.False(t, res.Requeue)
+
+		// Update UID of bpfProgram with Fake UID since the fake API server won't
+		bpfProgEth1.UID = types.UID(fakeUID1)
+		err = cl.Update(ctx, bpfProgEth1)
+		require.NoError(t, err)
+
+		// Fifth reconcile should create the second bpfProgram.
+		res, err = r.Reconcile(ctx, req)
+		if err != nil {
+			t.Fatalf("reconcile: (%v)", err)
+		}
+
+		// Require no requeue
+		require.False(t, res.Requeue)
+
+		// Sixth reconcile should update the second bpfProgram's status.
+		res, err = r.Reconcile(ctx, req)
+		if err != nil {
+			t.Fatalf("reconcile: (%v)", err)
+		}
+
+		// Require no requeue
+		require.False(t, res.Requeue)
+
+		uuid1 := string(bpfProgEth1.UID)
+
+		expectedLoadReq1 := &gobpfd.LoadRequest{
+			Bytecode: &gobpfd.BytecodeLocation{
+				Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
+			},
+			Name:        sectionName,
+			ProgramType: *internal.Xdp.Uint32(),
+			Metadata:    map[string]string{internal.UuidMetadataKey: uuid1, internal.ProgramNameKey: name},
+			MapOwnerId:  nil,
+			Attach: &gobpfd.AttachInfo{
+				Info: &gobpfd.AttachInfo_XdpAttachInfo{
+					XdpAttachInfo: &gobpfd.XDPAttachInfo{
+						Priority:  0,
+						Iface:     fakeInts[1],
+						ProceedOn: []int32{2, 31},
+					},
+				},
+			},
+		}
+
+		// Check that the bpfProgram's maps was correctly updated
+		err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
+		require.NoError(t, err)
+
+		// prog ID should already have been set
+		id1, err := bpfdagentinternal.GetID(bpfProgEth1)
+		require.NoError(t, err)
+
+		// Check the bpfLoadRequest was correctly built
+		if !cmp.Equal(expectedLoadReq1, cli.LoadRequests[int(*id1)], protocmp.Transform()) {
+			t.Logf("Diff %v", cmp.Diff(expectedLoadReq1, cli.LoadRequests[int(*id1)], protocmp.Transform()))
+			t.Fatal("Built bpfd LoadRequest does not match expected")
+		}
+
+		require.Nil(t, bpfProgEth0.Spec.Maps)
+
+		// Check that the bpfProgram's maps was correctly updated
+		err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
+		require.NoError(t, err)
+
+		require.Nil(t, bpfProgEth1.Spec.Maps)
+
+		// Check that the bpfProgram's status was correctly updated
+		err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
+		require.NoError(t, err)
+
+		require.Equal(t, string(bpfdiov1alpha1.BpfProgCondLoaded), bpfProgEth1.Status.Conditions[0].Type)
+	}
+}
+
+func TestXdpProgramControllerCreate(t *testing.T) {
+	xdpProgramControllerCreate(t, false, false)
+}
+
+func TestXdpProgramControllerCreateMultiIntf(t *testing.T) {
+	xdpProgramControllerCreate(t, true, false)
+}
+
+func TestUpdateStatus(t *testing.T) {
+	xdpProgramControllerCreate(t, false, true)
 }
