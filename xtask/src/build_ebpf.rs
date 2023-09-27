@@ -86,7 +86,7 @@ fn build_ebpf_files(
     include_path: PathBuf,
     out_path: PathBuf,
 ) -> anyhow::Result<()> {
-    let files = fs::read_dir(&src_path).unwrap();
+    let files = fs::read_dir(src_path).unwrap();
     for file in files {
         let p = file.unwrap().path();
         if let Some(ext) = p.extension() {
