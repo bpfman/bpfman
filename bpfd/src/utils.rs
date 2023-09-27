@@ -15,7 +15,9 @@ use users::get_group_by_name;
 
 use crate::errors::BpfdError;
 
-pub(crate) const SOCK_MODE: u32 = 0o0770;
+// The bpfd socket should always allow the same users and members of the same group
+// to Read/Write to it.
+pub(crate) const SOCK_MODE: u32 = 0o0660;
 
 // Like tokio::fs::read, but with O_NOCTTY set
 pub(crate) async fn read<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, BpfdError> {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::{fs::remove_file, net::SocketAddr, path::Path};
+use std::{fs::remove_file, net::SocketAddr, os::unix::fs::PermissionsExt, path::Path};
 
 use anyhow::Context;
 use bpfd_api::{
@@ -9,7 +9,7 @@ use bpfd_api::{
     util::directories::BYTECODE_IMAGE_CONTENT_STORE,
     v1::bpfd_server::BpfdServer,
 };
-use log::{debug, info};
+use log::{debug, info, warn};
 use tokio::{
     join,
     net::UnixListener,
@@ -23,13 +23,8 @@ use tonic::transport::{Server, ServerTlsConfig};
 
 pub use crate::certs::get_tls_config;
 use crate::{
-    bpf::BpfManager,
-    errors::BpfdError,
-    oci_utils::ImageManager,
-    rpc::BpfdLoader,
-    static_program::get_static_programs,
-    storage::StorageManager,
-    utils::{set_file_permissions, SOCK_MODE},
+    bpf::BpfManager, errors::BpfdError, oci_utils::ImageManager, rpc::BpfdLoader,
+    static_program::get_static_programs, storage::StorageManager, utils::SOCK_MODE,
 };
 
 pub async fn serve(
@@ -154,7 +149,15 @@ async fn serve_unix(
 
     let uds = UnixListener::bind(&path)?;
     let uds_stream = UnixListenerStream::new(uds);
-    set_file_permissions(&path, SOCK_MODE).await;
+    // Always set the file permissions of our listening socket.
+    if (tokio::fs::set_permissions(path.clone(), std::fs::Permissions::from_mode(SOCK_MODE)).await)
+        .is_err()
+    {
+        warn!(
+            "Unable to set permissions on bpfd socket {}. Continuing",
+            path
+        );
+    }
 
     let serve = Server::builder()
         .add_service(service)
