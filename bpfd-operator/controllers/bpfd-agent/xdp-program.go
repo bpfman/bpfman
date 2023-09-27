@@ -262,7 +262,7 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 
 		// If XdpProgram is being deleted just break out and remove finalizer
 		if isBeingDeleted {
-			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
+			return bpfdiov1alpha1.BpfProgCondUnloaded, nil
 		}
 
 		// Make sure if we're not selected just exit

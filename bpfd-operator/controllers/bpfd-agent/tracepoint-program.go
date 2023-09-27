@@ -226,7 +226,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 
 		// If TracepointProgram is being deleted just exit
 		if isBeingDeleted {
-			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
+			return bpfdiov1alpha1.BpfProgCondUnloaded, nil
 		}
 
 		// Make sure if we're not selected just exit

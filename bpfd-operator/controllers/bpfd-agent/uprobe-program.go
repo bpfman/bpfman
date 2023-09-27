@@ -233,7 +233,7 @@ func (r *UprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 
 		// If UprobeProgram is being deleted just exit
 		if isBeingDeleted {
-			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
+			return bpfdiov1alpha1.BpfProgCondUnloaded, nil
 		}
 
 		// Make sure if we're not selected just exit
