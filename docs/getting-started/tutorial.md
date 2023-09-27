@@ -47,58 +47,89 @@ sudo RUST_LOG=info ./target/debug/bpfd
 
 We will load the simple `xdp-pass` program, which permits all traffic to the attached interface,
 `vethff657c7` in this example.
-The section in the object file that contains the program is "xdp".
+The section in the object file that contains the program is "pass".
 Finally, we will use the priority of 100.
 Find a deeper dive into `bpfctl` syntax in [bpfctl Guide](./bpfctl-guide.md).
 
 ```console
 sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 100
-e0b96122-0ed2-446d-a481-5a41f1340369
+ Bpfd State
+---------------
+ Name:          pass
+ Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Pull Policy:   IfNotPresent
+ Global:        None
+ Metadata:      None
+ Map Pin Path:  /run/bpfd/fs/maps/6213
+ Map Owner ID:  None
+ Map Used By:   None
+ Priority:      100
+ Iface:         vethff657c7
+ Position:      0
+ Proceed On:    pass, dispatcher_return
+
+ Kernel State
+----------------------------------
+ ID:                               6213
+ Name:                             pass
+ Type:                             xdp
+ Loaded At:                        2023-07-17T17:48:10-0400
+ Tag:                              4b9d1b2c140e87ce
+ GPL Compatible:                   true
+ Map IDs:                          [2724]
+ BTF ID:                           2834
+ Size Translated (bytes):          96
+ JITed:                            true
+ Size JITed (bytes):               67
+ Kernel Allocated Memory (bytes):  4096
+ Verified Instruction Count:       9
 ```
 
-`bpfctl` returns a unique identifier (`e0b96122-0ed2-446d-a481-5a41f1340369` in this example) to the program that was loaded.
-This may be used to detach the program later.
+`bpfctl load-from-image` returns the same data as a `bpfctl get` command.
+From the output, the id of `6213` can be found in the `Kernel State` section.
+This id can be used to perform a `bpfctl get` to retrieve all relevant program
+data and a `bpfctl unload` when the program needs to be unloaded.
 
 ```console
 sudo ./target/debug/bpfctl list
- Kernel ID  Bpfd UUID                             Name  Type  Load Time
- 6213       e0b96122-0ed2-446d-a481-5a41f1340369  pass  xdp   2023-07-17T17:48:10-0400
+ Program ID  Name  Type  Load Time
+ 6213        pass  xdp   2023-07-17T17:48:10-0400
 ```
 
-We can check details about the loaded program with the `bpfctl get` command:
+We can recheck the details about the loaded program with the `bpfctl get` command:
 
 ```console
 sudo ./target/debug/bpfctl get 6213
+ Bpfd State
+---------------
+ Name:          pass
+ Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Pull Policy:   IfNotPresent
+ Global:        None
+ Metadata:      None
+ Map Pin Path:  /run/bpfd/fs/maps/6213
+ Map Owner ID:  None
+ Map Used By:   None
+ Priority:      100
+ Iface:         vethff657c7
+ Position:      0
+ Proceed On:    pass, dispatcher_return
 
-#################### Bpfd State ####################
-
-UUID:                               e0b96122-0ed2-446d-a481-5a41f1340369
-Image URL:                          quay.io/bpfd-bytecode/xdp_pass:latest
-Pull Policy:                        IfNotPresent
-Global:                             None
-Map Pin Path:                       /run/bpfd/fs/maps/e0b96122-0ed2-446d-a481-5a41f1340369
-Map Owner UUID:                     None
-Map Used By:                        None
-Priority:                           100
-Iface:                              vethff657c7
-Position:                           0
-Proceed On:                         pass, dispatcher_return
-
-#################### Kernel State ##################
-
-Kernel ID:                          6213
-Name:                               pass
-Type:                               xdp
-Loaded At:                          2023-07-17T17:48:10-0400
-Tag:                                4b9d1b2c140e87ce
-GPL Compatible:                     true
-Map IDs:                            [2724]
-BTF ID:                             2834
-Size Translated (bytes):            96
-JITed:                              true
-Size JITed (bytes):                 67
-Kernel Allocated Memory (bytes):    4096
-Verified Instruction Count:         9
+ Kernel State
+----------------------------------
+ ID:                               6213
+ Name:                             pass
+ Type:                             xdp
+ Loaded At:                        2023-07-17T17:48:10-0400
+ Tag:                              4b9d1b2c140e87ce
+ GPL Compatible:                   true
+ Map IDs:                          [2724]
+ BTF ID:                           2834
+ Size Translated (bytes):          96
+ JITed:                            true
+ Size JITed (bytes):               67
+ Kernel Allocated Memory (bytes):  4096
+ Verified Instruction Count:       9
 ```
 
 From the output above you can see the program was loaded to position 0 on our
@@ -110,78 +141,126 @@ We will now load 2 more programs with different priorities to demonstrate how bp
 
 ```console
 sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 50
-0366b811-e1bf-4e7e-a4a5-b6ea49453b49
+ Bpfd State
+---------------
+ Name:          pass
+ Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Pull Policy:   IfNotPresent
+ Global:        None
+ Metadata:      None
+ Map Pin Path:  /run/bpfd/fs/maps/6215
+ Map Owner ID:  None
+ Map Used By:   None
+ Priority:      50
+ Iface:         vethff657c7
+ Position:      0
+ Proceed On:    pass, dispatcher_return
+
+ Kernel State
+----------------------------------
+ ID:                               6215
+ Name:                             pass
+ Type:                             xdp
+:
 ```
 
 ```console
 sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 200
-6af7c28f-6a7f-46ee-bc98-2d92ed261369
+ Bpfd State
+---------------
+ Name:          pass
+ Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Pull Policy:   IfNotPresent
+ Global:        None
+ Metadata:      None
+ Map Pin Path:  /run/bpfd/fs/maps/6217
+ Map Owner ID:  None
+ Map Used By:   None
+ Priority:      200
+ Iface:         vethff657c7
+ Position:      2
+ Proceed On:    pass, dispatcher_return
+
+ Kernel State
+----------------------------------
+ ID:                               6217
+ Name:                             pass
+ Type:                             xdp
+:
 ```
 
-Using `bpfctl list` we can see that the programs are correctly ordered.
-The lowest priority program is executed first, while the highest is executed last.
+Using `bpfctl list` we can see all the programs that were loaded.
 
 ```console
 sudo ./target/debug/bpfctl list
- Kernel ID  Bpfd UUID                             Name  Type  Load Time
- 6213       e0b96122-0ed2-446d-a481-5a41f1340369  pass  xdp   2023-07-17T17:48:10-0400
- 6215       0366b811-e1bf-4e7e-a4a5-b6ea49453b49  pass  xdp   2023-07-17T17:52:46-0400
- 6217       66ec223a-4800-4d0f-bdc8-bee0d3333c6c  pass  xdp   2023-07-17T17:53:57-0400
+ Program ID  Name  Type  Load Time
+ 6213        pass  xdp   2023-07-17T17:48:10-0400
+ 6215        pass  xdp   2023-07-17T17:52:46-0400
+ 6217        pass  xdp   2023-07-17T17:53:57-0400
 ```
 
-The detailed output:
+The lowest priority program is executed first, while the highest is executed last.
+As can be seen from the detailed output for each command below:
+
+* Program `6215` is at position `0` with a priority of `50`
+* Program `6213` is at position `1` with a priority of `100`
+* Program `6217` is at position `2` with a priority of `200`
 
 ```console
 sudo ./target/debug/bpfctl get 6213
-
-#################### Bpfd State ####################
-
-UUID:                               e0b96122-0ed2-446d-a481-5a41f1340369
-Image URL:                          quay.io/bpfd-bytecode/xdp_pass:latest
-Pull Policy:                        IfNotPresent
-Global:                             None
-Map Pin Path:                       /run/bpfd/fs/maps/e0b96122-0ed2-446d-a481-5a41f1340369
-Map Owner UUID:                     None
-Map Used By:                        None
-Priority:                           100
-Iface:                              vethff657c7
-Position:                           1
-Proceed On:                         pass, dispatcher_return
+ Bpfd State
+---------------
+ Name:          pass
 :
+ Priority:      100
+ Iface:         vethff657c7
+ Position:      1
+ Proceed On:    pass, dispatcher_return
 
+ Kernel State
+----------------------------------
+ ID:                               6213
+ Name:                             pass
+ Type:                             xdp
+:
+```
+
+```console
 sudo ./target/debug/bpfctl get 6215
-
-#################### Bpfd State ####################
-
-UUID:                               0366b811-e1bf-4e7e-a4a5-b6ea49453b49
-Image URL:                          quay.io/bpfd-bytecode/xdp_pass:latest
-Pull Policy:                        IfNotPresent
-Global:                             None
-Map Pin Path:                       /run/bpfd/fs/maps/0366b811-e1bf-4e7e-a4a5-b6ea49453b49
-Map Owner UUID:                     None
-Map Used By:                        None
-Priority:                           50
-Iface:                              vethff657c7
-Position:                           0
-Proceed On:                         pass, dispatcher_return
+ Bpfd State
+---------------
+ Name:          pass
 :
+ Priority:      50
+ Iface:         vethff657c7
+ Position:      0
+ Proceed On:    pass, dispatcher_return
 
+ Kernel State
+----------------------------------
+ ID:                               6215
+ Name:                             pass
+ Type:                             xdp
+:
+```
+
+```console
 sudo ./target/debug/bpfctl get 6217
+ Bpfd State
+---------------
+ Name:          pass
+:
+ Priority:      200
+ Iface:         vethff657c7
+ Position:      2
+ Proceed On:    pass, dispatcher_return
 
-#################### Bpfd State ####################
-
-UUID:                               66ec223a-4800-4d0f-bdc8-bee0d3333c6c
-Image URL:                          quay.io/bpfd-bytecode/xdp_pass:latest
-Pull Policy:                        IfNotPresent
-Global:                             None
-Map Pin Path:                       /run/bpfd/fs/maps/66ec223a-4800-4d0f-bdc8-bee0d3333c6c
-Map Owner UUID:                     None
-Map Used By:                        None
-Priority:                           200
-Iface:                              vethff657c7
-Position:                           2
-Proceed On:                         pass, dispatcher_return
-
+ Kernel State
+----------------------------------
+ ID:                               6217
+ Name:                             pass
+ Type:                             xdp
+:
 ```
 
 By default, the next program in the chain will only be executed if a given program returns
@@ -192,110 +271,132 @@ parameter (see `bpfctl load-from-image xdp --help` for list of valid values):
 
 ```console
 sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 150 --proceed-on "pass" --proceed-on "dispatcher_return"
-b2f19b7b-4c71-4338-873e-914bd8fa44ba
-```
+ Bpfd State
+---------------
+ Name:          pass
+ Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Pull Policy:   IfNotPresent
+ Global:        None
+ Metadata:      None
+ Map Pin Path:  /run/bpfd/fs/maps/6219
+ Map Owner ID:  None
+ Map Used By:   None
+ Priority:      150
+ Iface:         vethff657c7
+ Position:      2
+ Proceed On:    pass, dispatcher_return
 
-Which results in (see position 2):
-
-```console
-sudo ./target/debug/bpfctl list
- Kernel ID  Bpfd UUID                             Name  Type  Load Time
- 6213       e0b96122-0ed2-446d-a481-5a41f1340369  pass  xdp   2023-07-17T17:48:10-0400
- 6215       0366b811-e1bf-4e7e-a4a5-b6ea49453b49  pass  xdp   2023-07-17T17:52:46-0400
- 6217       66ec223a-4800-4d0f-bdc8-bee0d3333c6c  pass  xdp   2023-07-17T17:53:57-0400
- 6219       8b7dc4b5-cbc5-45ad-b888-884854ce3939  pass  xdp   2023-07-17T17:59:41-0400
-```
-
-```console
-sudo ./target/debug/bpfctl get 6219
-
-#################### Bpfd State ####################
-
-UUID:                               8b7dc4b5-cbc5-45ad-b888-884854ce3939
-Image URL:                          quay.io/bpfd-bytecode/xdp_pass:latest
-Pull Policy:                        IfNotPresent
-Global:                             None
-Map Pin Path:                       /run/bpfd/fs/maps/8b7dc4b5-cbc5-45ad-b888-884854ce3939
-Map Owner UUID:                     None
-Map Used By:                        None
-Priority:                           150
-Iface:                              vethff657c7
-Position:                           2
-Proceed On:                         pass, dispatcher_return
+ Kernel State
+----------------------------------
+ ID:                               6219
+ Name:                             pass
+ Type:                             xdp
 :
 ```
+
+Which results in being loaded in position `2` because it was loaded at priority `150`,
+which is lower than the previous program at that position with a priority of `200`.
 
 ### Step 6: Delete a program
 
 Let's remove the program at position 1.
 
 ```console
-sudo ./target/debug/bpfctl unload e0b96122-0ed2-446d-a481-5a41f1340369
+sudo ./target/debug/bpfctl list
+ Program ID  Name  Type  Load Time
+ 6213        pass  xdp   2023-07-17T17:48:10-0400
+ 6215        pass  xdp   2023-07-17T17:52:46-0400
+ 6217        pass  xdp   2023-07-17T17:53:57-0400
+ 6219        pass  xdp   2023-07-17T17:59:41-0400
+```
+
+```console
+sudo ./target/debug/bpfctl unload 6213
 ```
 
 And we can verify that it has been removed and the other programs re-ordered:
 
 ```console
 sudo ./target/debug/bpfctl list
- Kernel ID  Bpfd UUID                             Name  Type  Load Time
- 6215       0366b811-e1bf-4e7e-a4a5-b6ea49453b49  pass  xdp   2023-07-17T17:52:46-0400
- 6217       66ec223a-4800-4d0f-bdc8-bee0d3333c6c  pass  xdp   2023-07-17T17:53:57-0400
- 6219       8b7dc4b5-cbc5-45ad-b888-884854ce3939  pass  xdp   2023-07-17T17:59:41-0400
+ Program ID  Name  Type  Load Time
+ 6215        pass  xdp   2023-07-17T17:52:46-0400
+ 6217        pass  xdp   2023-07-17T17:53:57-0400
+ 6219        pass  xdp   2023-07-17T17:59:41-0400
 ```
 
 ```console
 ./target/debug/bpfctl get 6215
+ Bpfd State
+---------------
+ Name:          pass
+ Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Pull Policy:   IfNotPresent
+ Global:        None
+ Metadata:      None
+ Map Pin Path:  /run/bpfd/fs/maps/6215
+ Map Owner ID:  None
+ Map Used By:   None
+ Priority:      50
+ Iface:         vethff657c7
+ Position:      0
+ Proceed On:    pass, dispatcher_return
 
-#################### Bpfd State ####################
-
-UUID:                               0366b811-e1bf-4e7e-a4a5-b6ea49453b49
-Image URL:                          quay.io/bpfd-bytecode/xdp_pass:latest
-Pull Policy:                        IfNotPresent
-Global:                             None
-Map Pin Path:                       /run/bpfd/fs/maps/0366b811-e1bf-4e7e-a4a5-b6ea49453b49
-Map Owner UUID:                     None
-Map Used By:                        None
-Priority:                           50
-Iface:                              vethff657c7
-Position:                           0
-Proceed On:                         pass, dispatcher_return
+ Kernel State
+----------------------------------
+ ID:                               6215
+ Name:                             pass
+ Type:                             xdp
 :
+```
 
+```
 ./target/debug/bpfctl get 6217
+ Bpfd State
+---------------
+ Name:          pass
+ Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Pull Policy:   IfNotPresent
+ Global:        None
+ Metadata:      None
+ Map Pin Path:  /run/bpfd/fs/maps/6217
+ Map Owner ID:  None
+ Map Used By:   None
+ Priority:      200
+ Iface:         vethff657c7
+ Position:      2
+ Proceed On:    pass, dispatcher_return
 
-#################### Bpfd State ####################
-
-UUID:                               66ec223a-4800-4d0f-bdc8-bee0d3333c6c
-Image URL:                          quay.io/bpfd-bytecode/xdp_pass:latest
-Pull Policy:                        IfNotPresent
-Global:                             None
-Map Pin Path:                       /run/bpfd/fs/maps/66ec223a-4800-4d0f-bdc8-bee0d3333c6c
-Map Onwer UUID:                     None
-Map Used By:                        None
-Priority:                           200
-Iface:                              vethff657c7
-Position:                           2
-Proceed On:                         pass, dispatcher_return
+ Kernel State
+----------------------------------
+ ID:                               6217
+ Name:                             pass
+ Type:                             xdp
 :
+```
 
+```
 ./target/debug/bpfctl get 6219
+ Bpfd State
+---------------
+ Name:          pass
+ Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Pull Policy:   IfNotPresent
+ Global:        None
+ Metadata:      None
+ Map Pin Path:  /run/bpfd/fs/maps/6219
+ Map Owner ID:  None
+ Map Used By:   None
+ Priority:      150
+ Iface:         vethff657c7
+ Position:      1
+ Proceed On:    pass, dispatcher_return
 
-#################### Bpfd State ####################
-
-UUID:                               8b7dc4b5-cbc5-45ad-b888-884854ce3939
-Image URL:                          quay.io/bpfd-bytecode/xdp_pass:latest
-Pull Policy:                        IfNotPresent
-Global:                             None
-Map Pin Path:                       /run/bpfd/fs/maps/8b7dc4b5-cbc5-45ad-b888-884854ce3939
-Map Owner UUID:                     None
-Map Used By:                        None
-Priority:                           150
-Iface:                              vethff657c7
-Position:                           1
-Proceed On:                         pass, dispatcher_return
+ Kernel State
+----------------------------------
+ ID:                               6219
+ Name:                             pass
+ Type:                             xdp
 :
-
-
 ```
 
 When `bpfd` is stopped, all remaining programs will be unloaded automatically.
@@ -393,15 +494,15 @@ Same as above except `sudo` can be dropped from all the `bpfctl` commands and `b
 
 ```console
 bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 100
-e0b96122-0ed2-446d-a481-5a41f1340369
+:
 
 
 bpfctl list
- Kernel ID  Bpfd UUID                             Name  Type  Load Time
- 6213       e0b96122-0ed2-446d-a481-5a41f1340369  pass  xdp   2023-07-17T17:48:10-0400
+ Program ID  Name  Type  Load Time
+ 6213        pass  xdp   2023-07-17T17:48:10-0400
 
 
-bpfctl unload e0b96122-0ed2-446d-a481-5a41f1340369
+bpfctl unload 6213
 ```
 
 ### Step 7: Clean-up
@@ -436,5 +537,5 @@ To load these programs locally, use the `bpfctl load-from-file` command in place
 For example:
 
 ```console
-sudo ./target/debug/bpfctl load-from-file --path /$HOME/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o --section-name "xdp" xdp --iface vethff657c7 --priority 100
+sudo ./target/debug/bpfctl load-from-file --path /$HOME/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o --name "pass" xdp --iface vethff657c7 --priority 100
 ```

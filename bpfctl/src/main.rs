@@ -44,9 +44,9 @@ enum Commands {
     Unload(UnloadArgs),
     /// List all eBPF programs loaded via bpfd.
     List(ListArgs),
-    /// Get a program's metadata by program id.
+    /// Get an eBPF program using the program id.
     Get {
-        /// An eBPF program's program id.
+        /// Required: Program id to be retrieved.
         id: u32,
     },
     /// Pull a bytecode image for future use by a load command.
@@ -69,11 +69,15 @@ struct ListArgs {
     #[clap(short, long, verbatim_doc_comment, hide_possible_values = true)]
     program_type: Option<ProgramType>,
 
-    // Optional: List programs which contain a specific set of metadata labels
+    /// Optional: List programs which contain a specific set of metadata labels
+    /// that were applied when the program was loaded with `--metadata` parameter.
+    /// Format: <KEY>=<VALUE>
+    ///
+    /// Example: --metadata-selector owner=acme
     #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
     metadata_selector: Option<Vec<(String, String)>>,
 
-    // Optional: List all programs
+    /// Optional: List all programs.
     #[clap(short, long, verbatim_doc_comment)]
     all: bool,
 }
@@ -85,7 +89,7 @@ struct LoadFileArgs {
     #[clap(short, long, verbatim_doc_comment)]
     path: String,
 
-    /// Required: Name of the ELF section from the object file.
+    /// Required: The name of the function that is the entry point for the BPF program.
     #[clap(short, long)]
     name: String,
 
@@ -102,8 +106,9 @@ struct LoadFileArgs {
     /// is loaded by bpfd.
     /// Format: <KEY>=<VALUE>
     ///
-    /// This can later be used to list a certain subset of programs which contain
+    /// This can later be used to `list` a certain subset of programs which contain
     /// the specified metadata.
+    /// Example: --metadata owner=acme
     #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
     metadata: Option<Vec<(String, String)>>,
 
@@ -123,9 +128,9 @@ struct LoadImageArgs {
     #[command(flatten)]
     pull_args: PullBytecodeArgs,
 
-    /// Optional: Name of the ELF section from the object file. If not provided
-    /// the program name defined as part of the bytecode image will be used.
-    #[clap(short, long, default_value = "")]
+    /// Optional: The name of the function that is the entry point for the BPF program.
+    /// If not provided, the program name defined as part of the bytecode image will be used.
+    #[clap(short, long, verbatim_doc_comment, default_value = "")]
     name: String,
 
     /// Optional: Global variables to be set when program is loaded.
@@ -143,6 +148,7 @@ struct LoadImageArgs {
     ///
     /// This can later be used to list a certain subset of programs which contain
     /// the specified metadata.
+    /// Example: --metadata owner=acme
     #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
     metadata: Option<Vec<(String, String)>>,
 
@@ -270,7 +276,7 @@ enum LoadCommands {
 
 #[derive(Args)]
 struct UnloadArgs {
-    /// Required: Program id to be unloaded
+    /// Required: Program id to be unloaded.
     id: u32,
 }
 

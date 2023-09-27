@@ -33,7 +33,7 @@ $ sudo RUST_LOG=info /usr/local/bin/bpfd
 sudo RUST_LOG=info bpfctl list
 [2023-05-09T12:46:59Z WARN  bpfctl] Unable to read config file, using defaults
 [2023-05-09T12:46:59Z INFO  bpfctl] Using UNIX socket as transport
- Kernel ID  Bpfd UUID  Name  Type  Load Time
+ Program ID  Name  Type  Load Time
 ```
 
 ## Systemd Service
