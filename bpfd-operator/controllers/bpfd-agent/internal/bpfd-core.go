@@ -19,8 +19,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strconv"
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
@@ -103,12 +101,12 @@ func buildBpfdUnloadRequest(id uint32) *gobpfd.UnloadRequest {
 }
 
 func LoadBpfdProgram(ctx context.Context, bpfdClient gobpfd.BpfdClient,
-	loadRequest *gobpfd.LoadRequest) (*uint32, map[string]string, error) {
+	loadRequest *gobpfd.LoadRequest) (*uint32, error) {
 	var res *gobpfd.LoadResponse
 
 	res, err := bpfdClient.Load(ctx, loadRequest)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to load bpfProgram via bpfd: %w", err)
+		return nil, fmt.Errorf("failed to load bpfProgram via bpfd: %w", err)
 	}
 	kernelInfo := res.GetKernelInfo()
 	if kernelInfo == nil {
@@ -116,12 +114,7 @@ func LoadBpfdProgram(ctx context.Context, bpfdClient gobpfd.BpfdClient,
 	}
 	id := kernelInfo.GetId()
 
-	maps, err := GetMapsForID(id)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get bpfProgram's Maps: %v", err)
-	}
-
-	return &id, maps, nil
+	return &id, nil
 }
 
 func UnloadBpfdProgram(ctx context.Context, bpfdClient gobpfd.BpfdClient, id uint32) error {
@@ -187,38 +180,6 @@ func ListAllPrograms(ctx context.Context, bpfdClient gobpfd.BpfdClient) ([]*gobp
 	}
 
 	return listResponse.Results, nil
-}
-
-// GetMapsForId returns any maps for the specified bpf program
-// which bpfd is managing, if there are none return nil.
-func GetMapsForID(id uint32) (map[string]string, error) {
-	maps := map[string]string{}
-	// TODO: Pull from MapPinPath instead of hardcoding
-	programMapPath := fmt.Sprintf("%s/%d", internal.BpfdMapFs, id)
-
-	if err := filepath.Walk(programMapPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() {
-			maps[info.Name()] = path
-		}
-
-		return nil
-	}); err != nil {
-		if os.IsNotExist(err) {
-			log.Info("Program Map Path does not exist", "map path", programMapPath)
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	if len(maps) == 0 {
-		return nil, nil
-	}
-
-	return maps, nil
 }
 
 // Convert a list result into a set of kernel info annotations

@@ -65,10 +65,7 @@ type ReconcilerCommon struct {
 	BpfdClient gobpfd.BpfdClient
 	Logger     logr.Logger
 	NodeName   string
-	// TODO(astoycos) these shouldn't be passed via the reconciler, use return
-	// values instead or refactor by removing duplicated code.
-	expectedMaps map[string]string
-	progId       *uint32
+	progId     *uint32
 }
 
 // bpfdReconciler defines a generic bpfProgram K8s object reconciler which can
@@ -374,9 +371,8 @@ func reconcileProgram(ctx context.Context,
 				}
 
 				// If bpfProgram Maps OR the program ID annotation isn't up to date just update it and return
-				if !reflect.DeepEqual(prog.Spec.Maps, r.expectedMaps) || !reflect.DeepEqual(existingId, r.progId) {
-					r.Logger.Info("Updating bpfProgram Object", "Maps", r.expectedMaps, "Id", r.progId, "bpfProgram", prog.Name)
-					prog.Spec.Maps = r.expectedMaps
+				if !reflect.DeepEqual(existingId, r.progId) {
+					r.Logger.Info("Updating bpfProgram Object", "Id", r.progId, "bpfProgram", prog.Name)
 					// annotations should be populate on create
 					prog.Annotations[internal.IdAnnotation] = strconv.FormatUint(uint64(*r.progId), 10)
 					if err := r.Update(ctx, &prog, &client.UpdateOptions{}); err != nil {

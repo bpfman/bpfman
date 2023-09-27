@@ -89,11 +89,10 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 	cli := agenttestutils.NewBpfdClientFake()
 
 	rc := ReconcilerCommon{
-		Client:       cl,
-		Scheme:       s,
-		BpfdClient:   cli,
-		NodeName:     fakeNode.Name,
-		expectedMaps: map[string]string{},
+		Client:     cl,
+		Scheme:     s,
+		BpfdClient: cli,
+		NodeName:   fakeNode.Name,
 	}
 
 	// Set development Logger so we can see all logs in tests.

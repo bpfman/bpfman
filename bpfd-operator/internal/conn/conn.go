@@ -58,25 +58,7 @@ type ConfigFileData struct {
 }
 
 func LoadConfig() ConfigFileData {
-	config := ConfigFileData{
-		// Don't default this
-		// Tls: Tls{
-		// 	CaCert:     internal.DefaultRootCaPath,
-		// 	Cert:       internal.DefaultCertPath,
-		// 	Key:        internal.DefaultKeyPath,
-		// 	ClientCert: internal.DefaultClientCertPath,
-		// 	ClientKey:  internal.DefaultClientKeyPath,
-		// },
-		// Grpc: Grpc{
-		// 	Endpoints: []Endpoint{
-		// 		{
-		// 			Type:    internal.DefaultType,
-		// 			Port:    internal.DefaultPort,
-		// 			Enabled: internal.DefaultEnabled,
-		// 		},
-		// 	},
-		// },
-	}
+	config := ConfigFileData{}
 
 	log.Info("Reading...\n", "Default config path", internal.DefaultConfigPath)
 	file, err := os.Open(internal.DefaultConfigPath)
@@ -130,8 +112,8 @@ func CreateConnection(endpoints []Endpoint, ctx context.Context, creds credentia
 	)
 
 	// TODO(astoycos) this currently connects to the first valid endpoint
-	// rather then spawing multiple connections. This should be cleaned up
-	// and be made explicitly configurable.
+	// rather then spawning multiple connections. This should be cleaned up
+	// and made explicitly configurable.
 	for _, e := range endpoints {
 		if !e.Enabled {
 			continue

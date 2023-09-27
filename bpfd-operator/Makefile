@@ -372,8 +372,8 @@ kind-reload-images: load-images-kind ## Reload locally build images into a kind 
 	kubectl rollout restart daemonset bpfd-daemon -n bpfd
 	kubectl rollout restart deployment bpfd-operator -n bpfd
 
-.PHONY: run-on-kind-encrypted
-run-on-kind-encrypted: kustomize setup-kind deploy-certmanager build-images load-images-kind deploy-encrypted ## Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator
+.PHONY: run-on-kind-encrypted 
+run-on-kind-encrypted: kustomize setup-kind deploy-certmanager build-images load-images-kind deploy-encrypted ## Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator while also using tcp and mtls to encrypt traffic between the daemon and agent.
 
 .PHONY: run-on-kind
 run-on-kind: kustomize setup-kind build-images load-images-kind deploy ## Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator
