@@ -27,6 +27,10 @@ spec:
       - key: node-role.kubernetes.io/master
         operator: Exists
         effect: NoSchedule
+      # Specify FS group so that the agent can use the bpfd socket
+      # without needing to be root.
+      securityContext:
+        fsGroup: 2000
       containers:
       - name: bpfd
         image: quay.io/bpfd/bpfd:latest
@@ -40,22 +44,14 @@ spec:
                 name: bpfd-config
                 key: bpfd.log.level
         volumeMounts:
+        - name: bpfd-sock
+          mountPath: /bpfd-sock
         - name: runtime
           mountPath: /run/bpfd
           mountPropagation: Bidirectional
-        - name: bpfd-ca
-          mountPath: /etc/bpfd/certs/ca
-          readOnly: true
-        - name: bpfd-cert
-          mountPath: /etc/bpfd/certs/bpfd
-          readOnly: true
         - name: bpfd-config 
           mountPath: /etc/bpfd/bpfd.toml
           subPath: bpfd.toml
-          readOnly: true
-        # Mounted so bpfd doesn't try and create the client certificate
-        - name: bpfd-agent-cert
-          mountPath: /etc/bpfd/certs/bpfd-client
           readOnly: true
         # This mount is needed to attach tracepoint programs
         - name: host-debug
@@ -70,10 +66,8 @@ spec:
           mountPropagation: Bidirectional
       - name: bpfd-agent 
         command:
-        - /bpfd-agent      
+        - /bpfd-agent
         image: quay.io/bpfd/bpfd-agent:latest
-        securityContext:
-          privileged: true
         imagePullPolicy: IfNotPresent
         env: 
           - name: KUBE_NODE_NAME 
@@ -86,36 +80,19 @@ spec:
                 name: bpfd-config
                 key: bpfd.log.level
         volumeMounts:
-        - name: runtime
-          mountPath: /run/bpfd
-          mountPropagation: Bidirectional
-        - name: bpfd-ca
-          mountPath: /etc/bpfd/certs/ca
-          readOnly: true
-        - name: bpfd-agent-cert
-          mountPath: /etc/bpfd/certs/bpfd-client
-          readOnly: true
+        - name: bpfd-sock
+          mountPath: /bpfd-sock
         - name: bpfd-config
           mountPath: /etc/bpfd/bpfd.toml
           subPath: bpfd.toml
           readOnly: true
       terminationGracePeriodSeconds: 15
       volumes:
+      - name: bpfd-sock
+        emptyDir: {}
       - name: runtime
         hostPath:
           path: /run/bpfd
-      - name: bpfd-ca
-        secret: 
-          secretName: bpfd-ca
-          optional: false
-      - name: bpfd-cert
-        secret:
-          secretName: bpfd-cert-secret
-          optional: false
-      - name: bpfd-agent-cert
-        secret:
-          secretName: bpfd-agent-cert-secret
-          optional: false
       - name: bpfd-config
         configMap:
           name: bpfd-config

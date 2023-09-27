@@ -1,5 +1,7 @@
 resources:
-- config.yaml
+- cert-issuer.yaml
+- config-tcp.yaml
+- certs.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
