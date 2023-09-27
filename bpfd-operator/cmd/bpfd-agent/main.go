@@ -28,6 +28,8 @@ import (
 	"go.uber.org/zap/zapcore"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -39,7 +41,7 @@ import (
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
 	bpfdagent "github.com/bpfd-dev/bpfd/bpfd-operator/controllers/bpfd-agent"
 
-	"github.com/bpfd-dev/bpfd/bpfd-operator/internal/tls"
+	"github.com/bpfd-dev/bpfd/bpfd-operator/internal/conn"
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	v1 "k8s.io/api/core/v1"
 	//+kubebuilder:scaffold:imports
@@ -106,31 +108,28 @@ func main() {
 	}
 
 	// Setup bpfd Client
-	configFileData := tls.LoadConfig()
+	configFileData := conn.LoadConfig()
+	var creds credentials.TransportCredentials
 
-	creds, err := tls.LoadTLSCredentials(configFileData.Tls)
-	if err != nil {
-		setupLog.Error(err, "Failed to generate credentials for new client")
-		os.Exit(1)
+	if configFileData.Tls != nil {
+		setupLog.Info("MTLS credentials provided, using secure connection")
+		creds, err = conn.LoadTLSCredentials(*configFileData.Tls)
+		if err != nil {
+			setupLog.Error(err, "Failed to generate credentials for new client")
+			os.Exit(1)
+		}
+	} else {
+		setupLog.Info("No MTLS credentials provided, using insecure connection")
+		creds = insecure.NewCredentials()
 	}
 
 	// Set up a connection to bpfd, block until bpfd is up.
 	setupLog.Info("Waiting for active connection to bpfd", "endpoints", configFileData.Grpc.Endpoints, "creds", creds)
-	conn, err := tls.CreateConnection(configFileData.Grpc.Endpoints, context.Background(), creds)
+	conn, err := conn.CreateConnection(configFileData.Grpc.Endpoints, context.Background(), creds)
 	if err != nil {
 		setupLog.Error(err, "unable to connect to bpfd")
 		os.Exit(1)
 	}
-
-	// TODO(ASTOYCOS) add support for connecting over unix sockets.
-	// Set up a connection to bpfd, block until bpfd is up.
-	// addr := "unix:/var/lib/bpfd/bpfd.sock"
-	// setupLog.Info("Waiting for active connection to bpfd at %s", "addr", addr)
-	// conn, err := grpc.DialContext(context.Background(), addr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
-	// if err != nil {
-	// 	setupLog.Error(err, "unable to connect to bpfd")
-	// 	os.Exit(1)
-	// }
 
 	// Get the nodename where this pod is running
 	nodeName := os.Getenv("KUBE_NODE_NAME")

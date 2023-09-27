@@ -112,7 +112,7 @@ func LoadBpfdProgram(ctx context.Context, bpfdClient gobpfd.BpfdClient,
 	}
 	kernelInfo := res.GetKernelInfo()
 	if kernelInfo == nil {
-		return nil, nil, fmt.Errorf("no kernel info for load bpfProgram")
+		return nil, fmt.Errorf("no kernel info for load bpfProgram")
 	}
 	id := kernelInfo.GetId()
 
