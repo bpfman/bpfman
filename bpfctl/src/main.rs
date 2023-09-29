@@ -840,8 +840,8 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn execute_request_unix(command: &Commands, path: String) -> anyhow::Result<()> {
-    // URI is ignored on UDS, so any parsable string works.
-    let address = String::from("https://localhost");
+    // Format address to something like: "unix://run/bpfd/bpfd.sock"
+    let address = format!("unix:/{path}");
     let channel = Endpoint::try_from(address)?
         .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(path.clone())))
         .await?;
