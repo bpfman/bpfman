@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -16,7 +15,6 @@ import (
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	configMgmt "github.com/bpfd-dev/bpfd/examples/pkg/config-mgmt"
 	"github.com/cilium/ebpf"
-	"google.golang.org/grpc"
 )
 
 const (
@@ -60,19 +58,108 @@ func main() {
 		mapPath = maps[BpfProgramMapIndex]
 
 	} else { // if not on k8s, find the map path from the system
+		ctx := context.Background()
 
-		// if the bytecode src is not a Program ID provided by BPFD, we'll need to
-		// load the program ourselves
-		if paramData.BytecodeSrc != configMgmt.SrcProgId {
-			cleanup, err := loadProgram(&paramData)
-			if err != nil {
-				log.Printf("Failed to load BPF program: %v", err)
-				return
-			}
-			defer cleanup(paramData.ProgId)
+		// get the BPFD TLS credentials
+		configFileData := configMgmt.LoadConfig(DefaultConfigPath)
+		creds, err := configMgmt.LoadTLSCredentials(configFileData.Tls)
+		if err != nil {
+			log.Printf("Failed to generate credentials for new client: %v", err)
 		}
 
-		mapPath = fmt.Sprintf("%s/%d/tracepoint_stats_map", DefaultMapDir, paramData.ProgId)
+		// connect to the BPFD server
+		conn, err := configMgmt.CreateConnection(configFileData.Grpc.Endpoints, ctx, creds)
+		if err != nil {
+			log.Printf("failed to create client connection: %v", err)
+			return
+		}
+
+		c := gobpfd.NewBpfdClient(conn)
+
+		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
+		if paramData.BytecodeSrc != configMgmt.SrcProgId {
+			var loadRequest *gobpfd.LoadRequest
+			if paramData.MapOwnerId != 0 {
+				mapOwnerId := uint32(paramData.MapOwnerId)
+				loadRequest = &gobpfd.LoadRequest{
+					Bytecode:    paramData.BytecodeSource,
+					Name:        "tracepoint_kill_recorder",
+					ProgramType: *bpfdHelpers.Tracepoint.Uint32(),
+					Attach: &gobpfd.AttachInfo{
+						Info: &gobpfd.AttachInfo_TracepointAttachInfo{
+							TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
+								Tracepoint: "syscalls/sys_enter_kill",
+							},
+						},
+					},
+					MapOwnerId: &mapOwnerId,
+				}
+			} else {
+				loadRequest = &gobpfd.LoadRequest{
+					Bytecode:    paramData.BytecodeSource,
+					Name:        "tracepoint_kill_recorder",
+					ProgramType: *bpfdHelpers.Tracepoint.Uint32(),
+					Attach: &gobpfd.AttachInfo{
+						Info: &gobpfd.AttachInfo_TracepointAttachInfo{
+							TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
+								Tracepoint: "syscalls/sys_enter_kill",
+							},
+						},
+					},
+				}
+			}
+
+			// 1. Load Program using bpfd
+			var res *gobpfd.LoadResponse
+			res, err = c.Load(ctx, loadRequest)
+			if err != nil {
+				conn.Close()
+				log.Print(err)
+				return
+			}
+
+			kernelInfo := res.GetKernelInfo()
+			if kernelInfo != nil {
+				paramData.ProgId = uint(kernelInfo.GetId())
+			} else {
+				conn.Close()
+				log.Printf("kernelInfo not returned in LoadResponse")
+				return
+			}
+			log.Printf("Program registered with id %d\n", paramData.ProgId)
+
+			// 2. Set up defer to unload program when this is closed
+			defer func(id uint) {
+				log.Printf("unloading program: %d\n", id)
+				_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: uint32(id)})
+				if err != nil {
+					conn.Close()
+					log.Print(err)
+					return
+				}
+				conn.Close()
+			}(paramData.ProgId)
+
+			// 3. Get access to our map
+			mapPath, err = configMgmt.CalcMapPinPath(res.GetInfo(), "tracepoint_stats_map")
+			if err != nil {
+				log.Print(err)
+				return
+			}
+		} else {
+			// 2. Set up defer to close connection
+			defer func(id uint) {
+				log.Printf("Closing Connection for Program: %d\n", id)
+				conn.Close()
+			}(paramData.ProgId)
+
+			// 3. Get access to our map
+			mapPath, err = configMgmt.RetrieveMapPinPath(ctx, c, paramData.ProgId, "tracepoint_stats_map")
+			if err != nil {
+				log.Print(err)
+				return
+			}
+		}
 	}
 
 	// load the pinned stats map which is keeping count of kill -SIGUSR1 calls
@@ -126,57 +213,4 @@ func main() {
 	<-stop
 
 	log.Printf("Exiting...\n")
-}
-
-func loadProgram(paramData *configMgmt.ParameterData) (func(uint), error) {
-	// get the BPFD TLS credentials
-	configFileData := configMgmt.LoadConfig(DefaultConfigPath)
-	creds, err := configMgmt.LoadTLSCredentials(configFileData.Tls)
-	if err != nil {
-		return nil, err
-	}
-
-	// connect to the BPFD server
-	ctx := context.Background()
-	conn, err := grpc.DialContext(ctx, "localhost:50051", grpc.WithTransportCredentials(creds))
-	if err != nil {
-		return nil, err
-	}
-	c := gobpfd.NewBpfdClient(conn)
-	loadRequestCommon := &gobpfd.LoadRequestCommon{
-		Location:    paramData.BytecodeSource.Location,
-		Name:        "tracepoint_kill_recorder",
-		ProgramType: *bpfdHelpers.Xdp.Uint32(),
-	}
-
-	loadRequest := &gobpfd.LoadRequest{
-		Common: loadRequestCommon,
-		AttachInfo: &gobpfd.LoadRequest_TracepointAttachInfo{
-			TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
-				Tracepoint: "syscalls/sys_enter_kill",
-			},
-		},
-	}
-
-	// send the load request to BPFD
-	var res *gobpfd.LoadResponse
-	res, err = c.Load(ctx, loadRequest)
-	if err != nil {
-		conn.Close()
-		return nil, err
-	}
-	paramData.ProgId = uint(res.GetId())
-	log.Printf("Program registered with id %d\n", paramData.ProgId)
-
-	// provide a cleanup to unload the program
-	return func(id uint) {
-		defer conn.Close()
-		log.Printf("unloading program: %d\n", id)
-		_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: uint32(id)})
-		if err != nil {
-			conn.Close()
-			log.Printf("failed to unload program %d: %v", id, err)
-			return
-		}
-	}, nil
 }

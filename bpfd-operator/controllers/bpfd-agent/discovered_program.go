@@ -100,10 +100,19 @@ func (r *DiscoveredProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	for _, p := range programs {
-		// skip bpf programs loaded by bpfd, their corresponding bpfProgram object
-		// will be managed by another controller.
-		if _, ok := p.Metadata[internal.UuidMetadataKey]; ok {
+		kernelInfo := p.GetKernelInfo()
+		if kernelInfo == nil {
 			continue
+		}
+
+		programInfo := p.GetInfo()
+		if programInfo != nil {
+			// skip bpf programs loaded by bpfd, their corresponding bpfProgram object
+			// will be managed by another controller.
+			metadata := programInfo.GetMetadata()
+			if _, ok := metadata[internal.UuidMetadataKey]; ok {
+				continue
+			}
 		}
 
 		// TODO(astoycos) across the agent we need a better way to validate that
@@ -111,10 +120,10 @@ func (r *DiscoveredProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		// regex: '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*'
 		// laid out here -> https://github.com/kubernetes/apimachinery/blob/v0.27.4/pkg/util/validation/validation.go#L43C6-L43C21
 		bpfProgName := ""
-		if len(p.Name) == 0 {
-			bpfProgName = fmt.Sprintf("%d-%s", p.Id, r.NodeName)
+		if len(kernelInfo.Name) == 0 {
+			bpfProgName = fmt.Sprintf("%d-%s", kernelInfo.Id, r.NodeName)
 		} else {
-			bpfProgName = fmt.Sprintf("%s-%d-%s", strings.ReplaceAll(p.Name, "_", "-"), p.Id, r.NodeName)
+			bpfProgName = fmt.Sprintf("%s-%d-%s", strings.ReplaceAll(kernelInfo.Name, "_", "-"), kernelInfo.Id, r.NodeName)
 		}
 
 		expectedBpfProg := &bpfdiov1alpha1.BpfProgram{
@@ -125,7 +134,7 @@ func (r *DiscoveredProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 				Annotations: bpfdagentinternal.Build_kernel_info_annotations(p),
 			},
 			Spec: bpfdiov1alpha1.BpfProgramSpec{
-				Type: internal.ProgramType(p.ProgramType).String(),
+				Type: internal.ProgramType(kernelInfo.ProgramType).String(),
 			},
 			Status: bpfdiov1alpha1.BpfProgramStatus{Conditions: []metav1.Condition{}},
 		}

@@ -12,6 +12,11 @@ use std::{
 use aya::programs::ProgramInfo as AyaProgInfo;
 use bpfd_api::{
     util::directories::{RTDIR_FS, RTDIR_PROGRAMS},
+    v1::{
+        attach_info::Info, bytecode_location::Location as V1Location, AttachInfo, BytecodeLocation,
+        KernelProgramInfo as V1KernelProgramInfo, KprobeAttachInfo, ProgramInfo as V1ProgramInfo,
+        TcAttachInfo, TracepointAttachInfo, UprobeAttachInfo, XdpAttachInfo,
+    },
     ParseError, ProgramType, TcProceedOn, XdpProceedOn,
 };
 use chrono::{prelude::DateTime, Local};
@@ -37,13 +42,14 @@ pub(crate) enum Command {
     List {
         responder: Responder<Result<Vec<Program>, BpfdError>>,
     },
+    Get(GetArgs),
     PullBytecode(PullBytecodeArgs),
 }
 
 #[derive(Debug)]
 pub(crate) struct LoadArgs {
     pub(crate) program: Program,
-    pub(crate) responder: Responder<Result<u32, BpfdError>>,
+    pub(crate) responder: Responder<Result<Program, BpfdError>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -60,6 +66,12 @@ pub(crate) enum Program {
 pub(crate) struct UnloadArgs {
     pub(crate) id: u32,
     pub(crate) responder: Responder<Result<(), BpfdError>>,
+}
+
+#[derive(Debug)]
+pub(crate) struct GetArgs {
+    pub(crate) id: u32,
+    pub(crate) responder: Responder<Result<Program, BpfdError>>,
 }
 
 #[derive(Debug)]
@@ -193,6 +205,114 @@ impl TryFrom<AyaProgInfo> for KernelProgramInfo {
             bytes_jited: prog.size_jitted(),
             bytes_memlock: prog.memory_locked().map_err(BpfdError::BpfProgramError)?,
             verified_insns: prog.verified_instruction_count(),
+        })
+    }
+}
+
+impl TryFrom<&Program> for V1ProgramInfo {
+    type Error = BpfdError;
+
+    fn try_from(program: &Program) -> Result<Self, Self::Error> {
+        let data = program.data()?;
+
+        let bytecode = match program.location() {
+            Some(l) => match l {
+                crate::command::Location::Image(m) => {
+                    Some(BytecodeLocation {
+                        location: Some(V1Location::Image(bpfd_api::v1::BytecodeImage {
+                            url: m.get_url().to_string(),
+                            image_pull_policy: m.get_pull_policy().to_owned() as i32,
+                            // Never dump Plaintext Credentials
+                            username: Some(String::new()),
+                            password: Some(String::new()),
+                        })),
+                    })
+                }
+                crate::command::Location::File(m) => Some(BytecodeLocation {
+                    location: Some(V1Location::File(m.to_string())),
+                }),
+            },
+            None => None,
+        };
+
+        let attach_info = AttachInfo {
+            info: match program.clone() {
+                Program::Xdp(p) => Some(Info::XdpAttachInfo(XdpAttachInfo {
+                    priority: p.priority,
+                    iface: p.iface,
+                    position: p.current_position.unwrap_or(0) as i32,
+                    proceed_on: p.proceed_on.as_action_vec(),
+                })),
+                Program::Tc(p) => Some(Info::TcAttachInfo(TcAttachInfo {
+                    priority: p.priority,
+                    iface: p.iface,
+                    position: p.current_position.unwrap_or(0) as i32,
+                    direction: p.direction.to_string(),
+                    proceed_on: p.proceed_on.as_action_vec(),
+                })),
+                Program::Tracepoint(p) => Some(Info::TracepointAttachInfo(TracepointAttachInfo {
+                    tracepoint: p.tracepoint,
+                })),
+                Program::Kprobe(p) => Some(Info::KprobeAttachInfo(KprobeAttachInfo {
+                    fn_name: p.fn_name,
+                    offset: p.offset,
+                    retprobe: p.retprobe,
+                    namespace: p.namespace,
+                })),
+                Program::Uprobe(p) => Some(Info::UprobeAttachInfo(UprobeAttachInfo {
+                    fn_name: p.fn_name,
+                    offset: p.offset,
+                    target: p.target,
+                    retprobe: p.retprobe,
+                    pid: p.pid,
+                    namespace: p.namespace,
+                })),
+                Program::Unsupported(_) => None,
+            },
+        };
+
+        // Populate the Program Info with bpfd data
+        Ok(V1ProgramInfo {
+            name: data.name().to_owned(),
+            bytecode,
+            attach: Some(attach_info),
+            global_data: data.global_data().to_owned(),
+            map_owner_id: data.map_owner_id(),
+            map_pin_path: data
+                .map_pin_path()
+                .map_or(String::new(), |v| v.to_str().unwrap().to_string()),
+            map_used_by: data
+                .maps_used_by()
+                .map_or(vec![], |m| m.iter().map(|m| m.to_string()).collect()),
+            metadata: data.metadata().to_owned(),
+        })
+    }
+}
+
+impl TryFrom<&Program> for V1KernelProgramInfo {
+    type Error = BpfdError;
+
+    fn try_from(program: &Program) -> Result<Self, Self::Error> {
+        // Get the Kernel Info.
+        let kernel_info = program.kernel_info().ok_or(BpfdError::Error(
+            "program kernel info not available".to_string(),
+        ))?;
+
+        // Populate the Kernel Info.
+        Ok(V1KernelProgramInfo {
+            id: kernel_info.id,
+            name: kernel_info.name.to_owned(),
+            program_type: program.kind() as u32,
+            loaded_at: kernel_info.loaded_at.to_owned(),
+            tag: kernel_info.tag.to_owned(),
+            gpl_compatible: kernel_info.gpl_compatible,
+            map_ids: kernel_info.map_ids.to_owned(),
+            btf_id: kernel_info.btf_id,
+            bytes_xlated: kernel_info.bytes_xlated,
+            jited: kernel_info.jited,
+            bytes_jited: kernel_info.bytes_jited,
+            bytes_memlock: kernel_info.bytes_memlock,
+            verified_insns: kernel_info.verified_insns,
         })
     }
 }
@@ -620,17 +740,6 @@ impl Program {
         match self {
             Program::Tc(p) => Some(p.direction),
             _ => None,
-        }
-    }
-
-    pub(crate) fn name(&self) -> &str {
-        match self {
-            Program::Xdp(p) => &p.data.name,
-            Program::Tracepoint(p) => &p.data.name,
-            Program::Tc(p) => &p.data.name,
-            Program::Kprobe(p) => &p.data.name,
-            Program::Uprobe(p) => &p.data.name,
-            Program::Unsupported(k) => &k.name,
         }
     }
 }

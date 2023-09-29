@@ -127,7 +127,7 @@ impl ProgramMap {
         }
     }
 
-    fn kernel_infos(&self) -> impl Iterator<Item = (u32, &Program)> {
+    fn get_programs_iter(&self) -> impl Iterator<Item = (u32, &Program)> {
         self.programs.values().map(|p| {
             let kernel_info = p
                 .data()
@@ -268,7 +268,7 @@ impl BpfManager {
         Ok(())
     }
 
-    pub(crate) async fn add_program(&mut self, mut program: Program) -> Result<u32, BpfdError> {
+    pub(crate) async fn add_program(&mut self, mut program: Program) -> Result<Program, BpfdError> {
         debug!("BpfManager::add_program()");
 
         let map_owner_id = program.data()?.map_owner_id();
@@ -304,15 +304,18 @@ impl BpfManager {
             .map_pin_path()
             .expect("map_pin_path must be set after load");
 
-        if let Ok(id) = result {
-            // Now that program is successfully loaded, update the id, maps hash table,
-            // and allow access to all maps by bpfd group members.
-            self.save_map(id, map_owner_id, map_pin_path).await?;
-        } else {
-            let _ = self.cleanup_map_pin_path(map_pin_path, map_owner_id).await;
+        match result {
+            Ok(id) => {
+                // Now that program is successfully loaded, update the id, maps hash table,
+                // and allow access to all maps by bpfd group members.
+                self.save_map(id, map_owner_id, map_pin_path).await?;
+                Ok(program)
+            }
+            Err(e) => {
+                let _ = self.cleanup_map_pin_path(map_pin_path, map_owner_id).await;
+                Err(e)
+            }
         }
-
-        result
     }
 
     pub(crate) async fn add_multi_attach_program(
@@ -460,11 +463,7 @@ impl BpfManager {
                     .try_into()
                     .expect("unable to get owned tracepoint attach link");
 
-                let id = program
-                    .data
-                    .kernel_info()
-                    .expect("kernel info should be set after load")
-                    .id;
+                let id = program.data.id().expect("id should be set after load");
 
                 fd_link
                     .pin(format!("{RTDIR_FS}/prog_{}_link", id))
@@ -511,11 +510,7 @@ impl BpfManager {
                     .try_into()
                     .expect("unable to get owned kprobe attach link");
 
-                let id = program
-                    .data
-                    .kernel_info()
-                    .expect("kernel info should be set after load")
-                    .id;
+                let id = program.data.id().expect("id should be set after load");
 
                 fd_link
                     .pin(format!("{RTDIR_FS}/prog_{}_link", id))
@@ -561,11 +556,7 @@ impl BpfManager {
                     .try_into()
                     .expect("unable to get owned uprobe attach link");
 
-                let id = program
-                    .data
-                    .kernel_info()
-                    .expect("kernel info should be set after load")
-                    .id;
+                let id = program.data.id().expect("id should be set after load");
 
                 fd_link
                     .pin(format!("{RTDIR_FS}/prog_{}_link", id))
@@ -757,19 +748,43 @@ impl BpfManager {
     pub(crate) fn list_programs(&mut self) -> Result<Vec<Program>, BpfdError> {
         debug!("BpfManager::list_programs()");
 
-        let mut bpfd_progs: HashMap<u32, &Program> = self.programs.kernel_infos().collect();
+        // Get an iterator for the bpfd load programs, a hash map indexed by program id.
+        let mut bpfd_progs: HashMap<u32, &Program> = self.programs.get_programs_iter().collect();
 
+        // Call Aya to get ALL the loaded eBPF programs, and loop through each one.
         loaded_programs()
             .map(|p| {
                 let prog = p.map_err(BpfdError::BpfProgramError)?;
                 let prog_id = prog.id();
 
+                // If the program was loaded by bpfd (check the hash map), then us it.
+                // Otherwise, convert the data returned from Aya into an Unsupported Program Object.
                 match bpfd_progs.remove(&prog_id) {
                     Some(p) => Ok(p.to_owned()),
                     None => Ok(Program::Unsupported(prog.try_into()?)),
                 }
             })
             .collect()
+    }
+
+    pub(crate) fn get_program(&mut self, id: u32) -> Result<Program, BpfdError> {
+        debug!("BpfManager::get_program({0})", id);
+        // If the program was loaded by bpfd, then use it.
+        // Otherwise, call Aya to get ALL the loaded eBPF programs, and convert the data
+        // returned from Aya into an Unsupported Program Object.
+        match self.programs.get(&id) {
+            Some(p) => Ok(p.to_owned()),
+            None => loaded_programs()
+                .find_map(|p| {
+                    let prog = p.ok()?;
+                    if prog.id() == id {
+                        Some(Program::Unsupported(prog.try_into().ok()?))
+                    } else {
+                        None
+                    }
+                })
+                .ok_or(BpfdError::Error(format!("Program {0} does not exist", id))),
+        }
     }
 
     async fn pull_bytecode(&self, args: PullBytecodeArgs) -> anyhow::Result<()> {
@@ -806,9 +821,9 @@ impl BpfManager {
                 Some(cmd) = self.commands.recv() => {
                     match cmd {
                         Command::Load(args) => {
-                            let res = self.add_program(args.program).await;
+                            let prog = self.add_program(args.program).await;
                             // Ignore errors as they'll be propagated to caller in the RPC status
-                            let _ = args.responder.send(res);
+                            let _ = args.responder.send(prog);
                         },
                         Command::Unload(args) => self.unload_command(args).await.unwrap(),
                         Command::List { responder } => {
@@ -816,6 +831,11 @@ impl BpfManager {
                             // Ignore errors as they'll be propagated to caller in the RPC status
                             let _ = responder.send(progs);
                         }
+                        Command::Get(args) => {
+                            let prog = self.get_program(args.id);
+                            // Ignore errors as they'll be propagated to caller in the RPC status
+                            let _ = args.responder.send(prog);
+                        },
                         Command::PullBytecode (args) => self.pull_bytecode(args).await.unwrap(),
                     }
                 }

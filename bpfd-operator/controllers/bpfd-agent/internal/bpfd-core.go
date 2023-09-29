@@ -48,7 +48,7 @@ func imagePullPolicyConversion(policy bpfdiov1alpha1.PullPolicy) int32 {
 	}
 }
 
-func GetBytecode(c client.Client, b *bpfdiov1alpha1.BytecodeSelector) (interface{}, error) {
+func GetBytecode(c client.Client, b *bpfdiov1alpha1.BytecodeSelector) (*gobpfd.BytecodeLocation, error) {
 	if b.Image != nil {
 		bytecodeImage := b.Image
 
@@ -81,50 +81,19 @@ func GetBytecode(c client.Client, b *bpfdiov1alpha1.BytecodeSelector) (interface
 			password = cred.Password
 		}
 
-		return &gobpfd.LoadRequestCommon_Image{
-			Image: &gobpfd.BytecodeImage{
+		return &gobpfd.BytecodeLocation{
+			Location: &gobpfd.BytecodeLocation_Image{Image: &gobpfd.BytecodeImage{
 				Url:             bytecodeImage.Url,
 				ImagePullPolicy: imagePullPolicyConversion(bytecodeImage.ImagePullPolicy),
-				Username:        username,
-				Password:        password,
-			},
+				Username:        &username,
+				Password:        &password,
+			}},
 		}, nil
 	} else {
-		return &gobpfd.LoadRequestCommon_File{
-			File: *b.Path,
+		return &gobpfd.BytecodeLocation{
+			Location: &gobpfd.BytecodeLocation_File{File: *b.Path},
 		}, nil
 	}
-}
-
-func BuildBpfdCommon(bytecode interface{},
-	name string,
-	programType internal.ProgramType,
-	metadata map[string]string,
-	globalData map[string][]byte,
-	mapOwnerId *uint32) *gobpfd.LoadRequestCommon {
-	if imageBytecode, ok := bytecode.(*gobpfd.LoadRequestCommon_Image); ok {
-		return &gobpfd.LoadRequestCommon{
-			Location:    imageBytecode,
-			Name:        name,
-			ProgramType: *programType.Uint32(),
-			Metadata:    metadata,
-			GlobalData:  globalData,
-			MapOwnerId:  mapOwnerId,
-		}
-	}
-
-	if fileBytecode, ok := bytecode.(*gobpfd.LoadRequestCommon_File); ok {
-		return &gobpfd.LoadRequestCommon{
-			Location:    fileBytecode,
-			Name:        name,
-			ProgramType: *programType.Uint32(),
-			Metadata:    metadata,
-			GlobalData:  globalData,
-			MapOwnerId:  mapOwnerId,
-		}
-	}
-
-	return nil
 }
 
 func buildBpfdUnloadRequest(id uint32) *gobpfd.UnloadRequest {
@@ -141,7 +110,11 @@ func LoadBpfdProgram(ctx context.Context, bpfdClient gobpfd.BpfdClient,
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to load bpfProgram via bpfd: %w", err)
 	}
-	id := res.GetId()
+	kernelInfo := res.GetKernelInfo()
+	if kernelInfo == nil {
+		return nil, nil, fmt.Errorf("no kernel info for load bpfProgram")
+	}
+	id := kernelInfo.GetId()
 
 	maps, err := GetMapsForID(id)
 	if err != nil {
@@ -175,10 +148,14 @@ func ListBpfdPrograms(ctx context.Context, bpfdClient gobpfd.BpfdClient, program
 	}
 
 	for _, result := range listResponse.Results {
-		if uuid, ok := result.Metadata[internal.UuidMetadataKey]; ok {
-			out[uuid] = result
-		} else {
-			return nil, fmt.Errorf("Unable to get uuid from program metadata")
+		info := result.GetInfo()
+		if info != nil {
+			metadata := info.GetMetadata()
+			if uuid, ok := metadata[internal.UuidMetadataKey]; ok {
+				out[uuid] = result
+			} else {
+				return nil, fmt.Errorf("Unable to get uuid from program metadata")
+			}
 		}
 	}
 
@@ -246,21 +223,25 @@ func GetMapsForID(id uint32) (map[string]string, error) {
 
 // Convert a list result into a set of kernel info annotations
 func Build_kernel_info_annotations(p *gobpfd.ListResponse_ListResult) map[string]string {
-	return map[string]string{
-		"Kernel-ID":                     fmt.Sprint(p.Id),
-		"Name":                          p.Name,
-		"Type":                          internal.ProgramType(p.ProgramType).String(),
-		"Loaded-At":                     p.LoadedAt,
-		"Tag":                           p.Tag,
-		"GPL-Compatible":                fmt.Sprintf("%v", p.GplCompatible),
-		"Map-IDs":                       fmt.Sprintf("%v", p.MapIds),
-		"BTF-ID":                        fmt.Sprint(p.BtfId),
-		"Size-Translated-Bytes":         fmt.Sprint(p.BytesXlated),
-		"JITed":                         fmt.Sprintf("%v", p.Jited),
-		"Size-JITed-Bytes":              fmt.Sprint(p.BytesJited),
-		"Kernel-Allocated-Memory-Bytes": fmt.Sprint(p.BytesMemlock),
-		"Verified-Instruction-Count":    fmt.Sprint(p.VerifiedInsns),
+	kernelInfo := p.GetKernelInfo()
+	if kernelInfo != nil {
+		return map[string]string{
+			"Kernel-ID":                     fmt.Sprint(kernelInfo.GetId()),
+			"Name":                          kernelInfo.GetName(),
+			"Type":                          internal.ProgramType(kernelInfo.GetProgramType()).String(),
+			"Loaded-At":                     kernelInfo.GetLoadedAt(),
+			"Tag":                           kernelInfo.GetTag(),
+			"GPL-Compatible":                fmt.Sprintf("%v", kernelInfo.GetGplCompatible()),
+			"Map-IDs":                       fmt.Sprintf("%v", kernelInfo.GetMapIds()),
+			"BTF-ID":                        fmt.Sprint(kernelInfo.GetBtfId()),
+			"Size-Translated-Bytes":         fmt.Sprint(kernelInfo.GetBytesXlated()),
+			"JITed":                         fmt.Sprintf("%v", kernelInfo.GetJited()),
+			"Size-JITed-Bytes":              fmt.Sprint(kernelInfo.GetBytesJited()),
+			"Kernel-Allocated-Memory-Bytes": fmt.Sprint(kernelInfo.GetBytesMemlock()),
+			"Verified-Instruction-Count":    fmt.Sprint(kernelInfo.GetVerifiedInsns()),
+		}
 	}
+	return nil
 }
 
 // get the program ID from a bpfProgram

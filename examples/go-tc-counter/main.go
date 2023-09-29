@@ -90,32 +90,39 @@ func main() {
 
 		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcProgId {
-			var loadRequestCommon *gobpfd.LoadRequestCommon
+			var loadRequest *gobpfd.LoadRequest
 			if paramData.MapOwnerId != 0 {
 				mapOwnerId := uint32(paramData.MapOwnerId)
-				loadRequestCommon = &gobpfd.LoadRequestCommon{
-					Location:    paramData.BytecodeSource.Location,
+				loadRequest = &gobpfd.LoadRequest{
+					Bytecode:    paramData.BytecodeSource,
 					Name:        "stats",
 					ProgramType: *bpfdHelpers.Tc.Uint32(),
-					MapOwnerId:  &mapOwnerId,
+					Attach: &gobpfd.AttachInfo{
+						Info: &gobpfd.AttachInfo_TcAttachInfo{
+							TcAttachInfo: &gobpfd.TCAttachInfo{
+								Priority:  int32(paramData.Priority),
+								Iface:     paramData.Iface,
+								Direction: direction.String(),
+							},
+						},
+					},
+					MapOwnerId: &mapOwnerId,
 				}
 			} else {
-				loadRequestCommon = &gobpfd.LoadRequestCommon{
-					Location:    paramData.BytecodeSource.Location,
+				loadRequest = &gobpfd.LoadRequest{
+					Bytecode:    paramData.BytecodeSource,
 					Name:        "stats",
-					ProgramType: *bpfdHelpers.Tc.Uint32(),
-				}
-			}
-
-			loadRequest := &gobpfd.LoadRequest{
-				Common: loadRequestCommon,
-				AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
-					TcAttachInfo: &gobpfd.TCAttachInfo{
-						Priority:  int32(paramData.Priority),
-						Iface:     paramData.Iface,
-						Direction: direction.String(),
+					ProgramType: *bpfdHelpers.Xdp.Uint32(),
+					Attach: &gobpfd.AttachInfo{
+						Info: &gobpfd.AttachInfo_TcAttachInfo{
+							TcAttachInfo: &gobpfd.TCAttachInfo{
+								Priority:  int32(paramData.Priority),
+								Iface:     paramData.Iface,
+								Direction: direction.String(),
+							},
+						},
 					},
-				},
+				}
 			}
 
 			// 1. Load Program using bpfd
@@ -126,7 +133,15 @@ func main() {
 				log.Print(err)
 				return
 			}
-			paramData.ProgId = uint(res.GetId())
+
+			kernelInfo := res.GetKernelInfo()
+			if kernelInfo != nil {
+				paramData.ProgId = uint(kernelInfo.GetId())
+			} else {
+				conn.Close()
+				log.Printf("kernelInfo not returned in LoadResponse")
+				return
+			}
 			log.Printf("Program registered with id %d\n", paramData.ProgId)
 
 			// 2. Set up defer to unload program when this is closed
@@ -140,21 +155,26 @@ func main() {
 				}
 				conn.Close()
 			}(paramData.ProgId)
+
+			// 3. Get access to our map
+			mapPath, err = configMgmt.CalcMapPinPath(res.GetInfo(), "tc_stats_map")
+			if err != nil {
+				log.Print(err)
+				return
+			}
 		} else {
 			// 2. Set up defer to close connection
 			defer func(id uint) {
 				log.Printf("Closing Connection for Program: %d\n", id)
 				conn.Close()
 			}(paramData.ProgId)
-		}
 
-		// 3. Get access to our map
-		mapPath, err = configMgmt.RetrieveMapPinPath(ctx, c, paramData.ProgId, bpfdHelpers.Tc.Uint32(), "tc_stats_map")
-		if err != nil {
-			log.Printf("Unable to retrieve maps\n")
-			conn.Close()
-			log.Print(err)
-			return
+			// 3. Get access to our map
+			mapPath, err = configMgmt.RetrieveMapPinPath(ctx, c, paramData.ProgId, "tc_stats_map")
+			if err != nil {
+				log.Print(err)
+				return
+			}
 		}
 	}
 

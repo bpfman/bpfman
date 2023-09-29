@@ -150,18 +150,18 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 	uuid := string(bpfProg.UID)
 
 	expectedLoadReq := &gobpfd.LoadRequest{
-		Common: &gobpfd.LoadRequestCommon{
-			Location: &gobpfd.LoadRequestCommon_File{
-				File: bytecodePath,
-			},
-			Name:        sectionName,
-			ProgramType: *internal.Tracepoint.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid), internal.ProgramNameKey: name},
-			MapOwnerId:  nil,
+		Bytecode: &gobpfd.BytecodeLocation{
+			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 		},
-		AttachInfo: &gobpfd.LoadRequest_TracepointAttachInfo{
-			TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
-				Tracepoint: tracepointName,
+		Name:        sectionName,
+		ProgramType: *internal.Tracepoint.Uint32(),
+		Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid), internal.ProgramNameKey: name},
+		MapOwnerId:  nil,
+		Attach: &gobpfd.AttachInfo{
+			Info: &gobpfd.AttachInfo_TracepointAttachInfo{
+				TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
+					Tracepoint: tracepointName,
+				},
 			},
 		},
 	}

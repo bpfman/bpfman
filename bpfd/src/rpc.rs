@@ -1,16 +1,12 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
-use std::collections::HashMap;
-
 use bpfd_api::{
     v1::{
-        bpfd_server::Bpfd,
-        list_response::{list_result, list_result::AttachInfo, ListResult},
-        load_request,
-        load_request_common::Location,
-        KprobeAttachInfo, ListRequest, ListResponse, LoadRequest, LoadResponse,
-        PullBytecodeRequest, PullBytecodeResponse, TcAttachInfo, TracepointAttachInfo,
-        UnloadRequest, UnloadResponse, UprobeAttachInfo, XdpAttachInfo,
+        attach_info::Info, bpfd_server::Bpfd, bytecode_location::Location,
+        list_response::ListResult, GetRequest, GetResponse, KprobeAttachInfo, ListRequest,
+        ListResponse, LoadRequest, LoadResponse, PullBytecodeRequest, PullBytecodeResponse,
+        TcAttachInfo, TracepointAttachInfo, UnloadRequest, UnloadResponse, UprobeAttachInfo,
+        XdpAttachInfo,
     },
     TcProceedOn, XdpProceedOn,
 };
@@ -19,7 +15,7 @@ use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
 
 use crate::command::{
-    Command, KprobeProgram, LoadArgs, Program, ProgramData, PullBytecodeArgs, TcProgram,
+    Command, GetArgs, KprobeProgram, LoadArgs, Program, ProgramData, PullBytecodeArgs, TcProgram,
     TracepointProgram, UnloadArgs, UprobeProgram, XdpProgram,
 };
 
@@ -41,73 +37,83 @@ impl Bpfd for BpfdLoader {
 
         let (resp_tx, resp_rx) = oneshot::channel();
 
-        if request.common.is_none() {
-            return Err(Status::aborted("missing common program info"));
-        }
-        let common = request.common.unwrap();
-
-        if request.attach_info.is_none() {
-            return Err(Status::aborted("missing attach info"));
-        }
-        let bytecode_source = match common.location.unwrap() {
+        let bytecode_source = match request
+            .bytecode
+            .ok_or(Status::aborted("missing bytecode info"))?
+            .location
+            .ok_or(Status::aborted("missing location"))?
+        {
             Location::Image(i) => crate::command::Location::Image(i.into()),
             Location::File(p) => crate::command::Location::File(p),
         };
 
         let data = ProgramData::new(
             bytecode_source,
-            common.name,
-            common.metadata,
-            common.global_data,
-            common.map_owner_id,
+            request.name,
+            request.metadata,
+            request.global_data,
+            request.map_owner_id,
         );
 
         let load_args = LoadArgs {
-            program: match request.attach_info.unwrap() {
-                load_request::AttachInfo::XdpAttachInfo(attach) => Program::Xdp(XdpProgram::new(
+            program: match request
+                .attach
+                .ok_or(Status::aborted("missing attach info"))?
+                .info
+                .ok_or(Status::aborted("missing info"))?
+            {
+                Info::XdpAttachInfo(XdpAttachInfo {
+                    priority,
+                    iface,
+                    position: _,
+                    proceed_on,
+                }) => Program::Xdp(XdpProgram::new(
                     data,
-                    attach.priority,
-                    attach.iface,
-                    XdpProceedOn::from_int32s(attach.proceed_on)
+                    priority,
+                    iface,
+                    XdpProceedOn::from_int32s(proceed_on)
                         .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
                 )),
-                load_request::AttachInfo::TcAttachInfo(attach) => {
-                    let direction = attach
-                        .direction
+                Info::TcAttachInfo(TcAttachInfo {
+                    priority,
+                    iface,
+                    position: _,
+                    direction,
+                    proceed_on,
+                }) => {
+                    let direction = direction
                         .try_into()
                         .map_err(|_| Status::aborted("direction is not a string"))?;
                     Program::Tc(TcProgram::new(
                         data,
-                        attach.priority,
-                        attach.iface,
-                        TcProceedOn::from_int32s(attach.proceed_on)
+                        priority,
+                        iface,
+                        TcProceedOn::from_int32s(proceed_on)
                             .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
                         direction,
                     ))
                 }
-                load_request::AttachInfo::TracepointAttachInfo(attach) => {
-                    Program::Tracepoint(TracepointProgram::new(data, attach.tracepoint))
+                Info::TracepointAttachInfo(TracepointAttachInfo { tracepoint }) => {
+                    Program::Tracepoint(TracepointProgram::new(data, tracepoint))
                 }
-                load_request::AttachInfo::KprobeAttachInfo(attach) => {
-                    Program::Kprobe(KprobeProgram::new(
-                        data,
-                        attach.fn_name,
-                        attach.offset,
-                        attach.retprobe,
-                        attach.namespace,
-                    ))
-                }
-                load_request::AttachInfo::UprobeAttachInfo(attach) => {
-                    Program::Uprobe(UprobeProgram::new(
-                        data,
-                        attach.fn_name,
-                        attach.offset,
-                        attach.target,
-                        attach.retprobe,
-                        attach.pid,
-                        attach.namespace,
-                    ))
-                }
+                Info::KprobeAttachInfo(KprobeAttachInfo {
+                    fn_name,
+                    offset,
+                    retprobe,
+                    namespace,
+                }) => Program::Kprobe(KprobeProgram::new(
+                    data, fn_name, offset, retprobe, namespace,
+                )),
+                Info::UprobeAttachInfo(UprobeAttachInfo {
+                    fn_name,
+                    offset,
+                    target,
+                    retprobe,
+                    pid,
+                    namespace,
+                }) => Program::Uprobe(UprobeProgram::new(
+                    data, fn_name, offset, target, retprobe, pid, namespace,
+                )),
             },
             responder: resp_tx,
         };
@@ -118,7 +124,19 @@ impl Bpfd for BpfdLoader {
         // Await the response
         match resp_rx.await {
             Ok(res) => match res {
-                Ok(id) => Ok(Response::new(LoadResponse { id })),
+                Ok(program) => {
+                    let reply_entry = LoadResponse {
+                        info: match (&program).try_into() {
+                            Ok(i) => Some(i),
+                            Err(_) => None,
+                        },
+                        kernel_info: match (&program).try_into() {
+                            Ok(i) => Some(i),
+                            Err(_) => None,
+                        },
+                    };
+                    Ok(Response::new(reply_entry))
+                }
                 Err(e) => {
                     warn!("BPFD load error: {:#?}", e);
                     Err(Status::aborted(format!("{e}")))
@@ -165,6 +183,47 @@ impl Bpfd for BpfdLoader {
         }
     }
 
+    async fn get(&self, request: Request<GetRequest>) -> Result<Response<GetResponse>, Status> {
+        let request = request.into_inner();
+        let id = request.id;
+
+        let (resp_tx, resp_rx) = oneshot::channel();
+        let cmd = Command::Get(GetArgs {
+            id,
+            responder: resp_tx,
+        });
+
+        // Send the GET request
+        self.tx.send(cmd).await.unwrap();
+
+        // Await the response
+        match resp_rx.await {
+            Ok(res) => match res {
+                Ok(program) => {
+                    let reply_entry = GetResponse {
+                        info: match (&program).try_into() {
+                            Ok(i) => Some(i),
+                            Err(_) => None,
+                        },
+                        kernel_info: match (&program).try_into() {
+                            Ok(i) => Some(i),
+                            Err(_) => None,
+                        },
+                    };
+                    Ok(Response::new(reply_entry))
+                }
+                Err(e) => {
+                    warn!("BPFD get error: {}", e);
+                    Err(Status::aborted(format!("{e}")))
+                }
+            },
+            Err(e) => {
+                warn!("RPC get error: {}", e);
+                Err(Status::aborted(format!("{e}")))
+            }
+        }
+    }
+
     async fn list(&self, request: Request<ListRequest>) -> Result<Response<ListResponse>, Status> {
         let mut reply = ListResponse { results: vec![] };
 
@@ -179,53 +238,23 @@ impl Bpfd for BpfdLoader {
             Ok(res) => match res {
                 Ok(results) => {
                     for r in results {
-                        let program_type = r.kind() as u32;
-
-                        // initial prog type filtering
+                        // If filtering on Program Type, then make sure this program matches, else skip.
                         if let Some(p) = request.get_ref().program_type {
-                            if program_type != p {
+                            if p != r.kind() as u32 {
                                 continue;
                             }
                         }
 
-                        let kernel_info = r
-                            .kernel_info()
-                            .expect("kernel info should be set for all loaded programs");
-
-                        let mut reply_entry = ListResult {
-                            id: kernel_info.id,
-                            name: r.name().to_owned(),
-                            attach_info: None,
-                            location: None,
-                            program_type,
-                            metadata: HashMap::new(),
-                            global_data: HashMap::new(),
-                            map_owner_id: None,
-                            map_pin_path: String::new(),
-                            map_used_by: Vec::new(),
-                            loaded_at: kernel_info.loaded_at.clone(),
-                            tag: kernel_info.tag.clone(),
-                            gpl_compatible: kernel_info.gpl_compatible,
-                            map_ids: kernel_info.map_ids.clone(),
-                            btf_id: kernel_info.btf_id,
-                            bytes_xlated: kernel_info.bytes_xlated,
-                            jited: kernel_info.jited,
-                            bytes_jited: kernel_info.bytes_jited,
-                            bytes_memlock: kernel_info.bytes_memlock,
-                            verified_insns: kernel_info.verified_insns,
-                        };
-
                         match r.data() {
-                            // program is of type Unsupported
+                            // If filtering on `bpfd Only`, this program is of type Unsupported so skip
                             Err(_) => {
-                                if !request.get_ref().bpfd_programs_only() {
-                                    reply.results.push(reply_entry);
+                                if request.get_ref().bpfd_programs_only() {
+                                    continue;
                                 }
-                                continue;
                             }
                             // Bpfd Program
                             Ok(data) => {
-                                // prog metadata filtering
+                                // Filter on the input metadata field if provided
                                 let mut meta_match = true;
                                 for (key, value) in &request.get_ref().match_metadata {
                                     if let Some(v) = data.metadata().get(key) {
@@ -242,102 +271,21 @@ impl Bpfd for BpfdLoader {
                                 if !meta_match {
                                     continue;
                                 }
-                                // populate id
-                                reply_entry.id = data
-                                    .id()
-                                    .expect("Every Bpf Program should have a kernel id");
-
-                                reply_entry.map_pin_path = data
-                                    .map_pin_path()
-                                    .map_or(String::new(), |v| v.to_str().unwrap().to_string());
-
-                                reply_entry.global_data = data.global_data().to_owned();
-
-                                reply_entry.metadata = data.metadata().to_owned();
-
-                                reply_entry.map_used_by = data
-                                    .maps_used_by()
-                                    .map_or(vec![], |m| m.iter().map(|m| m.to_string()).collect());
-
-                                reply_entry.map_owner_id = data.map_owner_id();
-
-                                // populate bpfd location
-                                reply_entry.location = match r.location() {
-                                    Some(l) => match l {
-                                        crate::command::Location::Image(m) => {
-                                            Some(list_result::Location::Image(
-                                                bpfd_api::v1::BytecodeImage {
-                                                    url: m.get_url().to_string(),
-                                                    image_pull_policy: m
-                                                        .get_pull_policy()
-                                                        .to_owned()
-                                                        as i32,
-                                                    // Never dump Plaintext Credentials
-                                                    username: String::new(),
-                                                    password: String::new(),
-                                                },
-                                            ))
-                                        }
-                                        crate::command::Location::File(m) => {
-                                            Some(list_result::Location::File(m.to_string()))
-                                        }
-                                    },
-                                    None => {
-                                        // skip programs not owned by bpfd
-                                        if request.get_ref().bpfd_programs_only() {
-                                            continue;
-                                        }
-                                        None
-                                    }
-                                };
-
-                                reply_entry.attach_info = match r.clone() {
-                                    Program::Xdp(p) => {
-                                        Some(AttachInfo::XdpAttachInfo(XdpAttachInfo {
-                                            priority: p.priority,
-                                            iface: p.iface,
-                                            position: p.current_position.unwrap_or(0) as i32,
-                                            proceed_on: p.proceed_on.as_action_vec(),
-                                        }))
-                                    }
-                                    Program::Tc(p) => {
-                                        Some(AttachInfo::TcAttachInfo(TcAttachInfo {
-                                            priority: p.priority,
-                                            iface: p.iface,
-                                            position: p.current_position.unwrap_or(0) as i32,
-                                            direction: p.direction.to_string(),
-                                            proceed_on: p.proceed_on.as_action_vec(),
-                                        }))
-                                    }
-                                    Program::Tracepoint(p) => Some(
-                                        AttachInfo::TracepointAttachInfo(TracepointAttachInfo {
-                                            tracepoint: p.tracepoint,
-                                        }),
-                                    ),
-                                    Program::Kprobe(p) => {
-                                        Some(AttachInfo::KprobeAttachInfo(KprobeAttachInfo {
-                                            fn_name: p.fn_name,
-                                            offset: p.offset,
-                                            retprobe: p.retprobe,
-                                            namespace: p.namespace,
-                                        }))
-                                    }
-                                    Program::Uprobe(p) => {
-                                        Some(AttachInfo::UprobeAttachInfo(UprobeAttachInfo {
-                                            fn_name: p.fn_name,
-                                            offset: p.offset,
-                                            target: p.target,
-                                            retprobe: p.retprobe,
-                                            pid: p.pid,
-                                            namespace: p.namespace,
-                                        }))
-                                    }
-                                    Program::Unsupported(_) => None,
-                                };
-
-                                reply.results.push(reply_entry)
                             }
                         }
+
+                        // Populate the response with the Program Info and the Kernel Info.
+                        let reply_entry = ListResult {
+                            info: match (&r).try_into() {
+                                Ok(i) => Some(i),
+                                Err(_) => None,
+                            },
+                            kernel_info: match (&r).try_into() {
+                                Ok(i) => Some(i),
+                                Err(_) => None,
+                            },
+                        };
+                        reply.results.push(reply_entry)
                     }
                     Ok(Response::new(reply))
                 }
@@ -394,32 +342,36 @@ impl Bpfd for BpfdLoader {
 #[cfg(test)]
 mod test {
     use bpfd_api::v1::{
-        load_request::AttachInfo, load_request_common::Location, LoadRequest, LoadRequestCommon,
-        XdpAttachInfo,
+        bytecode_location::Location, AttachInfo, BytecodeLocation, LoadRequest, XdpAttachInfo,
     };
     use tokio::sync::mpsc::Receiver;
 
     use super::*;
+    use crate::command::{KernelProgramInfo, Program};
 
     #[tokio::test]
     async fn test_load_with_valid_id() {
         let (tx, rx) = mpsc::channel(32);
         let loader = BpfdLoader::new(tx.clone());
 
+        let attach_info = AttachInfo {
+            info: Some(Info::XdpAttachInfo(XdpAttachInfo {
+                iface: "eth0".to_string(),
+                priority: 50,
+                position: 0,
+                proceed_on: vec![2, 31],
+            })),
+        };
         let request = LoadRequest {
-            common: Some(LoadRequestCommon {
+            bytecode: Some(BytecodeLocation {
                 location: Some(Location::Image(bpfd_api::v1::BytecodeImage {
                     url: "quay.io/bpfd-bytecode/xdp:latest".to_string(),
                     ..Default::default()
                 })),
                 ..Default::default()
             }),
-            attach_info: Some(AttachInfo::XdpAttachInfo(XdpAttachInfo {
-                iface: "eth0".to_string(),
-                priority: 50,
-                position: 0,
-                proceed_on: vec![2, 31],
-            })),
+            attach: Some(attach_info),
+            ..Default::default()
         };
 
         tokio::spawn(async move {
@@ -439,8 +391,8 @@ mod test {
             image: Some(bpfd_api::v1::BytecodeImage {
                 url: String::from("quay.io/bpfd-bytecode/xdp_pass:latest"),
                 image_pull_policy: bpfd_api::ImagePullPolicy::Always.into(),
-                username: String::from("someone"),
-                password: String::from("secret"),
+                username: Some(String::from("someone")),
+                password: Some(String::from("secret")),
             }),
         };
 
@@ -451,11 +403,40 @@ mod test {
     }
 
     async fn mock_serve(mut rx: Receiver<Command>) {
+        let kernel_info = KernelProgramInfo {
+            id: 0,
+            name: "".to_string(),
+            program_type: 0,
+            loaded_at: "".to_string(),
+            tag: "".to_string(),
+            gpl_compatible: false,
+            map_ids: vec![],
+            btf_id: 0,
+            bytes_xlated: 0,
+            jited: false,
+            bytes_jited: 0,
+            bytes_memlock: 0,
+            verified_insns: 0,
+        };
+        let mut data = ProgramData::default();
+        data.set_kernel_info(Some(kernel_info));
+
+        let program = Program::Xdp(XdpProgram {
+            data,
+            priority: 0,
+            if_index: Some(9999),
+            iface: String::new(),
+            proceed_on: XdpProceedOn::default(),
+            current_position: None,
+            attached: false,
+        });
+
         while let Some(cmd) = rx.recv().await {
             match cmd {
-                Command::Load(args) => args.responder.send(Ok(9999)).unwrap(),
+                Command::Load(args) => args.responder.send(Ok(program.clone())).unwrap(),
                 Command::Unload(args) => args.responder.send(Ok(())).unwrap(),
                 Command::List { responder, .. } => responder.send(Ok(vec![])).unwrap(),
+                Command::Get(args) => args.responder.send(Ok(program.clone())).unwrap(),
                 Command::PullBytecode(args) => args.responder.send(Ok(())).unwrap(),
             }
         }

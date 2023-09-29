@@ -18,6 +18,7 @@ package testutils
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
@@ -28,6 +29,7 @@ type BpfdClientFake struct {
 	LoadRequests         map[int]*gobpfd.LoadRequest
 	UnloadRequests       map[int]*gobpfd.UnloadRequest
 	ListRequests         []*gobpfd.ListRequest
+	GetRequests          map[int]*gobpfd.GetRequest
 	Programs             map[int]*gobpfd.ListResponse_ListResult
 	PullBytecodeRequests map[int]*gobpfd.PullBytecodeRequest
 }
@@ -37,6 +39,7 @@ func NewBpfdClientFake() *BpfdClientFake {
 		LoadRequests:         map[int]*gobpfd.LoadRequest{},
 		UnloadRequests:       map[int]*gobpfd.UnloadRequest{},
 		ListRequests:         []*gobpfd.ListRequest{},
+		GetRequests:          map[int]*gobpfd.GetRequest{},
 		Programs:             map[int]*gobpfd.ListResponse_ListResult{},
 		PullBytecodeRequests: map[int]*gobpfd.PullBytecodeRequest{},
 	}
@@ -47,6 +50,7 @@ func NewBpfdClientFakeWithPrograms(programs map[int]*gobpfd.ListResponse_ListRes
 		LoadRequests:   map[int]*gobpfd.LoadRequest{},
 		UnloadRequests: map[int]*gobpfd.UnloadRequest{},
 		ListRequests:   []*gobpfd.ListRequest{},
+		GetRequests:    map[int]*gobpfd.GetRequest{},
 		Programs:       programs,
 	}
 }
@@ -55,9 +59,12 @@ func (b *BpfdClientFake) Load(ctx context.Context, in *gobpfd.LoadRequest, opts 
 	id := rand.Intn(100)
 	b.LoadRequests[id] = in
 
-	b.Programs[id] = loadRequestToListResult(in)
+	b.Programs[id] = loadRequestToListResult(in, uint32(id))
 
-	return &gobpfd.LoadResponse{Id: uint32(id)}, nil
+	return &gobpfd.LoadResponse{
+		Info:       b.Programs[id].Info,
+		KernelInfo: b.Programs[id].KernelInfo,
+	}, nil
 }
 
 func (b *BpfdClientFake) Unload(ctx context.Context, in *gobpfd.UnloadRequest, opts ...grpc.CallOption) (*gobpfd.UnloadResponse, error) {
@@ -76,38 +83,36 @@ func (b *BpfdClientFake) List(ctx context.Context, in *gobpfd.ListRequest, opts 
 	return results, nil
 }
 
-func loadRequestToListResult(loadReq *gobpfd.LoadRequest) *gobpfd.ListResponse_ListResult {
-	listResult := &gobpfd.ListResponse_ListResult{}
+func loadRequestToListResult(loadReq *gobpfd.LoadRequest, id uint32) *gobpfd.ListResponse_ListResult {
+	mapOwnerId := loadReq.GetMapOwnerId()
+	programInfo := gobpfd.ProgramInfo{
+		Name:       loadReq.GetName(),
+		Bytecode:   loadReq.GetBytecode(),
+		Attach:     loadReq.GetAttach(),
+		GlobalData: loadReq.GetGlobalData(),
+		MapOwnerId: &mapOwnerId,
+		Metadata:   loadReq.GetMetadata(),
+	}
+	kernelInfo := gobpfd.KernelProgramInfo{
+		Id:          id,
+		ProgramType: loadReq.GetProgramType(),
+	}
 
-	if loadReq.Common.GetImage() != nil {
-		listResult.Location = &gobpfd.ListResponse_ListResult_Image{
-			Image: loadReq.Common.GetImage(),
-		}
+	return &gobpfd.ListResponse_ListResult{
+		Info:       &programInfo,
+		KernelInfo: &kernelInfo,
+	}
+}
+
+func (b *BpfdClientFake) Get(ctx context.Context, in *gobpfd.GetRequest, opts ...grpc.CallOption) (*gobpfd.GetResponse, error) {
+	if b.Programs[int(in.Id)] != nil {
+		return &gobpfd.GetResponse{
+			Info:       b.Programs[int(in.Id)].Info,
+			KernelInfo: b.Programs[int(in.Id)].KernelInfo,
+		}, nil
 	} else {
-		listResult.Location = &gobpfd.ListResponse_ListResult_File{
-			File: loadReq.Common.GetFile(),
-		}
+		return nil, fmt.Errorf("Requested program does not exist")
 	}
-
-	if loadReq.GetXdpAttachInfo() != nil {
-		listResult.AttachInfo = &gobpfd.ListResponse_ListResult_XdpAttachInfo{
-			XdpAttachInfo: loadReq.GetXdpAttachInfo(),
-		}
-	} else if loadReq.GetTcAttachInfo() != nil {
-		listResult.AttachInfo = &gobpfd.ListResponse_ListResult_TcAttachInfo{
-			TcAttachInfo: loadReq.GetTcAttachInfo(),
-		}
-	} else if loadReq.GetTracepointAttachInfo() != nil {
-		listResult.AttachInfo = &gobpfd.ListResponse_ListResult_TracepointAttachInfo{
-			TracepointAttachInfo: loadReq.GetTracepointAttachInfo(),
-		}
-	}
-
-	listResult.Metadata = loadReq.Common.Metadata
-	listResult.Name = loadReq.Common.Name
-	listResult.ProgramType = loadReq.Common.ProgramType
-
-	return listResult
 }
 
 func (b *BpfdClientFake) PullBytecode(ctx context.Context, in *gobpfd.PullBytecodeRequest, opts ...grpc.CallOption) (*gobpfd.PullBytecodeResponse, error) {

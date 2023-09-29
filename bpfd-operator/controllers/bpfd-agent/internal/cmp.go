@@ -28,113 +28,132 @@ import (
 func DoesProgExist(actual *gobpfd.ListResponse_ListResult, expected *gobpfd.LoadRequest) (bool, []string) {
 	var reasons []string
 
+	actualInfo := actual.GetInfo()
+	if actualInfo == nil {
+		reasons = append(reasons, "Missing response data")
+		return true, reasons
+	}
+
+	actualKernelInfo := actual.GetKernelInfo()
+	if actualKernelInfo == nil {
+		reasons = append(reasons, "Missing kernel response data")
+		return true, reasons
+	}
+
 	// Check equality of all common fields
-	actualMeta := actual.GetMetadata()
-	expectedMeta := expected.Common.GetMetadata()
+	actualMeta := actualInfo.GetMetadata()
+	expectedMeta := expected.GetMetadata()
 	if !reflect.DeepEqual(actualMeta, expectedMeta) {
 		reasons = append(reasons, fmt.Sprintf("Expected ID to be %v but found %v",
 			actualMeta, expectedMeta))
 	}
 
-	actualName := actual.GetName()
-	expectedSectionName := expected.Common.GetName()
+	actualName := actualInfo.GetName()
+	expectedSectionName := expected.GetName()
 	if actualName != expectedSectionName {
 		reasons = append(reasons, fmt.Sprintf("Expected Name to be %s but found %s",
 			expectedSectionName, actualName))
 	}
 
-	actualProgramType := actual.GetProgramType()
-	expectedProgramType := expected.Common.GetProgramType()
+	actualProgramType := actualKernelInfo.GetProgramType()
+	expectedProgramType := expected.GetProgramType()
 	if actualProgramType != expectedProgramType {
 		reasons = append(reasons, fmt.Sprintf("Expected ProgramType to be %d but found %d",
 			expectedProgramType, actualProgramType))
 	}
 
 	// Check equality of all bytecode location fields
-	actualImage := actual.GetImage()
-	expectedImage := expected.Common.GetImage()
-	if actualImage != nil && expectedImage != nil {
-		if actualImage.Url != expectedImage.Url {
-			reasons = append(reasons, fmt.Sprintf("Expected Image URL to be %s but found %s",
-				expectedImage.Url, actualImage.Url))
+	actualBytecode := actualInfo.GetBytecode()
+	expectedBytecode := expected.GetBytecode()
+	if actualBytecode != nil && expectedBytecode != nil {
+		actualImage := actualBytecode.GetImage()
+		expectedImage := expectedBytecode.GetImage()
+		if actualImage != nil && expectedImage != nil {
+			if actualImage.Url != expectedImage.Url {
+				reasons = append(reasons, fmt.Sprintf("Expected Image URL to be %s but found %s",
+					expectedImage.Url, actualImage.Url))
+			}
+			if actualImage.ImagePullPolicy != expectedImage.ImagePullPolicy {
+				reasons = append(reasons, fmt.Sprintf("Expected ImagePullPolicy to be %d but found %d",
+					expectedImage.ImagePullPolicy, actualImage.ImagePullPolicy))
+			}
 		}
-		if actualImage.ImagePullPolicy != expectedImage.ImagePullPolicy {
-			reasons = append(reasons, fmt.Sprintf("Expected ImagePullPolicy to be %d but found %d",
-				expectedImage.ImagePullPolicy, actualImage.ImagePullPolicy))
-		}
-	}
 
-	actualFile := actual.GetFile()
-	expectedFile := expected.Common.GetFile()
-	if actualFile != expectedFile {
-		reasons = append(reasons, fmt.Sprintf("Expected File to be %s but found %s",
-			expectedFile, actualFile))
+		actualFile := actualBytecode.GetFile()
+		expectedFile := expectedBytecode.GetFile()
+		if actualFile != expectedFile {
+			reasons = append(reasons, fmt.Sprintf("Expected File to be %s but found %s",
+				expectedFile, actualFile))
+		}
 	}
 
 	// Check equality of Map Owner
-	actualMapOwnerId := actual.GetMapOwnerId()
-	expectedMapOwnerId := expected.Common.GetMapOwnerId()
+	actualMapOwnerId := actualInfo.GetMapOwnerId()
+	expectedMapOwnerId := expected.GetMapOwnerId()
 	if actualMapOwnerId != expectedMapOwnerId {
 		reasons = append(reasons, fmt.Sprintf("Expected File to be %d but found %d",
 			expectedMapOwnerId, actualMapOwnerId))
 	}
 
 	// Check equality of program specific fields
-	actualXdp := actual.GetXdpAttachInfo()
-	expectedXdp := expected.GetXdpAttachInfo()
-	if actualXdp != nil && expectedXdp != nil {
-		if actualXdp.Priority != expectedXdp.Priority ||
-			actualXdp.Iface != expectedXdp.Iface ||
-			!reflect.DeepEqual(actualXdp.ProceedOn, expectedXdp.ProceedOn) {
-			reasons = append(reasons, fmt.Sprintf("Expected XDP to be %v but found %v",
-				expectedXdp, actualXdp))
+	actualAttach := actualInfo.GetAttach()
+	expectedAttach := expected.GetAttach()
+	if actualAttach != nil && expectedAttach != nil {
+		actualXdp := actualAttach.GetXdpAttachInfo()
+		expectedXdp := expectedAttach.GetXdpAttachInfo()
+		if actualXdp != nil && expectedXdp != nil {
+			if actualXdp.Priority != expectedXdp.Priority ||
+				actualXdp.Iface != expectedXdp.Iface ||
+				!reflect.DeepEqual(actualXdp.ProceedOn, expectedXdp.ProceedOn) {
+				reasons = append(reasons, fmt.Sprintf("Expected XDP to be %v but found %v",
+					expectedXdp, actualXdp))
+			}
 		}
-	}
 
-	actualTc := actual.GetTcAttachInfo()
-	expectedTc := expected.GetTcAttachInfo()
-	if actualTc != nil && expectedTc != nil {
-		if actualTc.Priority != expectedTc.Priority ||
-			actualTc.Iface != expectedTc.Iface ||
-			!reflect.DeepEqual(actualTc.ProceedOn, expectedTc.ProceedOn) {
-			reasons = append(reasons, fmt.Sprintf("Expected TC to be %v but found %v",
-				expectedTc, actualTc))
+		actualTc := actualAttach.GetTcAttachInfo()
+		expectedTc := expectedAttach.GetTcAttachInfo()
+		if actualTc != nil && expectedTc != nil {
+			if actualTc.Priority != expectedTc.Priority ||
+				actualTc.Iface != expectedTc.Iface ||
+				!reflect.DeepEqual(actualTc.ProceedOn, expectedTc.ProceedOn) {
+				reasons = append(reasons, fmt.Sprintf("Expected TC to be %v but found %v",
+					expectedTc, actualTc))
+			}
 		}
-	}
 
-	actualTracepoint := actual.GetTracepointAttachInfo()
-	expectedTracepoint := expected.GetTracepointAttachInfo()
-	if actualTracepoint != nil && expectedTracepoint != nil {
-		if actualTracepoint.Tracepoint != expectedTracepoint.Tracepoint {
-			reasons = append(reasons, fmt.Sprintf("Expected Tracepoint to be %v but found %v",
-				expectedTracepoint, actualTracepoint))
+		actualTracepoint := actualAttach.GetTracepointAttachInfo()
+		expectedTracepoint := expectedAttach.GetTracepointAttachInfo()
+		if actualTracepoint != nil && expectedTracepoint != nil {
+			if actualTracepoint.Tracepoint != expectedTracepoint.Tracepoint {
+				reasons = append(reasons, fmt.Sprintf("Expected Tracepoint to be %v but found %v",
+					expectedTracepoint, actualTracepoint))
+			}
 		}
-	}
 
-	actualKprobe := actual.GetKprobeAttachInfo()
-	expectedKprobe := expected.GetKprobeAttachInfo()
-	if actualKprobe != nil && expectedKprobe != nil {
-		if actualKprobe.FnName != expectedKprobe.FnName ||
-			actualKprobe.Offset != expectedKprobe.Offset ||
-			actualKprobe.Retprobe != expectedKprobe.Retprobe ||
-			!reflect.DeepEqual(actualKprobe.Namespace, expectedKprobe.Namespace) {
-			reasons = append(reasons, fmt.Sprintf("Expected Kprobe to be %v but found %v",
-				expectedKprobe, actualKprobe))
+		actualKprobe := actualAttach.GetKprobeAttachInfo()
+		expectedKprobe := expectedAttach.GetKprobeAttachInfo()
+		if actualKprobe != nil && expectedKprobe != nil {
+			if actualKprobe.FnName != expectedKprobe.FnName ||
+				actualKprobe.Offset != expectedKprobe.Offset ||
+				actualKprobe.Retprobe != expectedKprobe.Retprobe ||
+				!reflect.DeepEqual(actualKprobe.Namespace, expectedKprobe.Namespace) {
+				reasons = append(reasons, fmt.Sprintf("Expected Kprobe to be %v but found %v",
+					expectedKprobe, actualKprobe))
+			}
 		}
-	}
 
-	actualUprobe := actual.GetUprobeAttachInfo()
-	expectedUprobe := expected.GetUprobeAttachInfo()
-
-	if actualUprobe != nil && expectedUprobe != nil {
-		if !reflect.DeepEqual(actualUprobe.FnName, expectedUprobe.FnName) ||
-			actualUprobe.Offset != expectedUprobe.Offset ||
-			actualUprobe.Target != expectedUprobe.Target ||
-			actualUprobe.Retprobe != expectedUprobe.Retprobe ||
-			actualUprobe.Pid != expectedUprobe.Pid ||
-			!reflect.DeepEqual(actualUprobe.Namespace, expectedUprobe.Namespace) {
-			reasons = append(reasons, fmt.Sprintf("Expected Uprobe to be %v but found %v",
-				expectedUprobe, actualUprobe))
+		actualUprobe := actualAttach.GetUprobeAttachInfo()
+		expectedUprobe := expectedAttach.GetUprobeAttachInfo()
+		if actualUprobe != nil && expectedUprobe != nil {
+			if !reflect.DeepEqual(actualUprobe.FnName, expectedUprobe.FnName) ||
+				actualUprobe.Offset != expectedUprobe.Offset ||
+				actualUprobe.Target != expectedUprobe.Target ||
+				actualUprobe.Retprobe != expectedUprobe.Retprobe ||
+				actualUprobe.Pid != expectedUprobe.Pid ||
+				!reflect.DeepEqual(actualUprobe.Namespace, expectedUprobe.Namespace) {
+				reasons = append(reasons, fmt.Sprintf("Expected Uprobe to be %v but found %v",
+					expectedUprobe, actualUprobe))
+			}
 		}
 	}
 

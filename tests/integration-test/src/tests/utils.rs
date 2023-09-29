@@ -12,6 +12,7 @@ use assert_cmd::prelude::*;
 use bpfd_api::util::directories::BYTECODE_IMAGE_CONTENT_STORE;
 use log::debug;
 use predicates::str::is_empty;
+use regex::Regex;
 
 const NS_NAME: &str = "bpfd-int-test";
 
@@ -112,7 +113,7 @@ pub fn add_xdp(
     image_url: &str,
     file_path: &str,
     metadata: Option<Vec<&str>>,
-) -> Result<String> {
+) -> (Result<String>, Result<String>) {
     let p = priority.to_string();
 
     let mut args = Vec::new();
@@ -148,16 +149,20 @@ pub fn add_xdp(
         args.extend(p_o);
     }
 
-    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
+    let output = Command::cargo_bin("bpfctl")
+        .expect("bpfctl missing")
+        .args(args)
+        .ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let uuid = stdout.trim();
-    assert!(!uuid.is_empty());
+    let (prog_id, map_pin_path) = parse_bpfctl_load_output(&stdout);
+    assert!(!prog_id.is_empty());
+    assert!(!map_pin_path.is_empty());
     debug!(
         "Successfully added xdp program: {:?} from: {:?}",
-        uuid, load_type
+        prog_id, load_type
     );
 
-    Ok(uuid.to_string())
+    (Ok(prog_id), Ok(map_pin_path))
 }
 
 /// Install a tc program with bpfctl
@@ -171,7 +176,7 @@ pub fn add_tc(
     load_type: &LoadType,
     image_url: &str,
     file_path: &str,
-) -> Result<String> {
+) -> (Result<String>, Result<String>) {
     let p = priority.to_string();
 
     let mut args = Vec::new();
@@ -210,15 +215,20 @@ pub fn add_tc(
         args.extend(p_o);
     }
 
-    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
+    let output = Command::cargo_bin("bpfctl")
+        .expect("bpfctl missing")
+        .args(args)
+        .ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let uuid = stdout.trim();
-    assert!(!uuid.is_empty());
+    let (prog_id, map_pin_path) = parse_bpfctl_load_output(&stdout);
+    assert!(!prog_id.is_empty());
+    assert!(!map_pin_path.is_empty());
     debug!(
         "Successfully added tc {} program: {:?} from: {:?}",
-        direction, uuid, load_type
+        direction, prog_id, load_type
     );
-    Ok(uuid.to_string())
+
+    (Ok(prog_id), Ok(map_pin_path))
 }
 
 /// Install a tracepoint program with bpfctl
@@ -227,7 +237,7 @@ pub fn add_tracepoint(
     load_type: &LoadType,
     image_url: &str,
     file_path: &str,
-) -> Result<String> {
+) -> (Result<String>, Result<String>) {
     let mut args = Vec::new();
 
     match load_type {
@@ -251,15 +261,19 @@ pub fn add_tracepoint(
 
     args.extend(["tracepoint", "--tracepoint", "syscalls/sys_enter_openat"]);
 
-    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
+    let output = Command::cargo_bin("bpfctl")
+        .expect("bpfctl missing")
+        .args(args)
+        .ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let uuid = stdout.trim();
-    assert!(!uuid.is_empty());
+    let (prog_id, map_pin_path) = parse_bpfctl_load_output(&stdout);
+    assert!(!prog_id.is_empty());
+    assert!(!map_pin_path.is_empty());
     debug!(
         "Successfully added tracepoint program: {:?} from: {:?}",
-        uuid, load_type
+        prog_id, load_type
     );
-    Ok(uuid.to_string())
+    (Ok(prog_id), Ok(map_pin_path))
 }
 
 /// Attach a uprobe program to bpfctl with bpfctl
@@ -297,13 +311,13 @@ pub fn add_uprobe(
 
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let uuid = stdout.trim();
-    assert!(!uuid.is_empty());
+    let (prog_id, _) = parse_bpfctl_load_output(&stdout);
+    assert!(!prog_id.is_empty());
     debug!(
         "Successfully added uprobe program: {:?} from: {:?}",
-        uuid, load_type
+        prog_id, load_type
     );
-    Ok(uuid.to_string())
+    Ok(prog_id)
 }
 
 /// Attach a uretprobe program to bpfctl with bpfctl
@@ -341,13 +355,13 @@ pub fn add_uretprobe(
 
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let uuid = stdout.trim();
-    assert!(!uuid.is_empty());
+    let (prog_id, _) = parse_bpfctl_load_output(&stdout);
+    assert!(!prog_id.is_empty());
     debug!(
         "Successfully added uretprobe program: {:?} from: {:?}",
-        uuid, load_type
+        prog_id, load_type
     );
-    Ok(uuid.to_string())
+    Ok(prog_id)
 }
 
 /// Install a kprobe program with bpfctl
@@ -382,13 +396,13 @@ pub fn add_kprobe(
 
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let uuid = stdout.trim();
-    assert!(!uuid.is_empty());
+    let (prog_id, _) = parse_bpfctl_load_output(&stdout);
+    assert!(!prog_id.is_empty());
     debug!(
         "Successfully added kprobe program: {:?} from: {:?}",
-        uuid, load_type
+        prog_id, load_type
     );
-    Ok(uuid.to_string())
+    Ok(prog_id)
 }
 
 /// Install a kretprobe program with bpfctl
@@ -423,25 +437,25 @@ pub fn add_kretprobe(
 
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let uuid = stdout.trim();
-    assert!(!uuid.is_empty());
+    let (prog_id, _) = parse_bpfctl_load_output(&stdout);
+    assert!(!prog_id.is_empty());
     debug!(
         "Successfully added kretprobe program: {:?} from: {:?}",
-        uuid, load_type
+        prog_id, load_type
     );
-    Ok(uuid.to_string())
+    Ok(prog_id)
 }
 
 /// Delete a bpfd program using bpfctl
-pub fn bpfd_del_program(uuid: &str) {
+pub fn bpfd_del_program(prog_id: &str) {
     Command::cargo_bin("bpfctl")
         .unwrap()
-        .args(["unload", uuid.trim()])
+        .args(["unload", prog_id.trim()])
         .assert()
         .success()
         .stdout(is_empty());
 
-    debug!("Successfully deleted program: \"{}\"", uuid.trim());
+    debug!("Successfully deleted program: \"{}\"", prog_id.trim());
 }
 
 /// Retrieve the output of bpfctl list
@@ -741,25 +755,25 @@ pub fn read_trace_pipe_log() -> Result<String> {
     Ok(buffer)
 }
 
-/// Verify that the programs in the uuid list have been loaded.  Then delete them
+/// Verify that the programs in the loaded_ids list have been loaded.  Then delete them
 /// and verify that they have been deleted.
-pub fn verify_and_delete_programs(uuids: Vec<String>) {
-    // Verify bpfctl list contains the uuids of each program
+pub fn verify_and_delete_programs(loaded_ids: Vec<String>) {
+    // Verify bpfctl list contains the loaded_ids of each program
     let bpfctl_list = bpfd_list(None).unwrap();
-    for id in uuids.iter() {
+    for id in loaded_ids.iter() {
         assert!(bpfctl_list.contains(id.trim()));
     }
 
     // Delete the installed programs
     debug!("Deleting bpfd program");
-    for id in uuids.iter() {
+    for id in loaded_ids.iter() {
         bpfd_del_program(id)
     }
 
-    // Verify bpfctl list does not contain the uuids of the deleted programs
+    // Verify bpfctl list does not contain the loaded_ids of the deleted programs
     // and that there are no panics if bpfctl does not contain any programs.
     let bpfctl_list = bpfd_list(None).unwrap();
-    for id in uuids.iter() {
+    for id in loaded_ids.iter() {
         assert!(!bpfctl_list.contains(id.trim()));
     }
 }
@@ -767,4 +781,23 @@ pub fn verify_and_delete_programs(uuids: Vec<String>) {
 /// Returns true if the bpffs has entries and false if it doesn't
 pub fn bpffs_has_entries(path: &str) -> bool {
     PathBuf::from(path).read_dir().unwrap().next().is_some()
+}
+
+fn parse_bpfctl_load_output(stdout: &str) -> (String, String) {
+    let re = Regex::new(r"\n ID: {2,}(.*?)\s").unwrap();
+    let prog_id = match re.captures(stdout) {
+        Some(caps) => caps[1].to_owned(),
+        None => "".to_string(),
+    };
+
+    let re = Regex::new(r"\n Map Pin Path: {2,}(.*?)\s").unwrap();
+    let map_pin_path = match re.captures(stdout) {
+        Some(caps) => caps[1].to_owned(),
+        None => {
+            println!("\"Map Pin Path:\" not found!");
+            "".to_string()
+        }
+    };
+
+    (prog_id, map_pin_path)
 }

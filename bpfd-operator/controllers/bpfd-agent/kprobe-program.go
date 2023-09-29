@@ -174,30 +174,32 @@ func (r *KprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func (r *KprobeProgramReconciler) buildKprobeLoadRequest(
-	bytecode interface{},
+	bytecode *gobpfd.BytecodeLocation,
 	uuid string,
 	bpfProgram *bpfdiov1alpha1.BpfProgram,
 	mapOwnerId *uint32) *gobpfd.LoadRequest {
-	loadRequest := &gobpfd.LoadRequest{}
-	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
-		bytecode,
-		r.currentKprobeProgram.Spec.SectionName,
-		internal.Kprobe, map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentKprobeProgram.Name},
-		r.currentKprobeProgram.Spec.GlobalData,
-		mapOwnerId,
-	)
+
 	// Namespace isn't supported yet in bpfd, so set it to an empty string.
 	namespace := ""
-	loadRequest.AttachInfo = &gobpfd.LoadRequest_KprobeAttachInfo{
-		KprobeAttachInfo: &gobpfd.KprobeAttachInfo{
-			FnName:    bpfProgram.Annotations[internal.KprobeProgramFunction],
-			Offset:    r.currentKprobeProgram.Spec.Offset,
-			Retprobe:  r.currentKprobeProgram.Spec.RetProbe,
-			Namespace: &namespace,
-		},
-	}
 
-	return loadRequest
+	return &gobpfd.LoadRequest{
+		Bytecode:    bytecode,
+		Name:        r.currentKprobeProgram.Spec.SectionName,
+		ProgramType: uint32(internal.Kprobe),
+		Attach: &gobpfd.AttachInfo{
+			Info: &gobpfd.AttachInfo_KprobeAttachInfo{
+				KprobeAttachInfo: &gobpfd.KprobeAttachInfo{
+					FnName:    bpfProgram.Annotations[internal.KprobeProgramFunction],
+					Offset:    r.currentKprobeProgram.Spec.Offset,
+					Retprobe:  r.currentKprobeProgram.Spec.RetProbe,
+					Namespace: &namespace,
+				},
+			},
+		},
+		Metadata:   map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentKprobeProgram.Name},
+		GlobalData: r.currentKprobeProgram.Spec.GlobalData,
+		MapOwnerId: mapOwnerId,
+	}
 }
 
 // reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.

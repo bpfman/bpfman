@@ -62,8 +62,9 @@ type ParameterData struct {
 	CrdFlag    bool
 	ProgId     uint
 	MapOwnerId int
-	// The bytecodesource type has to be encapsulated in a complete LoadRequest because isLoadRequest_Location is not Public
-	BytecodeSource *gobpfd.LoadRequestCommon
+	// The bytecodesource type has to be encapsulated in a complete BytecodeLocation
+	// because isBytecodeLocation_Location is not Public
+	BytecodeSource *gobpfd.BytecodeLocation
 	BytecodeSrc    int
 }
 
@@ -151,8 +152,8 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 		//    ./go-xdp-counter -iface eth0 -path /var/bpfd/bytecode/bpf_bpfel.o
 		if len(cmdlineFile) != 0 {
 			// "-location" was entered so it is a URL
-			paramData.BytecodeSource = &gobpfd.LoadRequestCommon{
-				Location: &gobpfd.LoadRequestCommon_File{File: cmdlineFile},
+			paramData.BytecodeSource = &gobpfd.BytecodeLocation{
+				Location: &gobpfd.BytecodeLocation_File{File: cmdlineFile},
 			}
 
 			paramData.BytecodeSrc = SrcFile
@@ -162,8 +163,8 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 		//    ./go-xdp-counter -p eth0 -image quay.io/bpfd-bytecode/go-xdp-counter:latest
 		if len(cmdlineImage) != 0 {
 			// "-location" was entered so it is a URL
-			paramData.BytecodeSource = &gobpfd.LoadRequestCommon{
-				Location: &gobpfd.LoadRequestCommon_Image{Image: &gobpfd.BytecodeImage{
+			paramData.BytecodeSource = &gobpfd.BytecodeLocation{
+				Location: &gobpfd.BytecodeLocation_Image{Image: &gobpfd.BytecodeImage{
 					Url: cmdlineImage,
 				}},
 			}
@@ -195,8 +196,8 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 			}
 		}
 
-		paramData.BytecodeSource = &gobpfd.LoadRequestCommon{
-			Location: &gobpfd.LoadRequestCommon_File{File: path},
+		paramData.BytecodeSource = &gobpfd.BytecodeLocation{
+			Location: &gobpfd.BytecodeLocation_File{File: path},
 		}
 		paramData.BytecodeSrc = SrcFile
 		source = path
@@ -213,28 +214,24 @@ func ParseParamData(progType ProgType, configFilePath string, primaryBytecodeFil
 	return paramData, nil
 }
 
-func RetrieveMapPinPath(ctx context.Context, c gobpfd.BpfdClient, progId uint, programType *uint32, map_name string) (string, error) {
+func RetrieveMapPinPath(ctx context.Context, c gobpfd.BpfdClient, progId uint, map_name string) (string, error) {
 	var mapPath string
 
-	listRequest := &gobpfd.ListRequest{
-		ProgramType: programType,
+	getRequest := &gobpfd.GetRequest{
+		Id: uint32(progId),
 	}
-	//var listResponse *gobpfd.ListResponse
-	listResponse, err := c.List(ctx, listRequest)
+	//var getResponse *gobpfd.GetResponse
+	getResponse, err := c.Get(ctx, getRequest)
 	if err != nil {
 		return mapPath, err
 	}
-	results := listResponse.GetResults()
-	for _, result := range results {
-		if result.GetId() == uint32(progId) {
-			mapPath = fmt.Sprintf("%s/%s", result.GetMapPinPath(), map_name)
-			break
-		}
-	}
+	return CalcMapPinPath(getResponse.GetInfo(), map_name)
+}
 
-	if mapPath == "" {
-		return mapPath, fmt.Errorf("couldn't find map path in response")
+func CalcMapPinPath(programInfo *gobpfd.ProgramInfo, map_name string) (string, error) {
+	if programInfo != nil {
+		return fmt.Sprintf("%s/%s", programInfo.GetMapPinPath(), map_name), nil
+	} else {
+		return "", fmt.Errorf("couldn't find map path in response")
 	}
-
-	return mapPath, nil
 }

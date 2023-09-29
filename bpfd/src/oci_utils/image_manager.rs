@@ -82,18 +82,25 @@ impl BytecodeImage {
 
 impl From<bpfd_api::v1::BytecodeImage> for BytecodeImage {
     fn from(value: bpfd_api::v1::BytecodeImage) -> Self {
-        BytecodeImage::new(
-            value.url,
-            value.image_pull_policy,
-            match value.username.as_ref() {
+        // This function is mapping an empty string to None for
+        // username and password.
+        let username = if value.username.is_some() {
+            match value.username.unwrap().as_ref() {
                 "" => None,
                 u => Some(u.to_string()),
-            },
-            match value.password.as_ref() {
+            }
+        } else {
+            None
+        };
+        let password = if value.password.is_some() {
+            match value.password.unwrap().as_ref() {
                 "" => None,
-                p => Some(p.to_string()),
-            },
-        )
+                u => Some(u.to_string()),
+            }
+        } else {
+            None
+        };
+        BytecodeImage::new(value.url, value.image_pull_policy, username, password)
     }
 }
 

@@ -96,8 +96,12 @@ pub async fn serve(
     // Load any static programs first
     if !static_programs.is_empty() {
         for prog in static_programs {
-            let uuid = bpf_manager.add_program(prog).await?;
-            info!("Loaded static program with UUID {}", uuid)
+            let ret_prog = bpf_manager.add_program(prog).await?;
+            // Get the Kernel Info.
+            let kernel_info = ret_prog
+                .kernel_info()
+                .expect("kernel info should be set for all loaded programs");
+            info!("Loaded static program with program id {}", kernel_info.id)
         }
     };
     if csi_support {

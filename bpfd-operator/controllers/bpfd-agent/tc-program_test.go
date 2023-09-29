@@ -160,21 +160,21 @@ func TestTcProgramControllerCreate(t *testing.T) {
 	uuid := string(bpfProg.UID)
 
 	expectedLoadReq := &gobpfd.LoadRequest{
-		Common: &gobpfd.LoadRequestCommon{
-			Location: &gobpfd.LoadRequestCommon_File{
-				File: bytecodePath,
-			},
-			Name:        sectionName,
-			ProgramType: *internal.Tc.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid), internal.ProgramNameKey: name},
-			MapOwnerId:  nil,
+		Bytecode: &gobpfd.BytecodeLocation{
+			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 		},
-		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
-			TcAttachInfo: &gobpfd.TCAttachInfo{
-				Iface:     fakeInt,
-				Priority:  0,
-				Direction: direction,
-				ProceedOn: []int32{3, 30},
+		Name:        sectionName,
+		ProgramType: *internal.Tc.Uint32(),
+		Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid), internal.ProgramNameKey: name},
+		MapOwnerId:  nil,
+		Attach: &gobpfd.AttachInfo{
+			Info: &gobpfd.AttachInfo_TcAttachInfo{
+				TcAttachInfo: &gobpfd.TCAttachInfo{
+					Iface:     fakeInt,
+					Priority:  0,
+					Direction: direction,
+					ProceedOn: []int32{3, 30},
+				},
 			},
 		},
 	}
@@ -382,21 +382,21 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	uuid0 := string(bpfProgEth0.UID)
 
 	expectedLoadReq0 := &gobpfd.LoadRequest{
-		Common: &gobpfd.LoadRequestCommon{
-			Location: &gobpfd.LoadRequestCommon_File{
-				File: bytecodePath,
-			},
-			Name:        sectionName,
-			ProgramType: *internal.Tc.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid0), internal.ProgramNameKey: name},
-			MapOwnerId:  nil,
+		Bytecode: &gobpfd.BytecodeLocation{
+			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 		},
-		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
-			TcAttachInfo: &gobpfd.TCAttachInfo{
-				Iface:     fakeInts[0],
-				Priority:  0,
-				Direction: direction,
-				ProceedOn: []int32{3, 30},
+		Name:        sectionName,
+		ProgramType: *internal.Tc.Uint32(),
+		Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid0), internal.ProgramNameKey: name},
+		MapOwnerId:  nil,
+		Attach: &gobpfd.AttachInfo{
+			Info: &gobpfd.AttachInfo_TcAttachInfo{
+				TcAttachInfo: &gobpfd.TCAttachInfo{
+					Iface:     fakeInts[0],
+					Priority:  0,
+					Direction: direction,
+					ProceedOn: []int32{3, 30},
+				},
 			},
 		},
 	}
@@ -404,21 +404,21 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	uuid1 := string(bpfProgEth1.UID)
 
 	expectedLoadReq1 := &gobpfd.LoadRequest{
-		Common: &gobpfd.LoadRequestCommon{
-			Location: &gobpfd.LoadRequestCommon_File{
-				File: bytecodePath,
-			},
-			Name:        sectionName,
-			ProgramType: *internal.Tc.Uint32(),
-			Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid1), internal.ProgramNameKey: name},
-			MapOwnerId:  nil,
+		Bytecode: &gobpfd.BytecodeLocation{
+			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 		},
-		AttachInfo: &gobpfd.LoadRequest_TcAttachInfo{
-			TcAttachInfo: &gobpfd.TCAttachInfo{
-				Iface:     fakeInts[1],
-				Priority:  0,
-				Direction: direction,
-				ProceedOn: []int32{3, 30},
+		Name:        sectionName,
+		ProgramType: *internal.Tc.Uint32(),
+		Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid1), internal.ProgramNameKey: name},
+		MapOwnerId:  nil,
+		Attach: &gobpfd.AttachInfo{
+			Info: &gobpfd.AttachInfo_TcAttachInfo{
+				TcAttachInfo: &gobpfd.TCAttachInfo{
+					Iface:     fakeInts[1],
+					Priority:  0,
+					Direction: direction,
+					ProceedOn: []int32{3, 30},
+				},
 			},
 		},
 	}

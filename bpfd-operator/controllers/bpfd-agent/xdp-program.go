@@ -207,28 +207,28 @@ func (r *XdpProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 }
 
 func (r *XdpProgramReconciler) buildXdpLoadRequest(
-	bytecode interface{},
+	bytecode *gobpfd.BytecodeLocation,
 	uuid string,
 	iface string,
 	mapOwnerId *uint32) *gobpfd.LoadRequest {
-	loadRequest := &gobpfd.LoadRequest{}
-	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
-		bytecode,
-		r.currentXdpProgram.Spec.SectionName,
-		internal.Xdp,
-		map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentXdpProgram.Name},
-		r.currentXdpProgram.Spec.GlobalData,
-		mapOwnerId,
-	)
-	loadRequest.AttachInfo = &gobpfd.LoadRequest_XdpAttachInfo{
-		XdpAttachInfo: &gobpfd.XDPAttachInfo{
-			Priority:  r.currentXdpProgram.Spec.Priority,
-			Iface:     iface,
-			ProceedOn: xdpProceedOnToInt(r.currentXdpProgram.Spec.ProceedOn),
-		},
-	}
 
-	return loadRequest
+	return &gobpfd.LoadRequest{
+		Bytecode:    bytecode,
+		Name:        r.currentXdpProgram.Spec.SectionName,
+		ProgramType: uint32(internal.Xdp),
+		Attach: &gobpfd.AttachInfo{
+			Info: &gobpfd.AttachInfo_XdpAttachInfo{
+				XdpAttachInfo: &gobpfd.XDPAttachInfo{
+					Priority:  r.currentXdpProgram.Spec.Priority,
+					Iface:     iface,
+					ProceedOn: xdpProceedOnToInt(r.currentXdpProgram.Spec.ProceedOn),
+				},
+			},
+		},
+		Metadata:   map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentXdpProgram.Name},
+		GlobalData: r.currentXdpProgram.Spec.GlobalData,
+		MapOwnerId: mapOwnerId,
+	}
 }
 
 // reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.

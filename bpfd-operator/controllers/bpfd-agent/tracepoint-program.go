@@ -176,26 +176,26 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 }
 
 func (r *TracepointProgramReconciler) buildTracepointLoadRequest(
-	bytecode interface{},
+	bytecode *gobpfd.BytecodeLocation,
 	uuid string,
 	bpfProgram *bpfdiov1alpha1.BpfProgram,
 	mapOwnerId *uint32) *gobpfd.LoadRequest {
-	loadRequest := &gobpfd.LoadRequest{}
-	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
-		bytecode,
-		r.currentTracepointProgram.Spec.SectionName,
-		internal.Tracepoint,
-		map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentTracepointProgram.Name},
-		r.currentTracepointProgram.Spec.GlobalData,
-		mapOwnerId,
-	)
-	loadRequest.AttachInfo = &gobpfd.LoadRequest_TracepointAttachInfo{
-		TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
-			Tracepoint: bpfProgram.Annotations[internal.TracepointProgramTracepoint],
-		},
-	}
 
-	return loadRequest
+	return &gobpfd.LoadRequest{
+		Bytecode:    bytecode,
+		Name:        r.currentTracepointProgram.Spec.SectionName,
+		ProgramType: uint32(internal.Tracepoint),
+		Attach: &gobpfd.AttachInfo{
+			Info: &gobpfd.AttachInfo_TracepointAttachInfo{
+				TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
+					Tracepoint: bpfProgram.Annotations[internal.TracepointProgramTracepoint],
+				},
+			},
+		},
+		Metadata:   map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentTracepointProgram.Name},
+		GlobalData: r.currentTracepointProgram.Spec.GlobalData,
+		MapOwnerId: mapOwnerId,
+	}
 }
 
 // reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
@@ -281,7 +281,7 @@ func (r *TracepointProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		}
 		r.expectedMaps = nil
 
-		r.Logger.Info("bpfd called to unload XdpProgram on Node", "Name", bpfProgram.Name, "UUID", id)
+		r.Logger.Info("bpfd called to unload TracepointProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 
 		if isBeingDeleted {
 			return bpfdiov1alpha1.BpfProgCondUnloaded, nil

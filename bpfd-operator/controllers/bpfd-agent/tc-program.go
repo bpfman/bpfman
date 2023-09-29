@@ -219,29 +219,29 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 func (r *TcProgramReconciler) buildTcLoadRequest(
-	bytecode interface{},
+	bytecode *gobpfd.BytecodeLocation,
 	uuid string,
 	iface string,
 	mapOwnerId *uint32) *gobpfd.LoadRequest {
-	loadRequest := &gobpfd.LoadRequest{}
-	loadRequest.Common = bpfdagentinternal.BuildBpfdCommon(
-		bytecode,
-		r.currentTcProgram.Spec.SectionName,
-		internal.Tc,
-		map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentTcProgram.Name},
-		r.currentTcProgram.Spec.GlobalData,
-		mapOwnerId,
-	)
-	loadRequest.AttachInfo = &gobpfd.LoadRequest_TcAttachInfo{
-		TcAttachInfo: &gobpfd.TCAttachInfo{
-			Priority:  r.currentTcProgram.Spec.Priority,
-			Iface:     iface,
-			Direction: r.currentTcProgram.Spec.Direction,
-			ProceedOn: tcProceedOnToInt(r.currentTcProgram.Spec.ProceedOn),
-		},
-	}
 
-	return loadRequest
+	return &gobpfd.LoadRequest{
+		Bytecode:    bytecode,
+		Name:        r.currentTcProgram.Spec.SectionName,
+		ProgramType: uint32(internal.Tc),
+		Attach: &gobpfd.AttachInfo{
+			Info: &gobpfd.AttachInfo_TcAttachInfo{
+				TcAttachInfo: &gobpfd.TCAttachInfo{
+					Priority:  r.currentTcProgram.Spec.Priority,
+					Iface:     iface,
+					Direction: r.currentTcProgram.Spec.Direction,
+					ProceedOn: tcProceedOnToInt(r.currentTcProgram.Spec.ProceedOn),
+				},
+			},
+		},
+		Metadata:   map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentTcProgram.Name},
+		GlobalData: r.currentTcProgram.Spec.GlobalData,
+		MapOwnerId: mapOwnerId,
+	}
 }
 
 // reconcileBpfdPrograms ONLY reconciles the bpfd state for a single BpfProgram.
