@@ -299,20 +299,24 @@ impl BpfManager {
         };
 
         // map_pin_path MUST be set following load.
-        let map_pin_path = program
-            .data()?
-            .map_pin_path()
-            .expect("map_pin_path must be set after load");
+        let map_pin_path = program.data()?.map_pin_path();
 
         match result {
             Ok(id) => {
                 // Now that program is successfully loaded, update the id, maps hash table,
                 // and allow access to all maps by bpfd group members.
-                self.save_map(id, map_owner_id, map_pin_path).await?;
+                self.save_map(
+                    id,
+                    map_owner_id,
+                    map_pin_path.expect("map_pin_path must be set after successfult load"),
+                )
+                .await?;
                 Ok(program)
             }
             Err(e) => {
-                let _ = self.cleanup_map_pin_path(map_pin_path, map_owner_id).await;
+                if let Some(pin_path) = map_pin_path {
+                    let _ = self.cleanup_map_pin_path(pin_path, map_owner_id).await;
+                }
                 Err(e)
             }
         }
