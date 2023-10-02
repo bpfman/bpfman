@@ -12,8 +12,8 @@ pub enum BpfdError {
     BpfProgramError(#[from] aya::programs::ProgramError),
     #[error(transparent)]
     BpfLoadError(#[from] aya::BpfError),
-    #[error("Unable to find a valid program with section name {0}")]
-    SectionNameNotValid(String),
+    #[error("Unable to find a valid program with function name {0}")]
+    BpfFunctionNameNotValid(String),
     #[error("No room to attach program. Please remove one and try again.")]
     TooManyPrograms,
     #[error("Invalid Interface")]
@@ -30,7 +30,7 @@ pub enum BpfdError {
     DispatcherNotRequired,
     #[error(transparent)]
     BpfBytecodeError(#[from] anyhow::Error),
-    #[error("Bytecode image has section name: {image_prog_name} isn't equal to the provided section name {provided_prog_name}")]
+    #[error("Bytecode image bpf function name: {image_prog_name} isn't equal to the provided bpf function name {provided_prog_name}")]
     BytecodeMetaDataMismatch {
         image_prog_name: String,
         provided_prog_name: String,

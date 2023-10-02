@@ -214,7 +214,7 @@ func (r *XdpProgramReconciler) buildXdpLoadRequest(
 
 	return &gobpfd.LoadRequest{
 		Bytecode:    bytecode,
-		Name:        r.currentXdpProgram.Spec.SectionName,
+		Name:        r.currentXdpProgram.Spec.BpfFunctionName,
 		ProgramType: uint32(internal.Xdp),
 		Attach: &gobpfd.AttachInfo{
 			Info: &gobpfd.AttachInfo_XdpAttachInfo{

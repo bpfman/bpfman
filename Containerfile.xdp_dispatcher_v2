@@ -4,4 +4,4 @@ COPY  .output/xdp_dispatcher_v2.bpf.o dispatcher.o
 LABEL io.ebpf.program_type xdp
 LABEL io.ebpf.filename dispatcher.o
 LABEL io.ebpf.program_name xdp_dispatcher_v2
-LABEL io.ebpf.section_name xdp_dispatcher
+LABEL io.ebpf.bpf_function_name xdp_dispatcher

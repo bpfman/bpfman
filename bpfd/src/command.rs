@@ -113,7 +113,7 @@ impl Location {
                     })
                     .await
                     .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
-                let (path, section_name) = rx
+                let (path, bpf_function_name) = rx
                     .await
                     .map_err(BpfdError::RpcError)?
                     .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
@@ -128,7 +128,7 @@ impl Location {
                     .map_err(BpfdError::RpcError)?
                     .map_err(|e| BpfdError::Error(format!("Bytecode loading error: {e}")))?;
 
-                Ok((bytecode, section_name))
+                Ok((bytecode, bpf_function_name))
             }
         }
     }

@@ -38,8 +38,8 @@ use crate::{serve::shutdown_handler, utils::read};
 pub struct ContainerImageMetadata {
     #[serde(rename(deserialize = "io.ebpf.program_name"))]
     pub name: String,
-    #[serde(rename(deserialize = "io.ebpf.section_name"))]
-    pub section_name: String,
+    #[serde(rename(deserialize = "io.ebpf.bpf_function_name"))]
+    pub bpf_function_name: String,
     #[serde(rename(deserialize = "io.ebpf.program_type"))]
     pub program_type: String,
     #[serde(rename(deserialize = "io.ebpf.filename"))]
@@ -221,7 +221,7 @@ impl ImageManager {
 
         Ok((
             image_content_path.into_os_string().into_string().unwrap(),
-            image_meta.section_name,
+            image_meta.bpf_function_name,
         ))
     }
 

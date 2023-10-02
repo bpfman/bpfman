@@ -16,8 +16,8 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.sectionname
-      name: SectionName
+    - jsonPath: .spec.bpffunctionname
+      name: BpfFunctionName
       type: string
     - jsonPath: .spec.nodeselector
       name: NodeSelector
@@ -54,6 +54,10 @@ spec:
           spec:
             description: KprobeProgramSpec defines the desired state of KprobeProgram
             properties:
+              bpffunctionname:
+                description: BpfFunctionName is the name of the function that is the
+                  entry point for the BPF program
+                type: string
               bytecode:
                 description: Bytecode configures where the bpf program's bytecode
                   should be loaded from.
@@ -219,15 +223,11 @@ spec:
                 default: false
                 description: Whether the program is a kretprobe.  Default is false
                 type: boolean
-              sectionname:
-                description: SectionName is the the section name described in the
-                  bpf Program
-                type: string
             required:
+            - bpffunctionname
             - bytecode
             - func_names
             - nodeselector
-            - sectionname
             type: object
             x-kubernetes-validations:
             - message: offset cannot be set for kretprobes

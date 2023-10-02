@@ -29,7 +29,7 @@ import (
 //+kubebuilder:resource:scope=Cluster
 
 // TracepointProgram is the Schema for the TracepointPrograms API
-// +kubebuilder:printcolumn:name="SectionName",type=string,JSONPath=`.spec.sectionname`
+// +kubebuilder:printcolumn:name="BpfFunctionName",type=string,JSONPath=`.spec.bpffunctionname`
 // +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
 // +kubebuilder:printcolumn:name="TracePoint",type=string,JSONPath=`.spec.name`,priority=1
 type TracepointProgram struct {

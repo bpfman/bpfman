@@ -184,7 +184,7 @@ func (r *KprobeProgramReconciler) buildKprobeLoadRequest(
 
 	return &gobpfd.LoadRequest{
 		Bytecode:    bytecode,
-		Name:        r.currentKprobeProgram.Spec.SectionName,
+		Name:        r.currentKprobeProgram.Spec.BpfFunctionName,
 		ProgramType: uint32(internal.Kprobe),
 		Attach: &gobpfd.AttachInfo{
 			Info: &gobpfd.AttachInfo_KprobeAttachInfo{

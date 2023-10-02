@@ -37,8 +37,9 @@ type InterfaceSelector struct {
 
 // BpfProgramCommon defines the common attributes for all BPF programs
 type BpfProgramCommon struct {
-	// SectionName is the the section name described in the bpf Program
-	SectionName string `json:"sectionname"`
+	// BpfFunctionName is the name of the function that is the entry point for the BPF
+	// program
+	BpfFunctionName string `json:"bpffunctionname"`
 
 	// NodeSelector allows the user to specify which nodes to deploy the
 	// bpf program to.  This field must be specified, to select all nodes

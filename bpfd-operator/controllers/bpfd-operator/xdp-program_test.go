@@ -39,13 +39,13 @@ import (
 
 func TestXdpProgramReconcile(t *testing.T) {
 	var (
-		name         = "fakeXdpProgram"
-		bytecodePath = "/tmp/hello.o"
-		sectionName  = "test"
-		fakeNode     = testutils.NewNode("fake-control-plane")
-		fakeInt      = "eth0"
-		ctx          = context.TODO()
-		bpfProgName  = fmt.Sprintf("%s-%s", name, fakeNode.Name)
+		name            = "fakeXdpProgram"
+		bytecodePath    = "/tmp/hello.o"
+		bpfFunctionName = "test"
+		fakeNode        = testutils.NewNode("fake-control-plane")
+		fakeInt         = "eth0"
+		ctx             = context.TODO()
+		bpfProgName     = fmt.Sprintf("%s-%s", name, fakeNode.Name)
 	)
 	// A XdpProgram object with metadata and spec.
 	Xdp := &bpfdiov1alpha1.XdpProgram{
@@ -54,8 +54,8 @@ func TestXdpProgramReconcile(t *testing.T) {
 		},
 		Spec: bpfdiov1alpha1.XdpProgramSpec{
 			BpfProgramCommon: bpfdiov1alpha1.BpfProgramCommon{
-				SectionName:  sectionName,
-				NodeSelector: metav1.LabelSelector{},
+				BpfFunctionName: bpfFunctionName,
+				NodeSelector:    metav1.LabelSelector{},
 				ByteCode: bpfdiov1alpha1.BytecodeSelector{
 					Path: &bytecodePath,
 				},

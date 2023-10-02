@@ -5,7 +5,7 @@ metadata:
     app.kubernetes.io/name: tracepointprogram
   name: go-tracepoint-counter-example
 spec:
-  sectionname: tracepoint_kill_recorder
+  bpffunctionname: tracepoint_kill_recorder
   # Select all nodes
   nodeselector: {}
   names:

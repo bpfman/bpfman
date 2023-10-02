@@ -45,16 +45,16 @@ import (
 
 func TestTracepointProgramControllerCreate(t *testing.T) {
 	var (
-		name           = "fakeTracepointProgram"
-		namespace      = "bpfd"
-		bytecodePath   = "/tmp/hello.o"
-		sectionName    = "test"
-		tracepointName = "syscalls/sys_enter_setitimer"
-		fakeNode       = testutils.NewNode("fake-control-plane")
-		ctx            = context.TODO()
-		bpfProgName    = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, "syscalls-sys-enter-setitimer")
-		bpfProg        = &bpfdiov1alpha1.BpfProgram{}
-		fakeUID        = "ef71d42c-aa21-48e8-a697-82391d801a81"
+		name            = "fakeTracepointProgram"
+		namespace       = "bpfd"
+		bytecodePath    = "/tmp/hello.o"
+		bpfFunctionName = "test"
+		tracepointName  = "syscalls/sys_enter_setitimer"
+		fakeNode        = testutils.NewNode("fake-control-plane")
+		ctx             = context.TODO()
+		bpfProgName     = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, "syscalls-sys-enter-setitimer")
+		bpfProg         = &bpfdiov1alpha1.BpfProgram{}
+		fakeUID         = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)
 	// A TracepointProgram object with metadata and spec.
 	Tracepoint := &bpfdiov1alpha1.TracepointProgram{
@@ -63,8 +63,8 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 		},
 		Spec: bpfdiov1alpha1.TracepointProgramSpec{
 			BpfProgramCommon: bpfdiov1alpha1.BpfProgramCommon{
-				SectionName:  sectionName,
-				NodeSelector: metav1.LabelSelector{},
+				BpfFunctionName: bpfFunctionName,
+				NodeSelector:    metav1.LabelSelector{},
 				ByteCode: bpfdiov1alpha1.BytecodeSelector{
 					Path: &bytecodePath,
 				},
@@ -152,7 +152,7 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 		Bytecode: &gobpfd.BytecodeLocation{
 			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 		},
-		Name:        sectionName,
+		Name:        bpfFunctionName,
 		ProgramType: *internal.Tracepoint.Uint32(),
 		Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid), internal.ProgramNameKey: name},
 		MapOwnerId:  nil,

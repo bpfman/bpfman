@@ -48,7 +48,7 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 		name            = "fakeKprobeProgram"
 		namespace       = "bpfd"
 		bytecodePath    = "/tmp/hello.o"
-		sectionName     = "test"
+		bpfFunctionName = "test"
 		functionName    = "try_to_wake_up"
 		offset          = 0
 		retprobe        = false
@@ -66,8 +66,8 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 		},
 		Spec: bpfdiov1alpha1.KprobeProgramSpec{
 			BpfProgramCommon: bpfdiov1alpha1.BpfProgramCommon{
-				SectionName:  sectionName,
-				NodeSelector: metav1.LabelSelector{},
+				BpfFunctionName: bpfFunctionName,
+				NodeSelector:    metav1.LabelSelector{},
 				ByteCode: bpfdiov1alpha1.BytecodeSelector{
 					Path: &bytecodePath,
 				},
@@ -157,7 +157,7 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 		Bytecode: &gobpfd.BytecodeLocation{
 			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 		},
-		Name:        sectionName,
+		Name:        bpfFunctionName,
 		ProgramType: *internal.Kprobe.Uint32(),
 		Metadata:    map[string]string{internal.UuidMetadataKey: string(bpfProg.UID), internal.ProgramNameKey: name},
 		MapOwnerId:  nil,

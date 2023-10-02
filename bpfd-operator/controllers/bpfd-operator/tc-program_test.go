@@ -39,14 +39,14 @@ import (
 
 func TestTcProgramReconcile(t *testing.T) {
 	var (
-		name         = "fakeTcProgram"
-		bytecodePath = "/tmp/hello.o"
-		sectionName  = "test"
-		direction    = "ingress"
-		fakeNode     = testutils.NewNode("fake-control-plane")
-		fakeInt      = "eth0"
-		ctx          = context.TODO()
-		bpfProgName  = fmt.Sprintf("%s-%s", name, fakeNode.Name)
+		name            = "fakeTcProgram"
+		bytecodePath    = "/tmp/hello.o"
+		bpfFunctionName = "test"
+		direction       = "ingress"
+		fakeNode        = testutils.NewNode("fake-control-plane")
+		fakeInt         = "eth0"
+		ctx             = context.TODO()
+		bpfProgName     = fmt.Sprintf("%s-%s", name, fakeNode.Name)
 	)
 
 	// A TcProgram object with metadata and spec.
@@ -56,8 +56,8 @@ func TestTcProgramReconcile(t *testing.T) {
 		},
 		Spec: bpfdiov1alpha1.TcProgramSpec{
 			BpfProgramCommon: bpfdiov1alpha1.BpfProgramCommon{
-				SectionName:  sectionName,
-				NodeSelector: metav1.LabelSelector{},
+				BpfFunctionName: bpfFunctionName,
+				NodeSelector:    metav1.LabelSelector{},
 				ByteCode: bpfdiov1alpha1.BytecodeSelector{
 					Path: &bytecodePath,
 				},

@@ -5,7 +5,7 @@ metadata:
     app.kubernetes.io/name: tcprogram
   name: tc-pass-all-nodes
 spec:
-  sectionname: pass
+  bpffunctionname: pass
   # Select all nodes
   nodeselector: {}
   interfaceselector:

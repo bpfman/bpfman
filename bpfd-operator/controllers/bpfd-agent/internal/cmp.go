@@ -49,10 +49,10 @@ func DoesProgExist(actual *gobpfd.ListResponse_ListResult, expected *gobpfd.Load
 	}
 
 	actualName := actualInfo.GetName()
-	expectedSectionName := expected.GetName()
-	if actualName != expectedSectionName {
+	expectedBpfFunctionName := expected.GetName()
+	if actualName != expectedBpfFunctionName {
 		reasons = append(reasons, fmt.Sprintf("Expected Name to be %s but found %s",
-			expectedSectionName, actualName))
+			expectedBpfFunctionName, actualName))
 	}
 
 	actualProgramType := actualKernelInfo.GetProgramType()

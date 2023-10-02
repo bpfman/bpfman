@@ -90,7 +90,7 @@ impl XdpDispatcher {
             .await
             .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
 
-        let (path, section_name) = rx
+        let (path, bpf_function_name) = rx
             .await
             .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?
             .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
@@ -108,7 +108,7 @@ impl XdpDispatcher {
             .set_global("conf", &config, true)
             .load(&program_bytes)?;
 
-        let dispatcher: &mut Xdp = loader.program_mut(&section_name).unwrap().try_into()?;
+        let dispatcher: &mut Xdp = loader.program_mut(&bpf_function_name).unwrap().try_into()?;
 
         dispatcher.load()?;
 
@@ -122,7 +122,7 @@ impl XdpDispatcher {
             mode,
             num_extensions: extensions.len(),
             loader: Some(loader),
-            program_name: Some(section_name),
+            program_name: Some(bpf_function_name),
         };
         dispatcher
             .attach_extensions(&mut extensions, image_manager)
@@ -229,7 +229,7 @@ impl XdpDispatcher {
 
                 let ext: &mut Extension = loader
                     .program_mut(name)
-                    .ok_or_else(|| BpfdError::SectionNameNotValid(name.to_string()))?
+                    .ok_or_else(|| BpfdError::BpfFunctionNameNotValid(name.to_string()))?
                     .try_into()?;
 
                 let target_fn = format!("prog{i}");

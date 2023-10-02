@@ -229,7 +229,7 @@ impl TcDispatcher {
 
                 let ext: &mut Extension = loader
                     .program_mut(name)
-                    .ok_or_else(|| BpfdError::SectionNameNotValid(name.to_string()))?
+                    .ok_or_else(|| BpfdError::BpfFunctionNameNotValid(name.to_string()))?
                     .try_into()?;
 
                 let target_fn = format!("prog{i}");

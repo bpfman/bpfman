@@ -136,8 +136,8 @@ To see more information in listing form simply run:
 
 ```bash
 kubectl get xdpprogram -o wide
-NAME                 BPFFNNAME   BYTECODE                                                                                     NODESELECTOR   PRIORITY   INTERFACESELECTOR               PROCEEDON
-xdp-pass-all-nodes   pass        {"image":{"imagepullpolicy":"IfNotPresent","url":"quay.io/bpfd-bytecode/xdp_pass:latest"}}   {}             0          {"primarynodeinterface":true}   ["pass","dispatcher_return"]
+NAME                 BPFFUNCTIONNAME   BYTECODE                                                                                     NODESELECTOR   PRIORITY   INTERFACESELECTOR               PROCEEDON
+xdp-pass-all-nodes   pass              {"image":{"imagepullpolicy":"IfNotPresent","url":"quay.io/bpfd-bytecode/xdp_pass:latest"}}   {}             0          {"primarynodeinterface":true}   ["pass","dispatcher_return"]
 ```
 
 ### API Types Overview

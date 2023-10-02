@@ -39,16 +39,16 @@ import (
 
 func TestUprobeProgramReconcile(t *testing.T) {
 	var (
-		name         = "fakeUprobeProgram"
-		bytecodePath = "/tmp/hello.o"
-		sectionName  = "test"
-		fakeNode     = testutils.NewNode("fake-control-plane")
-		functionName = "malloc"
-		target       = "libc"
-		offset       = 0
-		retprobe     = false
-		ctx          = context.TODO()
-		bpfProgName  = fmt.Sprintf("%s-%s", name, fakeNode.Name)
+		name            = "fakeUprobeProgram"
+		bytecodePath    = "/tmp/hello.o"
+		bpfFunctionName = "test"
+		fakeNode        = testutils.NewNode("fake-control-plane")
+		functionName    = "malloc"
+		target          = "libc"
+		offset          = 0
+		retprobe        = false
+		ctx             = context.TODO()
+		bpfProgName     = fmt.Sprintf("%s-%s", name, fakeNode.Name)
 	)
 	// A UprobeProgram object with metadata and spec.
 	Uprobe := &bpfdiov1alpha1.UprobeProgram{
@@ -57,8 +57,8 @@ func TestUprobeProgramReconcile(t *testing.T) {
 		},
 		Spec: bpfdiov1alpha1.UprobeProgramSpec{
 			BpfProgramCommon: bpfdiov1alpha1.BpfProgramCommon{
-				SectionName:  sectionName,
-				NodeSelector: metav1.LabelSelector{},
+				BpfFunctionName: bpfFunctionName,
+				NodeSelector:    metav1.LabelSelector{},
 				ByteCode: bpfdiov1alpha1.BytecodeSelector{
 					Path: &bytecodePath,
 				},

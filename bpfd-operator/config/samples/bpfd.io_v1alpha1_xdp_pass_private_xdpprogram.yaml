@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/name: xdpprogram
   name: xdp-pass-private-all-nodes
 spec:
-  sectionname: pass
+  bpffunctionname: pass
   # Select all nodes
   nodeselector: {}
   interfaceselector:

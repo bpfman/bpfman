@@ -29,7 +29,7 @@ import (
 //+kubebuilder:resource:scope=Cluster
 
 // XdpProgram is the Schema for the XdpPrograms API
-// +kubebuilder:printcolumn:name="SectionName",type=string,JSONPath=`.spec.sectionname`
+// +kubebuilder:printcolumn:name="BpfFunctionName",type=string,JSONPath=`.spec.bpffunctionname`
 // +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
 // +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`,priority=1
 // +kubebuilder:printcolumn:name="InterfaceSelector",type=string,JSONPath=`.spec.interfaceselector`,priority=1

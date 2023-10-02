@@ -16,8 +16,8 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.sectionname
-      name: SectionName
+    - jsonPath: .spec.bpffunctionname
+      name: BpfFunctionName
       type: string
     - jsonPath: .spec.nodeselector
       name: NodeSelector
@@ -46,6 +46,10 @@ spec:
           spec:
             description: TracepointProgramSpec defines the desired state of TracepointProgram
             properties:
+              bpffunctionname:
+                description: BpfFunctionName is the name of the function that is the
+                  entry point for the BPF program
+                type: string
               bytecode:
                 description: Bytecode configures where the bpf program's bytecode
                   should be loaded from.
@@ -202,15 +206,11 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
-              sectionname:
-                description: SectionName is the the section name described in the
-                  bpf Program
-                type: string
             required:
+            - bpffunctionname
             - bytecode
             - names
             - nodeselector
-            - sectionname
             type: object
           status:
             description: TracepointProgramStatus defines the observed state of TracepointProgram
