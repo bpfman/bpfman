@@ -615,7 +615,15 @@ impl BpfManager {
 
     pub(crate) async fn remove_program(&mut self, id: u32) -> Result<(), BpfdError> {
         debug!("BpfManager::remove_program() id: {id}");
-        let mut prog = self.programs.remove(&id).unwrap();
+        let mut prog = match self.programs.remove(&id) {
+            Some(p) => p,
+            None => {
+                return Err(BpfdError::Error(format!(
+                    "Program {0} does not exist or was not created by bpfd",
+                    id,
+                )));
+            }
+        };
 
         let map_owner_id = prog.data()?.map_owner_id();
 
