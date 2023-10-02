@@ -29,7 +29,7 @@ import (
 //+kubebuilder:resource:scope=Cluster
 
 // TcProgram is the Schema for the TcProgram API
-// +kubebuilder:printcolumn:name="SectionName",type=string,JSONPath=`.spec.sectionname`
+// +kubebuilder:printcolumn:name="BpfFunctionName",type=string,JSONPath=`.spec.bpffunctionname`
 // +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
 // +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`,priority=1
 // +kubebuilder:printcolumn:name="Direction",type=string,JSONPath=`.spec.direction`,priority=1

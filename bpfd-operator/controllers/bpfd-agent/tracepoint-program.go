@@ -183,7 +183,7 @@ func (r *TracepointProgramReconciler) buildTracepointLoadRequest(
 
 	return &gobpfd.LoadRequest{
 		Bytecode:    bytecode,
-		Name:        r.currentTracepointProgram.Spec.SectionName,
+		Name:        r.currentTracepointProgram.Spec.BpfFunctionName,
 		ProgramType: uint32(internal.Tracepoint),
 		Attach: &gobpfd.AttachInfo{
 			Info: &gobpfd.AttachInfo_TracepointAttachInfo{

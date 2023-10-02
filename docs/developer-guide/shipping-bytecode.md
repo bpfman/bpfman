@@ -44,7 +44,7 @@ These labels are defined as follows:
 
 - `io.ebpf.program_name`: The name of the eBPF Program represented in the bytecode.
 
-- `io.ebpf.section_name`: The section name of the eBPF Program.
+- `io.ebpf.bpf_function_name`: The name of the function that is the entry point for the BPF program.
 
 ### Building a Backwards compatible OCI compliant image
 
@@ -56,7 +56,7 @@ like the following:
 ```bash
 docker build \
  --build-arg PROGRAM_NAME=xdp_pass \
- --build-arg SECTION_NAME=pass \
+ --build-arg BPF_FUNCTION_NAME=pass \
  --build-arg PROGRAM_TYPE=xdp \
  --build-arg BYTECODE_FILENAME=pass.bpf.o \
  --build-arg KERNEL_COMPILE_VER=$(uname -r) \
@@ -87,7 +87,7 @@ skopeo inspect docker://quay.io/astoycos/xdp_pass:latest
         "io.ebpf.filename": "pass.bpf.o",
         "io.ebpf.program_name": "xdp_counter",
         "io.ebpf.program_type": "xdp",
-        "io.ebpf.section_name": "pass"
+        "io.ebpf.bpf_function_name": "pass"
     },
     "Architecture": "amd64",
     "Os": "linux",

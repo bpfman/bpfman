@@ -16,8 +16,8 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.sectionname
-      name: SectionName
+    - jsonPath: .spec.bpffunctionname
+      name: BpfFunctionName
       type: string
     - jsonPath: .spec.nodeselector
       name: NodeSelector
@@ -62,6 +62,10 @@ spec:
           spec:
             description: UprobeProgramSpec defines the desired state of UprobeProgram
             properties:
+              bpffunctionname:
+                description: BpfFunctionName is the name of the function that is the
+                  entry point for the BPF program
+                type: string
               bytecode:
                 description: Bytecode configures where the bpf program's bytecode
                   should be loaded from.
@@ -229,19 +233,15 @@ spec:
                 default: false
                 description: Whether the program is a uretprobe.  Default is false
                 type: boolean
-              sectionname:
-                description: SectionName is the the section name described in the
-                  bpf Program
-                type: string
               target:
                 description: Library name or the absolute path to a binary or library.
                 items:
                   type: string
                 type: array
             required:
+            - bpffunctionname
             - bytecode
             - nodeselector
-            - sectionname
             - target
             type: object
           status:

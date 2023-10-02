@@ -46,17 +46,17 @@ import (
 
 func TestTcProgramControllerCreate(t *testing.T) {
 	var (
-		name         = "fakeTcProgram"
-		namespace    = "bpfd"
-		bytecodePath = "/tmp/hello.o"
-		sectionName  = "test"
-		direction    = "ingress"
-		fakeNode     = testutils.NewNode("fake-control-plane")
-		fakeInt      = "eth0"
-		ctx          = context.TODO()
-		bpfProgName  = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInt)
-		bpfProg      = &bpfdiov1alpha1.BpfProgram{}
-		fakeUID      = "ef71d42c-aa21-48e8-a697-82391d801a81"
+		name            = "fakeTcProgram"
+		namespace       = "bpfd"
+		bytecodePath    = "/tmp/hello.o"
+		bpfFunctionName = "test"
+		direction       = "ingress"
+		fakeNode        = testutils.NewNode("fake-control-plane")
+		fakeInt         = "eth0"
+		ctx             = context.TODO()
+		bpfProgName     = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInt)
+		bpfProg         = &bpfdiov1alpha1.BpfProgram{}
+		fakeUID         = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)
 	// A TcProgram object with metadata and spec.
 	tc := &bpfdiov1alpha1.TcProgram{
@@ -65,8 +65,8 @@ func TestTcProgramControllerCreate(t *testing.T) {
 		},
 		Spec: bpfdiov1alpha1.TcProgramSpec{
 			BpfProgramCommon: bpfdiov1alpha1.BpfProgramCommon{
-				SectionName:  sectionName,
-				NodeSelector: metav1.LabelSelector{},
+				BpfFunctionName: bpfFunctionName,
+				NodeSelector:    metav1.LabelSelector{},
 				ByteCode: bpfdiov1alpha1.BytecodeSelector{
 					Path: &bytecodePath,
 				},
@@ -162,7 +162,7 @@ func TestTcProgramControllerCreate(t *testing.T) {
 		Bytecode: &gobpfd.BytecodeLocation{
 			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 		},
-		Name:        sectionName,
+		Name:        bpfFunctionName,
 		ProgramType: *internal.Tc.Uint32(),
 		Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid), internal.ProgramNameKey: name},
 		MapOwnerId:  nil,
@@ -212,20 +212,20 @@ func TestTcProgramControllerCreate(t *testing.T) {
 
 func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	var (
-		name         = "fakeTcProgram"
-		namespace    = "bpfd"
-		bytecodePath = "/tmp/hello.o"
-		sectionName  = "test"
-		direction    = "ingress"
-		fakeNode     = testutils.NewNode("fake-control-plane")
-		fakeInts     = []string{"eth0", "eth1"}
-		ctx          = context.TODO()
-		bpfProgName0 = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInts[0])
-		bpfProgName1 = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInts[1])
-		bpfProgEth0  = &bpfdiov1alpha1.BpfProgram{}
-		bpfProgEth1  = &bpfdiov1alpha1.BpfProgram{}
-		fakeUID0     = "ef71d42c-aa21-48e8-a697-82391d801a80"
-		fakeUID1     = "ef71d42c-aa21-48e8-a697-82391d801a81"
+		name            = "fakeTcProgram"
+		namespace       = "bpfd"
+		bytecodePath    = "/tmp/hello.o"
+		bpfFunctionName = "test"
+		direction       = "ingress"
+		fakeNode        = testutils.NewNode("fake-control-plane")
+		fakeInts        = []string{"eth0", "eth1"}
+		ctx             = context.TODO()
+		bpfProgName0    = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInts[0])
+		bpfProgName1    = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInts[1])
+		bpfProgEth0     = &bpfdiov1alpha1.BpfProgram{}
+		bpfProgEth1     = &bpfdiov1alpha1.BpfProgram{}
+		fakeUID0        = "ef71d42c-aa21-48e8-a697-82391d801a80"
+		fakeUID1        = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)
 	// A TcProgram object with metadata and spec.
 	tc := &bpfdiov1alpha1.TcProgram{
@@ -234,8 +234,8 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 		},
 		Spec: bpfdiov1alpha1.TcProgramSpec{
 			BpfProgramCommon: bpfdiov1alpha1.BpfProgramCommon{
-				SectionName:  sectionName,
-				NodeSelector: metav1.LabelSelector{},
+				BpfFunctionName: bpfFunctionName,
+				NodeSelector:    metav1.LabelSelector{},
 				ByteCode: bpfdiov1alpha1.BytecodeSelector{
 					Path: &bytecodePath,
 				},
@@ -383,7 +383,7 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 		Bytecode: &gobpfd.BytecodeLocation{
 			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 		},
-		Name:        sectionName,
+		Name:        bpfFunctionName,
 		ProgramType: *internal.Tc.Uint32(),
 		Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid0), internal.ProgramNameKey: name},
 		MapOwnerId:  nil,
@@ -405,7 +405,7 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 		Bytecode: &gobpfd.BytecodeLocation{
 			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 		},
-		Name:        sectionName,
+		Name:        bpfFunctionName,
 		ProgramType: *internal.Tc.Uint32(),
 		Metadata:    map[string]string{internal.UuidMetadataKey: string(uuid1), internal.ProgramNameKey: name},
 		MapOwnerId:  nil,

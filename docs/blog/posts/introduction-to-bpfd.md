@@ -242,7 +242,7 @@ kind: XdpProgram
 metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"bpfd.dev/v1alpha1","kind":"XdpProgram","metadata":{"annotations":{},"labels":{"app.kubernetes.io/name":"xdpprogram"},"name":"xdp-pass-all-nodes"},"spec":{"bytecode":{"image":{"url":"quay.io/bpfd-bytecode/xdp_pass:latest"}},"globaldata":{"GLOBAL_u8":[1]},"interfaceselector":{"primarynodeinterface":true},"nodeselector":{},"priority":0,"bpffnname":"pass"}}
+      {"apiVersion":"bpfd.dev/v1alpha1","kind":"XdpProgram","metadata":{"annotations":{},"labels":{"app.kubernetes.io/name":"xdpprogram"},"name":"xdp-pass-all-nodes"},"spec":{"bytecode":{"image":{"url":"quay.io/bpfd-bytecode/xdp_pass:latest"}},"globaldata":{"GLOBAL_u8":[1]},"interfaceselector":{"primarynodeinterface":true},"nodeselector":{},"priority":0,"bpffunctionname":"pass"}}
   creationTimestamp: "2023-08-29T22:08:12Z"
   finalizers:
   - bpfd.dev.operator/finalizer
@@ -427,8 +427,8 @@ kubectl get xdpprograms.bpfd.dev -o wide
 ```
 
 ```bash
-NAME                     BPFFNNAME   NODESELECTOR   PRIORITY   INTERFACESELECTOR               PROCEEDON
-go-xdp-counter-example   stats       {}             55         {"primarynodeinterface":true}   ["pass","dispatcher_return"]
+NAME                     BPFFUNCTIONNAME   NODESELECTOR   PRIORITY   INTERFACESELECTOR               PROCEEDON
+go-xdp-counter-example   stats             {}             55         {"primarynodeinterface":true}   ["pass","dispatcher_return"]
 ```
 
 8\. Confirm that the counter program is counting packets.
@@ -490,9 +490,9 @@ kubectl get xdpprograms.bpfd.io -o wide
 ```
 
 ```bash
-NAME                     BPFFNNAME   NODESELECTOR   PRIORITY   INTERFACESELECTOR               PROCEEDON
-go-xdp-counter-example   stats       {}             55         {"primarynodeinterface":true}   ["pass","dispatcher_return"]
-xdp-pass-all-nodes       pass        {}             50         {"primarynodeinterface":true}   ["drop"]
+NAME                     BPFFUNCTIONNAME   NODESELECTOR   PRIORITY   INTERFACESELECTOR               PROCEEDON
+go-xdp-counter-example   stats             {}             55         {"primarynodeinterface":true}   ["pass","dispatcher_return"]
+xdp-pass-all-nodes       pass              {}             50         {"primarynodeinterface":true}   ["drop"]
 ```
 
 The priority setting determines the order in which programs attached to the same

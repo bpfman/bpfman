@@ -279,7 +279,7 @@ go generate
 
 docker build \
   --build-arg PROGRAM_NAME=go-xdp-counter \
-  --build-arg SECTION_NAME=xdp_stats \
+  --build-arg BPF_FUNCTION_NAME=xdp_stats \
   --build-arg PROGRAM_TYPE=xdp \
   --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
   --build-arg KERNEL_COMPILE_VER=$(uname -r) \
@@ -294,7 +294,7 @@ go generate
 
 docker build \
   --build-arg PROGRAM_NAME=go-tc-counter \
-  --build-arg SECTION_NAME=stats \
+  --build-arg BPF_FUNCTION_NAME=stats \
   --build-arg PROGRAM_TYPE=tc \
   --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
   --build-arg KERNEL_COMPILE_VER=$(uname -r) \
@@ -309,7 +309,7 @@ go generate
 
 docker build \
   --build-arg PROGRAM_NAME=go-tracepoint-counter \
-  --build-arg SECTION_NAME=tracepoint_kill_recorder \
+  --build-arg BPF_FUNCTION_NAME=tracepoint_kill_recorder \
   --build-arg PROGRAM_TYPE=tracepoint \
   --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
   --build-arg KERNEL_COMPILE_VER=$(uname -r) \

@@ -42,15 +42,15 @@ import (
 // with an error case in which the program object has multiple conditions.
 func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
 	var (
-		name         = "fakeKprobeProgram"
-		bytecodePath = "/tmp/hello.o"
-		sectionName  = "test"
-		fakeNode     = testutils.NewNode("fake-control-plane")
-		functionName = "try_to_wake_up"
-		offset       = 0
-		retprobe     = false
-		ctx          = context.TODO()
-		bpfProgName  = fmt.Sprintf("%s-%s", name, fakeNode.Name)
+		name            = "fakeKprobeProgram"
+		bytecodePath    = "/tmp/hello.o"
+		bpfFunctionName = "test"
+		fakeNode        = testutils.NewNode("fake-control-plane")
+		functionName    = "try_to_wake_up"
+		offset          = 0
+		retprobe        = false
+		ctx             = context.TODO()
+		bpfProgName     = fmt.Sprintf("%s-%s", name, fakeNode.Name)
 	)
 	// A KprobeProgram object with metadata and spec.
 	Kprobe := &bpfdiov1alpha1.KprobeProgram{
@@ -59,8 +59,8 @@ func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
 		},
 		Spec: bpfdiov1alpha1.KprobeProgramSpec{
 			BpfProgramCommon: bpfdiov1alpha1.BpfProgramCommon{
-				SectionName:  sectionName,
-				NodeSelector: metav1.LabelSelector{},
+				BpfFunctionName: bpfFunctionName,
+				NodeSelector:    metav1.LabelSelector{},
 				ByteCode: bpfdiov1alpha1.BytecodeSelector{
 					Path: &bytecodePath,
 				},

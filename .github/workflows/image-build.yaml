@@ -125,7 +125,7 @@ jobs:
             dockerfile: ./packaging/container-deployment/Containerfile.bytecode
             build_args: |
               PROGRAM_NAME=go-xdp-counter
-              SECTION_NAME=xdp_stats
+              BPF_FUNCTION_NAME=xdp_stats
               PROGRAM_TYPE=xdp
               BYTECODE_FILENAME=bpf_bpfel.o
             tags: |
@@ -143,7 +143,7 @@ jobs:
             dockerfile: ./packaging/container-deployment/Containerfile.bytecode
             build_args: |
               PROGRAM_NAME=go-tc-counter
-              SECTION_NAME=stats
+              BPF_FUNCTION_NAME=stats
               PROGRAM_TYPE=tc
               BYTECODE_FILENAME=bpf_bpfel.o
             tags: |
@@ -161,7 +161,7 @@ jobs:
             dockerfile: ./packaging/container-deployment/Containerfile.bytecode
             build_args: |
               PROGRAM_NAME=go-tracepoint-counter
-              SECTION_NAME=tracepoint_kill_recorder
+              BPF_FUNCTION_NAME=tracepoint_kill_recorder
               PROGRAM_TYPE=tracepoint
               BYTECODE_FILENAME=bpf_bpfel.o
             tags: |
@@ -179,7 +179,7 @@ jobs:
             dockerfile: ./packaging/container-deployment/Containerfile.bytecode
             build_args: |
               PROGRAM_NAME=xdp_pass
-              SECTION_NAME=pass
+              BPF_FUNCTION_NAME=pass
               PROGRAM_TYPE=xdp
               BYTECODE_FILENAME=xdp_pass.bpf.o
             tags: |
@@ -197,7 +197,7 @@ jobs:
             dockerfile: ./packaging/container-deployment/Containerfile.bytecode
             build_args: |
               PROGRAM_NAME=xdp_pass_private
-              SECTION_NAME=pass
+              BPF_FUNCTION_NAME=pass
               PROGRAM_TYPE=xdp
               BYTECODE_FILENAME=xdp_pass.bpf.o
             tags: |
@@ -215,7 +215,7 @@ jobs:
             dockerfile: ./packaging/container-deployment/Containerfile.bytecode
             build_args: |
               PROGRAM_NAME=tc_pass
-              SECTION_NAME=pass
+              BPF_FUNCTION_NAME=pass
               PROGRAM_TYPE=tc
               BYTECODE_FILENAME=tc_pass.bpf.o
             tags: |
@@ -233,7 +233,7 @@ jobs:
             dockerfile: ./packaging/container-deployment/Containerfile.bytecode
             build_args: |
               PROGRAM_NAME=tracepoint
-              SECTION_NAME=enter_openat
+              BPF_FUNCTION_NAME=enter_openat
               PROGRAM_TYPE=tracepoint
               BYTECODE_FILENAME=tp_openat.bpf.o
             tags: |
@@ -251,7 +251,7 @@ jobs:
             dockerfile: ./packaging/container-deployment/Containerfile.bytecode
             build_args: |
               PROGRAM_NAME=uprobe
-              SECTION_NAME=my_uprobe
+              BPF_FUNCTION_NAME=my_uprobe
               PROGRAM_TYPE=kprobe
               BYTECODE_FILENAME=uprobe.bpf.o
             tags: |
@@ -269,7 +269,7 @@ jobs:
             dockerfile: ./packaging/container-deployment/Containerfile.bytecode
             build_args: |
               PROGRAM_NAME=uretprobe
-              SECTION_NAME=my_uretprobe
+              BPF_FUNCTION_NAME=my_uretprobe
               PROGRAM_TYPE=kprobe
               BYTECODE_FILENAME=uprobe.bpf.o
             tags: |
@@ -287,7 +287,7 @@ jobs:
             dockerfile: ./packaging/container-deployment/Containerfile.bytecode
             build_args: |
               PROGRAM_NAME=kprobe
-              SECTION_NAME=my_kprobe
+              BPF_FUNCTION_NAME=my_kprobe
               PROGRAM_TYPE=kprobe
               BYTECODE_FILENAME=kprobe.bpf.o
             tags: |
@@ -305,7 +305,7 @@ jobs:
             dockerfile: ./packaging/container-deployment/Containerfile.bytecode
             build_args: |
               PROGRAM_NAME=kretprobe
-              SECTION_NAME=my_kretprobe
+              BPF_FUNCTION_NAME=my_kretprobe
               PROGRAM_TYPE=kprobe
               BYTECODE_FILENAME=kprobe.bpf.o
             tags: |

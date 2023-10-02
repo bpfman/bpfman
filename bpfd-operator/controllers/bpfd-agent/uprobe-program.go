@@ -187,7 +187,7 @@ func (r *UprobeProgramReconciler) buildUprobeLoadRequest(
 
 	return &gobpfd.LoadRequest{
 		Bytecode:    bytecode,
-		Name:        r.currentUprobeProgram.Spec.SectionName,
+		Name:        r.currentUprobeProgram.Spec.BpfFunctionName,
 		ProgramType: uint32(internal.Kprobe),
 		Attach: &gobpfd.AttachInfo{
 			Info: &gobpfd.AttachInfo_UprobeAttachInfo{

@@ -5,7 +5,7 @@ metadata:
     app.kubernetes.io/name: XdpProgram
   name: go-counter-example
 spec:
-  sectionname: stats
+  bpffunctionname: stats
   # Select all nodes
   nodeselector: {}
   interfaceselector:

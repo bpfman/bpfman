@@ -5,7 +5,7 @@ metadata:
     app.kubernetes.io/name: xdpprogram
   name: go-xdp-counter-sharing-map-example
 spec:
-  sectionname: xdp_stats
+  bpffunctionname: xdp_stats
   # Select all nodes
   nodeselector: {}
   interfaceselector:

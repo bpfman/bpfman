@@ -226,7 +226,7 @@ func (r *TcProgramReconciler) buildTcLoadRequest(
 
 	return &gobpfd.LoadRequest{
 		Bytecode:    bytecode,
-		Name:        r.currentTcProgram.Spec.SectionName,
+		Name:        r.currentTcProgram.Spec.BpfFunctionName,
 		ProgramType: uint32(internal.Tc),
 		Attach: &gobpfd.AttachInfo{
 			Info: &gobpfd.AttachInfo_TcAttachInfo{

@@ -330,7 +330,7 @@ impl BpfManager {
         debug!("BpfManager::add_multi_attach_program()");
         let name = program.data()?.name();
 
-        // This load is just to verify the Section Name is valid.
+        // This load is just to verify the BPF Function Name is valid.
         // The actual load is performed in the XDP or TC logic.
         // don't pin maps here.
         let mut ext_loader = BpfLoader::new()
@@ -340,7 +340,7 @@ impl BpfManager {
 
         match ext_loader.program_mut(name) {
             Some(_) => Ok(()),
-            None => Err(BpfdError::SectionNameNotValid(name.to_owned())),
+            None => Err(BpfdError::BpfFunctionNameNotValid(name.to_owned())),
         }?;
 
         let did = program
@@ -442,7 +442,7 @@ impl BpfManager {
 
         let raw_program = loader
             .program_mut(name)
-            .ok_or(BpfdError::SectionNameNotValid(name.to_owned()))?;
+            .ok_or(BpfdError::BpfFunctionNameNotValid(name.to_owned()))?;
 
         let res = match p {
             Program::Tracepoint(ref mut program) => {

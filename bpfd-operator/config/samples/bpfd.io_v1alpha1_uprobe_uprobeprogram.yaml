@@ -5,7 +5,7 @@ metadata:
     app.kubernetes.io/name: uprobeprogram
   name: uprobe-example
 spec:
-  sectionname: my_uprobe
+  bpffunctionname: my_uprobe
   # Select all nodes
   nodeselector: {}
   func_name: syscall

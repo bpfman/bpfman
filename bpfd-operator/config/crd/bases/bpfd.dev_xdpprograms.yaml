@@ -16,8 +16,8 @@ spec:
   scope: Cluster
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.sectionname
-      name: SectionName
+    - jsonPath: .spec.bpffunctionname
+      name: BpfFunctionName
       type: string
     - jsonPath: .spec.nodeselector
       name: NodeSelector
@@ -54,6 +54,10 @@ spec:
           spec:
             description: XdpProgramSpec defines the desired state of XdpProgram
             properties:
+              bpffunctionname:
+                description: BpfFunctionName is the name of the function that is the
+                  entry point for the BPF program
+                type: string
               bytecode:
                 description: Bytecode configures where the bpf program's bytecode
                   should be loaded from.
@@ -244,16 +248,12 @@ spec:
                   type: string
                 maxItems: 6
                 type: array
-              sectionname:
-                description: SectionName is the the section name described in the
-                  bpf Program
-                type: string
             required:
+            - bpffunctionname
             - bytecode
             - interfaceselector
             - nodeselector
             - priority
-            - sectionname
             type: object
           status:
             description: XdpProgramStatus defines the observed state of XdpProgram

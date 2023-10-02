@@ -49,20 +49,20 @@ import (
 // it with an error case in which the program object has multiple conditions.
 func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiCondition bool) {
 	var (
-		name         = "fakeXdpProgram"
-		namespace    = "bpfd"
-		bytecodePath = "/tmp/hello.o"
-		sectionName  = "test"
-		fakeNode     = testutils.NewNode("fake-control-plane")
-		fakeInt0     = "eth0"
-		fakeInt1     = "eth1"
-		ctx          = context.TODO()
-		bpfProgName0 = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInt0)
-		bpfProgName1 = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInt1)
-		bpfProgEth0  = &bpfdiov1alpha1.BpfProgram{}
-		bpfProgEth1  = &bpfdiov1alpha1.BpfProgram{}
-		fakeUID0     = "ef71d42c-aa21-48e8-a697-82391d801a80"
-		fakeUID1     = "ef71d42c-aa21-48e8-a697-82391d801a81"
+		name            = "fakeXdpProgram"
+		namespace       = "bpfd"
+		bytecodePath    = "/tmp/hello.o"
+		bpfFunctionName = "test"
+		fakeNode        = testutils.NewNode("fake-control-plane")
+		fakeInt0        = "eth0"
+		fakeInt1        = "eth1"
+		ctx             = context.TODO()
+		bpfProgName0    = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInt0)
+		bpfProgName1    = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, fakeInt1)
+		bpfProgEth0     = &bpfdiov1alpha1.BpfProgram{}
+		bpfProgEth1     = &bpfdiov1alpha1.BpfProgram{}
+		fakeUID0        = "ef71d42c-aa21-48e8-a697-82391d801a80"
+		fakeUID1        = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)
 
 	var fakeInts []string
@@ -79,8 +79,8 @@ func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiConditio
 		},
 		Spec: bpfdiov1alpha1.XdpProgramSpec{
 			BpfProgramCommon: bpfdiov1alpha1.BpfProgramCommon{
-				SectionName:  sectionName,
-				NodeSelector: metav1.LabelSelector{},
+				BpfFunctionName: bpfFunctionName,
+				NodeSelector:    metav1.LabelSelector{},
 				ByteCode: bpfdiov1alpha1.BytecodeSelector{
 					Path: &bytecodePath,
 				},
@@ -174,7 +174,7 @@ func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiConditio
 		Bytecode: &gobpfd.BytecodeLocation{
 			Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 		},
-		Name:        sectionName,
+		Name:        bpfFunctionName,
 		ProgramType: *internal.Xdp.Uint32(),
 		Metadata:    map[string]string{internal.UuidMetadataKey: uuid0, internal.ProgramNameKey: name},
 		MapOwnerId:  nil,
@@ -297,7 +297,7 @@ func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiConditio
 			Bytecode: &gobpfd.BytecodeLocation{
 				Location: &gobpfd.BytecodeLocation_File{File: bytecodePath},
 			},
-			Name:        sectionName,
+			Name:        bpfFunctionName,
 			ProgramType: *internal.Xdp.Uint32(),
 			Metadata:    map[string]string{internal.UuidMetadataKey: uuid1, internal.ProgramNameKey: name},
 			MapOwnerId:  nil,

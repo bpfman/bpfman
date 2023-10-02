@@ -39,13 +39,13 @@ import (
 
 func TestTracepointProgramReconcile(t *testing.T) {
 	var (
-		name           = "fakeTracepointProgram"
-		bytecodePath   = "/tmp/hello.o"
-		sectionName    = "test"
-		fakeNode       = testutils.NewNode("fake-control-plane")
-		tracepointName = "syscalls/sys_enter_setitimer"
-		ctx            = context.TODO()
-		bpfProgName    = fmt.Sprintf("%s-%s", name, fakeNode.Name)
+		name            = "fakeTracepointProgram"
+		bytecodePath    = "/tmp/hello.o"
+		bpfFunctionName = "test"
+		fakeNode        = testutils.NewNode("fake-control-plane")
+		tracepointName  = "syscalls/sys_enter_setitimer"
+		ctx             = context.TODO()
+		bpfProgName     = fmt.Sprintf("%s-%s", name, fakeNode.Name)
 	)
 	// A TracepointProgram object with metadata and spec.
 	Tracepoint := &bpfdiov1alpha1.TracepointProgram{
@@ -54,8 +54,8 @@ func TestTracepointProgramReconcile(t *testing.T) {
 		},
 		Spec: bpfdiov1alpha1.TracepointProgramSpec{
 			BpfProgramCommon: bpfdiov1alpha1.BpfProgramCommon{
-				SectionName:  sectionName,
-				NodeSelector: metav1.LabelSelector{},
+				BpfFunctionName: bpfFunctionName,
+				NodeSelector:    metav1.LabelSelector{},
 				ByteCode: bpfdiov1alpha1.BytecodeSelector{
 					Path: &bytecodePath,
 				},
