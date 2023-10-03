@@ -124,9 +124,7 @@ impl XdpDispatcher {
             loader: Some(loader),
             program_name: Some(section_name),
         };
-        dispatcher
-            .attach_extensions(&mut extensions, image_manager)
-            .await?;
+        dispatcher.attach_extensions(&mut extensions).await?;
         dispatcher.attach()?;
         dispatcher.save()?;
         if let Some(mut old) = old_dispatcher {
@@ -172,7 +170,6 @@ impl XdpDispatcher {
     async fn attach_extensions(
         &mut self,
         extensions: &mut [&mut XdpProgram],
-        image_manager: Sender<ImageManagerCommand>,
     ) -> Result<(), BpfdError> {
         debug!(
             "XdpDispatcher::attach_extensions() for if_index {}, revision {}",
@@ -206,7 +203,6 @@ impl XdpDispatcher {
                 );
                 new_link.pin(path).map_err(BpfdError::UnableToPinLink)?;
             } else {
-                let program_bytes = v.data.program_bytes(image_manager.clone()).await?;
                 let name = v.data.name();
                 let global_data = v.data.global_data();
 
@@ -225,7 +221,9 @@ impl XdpDispatcher {
                     bpf.map_pin_path(map_pin_path);
                 }
 
-                let mut loader = bpf.load(&program_bytes).map_err(BpfdError::BpfLoadError)?;
+                let mut loader = bpf
+                    .load(v.data.program_bytes())
+                    .map_err(BpfdError::BpfLoadError)?;
 
                 let ext: &mut Extension = loader
                     .program_mut(name)

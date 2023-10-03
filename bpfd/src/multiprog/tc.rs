@@ -57,7 +57,8 @@ impl TcDispatcher {
         programs: &mut [&mut Program],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
-        image_manager: Sender<ImageManagerCommand>,
+        // TODO(astoycos) tc dispatcher should be pulled from an image
+        _image_manager: Sender<ImageManagerCommand>,
     ) -> Result<TcDispatcher, BpfdError> {
         debug!("TcDispatcher::new() for if_index {if_index}, revision {revision}");
         let mut extensions: Vec<&mut TcProgram> = programs
@@ -108,9 +109,7 @@ impl TcDispatcher {
             handle: None,
             loader: Some(loader),
         };
-        dispatcher
-            .attach_extensions(&mut extensions, image_manager)
-            .await?;
+        dispatcher.attach_extensions(&mut extensions).await?;
         dispatcher.attach(old_dispatcher)?;
         dispatcher.save()?;
         Ok(dispatcher)
@@ -169,7 +168,6 @@ impl TcDispatcher {
     async fn attach_extensions(
         &mut self,
         extensions: &mut [&mut TcProgram],
-        image_manager: Sender<ImageManagerCommand>,
     ) -> Result<(), BpfdError> {
         debug!(
             "TcDispatcher::attach_extensions() for if_index {}, revision {}",
@@ -206,7 +204,6 @@ impl TcDispatcher {
                 let path = format!("{base}/dispatcher_{if_index}_{}/link_{id}", self.revision);
                 new_link.pin(path).map_err(BpfdError::UnableToPinLink)?;
             } else {
-                let program_bytes = v.data.program_bytes(image_manager.clone()).await?;
                 let name = v.data.name();
                 let global_data = v.data.global_data();
 
@@ -225,7 +222,9 @@ impl TcDispatcher {
                     bpf.map_pin_path(map_pin_path);
                 }
 
-                let mut loader = bpf.load(&program_bytes).map_err(BpfdError::BpfLoadError)?;
+                let mut loader = bpf
+                    .load(v.data.program_bytes())
+                    .map_err(BpfdError::BpfLoadError)?;
 
                 let ext: &mut Extension = loader
                     .program_mut(name)

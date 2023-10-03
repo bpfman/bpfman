@@ -280,23 +280,24 @@ impl BpfManager {
                 .set_map_pin_path(Some(map_pin_path.clone()));
         }
 
-        let program_bytes = program
+        program
             .data_mut()?
-            .program_bytes(self.image_manager.clone())
+            .set_program_bytes(self.image_manager.clone())
             .await?;
         let result = match program {
             Program::Xdp(_) | Program::Tc(_) => {
                 program.set_if_index(get_ifindex(&program.if_name().unwrap())?);
 
-                self.add_multi_attach_program(&mut program, program_bytes)
-                    .await
+                self.add_multi_attach_program(&mut program).await
             }
             Program::Tracepoint(_) | Program::Kprobe(_) | Program::Uprobe(_) => {
-                self.add_single_attach_program(&mut program, program_bytes)
-                    .await
+                self.add_single_attach_program(&mut program).await
             }
             Program::Unsupported(_) => panic!("Cannot add unsupported program"),
         };
+
+        // Program bytes MUST be cleared after load.
+        program.data_mut()?.clear_program_bytes();
 
         // map_pin_path MUST be set following load.
         let map_pin_path = program.data()?.map_pin_path();
@@ -311,6 +312,7 @@ impl BpfManager {
                     map_pin_path.expect("map_pin_path must be set after successfult load"),
                 )
                 .await?;
+
                 Ok(program)
             }
             Err(e) => {
@@ -325,7 +327,6 @@ impl BpfManager {
     pub(crate) async fn add_multi_attach_program(
         &mut self,
         program: &mut Program,
-        program_bytes: Vec<u8>,
     ) -> Result<u32, BpfdError> {
         debug!("BpfManager::add_multi_attach_program()");
         let name = program.data()?.name();
@@ -336,7 +337,7 @@ impl BpfManager {
         let mut ext_loader = BpfLoader::new()
             .allow_unsupported_maps()
             .extension(name)
-            .load(&program_bytes)?;
+            .load(program.data()?.program_bytes())?;
 
         match ext_loader.program_mut(name) {
             Some(_) => Ok(()),
@@ -418,7 +419,6 @@ impl BpfManager {
     pub(crate) async fn add_single_attach_program(
         &mut self,
         p: &mut Program,
-        program_bytes: Vec<u8>,
     ) -> Result<u32, BpfdError> {
         debug!("BpfManager::add_single_attach_program()");
         let name = p.data()?.name();
@@ -438,7 +438,9 @@ impl BpfManager {
             bpf.map_pin_path(map_pin_path);
         }
 
-        let mut loader = bpf.allow_unsupported_maps().load(&program_bytes)?;
+        let mut loader = bpf
+            .allow_unsupported_maps()
+            .load(p.data()?.program_bytes())?;
 
         let raw_program = loader
             .program_mut(name)
