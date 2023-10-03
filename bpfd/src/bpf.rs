@@ -269,8 +269,6 @@ impl BpfManager {
     }
 
     pub(crate) async fn add_program(&mut self, mut program: Program) -> Result<Program, BpfdError> {
-        debug!("BpfManager::add_program()");
-
         let map_owner_id = program.data()?.map_owner_id();
         // Set map_pin_path if we're using another program's maps
         if let Some(map_owner_id) = map_owner_id {
@@ -284,6 +282,7 @@ impl BpfManager {
             .data_mut()?
             .set_program_bytes(self.image_manager.clone())
             .await?;
+
         let result = match program {
             Program::Xdp(_) | Program::Tc(_) => {
                 program.set_if_index(get_ifindex(&program.if_name().unwrap())?);
@@ -304,12 +303,18 @@ impl BpfManager {
 
         match result {
             Ok(id) => {
+                info!(
+                    "Added {} program with name: {} and id: {id}",
+                    program.kind(),
+                    program.data()?.name()
+                );
+
                 // Now that program is successfully loaded, update the id, maps hash table,
                 // and allow access to all maps by bpfd group members.
                 self.save_map(
                     id,
                     map_owner_id,
-                    map_pin_path.expect("map_pin_path must be set after successfult load"),
+                    map_pin_path.expect("map_pin_path must be set after successful load"),
                 )
                 .await?;
 
@@ -616,7 +621,7 @@ impl BpfManager {
     }
 
     pub(crate) async fn remove_program(&mut self, id: u32) -> Result<(), BpfdError> {
-        debug!("BpfManager::remove_program() id: {id}");
+        info!("Removing program with id: {id}");
         let mut prog = match self.programs.remove(&id) {
             Some(p) => p,
             None => {
@@ -782,7 +787,7 @@ impl BpfManager {
     }
 
     pub(crate) fn get_program(&mut self, id: u32) -> Result<Program, BpfdError> {
-        debug!("BpfManager::get_program({0})", id);
+        debug!("Getting program with id: {id}");
         // If the program was loaded by bpfd, then use it.
         // Otherwise, call Aya to get ALL the loaded eBPF programs, and convert the data
         // returned from Aya into an Unsupported Program Object.

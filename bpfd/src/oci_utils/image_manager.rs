@@ -11,7 +11,7 @@ use std::{
 use anyhow::Context;
 use bpfd_api::ImagePullPolicy;
 use flate2::read::GzDecoder;
-use log::{debug, info};
+use log::{debug, info, trace};
 use oci_distribution::{
     client::{ClientConfig, ClientProtocol},
     manifest,
@@ -262,7 +262,7 @@ impl ImageManager {
             .await
             .map_err(ImageError::ImageManifestPullFailure)?;
 
-        debug!("Raw container image manifest {}", image_manifest);
+        trace!("Raw container image manifest {}", image_manifest);
 
         let image_manifest_path = Path::new(&content_dir).join("manifest.json");
 
@@ -310,7 +310,7 @@ impl ImageManager {
             .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
 
         let image_config: Value = serde_json::from_str(&config_contents).unwrap();
-        debug!("Raw container image config {}", image_config);
+        trace!("Raw container image config {}", image_config);
 
         // Deserialize image metadata(labels) from json config
         let image_labels: ContainerImageMetadata =

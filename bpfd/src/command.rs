@@ -20,6 +20,7 @@ use bpfd_api::{
     ParseError, ProgramType, TcProceedOn, XdpProceedOn,
 };
 use chrono::{prelude::DateTime, Local};
+use log::info;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc::Sender, oneshot};
 
@@ -424,8 +425,12 @@ impl ProgramData {
         match self.location.get_program_bytes(image_manager).await {
             Err(e) => Err(e),
             Ok((v, s)) => {
-                match self.location {
-                    Location::Image(_) => {
+                match &self.location {
+                    Location::Image(l) => {
+                        info!(
+                            "Loading program bytecode from container image: {}",
+                            l.get_url()
+                        );
                         // If program name isn't provided and we're loading from a container
                         // image use the program name provided in the image metadata, otherwise
                         // always use the provided program name.
@@ -440,7 +445,9 @@ impl ProgramData {
                             });
                         }
                     }
-                    Location::File(_) => {}
+                    Location::File(l) => {
+                        info!("Loading program bytecode from file: {}", l);
+                    }
                 }
                 self.program_bytes = v;
                 Ok(())

@@ -26,7 +26,7 @@ impl CosignVerifier {
         // We must use spawn_blocking here.
         // See: https://docs.rs/sigstore/0.7.2/sigstore/oauth/openidflow/index.html
         let repo: sigstore::errors::Result<SigstoreRepository> = spawn_blocking(|| {
-            info!("Downloading data from Sigstore TUF repository");
+            info!("Starting Cosign Verifier, downloading data from Sigstore TUF repository");
             sigstore::tuf::SigstoreRepository::fetch(None)
         })
         .await
@@ -79,6 +79,7 @@ impl CosignVerifier {
             Ok(trusted_layers) => {
                 debug!("Found trusted layers");
                 debug!("Verifying constraints");
+                info!("The bytecode image: {} is signed", image);
                 // TODO: Add some constraints here
                 let verification_constraints: VerificationConstraintVec = Vec::new();
                 verify_constraints(&trusted_layers, verification_constraints.iter())
@@ -90,7 +91,7 @@ impl CosignVerifier {
                     if !self.allow_unsigned {
                         bail!("Error triangulating image: {}", e);
                     } else {
-                        warn!("Unsigned image: {}", image);
+                        warn!("The bytecode image: {} is unsigned", image);
                         Ok(())
                     }
                 }
