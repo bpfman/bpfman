@@ -135,11 +135,10 @@ func TestDiscoveredProgramControllerCreate(t *testing.T) {
 	cli := agenttestutils.NewBpfdClientFakeWithPrograms(programs)
 
 	rc := ReconcilerCommon{
-		Client:       cl,
-		Scheme:       s,
-		BpfdClient:   cli,
-		NodeName:     fakeNode.Name,
-		expectedMaps: map[string]string{},
+		Client:     cl,
+		Scheme:     s,
+		BpfdClient: cli,
+		NodeName:   fakeNode.Name,
 	}
 
 	// Set development Logger so we can see all logs in tests.
@@ -320,11 +319,10 @@ func TestDiscoveredProgramControllerCreateAndDeleteStale(t *testing.T) {
 	cli := agenttestutils.NewBpfdClientFakeWithPrograms(programs)
 
 	rc := ReconcilerCommon{
-		Client:       cl,
-		Scheme:       s,
-		BpfdClient:   cli,
-		NodeName:     fakeNode.Name,
-		expectedMaps: map[string]string{},
+		Client:     cl,
+		Scheme:     s,
+		BpfdClient: cli,
+		NodeName:   fakeNode.Name,
 	}
 
 	// Set development Logger so we can see all logs in tests.

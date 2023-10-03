@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	//bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
@@ -138,6 +139,7 @@ func GetClientOrDie() *bpfdclientset.Clientset {
 	return bpfdclientset.NewForConfigOrDie(getk8sConfigOrDie())
 }
 
+// TODO(astoycos) This will completely be removed with the transition to CSI.
 // GetMaps is meant to be used by applications wishing to use BPFD. It takes in a bpf program
 // name and a list of map names, and returns a map corelating map name to map pin path.
 func GetMaps(c *bpfdclientset.Clientset, ProgramName string, mapNames []string) (map[string]string, error) {
@@ -169,13 +171,43 @@ func GetMaps(c *bpfdclientset.Clientset, ProgramName string, mapNames []string) 
 
 	prog := bpfProgramList.Items[0]
 
+	id, ok := prog.Annotations[internal.IdAnnotation]
+	if !ok {
+		return nil, fmt.Errorf("BpfProgram %s does not have a program id", ProgramName)
+	}
+
+	maps := map[string]string{}
+	programMapPath := fmt.Sprintf("%s/%s", internal.BpfdMapFs, id)
+
+	if err := filepath.Walk(programMapPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() {
+			maps[info.Name()] = path
+		}
+
+		return nil
+	}); err != nil {
+		if os.IsNotExist(err) {
+			log.Info("Program Map Path does not exist", "map path", programMapPath)
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	if len(maps) == 0 {
+		return nil, nil
+	}
+
 	for _, mapName := range mapNames {
-		if _, ok := prog.Spec.Maps[mapName]; !ok {
+		if _, ok := maps[mapName]; !ok {
 			return nil, fmt.Errorf("map: %s not found", mapName)
 		}
 	}
 
-	return prog.Spec.Maps, nil
+	return maps, nil
 }
 
 // // CreateOrUpdateOwnedBpfProgConf creates or updates a Program object while also setting the owner reference to

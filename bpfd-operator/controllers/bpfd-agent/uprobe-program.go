@@ -259,7 +259,7 @@ func (r *UprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return condition, err
 		}
 
-		r.progId, r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
+		r.progId, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load UprobeProgram")
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
@@ -288,7 +288,6 @@ func (r *UprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			r.Logger.Error(err, "Failed to unload UprobeProgram")
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
-		r.expectedMaps = nil
 
 		r.Logger.Info("bpfd called to unload UprobeProgram on Node", "Name", bpfProgram.Name, "UUID", uuid)
 
@@ -325,7 +324,7 @@ func (r *UprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 
-		r.progId, r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
+		r.progId, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load UprobeProgram")
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, err
@@ -335,7 +334,6 @@ func (r *UprobeProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	} else {
 		// Program exists and bpfProgram K8s Object is up to date
 		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")
-		r.expectedMaps = bpfProgram.Spec.Maps
 	}
 
 	return bpfdiov1alpha1.BpfProgCondLoaded, nil

@@ -299,7 +299,7 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return condition, err
 		}
 
-		r.progId, r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
+		r.progId, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load TcProgram")
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
@@ -330,7 +330,6 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			r.Logger.Error(err, "Failed to unload TcProgram")
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
-		r.expectedMaps = nil
 
 		r.Logger.Info("bpfd called to unload TcProgram on Node", "Name", bpfProgram.Name, "UUID", id)
 
@@ -366,7 +365,7 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 			return bpfdiov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 
-		r.progId, r.expectedMaps, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
+		r.progId, err = bpfdagentinternal.LoadBpfdProgram(ctx, r.BpfdClient, loadRequest)
 		if err != nil {
 			r.Logger.Error(err, "Failed to load TcProgram")
 			return bpfdiov1alpha1.BpfProgCondNotLoaded, nil
@@ -377,7 +376,6 @@ func (r *TcProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 		// Program exists and bpfProgram K8s Object is up to date
 		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfd")
 		r.progId = id
-		r.expectedMaps = bpfProgram.Spec.Maps
 	}
 
 	return bpfdiov1alpha1.BpfProgCondLoaded, nil

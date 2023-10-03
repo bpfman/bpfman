@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tls
+package conn
 
 import (
 	"context"
@@ -28,11 +28,10 @@ import (
 	toml "github.com/pelletier/go-toml"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
-var log = ctrl.Log.WithName("tls-intern")
+var log = ctrl.Log.WithName("bpfd-conn")
 
 type Tls struct {
 	CaCert     string `toml:"ca_cert"`
@@ -54,29 +53,12 @@ type Grpc struct {
 }
 
 type ConfigFileData struct {
-	Tls  Tls  `toml:"tls"`
+	Tls  *Tls `toml:"tls"`
 	Grpc Grpc `toml:"grpc"`
 }
 
 func LoadConfig() ConfigFileData {
-	config := ConfigFileData{
-		Tls: Tls{
-			CaCert:     internal.DefaultRootCaPath,
-			Cert:       internal.DefaultCertPath,
-			Key:        internal.DefaultKeyPath,
-			ClientCert: internal.DefaultClientCertPath,
-			ClientKey:  internal.DefaultClientKeyPath,
-		},
-		Grpc: Grpc{
-			Endpoints: []Endpoint{
-				{
-					Type:    internal.DefaultType,
-					Port:    internal.DefaultPort,
-					Enabled: internal.DefaultEnabled,
-				},
-			},
-		},
-	}
+	config := ConfigFileData{}
 
 	log.Info("Reading...\n", "Default config path", internal.DefaultConfigPath)
 	file, err := os.Open(internal.DefaultConfigPath)
@@ -126,10 +108,12 @@ func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) 
 
 func CreateConnection(endpoints []Endpoint, ctx context.Context, creds credentials.TransportCredentials) (*grpc.ClientConn, error) {
 	var (
-		addr        string
-		local_creds credentials.TransportCredentials
+		addr string
 	)
 
+	// TODO(astoycos) this currently connects to the first valid endpoint
+	// rather then spawning multiple connections. This should be cleaned up
+	// and made explicitly configurable.
 	for _, e := range endpoints {
 		if !e.Enabled {
 			continue
@@ -137,17 +121,17 @@ func CreateConnection(endpoints []Endpoint, ctx context.Context, creds credentia
 
 		if e.Type == "tcp" {
 			addr = fmt.Sprintf("localhost:%d", e.Port)
-			local_creds = creds
 		} else if e.Type == "unix" {
 			addr = fmt.Sprintf("unix://%s", e.Path)
-			local_creds = insecure.NewCredentials()
 		}
 
-		conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(local_creds), grpc.WithBlock())
-		if err == nil {
-			return conn, nil
+		conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(creds), grpc.WithBlock())
+		if err != nil {
+			return nil, fmt.Errorf("unable to establish connection to %s: %w", addr, err)
 		}
+
+		return conn, nil
 	}
 
-	return nil, fmt.Errorf("unable to stablish connection")
+	return nil, fmt.Errorf("unable to establish connection, no valid endpoints")
 }
