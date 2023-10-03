@@ -39,7 +39,7 @@ Sample bytecode yaml with XdpProgram CRD:
         app.kubernetes.io/name: xdpprogram
       name: go-xdp-counter-example
     spec:
-      sectionname: stats
+      name: xdp_stats
       # Select all nodes
       nodeselector: {}
       interfaceselector:
@@ -117,7 +117,7 @@ To retrieve information on the `XdpProgram` objects:
       proceedon:
       - pass
       - dispatcher_return
-      sectionname: stats
+      name: xdp_stats
     status:
       conditions:
       - lastTransitionTime: "2023-05-04T15:41:45Z"

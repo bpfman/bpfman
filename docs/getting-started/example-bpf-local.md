@@ -41,34 +41,34 @@ If not, see [Setup and Building bpfd](./building-bpfd.md).*
 To build all the C based eBPF counter bytecode, run:
 
 ```console
-    cd bpfd/examples/
-    make generate
+cd bpfd/examples/
+make generate
 ```
 
 To build all the Userspace GO Client examples, run:
 
 ```console
-    cd bpfd/examples/
-    make build
+cd bpfd/examples/
+make build
 ```
 
 To build only a single example:
 
 ```console
-    cd bpfd/examples/go-tc-counter/
-    go generate
-    go build
+cd bpfd/examples/go-tc-counter/
+go generate
+go build
 ```
 
 ```console
-    cd bpfd/examples/go-tracepoint-counter/
-    go generate
-    go build
+cd bpfd/examples/go-tracepoint-counter/
+go generate
+go build
 ```
 ```console
-    cd bpfd/examples/go-xdp-counter/
-    go generate
-    go build
+cd bpfd/examples/go-xdp-counter/
+go generate
+go build
 ```
 
 ### Running On Host
@@ -104,62 +104,62 @@ The most basic example, just use `sudo` to start the `go-xdp-counter` program.
 Determine the host interface to attach the eBPF program to and then start the go program with:
 
 ```console
-    cd bpfd/examples/go-xdp-counter/
-    sudo ./go-xdp-counter -iface <INTERNET INTERFACE NAME>
+cd bpfd/examples/go-xdp-counter/
+sudo ./go-xdp-counter -iface <INTERNET INTERFACE NAME>
 ```
 
 or (**NOTE:** TC programs also require a direction, ingress or egress)
 
 ```console
-    cd bpfd/examples/go-tc-counter/
-    sudo ./go-tc-counter -direction ingress -iface <INTERNET INTERFACE NAME>
+cd bpfd/examples/go-tc-counter/
+sudo ./go-tc-counter -direction ingress -iface <INTERNET INTERFACE NAME>
 ```
 
 or
 
 ```console
-    cd bpfd/examples/go-tracepoint-counter/
-    sudo ./go-tracepoint-counter
+cd bpfd/examples/go-tracepoint-counter/
+sudo ./go-tracepoint-counter
 ```
 
 The output should show the count and total bytes of packets as they pass through the
 interface as shown below:
 
 ```console
-    sudo ./go-xdp-counter --iface vethff657c7
-    2023/07/17 17:43:58 Using Input: Interface=vethff657c7 Priority=50 Source=/run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
-    2023/07/17 17:43:58 Unable to read /etc/bpfd/bpfd.toml, using default configuration values.
-    2023/07/17 17:43:58 Program registered with 72db6fb0-d6d1-4e1e-931b-2edcd3610d66 id
-    2023/07/17 17:44:01 4 packets received
-    2023/07/17 17:44:01 580 bytes received
+sudo ./go-xdp-counter --iface vethff657c7
+2023/07/17 17:43:58 Using Input: Interface=vethff657c7 Priority=50 Source=/run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
+2023/07/17 17:43:58 Unable to read /etc/bpfd/bpfd.toml, using default configuration values.
+2023/07/17 17:43:58 Program registered with id 6211
+2023/07/17 17:44:01 4 packets received
+2023/07/17 17:44:01 580 bytes received
 
-    2023/07/17 17:44:04 4 packets received
-    2023/07/17 17:44:04 580 bytes received
+2023/07/17 17:44:04 4 packets received
+2023/07/17 17:44:04 580 bytes received
 
-    2023/07/17 17:44:07 8 packets received
-    2023/07/17 17:44:07 1160 bytes received
+2023/07/17 17:44:07 8 packets received
+2023/07/17 17:44:07 1160 bytes received
 
-    :
+:
 ```
 
 Use `bpfctl` to show the `go-xdp-counter` eBPF bytecode was loaded.
 
 ```console
-    bpfctl list
-     Kernel ID  Bpfd UUID                             Name   Type  Load Time
-     6211       72db6fb0-d6d1-4e1e-931b-2edcd3610d66  stats  xdp   2023-07-17T17:43:58-0400
+bpfctl list
+ Program ID  Name       Type  Load Time
+ 6211        xdp_stats  xdp   2023-07-17T17:43:58-0400
 ```
 
 Finally, press `<CTRL>+c` when finished with `go-xdp-counter`.
 
 ```console
-    :
+:
 
-    2023/07/17 17:44:34 28 packets received
-    2023/07/17 17:44:34 4060 bytes received
+2023/07/17 17:44:34 28 packets received
+2023/07/17 17:44:34 4060 bytes received
 
-    ^C2023/07/17 17:44:35 Exiting...
-    2023/07/17 17:44:35 Unloading Program: 72db6fb0-d6d1-4e1e-931b-2edcd3610d66
+^C2023/07/17 17:44:35 Exiting...
+2023/07/17 17:44:35 Unloading Program: 6211
 ```
 
 #### Running Unprivileged
@@ -175,9 +175,9 @@ start `bpfd` and create the `bpfd` Users and `bpfd` User Group.
 member of the `bpfd` User Group.
 
 ```console
-    sudo usermod -a -G bpfd $USER
-    exit
-    <LOGIN>
+sudo usermod -a -G bpfd $USER
+exit
+<LOGIN>
 ```
 
 If the user running the userspace program is not a member of the `bpfd` user group, then the userspace
@@ -194,22 +194,22 @@ Accessing this map requires access to the CAP_BPF capability for kernel versions
 Run the following command to grant `go-xdp-counter` access to the CAP_BPF capability:
 
 ```console
-    cd bpfd/examples/go-xdp-counter/
-    sudo /sbin/setcap cap_bpf=ep ./go-xdp-counter
+cd bpfd/examples/go-xdp-counter/
+sudo /sbin/setcap cap_bpf=ep ./go-xdp-counter
 ```
 
 and
 
 ```console
-    cd bpfd/examples/go-tc-counter/
-    sudo /sbin/setcap cap_bpf=ep ./go-tc-counter
+cd bpfd/examples/go-tc-counter/
+sudo /sbin/setcap cap_bpf=ep ./go-tc-counter
 ```
 
 and
 
 ```console
-    cd bpfd/examples/go-tracepoint-counter/
-    sudo /sbin/setcap cap_bpf=ep ./go-tracepoint-counter
+cd bpfd/examples/go-tracepoint-counter/
+sudo /sbin/setcap cap_bpf=ep ./go-tracepoint-counter
 ```
 
 > **_Reminder:_** The capability must be re-granted each time the examples are rebuilt.
@@ -219,23 +219,23 @@ and
 Start `go-xdp-counter` without `sudo`:
 
 ```console
-    ./go-xdp-counter -iface ens3
-    2022/12/02 15:59:34 Unable to read /etc/bpfd/bpfd.toml, using default configuration values.
-    2022/12/02 15:59:34 Using Input: Interface=ens3 Priority=50 Source=/run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
-    2022/12/02 15:59:35 Program registered with b6b2107c-f1a3-48ac-a145-1073c0979ba4 id
-    2022/12/02 15:59:38 0 packets received
-    2022/12/02 15:59:38 0 bytes received
+./go-xdp-counter -iface ens3
+2022/12/02 15:59:34 Unable to read /etc/bpfd/bpfd.toml, using default configuration values.
+2022/12/02 15:59:34 Using Input: Interface=ens3 Priority=50 Source=/run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
+2022/12/02 15:59:35 Program registered with id 6221
+2022/12/02 15:59:38 0 packets received
+2022/12/02 15:59:38 0 bytes received
 
-    2022/12/02 15:59:41 4 packets received
-    2022/12/02 15:59:41 580 bytes received
+2022/12/02 15:59:41 4 packets received
+2022/12/02 15:59:41 580 bytes received
 
-    :
+:
 
-    2022/12/02 16:00:59 64 packets received
-    2022/12/02 16:00:59 9280 bytes received
+2022/12/02 16:00:59 64 packets received
+2022/12/02 16:00:59 9280 bytes received
 
-    ^C2022/12/02 16:01:00 Exiting...
-    2022/12/02 16:01:00 Unloading Program: b6b2107c-f1a3-48ac-a145-1073c0979ba4
+^C2022/12/02 16:01:00 Exiting...
+2022/12/02 16:01:00 Unloading Program: 6221
 ```
 
 ### Passing eBPF Bytecode In A Container Image
@@ -251,18 +251,18 @@ Pre-built eBPF container images for the examples can be loaded from:
 To use the container image, pass the URL to the userspace program:
 
 ```console
-    ./go-xdp-counter -iface ens3 -image quay.io/bpfd-bytecode/go-xdp-counter:latest
-    2022/12/02 16:28:32 Unable to read /etc/bpfd/bpfd.toml, using default configuration values.
-    2022/12/02 16:28:32 Using Input: Interface=ens3 Priority=50 Source=quay.io/bpfd-bytecode/go-xdp-counter:latest
-    2022/12/02 16:28:34 Program registered with 8d89a6b6-bce2-4d3f-9cee-9cb0c689a90e id
-    2022/12/02 16:28:37 4 packets received
-    2022/12/02 16:28:37 580 bytes received
+./go-xdp-counter -iface ens3 -image quay.io/bpfd-bytecode/go-xdp-counter:latest
+2022/12/02 16:28:32 Unable to read /etc/bpfd/bpfd.toml, using default configuration values.
+2022/12/02 16:28:32 Using Input: Interface=ens3 Priority=50 Source=quay.io/bpfd-bytecode/go-xdp-counter:latest
+2022/12/02 16:28:34 Program registered with id 6223
+2022/12/02 16:28:37 4 packets received
+2022/12/02 16:28:37 580 bytes received
 
-    2022/12/02 16:28:40 4 packets received
-    2022/12/02 16:28:40 580 bytes received
+2022/12/02 16:28:40 4 packets received
+2022/12/02 16:28:40 580 bytes received
 
-    ^C2022/12/02 16:28:42 Exiting...
-    2022/12/02 16:28:42 Unloading Program: 8d89a6b6-bce2-4d3f-9cee-9cb0c689a90e
+^C2022/12/02 16:28:42 Exiting...
+2022/12/02 16:28:42 Unloading Program: 6223
 ```
 
 #### Building eBPF Bytecode Container Image
@@ -274,83 +274,83 @@ bytecode has been built (i.e. `bpf_bpfel.o` has been built - see [Building](#bui
 run the build commands below:
 
 ```console
-    cd bpfd/examples/go-xdp-counter/
-    go generate
+cd bpfd/examples/go-xdp-counter/
+go generate
 
-    docker build \
-      --build-arg PROGRAM_NAME=go-xdp-counter \
-      --build-arg SECTION_NAME=stats \
-      --build-arg PROGRAM_TYPE=xdp \
-      --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
-      --build-arg KERNEL_COMPILE_VER=$(uname -r) \
-      -f ../../packaging/container-deployment/Containerfile.bytecode . -t quay.io/$USER/go-xdp-counter-bytecode:latest
+docker build \
+  --build-arg PROGRAM_NAME=go-xdp-counter \
+  --build-arg SECTION_NAME=xdp_stats \
+  --build-arg PROGRAM_TYPE=xdp \
+  --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
+  --build-arg KERNEL_COMPILE_VER=$(uname -r) \
+  -f ../../packaging/container-deployment/Containerfile.bytecode . -t quay.io/$USER/go-xdp-counter-bytecode:latest
 ```
 
 and
 
 ```console
-    cd bpfd/examples/go-tc-counter/
-    go generate
+cd bpfd/examples/go-tc-counter/
+go generate
 
-    docker build \
-      --build-arg PROGRAM_NAME=go-tc-counter \
-      --build-arg SECTION_NAME=stats \
-      --build-arg PROGRAM_TYPE=tc \
-      --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
-      --build-arg KERNEL_COMPILE_VER=$(uname -r) \
-      -f ../../packaging/container-deployment/Containerfile.bytecode . -t quay.io/$USER/go-tc-counter-bytecode:latest
+docker build \
+  --build-arg PROGRAM_NAME=go-tc-counter \
+  --build-arg SECTION_NAME=stats \
+  --build-arg PROGRAM_TYPE=tc \
+  --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
+  --build-arg KERNEL_COMPILE_VER=$(uname -r) \
+  -f ../../packaging/container-deployment/Containerfile.bytecode . -t quay.io/$USER/go-tc-counter-bytecode:latest
 ```
 
 and
 
 ```console
-    cd bpfd/examples/go-tracepoint-counter/
-    go generate
+cd bpfd/examples/go-tracepoint-counter/
+go generate
 
-    docker build \
-      --build-arg PROGRAM_NAME=go-tracepoint-counter \
-      --build-arg SECTION_NAME=tracepoint_kill_recorder \
-      --build-arg PROGRAM_TYPE=tracepoint \
-      --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
-      --build-arg KERNEL_COMPILE_VER=$(uname -r) \
-      -f ../../packaging/container-deployment/Containerfile.bytecode . -t quay.io/$USER/go-tracepoint-counter-bytecode:latest
+docker build \
+  --build-arg PROGRAM_NAME=go-tracepoint-counter \
+  --build-arg SECTION_NAME=tracepoint_kill_recorder \
+  --build-arg PROGRAM_TYPE=tracepoint \
+  --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
+  --build-arg KERNEL_COMPILE_VER=$(uname -r) \
+  -f ../../packaging/container-deployment/Containerfile.bytecode . -t quay.io/$USER/go-tracepoint-counter-bytecode:latest
 ```
 
 `bpfd` currently does not provide a method for pre-loading bytecode images
-(see [issue #429](https://github.com/bpfd-dev/bpfd/issues/429)), so push the bytecode image to a remote
+(see [issue #603](https://github.com/bpfd-dev/bpfd/issues/603)), so push the bytecode image to a remote
 repository.
 For example:
 
 ```console
-    docker login quay.io
-    docker push quay.io/$USER/go-xdp-counter-bytecode:latest
-    docker push quay.io/$USER/go-tc-counter-bytecode:latest
+docker login quay.io
+docker push quay.io/$USER/go-xdp-counter-bytecode:latest
+docker push quay.io/$USER/go-tc-counter-bytecode:latest
 ```
 
 Then run with the privately built bytecode container image:
 
 ```console
-    ./go-tc-counter -iface ens3 -direction ingress -location image://quay.io/$USER/go-tc-counter-bytecode:latest
-    2022/12/02 16:38:44 Unable to read /etc/bpfd/bpfd.toml, using default configuration values.
-    2022/12/02 16:38:44 Using Input: Interface=ens3 Priority=50 Source=quay.io/$USER/go-tc-counter-bytecode:latest
-    2022/12/02 16:38:45 Program registered with 0d313a4a-a17c-4c70-81ba-3ecc494b900e id
-    2022/12/02 16:38:48 4 packets received
-    2022/12/02 16:38:48 580 bytes received
+./go-tc-counter -iface ens3 -direction ingress -location image://quay.io/$USER/go-tc-counter-bytecode:latest
+2022/12/02 16:38:44 Unable to read /etc/bpfd/bpfd.toml, using default configuration values.
+2022/12/02 16:38:44 Using Input: Interface=ens3 Priority=50 Source=quay.io/$USER/go-tc-counter-bytecode:latest
+2022/12/02 16:38:45 Program registered with id 6225
+2022/12/02 16:38:48 4 packets received
+2022/12/02 16:38:48 580 bytes received
 
-    2022/12/02 16:38:51 4 packets received
-    2022/12/02 16:38:51 580 bytes received
+2022/12/02 16:38:51 4 packets received
+2022/12/02 16:38:51 580 bytes received
 
-    ^C2022/12/02 16:38:51 Exiting...
-    2022/12/02 16:38:51 Unloading Program: 0d313a4a-a17c-4c70-81ba-3ecc494b900e
+^C2022/12/02 16:38:51 Exiting...
+2022/12/02 16:38:51 Unloading Program: 6225
 ```
 
 #### Preloading eBPF Bytecode
 
 Another way to load the eBPF bytecode is to pre-load the eBPF bytecode and
-pass the associated `bpfd` UUID to the userspace program.
+pass the associated `bpfd` program id to the userspace program.
 This is similar to how eBPF programs will be loaded in Kubernetes, except `kubectl` commands will be
 used to create Kubernetes CRD objects instead of using `bpfctl`, but that is covered in the next section.
-The userspace programs will skip the loading portion and use the UUID to find the shared
+The userspace programs will skip the loading portion and use the program id to find the shared
 map and continue from there.
 
 Referring back to the diagram above, the `load` and `unload` are being done by `bpfctl` and not
@@ -359,26 +359,56 @@ Referring back to the diagram above, the `load` and `unload` are being done by `
 First, use `bpfctl` to load the `go-xdp-counter` eBPF bytecode:
 
 ```console
-    bpfctl load-from-image --image-url quay.io/bpfd-bytecode/go-xdp-counter:latest xdp --iface ens3 --priority 50
-    d541af30-69be-44cf-9397-407ee512547a
+bpfctl load-from-image --image-url quay.io/bpfd-bytecode/go-xdp-counter:latest xdp --iface ens3 --priority 50
+ Bpfd State
+---------------
+ Name:          xdp_stats
+ Image URL:     quay.io/bpfd-bytecode/go-xdp-counter:latest
+ Pull Policy:   IfNotPresent
+ Global:        None
+ Metadata:      None
+ Map Pin Path:  /run/bpfd/fs/maps/6229
+ Map Owner ID:  None
+ Map Used By:   None
+ Priority:      50
+ Iface:         ens3
+ Position:      0
+ Proceed On:    pass, dispatcher_return
+
+ Kernel State
+----------------------------------
+ ID:                               6229
+ Name:                             xdp_stats
+ Type:                             xdp
+ Loaded At:                        2023-07-17T17:48:10-0400
+ Tag:                              4b9d1b2c140e87ce
+ GPL Compatible:                   true
+ Map IDs:                          [2724]
+ BTF ID:                           2834
+ Size Translated (bytes):          168
+ JITed:                            true
+ Size JITed (bytes):               104
+ Kernel Allocated Memory (bytes):  4096
+ Verified Instruction Count:       21
 ```
 
 Then run the `go-xdp-counter` userspace program, passing in the UUID:
 
 ```console
-    ./go-xdp-counter -iface ens3 -uuid d541af30-69be-44cf-9397-407ee512547a
-    2022/12/02 17:01:38 Using Input: Interface=ens3 Source=d541af30-69be-44cf-9397-407ee512547a
-    2022/12/02 17:01:41 180 packets received
-    2022/12/02 17:01:41 26100 bytes received
+./go-xdp-counter -iface ens3 -id 6229
+2022/12/02 17:01:38 Using Input: Interface=ens3 Source=6229
+2022/12/02 17:01:41 180 packets received
+2022/12/02 17:01:41 26100 bytes received
 
-    2022/12/02 17:01:44 184 packets received
-    2022/12/02 17:01:44 26680 bytes received
+2022/12/02 17:01:44 184 packets received
+2022/12/02 17:01:44 26680 bytes received
 
-    ^C2022/12/02 17:01:46 Exiting...
+^C2022/12/02 17:01:46 Exiting...
+2022/12/02 17:01:46 Closing Connection for Program: 6229
 ```
 
 Then use `bpfctl` to unload the eBPF bytecode:
 
 ```console
-    bpfctl unload d541af30-69be-44cf-9397-407ee512547a
+bpfctl unload 6229
 ```

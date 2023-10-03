@@ -213,33 +213,29 @@ mod test {
     fn test_parse_single_file() {
         let input: &str = r#"
         [[programs]]
-        name = "program1"
+        name = "firewall"
         file_path = "/opt/bin/myapp/lib/myebpf.o"
-        section_name = "firewall"
         global_data = { }
         program_type ="Xdp"
         xdp_attach = { iface = "eth0", priority = 50, proceed_on = [], position=0 }
 
         [[programs]]
-        name = "program2"
+        name = "pass"
         bytecode_image = { image_url = "quay.io/bpfd-bytecode/xdp_pass:latest", image_pull_policy="Always" }
-        section_name = "pass"
         global_data = { }
         program_type ="Xdp"
         xdp_attach = { iface = "eth0", priority = 55, proceed_on = [], position=0 }
 
         [[programs]]
-        name = "program3"
+        name = "counter"
         bytecode_image = { image_url = "quay.io/bpfd-bytecode/xdp_pass:latest", image_pull_policy="Always" }
-        section_name = "counter"
         global_data = { }
         program_type ="Tc"
         tc_attach = { iface = "eth0", priority = 55, proceed_on = [], position=0, direction="Ingress" }
         
         [[programs]]
-        name = "program"
+        name = "tracepoint"
         bytecode_image = { image_url = "quay.io/bpfd-bytecode/tracepoint:latest", image_pull_policy="Always" }
-        section_name = "tracepoint"
         global_data = { }
         program_type ="Tracepoint"
         tracepoint_attach = { tracepoint = "syscalls/sys_enter_openat" }

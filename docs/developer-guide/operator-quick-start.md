@@ -119,7 +119,7 @@ apiVersion: bpfd.dev/v1alpha1
     proceedon:
     - pass
     - dispatcher_return
-    sectionname: pass
+    name: pass
   status:
     conditions:
     - lastTransitionTime: "2023-05-04T18:28:46Z"
@@ -136,8 +136,8 @@ To see more information in listing form simply run:
 
 ```bash
 kubectl get xdpprogram -o wide
-NAME                 SECTIONNAME   BYTECODE                                                                                     NODESELECTOR   PRIORITY   INTERFACESELECTOR               PROCEEDON
-xdp-pass-all-nodes   pass          {"image":{"imagepullpolicy":"IfNotPresent","url":"quay.io/bpfd-bytecode/xdp_pass:latest"}}   {}             0          {"primarynodeinterface":true}   ["pass","dispatcher_return"]
+NAME                 BPFFNNAME   BYTECODE                                                                                     NODESELECTOR   PRIORITY   INTERFACESELECTOR               PROCEEDON
+xdp-pass-all-nodes   pass        {"image":{"imagepullpolicy":"IfNotPresent","url":"quay.io/bpfd-bytecode/xdp_pass:latest"}}   {}             0          {"primarynodeinterface":true}   ["pass","dispatcher_return"]
 ```
 
 ### API Types Overview
