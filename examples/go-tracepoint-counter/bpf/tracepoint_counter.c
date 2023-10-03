@@ -1,8 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
-#include <asm/signal.h>
 #include <linux/bpf.h>
 #include <linux/pkt_cls.h>
-#include <linux/signal.h>
+#include <signal.h>
 
 #include <bpf/bpf_helpers.h>
 
