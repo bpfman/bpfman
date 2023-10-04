@@ -80,7 +80,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 	opts := []client.ListOption{client.MatchingLabels{internal.BpfProgramOwnerLabel: progName}}
 
 	if err := r.List(ctx, bpfPrograms, opts...); err != nil {
-		r.Logger.V(1).Error(err, "failed to get freshPrograms for full reconcile")
+		r.Logger.Error(err, "failed to get freshPrograms for full reconcile")
 		return ctrl.Result{}, nil
 	}
 
@@ -151,7 +151,7 @@ func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, prog client.Obje
 	if changed := controllerutil.RemoveFinalizer(prog, finalizer); changed {
 		err := r.Update(ctx, prog)
 		if err != nil {
-			r.Logger.V(1).Error(err, "failed to remove bpfProgram Finalizer")
+			r.Logger.Error(err, "failed to remove bpfProgram Finalizer")
 			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 		}
 	}
@@ -206,7 +206,6 @@ func (r *ReconcilerCommon) updateCondition(ctx context.Context, obj client.Objec
 				} else {
 					// We're changing the condition, so delete this one.  The
 					// new condition will be added below.
-					r.Logger.V(1).Info("removing condition", "condition", (*conditions)[0].Type)
 					meta.RemoveStatusCondition(conditions, (*conditions)[0].Type)
 				}
 			}
@@ -217,7 +216,6 @@ func (r *ReconcilerCommon) updateCondition(ctx context.Context, obj client.Objec
 				// and add the new one below.
 				r.Logger.Info("more than one BpfProgramCondition", "numConditions", numConditions)
 				for _, c := range *conditions {
-					r.Logger.Info("removing condition", "condition", c.Type)
 					meta.RemoveStatusCondition(conditions, c.Type)
 				}
 			}

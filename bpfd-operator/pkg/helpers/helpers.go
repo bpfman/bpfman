@@ -314,13 +314,6 @@ func isProgLoaded(conditions *[]metav1.Condition) (bool, string) {
 		return false, "None"
 	}
 
-	if conLen > 1 {
-		// We should never have more than one condition. However, if we do, log
-		// a message and still check the first condtion which is where the valid
-		// one should be.
-		log.Info("Too many conditions: %d", conLen)
-	}
-
 	condition := (*conditions)[0]
 
 	if condition.Type != string(bpfdiov1alpha1.ProgramReconcileSuccess) {
