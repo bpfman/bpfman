@@ -522,7 +522,7 @@ bpfctl get 6204
  Metadata:      None
  Map Pin Path:  /run/bpfd/fs/maps/6204
  Map Owner ID:  None
- Map Used By:   None
+ Map Used By:   6204
  Priority:      100
  Iface:         vethff657c7
  Position:      0

@@ -21,7 +21,7 @@ use bpfd_api::{
     ProbeType::{self, *},
     ProgramType, TcProceedOn,
 };
-use log::{debug, info};
+use log::{debug, info, warn};
 use tokio::{
     fs, select,
     sync::{
@@ -196,7 +196,7 @@ impl BpfManager {
             // TODO: Should probably check for pinned prog on bpffs rather than assuming they are attached
             program.set_attached();
             debug!("rebuilding state for program {}", id);
-            self.rebuild_map_entry(id, program.data()?.map_owner_id());
+            self.rebuild_map_entry(id, &mut program);
             self.programs.insert(id, program);
         }
         self.rebuild_dispatcher_state(ProgramType::Xdp, None, RTDIR_XDP_DISPATCHER)
@@ -298,9 +298,6 @@ impl BpfManager {
         // Program bytes MUST be cleared after load.
         program.data_mut()?.clear_program_bytes();
 
-        // map_pin_path MUST be set following load.
-        let map_pin_path = program.data()?.map_pin_path();
-
         match result {
             Ok(id) => {
                 info!(
@@ -311,18 +308,21 @@ impl BpfManager {
 
                 // Now that program is successfully loaded, update the id, maps hash table,
                 // and allow access to all maps by bpfd group members.
-                self.save_map(
-                    id,
-                    map_owner_id,
-                    map_pin_path.expect("map_pin_path must be set after successful load"),
-                )
-                .await?;
+                self.save_map(&mut program, id, map_owner_id).await?;
+
+                // Only add program to bpfManager if we've completed all mutations and it's successfully loaded.
+                self.programs.insert(id, program.to_owned());
 
                 Ok(program)
             }
             Err(e) => {
-                if let Some(pin_path) = map_pin_path {
-                    let _ = self.cleanup_map_pin_path(pin_path, map_owner_id).await;
+                // Cleanup any directories associated with the map_pin_path.
+                // Data and map_pin_path may or may not exist depending on where the original
+                // error occured, so don't error if not there and preserve original error.
+                if let Ok(data) = program.data() {
+                    if let Some(pin_path) = data.map_pin_path() {
+                        let _ = self.cleanup_map_pin_path(pin_path, map_owner_id).await;
+                    }
                 }
                 Err(e)
             }
@@ -410,13 +410,11 @@ impl BpfManager {
             .kernel_info()
             .expect("kernel info should be set after load")
             .id;
-        self.programs.insert(id, program.to_owned());
 
-        if let Some(p) = self.programs.get_mut(&id) {
-            p.set_attached();
-            p.save(id)
-                .map_err(|e| BpfdError::Error(format!("unable to save program state: {e}")))?;
-        };
+        program.set_attached();
+        program
+            .save(id)
+            .map_err(|e| BpfdError::Error(format!("unable to save program state: {e}")))?;
 
         Ok(id)
     }
@@ -599,11 +597,7 @@ impl BpfManager {
                     }
                 }
 
-                self.programs.insert(id, p.to_owned());
-                self.programs
-                    .get(&id)
-                    .unwrap()
-                    .save(id)
+                p.save(id)
                     // we might want to log or ignore this error instead of returning here...
                     // because otherwise it will hide the original error (from res above)
                     .map_err(|_| BpfdError::Error("unable to persist program data".to_string()))?;
@@ -909,42 +903,66 @@ impl BpfManager {
     // user group access to all the maps in the directory. If this eBPF
     // program is not the owner, then the eBPF program ID is added to
     // the Used-By array.
+
+    // TODO this should probably be program.save_map not bpfmanager.save_map
     async fn save_map(
         &mut self,
+        program: &mut Program,
         id: u32,
         map_owner_id: Option<u32>,
-        map_pin_path: &Path,
     ) -> Result<(), BpfdError> {
+        let data = program.data_mut()?;
+
         match map_owner_id {
             Some(m) => {
                 if let Some(map) = self.maps.get_mut(&m) {
                     map.used_by.push(id);
 
-                    // If map owner program still exists update it's maps_used_by_field
-                    if let Some(program) = self.programs.get_mut(&m) {
-                        program
-                            .data_mut()?
-                            .set_maps_used_by(Some(map.used_by.clone()));
+                    // This program has no been inserted yet, so set map_used_by to
+                    // newly updated list.
+                    data.set_maps_used_by(Some(map.used_by.clone()));
+
+                    // Update all the programs using the same map with the updated map_used_by.
+                    for used_by_id in map.used_by.iter() {
+                        if let Some(program) = self.programs.get_mut(used_by_id) {
+                            if let Ok(data) = program.data_mut() {
+                                data.set_maps_used_by(Some(map.used_by.clone()));
+                            } else {
+                                return Err(BpfdError::Error(
+                                    "unable to retrieve data for {id}".to_string(),
+                                ));
+                            }
+                        }
                     }
                 } else {
                     return Err(BpfdError::Error("map_owner_id does not exists".to_string()));
                 }
             }
             None => {
-                let program = self
-                    .programs
-                    .get_mut(&id)
-                    .expect("Program should be loaded");
-
                 let map = BpfMap { used_by: vec![id] };
 
                 self.maps.insert(id, map);
 
-                // TODO(astoycos) remove external self.maps, keep all map tracking info in Program
-                // update programs map_used_by
-                program.data_mut()?.set_maps_used_by(Some(vec![id]));
+                // Update this program with the updated map_used_by
+                data.set_maps_used_by(Some(vec![id]));
 
-                set_dir_permissions(map_pin_path.to_str().unwrap(), MAPS_MODE).await;
+                // Set the permissions on the map_pin_path directory.
+                if let Some(map_pin_path) = data.map_pin_path() {
+                    if let Some(path) = map_pin_path.to_str() {
+                        set_dir_permissions(path, MAPS_MODE).await;
+                    } else {
+                        return Err(BpfdError::Error(format!(
+                            "invalid map_pin_path {} for {}",
+                            map_pin_path.display(),
+                            id
+                        )));
+                    }
+                } else {
+                    return Err(BpfdError::Error(format!(
+                        "map_pin_path should be set for {}",
+                        id
+                    )));
+                }
             }
         }
 
@@ -968,21 +986,22 @@ impl BpfManager {
                 map.used_by.swap_remove(index);
             }
 
-            // If map owner program still exists update it's maps_used_by_field
-            if let Some(program) = self.programs.get_mut(&index) {
-                // TODO(astoycos) remove external self.maps, keep all map tracking info in Program
-                // update programs map_used_by
-                program
-                    .data_mut()?
-                    .set_maps_used_by(Some(map.used_by.clone()));
-            }
-
             if map.used_by.is_empty() {
+                // No more programs using this map, so remove the entry from the map list.
                 let path = calc_map_pin_path(index);
                 self.maps.remove(&index.clone());
                 fs::remove_dir_all(path)
                     .await
                     .map_err(|e| BpfdError::Error(format!("can't delete map dir: {e}")))?;
+            } else {
+                // Update all the programs still using the same map with the updated map_used_by.
+                for id in map.used_by.iter() {
+                    if let Some(program) = self.programs.get_mut(id) {
+                        if let Ok(data) = program.data_mut() {
+                            data.set_maps_used_by(Some(map.used_by.clone()));
+                        }
+                    }
+                }
             }
         } else {
             return Err(BpfdError::Error("map_pin_path does not exists".to_string()));
@@ -991,7 +1010,14 @@ impl BpfManager {
         Ok(())
     }
 
-    fn rebuild_map_entry(&mut self, id: u32, map_owner_id: Option<u32>) {
+    fn rebuild_map_entry(&mut self, id: u32, program: &mut Program) {
+        let map_owner_id = match program.data() {
+            Ok(data) => data.map_owner_id(),
+            Err(_) => {
+                warn!("unable to retrieve data for {id} retrieving map_owner_id on rebuild");
+                return;
+            }
+        };
         let index = match map_owner_id {
             Some(i) => i,
             None => id,
@@ -999,9 +1025,35 @@ impl BpfManager {
 
         if let Some(map) = self.maps.get_mut(&index) {
             map.used_by.push(id);
+
+            // This program has not been inserted yet, so update it with the
+            // updated map_used_by.
+            if let Ok(data) = program.data_mut() {
+                data.set_maps_used_by(Some(map.used_by.clone()));
+            } else {
+                warn!("unable to retrieve data for {id} during rebuild of maps");
+            }
+
+            // Update all the other programs using the same map with the updated map_used_by.
+            for used_by_id in map.used_by.iter() {
+                // program may not exist yet on rebuild, so ignore if not there
+                if let Some(prog) = self.programs.get_mut(used_by_id) {
+                    if let Ok(data) = prog.data_mut() {
+                        data.set_maps_used_by(Some(map.used_by.clone()));
+                    } else {
+                        warn!("unable to retrieve data for {used_by_id} when setting map_used_by on rebuild");
+                    }
+                }
+            }
         } else {
             let map = BpfMap { used_by: vec![id] };
             self.maps.insert(index, map);
+
+            if let Ok(data) = program.data_mut() {
+                data.set_maps_used_by(Some(vec![id]));
+            } else {
+                warn!("unable to retrieve data for {id} during rebuild of maps");
+            }
         }
     }
 }
