@@ -118,6 +118,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}},priority=200
 
           - registry: quay.io
+            bpf_build_wrapper: go
             repository: bpfd-bytecode
             image: go-xdp-counter
             context: ./examples/go-xdp-counter
@@ -135,6 +136,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}},priority=200
 
           - registry: quay.io
+            bpf_build_wrapper: go
             repository: bpfd-bytecode
             image: go-tc-counter
             context: ./examples/go-tc-counter
@@ -152,6 +154,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}},priority=200
 
           - registry: quay.io
+            bpf_build_wrapper: go
             repository: bpfd-bytecode
             image: go-tracepoint-counter
             context: ./examples/go-tracepoint-counter
@@ -169,6 +172,97 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}},priority=200
 
           - registry: quay.io
+            bpf_build_wrapper: rust
+            repository: bpfd-bytecode
+            image: xdp_pass
+            context: ./tests/integration-test/bpf/.output
+            dockerfile: ./packaging/container-deployment/Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=xdp_pass
+              SECTION_NAME=pass
+              PROGRAM_TYPE=xdp
+              BYTECODE_FILENAME=xdp_pass.bpf.o
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            bpf_build_wrapper: rust
+            repository: bpfd-bytecode
+            image: xdp_pass_private
+            context: ./tests/integration-test/bpf/.output
+            dockerfile: ./packaging/container-deployment/Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=xdp_pass_private
+              SECTION_NAME=pass
+              PROGRAM_TYPE=xdp
+              BYTECODE_FILENAME=xdp_pass.bpf.o
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            bpf_build_wrapper: rust
+            repository: bpfd-bytecode
+            image: tracepoint
+            context: ./tests/integration-test/bpf/.output
+            dockerfile: ./packaging/container-deployment/Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=tracepoint
+              SECTION_NAME=enter_openat
+              PROGRAM_TYPE=tracepoint
+              BYTECODE_FILENAME=tp_openat.bpf.o
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            bpf_build_wrapper: rust
+            repository: bpfd-bytecode
+            image: uprobe
+            context: ./tests/integration-test/bpf/.output
+            dockerfile: ./packaging/container-deployment/Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=uprobe
+              SECTION_NAME=my_uprobe
+              PROGRAM_TYPE=kprobe
+              BYTECODE_FILENAME=uprobe.bpf.o
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            bpf_build_wrapper: rust
+            repository: bpfd-bytecode
+            image: kprobe
+            context: ./tests/integration-test/bpf/.output
+            dockerfile: ./packaging/container-deployment/Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=kprobe
+              SECTION_NAME=my_kprobe
+              PROGRAM_TYPE=kprobe
+              BYTECODE_FILENAME=kprobe.bpf.o
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200             
+
+          - registry: quay.io
+            bpf_build_wrapper: rust
             repository: bpfd
             image: xdp-dispatcher
             context: .
@@ -177,6 +271,7 @@ jobs:
               type=raw,value=v1,enable=true,priority=200
 
           - registry: quay.io
+            bpf_build_wrapper: rust
             repository: bpfd
             image: xdp-dispatcher
             context: .
@@ -189,30 +284,45 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - uses: actions/setup-go@v3
+        if: ${{ matrix.image.bpf_build_wrapper == 'go' }}
+        with:
+          go-version: "1.20"
+
       - uses: sigstore/cosign-installer@v3.1.1
 
       - uses: actions/checkout@v2
-        if: ${{ matrix.image.repository == 'bpfd-bytecode' || matrix.image.image == 'xdp-dispatcher'}}
+        if: ${{ matrix.image.bpf_build_wrapper == 'rust' }}
         with:
           repository: libbpf/libbpf
           path: libbpf
 
       - uses: actions-rs/toolchain@v1
-        if: ${{ matrix.image.image == 'xdp-dispatcher' }}
+        if: ${{ matrix.image.bpf_build_wrapper == 'rust' }}
         with:
           toolchain: stable
           override: true
 
       - name: Install libelf-dev
-        if: ${{ matrix.image.image == 'xdp-dispatcher'}}
+        if: ${{ matrix.image.bpf_build_wrapper == 'rust' || matrix.image.bpf_build_wrapper == 'go' }}
         run: |
           sudo apt-get update
-          sudo apt-get install -y linux-headers-`uname -r` clang lldb lld libelf-dev gcc-multilib
+          sudo apt-get install -y linux-headers-`uname -r` clang lldb lld libelf-dev gcc-multilib libbpf-dev
 
-      - name: Build eBPF
-        if: ${{ matrix.image.image == 'xdp-dispatcher'}}
+      - name: Build rust wrapped eBPF
+        if: ${{ matrix.image.bpf_build_wrapper == 'rust' }}
         run: |
           cargo xtask build-ebpf --libbpf-dir ./libbpf
+      
+      - name: Install bpf2go
+        if: ${{ matrix.image.bpf_build_wrapper == 'go' }}
+        run: |
+          go install github.com/cilium/ebpf/cmd/bpf2go@v0.11.0
+
+      - name: Generate go wrapped eBPF
+        if: ${{ matrix.image.bpf_build_wrapper == 'go' }}
+        run: |
+          cd examples && make generate
 
       - name: Generate olm bundle on disk
         if: ${{ matrix.image.image == 'bpfd-operator-bundle' }}
