@@ -22,7 +22,9 @@ chrono = { workspace = true }
 clap = { workspace = true, features = ["derive", "std"] }
 env_logger = { workspace = true }
 flate2 = { workspace = true, features = ["zlib"] }
+futures = "0.3.28"
 log = { workspace = true }
+netlink-packet-route = "0.17.1"
 nix = { workspace = true, features = [
     "fs",
     "mount",
@@ -36,6 +38,7 @@ oci-distribution = { workspace = true, default-features = false, features = [
     "trust-dns",
 ] }
 openssl = { workspace = true, features = ["vendored"] }
+rtnetlink = "0.13.1"
 rustls = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
