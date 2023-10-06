@@ -1,6 +1,7 @@
 use std::{
+    fs,
     fs::File,
-    io::Read,
+    io::{Read, Write},
     path::{Path, PathBuf},
     process::Command,
     thread::sleep,
@@ -9,7 +10,7 @@ use std::{
 
 use anyhow::Result;
 use assert_cmd::prelude::*;
-use bpfd_api::util::directories::BYTECODE_IMAGE_CONTENT_STORE;
+use bpfd_api::util::directories::{BYTECODE_IMAGE_CONTENT_STORE, CFGPATH_BPFD_CONFIG};
 use log::debug;
 use predicates::str::is_empty;
 use regex::Regex;
@@ -100,6 +101,24 @@ pub fn start_bpfd() -> Result<ChildGuard> {
     debug!("Successfully Started bpfd");
 
     Ok(bpfd_process)
+}
+
+/// Update bpfd.toml with Unix Socket
+pub fn cfgfile_append_unix_socket() {
+    debug!("Setup bpfd.toml with Unix Socket");
+
+    let mut f = File::create(CFGPATH_BPFD_CONFIG).unwrap();
+    f.write_all(
+        b"[[grpc.endpoints]]\ntype = \"unix\"\nenabled = true\npath = \"/run/bpfd/bpfd.sock\"",
+    )
+    .expect("could not write unix socket to bpfd.toml file");
+}
+
+/// Update bpfd.toml with Unix Socket
+pub fn cfgfile_remove() {
+    debug!("Remove bpfd.toml");
+
+    fs::remove_file(CFGPATH_BPFD_CONFIG).expect("could not remove bpfd.toml file");
 }
 
 /// Install an xdp program with bpfctl

@@ -43,6 +43,17 @@ shown below.
 export BPFD_IP_PREFIX="192.168.50"
 ```
 
+If bpfd logs are needed to help debug an integration test, set `RUST_LOG` either
+globally or for a given test.
+
+```bash
+export RUST_LOG=info
+```
+OR
+```bash
+RUST_LOG=info cargo xtask integration-test -- test_load_unload_xdp test_proceed_on_xdp
+```
+
 There are two categories of integration tests: basic and e2e.  The basic tests
 verify basic `bpfctl` functionality such as loading, listing, and unloading
 programs.  The e2e tests verify more advanced functionality such as the setting
