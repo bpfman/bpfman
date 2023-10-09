@@ -2,7 +2,7 @@
 
 This section describes how to enable logging in different `bpfd` deployments.
 
-## Local Privileged Process
+## Local Privileged Bpfd Process
 
 `bpfd` and `bpfctl` use the [env_logger](https://docs.rs/env_logger) crate to log messages to the terminal.
 By default, only `error` messages are logged, but that can be overwritten by setting
@@ -133,7 +133,7 @@ kubectl logs -n bpfd bpfd-daemon-dgqzw -c bpfd-agent
 
 #### Change Log Level
 
-To change the log level, edit the `bpfd-config` ConfigMap.
+To change the log level of the agent or daemon, edit the `bpfd-config` ConfigMap.
 The `bpfd-operator` will detect the change and restart the bpfd daemonset with the updated values.
 
 ```console
@@ -142,20 +142,15 @@ apiVersion: v1
 data:
   bpfd.agent.image: quay.io/bpfd/bpfd-agent:latest
   bpfd.image: quay.io/bpfd/bpfd:latest
-  bpfd.log.level: debug                 <==== Set bpfd-agent Log Level Here
+  bpfd.log.level: info                     <==== Set bpfd Log Level Here
+  bpfd.agent.log.level: info               <==== Set bpfd agent Log Level Here
   bpfd.toml: |
-    [tls] # REQUIRED
-    ca_cert = "/etc/bpfd/certs/ca/ca.crt"
-    cert = "/etc/bpfd/certs/bpfd/tls.crt"
-    key = "/etc/bpfd/certs/bpfd/tls.key"
-    client_cert = "/etc/bpfd/certs/bpfd-client/tls.crt"
-    client_key = "/etc/bpfd/certs/bpfd-client/tls.key"
+    [[grpc.endpoints]]
+    type = "unix"
+    path = "/bpfd-sock/bpfd.sock"
+    enabled = true
 kind: ConfigMap
 metadata:
-  annotations:
-    kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"v1","data":{"bpfd.agent.image":"quay.io/bpfd/bpfd-agent:latest","bpfd.image":"quay.io/bpfd/bpfd:latest","bpfd.log.level":"debug","bpfd.na>
-                                                                              Set bpfd Log Level Here =========================================^^^^^
   creationTimestamp: "2023-05-05T14:41:19Z"
   name: bpfd-config
   namespace: bpfd
@@ -163,14 +158,22 @@ metadata:
   uid: 0cc04af4-032c-4712-b824-748b321d319b
 ```
 
-Valid values are:
+Valid values for the **daemon** (`bpfd.log.level`) are:
 
 * `error`
+* `warn`
 * `info`
 * `debug`
 * `trace`
 
-`trace` can be very verbose.
+`trace` can be very verbose. More information can be found regarding Rust's
+env_logger [here](https://docs.rs/env_logger/latest/env_logger/).
+
+Valid values for the **agent** (`bpfd.agent.log.level`) are:
+
+* `info`
+* `debug`
+* `trace`
 
 ### bpfd Operator
 

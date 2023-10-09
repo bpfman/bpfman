@@ -253,12 +253,15 @@ func LoadAndConfigureBpfdDs(config *corev1.ConfigMap, path string) *appsv1.Daemo
 	bpfdImage := config.Data["bpfd.image"]
 	bpfdAgentImage := config.Data["bpfd.agent.image"]
 	bpfdLogLevel := config.Data["bpfd.log.level"]
+	bpfdAgentLogLevel := config.Data["bpfd.agent.log.level"]
 
 	// Annotate the log level on the ds so we get automatic restarts on changes.
 	if staticBpfdDeployment.Spec.Template.ObjectMeta.Annotations == nil {
 		staticBpfdDeployment.Spec.Template.ObjectMeta.Annotations = make(map[string]string)
 	}
+
 	staticBpfdDeployment.Spec.Template.ObjectMeta.Annotations["bpfd.dev.bpfd.loglevel"] = bpfdLogLevel
+	staticBpfdDeployment.Spec.Template.ObjectMeta.Annotations["bpfd.dev.bpfd.agent.loglevel"] = bpfdAgentLogLevel
 	staticBpfdDeployment.Name = "bpfd-daemon"
 	staticBpfdDeployment.Namespace = config.Namespace
 	staticBpfdDeployment.Spec.Template.Spec.Containers[0].Image = bpfdImage
