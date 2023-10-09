@@ -210,6 +210,24 @@ jobs:
           - registry: quay.io
             bpf_build_wrapper: rust
             repository: bpfd-bytecode
+            image: tc_pass
+            context: ./tests/integration-test/bpf/.output
+            dockerfile: ./packaging/container-deployment/Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=tc_pass
+              SECTION_NAME=pass
+              PROGRAM_TYPE=tc
+              BYTECODE_FILENAME=tc_pass.bpf.o
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            bpf_build_wrapper: rust
+            repository: bpfd-bytecode
             image: tracepoint
             context: ./tests/integration-test/bpf/.output
             dockerfile: ./packaging/container-deployment/Containerfile.bytecode
@@ -246,12 +264,48 @@ jobs:
           - registry: quay.io
             bpf_build_wrapper: rust
             repository: bpfd-bytecode
+            image: uretprobe
+            context: ./tests/integration-test/bpf/.output
+            dockerfile: ./packaging/container-deployment/Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=uretprobe
+              SECTION_NAME=my_uretprobe
+              PROGRAM_TYPE=kprobe
+              BYTECODE_FILENAME=uprobe.bpf.o
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200
+
+          - registry: quay.io
+            bpf_build_wrapper: rust
+            repository: bpfd-bytecode
             image: kprobe
             context: ./tests/integration-test/bpf/.output
             dockerfile: ./packaging/container-deployment/Containerfile.bytecode
             build_args: |
               PROGRAM_NAME=kprobe
               SECTION_NAME=my_kprobe
+              PROGRAM_TYPE=kprobe
+              BYTECODE_FILENAME=kprobe.bpf.o
+            tags: |
+              type=ref,event=branch,priority=200
+              type=ref,event=tag,priority=200
+              type=ref,event=pr,priority=200
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}},priority=200             
+
+          - registry: quay.io
+            bpf_build_wrapper: rust
+            repository: bpfd-bytecode
+            image: kretprobe
+            context: ./tests/integration-test/bpf/.output
+            dockerfile: ./packaging/container-deployment/Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=kretprobe
+              SECTION_NAME=my_kretprobe
               PROGRAM_TYPE=kprobe
               BYTECODE_FILENAME=kprobe.bpf.o
             tags: |
