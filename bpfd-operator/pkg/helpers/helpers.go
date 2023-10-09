@@ -454,12 +454,24 @@ func IsBpfdDeployed() bool {
 	return false
 }
 
-func IsBpfProgramConditionFailure(conditionType string) bool {
-	if conditionType == string(bpfdiov1alpha1.BpfProgCondNotLoaded) ||
-		conditionType == string(bpfdiov1alpha1.BpfProgCondNotUnloaded) ||
-		conditionType == string(bpfdiov1alpha1.BpfProgCondMapOwnerNotFound) ||
-		conditionType == string(bpfdiov1alpha1.BpfProgCondMapOwnerNotLoaded) ||
-		conditionType == string(bpfdiov1alpha1.BpfProgCondBytecodeSelectorError) {
+func IsBpfProgramConditionFailure(conditions *[]metav1.Condition) bool {
+	if conditions == nil || *conditions == nil || len(*conditions) == 0 {
+		return true
+	}
+
+	numConditions := len(*conditions)
+
+	if numConditions > 1 {
+		// We should only ever have one condition so log a message, but
+		// still look at (*conditions)[0].
+		log.Info("more than one BpfProgramCondition", "numConditions", numConditions)
+	}
+
+	if (*conditions)[0].Type == string(bpfdiov1alpha1.BpfProgCondNotLoaded) ||
+		(*conditions)[0].Type == string(bpfdiov1alpha1.BpfProgCondNotUnloaded) ||
+		(*conditions)[0].Type == string(bpfdiov1alpha1.BpfProgCondMapOwnerNotFound) ||
+		(*conditions)[0].Type == string(bpfdiov1alpha1.BpfProgCondMapOwnerNotLoaded) ||
+		(*conditions)[0].Type == string(bpfdiov1alpha1.BpfProgCondBytecodeSelectorError) {
 		return true
 	}
 

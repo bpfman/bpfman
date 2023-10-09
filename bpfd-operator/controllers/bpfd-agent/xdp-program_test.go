@@ -229,10 +229,14 @@ func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiConditio
 	// Require no requeue
 	require.False(t, res.Requeue)
 
-	// Check that the bpfProgram's status was correctly updated
+	// Get program object
 	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName0, Namespace: metav1.NamespaceAll}, bpfProgEth0)
 	require.NoError(t, err)
 
+	// Check that the bpfProgram's maps was correctly updated
+	require.Nil(t, bpfProgEth0.Spec.Maps)
+
+	// Check that the bpfProgram's status was correctly updated
 	// Make sure we only have 1 condition now
 	require.Equal(t, 1, len(bpfProgEth0.Status.Conditions))
 	// Make sure it's the right one.
@@ -322,18 +326,17 @@ func xdpProgramControllerCreate(t *testing.T, multiInterface bool, multiConditio
 			t.Fatal("Built bpfd LoadRequest does not match expected")
 		}
 
-		require.Nil(t, bpfProgEth0.Spec.Maps)
-
-		// Check that the bpfProgram's maps was correctly updated
+		// Get program object
 		err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
 		require.NoError(t, err)
 
+		// Check that the bpfProgram's maps was correctly updated
 		require.Nil(t, bpfProgEth1.Spec.Maps)
 
 		// Check that the bpfProgram's status was correctly updated
-		err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
-		require.NoError(t, err)
-
+		// Make sure we only have 1 condition now
+		require.Equal(t, 1, len(bpfProgEth1.Status.Conditions))
+		// Make sure it's the right one.
 		require.Equal(t, string(bpfdiov1alpha1.BpfProgCondLoaded), bpfProgEth1.Status.Conditions[0].Type)
 	}
 }
