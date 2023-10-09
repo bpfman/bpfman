@@ -69,6 +69,7 @@ nav:
     - Logging: developer-guide/logging.md
     - Configuration: developer-guide/configuration.md
     - Testing: developer-guide/testing.md
+    - Debugging: developer-guide/debugging.md
   - Blog:
     - blog/index.md
   - Community:
