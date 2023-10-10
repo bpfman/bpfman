@@ -44,11 +44,12 @@ fn test_proceed_on_xdp() {
         DEFAULT_BPFD_IFACE,
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
-        None,
+        None, // proceed_on
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        None,
+        None, // metadata
+        None, // map_owner_id
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -76,7 +77,8 @@ fn test_proceed_on_xdp() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        None,
+        None, // metadata
+        None, // map_owner_id
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -105,7 +107,8 @@ fn test_proceed_on_xdp() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        None,
+        None, // metadata
+        None, // map_owner_id
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -291,11 +294,12 @@ fn test_program_execution_with_global_variables() {
         DEFAULT_BPFD_IFACE,
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
-        None,
+        None, // proceed_on
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        None,
+        None, // metadata
+        None, // map_owner_id
     );
 
     loaded_ids.push(prog_id.unwrap());
@@ -432,12 +436,13 @@ fn test_load_unload_xdp_maps() {
     let (prog_id, map_pin_path) = add_xdp(
         DEFAULT_BPFD_IFACE,
         100,
-        None,
-        None,
+        None, // globals
+        None, // proceed_on
         &LoadType::Image,
         XDP_COUNTER_IMAGE_LOC,
         "",
-        None,
+        None, // metadata
+        None, // map_owner_id
     );
 
     assert!(bpffs_has_entries(RTDIR_FS_XDP));
