@@ -235,8 +235,7 @@ impl TcDispatcher {
                 let target_fn = format!("prog{i}");
 
                 ext.load(dispatcher.fd()?.try_clone()?, &target_fn)?;
-                v.data
-                    .set_kernel_info(Some(ext.program_info()?.try_into()?));
+                v.data.set_kernel_info(Some(ext.info()?.try_into()?));
 
                 let id = v
                     .data

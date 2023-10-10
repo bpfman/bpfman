@@ -458,7 +458,7 @@ impl BpfManager {
                 tracepoint.load()?;
                 program
                     .data
-                    .set_kernel_info(Some(tracepoint.program_info()?.try_into()?));
+                    .set_kernel_info(Some(tracepoint.info()?.try_into()?));
 
                 let link_id = tracepoint.attach(&category, &name)?;
 
@@ -505,7 +505,7 @@ impl BpfManager {
 
                 program
                     .data
-                    .set_kernel_info(Some(kprobe.program_info()?.try_into()?));
+                    .set_kernel_info(Some(kprobe.info()?.try_into()?));
 
                 let link_id = kprobe.attach(program.fn_name.as_str(), program.offset)?;
 
@@ -546,7 +546,7 @@ impl BpfManager {
 
                 program
                     .data
-                    .set_kernel_info(Some(uprobe.program_info()?.try_into()?));
+                    .set_kernel_info(Some(uprobe.info()?.try_into()?));
 
                 let link_id = uprobe.attach(
                     program.fn_name.as_deref(),
