@@ -305,6 +305,24 @@ func GetMaps(c *bpfdclientset.Clientset, ProgramName string, mapNames []string) 
 // 	return nil
 // }
 
+// Returns true if loaded.  False if not.  Also returns the condition type.
+func isProgLoaded(conditions *[]metav1.Condition) (bool, string) {
+	// Get most recent condition
+	conLen := len(*conditions)
+
+	if conLen <= 0 {
+		return false, "None"
+	}
+
+	condition := (*conditions)[0]
+
+	if condition.Type != string(bpfdiov1alpha1.ProgramReconcileSuccess) {
+		return false, condition.Type
+	}
+
+	return true, condition.Type
+}
+
 func isKprobebpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string) wait.ConditionFunc {
 	ctx := context.Background()
 
@@ -315,19 +333,10 @@ func isKprobebpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string) wai
 			return false, err
 		}
 
-		// Get most recent condition
-		conLen := len(bpfProgConfig.Status.Conditions)
+		progLoaded, condType := isProgLoaded(&bpfProgConfig.Status.Conditions)
 
-		if conLen <= 0 {
-			return false, nil
-		}
-
-		recentIdx := len(bpfProgConfig.Status.Conditions) - 1
-
-		condition := bpfProgConfig.Status.Conditions[recentIdx]
-
-		if condition.Type != string(bpfdiov1alpha1.ProgramReconcileSuccess) {
-			log.Info("kprobeProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condition.Type)
+		if !progLoaded {
+			log.Info("kprobProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condType)
 			return false, nil
 		}
 
@@ -345,19 +354,10 @@ func isTcbpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string) wait.Co
 			return false, err
 		}
 
-		// Get most recent condition
-		conLen := len(bpfProgConfig.Status.Conditions)
+		progLoaded, condType := isProgLoaded(&bpfProgConfig.Status.Conditions)
 
-		if conLen <= 0 {
-			return false, nil
-		}
-
-		recentIdx := len(bpfProgConfig.Status.Conditions) - 1
-
-		condition := bpfProgConfig.Status.Conditions[recentIdx]
-
-		if condition.Type != string(bpfdiov1alpha1.ProgramReconcileSuccess) {
-			log.Info("tcProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condition.Type)
+		if !progLoaded {
+			log.Info("tcProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condType)
 			return false, nil
 		}
 
@@ -375,19 +375,10 @@ func isTracepointbpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string)
 			return false, err
 		}
 
-		// Get most recent condition
-		conLen := len(bpfProgConfig.Status.Conditions)
+		progLoaded, condType := isProgLoaded(&bpfProgConfig.Status.Conditions)
 
-		if conLen <= 0 {
-			return false, nil
-		}
-
-		recentIdx := len(bpfProgConfig.Status.Conditions) - 1
-
-		condition := bpfProgConfig.Status.Conditions[recentIdx]
-
-		if condition.Type != string(bpfdiov1alpha1.ProgramReconcileSuccess) {
-			log.Info("tracepointProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condition.Type)
+		if !progLoaded {
+			log.Info("tracepointProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condType)
 			return false, nil
 		}
 
@@ -405,19 +396,10 @@ func isXdpbpfdProgLoaded(c *bpfdclientset.Clientset, progConfName string) wait.C
 			return false, err
 		}
 
-		// Get most recent condition
-		conLen := len(bpfProgConfig.Status.Conditions)
+		progLoaded, condType := isProgLoaded(&bpfProgConfig.Status.Conditions)
 
-		if conLen <= 0 {
-			return false, nil
-		}
-
-		recentIdx := len(bpfProgConfig.Status.Conditions) - 1
-
-		condition := bpfProgConfig.Status.Conditions[recentIdx]
-
-		if condition.Type != string(bpfdiov1alpha1.ProgramReconcileSuccess) {
-			log.Info("xdpProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condition.Type)
+		if !progLoaded {
+			log.Info("xdpProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condType)
 			return false, nil
 		}
 
@@ -437,10 +419,10 @@ func WaitForBpfProgConfLoad(c *bpfdclientset.Clientset, progName string, timeout
 		return wait.PollImmediate(time.Second, timeout, isXdpbpfdProgLoaded(c, progName))
 	case Tracepoint:
 		return wait.PollImmediate(time.Second, timeout, isTracepointbpfdProgLoaded(c, progName))
-	// case Uprobe: not covered because it doesn't have a ProgramType.  However,
-	// the only case currently used is Xdp, so it's not needed now.  If we need
-	// to support uprobes in the future, we could replace ProgramType with
-	// something else, like the string representation of the program type.
+	// TODO: case Uprobe: not covered.  Since Uprobe has the same ProgramType as
+	// Kprobe, we need a different way to distinguish them.  Options include
+	// creating an internal ProgramType for Uprobe or using a different
+	// identifier such as the string representation of the program type.
 	default:
 		return fmt.Errorf("unknown bpf program type: %s", progType)
 	}
@@ -472,12 +454,24 @@ func IsBpfdDeployed() bool {
 	return false
 }
 
-func IsBpfProgramConditionFailure(conditionType string) bool {
-	if conditionType == string(bpfdiov1alpha1.BpfProgCondNotLoaded) ||
-		conditionType == string(bpfdiov1alpha1.BpfProgCondNotUnloaded) ||
-		conditionType == string(bpfdiov1alpha1.BpfProgCondMapOwnerNotFound) ||
-		conditionType == string(bpfdiov1alpha1.BpfProgCondMapOwnerNotLoaded) ||
-		conditionType == string(bpfdiov1alpha1.BpfProgCondBytecodeSelectorError) {
+func IsBpfProgramConditionFailure(conditions *[]metav1.Condition) bool {
+	if conditions == nil || *conditions == nil || len(*conditions) == 0 {
+		return true
+	}
+
+	numConditions := len(*conditions)
+
+	if numConditions > 1 {
+		// We should only ever have one condition so log a message, but
+		// still look at (*conditions)[0].
+		log.Info("more than one BpfProgramCondition", "numConditions", numConditions)
+	}
+
+	if (*conditions)[0].Type == string(bpfdiov1alpha1.BpfProgCondNotLoaded) ||
+		(*conditions)[0].Type == string(bpfdiov1alpha1.BpfProgCondNotUnloaded) ||
+		(*conditions)[0].Type == string(bpfdiov1alpha1.BpfProgCondMapOwnerNotFound) ||
+		(*conditions)[0].Type == string(bpfdiov1alpha1.BpfProgCondMapOwnerNotLoaded) ||
+		(*conditions)[0].Type == string(bpfdiov1alpha1.BpfProgCondBytecodeSelectorError) {
 		return true
 	}
 

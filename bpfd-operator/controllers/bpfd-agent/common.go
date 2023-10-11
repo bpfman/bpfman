@@ -161,27 +161,39 @@ func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, o client.Object,
 // false if the status was already set for the given bpfProgram, meaning reconciliation
 // may continue.
 func (r *ReconcilerCommon) updateStatus(ctx context.Context, prog *bpfdiov1alpha1.BpfProgram, cond bpfdiov1alpha1.BpfProgramConditionType) bool {
-	if prog.Status.Conditions != nil {
-		// Get most recent condition
-		recentIdx := len(prog.Status.Conditions) - 1
 
-		// If the most recent condition is the same as input, just return.
-		if prog.Status.Conditions[recentIdx].Type == string(cond) {
-			return false
-		} else {
-			// Remove the input condition from the list if it exists (may not exist)
-			// because the SetStatusCondition() doesn't append if it is already in the list.
-			meta.RemoveStatusCondition(&prog.Status.Conditions, string(cond))
+	r.Logger.V(1).Info("updateStatus()", "existing conds", prog.Status.Conditions, "new cond", cond)
+
+	if prog.Status.Conditions != nil {
+		numConditions := len(prog.Status.Conditions)
+
+		if numConditions == 1 {
+			if prog.Status.Conditions[0].Type == string(cond) {
+				// No change, so just return false -- not updated
+				return false
+			} else {
+				// We're changing the condition, so delete this one.  The
+				// new condition will be added below.
+				prog.Status.Conditions = nil
+			}
+		} else if numConditions > 1 {
+			// We should only ever have one condition, so we shouldn't hit this
+			// case.  However, if we do, log a message, delete the existing
+			// conditions, and add the new one below.
+			r.Logger.Info("more than one BpfProgramCondition", "numConditions", numConditions)
+			prog.Status.Conditions = nil
 		}
+		// if numConditions == 0, just add the new condition below.
 	}
 
 	meta.SetStatusCondition(&prog.Status.Conditions, cond.Condition())
-	r.Logger.Info("Updating bpfProgram condition", "bpfProgram", prog.Name, "condition", cond.Condition().Type)
+
+	r.Logger.V(1).Info("Updating bpfProgram condition", "bpfProgram", prog.Name, "condition", cond.Condition().Type)
 	if err := r.Status().Update(ctx, prog); err != nil {
 		r.Logger.Error(err, "failed to set bpfProgram object status")
-		return true
 	}
 
+	r.Logger.V(1).Info("condition updated", "new condition", cond)
 	return true
 }
 

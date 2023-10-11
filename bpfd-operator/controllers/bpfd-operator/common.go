@@ -23,6 +23,8 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	meta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -106,16 +108,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 			finalApplied = append(finalApplied, bpfProgram.Name)
 		}
 
-		if bpfProgram.Status.Conditions == nil {
-			break
-		}
-
-		// Get most recent condition
-		recentIdx := len(bpfProgram.Status.Conditions) - 1
-
-		condition := bpfProgram.Status.Conditions[recentIdx]
-
-		if bpfdHelpers.IsBpfProgramConditionFailure(condition.Type) {
+		if bpfdHelpers.IsBpfProgramConditionFailure(&bpfProgram.Status.Conditions) {
 			failedBpfPrograms = append(failedBpfPrograms, bpfProgram.Name)
 		}
 	}
@@ -187,4 +180,41 @@ func statusChangedPredicate() predicate.Funcs {
 			return false
 		},
 	}
+}
+
+func (r *ReconcilerCommon) updateCondition(ctx context.Context, obj client.Object, conditions *[]metav1.Condition, cond bpfdiov1alpha1.ProgramConditionType, message string) (ctrl.Result, error) {
+
+	r.Logger.V(1).Info("updateCondition()", "existing conds", conditions, "new cond", cond)
+
+	if conditions != nil {
+		numConditions := len(*conditions)
+
+		if numConditions == 1 {
+			if (*conditions)[0].Type == string(cond) {
+				// No change, so just return false -- not updated
+				return ctrl.Result{}, nil
+			} else {
+				// We're changing the condition, so delete this one.  The
+				// new condition will be added below.
+				*conditions = nil
+			}
+		} else if numConditions > 1 {
+			// We should only ever have one condition, so we shouldn't hit this
+			// case.  However, if we do, log a message, delete the existing
+			// conditions, and add the new one below.
+			r.Logger.Info("more than one BpfProgramCondition", "numConditions", numConditions)
+			*conditions = nil
+		}
+		// if numConditions == 0, just add the new condition below.
+	}
+
+	meta.SetStatusCondition(conditions, cond.Condition(message))
+
+	if err := r.Status().Update(ctx, obj); err != nil {
+		r.Logger.V(1).Info("failed to set *Program object status...requeuing")
+		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
+	}
+
+	r.Logger.V(1).Info("condition updated", "new condition", cond)
+	return ctrl.Result{}, nil
 }

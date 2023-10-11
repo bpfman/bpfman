@@ -19,7 +19,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -113,25 +112,5 @@ func (r *UprobeProgramReconciler) updateStatus(ctx context.Context, name string,
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}
 
-	if prog.Status.Conditions != nil {
-		// Get most recent condition
-		recentIdx := len(prog.Status.Conditions) - 1
-
-		// If the most recent condition is the same as input, just return.
-		if prog.Status.Conditions[recentIdx].Type == string(cond) {
-			return ctrl.Result{}, nil
-		} else {
-			// Remove the input condition from the list if it exists (may no exist)
-			// because the SetStatusCondition() doesn't append if it is already in the list.
-			meta.RemoveStatusCondition(&prog.Status.Conditions, string(cond))
-		}
-	}
-	meta.SetStatusCondition(&prog.Status.Conditions, cond.Condition(message))
-
-	if err := r.Status().Update(ctx, prog); err != nil {
-		r.Logger.V(1).Info("failed to set UprobeProgram object status...requeuing")
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
-	}
-
-	return ctrl.Result{}, nil
+	return r.ReconcilerCommon.updateCondition(ctx, prog, &prog.Status.Conditions, cond, message)
 }
