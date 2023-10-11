@@ -51,7 +51,7 @@ __u32 xdp_stats_record_action(struct xdp_md *ctx, __u32 action)
 	return action;
 }
 
-SEC("xdp/stats")
+SEC("xdp")
 int  xdp_stats(struct xdp_md *ctx)
 {
 	__u32 action = XDP_PASS; /* XDP_PASS = 2 */
