@@ -248,7 +248,9 @@ impl Bpfd for BpfdLoader {
                         match r.data() {
                             // If filtering on `bpfd Only`, this program is of type Unsupported so skip
                             Err(_) => {
-                                if request.get_ref().bpfd_programs_only() {
+                                if request.get_ref().bpfd_programs_only()
+                                    || !request.get_ref().match_metadata.is_empty()
+                                {
                                     continue;
                                 }
                             }
