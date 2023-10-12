@@ -9,6 +9,8 @@ pub enum BpfdError {
     #[error("An error occurred. {0}")]
     Error(String),
     #[error(transparent)]
+    BpfIOError(#[from] std::io::Error),
+    #[error(transparent)]
     BpfProgramError(#[from] aya::programs::ProgramError),
     #[error(transparent)]
     BpfLoadError(#[from] aya::BpfError),
