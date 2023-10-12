@@ -369,7 +369,7 @@ bpfctl load-from-image --image-url quay.io/bpfd-bytecode/go-xdp-counter:latest x
  Metadata:      None
  Map Pin Path:  /run/bpfd/fs/maps/6229
  Map Owner ID:  None
- Map Used By:   None
+ Map Used By:   6229
  Priority:      50
  Iface:         ens3
  Position:      0

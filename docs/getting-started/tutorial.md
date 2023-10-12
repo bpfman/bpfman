@@ -62,7 +62,7 @@ sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp
  Metadata:      None
  Map Pin Path:  /run/bpfd/fs/maps/6213
  Map Owner ID:  None
- Map Used By:   None
+ Map Used By:   6213
  Priority:      100
  Iface:         vethff657c7
  Position:      0
@@ -109,7 +109,7 @@ sudo ./target/debug/bpfctl get 6213
  Metadata:      None
  Map Pin Path:  /run/bpfd/fs/maps/6213
  Map Owner ID:  None
- Map Used By:   None
+ Map Used By:   6213
  Priority:      100
  Iface:         vethff657c7
  Position:      0
@@ -150,7 +150,7 @@ sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp
  Metadata:      None
  Map Pin Path:  /run/bpfd/fs/maps/6215
  Map Owner ID:  None
- Map Used By:   None
+ Map Used By:   6215
  Priority:      50
  Iface:         vethff657c7
  Position:      0
@@ -175,7 +175,7 @@ sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp
  Metadata:      None
  Map Pin Path:  /run/bpfd/fs/maps/6217
  Map Owner ID:  None
- Map Used By:   None
+ Map Used By:   6217
  Priority:      200
  Iface:         vethff657c7
  Position:      2
@@ -280,7 +280,7 @@ sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp
  Metadata:      None
  Map Pin Path:  /run/bpfd/fs/maps/6219
  Map Owner ID:  None
- Map Used By:   None
+ Map Used By:   6219
  Priority:      150
  Iface:         vethff657c7
  Position:      2
@@ -335,7 +335,7 @@ sudo ./target/debug/bpfctl list
  Metadata:      None
  Map Pin Path:  /run/bpfd/fs/maps/6215
  Map Owner ID:  None
- Map Used By:   None
+ Map Used By:   6215
  Priority:      50
  Iface:         vethff657c7
  Position:      0
@@ -360,7 +360,7 @@ sudo ./target/debug/bpfctl list
  Metadata:      None
  Map Pin Path:  /run/bpfd/fs/maps/6217
  Map Owner ID:  None
- Map Used By:   None
+ Map Used By:   6217
  Priority:      200
  Iface:         vethff657c7
  Position:      2
@@ -385,7 +385,7 @@ sudo ./target/debug/bpfctl list
  Metadata:      None
  Map Pin Path:  /run/bpfd/fs/maps/6219
  Map Owner ID:  None
- Map Used By:   None
+ Map Used By:   6219
  Priority:      150
  Iface:         vethff657c7
  Position:      1

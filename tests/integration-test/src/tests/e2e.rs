@@ -44,11 +44,12 @@ fn test_proceed_on_xdp() {
         DEFAULT_BPFD_IFACE,
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
-        None,
+        None, // proceed_on
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        None,
+        None, // metadata
+        None, // map_owner_id
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -76,7 +77,8 @@ fn test_proceed_on_xdp() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        None,
+        None, // metadata
+        None, // map_owner_id
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -105,7 +107,8 @@ fn test_proceed_on_xdp() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        None,
+        None, // metadata
+        None, // map_owner_id
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -291,11 +294,12 @@ fn test_program_execution_with_global_variables() {
         DEFAULT_BPFD_IFACE,
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
-        None,
+        None, // proceed_on
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        None,
+        None, // metadata
+        None, // map_owner_id
     );
 
     loaded_ids.push(prog_id.unwrap());
@@ -429,24 +433,25 @@ fn test_load_unload_xdp_maps() {
     debug!("Installing xdp_counter program");
 
     // Install an xdp counter program
-    let (prog_id, map_pin_path) = add_xdp(
+    let (prog_id, stdout) = add_xdp(
         DEFAULT_BPFD_IFACE,
         100,
-        None,
-        None,
+        None, // globals
+        None, // proceed_on
         &LoadType::Image,
         XDP_COUNTER_IMAGE_LOC,
         "",
-        None,
+        None, // metadata
+        None, // map_owner_id
     );
+    let binding = stdout.unwrap();
 
     assert!(bpffs_has_entries(RTDIR_FS_XDP));
 
     debug!("Verify xdp_counter map pin directory was created, and maps were pinned");
 
-    assert!(PathBuf::from(map_pin_path.unwrap())
-        .join("xdp_stats_map")
-        .exists());
+    let map_pin_path = bpfctl_output_map_pin_path(&binding);
+    assert!(PathBuf::from(map_pin_path).join("xdp_stats_map").exists());
 
     // Verify rule persistence between restarts
     drop(bpfd_guard);
@@ -468,7 +473,7 @@ fn test_load_unload_tc_maps() {
     debug!("Installing tc_counter program");
 
     // Install an  counter program
-    let (prog_id, map_pin_path) = add_tc(
+    let (prog_id, stdout) = add_tc(
         "ingress",
         DEFAULT_BPFD_IFACE,
         100,
@@ -478,14 +483,14 @@ fn test_load_unload_tc_maps() {
         TC_COUNTER_IMAGE_LOC,
         "",
     );
+    let binding = stdout.unwrap();
 
     assert!(bpffs_has_entries(RTDIR_FS_TC_INGRESS));
 
     debug!("Verify tc_counter map pin directory was created, and maps were pinned");
 
-    assert!(PathBuf::from(map_pin_path.unwrap())
-        .join("tc_stats_map")
-        .exists());
+    let map_pin_path = bpfctl_output_map_pin_path(&binding);
+    assert!(PathBuf::from(map_pin_path).join("tc_stats_map").exists());
 
     // Verify rule persistence between restarts
     drop(bpfd_guard);
@@ -504,12 +509,14 @@ fn test_load_unload_tracepoint_maps() {
 
     debug!("Installing tracepoint_counter program");
 
-    let (prog_id, map_pin_path) =
+    let (prog_id, stdout) =
         add_tracepoint(None, &LoadType::Image, TRACEPOINT_COUNTER_IMAGE_LOC, "");
+    let binding = stdout.unwrap();
 
     debug!("Verify tracepiont_counter map pin directory was created, and maps were pinned");
 
-    assert!(PathBuf::from(map_pin_path.unwrap())
+    let map_pin_path = bpfctl_output_map_pin_path(&binding);
+    assert!(PathBuf::from(map_pin_path)
         .join("tracepoint_stats_map")
         .exists());
 

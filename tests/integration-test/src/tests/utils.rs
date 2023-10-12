@@ -1,6 +1,7 @@
 use std::{
+    fs,
     fs::File,
-    io::Read,
+    io::{Read, Write},
     path::{Path, PathBuf},
     process::Command,
     thread::sleep,
@@ -9,7 +10,7 @@ use std::{
 
 use anyhow::Result;
 use assert_cmd::prelude::*;
-use bpfd_api::util::directories::BYTECODE_IMAGE_CONTENT_STORE;
+use bpfd_api::util::directories::{BYTECODE_IMAGE_CONTENT_STORE, CFGPATH_BPFD_CONFIG};
 use log::debug;
 use predicates::str::is_empty;
 use regex::Regex;
@@ -102,6 +103,24 @@ pub fn start_bpfd() -> Result<ChildGuard> {
     Ok(bpfd_process)
 }
 
+/// Update bpfd.toml with Unix Socket
+pub fn cfgfile_append_unix_socket() {
+    debug!("Setup bpfd.toml with Unix Socket");
+
+    let mut f = File::create(CFGPATH_BPFD_CONFIG).unwrap();
+    f.write_all(
+        b"[[grpc.endpoints]]\ntype = \"unix\"\nenabled = true\npath = \"/run/bpfd/bpfd.sock\"",
+    )
+    .expect("could not write unix socket to bpfd.toml file");
+}
+
+/// Update bpfd.toml with Unix Socket
+pub fn cfgfile_remove() {
+    debug!("Remove bpfd.toml");
+
+    fs::remove_file(CFGPATH_BPFD_CONFIG).expect("could not remove bpfd.toml file");
+}
+
 /// Install an xdp program with bpfctl
 #[allow(clippy::too_many_arguments)]
 pub fn add_xdp(
@@ -113,8 +132,10 @@ pub fn add_xdp(
     image_url: &str,
     file_path: &str,
     metadata: Option<Vec<&str>>,
+    map_owner_id: Option<u32>,
 ) -> (Result<String>, Result<String>) {
     let p = priority.to_string();
+    let owner_id: String;
 
     let mut args = Vec::new();
 
@@ -137,6 +158,11 @@ pub fn add_xdp(
         args.extend(g);
     }
 
+    if let Some(owner) = map_owner_id {
+        owner_id = owner.to_string();
+        args.extend(["--map-owner-id", owner_id.as_str()]);
+    }
+
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
         LoadType::File => args.extend(["-n", "pass", "--path", file_path]),
@@ -154,15 +180,14 @@ pub fn add_xdp(
         .args(args)
         .ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let (prog_id, map_pin_path) = parse_bpfctl_load_output(&stdout);
+    let prog_id = bpfctl_output_parse_id(&stdout);
     assert!(!prog_id.is_empty());
-    assert!(!map_pin_path.is_empty());
     debug!(
         "Successfully added xdp program: {:?} from: {:?}",
         prog_id, load_type
     );
 
-    (Ok(prog_id), Ok(map_pin_path))
+    (Ok(prog_id), Ok(stdout))
 }
 
 /// Install a tc program with bpfctl
@@ -220,15 +245,14 @@ pub fn add_tc(
         .args(args)
         .ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let (prog_id, map_pin_path) = parse_bpfctl_load_output(&stdout);
+    let prog_id = bpfctl_output_parse_id(&stdout);
     assert!(!prog_id.is_empty());
-    assert!(!map_pin_path.is_empty());
     debug!(
         "Successfully added tc {} program: {:?} from: {:?}",
         direction, prog_id, load_type
     );
 
-    (Ok(prog_id), Ok(map_pin_path))
+    (Ok(prog_id), Ok(stdout))
 }
 
 /// Install a tracepoint program with bpfctl
@@ -266,14 +290,13 @@ pub fn add_tracepoint(
         .args(args)
         .ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let (prog_id, map_pin_path) = parse_bpfctl_load_output(&stdout);
+    let prog_id = bpfctl_output_parse_id(&stdout);
     assert!(!prog_id.is_empty());
-    assert!(!map_pin_path.is_empty());
     debug!(
         "Successfully added tracepoint program: {:?} from: {:?}",
         prog_id, load_type
     );
-    (Ok(prog_id), Ok(map_pin_path))
+    (Ok(prog_id), Ok(stdout))
 }
 
 /// Attach a uprobe program to bpfctl with bpfctl
@@ -311,7 +334,7 @@ pub fn add_uprobe(
 
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let (prog_id, _) = parse_bpfctl_load_output(&stdout);
+    let prog_id = bpfctl_output_parse_id(&stdout);
     assert!(!prog_id.is_empty());
     debug!(
         "Successfully added uprobe program: {:?} from: {:?}",
@@ -355,7 +378,7 @@ pub fn add_uretprobe(
 
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let (prog_id, _) = parse_bpfctl_load_output(&stdout);
+    let prog_id = bpfctl_output_parse_id(&stdout);
     assert!(!prog_id.is_empty());
     debug!(
         "Successfully added uretprobe program: {:?} from: {:?}",
@@ -396,7 +419,7 @@ pub fn add_kprobe(
 
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let (prog_id, _) = parse_bpfctl_load_output(&stdout);
+    let prog_id = bpfctl_output_parse_id(&stdout);
     assert!(!prog_id.is_empty());
     debug!(
         "Successfully added kprobe program: {:?} from: {:?}",
@@ -437,7 +460,7 @@ pub fn add_kretprobe(
 
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let (prog_id, _) = parse_bpfctl_load_output(&stdout);
+    let prog_id = bpfctl_output_parse_id(&stdout);
     assert!(!prog_id.is_empty());
     debug!(
         "Successfully added kretprobe program: {:?} from: {:?}",
@@ -469,6 +492,23 @@ pub fn bpfd_list(metadata_selector: Option<Vec<&str>>) -> Result<String> {
     let output = Command::cargo_bin("bpfctl")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout);
     Ok(stdout.unwrap())
+}
+
+/// Retrieve program data for a given program with bpfctl
+pub fn bpfd_get(prog_id: &str) -> Result<String> {
+    let output = Command::cargo_bin("bpfctl")
+        .unwrap()
+        .args(["get", prog_id.trim()])
+        .ok();
+
+    let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
+    let output_prog_id = bpfctl_output_parse_id(&stdout);
+    assert!(!output_prog_id.is_empty());
+    debug!(
+        "Successfully ran \'bpfctl get\' for program: {:?}",
+        output_prog_id
+    );
+    Ok(stdout)
 }
 
 pub fn bpfd_pull_bytecode() -> Result<String> {
@@ -783,21 +823,92 @@ pub fn bpffs_has_entries(path: &str) -> bool {
     PathBuf::from(path).read_dir().unwrap().next().is_some()
 }
 
-fn parse_bpfctl_load_output(stdout: &str) -> (String, String) {
+fn bpfctl_output_parse_id(stdout: &str) -> String {
+    // Regex:
+    //   Match the string "\n ID: ".
+    //   The {2,} indicates to match the previous token (a space) between 2 and
+    //   unlimited times.
+    //   For the capture group (.*?), the . indicates to capture any character
+    //   (except for line terminators) and the *? indicates to capture "the previous
+    //   token between zero and unlimited times".
+    //   The \s indicates to match any whites space.
     let re = Regex::new(r"\n ID: {2,}(.*?)\s").unwrap();
-    let prog_id = match re.captures(stdout) {
-        Some(caps) => caps[1].to_owned(),
-        None => "".to_string(),
-    };
-
-    let re = Regex::new(r"\n Map Pin Path: {2,}(.*?)\s").unwrap();
-    let map_pin_path = match re.captures(stdout) {
+    match re.captures(stdout) {
         Some(caps) => caps[1].to_owned(),
         None => {
-            println!("\"Map Pin Path:\" not found!");
+            debug!("\"ID:\" not found",);
             "".to_string()
+        }
+    }
+}
+
+pub fn bpfctl_output_map_pin_path(stdout: &str) -> String {
+    // Regex:
+    //   Match the string "\n Maps Pin Path: ".
+    //   The {2,} indicates to match the previous token (a space) between 2 and
+    //   unlimited times.
+    //   For the capture group (.*?), the . indicates to capture any character
+    //   (except for line terminators) and the *? indicates to capture "the previous
+    //   token between zero and unlimited times".
+    //   The \s indicates to match any whites space.
+    let re = Regex::new(r"\n Map Pin Path: {2,}(.*?)\s").unwrap();
+    match re.captures(stdout) {
+        Some(caps) => caps[1].to_owned(),
+        None => {
+            debug!("\"Map Pin Path:\" not found",);
+            "".to_string()
+        }
+    }
+}
+
+pub fn bpfctl_output_map_owner_id(stdout: &str) -> String {
+    // Regex:
+    //   Match the string "\n Maps Owner ID: ".
+    //   The {2,} indicates to match the previous token (a space) between 2 and
+    //   unlimited times.
+    //   For the capture group (.*?), the . indicates to capture any character
+    //   (except for line terminators) and the *? indicates to capture "the previous
+    //   token between zero and unlimited times".
+    //   The \s indicates to match any whites space.
+    let re = Regex::new(r"\n Map Owner ID: {2,}(.*?)\s").unwrap();
+    match re.captures(stdout) {
+        Some(caps) => caps[1].to_owned(),
+        None => {
+            debug!("\"Map Pin Path:\" not found",);
+            "".to_string()
+        }
+    }
+}
+
+pub fn bpfctl_output_xdp_map_used_by(stdout: &str) -> Vec<String> {
+    let mut used_by: Vec<String> = Vec::new();
+
+    // Regex:
+    //   Match the string "\n Maps Used By:".
+    //   For the capture group ((.|\n)*?), the (.|\n) indicates to capture "any character
+    //   (except for line terminators)" OR capture "a line-feed (newline) character".
+    //   The *? indicates to capture "the previous token between zero and unlimited times"
+    //   Match the string "\n Priority:".
+    //
+    // This is specific to XDP because other program types have different fields after
+    // "Maps Used By:". Capture string will something like:
+    //    "  None\n"  OR  "  1324\n"  OR "  3456    \n    3468\n"
+    let re_1 = Regex::new(r"\n Maps Used By:((.|\n)*?)\n Priority:").unwrap();
+    let used_by_output = match re_1.captures(stdout) {
+        Some(caps) => caps[1].to_owned(),
+        None => {
+            debug!("\"Map Used By:\" not found",);
+            return used_by;
         }
     };
 
-    (prog_id, map_pin_path)
+    // Regex:
+    //   Take the previous output, convert to a Vec of String where each
+    //   is the Program Id (all digits).
+    let re_2 = Regex::new(r"(\d+)").unwrap();
+    for cap in re_2.captures_iter(&used_by_output) {
+        used_by.push(cap[1].to_string());
+    }
+
+    used_by
 }
