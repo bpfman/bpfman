@@ -88,7 +88,7 @@ spec:
             valueFrom:
               configMapKeyRef:
                 name: bpfd-config
-                key: bpfd.log.level
+                key: bpfd.agent.log.level
         volumeMounts:
         - name: bpfd-sock
           mountPath: /bpfd-sock

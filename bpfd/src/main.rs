@@ -156,8 +156,8 @@ fn drop_linux_capabilities() {
     let res = match User::from_uid(uid) {
         Ok(res) => res.unwrap(),
         Err(e) => {
-            debug!("Unable to map user id {} to a name. err: {}", uid, e);
-            info!(
+            warn!("Unable to map user id {} to a name. err: {}", uid, e);
+            debug!(
                 "Running as user id {}, skip dropping all capabilities for spawned threads",
                 uid
             );
@@ -176,7 +176,7 @@ fn drop_linux_capabilities() {
         drop_all_cap(caps::CapSet::Inheritable);
         drop_all_cap(caps::CapSet::Permitted);
     } else {
-        info!(
+        debug!(
             "Running as user {}, skip dropping all capabilities for spawned threads",
             res.name
         );

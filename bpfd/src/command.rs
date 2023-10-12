@@ -20,6 +20,7 @@ use bpfd_api::{
     ParseError, ProgramType, TcProceedOn, XdpProceedOn,
 };
 use chrono::{prelude::DateTime, Local};
+use log::info;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc::Sender, oneshot};
 
@@ -332,6 +333,12 @@ pub(crate) struct ProgramData {
     kernel_info: Option<KernelProgramInfo>,
     map_pin_path: Option<PathBuf>,
     maps_used_by: Option<Vec<u32>>,
+
+    // program_bytes is used to temporarily cache the raw program data during
+    // the loading process.  It MUST be cleared following a load so that there
+    // is not a long lived copy of the program data living on the heap.
+    #[serde(skip_serializing, skip_deserializing)]
+    program_bytes: Vec<u8>,
 }
 
 impl ProgramData {
@@ -348,6 +355,7 @@ impl ProgramData {
             metadata,
             global_data,
             map_owner_id,
+            program_bytes: Vec::new(),
             kernel_info: None,
             map_pin_path: None,
             maps_used_by: None,
@@ -399,15 +407,30 @@ impl ProgramData {
         self.maps_used_by.as_ref()
     }
 
-    pub(crate) async fn program_bytes(
+    pub(crate) fn program_bytes(&self) -> &[u8] {
+        &self.program_bytes
+    }
+
+    // In order to ensure that the program bytes, which can be a large amount
+    // of data is only stored for as long as needed, make sure to call
+    // clear_program_bytes following a load.
+    pub(crate) fn clear_program_bytes(&mut self) {
+        self.program_bytes = Vec::new();
+    }
+
+    pub(crate) async fn set_program_bytes(
         &mut self,
         image_manager: Sender<ImageManagerCommand>,
-    ) -> Result<Vec<u8>, BpfdError> {
+    ) -> Result<(), BpfdError> {
         match self.location.get_program_bytes(image_manager).await {
             Err(e) => Err(e),
             Ok((v, s)) => {
-                match self.location {
-                    Location::Image(_) => {
+                match &self.location {
+                    Location::Image(l) => {
+                        info!(
+                            "Loading program bytecode from container image: {}",
+                            l.get_url()
+                        );
                         // If program name isn't provided and we're loading from a container
                         // image use the program name provided in the image metadata, otherwise
                         // always use the provided program name.
@@ -422,9 +445,12 @@ impl ProgramData {
                             });
                         }
                     }
-                    Location::File(_) => {}
+                    Location::File(l) => {
+                        info!("Loading program bytecode from file: {}", l);
+                    }
                 }
-                Ok(v)
+                self.program_bytes = v;
+                Ok(())
             }
         }
     }

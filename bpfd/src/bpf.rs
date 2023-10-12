@@ -269,8 +269,6 @@ impl BpfManager {
     }
 
     pub(crate) async fn add_program(&mut self, mut program: Program) -> Result<Program, BpfdError> {
-        debug!("BpfManager::add_program()");
-
         let map_owner_id = program.data()?.map_owner_id();
         // Set map_pin_path if we're using another program's maps
         if let Some(map_owner_id) = map_owner_id {
@@ -280,37 +278,46 @@ impl BpfManager {
                 .set_map_pin_path(Some(map_pin_path.clone()));
         }
 
-        let program_bytes = program
+        program
             .data_mut()?
-            .program_bytes(self.image_manager.clone())
+            .set_program_bytes(self.image_manager.clone())
             .await?;
+
         let result = match program {
             Program::Xdp(_) | Program::Tc(_) => {
                 program.set_if_index(get_ifindex(&program.if_name().unwrap())?);
 
-                self.add_multi_attach_program(&mut program, program_bytes)
-                    .await
+                self.add_multi_attach_program(&mut program).await
             }
             Program::Tracepoint(_) | Program::Kprobe(_) | Program::Uprobe(_) => {
-                self.add_single_attach_program(&mut program, program_bytes)
-                    .await
+                self.add_single_attach_program(&mut program).await
             }
             Program::Unsupported(_) => panic!("Cannot add unsupported program"),
         };
+
+        // Program bytes MUST be cleared after load.
+        program.data_mut()?.clear_program_bytes();
 
         // map_pin_path MUST be set following load.
         let map_pin_path = program.data()?.map_pin_path();
 
         match result {
             Ok(id) => {
+                info!(
+                    "Added {} program with name: {} and id: {id}",
+                    program.kind(),
+                    program.data()?.name()
+                );
+
                 // Now that program is successfully loaded, update the id, maps hash table,
                 // and allow access to all maps by bpfd group members.
                 self.save_map(
                     id,
                     map_owner_id,
-                    map_pin_path.expect("map_pin_path must be set after successfult load"),
+                    map_pin_path.expect("map_pin_path must be set after successful load"),
                 )
                 .await?;
+
                 Ok(program)
             }
             Err(e) => {
@@ -325,7 +332,6 @@ impl BpfManager {
     pub(crate) async fn add_multi_attach_program(
         &mut self,
         program: &mut Program,
-        program_bytes: Vec<u8>,
     ) -> Result<u32, BpfdError> {
         debug!("BpfManager::add_multi_attach_program()");
         let name = program.data()?.name();
@@ -336,7 +342,7 @@ impl BpfManager {
         let mut ext_loader = BpfLoader::new()
             .allow_unsupported_maps()
             .extension(name)
-            .load(&program_bytes)?;
+            .load(program.data()?.program_bytes())?;
 
         match ext_loader.program_mut(name) {
             Some(_) => Ok(()),
@@ -418,7 +424,6 @@ impl BpfManager {
     pub(crate) async fn add_single_attach_program(
         &mut self,
         p: &mut Program,
-        program_bytes: Vec<u8>,
     ) -> Result<u32, BpfdError> {
         debug!("BpfManager::add_single_attach_program()");
         let name = p.data()?.name();
@@ -438,7 +443,9 @@ impl BpfManager {
             bpf.map_pin_path(map_pin_path);
         }
 
-        let mut loader = bpf.allow_unsupported_maps().load(&program_bytes)?;
+        let mut loader = bpf
+            .allow_unsupported_maps()
+            .load(p.data()?.program_bytes())?;
 
         let raw_program = loader
             .program_mut(name)
@@ -614,7 +621,7 @@ impl BpfManager {
     }
 
     pub(crate) async fn remove_program(&mut self, id: u32) -> Result<(), BpfdError> {
-        debug!("BpfManager::remove_program() id: {id}");
+        info!("Removing program with id: {id}");
         let mut prog = match self.programs.remove(&id) {
             Some(p) => p,
             None => {
@@ -780,7 +787,7 @@ impl BpfManager {
     }
 
     pub(crate) fn get_program(&mut self, id: u32) -> Result<Program, BpfdError> {
-        debug!("BpfManager::get_program({0})", id);
+        debug!("Getting program with id: {id}");
         // If the program was loaded by bpfd, then use it.
         // Otherwise, call Aya to get ALL the loaded eBPF programs, and convert the data
         // returned from Aya into an Unsupported Program Object.

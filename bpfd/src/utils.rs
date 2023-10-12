@@ -52,7 +52,7 @@ pub(crate) async fn read_to_string<P: AsRef<Path>>(path: P) -> Result<String, Bp
 pub(crate) fn get_ifindex(iface: &str) -> Result<u32, BpfdError> {
     match if_nametoindex(iface) {
         Ok(index) => {
-            info!("Map {} to {}", iface, index);
+            debug!("Map {} to {}", iface, index);
             Ok(index)
         }
         Err(_) => {
