@@ -251,6 +251,7 @@ dependencies = [
  "log",
  "object",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]
@@ -377,6 +378,7 @@ dependencies = [
  "base16ct",
  "bpfd-api",
  "bpfd-csi",
+ "bytes",
  "caps",
  "chrono",
  "clap",

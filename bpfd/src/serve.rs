@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: (MIT OR Apache-2.0)
 // Copyright Authors of bpfd
 
-use std::{fs::remove_file, net::SocketAddr, os::unix::fs::PermissionsExt, path::Path};
+use std::{fs::remove_file, net::SocketAddr, os::unix::fs::PermissionsExt, path::Path, sync::Arc};
 
 use anyhow::Context;
 use bpfd_api::{
@@ -15,7 +15,7 @@ use tokio::{
     net::UnixListener,
     select,
     signal::unix::{signal, SignalKind},
-    sync::mpsc,
+    sync::{mpsc, Mutex},
     task::JoinHandle,
 };
 use tokio_stream::wrappers::UnixListenerStream;
@@ -23,8 +23,9 @@ use tonic::transport::{Server, ServerTlsConfig};
 
 pub use crate::certs::get_tls_config;
 use crate::{
-    bpf::BpfManager, errors::BpfdError, oci_utils::ImageManager, rpc::BpfdLoader,
-    static_program::get_static_programs, storage::StorageManager, utils::SOCK_MODE,
+    bpf::BpfManager, errors::BpfdError, oci_utils::ImageManager, qdisc::OnQdiscDestroyEvent,
+    rpc::BpfdLoader, static_program::get_static_programs, storage::StorageManager,
+    utils::SOCK_MODE,
 };
 
 pub async fn serve(
@@ -83,7 +84,12 @@ pub async fn serve(
     let mut image_manager =
         ImageManager::new(BYTECODE_IMAGE_CONTENT_STORE, allow_unsigned, irx).await?;
 
-    let mut bpf_manager = BpfManager::new(config, rx, itx);
+    // create a channel for qdisc destroy events
+    let (tx1, rx1) = mpsc::channel(128);
+
+    let mut bpf_manager = BpfManager::new(config, rx, itx, rx1);
+    let qdisc_destroy_event_arc = Arc::new(Mutex::new(tx1));
+
     bpf_manager.rebuild_state().await?;
 
     let static_programs = get_static_programs(static_program_path).await?;
@@ -103,15 +109,17 @@ pub async fn serve(
         let storage_manager = StorageManager::new(tx);
 
         join!(
+            OnQdiscDestroyEvent::run(qdisc_destroy_event_arc.clone()),
             join_listeners(listeners),
-            bpf_manager.process_commands(),
+            bpf_manager.run(),
             image_manager.run(),
             storage_manager.run()
         );
     } else {
         join!(
+            OnQdiscDestroyEvent::run(qdisc_destroy_event_arc.clone()),
             join_listeners(listeners),
-            bpf_manager.process_commands(),
+            bpf_manager.run(),
             image_manager.run(),
         );
     }
