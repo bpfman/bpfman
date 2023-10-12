@@ -27,11 +27,12 @@ jobs:
             dockerfile: ./packaging/container-deployment/Containerfile.bpfd
             context: .
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             repository: bpfd
@@ -39,11 +40,12 @@ jobs:
             dockerfile: ./packaging/container-deployment/Containerfile.bpfctl
             context: .
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             repository: bpfd
@@ -51,11 +53,12 @@ jobs:
             dockerfile: ./bpfd-operator/Containerfile.bpfd-agent
             context: .
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             repository: bpfd
@@ -63,11 +66,12 @@ jobs:
             dockerfile: ./bpfd-operator/Containerfile.bpfd-operator
             context: .
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             repository: bpfd
@@ -75,11 +79,12 @@ jobs:
             context: ./bpfd-operator
             dockerfile: ./bpfd-operator/Containerfile.bundle
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             repository: bpfd-userspace
@@ -87,11 +92,12 @@ jobs:
             context: .
             dockerfile: ./examples/go-xdp-counter/container-deployment/Containerfile.go-xdp-counter
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             repository: bpfd-userspace
@@ -99,11 +105,12 @@ jobs:
             context: .
             dockerfile: ./examples/go-tc-counter/container-deployment/Containerfile.go-tc-counter
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             repository: bpfd-userspace
@@ -111,11 +118,12 @@ jobs:
             context: .
             dockerfile: ./examples/go-tracepoint-counter/container-deployment/Containerfile.go-tracepoint-counter
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             bpf_build_wrapper: go
@@ -129,11 +137,12 @@ jobs:
               PROGRAM_TYPE=xdp
               BYTECODE_FILENAME=bpf_bpfel.o
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             bpf_build_wrapper: go
@@ -147,11 +156,12 @@ jobs:
               PROGRAM_TYPE=tc
               BYTECODE_FILENAME=bpf_bpfel.o
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             bpf_build_wrapper: go
@@ -165,11 +175,12 @@ jobs:
               PROGRAM_TYPE=tracepoint
               BYTECODE_FILENAME=bpf_bpfel.o
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             bpf_build_wrapper: rust
@@ -183,11 +194,12 @@ jobs:
               PROGRAM_TYPE=xdp
               BYTECODE_FILENAME=xdp_pass.bpf.o
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             bpf_build_wrapper: rust
@@ -201,11 +213,12 @@ jobs:
               PROGRAM_TYPE=xdp
               BYTECODE_FILENAME=xdp_pass.bpf.o
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             bpf_build_wrapper: rust
@@ -219,11 +232,12 @@ jobs:
               PROGRAM_TYPE=tc
               BYTECODE_FILENAME=tc_pass.bpf.o
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             bpf_build_wrapper: rust
@@ -237,11 +251,12 @@ jobs:
               PROGRAM_TYPE=tracepoint
               BYTECODE_FILENAME=tp_openat.bpf.o
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             bpf_build_wrapper: rust
@@ -255,11 +270,12 @@ jobs:
               PROGRAM_TYPE=kprobe
               BYTECODE_FILENAME=uprobe.bpf.o
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             bpf_build_wrapper: rust
@@ -273,11 +289,12 @@ jobs:
               PROGRAM_TYPE=kprobe
               BYTECODE_FILENAME=uprobe.bpf.o
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             bpf_build_wrapper: rust
@@ -291,11 +308,12 @@ jobs:
               PROGRAM_TYPE=kprobe
               BYTECODE_FILENAME=kprobe.bpf.o
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200             
+              type=raw,value=latest,enable={{is_default_branch}}           
 
           - registry: quay.io
             bpf_build_wrapper: rust
@@ -309,11 +327,12 @@ jobs:
               PROGRAM_TYPE=kprobe
               BYTECODE_FILENAME=kprobe.bpf.o
             tags: |
-              type=ref,event=branch,priority=200
-              type=ref,event=tag,priority=200
-              type=ref,event=pr,priority=200
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}},priority=200             
+              type=raw,value=latest,enable={{is_default_branch}}             
 
           - registry: quay.io
             bpf_build_wrapper: rust
@@ -322,7 +341,8 @@ jobs:
             context: .
             dockerfile: ./Containerfile.xdp_dispatcher_v1
             tags: |
-              type=raw,value=v1,enable=true,priority=200
+              type=sha,format=long
+              type=raw,value=v1,enable=true
 
           - registry: quay.io
             bpf_build_wrapper: rust
@@ -331,7 +351,8 @@ jobs:
             context: .
             dockerfile: ./Containerfile.xdp_dispatcher_v2
             tags: |
-              type=raw,value=v2,enable=true,priority=200
+              type=sha,format=long
+              type=raw,value=v2,enable=true
 
     name: Build Image (${{ matrix.image.image }})
     environment: image-repositories
