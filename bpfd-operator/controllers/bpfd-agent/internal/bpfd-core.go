@@ -156,7 +156,6 @@ func ListBpfdPrograms(ctx context.Context, bpfdClient gobpfd.BpfdClient, program
 }
 
 func GetBpfdProgram(ctx context.Context, bpfdClient gobpfd.BpfdClient, uuid types.UID) (*gobpfd.ListResponse_ListResult, error) {
-
 	listReq := gobpfd.ListRequest{
 		MatchMetadata: map[string]string{internal.UuidMetadataKey: string(uuid)},
 	}
@@ -167,7 +166,7 @@ func GetBpfdProgram(ctx context.Context, bpfdClient gobpfd.BpfdClient, uuid type
 	}
 
 	if len(listResponse.Results) != 1 {
-		return nil, fmt.Errorf("multible programs found for uuid: %+v ", uuid)
+		return nil, fmt.Errorf("multiple programs found for uuid: %+v ", uuid)
 	}
 
 	return listResponse.Results[0], nil
