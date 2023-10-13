@@ -51,6 +51,7 @@ nav:
   - Introduction: index.md
   - Getting Started:
     - Setup and Building: getting-started/building-bpfd.md
+    - Run bpfd From Release Image: getting-started/running-release.md
     - Bpfd on Linux Tutorial: getting-started/tutorial.md
     - bpfctl Guide: getting-started/bpfctl-guide.md
     - Example eBPF Programs: getting-started/example-bpf.md

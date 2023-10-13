@@ -15,8 +15,17 @@ copy_bin() {
         user_group=${bin_name}
     fi
 
-    echo "  Copying \"${bin_name}\" and chown \"${user_name}:${user_group}\""
-    cp "${SRC_BIN_PATH}/${bin_name}" "${DST_BIN_PATH}/${bin_name}"
+    if test -f ${SRC_DEBUG_BIN_PATH}/${bin_name}; then
+        src_path=${SRC_DEBUG_BIN_PATH}
+    elif test -f ${SRC_RELEASE_BIN_PATH}/${bin_name}; then
+        src_path=${SRC_RELEASE_BIN_PATH}
+    else
+        echo "  ERROR: Unable to find \"${bin_name}\" in \"${SRC_DEBUG_BIN_PATH}\" or \"${SRC_RELEASE_BIN_PATH}\""
+        return
+    fi
+
+    echo "  Copying \"${src_path}\"/\"${bin_name}\" to \"${DST_BIN_PATH}\" and chown \"${user_name}:${user_group}\""
+    cp "${src_path}/${bin_name}" "${DST_BIN_PATH}/${bin_name}"
     chown ${user_name}:${user_group} "${DST_BIN_PATH}/${bin_name}"
 }
 
