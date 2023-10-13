@@ -9,8 +9,7 @@ spec:
   # Select all nodes
   nodeselector: {}
   interfaceselector:
-    interfaces: 
-    - eth0
+    primarynodeinterface: true
   priority: 55
   direction: ingress
   bytecode:

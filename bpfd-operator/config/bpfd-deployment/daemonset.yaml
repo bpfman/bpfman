@@ -64,6 +64,8 @@ spec:
         - name: default-bpf-fs
           mountPath: /sys/fs/bpf
           mountPropagation: Bidirectional
+        - mountPath: /tmp
+          name: tmp-dir
       - name: bpfd-agent 
         command:
         - /bpfd-agent
@@ -107,3 +109,9 @@ spec:
         hostPath:
           path: /sys/fs/bpf
           type: DirectoryOrCreate
+      # Temporary hack to allow sigstore rust bindings to write data to /tmp
+      # which doesn't seem to exist when running via Openshift.
+      - hostPath:
+          path: /tmp
+          type: DirectoryOrCreate
+        name: tmp-dir
