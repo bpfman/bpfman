@@ -22,11 +22,20 @@ A release for the bpfd project is comprised of the following major components:
   - `quay.io/bpfd/bpfd-operator`
   - `quay.io/bpfd/bpfd-agent`
   - `quay.io/bpfd/bpfd-operator-bundle`
+  - `quay.io/bpfd/xdp-dispatcher`
 - The relevant example bytecode container images with tag <RELEASE_VERSION> from source
   code located in the bpfd project:
   - `quay.io/bpfd-bytecode/go_xdp_counter`
   - `quay.io/bpfd-bytecode/go_tc_counter`
   - `quay.io/bpfd-bytecode/go_tracepoint_counter`
+  - `quay.io/bpfd-bytecode/xdp_pass`
+  - `quay.io/bpfd-bytecode/tc_pass`
+  - `quay.io/bpfd-bytecode/tracepoint`
+  - `quay.io/bpfd-bytecode/xdp_pass_private`
+  - `quay.io/bpfd-bytecode/uprobe`
+  - `quay.io/bpfd-bytecode/kprobe`
+  - `quay.io/bpfd-bytecode/uretprobe`
+  - `quay.io/bpfd-bytecode/kretprobe`
 - The relevant example userspace container images with tag <RELEASE_VERSION> from source
   code located in the bpfd project:
   - `quay.io/bpfd-userspace/go_xdp_counter`
@@ -112,6 +121,7 @@ For a **MAJOR** or **MINOR** release:
   - Adds a new changelog for the release
   - Updates the cargo.toml versions for the bpfd-api, bpfd, and bpfctl crates
   - Updates the bpfd-operator version in it's MAKEFILE and run `make bundle` to update the bundle version
+  - Add's a new `examples` config directory for the release version
 - Make sure CI is green and merge the update PR.
 - Create a tag using the `HEAD` of the `main` branch. This can be done using the `git` CLI or
   Github's [release][release] page.

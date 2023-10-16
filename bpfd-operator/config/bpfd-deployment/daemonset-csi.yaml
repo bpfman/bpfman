@@ -74,6 +74,8 @@ spec:
         - mountPath: /var/lib/kubelet/pods
           mountPropagation: Bidirectional
           name: mountpoint-dir
+        - mountPath: /tmp
+          name: tmp-dir
       - name: bpfd-agent 
         command:
         - /bpfd-agent
@@ -97,7 +99,7 @@ spec:
           subPath: bpfd.toml
           readOnly: true
       - name: node-driver-registrar
-        image: k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.9.0
+        image: quay.io/bpfd/csi-node-driver-registrar:v2.9.0
         imagePullPolicy: IfNotPresent
         lifecycle:
           preStop:
@@ -155,3 +157,9 @@ spec:
           path: /var/lib/kubelet/plugins_registry
           type: Directory
         name: registration-dir
+      # Temporary hack to allow sigstore rust bindings to write data to /tmp
+      # which doesn't seem to exist when running via Openshift.
+      - hostPath:
+          path: /tmp
+          type: DirectoryOrCreate
+        name: tmp-dir
