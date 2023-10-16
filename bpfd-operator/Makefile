@@ -251,9 +251,9 @@ bundle: operator-sdk generate kustomize manifests ## Generate bundle manifests a
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(OPERATOR_SDK) bundle validate ./bundle
 
-.PHONY: build-crd-install-yaml
-build-crd-install-yaml: generate ## Generate the crd install bundle for a specific release version.
-	VERSION=$(VERSION) ./hack/build-install-yaml.sh
+.PHONY: build-release-yamls
+build-release-yamls: generate kustomize ## Generate the crd install bundle for a specific release version.
+	VERSION=$(VERSION) ./hack/build-release-yamls.sh
 
 ##@ Build
 
