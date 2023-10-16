@@ -101,14 +101,12 @@ For a **PATCH** release:
 - Create a tag using the `HEAD` of the `release-x.x.x` branch. This can be done using the `git` CLI or
   Github's [release][release] page.
 - The Release will be automatically created, after that is complete do the following:
-  - run `make build-crd-install-yaml` and attach the crd install yaml for the version to the release.
-  - manually build and attach a `bpfd-operator-install-vx.x.x.yaml` to provide an easy to use install
-    yaml for the bpfd-operator.
-  - manually build and attach the following files:
+  - run `make build-release-yamls` and attach the yamls for the version to the release. These will include:
+    - `bpfd-crds-install-vx.x.x.yaml`
+    - `bpfd-operator-install-vx.x.x.yaml`
     - `go-xdp-counter-install-vx.x.x.yaml`
     - `go-tc-counter-install-vx.x.x.yaml`
     - `go-tracepoint-counter-install-vx.x.x.yaml`
-    so that the examples for a given release can be easily deployed.
 - Update the [community-operator](https://github.com/k8s-operatorhub/community-operators) and
   [community-operators-prod](https://github.com/redhat-openshift-ecosystem/community-operators-prod) repositories with
   the latest bundle manifests. See the following PRs as examples:
@@ -129,14 +127,12 @@ For a **MAJOR** or **MINOR** release:
   This can  be done using the `git` CLI or Github's [release][release]
   page.
 - The Release will be automatically created, after that is complete do the following:
-  - run `make build-crd-install-yaml` and attach the crd install yaml for the version to the release.
-  - manually build and attach a `bpfd-operator-install-vx.x.x.yaml` to provide an easy to use install
-    yaml for the bpfd-operator.
-  - manually build and attach the following files:
+  - run `make build-release-yamls` and attach the yamls for the version to the release. These will include:
+    - `bpfd-crds-install-vx.x.x.yaml`
+    - `bpfd-operator-install-vx.x.x.yaml`
     - `go-xdp-counter-install-vx.x.x.yaml`
     - `go-tc-counter-install-vx.x.x.yaml`
     - `go-tracepoint-counter-install-vx.x.x.yaml`
-    so that the examples for a given release can be easily deployed.
 
 [release]: https://github.com/bpfd-dev/bpfd/releases
 [bpfd-team]: https://github.com/bpfd-dev/bpfd/blob/main/CODEOWNERS
