@@ -19,13 +19,7 @@ make run-on-kind
 
 ### Deploy To Openshift Cluster
 
-First install cert-manager (if not already deployed) to the cluster with:
-
-```bash
-make deploy-cert-manager
-```
-
-Then deploy the operator with one of the following two options:
+First deploy the operator with one of the following two options:
 
 #### 1. Manually with Kustomize
 

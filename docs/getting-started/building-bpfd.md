@@ -5,6 +5,10 @@ If this is the first time building bpfd, jump to the
 [Development Environment Setup](#development-environment-setup) section for help installing
 the tooling.
 
+There is also an option to run images from a given release as opposed to building locally.
+Jump to the [Run bpfd From Release Image](./running-release.md) section for installing
+from a fixed release.
+
 ## Clone the bpfd Repo
 
 You can build and run bpfd from anywhere. However, if you plan to make changes
