@@ -13,7 +13,9 @@ use aya::{
     Bpf, BpfLoader,
 };
 use bpfd_api::util::directories::*;
+use futures::stream::TryStreamExt;
 use log::debug;
+use netlink_packet_route::tc::Nla;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::Sender;
 
@@ -110,19 +112,61 @@ impl TcDispatcher {
             loader: Some(loader),
         };
         dispatcher.attach_extensions(&mut extensions).await?;
-        dispatcher.attach(old_dispatcher)?;
+        dispatcher.attach(old_dispatcher).await?;
         dispatcher.save()?;
         Ok(dispatcher)
     }
 
-    fn attach(&mut self, old_dispatcher: Option<Dispatcher>) -> Result<(), BpfdError> {
+    /// has_qdisc returns true if the qdisc_name is found on the if_index.
+    async fn has_qdisc(qdisc_name: String, if_index: i32) -> Result<bool, anyhow::Error> {
+        let (connection, handle, _) = rtnetlink::new_connection().unwrap();
+        tokio::spawn(connection);
+
+        let mut qdiscs = handle.qdisc().get().execute();
+        while let Some(qdisc_message) = qdiscs.try_next().await? {
+            if qdisc_message.header.index == if_index
+                && qdisc_message.nlas.contains(&Nla::Kind(qdisc_name.clone()))
+            {
+                return Ok(true);
+            }
+        }
+        Ok(false)
+    }
+
+    async fn attach(&mut self, old_dispatcher: Option<Dispatcher>) -> Result<(), BpfdError> {
         debug!(
             "TcDispatcher::attach() for if_index {}, revision {}",
             self.if_index, self.revision
         );
         let iface = self.if_name.clone();
-        // Add clsact qdisc to the interface. This is harmless if it has already been added.
-        let _ = tc::qdisc_add_clsact(&iface);
+
+        // Aya returns an error when trying to add a qdisc that already exists, which could be ingress or clsact. We
+        // need to make sure that the qdisc installed is the one that we want, i.e. clsact. If the qdisc is an ingress
+        // qdisc, we return an error. If the qdisc is a clsact qdisc, we do nothing. Otherwise, we add a clsact qdisc.
+
+        // no need to add a new clsact qdisc if one already exists.
+        if TcDispatcher::has_qdisc("clsact".to_string(), self.if_index as i32).await? {
+            debug!(
+                "clsact qdisc found for if_index {}, no need to add a new clsact qdisc",
+                self.if_index
+            );
+
+        // if ingress qdisc exists, return error.
+        } else if TcDispatcher::has_qdisc("ingress".to_string(), self.if_index as i32).await? {
+            debug!("ingress qdisc found for if_index {}", self.if_index);
+            return Err(BpfdError::InvalidAttach(format!(
+                "Ingress qdisc found for if_index {}",
+                self.if_index
+            )));
+
+        // otherwise, add a new clsact qdisc.
+        } else {
+            debug!(
+                "No qdisc found for if_index {}, adding clsact",
+                self.if_index
+            );
+            let _ = tc::qdisc_add_clsact(&iface);
+        }
 
         let new_dispatcher: &mut SchedClassifier = self
             .loader
