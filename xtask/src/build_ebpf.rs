@@ -40,16 +40,16 @@ impl std::fmt::Display for Architecture {
 
 #[derive(Debug, Parser)]
 pub struct Options {
-    /// Set the endianness of the BPF target
+    /// Optional: Set the endianness of the BPF target
     #[clap(default_value = "bpfel-unknown-none", long)]
     pub target: Architecture,
-    /// Build the release target
+    /// Optional: Build the release target
     #[clap(long)]
     pub release: bool,
-    /// Compile rust ebpf dispatcher
+    /// Optional: Compile rust eBPF dispatcher
     #[clap(long)]
     pub compile_rust_ebpf: bool,
-    /// Libbpf dir, required for compiling C code
+    /// Required: Libbpf dir, required for compiling C code
     #[clap(long, action)]
     pub libbpf_dir: PathBuf,
 }

@@ -3,13 +3,12 @@
 This tutorial will show you how to use `bpfd`.
 There are several ways to launch and interact with `bpfd` and `bpfctl`:
 
-* **Privileged Mode** - Run `bpfd` as a privileged process straight from build directory.
-  `bpfd` user is not created so `sudo` is always required when executing `bpfctl` commands.
-  See [Privileged Mode](#privileged-mode).
-* **Systemd Service** - Run `bpfd` as a systemd service as the `bpfd` user.
+* **Local Host** - Run `bpfd` as a privileged process straight from build directory.
+  See [Local Host](#local-host).
+* **Systemd Service** - Run `bpfd` as a systemd service.
   See [Systemd Service](#systemd-service).
 
-## Privileged Mode
+## Local Host
 
 ### Step 1: Build `bpfd`
 
@@ -433,33 +432,13 @@ cargo build
 
 ### Step 2: Setup `bpfd` environment
 
-Run the following command to copy the `bpfd` and `bpfctl` binaries to `/usr/sbin/` and set the user
-and user group for each, and copy a default `bpfd.service` file to `/usr/lib/systemd/system/`.
+Run the following command to copy the `bpfd` and `bpfctl` binaries to `/usr/sbin/` and copy a
+default `bpfd.service` file to `/usr/lib/systemd/system/`.
 This option will also start the systemd service `bpfd.service` by default:
 
 ```console
 sudo ./scripts/setup.sh install
 ```
-
-Then add usergroup `bpfd` to the desired user if not already run and logout/login to apply.
-Programs run by users which are members of the `bpfd` user group are able to access the mTLS certificates
-created by bpfd.
-Therefore, these programs can make bpfd requests without requiring `sudo`.
-For userspace programs accessing maps, the maps are owned by the `bpfd` user and `bpfd` user group.
-Programs run by users which are members of the `bpfd` user group are able to access the maps files without
-requiring  `sudo` (specifically CAP_DAC_SEARCH or CAP_DAC_OVERIDE).
-
-```console
-sudo usermod -a -G bpfd $USER
-exit
-<LOGIN>
-```
-
-> **_NOTE:_** Prior to **kernel 5.19**, all eBPF sys calls required CAP_BPF, which are used to access maps shared
-between the BFP program and the userspace program.
-So userspace programs that are accessing maps and running on kernels older than 5.19 will require either `sudo`
-or the CAP_BPF capability (`sudo /sbin/setcap cap_bpf=ep ./<USERSPACE-PROGRAM>`).
-
 
 To update the configuration settings associated with running `bpfd` as a service, edit the
 service configuration file:
@@ -470,7 +449,7 @@ sudo systemctl daemon-reload
 ```
 
 If `bpfd` or `bpfctl` is rebuilt, the following command can be run to install the update binaries
-without tearing down the users and regenerating the certifications.
+without regenerating the certifications.
 The `bpfd` service will is automatically restarted.
 
 ```console
@@ -490,19 +469,19 @@ sudo systemctl start bpfd.service
 
 ### Step 4-6
 
-Same as above except `sudo` can be dropped from all the `bpfctl` commands and `bpfctl` is now in $PATH:
+Same as above except `bpfctl` is now in $PATH:
 
 ```console
-bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 100
+sudo bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 100
 :
 
 
-bpfctl list
+sudo bpfctl list
  Program ID  Name  Type  Load Time
  6213        pass  xdp   2023-07-17T17:48:10-0400
 
 
-bpfctl unload 6213
+sudo bpfctl unload 6213
 ```
 
 ### Step 7: Clean-up

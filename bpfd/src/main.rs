@@ -31,7 +31,7 @@ use nix::{
     unistd::{getuid, User},
 };
 use systemd_journal_logger::{connected_to_journal, JournalLog};
-use utils::create_bpffs;
+use utils::{create_bpffs, set_dir_permissions};
 
 use crate::{serve::serve, utils::read_to_string};
 const BPFD_ENV_LOG_LEVEL: &str = "RUST_LOG";
@@ -92,6 +92,8 @@ fn main() -> anyhow::Result<()> {
             create_dir_all(RTDIR_FS_TC_EGRESS)
                 .context("unable to create tc egress dispatcher dir")?;
             create_dir_all(RTDIR_FS_MAPS).context("unable to create maps directory")?;
+            create_dir_all(RTDIR_BPFD_CSI).context("unable to create CSI directory")?;
+            create_dir_all(RTDIR_BPFD_CSI_FS).context("unable to create socket directory")?;
 
             create_dir_all(CFGDIR_BPFD_CERTS).context("unable to create bpfd certs directory")?;
             create_dir_all(CFGDIR_BPFD_CLIENT_CERTS)
@@ -100,12 +102,12 @@ fn main() -> anyhow::Result<()> {
             create_dir_all(CFGDIR_STATIC_PROGRAMS)
                 .context("unable to create static programs directory")?;
 
-            create_dir_all(RTDIR_BPFD_CSI).context("unable to create socket directory")?;
-
-            create_dir_all(RTDIR_BPFD_CSI_FS).context("unable to create socket directory")?;
-
-            create_dir_all(BYTECODE_IMAGE_CONTENT_STORE)
+            create_dir_all(STDIR_BYTECODE_IMAGE_CONTENT_STORE)
                 .context("unable to create bytecode image store directory")?;
+
+            set_dir_permissions(CFGDIR, CFGDIR_MODE).await;
+            set_dir_permissions(RTDIR, RTDIR_MODE).await;
+            set_dir_permissions(STDIR, STDIR_MODE).await;
 
             let config = if let Ok(c) = read_to_string(CFGPATH_BPFD_CONFIG).await {
                 c.parse().unwrap_or_else(|_| {

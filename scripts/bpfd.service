@@ -6,17 +6,5 @@ After=network.target
 [Service]
 Environment="RUST_LOG=Info"
 ExecStart=/usr/sbin/bpfd
-MemoryAccounting=true
-MemoryLow=infinity
-MemoryMax=infinity
-User=bpfd
-Group=bpfd
-ConfigurationDirectory=bpfd bpfd/certs bpfd/certs/bpfd bpfd/certs/bpfd-client bpfd/certs/ca bpfd/programs.d
-ConfigurationDirectoryMode=6750
-RuntimeDirectory=bpfd bpfd/bytecode bpfd/dispatchers bpfd/fs bpfd/fs/maps bpfd/programs
-RuntimeDirectoryMode=6770
-RuntimeDirectoryPreserve=yes
-StateDirectory=bpfd bpfd/sock
-StateDirectoryMode=6770
-AmbientCapabilities=CAP_BPF CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_PERFMON CAP_SETPCAP CAP_SYS_ADMIN CAP_SYS_RESOURCE
-CapabilityBoundingSet=CAP_BPF CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_PERFMON CAP_SETPCAP CAP_SYS_ADMIN CAP_SYS_RESOURCE
+AmbientCapabilities=CAP_BPF CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_SETPCAP CAP_SYS_ADMIN CAP_SYS_RESOURCE
+CapabilityBoundingSet=CAP_BPF CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_SETPCAP CAP_SYS_ADMIN CAP_SYS_RESOURCE

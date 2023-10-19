@@ -23,11 +23,10 @@ type Stats struct {
 }
 
 const (
-	DefaultConfigPath     = "/etc/bpfd/bpfd.toml"
-	PrimaryByteCodeFile   = "/run/bpfd/examples/go-xdp-counter/bpf_bpfel.o"
-	SecondaryByteCodeFile = "bpf_bpfel.o"
-	XdpProgramName        = "go-xdp-counter-example"
-	BpfProgramMapIndex    = "xdp_stats_map"
+	DefaultConfigPath   = "/etc/bpfd/bpfd.toml"
+	DefaultByteCodeFile = "bpf_bpfel.o"
+	XdpProgramName      = "go-xdp-counter-example"
+	BpfProgramMapIndex  = "xdp_stats_map"
 )
 
 const (
@@ -40,7 +39,7 @@ func main() {
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	// Parse Input Parameters (CmdLine and Config File)
-	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeXdp, DefaultConfigPath, PrimaryByteCodeFile, SecondaryByteCodeFile)
+	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeXdp, DefaultConfigPath, DefaultByteCodeFile)
 	if err != nil {
 		log.Printf("error processing parameters: %v\n", err)
 		return

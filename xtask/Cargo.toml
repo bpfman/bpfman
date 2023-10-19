@@ -6,7 +6,13 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = { workspace = true, features = ["std"] }
-clap = { workspace = true, features = ["derive", "std"] }
+clap = { workspace = true, features = [
+    "derive",
+    "help",
+    "std",
+    "suggestions",
+    "usage",
+] }
 lazy_static = { workspace = true }
 serde_json = { workspace = true, features = ["std"] }
 tonic = { workspace = true }

@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfd
 
-use std::{fs::remove_file, net::SocketAddr, os::unix::fs::PermissionsExt, path::Path};
+use std::{fs::remove_file, net::SocketAddr, path::Path};
 
 use anyhow::Context;
 use bpfd_api::{
     config::{self, Config},
-    util::directories::BYTECODE_IMAGE_CONTENT_STORE,
+    util::directories::STDIR_BYTECODE_IMAGE_CONTENT_STORE,
     v1::bpfd_server::BpfdServer,
 };
-use log::{debug, info, warn};
+use log::{debug, info};
 use tokio::{
     join,
     net::UnixListener,
@@ -23,8 +23,13 @@ use tonic::transport::{Server, ServerTlsConfig};
 
 pub use crate::certs::get_tls_config;
 use crate::{
-    bpf::BpfManager, errors::BpfdError, oci_utils::ImageManager, rpc::BpfdLoader,
-    static_program::get_static_programs, storage::StorageManager, utils::SOCK_MODE,
+    bpf::BpfManager,
+    errors::BpfdError,
+    oci_utils::ImageManager,
+    rpc::BpfdLoader,
+    static_program::get_static_programs,
+    storage::StorageManager,
+    utils::{set_file_permissions, SOCK_MODE},
 };
 
 pub async fn serve(
@@ -82,7 +87,7 @@ pub async fn serve(
     let (itx, irx) = mpsc::channel(32);
 
     let mut image_manager =
-        ImageManager::new(BYTECODE_IMAGE_CONTENT_STORE, allow_unsigned, irx).await?;
+        ImageManager::new(STDIR_BYTECODE_IMAGE_CONTENT_STORE, allow_unsigned, irx).await?;
     let image_manager_handle = tokio::spawn(async move {
         image_manager.run().await;
     });
@@ -163,14 +168,7 @@ async fn serve_unix(
     let uds = UnixListener::bind(&path)?;
     let uds_stream = UnixListenerStream::new(uds);
     // Always set the file permissions of our listening socket.
-    if (tokio::fs::set_permissions(path.clone(), std::fs::Permissions::from_mode(SOCK_MODE)).await)
-        .is_err()
-    {
-        warn!(
-            "Unable to set permissions on bpfd socket {}. Continuing",
-            path
-        );
-    }
+    set_file_permissions(&path.clone(), SOCK_MODE).await;
 
     let serve = Server::builder()
         .add_service(service)

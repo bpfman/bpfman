@@ -2,15 +2,7 @@
 
 This section describes running bpfd and the example eBPF programs on a local host.
 When running bpfd, it can be run as a process or run as a systemd service.
-Examples run the same, independent of how bpfd is deployed, other than requiring `sudo` or not.
-
-> **_NOTE:_** When running bpfd as a systemd service, bpfd can only access files owned by the `bpfd`
-user, which is created by the install script (`./script/setup.sh install`).
-In this case, the install script also copies the examples eBPF bytecode from the examples directory to a
-directory owned by bpfd (`/run/bpfd/examples/`).
-When bpfd is run as a privileged process, the bytecode can be loaded from the examples directory.
-The example code looks in both locations (`/run/bpfd/examples/` first), so if the bytecode is recompiled
-and bpfd is running as a systemd service, run `./script/setup.sh examples` to update the copied version.
+Examples run the same, independent of how bpfd is deployed.
 
 ### Building
 
@@ -100,8 +92,8 @@ the value.
 
 #### Running Privileged
 
-The most basic example, just use `sudo` to start the `go-xdp-counter` program.
-Determine the host interface to attach the eBPF program to and then start the go program with:
+To run the `go-xdp-counter` program, determine the host interface to attach the eBPF
+program to and then start the go program with:
 
 ```console
 cd bpfd/examples/go-xdp-counter/
@@ -127,7 +119,7 @@ interface as shown below:
 
 ```console
 sudo ./go-xdp-counter --iface vethff657c7
-2023/07/17 17:43:58 Using Input: Interface=vethff657c7 Priority=50 Source=/run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
+2023/07/17 17:43:58 Using Input: Interface=vethff657c7 Priority=50 Source=/home/<$USER>/src/bpfd/examples/go-xdp-counter/bpf_bpfel.o
 2023/07/17 17:43:58 Unable to read /etc/bpfd/bpfd.toml, using default configuration values.
 2023/07/17 17:43:58 Program registered with id 6211
 2023/07/17 17:44:01 4 packets received
@@ -145,7 +137,7 @@ sudo ./go-xdp-counter --iface vethff657c7
 Use `bpfctl` to show the `go-xdp-counter` eBPF bytecode was loaded.
 
 ```console
-bpfctl list
+sudo bpfctl list
  Program ID  Name       Type  Load Time
  6211        xdp_stats  xdp   2023-07-17T17:43:58-0400
 ```
@@ -162,82 +154,6 @@ Finally, press `<CTRL>+c` when finished with `go-xdp-counter`.
 2023/07/17 17:44:35 Unloading Program: 6211
 ```
 
-#### Running Unprivileged
-
-To run the examples unprivileged (without `sudo`), the following three steps must be performed.
-
-##### Step 1: Create `bpfd` User Group
-
-The [Tutorial](./tutorial.md) guide describes the different modes `bpfd` can be run in.
-Specifically, the [Systemd Service](./tutorial.md#systemd-service) section explains how to
-start `bpfd` and create the `bpfd` Users and `bpfd` User Group.
-`bpfd` must be started as a Systemd Service and the examples must be run from a User that is a
-member of the `bpfd` User Group.
-
-```console
-sudo usermod -a -G bpfd $USER
-exit
-<LOGIN>
-```
-
-If the user running the userspace program is not a member of the `bpfd` user group, then the userspace
-program cannot access the map files shared between the BFP program and the userspace program.
-If the above step is skipped, then the userspace program must be run with `sudo` or the program must
-be granted CAP_DAC_OVERRIDE capabilities (`sudo /sbin/setcap cap_dac_override=ep ./go-xdp-counter`).
-
-##### Step 2: Grant CAP_BPF Linux Capability
-
-> **_NOTE:_** Only for kernel versions prior to **kernel 5.19**
-
-The examples use a map to share data between the userspace side of the program and the eBPF portion.
-Accessing this map requires access to the CAP_BPF capability for kernel versions prior to **kernel 5.19**.
-Run the following command to grant `go-xdp-counter` access to the CAP_BPF capability:
-
-```console
-cd bpfd/examples/go-xdp-counter/
-sudo /sbin/setcap cap_bpf=ep ./go-xdp-counter
-```
-
-and
-
-```console
-cd bpfd/examples/go-tc-counter/
-sudo /sbin/setcap cap_bpf=ep ./go-tc-counter
-```
-
-and
-
-```console
-cd bpfd/examples/go-tracepoint-counter/
-sudo /sbin/setcap cap_bpf=ep ./go-tracepoint-counter
-```
-
-> **_Reminder:_** The capability must be re-granted each time the examples are rebuilt.
-
-##### Step 3: Start `go-xdp-counter` without `sudo`
-
-Start `go-xdp-counter` without `sudo`:
-
-```console
-./go-xdp-counter -iface ens3
-2022/12/02 15:59:34 Unable to read /etc/bpfd/bpfd.toml, using default configuration values.
-2022/12/02 15:59:34 Using Input: Interface=ens3 Priority=50 Source=/run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
-2022/12/02 15:59:35 Program registered with id 6221
-2022/12/02 15:59:38 0 packets received
-2022/12/02 15:59:38 0 bytes received
-
-2022/12/02 15:59:41 4 packets received
-2022/12/02 15:59:41 580 bytes received
-
-:
-
-2022/12/02 16:00:59 64 packets received
-2022/12/02 16:00:59 9280 bytes received
-
-^C2022/12/02 16:01:00 Exiting...
-2022/12/02 16:01:00 Unloading Program: 6221
-```
-
 ### Passing eBPF Bytecode In A Container Image
 
 bpfd can load eBPF bytecode from a container image built following the spec described in
@@ -251,7 +167,7 @@ Pre-built eBPF container images for the examples can be loaded from:
 To use the container image, pass the URL to the userspace program:
 
 ```console
-./go-xdp-counter -iface ens3 -image quay.io/bpfd-bytecode/go-xdp-counter:latest
+sudo ./go-xdp-counter -iface ens3 -image quay.io/bpfd-bytecode/go-xdp-counter:latest
 2022/12/02 16:28:32 Unable to read /etc/bpfd/bpfd.toml, using default configuration values.
 2022/12/02 16:28:32 Using Input: Interface=ens3 Priority=50 Source=quay.io/bpfd-bytecode/go-xdp-counter:latest
 2022/12/02 16:28:34 Program registered with id 6223
@@ -330,7 +246,7 @@ docker push quay.io/$USER/go-tc-counter-bytecode:latest
 Then run with the privately built bytecode container image:
 
 ```console
-./go-tc-counter -iface ens3 -direction ingress -location image://quay.io/$USER/go-tc-counter-bytecode:latest
+sudo ./go-tc-counter -iface ens3 -direction ingress -location image://quay.io/$USER/go-tc-counter-bytecode:latest
 2022/12/02 16:38:44 Unable to read /etc/bpfd/bpfd.toml, using default configuration values.
 2022/12/02 16:38:44 Using Input: Interface=ens3 Priority=50 Source=quay.io/$USER/go-tc-counter-bytecode:latest
 2022/12/02 16:38:45 Program registered with id 6225
@@ -359,7 +275,7 @@ Referring back to the diagram above, the `load` and `unload` are being done by `
 First, use `bpfctl` to load the `go-xdp-counter` eBPF bytecode:
 
 ```console
-bpfctl load-from-image --image-url quay.io/bpfd-bytecode/go-xdp-counter:latest xdp --iface ens3 --priority 50
+sudo bpfctl load-from-image --image-url quay.io/bpfd-bytecode/go-xdp-counter:latest xdp --iface ens3 --priority 50
  Bpfd State
 ---------------
  Name:          xdp_stats
@@ -395,7 +311,7 @@ bpfctl load-from-image --image-url quay.io/bpfd-bytecode/go-xdp-counter:latest x
 Then run the `go-xdp-counter` userspace program, passing in the UUID:
 
 ```console
-./go-xdp-counter -iface ens3 -id 6229
+sudo ./go-xdp-counter -iface ens3 -id 6229
 2022/12/02 17:01:38 Using Input: Interface=ens3 Source=6229
 2022/12/02 17:01:41 180 packets received
 2022/12/02 17:01:41 26100 bytes received
@@ -410,5 +326,5 @@ Then run the `go-xdp-counter` userspace program, passing in the UUID:
 Then use `bpfctl` to unload the eBPF bytecode:
 
 ```console
-bpfctl unload 6229
+sudo bpfctl unload 6229
 ```

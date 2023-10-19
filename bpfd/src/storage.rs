@@ -10,7 +10,7 @@ use std::{
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use aya::maps::MapData;
-use bpfd_api::util::directories::{RTDIR_BPFD_CSI_FS, STPATH_BPFD_CSI_SOCKET};
+use bpfd_api::util::directories::{RTDIR_BPFD_CSI_FS, RTPATH_BPFD_CSI_SOCKET};
 use bpfd_csi::v1::{
     identity_server::{Identity, IdentityServer},
     node_server::{Node, NodeServer},
@@ -362,7 +362,7 @@ impl StorageManager {
     }
 
     pub async fn run(self) {
-        let path: &Path = Path::new(STPATH_BPFD_CSI_SOCKET);
+        let path: &Path = Path::new(RTPATH_BPFD_CSI_SOCKET);
         // Listen on Unix socket
         if path.exists() {
             // Attempt to remove the socket, since bind fails if it exists
@@ -370,9 +370,9 @@ impl StorageManager {
         }
 
         let uds = UnixListener::bind(path)
-            .unwrap_or_else(|_| panic!("failed to bind {STPATH_BPFD_CSI_SOCKET}"));
+            .unwrap_or_else(|_| panic!("failed to bind {RTPATH_BPFD_CSI_SOCKET}"));
         let uds_stream = UnixListenerStream::new(uds);
-        set_file_permissions(STPATH_BPFD_CSI_SOCKET, SOCK_MODE).await;
+        set_file_permissions(RTPATH_BPFD_CSI_SOCKET, SOCK_MODE).await;
 
         let node_service = NodeServer::new(self.csi_node);
         let identity_service = IdentityServer::new(self.csi_identity);

@@ -16,48 +16,27 @@ sudo ./target/debug/bpfctl list
 ```
 
 If run as a systemd service, `bpfctl` will most likely be installed in your $PATH,
-the `bpfd` user and user group were created, so the usergroup `bpfd` will need to be
-added to the desired user.
-Then `sudo` is no longer required.
+and will also require `sudo`.
 Example:
 
 ```console
-sudo usermod -a -G bpfd $USER
-exit
-<LOGIN>
-
-bpfctl list
+sudo bpfctl list
 ```
 
-The examples here use `bpfctl` in place of `sudo ./target/debug/bpfctl` for readability,
+The examples here use `sudo bpfctl` in place of `sudo ./target/debug/bpfctl` for readability,
 use as your system is deployed.
 
-### bpfctl load-from-file With bpfd As A Systemd Service
-
-For security reasons, when `bpfd` is run as a systemd service, all linux capabilities are stripped
-from any spawned threads.
-Therefore, `bpfd` can only access files owned by the `bpfd` user group.
-This includes eBPF object files.
-In the `bpfctl load-from-file` examples below, the files are located in `/run/bpfd/examples/`, which is
-a directory owned by `bpfd`.
-Below is an example of copying local files over for use in this scenario:
-
-```console
-sudo cp /$HOME/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o /run/bpfd/examples/.
-sudo cp /$HOME/src/net-ebpf-playground/.output/filter.bpf.o /run/bpfd/examples/.
-sudo chown bpfd:bpfd -R /run/bpfd/examples/
-```
-
-This is only needed if `bpfd` is run as a systemd service.
-When `sudo ./scripts/setup.sh install` is run to launch bpfd as a systemd service, all the
-eBPF object files from the `examples/` directory are copied to `/run/bpfd/examples/`.
+eBPF object files used in the examples are taken from the
+[examples](https://github.com/bpfd-dev/bpfd/tree/main/examples) and
+[integration-test](https://github.com/bpfd-dev/bpfd/tree/main/tests/integration-test) directories
+from the `bpfd` repository.
 
 ## Basic Syntax
 
 Below are the commands supported by `bpfctl`.
 
 ```console
-bpfctl --help
+sudo bpfctl --help
 A client for working with bpfd
 
 Usage: bpfctl <COMMAND>
@@ -83,14 +62,14 @@ Options:
 
 The `bpfctl load-from-file` and `bpfctl load-from-image` commands are used to load eBPF programs.
 The `bpfctl load-from-file` command is used to load a locally built eBPF program.
-The `bpfctl load-from-image` command is used to load an eBPF progam packaged in a OCI container
+The `bpfctl load-from-image` command is used to load an eBPF program packaged in a OCI container
 image from a given registry.
 Each program type (i.e. `<COMMAND>`) has it's own set of attributes specific to the program type,
 and those attributes MUST come after the program type is entered.
 There are a common set of attributes, and those MUST come before the program type is entered.
 
 ```console
-bpfctl load-from-file --help
+sudo bpfctl load-from-file --help
 Load an eBPF program from a local .o file
 
 Usage: bpfctl load-from-file [OPTIONS] --path <PATH> --name <NAME> <COMMAND>
@@ -108,8 +87,8 @@ Commands:
 Options:
 --------
   -p, --path <PATH>
-          Required: Location of local bytecode file
-          Example: --path /run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
+          Required: Location of local bytecode file as fully qualified file path.
+          Example: --path $HOME/src/bpfd/examples/go-xdp-counter/bpf_bpfel.o
 
   -n, --name <NAME>
           Required: The name of the function that is the entry point for the BPF program
@@ -142,7 +121,7 @@ Options:
 and 
 
 ```console
-bpfctl load-from-image --help
+sudo bpfctl load-from-image --help
 Load an eBPF program packaged in a OCI container image from a given registry
 
 Usage: bpfctl load-from-image [OPTIONS] --image-url <IMAGE_URL> <COMMAND>
@@ -212,7 +191,7 @@ Then each `<COMMAND>` has its own custom parameters (same for both `bpfctl load-
 `bpfctl load-from-image`):
 
 ```console
-bpfctl load-from-file xdp --help
+sudo bpfctl load-from-file xdp --help
 Install an eBPF program on the XDP hook point for a given interface
 
 Usage: bpfctl load-from-file --path <PATH> --name <NAME> xdp [OPTIONS] --iface <IFACE> --priority <PRIORITY>
@@ -239,23 +218,23 @@ Options:
           Print help (see a summary with '-h')
 ```
 
-Example loading from local file:
+Example loading from local file (`--path` is the fully qualified path):
 
 ```console
-bpfctl load-from-file --path /run/bpfd/examples/xdp_pass_kern.o --name "pass" xdp --iface vethb2795c7 --priority 100
+sudo bpfctl load-from-file --path $HOME/src/bpfd/tests/integration-test/bpf/.output/xdp_pass.bpf.o --name "pass" xdp --iface vethb2795c7 --priority 100
 ```
 
 Example from image in remote repository (Note: `--name` is built into the image and is not required):
 
 ```console
-bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethb2795c7 --priority 100
+sudo bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethb2795c7 --priority 100
 ```
 
 The `tc` command is similar to `xdp`, but it also requires the `direction` option
 and the `proceed-on` values are different.
 
 ```console
-bpfctl load-from-file tc -h
+sudo bpfctl load-from-file tc -h
 Install an eBPF program on the TC hook point for a given interface
 
 Usage: bpfctl load-from-file --path <PATH> --name <NAME> tc [OPTIONS] --direction <DIRECTION> --iface <IFACE> --priority <PRIORITY>
@@ -291,14 +270,14 @@ Options:
 The following is an example of the `tc` command using short option names:
 
 ```console
-bpfctl load-from-file -p /run/bpfd/examples/accept-all.o -n "accept" tc -d ingress -i mynet1 -p 40
+sudo bpfctl load-from-file -p $HOME/src/bpfd/tests/integration-test/bpf/.output/tc_pass.bpf.o -n "pass" tc -d ingress -i mynet1 -p 40
 ```
 
-For the `accept-all.o` program loaded with the command above, the name
+For the `tc_pass.bpf.o` program loaded with the command above, the name
 would be set as shown in the following snippet:
 
 ```c
-SEC("classifier/accept")
+SEC("classifier/pass")
 int accept(struct __sk_buff *skb)
 {
 ```
@@ -310,37 +289,37 @@ Below are some additional examples of `bpfctl load` commands:
 XDP
 
 ```console
-bpfctl load-from-file --path /run/bpfd/examples/xdp_pass_kern.o --name "pass" xdp --iface vethb2795c7 --priority 35
+sudo bpfctl load-from-file --path $HOME/src/bpfd/examples/go-xdp-counter/bpf_bpfel.o --name "xdp_stats" xdp --iface vethb2795c7 --priority 35
 ```
 
 TC
 
 ```console
-bpfctl load-from-file --path /run/bpfd/examples/filter.bpf.o --name classifier tc --direction ingress --iface vethb2795c7 --priority 110
+sudo bpfctl load-from-file --path $HOME/src/bpfd/examples/go-tc-counter/bpf_bpfel.o --name "stats"" tc --direction ingress --iface vethb2795c7 --priority 110
 ```
 
 Kprobe
 
 ```console
-bpfctl load-from-image --image-url quay.io/bpfd-bytecode/kprobe:latest kprobe -f try_to_wake_up
+sudo bpfctl load-from-image --image-url quay.io/bpfd-bytecode/kprobe:latest kprobe -f try_to_wake_up
 ```
 
 Kretprobe
 
 ```console
-bpfctl load-from-image --image-url quay.io/bpfd-bytecode/kretprobe:latest kprobe -f try_to_wake_up -r
+sudo bpfctl load-from-image --image-url quay.io/bpfd-bytecode/kretprobe:latest kprobe -f try_to_wake_up -r
 ```
 
 Uprobe
 
 ```console
-bpfctl load-from-image --image-url quay.io/bpfd-bytecode/uprobe:latest uprobe -f "malloc" -t "libc"
+sudo bpfctl load-from-image --image-url quay.io/bpfd-bytecode/uprobe:latest uprobe -f "malloc" -t "libc"
 ```
 
 Uretprobe
 
 ```console
-bpfctl load-from-image --image-url quay.io/bpfd-bytecode/uretprobe:latest uprobe -f "malloc" -t "libc" -r
+sudo bpfctl load-from-image --image-url quay.io/bpfd-bytecode/uretprobe:latest uprobe -f "malloc" -t "libc" -r
 ```
 
 ### Setting Global Variables in eBPF Programs
@@ -348,7 +327,7 @@ bpfctl load-from-image --image-url quay.io/bpfd-bytecode/uretprobe:latest uprobe
 Global variables can be set for any eBPF program type when loading as follows:
 
 ```console
-bpfctl load-from-file -p /run/bpfd/examples/accept-all.o -g GLOBAL_1=01020304 GLOBAL_2=0A0B0C0D -n "accept" tc -d ingress -i mynet1 -p 40
+sudo bpfctl load-from-file -p $HOME/src/bpfd/tests/integration-test/bpf/.output/tc_pass.bpf.o -g GLOBAL_u8=01020304 GLOBAL_u32=0A0B0C0D -n "pass" tc -d ingress -i mynet1 -p 40
 ```
 
 Note, that when setting global variables, the eBPF program being loaded must
@@ -357,8 +336,8 @@ provided must match the size of the given variable.  For example, the above
 command can be used to update the following global variables in an eBPF program.
 
 ```c
-volatile const __u32 GLOBAL_1 = 0;
-volatile const __u32 GLOBAL_2 = 0;
+volatile const __u32 GLOBAL_u8 = 0;
+volatile const __u32 GLOBAL_u32 = 0;
 ```
 
 ### Modifying the Proceed-On Behavior
@@ -371,7 +350,7 @@ program's return value. For example, the default `proceed-on` configuration for
 an `xdp` program can be modified as follows:
 
 ```console
-bpfctl load-from-file -p /run/bpfd/examples/xdp_pass_kern.o -n "xdp" xdp -i mynet1 -p 30 --proceed-on drop pass dispatcher_return
+sudo bpfctl load-from-file -p $HOME/src/bpfd/tests/integration-test/bpf/.output/xdp_pass.bpf.o -n "pass" xdp -i mynet1 -p 30 --proceed-on drop pass dispatcher_return
 ```
 
 ### Sharing Maps Between eBPF Programs
@@ -381,7 +360,7 @@ maps.
 One eBPF program must own the maps.
 
 ```console
-bpfctl load-from-file --path /run/bpfd/examples/go-xdp-counter/bpf_bpfel.o -n "xdp_stats" xdp --iface vethb2795c7 --priority 100
+sudo bpfctl load-from-file --path $HOME/src/bpfd/examples/go-xdp-counter/bpf_bpfel.o -n "xdp_stats" xdp --iface vethb2795c7 --priority 100
 6371
 ```
 
@@ -390,25 +369,25 @@ the program id of the eBPF program that owns the maps using the `--map-owner-id`
 parameter:
 
 ```console
-bpfctl load-from-file --path /run/bpfd/examples/go-xdp-counter/bpf_bpfel.o -n "xdp_stats" --map-owner-id 6371 xdp --iface vethff657c7 --priority 100
+sudo bpfctl load-from-file --path $HOME/src/bpfd/examples/go-xdp-counter/bpf_bpfel.o -n "xdp_stats" --map-owner-id 6371 xdp --iface vethff657c7 --priority 100
 6373
 ```
 
 Use the `bpfctl get <ID>` command to display the configuration:
 
 ```console
-bpfctl list
+sudo bpfctl list
  Program ID  Name       Type  Load Time
  6371        xdp_stats  xdp   2023-07-18T16:50:46-0400
  6373        xdp_stats  xdp   2023-07-18T16:51:06-0400
 ```
 
 ```console
-bpfctl get 6371
+sudo bpfctl get 6371
  Bpfd State
 ---------------
  Name:          xdp_stats
- Path:          /run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
+ Path:          /home/<$USER>/src/bpfd/examples/go-xdp-counter/bpf_bpfel.o
  Global:        None
  Metadata:      None
  Map Pin Path:  /run/bpfd/fs/maps/6371
@@ -423,11 +402,11 @@ bpfctl get 6371
 ```
 
 ```console
-bpfctl get 6373
+sudo bpfctl get 6373
  Bpfd State
 ---------------
  Name:          xdp_stats
- Path:          /run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
+ Path:          /home/<$USER>/src/bpfd/examples/go-xdp-counter/bpf_bpfel.o
  Global:        None
  Metadata:      None
  Map Pin Path:  /run/bpfd/fs/maps/6371
@@ -454,8 +433,8 @@ The eBPF programs can be unloaded any order, the `Map Pin Path` will not be dele
 until all the programs referencing the maps are unloaded:
 
 ```console
-bpfctl unload 6371
-bpfctl unload 6373
+sudo bpfctl unload 6371
+sudo bpfctl unload 6373
 ```
 
 ## bpfctl list
@@ -463,7 +442,7 @@ bpfctl unload 6373
 The `bpfctl list` command lists all the bpfd loaded eBPF programs:
 
 ```console
-bpfctl list
+sudo bpfctl list
  Program ID  Name              Type        Load Time
  6201        pass              xdp         2023-07-17T17:17:53-0400
  6202        sys_enter_openat  tracepoint  2023-07-17T17:19:09-0400
@@ -473,7 +452,7 @@ bpfctl list
 To see all eBPF programs loaded on the system, include the `--all` option.
 
 ```console
-bpfctl list --all
+sudo bpfctl list --all
  Program ID  Name              Type           Load Time
  52          restrict_filesy   lsm            2023-05-03T12:53:34-0400
  166         dump_bpf_map      tracing        2023-05-03T12:53:52-0400
@@ -495,7 +474,7 @@ bpfctl list --all
 To filter on a given program type, include the `--program-type` parameter:
 
 ```console
-bpfctl list --all --program-type tc
+sudo bpfctl list --all --program-type tc
  Program ID  Name        Type  Load Time
  6203        dispatcher  tc    2023-07-17T17:20:14-0400
  6204        stats       tc    2023-07-17T17:20:14-0400
@@ -512,7 +491,7 @@ If the eBPF program was loaded outside of bpfd, then the `Bpfd State`
 section will be empty and `Kernel State` section will be populated.
 
 ```console
-bpfctl get 6204
+sudo bpfctl get 6204
  Bpfd State
 ---------------
  Name:          stats
@@ -547,7 +526,7 @@ bpfctl get 6204
 ```
 
 ```console
-bpfctl get 6190
+sudo bpfctl get 6190
  Bpfd State
 ---------------
 NONE
@@ -575,11 +554,11 @@ The `bpfctl unload` command takes the program id from the load or list command a
 and unloads the requested eBPF program:
 
 ```console
-bpfctl unload 6204
+sudo bpfctl unload 6204
 ```
 
 ```console
-bpfctl list
+sudo bpfctl list
  Program ID  Name              Type        Load Time
  6201        pass              xdp         2023-07-17T17:17:53-0400
  6202        sys_enter_openat  tracepoint  2023-07-17T17:19:09-0400
@@ -591,7 +570,7 @@ The `bpfctl pull-bytecode` command pulls a given bytecode image for future use
 by a load command.
 
 ```console
-bpfctl pull-bytecode --help
+sudo bpfctl pull-bytecode --help
 Pull a bytecode image for future use by a load command
 
 Usage: bpfctl pull-bytecode [OPTIONS] --image-url <IMAGE_URL>
@@ -621,16 +600,17 @@ Options:
 Example usage:
 
 ```console
-bpfctl pull-bytecode --image-url quay.io/bpfd-bytecode/xdp_pass:latest
+sudo bpfctl pull-bytecode --image-url quay.io/bpfd-bytecode/xdp_pass:latest
 Successfully downloaded bytecode
 ```
 
 Then when loaded, the local image will be used:
 
 ```console
-bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest --pull-policy IfNotPresent xdp --iface vethff657c7 --priority 100
+sudo bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest --pull-policy IfNotPresent xdp --iface vethff657c7 --priority 100
  Bpfd State                                           
- Name:          pass                                  
+ ---------------
+Name:          pass                                  
  Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest 
  Pull Policy:   IfNotPresent                          
  Global:        None                                  
@@ -644,7 +624,8 @@ bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest --pull-
  Proceed On:    pass, dispatcher_return               
 
  Kernel State                                               
- ID:                               406681                   
+ ----------------------------------
+ID:                               406681                   
  Name:                             pass                     
  Type:                             xdp                      
  Loaded At:                        1917-01-27T01:37:06-0500 

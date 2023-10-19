@@ -178,7 +178,7 @@ fn default_port() -> u16 {
 }
 
 fn default_unix() -> String {
-    STPATH_BPFD_SOCKET.to_string()
+    RTPATH_BPFD_SOCKET.to_string()
 }
 
 fn default_enabled() -> bool {
