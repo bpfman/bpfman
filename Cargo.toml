@@ -26,7 +26,7 @@ bpfd-csi = { version = "1.8.0", path = "./csi" }
 caps = { version = "0.5.4", default-features = false }
 chrono = { version = "0.4.31", default-features = false }
 clap = { version = "4", default-features = false }
-comfy-table = { version = "7.0.1", default-features = false }
+comfy-table = { version = "7.1.0", default-features = false }
 env_logger = { version = "0.10", default-features = false }
 flate2 = { version = "1.0", default-features = false }
 hex = { version = "0.4.3", default-features = false }
