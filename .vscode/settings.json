@@ -3,5 +3,9 @@
   "yaml.schemas": {
     "https://json.schemastore.org/github-workflow.json": "file:///home/dave/dev/bpfd/.github/workflows/build.yml"
   },
-  "rust-analyzer.check.command": "clippy"
+  "rust-analyzer.check.command": "clippy",
+  "files.associations": {
+    "bpf_core_read.h": "c",
+    "bpf_tracing.h": "c"
+  }
 }

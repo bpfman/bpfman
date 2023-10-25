@@ -76,7 +76,7 @@ spec:
         image: quay.io/bpfd-userspace/go-xdp-counter:latest
         imagePullPolicy: IfNotPresent
         securityContext:
-          privileged: true
+          privileged: false
         env:
           - name: NODENAME
             valueFrom:

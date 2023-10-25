@@ -106,6 +106,39 @@ build-us-images: ## Build all example userspace images
 	docker build -t ${IMAGE_TP_US} -f ./go-tracepoint-counter/container-deployment/Containerfile.go-tracepoint-counter ../
 	docker build -t ${IMAGE_XDP_US} -f ./go-xdp-counter/container-deployment/Containerfile.go-xdp-counter ../
 
+.PHONY: build-evil-us-images
+build-evil-us-images:
+	docker build -t quay.io/bpfd-userspace/go-tracepoint-evil:latest -f ./go-tracepoint-evil/container-deployment/Containerfile.go-tracepoint-evil ../
+	docker build -t quay.io/bpfd-userspace/go-xdp-counter-evil:latest -f ./go-xdp-counter-evil/container-deployment/Containerfile.go-xdp-counter-evil ../
+
+.PHONY: push-evil-us-images
+push-evil-us-images:
+	docker push quay.io/bpfd-userspace/go-tracepoint-evil:latest
+	docker push quay.io/bpfd-userspace/go-xdp-counter-evil:latest
+
+.PHONY: build-evil-bc-images
+build-evil-bc-images:
+	docker build \
+	--build-arg PROGRAM_NAME=xdp_counter \
+	--build-arg BPF_FUNCTION_NAME=xdp_stats \
+	--build-arg PROGRAM_TYPE=xdp \
+	--build-arg BYTECODE_FILENAME=bpf_bpfel.o \
+	-f ../packaging/container-deployment/Containerfile.bytecode \
+	./go-xdp-counter -t quay.io/bpfd-bytecode/go-xdp-counter-evil:latest
+
+	docker build \
+	--build-arg PROGRAM_NAME=tracepoint_counter \
+	--build-arg BPF_FUNCTION_NAME=tracepoint_kill_recorder \
+	--build-arg PROGRAM_TYPE=tracepoint \
+	--build-arg BYTECODE_FILENAME=bpf_bpfel.o \
+	-f ../packaging/container-deployment/Containerfile.bytecode \
+	./go-tracepoint-counter -t quay.io/bpfd-bytecode/go-tracepoint-evil:latest
+
+.PHONY: push-evil-bc-images
+push-evil-bc-images:
+	docker push quay.io/bpfd-bytecode/go-tracepoint-evil:latest
+	docker push quay.io/bpfd-bytecode/go-xdp-counter-evil:latest
+
 .PHONY: build-bc-images
 build-bc-images: ## Build bytecode example userspace images
 	IMAGE_TC_BC=${IMAGE_TC_BC} IMAGE_TP_BC=${IMAGE_TP_BC} IMAGE_XDP_BC=${IMAGE_XDP_BC} ./build-bytecode-images.sh
@@ -122,10 +155,13 @@ push-bc-images: ## Push all example userspace images
 	docker push ${IMAGE_TP_BC}
 	docker push ${IMAGE_XDP_BC}
 
-
 .PHONY: load-us-images-kind
 load-us-images-kind: build-us-images ## Build and load all example userspace images into kind
-	kind load docker-image ${IMAGE_TC_US} ${IMAGE_TP_US} ${IMAGE_XDP_US} --name ${KIND_CLUSTER_NAME}
+	kind load docker-image ${IMAGE_TC_US} ${IMAGE_TP_US} ${IMAGE_XDP_US} quay.io/bpfd-userspace/go-tracepoint-evil:latest quay.io/bpfd-userspace/go-xdp-counter-evil:latest --name ${KIND_CLUSTER_NAME}
+
+.PHONY: load-evil-images-kind
+load-evil-images-kind: build-evil-images ## Build and load all example userspace images into kind
+	kind load docker-image quay.io/bpfd-userspace/go-tracepoint-evil:latest quay.io/bpfd-userspace/go-xdp-counter-evil:latest --name ${KIND_CLUSTER_NAME}
 
 ##@ Deployment Variables (not commands)
 TAG: ## Used to set all images to a fixed tag. Example: make deploy TAG=v0.2.0
@@ -194,6 +230,17 @@ endif
 deploy-xdp: kustomize ## Deploy go-xdp-counter to the cluster specified in ~/.kube/config.
 ifndef TAG
 	sed 's@URL_BC@$(IMAGE_XDP_BC)@' config/default/go-xdp-counter/patch.yaml.env > config/default/go-xdp-counter/patch.yaml
+	cd config/default/go-xdp-counter && $(KUSTOMIZE) edit set image quay.io/bpfd-userspace/go-xdp-counter=${IMAGE_XDP_US}
+else
+	$(eval KUST_DIR=$(TAG))
+endif
+	$(KUSTOMIZE) build config/$(KUST_DIR)/go-xdp-counter | kubectl apply -f -
+
+
+.PHONY: deploy-xdp-evil-bc
+deploy-xdp-evil-bc: kustomize ## Deploy go-xdp-counter to the cluster specified in ~/.kube/config.
+ifndef TAG
+	sed 's@URL_BC@quay.io/bpfd-bytecode/go-xdp-counter-evil:latest@' config/default/go-xdp-counter/patch.yaml.env > config/default/go-xdp-counter/patch.yaml
 	cd config/default/go-xdp-counter && $(KUSTOMIZE) edit set image quay.io/bpfd-userspace/go-xdp-counter=${IMAGE_XDP_US}
 else
 	$(eval KUST_DIR=$(TAG))

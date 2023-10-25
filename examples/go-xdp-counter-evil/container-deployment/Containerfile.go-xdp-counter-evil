@@ -1,0 +1,24 @@
+FROM golang:1.19 as gocounter-build
+
+RUN apt-get update && apt-get install -y \
+ clang \
+ gcc-multilib \
+ libbpf-dev
+
+RUN go install github.com/cilium/ebpf/cmd/bpf2go@master
+
+WORKDIR /usr/src/bpfd/
+COPY ./ /usr/src/bpfd/
+
+WORKDIR /usr/src/bpfd/examples/go-xdp-counter-evil
+
+# Compile gocounter
+RUN go build
+
+FROM registry.fedoraproject.org/fedora-minimal:latest
+
+RUN microdnf install -y bpftrace bash && microdnf clean all
+
+COPY --from=gocounter-build  /usr/src/bpfd/examples/go-xdp-counter-evil/go-xdp-counter-evil .
+
+ENTRYPOINT ["./go-xdp-counter-evil"]

@@ -2,4 +2,4 @@
 # (which is an image) to new value.
 - op: replace
   path: "/spec/bytecode/image/url"
-  value: quay.io/bpfd-bytecode/go-xdp-counter:latest
+  value: quay.io/bpfd-bytecode/go-xdp-counter-evil:latest

@@ -1,0 +1,53 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: go-tracepoint-evil
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: go-tracepoint-evil-ds
+  namespace: go-tracepoint-evil
+  labels:
+    k8s-app: go-tracepoint-evil
+spec:
+  selector:
+    matchLabels:
+      name: go-tracepoint-evil
+  template:
+    metadata:
+      labels:
+        name: go-tracepoint-evil
+    spec:
+      nodeSelector: {}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      tolerations:
+      # these tolerations are to have the daemonset runnable on control plane nodes
+      # remove them if your control plane nodes should not run pods
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: go-tracepoint-evil
+        image: quay.io/bpfd-userspace/go-tracepoint-evil:latest
+        imagePullPolicy: Never
+        securityContext:
+          privileged: true
+        env:
+          - name: NODENAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+        volumeMounts:
+        # This mount is needed to attach tracepoint programs
+        - name: host-debug
+          mountPath: /sys/kernel/debug
+      volumes:
+      - name: host-debug
+        hostPath:
+          path: /sys/kernel/debug

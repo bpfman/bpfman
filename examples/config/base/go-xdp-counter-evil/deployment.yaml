@@ -1,0 +1,54 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: go-xdp-counter
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: go-xdp-counter-ds
+  namespace: go-xdp-counter
+  labels:
+    k8s-app: go-xdp-counter
+spec:
+  selector:
+    matchLabels:
+      name: go-xdp-counter
+  template:
+    metadata:
+      labels:
+        name: go-xdp-counter
+    spec:
+      nodeSelector: {}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      tolerations:
+      # these tolerations are to have the daemonset runnable on control plane nodes
+      # remove them if your control plane nodes should not run pods
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: go-xdp-counter
+        image: quay.io/bpfd-userspace/go-xdp-counter-evil:latest
+        args: ["eth0"]
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          privileged: true
+        env:
+          - name: NODENAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+        volumeMounts:
+        # This mount is needed to attach tracepoint programs
+        - name: host-debug
+          mountPath: /sys/kernel/debug
+      volumes:
+      - name: host-debug
+        hostPath:
+          path: /sys/kernel/debug
