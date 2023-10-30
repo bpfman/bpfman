@@ -805,7 +805,7 @@ pub fn verify_and_delete_programs(loaded_ids: Vec<String>) {
     }
 
     // Delete the installed programs
-    debug!("Deleting bpfd program");
+    debug!("Deleting bpfd program(s)");
     for id in loaded_ids.iter() {
         bpfd_del_program(id)
     }
