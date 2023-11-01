@@ -96,7 +96,7 @@ impl ProgramMap {
     // Positions are set based on order of priority. Ties are broken based on:
     // - Already attached programs are preferred
     // - Program name. Lowest lexical order wins.
-    fn set_program_positions(&mut self, program: &mut Program) {
+    fn set_program_positions(&mut self, program: &mut Program, is_add: bool) {
         let program_type = program.kind();
         let if_index = program.if_index();
         let direction = program.direction();
@@ -109,8 +109,10 @@ impl ProgramMap {
             })
             .collect::<Vec<&mut Program>>();
 
-        // add program we're loading
-        extensions.push(program);
+        if is_add {
+            // add program we're loading
+            extensions.push(program);
+        }
 
         extensions.sort_by_key(|b| {
             (
@@ -365,7 +367,7 @@ impl BpfManager {
         let if_name = program.if_name().unwrap();
         let direction = program.direction();
 
-        self.programs.set_program_positions(program);
+        self.programs.set_program_positions(program, true);
 
         let mut programs: Vec<&mut Program> = self
             .programs
@@ -664,7 +666,7 @@ impl BpfManager {
             }
         }
 
-        self.programs.set_program_positions(program);
+        self.programs.set_program_positions(program, false);
 
         let program_type = program.kind();
         let if_index = program.if_index();
@@ -714,7 +716,7 @@ impl BpfManager {
 
         if let Some(ref mut old) = old_dispatcher {
             debug!("Rebuild Multiattach Dispatcher for {did:?}");
-            self.programs.set_program_positions(&mut filter_prog);
+            self.programs.set_program_positions(&mut filter_prog, false);
 
             let mut programs: Vec<&mut Program> = self
                 .programs
