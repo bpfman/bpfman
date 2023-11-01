@@ -40,7 +40,7 @@ use crate::{
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
     oci_utils::image_manager::Command as ImageManagerCommand,
     serve::shutdown_handler,
-    utils::{get_ifindex, set_dir_permissions},
+    utils::{get_ifindex, set_dir_permissions, should_map_be_pinned},
 };
 
 const MAPS_MODE: u32 = 0o0660;
@@ -589,9 +589,13 @@ impl BpfManager {
                     create_map_pin_path(&map_pin_path).await?;
 
                     for (name, map) in loader.maps_mut() {
-                        if name.contains(".rodata") || name.contains(".bss") {
+                        if !should_map_be_pinned(name) {
                             continue;
                         }
+                        debug!(
+                            "Pinning map: {name} to path: {}",
+                            map_pin_path.join(name).display()
+                        );
                         map.pin(map_pin_path.join(name))
                             .map_err(BpfdError::UnableToPinMap)?;
                     }

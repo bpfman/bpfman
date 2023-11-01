@@ -91,3 +91,7 @@ pub(crate) fn create_bpffs(directory: &str) -> anyhow::Result<()> {
     mount::<str, str, str, str>(None, directory, Some("bpf"), flags, None)
         .with_context(|| format!("unable to create bpffs at {directory}"))
 }
+
+pub(crate) fn should_map_be_pinned(name: &str) -> bool {
+    !(name.contains(".rodata") || name.contains(".bss") || name.contains(".data"))
+}

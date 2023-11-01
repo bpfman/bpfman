@@ -22,6 +22,7 @@ use crate::{
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfdError,
     oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
+    utils::should_map_be_pinned,
 };
 
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
@@ -260,9 +261,13 @@ impl XdpDispatcher {
                     create_map_pin_path(&map_pin_path).await?;
 
                     for (name, map) in loader.maps_mut() {
-                        if name.contains(".rodata") || name.contains(".bss") {
+                        if !should_map_be_pinned(name) {
                             continue;
                         }
+                        debug!(
+                            "Pinning map: {name} to path: {}",
+                            map_pin_path.join(name).display()
+                        );
                         map.pin(map_pin_path.join(name))
                             .map_err(BpfdError::UnableToPinMap)?;
                     }
