@@ -2,11 +2,10 @@
 header:
   - license:
       content: |
-        SPDX-License-Identifier: (MIT OR Apache-2.0)
+        SPDX-License-Identifier: Apache-2.0
         Copyright Authors of bpfd
     paths:
       - bpfd
-      - bpfd-common
       - bpfctl
     paths-ignore:
       - "**/target/**"

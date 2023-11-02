@@ -1,8 +1,6 @@
 # [![bpfd](./docs/img/bpfd.svg)](https://bpfd.dev/)
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![License:
-MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![License](https://img.shields.io/badge/License-BSD_2--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![License: GPL
 v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
@@ -38,11 +36,7 @@ Here are some links to help in your bpfd journey (all links are from the bpfd we
 ## License
 
 With the exception of eBPF code, everything is distributed under the terms of
-either the [MIT license] or the [Apache License] (version 2.0), at your option.
-
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
-be dual licensed as above, without any additional terms or conditions.
+the [Apache License] (version 2.0).
 
 ### eBPF
 
@@ -65,7 +59,6 @@ Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in this project by you, as defined in the GPL-2 license, shall be
 dual licensed as above, without any additional terms or conditions.
 
-[MIT license]: LICENSE-MIT
 [Apache license]: LICENSE-APACHE
 [GNU General Public License, Version 2]: LICENSE-GPL2
 [BSD 2 Clause]: LICENSE-BSD2

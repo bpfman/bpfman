@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: (MIT OR Apache-2.0)
+// SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfd
 
 use std::{fs::remove_file, net::SocketAddr, os::unix::fs::PermissionsExt, path::Path};
