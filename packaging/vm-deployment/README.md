@@ -23,7 +23,7 @@ $ vagrant up
 # Once the installation is complete, ssh to the VM
 $ vagrant ssh
 
-# View the status of bpfman and run bpfctl
+# View the status of bpfman and use the CLI
 $ sudo systemctl status bpfman
-$ sudo bpfctl --help
+$ sudo bpfman --help
 ```

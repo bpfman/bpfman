@@ -261,7 +261,7 @@ build: fmt ## Build bpfman-operator and bpfman-agent binaries.
 build-images: ## Build bpfman, bpfman-agent, and bpfman-operator images.
 	docker build -t ${BPFMAN_OPERATOR_IMG} -f Containerfile.bpfman-operator ../
 	docker build -t ${BPFMAN_AGENT_IMG} -f Containerfile.bpfman-agent ../
-	DOCKER_BUILDKIT=1 docker build -t ${BPFMAN_IMG} -f ../packaging/container-deployment/Containerfile.bpfman.local ../
+	DOCKER_BUILDKIT=1 docker build -t ${BPFMAN_IMG} -f ../Containerfile.bpfman.local ../
 
 .PHONY: push-images
 push-images: ## Push bpfman, bpfman-agent, bpfman-operator images.

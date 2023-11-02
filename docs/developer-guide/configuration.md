@@ -23,7 +23,7 @@ There is an example at `scripts/bpfman.toml`, similar to:
   path = "/run/bpfman/bpfman.sock"
 ```
 
-`bpfctl` and `bpfman-agent` (which is only used in Kubernetes type deployments) will also read the
+`bpfman-agent` (which is only used in Kubernetes type deployments) will also read the
 bpfman configuration file (`/etc/bpfman/bpfman.toml`) to retrieve the bpfman-client certificate file locations.
 
 ### Config Section: [interfaces]

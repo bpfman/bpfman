@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-No released versions of bpfman, bpfctl, bpfman-agent or bpfman-operator will receive regular security updates until a mainline release has been performed.
+No released versions of bpfman and bpfman-agent or bpfman-operator will receive regular security updates until a mainline release has been performed.
 A reported and fixed vulnerability will be included in the next minor release, which depending on the severity of the vulnerability may be immediate.
 
 ## Reporting a Vulnerability

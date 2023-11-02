@@ -31,7 +31,6 @@ Summary:        %{summary}
 %files       -n %{crate}
 %license LICENSE-APACHE LICENSE-GPL2 LICENSE-MIT libbpf/LICENSE libbpf/LICENSE.BSD-2-Clause libbpf/LICENSE.LGPL-2.1
 %doc README.md
-%{_bindir}/bpfctl
 %{_bindir}/bpfman
 
 %prep

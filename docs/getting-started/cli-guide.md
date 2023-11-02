@@ -1,12 +1,13 @@
 # CLI Guide
 
-`bpfman` CLI allows the user to `load`, `unload`, `get` and `list` eBPF programs.
+`bpfman` offers several CLI commands to interact with the `bpfman` daemon.
+The CLI allows you to `load`, `unload`, `get` and `list` eBPF programs.
 
 ## Notes For This Guide
 
 As described in other sections, `bpfman` can be run as either a privileged process or
 a systemd service.
-If run as a privileged process, the CLI will most likely be run from your local
+If run as a privileged process, `bpfman` will most likely be run from your local
 development branch and will require `sudo`.
 Example:
 
@@ -41,13 +42,13 @@ A system daemon for loading BPF programs
 Usage: bpfman <COMMAND>
 
 Commands:
-  load    Load an eBPF program from a local .o file
-  unload  Unload an eBPF program using the program id
-  list    List all eBPF programs loaded via bpfman
-  get     Get an eBPF program using the program id
-  image   eBPF Bytecode Image related commands
-  system  Run bpfman as a service
-  help    Print this message or the help of the given subcommand(s)
+  load           Load an eBPF program from a local .o file
+  unload         Unload an eBPF program using the program id
+  list           List all eBPF programs loaded via bpfman
+  get            Get an eBPF program using the program id
+  image          eBPF Bytecode Image related commands
+  system         Run bpfman as a service
+  help           Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
@@ -114,7 +115,7 @@ Options:
           Print help (see a summary with '-h')
 ```
 
-and 
+and
 
 ```console
 sudo bpfman load image --help
@@ -278,7 +279,7 @@ int accept(struct __sk_buff *skb)
 {
 ```
 
-### Additional bpfman Load Examples
+### Additional Load Examples
 
 Below are some additional examples of `bpfman load` commands:
 
@@ -563,16 +564,16 @@ sudo bpfman list
  6202        sys_enter_openat  tracepoint  2023-07-17T17:19:09-0400
 ```
 
-## bpfman pull-bytecode
+## bpfman image pull
 
-The `bpfman pull-bytecode` command pulls a given bytecode image for future use
+The `bpfman image pull` command pulls a given bytecode image for future use
 by a load command.
 
 ```console
-sudo bpfman pull-bytecode --help
+sudo bpfman image pull --help
 Pull a bytecode image for future use by a load command
 
-Usage: bpfman pull-bytecode [OPTIONS] --image-url <IMAGE_URL>
+Usage: bpfman image pull [OPTIONS] --image-url <IMAGE_URL>
 
 Options:
   -i, --image-url <IMAGE_URL>
@@ -599,7 +600,7 @@ Options:
 Example usage:
 
 ```console
-sudo bpfman pull-bytecode --image-url quay.io/bpfman-bytecode/xdp_pass:latest
+sudo bpfman image pull --image-url quay.io/bpfman-bytecode/xdp_pass:latest
 Successfully downloaded bytecode
 ```
 

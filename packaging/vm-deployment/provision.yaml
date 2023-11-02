@@ -12,14 +12,6 @@
       shell: |
         mkdir -p /home/{{ vagrant_user }}/bpfman/target/debug/
 
-    - name: Copy bpfctl binary to the remote host
-      ansible.builtin.copy:
-        src: ../../target/debug/bpfctl
-        dest: /home/{{ vagrant_user }}/bpfman/target/debug/
-        owner: "{{ vagrant_user }}"
-        group: "{{ vagrant_user }}"
-        mode: "0755"
-
     - name: Copy bpfman binary to the remote host
       ansible.builtin.copy:
         src: ../../target/debug/bpfman

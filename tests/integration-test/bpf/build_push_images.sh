@@ -7,7 +7,7 @@ docker build \
  --build-arg BPF_FUNCTION_NAME=pass \
  --build-arg PROGRAM_TYPE=xdp \
  --build-arg BYTECODE_FILENAME=xdp_pass.bpf.o \
- -f ../../../packaging/container-deployment/Containerfile.bytecode \
+ -f ../../../Containerfile.bytecode \
  ./.output -t quay.io/bpfman-bytecode/xdp_pass:latest
 
 docker push quay.io/bpfman-bytecode/xdp_pass
@@ -17,7 +17,7 @@ docker build \
  --build-arg BPF_FUNCTION_NAME=pass \
  --build-arg PROGRAM_TYPE=xdp \
  --build-arg BYTECODE_FILENAME=xdp_pass.bpf.o \
- -f ../../../packaging/container-deployment/Containerfile.bytecode \
+ -f ../../../Containerfile.bytecode \
  ./.output -t quay.io/bpfman-bytecode/xdp_pass_private:latest
 
 docker push quay.io/bpfman-bytecode/xdp_pass_private
@@ -27,7 +27,7 @@ docker build \
  --build-arg BPF_FUNCTION_NAME=pass \
  --build-arg PROGRAM_TYPE=tc \
  --build-arg BYTECODE_FILENAME=tc_pass.bpf.o \
- -f ../../../packaging/container-deployment/Containerfile.bytecode \
+ -f ../../../Containerfile.bytecode \
  ./.output -t quay.io/bpfman-bytecode/tc_pass:latest
 
 docker push quay.io/bpfman-bytecode/tc_pass
@@ -37,7 +37,7 @@ docker build \
  --build-arg BPF_FUNCTION_NAME=enter_openat \
  --build-arg PROGRAM_TYPE=tracepoint \
  --build-arg BYTECODE_FILENAME=tp_openat.bpf.o \
- -f ../../../packaging/container-deployment//Containerfile.bytecode \
+ -f ../../..Containerfile.bytecode \
  ./.output -t quay.io/bpfman-bytecode/tracepoint:latest
 
 docker push quay.io/bpfman-bytecode/tracepoint
@@ -47,7 +47,7 @@ docker build \
  --build-arg BPF_FUNCTION_NAME=my_uprobe \
  --build-arg PROGRAM_TYPE=kprobe \
  --build-arg BYTECODE_FILENAME=uprobe.bpf.o \
- -f ../../../packaging/container-deployment//Containerfile.bytecode \
+ -f ../../../Containerfile.bytecode \
  ./.output -t quay.io/bpfman-bytecode/uprobe:latest
 
 docker push quay.io/bpfman-bytecode/uprobe
@@ -57,7 +57,7 @@ docker build \
  --build-arg BPF_FUNCTION_NAME=my_uretprobe \
  --build-arg PROGRAM_TYPE=kprobe \
  --build-arg BYTECODE_FILENAME=uprobe.bpf.o \
- -f ../../../packaging/container-deployment//Containerfile.bytecode \
+ -f ../../../Containerfile.bytecode \
  ./.output -t quay.io/bpfman-bytecode/uretprobe:latest
 
 docker push quay.io/bpfman-bytecode/uretprobe
@@ -67,7 +67,7 @@ docker build \
  --build-arg BPF_FUNCTION_NAME=my_kprobe \
  --build-arg PROGRAM_TYPE=kprobe \
  --build-arg BYTECODE_FILENAME=kprobe.bpf.o \
- -f ../../../packaging/container-deployment//Containerfile.bytecode \
+ -f ../../../Containerfile.bytecode \
  ./.output -t quay.io/bpfman-bytecode/kprobe:latest
 
 docker push quay.io/bpfman-bytecode/kprobe
@@ -77,7 +77,7 @@ docker build \
  --build-arg BPF_FUNCTION_NAME=my_kretprobe \
  --build-arg PROGRAM_TYPE=kprobe \
  --build-arg BYTECODE_FILENAME=kprobe.bpf.o \
- -f ../../../packaging/container-deployment//Containerfile.bytecode \
+ -f ../../../Containerfile.bytecode \
  ./.output -t quay.io/bpfman-bytecode/kretprobe:latest
 
 docker push quay.io/bpfman-bytecode/kretprobe

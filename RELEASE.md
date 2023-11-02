@@ -4,7 +4,7 @@
 
 A release for the bpfman project is comprised of the following major components:
 
-- bpfman + bpfctl binaries
+- bpfman binaries
 - Core GRPC API protobuf definitions
 - Kubernetes Custom Resource Definitions (CRDs)
 - Corresponding go pkg in the form of `github.com/bpfman/bpfman` which includes the following:
@@ -15,10 +15,9 @@ A release for the bpfman project is comprised of the following major components:
     clientset for the bpfman CRD API
   - `github.com/bpfman/bpfman/bpfman-operator/pkg/helpers`: The provided bpfman CRD
     API helpers.
-- Corresponding `bpfman-api`, `bpfman`, and `bpfctl` rust crates which house the rust client for the bpfman GRPC API
+- Corresponding `bpfman-api` and `bpfman`rust crates which house the rust client for the bpfman GRPC API
 - The following core component container images with tag <RELEASE_VERSION>:
   - `quay.io/bpfman/bpfman`
-  - `quay.io/bpfman/bpfctl`
   - `quay.io/bpfman/bpfman-operator`
   - `quay.io/bpfman/bpfman-agent`
   - `quay.io/bpfman/bpfman-operator-bundle`
@@ -96,7 +95,7 @@ For a **PATCH** release:
 - Create a pull request of the `<githubuser>/release-x.x.x` branch into the `release-x.x` branch upstream.
   Add a hold on this PR waiting for at least one maintainer/codeowner to provide a `lgtm`. This PR should:
   - Add a new changelog for the release
-  - Update the cargo.toml versions for the bpfman-api, bpfman, and bpfctl crates
+  - Update the cargo.toml versions for the bpfman-api and bpfman crates
   - Update the bpfman-operator version in it's MAKEFILE and run `make bundle` to update the bundle version.
     This will generate a new `/bpfman-operator/bundle` directory which will ONLY be tracked in the
     `release-x.x` branch not `main`.
@@ -120,7 +119,7 @@ For a **MAJOR** or **MINOR** release:
 
 - Open an update PR that:
   - Adds a new changelog for the release
-  - Updates the cargo.toml versions for the bpfman-api, bpfman, and bpfctl crates
+  - Updates the cargo.toml versions for the bpfman-api and bpfman crates
   - Updates the bpfman-operator version in it's MAKEFILE and run `make bundle` to update the bundle version
   - Add's a new `examples` config directory for the release version
 - Make sure CI is green and merge the update PR.

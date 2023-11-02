@@ -127,7 +127,7 @@ For more details, please see the following:
 - [Setup and Building bpfman](./getting-started/building-bpfman.md) for instructions
   on setting up your development environment and building bpfman.
 - [Tutorial](./getting-started/tutorial.md) for some examples of starting
-  `bpfman`, managing logs, and using `bpfctl`.
+  `bpfman`, managing logs, and using the CLI.
 - [Example eBPF Programs](./getting-started/example-bpf.md) for some examples of
   eBPF programs written in Go, interacting with `bpfman`.
 - [Deploying the bpfman-operator](./developer-guide/operator-quick-start.md) for

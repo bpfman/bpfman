@@ -1,7 +1,7 @@
 # Tutorial
 
 This tutorial will show you how to use `bpfman`.
-There are several ways to launch and interact with `bpfman` and `bpfctl`:
+There are several ways to launch and interact with `bpfman` and `bpfman`:
 
 * **Local Host** - Run `bpfman` as a privileged process straight from build directory.
   See [Local Host](#local-host).
@@ -25,12 +25,12 @@ cargo build
 ### Step 2: Setup `bpfman` environment
 
 `bpfman` supports both communication over a Unix socket.
-All examples, both using `bpfctl` and the gRPC API use this socket.
+All examples, both using `bpfman` and the gRPC API use this socket.
 
 ### Step 3: Start `bpfman`
 
 While learning and experimenting with `bpfman`, it may be useful to run `bpfman` in the foreground
-(which requires a second terminal to run the `bpfctl` commands below).
+(which requires a second terminal to run the `bpfman` commands below).
 For more details on how logging is handled in bpfman, see [Logging](../developer-guide/logging.md).
 
 ```console
@@ -43,10 +43,10 @@ We will load the simple `xdp-pass` program, which permits all traffic to the att
 `vethff657c7` in this example.
 The section in the object file that contains the program is "pass".
 Finally, we will use the priority of 100.
-Find a deeper dive into `bpfctl` syntax in [bpfctl Guide](./bpfctl-guide.md).
+Find a deeper dive into CLI syntax in [CLI Guide](./cli-guide.md).
 
 ```console
-sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 100
+sudo ./target/debug/bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 100
  Bpfman State
 ---------------
  Name:          pass
@@ -79,21 +79,21 @@ sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfman-bytecode/x
  Verified Instruction Count:       9
 ```
 
-`bpfctl load-from-image` returns the same data as a `bpfctl get` command.
+`bpfman load image` returns the same data as a `bpfman get` command.
 From the output, the id of `6213` can be found in the `Kernel State` section.
-This id can be used to perform a `bpfctl get` to retrieve all relevant program
-data and a `bpfctl unload` when the program needs to be unloaded.
+This id can be used to perform a `bpfman get` to retrieve all relevant program
+data and a `bpfman unload` when the program needs to be unloaded.
 
 ```console
-sudo ./target/debug/bpfctl list
+sudo ./target/debug/bpfman list
  Program ID  Name  Type  Load Time
  6213        pass  xdp   2023-07-17T17:48:10-0400
 ```
 
-We can recheck the details about the loaded program with the `bpfctl get` command:
+We can recheck the details about the loaded program with the `bpfman get` command:
 
 ```console
-sudo ./target/debug/bpfctl get 6213
+sudo ./target/debug/bpfman get 6213
  Bpfman State
 ---------------
  Name:          pass
@@ -134,7 +134,7 @@ interface and thus will be executed first.
 We will now load 2 more programs with different priorities to demonstrate how bpfman will ensure they are ordered correctly:
 
 ```console
-sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 50
+sudo ./target/debug/bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 50
  Bpfman State
 ---------------
  Name:          pass
@@ -159,7 +159,7 @@ sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfman-bytecode/x
 ```
 
 ```console
-sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 200
+sudo ./target/debug/bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 200
  Bpfman State
 ---------------
  Name:          pass
@@ -183,10 +183,10 @@ sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfman-bytecode/x
 :
 ```
 
-Using `bpfctl list` we can see all the programs that were loaded.
+Using `bpfman list` we can see all the programs that were loaded.
 
 ```console
-sudo ./target/debug/bpfctl list
+sudo ./target/debug/bpfman list
  Program ID  Name  Type  Load Time
  6213        pass  xdp   2023-07-17T17:48:10-0400
  6215        pass  xdp   2023-07-17T17:52:46-0400
@@ -201,7 +201,7 @@ As can be seen from the detailed output for each command below:
 * Program `6217` is at position `2` with a priority of `200`
 
 ```console
-sudo ./target/debug/bpfctl get 6213
+sudo ./target/debug/bpfman get 6213
  Bpfman State
 ---------------
  Name:          pass
@@ -220,7 +220,7 @@ sudo ./target/debug/bpfctl get 6213
 ```
 
 ```console
-sudo ./target/debug/bpfctl get 6215
+sudo ./target/debug/bpfman get 6215
  Bpfman State
 ---------------
  Name:          pass
@@ -239,7 +239,7 @@ sudo ./target/debug/bpfctl get 6215
 ```
 
 ```console
-sudo ./target/debug/bpfctl get 6217
+sudo ./target/debug/bpfman get 6217
  Bpfman State
 ---------------
  Name:          pass
@@ -258,13 +258,13 @@ sudo ./target/debug/bpfctl get 6217
 ```
 
 By default, the next program in the chain will only be executed if a given program returns
-`pass` (see `proceed-on` field in the `bpfctl get` output above).
+`pass` (see `proceed-on` field in the `bpfman get` output above).
 If the next program in the chain should be called even if a different value is returned,
 then the program can be loaded with those additional return values using the `proceed-on`
-parameter (see `bpfctl load-from-image xdp --help` for list of valid values):
+parameter (see `bpfman load image xdp --help` for list of valid values):
 
 ```console
-sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 150 --proceed-on "pass" --proceed-on "dispatcher_return"
+sudo ./target/debug/bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 150 --proceed-on "pass" --proceed-on "dispatcher_return"
  Bpfman State
 ---------------
  Name:          pass
@@ -296,7 +296,7 @@ which is lower than the previous program at that position with a priority of `20
 Let's remove the program at position 1.
 
 ```console
-sudo ./target/debug/bpfctl list
+sudo ./target/debug/bpfman list
  Program ID  Name  Type  Load Time
  6213        pass  xdp   2023-07-17T17:48:10-0400
  6215        pass  xdp   2023-07-17T17:52:46-0400
@@ -305,13 +305,13 @@ sudo ./target/debug/bpfctl list
 ```
 
 ```console
-sudo ./target/debug/bpfctl unload 6213
+sudo ./target/debug/bpfman unload 6213
 ```
 
 And we can verify that it has been removed and the other programs re-ordered:
 
 ```console
-sudo ./target/debug/bpfctl list
+sudo ./target/debug/bpfman list
  Program ID  Name  Type  Load Time
  6215        pass  xdp   2023-07-17T17:52:46-0400
  6217        pass  xdp   2023-07-17T17:53:57-0400
@@ -319,7 +319,7 @@ sudo ./target/debug/bpfctl list
 ```
 
 ```console
-./target/debug/bpfctl get 6215
+./target/debug/bpfman get 6215
  Bpfman State
 ---------------
  Name:          pass
@@ -344,7 +344,7 @@ sudo ./target/debug/bpfctl list
 ```
 
 ```
-./target/debug/bpfctl get 6217
+./target/debug/bpfman get 6217
  Bpfman State
 ---------------
  Name:          pass
@@ -369,7 +369,7 @@ sudo ./target/debug/bpfctl list
 ```
 
 ```
-./target/debug/bpfctl get 6219
+./target/debug/bpfman get 6219
  Bpfman State
 ---------------
  Name:          pass
@@ -427,7 +427,7 @@ cargo build
 
 ### Step 2: Setup `bpfman` environment
 
-Run the following command to copy the `bpfman` and `bpfctl` binaries to `/usr/sbin/` and copy a
+Run the following command to copy the `bpfman` and `bpfman` binaries to `/usr/sbin/` and copy a
 default `bpfman.service` file to `/usr/lib/systemd/system/`.
 This option will also start the systemd service `bpfman.service` by default:
 
@@ -448,7 +448,7 @@ sudo vi /usr/lib/systemd/system/bpfman.service
 sudo systemctl daemon-reload
 ```
 
-If `bpfman` or `bpfctl` is rebuilt, the following command can be run to install the update binaries
+If `bpfman` or `bpfman` is rebuilt, the following command can be run to install the update binaries
 without regenerating the certifications.
 The `bpfman` service will is automatically restarted.
 
@@ -469,19 +469,19 @@ sudo systemctl start bpfman.service
 
 ### Step 4-6
 
-Same as above except `bpfctl` is now in $PATH:
+Same as above except `bpfman` is now in $PATH:
 
 ```console
-sudo bpfctl load-from-image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 100
+sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 100
 :
 
 
-sudo bpfctl list
+sudo bpfman list
  Program ID  Name  Type  Load Time
  6213        pass  xdp   2023-07-17T17:48:10-0400
 
 
-sudo bpfctl unload 6213
+sudo bpfman unload 6213
 ```
 
 ### Step 7: Clean-up
@@ -511,10 +511,10 @@ compile the examples.
 [eBPF Bytecode Image Specifications](../developer-guide/shipping-bytecode.md) describes how eBPF
 bytecode ispackaged in container images.
 
-To load these programs locally, use the `bpfctl load-from-file` command in place of the
-`bpfctl load-from-image` command.
+To load these programs locally, use the `bpfman load file` command in place of the
+`bpfman load image` command.
 For example:
 
 ```console
-sudo ./target/debug/bpfctl load-from-file --path /$HOME/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o --name "pass" xdp --iface vethff657c7 --priority 100
+sudo ./target/debug/bpfman load file --path /$HOME/src/xdp-tutorial/basic01-xdp-pass/xdp_pass_kern.o --name "pass" xdp --iface vethff657c7 --priority 100
 ```

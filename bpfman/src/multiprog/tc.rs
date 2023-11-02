@@ -18,7 +18,6 @@ use netlink_packet_route::tc::Nla;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc::Sender, oneshot};
 
-use super::Dispatcher;
 use crate::{
     bpf::{calc_map_pin_path, create_map_pin_path},
     command::{
@@ -28,6 +27,7 @@ use crate::{
     },
     dispatcher_config::TcDispatcherConfig,
     errors::BpfmanError,
+    multiprog::Dispatcher,
     oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
     utils::should_map_be_pinned,
 };

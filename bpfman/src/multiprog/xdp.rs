@@ -15,12 +15,12 @@ use log::debug;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc::Sender, oneshot};
 
-use super::Dispatcher;
 use crate::{
     bpf::{calc_map_pin_path, create_map_pin_path},
     command::{Program, XdpProgram},
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfmanError,
+    multiprog::Dispatcher,
     oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
     utils::should_map_be_pinned,
 };

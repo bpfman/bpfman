@@ -98,10 +98,10 @@ developed in Rust.
 
 When used on an individual server, bpfman runs as a system daemon, and
 applications communicate with it using a gRPC API.  bpfman can also be used via a
-command line tool called bpfctl which in turn uses the gRPC API. The following
-is an example of using bpfctl to load and attach an xdp program.
+command line which in turn uses the gRPC API. The following
+is an example of using bpfman to load and attach an xdp program.
 
-    bpfctl load-from-image -g GLOBAL_u8=01 -i quay.io/bpfman-bytecode/xdp_pass:latest xdp -i eth0 -p 100
+    bpfman load-from-image -g GLOBAL_u8=01 -i quay.io/bpfman-bytecode/xdp_pass:latest xdp -i eth0 -p 100
 
 This architecture is depicted in the following diagram.
 
@@ -144,7 +144,7 @@ The benefits of bpfman are brought to Kubernetes by the bpfman operator.  The bp
 operator is developed in Go using the Operator SDK framework, so it should be
 familiar to most Kubernetes application developers. The bpfman operator deploys a
 daemonset, containing both bpfman and the bpfman agent processes on each node.
-Rather than making requests directly to bpfman with the gRPC API or bpfctl as
+Rather than making requests directly to bpfman with the gRPC API or CLI as
 described above, Kubernetes applications use bpfman custom resource definitions
 (CRDs) to make requests to bpfman to load and attach eBPF programs.  bpfman uses two
 types of CRDs; Program CRDs for each eBPF program type (referred to as \*Program
@@ -155,7 +155,7 @@ the bpfman agent to report the current state of the eBPF program on each node.
 Using XDP as an example, the application can request that an XDP program be
 loaded on multiple nodes using the XdpProgram CRD, which includes the necessary
 information such as the bytecode image to load, interface to attach it to, and
-priority.  An XdpProgram CRD that would do the same thing as the bpfctl command
+priority.  An XdpProgram CRD that would do the same thing as the CLI command
 shown above on every node in a cluster is shown below.
 
 ```yaml
@@ -288,7 +288,7 @@ More details about this process can be seen
 
 The eBPF Bytecode Image specification was created as part of the bpfman project to
 define a way to package eBPF bytecode as OCI container images.  Its use was
-illustrated in the `bpfctl` and `XdpProgram` CRD examples above in which the XDP
+illustrated in the CLI and `XdpProgram` CRD examples above in which the XDP
 program was loaded from `quay.io/bpfman-bytecode/xdp_pass:latest`. The initial
 motivation for this image spec was to facilitate the deployment of eBPF programs
 in container orchestration systems such as Kubernetes, where it is necessary to
