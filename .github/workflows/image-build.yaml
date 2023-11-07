@@ -357,7 +357,7 @@ jobs:
     name: Build Image (${{ matrix.image.image }})
     environment: image-repositories
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v3
         if: ${{ matrix.image.bpf_build_wrapper == 'go' }}
@@ -366,7 +366,7 @@ jobs:
 
       - uses: sigstore/cosign-installer@v3.1.1
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         if: ${{ matrix.image.bpf_build_wrapper == 'rust' }}
         with:
           repository: libbpf/libbpf
