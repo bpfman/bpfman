@@ -9,26 +9,30 @@ header:
       - bpfd-common
       - bpfctl
     paths-ignore:
-      - '**/target/**'
-      - '**/*.toml'
-      - '**/*.proto'
-      - '**/*.lock'
-      - '**/*.yml'
-      - '**/*.md'
+      - "**/target/**"
+      - "**/*.toml"
+      - "**/*.proto"
+      - "**/*.lock"
+      - "**/*.yml"
+      - "**/*.md"
+    comment: on-failure
+  - license:
+      content: |
+        SPDX-License-Identifier: GPL-2.0-only
+        Modifications Copyright Authors of bpfd
+    paths:
+      - bpf/xdp_dispatcher_v1.bpf.c
+      - bpf/xdp_dispatcher_v2.bpf.c
+      - examples/go-xdp-counter/bpf/xdp_counter.c
     comment: on-failure
   - license:
       content: |
         SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
         Copyright Authors of bpfd
     paths:
-      - bpf
+      - bpf/tc_dispatcher.bpf.c
+      - examples/**/bpf/*.c
+      - tests/**/*.bpf.c
     paths-ignore:
-      - '**/target/**'
-      - '**/*.toml'
-      - '**/*.proto'
-      - '**/*.lock'
-      - '**/*.yml'
-      - '**/*.md'
-      - '**/.vim/**'
-      - '**/.vscode/**'
+      - examples/go-xdp-counter/bpf/xdp_counter.c
     comment: on-failure

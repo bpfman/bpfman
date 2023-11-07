@@ -46,8 +46,20 @@ be dual licensed as above, without any additional terms or conditions.
 
 ### eBPF
 
-All [eBPF code](./bpf) is distributed under the terms of the [GNU General Public
-License, Version 2] or the [BSD 2 Clause] license, at your option.
+All eBPF code is distributed under either:
+
+- The terms of the [GNU General Public License, Version 2] or the
+  [BSD 2 Clause] license, at your option.
+- The terms of the [GNU General Public License, Version 2].
+
+The exact license text varies by file. Please see the SPDX-License-Identifier
+header in each file for details.
+
+Files that originate from the authors of bpfd use
+`(GPL-2.0-only OR BSD-2-Clause)` - for example the [TC dispatcher] or our
+own example programs.
+
+Files that were originally created in [libxdp] use `GPL-2.0-only`.
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
 for inclusion in this project by you, as defined in the GPL-2 license, shall be
@@ -57,3 +69,4 @@ dual licensed as above, without any additional terms or conditions.
 [Apache license]: LICENSE-APACHE
 [GNU General Public License, Version 2]: LICENSE-GPL2
 [BSD 2 Clause]: LICENSE-BSD2
+[libxdp]: https://github.com/xdp-project/xdp-tools

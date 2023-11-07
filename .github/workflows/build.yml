@@ -25,14 +25,20 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    container:
-      image: fedora:38
     steps:
-      ## Install perl due to https://github.com/openssl/openssl/issues/13761
-      - name: Install deps
+      - name: Install dependencies
         run: |
-          sudo dnf groupinstall -y c-development
-          sudo dnf install -y git clang llvm protobuf-compiler cmake perl musl-*
+          sudo apt-get update
+          sudo apt-get install -qy \
+            git \
+            clang \
+            llvm \
+            protobuf-compiler \
+            cmake \
+            perl \
+            libssl-dev \
+            gcc-multilib \
+            libelf-dev
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
@@ -47,7 +53,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
-          components: rust-src
+          components: rustfmt, clippy, rust-src
           override: false
 
       - uses: Swatinem/rust-cache@v2
@@ -60,6 +66,9 @@ jobs:
           tool: taplo-cli
 
       - run: taplo fmt --check
+
+      - name: Check C formatting
+        run: git ls-files -- '*.c' '*.h' | xargs clang-format --dry-run --Werror
 
       - name: Build eBPF
         run: |
