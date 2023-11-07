@@ -101,7 +101,7 @@ fn test_proceed_on_xdp() {
     debug!("Installing 3rd xdp program");
     let (prog_id, _) = add_xdp(
         DEFAULT_BPFD_IFACE,
-        50,
+        25,
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["pass", "dispatcher_return"].to_vec()),
         &LoadType::Image,
@@ -132,11 +132,113 @@ fn test_proceed_on_xdp() {
 }
 
 #[integration_test]
-fn test_proceed_on_tc() {
+fn test_unload_xdp() {
+    // This test confirms that after unloading a high priority program, the
+    // proceedon configuration still works.  This test reproduces the case that
+    // produced the xdp unload issue described in
+    // https://github.com/bpfd-dev/bpfd/issues/791
+
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
     let trace_guard = start_trace_pipe().unwrap();
     let _bpfd_guard = start_bpfd().unwrap();
+
+    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+
+    let mut loaded_ids = vec![];
+
+    // Install the first lowest priority program.
+    debug!("Installing 1st xdp program");
+    let (prog_id, _) = add_xdp(
+        DEFAULT_BPFD_IFACE,
+        75,
+        Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        Some(["pass", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
+        XDP_PASS_IMAGE_LOC,
+        XDP_PASS_FILE_LOC,
+        None, // metadata
+        None, // map_owner_id
+    );
+    loaded_ids.push(prog_id.unwrap());
+
+    // Install a 2nd xdp program with a higher priority than the first that has
+    // proceed on "pass", which this program will return.
+    debug!("Installing 2nd xdp program");
+    let (prog_id, _) = add_xdp(
+        DEFAULT_BPFD_IFACE,
+        50,
+        Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        Some(["pass", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
+        XDP_PASS_IMAGE_LOC,
+        XDP_PASS_FILE_LOC,
+        None, // metadata
+        None, // map_owner_id
+    );
+    loaded_ids.push(prog_id.unwrap());
+
+    // Install a 3rd xdp program with a higher priority than the second that has
+    // proceed on "pass", which this program will return.
+    debug!("Installing 3rd xdp program");
+    let (prog_id_high_pri, _) = add_xdp(
+        DEFAULT_BPFD_IFACE,
+        25,
+        Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        Some(["pass", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
+        XDP_PASS_IMAGE_LOC,
+        XDP_PASS_FILE_LOC,
+        None, // metadata
+        None, // map_owner_id
+    );
+
+    // Don't save this id because we're going to unload it explicitly below.
+
+    debug!("Clear the trace_pipe_log");
+    drop(trace_guard);
+    let trace_guard = start_trace_pipe().unwrap();
+
+    debug!("wait for some traffic to generate logs...");
+    sleep(Duration::from_secs(2));
+
+    // Make sure we have logs from all 3 programs.
+    let trace_pipe_log = read_trace_pipe_log().unwrap();
+    assert!(!trace_pipe_log.is_empty());
+    assert!(trace_pipe_log.contains(XDP_GLOBAL_1_LOG));
+    assert!(trace_pipe_log.contains(XDP_GLOBAL_2_LOG));
+    assert!(trace_pipe_log.contains(XDP_GLOBAL_3_LOG));
+    debug!("All three logs are found");
+
+    // Now delete the highest priority program and confirm that the other two
+    // are still running.
+
+    bpfd_del_program(prog_id_high_pri.unwrap().as_str());
+
+    debug!("Clear the trace_pipe_log");
+    drop(trace_guard);
+    let _trace_guard = start_trace_pipe().unwrap();
+
+    debug!("wait for some traffic to generate logs...");
+    sleep(Duration::from_secs(2));
+
+    // Make sure we have logs from the first two programs, but not the 3rd.
+    let trace_pipe_log = read_trace_pipe_log().unwrap();
+    assert!(!trace_pipe_log.is_empty());
+    assert!(trace_pipe_log.contains(XDP_GLOBAL_1_LOG));
+    assert!(trace_pipe_log.contains(XDP_GLOBAL_2_LOG));
+    assert!(!trace_pipe_log.contains(XDP_GLOBAL_3_LOG));
+    debug!("Successfully completed the xdp unload test");
+
+    verify_and_delete_programs(loaded_ids);
+}
+
+#[integration_test]
+fn test_proceed_on_tc() {
+    let _namespace_guard = create_namespace().unwrap();
+    let _ping_guard = start_ping().unwrap();
+    let trace_guard = start_trace_pipe().unwrap();
+    let bpfd_guard = start_bpfd().unwrap();
 
     assert!(iface_exists(DEFAULT_BPFD_IFACE));
 
@@ -233,7 +335,7 @@ fn test_proceed_on_tc() {
     let (prog_id, _) = add_tc(
         "ingress",
         DEFAULT_BPFD_IFACE,
-        50,
+        25,
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
         &LoadType::Image,
@@ -246,7 +348,7 @@ fn test_proceed_on_tc() {
     let (prog_id, _) = add_tc(
         "egress",
         DEFAULT_BPFD_IFACE,
-        50,
+        25,
         Some([GLOBAL_6, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
         &LoadType::Image,
@@ -255,6 +357,31 @@ fn test_proceed_on_tc() {
     );
     loaded_ids.push(prog_id.unwrap());
 
+    debug!("Clear the trace_pipe_log");
+    drop(trace_guard);
+    let trace_guard = start_trace_pipe().unwrap();
+
+    debug!("wait for some traffic to generate logs...");
+    sleep(Duration::from_secs(2));
+
+    // Make sure we have logs from the 2nd and 3rd TC programs, but not from the
+    // 1st programs.
+    let trace_pipe_log = read_trace_pipe_log().unwrap();
+    assert!(!trace_pipe_log.is_empty());
+    assert!(!trace_pipe_log.contains(TC_ING_GLOBAL_1_LOG));
+    assert!(trace_pipe_log.contains(TC_ING_GLOBAL_2_LOG));
+    assert!(trace_pipe_log.contains(TC_ING_GLOBAL_3_LOG));
+    debug!("Successfully completed tc ingress proceed-on test");
+    assert!(!trace_pipe_log.contains(TC_EG_GLOBAL_4_LOG));
+    assert!(trace_pipe_log.contains(TC_EG_GLOBAL_5_LOG));
+    assert!(trace_pipe_log.contains(TC_EG_GLOBAL_6_LOG));
+    debug!("Successfully completed tc egress proceed-on test");
+
+    // Verify that the programs still work after we stop and restart bpfd
+    drop(bpfd_guard);
+    let _bpfd_guard = start_bpfd().unwrap();
+
+    // Make sure it still works like it did before we stopped and restarted bpfd
     debug!("Clear the trace_pipe_log");
     drop(trace_guard);
     let _trace_guard = start_trace_pipe().unwrap();
@@ -274,6 +401,150 @@ fn test_proceed_on_tc() {
     assert!(trace_pipe_log.contains(TC_EG_GLOBAL_5_LOG));
     assert!(trace_pipe_log.contains(TC_EG_GLOBAL_6_LOG));
     debug!("Successfully completed tc egress proceed-on test");
+
+    verify_and_delete_programs(loaded_ids);
+}
+
+#[integration_test]
+fn test_unload_tc() {
+    // This test confirms that after unloading a high priority program, the
+    // proceedon configuration still works.  This test reproduces the case that
+    // produced the tc unload issue described in
+    // https://github.com/bpfd-dev/bpfd/issues/791
+
+    let _namespace_guard = create_namespace().unwrap();
+    let _ping_guard = start_ping().unwrap();
+    let trace_guard = start_trace_pipe().unwrap();
+    let _bpfd_guard = start_bpfd().unwrap();
+
+    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+
+    let mut loaded_ids = vec![];
+
+    // Install the first lowest priority programs.
+    debug!("Installing 1st tc ingress program");
+    let (prog_id, _) = add_tc(
+        "ingress",
+        DEFAULT_BPFD_IFACE,
+        75,
+        Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        Some(["ok", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
+        TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
+    );
+    loaded_ids.push(prog_id.unwrap());
+
+    debug!("Installing 1st tc egress program");
+    let (prog_id, _) = add_tc(
+        "egress",
+        DEFAULT_BPFD_IFACE,
+        75,
+        Some([GLOBAL_4, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        Some(["ok", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
+        TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
+    );
+    loaded_ids.push(prog_id.unwrap());
+
+    // Install a 2nd tc program in each direction with a higher priority than
+    // the first that proceeds on "ok", which this program will return.
+    debug!("Installing 2nd tc ingress program");
+    let (prog_id, _) = add_tc(
+        "ingress",
+        DEFAULT_BPFD_IFACE,
+        50,
+        Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        Some(["ok", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
+        TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
+    );
+    loaded_ids.push(prog_id.unwrap());
+
+    debug!("Installing 2nd tc egress program");
+    let (prog_id, _) = add_tc(
+        "egress",
+        DEFAULT_BPFD_IFACE,
+        50,
+        Some([GLOBAL_5, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        Some(["ok", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
+        TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
+    );
+    loaded_ids.push(prog_id.unwrap());
+
+    // Install a 3rd tc program in each direction with a higher priority than
+    // the second that proceeds on "ok", which this program will return.
+    debug!("Installing 3rd tc ingress program");
+    let (prog_id_ing_high_pri, _) = add_tc(
+        "ingress",
+        DEFAULT_BPFD_IFACE,
+        25,
+        Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        Some(["ok", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
+        TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
+    );
+
+    debug!("Installing 3rd tc egress program");
+    let (prog_id_eg_high_pri, _) = add_tc(
+        "egress",
+        DEFAULT_BPFD_IFACE,
+        25,
+        Some([GLOBAL_6, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        Some(["ok", "dispatcher_return"].to_vec()),
+        &LoadType::Image,
+        TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
+    );
+
+    // Don't save the 3rd prog ids because we will unload them explicitly below.
+
+    debug!("Clear the trace_pipe_log");
+    drop(trace_guard);
+    let trace_guard = start_trace_pipe().unwrap();
+
+    debug!("wait for some traffic to generate logs...");
+    sleep(Duration::from_secs(2));
+
+    // Make sure we have logs from all 3 programs.
+    let trace_pipe_log = read_trace_pipe_log().unwrap();
+    assert!(!trace_pipe_log.is_empty());
+    assert!(trace_pipe_log.contains(TC_ING_GLOBAL_1_LOG));
+    assert!(trace_pipe_log.contains(TC_ING_GLOBAL_2_LOG));
+    assert!(trace_pipe_log.contains(TC_ING_GLOBAL_3_LOG));
+    debug!("All 3 tc ingress logs found");
+    assert!(trace_pipe_log.contains(TC_EG_GLOBAL_4_LOG));
+    assert!(trace_pipe_log.contains(TC_EG_GLOBAL_5_LOG));
+    assert!(trace_pipe_log.contains(TC_EG_GLOBAL_6_LOG));
+    debug!("All 3 tc egress logs found");
+
+    // Unload the 3rd programs
+    bpfd_del_program(prog_id_ing_high_pri.unwrap().as_str());
+    bpfd_del_program(prog_id_eg_high_pri.unwrap().as_str());
+
+    debug!("Clear the trace_pipe_log");
+    drop(trace_guard);
+    let _trace_guard = start_trace_pipe().unwrap();
+
+    debug!("wait for some traffic to generate logs...");
+    sleep(Duration::from_secs(2));
+
+    // Make sure we have logs from the first 2 programs, but not the 3rd.
+    let trace_pipe_log = read_trace_pipe_log().unwrap();
+    assert!(!trace_pipe_log.is_empty());
+    assert!(trace_pipe_log.contains(TC_ING_GLOBAL_1_LOG));
+    assert!(trace_pipe_log.contains(TC_ING_GLOBAL_2_LOG));
+    assert!(!trace_pipe_log.contains(TC_ING_GLOBAL_3_LOG));
+    debug!("Successfully completed tc ingress unload test");
+    assert!(trace_pipe_log.contains(TC_EG_GLOBAL_4_LOG));
+    assert!(trace_pipe_log.contains(TC_EG_GLOBAL_5_LOG));
+    assert!(!trace_pipe_log.contains(TC_EG_GLOBAL_6_LOG));
+    debug!("Successfully completed tc egress unload test");
 
     verify_and_delete_programs(loaded_ids);
 }
