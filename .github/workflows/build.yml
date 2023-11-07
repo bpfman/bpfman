@@ -121,7 +121,7 @@ jobs:
         with:
           path: ${{ env.GOPATH }}/src/github.com/bpfd-dev/bpfd
 
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: "1.20"
 
@@ -225,7 +225,7 @@ jobs:
       CERTMANAGER_VERSION: "v1.10.1"
     steps:
       - name: setup golang
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version: "^1.19"
 
