@@ -7,4 +7,4 @@ spec:
   template:
     spec:
       containers:
-      - name: bpfd-operator
+        - name: bpfd-operator

@@ -21,4 +21,3 @@ data:
   ## Can be configured at runtime
   bpfd.log.level: "info"
   bpfd.agent.log.level: "info"
-  

@@ -17,4 +17,3 @@ data:
     type = "unix"
     path = "/bpfd-sock/bpfd.sock"
     enabled = true
-  

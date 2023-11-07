@@ -10,8 +10,8 @@ spec:
   nodeselector: {}
   func_name: syscall
   # offset: 0 # optional offset w/in function
-  target: 
-  - /bpfd
+  target:
+    - /bpfd
   retprobe: false
   # pid: 0 # optional pid to execute uprobe for
   bytecode:
@@ -19,7 +19,7 @@ spec:
       url: quay.io/bpfd-bytecode/uprobe:latest
   globaldata:
     GLOBAL_u8:
-      - 0x01 
+      - 0x01
     GLOBAL_u32:
       - 0x0D
       - 0x0C

@@ -9,41 +9,41 @@ namespace: bpfd
 namePrefix: bpfd-
 
 # Labels to add to all resources and selectors.
-#commonLabels:
+# commonLabels:
 #  someName: someValue
 
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in
 # crd/kustomization.yaml
-#- ../webhook
+# - ../webhook
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER'. 'WEBHOOK' components are required.
 # [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
-#- ../prometheus
+# - ../prometheus
 
 # Protect the /metrics endpoint by putting it behind auth.
 # If you want your controller-manager to expose the /metrics
 # endpoint w/o any authn/z, please comment the following line.
 patchesStrategicMerge:
-- manager_auth_proxy_patch.yaml
-- patch.yaml
+  - manager_auth_proxy_patch.yaml
+  - patch.yaml
 
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in
 # crd/kustomization.yaml
-#- manager_webhook_patch.yaml
+# - manager_webhook_patch.yaml
 
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER'.
 # Uncomment 'CERTMANAGER' sections in crd/kustomization.yaml to enable the CA injection in the admission webhooks.
 # 'CERTMANAGER' needs to be enabled to use ca injection
-#- webhookcainjection_patch.yaml
+# - webhookcainjection_patch.yaml
 
 # the following config is for teaching kustomize how to do var substitution
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- ../crd
-- ../rbac
-- ../bpfd-deployment
-- ../bpfd-operator-deployment
+  - ../crd
+  - ../rbac
+  - ../bpfd-deployment
+  - ../bpfd-operator-deployment
 images:
-- name: quay.io/bpfd/bpfd-operator
-  newName: quay.io/bpfd/bpfd-operator
-  newTag: int-test
+  - name: quay.io/bpfd/bpfd-operator
+    newName: quay.io/bpfd/bpfd-operator
+    newTag: int-test

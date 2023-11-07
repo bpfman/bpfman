@@ -1,4 +1,4 @@
-# These SCC OCP workarounds are left here for possible future reference even 
+# These SCC OCP workarounds are left here for possible future reference even
 # though they are not currently in use.
 # apiVersion: v1
 # kind: Namespace
@@ -35,9 +35,9 @@ metadata:
 spec:
   commonName: bpfd-agent
   dnsNames:
-  - localhost
+    - localhost
   ipAddresses:
-  - 127.0.0.1
+    - 127.0.0.1
   issuerRef:
     group: cert-manager.io
     kind: Issuer
@@ -70,9 +70,9 @@ metadata:
 spec:
   commonName: bpfd
   dnsNames:
-  - localhost
+    - localhost
   ipAddresses:
-  - 127.0.0.1
+    - 127.0.0.1
   issuerRef:
     group: cert-manager.io
     kind: Issuer

@@ -38,7 +38,7 @@ extra:
 markdown_extensions:
   - admonition
   - pymdownx.highlight:
-        anchor_linenums: true
+      anchor_linenums: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
@@ -50,36 +50,36 @@ markdown_extensions:
 nav:
   - Introduction: index.md
   - Getting Started:
-    - Setup and Building: getting-started/building-bpfd.md
-    - Run bpfd From Release Image: getting-started/running-release.md
-    - Bpfd on Linux Tutorial: getting-started/tutorial.md
-    - bpfctl Guide: getting-started/bpfctl-guide.md
-    - Example eBPF Programs: getting-started/example-bpf.md
-    - Deploying Example eBPF Programs On Local Host: getting-started/example-bpf-local.md
-    - Deploying Example eBPF Programs On Kubernetes: getting-started/example-bpf-k8s.md
+      - Setup and Building: getting-started/building-bpfd.md
+      - Run bpfd From Release Image: getting-started/running-release.md
+      - Bpfd on Linux Tutorial: getting-started/tutorial.md
+      - bpfctl Guide: getting-started/bpfctl-guide.md
+      - Example eBPF Programs: getting-started/example-bpf.md
+      - Deploying Example eBPF Programs On Local Host: getting-started/example-bpf-local.md
+      - Deploying Example eBPF Programs On Kubernetes: getting-started/example-bpf-k8s.md
   - Developer Guide:
-    - Contributing: governance/CONTRIBUTING.md
-    - Reviewing Guide: governance/REVIEWING.md
-    - Deploying the bpfd-operator: developer-guide/operator-quick-start.md
-    - Developing the bpfd-operator: developer-guide/develop-operator.md
-    - Kubernetes CRD API-Reference: developer-guide/api-spec.md
-    - eBPF Bytecode Image Specifications: developer-guide/shipping-bytecode.md
-    - bpfd Container Images: developer-guide/image-build.md
-    - Documentation: developer-guide/documentation.md
-    - Linux Capabilities: developer-guide/linux-capabilities.md
-    - Logging: developer-guide/logging.md
-    - Configuration: developer-guide/configuration.md
-    - Testing: developer-guide/testing.md
-    - Debugging: developer-guide/debugging.md
-    - Releasing: developer-guide/release.md
+      - Contributing: governance/CONTRIBUTING.md
+      - Reviewing Guide: governance/REVIEWING.md
+      - Deploying the bpfd-operator: developer-guide/operator-quick-start.md
+      - Developing the bpfd-operator: developer-guide/develop-operator.md
+      - Kubernetes CRD API-Reference: developer-guide/api-spec.md
+      - eBPF Bytecode Image Specifications: developer-guide/shipping-bytecode.md
+      - bpfd Container Images: developer-guide/image-build.md
+      - Documentation: developer-guide/documentation.md
+      - Linux Capabilities: developer-guide/linux-capabilities.md
+      - Logging: developer-guide/logging.md
+      - Configuration: developer-guide/configuration.md
+      - Testing: developer-guide/testing.md
+      - Debugging: developer-guide/debugging.md
+      - Releasing: developer-guide/release.md
   - Blog:
-    - blog/index.md
+      - blog/index.md
   - Community:
-    - Meetings: governance/MEETINGS.md
-    - Governance: governance/GOVERNANCE.md
-    - Code of Conduct: governance/CODE_OF_CONDUCT.md
-    - Maintainers: governance/MAINTAINERS.md
-    - Security: governance/SECURITY.md
+      - Meetings: governance/MEETINGS.md
+      - Governance: governance/GOVERNANCE.md
+      - Code of Conduct: governance/CODE_OF_CONDUCT.md
+      - Maintainers: governance/MAINTAINERS.md
+      - Security: governance/SECURITY.md
 
 plugins:
   - blog:

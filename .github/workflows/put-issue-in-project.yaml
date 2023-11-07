@@ -1,6 +1,6 @@
 name: Add all issues to bpfd project
 
-on:
+on: # yamllint disable-line rule:truthy
   issues:
     types:
       - opened
@@ -16,4 +16,3 @@ jobs:
           # to the issue
           project-url: https://github.com/orgs/bpfd-dev/projects/4
           github-token: ${{ secrets.BPFD_PROJECT_PAT }}
-          

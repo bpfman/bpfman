@@ -17,7 +17,7 @@ spec:
       url: quay.io/bpfd-bytecode/tc_pass:latest
   globaldata:
     GLOBAL_u8:
-      - 0x01 
+      - 0x01
     GLOBAL_u32:
       - 0x0D
       - 0x0C

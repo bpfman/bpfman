@@ -1,6 +1,6 @@
 name: build
 
-on:
+on: # yamllint disable-line rule:truthy
   push:
     branches: [main]
     tags:
@@ -67,6 +67,9 @@ jobs:
           tool: taplo-cli
 
       - run: taplo fmt --check
+
+      - name: yaml-lint
+        run: yamllint -c .yamllint.yaml --strict .
 
       - name: Check C formatting
         run: git ls-files -- '*.c' '*.h' | xargs clang-format --dry-run --Werror
