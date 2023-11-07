@@ -364,7 +364,7 @@ jobs:
         with:
           go-version: "1.20"
 
-      - uses: sigstore/cosign-installer@v3.1.1
+      - uses: sigstore/cosign-installer@v3.1.2
 
       - uses: actions/checkout@v4
         if: ${{ matrix.image.bpf_build_wrapper == 'rust' }}
