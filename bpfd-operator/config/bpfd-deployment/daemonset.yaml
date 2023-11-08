@@ -34,6 +34,7 @@ spec:
       containers:
       - name: bpfd
         image: quay.io/bpfd/bpfd:latest
+        args: ["--csi-support"]
         securityContext:
           privileged: true
         imagePullPolicy: IfNotPresent
@@ -43,6 +44,10 @@ spec:
               configMapKeyRef:
                 name: bpfd-config
                 key: bpfd.log.level
+          - name: KUBE_NODE_NAME 
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
         volumeMounts:
         - name: bpfd-sock
           mountPath: /bpfd-sock
@@ -64,6 +69,11 @@ spec:
         - name: default-bpf-fs
           mountPath: /sys/fs/bpf
           mountPropagation: Bidirectional
+        - mountPath: /run/bpfd/csi
+          name: socket-dir
+        - mountPath: /var/lib/kubelet/pods
+          mountPropagation: Bidirectional
+          name: mountpoint-dir
         - mountPath: /tmp
           name: tmp-dir
       - name: bpfd-agent 
@@ -88,6 +98,28 @@ spec:
           mountPath: /etc/bpfd/bpfd.toml
           subPath: bpfd.toml
           readOnly: true
+      - name: node-driver-registrar
+        image: quay.io/bpfd/csi-node-driver-registrar:v2.9.0
+        imagePullPolicy: IfNotPresent
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "rm -rf /registration/csi-bpfd /registration/csi-bpfd-reg.sock"]
+        args:
+          - --v=5
+          - --csi-address=/csi/csi.sock
+          - --kubelet-registration-path=/var/lib/kubelet/plugins/csi-bpfd/csi.sock
+        env:
+          - name: KUBE_NODE_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: spec.nodeName
+        volumeMounts:
+        - mountPath: /csi
+          name: socket-dir
+        - mountPath: /registration
+          name: registration-dir
       terminationGracePeriodSeconds: 15
       volumes:
       - name: bpfd-sock
@@ -109,6 +141,22 @@ spec:
         hostPath:
           path: /sys/fs/bpf
           type: DirectoryOrCreate
+      # This volume is where the socket for kubelet->driver communication is held
+      - hostPath:
+          path: /var/lib/kubelet/plugins/csi-bpfd
+          type: DirectoryOrCreate
+        name: socket-dir
+      # This volume is where the driver mounts volumes
+      - hostPath:
+          path: /var/lib/kubelet/pods
+          type: DirectoryOrCreate
+        name: mountpoint-dir
+      # This volume is where the node-driver-registrar registers the plugin
+      # with kubelet
+      - hostPath:
+          path: /var/lib/kubelet/plugins_registry
+          type: Directory
+        name: registration-dir
       # Temporary hack to allow sigstore rust bindings to write data to /tmp
       # which doesn't seem to exist when running via Openshift.
       - hostPath:

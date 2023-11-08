@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,10 +40,11 @@ import (
 
 func TestBpfdConfigReconcileAndDelete(t *testing.T) {
 	var (
-		name         = "bpfd-config"
-		namespace    = "bpfd"
-		staticDsPath = "../../config/bpfd-deployment/daemonset.yaml"
-		ctx          = context.TODO()
+		name          = "bpfd-config"
+		namespace     = "bpfd"
+		staticDsPath  = "../../config/bpfd-deployment/daemonset.yaml"
+		staticCsiPath = "../../config/bpfd-deployment/csidriverinfo.yaml"
+		ctx           = context.TODO()
 	)
 
 	// A configMap for bpfd with metadata and spec.
@@ -65,6 +67,7 @@ func TestBpfdConfigReconcileAndDelete(t *testing.T) {
 	s := scheme.Scheme
 	s.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.ConfigMap{})
 	s.AddKnownTypes(appsv1.SchemeGroupVersion, &appsv1.DaemonSet{})
+	s.AddKnownTypes(storagev1.SchemeGroupVersion, &storagev1.CSIDriver{})
 
 	// Create a fake client to mock API calls.
 	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
@@ -81,7 +84,7 @@ func TestBpfdConfigReconcileAndDelete(t *testing.T) {
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	// Create a ReconcileMemcached object with the scheme and fake client.
-	r := &BpfdConfigReconciler{ReconcilerCommon: rc, BpfdStandardDeployment: staticDsPath}
+	r := &BpfdConfigReconciler{ReconcilerCommon: rc, BpfdStandardDeployment: staticDsPath, CsiDriverDeployment: staticCsiPath}
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .

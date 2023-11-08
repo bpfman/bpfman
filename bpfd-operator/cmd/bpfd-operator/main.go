@@ -53,7 +53,6 @@ func init() {
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
-	var deployCsiPlugin bool
 	var probeAddr string
 	var opts zap.Options
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
@@ -61,7 +60,6 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.BoolVar(&deployCsiPlugin, "deploy-csi-plugin", false, "deploy bpfd's built in CSI plugin")
 	flag.Parse()
 
 	// Get the Log level for bpfd deployment where this pod is running
@@ -119,8 +117,8 @@ func main() {
 
 	if err = (&bpfdoperator.BpfdConfigReconciler{
 		ReconcilerCommon:       common,
-		BpfdCsiDeployment:      internal.BpfdDaemonCsiManifestPath,
 		BpfdStandardDeployment: internal.BpfdDaemonManifestPath,
+		CsiDriverDeployment:    internal.BpfdCsiDriverPath,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create bpfdCofig controller", "controller", "BpfProgram")
 		os.Exit(1)

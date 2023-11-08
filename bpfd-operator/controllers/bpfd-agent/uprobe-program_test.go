@@ -191,8 +191,6 @@ func TestUprobeProgramControllerCreate(t *testing.T) {
 		t.Fatal("Built bpfd LoadRequest does not match expected")
 	}
 
-	require.Nil(t, bpfProg.Spec.Maps)
-
 	// Third reconcile should set the status to loaded
 	res, err = r.Reconcile(ctx, req)
 	if err != nil {

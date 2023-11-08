@@ -192,8 +192,6 @@ func TestTcProgramControllerCreate(t *testing.T) {
 		t.Fatal("Built bpfd LoadRequest does not match expected")
 	}
 
-	require.Nil(t, bpfProg.Spec.Maps)
-
 	// Third reconcile should update the bpfPrograms status to loaded
 	res, err = r.Reconcile(ctx, req)
 	if err != nil {
@@ -453,13 +451,9 @@ func TestTcProgramControllerCreateMultiIntf(t *testing.T) {
 	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName0, Namespace: metav1.NamespaceAll}, bpfProgEth0)
 	require.NoError(t, err)
 
-	require.Nil(t, bpfProgEth0.Spec.Maps)
-
 	// Check that the bpfProgram's maps was correctly updated
 	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName1, Namespace: metav1.NamespaceAll}, bpfProgEth1)
 	require.NoError(t, err)
-
-	require.Nil(t, bpfProgEth1.Spec.Maps)
 
 	// Third reconcile should update the bpfPrograms status to loaded
 	res, err = r.Reconcile(ctx, req)

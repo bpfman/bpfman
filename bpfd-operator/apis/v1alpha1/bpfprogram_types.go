@@ -43,10 +43,6 @@ type BpfProgramSpec struct {
 	// Type specifies the bpf program type
 	// +optional
 	Type string `json:"type,omitempty"`
-
-	// Maps is a map with Keys: Map Names, and Values: Map Pin paths
-	// +optional
-	Maps map[string]string `json:"maps,omitempty"`
 }
 
 // BpfProgramStatus defines the observed state of BpfProgram
