@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
 // Copyright Authors of bpfd
 
-// clang-format off
 #include <linux/bpf.h>
 #include <linux/pkt_cls.h>
-#include <signal.h>
 #include <linux/types.h>
+#include <signal.h>
+
 #include <bpf/bpf_helpers.h>
-// clang-format on
 
 struct datarec {
   __u64 calls;

@@ -1,2 +1,6 @@
 # Binaries for programs and plugins
 bin
+
+# bpf2go generated code
+**/bpf_bpf*.go
+**/bpf_bpf*.o

@@ -4,11 +4,9 @@
 // Derived from:
 // https://github.com/xdp-project/xdp-tutorial/tree/master/basic03-map-counter
 
-// clang-format off
-#include <linux/types.h>
-#include <bpf/bpf_helpers.h>
 #include <linux/bpf.h>
-// clang-format on
+
+#include <bpf/bpf_helpers.h>
 
 #define XDP_ACTION_MAX (XDP_REDIRECT + 1)
 

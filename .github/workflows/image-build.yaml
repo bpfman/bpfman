@@ -313,7 +313,7 @@ jobs:
               type=ref,event=pr
               type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}}           
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             bpf_build_wrapper: rust
@@ -332,7 +332,7 @@ jobs:
               type=ref,event=pr
               type=sha,format=long
               # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}}             
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             bpf_build_wrapper: rust
@@ -388,7 +388,7 @@ jobs:
         if: ${{ matrix.image.bpf_build_wrapper == 'rust' }}
         run: |
           cargo xtask build-ebpf --libbpf-dir ./libbpf
-      
+
       - name: Install bpf2go
         if: ${{ matrix.image.bpf_build_wrapper == 'go' }}
         run: |
