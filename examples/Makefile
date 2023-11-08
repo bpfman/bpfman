@@ -107,7 +107,7 @@ build-us-images: ## Build all example userspace images
 	docker build -t ${IMAGE_XDP_US} -f ./go-xdp-counter/container-deployment/Containerfile.go-xdp-counter ../
 
 .PHONY: build-bc-images
-build-bc-images: ## Build bytecode example userspace images
+build-bc-images: generate ## Build bytecode example userspace images
 	IMAGE_TC_BC=${IMAGE_TC_BC} IMAGE_TP_BC=${IMAGE_TP_BC} IMAGE_XDP_BC=${IMAGE_XDP_BC} ./build-bytecode-images.sh
 
 .PHONY: push-us-images
