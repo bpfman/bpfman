@@ -249,12 +249,22 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      
+      ## TODO(astoycos) Currently this is just done to ensure we have coverage
+      ## on all image builds. Ultimately we should be running the integration
+      ## tests with these locally built bytecode images.
+      - name: build example bytecode images
+        run: |
+          go install github.com/cilium/ebpf/cmd/bpf2go@v0.11.0
+          cd examples
+          make generate
+          make build-bc-images
+
+      - name: build example userspace images
+        run: cd examples && make build-us-images
 
       - name: build images
         run: cd bpfd-operator && make build-images
-
-      - name: build example images
-        run: cd examples && make build-us-images
 
       - name: run integration tests
         run: cd bpfd-operator && make test-integration
