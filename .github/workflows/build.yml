@@ -183,10 +183,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install deps
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git clang llvm protobuf-compiler cmake perl acl openssl pkgconf gcc-multilib
+          sudo apt-get install -qy \
+            git \
+            clang \
+            llvm \
+            protobuf-compiler \
+            cmake \
+            perl \
+            libssl-dev \
+            gcc-multilib \
+            libelf-dev
 
       - uses: actions/checkout@v4
         with:
@@ -233,6 +242,20 @@ jobs:
       ## This should match what's found in bpfd/bpfd-operator/config/certmanager/kustomization.yaml
       CERTMANAGER_VERSION: "v1.10.1"
     steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy \
+            git \
+            clang \
+            llvm \
+            protobuf-compiler \
+            cmake \
+            perl \
+            libssl-dev \
+            gcc-multilib \
+            libelf-dev
+
       - name: setup golang
         uses: actions/setup-go@v4
         with:
