@@ -1,7 +1,7 @@
 [package]
 description = "gRPC bindings to the CSI spec"
 edition = "2021"
-license = "MIT OR Apache-2.0"
+license = "Apache-2.0"
 name = "bpfd-csi"
 repository = "https://github.com/bpfd-dev/bpfd"
 version = "1.8.0"
