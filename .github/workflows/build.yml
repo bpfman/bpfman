@@ -251,12 +251,8 @@ jobs:
             git \
             clang \
             llvm \
-            protobuf-compiler \
-            cmake \
-            perl \
-            libssl-dev \
             gcc-multilib \
-            libelf-dev
+            libbpf-dev
 
       - name: setup golang
         uses: actions/setup-go@v4
@@ -273,12 +269,6 @@ jobs:
       - name: checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-
-      - uses: actions/checkout@v4
-        with:
-          repository: libbpf/libbpf
-          path: libbpf
           fetch-depth: 0
 
       ## TODO(astoycos) Currently this is just done to ensure we have coverage
