@@ -4,7 +4,6 @@
 use std::{fs, io::BufReader, mem};
 
 use aya::{
-    include_bytes_aligned,
     programs::{
         links::FdLink,
         tc::{self, SchedClassifierLink, TcOptions},
@@ -12,12 +11,12 @@ use aya::{
     },
     Bpf, BpfLoader,
 };
-use bpfd_api::util::directories::*;
+use bpfd_api::{util::directories::*, ImagePullPolicy};
 use futures::stream::TryStreamExt;
 use log::debug;
 use netlink_packet_route::tc::Nla;
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::Sender;
+use tokio::sync::{mpsc::Sender, oneshot};
 
 use super::Dispatcher;
 use crate::{
@@ -29,15 +28,12 @@ use crate::{
     },
     dispatcher_config::TcDispatcherConfig,
     errors::BpfdError,
-    oci_utils::image_manager::Command as ImageManagerCommand,
+    oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
     utils::should_map_be_pinned,
 };
 
 const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the dispatcher
 const TC_DISPATCHER_PRIORITY: u16 = 50; // Default TC priority for TC Dispatcher
-const DISPATCHER_PROGRAM_NAME: &str = "tc_dispatcher";
-
-static DISPATCHER_BYTES: &[u8] = include_bytes_aligned!("../../../.output/tc_dispatcher.bpf.o");
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TcDispatcher {
@@ -50,6 +46,7 @@ pub struct TcDispatcher {
     num_extensions: usize,
     #[serde(skip)]
     loader: Option<Bpf>,
+    program_name: Option<String>,
 }
 
 impl TcDispatcher {
@@ -60,8 +57,7 @@ impl TcDispatcher {
         programs: &mut [&mut Program],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
-        // TODO(astoycos) tc dispatcher should be pulled from an image
-        _image_manager: Sender<ImageManagerCommand>,
+        image_manager: Sender<ImageManagerCommand>,
     ) -> Result<TcDispatcher, BpfdError> {
         debug!("TcDispatcher::new() for if_index {if_index}, revision {revision}");
         let mut extensions: Vec<&mut TcProgram> = programs
@@ -83,15 +79,45 @@ impl TcDispatcher {
         };
 
         debug!("tc dispatcher config: {:?}", config);
+        let image = BytecodeImage::new(
+            "quay.io/bpfd/tc-dispatcher:v1".to_string(),
+            ImagePullPolicy::IfNotPresent as i32,
+            None,
+            None,
+        );
+        let (tx, rx) = oneshot::channel();
+        image_manager
+            .send(ImageManagerCommand::Pull {
+                image: image.image_url.clone(),
+                pull_policy: image.image_pull_policy.clone(),
+                username: image.username.clone(),
+                password: image.password.clone(),
+                resp: tx,
+            })
+            .await
+            .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
+
+        let (path, bpf_function_name) = rx
+            .await
+            .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?
+            .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
+
+        let (tx, rx) = oneshot::channel();
+        image_manager
+            .send(ImageManagerCommand::GetBytecode { path, resp: tx })
+            .await
+            .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?;
+        let program_bytes = rx
+            .await
+            .map_err(|e| BpfdError::BpfBytecodeError(e.into()))?
+            .map_err(BpfdError::BpfBytecodeError)?;
 
         let mut loader = BpfLoader::new()
             .set_global("CONFIG", &config, true)
-            .load(DISPATCHER_BYTES)?;
+            .load(&program_bytes)?;
 
-        let dispatcher: &mut SchedClassifier = loader
-            .program_mut(DISPATCHER_PROGRAM_NAME)
-            .unwrap()
-            .try_into()?;
+        let dispatcher: &mut SchedClassifier =
+            loader.program_mut(&bpf_function_name).unwrap().try_into()?;
 
         dispatcher.load()?;
 
@@ -111,6 +137,7 @@ impl TcDispatcher {
             priority: TC_DISPATCHER_PRIORITY,
             handle: None,
             loader: Some(loader),
+            program_name: Some(bpf_function_name),
         };
         dispatcher.attach_extensions(&mut extensions).await?;
         dispatcher.attach(old_dispatcher).await?;
@@ -173,7 +200,7 @@ impl TcDispatcher {
             .loader
             .as_mut()
             .ok_or(BpfdError::NotLoaded)?
-            .program_mut(DISPATCHER_PROGRAM_NAME)
+            .program_mut(self.program_name.clone().unwrap().as_str())
             .unwrap()
             .try_into()?;
 
@@ -223,7 +250,7 @@ impl TcDispatcher {
             .loader
             .as_mut()
             .ok_or(BpfdError::NotLoaded)?
-            .program_mut(DISPATCHER_PROGRAM_NAME)
+            .program_mut(self.program_name.clone().unwrap().as_str())
             .unwrap()
             .try_into()?;
 
