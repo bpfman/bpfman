@@ -31,3 +31,8 @@ tests/_tmp
 
 # Ignore docs
 site/
+
+# RPM build artifacts
+*.tar.gz
+*.rpm
+results_*/
