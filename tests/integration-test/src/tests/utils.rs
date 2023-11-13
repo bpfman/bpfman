@@ -4,6 +4,7 @@ use std::{
     io::{Read, Write},
     path::{Path, PathBuf},
     process::Command,
+    str::FromStr,
     thread::sleep,
     time::Duration,
 };
@@ -301,12 +302,16 @@ pub fn add_tracepoint(
     (Ok(prog_id), Ok(stdout))
 }
 
-/// Attach a uprobe program to bpfman with bpfman
+/// Attach a uprobe program.
+///
+/// If a container_pid is provided, attach it to malloc() in that namespace.
+/// Otherwise, attach it to the main function in the bpfctl command.
 pub fn add_uprobe(
     globals: Option<Vec<&str>>,
     load_type: &LoadType,
     image_url: &str,
     file_path: &str,
+    container_pid: Option<&str>,
 ) -> Result<String> {
     let bpfman_cmd = Command::cargo_bin("bpfman")?;
     let bpfman_path = bpfman_cmd.get_program().to_str().unwrap();
@@ -331,7 +336,19 @@ pub fn add_uprobe(
         LoadType::File => args.extend(["-n", "my_uprobe", "--path", file_path]),
     }
 
-    args.extend(["uprobe", "-f", "main", "-t", bpfman_path]);
+    if let Some(pid) = container_pid {
+        args.extend([
+            "uprobe",
+            "-f",
+            "malloc",
+            "-t",
+            "libc",
+            "--container-pid",
+            pid,
+        ]);
+    } else {
+        args.extend(["uprobe", "-f", "main", "-t", bpfman_path]);
+    }
 
     let output = Command::cargo_bin("bpfman")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
@@ -938,4 +955,88 @@ pub fn bpfman_output_map_ids(stdout: &str) -> Vec<String> {
     }
 
     map_ids
+}
+
+#[derive(Debug)]
+pub struct DockerContainer {
+    container_pid: i32,
+    container_id: String,
+}
+
+impl Drop for DockerContainer {
+    fn drop(&mut self) {
+        let output = Command::new("docker")
+            .args(["rm", "-f", self.container_id.as_str()])
+            .output()
+            .expect("failed to start docker");
+
+        if output.status.success() {
+            debug!("Docker container {} removed", self.container_id);
+        } else {
+            debug!("Error removing container {}", self.container_id);
+        }
+    }
+}
+
+impl DockerContainer {
+    /// Return the container PID
+    pub fn container_pid(&self) -> i32 {
+        self.container_pid
+    }
+
+    /// Runs the ls command in the container to generate some mallocs.
+    pub fn ls(&self) {
+        let output = Command::new("docker")
+            .args(["exec", &self.container_id, "ls"])
+            .output()
+            .expect("failed run ls in container");
+        assert!(output.status.success());
+    }
+}
+
+/// Starts a docker container from the nginx image
+pub fn start_container() -> Result<DockerContainer> {
+    let status = Command::new("systemctl")
+        .args(["start", "docker"])
+        .status()
+        .expect("failed to start docker");
+    assert!(status.success());
+
+    let output = Command::new("docker")
+        .args(["run", "--name", "mynginx1", "-p", "80:80", "-d", "nginx"])
+        .output()
+        .expect("failed to start nginx");
+
+    let mut container_id = String::from_utf8(output.stdout).unwrap();
+    // Get rid of trailing '\n'
+    container_id.pop();
+
+    assert!(!container_id.is_empty());
+
+    let output = Command::new("lsns")
+        .args(["-t", "pid"])
+        .output()
+        .expect("systemctl start docker");
+
+    let output = String::from_utf8(output.stdout).unwrap();
+
+    let mut container_pid: i32 = 0;
+    for line in output.lines() {
+        if line.contains("nginx") {
+            let pid_str: Vec<&str> = line.split_whitespace().collect();
+            container_pid = FromStr::from_str(pid_str[3]).unwrap();
+            break;
+        }
+    }
+    assert!(container_pid != 0);
+
+    debug!(
+        "Docker container with ID {} and PID {} created",
+        container_id, container_pid
+    );
+
+    Ok(DockerContainer {
+        container_pid,
+        container_id,
+    })
 }

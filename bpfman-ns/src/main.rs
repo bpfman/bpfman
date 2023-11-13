@@ -76,15 +76,6 @@ fn main() -> anyhow::Result<()> {
     }
 }
 
-// Debug function to print root directory contents.
-fn _ls_dir() {
-    let entries = std::fs::read_dir("/").unwrap();
-
-    for entry in entries {
-        debug!("Name: {}", entry.unwrap().path().display())
-    }
-}
-
 fn has_cap(cset: caps::CapSet, cap: caps::Capability) {
     debug!("Has {}: {}", cap, caps::has_cap(None, cset, cap).unwrap());
 }
@@ -122,8 +113,6 @@ fn execute_uprobe_attach(args: UprobeArgs, bpfman_pid: u32) -> anyhow::Result<()
 
     // Set namespace back to bpfman namespace
     set_ns(bpfman_mnt_file, CloneFlags::CLONE_NEWNS, bpfman_pid)?;
-
-    // pin_uprobe_fd_link(uprobe, link_id, args.program_pin_path)?;
 
     let owned_link: UProbeLink = uprobe
         .take_link(link_id)
