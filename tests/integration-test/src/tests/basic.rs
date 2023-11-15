@@ -142,7 +142,7 @@ fn test_map_sharing_load_unload_xdp() {
     assert!(iface_exists(DEFAULT_BPFD_IFACE));
 
     // Load first program, which will own the map.
-    debug!("Installing xdp_counter map owner program");
+    debug!("Installing xdp_counter map owner program 1");
     let (map_owner_id, stdout_1) = add_xdp(
         DEFAULT_BPFD_IFACE,
         50,
@@ -161,6 +161,8 @@ fn test_map_sharing_load_unload_xdp() {
     assert!(map_used_by_1.len() == 1);
     assert!(map_used_by_1[0] == *(map_owner_id.as_ref().unwrap()));
 
+    let map_ids_1 = bpfctl_output_map_ids(&binding_1);
+
     // Verify the "Map Owner Id:" is None.
     let map_owner_id_1 = bpfctl_output_map_owner_id(&binding_1);
     assert!(map_owner_id_1 == "None");
@@ -171,7 +173,7 @@ fn test_map_sharing_load_unload_xdp() {
     assert!(map_pin_path_1 == map_pin_path);
 
     // Load second program, which will share the map with the first program.
-    debug!("Installing xdp_counter map sharing program");
+    debug!("Installing xdp_counter map sharing program 2");
     let map_owner_id_u32 = match map_owner_id.as_ref().unwrap().parse() {
         Ok(v) => Some(v),
         Err(_) => None,
@@ -201,6 +203,10 @@ fn test_map_sharing_load_unload_xdp() {
         map_used_by_2[0] == *(shared_owner_id.as_ref().unwrap())
             || map_used_by_2[1] == *(shared_owner_id.as_ref().unwrap())
     );
+
+    let map_ids_2 = bpfctl_output_map_ids(&binding_2);
+    // Ensure the map IDs for both programs are the same
+    assert_eq!(map_ids_1, map_ids_2);
 
     // Verify the "Map Owner Id:" is set to map_owner_id.
     let map_owner_id_2 = bpfctl_output_map_owner_id(&binding_2);

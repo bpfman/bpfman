@@ -912,3 +912,32 @@ pub fn bpfctl_output_xdp_map_used_by(stdout: &str) -> Vec<String> {
 
     used_by
 }
+
+pub fn bpfctl_output_map_ids(stdout: &str) -> Vec<String> {
+    let mut map_ids: Vec<String> = Vec::new();
+
+    // Regex:
+    //   Match the string "\n Map IDs:".
+    //   For the capture group ((.|\n)*?), the (.|\n) indicates to capture "any character
+    //   (except for line terminators)" OR capture "a line-feed (newline) character".
+    //   The *? indicates to capture "the previous token between zero and unlimited times"
+    //   Match the string "\n BTF ID:".
+    let re_1 = Regex::new(r"\n Map IDs:((.|\n)*?)\n BTF ID:").unwrap();
+    let map_ids_output = match re_1.captures(stdout) {
+        Some(caps) => caps[1].to_owned(),
+        None => {
+            debug!("\"Map IDs:\" not found",);
+            return map_ids;
+        }
+    };
+
+    // Regex:
+    //   Take the previous output, convert to a Vec of String where each
+    //   is the Map Id (all digits).
+    let re_2 = Regex::new(r"(\d+)").unwrap();
+    for cap in re_2.captures_iter(&map_ids_output) {
+        map_ids.push(cap[1].to_string());
+    }
+
+    map_ids
+}
