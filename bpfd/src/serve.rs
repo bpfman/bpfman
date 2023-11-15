@@ -80,8 +80,12 @@ pub async fn serve(
 
     let allow_unsigned = config.signing.as_ref().map_or(true, |s| s.allow_unsigned);
     let (itx, irx) = mpsc::channel(32);
+
     let mut image_manager =
         ImageManager::new(BYTECODE_IMAGE_CONTENT_STORE, allow_unsigned, irx).await?;
+    let image_manager_handle = tokio::spawn(async move {
+        image_manager.run().await;
+    });
 
     let mut bpf_manager = BpfManager::new(config, rx, itx);
     bpf_manager.rebuild_state().await?;
@@ -101,19 +105,28 @@ pub async fn serve(
     };
     if csi_support {
         let storage_manager = StorageManager::new(tx);
-
-        join!(
+        let storage_manager_handle = tokio::spawn(storage_manager.run());
+        let (_, res_image, res_storage, _) = join!(
             join_listeners(listeners),
-            bpf_manager.process_commands(),
-            image_manager.run(),
-            storage_manager.run()
+            image_manager_handle,
+            storage_manager_handle,
+            bpf_manager.process_commands()
         );
+        if let Some(e) = res_storage.err() {
+            return Err(e.into());
+        }
+        if let Some(e) = res_image.err() {
+            return Err(e.into());
+        }
     } else {
-        join!(
+        let (_, res_image, _) = join!(
             join_listeners(listeners),
-            bpf_manager.process_commands(),
-            image_manager.run(),
+            image_manager_handle,
+            bpf_manager.process_commands()
         );
+        if let Some(e) = res_image.err() {
+            return Err(e.into());
+        }
     }
 
     Ok(())

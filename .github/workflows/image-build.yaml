@@ -354,6 +354,16 @@ jobs:
               type=sha,format=long
               type=raw,value=v2,enable=true
 
+          - registry: quay.io
+            bpf_build_wrapper: rust
+            repository: bpfd
+            image: tc-dispatcher
+            context: .
+            dockerfile: ./Containerfile.tc_dispatcher
+            tags: |
+              type=sha,format=long
+              type=raw,value=v1,enable=true
+
     name: Build Image (${{ matrix.image.image }})
     environment: image-repositories
     steps:
