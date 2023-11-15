@@ -21,6 +21,7 @@ struct {
   __type(key, __u32);
   __type(value, datarec);
   __uint(max_entries, TC_ACT_VALUE_MAX);
+  __uint(pinning, LIBBPF_PIN_BY_NAME);
 } tc_stats_map SEC(".maps");
 
 static __u32 tc_stats_record_action(struct __sk_buff *skb, __u32 action) {
