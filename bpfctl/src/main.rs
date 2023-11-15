@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfd
 
-use std::{collections::HashMap, fs, net::SocketAddr, str};
+use std::{collections::HashMap, fs, str};
 
-use anyhow::{bail, Context};
+use anyhow::bail;
 use base64::{engine::general_purpose, Engine as _};
 use bpfd_api::{
     config::{self, Config},
@@ -22,9 +22,9 @@ use bpfd_api::{
 use clap::{Args, Parser, Subcommand};
 use comfy_table::{Cell, Color, Table};
 use hex::{encode_upper, FromHex};
-use log::{info, warn};
+use log::warn;
 use tokio::net::UnixStream;
-use tonic::transport::{Certificate, Channel, ClientTlsConfig, Endpoint, Identity, Uri};
+use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
 
 #[derive(Parser)]
@@ -790,7 +790,7 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    let config = if let Ok(c) = fs::read_to_string(CFGPATH_BPFD_CONFIG) {
+    let mut config = if let Ok(c) = fs::read_to_string(CFGPATH_BPFD_CONFIG) {
         c.parse().unwrap_or_else(|_| {
             warn!("Unable to parse config file, using defaults");
             Config::default()
@@ -800,83 +800,36 @@ async fn main() -> anyhow::Result<()> {
         Config::default()
     };
 
-    let ca_cert = tokio::fs::read(&config.tls.ca_cert)
-        .await
-        .context("CA Cert File does not exist")?;
-    let ca_cert = Certificate::from_pem(ca_cert);
-    let cert = tokio::fs::read(&config.tls.client_cert)
-        .await
-        .context("Cert File does not exist")?;
-    let key = tokio::fs::read(&config.tls.client_key)
-        .await
-        .context("Cert Key File does not exist")?;
-    let identity = Identity::from_pem(cert, key);
-    let tls_config = ClientTlsConfig::new()
-        .domain_name("localhost")
-        .ca_certificate(ca_cert)
-        .identity(identity);
+    let channel = select_channel(&mut config).expect("Failed to select channel");
+    execute_request(&cli.command, channel).await
+}
 
-    for endpoint in config.grpc.endpoints {
-        match endpoint {
-            config::Endpoint::Tcp {
-                address,
-                port,
-                enabled,
-            } if !enabled => info!("Skipping disabled endpoint on {address}, port: {port}"),
-            config::Endpoint::Tcp {
-                address,
-                port,
-                enabled: _,
-            } => match execute_request_tcp(&cli.command, address, port, tls_config.clone()).await {
-                Ok(_) => return Ok(()),
-                Err(e) => eprintln!("Error = {e:?}"),
-            },
-            config::Endpoint::Unix { path, enabled } if !enabled => {
-                info!("Skipping disabled endpoint on {path}")
-            }
-            config::Endpoint::Unix { path, enabled: _ } => {
-                match execute_request_unix(&cli.command, path).await {
-                    Ok(_) => return Ok(()),
-                    Err(e) => eprintln!("Error = {e:?}"),
-                }
-            }
-        }
+fn select_channel(config: &mut Config) -> Option<Channel> {
+    let candidate = config
+        .grpc
+        .endpoints
+        .iter_mut()
+        .find(|e| matches!(e, config::Endpoint::Unix { path: _, enabled } if *enabled));
+    if candidate.is_none() {
+        warn!("No enabled unix endpoints found in config");
+        return None;
     }
-    bail!("Failed to execute request")
-}
+    let path = match candidate.as_ref().unwrap() {
+        config::Endpoint::Unix { path, enabled: _ } => path.clone(),
+    };
 
-async fn execute_request_unix(command: &Commands, path: String) -> anyhow::Result<()> {
-    // Format address to something like: "unix://run/bpfd/bpfd.sock"
-    let address = format!("unix:/{path}");
-    let channel = Endpoint::try_from(address)?
-        .connect_with_connector(service_fn(move |_: Uri| UnixStream::connect(path.clone())))
-        .await?;
-
-    info!("Using UNIX socket as transport");
-    execute_request(command, channel).await
-}
-
-async fn execute_request_tcp(
-    command: &Commands,
-    address: String,
-    port: u16,
-    tls_config: ClientTlsConfig,
-) -> anyhow::Result<()> {
-    let address = SocketAddr::new(
-        address
-            .parse()
-            .unwrap_or_else(|_| panic!("failed to parse address '{}'", address)),
-        port,
-    );
-
-    let address = format!("https://{address}");
-    let channel = Channel::from_shared(address)?
-        .tls_config(tls_config)?
-        .connect()
-        .await?;
-
-    info!("Using TLS over TCP socket as transport");
-    execute_request(command, channel).await
+    let address = Endpoint::try_from(format!("unix:/{path}"));
+    if let Err(e) = address {
+        warn!("Failed to parse unix endpoint: {e:?}");
+        if let Some(config::Endpoint::Unix { path: _, enabled }) = candidate {
+            *enabled = false;
+        }
+        return select_channel(config);
+    };
+    let address = address.unwrap();
+    let channel = address
+        .connect_with_connector_lazy(service_fn(move |_: Uri| UnixStream::connect(path.clone())));
+    Some(channel)
 }
 
 async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result<()> {

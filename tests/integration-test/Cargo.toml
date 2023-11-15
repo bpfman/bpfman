@@ -13,5 +13,5 @@ integration-test-macros = { workspace = true }
 inventory = { workspace = true }
 log = { workspace = true }
 predicates = { workspace = true }
-rand = { workspace = true }
+rand = { workspace = true, features = ["std", "std_rng"] }
 regex = { workspace = true, features = ["unicode-perl"] }

@@ -25,11 +25,10 @@ clap = { workspace = true, features = [
 comfy-table = { workspace = true, features = ["tty"] }
 env_logger = { workspace = true }
 hex = { workspace = true, features = ["std"] }
-itertools = { workspace = true }
 log = { workspace = true }
 prost = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["full"] }
 toml = { workspace = true }
-tonic = { workspace = true, features = ["tls"] }
+tonic = { workspace = true, features = ["transport"] }
 tower = { workspace = true }

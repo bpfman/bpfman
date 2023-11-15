@@ -37,9 +37,7 @@ oci-distribution = { workspace = true, default-features = false, features = [
     "rustls-tls",
     "trust-dns",
 ] }
-openssl = { workspace = true, features = ["vendored"] }
 rtnetlink = { workspace = true, features = ["tokio_socket"] }
-rustls = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }
@@ -55,10 +53,9 @@ thiserror = { workspace = true }
 tokio = { workspace = true, features = ["full", "signal"] }
 tokio-stream = { workspace = true, features = ["net"] }
 toml = { workspace = true }
-tonic = { workspace = true }
+tonic = { workspace = true, features = ["transport"] }
 url = { workspace = true }
 users = { workspace = true }
-x509-certificate = { workspace = true }
 
 [dev-dependencies]
 assert_matches = { workspace = true }

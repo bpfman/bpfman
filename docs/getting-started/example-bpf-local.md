@@ -78,7 +78,7 @@ The diagram below shows `go-xdp-counter` example, but the `go-tc-counter` and
 Following the diagram (Purple numbers):
 
 1. When `go-xdp-counter` userspace is started, it will send a gRPC request
-over mTLS to `bpfd` requesting `bpfd` to load the `go-xdp-counter` eBPF bytecode located on disk
+over unix socket to `bpfd` requesting `bpfd` to load the `go-xdp-counter` eBPF bytecode located on disk
 at `bpfd/examples/go-xdp-counter/bpf_bpfel.o` at a priority of 50 and on interface `ens3`.
 These values are configurable as we will see later, but for now we will use the defaults
 (except interface, which is required to be entered).

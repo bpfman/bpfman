@@ -15,5 +15,4 @@ clap = { workspace = true, features = [
 ] }
 lazy_static = { workspace = true }
 serde_json = { workspace = true, features = ["std"] }
-tonic = { workspace = true }
 tonic-build = { workspace = true, features = ["prost"] }

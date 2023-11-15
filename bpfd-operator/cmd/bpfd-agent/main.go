@@ -111,17 +111,8 @@ func main() {
 	configFileData := conn.LoadConfig()
 	var creds credentials.TransportCredentials
 
-	if configFileData.Tls != nil {
-		setupLog.Info("MTLS credentials provided, using secure connection")
-		creds, err = conn.LoadTLSCredentials(*configFileData.Tls)
-		if err != nil {
-			setupLog.Error(err, "Failed to generate credentials for new client")
-			os.Exit(1)
-		}
-	} else {
-		setupLog.Info("No MTLS credentials provided, using insecure connection")
-		creds = insecure.NewCredentials()
-	}
+	setupLog.Info("Connecting over UNIX socket to bpfd")
+	creds = insecure.NewCredentials()
 
 	// Set up a connection to bpfd, block until bpfd is up.
 	setupLog.Info("Waiting for active connection to bpfd", "endpoints", configFileData.Grpc.Endpoints, "creds", creds)

@@ -40,11 +40,6 @@ const (
 	BpfdCsiDriverPath           = "./config/bpfd-deployment/csidriverinfo.yaml"
 	BpfdMapFs                   = "/run/bpfd/fs/maps"
 	DefaultConfigPath           = "/etc/bpfd/bpfd.toml"
-	DefaultRootCaPath           = "/etc/bpfd/certs/ca/ca.crt"
-	DefaultCertPath             = "/etc/bpfd/certs/bpfd/tls.crt"
-	DefaultKeyPath              = "/etc/bpfd/certs/bpfd/tls.key"
-	DefaultClientCertPath       = "/etc/bpfd/certs/bpfd-client/tls.crt"
-	DefaultClientKeyPath        = "/etc/bpfd/certs/bpfd-client/tls.key"
 	DefaultType                 = "tcp"
 	DefaultPath                 = "/run/bpfd/bpfd.sock"
 	DefaultPort                 = 50051

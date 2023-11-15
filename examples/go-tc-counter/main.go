@@ -73,14 +73,8 @@ func main() {
 		ctx := context.Background()
 
 		configFileData := configMgmt.LoadConfig(DefaultConfigPath)
-		creds, err := configMgmt.LoadTLSCredentials(configFileData.Tls)
-		if err != nil {
-			log.Printf("Failed to generate credentials for new client: %v", err)
-			return
-		}
-
 		// Set up a connection to the server.
-		conn, err := configMgmt.CreateConnection(configFileData.Grpc.Endpoints, ctx, creds)
+		conn, err := configMgmt.CreateConnection(configFileData.Grpc.Endpoints, ctx)
 		if err != nil {
 			log.Printf("failed to create client connection: %v", err)
 			return

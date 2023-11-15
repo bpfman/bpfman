@@ -9,4 +9,4 @@ version = "1.8.0"
 [dependencies]
 prost = { workspace = true, features = ["prost-derive", "std"] }
 prost-types = { workspace = true }
-tonic = { workspace = true, features = ["codegen", "prost", "tls"] }
+tonic = { workspace = true, features = ["codegen", "prost"] }

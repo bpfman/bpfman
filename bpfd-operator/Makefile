@@ -342,13 +342,6 @@ undeploy-certmanager: ## Undeploy certmanager from the cluster specified in ~/.k
 setup-kind: ## Setup Kind cluster
 	kind delete cluster --name ${KIND_CLUSTER_NAME} && kind create cluster --config hack/kind-config.yaml --name ${KIND_CLUSTER_NAME}
 
-## Deploy bpfd with MTLS encryption over TLS between the daemon and agent.
-.PHONY: deploy-encrypted
-deploy-encrypted: manifests kustomize cm-verifier ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
-	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-operator=${BPFD_OPERATOR_IMG}
-	cd config/bpfd-deployment-tcp-mtls && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd=${BPFD_IMG} && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-agent=${BPFD_AGENT_IMG}
-	$(KUSTOMIZE) build config/default | kubectl apply -f -
-
 ## Default deploy target is KIND based.
 .PHONY: deploy
 deploy: manifests kustomize ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
@@ -371,9 +364,6 @@ undeploy: ## Undeploy bpfd-operator from the K8s cluster specified in ~/.kube/co
 kind-reload-images: load-images-kind ## Reload locally build images into a kind cluster and restart the ds and deployment so they're picked up.
 	kubectl rollout restart daemonset bpfd-daemon -n bpfd
 	kubectl rollout restart deployment bpfd-operator -n bpfd
-
-.PHONY: run-on-kind-encrypted 
-run-on-kind-encrypted: kustomize setup-kind deploy-certmanager build-images load-images-kind deploy-encrypted ## Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator while also using tcp and mtls to encrypt traffic between the daemon and agent.
 
 .PHONY: run-on-kind
 run-on-kind: kustomize setup-kind build-images load-images-kind deploy ## Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator

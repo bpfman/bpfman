@@ -9,9 +9,6 @@ pub mod directories {
     // ConfigurationDirectory: /etc/bpfd/
     pub const CFGDIR_MODE: u32 = 0o6750;
     pub const CFGDIR: &str = "/etc/bpfd";
-    pub const CFGDIR_BPFD_CERTS: &str = "/etc/bpfd/certs/bpfd";
-    pub const CFGDIR_BPFD_CLIENT_CERTS: &str = "/etc/bpfd/certs/bpfd-client";
-    pub const CFGDIR_CA_CERTS: &str = "/etc/bpfd/certs/ca";
     pub const CFGDIR_STATIC_PROGRAMS: &str = "/etc/bpfd/programs.d";
     pub const CFGPATH_BPFD_CONFIG: &str = "/etc/bpfd/bpfd.toml";
     pub const CFGPATH_CA_CERTS_PEM: &str = "/etc/bpfd/certs/ca/ca.pem";

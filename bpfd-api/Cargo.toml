@@ -7,7 +7,6 @@ repository = "https://github.com/bpfd-dev/bpfd"
 version = "0.3.0"
 
 [dependencies]
-anyhow = { workspace = true, features = ["std"] }
 aya = { workspace = true }
 clap = { workspace = true, features = ["derive", "std"] }
 log = { workspace = true }
@@ -16,5 +15,5 @@ serde = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 toml = { workspace = true, features = ["parse"] }
-tonic = { workspace = true, features = ["codegen", "prost", "tls"] }
+tonic = { workspace = true, features = ["codegen", "prost"] }
 url = { workspace = true }

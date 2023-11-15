@@ -24,13 +24,8 @@ cargo build
 
 ### Step 2: Setup `bpfd` environment
 
-`bpfd` supports both mTLS for mutual authentication with clients and connecting via a Unix socket.
-This tutorial will be using `bpfctl`, which sends gRPC requests to `bpfd` over a Unix socket.
-In the [Example eBPF Programs](./example-bpf.md), the GO examples use mTLS over TCP to interact
-with `bpfd`.
-If no local certificate authority exists when `bpfd` is started, `bpfd` will automatically
-create the certificate authority in `/etc/bpfd/certs/`.
-For this step, no additional actions need to be taken.
+`bpfd` supports both communication over a Unix socket.
+All examples, both using `bpfctl` and the gRPC API use this socket.
 
 ### Step 3: Start `bpfd`
 
@@ -439,6 +434,11 @@ This option will also start the systemd service `bpfd.service` by default:
 ```console
 sudo ./scripts/setup.sh install
 ```
+
+> **_NOTE:_** Prior to **kernel 5.19**, all eBPF sys calls required CAP_BPF, which are used to access maps shared
+between the BFP program and the userspace program.
+So userspace programs that are accessing maps and running on kernels older than 5.19 will require either `sudo`
+or the CAP_BPF capability (`sudo /sbin/setcap cap_bpf=ep ./<USERSPACE-PROGRAM>`).
 
 To update the configuration settings associated with running `bpfd` as a service, edit the
 service configuration file:
