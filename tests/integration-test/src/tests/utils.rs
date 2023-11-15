@@ -80,10 +80,14 @@ impl Drop for ChildGuard {
 /// Spawn a bpfd process
 pub fn start_bpfd() -> Result<ChildGuard> {
     debug!("Starting bpfd");
-    let bpfd_process = Command::cargo_bin("bpfd")?.spawn().map(|c| ChildGuard {
-        name: "bpfd",
-        child: c,
-    })?;
+
+    let bpfd_process = Command::cargo_bin("bpfd")?
+        .env("RUST_LOG", "bpfd=debug")
+        .spawn()
+        .map(|c| ChildGuard {
+            name: "bpfd",
+            child: c,
+        })?;
 
     // Wait for up to 5 seconds for bpfd to be ready
     sleep(Duration::from_millis(100));
