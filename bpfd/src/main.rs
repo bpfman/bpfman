@@ -9,7 +9,6 @@ use std::{
 };
 
 mod bpf;
-mod certs;
 mod command;
 mod dispatcher_config;
 mod errors;
@@ -95,10 +94,6 @@ fn main() -> anyhow::Result<()> {
             create_dir_all(RTDIR_BPFD_CSI).context("unable to create CSI directory")?;
             create_dir_all(RTDIR_BPFD_CSI_FS).context("unable to create socket directory")?;
 
-            create_dir_all(CFGDIR_BPFD_CERTS).context("unable to create bpfd certs directory")?;
-            create_dir_all(CFGDIR_BPFD_CLIENT_CERTS)
-                .context("unable to create bpfd-client certs directory")?;
-            create_dir_all(CFGDIR_CA_CERTS).context("unable to create ca certs directory")?;
             create_dir_all(CFGDIR_STATIC_PROGRAMS)
                 .context("unable to create static programs directory")?;
 

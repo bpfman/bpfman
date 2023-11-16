@@ -55,14 +55,6 @@ func TestBpfdConfigReconcileAndDelete(t *testing.T) {
 			"bpfd.agent.image":     "BPFD_AGENT_IS_SCARY",
 			"bpfd.image":           "FAKE-IMAGE",
 			"bpfd.agent.log.level": "FAKE",
-			"bpfd.toml": `
-[tls] # REQUIRED
-ca_cert = "/etc/bpfd/certs/ca/ca.crt"
-cert = "/etc/bpfd/certs/bpfd/tls.crt"
-key = "/etc/bpfd/certs/bpfd/tls.key"
-client_cert = "/etc/bpfd/certs/bpfd-client/tls.crt"
-client_key = "/etc/bpfd/certs/bpfd-client/tls.key"
-			`,
 		},
 	}
 

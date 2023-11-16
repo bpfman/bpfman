@@ -62,12 +62,8 @@ CRD Deployment
   install          Install CRDs into the K8s cluster specified in ~/.kube/config.
   uninstall        Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 
-Deployment Dependencies
-  deploy-certmanager  Deploy certmanager to the cluster specified in ~/.kube/config.
-  undeploy-certmanager  Undeploy certmanager from the cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-
 Vanilla K8s Deployment
-  setup-kind       Setup Kind cluster with certmanager ready for bpfd deployment
+  setup-kind       Setup Kind cluster ready for bpfd deployment
   deploy           Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
   undeploy         Undeploy bpfd-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
   kind-reload-images  Reload locally build images into a kind cluster and restart the ds and deployment so they're picked up.

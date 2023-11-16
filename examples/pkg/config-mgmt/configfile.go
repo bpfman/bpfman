@@ -18,8 +18,6 @@ package configMgmt
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"log"
 	"os"
@@ -29,14 +27,6 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
-
-type Tls struct {
-	CaCert     string `toml:"ca_cert"`
-	Cert       string `toml:"cert"`
-	Key        string `toml:"key"`
-	ClientCert string `toml:"client_cert"`
-	ClientKey  string `toml:"client_key"`
-}
 
 type Endpoint struct {
 	Type    string `toml:"type"`
@@ -50,35 +40,22 @@ type Grpc struct {
 }
 
 type ConfigFileData struct {
-	Tls  Tls  `toml:"tls"`
 	Grpc Grpc `toml:"grpc"`
 }
 
 const (
-	DefaultRootCaPath     = "/etc/bpfd/certs/ca/ca.pem"
-	DefaultCertPath       = "/etc/bpfd/certs/bpfd/tls.crt"
-	DefaultKeyPath        = "/etc/bpfd/certs/bpfd/tls.key"
-	DefaultClientCertPath = "/etc/bpfd/certs/bpfd-client/bpfd-client.pem"
-	DefaultClientKeyPath  = "/etc/bpfd/certs/bpfd-client/bpfd-client.key"
-	DefaultType           = "tcp"
-	DefaultPort           = 50051
-	DefaultEnabled        = true
+	DefaultType    = "unix"
+	DefaultPath    = "/run/bpfd/bpfd.sock"
+	DefaultEnabled = true
 )
 
 func LoadConfig(configFilePath string) ConfigFileData {
 	config := ConfigFileData{
-		Tls: Tls{
-			CaCert:     DefaultRootCaPath,
-			Cert:       DefaultCertPath,
-			Key:        DefaultKeyPath,
-			ClientCert: DefaultClientCertPath,
-			ClientKey:  DefaultClientKeyPath,
-		},
 		Grpc: Grpc{
 			Endpoints: []Endpoint{
 				{
 					Type:    DefaultType,
-					Port:    DefaultPort,
+					Path:    DefaultPath,
 					Enabled: DefaultEnabled,
 				},
 			},
@@ -100,34 +77,7 @@ func LoadConfig(configFilePath string) ConfigFileData {
 	return config
 }
 
-func LoadTLSCredentials(tlsFiles Tls) (credentials.TransportCredentials, error) {
-	// Load certificate of the CA who signed server's certificate
-	pemServerCA, err := os.ReadFile(tlsFiles.CaCert)
-	if err != nil {
-		return nil, err
-	}
-
-	certPool := x509.NewCertPool()
-	if !certPool.AppendCertsFromPEM(pemServerCA) {
-		return nil, fmt.Errorf("failed to add server CA's certificate")
-	}
-
-	// Load client's certificate and private key
-	clientCert, err := tls.LoadX509KeyPair(tlsFiles.ClientCert, tlsFiles.ClientKey)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create the credentials and return it
-	config := &tls.Config{
-		Certificates: []tls.Certificate{clientCert},
-		RootCAs:      certPool,
-	}
-
-	return credentials.NewTLS(config), nil
-}
-
-func CreateConnection(endpoints []Endpoint, ctx context.Context, creds credentials.TransportCredentials) (*grpc.ClientConn, error) {
+func CreateConnection(endpoints []Endpoint, ctx context.Context) (*grpc.ClientConn, error) {
 	var (
 		addr        string
 		local_creds credentials.TransportCredentials
@@ -138,10 +88,7 @@ func CreateConnection(endpoints []Endpoint, ctx context.Context, creds credentia
 			continue
 		}
 
-		if e.Type == "tcp" {
-			addr = fmt.Sprintf("localhost:%d", e.Port)
-			local_creds = creds
-		} else if e.Type == "unix" {
+		if e.Type == "unix" {
 			addr = fmt.Sprintf("unix://%s", e.Path)
 			local_creds = insecure.NewCredentials()
 		}

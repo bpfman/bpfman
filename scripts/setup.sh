@@ -48,9 +48,12 @@ usage() {
     echo "sudo ./scripts/setup.sh uninstall"
     echo "    Unwind all actions performed by \"setup.sh install\" including stopping"
     echo "    the \"bpfd\" service if it is running."
-    echo "sudo ./scripts/setup.sh certs"
-    echo "    Debug only. Generate OpenSSL based certificates instead of rustls based certificates."
-    echo ""
+    echo "sudo ./scripts/setup.sh kubectl"
+    echo "    Install kubectl plugins for \"bpfprogramconfigs\" and \"bpfprograms\"."
+    echo "sudo ./scripts/setup.sh examples"
+    echo "    Copy examples bytecode files to a bpfd owned directory (${RTDIR_EXAMPLES})."
+    echo "    This assumes bytecode has already been built. \"setup.sh install\" does"
+    echo "    this as well, so this is to overwrite after a rebuild."
 }
 
 if [ $USER != "root" ]; then

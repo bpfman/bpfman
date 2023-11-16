@@ -241,8 +241,6 @@ jobs:
       BPFD_IMG: "quay.io/bpfd/bpfd:int-test"
       BPFD_AGENT_IMG: "quay.io/bpfd/bpfd-agent:int-test"
       BPFD_OPERATOR_IMG: "quay.io/bpfd/bpfd-operator:int-test"
-      ## This should match what's found in bpfd/bpfd-operator/config/certmanager/kustomization.yaml
-      CERTMANAGER_VERSION: "v1.10.1"
     steps:
       - name: Install dependencies
         run: |

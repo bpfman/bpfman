@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfd
 
-use std::{fs::remove_file, net::SocketAddr, path::Path};
+use std::{fs::remove_file, path::Path};
 
-use anyhow::Context;
 use bpfd_api::{
     config::{self, Config},
     util::directories::STDIR_BYTECODE_IMAGE_CONTENT_STORE,
@@ -19,12 +18,10 @@ use tokio::{
     task::JoinHandle,
 };
 use tokio_stream::wrappers::UnixListenerStream;
-use tonic::transport::{Server, ServerTlsConfig};
+use tonic::transport::Server;
 
-pub use crate::certs::get_tls_config;
 use crate::{
     bpf::BpfManager,
-    errors::BpfdError,
     oci_utils::ImageManager,
     rpc::BpfdLoader,
     static_program::get_static_programs,
@@ -42,33 +39,10 @@ pub async fn serve(
     let loader = BpfdLoader::new(tx.clone());
     let service = BpfdServer::new(loader);
 
-    let (ca_cert, identity) = get_tls_config(&config.tls)
-        .await
-        .context("CA Cert File does not exist")?;
-
-    let tls_config = ServerTlsConfig::new()
-        .identity(identity)
-        .client_ca_root(ca_cert);
-
     let mut listeners: Vec<_> = Vec::new();
 
     for endpoint in &config.grpc.endpoints {
         match endpoint {
-            config::Endpoint::Tcp {
-                address,
-                port,
-                enabled,
-            } => {
-                if !enabled {
-                    info!("Skipping disabled endpoint on {address}, port: {port}");
-                    continue;
-                }
-
-                match serve_tcp(address, *port, tls_config.clone(), service.clone()).await {
-                    Ok(handle) => listeners.push(handle),
-                    Err(e) => eprintln!("Error = {e:?}"),
-                }
-            }
             config::Endpoint::Unix { path, enabled } => {
                 if !enabled {
                     info!("Skipping disabled endpoint on {path}");
@@ -180,30 +154,5 @@ async fn serve_unix(
             eprintln!("Error = {e:?}");
         }
         info!("Shutdown Unix Handler {}", path);
-    }))
-}
-
-async fn serve_tcp(
-    address: &String,
-    port: u16,
-    tls_config: ServerTlsConfig,
-    service: BpfdServer<BpfdLoader>,
-) -> anyhow::Result<JoinHandle<()>> {
-    let ip = address
-        .parse()
-        .map_err(|_| BpfdError::Error(format!("failed to parse listening address'{}'", address)))?;
-    let addr = SocketAddr::new(ip, port);
-
-    let serve = Server::builder()
-        .tls_config(tls_config)?
-        .add_service(service)
-        .serve_with_shutdown(addr, shutdown_handler());
-
-    Ok(tokio::spawn(async move {
-        info!("Listening on {addr}");
-        if let Err(e) = serve.await {
-            eprintln!("Error = {e:?}");
-        }
-        info!("Shutdown TCP Handler {}", addr);
     }))
 }

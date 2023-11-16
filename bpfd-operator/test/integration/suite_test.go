@@ -10,9 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/blang/semver/v4"
 	"github.com/kong/kubernetes-testing-framework/pkg/clusters"
-	"github.com/kong/kubernetes-testing-framework/pkg/clusters/addons/certmanager"
 	"github.com/kong/kubernetes-testing-framework/pkg/clusters/addons/loadimage"
 	"github.com/kong/kubernetes-testing-framework/pkg/clusters/types/kind"
 	"github.com/kong/kubernetes-testing-framework/pkg/environments"
@@ -38,7 +36,6 @@ var (
 	tcExampleUsImage      = "quay.io/bpfd-userspace/go-tc-counter:latest"
 	xdpExampleUsImage     = "quay.io/bpfd-userspace/go-xdp-counter:latest"
 	tpExampleUsImage      = "quay.io/bpfd-userspace/go-tracepoint-counter:latest"
-	certmanagerVersionStr = os.Getenv("CERTMANAGER_VERSION")
 
 	existingCluster      = os.Getenv("USE_EXISTING_KIND_CLUSTER")
 	keepTestCluster      = func() bool { return os.Getenv("TEST_KEEP_CLUSTER") == "true" || existingCluster != "" }()
@@ -88,18 +85,8 @@ func TestMain(m *testing.M) {
 		exitOnErr(err)
 	} else {
 		fmt.Println("INFO: creating a new kind cluster")
-
-		certManagerBuilder := certmanager.NewBuilder()
-
-		if len(certmanagerVersionStr) != 0 {
-			fmt.Printf("INFO: a specific version of certmanager was requested: %s\n", certmanagerVersionStr)
-			certmanagerVersion, err := semver.ParseTolerant(certmanagerVersionStr)
-			exitOnErr(err)
-			certManagerBuilder.WithVersion(certmanagerVersion)
-		}
-
 		// create the testing environment and cluster
-		env, err = environments.NewBuilder().WithAddons(certManagerBuilder.Build(), loadImages.Build()).Build(ctx)
+		env, err = environments.NewBuilder().WithAddons(loadImages.Build()).Build(ctx)
 		exitOnErr(err)
 
 		fmt.Printf("INFO: new kind cluster %s was created\n", env.Cluster().Name())

@@ -59,15 +59,11 @@ func main() {
 	} else { // if not on k8s, find the map path from the system
 		ctx := context.Background()
 
-		// get the BPFD TLS credentials
+		// get the BPFD config
 		configFileData := configMgmt.LoadConfig(DefaultConfigPath)
-		creds, err := configMgmt.LoadTLSCredentials(configFileData.Tls)
-		if err != nil {
-			log.Printf("Failed to generate credentials for new client: %v", err)
-		}
 
 		// connect to the BPFD server
-		conn, err := configMgmt.CreateConnection(configFileData.Grpc.Endpoints, ctx, creds)
+		conn, err := configMgmt.CreateConnection(configFileData.Grpc.Endpoints, ctx)
 		if err != nil {
 			log.Printf("failed to create client connection: %v", err)
 			return
