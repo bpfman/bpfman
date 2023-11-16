@@ -116,13 +116,6 @@ kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
 $(KUSTOMIZE): $(LOCALBIN)
 	test -s $(LOCALBIN)/kustomize || { curl -Ss $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN); }
 
-## Leave to my own release until https://github.com/alenkacz/cert-manager-verifier/pull/13 merges
-CM_VERIFIER_BINARY ?= https://github.com/astoycos/cert-manager-verifier/releases/download/v$(CM_VERIFIER_VERSION)/cert-manager-verifier_$(CM_VERIFIER_VERSION)_Linux_$(shell go env GOARCH).tar.gz
-.PHONY: cm-verifier
-cm-verifier: $(CM_VERIFIER) ## Download cm-verifier locally if necessary.
-$(CM_VERIFIER): $(LOCALBIN)
-	test -s $(LOCALBIN)/cm_verifier || { curl -LSs $(CM_VERIFIER_BINARY) | tar -xz -C $(LOCALBIN); }
-
 OPERATOR_SDK_DL_NAME=operator-sdk_$(shell go env GOOS)_$(shell go env GOARCH)
 OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/$(OPERATOR_SDK_VERSION)/$(OPERATOR_SDK_DL_NAME)
 .PHONY: operator-sdk
@@ -325,17 +318,6 @@ install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
-##@ Deployment Dependencies
-
-.PHONY: deploy-certmanager
-deploy-certmanager: kustomize cm-verifier ## Deploy certmanager to the cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/certmanager | kubectl apply -f -
-	$(CM_VERIFIER) --timeout 60s
-
-.PHONY: undeploy-certmanager
-undeploy-certmanager: ## Undeploy certmanager from the cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/certmanager  | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
-
 ##@ Vanilla K8s Deployment
 
 .PHONY: setup-kind
@@ -369,7 +351,7 @@ kind-reload-images: load-images-kind ## Reload locally build images into a kind 
 run-on-kind: kustomize setup-kind build-images load-images-kind deploy ## Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator
 
 .PHONY: run-on-kind-csi
-run-on-kind-csi: kustomize setup-kind deploy-certmanager build-images load-images-kind deploy-csi ## Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator while also deploying bpfd's custom CSI setup.
+run-on-kind-csi: kustomize setup-kind build-images load-images-kind deploy-csi ## Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator while also deploying bpfd's custom CSI setup.
 
 ##@ Openshift Deployment
 
