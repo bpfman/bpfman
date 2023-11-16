@@ -166,7 +166,7 @@ func GetMaps(c *bpfdclientset.Clientset, ProgramName string, mapNames []string) 
 	}
 
 	if len(bpfProgramList.Items) != 1 {
-		return nil, fmt.Errorf("error getting BpfProgram for %s, multiple bpfPrograms found", ProgramName)
+		return nil, fmt.Errorf("error getting BpfProgram for %s, multiple bpfPrograms found (%d)", ProgramName, len(bpfProgramList.Items))
 	}
 
 	prog := bpfProgramList.Items[0]

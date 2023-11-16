@@ -55,11 +55,6 @@ After=network.target
 [Service]
 Environment="RUST_LOG=Info"    <==== Set Log Level Here
 ExecStart=/usr/sbin/bpfd
-MemoryAccounting=true
-MemoryLow=infinity
-MemoryMax=infinity
-User=bpfd
-Group=bpfd
 AmbientCapabilities=CAP_BPF CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_PERFMON CAP_SYS_ADMIN CAP_SYS_RESOURCE
 CapabilityBoundingSet=CAP_BPF CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_PERFMON CAP_SYS_ADMIN CAP_SYS_RESOURCE
 ```

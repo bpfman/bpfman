@@ -10,7 +10,7 @@ use std::{
 
 use anyhow::Result;
 use assert_cmd::prelude::*;
-use bpfd_api::util::directories::{BYTECODE_IMAGE_CONTENT_STORE, CFGPATH_BPFD_CONFIG};
+use bpfd_api::util::directories::{CFGPATH_BPFD_CONFIG, STDIR_BYTECODE_IMAGE_CONTENT_STORE};
 use log::debug;
 use predicates::str::is_empty;
 use regex::Regex;
@@ -532,7 +532,7 @@ pub fn bpfd_pull_bytecode() -> Result<String> {
 
 pub fn get_image_path() -> PathBuf {
     let relative_path = str::replace(TRACEPOINT_IMAGE_LOC, ":", "/");
-    Path::new(BYTECODE_IMAGE_CONTENT_STORE).join(relative_path)
+    Path::new(STDIR_BYTECODE_IMAGE_CONTENT_STORE).join(relative_path)
 }
 
 /// Retrieve the output of bpfctl list

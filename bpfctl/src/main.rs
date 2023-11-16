@@ -84,8 +84,8 @@ struct ListArgs {
 
 #[derive(Args)]
 struct LoadFileArgs {
-    /// Required: Location of local bytecode file
-    /// Example: --path /run/bpfd/examples/go-xdp-counter/bpf_bpfel.o
+    /// Required: Location of local bytecode file as fully qualified file path.
+    /// Example: --path $HOME/src/bpfd/examples/go-xdp-counter/bpf_bpfel.o
     #[clap(short, long, verbatim_doc_comment)]
     path: String,
 

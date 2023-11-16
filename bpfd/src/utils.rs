@@ -4,14 +4,12 @@
 use std::{os::unix::fs::PermissionsExt, path::Path, str};
 
 use anyhow::{Context, Result};
-use bpfd_api::util::USRGRP_BPFD;
 use log::{debug, info, warn};
 use nix::{
     mount::{mount, MsFlags},
     net::if_::if_nametoindex,
 };
 use tokio::{fs, io::AsyncReadExt};
-use users::get_group_by_name;
 
 use crate::errors::BpfdError;
 
@@ -63,25 +61,18 @@ pub(crate) fn get_ifindex(iface: &str) -> Result<u32, BpfdError> {
 }
 
 pub(crate) async fn set_file_permissions(path: &str, mode: u32) {
-    // Determine if User Group exists, if not, do nothing
-    if get_group_by_name(USRGRP_BPFD).is_some() {
-        // Set the permissions on the file based on input
-        if (tokio::fs::set_permissions(path, std::fs::Permissions::from_mode(mode)).await).is_err()
-        {
-            warn!("Unable to set permissions on file {}. Continuing", path);
-        }
+    // Set the permissions on the file based on input
+    if (tokio::fs::set_permissions(path, std::fs::Permissions::from_mode(mode)).await).is_err() {
+        warn!("Unable to set permissions on file {}. Continuing", path);
     }
 }
 
 pub(crate) async fn set_dir_permissions(directory: &str, mode: u32) {
-    // Determine if User Group exists, if not, do nothing
-    if get_group_by_name(USRGRP_BPFD).is_some() {
-        // Iterate through the files in the provided directory
-        let mut entries = fs::read_dir(directory).await.unwrap();
-        while let Some(file) = entries.next_entry().await.unwrap() {
-            // Set the permissions on the file based on input
-            set_file_permissions(&file.path().into_os_string().into_string().unwrap(), mode).await;
-        }
+    // Iterate through the files in the provided directory
+    let mut entries = fs::read_dir(directory).await.unwrap();
+    while let Some(file) = entries.next_entry().await.unwrap() {
+        // Set the permissions on the file based on input
+        set_file_permissions(&file.path().into_os_string().into_string().unwrap(), mode).await;
     }
 }
 

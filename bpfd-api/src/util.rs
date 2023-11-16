@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfd
 
-pub const USRGRP_BPFD: &str = "bpfd";
-
 pub mod directories {
     // The following directories are used by bpfd. They should be created by bpfd service
     // via the bpfd.service settings. They will be manually created in the case where bpfd
     // is not being run as a service.
     //
     // ConfigurationDirectory: /etc/bpfd/
+    pub const CFGDIR_MODE: u32 = 0o6750;
     pub const CFGDIR: &str = "/etc/bpfd";
     pub const CFGDIR_BPFD_CERTS: &str = "/etc/bpfd/certs/bpfd";
     pub const CFGDIR_BPFD_CLIENT_CERTS: &str = "/etc/bpfd/certs/bpfd-client";
@@ -21,7 +20,9 @@ pub mod directories {
     pub const CFGPATH_BPFD_CERTS_KEY: &str = "/etc/bpfd/certs/bpfd/bpfd.key";
     pub const CFGPATH_BPFD_CLIENT_CERTS_PEM: &str = "/etc/bpfd/certs/bpfd-client/bpfd-client.pem";
     pub const CFGPATH_BPFD_CLIENT_CERTS_KEY: &str = "/etc/bpfd/certs/bpfd-client/bpfd-client.key";
+
     // RuntimeDirectory: /run/bpfd/
+    pub const RTDIR_MODE: u32 = 0o6770;
     pub const RTDIR: &str = "/run/bpfd";
     pub const RTDIR_XDP_DISPATCHER: &str = "/run/bpfd/dispatchers/xdp";
     pub const RTDIR_TC_INGRESS_DISPATCHER: &str = "/run/bpfd/dispatchers/tc-ingress";
@@ -32,14 +33,15 @@ pub mod directories {
     pub const RTDIR_FS_XDP: &str = "/run/bpfd/fs/xdp";
     pub const RTDIR_FS_MAPS: &str = "/run/bpfd/fs/maps";
     pub const RTDIR_PROGRAMS: &str = "/run/bpfd/programs";
-    pub const STPATH_BPFD_SOCKET: &str = "/run/bpfd/bpfd.sock";
+    pub const RTPATH_BPFD_SOCKET: &str = "/run/bpfd/bpfd.sock";
     // The CSI socket must be in it's own sub directory so we can easily create a dedicated
     // K8s volume mount for it.
     pub const RTDIR_BPFD_CSI: &str = "/run/bpfd/csi";
-    pub const STPATH_BPFD_CSI_SOCKET: &str = "/run/bpfd/csi/csi.sock";
+    pub const RTPATH_BPFD_CSI_SOCKET: &str = "/run/bpfd/csi/csi.sock";
     pub const RTDIR_BPFD_CSI_FS: &str = "/run/bpfd/csi/fs";
 
     // StateDirectory: /var/lib/bpfd/
+    pub const STDIR_MODE: u32 = 0o6770;
     pub const STDIR: &str = "/var/lib/bpfd";
-    pub const BYTECODE_IMAGE_CONTENT_STORE: &str = "/var/lib/bpfd/io.bpfd.image.content";
+    pub const STDIR_BYTECODE_IMAGE_CONTENT_STORE: &str = "/var/lib/bpfd/io.bpfd.image.content";
 }

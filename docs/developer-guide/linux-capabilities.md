@@ -11,6 +11,25 @@ required set of capabilities via the `bpfd.service` file using the `AmbientCapab
 All spawned threads are stripped of all capabilities, removing all sudo privileges
 (see `drop_linux_capabilities()` usage), leaving only the main thread with only the needed set of capabilities.
 
+## Current bpfd Linux Capabilities
+
+Below are the current set of Linux capabilities required by bpfd to operate:
+
+* **CAP_BPF:**
+    * Required to load BPF programs and create BPF maps.
+* **CAP_DAC_READ_SEARCH:**
+    * Required by Tracepoint programs, needed by aya to check the tracefs mount point.
+      For example, trying to read "/sys/kernel/tracing" and "/sys/kernel/debug/tracing".
+* **CAP_NET_ADMIN:**
+    * Required for TC programs to attach/detach to/from a qdisc.
+* **CAP_SETPCAP:**
+    * Required to allow bpfd to drop Linux Capabilities on spawned threads.
+* **CAP_SYS_ADMIN:** 
+    * Kprobe (Kprobe and Uprobe) and Tracepoint programs are considered perfmon programs and require CAP_PERFMON and CAP_SYS_ADMIN to load.
+    * TC and XDP programs are considered admin programs and require CAP_NET_ADMIN and CAP_SYS_ADMIN to load.
+* **CAP_SYS_RESOURCE:**
+    * Required by bpfd to call `setrlimit()` on `RLIMIT_MEMLOCK`.
+
 ## Debugging Linux Capabilities
 
 As new features are added, the set of Linux capabilities required by bpfd may change over time.

@@ -2,7 +2,7 @@ use std::process::Command;
 
 use assert_cmd::prelude::*;
 use bpfd_api::util::directories::{
-    BYTECODE_IMAGE_CONTENT_STORE, RTDIR_FS_MAPS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP,
+    RTDIR_FS_MAPS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP, STDIR_BYTECODE_IMAGE_CONTENT_STORE,
 };
 use log::debug;
 use rand::Rng;
@@ -407,8 +407,8 @@ fn test_load_unload_kretprobe() {
 
 #[integration_test]
 fn test_pull_bytecode() {
-    if std::path::PathBuf::from(BYTECODE_IMAGE_CONTENT_STORE).exists() {
-        std::fs::remove_dir_all(BYTECODE_IMAGE_CONTENT_STORE).unwrap();
+    if std::path::PathBuf::from(STDIR_BYTECODE_IMAGE_CONTENT_STORE).exists() {
+        std::fs::remove_dir_all(STDIR_BYTECODE_IMAGE_CONTENT_STORE).unwrap();
     }
 
     let _bpfd_guard = start_bpfd().unwrap();

@@ -48,9 +48,6 @@ Valid fields:
 - **client_cert**: Client certificate file location, intended to be used by bpfd clients (`bpfctl`, `bpfd-agent`, etc).
 - **client_key**: Client certificate key file location, intended to be used by bpfd clients (`bpfctl`, `bpfd-agent`, etc).
 
-If bpfd is running as a systemd service, then the certificates must be accessible by bpfd
-(owned by the bpfd User and User Group).
-
 ### Config Section: [interfaces]
 
 This section of the configuration file allows the XDP Mode for a given interface to be set.
@@ -76,8 +73,7 @@ Valid fields:
 In this section different endpoints can be configured for bpfd to listen on. We currently support TCP sockets
 with IPv4 and Ipv6 addresses and Unix domain sockets.
 When using TCP sockets, the tls configuration will be used to secure communication.
-Unix domain sockets provide a simpler communication with no encryption. These sockets are owned by the bpfd
-user and user group when running as a systemd or non-root process.
+Unix domain sockets provide a simpler communication with no encryption.
 
 Valid fields:
 

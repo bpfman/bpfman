@@ -70,9 +70,8 @@ directory.  These programs are compiled by executing `cargo xtask build-ebpf
 We also load some tests from local files to test the `load-from-file` option.
 
 The `bpf` directory also contains a script called `build_push_images.sh` that
-can be used to build and push new images to quay if the code is changed.  We
-plan to push the images automatically when code gets merged ([issue
-\#533](<https://github.com/bpfd-dev/bpfd/issues/533>)). However, it's still
+can be used to build and push new images to quay if the code is changed.
+Images get pushed automatically when code gets merged, however, it's still
 useful to be able to push them manually sometimes. For example, when a new test
 case requires that both the eBPF and integration code be changed together.  It
 is also a useful template for new eBPF test code that needs to be pushed.

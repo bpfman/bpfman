@@ -7,21 +7,22 @@ use crate::build_ebpf::{build_ebpf, Architecture, Options as BuildOptions};
 
 #[derive(Debug, Parser)]
 pub struct Options {
-    /// Set the endianness of the BPF target
+    /// Optional: Set the endianness of the BPF target
     #[clap(default_value = "bpfel-unknown-none", long)]
     pub bpf_target: Architecture,
-    /// Build and run the release target
+    /// Optional: Build and run the release target
     #[clap(long)]
     pub release: bool,
+    /// Optional: Compile rust eBPF dispatcher
     #[clap(long)]
     pub compile_rust_ebpf: bool,
-    /// The command used to wrap your application
+    /// Optional: The command used to wrap your application
     #[clap(short, long, default_value = "sudo -E")]
     pub runner: String,
-    /// Arguments to pass to your application
+    /// Optional: Arguments to pass to your application
     #[clap(name = "args", last = true)]
     pub run_args: Vec<String>,
-    /// Libbpf dir, required for compiling C code
+    /// Required: Libbpf dir, required for compiling C code
     #[clap(long, action)]
     pub libbpf_dir: String,
 }

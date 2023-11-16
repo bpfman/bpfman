@@ -133,7 +133,7 @@ async fn generate_ca_cert_pem(ca_cert_path: &str) -> Result<Vec<u8>, CertsError>
     tokio::fs::write(ca_key_path, ca_cert_key.private_key_to_pem_pkcs8().unwrap())
         .await
         .map_err(|_| CertsError::Error("unable to write ca key to file".to_string()))?;
-    // Set the private key such that only members of the "bpfd" group can read
+    // Set the private key such that only owner and group can read
     tokio::fs::set_permissions(ca_key_path, fs::Permissions::from_mode(0o0440))
         .await
         .map_err(|_| CertsError::Error("unable to set ca key file permissions".to_string()))?;

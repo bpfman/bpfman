@@ -9,7 +9,7 @@ for help building from the latest code or building from a release branch.
 
 [Tutorial](./tutorial.md) contains more details on the different
 modes to run `bpfd` in on the host and how to test.
-Use [Privileged Mode](#privileged-mode) or [Systemd Service](#systemd-service)
+Use [Local Host](#local-host) or [Systemd Service](#systemd-service)
 below for deploying released version of `bpfd` and then use [Tutorial](./tutorial.md)
 for further information on how to test and interact with `bpfd`. 
 
@@ -21,7 +21,7 @@ Use [Deploying Release Version of the bpfd-operator](#deploying-release-version-
 below for deploying released version of `bpfd` in Kubernetes and then use the
 links above for further information on how to test and interact with `bpfd`. 
 
-## Privileged Mode
+## Local Host
 
 To run `bpfd` in the foreground using `sudo`, download the release binary tar
 files and unpack them.
@@ -87,8 +87,8 @@ tar -xzvf bpfctl-linux-x86_64.tar.gz; rm bpfctl-linux-x86_64.tar.gz
 tar -xzvf bpfd-linux-x86_64.tar.gz; rm bpfd-linux-x86_64.tar.gz
 ```
 
-Run the following command to copy the `bpfd` and `bpfctl` binaries to `/usr/sbin/` and set the user
-and user group for each, and copy a default `bpfd.service` file to `/usr/lib/systemd/system/`.
+Run the following command to copy the `bpfd` and `bpfctl` binaries to `/usr/sbin/` and copy a
+default `bpfd.service` file to `/usr/lib/systemd/system/`.
 This option will also start the systemd service `bpfd.service` by default.
 
 ```console
@@ -97,14 +97,6 @@ sudo ./scripts/setup.sh install
 
 > **NOTE:** If running a release older than `v0.3.0`, the install script is not coded to copy
 binaries from the release directory, so the binaries will need to be manually copied.
-
-Then add usergroup bpfd to the desired user if not already run and logout/login to apply.
-
-```console
-sudo usermod -a -G bpfd $USER
-exit
-<LOGIN>
-```
 
 Continue in [Tutorial](./tutorial.md) if desired.
 

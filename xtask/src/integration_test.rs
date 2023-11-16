@@ -5,17 +5,16 @@ use clap::Parser;
 
 #[derive(Debug, Parser)]
 pub struct Options {
-    /// Build and run the release target
+    /// Optional: Build and run the release target
     #[clap(long)]
     pub release: bool,
-    /// The command used to wrap your application
+    /// Optional: The command used to wrap your application
     #[clap(short, long, default_value = "sudo -E")]
     pub runner: String,
     /// An optional list of test cases to execute. All test cases will be
-    /// executed if not provided. For example, "cargo xtask integration-test --
-    /// test1 test2" will execute only the test cases with names "test1" and
-    /// "test2"
-    #[clap(name = "tests", last = true)]
+    /// executed if not provided.
+    /// Example: cargo xtask integration-test -- test_load_unload_tracepoint_maps test_load_unload_tc_maps
+    #[clap(name = "tests", verbatim_doc_comment, last = true)]
     pub run_args: Vec<String>,
 }
 
