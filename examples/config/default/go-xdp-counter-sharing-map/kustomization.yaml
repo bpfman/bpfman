@@ -6,14 +6,14 @@ kind: Kustomization
 # variable and using sed to replace, moved to patch.yaml.env which is
 # converted to patch.yaml using the sed command in Makefile.
 patches:
-- path: patch.yaml
-  target:
-    kind: XdpProgram
-    name: go-xdp-counter-example
+  - path: patch.yaml
+    target:
+      kind: XdpProgram
+      name: go-xdp-counter-example
 
 resources:
-- ../../base/go-xdp-counter-sharing-map
+  - ../../base/go-xdp-counter-sharing-map
 images:
-- name: quay.io/bpfd-userspace/go-xdp-counter
-  newName: quay.io/bpfd-userspace/go-xdp-counter
-  newTag: latest
+  - name: quay.io/bpfd-userspace/go-xdp-counter
+    newName: quay.io/bpfd-userspace/go-xdp-counter
+    newTag: latest

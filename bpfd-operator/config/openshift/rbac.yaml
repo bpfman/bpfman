@@ -7,6 +7,6 @@ roleRef:
   kind: ClusterRole
   name: system:openshift:scc:privileged
 subjects:
-- kind: ServiceAccount
-  name: bpfd-daemon
-  namespace: openshift-bpfd
+  - kind: ServiceAccount
+    name: bpfd-daemon
+    namespace: openshift-bpfd

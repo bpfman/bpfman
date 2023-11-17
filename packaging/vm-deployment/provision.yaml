@@ -1,57 +1,56 @@
 ---
 - hosts: all
-  become: yes
+  become: true
   become_method: sudo
   strategy: debug
   tasks:
+    - name: Set Variables
+      set_fact:
+        vagrant_user: "vagrant"
 
-  - name: Set Variables
-    set_fact:
-      vagrant_user: "vagrant"
+    - name: Make directories for bpfd binaries and scripts
+      shell: |
+        mkdir -p /home/{{ vagrant_user }}/bpfd/target/debug/
 
-  - name: Make directories for bpfd binaries and scripts
-    shell: |
-      mkdir -p /home/{{ vagrant_user }}/bpfd/target/debug/
+    - name: Copy bpfctl binary to the remote host
+      ansible.builtin.copy:
+        src: ../../target/debug/bpfctl
+        dest: /home/{{ vagrant_user }}/bpfd/target/debug/
+        owner: "{{ vagrant_user }}"
+        group: "{{ vagrant_user }}"
+        mode: "0755"
 
-  - name: Copy bpfctl binary to the remote host
-    ansible.builtin.copy:
-      src: ../../target/debug/bpfctl
-      dest: /home/{{ vagrant_user }}/bpfd/target/debug/
-      owner: "{{ vagrant_user }}"
-      group: "{{ vagrant_user }}"
-      mode: '0755'
+    - name: Copy bpfd binary to the remote host
+      ansible.builtin.copy:
+        src: ../../target/debug/bpfd
+        dest: /home/{{ vagrant_user }}/bpfd/target/debug/
+        owner: "{{ vagrant_user }}"
+        group: "{{ vagrant_user }}"
+        mode: "0755"
 
-  - name: Copy bpfd binary to the remote host
-    ansible.builtin.copy:
-      src: ../../target/debug/bpfd
-      dest: /home/{{ vagrant_user }}/bpfd/target/debug/
-      owner: "{{ vagrant_user }}"
-      group: "{{ vagrant_user }}"
-      mode: '0755'
+    - name: Copy the scripts directory to the remote host
+      ansible.builtin.copy:
+        src: ../../scripts/
+        dest: /home/{{ vagrant_user }}/bpfd/scripts/
+        owner: "{{ vagrant_user }}"
+        group: "{{ vagrant_user }}"
 
-  - name: Copy the scripts directory to the remote host
-    ansible.builtin.copy:
-      src: ../../scripts/
-      dest: /home/{{ vagrant_user }}/bpfd/scripts/
-      owner: "{{ vagrant_user }}"
-      group: "{{ vagrant_user }}"
+    - name: Update OS
+      package:
+        name: "*"
+        state: latest
 
-  - name: Update OS
-    package:
-      name: '*'
-      state: latest
+    - name: Enable IPv6
+      command: sysctl -w net.ipv6.conf.all.disable_ipv6=0
 
-  - name: Enable IPv6
-    command: sysctl -w net.ipv6.conf.all.disable_ipv6=0
+    - name: Install packages
+      package:
+        name: ["openssl", "acl"]
 
-  - name: Install packages
-    package:
-      name: ['openssl', 'acl']
-
-  - name: Change the working directory to bpfd/scripts and run
-    become: yes
-    shell: |
-      chmod +x ./scripts/*.sh
-      ./scripts/setup.sh install
-    args:
-      chdir: /home/{{ vagrant_user }}/bpfd
+    - name: Change the working directory to bpfd/scripts and run
+      become: true
+      shell: |
+        chmod +x ./scripts/*.sh
+        ./scripts/setup.sh install
+      args:
+        chdir: /home/{{ vagrant_user }}/bpfd

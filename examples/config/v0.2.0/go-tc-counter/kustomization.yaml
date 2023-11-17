@@ -15,9 +15,9 @@ patches:
 # Patch the deployment.yaml to change container image in Daemonset
 # to new tag on the image.
 images:
-- name: quay.io/bpfd-userspace/go-tc-counter
-  newName: quay.io/bpfd-userspace/go-tc-counter
-  newTag: v0.2.0
+  - name: quay.io/bpfd-userspace/go-tc-counter
+    newName: quay.io/bpfd-userspace/go-tc-counter
+    newTag: v0.2.0
 
 resources:
-- ../../base/go-tc-counter
+  - ../../base/go-tc-counter

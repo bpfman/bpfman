@@ -19,9 +19,9 @@ roleRef:
   kind: ClusterRole
   name: system:openshift:scc:privileged
 subjects:
-- kind: ServiceAccount
-  name: bpfd-app-go-xdp-counter
-  namespace: go-xdp-counter
+  - kind: ServiceAccount
+    name: bpfd-app-go-xdp-counter
+    namespace: go-xdp-counter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -38,9 +38,9 @@ roleRef:
   kind: ClusterRole
   name: bpfd-bpfprogram-viewer-role
 subjects:
-- kind: ServiceAccount
-  name: bpfd-app-go-xdp-counter
-  namespace: go-xdp-counter
+  - kind: ServiceAccount
+    name: bpfd-app-go-xdp-counter
+    namespace: go-xdp-counter
 ---
 apiVersion: apps/v1
 kind: DaemonSet
@@ -63,33 +63,33 @@ spec:
       dnsPolicy: ClusterFirstWithHostNet
       serviceAccountName: bpfd-app-go-xdp-counter
       tolerations:
-      # these tolerations are to have the daemonset runnable on control plane nodes
-      # remove them if your control plane nodes should not run pods
-      - key: node-role.kubernetes.io/control-plane
-        operator: Exists
-        effect: NoSchedule
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
+        # these tolerations are to have the daemonset runnable on control plane nodes
+        # remove them if your control plane nodes should not run pods
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
       containers:
-      - name: go-xdp-counter
-        image: quay.io/bpfd-userspace/go-xdp-counter:latest
-        imagePullPolicy: IfNotPresent
-        securityContext:
-          privileged: false
-        env:
-          - name: NODENAME
-            valueFrom:
-              fieldRef:
-                fieldPath: spec.nodeName
-        volumeMounts:
-        - name: go-xdp-counter-maps
-          mountPath: /run/xdp/maps
-          readOnly: true
+        - name: go-xdp-counter
+          image: quay.io/bpfd-userspace/go-xdp-counter:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: false
+          env:
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: go-xdp-counter-maps
+              mountPath: /run/xdp/maps
+              readOnly: true
       volumes:
-      - name: go-xdp-counter-maps
-        csi:
-          driver: csi.bpfd.dev
-          volumeAttributes:
-            csi.bpfd.dev/program: go-xdp-counter-example
-            csi.bpfd.dev/maps: xdp_stats_map
+        - name: go-xdp-counter-maps
+          csi:
+            driver: csi.bpfd.dev
+            volumeAttributes:
+              csi.bpfd.dev/program: go-xdp-counter-example
+              csi.bpfd.dev/maps: xdp_stats_map
