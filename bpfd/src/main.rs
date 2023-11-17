@@ -39,7 +39,7 @@ const BPFD_ENV_LOG_LEVEL: &str = "RUST_LOG";
 #[clap(author, version, about, long_about = None)]
 struct Args {
     #[clap(long)]
-    experimental_csi_support: bool,
+    csi_support: bool,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -114,12 +114,7 @@ fn main() -> anyhow::Result<()> {
                 Config::default()
             };
 
-            serve(
-                config,
-                CFGDIR_STATIC_PROGRAMS,
-                args.experimental_csi_support,
-            )
-            .await?;
+            serve(config, CFGDIR_STATIC_PROGRAMS, args.csi_support).await?;
             Ok(())
         })
 }

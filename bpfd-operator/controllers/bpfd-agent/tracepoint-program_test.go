@@ -183,8 +183,6 @@ func TestTracepointProgramControllerCreate(t *testing.T) {
 	err = cl.Get(ctx, types.NamespacedName{Name: bpfProgName, Namespace: metav1.NamespaceAll}, bpfProg)
 	require.NoError(t, err)
 
-	require.Nil(t, bpfProg.Spec.Maps)
-
 	// Third reconcile should update the bpfPrograms status to loaded
 	res, err = r.Reconcile(ctx, req)
 	if err != nil {

@@ -89,7 +89,6 @@ func TestTcProgramReconcile(t *testing.T) {
 		},
 		Spec: bpfdiov1alpha1.BpfProgramSpec{
 			Type: "tc",
-			Maps: nil,
 		},
 		Status: bpfdiov1alpha1.BpfProgramStatus{
 			Conditions: []metav1.Condition{bpfdiov1alpha1.BpfProgCondLoaded.Condition()},

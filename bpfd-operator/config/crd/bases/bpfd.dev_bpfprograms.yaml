@@ -35,12 +35,6 @@ spec:
           spec:
             description: BpfProgramSpec defines the desired state of BpfProgram
             properties:
-              maps:
-                additionalProperties:
-                  type: string
-                description: 'Maps is a map with Keys: Map Names, and Values: Map
-                  Pin paths'
-                type: object
               type:
                 description: Type specifies the bpf program type
                 type: string

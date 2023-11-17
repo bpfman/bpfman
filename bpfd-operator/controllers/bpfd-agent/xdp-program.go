@@ -241,7 +241,7 @@ func (r *XdpProgramReconciler) reconcileBpfdProgram(ctx context.Context,
 	isBeingDeleted bool,
 	mapOwnerStatus *MapOwnerParamStatus) (bpfdiov1alpha1.BpfProgramConditionType, error) {
 
-	r.Logger.V(1).Info("Existing bpfProgram", "ExistingMaps", bpfProgram.Spec.Maps, "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentXdpProgram", r.currentXdpProgram.Name)
+	r.Logger.V(1).Info("Existing bpfProgram", "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentXdpProgram", r.currentXdpProgram.Name)
 	iface := bpfProgram.Annotations[internal.XdpProgramInterface]
 
 	var err error

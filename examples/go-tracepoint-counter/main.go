@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -22,7 +23,9 @@ const (
 	BpfProgramMapIndex    = "tracepoint_stats_map"
 	DefaultByteCodeFile   = "bpf_bpfel.o"
 	DefaultConfigPath     = "/etc/bpfd/bpfd.toml"
-	DefaultMapDir         = "/run/bpfd/fs/maps"
+
+	// MapsMountPoint is the "go-tracepoint-counter-maps" volumeMount "mountPath" from "deployment.yaml"
+	MapsMountPoint = "/run/tracepoint/maps"
 )
 
 type Stats struct {
@@ -45,17 +48,12 @@ func main() {
 	// determine the path to the tracepoint_stats_map, whether provided via CRD
 	// or BPFD or otherwise.
 	var mapPath string
-	if paramData.CrdFlag { // get the map path from the API resource if on k8s
-		c := bpfdHelpers.GetClientOrDie()
-
-		maps, err := bpfdHelpers.GetMaps(c, TracepointProgramName, []string{BpfProgramMapIndex})
-		if err != nil {
-			log.Printf("error getting bpf stats map: %v\n", err)
-			return
-		}
-
-		mapPath = maps[BpfProgramMapIndex]
-
+	// If running in a Kubernetes deployment, the eBPF program is already loaded.
+	// Only need the map path, which is at a known location in the pod using VolumeMounts
+	// and the CSI Driver.
+	if paramData.CrdFlag {
+		// 3. Get access to our map
+		mapPath = fmt.Sprintf("%s/%s", MapsMountPoint, BpfProgramMapIndex)
 	} else { // if not on k8s, find the map path from the system
 		ctx := context.Background()
 

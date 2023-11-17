@@ -47,7 +47,7 @@ import (
 type BpfdConfigReconciler struct {
 	ReconcilerCommon
 	BpfdStandardDeployment string
-	BpfdCsiDeployment      string
+	CsiDriverDeployment    string
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -91,27 +91,21 @@ func (r *BpfdConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 func (r *BpfdConfigReconciler) ReconcileBpfdConfig(ctx context.Context, req ctrl.Request, bpfdConfig *corev1.ConfigMap) (ctrl.Result, error) {
 	bpfdDeployment := &appsv1.DaemonSet{}
-	staticBpfdDeployment := &appsv1.DaemonSet{}
 
-	if bpfdConfig.Data["bpfd.enable.csi"] == "true" {
-		staticBpfdDeployment = LoadAndConfigureBpfdDs(bpfdConfig, r.BpfdCsiDeployment)
-		r.Logger.V(1).Info("StaticBpfdDeployment with CSI", "DS", staticBpfdDeployment)
-		bpfdCsiDriver := &storagev1.CSIDriver{}
-		// one-shot try to create bpfd's CSIDriver object if it doesn't exist, does not re-trigger reconcile.
-		if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: internal.BpfdCsiDriverName}, bpfdCsiDriver); err != nil {
-			if errors.IsNotFound(err) {
-				bpfdCsiDriver = LoadCsiDriver(internal.BpfdCsiDriverPath)
+	staticBpfdDeployment := LoadAndConfigureBpfdDs(bpfdConfig, r.BpfdStandardDeployment)
+	r.Logger.V(1).Info("StaticBpfdDeployment with CSI", "DS", staticBpfdDeployment)
+	bpfdCsiDriver := &storagev1.CSIDriver{}
+	// one-shot try to create bpfd's CSIDriver object if it doesn't exist, does not re-trigger reconcile.
+	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: internal.BpfdCsiDriverName}, bpfdCsiDriver); err != nil {
+		if errors.IsNotFound(err) {
+			bpfdCsiDriver = LoadCsiDriver(r.CsiDriverDeployment)
 
-				r.Logger.Info("Creating Bpfd csi driver object")
-				if err := r.Create(ctx, bpfdCsiDriver); err != nil {
-					r.Logger.Error(err, "Failed to create Bpfd csi driver")
-					return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
-				}
+			r.Logger.Info("Creating Bpfd csi driver object")
+			if err := r.Create(ctx, bpfdCsiDriver); err != nil {
+				r.Logger.Error(err, "Failed to create Bpfd csi driver")
+				return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 			}
 		}
-	} else {
-		staticBpfdDeployment = LoadAndConfigureBpfdDs(bpfdConfig, r.BpfdStandardDeployment)
-		r.Logger.V(1).Info("StaticBpfdDeployment", "DS", staticBpfdDeployment)
 	}
 
 	if err := r.Get(ctx, types.NamespacedName{Namespace: bpfdConfig.Namespace, Name: internal.BpfdDsName}, bpfdDeployment); err != nil {

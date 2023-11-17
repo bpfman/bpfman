@@ -36,7 +36,6 @@ const (
 	BpfdConfigName              = "bpfd-config"
 	BpfdCsiDriverName           = "csi.bpfd.dev"
 	BpfdDaemonManifestPath      = "./config/bpfd-deployment/daemonset.yaml"
-	BpfdDaemonCsiManifestPath   = "./config/bpfd-deployment/daemonset-csi.yaml"
 	BpfdCsiDriverPath           = "./config/bpfd-deployment/csidriverinfo.yaml"
 	BpfdMapFs                   = "/run/bpfd/fs/maps"
 	DefaultConfigPath           = "/etc/bpfd/bpfd.toml"

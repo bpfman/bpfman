@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -27,6 +28,9 @@ const (
 	DefaultByteCodeFile = "bpf_bpfel.o"
 	XdpProgramName      = "go-xdp-counter-example"
 	BpfProgramMapIndex  = "xdp_stats_map"
+
+	// MapsMountPoint is the "go-xdp-counter-maps" volumeMount "mountPath" from "deployment.yaml"
+	MapsMountPoint = "/run/xdp/maps"
 )
 
 const (
@@ -47,17 +51,12 @@ func main() {
 
 	var mapPath string
 
-	// If running in a Kubernetes deployment, read the map path from the Bpf Program CRD
+	// If running in a Kubernetes deployment, the eBPF program is already loaded.
+	// Only need the map path, which is at a known location in the pod using VolumeMounts
+	// and the CSI Driver.
 	if paramData.CrdFlag {
-		c := bpfdHelpers.GetClientOrDie()
-
-		maps, err := bpfdHelpers.GetMaps(c, XdpProgramName, []string{BpfProgramMapIndex})
-		if err != nil {
-			log.Printf("error getting bpf stats map: %v\n", err)
-			return
-		}
-
-		mapPath = maps[BpfProgramMapIndex]
+		// 3. Get access to our map
+		mapPath = fmt.Sprintf("%s/%s", MapsMountPoint, BpfProgramMapIndex)
 	} else {
 		ctx := context.Background()
 

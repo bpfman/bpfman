@@ -19,8 +19,6 @@ package helpers
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"time"
 
 	//bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
@@ -31,18 +29,13 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	//"k8s.io/apimachinery/pkg/labels"
-	"github.com/bpfd-dev/bpfd/bpfd-operator/internal"
-	"k8s.io/apimachinery/pkg/labels"
+
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	bpfdiov1alpha1 "github.com/bpfd-dev/bpfd/bpfd-operator/apis/v1alpha1"
-)
-
-const (
-	DefaultMapDir = "/run/bpfd/fs/maps"
 )
 
 // Must match the internal bpfd-api mappings
@@ -137,77 +130,6 @@ func getk8sConfigOrDie() *rest.Config {
 // cluster config setup.
 func GetClientOrDie() *bpfdclientset.Clientset {
 	return bpfdclientset.NewForConfigOrDie(getk8sConfigOrDie())
-}
-
-// TODO(astoycos) This will completely be removed with the transition to CSI.
-// GetMaps is meant to be used by applications wishing to use BPFD. It takes in a bpf program
-// name and a list of map names, and returns a map corelating map name to map pin path.
-func GetMaps(c *bpfdclientset.Clientset, ProgramName string, mapNames []string) (map[string]string, error) {
-	ctx := context.Background()
-
-	// Get the nodename where this pod is running
-	nodeName := os.Getenv("NODENAME")
-	if nodeName == "" {
-		return nil, fmt.Errorf("NODENAME env var not set")
-	}
-
-	nodeAndProg := map[string]string{internal.BpfProgramOwnerLabel: ProgramName, internal.K8sHostLabel: nodeName}
-
-	// Only list bpfPrograms for this Program
-	labelSelector := metav1.LabelSelector{MatchLabels: nodeAndProg}
-	opts := metav1.ListOptions{
-		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
-	}
-
-	// This should only have len == 1
-	bpfProgramList, err := c.BpfdV1alpha1().BpfPrograms().List(ctx, opts)
-	if err != nil {
-		return nil, fmt.Errorf("error getting BpfProgram for %s: %v", ProgramName, err)
-	}
-
-	if len(bpfProgramList.Items) != 1 {
-		return nil, fmt.Errorf("error getting BpfProgram for %s, multiple bpfPrograms found (%d)", ProgramName, len(bpfProgramList.Items))
-	}
-
-	prog := bpfProgramList.Items[0]
-
-	id, ok := prog.Annotations[internal.IdAnnotation]
-	if !ok {
-		return nil, fmt.Errorf("BpfProgram %s does not have a program id", ProgramName)
-	}
-
-	maps := map[string]string{}
-	programMapPath := fmt.Sprintf("%s/%s", internal.BpfdMapFs, id)
-
-	if err := filepath.Walk(programMapPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() {
-			maps[info.Name()] = path
-		}
-
-		return nil
-	}); err != nil {
-		if os.IsNotExist(err) {
-			log.Info("Program Map Path does not exist", "map path", programMapPath)
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	if len(maps) == 0 {
-		return nil, nil
-	}
-
-	for _, mapName := range mapNames {
-		if _, ok := maps[mapName]; !ok {
-			return nil, fmt.Errorf("map: %s not found", mapName)
-		}
-	}
-
-	return maps, nil
 }
 
 // // CreateOrUpdateOwnedBpfProgConf creates or updates a Program object while also setting the owner reference to

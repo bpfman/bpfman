@@ -324,19 +324,12 @@ uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified 
 setup-kind: ## Setup Kind cluster
 	kind delete cluster --name ${KIND_CLUSTER_NAME} && kind create cluster --config hack/kind-config.yaml --name ${KIND_CLUSTER_NAME}
 
-## Default deploy target is KIND based.
+## Default deploy target is KIND based with its CSI driver initialized.
 .PHONY: deploy
-deploy: manifests kustomize ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config.
+deploy: manifests kustomize ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config with the csi driver initialized.
 	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-operator=${BPFD_OPERATOR_IMG}
 	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd=${BPFD_IMG} && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-agent=${BPFD_AGENT_IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
-
-## Deploy bpfd with its CSI driver initialized.
-.PHONY: deploy-csi
-deploy-csi: manifests kustomize cm-verifier ## Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config with the optional csi driver initalized.
-	cd config/bpfd-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-operator=${BPFD_OPERATOR_IMG}
-	cd config/bpfd-deployment && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd=${BPFD_IMG} && $(KUSTOMIZE) edit set image quay.io/bpfd/bpfd-agent=${BPFD_AGENT_IMG}
-	$(KUSTOMIZE) build config/csi | kubectl apply -f -
 
 .PHONY: undeploy
 undeploy: ## Undeploy bpfd-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
@@ -349,9 +342,6 @@ kind-reload-images: load-images-kind ## Reload locally build images into a kind 
 
 .PHONY: run-on-kind
 run-on-kind: kustomize setup-kind build-images load-images-kind deploy ## Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator
-
-.PHONY: run-on-kind-csi
-run-on-kind-csi: kustomize setup-kind build-images load-images-kind deploy-csi ## Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator while also deploying bpfd's custom CSI setup.
 
 ##@ Openshift Deployment
 
