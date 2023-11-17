@@ -9,6 +9,51 @@ There is also an option to run images from a given release as opposed to buildin
 Jump to the [Run bpfd From Release Image](./running-release.md) section for installing
 from a fixed release.
 
+## Kernel Versions
+
+eBPF is still a relatively new technology and being actively developed.
+To take advantage of this constantly evolving technology, it is best to use the newest
+kernel version possible.
+If bpfd needs to be run on an older kernel, this section describes some of the kernel
+features bpfd relies on to work and which kernel the feature was first introduced.
+
+Major kernel features leveraged by bpfd:
+
+* **Program Extensions:** Program Extensions allows bpfd to load multiple XDP or TC eBPF programs
+  on an interface, which is not natively supported in the kernel.
+  A `dispatcher` program is loaded as the one program on a given interface, and the user's XDP or TC
+  programs are loaded as extensions to the `dispatcher` program.
+  Introduced in Kernel 5.6.
+* **Pinning:** Pinning allows the eBPF program to remain loaded when the loading process (bpfd) is
+  stopped or restarted.
+  Introduced in Kernel 4.11.
+* **BPF Perf Link:** Support BPF perf link for tracing programs (Tracepoint, Uprobe and Kprobe)
+  which enables pinning for these program types.
+  Introduced in Kernel 5.15.
+
+Tested kernel versions:
+
+* Fedora 34: Kernel 5.17.6-100.fc34.x86_64
+    * XDP, TC, Tracepoint, Uprobe and Kprobe programs all loaded with bpfd running on localhost
+      and running as systemd service.
+* Fedora 33: Kernel 5.14.18-100.fc33.x86_64
+    * XDP and TC programs loaded with bpfd running on localhost and running as systemd service
+      once SELinux was disabled (see https://github.com/fedora-selinux/selinux-policy/pull/806).
+    * Tracepoint, Uprobe and Kprobe programs failed to load because they require the `BPF Perf Link`
+      support.
+* Fedora 32: Kernel 5.11.22-100.fc32.x86_64
+    * XDP and TC programs loaded with bpfd running on localhost once SELinux was disabled
+      (see https://github.com/fedora-selinux/selinux-policy/pull/806).
+    * bpfd fails to run as a systemd service because of some capabilities issues in the
+      bpfd.service file.
+    * Tracepoint, Uprobe and Kprobe programs failed to load because they require the `BPF Perf Link`
+      support.
+* Fedora 31: Kernel 5.8.18-100.fc31.x86_64
+    * bpfd was able to start on localhost, but XDP and TC programs wouldn't load because
+      `BPF_LINK_CREATE` call was updated in newer kernels.
+    * bpfd fails to run as a systemd service because of some capabilities issues in the
+      bpfd.service file.
+
 ## Clone the bpfd Repo
 
 You can build and run bpfd from anywhere. However, if you plan to make changes
