@@ -1,14 +1,11 @@
 # Deploying the bpfd-operator
 
-The `bpfd-operator` repository exists in order to deploy and manage bpfd within a Kubernetes cluster.
-
-## Deploy
-
+The `bpfd-operator` repository exists in order to deploy and manage bpfd within a Kubernetes cluster.\
 This operator was built utilizing some great tooling provided by the
 [operator-sdk library](https://sdk.operatorframework.io/).
 A great first step in understanding some of the functionality can be to just run `make help`.
 
-### Deploy Locally via KIND
+## Deploy Locally via KIND
 
 After reviewing the possible make targets it's quick and easy to get bpfd deployed locally on your system
 via a [KIND cluster](https://kind.sigs.k8s.io/) with:
@@ -24,11 +21,11 @@ CSI requires Kubernetes v1.26 due to a PR
 that addresses a gRPC Protocol Error that was seen in the CSI client code and it doesn't appear to have
 been backported.
 
-### Deploy To Openshift Cluster
+## Deploy To Openshift Cluster
 
 First deploy the operator with one of the following two options:
 
-#### 1. Manually with Kustomize
+### 1. Manually with Kustomize
 
 To install manually with Kustomize and raw manifests simply run the following
 commands.
@@ -46,7 +43,7 @@ Which can then be cleaned up at a later time with:
 make undeploy-openshift
 ```
 
-#### 2. Via the OLM bundle
+### 2. Via the OLM bundle
 
 The other option for installing the bpfd-operator is to install it using
 [OLM bundle](https://www.redhat.com/en/blog/deploying-operators-olm-bundles).
