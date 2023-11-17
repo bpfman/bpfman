@@ -31,6 +31,32 @@ spec:
       # without needing to be root.
       securityContext:
         fsGroup: 2000
+      ## Hack for kind to allow LIBBPF_PIN_BY_NAME to work when it results in the
+      ## maps being pinned to /sys/fs/bpf.  Since the default bpffs isn't mounted
+      ## in kind by default mount if if it doesn't exist.
+      initContainers:
+        - name: mount-bpffs
+          image: quay.io/fedora/fedora-minimal:latest
+          command:
+            - /bin/sh
+            - -xc
+            - |
+              #!/bin/sh
+              if ! /bin/mount | /bin/grep -q 'bpffs on /sys/fs/bpf'; then
+                /bin/mount bpffs /sys/fs/bpf -t bpf
+              fi
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            capabilities:
+              add:
+                - CAP_BPF
+                - CAP_NET_ADMIN
+          terminationMessagePolicy: FallbackToLogsOnError
+          volumeMounts:
+            - name: default-bpf-fs
+              mountPath: /sys/fs/bpf
+              mountPropagation: Bidirectional
       containers:
         - name: bpfd
           image: quay.io/bpfd/bpfd:latest
