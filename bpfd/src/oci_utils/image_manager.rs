@@ -309,7 +309,8 @@ impl ImageManager {
             .open(bytecode_path.clone())
             .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
 
-        let image_config: Value = serde_json::from_str(&config_contents).unwrap();
+        let image_config: Value = serde_json::from_str(&config_contents)
+            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
         trace!("Raw container image config {}", image_config);
 
         // Deserialize image metadata(labels) from json config
@@ -493,7 +494,9 @@ fn load_image_meta(image_content_path: PathBuf) -> Result<ContainerImageMetadata
     let file_content =
         read_to_string(image_config_path).context("failed to read image config file")?;
 
-    let image_config: Value = serde_json::from_str(&file_content).unwrap();
+    // This should panic since it means that the on disk storage format has changed during runtime.
+    let image_config: Value =
+        serde_json::from_str(&file_content).expect("cannot parse image config from disk");
     debug!(
         "Raw container image config {}",
         &image_config["config"]["Labels"].to_string()

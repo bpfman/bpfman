@@ -355,6 +355,9 @@ sudo bpfctl load-from-file -p $HOME/src/bpfd/tests/integration-test/bpf/.output/
 
 ### Sharing Maps Between eBPF Programs
 
+> **WARNING** Currently for the map sharing feature to work the LIBBPF_PIN_BY_NAME
+flag **MUST** be set in the shared bpf map definitions. Please see [this aya issue](https://github.com/aya-rs/aya/issues/837) for future work that will change this requirement.
+
 To share maps between eBPF programs, first load the eBPF program that owns the
 maps.
 One eBPF program must own the maps.
