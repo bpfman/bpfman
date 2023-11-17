@@ -23,6 +23,7 @@ A release for the bpfd project is comprised of the following major components:
   - `quay.io/bpfd/bpfd-agent`
   - `quay.io/bpfd/bpfd-operator-bundle`
   - `quay.io/bpfd/xdp-dispatcher`
+  - `quay.io/bpfd/tc-dispatcher`
 - The relevant example bytecode container images with tag <RELEASE_VERSION> from source
   code located in the bpfd project:
   - `quay.io/bpfd-bytecode/go_xdp_counter`

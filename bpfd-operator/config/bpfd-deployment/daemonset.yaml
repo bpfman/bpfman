@@ -1,3 +1,4 @@
+---
 ## This is part of the payload deployed by the bpfd-operator NOT kustomize.
 apiVersion: apps/v1
 kind: DaemonSet
@@ -32,8 +33,8 @@ spec:
       securityContext:
         fsGroup: 2000
       ## Hack for kind to allow LIBBPF_PIN_BY_NAME to work when it results in the
-      ## maps being pinned to /sys/fs/bpf.  Since the default bpffs isn't mounted
-      ## in kind by default mount if if it doesn't exist.
+      ## maps being pinned to /sys/fs/bpf.  The default bpffs isn't often mounted
+      ## in kind so mount it if needed.
       initContainers:
         - name: mount-bpffs
           image: quay.io/fedora/fedora-minimal:latest
@@ -49,9 +50,7 @@ spec:
             privileged: true
             runAsUser: 0
             capabilities:
-              add:
-                - CAP_BPF
-                - CAP_NET_ADMIN
+              add: [CAP_BPF, CAP_NET_ADMIN]
           terminationMessagePolicy: FallbackToLogsOnError
           volumeMounts:
             - name: default-bpf-fs
@@ -60,7 +59,7 @@ spec:
       containers:
         - name: bpfd
           image: quay.io/bpfd/bpfd:latest
-          args: ["--csi-support"]
+          args: [--csi-support]
           securityContext:
             privileged: true
           imagePullPolicy: IfNotPresent
@@ -103,8 +102,7 @@ spec:
             - mountPath: /tmp
               name: tmp-dir
         - name: bpfd-agent
-          command:
-            - /bpfd-agent
+          command: [/bpfd-agent]
           image: quay.io/bpfd/bpfd-agent:latest
           imagePullPolicy: IfNotPresent
           env:
@@ -131,11 +129,9 @@ spec:
             preStop:
               exec:
                 command:
-                  [
-                    "/bin/sh",
-                    "-c",
-                    "rm -rf /registration/csi-bpfd /registration/csi-bpfd-reg.sock",
-                  ]
+                  - /bin/sh
+                  - -c
+                  - rm -rf /registration/csi-bpfd /registration/csi-bpfd-reg.sock
           args:
             - --v=5
             - --csi-address=/csi/csi.sock

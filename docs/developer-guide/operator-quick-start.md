@@ -1,6 +1,6 @@
 # Deploying the bpfd-operator
 
-The `bpfd-operator` repository exists in order to deploy and manage bpfd within a Kubernetes cluster.\
+The `bpfd-operator` repository exists in order to deploy and manage bpfd within a Kubernetes cluster.
 This operator was built utilizing some great tooling provided by the
 [operator-sdk library](https://sdk.operatorframework.io/).
 A great first step in understanding some of the functionality can be to just run `make help`.

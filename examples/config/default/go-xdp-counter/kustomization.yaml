@@ -1,13 +1,12 @@
+---
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-
 # Patch the deployment.yaml to change container image in Daemonset
 # to new tag on the image.
 images:
   - name: quay.io/bpfd-userspace/go-xdp-counter
     newName: quay.io/bpfd-userspace/go-xdp-counter
     newTag: latest
-
 # Patch the bytecode.yaml to change tag on the "url" field (which is an
 # image) to new value. Since this is being done with an environment
 # variable and using sed to replace, moved to patch.yaml.env which is
@@ -17,6 +16,4 @@ patches:
     target:
       kind: XdpProgram
       name: go-xdp-counter-example
-
-resources:
-  - ../../base/go-xdp-counter
+resources: [../../base/go-xdp-counter]

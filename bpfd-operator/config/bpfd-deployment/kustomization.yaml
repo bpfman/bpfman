@@ -1,11 +1,11 @@
 resources:
-  - config.yaml
+- config.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
-  - name: quay.io/bpfd/bpfd
-    newName: quay.io/bpfd/bpfd
-    newTag: latest
-  - name: quay.io/bpfd/bpfd-agent
-    newName: quay.io/bpfd/bpfd-agent
-    newTag: latest
+- name: quay.io/bpfd/bpfd
+  newName: quay.io/bpfd/bpfd
+  newTag: latest
+- name: quay.io/bpfd/bpfd-agent
+  newName: quay.io/bpfd/bpfd-agent
+  newTag: latest

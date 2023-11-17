@@ -10,3 +10,6 @@ ignore:
   - vendor/*
   - bpfd-operator/config/crd/*
   - bpfd-operator/config/rbac/*
+  ## Kustomize automatically formats these incorrectly
+  - bpfd-operator/config/bpfd-deployment/kustomization.yaml
+  - bpfd-operator/config/bpfd-operator-deployment/kustomization.yaml
