@@ -38,13 +38,13 @@ spec:
         - name: mount-bpffs
           image: quay.io/fedora/fedora-minimal:latest
           command:
-          - /bin/sh
-          - -xc
-          - |
-            #!/bin/sh
-            if ! /bin/mount | /bin/grep -q 'bpffs on /sys/fs/bpf'; then
-              /bin/mount bpffs /sys/fs/bpf -t bpf
-            fi
+            - /bin/sh
+            - -xc
+            - |
+              #!/bin/sh
+              if ! /bin/mount | /bin/grep -q 'bpffs on /sys/fs/bpf'; then
+                /bin/mount bpffs /sys/fs/bpf -t bpf
+              fi
           securityContext:
             privileged: true
             runAsUser: 0
