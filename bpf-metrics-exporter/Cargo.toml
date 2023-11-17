@@ -1,0 +1,23 @@
+[package]
+edition = "2021"
+name = "bpf-metrics-exporter"
+version = "0.1.0"
+
+[dependencies]
+anyhow = { workspace = true }
+aya = { workspace = true }
+chrono = { workspace = true, features = ["std"] }
+clap = { workspace = true, features = [
+    "color",
+    "derive",
+    "help",
+    "std",
+    "suggestions",
+    "usage",
+] }
+opentelemetry = { workspace = true, features = ["metrics"] }
+opentelemetry-otlp = { workspace = true, features = ["grpc-tonic", "metrics"] }
+opentelemetry-semantic-conventions = { workspace = true }
+opentelemetry_sdk = { workspace = true, features = ["metrics", "rt-tokio"] }
+tokio = { workspace = true, features = ["full"] }
+tokio-util = { workspace = true }

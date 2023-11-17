@@ -1,0 +1,160 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  labels:
+    app: grafana-stack
+data:
+  prometheus.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://localhost:9009/prometheus
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mimir-config
+  labels:
+    app: grafana-stack
+data:
+  mimir-local-config.yaml: |
+    # Do not use this configuration in production.
+    # It is for demonstration purposes only.
+    multitenancy_enabled: false
+
+    blocks_storage:
+      backend: filesystem
+      bucket_store:
+        sync_dir: /tmp/mimir/tsdb-sync
+      filesystem:
+        dir: /tmp/mimir/data/tsdb
+      tsdb:
+        dir: /tmp/mimir/tsdb
+
+    compactor:
+      data_dir: /tmp/mimir/compactor
+      sharding_ring:
+        kvstore:
+          store: memberlist
+
+    distributor:
+      ring:
+        instance_addr: 127.0.0.1
+        kvstore:
+          store: memberlist
+
+    ingester:
+      ring:
+        instance_addr: 127.0.0.1
+        kvstore:
+          store: memberlist
+        replication_factor: 1
+
+    ruler_storage:
+      backend: filesystem
+      filesystem:
+        dir: /tmp/mimir/rules
+
+    server:
+      http_listen_port: 9009
+      log_level: error
+
+    store_gateway:
+      sharding_ring:
+        replication_factor: 1
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config
+  labels:
+    app: grafana-stack
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+
+    exporters:
+      prometheusremotewrite:
+        endpoint: http://127.0.0.1:9009/api/v1/push
+
+    service:
+      pipelines:
+        metrics:
+          receivers: [otlp]
+          exporters: [prometheusremotewrite]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana-stack
+  labels:
+    app: grafana-stack
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana-stack
+  template:
+    metadata:
+      labels:
+        app: grafana-stack
+    spec:
+      containers:
+        - name: otel-collector
+          image: docker.io/otel/opentelemetry-collector-contrib:0.89.0
+          ports:
+            - containerPort: 4317
+              hostPort: 4317
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /etc/otelcol-contrib
+              name: otel-collector-config
+              readOnly: true
+        - name: grafana
+          image: docker.io/grafana/grafana:latest
+          ports:
+            - containerPort: 3000
+              hostPort: 3000
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/lib/grafana
+              name: grafana-data
+            - mountPath: /etc/grafana/provisioning/datasources
+              name: grafana-datasources
+              readOnly: true
+        - name: mimir
+          image: docker.io/grafana/mimir:latest
+          args:
+            - --config.file=/mnt/config/mimir-local-config.yaml
+          ports:
+            - containerPort: 9009
+              hostPort: 9009
+              protocol: TCP
+            - containerPort: 9095
+              hostPort: 9095
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /tmp/mimir
+              name: mimir-data
+            - mountPath: /mnt/config
+              name: mimir-config
+              readOnly: true
+      volumes:
+        - name: grafana-data
+          emptyDir: {}
+        - name: grafana-datasources
+          configMap:
+            name: grafana-datasources
+        - name: mimir-data
+          emptyDir: {}
+        - name: mimir-config
+          configMap:
+            name: mimir-config
+        - name: otel-collector-config
+          configMap:
+            name: otel-collector-config

@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "bpf-metrics-exporter",
     "bpfman",
     "bpfman-api",
     "csi",
@@ -37,6 +38,10 @@ log = { version = "0.4", default-features = false }
 netlink-packet-route = { version = "0.17.1", default-features = false }
 nix = { version = "0.27", default-features = false }
 oci-distribution = { version = "0.9", default-features = false }
+opentelemetry = { version = "0.21.0", default-features = false }
+opentelemetry-otlp = { version = "0.14.0", default-features = false }
+opentelemetry-semantic-conventions = { version = "0.13.0" }
+opentelemetry_sdk = { version = "0.21.1", default-features = false }
 predicates = { version = "3.0.4", default-features = false }
 prost = { version = "0.12.2", default-features = false }
 prost-types = { version = "0.12.1", default-features = false }
@@ -55,6 +60,7 @@ tempfile = { version = "3.8.1", default-features = false }
 thiserror = { version = "1", default-features = false }
 tokio = { version = "1.34.0", default-features = false }
 tokio-stream = { version = "0.1.12", default-features = false }
+tokio-util = { version = "0.7.10", default-features = false }
 toml = { version = "0.7", default-features = false }
 tonic = { version = "0.10.2", default-features = false }
 tonic-build = { version = "0.10.2", default-features = false }
