@@ -39,7 +39,7 @@ netlink-packet-route = { version = "0.17.1", default-features = false }
 nix = { version = "0.27", default-features = false }
 oci-distribution = { version = "0.9", default-features = false }
 predicates = { version = "3.0.4", default-features = false }
-prost = { version = "0.12.1", default-features = false }
+prost = { version = "0.12.2", default-features = false }
 prost-types = { version = "0.12.1", default-features = false }
 quote = { version = "1", default-features = false }
 rand = { version = "0.8", default-features = false }
