@@ -22,13 +22,9 @@ import (
 	"fmt"
 	"os"
 
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
-
 	"go.uber.org/zap/zapcore"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -45,8 +41,6 @@ import (
 	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
 	v1 "k8s.io/api/core/v1"
 	//+kubebuilder:scaffold:imports
-	//"google.golang.org/grpc"
-	//"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -109,20 +103,16 @@ func main() {
 
 	// Setup bpfd Client
 	configFileData := conn.LoadConfig()
-	var creds credentials.TransportCredentials
-
 	setupLog.Info("Connecting over UNIX socket to bpfd")
-	creds = insecure.NewCredentials()
 
 	// Set up a connection to bpfd, block until bpfd is up.
-	setupLog.Info("Waiting for active connection to bpfd", "endpoints", configFileData.Grpc.Endpoints, "creds", creds)
-	conn, err := conn.CreateConnection(configFileData.Grpc.Endpoints, context.Background(), creds)
+	setupLog.Info("Waiting for active connection to bpfd", "endpoints", configFileData.Grpc.Endpoints)
+	conn, err := conn.CreateConnection(configFileData.Grpc.Endpoints, context.Background(), insecure.NewCredentials())
 	if err != nil {
 		setupLog.Error(err, "unable to connect to bpfd")
 		os.Exit(1)
 	}
 
-	// Get the nodename where this pod is running
 	nodeName := os.Getenv("KUBE_NODE_NAME")
 	if nodeName == "" {
 		setupLog.Error(fmt.Errorf("KUBE_NODE_NAME env var not set"), "Couldn't determine bpfd-agent's node")

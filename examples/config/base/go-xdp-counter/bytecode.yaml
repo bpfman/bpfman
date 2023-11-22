@@ -1,3 +1,4 @@
+---
 apiVersion: bpfd.dev/v1alpha1
 kind: XdpProgram
 metadata:

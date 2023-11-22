@@ -27,7 +27,7 @@ To run `bpfd` in the foreground using `sudo`, download the release binary tar
 files and unpack them.
 
 ```console
-export BPFD_REL=0.3.0
+export BPFD_REL=0.3.1
 mkdir -p $HOME/src/bpfd-${BPFD_REL}/; cd $HOME/src/bpfd-${BPFD_REL}/
 wget https://github.com/bpfd-dev/bpfd/releases/download/v${BPFD_REL}/bpfctl-linux-x86_64.tar.gz
 wget https://github.com/bpfd-dev/bpfd/releases/download/v${BPFD_REL}/bpfd-linux-x86_64.tar.gz
@@ -75,7 +75,7 @@ to be downloaded to retrieve the script.
 Download and unpack the source code, then download and unpack the binaries.
 
 ```console
-export BPFD_REL=0.3.0
+export BPFD_REL=0.3.1
 mkdir -p $HOME/src/; cd $HOME/src/
 wget https://github.com/bpfd-dev/bpfd/archive/refs/tags/v${BPFD_REL}.tar.gz
 tar -xzvf v${BPFD_REL}.tar.gz; rm v${BPFD_REL}.tar.gz
@@ -96,7 +96,7 @@ This option will also start the systemd service `bpfd.service` by default.
 sudo ./scripts/setup.sh install
 ```
 
-> **NOTE:** If running a release older than `v0.3.0`, the install script is not coded to copy
+> **NOTE:** If running a release older than `v0.3.1`, the install script is not coded to copy
 binaries from the release directory, so the binaries will need to be manually copied.
 
 Continue in [Tutorial](./tutorial.md) if desired.
@@ -113,7 +113,7 @@ kind create cluster --name=test-bpfd
 Next, deploy the bpfd CRDs:
 
 ```console
-export BPFD_REL=0.3.0
+export BPFD_REL=0.3.1
 kubectl apply -f  https://github.com/bpfd-dev/bpfd/releases/download/v${BPFD_REL}/bpfd-crds-install-v${BPFD_REL}.yaml
 ```
 

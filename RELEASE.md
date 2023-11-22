@@ -23,6 +23,7 @@ A release for the bpfd project is comprised of the following major components:
   - `quay.io/bpfd/bpfd-agent`
   - `quay.io/bpfd/bpfd-operator-bundle`
   - `quay.io/bpfd/xdp-dispatcher`
+  - `quay.io/bpfd/tc-dispatcher`
 - The relevant example bytecode container images with tag <RELEASE_VERSION> from source
   code located in the bpfd project:
   - `quay.io/bpfd-bytecode/go_xdp_counter`
@@ -48,11 +49,13 @@ A release for the bpfd project is comprised of the following major components:
 ## Versioning strategy
 
 ### Overview
+
 Each new release of bpfd is defined with a "bundle version" that
 represents the Git tag of a release, such as `v0.4.0`. This contains the
 components described above
 
 #### Kubernetes API Versions (e.g. v1alpha2, v1beta1)
+
 Within the bpfd-operator, API versions are primarily used to indicate the stability of
 a resource. For example, if a resource has not yet graduated to beta, it is
 still possible that it could either be removed from the API or changed in
@@ -67,7 +70,7 @@ documentation](https://kubernetes.io/docs/reference/using-api/#api-versioning).
 To simplify release notes generation, we recommend using the [Kubernetes release
 notes generator](https://github.com/kubernetes/release/blob/master/cmd/release-notes):
 
-```
+```bash
 go install k8s.io/release/cmd/release-notes@latest
 export GITHUB_TOKEN=your_token_here
 release-notes --start-sha EXAMPLE_COMMIT --end-sha EXAMPLE_COMMIT --branch main --repo bpfd --org bpfd-dev

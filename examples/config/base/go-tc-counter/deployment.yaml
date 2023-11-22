@@ -10,38 +10,6 @@ metadata:
   name: bpfd-app-go-tc-counter
   namespace: go-tc-counter
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: privileged-scc-tc
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: system:openshift:scc:privileged
-subjects:
-  - kind: ServiceAccount
-    name: bpfd-app-go-tc-counter
-    namespace: go-tc-counter
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  labels:
-    app.kubernetes.io/name: clusterrolebinding
-    app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: go-tc-counter
-    app.kubernetes.io/part-of: go-tc-counter
-    app.kubernetes.io/managed-by: go-tc-counter
-  name: bpfd-app-rolebinding-go-tc-counter
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: bpfd-bpfprogram-viewer-role
-subjects:
-  - kind: ServiceAccount
-    name: bpfd-app-go-tc-counter
-    namespace: go-tc-counter
----
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:

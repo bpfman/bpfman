@@ -73,3 +73,14 @@ echo "Generated:" go-tc-counter-install-v${VERSION}.yaml
 ### TRACEPOINT
 ${KUSTOMIZE} build ../examples/config/v${VERSION}/go-tracepoint-counter > release/go-tracepoint-counter-install-v${VERSION}.yaml
 echo "Generated:" go-tracepoint-counter-install-v${VERSION}.yaml
+
+## 4. examples install yamls for OCP
+### XDP
+${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-xdp-counter > release/go-xdp-counter-install-ocp-v${VERSION}.yaml
+echo "Generated:" go-xdp-counter-install-ocp-v${VERSION}.yaml
+### TC
+${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-tc-counter > release/go-tc-counter-install-ocp-v${VERSION}.yaml
+echo "Generated:" go-tc-counter-install-ocp-v${VERSION}.yaml
+### TRACEPOINT
+${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-tracepoint-counter > release/go-tracepoint-counter-install-ocp-v${VERSION}.yaml
+echo "Generated:" go-tracepoint-counter-install-ocp-v${VERSION}.yaml
