@@ -78,6 +78,7 @@ Download and unpack the source code, then download and unpack the binaries.
 export BPFD_REL=0.3.0
 mkdir -p $HOME/src/; cd $HOME/src/
 wget https://github.com/bpfd-dev/bpfd/archive/refs/tags/v${BPFD_REL}.tar.gz
+tar -xzvf v${BPFD_REL}.tar.gz; rm v${BPFD_REL}.tar.gz
 cd bpfd-${BPFD_REL}
 
 wget https://github.com/bpfd-dev/bpfd/releases/download/v${BPFD_REL}/bpfctl-linux-x86_64.tar.gz
