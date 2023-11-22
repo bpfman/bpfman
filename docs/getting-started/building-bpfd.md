@@ -169,3 +169,28 @@ sudo dnf install perl
 ```console
 sudo apt install perl
 ```
+
+### Install Yaml Formatter
+
+As part of CI, the Yaml files are validated with a Yaml formatter.
+Optionally, to verify locally, install the
+[YAML Language Support by Red Hat](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml)
+VsCode Extension, or to format in bulk, install`prettier`.
+
+To install `prettier`:
+
+```console
+npm install -g prettier
+```
+
+Then to flag which files are violating the formatting guide, run:
+ 
+```console
+prettier -l "*.yaml"
+```
+ 
+And to write changes in place, run:
+
+```console
+ prettier -f "*.yaml"
+```

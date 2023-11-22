@@ -179,7 +179,46 @@ passes these checks, but we also have more criteria than just that before we can
 accept and merge it. We recommend that you check the following things locally
 before you submit your code:
 
-* That Rust code has been formatted with `cargo +nightly fmt` and that all clippy lints have been fixed - you can find failing lints with `cargo +nightly clippy`
-* That Go code has been formatted and linted
-* That unit tests are passing locally with `cargo test`
-* That integration tests are passing locally `cargo xtask integration-test`
+* Verify that Rust code has been formatted and that all clippy lints have been fixed:
+
+```console
+cd src/bpfd/
+cargo +nightly fmt --all -- --check
+cargo +nightly clippy --all -- --deny warnings
+```
+
+* Verify that Go code has been formatted and linted
+* Verify that Yaml files have been formatted (see
+  [Install Yaml Formatter](https://bpfd.dev/getting-started/building-bpfd/#install-yaml-formatter))
+* Verify that unit tests are passing locally (see
+  [Unit Testing](https://bpfd.dev/developer-guide/testing/#unit-testing)):
+
+```console
+cd src/bpfd/
+cargo test
+```
+
+* Verify that integration tests are passing locally (see
+  [Basic Integration Tests](https://bpfd.dev/developer-guide/testing/#basic-integration-tests)):
+
+```console
+cd src/bpfd/
+cargo xtask integration-test
+```
+
+* If developing the bpfd-operator, verify that bpfd-operator unit tests
+  are passing locally:
+
+```console
+cd src/bpfd/bpfd-operator/
+make test
+```
+
+* If developing the bpfd-operator, verify that bpfd-operator integration tests
+  are passing locally (see
+  [Kubernetes Integration Tests](https://bpfd.dev/developer-guide/testing/#kubernetes-integration-tests)):
+
+```console
+cd src/bpfd/bpfd-operator/
+make test-integration
+```
