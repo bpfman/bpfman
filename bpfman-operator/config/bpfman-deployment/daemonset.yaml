@@ -1,0 +1,192 @@
+---
+## This is part of the payload deployed by the bpfman-operator NOT kustomize.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: daemon
+  namespace: kube-system
+  labels:
+    k8s-app: bpfman
+spec:
+  selector:
+    matchLabels:
+      name: bpfman-daemon
+  template:
+    metadata:
+      labels:
+        name: bpfman-daemon
+    spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: bpfman-daemon
+      tolerations:
+        # these tolerations are to have the daemonset runnable on control plane nodes
+        # remove them if your control plane nodes should not run pods
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      # Specify FS group so that the agent can use the bpfman socket
+      # without needing to be root.
+      securityContext:
+        fsGroup: 2000
+      ## Hack for kind to allow LIBBPF_PIN_BY_NAME to work when it results in the
+      ## maps being pinned to /sys/fs/bpf.  The default bpffs isn't often mounted
+      ## in kind so mount it if needed.
+      initContainers:
+        - name: mount-bpffs
+          image: quay.io/fedora/fedora-minimal:latest
+          command:
+            - /bin/sh
+            - -xc
+            - |
+              #!/bin/sh
+              if ! /bin/mount | /bin/grep -q 'bpffs on /sys/fs/bpf'; then
+                /bin/mount bpffs /sys/fs/bpf -t bpf
+              fi
+          securityContext:
+            privileged: true
+            runAsUser: 0
+            capabilities:
+              add: [CAP_BPF, CAP_NET_ADMIN]
+          terminationMessagePolicy: FallbackToLogsOnError
+          volumeMounts:
+            - name: default-bpf-fs
+              mountPath: /sys/fs/bpf
+              mountPropagation: Bidirectional
+      containers:
+        - name: bpfman
+          image: quay.io/bpfman/bpfman:latest
+          args: [--csi-support]
+          securityContext:
+            privileged: true
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: RUST_LOG
+              valueFrom:
+                configMapKeyRef:
+                  name: bpfman-config
+                  key: bpfman.log.level
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: bpfman-sock
+              mountPath: /bpfman-sock
+            - name: runtime
+              mountPath: /run/bpfman
+              mountPropagation: Bidirectional
+            - name: bpfman-config
+              mountPath: /etc/bpfman/bpfman.toml
+              subPath: bpfman.toml
+              readOnly: true
+            # This mount is needed to attach tracepoint programs
+            - name: host-debug
+              mountPath: /sys/kernel/debug
+            # Needed to ensure images are persisted to disk across restarts
+            - name: bpfman-content-store
+              mountPath: /var/lib/bpfman
+              mountPropagation: Bidirectional
+            # Needed for the aya PIN_BY_NAME feature to function correctly
+            - name: default-bpf-fs
+              mountPath: /sys/fs/bpf
+              mountPropagation: Bidirectional
+            - mountPath: /run/bpfman/csi
+              name: socket-dir
+            - mountPath: /var/lib/kubelet/pods
+              mountPropagation: Bidirectional
+              name: mountpoint-dir
+            - mountPath: /tmp
+              name: tmp-dir
+        - name: bpfman-agent
+          command: [/bpfman-agent]
+          image: quay.io/bpfman/bpfman-agent:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: GO_LOG
+              valueFrom:
+                configMapKeyRef:
+                  name: bpfman-config
+                  key: bpfman.agent.log.level
+          volumeMounts:
+            - name: bpfman-sock
+              mountPath: /bpfman-sock
+            - name: bpfman-config
+              mountPath: /etc/bpfman/bpfman.toml
+              subPath: bpfman.toml
+              readOnly: true
+        - name: node-driver-registrar
+          image: quay.io/bpfman/csi-node-driver-registrar:v2.9.0
+          imagePullPolicy: IfNotPresent
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - rm -rf /registration/csi-bpfman /registration/csi-bpfman-reg.sock
+          args:
+            - --v=5
+            - --csi-address=/csi/csi.sock
+            - --kubelet-registration-path=/var/lib/kubelet/plugins/csi-bpfman/csi.sock
+          env:
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - mountPath: /csi
+              name: socket-dir
+            - mountPath: /registration
+              name: registration-dir
+      terminationGracePeriodSeconds: 15
+      volumes:
+        - name: bpfman-sock
+          emptyDir: {}
+        - name: runtime
+          hostPath:
+            path: /run/bpfman
+        - name: bpfman-config
+          configMap:
+            name: bpfman-config
+            optional: false
+        - name: host-debug
+          hostPath:
+            path: /sys/kernel/debug
+        - name: bpfman-content-store
+          hostPath:
+            path: /var/lib/bpfman
+        - name: default-bpf-fs
+          hostPath:
+            path: /sys/fs/bpf
+            type: DirectoryOrCreate
+        # This volume is where the socket for kubelet->driver communication is held
+        - hostPath:
+            path: /var/lib/kubelet/plugins/csi-bpfman
+            type: DirectoryOrCreate
+          name: socket-dir
+        # This volume is where the driver mounts volumes
+        - hostPath:
+            path: /var/lib/kubelet/pods
+            type: DirectoryOrCreate
+          name: mountpoint-dir
+        # This volume is where the node-driver-registrar registers the plugin
+        # with kubelet
+        - hostPath:
+            path: /var/lib/kubelet/plugins_registry
+            type: Directory
+          name: registration-dir
+        # Temporary hack to allow sigstore rust bindings to write data to /tmp
+        # which doesn't seem to exist when running via Openshift.
+        - hostPath:
+            path: /tmp
+            type: DirectoryOrCreate
+          name: tmp-dir

@@ -1,7 +1,7 @@
 # Documentation
 
-This section describes how to modify the related documentation around bpfd.
-All bpfd's documentation is written in Markdown, and leverages [mkdocs](https://www.mkdocs.org/)
+This section describes how to modify the related documentation around bpfman.
+All bpfman's documentation is written in Markdown, and leverages [mkdocs](https://www.mkdocs.org/)
 to generate a static site, which is hosted on [netlify](https://www.netlify.com/).
 
 If this is the first time building using `mkdocs`, jump to the
@@ -15,7 +15,7 @@ This section describes some notes on the dos and don'ts when writing documentati
 ### Website Management
 
 The headings and layout of the website, as well as other configuration settings, are managed
-from the [mkdocs.yml](https://github.com/bpfd-dev/bpfd/blob/main/mkdocs.yml) file in the
+from the [mkdocs.yml](https://github.com/bpfman/bpfman/blob/main/mkdocs.yml) file in the
 project root directory.
 
 ### Markdown Style
@@ -33,12 +33,12 @@ When writing documentation via a Markdown file, the following format has been fo
 There are a set of well known governance files that are typically placed in the root directory
 of most projects, like README.md, MAINTAINERS.md, CONTRIBUTING.md, etc.
 `mkdocs` expects all files used in the static website to be located under a common directory,
-`docs/` for bpfd.
+`docs/` for bpfman.
 To reference the governance files from the static website, a directory (`docs/governance/`) was
 created with a file for each governance file, the only contains `--8<--` and the file name.
 This indicates to `mkdocs` to pull the additional file from the project root directory.
 
-For example: [docs/governance/MEETINGS.md](https://github.com/bpfd-dev/bpfd/blob/main/docs/governance/MEETINGS.md)
+For example: [docs/governance/MEETINGS.md](https://github.com/bpfman/bpfman/blob/main/docs/governance/MEETINGS.md)
 
 > **NOTE:** This works for the website generation, but if a Markdown file is viewed through
   Github (not the website), the link is broken.
@@ -47,23 +47,23 @@ For example: [docs/governance/MEETINGS.md](https://github.com/bpfd-dev/bpfd/blob
 ### docs/developer-guide/api-spec.md
 
 The file
-[docs/developer-guide/api-spec.md](https://github.com/bpfd-dev/bpfd/blob/main/docs/developer-guide/api-spec.md)
+[docs/developer-guide/api-spec.md](https://github.com/bpfman/bpfman/blob/main/docs/developer-guide/api-spec.md)
 documents the CRDs used in a Kubernetes deployment.
 The contents are auto-generated when PRs are pushed to Github.
-The script [scripts/make-docs.sh](https://github.com/bpfd-dev/bpfd/blob/main/scripts/make-docs.sh)
+The script [scripts/make-docs.sh](https://github.com/bpfman/bpfman/blob/main/scripts/make-docs.sh)
 manages the generation of this file.
 
 ## Generate Documentation
 
-On each PR pushed to https://github.com/bpfd-dev/bpfd the documentation is generated.
+On each PR pushed to https://github.com/bpfman/bpfman the documentation is generated.
 To preview of the generated site, click on the `Details` link of the
-`netlify/bpfd/deploy-preview` Check from the Github GUI.
+`netlify/bpfman/deploy-preview` Check from the Github GUI.
 
 If you would like to test locally, build and preview the generated documentation,
-from the bpfd root directory, use `mkdocs` to build:
+from the bpfman root directory, use `mkdocs` to build:
 
 ```console
-cd bpfd/
+cd bpfman/
 mkdocs build
 ```
 

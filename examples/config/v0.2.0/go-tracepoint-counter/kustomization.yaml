@@ -10,13 +10,13 @@ patches:
     patch: |-
       - op: replace
         path: "/spec/bytecode/image/url"
-        value: quay.io/bpfd-bytecode/go-tracepoint-counter:v0.2.0
+        value: quay.io/bpfman-bytecode/go-tracepoint-counter:v0.2.0
 
 # Patch the deployment.yaml to change container image in Daemonset
 # to new tag on the image.
 images:
-  - name: quay.io/bpfd-userspace/go-tracepoint-counter
-    newName: quay.io/bpfd-userspace/go-tracepoint-counter
+  - name: quay.io/bpfman-userspace/go-tracepoint-counter
+    newName: quay.io/bpfman-userspace/go-tracepoint-counter
     newTag: v0.2.0
 
 resources:

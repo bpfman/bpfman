@@ -1,4 +1,4 @@
-The v0.2.0 release is our first official minor release of the bpfd project.
+The v0.2.0 release is our first official minor release of the bpfman project.
 
 Major new enhancements include:
 

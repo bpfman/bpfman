@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config
+  namespace: kube-system
+data:
+  ## Can be configured at runtime
+  bpfman.agent.image: quay.io/bpfman/bpfman-agent:latest
+  bpfman.image: quay.io/bpfman/bpfman:latest
+  ## Can be set to "info", "debug", or "trace"
+  bpfman.agent.log.level: "info"
+  ## See https://docs.rs/env_logger/latest/env_logger/ for configuration options
+  bpfman.log.level: "info"
+  ## Must be configured at startup
+  bpfman.toml: |
+    [[grpc.endpoints]]
+    type = "unix"
+    path = "/bpfman-sock/bpfman.sock"
+    enabled = true

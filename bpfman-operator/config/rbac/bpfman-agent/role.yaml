@@ -1,0 +1,117 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: agent-role
+rules:
+- apiGroups:
+  - bpfman.io
+  resources:
+  - bpfprograms
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - bpfprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - bpfprograms/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - kprobeprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - kprobeprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - tcprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - tcprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - tracepointprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - tracepointprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - uprobeprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - uprobeprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - xdpprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - xdpprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get

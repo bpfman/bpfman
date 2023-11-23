@@ -1,4 +1,4 @@
-# bpfd Community Meetings
+# bpfman Community Meetings
 
 ## Meeting time
 

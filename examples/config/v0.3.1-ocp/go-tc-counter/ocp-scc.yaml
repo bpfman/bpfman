@@ -9,5 +9,5 @@ roleRef:
   name: system:openshift:scc:privileged
 subjects:
   - kind: ServiceAccount
-    name: bpfd-app-go-tc-counter
+    name: bpfman-app-go-tc-counter
     namespace: go-tc-counter

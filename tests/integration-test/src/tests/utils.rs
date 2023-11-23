@@ -10,26 +10,26 @@ use std::{
 
 use anyhow::Result;
 use assert_cmd::prelude::*;
-use bpfd_api::util::directories::{CFGPATH_BPFD_CONFIG, STDIR_BYTECODE_IMAGE_CONTENT_STORE};
+use bpfman_api::util::directories::{CFGPATH_BPFMAN_CONFIG, STDIR_BYTECODE_IMAGE_CONTENT_STORE};
 use log::debug;
 use predicates::str::is_empty;
 use regex::Regex;
 
-const NS_NAME: &str = "bpfd-int-test";
+const NS_NAME: &str = "bpfman-int-test";
 
-const HOST_VETH: &str = "veth-bpfd-host";
-const NS_VETH: &str = "veth-bpfd-ns";
+const HOST_VETH: &str = "veth-bpfm-host";
+const NS_VETH: &str = "veth-bpfm-ns";
 
-// The default prefix can be overriden by setting the BPFD_IP_PREFIX environment variable
+// The default prefix can be overriden by setting the BPFMAN_IP_PREFIX environment variable
 const DEFAULT_IP_PREFIX: &str = "172.37.37";
 const IP_MASK: &str = "24";
 const HOST_IP_ID: &str = "1";
 const NS_IP_ID: &str = "2";
 
-pub const DEFAULT_BPFD_IFACE: &str = HOST_VETH;
+pub const DEFAULT_BPFMAN_IFACE: &str = HOST_VETH;
 
-const PING_FILE_NAME: &str = "/tmp/bpfd_ping.log";
-const TRACE_PIPE_FILE_NAME: &str = "/tmp/bpfd_trace_pipe.log";
+const PING_FILE_NAME: &str = "/tmp/bpfman_ping.log";
+const TRACE_PIPE_FILE_NAME: &str = "/tmp/bpfman_trace_pipe.log";
 
 #[derive(Debug)]
 pub enum LoadType {
@@ -39,16 +39,16 @@ pub enum LoadType {
 
 pub static LOAD_TYPES: &[LoadType] = &[LoadType::Image, LoadType::File];
 
-pub const XDP_PASS_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/xdp_pass:latest";
-pub const TC_PASS_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/tc_pass:latest";
-pub const TRACEPOINT_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/tracepoint:latest";
-pub const UPROBE_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/uprobe:latest";
-pub const URETPROBE_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/uretprobe:latest";
-pub const KPROBE_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/kprobe:latest";
-pub const KRETPROBE_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/kretprobe:latest";
-pub const XDP_COUNTER_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/go-xdp-counter";
-pub const TC_COUNTER_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/go-tc-counter";
-pub const TRACEPOINT_COUNTER_IMAGE_LOC: &str = "quay.io/bpfd-bytecode/go-tracepoint-counter";
+pub const XDP_PASS_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/xdp_pass:latest";
+pub const TC_PASS_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/tc_pass:latest";
+pub const TRACEPOINT_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/tracepoint:latest";
+pub const UPROBE_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/uprobe:latest";
+pub const URETPROBE_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/uretprobe:latest";
+pub const KPROBE_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/kprobe:latest";
+pub const KRETPROBE_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/kretprobe:latest";
+pub const XDP_COUNTER_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/go-xdp-counter";
+pub const TC_COUNTER_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/go-tc-counter";
+pub const TRACEPOINT_COUNTER_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/go-tracepoint-counter";
 
 pub const XDP_PASS_FILE_LOC: &str = "tests/integration-test/bpf/.output/xdp_pass.bpf.o";
 pub const TC_PASS_FILE_LOC: &str = "tests/integration-test/bpf/.output/tc_pass.bpf.o";
@@ -77,24 +77,24 @@ impl Drop for ChildGuard {
     }
 }
 
-/// Spawn a bpfd process
-pub fn start_bpfd() -> Result<ChildGuard> {
-    debug!("Starting bpfd");
+/// Spawn a bpfman process
+pub fn start_bpfman() -> Result<ChildGuard> {
+    debug!("Starting bpfman");
 
-    let bpfd_process = Command::cargo_bin("bpfd")?
-        .env("RUST_LOG", "bpfd=debug")
+    let bpfman_process = Command::cargo_bin("bpfman")?
+        .env("RUST_LOG", "bpfman=debug")
         .spawn()
         .map(|c| ChildGuard {
-            name: "bpfd",
+            name: "bpfman",
             child: c,
         })?;
 
-    // Wait for up to 5 seconds for bpfd to be ready
+    // Wait for up to 5 seconds for bpfman to be ready
     sleep(Duration::from_millis(100));
     for i in 1..51 {
         if let Err(e) = Command::cargo_bin("bpfctl")?.args(["list"]).ok() {
             if i == 50 {
-                panic!("bpfd not ready after {} ms. Error:\n{}", i * 100, e);
+                panic!("bpfman not ready after {} ms. Error:\n{}", i * 100, e);
             } else {
                 sleep(Duration::from_millis(100));
             }
@@ -102,27 +102,27 @@ pub fn start_bpfd() -> Result<ChildGuard> {
             break;
         }
     }
-    debug!("Successfully Started bpfd");
+    debug!("Successfully Started bpfman");
 
-    Ok(bpfd_process)
+    Ok(bpfman_process)
 }
 
-/// Update bpfd.toml with Unix Socket
+/// Update bpfman.toml with Unix Socket
 pub fn cfgfile_append_unix_socket() {
-    debug!("Setup bpfd.toml with Unix Socket");
+    debug!("Setup bpfman.toml with Unix Socket");
 
-    let mut f = File::create(CFGPATH_BPFD_CONFIG).unwrap();
+    let mut f = File::create(CFGPATH_BPFMAN_CONFIG).unwrap();
     f.write_all(
-        b"[[grpc.endpoints]]\ntype = \"unix\"\nenabled = true\npath = \"/run/bpfd/bpfd.sock\"",
+        b"[[grpc.endpoints]]\ntype = \"unix\"\nenabled = true\npath = \"/run/bpfman/bpfman.sock\"",
     )
-    .expect("could not write unix socket to bpfd.toml file");
+    .expect("could not write unix socket to bpfman.toml file");
 }
 
-/// Update bpfd.toml with Unix Socket
+/// Update bpfman.toml with Unix Socket
 pub fn cfgfile_remove() {
-    debug!("Remove bpfd.toml");
+    debug!("Remove bpfman.toml");
 
-    fs::remove_file(CFGPATH_BPFD_CONFIG).expect("could not remove bpfd.toml file");
+    fs::remove_file(CFGPATH_BPFMAN_CONFIG).expect("could not remove bpfman.toml file");
 }
 
 /// Install an xdp program with bpfctl
@@ -473,8 +473,8 @@ pub fn add_kretprobe(
     Ok(prog_id)
 }
 
-/// Delete a bpfd program using bpfctl
-pub fn bpfd_del_program(prog_id: &str) {
+/// Delete a bpfman program using bpfctl
+pub fn bpfman_del_program(prog_id: &str) {
     Command::cargo_bin("bpfctl")
         .unwrap()
         .args(["unload", prog_id.trim()])
@@ -486,7 +486,7 @@ pub fn bpfd_del_program(prog_id: &str) {
 }
 
 /// Retrieve the output of bpfctl list
-pub fn bpfd_list(metadata_selector: Option<Vec<&str>>) -> Result<String> {
+pub fn bpfman_list(metadata_selector: Option<Vec<&str>>) -> Result<String> {
     let mut args = vec!["list"];
     if let Some(g) = metadata_selector {
         args.push("--metadata-selector");
@@ -499,7 +499,7 @@ pub fn bpfd_list(metadata_selector: Option<Vec<&str>>) -> Result<String> {
 }
 
 /// Retrieve program data for a given program with bpfctl
-pub fn bpfd_get(prog_id: &str) -> Result<String> {
+pub fn bpfman_get(prog_id: &str) -> Result<String> {
     let output = Command::cargo_bin("bpfctl")
         .unwrap()
         .args(["get", prog_id.trim()])
@@ -515,7 +515,7 @@ pub fn bpfd_get(prog_id: &str) -> Result<String> {
     Ok(stdout)
 }
 
-pub fn bpfd_pull_bytecode() -> Result<String> {
+pub fn bpfman_pull_bytecode() -> Result<String> {
     let mut args = vec!["pull-bytecode"];
 
     args.extend([
@@ -547,14 +547,14 @@ pub fn tc_filter_list(iface: &str) -> Result<String> {
 
 /// Verify the specified interface exists
 /// TODO: make OS agnostic (network-interface crate https://lib.rs/crates/network-interface?)
-pub fn iface_exists(bpfd_iface: &str) -> bool {
+pub fn iface_exists(bpfman_iface: &str) -> bool {
     let output = Command::new("ip")
         .args(["link", "show"])
         .output()
         .expect("ip link show");
     let link_out = String::from_utf8(output.stdout).unwrap();
 
-    if link_out.contains(bpfd_iface) {
+    if link_out.contains(bpfman_iface) {
         return true;
     }
 
@@ -587,7 +587,7 @@ impl Drop for NamespaceGuard {
 }
 
 fn get_ip_prefix() -> String {
-    match option_env!("BPFD_IP_PREFIX") {
+    match option_env!("BPFMAN_IP_PREFIX") {
         Some(ip_prefix) => ip_prefix.to_string(),
         None => DEFAULT_IP_PREFIX.to_string(),
     }
@@ -619,7 +619,7 @@ fn ip_prefix_exists(prefix: &String) -> bool {
 pub fn create_namespace() -> Result<NamespaceGuard> {
     if ip_prefix_exists(&get_ip_prefix()) {
         panic!(
-            "ip prefix {} is in use, specify an available prefix with env BPFD_IP_PREFIX.",
+            "ip prefix {} is in use, specify an available prefix with env BPFMAN_IP_PREFIX.",
             get_ip_prefix()
         );
     }
@@ -676,8 +676,8 @@ pub fn create_namespace() -> Result<NamespaceGuard> {
         delete_namespace(NS_NAME);
         panic!(
             "failed to add ip address {ns_ip_mask} to {NS_VETH}: {status}\n
-        if {ns_ip_mask} is not available, specify a usable prefix with env BPFD_IT_PREFIX.\n
-        for example: export BPFD_IT_PREFIX=\"192.168.1\""
+        if {ns_ip_mask} is not available, specify a usable prefix with env BPFMAN_IT_PREFIX.\n
+        for example: export BPFMAN_IT_PREFIX=\"192.168.1\""
         );
     }
 
@@ -803,20 +803,20 @@ pub fn read_trace_pipe_log() -> Result<String> {
 /// and verify that they have been deleted.
 pub fn verify_and_delete_programs(loaded_ids: Vec<String>) {
     // Verify bpfctl list contains the loaded_ids of each program
-    let bpfctl_list = bpfd_list(None).unwrap();
+    let bpfctl_list = bpfman_list(None).unwrap();
     for id in loaded_ids.iter() {
         assert!(bpfctl_list.contains(id.trim()));
     }
 
     // Delete the installed programs
-    debug!("Deleting bpfd program(s)");
+    debug!("Deleting bpfman program(s)");
     for id in loaded_ids.iter() {
-        bpfd_del_program(id)
+        bpfman_del_program(id)
     }
 
     // Verify bpfctl list does not contain the loaded_ids of the deleted programs
     // and that there are no panics if bpfctl does not contain any programs.
-    let bpfctl_list = bpfd_list(None).unwrap();
+    let bpfctl_list = bpfman_list(None).unwrap();
     for id in loaded_ids.iter() {
         assert!(!bpfctl_list.contains(id.trim()));
     }

@@ -7,16 +7,16 @@ RUN apt-get update && apt-get install -y \
 
 RUN go install github.com/cilium/ebpf/cmd/bpf2go@master
 
-WORKDIR /usr/src/bpfd/
-COPY ./ /usr/src/bpfd/
+WORKDIR /usr/src/bpfman/
+COPY ./ /usr/src/bpfman/
 
-WORKDIR /usr/src/bpfd/examples/go-xdp-counter
+WORKDIR /usr/src/bpfman/examples/go-xdp-counter
 
 # Compile gocounter
 RUN go build
 
 FROM registry.fedoraproject.org/fedora-minimal:latest
 
-COPY --from=gocounter-build  /usr/src/bpfd/examples/go-xdp-counter/go-xdp-counter .
+COPY --from=gocounter-build  /usr/src/bpfman/examples/go-xdp-counter/go-xdp-counter .
 
 ENTRYPOINT ["./go-xdp-counter", "--crd"]

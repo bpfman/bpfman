@@ -7,7 +7,7 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: bpfd-app-go-tc-counter
+  name: bpfman-app-go-tc-counter
   namespace: go-tc-counter
 ---
 apiVersion: apps/v1
@@ -29,7 +29,7 @@ spec:
       nodeSelector: {}
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
-      serviceAccountName: bpfd-app-go-tc-counter
+      serviceAccountName: bpfman-app-go-tc-counter
       tolerations:
         # these tolerations are to have the daemonset runnable on control plane nodes
         # remove them if your control plane nodes should not run pods
@@ -41,7 +41,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: go-tc-counter
-          image: quay.io/bpfd-userspace/go-tc-counter:latest
+          image: quay.io/bpfman-userspace/go-tc-counter:latest
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: false
@@ -57,7 +57,7 @@ spec:
       volumes:
         - name: go-tc-counter-maps
           csi:
-            driver: csi.bpfd.dev
+            driver: csi.bpfman.io
             volumeAttributes:
-              csi.bpfd.dev/program: go-tc-counter-example
-              csi.bpfd.dev/maps: tc_stats_map
+              csi.bpfman.io/program: go-tc-counter-example
+              csi.bpfman.io/maps: tc_stats_map

@@ -1,4 +1,4 @@
-module github.com/bpfd-dev/bpfd
+module github.com/bpfman/bpfman
 
 go 1.19
 

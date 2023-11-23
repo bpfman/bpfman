@@ -7,7 +7,7 @@ patches:
   - patch: |-
       - op: replace
         path: "/spec/bytecode/image/url"
-        value: quay.io/bpfd-bytecode/go-xdp-counter:v0.3.1
+        value: quay.io/bpfman-bytecode/go-xdp-counter:v0.3.1
     target:
       kind: TcProgram
       name: go-xdp-counter-example
@@ -29,7 +29,7 @@ patches:
 # Patch the deployment.yaml to change container image in Daemonset
 # to new tag on the image.
 images:
-  - name: quay.io/bpfd-userspace/go-xdp-counter
-    newName: quay.io/bpfd-userspace/go-xdp-counter
+  - name: quay.io/bpfman-userspace/go-xdp-counter
+    newName: quay.io/bpfman-userspace/go-xdp-counter
     newTag: v0.3.1
 resources: [../../base/go-xdp-counter, ocp-scc.yaml]

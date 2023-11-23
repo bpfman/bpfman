@@ -18,15 +18,15 @@ cert_init() {
     mkdir -p "${CFG_CA_CERT_DIR}"
     if [ ! -f "${CFG_CA_CERT_DIR}"/ca.pem ] || [ "${regen}" == true ]; then
         openssl genrsa -out "${CFG_CA_CERT_DIR}"/ca.key ${KEY_LEN}
-        openssl req -new -x509 -key "${CFG_CA_CERT_DIR}"/ca.key -subj "/CN=bpfd-ca/" -out "${CFG_CA_CERT_DIR}"/ca.pem
-        # Set the private key such that only members of the "bpfd" group can read
+        openssl req -new -x509 -key "${CFG_CA_CERT_DIR}"/ca.key -subj "/CN=bpfman-ca/" -out "${CFG_CA_CERT_DIR}"/ca.pem
+        # Set the private key such that only members of the "bpfman" group can read
         chmod -v 0440 "${CFG_CA_CERT_DIR}"/ca.key
         # Set the public key such that any user can read
         chmod -v 0444 "${CFG_CA_CERT_DIR}"/ca.pem
     fi
 
-    cert_client "${BIN_BPFD}" ${regen}
-    cert_client "${BIN_BPFD_CLIENT}" ${regen}
+    cert_client "${BIN_BPFMAN}" ${regen}
+    cert_client "${BIN_BPFMAN_CLIENT}" ${regen}
 }
 
 cert_client() {

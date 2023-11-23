@@ -1,6 +1,6 @@
 use std::{path::PathBuf, thread::sleep, time::Duration};
 
-use bpfd_api::util::directories::{RTDIR_FS_TC_EGRESS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP};
+use bpfman_api::util::directories::{RTDIR_FS_TC_EGRESS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP};
 use log::debug;
 
 use super::{integration_test, IntegrationTest};
@@ -33,15 +33,15 @@ fn test_proceed_on_xdp() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
     let trace_guard = start_trace_pipe().unwrap();
-    let _bpfd_guard = start_bpfd().unwrap();
+    let _bpfman_guard = start_bpfman().unwrap();
 
-    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
     let mut loaded_ids = vec![];
 
     debug!("Installing 1st xdp program");
     let (prog_id, _) = add_xdp(
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None, // proceed_on
@@ -70,7 +70,7 @@ fn test_proceed_on_xdp() {
     // program from being executed.
     debug!("Installing 2nd xdp program");
     let (prog_id, _) = add_xdp(
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         50,
         Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["drop", "dispatcher_return"].to_vec()),
@@ -100,7 +100,7 @@ fn test_proceed_on_xdp() {
     // and 3rd programs, but still not the first.
     debug!("Installing 3rd xdp program");
     let (prog_id, _) = add_xdp(
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         25,
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["pass", "dispatcher_return"].to_vec()),
@@ -136,21 +136,21 @@ fn test_unload_xdp() {
     // This test confirms that after unloading a high priority program, the
     // proceedon configuration still works.  This test reproduces the case that
     // produced the xdp unload issue described in
-    // https://github.com/bpfd-dev/bpfd/issues/791
+    // https://github.com/bpfman/bpfman/issues/791
 
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
     let trace_guard = start_trace_pipe().unwrap();
-    let _bpfd_guard = start_bpfd().unwrap();
+    let _bpfman_guard = start_bpfman().unwrap();
 
-    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
     let mut loaded_ids = vec![];
 
     // Install the first lowest priority program.
     debug!("Installing 1st xdp program");
     let (prog_id, _) = add_xdp(
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["pass", "dispatcher_return"].to_vec()),
@@ -166,7 +166,7 @@ fn test_unload_xdp() {
     // proceed on "pass", which this program will return.
     debug!("Installing 2nd xdp program");
     let (prog_id, _) = add_xdp(
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         50,
         Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["pass", "dispatcher_return"].to_vec()),
@@ -182,7 +182,7 @@ fn test_unload_xdp() {
     // proceed on "pass", which this program will return.
     debug!("Installing 3rd xdp program");
     let (prog_id_high_pri, _) = add_xdp(
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         25,
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["pass", "dispatcher_return"].to_vec()),
@@ -213,7 +213,7 @@ fn test_unload_xdp() {
     // Now delete the highest priority program and confirm that the other two
     // are still running.
 
-    bpfd_del_program(prog_id_high_pri.unwrap().as_str());
+    bpfman_del_program(prog_id_high_pri.unwrap().as_str());
 
     debug!("Clear the trace_pipe_log");
     drop(trace_guard);
@@ -238,16 +238,16 @@ fn test_proceed_on_tc() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
     let trace_guard = start_trace_pipe().unwrap();
-    let bpfd_guard = start_bpfd().unwrap();
+    let bpfman_guard = start_bpfman().unwrap();
 
-    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
     let mut loaded_ids = vec![];
 
     debug!("Installing 1st tc ingress program");
     let (prog_id, _) = add_tc(
         "ingress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
@@ -260,7 +260,7 @@ fn test_proceed_on_tc() {
     debug!("Installing 1st tc egress program");
     let (prog_id, _) = add_tc(
         "egress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         75,
         Some([GLOBAL_4, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
@@ -289,7 +289,7 @@ fn test_proceed_on_tc() {
     debug!("Installing 2nd tc ingress program");
     let (prog_id, _) = add_tc(
         "ingress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         50,
         Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["shot", "dispatcher_return"].to_vec()),
@@ -302,7 +302,7 @@ fn test_proceed_on_tc() {
     debug!("Installing 2nd tc egress program");
     let (prog_id, _) = add_tc(
         "egress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         50,
         Some([GLOBAL_5, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["shot", "dispatcher_return"].to_vec()),
@@ -334,7 +334,7 @@ fn test_proceed_on_tc() {
     debug!("Installing 3rd tc ingress program");
     let (prog_id, _) = add_tc(
         "ingress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         25,
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
@@ -347,7 +347,7 @@ fn test_proceed_on_tc() {
     debug!("Installing 3rd tc egress program");
     let (prog_id, _) = add_tc(
         "egress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         25,
         Some([GLOBAL_6, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
@@ -377,11 +377,11 @@ fn test_proceed_on_tc() {
     assert!(trace_pipe_log.contains(TC_EG_GLOBAL_6_LOG));
     debug!("Successfully completed tc egress proceed-on test");
 
-    // Verify that the programs still work after we stop and restart bpfd
-    drop(bpfd_guard);
-    let _bpfd_guard = start_bpfd().unwrap();
+    // Verify that the programs still work after we stop and restart bpfman
+    drop(bpfman_guard);
+    let _bpfman_guard = start_bpfman().unwrap();
 
-    // Make sure it still works like it did before we stopped and restarted bpfd
+    // Make sure it still works like it did before we stopped and restarted bpfman
     debug!("Clear the trace_pipe_log");
     drop(trace_guard);
     let _trace_guard = start_trace_pipe().unwrap();
@@ -410,14 +410,14 @@ fn test_unload_tc() {
     // This test confirms that after unloading a high priority program, the
     // proceedon configuration still works.  This test reproduces the case that
     // produced the tc unload issue described in
-    // https://github.com/bpfd-dev/bpfd/issues/791
+    // https://github.com/bpfman/bpfman/issues/791
 
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
     let trace_guard = start_trace_pipe().unwrap();
-    let _bpfd_guard = start_bpfd().unwrap();
+    let _bpfman_guard = start_bpfman().unwrap();
 
-    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
     let mut loaded_ids = vec![];
 
@@ -425,7 +425,7 @@ fn test_unload_tc() {
     debug!("Installing 1st tc ingress program");
     let (prog_id, _) = add_tc(
         "ingress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
@@ -438,7 +438,7 @@ fn test_unload_tc() {
     debug!("Installing 1st tc egress program");
     let (prog_id, _) = add_tc(
         "egress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         75,
         Some([GLOBAL_4, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
@@ -453,7 +453,7 @@ fn test_unload_tc() {
     debug!("Installing 2nd tc ingress program");
     let (prog_id, _) = add_tc(
         "ingress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         50,
         Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
@@ -466,7 +466,7 @@ fn test_unload_tc() {
     debug!("Installing 2nd tc egress program");
     let (prog_id, _) = add_tc(
         "egress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         50,
         Some([GLOBAL_5, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
@@ -481,7 +481,7 @@ fn test_unload_tc() {
     debug!("Installing 3rd tc ingress program");
     let (prog_id_ing_high_pri, _) = add_tc(
         "ingress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         25,
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
@@ -493,7 +493,7 @@ fn test_unload_tc() {
     debug!("Installing 3rd tc egress program");
     let (prog_id_eg_high_pri, _) = add_tc(
         "egress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         25,
         Some([GLOBAL_6, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["ok", "dispatcher_return"].to_vec()),
@@ -524,8 +524,8 @@ fn test_unload_tc() {
     debug!("All 3 tc egress logs found");
 
     // Unload the 3rd programs
-    bpfd_del_program(prog_id_ing_high_pri.unwrap().as_str());
-    bpfd_del_program(prog_id_eg_high_pri.unwrap().as_str());
+    bpfman_del_program(prog_id_ing_high_pri.unwrap().as_str());
+    bpfman_del_program(prog_id_eg_high_pri.unwrap().as_str());
 
     debug!("Clear the trace_pipe_log");
     drop(trace_guard);
@@ -554,15 +554,15 @@ fn test_program_execution_with_global_variables() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
     let _trace_guard = start_trace_pipe().unwrap();
-    let _bpfd_guard = start_bpfd().unwrap();
+    let _bpfman_guard = start_bpfman().unwrap();
 
-    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
     let mut loaded_ids = vec![];
 
     debug!("Installing xdp program");
     let (prog_id, _) = add_xdp(
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         75,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None, // proceed_on
@@ -580,7 +580,7 @@ fn test_program_execution_with_global_variables() {
     debug!("Installing tc ingress program");
     let (prog_id, _) = add_tc(
         "ingress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         50,
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
@@ -596,7 +596,7 @@ fn test_program_execution_with_global_variables() {
     debug!("Installing tc egress program");
     let (prog_id, _) = add_tc(
         "egress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         50,
         Some([GLOBAL_4, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None,
@@ -697,15 +697,15 @@ fn test_program_execution_with_global_variables() {
 fn test_load_unload_xdp_maps() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    let bpfd_guard = start_bpfd().unwrap();
+    let bpfman_guard = start_bpfman().unwrap();
 
-    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
     debug!("Installing xdp_counter program");
 
     // Install an xdp counter program
     let (prog_id, stdout) = add_xdp(
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         100,
         None, // globals
         None, // proceed_on
@@ -725,8 +725,8 @@ fn test_load_unload_xdp_maps() {
     assert!(PathBuf::from(map_pin_path).join("xdp_stats_map").exists());
 
     // Verify rule persistence between restarts
-    drop(bpfd_guard);
-    let _bpfd_guard = start_bpfd().unwrap();
+    drop(bpfman_guard);
+    let _bpfman_guard = start_bpfman().unwrap();
 
     verify_and_delete_programs(vec![prog_id.unwrap()]);
 
@@ -737,16 +737,16 @@ fn test_load_unload_xdp_maps() {
 fn test_load_unload_tc_maps() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    let bpfd_guard = start_bpfd().unwrap();
+    let bpfman_guard = start_bpfman().unwrap();
 
-    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
     debug!("Installing tc_counter program");
 
     // Install an  counter program
     let (prog_id, stdout) = add_tc(
         "ingress",
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         100,
         None,
         None,
@@ -764,8 +764,8 @@ fn test_load_unload_tc_maps() {
     assert!(PathBuf::from(map_pin_path).join("tc_stats_map").exists());
 
     // Verify rule persistence between restarts
-    drop(bpfd_guard);
-    let _bpfd_guard = start_bpfd().unwrap();
+    drop(bpfman_guard);
+    let _bpfman_guard = start_bpfman().unwrap();
 
     verify_and_delete_programs(vec![prog_id.unwrap()]);
 
@@ -776,7 +776,7 @@ fn test_load_unload_tc_maps() {
 fn test_load_unload_tracepoint_maps() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    let bpfd_guard = start_bpfd().unwrap();
+    let bpfman_guard = start_bpfman().unwrap();
 
     debug!("Installing tracepoint_counter program");
 
@@ -792,8 +792,8 @@ fn test_load_unload_tracepoint_maps() {
         .exists());
 
     // Verify rule persistence between restarts
-    drop(bpfd_guard);
-    let _bpfd_guard = start_bpfd().unwrap();
+    drop(bpfman_guard);
+    let _bpfman_guard = start_bpfman().unwrap();
 
     verify_and_delete_programs(vec![prog_id.unwrap()]);
 }

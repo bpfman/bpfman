@@ -1,6 +1,6 @@
-# bpfd Project Governance
+# bpfman Project Governance
 
-The bpfd project is dedicated to creating an easy way to run eBPF programs on a single host and in clusters. This governance explains how the project is run.
+The bpfman project is dedicated to creating an easy way to run eBPF programs on a single host and in clusters. This governance explains how the project is run.
 
 - [Values](#values)
 - [Maintainers](#maintainers)
@@ -13,7 +13,7 @@ The bpfd project is dedicated to creating an easy way to run eBPF programs on a 
 
 ## Values
 
-The bpfd project and its leadership embrace the following values:
+The bpfman project and its leadership embrace the following values:
 
 - Openness: Communication and decision-making happens in the open and is discoverable for future
   reference. As much as possible, all discussions and work take place in public
@@ -35,13 +35,13 @@ The bpfd project and its leadership embrace the following values:
 
 ## Maintainers
 
-bpfd Maintainers have write access to the [project GitHub repository](https://github.com/bpfd-dev/bpfd).
+bpfman Maintainers have write access to the [project GitHub repository](https://github.com/bpfman/bpfman).
 They can merge their patches or patches from others. The list of current maintainers
 can be found at [MAINTAINERS.md](./MAINTAINERS.md).  Maintainers collectively manage the project's
 resources and contributors.
 
 This privilege is granted with some expectation of responsibility: maintainers
-are people who care about the bpfd project and want to help it grow and
+are people who care about the bpfman project and want to help it grow and
 improve. A maintainer is not just someone who can make changes, but someone who
 has demonstrated their ability to collaborate with the team, get the most
 knowledgeable people to review code and docs, contribute high-quality code, and
@@ -117,7 +117,7 @@ holes and breaches according to the [security policy](./SECURITY.md).
 
 ## Voting
 
-While most business in bpfd is conducted by "[lazy consensus](https://community.apache.org/committers/lazyConsensus.html)",
+While most business in bpfman is conducted by "[lazy consensus](https://community.apache.org/committers/lazyConsensus.html)",
 periodically the Maintainers may need to vote on specific actions or changes.
 A vote can be taken on the private developer slack channel for security or conduct matters.  
 Votes may also be taken at [the developer meeting](./MEETINGS.md).  Any Maintainer may

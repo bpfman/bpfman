@@ -1,5 +1,5 @@
 ---
-apiVersion: bpfd.dev/v1alpha1
+apiVersion: bpfman.io/v1alpha1
 kind: TcProgram
 metadata:
   labels:
@@ -15,4 +15,4 @@ spec:
   direction: ingress
   bytecode:
     image:
-      url: quay.io/bpfd-bytecode/go-tc-counter:latest
+      url: quay.io/bpfman-bytecode/go-tc-counter:latest

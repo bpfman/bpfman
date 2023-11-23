@@ -45,7 +45,7 @@ type ConfigFileData struct {
 
 const (
 	DefaultType    = "unix"
-	DefaultPath    = "/run/bpfd/bpfd.sock"
+	DefaultPath    = "/run/bpfman/bpfman.sock"
 	DefaultEnabled = true
 )
 

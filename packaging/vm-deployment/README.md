@@ -1,6 +1,6 @@
 # Developer VM Provisioning
 
-As a developer, if you would like to deploy a VM with BPFD running this will spin up the latest Fedora release with BPFD installed and running.
+As a developer, if you would like to deploy a VM with BPFMAN running this will spin up the latest Fedora release with BPFMAN installed and running.
 
 ### Pre-requisite
 
@@ -10,12 +10,12 @@ As a developer, if you would like to deploy a VM with BPFD running this will spi
 
 ### Deploy the VM
 
-Once the dependencies are installed, simply clone bpfd and run the following commands:
+Once the dependencies are installed, simply clone bpfman and run the following commands:
 
 ```console
-# Clone the bpfd repo:
-$ git clone https://github.com/bpfd-dev/bpfd.git
-$ cd bpfd/packaging/vm-deployment/
+# Clone the bpfman repo:
+$ git clone https://github.com/bpfman/bpfman.git
+$ cd bpfman/packaging/vm-deployment/
 
 # Start the vagrant deployment
 $ vagrant up
@@ -23,7 +23,7 @@ $ vagrant up
 # Once the installation is complete, ssh to the VM
 $ vagrant ssh
 
-# View the status of bpfd and run bpfctl
-$ sudo systemctl status bpfd
+# View the status of bpfman and run bpfctl
+$ sudo systemctl status bpfman
 $ sudo bpfctl --help
 ```

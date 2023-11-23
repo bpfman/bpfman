@@ -1,15 +1,15 @@
-# bpfd Container Images
+# bpfman Container Images
 
-Container images for the `bpfd` and `bpfctl` binaries are automatically built and
-pushed to `quay.io/bpfd` whenever code is merged into the `main` branch of the
-`github.com/bpfd-dev/bpfd` repository under the `:latest` tag.
+Container images for the `bpfman` and `bpfctl` binaries are automatically built and
+pushed to `quay.io/bpfman` whenever code is merged into the `main` branch of the
+`github.com/bpfman/bpfman` repository under the `:latest` tag.
 
 ## Building the images locally
 
-### bpfd
+### bpfman
 
 ```sh
-docker build -f /packaging/container-deployment/Containerfile.bpfd . -t bpfd:local
+docker build -f /packaging/container-deployment/Containerfile.bpfman . -t bpfman:local
 ```
 
 ### bpfctl
@@ -20,14 +20,14 @@ docker build -f /packaging/container-deployment/Containerfile.bpfctl . -t bpfctl
 
 ## Running locally in container
 
-### bpfd
+### bpfman
 
 ```sh
-sudo docker run --init --privileged --net=host -v /etc/bpfd/certs/:/etc/bpfd/certs/ -v /sys/fs/bpf:/sys/fs/bpf quay.io/bpfd/bpfd:latest
+sudo docker run --init --privileged --net=host -v /etc/bpfman/certs/:/etc/bpfman/certs/ -v /sys/fs/bpf:/sys/fs/bpf quay.io/bpfman/bpfman:latest
 ```
 
 ### bpfctl 
 
 ```sh
-sudo docker run --init --privileged --net=host -v /etc/bpfd/certs/:/etc/bpfd/certs/ quay.io/bpfd/bpfctl:latest <COMMANDS>
+sudo docker run --init --privileged --net=host -v /etc/bpfman/certs/:/etc/bpfman/certs/ quay.io/bpfman/bpfctl:latest <COMMANDS>
 ```

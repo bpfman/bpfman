@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    openshift.io/cluster-monitoring: "true"
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+  annotations:
+    openshift.io/node-selector: ""
+    openshift.io/description: "Openshift bpfman components"
+    workload.openshift.io/allowed: "management"
+  name: system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config
+  namespace: kube-system
+data:
+  ## Can be configured at runtime
+  bpfman.log.level: "info"
+  bpfman.agent.log.level: "info"

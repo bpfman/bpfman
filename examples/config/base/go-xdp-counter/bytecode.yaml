@@ -1,5 +1,5 @@
 ---
-apiVersion: bpfd.dev/v1alpha1
+apiVersion: bpfman.io/v1alpha1
 kind: XdpProgram
 metadata:
   labels:
@@ -14,4 +14,4 @@ spec:
   priority: 55
   bytecode:
     image:
-      url: quay.io/bpfd-bytecode/go-xdp-counter:latest
+      url: quay.io/bpfman-bytecode/go-xdp-counter:latest

@@ -8,22 +8,22 @@
       set_fact:
         vagrant_user: "vagrant"
 
-    - name: Make directories for bpfd binaries and scripts
+    - name: Make directories for bpfman binaries and scripts
       shell: |
-        mkdir -p /home/{{ vagrant_user }}/bpfd/target/debug/
+        mkdir -p /home/{{ vagrant_user }}/bpfman/target/debug/
 
     - name: Copy bpfctl binary to the remote host
       ansible.builtin.copy:
         src: ../../target/debug/bpfctl
-        dest: /home/{{ vagrant_user }}/bpfd/target/debug/
+        dest: /home/{{ vagrant_user }}/bpfman/target/debug/
         owner: "{{ vagrant_user }}"
         group: "{{ vagrant_user }}"
         mode: "0755"
 
-    - name: Copy bpfd binary to the remote host
+    - name: Copy bpfman binary to the remote host
       ansible.builtin.copy:
-        src: ../../target/debug/bpfd
-        dest: /home/{{ vagrant_user }}/bpfd/target/debug/
+        src: ../../target/debug/bpfman
+        dest: /home/{{ vagrant_user }}/bpfman/target/debug/
         owner: "{{ vagrant_user }}"
         group: "{{ vagrant_user }}"
         mode: "0755"
@@ -31,7 +31,7 @@
     - name: Copy the scripts directory to the remote host
       ansible.builtin.copy:
         src: ../../scripts/
-        dest: /home/{{ vagrant_user }}/bpfd/scripts/
+        dest: /home/{{ vagrant_user }}/bpfman/scripts/
         owner: "{{ vagrant_user }}"
         group: "{{ vagrant_user }}"
 
@@ -47,10 +47,10 @@
       package:
         name: ["openssl", "acl"]
 
-    - name: Change the working directory to bpfd/scripts and run
+    - name: Change the working directory to bpfman/scripts and run
       become: true
       shell: |
         chmod +x ./scripts/*.sh
         ./scripts/setup.sh install
       args:
-        chdir: /home/{{ vagrant_user }}/bpfd
+        chdir: /home/{{ vagrant_user }}/bpfman

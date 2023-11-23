@@ -8,8 +8,8 @@ rules:
 ignore:
   - libbpf/*
   - vendor/*
-  - bpfd-operator/config/crd/*
-  - bpfd-operator/config/rbac/*
+  - bpfman-operator/config/crd/*
+  - bpfman-operator/config/rbac/*
   ## Kustomize automatically formats these incorrectly
-  - bpfd-operator/config/bpfd-deployment/kustomization.yaml
-  - bpfd-operator/config/bpfd-operator-deployment/kustomization.yaml
+  - bpfman-operator/config/bpfman-deployment/kustomization.yaml
+  - bpfman-operator/config/bpfman-operator-deployment/kustomization.yaml

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-// Modifications Copyright Authors of bpfd
+// Modifications Copyright Authors of bpfman
 
 // Derived from:
 // https://github.com/xdp-project/xdp-tools/blob/master/lib/libxdp/xdp-dispatcher.c.in

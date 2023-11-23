@@ -2,13 +2,13 @@
 ##
 ## Default:
 ##   make deploy-xdp
-##     quay.io/bpfd-bytecode/go-xdp-counter:latest
-##     quay.io/bpfd-userspace/go-xdp-counter:latest
+##     quay.io/bpfman-bytecode/go-xdp-counter:latest
+##     quay.io/bpfman-userspace/go-xdp-counter:latest
 ##
 ## Example: Override the upstream tag
 ##   make deploy-tc TAG=v0.1.0
-##     quay.io/bpfd-bytecode/go-tc-counter:v0.1.0
-##     quay.io/bpfd-userspace/go-uc-counter:v0.1.0
+##     quay.io/bpfman-bytecode/go-tc-counter:v0.1.0
+##     quay.io/bpfman-userspace/go-uc-counter:v0.1.0
 ##
 ## Example: Run from private image
 ##   make deploy-tracepoint IMAGE_TP_US=docker.io/user1/tracepoint-userspace:test \
@@ -18,12 +18,12 @@
 ##
 ## Example: Override the upstream tag on all images
 ##   make deploy TAG=v0.1.0
-##     quay.io/bpfd-bytecode/go-tc-counter:v0.1.0
-##     quay.io/bpfd-userspace/go-uc-counter:v0.1.0
-##     quay.io/bpfd-bytecode/go-tracepoint-counter:v0.1.0
-##     quay.io/bpfd-userspace/go-tracepoint-counter:v0.1.0
-##     quay.io/bpfd-bytecode/go-xdp-counter:v0.1.0
-##     quay.io/bpfd-userspace/go-xdp-counter:v0.1.0
+##     quay.io/bpfman-bytecode/go-tc-counter:v0.1.0
+##     quay.io/bpfman-userspace/go-uc-counter:v0.1.0
+##     quay.io/bpfman-bytecode/go-tracepoint-counter:v0.1.0
+##     quay.io/bpfman-userspace/go-tracepoint-counter:v0.1.0
+##     quay.io/bpfman-bytecode/go-xdp-counter:v0.1.0
+##     quay.io/bpfman-userspace/go-xdp-counter:v0.1.0
 ##
 
 .DEFAULT_GOAL := help
@@ -137,24 +137,24 @@ IMAGE_TP_BC: ## Tracepoint Bytecode image. Example: make deploy-tracepoint IMAGE
 IMAGE_TP_US: ## Tracepoint Userspace image. Example: make deploy-tracepoint IMAGE_TP_US=quay.io/user1/go-tracepoint-counter-userspace:test
 IMAGE_XDP_BC: ## XDP Bytecode image. Example: make deploy-xdp IMAGE_XDP_BC=quay.io/user1/go-xdp-counter-bytecode:test
 IMAGE_XDP_US: ## XDP Userspace image. Example: make deploy-xdp IMAGE_XDP_US=quay.io/user1/go-xdp-counter-userspace:test
-KIND_CLUSTER_NAME: ## Name of the deployed cluster to load example images to, defaults to `bpfd-deployment`
+KIND_CLUSTER_NAME: ## Name of the deployed cluster to load example images to, defaults to `bpfman-deployment`
 ignore-not-found: ## For any undeploy command, set to true to ignore resource not found errors during deletion. Example: make undeploy ignore-not-found=true
 
 ##@ Deployment
-IMAGE_TC_BC ?= quay.io/bpfd-bytecode/go-tc-counter:latest
-IMAGE_TC_US ?= quay.io/bpfd-userspace/go-tc-counter:latest
-IMAGE_TP_BC ?= quay.io/bpfd-bytecode/go-tracepoint-counter:latest
-IMAGE_TP_US ?= quay.io/bpfd-userspace/go-tracepoint-counter:latest
-IMAGE_XDP_BC ?= quay.io/bpfd-bytecode/go-xdp-counter:latest
-IMAGE_XDP_US ?= quay.io/bpfd-userspace/go-xdp-counter:latest
+IMAGE_TC_BC ?= quay.io/bpfman-bytecode/go-tc-counter:latest
+IMAGE_TC_US ?= quay.io/bpfman-userspace/go-tc-counter:latest
+IMAGE_TP_BC ?= quay.io/bpfman-bytecode/go-tracepoint-counter:latest
+IMAGE_TP_US ?= quay.io/bpfman-userspace/go-tracepoint-counter:latest
+IMAGE_XDP_BC ?= quay.io/bpfman-bytecode/go-xdp-counter:latest
+IMAGE_XDP_US ?= quay.io/bpfman-userspace/go-xdp-counter:latest
 KUST_DIR=default
-KIND_CLUSTER_NAME ?= bpfd-deployment
+KIND_CLUSTER_NAME ?= bpfman-deployment
 
 .PHONY: deploy-tc
 deploy-tc: kustomize ## Deploy go-tc-counter to the cluster specified in ~/.kube/config.
 ifndef TAG
 	sed 's@URL_BC@$(IMAGE_TC_BC)@' config/default/go-tc-counter/patch.yaml.env > config/default/go-tc-counter/patch.yaml
-	cd config/default/go-tc-counter && $(KUSTOMIZE) edit set image quay.io/bpfd-userspace/go-tc-counter=${IMAGE_TC_US}
+	cd config/default/go-tc-counter && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-tc-counter=${IMAGE_TC_US}
 else
 	$(eval KUST_DIR=$(TAG))
 endif
@@ -164,7 +164,7 @@ endif
 undeploy-tc: ## Undeploy go-tc-counter from the cluster specified in ~/.kube/config.
 ifndef TAG
 	sed 's@URL_BC@$(IMAGE_TC_BC)@' config/default/go-tc-counter/patch.yaml.env > config/default/go-tc-counter/patch.yaml
-	cd config/default/go-tc-counter && $(KUSTOMIZE) edit set image quay.io/bpfd-userspace/go-tc-counter=${IMAGE_TC_US}
+	cd config/default/go-tc-counter && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-tc-counter=${IMAGE_TC_US}
 else
 	$(eval KUST_DIR=$(TAG))
 endif
@@ -175,7 +175,7 @@ endif
 deploy-tracepoint: kustomize ## Deploy go-tracepoint-counter to the cluster specified in ~/.kube/config.
 ifndef TAG
 	sed 's@URL_BC@$(IMAGE_TP_BC)@' config/default/go-tracepoint-counter/patch.yaml.env > config/default/go-tracepoint-counter/patch.yaml
-	cd config/default/go-tracepoint-counter && $(KUSTOMIZE) edit set image quay.io/bpfd-userspace/go-tracepoint-counter=${IMAGE_TP_US}
+	cd config/default/go-tracepoint-counter && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-tracepoint-counter=${IMAGE_TP_US}
 else
 	$(eval KUST_DIR=$(TAG))
 endif
@@ -185,7 +185,7 @@ endif
 undeploy-tracepoint: ## Undeploy go-tracepoint-counter from the cluster specified in ~/.kube/config.
 ifndef TAG
 	sed 's@URL_BC@$(IMAGE_TP_BC)@' config/default/go-tracepoint-counter/patch.yaml.env > config/default/go-tracepoint-counter/patch.yaml
-	cd config/default/go-tracepoint-counter && $(KUSTOMIZE) edit set image quay.io/bpfd-userspace/go-tracepoint-counter=${IMAGE_TP_US}
+	cd config/default/go-tracepoint-counter && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-tracepoint-counter=${IMAGE_TP_US}
 else
 	$(eval KUST_DIR=$(TAG))
 endif
@@ -196,7 +196,7 @@ endif
 deploy-xdp: kustomize ## Deploy go-xdp-counter to the cluster specified in ~/.kube/config.
 ifndef TAG
 	sed 's@URL_BC@$(IMAGE_XDP_BC)@' config/default/go-xdp-counter/patch.yaml.env > config/default/go-xdp-counter/patch.yaml
-	cd config/default/go-xdp-counter && $(KUSTOMIZE) edit set image quay.io/bpfd-userspace/go-xdp-counter=${IMAGE_XDP_US}
+	cd config/default/go-xdp-counter && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-xdp-counter=${IMAGE_XDP_US}
 else
 	$(eval KUST_DIR=$(TAG))
 endif
@@ -206,7 +206,7 @@ endif
 undeploy-xdp: ## Undeploy go-xdp-counter from the cluster specified in ~/.kube/config.
 ifndef TAG
 	sed 's@URL_BC@$(IMAGE_XDP_BC)@' config/default/go-xdp-counter/patch.yaml.env > config/default/go-xdp-counter/patch.yaml
-	cd config/default/go-xdp-counter && $(KUSTOMIZE) edit set image quay.io/bpfd-userspace/go-xdp-counter=${IMAGE_XDP_US}
+	cd config/default/go-xdp-counter && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-xdp-counter=${IMAGE_XDP_US}
 else
 	$(eval KUST_DIR=$(TAG))
 endif
@@ -217,7 +217,7 @@ endif
 deploy-xdp-ms: kustomize ## Deploy go-xdp-counter-sharing-map (shares map with go-xdp-counter) to the cluster specified in ~/.kube/config.
 ifndef TAG
 	sed 's@URL_BC@$(IMAGE_XDP_BC)@' config/default/go-xdp-counter-sharing-map/patch.yaml.env > config/default/go-xdp-counter-sharing-map/patch.yaml
-	cd config/default/go-xdp-counter-sharing-map && $(KUSTOMIZE) edit set image quay.io/bpfd-userspace/go-xdp-counter=${IMAGE_XDP_US}
+	cd config/default/go-xdp-counter-sharing-map && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-xdp-counter=${IMAGE_XDP_US}
 else
 	$(eval KUST_DIR=$(TAG))
 endif
@@ -227,7 +227,7 @@ endif
 undeploy-xdp-ms: ## Undeploy go-xdp-counter-sharing-map from the cluster specified in ~/.kube/config.
 ifndef TAG
 	sed 's@URL_BC@$(IMAGE_XDP_BC)@' config/default/go-xdp-counter-sharing-map/patch.yaml.env > config/default/go-xdp-counter-sharing-map/patch.yaml
-	cd config/default/go-xdp-counter-sharing-map && $(KUSTOMIZE) edit set image quay.io/bpfd-userspace/go-xdp-counter=${IMAGE_XDP_US}
+	cd config/default/go-xdp-counter-sharing-map && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-xdp-counter=${IMAGE_XDP_US}
 else
 	$(eval KUST_DIR=$(TAG))
 endif

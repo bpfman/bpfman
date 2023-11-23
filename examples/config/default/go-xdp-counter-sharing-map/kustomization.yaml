@@ -12,6 +12,6 @@ patches:
       name: go-xdp-counter-example
 resources: [../../base/go-xdp-counter-sharing-map]
 images:
-  - name: quay.io/bpfd-userspace/go-xdp-counter
-    newName: quay.io/bpfd-userspace/go-xdp-counter
+  - name: quay.io/bpfman-userspace/go-xdp-counter
+    newName: quay.io/bpfman-userspace/go-xdp-counter
     newTag: latest

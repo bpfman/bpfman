@@ -7,7 +7,7 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: bpfd-app-go-xdp-counter
+  name: bpfman-app-go-xdp-counter
   namespace: go-xdp-counter
 ---
 apiVersion: apps/v1
@@ -29,7 +29,7 @@ spec:
       nodeSelector: {}
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
-      serviceAccountName: bpfd-app-go-xdp-counter
+      serviceAccountName: bpfman-app-go-xdp-counter
       tolerations:
         # these tolerations are to have the daemonset runnable on control plane nodes
         # remove them if your control plane nodes should not run pods
@@ -41,7 +41,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: go-xdp-counter
-          image: quay.io/bpfd-userspace/go-xdp-counter:latest
+          image: quay.io/bpfman-userspace/go-xdp-counter:latest
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: false
@@ -57,7 +57,7 @@ spec:
       volumes:
         - name: go-xdp-counter-maps
           csi:
-            driver: csi.bpfd.dev
+            driver: csi.bpfman.io
             volumeAttributes:
-              csi.bpfd.dev/program: go-xdp-counter-example
-              csi.bpfd.dev/maps: xdp_stats_map
+              csi.bpfman.io/program: go-xdp-counter-example
+              csi.bpfman.io/maps: xdp_stats_map

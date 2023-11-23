@@ -22,29 +22,29 @@ fn workspace_root() -> String {
 }
 
 pub fn build(_opts: Options) -> anyhow::Result<()> {
-    build_bpfd(&_opts)?;
+    build_bpfman(&_opts)?;
     build_csi(&_opts)?;
     Ok(())
 }
 
-fn build_bpfd(_opts: &Options) -> anyhow::Result<()> {
+fn build_bpfman(_opts: &Options) -> anyhow::Result<()> {
     let root = PathBuf::from(WORKSPACE_ROOT.to_string());
-    let out_dir = root.join("bpfd-api/src");
+    let out_dir = root.join("bpfman-api/src");
     let proto_dir = root.join("proto");
 
-    let protos = &["bpfd.proto"];
+    let protos = &["bpfman.proto"];
     let includes = &[proto_dir.to_str().unwrap()];
     tonic_build::configure()
         .out_dir(out_dir)
         .compile(protos, includes)?;
 
-    // protoc -I=./bpfd/proto --go_out=paths=source_relative:./clients/gobpfd ./bpfd/proto/bpfd.proto
+    // protoc -I=./bpfman/proto --go_out=paths=source_relative:./clients/gobpfman ./bpfman/proto/bpfman.proto
     let status = Command::new("protoc")
         .current_dir(&root)
         .args([
             "-I=./proto",
-            "--go_out=paths=source_relative:./clients/gobpfd/v1",
-            "bpfd.proto",
+            "--go_out=paths=source_relative:./clients/gobpfman/v1",
+            "bpfman.proto",
         ])
         .status()
         .expect("failed to build bpf program");
@@ -53,9 +53,9 @@ fn build_bpfd(_opts: &Options) -> anyhow::Result<()> {
         .current_dir(&root)
         .args([
             "-I=./proto",
-            "--go-grpc_out=./clients/gobpfd/v1",
+            "--go-grpc_out=./clients/gobpfman/v1",
             "--go-grpc_opt=paths=source_relative",
-            "bpfd.proto",
+            "bpfman.proto",
         ])
         .status()
         .expect("failed to build bpf program");

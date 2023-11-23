@@ -1,40 +1,40 @@
 # Tutorial
 
-This tutorial will show you how to use `bpfd`.
-There are several ways to launch and interact with `bpfd` and `bpfctl`:
+This tutorial will show you how to use `bpfman`.
+There are several ways to launch and interact with `bpfman` and `bpfctl`:
 
-* **Local Host** - Run `bpfd` as a privileged process straight from build directory.
+* **Local Host** - Run `bpfman` as a privileged process straight from build directory.
   See [Local Host](#local-host).
-* **Systemd Service** - Run `bpfd` as a systemd service.
+* **Systemd Service** - Run `bpfman` as a systemd service.
   See [Systemd Service](#systemd-service).
 
 ## Local Host
 
-### Step 1: Build `bpfd`
+### Step 1: Build `bpfman`
 
-Perform the following steps to build `bpfd`.
-If this is your first time using bpfd, follow the instructions in
-[Setup and Building bpfd](./building-bpfd.md) to setup the prerequisites for building.
+Perform the following steps to build `bpfman`.
+If this is your first time using bpfman, follow the instructions in
+[Setup and Building bpfman](./building-bpfman.md) to setup the prerequisites for building.
 
 ```console
-cd $HOME/src/bpfd/
+cd $HOME/src/bpfman/
 cargo xtask build-ebpf --libbpf-dir $HOME/src/libbpf
 cargo build
 ```
 
-### Step 2: Setup `bpfd` environment
+### Step 2: Setup `bpfman` environment
 
-`bpfd` supports both communication over a Unix socket.
+`bpfman` supports both communication over a Unix socket.
 All examples, both using `bpfctl` and the gRPC API use this socket.
 
-### Step 3: Start `bpfd`
+### Step 3: Start `bpfman`
 
-While learning and experimenting with `bpfd`, it may be useful to run `bpfd` in the foreground
+While learning and experimenting with `bpfman`, it may be useful to run `bpfman` in the foreground
 (which requires a second terminal to run the `bpfctl` commands below).
-For more details on how logging is handled in bpfd, see [Logging](../developer-guide/logging.md).
+For more details on how logging is handled in bpfman, see [Logging](../developer-guide/logging.md).
 
 ```console
-sudo RUST_LOG=info ./target/debug/bpfd
+sudo RUST_LOG=info ./target/debug/bpfman
 ```
 
 ### Step 4: Load your first program
@@ -46,15 +46,15 @@ Finally, we will use the priority of 100.
 Find a deeper dive into `bpfctl` syntax in [bpfctl Guide](./bpfctl-guide.md).
 
 ```console
-sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 100
- Bpfd State
+sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 100
+ Bpfman State
 ---------------
  Name:          pass
- Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest
  Pull Policy:   IfNotPresent
  Global:        None
  Metadata:      None
- Map Pin Path:  /run/bpfd/fs/maps/6213
+ Map Pin Path:  /run/bpfman/fs/maps/6213
  Map Owner ID:  None
  Map Used By:   6213
  Priority:      100
@@ -94,14 +94,14 @@ We can recheck the details about the loaded program with the `bpfctl get` comman
 
 ```console
 sudo ./target/debug/bpfctl get 6213
- Bpfd State
+ Bpfman State
 ---------------
  Name:          pass
- Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest
  Pull Policy:   IfNotPresent
  Global:        None
  Metadata:      None
- Map Pin Path:  /run/bpfd/fs/maps/6213
+ Map Pin Path:  /run/bpfman/fs/maps/6213
  Map Owner ID:  None
  Map Used By:   6213
  Priority:      100
@@ -131,18 +131,18 @@ interface and thus will be executed first.
 
 ### Step 5: Loading more programs
 
-We will now load 2 more programs with different priorities to demonstrate how bpfd will ensure they are ordered correctly:
+We will now load 2 more programs with different priorities to demonstrate how bpfman will ensure they are ordered correctly:
 
 ```console
-sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 50
- Bpfd State
+sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 50
+ Bpfman State
 ---------------
  Name:          pass
- Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest
  Pull Policy:   IfNotPresent
  Global:        None
  Metadata:      None
- Map Pin Path:  /run/bpfd/fs/maps/6215
+ Map Pin Path:  /run/bpfman/fs/maps/6215
  Map Owner ID:  None
  Map Used By:   6215
  Priority:      50
@@ -159,15 +159,15 @@ sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp
 ```
 
 ```console
-sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 200
- Bpfd State
+sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 200
+ Bpfman State
 ---------------
  Name:          pass
- Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest
  Pull Policy:   IfNotPresent
  Global:        None
  Metadata:      None
- Map Pin Path:  /run/bpfd/fs/maps/6217
+ Map Pin Path:  /run/bpfman/fs/maps/6217
  Map Owner ID:  None
  Map Used By:   6217
  Priority:      200
@@ -202,7 +202,7 @@ As can be seen from the detailed output for each command below:
 
 ```console
 sudo ./target/debug/bpfctl get 6213
- Bpfd State
+ Bpfman State
 ---------------
  Name:          pass
 :
@@ -221,7 +221,7 @@ sudo ./target/debug/bpfctl get 6213
 
 ```console
 sudo ./target/debug/bpfctl get 6215
- Bpfd State
+ Bpfman State
 ---------------
  Name:          pass
 :
@@ -240,7 +240,7 @@ sudo ./target/debug/bpfctl get 6215
 
 ```console
 sudo ./target/debug/bpfctl get 6217
- Bpfd State
+ Bpfman State
 ---------------
  Name:          pass
 :
@@ -264,15 +264,15 @@ then the program can be loaded with those additional return values using the `pr
 parameter (see `bpfctl load-from-image xdp --help` for list of valid values):
 
 ```console
-sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 150 --proceed-on "pass" --proceed-on "dispatcher_return"
- Bpfd State
+sudo ./target/debug/bpfctl load-from-image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 150 --proceed-on "pass" --proceed-on "dispatcher_return"
+ Bpfman State
 ---------------
  Name:          pass
- Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest
  Pull Policy:   IfNotPresent
  Global:        None
  Metadata:      None
- Map Pin Path:  /run/bpfd/fs/maps/6219
+ Map Pin Path:  /run/bpfman/fs/maps/6219
  Map Owner ID:  None
  Map Used By:   6219
  Priority:      150
@@ -320,14 +320,14 @@ sudo ./target/debug/bpfctl list
 
 ```console
 ./target/debug/bpfctl get 6215
- Bpfd State
+ Bpfman State
 ---------------
  Name:          pass
- Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest
  Pull Policy:   IfNotPresent
  Global:        None
  Metadata:      None
- Map Pin Path:  /run/bpfd/fs/maps/6215
+ Map Pin Path:  /run/bpfman/fs/maps/6215
  Map Owner ID:  None
  Map Used By:   6215
  Priority:      50
@@ -345,14 +345,14 @@ sudo ./target/debug/bpfctl list
 
 ```
 ./target/debug/bpfctl get 6217
- Bpfd State
+ Bpfman State
 ---------------
  Name:          pass
- Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest
  Pull Policy:   IfNotPresent
  Global:        None
  Metadata:      None
- Map Pin Path:  /run/bpfd/fs/maps/6217
+ Map Pin Path:  /run/bpfman/fs/maps/6217
  Map Owner ID:  None
  Map Used By:   6217
  Priority:      200
@@ -370,14 +370,14 @@ sudo ./target/debug/bpfctl list
 
 ```
 ./target/debug/bpfctl get 6219
- Bpfd State
+ Bpfman State
 ---------------
  Name:          pass
- Image URL:     quay.io/bpfd-bytecode/xdp_pass:latest
+ Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest
  Pull Policy:   IfNotPresent
  Global:        None
  Metadata:      None
- Map Pin Path:  /run/bpfd/fs/maps/6219
+ Map Pin Path:  /run/bpfman/fs/maps/6219
  Map Owner ID:  None
  Map Used By:   6219
  Priority:      150
@@ -393,43 +393,43 @@ sudo ./target/debug/bpfctl list
 :
 ```
 
-When `bpfd` is stopped, all remaining programs will be unloaded automatically.
+When `bpfman` is stopped, all remaining programs will be unloaded automatically.
 
 ### Step 7: Clean-up
 
-To unwind all the changes, stop `bpfd` and then run the following script:
+To unwind all the changes, stop `bpfman` and then run the following script:
 
 ```console
 sudo ./scripts/setup.sh uninstall
 ```
 
-**WARNING:** `setup.sh uninstall` cleans everything up, so `/etc/bpfd/programs.d/`
-and `/run/bpfd/bytecode/` are deleted. Save any changes or files that were created if needed.
+**WARNING:** `setup.sh uninstall` cleans everything up, so `/etc/bpfman/programs.d/`
+and `/run/bpfman/bytecode/` are deleted. Save any changes or files that were created if needed.
 
 ## Systemd Service
 
-To run `bpfd` as a systemd service, the binaries will be placed in a well known location
+To run `bpfman` as a systemd service, the binaries will be placed in a well known location
 (`/usr/sbin/.`) and a service configuration file will be added
-(`/usr/lib/systemd/system/bpfd.service`).
+(`/usr/lib/systemd/system/bpfman.service`).
 When run as a systemd service, the set of linux capabilities are limited to only the needed set.
 If permission errors are encountered, see [Linux Capabilities](../developer-guide/linux-capabilities.md)
 for help debugging.
 
 ### Step 1
 
-Same as Step 1 above, build `bpfd` if needed:
+Same as Step 1 above, build `bpfman` if needed:
 
 ```console
-cd $HOME/src/bpfd/
+cd $HOME/src/bpfman/
 cargo xtask build-ebpf --libbpf-dir $HOME/src/libbpf
 cargo build
 ```
 
-### Step 2: Setup `bpfd` environment
+### Step 2: Setup `bpfman` environment
 
-Run the following command to copy the `bpfd` and `bpfctl` binaries to `/usr/sbin/` and copy a
-default `bpfd.service` file to `/usr/lib/systemd/system/`.
-This option will also start the systemd service `bpfd.service` by default:
+Run the following command to copy the `bpfman` and `bpfctl` binaries to `/usr/sbin/` and copy a
+default `bpfman.service` file to `/usr/lib/systemd/system/`.
+This option will also start the systemd service `bpfman.service` by default:
 
 ```console
 sudo ./scripts/setup.sh install
@@ -440,31 +440,31 @@ between the BFP program and the userspace program.
 So userspace programs that are accessing maps and running on kernels older than 5.19 will require either `sudo`
 or the CAP_BPF capability (`sudo /sbin/setcap cap_bpf=ep ./<USERSPACE-PROGRAM>`).
 
-To update the configuration settings associated with running `bpfd` as a service, edit the
+To update the configuration settings associated with running `bpfman` as a service, edit the
 service configuration file:
 
 ```console
-sudo vi /usr/lib/systemd/system/bpfd.service
+sudo vi /usr/lib/systemd/system/bpfman.service
 sudo systemctl daemon-reload
 ```
 
-If `bpfd` or `bpfctl` is rebuilt, the following command can be run to install the update binaries
+If `bpfman` or `bpfctl` is rebuilt, the following command can be run to install the update binaries
 without regenerating the certifications.
-The `bpfd` service will is automatically restarted.
+The `bpfman` service will is automatically restarted.
 
 ```console
 sudo ./scripts/setup.sh reinstall
 ```
 
-### Step 3: Start `bpfd`
+### Step 3: Start `bpfman`
 
-To manage `bpfd` as a systemd service, use `systemctl`. `sudo ./scripts/setup.sh install` will start the service,
+To manage `bpfman` as a systemd service, use `systemctl`. `sudo ./scripts/setup.sh install` will start the service,
 but the service can be manually stopped and started:
 
 ```console
-sudo systemctl stop bpfd.service
+sudo systemctl stop bpfman.service
 ...
-sudo systemctl start bpfd.service
+sudo systemctl start bpfman.service
 ```
 
 ### Step 4-6
@@ -472,7 +472,7 @@ sudo systemctl start bpfd.service
 Same as above except `bpfctl` is now in $PATH:
 
 ```console
-sudo bpfctl load-from-image --image-url quay.io/bpfd-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 100
+sudo bpfctl load-from-image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethff657c7 --priority 100
 :
 
 
@@ -486,16 +486,16 @@ sudo bpfctl unload 6213
 
 ### Step 7: Clean-up
 
-To unwind all the changes performed while running `bpfd` as a systemd service, run the following
-script. This command cleans up everything, including stopping the `bpfd` service if it is still
+To unwind all the changes performed while running `bpfman` as a systemd service, run the following
+script. This command cleans up everything, including stopping the `bpfman` service if it is still
 running.
 
 ```console
 sudo ./scripts/setup.sh uninstall
 ```
 
-**WARNING:** `setup.sh uninstall` cleans everything up, so `/etc/bpfd/programs.d/`
-and `/run/bpfd/bytecode/` are deleted. Save any changes or files that were created if needed.
+**WARNING:** `setup.sh uninstall` cleans everything up, so `/etc/bpfman/programs.d/`
+and `/run/bpfman/bytecode/` are deleted. Save any changes or files that were created if needed.
 
 
 ## Build and Run Local eBPF Programs
@@ -503,7 +503,7 @@ and `/run/bpfd/bytecode/` are deleted. Save any changes or files that were creat
 In the examples above, all the eBPF programs were pulled from pre-built images.
 This tutorial uses examples from the [xdp-tutorial](https://github.com/xdp-project/xdp-tutorial).
 The pre-built container images can be found here:
-[https://quay.io/organization/bpfd-bytecode](https://quay.io/organization/bpfd-bytecode)
+[https://quay.io/organization/bpfman-bytecode](https://quay.io/organization/bpfman-bytecode)
 
 To build these examples locally, check out the
 [xdp-tutorial](https://github.com/xdp-project/xdp-tutorial) git repository and

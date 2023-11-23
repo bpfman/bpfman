@@ -1,20 +1,20 @@
-# Developing the bpfd-operator
+# Developing the bpfman-operator
 
-This section is intended to give developer level details regarding the layout and design of the bpfd-operator.
+This section is intended to give developer level details regarding the layout and design of the bpfman-operator.
 At its core the operator was implemented using the [operator-sdk framework](https://sdk.operatorframework.io/)
 which make those docs another good resource if anything is missed here.
 
 ## High level design overview
 
-This repository houses two main processes, the `bpfd-agent` and the `bpfd-operator` along with CRD api definitions
+This repository houses two main processes, the `bpfman-agent` and the `bpfman-operator` along with CRD api definitions
 for `BpfProgram` and `*Program` Objects.
 The following diagram depicts how all these components work together to create a functioning operator.
 
-![bpfd on K8s](../img/bpfd-on-k8s.png)
+![bpfman on K8s](../img/bpfman-on-k8s.png)
 
 ## Building and deploying
 
-For building and deploying the bpfd-operator simply see the attached `Make help`
+For building and deploying the bpfman-operator simply see the attached `Make help`
 output.
 
 ```bash
@@ -48,10 +48,10 @@ Development
   build-release-yamls  Generate the crd install bundle for a specific release version.
 
 Build
-  build            Build bpfd-operator and bpfd-agent binaries.
-  build-images     Build bpfd, bpfd-agent, and bpfd-operator images.
-  push-images      Push bpfd, bpfd-agent, bpfd-operator images.
-  load-images-kind  Load bpfd, bpfd-agent, and bpfd-operator images into the running local kind devel cluster.
+  build            Build bpfman-operator and bpfman-agent binaries.
+  build-images     Build bpfman, bpfman-agent, and bpfman-operator images.
+  push-images      Push bpfman, bpfman-agent, bpfman-operator images.
+  load-images-kind  Load bpfman, bpfman-agent, and bpfman-operator images into the running local kind devel cluster.
   bundle-build     Build the bundle image.
   bundle-push      Push the bundle image.
   catalog-build    Build a catalog image.
@@ -63,14 +63,14 @@ CRD Deployment
 
 Vanilla K8s Deployment
   setup-kind       Setup Kind cluster
-  deploy           Deploy bpfd-operator to the K8s cluster specified in ~/.kube/config with the csi driver initialized.
-  undeploy         Undeploy bpfd-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+  deploy           Deploy bpfman-operator to the K8s cluster specified in ~/.kube/config with the csi driver initialized.
+  undeploy         Undeploy bpfman-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
   kind-reload-images  Reload locally build images into a kind cluster and restart the ds and deployment so they're picked up.
-  run-on-kind      Kind Deploy runs the bpfd-operator on a local kind cluster using local builds of bpfd, bpfd-agent, and bpfd-operator
+  run-on-kind      Kind Deploy runs the bpfman-operator on a local kind cluster using local builds of bpfman, bpfman-agent, and bpfman-operator
 
 Openshift Deployment
-  deploy-openshift  Deploy bpfd-operator to the Openshift cluster specified in ~/.kube/config.
-  undeploy-openshift  Undeploy bpfd-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+  deploy-openshift  Deploy bpfman-operator to the Openshift cluster specified in ~/.kube/config.
+  undeploy-openshift  Undeploy bpfman-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 ```
 
 ## Running Locally in KIND
@@ -81,11 +81,11 @@ To run locally in a kind cluster with an up to date build simply run:
 make run-on-kind
 ```
 
-The container images used for `bpfd`,`bpfd-agent`, and `bpfd-operator` can also be manually configured,
+The container images used for `bpfman`,`bpfman-agent`, and `bpfman-operator` can also be manually configured,
 by default local image builds will be used for the kind deployment.
 
 ```bash
-BPFD_IMG=<your/image/url> BPFD_AGENT_IMG=<your/image/url> BPFD_OPERATOR_IMG=<your/image/url> make run-on-kind
+BPFMAN_IMG=<your/image/url> BPFMAN_AGENT_IMG=<your/image/url> BPFMAN_OPERATOR_IMG=<your/image/url> make run-on-kind
 ```
 
 Then rebuild and load a fresh build run:
@@ -94,24 +94,24 @@ Then rebuild and load a fresh build run:
 make kind-reload-images
 ```
 
-Which will rebuild the bpfd-operator, bpfd-agent, and bpfd images and load them into the kind cluster.
+Which will rebuild the bpfman-operator, bpfman-agent, and bpfman images and load them into the kind cluster.
 
 ## Testing Locally
 
-To run all of the **Unit Tests** defined in the bpfd-operator controller code simply run `make test`.
+To run all of the **Unit Tests** defined in the bpfman-operator controller code simply run `make test`.
 
 To run **Integration Tests** locally:
 
 1. Build the images locally with the `int-test` tag.
 
 ```bash
-    BPFD_AGENT_IMG=quay.io/bpfd/bpfd-agent:int-test BPFD_IMG=quay.io/bpfd/bpfd:int-test BPFD_OPERATOR_IMG=quay.io/bpfd/bpfd-operator:int-test make build-images
+    BPFMAN_AGENT_IMG=quay.io/bpfman/bpfman-agent:int-test BPFMAN_IMG=quay.io/bpfman/bpfman:int-test BPFMAN_OPERATOR_IMG=quay.io/bpfman/bpfman-operator:int-test make build-images
 ```
 
 2. Run the integration test suite.
 
 ```bash
-    BPFD_AGENT_IMG=quay.io/bpfd/bpfd-agent:int-test BPFD_IMG=quay.io/bpfd/bpfd:int-test BPFD_OPERATOR_IMG=quay.io/bpfd/bpfd-operator:int-test make test-integration
+    BPFMAN_AGENT_IMG=quay.io/bpfman/bpfman-agent:int-test BPFMAN_IMG=quay.io/bpfman/bpfman:int-test BPFMAN_OPERATOR_IMG=quay.io/bpfman/bpfman-operator:int-test make test-integration
 ```
 
 Additionally the integration test can be configured with the following environment variables:
@@ -123,7 +123,7 @@ Additionally the integration test can be configured with the following environme
 
 ## Project Layout
 
-The bpfd-operator project layout is guided by the recommendations from both the
+The bpfman-operator project layout is guided by the recommendations from both the
 [operator-sdk framework](https://sdk.operatorframework.io/docs/building-operators/golang/tutorial/#project-layout)
 and the [standard golang project-layout](https://github.com/golang-standards/project-layout).
 The following is a brief description of the main directories and their contents.
@@ -135,52 +135,52 @@ The following is a brief description of the main directories and their contents.
   auto-generated register and deepcopy methods(`zz_generated.deepcopy.go` and `zz_generate_register.go`).
 - `/bundle`: Contains the OLM bundle manifests and metadata for the operator.
   More details can be found in the operator-sdk documentation.
-- `/cmd`: Contains the main entry-points for the bpfd-operator and bpfd-agent processes.
-- `/config`: Contains the configuration files for launching the bpfd-operator on a cluster.
-    - `/bpfd-deployment`: Contains static deployment yamls for the bpfd-daemon, this includes two containers,
-      one for `bpfd` and the other for the `bpfd-agent`.
+- `/cmd`: Contains the main entry-points for the bpfman-operator and bpfman-agent processes.
+- `/config`: Contains the configuration files for launching the bpfman-operator on a cluster.
+    - `/bpfman-deployment`: Contains static deployment yamls for the bpfman-daemon, this includes two containers,
+      one for `bpfman` and the other for the `bpfman-agent`.
       This DaemonSet yaml is NOT deployed statically by kustomize, instead it's statically copied into the operator
-      image which is then responsible for deploying and configuring the bpfd-daemon DaemonSet.
-      Lastly, this directory also contains the default config used to configure the bpfd-daemon, along with the
-      cert-manager certificates used to encrypt communication between the bpfd-agent and bpfd.
-    - `/bpfd-operator-deployment:` Contains the static deployment yaml for the bpfd-operator. This is deployed
+      image which is then responsible for deploying and configuring the bpfman-daemon DaemonSet.
+      Lastly, this directory also contains the default config used to configure the bpfman-daemon, along with the
+      cert-manager certificates used to encrypt communication between the bpfman-agent and bpfman.
+    - `/bpfman-operator-deployment:` Contains the static deployment yaml for the bpfman-operator. This is deployed
       statically by kustomize.
-    - `/crd`: Contains the CRD manifests for all of the bpfd-operator APIs.
+    - `/crd`: Contains the CRD manifests for all of the bpfman-operator APIs.
         - **`/bases`**: Is where the actual CRD definitions are stored.
         These definitions are auto-generated by [controller-gen](https://book.kubebuilder.io/reference/controller-gen.html).
-    - `/default`: Contains the default deployment configuration for the bpfd-operator.
+    - `/default`: Contains the default deployment configuration for the bpfman-operator.
     - `/manifests`: Contains the bases for generating OLM manifests.
-    - `/openshift`: Contains the Openshift specific deployment configuration for the bpfd-operator.
+    - `/openshift`: Contains the Openshift specific deployment configuration for the bpfman-operator.
     - `/prometheus`: Contains the prometheus manifests used to deploy Prometheus to a cluster.
-      At the time of writing this the bpfd-operator is NOT exposing any metrics to prometheus, but this is a future goal.
-    - **`/rbac`**: Contains rbac yamls for getting bpfd and the bpfd-operator up and running on Kubernetes.
-        **`/bpfd-agent`**: Contains the rbac yamls for the bpfd-agent.
-        They are automatically generated by kubebuilder via build tags in the bpfd-agent controller code.
-        **`/bpfd-operator`**: Contains the rbac yamls for the bpfd-operator.
-        They are automatically generated by kubebuilder via build tags in the bpfd-operator controller code.
+      At the time of writing this the bpfman-operator is NOT exposing any metrics to prometheus, but this is a future goal.
+    - **`/rbac`**: Contains rbac yamls for getting bpfman and the bpfman-operator up and running on Kubernetes.
+        **`/bpfman-agent`**: Contains the rbac yamls for the bpfman-agent.
+        They are automatically generated by kubebuilder via build tags in the bpfman-agent controller code.
+        **`/bpfman-operator`**: Contains the rbac yamls for the bpfman-operator.
+        They are automatically generated by kubebuilder via build tags in the bpfman-operator controller code.
     - `/samples`: Contains sample CR definitions that can be deployed by users for each of our supported APIs.
     - `/scorecard`: Contains the scorecard manifests used to deploy scorecard to a cluster. At the time of writing
-      this the bpfd-operator is NOT running any scorecard tests.
-    - `/test`: Contains the test manifests used to deploy the bpfd-operator to a kind cluster for integration testing.
-- `/controllers`: Contains the controller implementations for all of the bpfd-operator APIs.
+      this the bpfman-operator is NOT running any scorecard tests.
+    - `/test`: Contains the test manifests used to deploy the bpfman-operator to a kind cluster for integration testing.
+- `/controllers`: Contains the controller implementations for all of the bpfman-operator APIs.
   Each controller is responsible for reconciling the state of the cluster with the desired state defined by the user.
   This is where the source of truth for the auto-generated RBAC can be found, keep an eye out for
-  `//+kubebuilder:rbac:groups=bpfd.dev` comment tags.
-    - `/bpfdagent`: Contains the controller implementations which reconcile user created `*Program` types to multiple
+  `//+kubebuilder:rbac:groups=bpfman.io` comment tags.
+    - `/bpfmanagent`: Contains the controller implementations which reconcile user created `*Program` types to multiple
       `BpfProgram` objects.
-    - `/bpfdoperator`: Contains the controller implementations which reconcile global `BpfProgram` object state back to
+    - `/bpfmanoperator`: Contains the controller implementations which reconcile global `BpfProgram` object state back to
       the user by ensuring the user created `*Program` objects are reporting the correct status.
-- `/hack`: Contains any scripts+static files used by the bpfd-operator to facilitate development.
-- `/internal`: Contains all private library code and is used by the bpfd-operator and bpfd-agent controllers.
+- `/hack`: Contains any scripts+static files used by the bpfman-operator to facilitate development.
+- `/internal`: Contains all private library code and is used by the bpfman-operator and bpfman-agent controllers.
 - **`/pkg`**: Contains all public library code this is consumed externally and internally.
-    - **`/client`**: Contains the autogenerated clientset, informers and listers for all of the bpfd-operator APIs.
+    - **`/client`**: Contains the autogenerated clientset, informers and listers for all of the bpfman-operator APIs.
       These are autogenerated by the [k8s.io/code-generator project](https://github.com/kubernetes/code-generator),
-      and can be consumed by users wishing to programmatically interact with bpfd specific APIs.
+      and can be consumed by users wishing to programmatically interact with bpfman specific APIs.
     - `/helpers`: Contains helper functions which can be consumed by users wishing to programmatically interact with
-      bpfd specific APIs.
-- `/test/integration`: Contains integration tests for the bpfd-operator.
-  These tests are run against a kind cluster and are responsible for testing the bpfd-operator in a real cluster
+      bpfman specific APIs.
+- `/test/integration`: Contains integration tests for the bpfman-operator.
+  These tests are run against a kind cluster and are responsible for testing the bpfman-operator in a real cluster
   environment.
   It uses the [kubernetes-testing-framework project](https://github.com/Kong/kubernetes-testing-framework) to
   programmatically spin-up all of the required infrastructure for our unit tests.
-- `Makefile`: Contains all of the make targets used to build, test, and generate code used by the bpfd-operator.
+- `Makefile`: Contains all of the make targets used to build, test, and generate code used by the bpfman-operator.

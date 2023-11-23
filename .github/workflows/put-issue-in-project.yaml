@@ -1,4 +1,4 @@
-name: Add all issues to bpfd project
+name: Add all issues to bpfman project
 
 on: # yamllint disable-line rule:truthy
   issues:
@@ -14,5 +14,5 @@ jobs:
         with:
           # You can target a project in a different organization
           # to the issue
-          project-url: https://github.com/orgs/bpfd-dev/projects/4
-          github-token: ${{ secrets.BPFD_PROJECT_PAT }}
+          project-url: https://github.com/orgs/bpfman/projects/4
+          github-token: ${{ secrets.BPFMAN_PROJECT_PAT }}
