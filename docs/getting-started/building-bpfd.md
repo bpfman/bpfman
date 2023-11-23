@@ -104,7 +104,7 @@ For further detailed instructions, see
 
 ```console
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-export PATH="$HOME/.cargo/bin:$PATH"
+source "$HOME/.cargo/env"
 rustup toolchain install nightly -c rustfmt,clippy,rust-src
 ```
 
@@ -184,11 +184,11 @@ npm install -g prettier
 ```
 
 Then to flag which files are violating the formatting guide, run:
- 
+
 ```console
 prettier -l "*.yaml"
 ```
- 
+
 And to write changes in place, run:
 
 ```console
