@@ -55,6 +55,7 @@ KIND_CLUSTER_NAME ?= bpfman-deployment
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
 ENVTEST_K8S_VERSION = 1.25.0
+K8S_CODEGEN_VERSION = v0.25.0
 
 .DEFAULT_GOAL := help
 
@@ -100,6 +101,10 @@ $(LOCALBIN):
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
+REGISTER_GEN ?= $(LOCALBIN)/register-gen
+INFORMER_GEN ?= $(LOCALBIN)/informer-gen
+LISTER_GEN ?= $(LOCALBIN)/lister-gen
+CLIENT_GEN ?= $(LOCALBIN)/client-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 CM_VERIFIER ?= $(LOCALBIN)/cm-verifier
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
@@ -126,6 +131,26 @@ $(OPERATOR_SDK): $(LOCALBIN)
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)
 	test -s $(LOCALBIN)/controller-gen || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+
+.PHONY: register-gen
+register-gen: $(REGISTER_GEN) ## Download register-gen locally if necessary.
+$(REGISTER_GEN): $(LOCALBIN)
+	test -s $(LOCALBIN)/register-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/register-gen@$(K8S_CODEGEN_VERSION)
+
+.PHONY: informer-gen
+informer-gen: $(INFORMER_GEN) ## Download informer-gen locally if necessary.
+$(INFORMER_GEN): $(LOCALBIN)
+	test -s $(LOCALBIN)/informer-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/informer-gen@$(K8S_CODEGEN_VERSION)
+
+.PHONY: lister-gen
+lister-gen: $(LISTER_GEN) ## Download lister-gen locally if necessary.
+$(LISTER_GEN): $(LOCALBIN)
+	test -s $(LOCALBIN)/lister-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/lister-gen@$(K8S_CODEGEN_VERSION)
+
+.PHONY: client-gen
+client-gen: $(CLIENT_GEN) ## Download client-gen locally if necessary.
+$(CLIENT_GEN): $(LOCALBIN)
+	test -s $(LOCALBIN)/client-gen || GOBIN=$(LOCALBIN) go install k8s.io/code-generator/cmd/client-gen@$(K8S_CODEGEN_VERSION)
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
@@ -172,8 +197,8 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: manifests generate-register generate-deepcopy generate-typed-clients generate-typed-listers generate-typed-informers ## Generate ALL auto-generated code.
 
 .PHONY: generate-register
-generate-register: ## Generate register code see all `zz_generated.register.go` files.
-	go run k8s.io/code-generator/cmd/register-gen \
+generate-register: register-gen ## Generate register code see all `zz_generated.register.go` files.
+	$(REGISTER_GEN) \
 		--input-dirs "${APIS_PKG}/apis/v1alpha1" \
 		--output-package "${APIS_PKG}/apis/" \
 		${COMMON_FLAGS}
@@ -183,31 +208,31 @@ generate-deepcopy: ## Generate code containing DeepCopy, DeepCopyInto, and DeepC
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: generate-typed-clients
-generate-typed-clients: ## Generate typed client code
-	go run k8s.io/code-generator/cmd/client-gen \
-	--clientset-name "${CLIENTSET_NAME}" \
-	--input-base "" \
-	--input "${APIS_PKG}/apis/v1alpha1" \
-	--output-package "${OUTPUT_PKG}/${CLIENTSET_PKG_NAME}" \
-	${COMMON_FLAGS}
+generate-typed-clients: client-gen ## Generate typed client code
+	$(CLIENT_GEN) \
+		--clientset-name "${CLIENTSET_NAME}" \
+		--input-base "" \
+		--input "${APIS_PKG}/apis/v1alpha1" \
+		--output-package "${OUTPUT_PKG}/${CLIENTSET_PKG_NAME}" \
+		${COMMON_FLAGS}
 
 
 .PHONY: generate-typed-listers
-generate-typed-listers: ## Generate typed listers code
-	go run k8s.io/code-generator/cmd/lister-gen \
-	--input-dirs "${APIS_PKG}/apis/v1alpha1" \
-	--output-package "${OUTPUT_PKG}/listers" \
-	${COMMON_FLAGS}
+generate-typed-listers: lister-gen ## Generate typed listers code
+	$(LISTER_GEN) \
+		--input-dirs "${APIS_PKG}/apis/v1alpha1" \
+		--output-package "${OUTPUT_PKG}/listers" \
+		${COMMON_FLAGS}
 
 
 .PHONY: generate-typed-informers
-generate-typed-informers: ## Generate typed informers code
-	go run k8s.io/code-generator/cmd/informer-gen \
-	--input-dirs "${APIS_PKG}/apis/v1alpha1" \
-	--versioned-clientset-package "${OUTPUT_PKG}/${CLIENTSET_PKG_NAME}/${CLIENTSET_NAME}" \
-	--listers-package "${OUTPUT_PKG}/listers" \
-	--output-package "${OUTPUT_PKG}/informers" \
-	${COMMON_FLAGS}
+generate-typed-informers: informer-gen ## Generate typed informers code
+	$(INFORMER_GEN) \
+		--input-dirs "${APIS_PKG}/apis/v1alpha1" \
+		--versioned-clientset-package "${OUTPUT_PKG}/${CLIENTSET_PKG_NAME}/${CLIENTSET_NAME}" \
+		--listers-package "${OUTPUT_PKG}/listers" \
+		--output-package "${OUTPUT_PKG}/informers" \
+		${COMMON_FLAGS}
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.

@@ -127,20 +127,17 @@ jobs:
   ## Build go modules
   build-go:
     runs-on: ubuntu-latest
-    # k8s codegen requires this to be set
-    env:
-      GOPATH: ${{ github.workspace }}
+    defaults:
+      run:
+        working-directory: ./bpfman-operator
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman
-
       - uses: actions/setup-go@v4
         with:
-          go-version: "1.20"
+          go-version: "1.21"
 
       - name: Go mod check
-        working-directory: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman
+        working-directory: ${{ github.workspace }}
         run: |
           go mod tidy
           git diff --exit-code go.mod go.sum
@@ -148,8 +145,6 @@ jobs:
       - name: Lint
         uses: golangci/golangci-lint-action@v3
         with:
-          # Keep this version synced with /bpfman/scripts/verify-golint.sh
-          working-directory: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman
           version: v1.54.2
           skip-cache: true
           skip-pkg-cache: true
@@ -157,28 +152,23 @@ jobs:
           args: -v --timeout 5m --enable=gofmt
 
       - name: Build Examples
-        working-directory: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman/examples
         run: |
           go build ./...
 
       - name: Build Operator
-        working-directory: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman/bpfman-operator
         run: make build
 
-      # FIXME: This is currently failing due to a GOPATH weirdness
-      # - name: Verify Operator
-      #  working-directory: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman/bpfman-operator
-      #  run: make verify
+      - name: Verify Operator
+        run: make verify
 
       - name: Run Tests
-        working-directory: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman/bpfman-operator
         run: make test
 
       - name: Archive Go code coverage results
         uses: actions/upload-artifact@v3
         with:
           name: coverage
-          path: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman/bpfman-operator/cover.out
+          path: ./bpfman-operator/cover.out
           if-no-files-found: error
 
   basic-integration-tests:
