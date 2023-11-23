@@ -1,0 +1,21 @@
+# Try this out by first creating the secret:
+# kubectl create secret -n bpfman docker-registry regcred --docker-server=quay.io --docker-username=bpfman-bytecode+bpfmancreds --docker-password=JOGZ3FA6A9L2297JAT4FFN6CJU87LKTIY6X1ZGKWJ0W0XLKY0KPT5YKTBBEAGSF5
+apiVersion: bpfman.io/v1alpha1
+kind: XdpProgram
+metadata:
+  labels:
+    app.kubernetes.io/name: xdpprogram
+  name: xdp-pass-private-all-nodes
+spec:
+  bpffunctionname: pass
+  # Select all nodes
+  nodeselector: {}
+  interfaceselector:
+    primarynodeinterface: true
+  priority: 0
+  bytecode:
+    image:
+      imagepullsecret:
+        name: regcred
+        namespace: bpfman
+      url: quay.io/bpfman-bytecode/xdp_pass_private:latest

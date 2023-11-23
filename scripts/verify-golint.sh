@@ -15,8 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This script is used to manually run golangci-lint on the bpfd-operator code.
-# In bpfd's github actions a dedicated action is used to run golangci-lint. It's
+# This script is used to manually run golangci-lint on the bpfman-operator code.
+# In bpfman's github actions a dedicated action is used to run golangci-lint. It's
 # important that the version here matches the version defined in `.github/workflows/build.yml`.
 set -o errexit
 set -o nounset
@@ -30,9 +30,9 @@ cd "${KUBE_ROOT}"
 # See configuration file in ${KUBE_ROOT}/.golangci.yml.
 mkdir -p cache
 
-docker run --rm -v $(pwd)/cache:/bpfd/cache -v $(pwd)/examples:/bpfd/examples -v $(pwd)/clients:/bpfd/clients \
-    -v $(pwd)/bpfd-operator:/bpfd/bpfd-operator -v $(pwd)/go.mod:/bpfd/go.mod -v $(pwd)/go.sum:/bpfd/go.sum  \
-    -v $(pwd)/.golangci.yaml:/bpfd/.golangci.yaml --security-opt="label=disable" -e GOLANGCI_LINT_CACHE=/cache \
-    -w /bpfd "golangci/golangci-lint:$VERSION" golangci-lint run -v --enable=gofmt,typecheck
+docker run --rm -v $(pwd)/cache:/bpfman/cache -v $(pwd)/examples:/bpfman/examples -v $(pwd)/clients:/bpfman/clients \
+    -v $(pwd)/bpfman-operator:/bpfman/bpfman-operator -v $(pwd)/go.mod:/bpfman/go.mod -v $(pwd)/go.sum:/bpfman/go.sum  \
+    -v $(pwd)/.golangci.yaml:/bpfman/.golangci.yaml --security-opt="label=disable" -e GOLANGCI_LINT_CACHE=/cache \
+    -w /bpfman "golangci/golangci-lint:$VERSION" golangci-lint run -v --enable=gofmt,typecheck
 
 # ex: ts=2 sw=2 et filetype=sh

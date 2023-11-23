@@ -7,7 +7,7 @@ metadata:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: bpfd-app-go-tracepoint-counter
+  name: bpfman-app-go-tracepoint-counter
   namespace: go-tracepoint-counter
 ---
 apiVersion: apps/v1
@@ -29,7 +29,7 @@ spec:
       nodeSelector: {}
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
-      serviceAccountName: bpfd-app-go-tracepoint-counter
+      serviceAccountName: bpfman-app-go-tracepoint-counter
       tolerations:
         # these tolerations are to have the daemonset runnable on control plane nodes
         # remove them if your control plane nodes should not run pods
@@ -41,7 +41,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: go-tracepoint-counter
-          image: quay.io/bpfd-userspace/go-tracepoint-counter:latest
+          image: quay.io/bpfman-userspace/go-tracepoint-counter:latest
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: false
@@ -57,7 +57,7 @@ spec:
       volumes:
         - name: go-tracepoint-counter-maps
           csi:
-            driver: csi.bpfd.dev
+            driver: csi.bpfman.io
             volumeAttributes:
-              csi.bpfd.dev/program: go-tracepoint-counter-example
-              csi.bpfd.dev/maps: tracepoint_stats_map
+              csi.bpfman.io/program: go-tracepoint-counter-example
+              csi.bpfman.io/maps: tracepoint_stats_map

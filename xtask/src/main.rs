@@ -21,11 +21,11 @@ enum Command {
     BuildEbpf(build_ebpf::Options),
     /// Build the gRPC protobuf files.
     BuildProto(protobuf::Options),
-    /// Prep the system for using bpfd by copying binaries to "/usr/sbin/".
+    /// Prep the system for using bpfman by copying binaries to "/usr/sbin/".
     Copy(copy::Options),
-    /// Run bpfd on the local host.
+    /// Run bpfman on the local host.
     Run(run::Options),
-    /// Run the integration tests for bpfd.
+    /// Run the integration tests for bpfman.
     IntegrationTest(integration_test::Options),
 }
 

@@ -10,13 +10,13 @@ patches:
     patch: |-
       - op: replace
         path: "/spec/bytecode/image/url"
-        value: quay.io/bpfd-bytecode/go-tc-counter:v0.3.0
+        value: quay.io/bpfman-bytecode/go-tc-counter:v0.3.0
 
 # Patch the deployment.yaml to change container image in Daemonset
 # to new tag on the image.
 images:
-  - name: quay.io/bpfd-userspace/go-tc-counter
-    newName: quay.io/bpfd-userspace/go-tc-counter
+  - name: quay.io/bpfman-userspace/go-tc-counter
+    newName: quay.io/bpfman-userspace/go-tc-counter
     newTag: v0.3.0
 
 resources:

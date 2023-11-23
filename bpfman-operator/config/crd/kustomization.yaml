@@ -1,0 +1,37 @@
+# This kustomization.yaml is not intended to be run by itself,
+# since it depends on service name and namespace that are out of this kustomize package.
+# It should be run by config/default
+resources:
+  - bases/bpfman.io_bpfprograms.yaml
+  - bases/bpfman.io_tcprograms.yaml
+  - bases/bpfman.io_tracepointprograms.yaml
+  - bases/bpfman.io_xdpprograms.yaml
+  - bases/bpfman.io_kprobeprograms.yaml
+  - bases/bpfman.io_uprobeprograms.yaml
+
+#+kubebuilder:scaffold:crdkustomizeresource
+
+patchesStrategicMerge:
+# [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
+# patches here are for enabling the conversion webhook for each CRD
+#- patches/webhook_in_bpfprograms.yaml
+#- patches/webhook_in_tcprograms.yaml
+#- patches/webhook_in_xdpprograms.yaml
+#- patches/webhook_in_tracepointprograms.yaml
+#- patches/webhook_in_kprobeprograms.yaml
+#- patches/webhook_in_uprobeprograms.yaml
+#+kubebuilder:scaffold:crdkustomizewebhookpatch
+
+# [CERTMANAGER] To enable cert-manager, uncomment all the sections with [CERTMANAGER] prefix.
+# patches here are for enabling the CA injection for each CRD
+#- patches/cainjection_in_bpfprograms.yaml
+#- patches/cainjection_in_tcprograms.yaml
+#- patches/cainjection_in_xdpprograms.yaml
+#- patches/cainjection_in_tracepointprograms.yaml
+#- patches/cainjection_in_kprobeprograms.yaml
+#- patches/cainjection_in_uprobeprograms.yaml
+#+kubebuilder:scaffold:crdkustomizecainjectionpatch
+
+# the following config is for teaching kustomize how to do kustomization for CRDs.
+configurations:
+  - kustomizeconfig.yaml

@@ -12,9 +12,9 @@ import (
 	"syscall"
 	"time"
 
-	bpfdHelpers "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/helpers"
-	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
-	configMgmt "github.com/bpfd-dev/bpfd/examples/pkg/config-mgmt"
+	bpfmanHelpers "github.com/bpfman/bpfman/bpfman-operator/pkg/helpers"
+	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
+	configMgmt "github.com/bpfman/bpfman/examples/pkg/config-mgmt"
 	"github.com/cilium/ebpf"
 )
 
@@ -22,7 +22,7 @@ const (
 	TracepointProgramName = "go-tracepoint-counter-example"
 	BpfProgramMapIndex    = "tracepoint_stats_map"
 	DefaultByteCodeFile   = "bpf_bpfel.o"
-	DefaultConfigPath     = "/etc/bpfd/bpfd.toml"
+	DefaultConfigPath     = "/etc/bpfman/bpfman.toml"
 
 	// MapsMountPoint is the "go-tracepoint-counter-maps" volumeMount "mountPath" from "deployment.yaml"
 	MapsMountPoint = "/run/tracepoint/maps"
@@ -37,8 +37,8 @@ func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	// pull the BPFD config management data to determine if we're running on a
-	// system with BPFD available.
+	// pull the BPFMAN config management data to determine if we're running on a
+	// system with BPFMAN available.
 	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTracepoint, DefaultConfigPath, DefaultByteCodeFile)
 	if err != nil {
 		log.Printf("error processing parameters: %v\n", err)
@@ -46,7 +46,7 @@ func main() {
 	}
 
 	// determine the path to the tracepoint_stats_map, whether provided via CRD
-	// or BPFD or otherwise.
+	// or BPFMAN or otherwise.
 	var mapPath string
 	// If running in a Kubernetes deployment, the eBPF program is already loaded.
 	// Only need the map path, which is at a known location in the pod using VolumeMounts
@@ -57,30 +57,30 @@ func main() {
 	} else { // if not on k8s, find the map path from the system
 		ctx := context.Background()
 
-		// get the BPFD config
+		// get the BPFMAN config
 		configFileData := configMgmt.LoadConfig(DefaultConfigPath)
 
-		// connect to the BPFD server
+		// connect to the BPFMAN server
 		conn, err := configMgmt.CreateConnection(configFileData.Grpc.Endpoints, ctx)
 		if err != nil {
 			log.Printf("failed to create client connection: %v", err)
 			return
 		}
 
-		c := gobpfd.NewBpfdClient(conn)
+		c := gobpfman.NewBpfmanClient(conn)
 
 		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcProgId {
-			var loadRequest *gobpfd.LoadRequest
+			var loadRequest *gobpfman.LoadRequest
 			if paramData.MapOwnerId != 0 {
 				mapOwnerId := uint32(paramData.MapOwnerId)
-				loadRequest = &gobpfd.LoadRequest{
+				loadRequest = &gobpfman.LoadRequest{
 					Bytecode:    paramData.BytecodeSource,
 					Name:        "tracepoint_kill_recorder",
-					ProgramType: *bpfdHelpers.Tracepoint.Uint32(),
-					Attach: &gobpfd.AttachInfo{
-						Info: &gobpfd.AttachInfo_TracepointAttachInfo{
-							TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
+					ProgramType: *bpfmanHelpers.Tracepoint.Uint32(),
+					Attach: &gobpfman.AttachInfo{
+						Info: &gobpfman.AttachInfo_TracepointAttachInfo{
+							TracepointAttachInfo: &gobpfman.TracepointAttachInfo{
 								Tracepoint: "syscalls/sys_enter_kill",
 							},
 						},
@@ -88,13 +88,13 @@ func main() {
 					MapOwnerId: &mapOwnerId,
 				}
 			} else {
-				loadRequest = &gobpfd.LoadRequest{
+				loadRequest = &gobpfman.LoadRequest{
 					Bytecode:    paramData.BytecodeSource,
 					Name:        "tracepoint_kill_recorder",
-					ProgramType: *bpfdHelpers.Tracepoint.Uint32(),
-					Attach: &gobpfd.AttachInfo{
-						Info: &gobpfd.AttachInfo_TracepointAttachInfo{
-							TracepointAttachInfo: &gobpfd.TracepointAttachInfo{
+					ProgramType: *bpfmanHelpers.Tracepoint.Uint32(),
+					Attach: &gobpfman.AttachInfo{
+						Info: &gobpfman.AttachInfo_TracepointAttachInfo{
+							TracepointAttachInfo: &gobpfman.TracepointAttachInfo{
 								Tracepoint: "syscalls/sys_enter_kill",
 							},
 						},
@@ -102,8 +102,8 @@ func main() {
 				}
 			}
 
-			// 1. Load Program using bpfd
-			var res *gobpfd.LoadResponse
+			// 1. Load Program using bpfman
+			var res *gobpfman.LoadResponse
 			res, err = c.Load(ctx, loadRequest)
 			if err != nil {
 				conn.Close()
@@ -124,7 +124,7 @@ func main() {
 			// 2. Set up defer to unload program when this is closed
 			defer func(id uint) {
 				log.Printf("unloading program: %d\n", id)
-				_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: uint32(id)})
+				_, err = c.Unload(ctx, &gobpfman.UnloadRequest{Id: uint32(id)})
 				if err != nil {
 					conn.Close()
 					log.Print(err)

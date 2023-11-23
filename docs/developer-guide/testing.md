@@ -1,12 +1,12 @@
 # Testing
 
 This document describes the automated testing that is done for each pull request
-submitted to [bpfd](https://github.com/bpfd-dev/bpfd).
+submitted to [bpfman](https://github.com/bpfman/bpfman).
 
 ## Unit Testing
 
 Unit testing is executed as part of the `build` job  by running the `cargo test`
-command in the top-level bpfd directory.
+command in the top-level bpfman directory.
 
 ## Go Example Tests
 
@@ -17,7 +17,7 @@ Detailed description TBD
 ## Basic Integration Tests
 
 The full set of basic integration tests are executed by running the following
-command in the top-level bpfd directory.
+command in the top-level bpfman directory.
 
 ```bash
 cargo xtask integration-test
@@ -30,20 +30,20 @@ a list of one or more names at the end of the command as shown below.
 cargo xtask integration-test -- test_load_unload_xdp test_proceed_on_xdp
 ```
 
-The integration tests start a `bpfd` daemon process, and issue `bpfctl` commands
+The integration tests start a `bpfman` daemon process, and issue `bpfctl` commands
 to verify a range of functionality.  For XDP and TC programs that are installed
 on network interfaces, the integration test code creates a test network
 namespace connected to the host by a veth pair on which the programs are
 attached. The test code uses the IP subnet 172.37.37.1/24 for the namespace. If
 that address conflicts with an existing network on the host, it can be changed
-by setting the `BPFD_IP_PREFIX` environment variable to one that is available as
+by setting the `BPFMAN_IP_PREFIX` environment variable to one that is available as
 shown below.
 
 ```bash
-export BPFD_IP_PREFIX="192.168.50"
+export BPFMAN_IP_PREFIX="192.168.50"
 ```
 
-If bpfd logs are needed to help debug an integration test, set `RUST_LOG` either
+If bpfman logs are needed to help debug an integration test, set `RUST_LOG` either
 globally or for a given test.
 
 ```bash
@@ -62,7 +62,7 @@ creating traffic if needed, and examining logs to confirm that things are
 running as expected.
 
 Most eBPF test programs are loaded from container images stored on
-[quay.io](https://quay.io/repository/bpfd-bytecode/tc_pass). The source code for
+[quay.io](https://quay.io/repository/bpfman-bytecode/tc_pass). The source code for
 the eBPF test programs can be found in the `tests/integration-test/bpf`
 directory.  These programs are compiled by executing `cargo xtask build-ebpf
 --libbpf-dir <libbpf dir>`

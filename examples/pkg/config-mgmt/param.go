@@ -24,7 +24,7 @@ import (
 	"os"
 	"path/filepath"
 
-	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
+	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 )
 
 const (
@@ -64,7 +64,7 @@ type ParameterData struct {
 	MapOwnerId int
 	// The bytecodesource type has to be encapsulated in a complete BytecodeLocation
 	// because isBytecodeLocation_Location is not Public
-	BytecodeSource *gobpfd.BytecodeLocation
+	BytecodeSource *gobpfman.BytecodeLocation
 	BytecodeSrc    int
 }
 
@@ -80,7 +80,7 @@ func ParseParamData(progType ProgType, configFilePath string, bytecodeFile strin
 		flag.StringVar(&paramData.Iface, "iface", "",
 			"Interface to load bytecode. Required.")
 		flag.IntVar(&paramData.Priority, "priority", 50,
-			"Priority to load program in bpfd. Optional.")
+			"Priority to load program in bpfman. Optional.")
 	}
 	flag.UintVar(&paramData.ProgId, "id", UnusedProgramId,
 		"Optional Program ID of bytecode that has already been loaded. \"id\" and\n"+
@@ -89,10 +89,10 @@ func ParseParamData(progType ProgType, configFilePath string, bytecodeFile strin
 	flag.StringVar(&cmdlineImage, "image", "",
 		"Image repository URL of bytecode source. \"image\" and \"file\"/\"id\" are\n"+
 			"mutually exclusive.\n"+
-			"Example: -image quay.io/bpfd-bytecode/go-"+progType.String()+"-counter:latest")
+			"Example: -image quay.io/bpfman-bytecode/go-"+progType.String()+"-counter:latest")
 	flag.StringVar(&cmdlineFile, "file", "",
 		"File path of bytecode source. \"file\" and \"image\"/\"id\" are mutually exclusive.\n"+
-			"Example: -file /home/$USER/src/bpfd/examples/go-"+progType.String()+"-counter/bpf_bpfel.o")
+			"Example: -file /home/$USER/src/bpfman/examples/go-"+progType.String()+"-counter/bpf_bpfel.o")
 	flag.BoolVar(&paramData.CrdFlag, "crd", false,
 		"Flag to indicate all attributes should be pulled from the BpfProgram CRD.\n"+
 			"Used in Kubernetes deployments and is mutually exclusive with all other\n"+
@@ -144,27 +144,27 @@ func ParseParamData(progType ProgType, configFilePath string, bytecodeFile strin
 	// "-id" and "-location" are mutually exclusive and "-id" takes precedence.
 	// Parse Commandline first.
 
-	// "-id" is a ProgramID for the bytecode that has already loaded into bpfd. If not
+	// "-id" is a ProgramID for the bytecode that has already loaded into bpfman. If not
 	// provided, check "-file" and "-image".
 	//    ./go-xdp-counter -iface eth0 -id 23415
 	if paramData.ProgId == UnusedProgramId {
 		// "-path" is a file path for the bytecode source. If not provided, check toml file.
-		//    ./go-xdp-counter -iface eth0 -path /var/bpfd/bytecode/bpf_bpfel.o
+		//    ./go-xdp-counter -iface eth0 -path /var/bpfman/bytecode/bpf_bpfel.o
 		if len(cmdlineFile) != 0 {
 			// "-location" was entered so it is a URL
-			paramData.BytecodeSource = &gobpfd.BytecodeLocation{
-				Location: &gobpfd.BytecodeLocation_File{File: cmdlineFile},
+			paramData.BytecodeSource = &gobpfman.BytecodeLocation{
+				Location: &gobpfman.BytecodeLocation_File{File: cmdlineFile},
 			}
 
 			paramData.BytecodeSrc = SrcFile
 			source = cmdlineFile
 		}
 		// "-image" is a container registry url for the bytecode source. If not provided, check toml file.
-		//    ./go-xdp-counter -p eth0 -image quay.io/bpfd-bytecode/go-xdp-counter:latest
+		//    ./go-xdp-counter -p eth0 -image quay.io/bpfman-bytecode/go-xdp-counter:latest
 		if len(cmdlineImage) != 0 {
 			// "-location" was entered so it is a URL
-			paramData.BytecodeSource = &gobpfd.BytecodeLocation{
-				Location: &gobpfd.BytecodeLocation_Image{Image: &gobpfd.BytecodeImage{
+			paramData.BytecodeSource = &gobpfman.BytecodeLocation{
+				Location: &gobpfman.BytecodeLocation_Image{Image: &gobpfman.BytecodeImage{
 					Url: cmdlineImage,
 				}},
 			}
@@ -189,8 +189,8 @@ func ParseParamData(progType ProgType, configFilePath string, bytecodeFile strin
 			return paramData, fmt.Errorf("couldn't find bpf elf file: %v", err)
 		}
 
-		paramData.BytecodeSource = &gobpfd.BytecodeLocation{
-			Location: &gobpfd.BytecodeLocation_File{File: path},
+		paramData.BytecodeSource = &gobpfman.BytecodeLocation{
+			Location: &gobpfman.BytecodeLocation_File{File: path},
 		}
 		paramData.BytecodeSrc = SrcFile
 		source = path
@@ -207,13 +207,13 @@ func ParseParamData(progType ProgType, configFilePath string, bytecodeFile strin
 	return paramData, nil
 }
 
-func RetrieveMapPinPath(ctx context.Context, c gobpfd.BpfdClient, progId uint, map_name string) (string, error) {
+func RetrieveMapPinPath(ctx context.Context, c gobpfman.BpfmanClient, progId uint, map_name string) (string, error) {
 	var mapPath string
 
-	getRequest := &gobpfd.GetRequest{
+	getRequest := &gobpfman.GetRequest{
 		Id: uint32(progId),
 	}
-	//var getResponse *gobpfd.GetResponse
+	//var getResponse *gobpfman.GetResponse
 	getResponse, err := c.Get(ctx, getRequest)
 	if err != nil {
 		return mapPath, err
@@ -221,7 +221,7 @@ func RetrieveMapPinPath(ctx context.Context, c gobpfd.BpfdClient, progId uint, m
 	return CalcMapPinPath(getResponse.GetInfo(), map_name)
 }
 
-func CalcMapPinPath(programInfo *gobpfd.ProgramInfo, map_name string) (string, error) {
+func CalcMapPinPath(programInfo *gobpfman.ProgramInfo, map_name string) (string, error) {
 	if programInfo != nil {
 		return fmt.Sprintf("%s/%s", programInfo.GetMapPinPath(), map_name), nil
 	} else {

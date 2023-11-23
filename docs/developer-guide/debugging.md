@@ -5,10 +5,10 @@
 
     ```json
         {
-            "name": "Remote debug bpfd",
+            "name": "Remote debug bpfman",
             "type": "lldb",
             "request": "launch",
-            "program": "<ABSOLUTE_PATH>/github.com/bpfd-dev/bpfd/target/debug/bpfd", // Local path to latest debug binary.
+            "program": "<ABSOLUTE_PATH>/github.com/bpfman/bpfman/target/debug/bpfman", // Local path to latest debug binary.
             "initCommands": [
                 "platform select remote-linux", // Execute `platform list` for a list of available remote platform plugins.
                 "platform connect connect://<IP_ADDRESS_OF_VM>:8081", // replace <IP_ADDRESS_OF_VM>
@@ -20,11 +20,11 @@
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=bpfd",
-                    "--package=bpfd"
+                    "--bin=bpfman",
+                    "--package=bpfman"
                 ],
                 "filter": {
-                    "name": "bpfd",
+                    "name": "bpfman",
                     "kind": "bin"
                 }
             },

@@ -1,7 +1,7 @@
 use std::process::Command;
 
 use assert_cmd::prelude::*;
-use bpfd_api::util::directories::{
+use bpfman_api::util::directories::{
     RTDIR_FS_MAPS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP, STDIR_BYTECODE_IMAGE_CONTENT_STORE,
 };
 use log::debug;
@@ -30,9 +30,9 @@ fn test_unix_socket_load_unload_xdp() {
 
     cfgfile_append_unix_socket();
 
-    let _bpfd_guard = start_bpfd().unwrap();
+    let _bpfman_guard = start_bpfman().unwrap();
 
-    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
     debug!("Installing xdp_pass programs");
 
@@ -55,7 +55,7 @@ fn test_unix_socket_load_unload_xdp() {
         for _ in 0..5 {
             let priority = rng.gen_range(1..255);
             let (prog_id, _) = add_xdp(
-                DEFAULT_BPFD_IFACE,
+                DEFAULT_BPFMAN_IFACE,
                 priority,
                 Some(globals.clone()),
                 Some(proceed_on.clone()),
@@ -81,9 +81,9 @@ fn test_unix_socket_load_unload_xdp() {
 fn test_load_unload_xdp() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    let bpfd_guard = start_bpfd().unwrap();
+    let bpfman_guard = start_bpfman().unwrap();
 
-    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
     debug!("Installing xdp_pass programs");
 
@@ -106,7 +106,7 @@ fn test_load_unload_xdp() {
         for _ in 0..5 {
             let priority = rng.gen_range(1..255);
             let (prog_id, _) = add_xdp(
-                DEFAULT_BPFD_IFACE,
+                DEFAULT_BPFMAN_IFACE,
                 priority,
                 Some(globals.clone()),
                 Some(proceed_on.clone()),
@@ -124,8 +124,8 @@ fn test_load_unload_xdp() {
     assert!(bpffs_has_entries(RTDIR_FS_XDP));
 
     // Verify rule persistence between restarts
-    drop(bpfd_guard);
-    let _bpfd_guard = start_bpfd().unwrap();
+    drop(bpfman_guard);
+    let _bpfman_guard = start_bpfman().unwrap();
 
     verify_and_delete_programs(loaded_ids);
 
@@ -136,15 +136,15 @@ fn test_load_unload_xdp() {
 fn test_map_sharing_load_unload_xdp() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    let _bpfd_guard = start_bpfd().unwrap();
+    let _bpfman_guard = start_bpfman().unwrap();
     let load_type = LoadType::Image;
 
-    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
     // Load first program, which will own the map.
     debug!("Installing xdp_counter map owner program 1");
     let (map_owner_id, stdout_1) = add_xdp(
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         50,
         None, // globals
         None, // proceed_on
@@ -179,7 +179,7 @@ fn test_map_sharing_load_unload_xdp() {
         Err(_) => None,
     };
     let (shared_owner_id, stdout_2) = add_xdp(
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         50,
         None, // globals
         None, // proceed_on
@@ -217,10 +217,10 @@ fn test_map_sharing_load_unload_xdp() {
     assert!(map_pin_path_2 == map_pin_path);
 
     // Unload the Map Owner Program
-    bpfd_del_program(&(map_owner_id.unwrap()));
+    bpfman_del_program(&(map_owner_id.unwrap()));
 
     // Retrive the Program sharing the map
-    let stdout_3 = bpfd_get(shared_owner_id.as_ref().unwrap());
+    let stdout_3 = bpfman_get(shared_owner_id.as_ref().unwrap());
     let binding_3 = stdout_3.unwrap();
 
     // Verify "Map Used By:" field is set to only the
@@ -230,16 +230,16 @@ fn test_map_sharing_load_unload_xdp() {
     assert!(map_used_by_3[0] == *(shared_owner_id.as_ref().unwrap()));
 
     // Unload the Map Sharing Program
-    bpfd_del_program(&(shared_owner_id.unwrap()));
+    bpfman_del_program(&(shared_owner_id.unwrap()));
 }
 
 #[integration_test]
 fn test_load_unload_tc() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    let _bpfd_guard = start_bpfd().unwrap();
+    let _bpfman_guard = start_bpfman().unwrap();
 
-    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
     debug!("Installing ingress tc programs");
 
@@ -268,7 +268,7 @@ fn test_load_unload_tc() {
             let priority = rng.gen_range(1..255);
             let (prog_id, _) = add_tc(
                 "ingress",
-                DEFAULT_BPFD_IFACE,
+                DEFAULT_BPFMAN_IFACE,
                 priority,
                 Some(globals.clone()),
                 Some(proceed_on.clone()),
@@ -282,7 +282,7 @@ fn test_load_unload_tc() {
     assert_eq!(loaded_ids.len(), 10);
 
     // Verify TC filter is using correct priority
-    let output = tc_filter_list(DEFAULT_BPFD_IFACE).unwrap();
+    let output = tc_filter_list(DEFAULT_BPFMAN_IFACE).unwrap();
     assert!(output.contains("pref 50"));
     assert!(output.contains("handle 0x2"));
 
@@ -292,13 +292,13 @@ fn test_load_unload_tc() {
 
     assert!(!bpffs_has_entries(RTDIR_FS_TC_INGRESS));
 
-    let output = tc_filter_list(DEFAULT_BPFD_IFACE).unwrap();
+    let output = tc_filter_list(DEFAULT_BPFMAN_IFACE).unwrap();
     assert!(output.trim().is_empty());
 }
 
 #[integration_test]
 fn test_load_unload_tracepoint() {
-    let _bpfd_guard = start_bpfd().unwrap();
+    let _bpfman_guard = start_bpfman().unwrap();
 
     debug!("Installing tracepoint programs");
 
@@ -321,7 +321,7 @@ fn test_load_unload_tracepoint() {
 
 #[integration_test]
 fn test_load_unload_uprobe() {
-    let _bpfd_guard = start_bpfd().unwrap();
+    let _bpfman_guard = start_bpfman().unwrap();
 
     debug!("Installing uprobe program");
 
@@ -345,7 +345,7 @@ fn test_load_unload_uprobe() {
 
 #[integration_test]
 fn test_load_unload_uretprobe() {
-    let _bpfd_guard = start_bpfd().unwrap();
+    let _bpfman_guard = start_bpfman().unwrap();
 
     debug!("Installing uretprobe program");
 
@@ -369,7 +369,7 @@ fn test_load_unload_uretprobe() {
 
 #[integration_test]
 fn test_load_unload_kprobe() {
-    let _bpfd_guard = start_bpfd().unwrap();
+    let _bpfman_guard = start_bpfman().unwrap();
 
     debug!("Installing kprobe program");
 
@@ -388,7 +388,7 @@ fn test_load_unload_kprobe() {
 
 #[integration_test]
 fn test_load_unload_kretprobe() {
-    let _bpfd_guard = start_bpfd().unwrap();
+    let _bpfman_guard = start_bpfman().unwrap();
 
     debug!("Installing kretprobe program");
 
@@ -417,11 +417,11 @@ fn test_pull_bytecode() {
         std::fs::remove_dir_all(STDIR_BYTECODE_IMAGE_CONTENT_STORE).unwrap();
     }
 
-    let _bpfd_guard = start_bpfd().unwrap();
+    let _bpfman_guard = start_bpfman().unwrap();
 
     debug!("Pull bytecode image");
 
-    let _result = bpfd_pull_bytecode().unwrap();
+    let _result = bpfman_pull_bytecode().unwrap();
 
     let path = get_image_path();
     assert!(path.exists());
@@ -430,9 +430,9 @@ fn test_pull_bytecode() {
 #[integration_test]
 fn test_list_with_metadata() {
     let _namespace_guard = create_namespace().unwrap();
-    let bpfd_guard = start_bpfd().unwrap();
+    let bpfman_guard = start_bpfman().unwrap();
 
-    assert!(iface_exists(DEFAULT_BPFD_IFACE));
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
     debug!("Installing xdp_pass programs");
 
@@ -455,7 +455,7 @@ fn test_list_with_metadata() {
         for _ in 0..2 {
             let priority = rng.gen_range(1..255);
             let (prog_id, _) = add_xdp(
-                DEFAULT_BPFD_IFACE,
+                DEFAULT_BPFMAN_IFACE,
                 priority,
                 Some(globals.clone()),
                 Some(proceed_on.clone()),
@@ -472,7 +472,7 @@ fn test_list_with_metadata() {
     let key = "uuid=ITS_BPF_NOT_EBPF";
     let priority = rng.gen_range(1..255);
     let (prog_id, _) = add_xdp(
-        DEFAULT_BPFD_IFACE,
+        DEFAULT_BPFMAN_IFACE,
         priority,
         Some(globals.clone()),
         Some(proceed_on.clone()),
@@ -486,7 +486,7 @@ fn test_list_with_metadata() {
 
     debug!("Listing programs with metadata {key}");
     // ensure listing with metadata works
-    let list_output = bpfd_list(Some(vec![key])).unwrap();
+    let list_output = bpfman_list(Some(vec![key])).unwrap();
 
     assert!(list_output.contains(&id));
 
@@ -497,8 +497,8 @@ fn test_list_with_metadata() {
     assert!(bpffs_has_entries(RTDIR_FS_XDP));
 
     // Verify rule persistence between restarts
-    drop(bpfd_guard);
-    let _bpfd_guard = start_bpfd().unwrap();
+    drop(bpfman_guard);
+    let _bpfman_guard = start_bpfman().unwrap();
 
     verify_and_delete_programs(loaded_ids);
 

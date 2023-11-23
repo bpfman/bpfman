@@ -2,7 +2,7 @@
 
 delete_directories() {
     # Remove directories
-    echo "Deleting \"bpfd\" specific directories"
+    echo "Deleting \"bpfman\" specific directories"
     echo "  Deleting \"${CONFIGURATION_DIR}\""
     rm -rf "${CONFIGURATION_DIR}"
     echo "  Deleting \"${RUNTIME_DIR}\""
@@ -47,8 +47,8 @@ user_cleanup() {
     delete_directories
 
     # TO BE REMOVED!
-    # Left around to cleanup deprecated `bpfd` user and user group
-    USER_BPFD="bpfd"
-    USER_GROUP="bpfd"
-    delete_user "${USER_BPFD}" "${USER_GROUP}"
+    # Left around to cleanup deprecated `bpfman` user and user group
+    USER_BPFMAN="bpfman"
+    USER_GROUP="bpfman"
+    delete_user "${USER_BPFMAN}" "${USER_GROUP}"
 }

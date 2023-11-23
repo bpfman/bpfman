@@ -71,9 +71,9 @@ install() {
     if [ -z "${reinstall}" ]; then
         reinstall=false
     fi
-    start_bpfd=$2
-    if [ -z "${start_bpfd}" ]; then
-        start_bpfd=false
+    start_bpfman=$2
+    if [ -z "${start_bpfman}" ]; then
+        start_bpfman=false
     fi
     release=$3
     if [ -z "${release}" ]; then
@@ -83,36 +83,36 @@ install() {
     echo "Copy binaries:"
 
     if [ "${reinstall}" == true ]; then
-        systemctl status bpfd | grep "Active:" | grep running &>/dev/null
+        systemctl status bpfman | grep "Active:" | grep running &>/dev/null
         if [ $? -eq 0 ]; then
-            echo "  Stopping \"${BIN_BPFD}.service\""
-            systemctl stop ${BIN_BPFD}.service
-            start_bpfd=true
+            echo "  Stopping \"${BIN_BPFMAN}.service\""
+            systemctl stop ${BIN_BPFMAN}.service
+            start_bpfman=true
         fi
     fi
 
-    copy_bin "${BIN_BPFD}" ${release}
+    copy_bin "${BIN_BPFMAN}" ${release}
     copy_bin "${BIN_BPFCTL}" ${release}
 
     if [ "${reinstall}" == false ]; then
         echo "Copy service file:"
-        copy_svc "${BIN_BPFD}"
+        copy_svc "${BIN_BPFMAN}"
         systemctl daemon-reload
     fi
 
-    if [ "${start_bpfd}" == true ]; then
-        echo "  Starting \"${BIN_BPFD}.service\""
-        systemctl start ${BIN_BPFD}.service
+    if [ "${start_bpfman}" == true ]; then
+        echo "  Starting \"${BIN_BPFMAN}.service\""
+        systemctl start ${BIN_BPFMAN}.service
     fi
 }
 
 uninstall() {
     echo "Remove service file:"
-    del_svc "${BIN_BPFD}"
+    del_svc "${BIN_BPFMAN}"
 
     echo "Remove binaries:"
     del_bin "${BIN_BPFCTL}"
-    del_bin "${BIN_BPFD}"
+    del_bin "${BIN_BPFMAN}"
 
     del_kubectl_plugin
 }

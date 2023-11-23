@@ -1,8 +1,13 @@
-anfredette:
-  name: Andre Fredette
-  description: Senior Principal Software Engineer at Red Hat.  Maintainer on bpfd project.
-  avatar: https://github.com/anfredette.png
-shaneutt:
-  name: Shane Utt
-  description: Staff Software Engineer at Kong. Kubernetes SIG Network Chair and Gateway API Maintainer.
-  avatar: https://github.com/shaneutt.png
+authors:
+  anfredette:
+    name: Andre Fredette
+    description: Senior Principal Software Engineer at Red Hat.  Maintainer on bpfman project.
+    avatar: https://github.com/anfredette.png
+  shaneutt:
+    name: Shane Utt
+    description: Staff Software Engineer at Kong. Kubernetes SIG Network Chair and Gateway API Maintainer.
+    avatar: https://github.com/shaneutt.png
+  dave-tucker:
+    name: Dave Tucker
+    description: Senior Principal Software Engineer at Red Hat. Creator of the bpfman project.
+    avatar: https://github.com/dave-tucker.png

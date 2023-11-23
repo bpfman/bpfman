@@ -1,0 +1,27 @@
+apiVersion: bpfman.io/v1alpha1
+kind: UprobeProgram
+metadata:
+  labels:
+    app.kubernetes.io/name: uprobeprogram
+  name: uprobe-example
+spec:
+  bpffunctionname: my_uprobe
+  # Select all nodes
+  nodeselector: {}
+  func_name: syscall
+  # offset: 0 # optional offset w/in function
+  target:
+    - /bpfman
+  retprobe: false
+  # pid: 0 # optional pid to execute uprobe for
+  bytecode:
+    image:
+      url: quay.io/bpfman-bytecode/uprobe:latest
+  globaldata:
+    GLOBAL_u8:
+      - 0x01
+    GLOBAL_u32:
+      - 0x0D
+      - 0x0C
+      - 0x0B
+      - 0x0A

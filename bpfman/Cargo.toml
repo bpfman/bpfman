@@ -1,0 +1,61 @@
+[package]
+description = "A system daemon for loading BPF programs"
+edition = "2021"
+license = "Apache-2.0"
+name = "bpfman"
+repository = "https://github.com/bpfman/bpfman"
+version = "0.3.1"
+
+[[bin]]
+name = "bpfman"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true, features = ["std"] }
+async-trait = { workspace = true }
+aya = { workspace = true }
+base16ct = { workspace = true, features = ["alloc"] }
+bpfman-api = { workspace = true }
+bpfman-csi = { workspace = true }
+caps = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true, features = ["derive", "std"] }
+env_logger = { workspace = true }
+flate2 = { workspace = true, features = ["zlib"] }
+futures = { workspace = true }
+log = { workspace = true }
+netlink-packet-route = { workspace = true }
+nix = { workspace = true, features = [
+    "fs",
+    "mount",
+    "net",
+    "resource",
+    "socket",
+    "user",
+] }
+oci-distribution = { workspace = true, default-features = false, features = [
+    "rustls-tls",
+    "trust-dns",
+] }
+rtnetlink = { workspace = true, features = ["tokio_socket"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["std"] }
+sha2 = { workspace = true }
+sigstore = { workspace = true, features = [
+    "cached-client",
+    "cosign-rustls-tls",
+    "tuf",
+] }
+systemd-journal-logger = { workspace = true }
+tar = { workspace = true }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["full", "signal"] }
+tokio-stream = { workspace = true, features = ["net"] }
+toml = { workspace = true }
+tonic = { workspace = true, features = ["transport"] }
+url = { workspace = true }
+users = { workspace = true }
+
+[dev-dependencies]
+assert_matches = { workspace = true }

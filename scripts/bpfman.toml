@@ -1,0 +1,14 @@
+[interfaces]
+[interface.eth0]
+xdp_mode = "hw" # Valid xdp modes are "hw", "skb" and "drv". Default: "skb".
+
+[[grpc.endpoints]]
+address = "::1"
+enabled = true
+port = 50051
+type = "tcp"
+
+[[grpc.endpoints]]
+enabled = false
+path = "/run/bpfman/bpfman.sock"
+type = "unix"

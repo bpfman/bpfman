@@ -1,10 +1,10 @@
 # Configuration
 
-## bpfd Configuration File
+## bpfman Configuration File
 
-bpfd looks for a configuration file to be present at `/etc/bpfd/bpfd.toml`.
+bpfman looks for a configuration file to be present at `/etc/bpfman/bpfman.toml`.
 If no file is found, defaults are assumed.
-There is an example at `scripts/bpfd.toml`, similar to:
+There is an example at `scripts/bpfman.toml`, similar to:
 
 ```toml
 [interfaces]
@@ -20,11 +20,11 @@ There is an example at `scripts/bpfd.toml`, similar to:
 [[grpc.endpoints]]
   type = "unix"
   enabled = false
-  path = "/run/bpfd/bpfd.sock"
+  path = "/run/bpfman/bpfman.sock"
 ```
 
-`bpfctl` and `bpfd-agent` (which is only used in Kubernetes type deployments) will also read the
-bpfd configuration file (`/etc/bpfd/bpfd.toml`) to retrieve the bpfd-client certificate file locations.
+`bpfctl` and `bpfman-agent` (which is only used in Kubernetes type deployments) will also read the
+bpfman configuration file (`/etc/bpfman/bpfman.toml`) to retrieve the bpfman-client certificate file locations.
 
 ### Config Section: [interfaces]
 
@@ -48,12 +48,12 @@ Valid fields:
 
 ### Config Section: [grpc.endpoints]
 
-In this section different endpoints can be configured for bpfd to listen on. We currently only support Unix sockets.
-Unix domain sockets provide a simpler communication with no encryption. These sockets are owned by the bpfd
+In this section different endpoints can be configured for bpfman to listen on. We currently only support Unix sockets.
+Unix domain sockets provide a simpler communication with no encryption. These sockets are owned by the bpfman
 user and user group when running as a systemd or non-root process.
 
 Valid fields:
 
 - **type**: Specify if the endpoint will listen on a TCP or Unix domain socket. Valid values: ["unix"]
-- **enabled**: Configure whether bpfd should listen on the endpoint. Valid values: ["true"|"false"]
+- **enabled**: Configure whether bpfman should listen on the endpoint. Valid values: ["true"|"false"]
 - **path**: Exclusive to Unix sockets. Specify the path where the socket will be created. Valid values: A valid unix path.

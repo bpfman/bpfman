@@ -12,9 +12,9 @@ import (
 	"syscall"
 	"time"
 
-	bpfdHelpers "github.com/bpfd-dev/bpfd/bpfd-operator/pkg/helpers"
-	gobpfd "github.com/bpfd-dev/bpfd/clients/gobpfd/v1"
-	configMgmt "github.com/bpfd-dev/bpfd/examples/pkg/config-mgmt"
+	bpfmanHelpers "github.com/bpfman/bpfman/bpfman-operator/pkg/helpers"
+	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
+	configMgmt "github.com/bpfman/bpfman/examples/pkg/config-mgmt"
 	"github.com/cilium/ebpf"
 )
 
@@ -24,7 +24,7 @@ type Stats struct {
 }
 
 const (
-	DefaultConfigPath   = "/etc/bpfd/bpfd.toml"
+	DefaultConfigPath   = "/etc/bpfman/bpfman.toml"
 	DefaultByteCodeFile = "bpf_bpfel.o"
 	XdpProgramName      = "go-xdp-counter-example"
 	BpfProgramMapIndex  = "xdp_stats_map"
@@ -68,20 +68,20 @@ func main() {
 			return
 		}
 
-		c := gobpfd.NewBpfdClient(conn)
+		c := gobpfman.NewBpfmanClient(conn)
 
 		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcProgId {
-			var loadRequest *gobpfd.LoadRequest
+			var loadRequest *gobpfman.LoadRequest
 			if paramData.MapOwnerId != 0 {
 				mapOwnerId := uint32(paramData.MapOwnerId)
-				loadRequest = &gobpfd.LoadRequest{
+				loadRequest = &gobpfman.LoadRequest{
 					Bytecode:    paramData.BytecodeSource,
 					Name:        "xdp_stats",
-					ProgramType: *bpfdHelpers.Xdp.Uint32(),
-					Attach: &gobpfd.AttachInfo{
-						Info: &gobpfd.AttachInfo_XdpAttachInfo{
-							XdpAttachInfo: &gobpfd.XDPAttachInfo{
+					ProgramType: *bpfmanHelpers.Xdp.Uint32(),
+					Attach: &gobpfman.AttachInfo{
+						Info: &gobpfman.AttachInfo_XdpAttachInfo{
+							XdpAttachInfo: &gobpfman.XDPAttachInfo{
 								Priority: int32(paramData.Priority),
 								Iface:    paramData.Iface,
 							},
@@ -90,13 +90,13 @@ func main() {
 					MapOwnerId: &mapOwnerId,
 				}
 			} else {
-				loadRequest = &gobpfd.LoadRequest{
+				loadRequest = &gobpfman.LoadRequest{
 					Bytecode:    paramData.BytecodeSource,
 					Name:        "xdp_stats",
-					ProgramType: *bpfdHelpers.Xdp.Uint32(),
-					Attach: &gobpfd.AttachInfo{
-						Info: &gobpfd.AttachInfo_XdpAttachInfo{
-							XdpAttachInfo: &gobpfd.XDPAttachInfo{
+					ProgramType: *bpfmanHelpers.Xdp.Uint32(),
+					Attach: &gobpfman.AttachInfo{
+						Info: &gobpfman.AttachInfo_XdpAttachInfo{
+							XdpAttachInfo: &gobpfman.XDPAttachInfo{
 								Priority: int32(paramData.Priority),
 								Iface:    paramData.Iface,
 							},
@@ -105,8 +105,8 @@ func main() {
 				}
 			}
 
-			// 1. Load Program using bpfd
-			var res *gobpfd.LoadResponse
+			// 1. Load Program using bpfman
+			var res *gobpfman.LoadResponse
 			res, err = c.Load(ctx, loadRequest)
 			if err != nil {
 				conn.Close()
@@ -127,7 +127,7 @@ func main() {
 			// 2. Set up defer to unload program when this is closed
 			defer func(id uint) {
 				log.Printf("Unloading Program: %d\n", id)
-				_, err = c.Unload(ctx, &gobpfd.UnloadRequest{Id: uint32(id)})
+				_, err = c.Unload(ctx, &gobpfman.UnloadRequest{Id: uint32(id)})
 				if err != nil {
 					conn.Close()
 					log.Print(err)

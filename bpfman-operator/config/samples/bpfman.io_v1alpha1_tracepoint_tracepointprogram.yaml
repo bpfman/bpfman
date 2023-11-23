@@ -1,0 +1,23 @@
+apiVersion: bpfman.io/v1alpha1
+kind: TracepointProgram
+metadata:
+  labels:
+    app.kubernetes.io/name: tracepointprogram
+  name: tracepoint-example
+spec:
+  bpffunctionname: enter_openat
+  # Select all nodes
+  nodeselector: {}
+  names:
+    - syscalls/sys_enter_openat
+  bytecode:
+    image:
+      url: quay.io/bpfman-bytecode/tracepoint:latest
+  globaldata:
+    GLOBAL_u8:
+      - 0x01
+    GLOBAL_u32:
+      - 0x0D
+      - 0x0C
+      - 0x0B
+      - 0x0A

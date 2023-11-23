@@ -1,26 +1,26 @@
 # Example eBPF Programs
 
-Example applications that use the `bpfd-go` bindings can be found in the
-[examples/](https://github.com/bpfd-dev/bpfd/tree/main/examples/) directory.
+Example applications that use the `bpfman-go` bindings can be found in the
+[examples/](https://github.com/bpfman/bpfman/tree/main/examples/) directory.
 Current examples include:
 
-* [examples/go-tc-counter/](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tc-counter)
-* [examples/go-tracepoint-counter/](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tracepoint-counter)
-* [examples/go-xdp-counter/](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-xdp-counter)
+* [examples/go-tc-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-tc-counter)
+* [examples/go-tracepoint-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter)
+* [examples/go-xdp-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-xdp-counter)
 
 These examples and the associated documentation is intended to provide the basics on how to deploy
-and manage an eBPF program using bpfd. Each of the examples contain an eBPF Program written in C
-([tc_counter.c](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tc-counter/bpf/tc_counter.c),
-[tracepoint_counter.c](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-tracepoint-counter/bpf/tracepoint_counter.c) and
-[xdp_counter.c](https://github.com/bpfd-dev/bpfd/tree/main/examples/go-xdp-counter/bpf/xdp_counter.c))
+and manage an eBPF program using bpfman. Each of the examples contain an eBPF Program written in C
+([tc_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-tc-counter/bpf/tc_counter.c),
+[tracepoint_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter/bpf/tracepoint_counter.c) and
+[xdp_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-xdp-counter/bpf/xdp_counter.c))
 that is compiled into eBPF bytecode.
 Each time the eBPF program is called, it increments the packet and byte counts in a map that is accessible
 by the userspace portion.
 
 Each of the examples also have a userspace portion written in GO.
-When run locally, the userspace program makes gRPC calls to `bpfd` requesting `bpfd` to load the eBPF program
+When run locally, the userspace program makes gRPC calls to `bpfman` requesting `bpfman` to load the eBPF program
 at the requested hook point (XDP hook point, TC hook point or Tracepoint).
-When run in a Kubernetes deployment, the `bpfd-agent` makes gRPC calls to `bpfd` requesting `bpfd` to load
+When run in a Kubernetes deployment, the `bpfman-agent` makes gRPC calls to `bpfman` requesting `bpfman` to load
 the eBPF program based on a Custom Resource Definition (CRD), which is described in more detail in that section.
 Independent of the deployment, the userspace program then polls the eBPF map every 3 seconds and logs the
 current counts.
@@ -40,5 +40,5 @@ There are two ways to deploy these example applications:
 Notes regarding this document:
 
 - Source of images used in the example documentation can be found in
-  [bpfd Upstream Images](https://docs.google.com/presentation/d/1wU4xu6xeyk9cB3G-Nn-dzkf90j1-EI4PB167G7v-Xl4/edit?usp=sharing).
+  [bpfman Upstream Images](https://docs.google.com/presentation/d/1wU4xu6xeyk9cB3G-Nn-dzkf90j1-EI4PB167G7v-Xl4/edit?usp=sharing).
   Request access if required.

@@ -3,9 +3,9 @@ header:
   - license:
       content: |
         SPDX-License-Identifier: Apache-2.0
-        Copyright Authors of bpfd
+        Copyright Authors of bpfman
     paths:
-      - bpfd
+      - bpfman
       - bpfctl
     paths-ignore:
       - "**/target/**"
@@ -18,7 +18,7 @@ header:
   - license:
       content: |
         SPDX-License-Identifier: GPL-2.0-only
-        Modifications Copyright Authors of bpfd
+        Modifications Copyright Authors of bpfman
     paths:
       - bpf/xdp_dispatcher_v1.bpf.c
       - bpf/xdp_dispatcher_v2.bpf.c
@@ -27,7 +27,7 @@ header:
   - license:
       content: |
         SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
-        Copyright Authors of bpfd
+        Copyright Authors of bpfman
     paths:
       - bpf/tc_dispatcher.bpf.c
       - examples/**/bpf/*.c

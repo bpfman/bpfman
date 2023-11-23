@@ -1,8 +1,8 @@
-# [![Welcome to bpfd](./img/bpfd.svg)](https://bpfd.netlify.app/)
+# [![Welcome to bpfman](./img/bpfman.svg)](https://bpfman.netlify.app/)
 
-bpfd is a system daemon aimed at simplifying the deployment and management of
+bpfman is a system daemon aimed at simplifying the deployment and management of
 eBPF programs. It's goal is to enhance the developer-experience as well as
-provide features to improve security, visibility and program-cooperation. bpfd
+provide features to improve security, visibility and program-cooperation. bpfman
 includes a Kubernetes operator to bring those same features to Kubernetes,
 allowing users to safely deploy eBPF via custom resources across nodes in a
 cluster.
@@ -63,32 +63,32 @@ in Kubernetes include:
       there's no easy way to have fine-grained versioning control of the
       bpfProgram in relation to it's accompanying userspace counterpart.
 
-## What is bpfd?
+## What is bpfman?
 
-bpfd is a software stack that aims to make it easy to load, unload, modify and
-monitor eBPF programs whether on a single host, or in a Kubernetes cluster. bpfd
+bpfman is a software stack that aims to make it easy to load, unload, modify and
+monitor eBPF programs whether on a single host, or in a Kubernetes cluster. bpfman
 includes the following core components:
 
-- bpfd: A system daemon that supports loading, unloading, modifying and
+- bpfman: A system daemon that supports loading, unloading, modifying and
   monitoring of eBPF programs exposed over a gRPC API.
-- eBPF CRDS: bpfd provides a set of CRDs (`XdpProgram`, `TcProgram`, etc.) that
-  provide a way to express intent to load eBPF programs as well as a bpfd
+- eBPF CRDS: bpfman provides a set of CRDs (`XdpProgram`, `TcProgram`, etc.) that
+  provide a way to express intent to load eBPF programs as well as a bpfman
   generated CRD (`BpfProgram`) used to represent the runtime state of loaded
   programs.
-- bpfd-agent: The agent runs in a container in the bpfd daemonset and ensures
+- bpfman-agent: The agent runs in a container in the bpfman daemonset and ensures
   that the requested eBPF programs for a given node are in the desired state.
-- bpfd-operator: An operator, built using [Operator
+- bpfman-operator: An operator, built using [Operator
   SDK](https://sdk.operatorframework.io/), that manages the installation and
-  lifecycle of bpfd-agent and the CRDs in a Kubernetes cluster.
+  lifecycle of bpfman-agent and the CRDs in a Kubernetes cluster.
 
-bpfd is developed in Rust and built on top of Aya, a Rust eBPF library.
+bpfman is developed in Rust and built on top of Aya, a Rust eBPF library.
 
 The benefits of this solution include the following:
 
 - Security
-  - Improved security because only the bpfd daemon, which can be tightly
+  - Improved security because only the bpfman daemon, which can be tightly
       controlled, has the privileges needed to load eBPF programs, while access
-      to the API can be controlled via standard RBAC methods.  Within bpfd, only
+      to the API can be controlled via standard RBAC methods.  Within bpfman, only
       a single thread keeps these capabilities while the other threads (serving
       RPCs) do not.
   - Gives the administrators control over who can load programs.
@@ -98,8 +98,8 @@ The benefits of this solution include the following:
   - Improved visibility into what eBPF programs are running on a system, which
       enhances the debuggability for developers, administrators, and customer
       support.
-  - The greatest benefit is achieved when all apps use bpfd, but even if they
-      don't, bpfd can provide visibility into all the eBPF programs loaded on
+  - The greatest benefit is achieved when all apps use bpfman, but even if they
+      don't, bpfman can provide visibility into all the eBPF programs loaded on
       the nodes in a cluster.
 - Multi-program Support
   - Support for the coexistence of multiple eBPF programs from multiple users.
@@ -114,9 +114,9 @@ The benefits of this solution include the following:
   - developers can stop worrying about program lifecycle (loading, attaching,
       pin management, etc.) and use existing eBPF libraries to interact with
       their program maps using well defined pin points which are managed by
-      bpfd.
+      bpfman.
   - Developers can still use Cilium/libbpf/Aya/etc libraries for eBPF
-      development, and load/unload with bpfd.
+      development, and load/unload with bpfman.
   - Provides eBPF Bytecode Image Specifications that allows fine-grained
       separate versioning control for userspace and kernelspace programs. This
       also allows for signing these container images to verify bytecode
@@ -124,13 +124,13 @@ The benefits of this solution include the following:
 
 For more details, please see the following:
 
-- [Setup and Building bpfd](./getting-started/building-bpfd.md) for instructions
-  on setting up your development environment and building bpfd.
+- [Setup and Building bpfman](./getting-started/building-bpfman.md) for instructions
+  on setting up your development environment and building bpfman.
 - [Tutorial](./getting-started/tutorial.md) for some examples of starting
-  `bpfd`, managing logs, and using `bpfctl`.
+  `bpfman`, managing logs, and using `bpfctl`.
 - [Example eBPF Programs](./getting-started/example-bpf.md) for some examples of
-  eBPF programs written in Go, interacting with `bpfd`.
-- [Deploying the bpfd-operator](./developer-guide/operator-quick-start.md) for
-  details on launching bpfd in a Kubernetes cluster.
+  eBPF programs written in Go, interacting with `bpfman`.
+- [Deploying the bpfman-operator](./developer-guide/operator-quick-start.md) for
+  details on launching bpfman in a Kubernetes cluster.
 - [Meet the Community](./governance/MEETINGS.md) for details on community
   meeting details.

@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright Authors of bpfd
+// Copyright Authors of bpfman
 
 use std::{collections::HashMap, fs, str};
 
 use anyhow::bail;
 use base64::{engine::general_purpose, Engine as _};
-use bpfd_api::{
+use bpfman_api::{
     config::{self, Config},
     util::directories::*,
     v1::{
-        attach_info::Info, bpfd_client::BpfdClient, bytecode_location::Location,
+        attach_info::Info, bpfman_client::BpfmanClient, bytecode_location::Location,
         list_response::ListResult, AttachInfo, BytecodeImage, BytecodeLocation, GetRequest,
         KernelProgramInfo, KprobeAttachInfo, ListRequest, LoadRequest, ProgramInfo,
         PullBytecodeRequest, TcAttachInfo, TracepointAttachInfo, UnloadRequest, UprobeAttachInfo,
@@ -42,7 +42,7 @@ enum Commands {
     LoadFromImage(LoadImageArgs),
     /// Unload an eBPF program using the program id.
     Unload(UnloadArgs),
-    /// List all eBPF programs loaded via bpfd.
+    /// List all eBPF programs loaded via bpfman.
     List(ListArgs),
     /// Get an eBPF program using the program id.
     Get {
@@ -85,7 +85,7 @@ struct ListArgs {
 #[derive(Args)]
 struct LoadFileArgs {
     /// Required: Location of local bytecode file as fully qualified file path.
-    /// Example: --path $HOME/src/bpfd/examples/go-xdp-counter/bpf_bpfel.o
+    /// Example: --path $HOME/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o
     #[clap(short, long, verbatim_doc_comment)]
     path: String,
 
@@ -103,7 +103,7 @@ struct LoadFileArgs {
     global: Option<Vec<GlobalArg>>,
 
     /// Optional: Specify Key/Value metadata to be attached to a program when it
-    /// is loaded by bpfd.
+    /// is loaded by bpfman.
     /// Format: <KEY>=<VALUE>
     ///
     /// This can later be used to `list` a certain subset of programs which contain
@@ -143,7 +143,7 @@ struct LoadImageArgs {
     global: Option<Vec<GlobalArg>>,
 
     /// Optional: Specify Key/Value metadata to be attached to a program when it
-    /// is loaded by bpfd.
+    /// is loaded by bpfman.
     /// Format: <KEY>=<VALUE>
     ///
     /// This can later be used to list a certain subset of programs which contain
@@ -283,7 +283,7 @@ struct UnloadArgs {
 #[derive(Args)]
 struct PullBytecodeArgs {
     /// Required: Container Image URL.
-    /// Example: --image-url quay.io/bpfd-bytecode/xdp_pass:latest
+    /// Example: --image-url quay.io/bpfman-bytecode/xdp_pass:latest
     #[clap(short, long, verbatim_doc_comment)]
     image_url: String,
 
@@ -334,11 +334,11 @@ struct GlobalArg {
 struct ProgTable(Table);
 
 impl ProgTable {
-    fn new_get_bpfd(r: &Option<ProgramInfo>) -> Result<Self, anyhow::Error> {
+    fn new_get_bpfman(r: &Option<ProgramInfo>) -> Result<Self, anyhow::Error> {
         let mut table = Table::new();
 
         table.load_preset(comfy_table::presets::NOTHING);
-        table.set_header(vec![Cell::new("Bpfd State")
+        table.set_header(vec![Cell::new("Bpfman State")
             .add_attribute(comfy_table::Attribute::Bold)
             .add_attribute(comfy_table::Attribute::Underlined)
             .fg(Color::Green)]);
@@ -370,7 +370,7 @@ impl ProgTable {
                     table.add_row(vec!["Path:", &p]);
                 }
             },
-            // not a bpfd program
+            // not a bpfman program
             None => {
                 table.add_row(vec!["NONE"]);
                 return Ok(ProgTable(table));
@@ -780,7 +780,7 @@ fn parse_global_arg(global_arg: &str) -> Result<GlobalArg, std::io::Error> {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // For output to bpfctl commands, eprintln() should be used. This includes
-    // errors returned from bpfd. Every command should print some success indication
+    // errors returned from bpfman. Every command should print some success indication
     // or a meaningful error.
     // logs (warn!(), info!(), debug!()) can be used by developers to help debug
     // failure cases. Being a CLI, they will be limited in their use. To see logs
@@ -790,7 +790,7 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    let mut config = if let Ok(c) = fs::read_to_string(CFGPATH_BPFD_CONFIG) {
+    let mut config = if let Ok(c) = fs::read_to_string(CFGPATH_BPFMAN_CONFIG) {
         c.parse().unwrap_or_else(|_| {
             warn!("Unable to parse config file, using defaults");
             Config::default()
@@ -833,7 +833,7 @@ fn select_channel(config: &mut Config) -> Option<Channel> {
 }
 
 async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result<()> {
-    let mut client = BpfdClient::new(channel);
+    let mut client = BpfmanClient::new(channel);
     match command {
         Commands::LoadFromFile(l) => {
             let bytecode = match command.get_bytecode_location() {
@@ -864,7 +864,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
             });
             let response = client.load(request).await?.into_inner();
 
-            ProgTable::new_get_bpfd(&response.info)?.print();
+            ProgTable::new_get_bpfman(&response.info)?.print();
             ProgTable::new_get_unsupported(&response.kernel_info)?.print();
         }
 
@@ -897,7 +897,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
             });
             let response = client.load(request).await?.into_inner();
 
-            ProgTable::new_get_bpfd(&response.info)?.print();
+            ProgTable::new_get_bpfman(&response.info)?.print();
             ProgTable::new_get_unsupported(&response.kernel_info)?.print();
         }
 
@@ -918,7 +918,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
                     .iter()
                     .map(|(k, v)| (k.to_owned(), v.to_owned()))
                     .collect(),
-                bpfd_programs_only: Some(!l.all),
+                bpfman_programs_only: Some(!l.all),
             });
             let response = client.list(request).await?.into_inner();
             let mut table = ProgTable::new_list();
@@ -935,7 +935,7 @@ async fn execute_request(command: &Commands, channel: Channel) -> anyhow::Result
             let request = tonic::Request::new(GetRequest { id: *id });
             let response = client.get(request).await?.into_inner();
 
-            ProgTable::new_get_bpfd(&response.info)?.print();
+            ProgTable::new_get_bpfman(&response.info)?.print();
             ProgTable::new_get_unsupported(&response.kernel_info)?.print();
         }
         Commands::PullBytecode(l) => {

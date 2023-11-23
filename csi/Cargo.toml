@@ -2,8 +2,8 @@
 description = "gRPC bindings to the CSI spec"
 edition = "2021"
 license = "Apache-2.0"
-name = "bpfd-csi"
-repository = "https://github.com/bpfd-dev/bpfd"
+name = "bpfman-csi"
+repository = "https://github.com/bpfman/bpfman"
 version = "1.8.0"
 
 [dependencies]

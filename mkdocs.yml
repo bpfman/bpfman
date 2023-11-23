@@ -1,5 +1,5 @@
-site_name: bpfd
-repo_url: https://github.com/bpfd-dev/bpfd
+site_name: bpfman
+repo_url: https://github.com/bpfman/bpfman
 edit_uri: edit/main/docs
 extra_css:
   - stylesheets/extra.css
@@ -8,7 +8,7 @@ site_dir: site
 theme:
   name: material
   language: en
-  logo: img/bpfd_icon.svg
+  logo: img/bpfman_icon.svg
   favicon: img/favicon.ico
   palette:
     - media: "(prefers-color-scheme: light)"
@@ -50,9 +50,9 @@ markdown_extensions:
 nav:
   - Introduction: index.md
   - Getting Started:
-      - Setup and Building: getting-started/building-bpfd.md
-      - Run bpfd From Release Image: getting-started/running-release.md
-      - Bpfd on Linux Tutorial: getting-started/tutorial.md
+      - Setup and Building: getting-started/building-bpfman.md
+      - Run bpfman From Release Image: getting-started/running-release.md
+      - Bpfman on Linux Tutorial: getting-started/tutorial.md
       - bpfctl Guide: getting-started/bpfctl-guide.md
       - Example eBPF Programs: getting-started/example-bpf.md
       - Deploying Example eBPF Programs On Local Host: getting-started/example-bpf-local.md
@@ -60,11 +60,11 @@ nav:
   - Developer Guide:
       - Contributing: governance/CONTRIBUTING.md
       - Reviewing Guide: governance/REVIEWING.md
-      - Deploying the bpfd-operator: developer-guide/operator-quick-start.md
-      - Developing the bpfd-operator: developer-guide/develop-operator.md
+      - Deploying the bpfman-operator: developer-guide/operator-quick-start.md
+      - Developing the bpfman-operator: developer-guide/develop-operator.md
       - Kubernetes CRD API-Reference: developer-guide/api-spec.md
       - eBPF Bytecode Image Specifications: developer-guide/shipping-bytecode.md
-      - bpfd Container Images: developer-guide/image-build.md
+      - bpfman Container Images: developer-guide/image-build.md
       - Documentation: developer-guide/documentation.md
       - Linux Capabilities: developer-guide/linux-capabilities.md
       - Logging: developer-guide/logging.md
@@ -91,4 +91,4 @@ plugins:
       post_excerpt_max_authors: 2
   - search
 
-copyright: Copyright &copy; 2021-2023 The bpfd contributors
+copyright: Copyright &copy; 2021-2023 The bpfman contributors

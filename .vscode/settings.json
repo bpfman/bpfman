@@ -1,7 +1,7 @@
 {
   "rust-analyzer.check.allTargets": true,
   "yaml.schemas": {
-    "https://json.schemastore.org/github-workflow.json": "file:///home/dave/dev/bpfd/.github/workflows/build.yml"
+    "https://json.schemastore.org/github-workflow.json": "file:///home/dave/dev/bpfman/.github/workflows/build.yml"
   },
   "rust-analyzer.check.command": "clippy"
 }

@@ -1,0 +1,27 @@
+# permissions for end users to view bpfprograms.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: bpfprogram-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: bpfman-operator
+    app.kubernetes.io/part-of: bpfman-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: bpfprogram-viewer-role
+rules:
+  - apiGroups:
+      - bpfman.io
+    resources:
+      - bpfprograms
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - bpfman.io
+    resources:
+      - bpfprograms/status
+    verbs:
+      - get

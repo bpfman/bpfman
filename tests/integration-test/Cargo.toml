@@ -7,7 +7,7 @@ version = "0.1.0"
 [dependencies]
 anyhow = { workspace = true, features = ["std"] }
 assert_cmd = { workspace = true }
-bpfd-api = { workspace = true }
+bpfman-api = { workspace = true }
 env_logger = { workspace = true }
 integration-test-macros = { workspace = true }
 inventory = { workspace = true }

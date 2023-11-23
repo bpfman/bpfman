@@ -1,0 +1,8 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+  - bpfman.io_v1alpha1_xdp_pass_xdpprogram.yaml
+  - bpfman.io_v1alpha1_tracepoint_tracepointprogram.yaml
+  - bpfman.io_v1alpha1_tc_pass_tcprogram.yaml
+  - bpfman.io_v1alpha1_kprobe_kprobeprogram.yaml
+  - bpfman.io_v1alpha1_uprobe_uprobeprogram.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

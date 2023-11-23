@@ -1,11 +1,11 @@
-* @bpfd-dev/bpfd-maintainers
+* @bpfman/bpfman-maintainers
 
-./bpfd @dave-tucker
-./bpfd/src/oci_utils @astoycos
-./bpfd/src/multiprog/tc.rs @anfredette
-./bpfd/src/certs.rs @Billy99
-./bpfd-api @dave-tucker
+./bpfman @dave-tucker
+./bpfman/src/oci_utils @astoycos
+./bpfman/src/multiprog/tc.rs @anfredette
+./bpfman/src/certs.rs @Billy99
+./bpfman-api @dave-tucker
 ./bpfctl @dave-tucker
-./bpfd-operator @astoycos
+./bpfman-operator @astoycos
 ./examples/go-tc-counter @anfredette
 ./examples/go-xdp-counter @Billy99
