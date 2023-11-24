@@ -28,7 +28,7 @@ Here are some links to help in your bpfman journey (all links are from the bpfma
 - [Setup and Building bpfman](https://bpfman.io/getting-started/building-bpfman/) for
   instructions on setting up your development environment and building bpfman.
 - [Tutorial](https://bpfman.io/getting-started/tutorial/) for some examples of starting
-  `bpfman`, managing logs, and using `bpfctl`.
+  `bpfman`, managing logs, and using the CLI.
 - [Example eBPF Programs](https://bpfman.io/getting-started/example-bpf/) for some
   examples of eBPF programs written in Go, interacting with `bpfman`.
 - [How to Deploy bpfman on Kubernetes](https://bpfman.io/developer-guide/develop-operator/) for details on launching

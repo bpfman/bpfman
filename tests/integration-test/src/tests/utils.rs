@@ -82,6 +82,7 @@ pub fn start_bpfman() -> Result<ChildGuard> {
     debug!("Starting bpfman");
 
     let bpfman_process = Command::cargo_bin("bpfman")?
+        .args(["system", "service"])
         .env("RUST_LOG", "bpfman=debug")
         .spawn()
         .map(|c| ChildGuard {
@@ -92,7 +93,7 @@ pub fn start_bpfman() -> Result<ChildGuard> {
     // Wait for up to 5 seconds for bpfman to be ready
     sleep(Duration::from_millis(100));
     for i in 1..51 {
-        if let Err(e) = Command::cargo_bin("bpfctl")?.args(["list"]).ok() {
+        if let Err(e) = Command::cargo_bin("bpfman")?.args(["list"]).ok() {
             if i == 50 {
                 panic!("bpfman not ready after {} ms. Error:\n{}", i * 100, e);
             } else {
@@ -125,7 +126,7 @@ pub fn cfgfile_remove() {
     fs::remove_file(CFGPATH_BPFMAN_CONFIG).expect("could not remove bpfman.toml file");
 }
 
-/// Install an xdp program with bpfctl
+/// Install an xdp program with bpfman
 #[allow(clippy::too_many_arguments)]
 pub fn add_xdp(
     iface: &str,
@@ -141,14 +142,13 @@ pub fn add_xdp(
     let p = priority.to_string();
     let owner_id: String;
 
-    let mut args = Vec::new();
-
+    let mut args = vec!["load"];
     match load_type {
         LoadType::Image => {
-            args.push("load-from-image");
+            args.push("image");
         }
         LoadType::File => {
-            args.push("load-from-file");
+            args.push("file");
         }
     }
 
@@ -179,12 +179,12 @@ pub fn add_xdp(
         args.extend(p_o);
     }
 
-    let output = Command::cargo_bin("bpfctl")
-        .expect("bpfctl missing")
+    let output = Command::cargo_bin("bpfman")
+        .expect("bpfman missing")
         .args(args)
         .ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let prog_id = bpfctl_output_parse_id(&stdout);
+    let prog_id = bpfman_output_parse_id(&stdout);
     assert!(!prog_id.is_empty());
     debug!(
         "Successfully added xdp program: {:?} from: {:?}",
@@ -194,7 +194,7 @@ pub fn add_xdp(
     (Ok(prog_id), Ok(stdout))
 }
 
-/// Install a tc program with bpfctl
+/// Install a tc program with bpfman
 #[allow(clippy::too_many_arguments)]
 pub fn add_tc(
     direction: &str,
@@ -208,14 +208,13 @@ pub fn add_tc(
 ) -> (Result<String>, Result<String>) {
     let p = priority.to_string();
 
-    let mut args = Vec::new();
-
+    let mut args = vec!["load"];
     match load_type {
         LoadType::Image => {
-            args.push("load-from-image");
+            args.push("image");
         }
         LoadType::File => {
-            args.push("load-from-file");
+            args.push("file");
         }
     }
 
@@ -244,12 +243,12 @@ pub fn add_tc(
         args.extend(p_o);
     }
 
-    let output = Command::cargo_bin("bpfctl")
-        .expect("bpfctl missing")
+    let output = Command::cargo_bin("bpfman")
+        .expect("bpfman missing")
         .args(args)
         .ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let prog_id = bpfctl_output_parse_id(&stdout);
+    let prog_id = bpfman_output_parse_id(&stdout);
     assert!(!prog_id.is_empty());
     debug!(
         "Successfully added tc {} program: {:?} from: {:?}",
@@ -259,21 +258,20 @@ pub fn add_tc(
     (Ok(prog_id), Ok(stdout))
 }
 
-/// Install a tracepoint program with bpfctl
+/// Install a tracepoint program with bpfman
 pub fn add_tracepoint(
     globals: Option<Vec<&str>>,
     load_type: &LoadType,
     image_url: &str,
     file_path: &str,
 ) -> (Result<String>, Result<String>) {
-    let mut args = Vec::new();
-
+    let mut args = vec!["load"];
     match load_type {
         LoadType::Image => {
-            args.push("load-from-image");
+            args.push("image");
         }
         LoadType::File => {
-            args.push("load-from-file");
+            args.push("file");
         }
     }
 
@@ -289,12 +287,12 @@ pub fn add_tracepoint(
 
     args.extend(["tracepoint", "--tracepoint", "syscalls/sys_enter_openat"]);
 
-    let output = Command::cargo_bin("bpfctl")
-        .expect("bpfctl missing")
+    let output = Command::cargo_bin("bpfman")
+        .expect("bpfman missing")
         .args(args)
         .ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let prog_id = bpfctl_output_parse_id(&stdout);
+    let prog_id = bpfman_output_parse_id(&stdout);
     assert!(!prog_id.is_empty());
     debug!(
         "Successfully added tracepoint program: {:?} from: {:?}",
@@ -303,24 +301,23 @@ pub fn add_tracepoint(
     (Ok(prog_id), Ok(stdout))
 }
 
-/// Attach a uprobe program to bpfctl with bpfctl
+/// Attach a uprobe program to bpfman with bpfman
 pub fn add_uprobe(
     globals: Option<Vec<&str>>,
     load_type: &LoadType,
     image_url: &str,
     file_path: &str,
 ) -> Result<String> {
-    let bpfctl_cmd = Command::cargo_bin("bpfctl")?;
-    let bpfctl_path = bpfctl_cmd.get_program().to_str().unwrap();
+    let bpfman_cmd = Command::cargo_bin("bpfman")?;
+    let bpfman_path = bpfman_cmd.get_program().to_str().unwrap();
 
-    let mut args = Vec::new();
-
+    let mut args = vec!["load"];
     match load_type {
         LoadType::Image => {
-            args.push("load-from-image");
+            args.push("image");
         }
         LoadType::File => {
-            args.push("load-from-file");
+            args.push("file");
         }
     }
 
@@ -334,11 +331,11 @@ pub fn add_uprobe(
         LoadType::File => args.extend(["-n", "my_uprobe", "--path", file_path]),
     }
 
-    args.extend(["uprobe", "-f", "main", "-t", bpfctl_path]);
+    args.extend(["uprobe", "-f", "main", "-t", bpfman_path]);
 
-    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
+    let output = Command::cargo_bin("bpfman")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let prog_id = bpfctl_output_parse_id(&stdout);
+    let prog_id = bpfman_output_parse_id(&stdout);
     assert!(!prog_id.is_empty());
     debug!(
         "Successfully added uprobe program: {:?} from: {:?}",
@@ -347,24 +344,23 @@ pub fn add_uprobe(
     Ok(prog_id)
 }
 
-/// Attach a uretprobe program to bpfctl with bpfctl
+/// Attach a uretprobe program to bpfman with bpfman
 pub fn add_uretprobe(
     globals: Option<Vec<&str>>,
     load_type: &LoadType,
     image_url: &str,
     file_path: &str,
 ) -> Result<String> {
-    let bpfctl_cmd = Command::cargo_bin("bpfctl")?;
-    let bpfctl_path = bpfctl_cmd.get_program().to_str().unwrap();
+    let bpfman_cmd = Command::cargo_bin("bpfman")?;
+    let bpfman_path = bpfman_cmd.get_program().to_str().unwrap();
 
-    let mut args = Vec::new();
-
+    let mut args = vec!["load"];
     match load_type {
         LoadType::Image => {
-            args.push("load-from-image");
+            args.push("image");
         }
         LoadType::File => {
-            args.push("load-from-file");
+            args.push("file");
         }
     }
 
@@ -378,11 +374,11 @@ pub fn add_uretprobe(
         LoadType::File => args.extend(["-n", "my_uretprobe", "--path", file_path]),
     }
 
-    args.extend(["uprobe", "-f", "main", "-t", bpfctl_path, "-r"]);
+    args.extend(["uprobe", "-f", "main", "-t", bpfman_path, "-r"]);
 
-    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
+    let output = Command::cargo_bin("bpfman")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let prog_id = bpfctl_output_parse_id(&stdout);
+    let prog_id = bpfman_output_parse_id(&stdout);
     assert!(!prog_id.is_empty());
     debug!(
         "Successfully added uretprobe program: {:?} from: {:?}",
@@ -391,21 +387,20 @@ pub fn add_uretprobe(
     Ok(prog_id)
 }
 
-/// Install a kprobe program with bpfctl
+/// Install a kprobe program with bpfman
 pub fn add_kprobe(
     globals: Option<Vec<&str>>,
     load_type: &LoadType,
     image_url: &str,
     file_path: &str,
 ) -> Result<String> {
-    let mut args = Vec::new();
-
+    let mut args = vec!["load"];
     match load_type {
         LoadType::Image => {
-            args.push("load-from-image");
+            args.push("image");
         }
         LoadType::File => {
-            args.push("load-from-file");
+            args.push("file");
         }
     }
 
@@ -421,9 +416,9 @@ pub fn add_kprobe(
 
     args.extend(["kprobe", "-f", "try_to_wake_up"]);
 
-    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
+    let output = Command::cargo_bin("bpfman")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let prog_id = bpfctl_output_parse_id(&stdout);
+    let prog_id = bpfman_output_parse_id(&stdout);
     assert!(!prog_id.is_empty());
     debug!(
         "Successfully added kprobe program: {:?} from: {:?}",
@@ -432,21 +427,20 @@ pub fn add_kprobe(
     Ok(prog_id)
 }
 
-/// Install a kretprobe program with bpfctl
+/// Install a kretprobe program with bpfman
 pub fn add_kretprobe(
     globals: Option<Vec<&str>>,
     load_type: &LoadType,
     image_url: &str,
     file_path: &str,
 ) -> Result<String> {
-    let mut args = Vec::new();
-
+    let mut args = vec!["load"];
     match load_type {
         LoadType::Image => {
-            args.push("load-from-image");
+            args.push("image");
         }
         LoadType::File => {
-            args.push("load-from-file");
+            args.push("file");
         }
     }
 
@@ -462,9 +456,9 @@ pub fn add_kretprobe(
 
     args.extend(["kprobe", "--retprobe", "-f", "try_to_wake_up"]);
 
-    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
+    let output = Command::cargo_bin("bpfman")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let prog_id = bpfctl_output_parse_id(&stdout);
+    let prog_id = bpfman_output_parse_id(&stdout);
     assert!(!prog_id.is_empty());
     debug!(
         "Successfully added kretprobe program: {:?} from: {:?}",
@@ -473,9 +467,9 @@ pub fn add_kretprobe(
     Ok(prog_id)
 }
 
-/// Delete a bpfman program using bpfctl
+/// Delete a bpfman program using bpfman
 pub fn bpfman_del_program(prog_id: &str) {
-    Command::cargo_bin("bpfctl")
+    Command::cargo_bin("bpfman")
         .unwrap()
         .args(["unload", prog_id.trim()])
         .assert()
@@ -485,7 +479,7 @@ pub fn bpfman_del_program(prog_id: &str) {
     debug!("Successfully deleted program: \"{}\"", prog_id.trim());
 }
 
-/// Retrieve the output of bpfctl list
+/// Retrieve the output of bpfman list
 pub fn bpfman_list(metadata_selector: Option<Vec<&str>>) -> Result<String> {
     let mut args = vec!["list"];
     if let Some(g) = metadata_selector {
@@ -493,30 +487,30 @@ pub fn bpfman_list(metadata_selector: Option<Vec<&str>>) -> Result<String> {
         args.extend(g);
     }
 
-    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
+    let output = Command::cargo_bin("bpfman")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout);
     Ok(stdout.unwrap())
 }
 
-/// Retrieve program data for a given program with bpfctl
+/// Retrieve program data for a given program with bpfman
 pub fn bpfman_get(prog_id: &str) -> Result<String> {
-    let output = Command::cargo_bin("bpfctl")
+    let output = Command::cargo_bin("bpfman")
         .unwrap()
         .args(["get", prog_id.trim()])
         .ok();
 
     let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
-    let output_prog_id = bpfctl_output_parse_id(&stdout);
+    let output_prog_id = bpfman_output_parse_id(&stdout);
     assert!(!output_prog_id.is_empty());
     debug!(
-        "Successfully ran \'bpfctl get\' for program: {:?}",
+        "Successfully ran \'bpfman get\' for program: {:?}",
         output_prog_id
     );
     Ok(stdout)
 }
 
 pub fn bpfman_pull_bytecode() -> Result<String> {
-    let mut args = vec!["pull-bytecode"];
+    let mut args = vec!["image", "pull"];
 
     args.extend([
         "--image-url",
@@ -525,7 +519,7 @@ pub fn bpfman_pull_bytecode() -> Result<String> {
         "Always",
     ]);
 
-    let output = Command::cargo_bin("bpfctl")?.args(args).ok();
+    let output = Command::cargo_bin("bpfman")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout);
     Ok(stdout.unwrap())
 }
@@ -535,7 +529,7 @@ pub fn get_image_path() -> PathBuf {
     Path::new(STDIR_BYTECODE_IMAGE_CONTENT_STORE).join(relative_path)
 }
 
-/// Retrieve the output of bpfctl list
+/// Retrieve the output of bpfman list
 pub fn tc_filter_list(iface: &str) -> Result<String> {
     let output = Command::new("tc")
         .args(["filter", "show", "dev", iface, "ingress"])
@@ -802,10 +796,10 @@ pub fn read_trace_pipe_log() -> Result<String> {
 /// Verify that the programs in the loaded_ids list have been loaded.  Then delete them
 /// and verify that they have been deleted.
 pub fn verify_and_delete_programs(loaded_ids: Vec<String>) {
-    // Verify bpfctl list contains the loaded_ids of each program
-    let bpfctl_list = bpfman_list(None).unwrap();
+    // Verify bpfman list contains the loaded_ids of each program
+    let l = bpfman_list(None).unwrap();
     for id in loaded_ids.iter() {
-        assert!(bpfctl_list.contains(id.trim()));
+        assert!(l.contains(id.trim()));
     }
 
     // Delete the installed programs
@@ -814,11 +808,11 @@ pub fn verify_and_delete_programs(loaded_ids: Vec<String>) {
         bpfman_del_program(id)
     }
 
-    // Verify bpfctl list does not contain the loaded_ids of the deleted programs
-    // and that there are no panics if bpfctl does not contain any programs.
-    let bpfctl_list = bpfman_list(None).unwrap();
+    // Verify bpfman list does not contain the loaded_ids of the deleted programs
+    // and that there are no panics if bpfman does not contain any programs.
+    let l = bpfman_list(None).unwrap();
     for id in loaded_ids.iter() {
-        assert!(!bpfctl_list.contains(id.trim()));
+        assert!(!l.contains(id.trim()));
     }
 }
 
@@ -827,7 +821,7 @@ pub fn bpffs_has_entries(path: &str) -> bool {
     PathBuf::from(path).read_dir().unwrap().next().is_some()
 }
 
-fn bpfctl_output_parse_id(stdout: &str) -> String {
+fn bpfman_output_parse_id(stdout: &str) -> String {
     // Regex:
     //   Match the string "\n ID: ".
     //   The {2,} indicates to match the previous token (a space) between 2 and
@@ -846,7 +840,7 @@ fn bpfctl_output_parse_id(stdout: &str) -> String {
     }
 }
 
-pub fn bpfctl_output_map_pin_path(stdout: &str) -> String {
+pub fn bpfman_output_map_pin_path(stdout: &str) -> String {
     // Regex:
     //   Match the string "\n Maps Pin Path: ".
     //   The {2,} indicates to match the previous token (a space) between 2 and
@@ -865,7 +859,7 @@ pub fn bpfctl_output_map_pin_path(stdout: &str) -> String {
     }
 }
 
-pub fn bpfctl_output_map_owner_id(stdout: &str) -> String {
+pub fn bpfman_output_map_owner_id(stdout: &str) -> String {
     // Regex:
     //   Match the string "\n Maps Owner ID: ".
     //   The {2,} indicates to match the previous token (a space) between 2 and
@@ -884,7 +878,7 @@ pub fn bpfctl_output_map_owner_id(stdout: &str) -> String {
     }
 }
 
-pub fn bpfctl_output_xdp_map_used_by(stdout: &str) -> Vec<String> {
+pub fn bpfman_output_xdp_map_used_by(stdout: &str) -> Vec<String> {
     let mut used_by: Vec<String> = Vec::new();
 
     // Regex:
@@ -917,7 +911,7 @@ pub fn bpfctl_output_xdp_map_used_by(stdout: &str) -> Vec<String> {
     used_by
 }
 
-pub fn bpfctl_output_map_ids(stdout: &str) -> Vec<String> {
+pub fn bpfman_output_map_ids(stdout: &str) -> Vec<String> {
     let mut map_ids: Vec<String> = Vec::new();
 
     // Regex:

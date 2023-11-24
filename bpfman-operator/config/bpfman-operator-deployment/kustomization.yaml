@@ -1,8 +1,8 @@
 resources:
-  - deployment.yaml
+- deployment.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 images:
-  - name: quay.io/bpfman/bpfman-operator
-    newName: quay.io/bpfman/bpfman-operator
-    newTag: v0.3.1
+- name: quay.io/bpfman/bpfman-operator
+  newName: quay.io/bpfman/bpfman-operator
+  newTag: latest

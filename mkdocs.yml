@@ -53,7 +53,7 @@ nav:
       - Setup and Building: getting-started/building-bpfman.md
       - Run bpfman From Release Image: getting-started/running-release.md
       - Bpfman on Linux Tutorial: getting-started/tutorial.md
-      - bpfctl Guide: getting-started/bpfctl-guide.md
+      - CLI Guide: getting-started/cli-guide.md
       - Example eBPF Programs: getting-started/example-bpf.md
       - Deploying Example eBPF Programs On Local Host: getting-started/example-bpf-local.md
       - Deploying Example eBPF Programs On Kubernetes: getting-started/example-bpf-k8s.md

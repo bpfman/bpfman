@@ -87,7 +87,7 @@ If protobuf files have changed:
 cargo xtask build-proto
 ```
 
-To build bpfman and bpfctl:
+To build bpfman:
 
 ```console
 cargo build

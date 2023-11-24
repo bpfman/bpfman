@@ -10,23 +10,23 @@ To build directly on a system, make sure all the prerequisites are met, then bui
 
 #### Prerequisites
 
-*This assumes bpfman is already installed and running on the system.
-If not, see [Setup and Building bpfman](./building-bpfman.md).*
+_This assumes bpfman is already installed and running on the system.
+If not, see [Setup and Building bpfman](./building-bpfman.md)._
 
 1. All [requirements defined by the `cilium/ebpf` package](https://github.com/cilium/ebpf#requirements)
 2. libbpf development package to get the required eBPF c headers
 
-    Fedora:
+   Fedora:
 
-    `sudo dnf install libbpf-devel`
+   `sudo dnf install libbpf-devel`
 
-    Ubuntu:
+   Ubuntu:
 
-    `sudo apt-get install libbpf-dev`
+   `sudo apt-get install libbpf-dev`
 
 3. Cilium's `bpf2go` binary
 
-    `go install github.com/cilium/ebpf/cmd/bpf2go@master`
+   `go install github.com/cilium/ebpf/cmd/bpf2go@master`
 
 #### Building Locally
 
@@ -57,6 +57,7 @@ cd bpfman/examples/go-tracepoint-counter/
 go generate
 go build
 ```
+
 ```console
 cd bpfman/examples/go-xdp-counter/
 go generate
@@ -78,17 +79,17 @@ The diagram below shows `go-xdp-counter` example, but the `go-tc-counter` and
 Following the diagram (Purple numbers):
 
 1. When `go-xdp-counter` userspace is started, it will send a gRPC request
-over unix socket to `bpfman` requesting `bpfman` to load the `go-xdp-counter` eBPF bytecode located on disk
-at `bpfman/examples/go-xdp-counter/bpf_bpfel.o` at a priority of 50 and on interface `ens3`.
-These values are configurable as we will see later, but for now we will use the defaults
-(except interface, which is required to be entered).
+   over unix socket to `bpfman` requesting `bpfman` to load the `go-xdp-counter` eBPF bytecode located on disk
+   at `bpfman/examples/go-xdp-counter/bpf_bpfel.o` at a priority of 50 and on interface `ens3`.
+   These values are configurable as we will see later, but for now we will use the defaults
+   (except interface, which is required to be entered).
 2. `bpfman` will load it's `dispatcher` eBPF program, which links to the `go-xdp-counter` eBPF program
-and return a UUID referencing the running program.
-3. `bpfctl list` can be used to show that the eBPF program was loaded.
+   and return a UUID referencing the running program.
+3. `bpfman list` can be used to show that the eBPF program was loaded.
 4. Once the `go-xdp-counter` eBPF bytecode is loaded, the eBPF program will write packet counts
-and byte counts to a shared map.
+   and byte counts to a shared map.
 5. `go-xdp-counter` userspace program periodically reads counters from the shared map and logs
-the value.
+   the value.
 
 #### Running Privileged
 
@@ -134,10 +135,10 @@ sudo ./go-xdp-counter --iface vethff657c7
 :
 ```
 
-Use `bpfctl` to show the `go-xdp-counter` eBPF bytecode was loaded.
+Use the CLI to show the `go-xdp-counter` eBPF bytecode was loaded.
 
 ```console
-sudo bpfctl list
+sudo bpfman list
  Program ID  Name       Type  Load Time
  6211        xdp_stats  xdp   2023-07-17T17:43:58-0400
 ```
@@ -160,9 +161,9 @@ bpfman can load eBPF bytecode from a container image built following the spec de
 [eBPF Bytecode Image Specifications](../developer-guide/shipping-bytecode.md).
 Pre-built eBPF container images for the examples can be loaded from:
 
-* `quay.io/bpfman-bytecode/go-xdp-counter:latest`
-* `quay.io/bpfman-bytecode/go-tc-counter:latest`
-* `quay.io/bpfman-bytecode/go-tracepoint-counter:latest`
+- `quay.io/bpfman-bytecode/go-xdp-counter:latest`
+- `quay.io/bpfman-bytecode/go-tc-counter:latest`
+- `quay.io/bpfman-bytecode/go-tracepoint-counter:latest`
 
 To use the container image, pass the URL to the userspace program:
 
@@ -199,7 +200,7 @@ docker build \
   --build-arg PROGRAM_TYPE=xdp \
   --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
   --build-arg KERNEL_COMPILE_VER=$(uname -r) \
-  -f ../../packaging/container-deployment/Containerfile.bytecode . -t quay.io/$USER/go-xdp-counter-bytecode:latest
+  -f ../../Containerfile.bytecode . -t quay.io/$USER/go-xdp-counter-bytecode:latest
 ```
 
 and
@@ -214,7 +215,7 @@ docker build \
   --build-arg PROGRAM_TYPE=tc \
   --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
   --build-arg KERNEL_COMPILE_VER=$(uname -r) \
-  -f ../../packaging/container-deployment/Containerfile.bytecode . -t quay.io/$USER/go-tc-counter-bytecode:latest
+  -f ../../Containerfile.bytecode . -t quay.io/$USER/go-tc-counter-bytecode:latest
 ```
 
 and
@@ -229,7 +230,7 @@ docker build \
   --build-arg PROGRAM_TYPE=tracepoint \
   --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
   --build-arg KERNEL_COMPILE_VER=$(uname -r) \
-  -f ../../packaging/container-deployment/Containerfile.bytecode . -t quay.io/$USER/go-tracepoint-counter-bytecode:latest
+  -f ../../Containerfile.bytecode . -t quay.io/$USER/go-tracepoint-counter-bytecode:latest
 ```
 
 `bpfman` currently does not provide a method for pre-loading bytecode images
@@ -265,17 +266,17 @@ sudo ./go-tc-counter -iface ens3 -direction ingress -location image://quay.io/$U
 Another way to load the eBPF bytecode is to pre-load the eBPF bytecode and
 pass the associated `bpfman` program id to the userspace program.
 This is similar to how eBPF programs will be loaded in Kubernetes, except `kubectl` commands will be
-used to create Kubernetes CRD objects instead of using `bpfctl`, but that is covered in the next section.
+used to create Kubernetes CRD objects instead of using the CLI, but that is covered in the next section.
 The userspace programs will skip the loading portion and use the program id to find the shared
 map and continue from there.
 
-Referring back to the diagram above, the `load` and `unload` are being done by `bpfctl` and not
+Referring back to the diagram above, the `load` and `unload` are being done by the CLI and not
 `go-xdp-counter` userspace program.
 
-First, use `bpfctl` to load the `go-xdp-counter` eBPF bytecode:
+First, use the CLI to load the `go-xdp-counter` eBPF bytecode:
 
 ```console
-sudo bpfctl load-from-image --image-url quay.io/bpfman-bytecode/go-xdp-counter:latest xdp --iface ens3 --priority 50
+sudo bpfman load image --image-url quay.io/bpfman-bytecode/go-xdp-counter:latest xdp --iface ens3 --priority 50
  Bpfman State
 ---------------
  Name:          xdp_stats
@@ -323,8 +324,8 @@ sudo ./go-xdp-counter -iface ens3 -id 6229
 2022/12/02 17:01:46 Closing Connection for Program: 6229
 ```
 
-Then use `bpfctl` to unload the eBPF bytecode:
+Then use the CLI to unload the eBPF bytecode:
 
 ```console
-sudo bpfctl unload 6229
+sudo bpfman unload 6229
 ```

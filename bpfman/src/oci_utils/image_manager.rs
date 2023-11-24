@@ -31,8 +31,11 @@ use tokio::{
     },
 };
 
-use super::{cosign::CosignVerifier, ImageError};
-use crate::{serve::shutdown_handler, utils::read};
+use crate::{
+    oci_utils::{cosign::CosignVerifier, ImageError},
+    serve::shutdown_handler,
+    utils::read,
+};
 
 #[derive(Debug, Deserialize, Default)]
 pub struct ContainerImageMetadata {

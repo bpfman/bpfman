@@ -23,7 +23,8 @@ use bpfman_api::{
 };
 use log::{debug, info, warn};
 use tokio::{
-    fs, select,
+    fs::{create_dir_all, read_dir, remove_dir_all},
+    select,
     sync::{
         mpsc::{Receiver, Sender},
         oneshot,
@@ -190,7 +191,7 @@ impl BpfManager {
 
     pub(crate) async fn rebuild_state(&mut self) -> Result<(), anyhow::Error> {
         debug!("BpfManager::rebuild_state()");
-        let mut programs_dir = fs::read_dir(RTDIR_PROGRAMS).await?;
+        let mut programs_dir = read_dir(RTDIR_PROGRAMS).await?;
         while let Some(entry) = programs_dir.next_entry().await? {
             let id = entry.file_name().to_string_lossy().parse().unwrap();
             let mut program = Program::load(id)
@@ -198,7 +199,7 @@ impl BpfManager {
             // TODO: Should probably check for pinned prog on bpffs rather than assuming they are attached
             program.set_attached();
             debug!("rebuilding state for program {}", id);
-            self.rebuild_map_entry(id, &mut program);
+            self.rebuild_map_entry(id, &mut program).await;
             self.programs.insert(id, program);
         }
         self.rebuild_dispatcher_state(ProgramType::Xdp, None, RTDIR_XDP_DISPATCHER)
@@ -217,7 +218,7 @@ impl BpfManager {
         direction: Option<Direction>,
         path: &str,
     ) -> Result<(), anyhow::Error> {
-        let mut dispatcher_dir = fs::read_dir(path).await?;
+        let mut dispatcher_dir = read_dir(path).await?;
         while let Some(entry) = dispatcher_dir.next_entry().await? {
             let name = entry.file_name();
             let parts: Vec<&str> = name.to_str().unwrap().split('_').collect();
@@ -905,7 +906,7 @@ impl BpfManager {
         map_owner_id: Option<u32>,
     ) -> Result<(), BpfmanError> {
         if map_owner_id.is_none() {
-            let _ = fs::remove_dir_all(map_pin_path)
+            let _ = remove_dir_all(map_pin_path)
                 .await
                 .map_err(|e| BpfmanError::Error(format!("can't delete map dir: {e}")));
             Ok(())
@@ -968,6 +969,7 @@ impl BpfManager {
                 // Set the permissions on the map_pin_path directory.
                 if let Some(map_pin_path) = data.map_pin_path() {
                     if let Some(path) = map_pin_path.to_str() {
+                        debug!("bpf set dir permissions for {}", path);
                         set_dir_permissions(path, MAPS_MODE).await;
                     } else {
                         return Err(BpfmanError::Error(format!(
@@ -1009,7 +1011,7 @@ impl BpfManager {
                 // No more programs using this map, so remove the entry from the map list.
                 let path = calc_map_pin_path(index);
                 self.maps.remove(&index.clone());
-                fs::remove_dir_all(path)
+                remove_dir_all(path)
                     .await
                     .map_err(|e| BpfmanError::Error(format!("can't delete map dir: {e}")))?;
             } else {
@@ -1031,7 +1033,7 @@ impl BpfManager {
         Ok(())
     }
 
-    fn rebuild_map_entry(&mut self, id: u32, program: &mut Program) {
+    async fn rebuild_map_entry(&mut self, id: u32, program: &mut Program) {
         let map_owner_id = match program.data() {
             Ok(data) => data.map_owner_id(),
             Err(_) => {
@@ -1089,7 +1091,7 @@ pub fn calc_map_pin_path(id: u32) -> PathBuf {
 
 // Create the map_pin_path for a given program.
 pub async fn create_map_pin_path(p: &Path) -> Result<(), BpfmanError> {
-    fs::create_dir_all(p)
+    create_dir_all(p)
         .await
         .map_err(|e| BpfmanError::Error(format!("can't create map dir: {e}")))
 }

@@ -60,7 +60,7 @@ docker build \
  --build-arg PROGRAM_TYPE=xdp \
  --build-arg BYTECODE_FILENAME=pass.bpf.o \
  --build-arg KERNEL_COMPILE_VER=$(uname -r) \
- -f packaging/container-deployment/Containerfile.bytecode \
+ -f Containerfile.bytecode \
  /home/<USER>/bytecode -t quay.io/<USER>/xdp_pass:latest
 ```
 
@@ -70,7 +70,7 @@ Users can also use `skopeo` to ensure the image follows the
 backwards compatible version of the spec:
 
 - `skopeo inspect` will show the correctly configured labels stored in the
-configuration layer (`application/vnd.oci.image.config.v1+json`) of the image.
+  configuration layer (`application/vnd.oci.image.config.v1+json`) of the image.
 
 ```bash
 skopeo inspect docker://quay.io/astoycos/xdp_pass:latest

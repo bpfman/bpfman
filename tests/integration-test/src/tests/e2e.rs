@@ -721,7 +721,7 @@ fn test_load_unload_xdp_maps() {
 
     debug!("Verify xdp_counter map pin directory was created, and maps were pinned");
 
-    let map_pin_path = bpfctl_output_map_pin_path(&binding);
+    let map_pin_path = bpfman_output_map_pin_path(&binding);
     assert!(PathBuf::from(map_pin_path).join("xdp_stats_map").exists());
 
     // Verify rule persistence between restarts
@@ -760,7 +760,7 @@ fn test_load_unload_tc_maps() {
 
     debug!("Verify tc_counter map pin directory was created, and maps were pinned");
 
-    let map_pin_path = bpfctl_output_map_pin_path(&binding);
+    let map_pin_path = bpfman_output_map_pin_path(&binding);
     assert!(PathBuf::from(map_pin_path).join("tc_stats_map").exists());
 
     // Verify rule persistence between restarts
@@ -786,7 +786,7 @@ fn test_load_unload_tracepoint_maps() {
 
     debug!("Verify tracepiont_counter map pin directory was created, and maps were pinned");
 
-    let map_pin_path = bpfctl_output_map_pin_path(&binding);
+    let map_pin_path = bpfman_output_map_pin_path(&binding);
     assert!(PathBuf::from(map_pin_path)
         .join("tracepoint_stats_map")
         .exists());

@@ -11,7 +11,6 @@ fi
 . user.sh
 
 BIN_BPFMAN="bpfman"
-BIN_BPFCTL="bpfctl"
 BIN_BPFMAN_CLIENT="bpfman-client"
 
 # Well known directories
@@ -37,13 +36,13 @@ usage() {
     echo "sudo ./scripts/setup.sh install [--release]"
     echo "    Prepare system for running \"bpfman\" as a systemd service. Performs the"
     echo "    following tasks:"
-    echo "    * Copy \"bpfman\" and \"bpfctl\" binaries to \"/usr/sbin/.\"."
+    echo "    * Copy \"bpfman\" binaries to \"/usr/sbin/.\"."
     echo "    * Copy \"bpfman.service\" to \"/usr/lib/systemd/system/\"."
     echo "    * Run \"systemctl start bpfman.service\" to start the sevice."
     echo "sudo ./scripts/setup.sh setup [--release]"
     echo "    Same as \"install\" above, but don't start the service."
     echo "sudo ./scripts/setup.sh reinstall [--release]"
-    echo "    Only copy the \"bpfman\" and \"bpfctl\" binaries to \"/usr/sbin/.\""
+    echo "    Only copy the \"bpfman\" binaries to \"/usr/sbin/.\""
     echo "    \"bpfman\" service will be restarted if it was running."
     echo "sudo ./scripts/setup.sh uninstall"
     echo "    Unwind all actions performed by \"setup.sh install\" including stopping"

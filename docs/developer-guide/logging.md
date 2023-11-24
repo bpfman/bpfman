@@ -4,7 +4,7 @@ This section describes how to enable logging in different `bpfman` deployments.
 
 ## Local Privileged Bpfman Process
 
-`bpfman` and `bpfctl` use the [env_logger](https://docs.rs/env_logger) crate to log messages to the terminal.
+`bpfman` uses the [env_logger](https://docs.rs/env_logger) crate to log messages to the terminal.
 By default, only `error` messages are logged, but that can be overwritten by setting
 the `RUST_LOG` environment variable.
 Valid values:
@@ -27,21 +27,11 @@ $ sudo RUST_LOG=info /usr/local/bin/bpfman
 [2022-08-08T20:29:31Z INFO  bpfman::server] Loaded static program pass with UUID d9fd88df-d039-4e64-9f63-19f3e08915ce
 ```
 
-`bpfctl` has a minimal set of logs, but the infrastructure is in place if needed for future debugging.
-
-```console
-sudo RUST_LOG=info bpfctl list
-[2023-05-09T12:46:59Z WARN  bpfctl] Unable to read config file, using defaults
-[2023-05-09T12:46:59Z INFO  bpfctl] Using UNIX socket as transport
- Program ID  Name  Type  Load Time
-```
-
 ## Systemd Service
 
 If `bpfman` is running as a systemd service, then `bpfman` will log to journald.
 As with env_logger, by default, `info` and higher messages are logged, but that can be
 overwritten by setting the `RUST_LOG` environment variable.
-`bpfctl` won't be run as a service, so it always uses env_logger.
 
 Example:
 
@@ -54,7 +44,7 @@ After=network.target
 
 [Service]
 Environment="RUST_LOG=Info"    <==== Set Log Level Here
-ExecStart=/usr/sbin/bpfman
+ExecStart=/usr/sbin/bpfman system service
 AmbientCapabilities=CAP_BPF CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_PERFMON CAP_SYS_ADMIN CAP_SYS_RESOURCE
 CapabilityBoundingSet=CAP_BPF CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_PERFMON CAP_SYS_ADMIN CAP_SYS_RESOURCE
 ```

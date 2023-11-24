@@ -30,7 +30,7 @@ a list of one or more names at the end of the command as shown below.
 cargo xtask integration-test -- test_load_unload_xdp test_proceed_on_xdp
 ```
 
-The integration tests start a `bpfman` daemon process, and issue `bpfctl` commands
+The integration tests start a `bpfman` daemon process, and issue CLI commands
 to verify a range of functionality.  For XDP and TC programs that are installed
 on network interfaces, the integration test code creates a test network
 namespace connected to the host by a veth pair on which the programs are
@@ -55,7 +55,7 @@ RUST_LOG=info cargo xtask integration-test -- test_load_unload_xdp test_proceed_
 ```
 
 There are two categories of integration tests: basic and e2e.  The basic tests
-verify basic `bpfctl` functionality such as loading, listing, and unloading
+verify basic CLI functionality such as loading, listing, and unloading
 programs.  The e2e tests verify more advanced functionality such as the setting
 of global variables, priority, and proceed-on by installing the programs,
 creating traffic if needed, and examining logs to confirm that things are

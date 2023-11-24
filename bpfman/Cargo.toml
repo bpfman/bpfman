@@ -15,14 +15,24 @@ anyhow = { workspace = true, features = ["std"] }
 async-trait = { workspace = true }
 aya = { workspace = true }
 base16ct = { workspace = true, features = ["alloc"] }
+base64 = { workspace = true }
 bpfman-api = { workspace = true }
 bpfman-csi = { workspace = true }
 caps = { workspace = true }
 chrono = { workspace = true }
-clap = { workspace = true, features = ["derive", "std"] }
+clap = { workspace = true, features = [
+    "color",
+    "derive",
+    "help",
+    "std",
+    "suggestions",
+    "usage",
+] }
+comfy-table = { workspace = true, features = ["tty"] }
 env_logger = { workspace = true }
 flate2 = { workspace = true, features = ["zlib"] }
 futures = { workspace = true }
+hex = { workspace = true, features = ["std"] }
 log = { workspace = true }
 netlink-packet-route = { workspace = true }
 nix = { workspace = true, features = [
@@ -54,6 +64,7 @@ tokio = { workspace = true, features = ["full", "signal"] }
 tokio-stream = { workspace = true, features = ["net"] }
 toml = { workspace = true }
 tonic = { workspace = true, features = ["transport"] }
+tower = { workspace = true }
 url = { workspace = true }
 users = { workspace = true }
 

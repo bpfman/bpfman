@@ -338,26 +338,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bpfctl"
-version = "0.3.1"
-dependencies = [
- "anyhow",
- "base64 0.21.5",
- "bpfman-api",
- "clap",
- "comfy-table",
- "env_logger",
- "hex",
- "log",
- "prost",
- "serde",
- "tokio",
- "toml",
- "tonic",
- "tower",
-]
-
-[[package]]
 name = "bpfman"
 version = "0.3.1"
 dependencies = [
@@ -366,14 +346,17 @@ dependencies = [
  "async-trait",
  "aya",
  "base16ct",
+ "base64 0.21.5",
  "bpfman-api",
  "bpfman-csi",
  "caps",
  "chrono",
  "clap",
+ "comfy-table",
  "env_logger",
  "flate2",
  "futures",
+ "hex",
  "log",
  "netlink-packet-route",
  "nix 0.27.1",
@@ -391,6 +374,7 @@ dependencies = [
  "tokio-stream",
  "toml",
  "tonic",
+ "tower",
  "url",
  "users",
 ]

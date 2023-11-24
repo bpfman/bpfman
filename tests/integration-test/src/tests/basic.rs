@@ -11,14 +11,14 @@ use super::{integration_test, IntegrationTest};
 use crate::tests::utils::*;
 
 #[integration_test]
-fn test_bpfctl_helptext() {
+fn test_bpfmanhelptext() {
     let args = vec!["list", "-help"];
 
-    assert!(!Command::cargo_bin("bpfctl")
+    assert!(!Command::cargo_bin("bpfman")
         .unwrap()
         .args(args)
         .ok()
-        .expect("bpfctl list --help failed")
+        .expect("bpfman list --help failed")
         .stdout
         .is_empty());
 }
@@ -157,19 +157,19 @@ fn test_map_sharing_load_unload_xdp() {
     let binding_1 = stdout_1.unwrap();
 
     // Verify "Map Used By:" field is set to only the just loaded program.
-    let map_used_by_1 = bpfctl_output_xdp_map_used_by(&binding_1);
+    let map_used_by_1 = bpfman_output_xdp_map_used_by(&binding_1);
     assert!(map_used_by_1.len() == 1);
     assert!(map_used_by_1[0] == *(map_owner_id.as_ref().unwrap()));
 
-    let map_ids_1 = bpfctl_output_map_ids(&binding_1);
+    let map_ids_1 = bpfman_output_map_ids(&binding_1);
 
     // Verify the "Map Owner Id:" is None.
-    let map_owner_id_1 = bpfctl_output_map_owner_id(&binding_1);
+    let map_owner_id_1 = bpfman_output_map_owner_id(&binding_1);
     assert!(map_owner_id_1 == "None");
 
     // Verify the "Map Pin Path:" is set properly.
     let map_pin_path = RTDIR_FS_MAPS.to_string() + "/" + map_owner_id.as_ref().unwrap();
-    let map_pin_path_1 = bpfctl_output_map_pin_path(&binding_1);
+    let map_pin_path_1 = bpfman_output_map_pin_path(&binding_1);
     assert!(map_pin_path_1 == map_pin_path);
 
     // Load second program, which will share the map with the first program.
@@ -193,7 +193,7 @@ fn test_map_sharing_load_unload_xdp() {
 
     // Verify the "Map Used By:" field is set to both loaded program.
     // Order of programs is not guarenteed.
-    let map_used_by_2 = bpfctl_output_xdp_map_used_by(&binding_2);
+    let map_used_by_2 = bpfman_output_xdp_map_used_by(&binding_2);
     assert!(map_used_by_2.len() == 2);
     assert!(
         map_used_by_2[0] == *(map_owner_id.as_ref().unwrap())
@@ -204,16 +204,16 @@ fn test_map_sharing_load_unload_xdp() {
             || map_used_by_2[1] == *(shared_owner_id.as_ref().unwrap())
     );
 
-    let map_ids_2 = bpfctl_output_map_ids(&binding_2);
+    let map_ids_2 = bpfman_output_map_ids(&binding_2);
     // Ensure the map IDs for both programs are the same
     assert_eq!(map_ids_1, map_ids_2);
 
     // Verify the "Map Owner Id:" is set to map_owner_id.
-    let map_owner_id_2 = bpfctl_output_map_owner_id(&binding_2);
+    let map_owner_id_2 = bpfman_output_map_owner_id(&binding_2);
     assert!(map_owner_id_2 == *(map_owner_id.as_ref().unwrap()));
 
     // Verify the "Map Pin Path:" is set properly.
-    let map_pin_path_2 = bpfctl_output_map_pin_path(&binding_2);
+    let map_pin_path_2 = bpfman_output_map_pin_path(&binding_2);
     assert!(map_pin_path_2 == map_pin_path);
 
     // Unload the Map Owner Program
@@ -225,7 +225,7 @@ fn test_map_sharing_load_unload_xdp() {
 
     // Verify "Map Used By:" field is set to only the
     // 2nd loaded program (one sharing the map).
-    let map_used_by_3 = bpfctl_output_xdp_map_used_by(&binding_3);
+    let map_used_by_3 = bpfman_output_xdp_map_used_by(&binding_3);
     assert!(map_used_by_3.len() == 1);
     assert!(map_used_by_3[0] == *(shared_owner_id.as_ref().unwrap()));
 

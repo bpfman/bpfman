@@ -18,7 +18,7 @@ make run-on-kind
 
 ![go-xdp-counter On Kubernetes](../img/gocounter-on-k8s.png)
 
-Instead of using the userspace program or `bpfctl` to load the eBPF bytecode as done in previous sections,
+Instead of using the userspace program or CLI to load the eBPF bytecode as done in previous sections,
 the bytecode will be loaded by creating a Kubernetes CRD object.
 There is a CRD object for each eBPF program type bpfman supports.
 Edit the sample yaml files to customize any configuration values:

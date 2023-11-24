@@ -1,4 +1,4 @@
-## This Containerfile makes use of docker's Buildkit to cache crates between 
+## This Containerfile makes use of docker's Buildkit to cache crates between
 ## builds, dramatically speeding up the local development process.
 FROM rust:1 as bpfman-build
 
@@ -22,24 +22,19 @@ RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry \
     cargo xtask build-ebpf --release --libbpf-dir /usr/src/bpfman/libbpf
 
-# Compile only bpfman 
+# Compile only bpfman
 RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
-    --mount=type=cache,target=/usr/local/cargo/registry \ 
+    --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --release --target x86_64-unknown-linux-musl
 
 RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
     cp /usr/src/bpfman/target/x86_64-unknown-linux-musl/release/bpfman ./bpfman/
 
-RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
-    cp /usr/src/bpfman/target/x86_64-unknown-linux-musl/release/bpfctl ./bpfctl/
-
-## Image for Local testing is much more of a debug image, give it bpftool, tcpdump
-## and bpfctl.
-FROM fedora:36
+## Image for Local testing is much more of a debug image, give it bpftool and tcpdump
+FROM fedora:38
 
 RUN dnf makecache --refresh && dnf -y install bpftool tcpdump
 
 COPY --from=bpfman-build  ./usr/src/bpfman/bpfman .
-COPY --from=bpfman-build  ./usr/src/bpfman/bpfctl .
 
-ENTRYPOINT ["./bpfman"]
+ENTRYPOINT ["./bpfman", "system", "service"]

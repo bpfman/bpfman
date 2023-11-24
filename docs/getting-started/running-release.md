@@ -29,20 +29,15 @@ files and unpack them.
 ```console
 export BPFMAN_REL=0.3.1
 mkdir -p $HOME/src/bpfman-${BPFMAN_REL}/; cd $HOME/src/bpfman-${BPFMAN_REL}/
-wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfctl-linux-x86_64.tar.gz
 wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-linux-x86_64.tar.gz
-
-tar -xzvf bpfctl-linux-x86_64.tar.gz; rm bpfctl-linux-x86_64.tar.gz
 tar -xzvf bpfman-linux-x86_64.tar.gz; rm bpfman-linux-x86_64.tar.gz
 
 $ tree
 .
-├── bpfctl-linux-x86_64.tar.gz
 ├── bpfman-linux-x86_64.tar.gz
 └── target
     └── x86_64-unknown-linux-musl
         └── release
-            ├── bpfctl
             └── bpfman
 ```
 
@@ -56,10 +51,10 @@ sudo RUST_LOG=info ./target/x86_64-unknown-linux-musl/release/bpfman
 :
 ```
 
-To use `bpfctl`:
+To use the CLI:
 
 ```console
-sudo ./target/x86_64-unknown-linux-musl/release/bpfctl list
+sudo ./target/x86_64-unknown-linux-musl/release/bpfman list
  Program ID  Name       Type  Load Time                
 ```
 
@@ -81,14 +76,11 @@ wget https://github.com/bpfman/bpfman/archive/refs/tags/v${BPFMAN_REL}.tar.gz
 tar -xzvf v${BPFMAN_REL}.tar.gz; rm v${BPFMAN_REL}.tar.gz
 cd bpfman-${BPFMAN_REL}
 
-wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfctl-linux-x86_64.tar.gz
 wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-linux-x86_64.tar.gz
-
-tar -xzvf bpfctl-linux-x86_64.tar.gz; rm bpfctl-linux-x86_64.tar.gz
 tar -xzvf bpfman-linux-x86_64.tar.gz; rm bpfman-linux-x86_64.tar.gz
 ```
 
-Run the following command to copy the `bpfman` and `bpfctl` binaries to `/usr/sbin/` and copy a
+Run the following command to copy the `bpfman` binaries to `/usr/sbin/` and copy a
 default `bpfman.service` file to `/usr/lib/systemd/system/`.
 This option will also start the systemd service `bpfman.service` by default.
 

@@ -30,7 +30,7 @@ use crate::{
 };
 
 pub async fn serve(
-    config: Config,
+    config: &Config,
     static_program_path: &str,
     csi_support: bool,
 ) -> anyhow::Result<()> {
@@ -66,7 +66,7 @@ pub async fn serve(
         image_manager.run().await;
     });
 
-    let mut bpf_manager = BpfManager::new(config, rx, itx);
+    let mut bpf_manager = BpfManager::new(config.clone(), rx, itx);
     bpf_manager.rebuild_state().await?;
 
     let static_programs = get_static_programs(static_program_path).await?;
@@ -82,9 +82,10 @@ pub async fn serve(
             info!("Loaded static program with program id {}", kernel_info.id)
         }
     };
+
     if csi_support {
         let storage_manager = StorageManager::new(tx);
-        let storage_manager_handle = tokio::spawn(storage_manager.run());
+        let storage_manager_handle = tokio::spawn(async move { storage_manager.run().await });
         let (_, res_image, res_storage, _) = join!(
             join_listeners(listeners),
             image_manager_handle,

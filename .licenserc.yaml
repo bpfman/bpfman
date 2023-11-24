@@ -6,7 +6,6 @@ header:
         Copyright Authors of bpfman
     paths:
       - bpfman
-      - bpfctl
     paths-ignore:
       - "**/target/**"
       - "**/*.toml"

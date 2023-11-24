@@ -92,7 +92,6 @@ install() {
     fi
 
     copy_bin "${BIN_BPFMAN}" ${release}
-    copy_bin "${BIN_BPFCTL}" ${release}
 
     if [ "${reinstall}" == false ]; then
         echo "Copy service file:"
@@ -111,7 +110,6 @@ uninstall() {
     del_svc "${BIN_BPFMAN}"
 
     echo "Remove binaries:"
-    del_bin "${BIN_BPFCTL}"
     del_bin "${BIN_BPFMAN}"
 
     del_kubectl_plugin
