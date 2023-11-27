@@ -181,8 +181,8 @@ ifeq ($(VERIFY_CODEGEN), true)
 VERIFY_FLAG=--verify-only
 endif
 
-OUTPUT_PKG ?= github.com/bpfman/bpfman/bpfman-operator/pkg/client
-APIS_PKG ?= github.com/bpfman/bpfman/bpfman-operator
+OUTPUT_PKG ?= $(shell pwd)/bpfman-operator/pkg/client
+APIS_PKG ?= $(shell pwd)/bpfman-operator
 CLIENTSET_NAME ?= versioned
 CLIENTSET_PKG_NAME ?= clientset
 COMMON_FLAGS ?= ${VERIFY_FLAG} --go-header-file $(shell pwd)/hack/boilerplate.go.txt
