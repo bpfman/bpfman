@@ -43,7 +43,7 @@ opentelemetry-otlp = { version = "0.14.0", default-features = false }
 opentelemetry-semantic-conventions = { version = "0.13.0" }
 opentelemetry_sdk = { version = "0.21.1", default-features = false }
 predicates = { version = "3.0.4", default-features = false }
-prost = { version = "0.12.2", default-features = false }
+prost = { version = "0.12.3", default-features = false }
 prost-types = { version = "0.12.2", default-features = false }
 quote = { version = "1", default-features = false }
 rand = { version = "0.8", default-features = false }
