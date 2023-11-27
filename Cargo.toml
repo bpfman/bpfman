@@ -65,5 +65,5 @@ toml = { version = "0.7", default-features = false }
 tonic = { version = "0.10.2", default-features = false }
 tonic-build = { version = "0.10.2", default-features = false }
 tower = { version = "0.4.13", default-features = false }
-url = { version = "2.4.0", default-features = false }
+url = { version = "2.5.0", default-features = false }
 users = { version = "0.11.0", default-features = false }
