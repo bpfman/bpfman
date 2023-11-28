@@ -14,18 +14,17 @@ name.
 
 ## Why the name change?
 
-We've been thinking about this for a while. We've been using the name
-`bpfd` for a while now, but we were not the first to use it. There are
-were projects before us that used the name `bpfd`, but since most were
-inactive, we didn't see this as an issue.
+We've been using the name `bpfd` for a while now, but we were not the first to
+use it. There were projects before us that used the name `bpfd`, but since most
+were inactive, originally we didn't see this as an issue.
 
 More recently though the folks at [Meta] have started using the name
 `systemd-bpfd` for their proposed addition to [systemd].
 
-In addition, we've been thinking about the future of the project.
-We've been thinking particularly about security and whether it's
-wise to keep something with `CAP_BPF` capabilities running as a
-daemon - even if we've been very careful.
+In addition, we've been thinking about the future of the project, and
+particularly about security and whether it's wise to keep something with
+`CAP_BPF` capabilities running as a daemon - even if we've been very careful.
+This is similar to the [issues faced by docker](https://docs.docker.com/engine/security/#docker-daemon-attack-surface) which eventually lead to the creation of podman.
 
 This [issue](https://github.com/bpfman/bpfd/issues/693) led us down
 the path of redesigning the project to be daemonless. We'll be
@@ -53,7 +52,7 @@ available.
 
 We've hinted at some of the changes we're planning, and of course, our
 roadmap is always available in [Github]. It's worth mentioning that we're
-also planning expand our release packages to include RPMs and DEBs to make it
+also planning to expand our release packages to include RPMs and DEBs, making it
 even easier to install `bpfman` on your favorite Linux distribution.
 
 ## Thanks!
