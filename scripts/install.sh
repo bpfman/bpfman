@@ -35,8 +35,10 @@ del_bin() {
         exit 1
     fi
 
-    echo "  Removing \"${bin_name}\""
-    rm -f "${DST_BIN_PATH}/${bin_name}"
+    if test -f ${DST_BIN_PATH}/${bin_name}; then
+        echo "  Removing \"${bin_name}\""
+        rm -f "${DST_BIN_PATH}/${bin_name}"
+    fi
 }
 
 copy_svc() {
@@ -58,12 +60,17 @@ del_svc() {
         exit 1
     fi
 
-    echo "  Stopping \"${svc_name}.service\""
-    systemctl disable ${svc_name}.service
-    systemctl stop ${svc_name}.service
+    systemctl status "${svc_name}" &>/dev/null
+    if [ $? -eq 0 ]; then
+        echo "  Stopping \"${svc_name}.service\""
+        systemctl disable ${svc_name}.service
+        systemctl stop ${svc_name}.service
+    fi
 
-    echo "  Removing \"${svc_name}.service\""
-    rm -f "${DST_SVC_PATH}/${svc_name}.service"
+    if test -f ${DST_SVC_PATH}/${svc_name}.service; then
+        echo "  Removing \"${svc_name}.service\""
+        rm -f "${DST_SVC_PATH}/${svc_name}.service"
+    fi
 }
 
 install() {
@@ -113,16 +120,28 @@ uninstall() {
     del_bin "${BIN_BPFMAN}"
 
     del_kubectl_plugin
+
+    # TO BE REMOVED!
+    # Left around to cleanup deprecated `bpfd` binary
+    BIN_BPFD="bpfd"
+    BIN_BPFCTL="bpfctl"
+    del_svc "${BIN_BPFD}"
+    del_bin "${BIN_BPFD}"
+    del_bin "${BIN_BPFCTL}"
 }
 
 # TO BE REMOVED!
-# Left around to cleanup deprecated lubectl plugins
+# Left around to cleanup deprecated kubectl plugins
 del_kubectl_plugin() {
-    echo "Remove kubectl plugins:"
+    if test -f "${DST_KUBECTL_PLUGIN_PATH}/kubectl-bpfprogramconfigs"; then
+        echo "Remove kubectl plugins:"
+        echo "  Deleting \"kubectl-bpfprogramconfigs\""
+        rm -f "${DST_KUBECTL_PLUGIN_PATH}/kubectl-bpfprogramconfigs"
+    fi
 
-    echo "  Deleting \"kubectl-bpfprogramconfigs\""
-    rm -f "${DST_KUBECTL_PLUGIN_PATH}/kubectl-bpfprogramconfigs"
-
-    echo "  Deleting \"kubectl-bpfprograms\""
-    rm -f "${DST_KUBECTL_PLUGIN_PATH}/kubectl-bpfprograms"
+    if test -f "${DST_KUBECTL_PLUGIN_PATH}/kubectl-bpfprograms"; then
+        echo "Remove kubectl plugins:"
+        echo "  Deleting \"kubectl-bpfprograms\""
+        rm -f "${DST_KUBECTL_PLUGIN_PATH}/kubectl-bpfprograms"
+    fi
 }
