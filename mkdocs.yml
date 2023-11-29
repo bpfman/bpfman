@@ -8,8 +8,8 @@ site_dir: site
 theme:
   name: material
   language: en
-  logo: img/bpfman_icon.svg
-  favicon: img/favicon.ico
+  logo: img/favicon.svg
+  favicon: img/favicon.svg
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
