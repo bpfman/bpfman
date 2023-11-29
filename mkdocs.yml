@@ -57,6 +57,7 @@ nav:
       - Example eBPF Programs: getting-started/example-bpf.md
       - Deploying Example eBPF Programs On Local Host: getting-started/example-bpf-local.md
       - Deploying Example eBPF Programs On Kubernetes: getting-started/example-bpf-k8s.md
+      - Troubleshooting: getting-started/troubleshooting.md
   - Developer Guide:
       - Contributing: governance/CONTRIBUTING.md
       - Reviewing Guide: governance/REVIEWING.md

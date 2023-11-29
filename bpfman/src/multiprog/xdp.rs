@@ -157,11 +157,19 @@ impl XdpDispatcher {
                 .unwrap();
         } else {
             let flags = self.mode.as_flags();
-            let link = dispatcher.attach(&iface, flags).unwrap();
+            let link = dispatcher.attach(&iface, flags).map_err(|e| {
+                BpfmanError::Error(format!(
+                    "dispatcher attach failed on interface {iface}: {e}"
+                ))
+            })?;
             let owned_link = dispatcher.take_link(link)?;
             let path = format!("{RTDIR_FS_XDP}/dispatcher_{if_index}_link");
             let _ = TryInto::<FdLink>::try_into(owned_link)
-                .unwrap() // TODO: Don't unwrap, although due to minimum kernel version this shouldn't ever panic
+                .map_err(|e| {
+                    BpfmanError::Error(format!(
+                        "FdLink conversion failed on interface {iface}: {e}"
+                    ))
+                })?
                 .pin(path)
                 .map_err(BpfmanError::UnableToPinLink)?;
         }
