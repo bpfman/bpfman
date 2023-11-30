@@ -214,7 +214,7 @@ impl Node for CsiNode {
                 // TODO(astoycos) all aya calls should be completed by main bpfManager thread.
                 maps.iter().try_for_each(|m| {
                     debug!("Loading map {m} from {core_map_path:?}");
-                    let mut map = MapData::from_pin(core_map_path.join(m)).map_err(|e| {
+                    let map = MapData::from_pin(core_map_path.join(m)).map_err(|e| {
                         Status::new(
                             NPV_NOT_FOUND.into(),
                             format!("map {m} not found in {program_name}'s pinned maps: {e}"),
