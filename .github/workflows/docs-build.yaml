@@ -27,10 +27,12 @@ jobs:
         run: |
           make -C bpfman-operator apidocs.html
 
-      - name: Set Alias
+      - name: Deploy Docs (Release Version)
+        if: startsWith(github.ref_name, 'v')
         run: |
-          echo 'ALIAS=$([[ \"${{ github.ref_name }}\" = v* ]] && echo latest)' >> $GITHUB_ENV
+          mike deploy --push --update-aliases ${{ github.ref_name }} latest
 
-      - name: Build docs
+      - name: Deploy Docs (Development Version)
+        if: github.ref_name == 'main'
         run: |
-          mike deploy -u ${{ github.ref_name }} ${ALIAS} --push
+          mike deploy --push main
