@@ -123,7 +123,7 @@ for that.
 And finally, we learnt that we can't use the AI generated images for our logo.
 Well, not with the generator we used anyway.
 
-## The Final Design Process
+## The (Semi) Final Design Process
 
 I started from scratch, taking inspiration from the AI generated images.
 The bees were drawn first and composed around a hive - as our AI overlords
@@ -134,9 +134,27 @@ What if we added a force field around the hive? That might be cool!
 And so, I added a force field around the hive and played around with the
 colours until I was happy.
 
-Here's the final result:
+Here's what we ended up with:
+
+![semifinal result](./img/2021-11-25/bpfman-logo-semifinal.png)
+
+We consulted a few more people and got some feedback. The general consensus
+was that the logo was too busy... However, the reception to the force field
+was that the favicon I'd mocked would work better as the logo.
+
+## The Final Design
+
+Here's the final design:
 
 ![final result](./img/2021-11-25/bpfman-logo-final.png)
+
+Pretty cool, right? Even if I do say so myself.
+
+Our mascot is a queen bee, because she's the manager of the hive.
+
+The force field, is now no longer a force field - It's a pheramone cloud
+that represents the Queen Mandibular Pheromone (QMP) that the queen bee
+produces to keep the hive organized.
 
 ## Conclusion
 
