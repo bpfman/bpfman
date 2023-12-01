@@ -1,3 +1,3 @@
 # API Specification
 
-REPLACE_WITH_GENERATED_CONTENT
+--8<-- "./bpfman-operator/apidocs.html"

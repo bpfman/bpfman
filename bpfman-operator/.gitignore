@@ -25,3 +25,4 @@ Dockerfile.cross
 *.swp
 *.swo
 *~
+apidocs.html

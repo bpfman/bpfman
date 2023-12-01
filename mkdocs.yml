@@ -91,5 +91,6 @@ plugins:
       post_excerpt: required
       post_excerpt_max_authors: 2
   - search
+  - mike
 
 copyright: Copyright &copy; 2021-2023 The bpfman contributors
