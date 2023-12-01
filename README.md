@@ -1,4 +1,4 @@
-![bpfman logo](./docs/img/bpfman_logo_512.png) <!-- markdownlint-disable-line first-line-heading -->
+![bpfman logo](./docs/img/bpfman_logo_256.png) <!-- markdownlint-disable-line first-line-heading -->
 
 # bpfman: An eBPF Manager
 
@@ -9,8 +9,7 @@ v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](https://www.gnu.org/l
 ![Build status][build-badge] [![Book][book-badge]][book-url]
 [![Netlify Status](https://api.netlify.com/api/v1/badges/557ca612-4b7f-480d-a1cc-43b453502992/deploy-status)](https://app.netlify.com/sites/bpfman/deploys)
 
-[build-badge]:
-    https://img.shields.io/github/actions/workflow/status/bpfman/bpfman/build.yml?branch=main
+[build-badge]: https://img.shields.io/github/actions/workflow/status/bpfman/bpfman/build.yml?branch=main
 [book-badge]: https://img.shields.io/badge/read%20the-book-9cf.svg
 [book-url]: https://bpfman.io/
 
