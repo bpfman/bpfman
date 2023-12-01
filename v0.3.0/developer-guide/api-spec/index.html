@@ -1252,6 +1252,1836 @@
 
 
 <h1 id="api-specification">API Specification</h1>
+<p>Packages:</p>
+<ul>
+<li>
+<a href="#bpfd.dev%2fv1alpha1">bpfd.dev/v1alpha1</a>
+</li>
+</ul>
+<h2 id="bpfd.dev/v1alpha1">bpfd.dev/v1alpha1</h2>
+<p>
+<p>Package v1alpha1 contains API Schema definitions for the
+bpfd.dev API group.</p>
+</p>
+<p>Resource Types:</p>
+<ul><li>
+<a href="#bpfd.dev/v1alpha1.BpfProgram">BpfProgram</a>
+</li><li>
+<a href="#bpfd.dev/v1alpha1.KprobeProgram">KprobeProgram</a>
+</li><li>
+<a href="#bpfd.dev/v1alpha1.TcProgram">TcProgram</a>
+</li><li>
+<a href="#bpfd.dev/v1alpha1.TracepointProgram">TracepointProgram</a>
+</li><li>
+<a href="#bpfd.dev/v1alpha1.UprobeProgram">UprobeProgram</a>
+</li><li>
+<a href="#bpfd.dev/v1alpha1.XdpProgram">XdpProgram</a>
+</li></ul>
+<h3 id="bpfd.dev/v1alpha1.BpfProgram">BpfProgram
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.BpfProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>BpfProgram is the Schema for the Bpfprograms API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfd.dev/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>BpfProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.BpfProgramSpec">
+BpfProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>type</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Type specifies the bpf program type</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maps</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Maps is a map with Keys: Map Names, and Values: Map Pin paths</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.BpfProgramStatus">
+BpfProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.KprobeProgram">KprobeProgram
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.KprobeProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>KprobeProgram is the Schema for the KprobePrograms API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfd.dev/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>KprobeProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.KprobeProgramSpec">
+KprobeProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>func_names</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Functions to attach the kprobe to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>offset</code></br>
+<em>
+uint64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Offset added to the address of the function for kprobe.
+Not allowed for kretprobes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retprobe</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Whether the program is a kretprobe.  Default is false</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.KprobeProgramStatus">
+KprobeProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.TcProgram">TcProgram
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.TcProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>TcProgram is the Schema for the TcProgram API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfd.dev/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>TcProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.TcProgramSpec">
+TcProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>interfaceselector</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.InterfaceSelector">
+InterfaceSelector
+</a>
+</em>
+</td>
+<td>
+<p>Selector to determine the network interface (or interfaces)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>priority</code></br>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Priority specifies the priority of the tc program in relation to
+other programs of the same type with the same attach point. It is a value
+from 0 to 1000 where lower values have higher precedence.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>direction</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Direction specifies the direction of traffic the tc program should
+attach to for a given network device.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>proceedon</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.TcProceedOnValue">
+[]TcProceedOnValue
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProceedOn allows the user to call other tc programs in chain on this exit code.
+Multiple values are supported by repeating the parameter.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.TcProgramStatus">
+TcProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.TracepointProgram">TracepointProgram
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.TracepointProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>TracepointProgram is the Schema for the TracepointPrograms API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfd.dev/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>TracepointProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.TracepointProgramSpec">
+TracepointProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>names</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Names refers to the names of kernel tracepoints to attach the
+bpf program to.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.TracepointProgramStatus">
+TracepointProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.UprobeProgram">UprobeProgram
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.UprobeProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>UprobeProgram is the Schema for the UprobePrograms API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfd.dev/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>UprobeProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.UprobeProgramSpec">
+UprobeProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>func_name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Function to attach the uprobe to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>offset</code></br>
+<em>
+uint64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Offset added to the address of the function for uprobe.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>target</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Library name or the absolute path to a binary or library.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retprobe</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Whether the program is a uretprobe.  Default is false</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pid</code></br>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Only execute uprobe for given process identification number (PID). If PID
+is not provided, uprobe executes for all PIDs.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.UprobeProgramStatus">
+UprobeProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.XdpProgram">XdpProgram
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.XdpProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>XdpProgram is the Schema for the XdpPrograms API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfd.dev/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>XdpProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.XdpProgramSpec">
+XdpProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>interfaceselector</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.InterfaceSelector">
+InterfaceSelector
+</a>
+</em>
+</td>
+<td>
+<p>Selector to determine the network interface (or interfaces)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>priority</code></br>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Priority specifies the priority of the bpf program in relation to
+other programs of the same type with the same attach point. It is a value
+from 0 to 1000 where lower values have higher precedence.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>proceedon</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.XdpProceedOnValue">
+[]XdpProceedOnValue
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.XdpProgramStatus">
+XdpProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.BpfProgramCommon">BpfProgramCommon
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.BpfProgramCommon" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.KprobeProgramSpec">KprobeProgramSpec</a>, 
+<a href="#bpfd.dev/v1alpha1.TcProgramSpec">TcProgramSpec</a>, 
+<a href="#bpfd.dev/v1alpha1.TracepointProgramSpec">TracepointProgramSpec</a>, 
+<a href="#bpfd.dev/v1alpha1.UprobeProgramSpec">UprobeProgramSpec</a>, 
+<a href="#bpfd.dev/v1alpha1.XdpProgramSpec">XdpProgramSpec</a>)
+</p>
+<p>
+<p>BpfProgramCommon defines the common attributes for all BPF programs</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>bpffunctionname</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>BpfFunctionName is the name of the function that is the entry point for the BPF
+program</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodeselector</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<p>NodeSelector allows the user to specify which nodes to deploy the
+bpf program to.  This field must be specified, to select all nodes
+use standard metav1.LabelSelector semantics and make it empty.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bytecode</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.BytecodeSelector">
+BytecodeSelector
+</a>
+</em>
+</td>
+<td>
+<p>Bytecode configures where the bpf program&rsquo;s bytecode should be loaded
+from.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>globaldata</code></br>
+<em>
+map[string][]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GlobalData allows the user to to set global variables when the program is loaded
+with an array of raw bytes. This is a very low level primitive. The caller
+is responsible for formatting the byte string appropriately considering
+such things as size, endianness, alignment and packing of data structures.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>mapownerselector</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MapOwnerSelector is used to select the loaded eBPF program this eBPF program
+will share a map with. The value is a label applied to the BpfProgram to select.
+The selector must resolve to exactly one instance of a BpfProgram on a given node
+or the eBPF program will not load.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.BpfProgramConditionType">BpfProgramConditionType
+(<code>string</code> alias)</p><a class="headerlink" href="#bpfd.dev%2fv1alpha1.BpfProgramConditionType" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>BpfProgramConditionType is a condition type to indicate the status of a BPF
+program at the individual node level.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;BytecodeSelectorError&#34;</p></td>
+<td><p>BpfProgCondByteCodeError indicates that an error occured when trying to
+process the bytecode selector.</p>
+</td>
+</tr><tr><td><p>&#34;Loaded&#34;</p></td>
+<td><p>BpfProgCondLoaded indicates that the eBPF program was successfully loaded
+into the kernel on a specific node.</p>
+</td>
+</tr><tr><td><p>&#34;MapOwnerNotFound&#34;</p></td>
+<td><p>BpfProgCondMapOwnerNotFound indicates that the eBPF program sharing a map with another
+eBPF program and that program does not exist.</p>
+</td>
+</tr><tr><td><p>&#34;MapOwnerNotLoaded&#34;</p></td>
+<td><p>BpfProgCondMapOwnerNotLoaded indicates that the eBPF program sharing a map with another
+eBPF program and that program is not loaded.</p>
+</td>
+</tr><tr><td><p>&#34;None&#34;</p></td>
+<td><p>None of the above conditions apply</p>
+</td>
+</tr><tr><td><p>&#34;NotLoaded&#34;</p></td>
+<td><p>BpfProgCondNotLoaded indicates that the eBPF program has not yet been
+loaded into the kernel on a specific node.</p>
+</td>
+</tr><tr><td><p>&#34;NotSelected&#34;</p></td>
+<td><p>BpfProgCondNotSelected indicates that the eBPF program is not scheduled to be loaded
+on a specific node.</p>
+</td>
+</tr><tr><td><p>&#34;NotUnLoaded&#34;</p></td>
+<td><p>BpfProgCondUnloaded indicates that in the midst of trying to remove the
+eBPF program from the kernel on the node, that program has not yet been
+removed.</p>
+</td>
+</tr><tr><td><p>&#34;Unloaded&#34;</p></td>
+<td><p>BpfProgCondUnloaded indicates that the eBPF program has been unloaded from
+the kernel on a specific node.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.BpfProgramSpec">BpfProgramSpec
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.BpfProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.BpfProgram">BpfProgram</a>)
+</p>
+<p>
+<p>BpfProgramSpec defines the desired state of BpfProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Type specifies the bpf program type</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maps</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Maps is a map with Keys: Map Names, and Values: Map Pin paths</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.BpfProgramStatus">BpfProgramStatus
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.BpfProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.BpfProgram">BpfProgram</a>)
+</p>
+<p>
+<p>BpfProgramStatus defines the observed state of BpfProgram
+TODO Make these a fixed set of metav1.Condition.types and metav1.Condition.reasons</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<p>Conditions houses the updates regarding the actual implementation of
+the bpf program on the node
+Known .status.conditions.type are: &ldquo;Available&rdquo;, &ldquo;Progressing&rdquo;, and &ldquo;Degraded&rdquo;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.BytecodeImage">BytecodeImage
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.BytecodeImage" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.BytecodeSelector">BytecodeSelector</a>)
+</p>
+<p>
+<p>BytecodeImage defines how to specify a bytecode container image.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>url</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Valid container image URL used to reference a remote bytecode image.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagepullpolicy</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.PullPolicy">
+PullPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PullPolicy describes a policy for if/when to pull a bytecode image. Defaults to IfNotPresent.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagepullsecret</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.ImagePullSecretSelector">
+ImagePullSecretSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ImagePullSecret is the name of the secret bpfd should use to get remote image
+repository secrets.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.BytecodeSelector">BytecodeSelector
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.BytecodeSelector" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.BpfProgramCommon">BpfProgramCommon</a>)
+</p>
+<p>
+<p>BytecodeSelector defines the various ways to reference bpf bytecode objects.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>image</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.BytecodeImage">
+BytecodeImage
+</a>
+</em>
+</td>
+<td>
+<p>Image used to specify a bytecode container image.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path is used to specify a bytecode object via filepath.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.ImagePullSecretSelector">ImagePullSecretSelector
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.ImagePullSecretSelector" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.BytecodeImage">BytecodeImage</a>)
+</p>
+<p>
+<p>ImagePullSecretSelector defines the name and namespace of an image pull secret.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the secret which contains the credentials to access the image repository.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Namespace of the secret which contains the credentials to access the image repository.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.InterfaceSelector">InterfaceSelector
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.InterfaceSelector" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.TcProgramSpec">TcProgramSpec</a>, 
+<a href="#bpfd.dev/v1alpha1.XdpProgramSpec">XdpProgramSpec</a>)
+</p>
+<p>
+<p>InterfaceSelector defines interface to attach to.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>interfaces</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Interfaces refers to a list of network interfaces to attach the BPF
+program to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>primarynodeinterface</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Attach BPF program to the primary interface on the node. Only &lsquo;true&rsquo; accepted.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.KprobeProgramSpec">KprobeProgramSpec
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.KprobeProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.KprobeProgram">KprobeProgram</a>)
+</p>
+<p>
+<p>KprobeProgramSpec defines the desired state of KprobeProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>func_names</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Functions to attach the kprobe to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>offset</code></br>
+<em>
+uint64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Offset added to the address of the function for kprobe.
+Not allowed for kretprobes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retprobe</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Whether the program is a kretprobe.  Default is false</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.KprobeProgramStatus">KprobeProgramStatus
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.KprobeProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.KprobeProgram">KprobeProgram</a>)
+</p>
+<p>
+<p>KprobeProgramStatus defines the observed state of KprobeProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<p>Conditions houses the global cluster state for the KprobeProgram. The explicit
+condition types are defined internally.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.ProgramConditionType">ProgramConditionType
+(<code>string</code> alias)</p><a class="headerlink" href="#bpfd.dev%2fv1alpha1.ProgramConditionType" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>ProgramConditionType is a condition type to indicate the status of a BPF
+program at the cluster level.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;DeleteError&#34;</p></td>
+<td><p>ProgramDeleteError indicates that the BPF program was marked for
+deletion, but deletion was unsuccessful.</p>
+</td>
+</tr><tr><td><p>&#34;NotYetLoaded&#34;</p></td>
+<td><p>ProgramNotYetLoaded indicates that the program in question has not
+yet been loaded on all nodes in the cluster.</p>
+</td>
+</tr><tr><td><p>&#34;ReconcileError&#34;</p></td>
+<td><p>ProgramReconcileError indicates that an unforseen situation has
+occurred in the controller logic, and the controller will retry.</p>
+</td>
+</tr><tr><td><p>&#34;ReconcileSuccess&#34;</p></td>
+<td><p>BpfdProgConfigReconcileSuccess indicates that the BPF program has been
+successfully reconciled.</p>
+<p>TODO: we should consider removing &ldquo;reconciled&rdquo; type logic from the
+public API as it&rsquo;s an implementation detail of our use of controller
+runtime, but not necessarily relevant to human users or integrations.</p>
+<p>See: <a href="https://github.com/bpfd-dev/bpfd/issues/430">https://github.com/bpfd-dev/bpfd/issues/430</a></p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.PullPolicy">PullPolicy
+(<code>string</code> alias)</p><a class="headerlink" href="#bpfd.dev%2fv1alpha1.PullPolicy" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.BytecodeImage">BytecodeImage</a>)
+</p>
+<p>
+<p>PullPolicy describes a policy for if/when to pull a container image</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Always&#34;</p></td>
+<td><p>PullAlways means that bpfd always attempts to pull the latest bytecode image. Container will fail If the pull fails.</p>
+</td>
+</tr><tr><td><p>&#34;IfNotPresent&#34;</p></td>
+<td><p>PullIfNotPresent means that bpfd pulls if the image isn&rsquo;t present on disk. Container will fail if the image isn&rsquo;t present and the pull fails.</p>
+</td>
+</tr><tr><td><p>&#34;Never&#34;</p></td>
+<td><p>PullNever means that bpfd never pulls an image, but only uses a local image. Container will fail if the image isn&rsquo;t present</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.TcProceedOnValue">TcProceedOnValue
+(<code>string</code> alias)</p><a class="headerlink" href="#bpfd.dev%2fv1alpha1.TcProceedOnValue" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.TcProgramSpec">TcProgramSpec</a>)
+</p>
+<p>
+</p>
+<h3 id="bpfd.dev/v1alpha1.TcProgramSpec">TcProgramSpec
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.TcProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.TcProgram">TcProgram</a>)
+</p>
+<p>
+<p>TcProgramSpec defines the desired state of TcProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>interfaceselector</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.InterfaceSelector">
+InterfaceSelector
+</a>
+</em>
+</td>
+<td>
+<p>Selector to determine the network interface (or interfaces)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>priority</code></br>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Priority specifies the priority of the tc program in relation to
+other programs of the same type with the same attach point. It is a value
+from 0 to 1000 where lower values have higher precedence.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>direction</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Direction specifies the direction of traffic the tc program should
+attach to for a given network device.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>proceedon</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.TcProceedOnValue">
+[]TcProceedOnValue
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProceedOn allows the user to call other tc programs in chain on this exit code.
+Multiple values are supported by repeating the parameter.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.TcProgramStatus">TcProgramStatus
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.TcProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.TcProgram">TcProgram</a>)
+</p>
+<p>
+<p>TcProgramStatus defines the observed state of TcProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<p>Conditions houses the global cluster state for the TcProgram. The explicit
+condition types are defined internally.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.TracepointProgramSpec">TracepointProgramSpec
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.TracepointProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.TracepointProgram">TracepointProgram</a>)
+</p>
+<p>
+<p>TracepointProgramSpec defines the desired state of TracepointProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>names</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Names refers to the names of kernel tracepoints to attach the
+bpf program to.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.TracepointProgramStatus">TracepointProgramStatus
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.TracepointProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.TracepointProgram">TracepointProgram</a>)
+</p>
+<p>
+<p>TracepointProgramStatus defines the observed state of TracepointProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<p>Conditions houses the global cluster state for the TracepointProgram. The explicit
+condition types are defined internally.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.UprobeProgramSpec">UprobeProgramSpec
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.UprobeProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.UprobeProgram">UprobeProgram</a>)
+</p>
+<p>
+<p>UprobeProgramSpec defines the desired state of UprobeProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>func_name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Function to attach the uprobe to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>offset</code></br>
+<em>
+uint64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Offset added to the address of the function for uprobe.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>target</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Library name or the absolute path to a binary or library.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retprobe</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Whether the program is a uretprobe.  Default is false</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pid</code></br>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Only execute uprobe for given process identification number (PID). If PID
+is not provided, uprobe executes for all PIDs.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.UprobeProgramStatus">UprobeProgramStatus
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.UprobeProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.UprobeProgram">UprobeProgram</a>)
+</p>
+<p>
+<p>UprobeProgramStatus defines the observed state of UprobeProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<p>Conditions houses the global cluster state for the UprobeProgram. The explicit
+condition types are defined internally.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.XdpProceedOnValue">XdpProceedOnValue
+(<code>string</code> alias)</p><a class="headerlink" href="#bpfd.dev%2fv1alpha1.XdpProceedOnValue" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.XdpProgramSpec">XdpProgramSpec</a>)
+</p>
+<p>
+</p>
+<h3 id="bpfd.dev/v1alpha1.XdpProgramSpec">XdpProgramSpec
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.XdpProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.XdpProgram">XdpProgram</a>)
+</p>
+<p>
+<p>XdpProgramSpec defines the desired state of XdpProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>interfaceselector</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.InterfaceSelector">
+InterfaceSelector
+</a>
+</em>
+</td>
+<td>
+<p>Selector to determine the network interface (or interfaces)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>priority</code></br>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Priority specifies the priority of the bpf program in relation to
+other programs of the same type with the same attach point. It is a value
+from 0 to 1000 where lower values have higher precedence.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>proceedon</code></br>
+<em>
+<a href="#bpfd.dev/v1alpha1.XdpProceedOnValue">
+[]XdpProceedOnValue
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfd.dev/v1alpha1.XdpProgramStatus">XdpProgramStatus
+<a class="headerlink" href="#bpfd.dev%2fv1alpha1.XdpProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfd.dev/v1alpha1.XdpProgram">XdpProgram</a>)
+</p>
+<p>
+<p>XdpProgramStatus defines the observed state of XdpProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<p>Conditions houses the global cluster state for the XdpProgram. The explicit
+condition types are defined internally.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<p><em>
+Generated with <code>gen-crd-api-reference-docs</code>.
+</em></p>
 
 
 
