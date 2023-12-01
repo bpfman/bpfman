@@ -1,7 +1,0 @@
-[build]
-command = """
-pip3 install -r requirements.txt
-./scripts/make-docs.sh
-"""
-environment = { PYTHON_VERSION = "3.8" }
-publish = "site"

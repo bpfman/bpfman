@@ -378,3 +378,6 @@ deploy-openshift: manifests kustomize ## Deploy bpfman-operator to the Openshift
 .PHONY: undeploy-openshift
 undeploy-openshift: ## Undeploy bpfman-operator from the Openshift cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/openshift | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+
+apidocs.html:
+	./hack/api-docs/generate.sh $@

@@ -28,3 +28,6 @@ tests/_tmp
 
 # Ignore compiled C files
 .output
+
+# Ignore docs
+site/
