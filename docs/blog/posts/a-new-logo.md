@@ -86,23 +86,80 @@ I tried a few different prompts, but the one that worked best was:
 
 ![fourth attempt](./img/2021-11-25/bpfman-logo-4.png)
 
-The bottom right was exactly what I was looking for!
+The bottom right was exactly what I had in mind!
+With a little bit of post-processing, I ended up with this:
 
-## The Result
+![fifth attempt](./img/2021-11-25/bpfman-logo-5.png)
 
-I took the bottom right image, converted it to SVG, removed the background,
-and added the text.
+Now it was time to solicit some feedback.
 
-Here's the final result:
+## Gathering Feedback
+
+After showing the logo to a few others, we decided that the bees
+were infact too stern. At this point we had a few options, like reverting
+back to our cute bees, however, this section in the [Bing Image Creator Terms of Service]
+was pointed out to me:
+
+> **Use of Creations.** Subject to your compliance with this Agreement,
+> the Microsoft Services Agreement, and our Content Policy, you may use
+> Creations outside of the Online Services for any legal personal,
+> non-commercial purpose.
+
+This means that we can't use the AI generated images for our logo.
+
+## Was it all for nothing?
+
+Was it all for nothing? No! We learnt a lot from this process.
+
+Generative AI is great for generating ideas. Some of the logo compositions
+produced were great!
+
+It was also very useful to adjust the prompt based on feedback from team
+members so we could incorporate their ideas into the design.
+
+We also learnt that the AI is not great at text, so we should avoid using it
+for that.
+
+And finally, we learnt that we can't use the AI generated images for our logo.
+Well, not with the generator we used anyway.
+
+## The (Semi) Final Design Process
+
+I started from scratch, taking inspiration from the AI generated images.
+The bees were drawn first and composed around a hive - as our AI overlords
+suggested. I then added the text, and colours, but it still felt like it was
+missing something.
+
+What if we added a force field around the hive? That might be cool!
+And so, I added a force field around the hive and played around with the
+colours until I was happy.
+
+Here's what we ended up with:
+
+![semifinal result](./img/2021-11-25/bpfman-logo-semifinal.png)
+
+We consulted a few more people and got some feedback. The general consensus
+was that the logo was too busy... However, the reception to the force field
+was that the favicon I'd mocked would work better as the logo.
+
+## The Final Design
+
+Here's the final design:
 
 ![final result](./img/2021-11-25/bpfman-logo-final.png)
 
+Pretty cool, right? Even if I do say so myself.
+
+Our mascot is a queen bee, because she's the manager of the hive.
+
+The force field, is now no longer a force field - It's a pheramone cloud
+that represents the Queen Mandibular Pheromone (QMP) that the queen bee
+produces to keep the hive organized.
+
 ## Conclusion
 
-I'm really happy with the result! It was significantly easier than trying to
-draw the bees myself, and I think it looks great! What do you think?
+I'm really happy with the result! I'm not a designer, so I'm sure there are
+things that could be improved, but I think it's a good start.
 
-We're not quite ready to replace the logo on the website yet, but we will soon!
-So if you have opinions, now is the time to share them on the [Slack].
-
+What do you think? Join us on [Slack] and let us know!
 [Slack]: https://kubernetes.slack.com/archives/C04UJBW2553

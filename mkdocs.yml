@@ -8,18 +8,18 @@ site_dir: site
 theme:
   name: material
   language: en
-  logo: img/bpfman_icon.svg
-  favicon: img/favicon.ico
+  logo: img/favicon.svg
+  favicon: img/favicon.svg
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: red
+      primary: custom
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: red
+      primary: custom
       toggle:
         icon: material/weather-sunny
         name: Switch to light mode

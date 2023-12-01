@@ -1,3 +1,5 @@
+![bpfman logo](./docs/img/bpfman_logo_512.png) <!-- markdownlint-disable-line first-line-heading -->
+
 # bpfman: An eBPF Manager
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)

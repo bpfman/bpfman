@@ -1,4 +1,8 @@
-# [![Welcome to bpfman](./img/bpfman.svg)](https://bpfman.netlify.app/)
+![bpfman logo](./img/bpfman_logo_512.png) <!-- markdownlint-disable-line first-line-heading -->
+
+_Formerly know as `bpfd`_
+
+# bpfman: An eBPF Manager
 
 bpfman is a system daemon aimed at simplifying the deployment and management of
 eBPF programs. It's goal is to enhance the developer-experience as well as
