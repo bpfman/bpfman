@@ -1404,12 +1404,14 @@
 <p><img alt="bpfman logo" src="img/bpfman_logo_256.png" /> <!-- markdownlint-disable-line first-line-heading --></p>
 <p><em>Formerly know as <code>bpfd</code></em></p>
 <h1 id="bpfman-an-ebpf-manager">bpfman: An eBPF Manager</h1>
-<p>bpfman is a system daemon aimed at simplifying the deployment and management of
-eBPF programs. It's goal is to enhance the developer-experience as well as
-provide features to improve security, visibility and program-cooperation. bpfman
-includes a Kubernetes operator to bring those same features to Kubernetes,
-allowing users to safely deploy eBPF via custom resources across nodes in a
-cluster.</p>
+<p>bpfman operates as an eBPF manager, focusing on simplifying the deployment and administration of eBPF programs. Its notable features encompass:</p>
+<ul>
+<li><strong>System Overview</strong>: Provides insights into how eBPF is utilized in your system.</li>
+<li><strong>eBPF Program Loader</strong>: Includes a built-in program loader that supports program cooperation for XDP and TC programs, as well as deployment of eBPF programs from OCI images.</li>
+<li><strong>eBPF Filesystem Management</strong>: Manages the eBPF filesystem, facilitating the deployment of eBPF applications without requiring additional privileges.</li>
+</ul>
+<p>Our program loader and eBPF filesystem manager ensure the secure deployment of eBPF applications.
+Furthermore, bpfman includes a Kubernetes operator, extending these capabilities to Kubernetes. This allows users to confidently deploy eBPF through custom resource definitions across nodes in a cluster.</p>
 <h2 id="why-ebpf">Why eBPF?</h2>
 <p>eBPF is a powerful general-purpose framework that allows running sandboxed
 programs in the kernel. It can be used for many purposes, including networking,
