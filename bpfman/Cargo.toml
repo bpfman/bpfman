@@ -33,6 +33,7 @@ env_logger = { workspace = true }
 flate2 = { workspace = true, features = ["zlib"] }
 futures = { workspace = true }
 hex = { workspace = true, features = ["std"] }
+libsystemd = { workspace = true }
 log = { workspace = true }
 netlink-packet-route = { workspace = true }
 nix = { workspace = true, features = [

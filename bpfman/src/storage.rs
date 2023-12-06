@@ -361,7 +361,7 @@ impl StorageManager {
         }
     }
 
-    pub async fn run(self) {
+    pub async fn run(self, use_activity_timer: bool) {
         let path: &Path = Path::new(RTPATH_BPFMAN_CSI_SOCKET);
         // Listen on Unix socket
         if path.exists() {
@@ -379,7 +379,7 @@ impl StorageManager {
         let serve = Server::builder()
             .add_service(node_service)
             .add_service(identity_service)
-            .serve_with_incoming_shutdown(uds_stream, shutdown_handler());
+            .serve_with_incoming_shutdown(uds_stream, shutdown_handler(use_activity_timer));
 
         tokio::spawn(async move {
             info!("CSI Plugin Listening on {}", path.display());

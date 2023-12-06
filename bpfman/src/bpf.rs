@@ -891,12 +891,12 @@ impl BpfManager {
         Ok(())
     }
 
-    pub(crate) async fn process_commands(&mut self) {
+    pub(crate) async fn process_commands(&mut self, use_activity_timer: bool) {
         loop {
             // Start receiving messages
             select! {
                 biased;
-                _ = shutdown_handler() => {
+                _ = shutdown_handler(use_activity_timer) => {
                     info!("Signal received to stop command processing");
                     self._database.flush().expect("Unable to flush database to disk before shutting down BpfManager");
                     break;

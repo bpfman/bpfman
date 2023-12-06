@@ -18,6 +18,8 @@ SRC_DEBUG_BIN_PATH="../target/debug"
 SRC_RELEASE_BIN_PATH="../target/x86_64-unknown-linux-musl/release"
 DST_BIN_PATH="/usr/sbin"
 DST_SVC_PATH="/usr/lib/systemd/system"
+SVC_BPFMAN_SOCK="${BIN_BPFMAN}.socket"
+SVC_BPFMAN_SVC="${BIN_BPFMAN}.service"
 
 # ConfigurationDirectory: /etc/bpfman/
 CONFIGURATION_DIR="/etc/bpfman"

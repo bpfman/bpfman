@@ -216,7 +216,7 @@ jobs:
         run: sleep 5
 
       - name: Verify the bpfman systemd service is active
-        run: systemctl is-active bpfman
+        run: systemctl is-active bpfman.socket
 
       - name: Verify the CLI can reach bpfman
         run: sudo bpfman list
