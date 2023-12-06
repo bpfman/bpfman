@@ -4,12 +4,14 @@ _Formerly know as `bpfd`_
 
 # bpfman: An eBPF Manager
 
-bpfman is a system daemon aimed at simplifying the deployment and management of
-eBPF programs. It's goal is to enhance the developer-experience as well as
-provide features to improve security, visibility and program-cooperation. bpfman
-includes a Kubernetes operator to bring those same features to Kubernetes,
-allowing users to safely deploy eBPF via custom resources across nodes in a
-cluster.
+bpfman operates as an eBPF manager, focusing on simplifying the deployment and administration of eBPF programs. Its notable features encompass:
+
+- **System Overview**: Provides insights into how eBPF is utilized in your system.
+- **eBPF Program Loader**: Includes a built-in program loader that supports program cooperation for XDP and TC programs, as well as deployment of eBPF programs from OCI images.
+- **eBPF Filesystem Management**: Manages the eBPF filesystem, facilitating the deployment of eBPF applications without requiring additional privileges.
+
+Our program loader and eBPF filesystem manager ensure the secure deployment of eBPF applications.
+Furthermore, bpfman includes a Kubernetes operator, extending these capabilities to Kubernetes. This allows users to confidently deploy eBPF through custom resource definitions across nodes in a cluster.
 
 ## Why eBPF?
 
