@@ -1,0 +1,37 @@
+#!/usr/bin/env bpftrace
+
+kfunc:vmlinux:bpf_prog_load {
+    printf("Process %d is loading a %d bpf program at %s\n", pid, args->attr->prog_type, strftime("%H:%M:%S", nsecs));
+}
+
+kfunc:vmlinux:bpf_prog_new_fd { 
+    printf("Process %d is loading a %d bpf program with id %d at %s\n", pid, args->prog->aux->saved_dst_prog_type, args->prog->aux->id, strftime("%H:%M:%S", nsecs));
+}
+
+kretfunc:vmlinux:bpf_prog_load {
+    if (retval != 0){ 
+        printf("Process %d failed to load bpfprogram", pid)
+    } else { 
+        printf("Process %d successfully loaded a bpfprogram\n", pid);
+    }
+}
+
+kfunc:vmlinux:bpf_prog_free {
+     printf("Program %d released\n", args->fp->aux->id)
+}
+
+kfunc:vmlinux:bpf_prog_free_id { 
+    printf("Program %d unloaded", args->prog->aux->id)
+}
+
+kretfunc:vmlinux:bpf_prog_free_id { 
+    printf("Program %d unloaded", args->prog->aux->id)
+}
+
+tracepoint:syscalls:sys_enter_bpf { 
+    printf("Enter bpf with pid %d \n", pid)
+}
+
+tracepoint:syscalls:sys_exit_bpf { 
+    printf("Exit bpf with pid %d and ret %d \n", pid, args->ret)
+}

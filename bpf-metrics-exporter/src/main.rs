@@ -1,4 +1,5 @@
-use aya::loaded_programs;
+use aya::{loaded_programs, maps::loaded_maps, programs::loaded_links};
+use bpfman_api::ProgramType;
 use chrono::{prelude::DateTime, Utc};
 use clap::Parser;
 use opentelemetry::{
@@ -42,15 +43,40 @@ async fn main() -> anyhow::Result<()> {
     // Create a meter from the above MeterProvider.
     let meter = meter_provider.meter("bpf-metrics");
 
-    let bpf_program_size_jitted_bytes = meter
-        .u64_observable_counter("bpf_program_size_jitted_bytes")
-        .with_description("BPF program size in bytes")
-        .with_unit(Unit::new("bytes"))
+    // GAUGE instruments:
+
+    let bpf_program_info = meter
+        .u64_observable_gauge("bpf_program_info")
+        .with_description("eBPF Program metadata")
         .init();
+
+    let bpf_map_info = meter
+        .u64_observable_gauge("bpf_map_info")
+        .with_description("eBPF Map metadata")
+        .init();
+
+    let bpf_link_info = meter
+        .u64_observable_gauge("bpf_link_info")
+        .with_description("eBPF Link metadata")
+        .init();
+
+    let bpf_program_load_time = meter
+        .i64_observable_gauge("bpf_program_load_time")
+        .with_description("BPF program load time")
+        .with_unit(Unit::new("seconds"))
+        .init();
+
+    // COUNTER instruments:
 
     let bpf_program_size_translated_bytes = meter
         .u64_observable_counter("bpf_program_size_translated_bytes")
         .with_description("BPF program size in bytes")
+        .with_unit(Unit::new("bytes"))
+        .init();
+
+    let bpf_program_size_jitted_bytes = meter
+        .u64_observable_counter("bpf_program_size_jitted_bytes")
+        .with_description("The size in bytes of the program's JIT-compiled machine code.")
         .with_unit(Unit::new("bytes"))
         .init();
 
@@ -60,63 +86,163 @@ async fn main() -> anyhow::Result<()> {
         .with_unit(Unit::new("bytes"))
         .init();
 
-    let bpf_program_verified_instructions_total = meter
-        .u64_observable_counter("bpf_program_verified_instructions_total")
+    let bpf_program_verified_instructions = meter
+        .u64_observable_counter("bpf_program_verified_instructions")
         .with_description("BPF program verified instructions")
         .with_unit(Unit::new("instructions"))
+        .init();
+
+    let bpf_map_key_size = meter
+        .u64_observable_counter("bpf_map_key_size")
+        .with_description("BPF map key size")
+        .with_unit(Unit::new("bytes"))
+        .init();
+
+    let bpf_map_value_size = meter
+        .u64_observable_counter("bpf_map_value_size")
+        .with_description("BPF map value size")
+        .with_unit(Unit::new("bytes"))
+        .init();
+
+    let bpf_map_max_entries = meter
+        .u64_observable_counter("bpf_map_max_entries")
+        .with_description("BPF map maxiumum number of entries")
+        .with_unit(Unit::new("bytes"))
         .init();
 
     meter
         .register_callback(
             &[
+                bpf_program_info.as_any(),
+                bpf_map_info.as_any(),
+                bpf_link_info.as_any(),
+                bpf_program_load_time.as_any(),
                 bpf_program_size_jitted_bytes.as_any(),
                 bpf_program_size_translated_bytes.as_any(),
                 bpf_program_mem_bytes.as_any(),
-                bpf_program_verified_instructions_total.as_any(),
+                bpf_program_verified_instructions.as_any(),
+                bpf_map_key_size.as_any(),
+                bpf_map_value_size.as_any(),
+                bpf_map_max_entries.as_any(),
             ],
             move |observer| {
                 for program in loaded_programs().flatten() {
+                    let id = program.id();
                     let name = program.name_as_str().unwrap_or_default().to_string();
-                    let ty = program.program_type().to_string();
+                    let ty: ProgramType = program.program_type().try_into().unwrap();
                     let tag = program.tag().to_string();
                     let gpl_compatible = program.gpl_compatible();
-                    let load_time = DateTime::<Utc>::from(program.loaded_at());
+                    let map_ids = program.map_ids().unwrap_or_default();
 
+                    let load_time = DateTime::<Utc>::from(program.loaded_at());
                     let jitted_bytes = program.size_jitted();
                     let translated_bytes = program.size_translated();
                     let mem_bytes = program.memory_locked().unwrap_or_default();
                     let verified_instructions = program.verified_instruction_count();
 
-                    let labels = [
-                        KeyValue::new("name", name),
-                        KeyValue::new("type", ty),
-                        KeyValue::new("tag", tag),
+                    let prog_info_labels = [
+                        KeyValue::new("id", id.to_string()),
+                        KeyValue::new("name", name.clone()),
+                        KeyValue::new("type", format!("{ty}")),
+                        KeyValue::new("tag", tag.clone()),
                         KeyValue::new("gpl_compatible", gpl_compatible),
+                        KeyValue::new("map_ids", format!("{map_ids:?}")),
                         KeyValue::new(
                             "load_time",
                             load_time.format("%Y-%m-%d %H:%M:%S").to_string(),
                         ),
                     ];
 
+                    observer.observe_u64(&bpf_program_info, 1, &prog_info_labels);
+
+                    let prog_key_labels = [
+                        KeyValue::new("id", id.to_string()),
+                        KeyValue::new("name", name),
+                        KeyValue::new("type", format!("{ty}")),
+                    ];
+
+                    observer.observe_i64(
+                        &bpf_program_load_time,
+                        load_time.timestamp(),
+                        &prog_key_labels,
+                    );
+
                     observer.observe_u64(
                         &bpf_program_size_jitted_bytes,
                         jitted_bytes.into(),
-                        &labels,
+                        &prog_key_labels,
                     );
 
                     observer.observe_u64(
                         &bpf_program_size_translated_bytes,
                         translated_bytes.into(),
-                        &labels,
+                        &prog_key_labels,
                     );
-
-                    observer.observe_u64(&bpf_program_mem_bytes, mem_bytes.into(), &labels);
 
                     observer.observe_u64(
-                        &bpf_program_verified_instructions_total,
-                        verified_instructions.into(),
-                        &labels,
+                        &bpf_program_mem_bytes,
+                        mem_bytes.into(),
+                        &prog_key_labels,
                     );
+
+                    observer.observe_u64(
+                        &bpf_program_verified_instructions,
+                        verified_instructions.into(),
+                        &prog_key_labels,
+                    );
+                }
+
+                for link in loaded_links().flatten() {
+                    let id = link.id;
+                    let prog_id = link.prog_id;
+                    let _type = link.type_;
+                    // TODO getting more link metadata will require an aya_patch
+                    // let link_info = match link.__bindgen_anon_1 {
+                    //     // aya_obj::bpf_link_info__bindgen_ty_1::raw_tracepoint(i) => "tracepoint",
+                    //     aya_obj::generated::bpf_link_info__bindgen_ty_1{ raw_tracepoint } => format!("tracepoint name: "),
+                    // }
+
+                    let link_labels = [
+                        KeyValue::new("id", id.to_string()),
+                        KeyValue::new("prog_id", prog_id.to_string()),
+                        KeyValue::new("type", _type.to_string()),
+                    ];
+
+                    observer.observe_u64(&bpf_link_info, 1, &link_labels);
+                }
+
+                for map in loaded_maps().flatten() {
+                    let map_id = map.id();
+                    let name = map.name_as_str().unwrap_or_default().to_string();
+                    let ty = map.map_type().to_string();
+                    let key_size = map.key_size();
+                    let value_size = map.value_size();
+                    let max_entries = map.max_entries();
+                    let flags = map.map_flags();
+
+                    let map_labels = [
+                        KeyValue::new("name", name.clone()),
+                        KeyValue::new("id", map_id.to_string()),
+                        KeyValue::new("type", ty.clone()),
+                        KeyValue::new("key_size", key_size.to_string()),
+                        KeyValue::new("value_size", value_size.to_string()),
+                        KeyValue::new("max_entries", max_entries.to_string()),
+                        KeyValue::new("flags", flags.to_string()),
+                    ];
+
+                    observer.observe_u64(&bpf_map_info, 1, &map_labels);
+
+                    let map_key_labels = [
+                        KeyValue::new("name", name),
+                        KeyValue::new("id", map_id.to_string()),
+                        KeyValue::new("type", ty),
+                    ];
+
+                    observer.observe_u64(&bpf_map_key_size, key_size.into(), &map_key_labels);
+
+                    observer.observe_u64(&bpf_map_value_size, value_size.into(), &map_key_labels);
+
+                    observer.observe_u64(&bpf_map_max_entries, max_entries.into(), &map_key_labels);
                 }
             },
         )
