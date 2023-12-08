@@ -17,11 +17,14 @@ RUN rustup target add x86_64-unknown-linux-musl
 
 # Compile only the C ebpf bytecode
 RUN cargo xtask build-ebpf --release --libbpf-dir /usr/src/bpfman/libbpf
-# Compile only bpfman 
+# Compile bpfman 
 RUN cargo build --release -p bpfman --target x86_64-unknown-linux-musl
+# Compile bpfman-ns 
+RUN cargo build --release -p bpfman-ns --target x86_64-unknown-linux-musl
 
 FROM scratch
 
 COPY --from=bpfman-build  /usr/src/bpfman/target/x86_64-unknown-linux-musl/release/bpfman .
+COPY --from=bpfman-build  /usr/src/bpfman/target/x86_64-unknown-linux-musl/release/bpfman-ns .
 
 ENTRYPOINT ["./bpfman", "system", "service", "--timeout=0"]

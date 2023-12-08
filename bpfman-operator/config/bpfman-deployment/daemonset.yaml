@@ -97,9 +97,14 @@ spec:
               name: mountpoint-dir
             - mountPath: /tmp
               name: tmp-dir
+            # Used to attach programs inside of containers
+            - mountPath: /host/proc
+              name: host-proc
         - name: bpfman-agent
           command: [/bpfman-agent]
           image: quay.io/bpfman/bpfman-agent:latest
+          securityContext:
+            privileged: true
           imagePullPolicy: IfNotPresent
           env:
             - name: KUBE_NODE_NAME
@@ -114,6 +119,22 @@ spec:
           volumeMounts:
             - name: bpfman-sock
               mountPath: /run/bpfman/sock
+            - name: bpfman-config
+              mountPath: /etc/bpfman/bpfman.toml
+              subPath: bpfman.toml
+              readOnly: true
+            ## The following five mounts are used by crictl for attaching
+            ## uprobes in user containers
+            - mountPath: /run/containerd/containerd.sock
+              name: host-containerd
+            - mountPath: /run/crio/crio.sock
+              name: host-crio
+            - mountPath: /var/run/dockershim.sock
+              name: host-dockershim
+            - mountPath: /var/run/cri-dockerd.sock
+              name: host-dockerd
+            - mountPath: /etc/crictl.yaml
+              name: host-crictl-config
         - name: node-driver-registrar
           image: quay.io/bpfman/csi-node-driver-registrar:v2.9.0
           imagePullPolicy: IfNotPresent
@@ -182,3 +203,21 @@ spec:
             path: /tmp
             type: DirectoryOrCreate
           name: tmp-dir
+        - hostPath:
+            path: /proc
+          name: host-proc
+        - hostPath:
+            path: /run/containerd/containerd.sock
+          name: host-containerd
+        - hostPath:
+            path: /run/crio/crio.sock
+          name: host-crio
+        - hostPath:
+            path: /var/run/dockershim.sock
+          name: host-dockershim
+        - hostPath:
+            path: /var/run/cri-dockerd.sock
+          name: host-dockerd
+        - hostPath:
+            path: /etc/crictl.yaml
+          name: host-crictl-config

@@ -64,7 +64,7 @@ type UprobeProgramSpec struct {
 	Offset uint64 `json:"offset"`
 
 	// Library name or the absolute path to a binary or library.
-	Targets []string `json:"target"`
+	Target string `json:"target"`
 
 	// Whether the program is a uretprobe.  Default is false
 	// +optional
@@ -76,9 +76,14 @@ type UprobeProgramSpec struct {
 	// +optional
 	Pid int32 `json:"pid"`
 
-	// // Namespace to attach the uprobe in. (Not supported yet by bpfman.)
-	// // +optional
-	// Namespace string `json:"namespace"`
+	// Containers identifes the set of containers in which to attach the uprobe.
+	// If Containers are not specified, the uprobe will be attached in the
+	// bpfman-agent container.  The ContainerSelector is very flexible and even
+	// allows the selection of all containers in a cluster.  If an attempt is
+	// made to attach uprobes to too many containers, it can have a negative
+	// impact on on the cluster.
+	// +optional
+	Containers *ContainerSelector `json:"containers"`
 }
 
 // UprobeProgramStatus defines the observed state of UprobeProgram

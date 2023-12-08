@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.19 as bpfman-agent-build
+FROM golang:1.21 as bpfman-agent-build
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -24,14 +24,23 @@ COPY . .
 WORKDIR /usr/src/bpfman/bpfman-operator
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bpfman-agent ./cmd/bpfman-agent/main.go
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-# Uncomment for debug build
-# FROM gcr.io/distroless/static:debug
+# Use the fedora minimal image to reduce the size of the final image but still
+# be able to easily install extra packages.
 
-FROM gcr.io/distroless/static:nonroot
+# The full fedora image can be used for debugging purposes, but you may need to
+# change "microdnf" to "dnf" below to install extra packages.
+# FROM fedora:38
+FROM quay.io/fedora/fedora-minimal
+ARG TARGETARCH
 WORKDIR /
 COPY --from=bpfman-agent-build /usr/src/bpfman/bpfman-operator/bpfman-agent .
-USER 65532:65532
+
+# Install crictl
+RUN microdnf -y install wget tar
+ARG VERSION="v1.28.0"
+RUN wget https://github.com/kubernetes-sigs/cri-tools/releases/download/${VERSION}/crictl-${VERSION}-linux-${TARGETARCH}.tar.gz
+RUN tar zxvf crictl-${VERSION}-linux-${TARGETARCH}.tar.gz -C /usr/local/bin
+RUN rm -f crictl-${VERSION}-linux-${TARGETARCH}.tar.gz
+RUN microdnf -y clean all
 
 ENTRYPOINT ["/bpfman-agent"]

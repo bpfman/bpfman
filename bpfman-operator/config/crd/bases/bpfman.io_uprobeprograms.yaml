@@ -109,6 +109,74 @@ spec:
                     description: Path is used to specify a bytecode object via filepath.
                     type: string
                 type: object
+              containers:
+                description: Containers identifes the set of containers in which to
+                  attach the uprobe. If Containers are not specified, the uprobe will
+                  be attached in the bpfman-agent container.  The ContainerSelector
+                  is very flexible and even allows the selection of all containers
+                  in a cluster.  If an attempt is made to attach uprobes to too many
+                  containers, it can have a negative impact on on the cluster.
+                properties:
+                  containernames:
+                    description: Name(s) of container(s).  If none are specified,
+                      all containers in the pod are selected.
+                    items:
+                      type: string
+                    type: array
+                  namespace:
+                    default: ""
+                    description: Target namespaces.
+                    type: string
+                  pods:
+                    description: Target pods. This field must be specified, to select
+                      all pods use standard metav1.LabelSelector semantics and make
+                      it empty.
+                    properties:
+                      matchExpressions:
+                        description: matchExpressions is a list of label selector
+                          requirements. The requirements are ANDed.
+                        items:
+                          description: A label selector requirement is a selector
+                            that contains values, a key, and an operator that relates
+                            the key and values.
+                          properties:
+                            key:
+                              description: key is the label key that the selector
+                                applies to.
+                              type: string
+                            operator:
+                              description: operator represents a key's relationship
+                                to a set of values. Valid operators are In, NotIn,
+                                Exists and DoesNotExist.
+                              type: string
+                            values:
+                              description: values is an array of string values. If
+                                the operator is In or NotIn, the values array must
+                                be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty. This array is replaced
+                                during a strategic merge patch.
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - key
+                          - operator
+                          type: object
+                        type: array
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: matchLabels is a map of {key,value} pairs. A
+                          single {key,value} in the matchLabels map is equivalent
+                          to an element of matchExpressions, whose key field is "key",
+                          the operator is "In", and the values array contains only
+                          "value". The requirements are ANDed.
+                        type: object
+                    type: object
+                    x-kubernetes-map-type: atomic
+                required:
+                - pods
+                type: object
               func_name:
                 description: Function to attach the uprobe to.
                 type: string
@@ -235,9 +303,7 @@ spec:
                 type: boolean
               target:
                 description: Library name or the absolute path to a binary or library.
-                items:
-                  type: string
-                type: array
+                type: string
             required:
             - bpffunctionname
             - bytecode

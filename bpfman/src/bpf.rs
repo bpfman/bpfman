@@ -635,19 +635,49 @@ impl BpfManager {
                             prog_args.extend(["--pid".to_string(), pid.to_string()])
                         }
 
-                        let status = std::process::Command::new("./target/debug/bpfman-ns")
+                        debug!("calling bpfman-ns to attach uprobe in pid: {:?}", p);
+
+                        // Figure out where the bpfman-ns binary is located
+                        let bpfman_ns_path = if Path::new("./target/debug/bpfman-ns").exists() {
+                            // If we're running natively from the bpfman
+                            // directory, use the binary in the target/debug
+                            // directory
+                            "./target/debug/bpfman-ns"
+                        } else if Path::new("./bpfman-ns").exists() {
+                            // If we're running on kubernetes, the bpfman-ns
+                            // binary will be in the current directory
+                            "./bpfman-ns"
+                        } else {
+                            // look for bpfman-ns in the PATH
+                            "bpfman-ns"
+                        };
+
+                        let status = std::process::Command::new(bpfman_ns_path)
                             .args(prog_args)
-                            .status()
-                            .expect("bpfman-ns call failed to return status");
+                            .status();
 
                         debug!("bpfman-ns status: {:?}", status);
 
-                        if !status.success() {
-                            return Err(BpfmanError::ContainerAttachError {
-                                program_type: "uprobe".to_string(),
-                                container_pid: program.get_container_pid()?.unwrap(),
-                            });
-                        }
+                        match status {
+                            Ok(s) => {
+                                if !s.success() {
+                                    debug!("bpfman-ns returned non-successful result: {:?}", s);
+                                    return Err(BpfmanError::ContainerAttachError {
+                                        program_type: "uprobe".to_string(),
+                                        container_pid: program.get_container_pid()?.unwrap(),
+                                    });
+                                } else {
+                                    debug!("bpfman-ns returned success: {:?}", s);
+                                };
+                            }
+                            Err(e) => {
+                                debug!("bpfman-ns returned error: {:?}", e);
+                                return Err(BpfmanError::ContainerAttachError {
+                                    program_type: "uprobe".to_string(),
+                                    container_pid: program.get_container_pid()?.unwrap(),
+                                });
+                            }
+                        };
                     }
                 };
 

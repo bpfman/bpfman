@@ -24,6 +24,8 @@ const (
 	TracepointProgramTracepoint = "bpfman.io.tracepointprogramcontroller/tracepoint"
 	KprobeProgramFunction       = "bpfman.io.kprobeprogramcontroller/function"
 	UprobeProgramTarget         = "bpfman.io.uprobeprogramcontroller/target"
+	UprobeContainerPid          = "bpfman.io.uprobeprogramcontroller/containerpid"
+	UprobeNoContainersOnNode    = "bpfman.io.uprobeprogramcontroller/nocontainersonnode"
 	BpfProgramOwnerLabel        = "bpfman.io/ownedByProgram"
 	K8sHostLabel                = "kubernetes.io/hostname"
 	DiscoveredLabel             = "bpfman.io/discoveredProgram"

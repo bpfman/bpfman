@@ -3,14 +3,14 @@ kind: UprobeProgram
 metadata:
   labels:
     app.kubernetes.io/name: uprobeprogram
-  name: uprobe-example
+  name: uprobe-example-containers
 spec:
   # Select all nodes
   nodeselector: {}
   bpffunctionname: my_uprobe
-  func_name: syscall
+  func_name: malloc
   # offset: 0 # optional offset w/in function
-  target: bpfman
+  target: libc
   retprobe: false
   # pid: 0 # optional pid to execute uprobe for
   bytecode:
@@ -24,3 +24,11 @@ spec:
       - 0x0C
       - 0x0B
       - 0x0A
+  containers:
+    namespace: "bpfman"
+    pods:
+      matchLabels:
+        name: bpfman-daemon
+    containernames:
+      - bpfman
+      - bpfman-agent
