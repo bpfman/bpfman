@@ -61,7 +61,6 @@ pub async fn serve(
     let allow_unsigned = config.signing.as_ref().map_or(true, |s| s.allow_unsigned);
     let (itx, irx) = mpsc::channel(32);
 
-    // Before dropping this make sure to manually call flush on the database.
     let database = DbConfig::default()
         .path(STDIR_DB)
         .open()

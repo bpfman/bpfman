@@ -21,14 +21,6 @@ pub enum ImageError {
     ByteCodeImageProcessFailure(#[from] anyhow::Error),
     #[error("BytecodeImage not found: {0}")]
     ByteCodeImageNotfound(String),
-    #[error("Failed to flush database to disk: {0}")]
-    DatabaseFlushFailure(#[source] sled::Error),
-    #[error("Failed to write to database: {0}")]
-    DatabaseWriteFailure(#[source] sled::Error),
-    #[error("Failed to read to database: {0}")]
-    DatabaseReadFailure(#[source] sled::Error),
-    #[error("Failed to parse data from database: {0}")]
-    DatabaseParseFailure(#[source] anyhow::Error),
-    #[error("Database key {0} does not exist")]
-    DatabaseKeyDoesNotExist(String),
+    #[error("{0}: {1}")]
+    DatabaseError(String, String),
 }

@@ -195,7 +195,9 @@ impl ImageManager {
         let exists: bool = self
             .database
             .contains_key(image_content_key.to_string() + "manifest.json")
-            .map_err(ImageError::DatabaseReadFailure)?;
+            .map_err(|e| {
+                ImageError::DatabaseError("failed to read db".to_string(), e.to_string())
+            })?;
 
         let image_meta = match pull_policy {
             ImagePullPolicy::Always => {
@@ -266,10 +268,12 @@ impl ImageManager {
         // inset and flush to disk to avoid races across threads on write.
         self.database
             .insert(image_manifest_key, image_manifest_json.as_str())
-            .map_err(ImageError::DatabaseWriteFailure)?;
-        self.database
-            .flush()
-            .map_err(ImageError::DatabaseFlushFailure)?;
+            .map_err(|e| {
+                ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
+            })?;
+        self.database.flush().map_err(|e| {
+            ImageError::DatabaseError("failed to flush db".to_string(), e.to_string())
+        })?;
 
         let config_sha = &image_manifest
             .config
@@ -297,10 +301,12 @@ impl ImageManager {
 
         self.database
             .insert(image_config_path, config_contents.as_str())
-            .map_err(ImageError::DatabaseWriteFailure)?;
-        self.database
-            .flush()
-            .map_err(ImageError::DatabaseFlushFailure)?;
+            .map_err(|e| {
+                ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
+            })?;
+        self.database.flush().map_err(|e| {
+            ImageError::DatabaseError("failed to flush db".to_string(), e.to_string())
+        })?;
 
         let image_content = self
             .client
@@ -322,10 +328,12 @@ impl ImageManager {
 
         self.database
             .insert(bytecode_path, image_content)
-            .map_err(ImageError::DatabaseWriteFailure)?;
-        self.database
-            .flush()
-            .map_err(ImageError::DatabaseFlushFailure)?;
+            .map_err(|e| {
+                ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
+            })?;
+        self.database.flush().map_err(|e| {
+            ImageError::DatabaseError("failed to flush db".to_string(), e.to_string())
+        })?;
 
         Ok(image_labels)
     }
@@ -334,18 +342,24 @@ impl ImageManager {
         &self,
         base_key: String,
     ) -> Result<Vec<u8>, ImageError> {
-        // Get image manifest from database convert back to a &str with the as_ref() implementation on IVec
         let manifest = serde_json::from_str::<OciImageManifest>(
             std::str::from_utf8(
                 &self
                     .database
                     .get(base_key.clone() + "manifest.json")
-                    .map_err(ImageError::DatabaseReadFailure)?
+                    .map_err(|e| {
+                        ImageError::DatabaseError("failed to read db".to_string(), e.to_string())
+                    })?
                     .expect("Image manifest is empty"),
             )
             .unwrap(),
         )
-        .map_err(|e| ImageError::DatabaseParseFailure(e.into()))?;
+        .map_err(|e| {
+            ImageError::DatabaseError(
+                "failed to parse image manifest from db".to_string(),
+                e.to_string(),
+            )
+        })?;
 
         let bytecode_sha = &manifest.layers[0].digest;
 
@@ -359,8 +373,11 @@ impl ImageManager {
         let f = self
             .database
             .get(bytecode_key.clone())
-            .map_err(ImageError::DatabaseReadFailure)?
-            .ok_or(ImageError::DatabaseKeyDoesNotExist(bytecode_key))?;
+            .map_err(|e| ImageError::DatabaseError("failed to read db".to_string(), e.to_string()))?
+            .ok_or(ImageError::DatabaseError(
+                "key does not exist in db".to_string(),
+                String::new(),
+            ))?;
 
         let mut hasher = Sha256::new();
         copy(&mut f.as_ref(), &mut hasher).expect("cannot copy bytecode to hasher");
@@ -401,18 +418,24 @@ impl ImageManager {
         &self,
         image_content_key: &str,
     ) -> Result<ContainerImageMetadata, anyhow::Error> {
-        // Get image manifest from database convert back to a &str with the as_ref() implementation on IVec
         let manifest = serde_json::from_str::<OciImageManifest>(
             std::str::from_utf8(
                 &self
                     .database
                     .get(image_content_key.to_string() + "manifest.json")
-                    .map_err(ImageError::DatabaseReadFailure)?
+                    .map_err(|e| {
+                        ImageError::DatabaseError("failed to read db".to_string(), e.to_string())
+                    })?
                     .expect("Image manifest is empty"),
             )
             .unwrap(),
         )
-        .map_err(|e| ImageError::DatabaseParseFailure(e.into()))?;
+        .map_err(|e| {
+            ImageError::DatabaseError(
+                "failed to parse db entry to image manifest".to_string(),
+                e.to_string(),
+            )
+        })?;
 
         let config_sha = &manifest.config.digest.split(':').collect::<Vec<&str>>()[1];
 
@@ -421,14 +444,13 @@ impl ImageManager {
         let db_content = &self
             .database
             .get(image_config_key)
-            .map_err(ImageError::DatabaseReadFailure)?
+            .map_err(|e| ImageError::DatabaseError("failed to read db".to_string(), e.to_string()))?
             .expect("Image manifest is empty");
 
         let file_content = std::str::from_utf8(db_content)?;
 
-        // This should panic since it means that the on disk storage format has changed during runtime.
         let image_config: Value =
-            serde_json::from_str(file_content).expect("cannot parse image config from disk");
+            serde_json::from_str(file_content).expect("cannot parse image config from database");
         debug!(
             "Raw container image config {}",
             &image_config["config"]["Labels"].to_string()
