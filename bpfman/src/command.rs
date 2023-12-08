@@ -113,21 +113,22 @@ impl Location {
                         resp: tx,
                     })
                     .await
-                    .map_err(|e| BpfmanError::BpfBytecodeError(e.into()))?;
+                    .map_err(|e| BpfmanError::RpcSendError(e.into()))?;
                 let (path, bpf_function_name) = rx
                     .await
-                    .map_err(BpfmanError::RpcError)?
-                    .map_err(|e| BpfmanError::BpfBytecodeError(e.into()))?;
+                    .map_err(BpfmanError::RpcRecvError)?
+                    .map_err(BpfmanError::BpfBytecodeError)?;
 
                 let (tx, rx) = oneshot::channel();
                 image_manager
                     .send(ImageManagerCommand::GetBytecode { path, resp: tx })
                     .await
-                    .map_err(|e| BpfmanError::BpfBytecodeError(e.into()))?;
+                    .map_err(|e| BpfmanError::RpcSendError(e.into()))?;
+
                 let bytecode = rx
                     .await
-                    .map_err(BpfmanError::RpcError)?
-                    .map_err(|e| BpfmanError::Error(format!("Bytecode loading error: {e}")))?;
+                    .map_err(BpfmanError::RpcRecvError)?
+                    .map_err(BpfmanError::BpfBytecodeError)?;
 
                 Ok((bytecode, bpf_function_name))
             }

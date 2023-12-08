@@ -80,11 +80,10 @@ pub(crate) fn execute_service(args: &ServiceArgs, config: &Config) -> anyhow::Re
             create_dir_all(RTDIR_BPFMAN_CSI).context("unable to create CSI directory")?;
             create_dir_all(RTDIR_BPFMAN_CSI_FS).context("unable to create socket directory")?;
 
+            create_dir_all(STDIR).context("unable to create state directory")?;
+
             create_dir_all(CFGDIR_STATIC_PROGRAMS)
                 .context("unable to create static programs directory")?;
-
-            create_dir_all(STDIR_BYTECODE_IMAGE_CONTENT_STORE)
-                .context("unable to create bytecode image store directory")?;
 
             set_dir_permissions(CFGDIR, CFGDIR_MODE).await;
             set_dir_permissions(RTDIR, RTDIR_MODE).await;

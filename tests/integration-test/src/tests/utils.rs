@@ -2,7 +2,7 @@ use std::{
     fs,
     fs::File,
     io::{Read, Write},
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::Command,
     thread::sleep,
     time::Duration,
@@ -10,7 +10,7 @@ use std::{
 
 use anyhow::Result;
 use assert_cmd::prelude::*;
-use bpfman_api::util::directories::{CFGPATH_BPFMAN_CONFIG, STDIR_BYTECODE_IMAGE_CONTENT_STORE};
+use bpfman_api::util::directories::CFGPATH_BPFMAN_CONFIG;
 use log::debug;
 use predicates::str::is_empty;
 use regex::Regex;
@@ -522,11 +522,6 @@ pub fn bpfman_pull_bytecode() -> Result<String> {
     let output = Command::cargo_bin("bpfman")?.args(args).ok();
     let stdout = String::from_utf8(output.unwrap().stdout);
     Ok(stdout.unwrap())
-}
-
-pub fn get_image_path() -> PathBuf {
-    let relative_path = str::replace(TRACEPOINT_IMAGE_LOC, ":", "/");
-    Path::new(STDIR_BYTECODE_IMAGE_CONTENT_STORE).join(relative_path)
 }
 
 /// Retrieve the output of bpfman list

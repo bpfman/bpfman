@@ -4,6 +4,8 @@
 use thiserror::Error;
 use tokio::sync::oneshot;
 
+use crate::oci_utils::ImageError;
+
 #[derive(Debug, Error)]
 pub enum BpfmanError {
     #[error("An error occurred. {0}")]
@@ -31,7 +33,7 @@ pub enum BpfmanError {
     #[error("dispatcher not required")]
     DispatcherNotRequired,
     #[error(transparent)]
-    BpfBytecodeError(#[from] anyhow::Error),
+    BpfBytecodeError(#[from] ImageError),
     #[error("Bytecode image bpf function name: {image_prog_name} isn't equal to the provided bpf function name {provided_prog_name}")]
     BytecodeMetaDataMismatch {
         image_prog_name: String,
@@ -40,7 +42,11 @@ pub enum BpfmanError {
     #[error("Unable to delete program {0}")]
     BpfmanProgramDeleteError(#[source] anyhow::Error),
     #[error(transparent)]
-    RpcError(#[from] oneshot::error::RecvError),
+    RpcRecvError(#[from] oneshot::error::RecvError),
+    // Use anyhow::Error here since the real error contains a generic <T> reflecting
+    // the failed sent item's type
+    #[error(transparent)]
+    RpcSendError(#[from] anyhow::Error),
     #[error("Failed to pin map {0}")]
     UnableToPinMap(#[source] aya::pin::PinError),
 }

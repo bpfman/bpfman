@@ -1,14 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use std::{
-    fs,
-    fs::{create_dir_all, read_to_string, File, OpenOptions},
-    io::{copy, Read, Write},
-    path::{Path, PathBuf},
-};
+use std::io::{copy, Read};
 
-use anyhow::Context;
 use bpfman_api::ImagePullPolicy;
 use flate2::read::GzDecoder;
 use log::{debug, info, trace};
@@ -22,6 +16,7 @@ use oci_distribution::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
+use sled::Db;
 use tar::Archive;
 use tokio::{
     select,
@@ -34,7 +29,6 @@ use tokio::{
 use crate::{
     oci_utils::{cosign::CosignVerifier, ImageError},
     serve::shutdown_handler,
-    utils::read,
 };
 
 #[derive(Debug, Deserialize, Default)]
@@ -108,7 +102,7 @@ impl From<bpfman_api::v1::BytecodeImage> for BytecodeImage {
 }
 
 pub(crate) struct ImageManager {
-    base_dir: PathBuf,
+    database: Db,
     client: Client,
     cosign_verifier: CosignVerifier,
     rx: Receiver<Command>,
@@ -129,13 +123,13 @@ pub(crate) enum Command {
     },
     GetBytecode {
         path: String,
-        resp: Responder<Result<Vec<u8>, anyhow::Error>>,
+        resp: Responder<Result<Vec<u8>, ImageError>>,
     },
 }
 
 impl ImageManager {
-    pub(crate) async fn new<P: AsRef<Path>>(
-        base_dir: P,
+    pub(crate) async fn new(
+        database: Db,
         allow_unsigned: bool,
         rx: mpsc::Receiver<Command>,
     ) -> Result<Self, anyhow::Error> {
@@ -146,7 +140,7 @@ impl ImageManager {
         };
         let client = Client::new(config);
         Ok(Self {
-            base_dir: base_dir.as_ref().to_path_buf(),
+            database,
             cosign_verifier,
             client,
             rx,
@@ -160,6 +154,7 @@ impl ImageManager {
                 biased;
                 _ = shutdown_handler() => {
                     info!("image_manager: Signal received to stop command processing");
+                    self.database.flush().expect("Unable to flush database to disk before shutting down ImageManager");
                     break;
                 }
                 Some(cmd) = self.rx.recv() => {
@@ -195,37 +190,36 @@ impl ImageManager {
             .verify(image_url, username.as_deref(), password.as_deref())
             .await?;
 
-        let image_content_path = self.get_image_content_dir(&image);
+        let image_content_key = get_image_content_key(&image);
 
-        // Make sure the actual image manifest exists so that we are sure the content is there
-        let exists: bool = image_content_path.join("manifest.json").exists();
+        let exists: bool = self
+            .database
+            .contains_key(image_content_key.to_string() + "manifest.json")
+            .map_err(ImageError::DatabaseReadFailure)?;
 
         let image_meta = match pull_policy {
             ImagePullPolicy::Always => {
-                self.pull_image(image, image_content_path.clone(), username, password)
+                self.pull_image(image, &image_content_key, username, password)
                     .await?
             }
             ImagePullPolicy::IfNotPresent => {
                 if exists {
-                    load_image_meta(image_content_path.clone())?
+                    self.load_image_meta(&image_content_key)?
                 } else {
-                    self.pull_image(image, image_content_path.clone(), username, password)
+                    self.pull_image(image, &image_content_key, username, password)
                         .await?
                 }
             }
             ImagePullPolicy::Never => {
                 if exists {
-                    load_image_meta(image_content_path.clone())?
+                    self.load_image_meta(&image_content_key)?
                 } else {
                     Err(ImageError::ByteCodeImageNotfound(image.to_string()))?
                 }
             }
         };
 
-        Ok((
-            image_content_path.into_os_string().into_string().unwrap(),
-            image_meta.bpf_function_name,
-        ))
+        Ok((image_content_key.to_string(), image_meta.bpf_function_name))
     }
 
     fn get_auth_for_registry(
@@ -243,7 +237,7 @@ impl ImageManager {
     pub async fn pull_image(
         &mut self,
         image: Reference,
-        content_dir: PathBuf,
+        base_key: &str,
         username: Option<String>,
         password: Option<String>,
     ) -> Result<ContainerImageMetadata, ImageError> {
@@ -253,9 +247,6 @@ impl ImageManager {
             image.repository(),
             image.tag().unwrap_or("latest")
         );
-
-        // prep on disk storage for image
-        let content_dir = prepare_storage_for_image(content_dir)?;
 
         let auth = self.get_auth_for_registry(image.registry(), username, password);
 
@@ -267,22 +258,18 @@ impl ImageManager {
 
         trace!("Raw container image manifest {}", image_manifest);
 
-        let image_manifest_path = Path::new(&content_dir).join("manifest.json");
+        let image_manifest_key = base_key.to_string() + "manifest.json";
 
-        let image_manifest_file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .open(image_manifest_path.clone())
+        let image_manifest_json = serde_json::to_string(&image_manifest)
             .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
 
-        serde_json::to_writer_pretty(
-            image_manifest_file
-                .try_clone()
-                .expect("failed to clone image_manifest_file"),
-            &image_manifest.clone(),
-        )
-        .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
+        // inset and flush to disk to avoid races across threads on write.
+        self.database
+            .insert(image_manifest_key, image_manifest_json.as_str())
+            .map_err(ImageError::DatabaseWriteFailure)?;
+        self.database
+            .flush()
+            .map_err(ImageError::DatabaseFlushFailure)?;
 
         let config_sha = &image_manifest
             .config
@@ -290,27 +277,14 @@ impl ImageManager {
             .split(':')
             .collect::<Vec<&str>>()[1];
 
-        let image_config_path = Path::new(&content_dir).join(config_sha);
-
-        let image_config_file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .open(image_config_path.clone())
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
+        let image_config_path = base_key.to_string() + config_sha;
 
         let bytecode_sha = image_manifest.layers[0]
             .digest
             .split(':')
             .collect::<Vec<&str>>()[1];
-        let bytecode_path = Path::new(&content_dir).join(bytecode_sha);
 
-        let mut image_bytecode_file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .open(bytecode_path.clone())
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
+        let bytecode_path = base_key.to_string() + bytecode_sha;
 
         let image_config: Value = serde_json::from_str(&config_contents)
             .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
@@ -321,13 +295,12 @@ impl ImageManager {
             serde_json::from_str(&image_config["config"]["Labels"].to_string())
                 .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
 
-        serde_json::to_writer_pretty(
-            image_config_file
-                .try_clone()
-                .expect("failed to clone image_config_file"),
-            &image_config,
-        )
-        .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
+        self.database
+            .insert(image_config_path, config_contents.as_str())
+            .map_err(ImageError::DatabaseWriteFailure)?;
+        self.database
+            .flush()
+            .map_err(ImageError::DatabaseFlushFailure)?;
 
         let image_content = self
             .client
@@ -347,60 +320,50 @@ impl ImageManager {
             .map(|layer| layer.data)
             .ok_or(ImageError::BytecodeImageExtractFailure)?;
 
-        image_bytecode_file
-            .write_all(image_content.as_slice())
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
-
-        // once all file writing is complete set all files to r/o
-        let mut image_manifest_perms = image_manifest_file
-            .metadata()
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?
-            .permissions();
-
-        image_manifest_perms.set_readonly(true);
-        fs::set_permissions(image_manifest_path, image_manifest_perms)
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
-
-        let mut image_config_perms = image_config_file
-            .metadata()
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?
-            .permissions();
-
-        image_config_perms.set_readonly(true);
-        fs::set_permissions(image_config_path, image_config_perms)
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
-
-        let mut bytecode_perms = image_bytecode_file
-            .metadata()
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?
-            .permissions();
-
-        bytecode_perms.set_readonly(true);
-        fs::set_permissions(bytecode_path.clone(), bytecode_perms)
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
+        self.database
+            .insert(bytecode_path, image_content)
+            .map_err(ImageError::DatabaseWriteFailure)?;
+        self.database
+            .flush()
+            .map_err(ImageError::DatabaseFlushFailure)?;
 
         Ok(image_labels)
     }
 
     pub(crate) async fn get_bytecode_from_image_store(
         &self,
-        content_dir: String,
-    ) -> Result<Vec<u8>, anyhow::Error> {
-        debug!("bytecode is stored as tar+gzip file at {}", content_dir);
-        let image_dir = Path::new(&content_dir);
-        // Get image manifest from disk
-        let manifest = load_image_manifest(image_dir.to_path_buf())?;
+        base_key: String,
+    ) -> Result<Vec<u8>, ImageError> {
+        // Get image manifest from database convert back to a &str with the as_ref() implementation on IVec
+        let manifest = serde_json::from_str::<OciImageManifest>(
+            std::str::from_utf8(
+                &self
+                    .database
+                    .get(base_key.clone() + "manifest.json")
+                    .map_err(ImageError::DatabaseReadFailure)?
+                    .expect("Image manifest is empty"),
+            )
+            .unwrap(),
+        )
+        .map_err(|e| ImageError::DatabaseParseFailure(e.into()))?;
 
         let bytecode_sha = &manifest.layers[0].digest;
 
-        let bytecode_path =
-            image_dir.join(bytecode_sha.clone().split(':').collect::<Vec<&str>>()[1]);
+        let bytecode_key = base_key + bytecode_sha.clone().split(':').collect::<Vec<&str>>()[1];
 
-        let mut f =
-            File::open(bytecode_path.clone()).context("failed to open compressed bytecode")?;
+        debug!(
+            "bytecode is stored as tar+gzip file at key {}",
+            bytecode_key
+        );
+
+        let f = self
+            .database
+            .get(bytecode_key.clone())
+            .map_err(ImageError::DatabaseReadFailure)?
+            .ok_or(ImageError::DatabaseKeyDoesNotExist(bytecode_key))?;
 
         let mut hasher = Sha256::new();
-        copy(&mut f, &mut hasher)?;
+        copy(&mut f.as_ref(), &mut hasher).expect("cannot copy bytecode to hasher");
         let hash = hasher.finalize();
         let expected_sha = "sha256:".to_owned() + &base16ct::lower::encode_string(&hash);
 
@@ -415,8 +378,7 @@ impl ImageManager {
         // The data is of OCI media type "application/vnd.oci.image.layer.v1.tar+gzip" or
         // "application/vnd.docker.image.rootfs.diff.tar.gzip"
         // decode and unpack to access bytecode
-        let buf = read(bytecode_path).await?;
-        let unzipped_tarball = GzDecoder::new(buf.as_slice());
+        let unzipped_tarball = GzDecoder::new(f.as_ref());
 
         return Ok(Archive::new(unzipped_tarball)
             .entries()
@@ -435,79 +397,66 @@ impl ImageManager {
             .to_owned());
     }
 
-    fn get_image_content_dir(&self, image: &Reference) -> PathBuf {
-        // Try to get the tag, if it doesn't exist, get the digest
-        // if neither exist, return "latest" as the tag
-        let tag = match image.tag() {
-            Some(t) => t,
-            _ => match image.digest() {
-                Some(d) => d,
-                _ => "latest",
-            },
-        };
+    fn load_image_meta(
+        &self,
+        image_content_key: &str,
+    ) -> Result<ContainerImageMetadata, anyhow::Error> {
+        // Get image manifest from database convert back to a &str with the as_ref() implementation on IVec
+        let manifest = serde_json::from_str::<OciImageManifest>(
+            std::str::from_utf8(
+                &self
+                    .database
+                    .get(image_content_key.to_string() + "manifest.json")
+                    .map_err(ImageError::DatabaseReadFailure)?
+                    .expect("Image manifest is empty"),
+            )
+            .unwrap(),
+        )
+        .map_err(|e| ImageError::DatabaseParseFailure(e.into()))?;
 
-        Path::new(&format!(
-            "{}/{}/{}/{}",
-            self.base_dir.display(),
-            image.registry(),
-            image.repository(),
-            tag
-        ))
-        .to_owned()
+        let config_sha = &manifest.config.digest.split(':').collect::<Vec<&str>>()[1];
+
+        let image_config_key = image_content_key.to_string() + config_sha;
+
+        let db_content = &self
+            .database
+            .get(image_config_key)
+            .map_err(ImageError::DatabaseReadFailure)?
+            .expect("Image manifest is empty");
+
+        let file_content = std::str::from_utf8(db_content)?;
+
+        // This should panic since it means that the on disk storage format has changed during runtime.
+        let image_config: Value =
+            serde_json::from_str(file_content).expect("cannot parse image config from disk");
+        debug!(
+            "Raw container image config {}",
+            &image_config["config"]["Labels"].to_string()
+        );
+
+        Ok(serde_json::from_str::<ContainerImageMetadata>(
+            &image_config["config"]["Labels"].to_string(),
+        )?)
     }
 }
 
-fn prepare_storage_for_image(image_dir: PathBuf) -> Result<PathBuf, ImageError> {
-    debug!(
-        "Creating oci image content store at: {}",
-        image_dir.display()
-    );
-    create_dir_all(image_dir.clone())
-        .context(format!(
-            "unable to create repo directory for image URL: {}",
-            image_dir.display()
-        ))
-        .map_err(ImageError::ByteCodeImageProcessFailure)?;
+fn get_image_content_key(image: &Reference) -> String {
+    // Try to get the tag, if it doesn't exist, get the digest
+    // if neither exist, return "latest" as the tag
+    let tag = match image.tag() {
+        Some(t) => t,
+        _ => match image.digest() {
+            Some(d) => d,
+            _ => "latest",
+        },
+    };
 
-    Ok(image_dir)
-}
-
-fn load_image_manifest(image_dir: PathBuf) -> Result<OciImageManifest, anyhow::Error> {
-    let manifest_path = image_dir.join("manifest.json");
-
-    // Get image manifest from disk
-    let file_content = read_to_string(manifest_path).context(format!(
-        "failed to read image manifest file {}",
-        image_dir.display()
-    ))?;
-    Ok(serde_json::from_str::<OciImageManifest>(&file_content)?)
-}
-
-fn load_image_meta(image_content_path: PathBuf) -> Result<ContainerImageMetadata, anyhow::Error> {
-    // Get image config from disk
-    let image_manifest = load_image_manifest(image_content_path.clone())?;
-
-    let config_sha = &image_manifest
-        .config
-        .digest
-        .split(':')
-        .collect::<Vec<&str>>()[1];
-
-    let image_config_path = image_content_path.join(config_sha);
-    let file_content =
-        read_to_string(image_config_path).context("failed to read image config file")?;
-
-    // This should panic since it means that the on disk storage format has changed during runtime.
-    let image_config: Value =
-        serde_json::from_str(&file_content).expect("cannot parse image config from disk");
-    debug!(
-        "Raw container image config {}",
-        &image_config["config"]["Labels"].to_string()
-    );
-
-    Ok(serde_json::from_str::<ContainerImageMetadata>(
-        &image_config["config"]["Labels"].to_string(),
-    )?)
+    format!(
+        "{}_{}_{}",
+        image.registry(),
+        image.repository().replace('/', "_"),
+        tag
+    )
 }
 
 #[cfg(test)]
@@ -518,13 +467,12 @@ mod tests {
 
     #[tokio::test]
     async fn image_pull_and_bytecode_verify() {
-        let tmpdir = tempfile::tempdir().unwrap();
-        std::env::set_current_dir(&tmpdir).unwrap();
+        let database = sled::Config::new().temporary(true).open().unwrap();
 
         let (_tx, rx) = mpsc::channel(32);
-        let mut mgr = ImageManager::new(tmpdir, true, rx).await.unwrap();
+        let mut mgr = ImageManager::new(database.clone(), true, rx).await.unwrap();
 
-        let (path, _) = mgr
+        let (image_content_key, _) = mgr
             .get_image(
                 "quay.io/bpfman-bytecode/xdp_pass:latest",
                 ImagePullPolicy::Always,
@@ -534,10 +482,11 @@ mod tests {
             .await
             .expect("failed to pull bytecode");
 
-        assert!(Path::new(&path).exists());
+        // Assert that an manifest, config and bytecode key were formed for image.
+        assert!(database.scan_prefix(image_content_key.clone()).count() == 3);
 
         let program_bytes = mgr
-            .get_bytecode_from_image_store(path)
+            .get_bytecode_from_image_store(image_content_key)
             .await
             .expect("failed to get bytecode from image store");
 
@@ -545,58 +494,11 @@ mod tests {
     }
 
     #[tokio::test]
-    #[should_panic]
-    async fn private_image_pull_failure() {
-        let tmpdir = tempfile::tempdir().unwrap();
-        std::env::set_current_dir(&tmpdir).unwrap();
+    async fn image_pull_policy_never_failure() {
+        let database = sled::Config::new().temporary(true).open().unwrap();
 
         let (_tx, rx) = mpsc::channel(32);
-        let mut mgr = ImageManager::new(&tmpdir, true, rx).await.unwrap();
-
-        mgr.get_image(
-            "quay.io/bpfman-bytecode/xdp_pass_private:latest",
-            ImagePullPolicy::Always,
-            None,
-            None,
-        )
-        .await
-        .expect("failed to pull bytecode");
-    }
-
-    #[tokio::test]
-    async fn private_image_pull_and_bytecode_verify() {
-        let tmpdir = tempfile::tempdir().unwrap();
-        std::env::set_current_dir(&tmpdir).unwrap();
-        let (_tx, rx) = mpsc::channel(32);
-        let mut mgr = ImageManager::new(&tmpdir, true, rx).await.unwrap();
-
-        let (path, _) = mgr
-            .get_image(
-                "quay.io/bpfman-bytecode/xdp_pass_private:latest",
-                ImagePullPolicy::Always,
-                Some("bpfman-bytecode+bpfmancreds".to_owned()),
-                Some("D49CKWI1MMOFGRCAT8SHW5A56FSVP30TGYX54BBWKY2J129XRI6Q5TVH2ZZGTJ1M".to_owned()),
-            )
-            .await
-            .expect("failed to pull bytecode");
-
-        assert!(Path::new(&path).exists());
-
-        let program_bytes = mgr
-            .get_bytecode_from_image_store(path)
-            .await
-            .expect("failed to get bytecode from image store");
-
-        assert!(!program_bytes.is_empty())
-    }
-
-    #[tokio::test]
-    async fn image_pull_failure() {
-        let tmpdir = tempfile::tempdir().unwrap();
-        std::env::set_current_dir(&tmpdir).unwrap();
-
-        let (_tx, rx) = mpsc::channel(32);
-        let mut mgr = ImageManager::new(&tmpdir, true, rx).await.unwrap();
+        let mut mgr = ImageManager::new(database.clone(), true, rx).await.unwrap();
 
         let result = mgr
             .get_image(
@@ -611,33 +513,93 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_good_image_content_path() {
-        let tmpdir = tempfile::tempdir().unwrap();
-        std::env::set_current_dir(&tmpdir).unwrap();
+    #[should_panic]
+    async fn private_image_pull_failure() {
+        let database = sled::Config::new().temporary(true).open().unwrap();
 
+        let (_tx, rx) = mpsc::channel(32);
+        let mut mgr = ImageManager::new(database, true, rx).await.unwrap();
+
+        mgr.get_image(
+            "quay.io/bpfman-bytecode/xdp_pass_private:latest",
+            ImagePullPolicy::Always,
+            None,
+            None,
+        )
+        .await
+        .expect("failed to pull bytecode");
+    }
+
+    #[tokio::test]
+    async fn private_image_pull_and_bytecode_verify() {
+        env_logger::init();
+        let database = sled::Config::new().temporary(true).open().unwrap();
+
+        let (_tx, rx) = mpsc::channel(32);
+        let mut mgr = ImageManager::new(database.clone(), true, rx).await.unwrap();
+
+        let (image_content_key, _) = mgr
+            .get_image(
+                "quay.io/bpfman-bytecode/xdp_pass_private:latest",
+                ImagePullPolicy::Always,
+                Some("bpfman-bytecode+bpfmancreds".to_owned()),
+                Some("D49CKWI1MMOFGRCAT8SHW5A56FSVP30TGYX54BBWKY2J129XRI6Q5TVH2ZZGTJ1M".to_owned()),
+            )
+            .await
+            .expect("failed to pull bytecode");
+
+        // Assert that an manifest, config and bytecode key were formed for image.
+        assert!(database.scan_prefix(image_content_key.clone()).count() == 3);
+
+        let program_bytes = mgr
+            .get_bytecode_from_image_store(image_content_key)
+            .await
+            .expect("failed to get bytecode from image store");
+
+        assert!(!program_bytes.is_empty())
+    }
+
+    #[tokio::test]
+    async fn image_pull_failure() {
+        let database = sled::Config::new().temporary(true).open().unwrap();
+
+        let (_tx, rx) = mpsc::channel(32);
+        let mut mgr = ImageManager::new(database, true, rx).await.unwrap();
+
+        let result = mgr
+            .get_image(
+                "quay.io/bpfman-bytecode/xdp_pass:latest",
+                ImagePullPolicy::Never,
+                None,
+                None,
+            )
+            .await;
+
+        assert_matches!(result, Err(ImageError::ByteCodeImageNotfound(_)));
+    }
+
+    #[tokio::test]
+    async fn test_good_image_content_key() {
         struct Case {
             input: &'static str,
-            output: PathBuf,
+            output: &'static str,
         }
         let tt = vec![
-            Case{input: "busybox", output: tmpdir.as_ref().to_path_buf().join("docker.io/library/busybox/latest")},
-            Case{input:"quay.io/busybox", output: tmpdir.as_ref().to_path_buf().join("quay.io/busybox/latest")},
-            Case{input:"docker.io/test:tag", output: tmpdir.as_ref().to_path_buf().join("docker.io/library/test/tag")},
-            Case{input:"quay.io/test:5000", output: tmpdir.as_ref().to_path_buf().join("quay.io/test/5000")},
-            Case{input:"test.com/repo:tag", output: tmpdir.as_ref().to_path_buf().join("test.com/repo/tag")},
+            Case{input: "busybox", output: "docker.io_library_busybox_latest"},
+            Case{input:"quay.io/busybox", output: "quay.io_busybox_latest"},
+            Case{input:"docker.io/test:tag", output: "docker.io_library_test_tag"},
+            Case{input:"quay.io/test:5000", output: "quay.io_test_5000"},
+            Case{input:"test.com/repo:tag", output: "test.com_repo_tag"},
             Case{
                 input:"test.com/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-                output: tmpdir.as_ref().to_path_buf().join("test.com/repo/sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+                output: "test.com_repo_sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
             }
         ];
 
-        let (_tx, rx) = mpsc::channel(32);
-        let mgr = ImageManager::new(&tmpdir, true, rx).await.unwrap();
-
         for t in tt {
             let good_reference: Reference = t.input.parse().unwrap();
-            let image_content_path = mgr.get_image_content_dir(&good_reference);
-            assert_eq!(image_content_path, t.output);
+            let image_content_key = get_image_content_key(&good_reference);
+            assert_eq!(image_content_key, t.output);
         }
     }
 }

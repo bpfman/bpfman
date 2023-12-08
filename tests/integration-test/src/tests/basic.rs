@@ -1,9 +1,7 @@
 use std::process::Command;
 
 use assert_cmd::prelude::*;
-use bpfman_api::util::directories::{
-    RTDIR_FS_MAPS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP, STDIR_BYTECODE_IMAGE_CONTENT_STORE,
-};
+use bpfman_api::util::directories::{RTDIR_FS_MAPS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP};
 use log::debug;
 use rand::Rng;
 
@@ -413,9 +411,8 @@ fn test_load_unload_kretprobe() {
 
 #[integration_test]
 fn test_pull_bytecode() {
-    if std::path::PathBuf::from(STDIR_BYTECODE_IMAGE_CONTENT_STORE).exists() {
-        std::fs::remove_dir_all(STDIR_BYTECODE_IMAGE_CONTENT_STORE).unwrap();
-    }
+    // Use temporary db for this test to ensure fresh state
+    let db = sled::Config::new().temporary(true).open().unwrap();
 
     let _bpfman_guard = start_bpfman().unwrap();
 
@@ -423,8 +420,17 @@ fn test_pull_bytecode() {
 
     let _result = bpfman_pull_bytecode().unwrap();
 
-    let path = get_image_path();
-    assert!(path.exists());
+    for result in db.iter() {
+        let (key, _value) = result.unwrap();
+        let key_str = std::str::from_utf8(&key).unwrap();
+        println!("{}", key_str);
+    }
+    
+    assert!(
+        db.scan_prefix("quay.io_bpfman-bytecode_tracepoint_latest")
+            .count()
+            == 3
+    );
 }
 
 #[integration_test]
