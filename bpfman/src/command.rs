@@ -258,7 +258,7 @@ impl TryFrom<&Program> for V1ProgramInfo {
                     fn_name: p.fn_name,
                     offset: p.offset,
                     retprobe: p.retprobe,
-                    namespace: p.namespace,
+                    container_pid: p.container_pid,
                 })),
                 Program::Uprobe(p) => Some(Info::UprobeAttachInfo(UprobeAttachInfo {
                     fn_name: p.fn_name,
@@ -266,7 +266,7 @@ impl TryFrom<&Program> for V1ProgramInfo {
                     target: p.target,
                     retprobe: p.retprobe,
                     pid: p.pid,
-                    namespace: p.namespace,
+                    container_pid: p.container_pid,
                 })),
                 Program::Unsupported(_) => None,
             },
@@ -545,7 +545,7 @@ pub(crate) struct KprobeProgram {
     pub(crate) fn_name: String,
     pub(crate) offset: u64,
     pub(crate) retprobe: bool,
-    pub(crate) namespace: Option<String>,
+    pub(crate) container_pid: Option<i32>,
 }
 
 impl KprobeProgram {
@@ -554,14 +554,14 @@ impl KprobeProgram {
         fn_name: String,
         offset: u64,
         retprobe: bool,
-        namespace: Option<String>,
+        container_pid: Option<i32>,
     ) -> Self {
         Self {
             data,
             fn_name,
             offset,
             retprobe,
-            namespace,
+            container_pid,
         }
     }
 }
@@ -575,7 +575,7 @@ pub(crate) struct UprobeProgram {
     pub(crate) target: String,
     pub(crate) retprobe: bool,
     pub(crate) pid: Option<i32>,
-    pub(crate) namespace: Option<String>,
+    pub(crate) container_pid: Option<i32>,
 }
 
 impl UprobeProgram {
@@ -586,7 +586,7 @@ impl UprobeProgram {
         target: String,
         retprobe: bool,
         pid: Option<i32>,
-        namespace: Option<String>,
+        container_pid: Option<i32>,
     ) -> Self {
         Self {
             data,
@@ -595,7 +595,7 @@ impl UprobeProgram {
             target,
             retprobe,
             pid,
-            namespace,
+            container_pid,
         }
     }
 }

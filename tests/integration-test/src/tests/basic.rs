@@ -335,6 +335,7 @@ fn test_load_unload_uprobe() {
             lt,
             UPROBE_IMAGE_LOC,
             URETPROBE_FILE_LOC,
+            None,
         )
         .unwrap();
         loaded_ids.push(prog_id);

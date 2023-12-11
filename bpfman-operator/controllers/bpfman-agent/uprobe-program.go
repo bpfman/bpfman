@@ -182,8 +182,8 @@ func (r *UprobeProgramReconciler) buildUprobeLoadRequest(
 	bpfProgram *bpfmaniov1alpha1.BpfProgram,
 	mapOwnerId *uint32) *gobpfman.LoadRequest {
 
-	// Namespace isn't supported yet in bpfman, so set it to an empty string.
-	namespace := ""
+	// Container PID isn't supported yet in bpfman, so set it to an empty string.
+	var container_pid int32 = 0
 
 	return &gobpfman.LoadRequest{
 		Bytecode:    bytecode,
@@ -192,11 +192,11 @@ func (r *UprobeProgramReconciler) buildUprobeLoadRequest(
 		Attach: &gobpfman.AttachInfo{
 			Info: &gobpfman.AttachInfo_UprobeAttachInfo{
 				UprobeAttachInfo: &gobpfman.UprobeAttachInfo{
-					FnName:    &r.currentUprobeProgram.Spec.FunctionName,
-					Offset:    r.currentUprobeProgram.Spec.Offset,
-					Target:    bpfProgram.Annotations[internal.UprobeProgramTarget],
-					Retprobe:  r.currentUprobeProgram.Spec.RetProbe,
-					Namespace: &namespace,
+					FnName:       &r.currentUprobeProgram.Spec.FunctionName,
+					Offset:       r.currentUprobeProgram.Spec.Offset,
+					Target:       bpfProgram.Annotations[internal.UprobeProgramTarget],
+					Retprobe:     r.currentUprobeProgram.Spec.RetProbe,
+					ContainerPid: &container_pid,
 				},
 			},
 		},

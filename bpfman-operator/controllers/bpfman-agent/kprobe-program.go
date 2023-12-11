@@ -179,8 +179,8 @@ func (r *KprobeProgramReconciler) buildKprobeLoadRequest(
 	bpfProgram *bpfmaniov1alpha1.BpfProgram,
 	mapOwnerId *uint32) *gobpfman.LoadRequest {
 
-	// Namespace isn't supported yet in bpfman, so set it to an empty string.
-	namespace := ""
+	// Container PID isn't supported yet in bpfman, so set it to zero.
+	var container_pid int32 = 0
 
 	return &gobpfman.LoadRequest{
 		Bytecode:    bytecode,
@@ -189,10 +189,10 @@ func (r *KprobeProgramReconciler) buildKprobeLoadRequest(
 		Attach: &gobpfman.AttachInfo{
 			Info: &gobpfman.AttachInfo_KprobeAttachInfo{
 				KprobeAttachInfo: &gobpfman.KprobeAttachInfo{
-					FnName:    bpfProgram.Annotations[internal.KprobeProgramFunction],
-					Offset:    r.currentKprobeProgram.Spec.Offset,
-					Retprobe:  r.currentKprobeProgram.Spec.RetProbe,
-					Namespace: &namespace,
+					FnName:       bpfProgram.Annotations[internal.KprobeProgramFunction],
+					Offset:       r.currentKprobeProgram.Spec.Offset,
+					Retprobe:     r.currentKprobeProgram.Spec.RetProbe,
+					ContainerPid: &container_pid,
 				},
 			},
 		},

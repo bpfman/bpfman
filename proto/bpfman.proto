@@ -110,7 +110,7 @@ message KprobeAttachInfo {
     string fn_name = 1;
     uint64 offset = 2;
     bool retprobe = 3;
-    optional string namespace = 4;
+    optional int32 container_pid = 4;
 }
 
 /* UprobeAttachInfo represents the program specific metadata which bpfman
@@ -123,7 +123,7 @@ message UprobeAttachInfo {
     string target = 3;
     bool retprobe = 4;
     optional int32 pid = 5;
-    optional string namespace = 6;
+    optional int32 container_pid = 6;
 }
 
 /* Program specific parameters, mostly concerning where and how to attach

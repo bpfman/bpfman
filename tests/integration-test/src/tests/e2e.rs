@@ -625,6 +625,7 @@ fn test_program_execution_with_global_variables() {
         &LoadType::Image,
         UPROBE_IMAGE_LOC,
         UPROBE_FILE_LOC,
+        None,
     );
 
     loaded_ids.push(prog_id.unwrap());
@@ -796,4 +797,39 @@ fn test_load_unload_tracepoint_maps() {
     let _bpfman_guard = start_bpfman().unwrap();
 
     verify_and_delete_programs(vec![prog_id.unwrap()]);
+}
+
+#[integration_test]
+fn test_uprobe_container() {
+    // Start docker container and verify we can attach a uprobe inside.
+
+    let container = start_container().unwrap();
+    let _trace_guard = start_trace_pipe().unwrap();
+    let _bpfman_guard = start_bpfman().unwrap();
+
+    let mut loaded_ids = vec![];
+
+    let container_pid = container.container_pid().to_string();
+
+    debug!("Installing uprobe program");
+    let prog_id = add_uprobe(
+        Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        &LoadType::Image,
+        UPROBE_IMAGE_LOC,
+        UPROBE_FILE_LOC,
+        Some(&container_pid),
+    );
+
+    loaded_ids.push(prog_id.unwrap());
+
+    // generate some mallocs which should generate some logs
+    for _ in 0..5 {
+        container.ls();
+    }
+
+    let trace_pipe_log = read_trace_pipe_log().unwrap();
+    assert!(trace_pipe_log.contains(UPROBE_GLOBAL_1_LOG));
+    debug!("Successfully validated uprobe in a container");
+
+    verify_and_delete_programs(loaded_ids);
 }

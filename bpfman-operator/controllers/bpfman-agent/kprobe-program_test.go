@@ -45,19 +45,19 @@ import (
 
 func TestKprobeProgramControllerCreate(t *testing.T) {
 	var (
-		name            = "fakeKprobeProgram"
-		namespace       = "bpfman"
-		bytecodePath    = "/tmp/hello.o"
-		bpfFunctionName = "test"
-		functionName    = "try_to_wake_up"
-		offset          = 0
-		retprobe        = false
-		kprobenamespace = ""
-		fakeNode        = testutils.NewNode("fake-control-plane")
-		ctx             = context.TODO()
-		bpfProgName     = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, "try-to-wake-up")
-		bpfProg         = &bpfmaniov1alpha1.BpfProgram{}
-		fakeUID         = "ef71d42c-aa21-48e8-a697-82391d801a81"
+		name                     = "fakeKprobeProgram"
+		namespace                = "bpfman"
+		bytecodePath             = "/tmp/hello.o"
+		bpfFunctionName          = "test"
+		functionName             = "try_to_wake_up"
+		offset                   = 0
+		retprobe                 = false
+		kprobecontainerpid int32 = 0
+		fakeNode                 = testutils.NewNode("fake-control-plane")
+		ctx                      = context.TODO()
+		bpfProgName              = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, "try-to-wake-up")
+		bpfProg                  = &bpfmaniov1alpha1.BpfProgram{}
+		fakeUID                  = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)
 	// A KprobeProgram object with metadata and spec.
 	Kprobe := &bpfmaniov1alpha1.KprobeProgram{
@@ -164,10 +164,10 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 		Attach: &gobpfman.AttachInfo{
 			Info: &gobpfman.AttachInfo_KprobeAttachInfo{
 				KprobeAttachInfo: &gobpfman.KprobeAttachInfo{
-					FnName:    functionName,
-					Offset:    uint64(offset),
-					Retprobe:  retprobe,
-					Namespace: &kprobenamespace,
+					FnName:       functionName,
+					Offset:       uint64(offset),
+					Retprobe:     retprobe,
+					ContainerPid: &kprobecontainerpid,
 				},
 			},
 		},
