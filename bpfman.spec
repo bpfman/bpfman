@@ -3,7 +3,7 @@
 
 %global crate bpfman
 %global commit GITSHA
-%global shortcommit %(c=%{commit}; echo ${c:0:7})
+%global shortcommit GITSHORTSHA
 %global base_version 0.4.0
 %global prerelease dev
 %global package_version %{base_version}%{?prerelease:~%{prerelease}}
