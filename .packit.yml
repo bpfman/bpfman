@@ -7,6 +7,7 @@ srpm_build_deps:
   - rust
   - git
   - jq
+  - openssl-devel
 
 jobs:
   - job: tests
@@ -19,6 +20,8 @@ jobs:
     trigger: commit
     branch: main
     specfile_path: bpfman.spec
+    owner: "@ebpf-sigs"
+    project: "bpfman"
     actions:
       fix-spec-file:
         - sed -i bpfman.spec "s/GITSHA/${PACKIT_PROJECT_COMMIT}/g"
