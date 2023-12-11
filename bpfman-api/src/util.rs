@@ -42,5 +42,5 @@ pub mod directories {
     // StateDirectory: /var/lib/bpfman/
     pub const STDIR_MODE: u32 = 0o6770;
     pub const STDIR: &str = "/var/lib/bpfman";
-    pub const STDIR_BYTECODE_IMAGE_CONTENT_STORE: &str = "/var/lib/bpfman/io.bpfman.image.content";
+    pub const STDIR_DB: &str = "/var/lib/bpfman/db";
 }

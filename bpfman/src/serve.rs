@@ -5,10 +5,11 @@ use std::{fs::remove_file, path::Path};
 
 use bpfman_api::{
     config::{self, Config},
-    util::directories::STDIR_BYTECODE_IMAGE_CONTENT_STORE,
+    util::directories::STDIR_DB,
     v1::bpfman_server::BpfmanServer,
 };
 use log::{debug, info};
+use sled::Config as DbConfig;
 use tokio::{
     join,
     net::UnixListener,
@@ -60,13 +61,17 @@ pub async fn serve(
     let allow_unsigned = config.signing.as_ref().map_or(true, |s| s.allow_unsigned);
     let (itx, irx) = mpsc::channel(32);
 
-    let mut image_manager =
-        ImageManager::new(STDIR_BYTECODE_IMAGE_CONTENT_STORE, allow_unsigned, irx).await?;
+    let database = DbConfig::default()
+        .path(STDIR_DB)
+        .open()
+        .expect("Unable to open database");
+
+    let mut image_manager = ImageManager::new(database.clone(), allow_unsigned, irx).await?;
     let image_manager_handle = tokio::spawn(async move {
         image_manager.run().await;
     });
 
-    let mut bpf_manager = BpfManager::new(config.clone(), rx, itx);
+    let mut bpf_manager = BpfManager::new(config.clone(), rx, itx, database);
     bpf_manager.rebuild_state().await?;
 
     let static_programs = get_static_programs(static_program_path).await?;

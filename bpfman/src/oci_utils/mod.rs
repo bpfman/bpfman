@@ -3,6 +3,7 @@
 
 pub(crate) mod cosign;
 pub(crate) mod image_manager;
+
 pub(crate) use image_manager::ImageManager;
 use thiserror::Error;
 
@@ -20,4 +21,6 @@ pub enum ImageError {
     ByteCodeImageProcessFailure(#[from] anyhow::Error),
     #[error("BytecodeImage not found: {0}")]
     ByteCodeImageNotfound(String),
+    #[error("{0}: {1}")]
+    DatabaseError(String, String),
 }

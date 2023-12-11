@@ -95,22 +95,19 @@ impl TcDispatcher {
                 resp: tx,
             })
             .await
-            .map_err(|e| BpfmanError::BpfBytecodeError(e.into()))?;
+            .map_err(|e| BpfmanError::RpcSendError(e.into()))?;
 
         let (path, bpf_function_name) = rx
             .await
-            .map_err(|e| BpfmanError::BpfBytecodeError(e.into()))?
-            .map_err(|e| BpfmanError::BpfBytecodeError(e.into()))?;
+            .map_err(BpfmanError::RpcRecvError)?
+            .map_err(BpfmanError::BpfBytecodeError)?;
 
         let (tx, rx) = oneshot::channel();
         image_manager
             .send(ImageManagerCommand::GetBytecode { path, resp: tx })
             .await
-            .map_err(|e| BpfmanError::BpfBytecodeError(e.into()))?;
-        let program_bytes = rx
-            .await
-            .map_err(|e| BpfmanError::BpfBytecodeError(e.into()))?
-            .map_err(BpfmanError::BpfBytecodeError)?;
+            .map_err(|e| BpfmanError::RpcSendError(e.into()))?;
+        let program_bytes = rx.await?.map_err(BpfmanError::BpfBytecodeError)?;
 
         let mut loader = BpfLoader::new()
             .set_global("CONFIG", &config, true)
