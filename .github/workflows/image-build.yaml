@@ -355,7 +355,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         if: ${{ matrix.image.bpf_build_wrapper == 'go' }}
         with:
           go-version: "1.21"
