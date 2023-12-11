@@ -2,8 +2,10 @@ downstream_package_name: bpfman
 upstream_project_url: https://github.com/bpfman/bpfman
 specfile_path: bpfman.spec
 actions:
-  fix-spec-file: sed -i bpfman.spec "s/GITSHA/${PACKIT_PROJECT_COMMIT}/g"
-  get-current-version: cargo metadata --format-version 1 | jq -r '.packages[] | select(.name == "bpfman") | .version'
+  fix-spec-file:
+    - sed -i bpfman.spec "s/GITSHA/${PACKIT_PROJECT_COMMIT}/g"
+  get-current-version:
+    - cargo metadata --format-version 1 | jq -r '.packages[] | select(.name == "bpfman") | .version'
 srpm_build_deps:
   - cargo
   - rust
