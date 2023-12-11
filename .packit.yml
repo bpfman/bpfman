@@ -1,7 +1,7 @@
 downstream_package_name: bpfman
 upstream_project_url: https://github.com/bpfman/bpfman
 specfile_path: bpfman.spec
-
+prerelease_suffix_pattern: ([.\-_~^]?)(dev|alpha|beta|rc|pre(view)?)([.\-_]?\d+)?
 srpm_build_deps:
   - cargo
   - rust
@@ -30,7 +30,7 @@ jobs:
         cargo build &&
         cd - &&
         cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . &&
-        ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz
+        ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz'
     targets:
       - fedora-all
     preserve_project: true
