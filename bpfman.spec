@@ -10,11 +10,11 @@
 %global upstream_version %{base_version}%{?prerelease:~%{prerelease}}
 
 Name:           bpfman
-Version:        v0.3.1
-Release:        1.20231211140208066929.main.88.gef232a2%{?dist}
+Version:        %{package_version}
+Release:        %autorelease
 Summary:        An eBPF program manager
 
-SourceLicense:  bpfman-v0.3.1.tar.gz
+SourceLicense:  Apache-2.0
 # (Apache-2.0 OR MIT) AND BSD-3-Clause
 # (MIT OR Apache-2.0) AND Unicode-DFS-2016
 # 0BSD OR MIT OR Apache-2.0
@@ -39,7 +39,7 @@ License: Apache-2.0 AND AND Unicode-DFS-2016 AND BSD-3-Clause AND ISC AND MIT AN
 # LICENSE.dependencies contains a full license breakdown
 
 URL:            https://bpfman.io
-Source0:        https://github.com/bpfman/bpfman/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
+Source0:         https://github.com/bpfman/bpfman/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 # The vendor tarball is created using cargo-vendor-filterer to remove Windows
 # related files (https://github.com/coreos/cargo-vendor-filterer)
 #   cargo vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz
