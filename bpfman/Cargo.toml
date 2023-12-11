@@ -1,10 +1,10 @@
 [package]
-description = "A system daemon for loading BPF programs"
-edition = "2021"
-license = "Apache-2.0"
+description = "An eBPF Program Manager"
+edition.workspace = true
+license.workspace = true
 name = "bpfman"
-repository = "https://github.com/bpfman/bpfman"
-version = "0.3.1"
+repository.workspace = true
+version.workspace = true
 
 [[bin]]
 name = "bpfman"

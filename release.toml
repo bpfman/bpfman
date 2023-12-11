@@ -1,7 +1,1 @@
 consolidate-commits = true
-consolidate-pushes = true
-dev-version = true
-dev-version-ext = "dev"
-post-release-commit-message = "bpfman, bpfman-common: start next development iteration {{next_version}}"
-pre-release-commit-message = "bpfman, bpfman-common: release version {{version}}"
-shared-version = true

@@ -1,0 +1,34 @@
+downstream_package_name: bpfman
+upstream_project_url: https://github.com/bpfman/bpfman
+specfile_path: bpfman.spec
+
+srpm_build_deps:
+  - cargo
+  - rust
+  - git
+  - jq
+
+jobs:
+  - job: tests
+    trigger: pull_request
+    targets:
+      - fedora-all
+    skip_build: true
+
+  - job: copr_build
+    trigger: commit
+    branch: main
+    specfile_path: bpfman.spec
+    actions:
+      fix-spec-file: sed -i bpfman.spec "s/GITSHA/${PACKIT_PROJECT_COMMIT}/g"
+      get-current-version: cargo metadata --format-version 1 | jq -r '.packages[] | select(.name == "bpfman") | .version'
+      post-upstream-clone:
+        bash -c 'if [[ ! -d /var/tmp/cargo-vendor-filterer ]]; then git clone https://github.com/coreos/cargo-vendor-filterer.git /var/tmp/cargo-vendor-filterer; fi &&
+        cd /var/tmp/cargo-vendor-filterer &&
+        cargo build &&
+        cd - &&
+        cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . &&
+        ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz
+    targets:
+      - fedora-all
+    preserve_project: true
