@@ -22,7 +22,7 @@ jobs:
     specfile_path: bpfman.spec
     actions:
       fix-spec-file:
-        - sed -i bpfman.spec "s/GITSHA/${PACKIT_PROJECT_COMMIT}/g"
+        - bash -c 'sed -i bpfman.spec "s/GITSHA/${PACKIT_PROJECT_COMMIT}/g"'
       get-current-version:
         - bash -c 'cargo metadata --format-version 1 | jq -r ".packages[] | select(.name == \"bpfman\") | .version"'
       post-upstream-clone:
