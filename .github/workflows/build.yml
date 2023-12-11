@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check License Header
-        uses: apache/skywalking-eyes@a790ab8dd23a7f861c18bd6aaa9b012e3a234bce
+        uses: apache/skywalking-eyes@ee81ff786927ea6ffa48b1e29c48e5289f4753aa
 
   build:
     runs-on: ubuntu-latest
