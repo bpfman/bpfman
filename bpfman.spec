@@ -39,7 +39,7 @@ License: Apache-2.0 AND AND Unicode-DFS-2016 AND BSD-3-Clause AND ISC AND MIT AN
 # LICENSE.dependencies contains a full license breakdown
 
 URL:            https://bpfman.io
-Source:         https://github.com/bpfman/bpfman/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
+Source0:        https://github.com/bpfman/bpfman/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 # The vendor tarball is created using cargo-vendor-filterer to remove Windows
 # related files (https://github.com/coreos/cargo-vendor-filterer)
 #   cargo vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz
