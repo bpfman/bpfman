@@ -2,16 +2,27 @@
 
 # bpfman: An eBPF Manager
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![License](https://img.shields.io/badge/License-BSD_2--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
-[![License: GPL
-v2](https://img.shields.io/badge/License-GPL_v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
-![Build status][build-badge] [![Book][book-badge]][book-url]
-[![Netlify Status](https://api.netlify.com/api/v1/badges/557ca612-4b7f-480d-a1cc-43b453502992/deploy-status)](https://app.netlify.com/sites/bpfman/deploys)
+[![License][apache2-badge]][apache2-url]
+[![License][bsd2-badge]][bsd2-url]
+[![License][gpl-badge]][gpl-url]
+![Build status][build-badge]
+[![Book][book-badge]][book-url]
+[![Netlify Status][netlify-badge]][netlify-url]
+[![Copr build status][copr-badge]][copr-url]
 
+[apache2-badge]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
+[apache2-url]: https://opensource.org/licenses/Apache-2.0
+[bsd2-badge]: https://img.shields.io/badge/License-BSD%202--Clause-orange.svg
+[bsd2-url]: https://opensource.org/licenses/BSD-2-Clause
+[gpl-badge]: https://img.shields.io/badge/License-GPL%20v2-blue.svg
+[gpl-url]: https://opensource.org/licenses/GPL-2.0
 [build-badge]: https://img.shields.io/github/actions/workflow/status/bpfman/bpfman/build.yml?branch=main
 [book-badge]: https://img.shields.io/badge/read%20the-book-9cf.svg
 [book-url]: https://bpfman.io/
+[copr-badge]: https://copr.fedorainfracloud.org/coprs/g/ebpf-sig/bpfman-next/package/bpfman/status_image/last_build.png
+[copr-url]: https://copr.fedorainfracloud.org/coprs/g/ebpf-sig/bpfman-next/package/bpfman/
+[netlify-badge]: https://api.netlify.com/api/v1/badges/557ca612-4b7f-480d-a1cc-43b453502992/deploy-status
+[netlify-url]: https://app.netlify.com/sites/bpfman/deploys
 
 _Formerly know as `bpfd`_
 
