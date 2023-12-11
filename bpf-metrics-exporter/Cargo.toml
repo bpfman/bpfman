@@ -1,7 +1,10 @@
 [package]
-edition = "2021"
+description = "gRPC bindings to the bpfman API"
+edition.workspace = true
+license.workspace = true
 name = "bpf-metrics-exporter"
-version = "0.1.0"
+repository.workspace = true
+version = "0.1.0-dev"
 
 [dependencies]
 anyhow = { workspace = true }

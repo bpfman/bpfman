@@ -1,10 +1,10 @@
 [package]
 description = "An executable to attach an eBPF program inside a container"
-edition = "2021"
-license = "MIT OR Apache-2.0"
+edition.workspace = true
+license.workspace = true
 name = "bpfman-ns"
-repository = "https://github.com/bpfman/bpfman"
-version = "0.3.1"
+repository.workspace = true
+version.workspace = true
 
 [[bin]]
 name = "bpfman-ns"
