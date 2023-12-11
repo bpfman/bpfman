@@ -5,7 +5,7 @@ actions:
   fix-spec-file:
     - sed -i bpfman.spec "s/GITSHA/${PACKIT_PROJECT_COMMIT}/g"
   get-current-version:
-    - cargo metadata --format-version 1 | jq -r '.packages[] | select(.name == "bpfman") | .version'
+    - bash -c "cargo metadata --format-version 1 | jq -r '.packages[] | select(.name == "bpfman") | .version'"
 srpm_build_deps:
   - cargo
   - rust
