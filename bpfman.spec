@@ -78,15 +78,16 @@ sed -i 's#aya = { git = "https://github.com/aya-rs/aya", branch = "main" }#aya =
 install -Dpm 0755 \
     -t %{buildroot}%{_sbindir} \
     ./target/release/bpfman
-
+install -Dpm 644 ./scripts/bpfman.service \
+    %{buildroot}%{_unitdir}/bpfman.service
 %post
-%systemd_post scripts/bpfman.service
+%systemd_post bpfman.service
 
 %preun
-%systemd_preun scripts/bpfman.service
+%systemd_preun bpfman.service
 
 %postun
-%systemd_postun_with_restart scripts/bpfman.service
+%systemd_postun_with_restart bpfman.service
 
 %files
 %license LICENSE-APACHE
@@ -104,6 +105,7 @@ install -Dpm 0755 \
 %doc REVIEWING.md
 %doc SECURITY.md
 %{_sbindir}/bpfman
+%{_unitdir}/bpfman.service
 
 %changelog
 %autochangelog
