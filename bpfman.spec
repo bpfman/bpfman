@@ -56,7 +56,7 @@ An eBPF Program Manager.}
 %description %{_description}
 
 %prep
-%autosetup %{name}-${version_no_tilde} -n bpfman-v0.3.1 -p1 -a1
+%autosetup %{name}-%{version_no_tilde} -n %{name}-%{commit} -p1 -a1
 
 # Source1 is vendored dependencies
 tar -xoaf %{SOURCE1}
