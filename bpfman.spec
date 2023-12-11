@@ -2,9 +2,10 @@
 %bcond_without check
 
 %global crate bpfman
-
+%global commit GITSHA
+%global shortcommit %(c=%{commit}; echo ${c:0:7})
 %global base_version 0.4.0
-%global prerelease main
+%global prerelease dev
 %global package_version %{base_version}%{?prerelease:~%{prerelease}}
 %global upstream_version %{base_version}%{?prerelease:~%{prerelease}}
 
@@ -38,12 +39,7 @@ License: Apache-2.0 AND AND Unicode-DFS-2016 AND BSD-3-Clause AND ISC AND MIT AN
 # LICENSE.dependencies contains a full license breakdown
 
 URL:            https://bpfman.io
-%if "%{prerelease}" == "main"
-# Can we use files locally instead of a tarball URL from GitHub?
-Source0:         https://github.com/bpfman/bpfman/archive/main/%{name}-main.tar.gz
-%else
-Source0:         https://github.com/bpfman/bpfman/archive/v%{version}/%{name}-%{version}.tar.gz
-%endif
+Source:         https://github.com/bpfman/bpfman/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
 # The vendor tarball is created using cargo-vendor-filterer to remove Windows
 # related files (https://github.com/coreos/cargo-vendor-filterer)
 #   cargo vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz
@@ -60,11 +56,7 @@ An eBPF Program Manager.}
 %description %{_description}
 
 %prep
-%if "%{prerelease}" == "main"
-%autosetup %{name}-${version} -n %{name}-main -p1 -a1
-%else
-%autosetup -n %{name}-%{version} -p1 -a1
-%endif
+%autosetup %{name}-${version_no_tilde} -n bpfman-v0.3.1 -p1 -a1
 
 # Source1 is vendored dependencies
 tar -xoaf %{SOURCE1}
