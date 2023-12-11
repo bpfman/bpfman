@@ -20,6 +20,8 @@ jobs:
     trigger: commit
     branch: main
     specfile_path: bpfman.spec
+    owner: "@ebpf-sig"
+    project: "bpfman-next"
     actions:
       fix-spec-file:
         - "bash .packit.sh"
