@@ -5,40 +5,9 @@ use anyhow::bail;
 use bpfman_api::{
     config::Config,
     v1::{bpfman_client::BpfmanClient, ListRequest},
-    ProgramType,
 };
-use clap::Args;
 
-use crate::cli::{parse_key_val, select_channel, table::ProgTable};
-
-#[derive(Args, Debug)]
-pub(crate) struct ListArgs {
-    /// Optional: List a specific program type
-    /// Example: --program-type xdp
-    ///
-    /// [possible values: unspec, socket-filter, kprobe, tc, sched-act,
-    ///                   tracepoint, xdp, perf-event, cgroup-skb,
-    ///                   cgroup-sock, lwt-in, lwt-out, lwt-xmit, sock-ops,
-    ///                   sk-skb, cgroup-device, sk-msg, raw-tracepoint,
-    ///                   cgroup-sock-addr, lwt-seg6-local, lirc-mode2,
-    ///                   sk-reuseport, flow-dissector, cgroup-sysctl,
-    ///                   raw-tracepoint-writable, cgroup-sockopt, tracing,
-    ///                   struct-ops, ext, lsm, sk-lookup, syscall]
-    #[clap(short, long, verbatim_doc_comment, hide_possible_values = true)]
-    program_type: Option<ProgramType>,
-
-    /// Optional: List programs which contain a specific set of metadata labels
-    /// that were applied when the program was loaded with `--metadata` parameter.
-    /// Format: <KEY>=<VALUE>
-    ///
-    /// Example: --metadata-selector owner=acme
-    #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
-    metadata_selector: Option<Vec<(String, String)>>,
-
-    /// Optional: List all programs.
-    #[clap(short, long, verbatim_doc_comment)]
-    all: bool,
-}
+use crate::cli::{args::ListArgs, select_channel, table::ProgTable};
 
 pub(crate) fn execute_list(args: &ListArgs, config: &mut Config) -> anyhow::Result<()> {
     tokio::runtime::Builder::new_multi_thread()

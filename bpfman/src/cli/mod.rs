@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
+pub(crate) mod args;
 mod get;
 mod image;
 mod list;
@@ -8,53 +9,20 @@ mod load;
 mod system;
 mod table;
 mod unload;
-
 use std::fs;
 
+use args::Commands;
 use bpfman_api::{
     config::{self, Config},
     util::directories::CFGPATH_BPFMAN_CONFIG,
 };
-use clap::{Parser, Subcommand};
+use get::execute_get;
+use list::execute_list;
 use log::warn;
 use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
-
-use crate::cli::{
-    get::{execute_get, GetArgs},
-    image::ImageSubCommand,
-    list::{execute_list, ListArgs},
-    load::LoadSubcommand,
-    system::SystemSubcommand,
-    unload::{execute_unload, UnloadArgs},
-};
-
-#[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
-pub(crate) struct Cli {
-    #[command(subcommand)]
-    pub(crate) command: Commands,
-}
-
-#[derive(Subcommand, Debug)]
-pub(crate) enum Commands {
-    /// Load an eBPF program from a local .o file.
-    #[command(subcommand)]
-    Load(LoadSubcommand),
-    /// Unload an eBPF program using the program id.
-    Unload(UnloadArgs),
-    /// List all eBPF programs loaded via bpfman.
-    List(ListArgs),
-    /// Get an eBPF program using the program id.
-    Get(GetArgs),
-    /// eBPF Bytecode Image related commands.
-    #[command(subcommand)]
-    Image(ImageSubCommand),
-    /// Run bpfman as a service.
-    #[command(subcommand)]
-    System(SystemSubcommand),
-}
+use unload::execute_unload;
 
 impl Commands {
     pub(crate) fn execute(&self) -> Result<(), anyhow::Error> {
@@ -105,10 +73,4 @@ fn select_channel(config: &mut Config) -> Option<Channel> {
     let channel = address
         .connect_with_connector_lazy(service_fn(move |_: Uri| UnixStream::connect(path.clone())));
     Some(channel)
-}
-
-/// Parse a single key-value pair
-pub(crate) fn parse_key_val(s: &str) -> Result<(String, String), std::io::Error> {
-    let pos = s.find('=').ok_or(std::io::ErrorKind::InvalidInput)?;
-    Ok((s[..pos].to_string(), s[pos + 1..].to_string()))
 }

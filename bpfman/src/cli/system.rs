@@ -10,7 +10,6 @@ use std::{
 
 use anyhow::{bail, Context};
 use bpfman_api::config::Config;
-use clap::Args;
 use log::info;
 use nix::{
     libc::RLIM_INFINITY,
@@ -19,16 +18,18 @@ use nix::{
 use systemd_journal_logger::{connected_to_journal, JournalLog};
 
 use crate::{
+    cli::args::{ServiceArgs, SystemSubcommand},
     serve::serve,
     utils::{create_bpffs, set_dir_permissions},
     BPFMAN_ENV_LOG_LEVEL,
 };
 
-#[derive(Args, Debug)]
-pub(crate) struct ServiceArgs {
-    /// Enable CSI support.
-    #[clap(long)]
-    csi_support: bool,
+impl SystemSubcommand {
+    pub(crate) fn execute(&self, config: &Config) -> anyhow::Result<()> {
+        match self {
+            SystemSubcommand::Service(args) => execute_service(args, config),
+        }
+    }
 }
 
 pub(crate) fn execute_service(args: &ServiceArgs, config: &Config) -> anyhow::Result<()> {

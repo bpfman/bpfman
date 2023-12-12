@@ -5,15 +5,8 @@ use bpfman_api::{
     config::Config,
     v1::{bpfman_client::BpfmanClient, UnloadRequest},
 };
-use clap::Args;
 
-use crate::cli::select_channel;
-
-#[derive(Args, Debug)]
-pub(crate) struct UnloadArgs {
-    /// Required: Program id to be unloaded.
-    id: u32,
-}
+use crate::cli::{args::UnloadArgs, select_channel};
 
 pub(crate) fn execute_unload(args: &UnloadArgs, config: &mut Config) -> Result<(), anyhow::Error> {
     tokio::runtime::Builder::new_multi_thread()
