@@ -7,15 +7,11 @@ use bpfman_api::{
     v1::{bpfman_client::BpfmanClient, BytecodeImage, PullBytecodeRequest},
     ImagePullPolicy,
 };
-use clap::{Args, Subcommand};
 
-use crate::cli::select_channel;
-
-#[derive(Subcommand, Debug)]
-pub(crate) enum ImageSubCommand {
-    /// Pull an eBPF bytecode image from a remote registry.
-    Pull(PullBytecodeArgs),
-}
+use crate::cli::{
+    args::{ImageSubCommand, PullBytecodeArgs},
+    select_channel,
+};
 
 impl ImageSubCommand {
     pub(crate) fn execute(&self, config: &mut Config) -> anyhow::Result<()> {
@@ -23,27 +19,6 @@ impl ImageSubCommand {
             ImageSubCommand::Pull(args) => execute_pull(args, config),
         }
     }
-}
-
-#[derive(Args, Debug)]
-pub(crate) struct PullBytecodeArgs {
-    /// Required: Container Image URL.
-    /// Example: --image-url quay.io/bpfman-bytecode/xdp_pass:latest
-    #[clap(short, long, verbatim_doc_comment)]
-    pub(crate) image_url: String,
-
-    /// Optional: Registry auth for authenticating with the specified image registry.
-    /// This should be base64 encoded from the '<username>:<password>' string just like
-    /// it's stored in the docker/podman host config.
-    /// Example: --registry_auth "YnjrcKw63PhDcQodiU9hYxQ2"
-    #[clap(short, long, verbatim_doc_comment)]
-    registry_auth: Option<String>,
-
-    /// Optional: Pull policy for remote images.
-    ///
-    /// [possible values: Always, IfNotPresent, Never]
-    #[clap(short, long, verbatim_doc_comment, default_value = "IfNotPresent")]
-    pull_policy: String,
 }
 
 impl TryFrom<&PullBytecodeArgs> for BytecodeImage {

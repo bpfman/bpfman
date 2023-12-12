@@ -19,6 +19,6 @@ mod utils;
 const BPFMAN_ENV_LOG_LEVEL: &str = "RUST_LOG";
 
 fn main() -> anyhow::Result<()> {
-    let cli = cli::Cli::parse();
+    let cli = cli::args::Cli::parse();
     cli.command.execute()
 }

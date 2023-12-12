@@ -5,15 +5,8 @@ use bpfman_api::{
     config::Config,
     v1::{bpfman_client::BpfmanClient, GetRequest},
 };
-use clap::Args;
 
-use crate::cli::{select_channel, table::ProgTable};
-
-#[derive(Args, Debug)]
-pub(crate) struct GetArgs {
-    /// Required: Program id to get.
-    id: u32,
-}
+use crate::cli::{args::GetArgs, select_channel, table::ProgTable};
 
 pub(crate) fn execute_get(args: &GetArgs, config: &mut Config) -> Result<(), anyhow::Error> {
     tokio::runtime::Builder::new_multi_thread()
