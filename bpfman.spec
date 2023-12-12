@@ -35,7 +35,7 @@ SourceLicense:  Apache-2.0
 # MPL-2.0
 # Unlicense OR MIT
 # Zlib OR Apache-2.0 OR MIT
-License: Apache-2.0 AND AND Unicode-DFS-2016 AND BSD-3-Clause AND ISC AND MIT AND MPL-2.0
+License: Apache-2.0 AND Unicode-DFS-2016 AND BSD-3-Clause AND ISC AND MIT AND MPL-2.0
 # LICENSE.dependencies contains a full license breakdown
 
 URL:             https://bpfman.io
@@ -97,15 +97,7 @@ install -Dpm 644 \
 %license LICENSE-GPL2
 %license LICENSE.dependencies
 %license cargo-vendor.txt
-%doc CODE_OF_CONDUCT.md
-%doc CONTRIBUTING.md
-%doc GOVERNANCE.md
-%doc MAINTAINERS.md
-%doc MEETINGS.md
 %doc README.md
-%doc RELEASE.md
-%doc REVIEWING.md
-%doc SECURITY.md
 %{_sbindir}/bpfman
 %{_unitdir}/bpfman.service
 
