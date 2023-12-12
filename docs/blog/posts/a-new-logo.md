@@ -7,8 +7,10 @@ authors:
 # A New Logo: Using Generative AI, of course
 
 Since we renamed the project to `bpfman` we are in need of a new logo.
-Given that the tech buzz around Generative AI is infection, we decided to use
-generative AI to create our new logo.
+Given that the tech buzz around Generative AI is infectious, we decided to
+explore using generative AI to create our new logo. What we found was that
+it was a great way to generate ideas, but a human (me) was still needed to
+create the final design.
 
 <!-- more -->
 
