@@ -21,12 +21,6 @@ actions:
     cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . &&
     ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz'
 jobs:
-  - job: tests
-    trigger: pull_request
-    targets:
-      - fedora-all
-    skip_build: true
-    specfile_path: bpfman.spec
   - job: copr_build
     trigger: commit
     branch: main
@@ -35,6 +29,11 @@ jobs:
     project: "bpfman-next"
     targets:
       - fedora-all
+  - job: tests
+    trigger: commit
+    targets:
+      - fedora-all
+    specfile_path: bpfman.spec
   - job: copr_build
     trigger: release
     branch: main
@@ -43,3 +42,8 @@ jobs:
     project: "bpfman"
     targets:
       - fedora-all
+  - job: tests
+    trigger: release
+    targets:
+      - fedora-all
+    specfile_path: bpfman.spec

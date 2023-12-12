@@ -1,0 +1,3 @@
+summary: Basic smoke test for bpfman
+execute:
+    script: bpfman --help
