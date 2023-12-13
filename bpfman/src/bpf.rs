@@ -22,7 +22,6 @@ use bpfman_api::{
     ProgramType, TcProceedOn,
 };
 use log::{debug, info, warn};
-use sled::Db;
 use tokio::{
     fs::{create_dir_all, read_dir, remove_dir_all},
     select,
@@ -43,6 +42,7 @@ use crate::{
     oci_utils::image_manager::Command as ImageManagerCommand,
     serve::shutdown_handler,
     utils::{get_ifindex, set_dir_permissions, should_map_be_pinned},
+    ROOT_DB,
 };
 
 const MAPS_MODE: u32 = 0o0660;
@@ -54,7 +54,6 @@ pub(crate) struct BpfManager {
     maps: HashMap<u32, BpfMap>,
     commands: Receiver<Command>,
     image_manager: Sender<ImageManagerCommand>,
-    _database: Db,
 }
 
 pub(crate) struct ProgramMap {
@@ -180,7 +179,6 @@ impl BpfManager {
         config: Config,
         commands: Receiver<Command>,
         image_manager: Sender<ImageManagerCommand>,
-        database: Db,
     ) -> Self {
         Self {
             config,
@@ -189,7 +187,6 @@ impl BpfManager {
             maps: HashMap::new(),
             commands,
             image_manager,
-            _database: database,
         }
     }
 
@@ -898,7 +895,7 @@ impl BpfManager {
                 biased;
                 _ = shutdown_handler(use_activity_timer) => {
                     info!("Signal received to stop command processing");
-                    self._database.flush().expect("Unable to flush database to disk before shutting down BpfManager");
+                    ROOT_DB.flush().expect("Unable to flush database to disk before shutting down BpfManager");
                     break;
                 }
                 Some(cmd) = self.commands.recv() => {

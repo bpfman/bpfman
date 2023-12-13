@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
+use bpfman_api::util::directories::STDIR_DB;
 use clap::Parser;
+use lazy_static::lazy_static;
+use sled::{Config, Db};
 
 mod bpf;
 mod cli;
@@ -17,6 +20,13 @@ mod storage;
 mod utils;
 
 const BPFMAN_ENV_LOG_LEVEL: &str = "RUST_LOG";
+
+lazy_static! {
+    pub static ref ROOT_DB: Db = Config::default()
+        .path(STDIR_DB)
+        .open()
+        .expect("Unable to open root database");
+}
 
 fn main() -> anyhow::Result<()> {
     let cli = cli::args::Cli::parse();

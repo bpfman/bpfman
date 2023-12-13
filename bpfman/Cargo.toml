@@ -69,6 +69,7 @@ tonic = { workspace = true, features = ["transport"] }
 tower = { workspace = true }
 url = { workspace = true }
 users = { workspace = true }
+lazy_static = { workspace = true }
 
 [dev-dependencies]
 assert_matches = { workspace = true }
