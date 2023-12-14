@@ -91,7 +91,8 @@ pub(crate) fn execute_service(args: &ServiceArgs, config: &Config) -> anyhow::Re
             set_dir_permissions(RTDIR, RTDIR_MODE).await;
             set_dir_permissions(STDIR, STDIR_MODE).await;
 
-            serve(config, CFGDIR_STATIC_PROGRAMS, args.csi_support).await?;
+            //TODO https://github.com/bpfman/bpfman/issues/881
+            serve(config, args.csi_support).await?;
             Ok(())
         })
 }

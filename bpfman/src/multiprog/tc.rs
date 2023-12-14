@@ -69,7 +69,7 @@ impl TcDispatcher {
             .collect();
         let mut chain_call_actions = [0; 10];
         for v in extensions.iter() {
-            chain_call_actions[v.current_position.unwrap()] = v.proceed_on.mask()
+            chain_call_actions[v.get_current_position()?.unwrap()] = v.get_proceed_on()?.mask()
         }
 
         let config = TcDispatcherConfig {
@@ -251,15 +251,16 @@ impl TcDispatcher {
             .unwrap()
             .try_into()?;
 
-        extensions.sort_by(|a, b| a.current_position.cmp(&b.current_position));
+        extensions.sort_by(|a, b| {
+            a.get_current_position()
+                .unwrap()
+                .cmp(&b.get_current_position().unwrap())
+        });
 
         for (i, v) in extensions.iter_mut().enumerate() {
-            if v.attached {
-                let id = v
-                    .data
-                    .kernel_info()
-                    .expect("TcProgram is loaded kernel_info should be set")
-                    .id;
+            if v.get_attached()? {
+                let id = v.data.get_id()?;
+                debug!("program {id} was already attached loading from pin");
                 let mut ext = Extension::from_pin(format!("{RTDIR_FS}/prog_{id}"))?;
                 let target_fn = format!("prog{i}");
                 let new_link_id = ext
@@ -273,8 +274,8 @@ impl TcDispatcher {
                 let path = format!("{base}/dispatcher_{if_index}_{}/link_{id}", self.revision);
                 new_link.pin(path).map_err(BpfmanError::UnableToPinLink)?;
             } else {
-                let name = v.data.name();
-                let global_data = v.data.global_data();
+                let name = &v.data.get_name()?;
+                let global_data = &v.data.get_global_data()?;
 
                 let mut bpf = BpfLoader::new();
 
@@ -286,7 +287,7 @@ impl TcDispatcher {
 
                 // If map_pin_path is set already it means we need to use a pin
                 // path which should already exist on the system.
-                if let Some(map_pin_path) = v.data.map_pin_path() {
+                if let Some(map_pin_path) = v.data.get_map_pin_path()? {
                     debug!("tc program {name} is using maps from {:?}", map_pin_path);
                     bpf.map_pin_path(map_pin_path);
                 }
@@ -303,13 +304,9 @@ impl TcDispatcher {
                 let target_fn = format!("prog{i}");
 
                 ext.load(dispatcher.fd()?.try_clone()?, &target_fn)?;
-                v.data.set_kernel_info(Some(ext.info()?.try_into()?));
+                v.data.set_kernel_info(&ext.info()?)?;
 
-                let id = v
-                    .data
-                    .kernel_info()
-                    .expect("kernel info should be set after load")
-                    .id;
+                let id = v.get_data().get_id()?;
 
                 ext.pin(format!("{RTDIR_FS}/prog_{id}"))
                     .map_err(BpfmanError::UnableToPinProgram)?;
@@ -328,9 +325,9 @@ impl TcDispatcher {
                     .map_err(BpfmanError::UnableToPinLink)?;
 
                 // If this program is the map(s) owner pin all maps (except for .rodata and .bss) by name.
-                if v.data.map_pin_path().is_none() {
+                if v.data.get_map_pin_path()?.is_none() {
                     let map_pin_path = calc_map_pin_path(id);
-                    v.data.set_map_pin_path(Some(map_pin_path.clone()));
+                    v.data.set_map_pin_path(&map_pin_path.clone())?;
                     create_map_pin_path(&map_pin_path).await?;
 
                     for (name, map) in loader.maps_mut() {

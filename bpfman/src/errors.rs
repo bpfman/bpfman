@@ -54,4 +54,6 @@ pub enum BpfmanError {
         program_type: String,
         container_pid: i32,
     },
+    #[error("{0}: {1}")]
+    DatabaseError(String, String),
 }

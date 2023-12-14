@@ -28,17 +28,12 @@ use crate::{
     bpf::BpfManager,
     oci_utils::ImageManager,
     rpc::BpfmanLoader,
-    static_program::get_static_programs,
     storage::StorageManager,
     utils::{set_file_permissions, SOCK_MODE},
     ROOT_DB,
 };
 
-pub async fn serve(
-    config: &Config,
-    static_program_path: &str,
-    csi_support: bool,
-) -> anyhow::Result<()> {
+pub async fn serve(config: &Config, csi_support: bool) -> anyhow::Result<()> {
     let (tx, rx) = mpsc::channel(32);
 
     let loader = BpfmanLoader::new(tx.clone());
@@ -61,19 +56,20 @@ pub async fn serve(
     let mut bpf_manager = BpfManager::new(config.clone(), rx, itx);
     bpf_manager.rebuild_state().await?;
 
-    let static_programs = get_static_programs(static_program_path).await?;
+    // TODO(astoycos) see issue #881
+    //let static_programs = get_static_programs(static_program_path).await?;
 
     // Load any static programs first
-    if !static_programs.is_empty() {
-        for prog in static_programs {
-            let ret_prog = bpf_manager.add_program(prog).await?;
-            // Get the Kernel Info.
-            let kernel_info = ret_prog
-                .kernel_info()
-                .expect("kernel info should be set for all loaded programs");
-            info!("Loaded static program with program id {}", kernel_info.id)
-        }
-    };
+    // if !static_programs.is_empty() {
+    //     for prog in static_programs {
+    //         let ret_prog = bpf_manager.add_program(prog).await?;
+    //         // Get the Kernel Info.
+    //         let kernel_info = ret_prog
+    //             .kernel_info()
+    //             .expect("kernel info should be set for all loaded programs");
+    //         info!("Loaded static program with program id {}", kernel_info.id)
+    //     }
+    // };
 
     if csi_support {
         let storage_manager = StorageManager::new(tx);

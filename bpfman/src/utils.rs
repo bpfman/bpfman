@@ -32,21 +32,6 @@ pub(crate) async fn read<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, BpfmanError
     Ok(data)
 }
 
-// Like tokio::fs::read_to_string, but with O_NOCTTY set
-pub(crate) async fn read_to_string<P: AsRef<Path>>(path: P) -> Result<String, BpfmanError> {
-    let mut buffer = String::new();
-    tokio::fs::OpenOptions::new()
-        .custom_flags(nix::libc::O_NOCTTY)
-        .read(true)
-        .open(path)
-        .await
-        .map_err(|e| BpfmanError::Error(format!("can't open file: {e}")))?
-        .read_to_string(&mut buffer)
-        .await
-        .map_err(|e| BpfmanError::Error(format!("can't read file: {e}")))?;
-    Ok(buffer)
-}
-
 pub(crate) fn get_ifindex(iface: &str) -> Result<u32, BpfmanError> {
     match if_nametoindex(iface) {
         Ok(index) => {
@@ -85,4 +70,48 @@ pub(crate) fn create_bpffs(directory: &str) -> anyhow::Result<()> {
 
 pub(crate) fn should_map_be_pinned(name: &str) -> bool {
     !(name.contains(".rodata") || name.contains(".bss") || name.contains(".data"))
+}
+
+pub(crate) fn bytes_to_u32(bytes: Vec<u8>) -> u32 {
+    u32::from_ne_bytes(
+        bytes
+            .try_into()
+            .expect("unable to martial &[u8] to &[u8; 4]"),
+    )
+}
+
+pub(crate) fn bytes_to_i32(bytes: Vec<u8>) -> i32 {
+    i32::from_ne_bytes(
+        bytes
+            .try_into()
+            .expect("unable to martial &[u8] to &[u8; 4]"),
+    )
+}
+
+pub(crate) fn bytes_to_string(bytes: &[u8]) -> String {
+    String::from_utf8(bytes.to_vec()).expect("failed to convert &[u8] to string")
+}
+
+pub(crate) fn bytes_to_bool(bytes: Vec<u8>) -> bool {
+    i8::from_ne_bytes(
+        bytes
+            .try_into()
+            .expect("unable to martial &[u8] to &[i8; 1]"),
+    ) != 0
+}
+
+pub(crate) fn bytes_to_usize(bytes: Vec<u8>) -> usize {
+    usize::from_ne_bytes(
+        bytes
+            .try_into()
+            .expect("unable to martial &[u8] to &[u8; 8]"),
+    )
+}
+
+pub(crate) fn bytes_to_u64(bytes: Vec<u8>) -> u64 {
+    u64::from_ne_bytes(
+        bytes
+            .try_into()
+            .expect("unable to martial &[u8] to &[u8; 8]"),
+    )
 }
