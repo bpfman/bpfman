@@ -104,7 +104,7 @@ jobs:
 
       - name: Archive bpfman Release Binaries
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bpfman-release
           path: |
@@ -116,7 +116,7 @@ jobs:
           RUST_BACKTRACE: full
 
       - name: Archive Rust code coverage results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: lcov.info
@@ -163,7 +163,7 @@ jobs:
         run: make test
 
       - name: Archive Go code coverage results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: ./bpfman-operator/cover.out
@@ -283,7 +283,7 @@ jobs:
       ## Upload diagnostics if integration test step failed.
       - name: upload diagnostics
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: kubernetes-integration-test-diag
           path: /tmp/ktf-diag*
