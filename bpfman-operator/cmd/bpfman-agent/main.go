@@ -101,13 +101,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup bpfman Client
-	configFileData := conn.LoadConfig()
-	setupLog.Info("Connecting over UNIX socket to bpfman")
-
 	// Set up a connection to bpfman, block until bpfman is up.
-	setupLog.Info("Waiting for active connection to bpfman", "endpoints", configFileData.Grpc.Endpoints)
-	conn, err := conn.CreateConnection(configFileData.Grpc.Endpoints, context.Background(), insecure.NewCredentials())
+	setupLog.Info("Waiting for active connection to bpfman")
+	conn, err := conn.CreateConnection(context.Background(), insecure.NewCredentials())
 	if err != nil {
 		setupLog.Error(err, "unable to connect to bpfman")
 		os.Exit(1)

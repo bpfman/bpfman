@@ -400,11 +400,7 @@ impl StorageManager {
     }
 
     #[allow(dead_code)] // TODO: Remove this when the storage manager is fully implemented
-    fn pin_map_to_bpffs(
-        &self,
-        source_object: &mut MapData,
-        dest_bpffs: &Path,
-    ) -> anyhow::Result<()> {
+    fn pin_map_to_bpffs(&self, source_object: &MapData, dest_bpffs: &Path) -> anyhow::Result<()> {
         source_object
             .pin(dest_bpffs)
             .map_err(|e| anyhow::anyhow!("unable to pin map to bpffs: {}", e))?;

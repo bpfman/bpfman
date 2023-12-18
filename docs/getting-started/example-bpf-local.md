@@ -121,7 +121,6 @@ interface as shown below:
 ```console
 sudo ./go-xdp-counter --iface vethff657c7
 2023/07/17 17:43:58 Using Input: Interface=vethff657c7 Priority=50 Source=/home/<$USER>/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o
-2023/07/17 17:43:58 Unable to read /etc/bpfman/bpfman.toml, using default configuration values.
 2023/07/17 17:43:58 Program registered with id 6211
 2023/07/17 17:44:01 4 packets received
 2023/07/17 17:44:01 580 bytes received
@@ -169,7 +168,6 @@ To use the container image, pass the URL to the userspace program:
 
 ```console
 sudo ./go-xdp-counter -iface ens3 -image quay.io/bpfman-bytecode/go-xdp-counter:latest
-2022/12/02 16:28:32 Unable to read /etc/bpfman/bpfman.toml, using default configuration values.
 2022/12/02 16:28:32 Using Input: Interface=ens3 Priority=50 Source=quay.io/bpfman-bytecode/go-xdp-counter:latest
 2022/12/02 16:28:34 Program registered with id 6223
 2022/12/02 16:28:37 4 packets received
@@ -248,7 +246,6 @@ Then run with the privately built bytecode container image:
 
 ```console
 sudo ./go-tc-counter -iface ens3 -direction ingress -location image://quay.io/$USER/go-tc-counter-bytecode:latest
-2022/12/02 16:38:44 Unable to read /etc/bpfman/bpfman.toml, using default configuration values.
 2022/12/02 16:38:44 Using Input: Interface=ens3 Priority=50 Source=quay.io/$USER/go-tc-counter-bytecode:latest
 2022/12/02 16:38:45 Program registered with id 6225
 2022/12/02 16:38:48 4 packets received

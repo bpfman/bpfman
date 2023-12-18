@@ -32,7 +32,8 @@ pub mod directories {
     pub const RTDIR_FS_XDP: &str = "/run/bpfman/fs/xdp";
     pub const RTDIR_FS_MAPS: &str = "/run/bpfman/fs/maps";
     pub const RTDIR_PROGRAMS: &str = "/run/bpfman/programs";
-    pub const RTPATH_BPFMAN_SOCKET: &str = "/run/bpfman/bpfman.sock";
+    pub const RTDIR_SOCK: &str = "/run/bpfman/sock";
+    pub const RTPATH_BPFMAN_SOCKET: &str = "/run/bpfman/sock/bpfman.sock";
     // The CSI socket must be in it's own sub directory so we can easily create a dedicated
     // K8s volume mount for it.
     pub const RTDIR_BPFMAN_CSI: &str = "/run/bpfman/csi";

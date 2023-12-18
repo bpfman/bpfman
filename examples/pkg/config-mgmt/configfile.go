@@ -20,85 +20,30 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 
-	toml "github.com/pelletier/go-toml"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type Endpoint struct {
-	Type    string `toml:"type"`
-	Path    string `toml:"path"`
-	Port    uint16 `toml:"port"`
-	Enabled bool   `toml:"enabled"`
-}
-
-type Grpc struct {
-	Endpoints []Endpoint `toml:"endpoints"`
-}
-
-type ConfigFileData struct {
-	Grpc Grpc `toml:"grpc"`
-}
-
 const (
-	DefaultType    = "unix"
-	DefaultPath    = "/run/bpfman/bpfman.sock"
-	DefaultEnabled = true
+	DefaultPath = "/run/bpfman/sock/bpfman.sock"
 )
 
-func LoadConfig(configFilePath string) ConfigFileData {
-	config := ConfigFileData{
-		Grpc: Grpc{
-			Endpoints: []Endpoint{
-				{
-					Type:    DefaultType,
-					Path:    DefaultPath,
-					Enabled: DefaultEnabled,
-				},
-			},
-		},
-	}
-
-	file, err := os.ReadFile(configFilePath)
-	if err == nil {
-		err = toml.Unmarshal(file, &config)
-		if err != nil {
-			log.Printf("Unable to parse %s, using default configuration values.\n", configFilePath)
-		} else {
-			log.Printf("Using configuration values from %s\n", configFilePath)
-		}
-	} else {
-		log.Printf("Unable to read %s, using default configuration values.\n", configFilePath)
-	}
-
-	return config
-}
-
-func CreateConnection(endpoints []Endpoint, ctx context.Context) (*grpc.ClientConn, error) {
+func CreateConnection(ctx context.Context) (*grpc.ClientConn, error) {
 	var (
 		addr        string
 		local_creds credentials.TransportCredentials
 	)
 
-	for _, e := range endpoints {
-		if !e.Enabled {
-			continue
-		}
+	addr = fmt.Sprintf("unix://%s", DefaultPath)
+	local_creds = insecure.NewCredentials()
 
-		if e.Type == "unix" {
-			addr = fmt.Sprintf("unix://%s", e.Path)
-			local_creds = insecure.NewCredentials()
-		}
-
-		conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(local_creds))
-		if err == nil {
-			return conn, nil
-		}
-		log.Printf("did not connect: %v", err)
+	conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(local_creds))
+	if err == nil {
+		return conn, nil
 	}
+	log.Printf("did not connect: %v", err)
 
-	return nil, fmt.Errorf("unable to stablish connection")
+	return nil, fmt.Errorf("unable to establish connection")
 }

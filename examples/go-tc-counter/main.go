@@ -24,7 +24,6 @@ type Stats struct {
 }
 
 const (
-	DefaultConfigPath   = "/etc/bpfman/bpfman.toml"
 	DefaultByteCodeFile = "bpf_bpfel.o"
 	TcProgramName       = "go-tc-counter-example"
 	BpfProgramMapIndex  = "tc_stats_map"
@@ -43,7 +42,7 @@ func main() {
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	// Parse Input Parameters (CmdLine and Config File)
-	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTc, DefaultConfigPath, DefaultByteCodeFile)
+	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTc, DefaultByteCodeFile)
 	if err != nil {
 		log.Printf("error processing parameters: %v\n", err)
 		return
@@ -70,9 +69,8 @@ func main() {
 	} else {
 		ctx := context.Background()
 
-		configFileData := configMgmt.LoadConfig(DefaultConfigPath)
 		// Set up a connection to the server.
-		conn, err := configMgmt.CreateConnection(configFileData.Grpc.Endpoints, ctx)
+		conn, err := configMgmt.CreateConnection(ctx)
 		if err != nil {
 			log.Printf("failed to create client connection: %v", err)
 			return

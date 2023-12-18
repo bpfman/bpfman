@@ -3,7 +3,6 @@
 
 use base64::{engine::general_purpose, Engine};
 use bpfman_api::{
-    config::Config,
     v1::{bpfman_client::BpfmanClient, BytecodeImage, PullBytecodeRequest},
     ImagePullPolicy,
 };
@@ -14,9 +13,9 @@ use crate::cli::{
 };
 
 impl ImageSubCommand {
-    pub(crate) fn execute(&self, config: &mut Config) -> anyhow::Result<()> {
+    pub(crate) fn execute(&self) -> anyhow::Result<()> {
         match self {
-            ImageSubCommand::Pull(args) => execute_pull(args, config),
+            ImageSubCommand::Pull(args) => execute_pull(args),
         }
     }
 }
@@ -45,13 +44,13 @@ impl TryFrom<&PullBytecodeArgs> for BytecodeImage {
     }
 }
 
-pub(crate) fn execute_pull(args: &PullBytecodeArgs, config: &mut Config) -> anyhow::Result<()> {
+pub(crate) fn execute_pull(args: &PullBytecodeArgs) -> anyhow::Result<()> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .unwrap()
         .block_on(async {
-            let channel = select_channel(config).expect("failed to select channel");
+            let channel = select_channel().expect("failed to select channel");
             let mut client = BpfmanClient::new(channel);
             let image: BytecodeImage = args.try_into()?;
             let request = tonic::Request::new(PullBytecodeRequest { image: Some(image) });

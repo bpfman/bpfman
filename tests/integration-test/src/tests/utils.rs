@@ -1,17 +1,10 @@
 use std::{
-    fs,
-    fs::File,
-    io::{Read, Write},
-    path::PathBuf,
-    process::Command,
-    str::FromStr,
-    thread::sleep,
+    fs::File, io::Read, path::PathBuf, process::Command, str::FromStr, thread::sleep,
     time::Duration,
 };
 
 use anyhow::Result;
 use assert_cmd::prelude::*;
-use bpfman_api::util::directories::CFGPATH_BPFMAN_CONFIG;
 use log::debug;
 use predicates::str::is_empty;
 use regex::Regex;
@@ -107,24 +100,6 @@ pub fn start_bpfman() -> Result<ChildGuard> {
     debug!("Successfully Started bpfman");
 
     Ok(bpfman_process)
-}
-
-/// Update bpfman.toml with Unix Socket
-pub fn cfgfile_append_unix_socket() {
-    debug!("Setup bpfman.toml with Unix Socket");
-
-    let mut f = File::create(CFGPATH_BPFMAN_CONFIG).unwrap();
-    f.write_all(
-        b"[[grpc.endpoints]]\ntype = \"unix\"\nenabled = true\npath = \"/run/bpfman/bpfman.sock\"",
-    )
-    .expect("could not write unix socket to bpfman.toml file");
-}
-
-/// Update bpfman.toml with Unix Socket
-pub fn cfgfile_remove() {
-    debug!("Remove bpfman.toml");
-
-    fs::remove_file(CFGPATH_BPFMAN_CONFIG).expect("could not remove bpfman.toml file");
 }
 
 /// Install an xdp program with bpfman

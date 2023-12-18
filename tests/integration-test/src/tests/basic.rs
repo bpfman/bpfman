@@ -22,60 +22,6 @@ fn test_bpfmanhelptext() {
 }
 
 #[integration_test]
-fn test_unix_socket_load_unload_xdp() {
-    let _namespace_guard = create_namespace().unwrap();
-    let _ping_guard = start_ping().unwrap();
-
-    cfgfile_append_unix_socket();
-
-    let _bpfman_guard = start_bpfman().unwrap();
-
-    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
-
-    debug!("Installing xdp_pass programs");
-
-    let globals = vec!["GLOBAL_u8=61", "GLOBAL_u32=0D0C0B0A"];
-
-    let proceed_on = vec![
-        "aborted",
-        "drop",
-        "pass",
-        "tx",
-        "redirect",
-        "dispatcher_return",
-    ];
-
-    let mut loaded_ids = vec![];
-    let mut rng = rand::thread_rng();
-
-    // Install a few xdp programs
-    for lt in LOAD_TYPES {
-        for _ in 0..5 {
-            let priority = rng.gen_range(1..255);
-            let (prog_id, _) = add_xdp(
-                DEFAULT_BPFMAN_IFACE,
-                priority,
-                Some(globals.clone()),
-                Some(proceed_on.clone()),
-                lt,
-                XDP_PASS_IMAGE_LOC,
-                XDP_PASS_FILE_LOC,
-                None, // metadata
-                None, // map_owner_id
-            );
-            loaded_ids.push(prog_id.unwrap());
-        }
-    }
-    assert_eq!(loaded_ids.len(), 10);
-
-    assert!(bpffs_has_entries(RTDIR_FS_XDP));
-
-    verify_and_delete_programs(loaded_ids);
-
-    cfgfile_remove();
-}
-
-#[integration_test]
 fn test_load_unload_xdp() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();

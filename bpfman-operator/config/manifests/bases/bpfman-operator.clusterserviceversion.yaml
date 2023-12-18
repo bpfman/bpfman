@@ -55,8 +55,7 @@ spec:
     `bpfman.agent.image`: The image used for the bpfman-agent, defaults to `quay.io/bpfman/bpfman-agent:latest`\n-
     `bpfman.image`: The image used for bpfman, defaults to `quay.io/bpfman/bpfman:latest`\n-
     `bpfman.log.level`: the log level for bpfman, currently supports
-    `debug`, `info`, `warn`, `error`, and `fatal`, defaults to `info`\n- `bpfman.agent.log.level`: the log level for the bpfman-agent currently supports `info`, `debug`, and `trace` \n-`bpfman.toml`:
-    bpfman's custom configuration file.\n\n## Deploying eBPF Programs\n\nThe bpfman operator
+    `debug`, `info`, `warn`, `error`, and `fatal`, defaults to `info`\n- `bpfman.agent.log.level`: the log level for the bpfman-agent currently supports `info`, `debug`, and `trace` \n\nThe bpfman operator
     deploys eBPF programs via CRDs. The following CRDs are currently avaliable, \n\n-
     XdpProgram\n- TcProgram\n- TracepointProgram\n- KprobeProgram\n- UprobeProgram\n\n## More information\n\nPlease
     checkout the [bpfman community website](https://bpfman.io/) for more information."

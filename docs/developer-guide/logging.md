@@ -109,10 +109,9 @@ To view the `bpfman-agent` logs:
 
 ```console
 kubectl logs -n bpfman bpfman-daemon-dgqzw -c bpfman-agent
-2023-05-05T14:41:27Z	INFO	controller-runtime.metrics	Metrics server is starting to listen	{"addr": ":8080"}
-2023-05-05T14:41:27Z	INFO	tls-internal	Reading...
-	{"Default config path": "/etc/bpfman/bpfman.toml"}
-2023-05-05T14:41:27Z	INFO	setup	Waiting for active connection to bpfman at %s	{"addr": "localhost:50051", "creds": {}}
+{"level":"info","ts":"2023-12-20T20:15:34Z","logger":"controller-runtime.metrics","msg":"Metrics server is starting to listen","addr":":8080"}
+{"level":"info","ts":"2023-12-20T20:15:34Z","logger":"setup","msg":"Waiting for active connection to bpfman"}
+{"level":"info","ts":"2023-12-20T20:15:34Z","logger":"setup","msg":"starting Bpfman-Agent"}
 :
 ```
 
@@ -129,11 +128,6 @@ data:
   bpfman.image: quay.io/bpfman/bpfman:latest
   bpfman.log.level: info                     <==== Set bpfman Log Level Here
   bpfman.agent.log.level: info               <==== Set bpfman agent Log Level Here
-  bpfman.toml: |
-    [[grpc.endpoints]]
-    type = "unix"
-    path = "/bpfman-sock/bpfman.sock"
-    enabled = true
 kind: ConfigMap
 metadata:
   creationTimestamp: "2023-05-05T14:41:19Z"
