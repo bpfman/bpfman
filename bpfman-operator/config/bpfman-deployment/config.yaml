@@ -11,9 +11,3 @@ data:
   bpfman.agent.log.level: "info"
   ## See https://docs.rs/env_logger/latest/env_logger/ for configuration options
   bpfman.log.level: "info"
-  ## Must be configured at startup
-  bpfman.toml: |
-    [[grpc.endpoints]]
-    type = "unix"
-    path = "/bpfman-sock/bpfman.sock"
-    enabled = true

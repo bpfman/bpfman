@@ -22,7 +22,6 @@ const (
 	TracepointProgramName = "go-tracepoint-counter-example"
 	BpfProgramMapIndex    = "tracepoint_stats_map"
 	DefaultByteCodeFile   = "bpf_bpfel.o"
-	DefaultConfigPath     = "/etc/bpfman/bpfman.toml"
 
 	// MapsMountPoint is the "go-tracepoint-counter-maps" volumeMount "mountPath" from "deployment.yaml"
 	MapsMountPoint = "/run/tracepoint/maps"
@@ -39,7 +38,7 @@ func main() {
 
 	// pull the BPFMAN config management data to determine if we're running on a
 	// system with BPFMAN available.
-	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTracepoint, DefaultConfigPath, DefaultByteCodeFile)
+	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTracepoint, DefaultByteCodeFile)
 	if err != nil {
 		log.Printf("error processing parameters: %v\n", err)
 		return
@@ -57,11 +56,8 @@ func main() {
 	} else { // if not on k8s, find the map path from the system
 		ctx := context.Background()
 
-		// get the BPFMAN config
-		configFileData := configMgmt.LoadConfig(DefaultConfigPath)
-
 		// connect to the BPFMAN server
-		conn, err := configMgmt.CreateConnection(configFileData.Grpc.Endpoints, ctx)
+		conn, err := configMgmt.CreateConnection(ctx)
 		if err != nil {
 			log.Printf("failed to create client connection: %v", err)
 			return

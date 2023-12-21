@@ -68,7 +68,7 @@ type ParameterData struct {
 	BytecodeSrc    int
 }
 
-func ParseParamData(progType ProgType, configFilePath string, bytecodeFile string) (ParameterData, error) {
+func ParseParamData(progType ProgType, bytecodeFile string) (ParameterData, error) {
 	var paramData ParameterData
 	paramData.BytecodeSrc = SrcNone
 

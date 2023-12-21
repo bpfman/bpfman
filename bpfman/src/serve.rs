@@ -4,8 +4,8 @@
 use std::{fs::remove_file, path::Path};
 
 use bpfman_api::{
-    config::{self, Config},
-    util::directories::STDIR_DB,
+    config::Config,
+    util::directories::{RTPATH_BPFMAN_SOCKET, STDIR_DB},
     v1::bpfman_server::BpfmanServer,
 };
 use log::{debug, info};
@@ -38,24 +38,14 @@ pub async fn serve(
     let (tx, rx) = mpsc::channel(32);
 
     let loader = BpfmanLoader::new(tx.clone());
+    let path = RTPATH_BPFMAN_SOCKET.to_string();
     let service = BpfmanServer::new(loader);
 
     let mut listeners: Vec<_> = Vec::new();
 
-    for endpoint in &config.grpc.endpoints {
-        match endpoint {
-            config::Endpoint::Unix { path, enabled } => {
-                if !enabled {
-                    info!("Skipping disabled endpoint on {path}");
-                    continue;
-                }
-
-                match serve_unix(path.clone(), service.clone()).await {
-                    Ok(handle) => listeners.push(handle),
-                    Err(e) => eprintln!("Error = {e:?}"),
-                }
-            }
-        }
+    match serve_unix(path.clone(), service.clone()).await {
+        Ok(handle) => listeners.push(handle),
+        Err(e) => eprintln!("Error = {e:?}"),
     }
 
     let allow_unsigned = config.signing.as_ref().map_or(true, |s| s.allow_unsigned);

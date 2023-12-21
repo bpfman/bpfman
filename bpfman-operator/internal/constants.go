@@ -38,9 +38,8 @@ const (
 	BpfmanDaemonManifestPath    = "./config/bpfman-deployment/daemonset.yaml"
 	BpfmanCsiDriverPath         = "./config/bpfman-deployment/csidriverinfo.yaml"
 	BpfmanMapFs                 = "/run/bpfman/fs/maps"
-	DefaultConfigPath           = "/etc/bpfman/bpfman.toml"
 	DefaultType                 = "tcp"
-	DefaultPath                 = "/run/bpfman/bpfman.sock"
+	DefaultPath                 = "/run/bpfman/sock/bpfman.sock"
 	DefaultPort                 = 50051
 	DefaultEnabled              = true
 )

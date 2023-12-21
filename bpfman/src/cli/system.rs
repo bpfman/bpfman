@@ -72,14 +72,15 @@ pub(crate) fn execute_service(args: &ServiceArgs, config: &Config) -> anyhow::Re
             if !is_bpffs_mounted()? {
                 create_bpffs(RTDIR_FS)?;
             }
-            create_dir_all(RTDIR_FS_XDP).context("unable to create xdp distpacher dir")?;
+            create_dir_all(RTDIR_FS_XDP).context("unable to create xdp dispatcher directory")?;
             create_dir_all(RTDIR_FS_TC_INGRESS)
-                .context("unable to create tc ingress dispatcher dir")?;
+                .context("unable to create tc ingress dispatcher directory")?;
             create_dir_all(RTDIR_FS_TC_EGRESS)
-                .context("unable to create tc egress dispatcher dir")?;
+                .context("unable to create tc egress dispatcher directory")?;
             create_dir_all(RTDIR_FS_MAPS).context("unable to create maps directory")?;
             create_dir_all(RTDIR_BPFMAN_CSI).context("unable to create CSI directory")?;
-            create_dir_all(RTDIR_BPFMAN_CSI_FS).context("unable to create socket directory")?;
+            create_dir_all(RTDIR_BPFMAN_CSI_FS).context("unable to create CSI socket directory")?;
+            create_dir_all(RTDIR_SOCK).context("unable to create socket directory")?;
 
             create_dir_all(STDIR).context("unable to create state directory")?;
 

@@ -2,20 +2,17 @@
 // Copyright Authors of bpfman
 
 use anyhow::bail;
-use bpfman_api::{
-    config::Config,
-    v1::{bpfman_client::BpfmanClient, ListRequest},
-};
+use bpfman_api::v1::{bpfman_client::BpfmanClient, ListRequest};
 
 use crate::cli::{args::ListArgs, select_channel, table::ProgTable};
 
-pub(crate) fn execute_list(args: &ListArgs, config: &mut Config) -> anyhow::Result<()> {
+pub(crate) fn execute_list(args: &ListArgs) -> anyhow::Result<()> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .unwrap()
         .block_on(async {
-            let channel = select_channel(config).unwrap();
+            let channel = select_channel().unwrap();
             let mut client = BpfmanClient::new(channel);
             let prog_type_filter = args.program_type.map(|p| p as u32);
 

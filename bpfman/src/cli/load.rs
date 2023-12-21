@@ -5,7 +5,6 @@ use std::collections::HashMap;
 
 use anyhow::bail;
 use bpfman_api::{
-    config::Config,
     v1::{
         attach_info::Info, bpfman_client::BpfmanClient, bytecode_location::Location, AttachInfo,
         BytecodeImage, BytecodeLocation, KprobeAttachInfo, LoadRequest, TcAttachInfo,
@@ -21,21 +20,21 @@ use crate::cli::{
 };
 
 impl LoadSubcommand {
-    pub(crate) fn execute(&self, config: &mut Config) -> anyhow::Result<()> {
+    pub(crate) fn execute(&self) -> anyhow::Result<()> {
         match self {
-            LoadSubcommand::File(l) => execute_load_file(l, config),
-            LoadSubcommand::Image(l) => execute_load_image(l, config),
+            LoadSubcommand::File(l) => execute_load_file(l),
+            LoadSubcommand::Image(l) => execute_load_image(l),
         }
     }
 }
 
-pub(crate) fn execute_load_file(args: &LoadFileArgs, config: &mut Config) -> anyhow::Result<()> {
+pub(crate) fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .unwrap()
         .block_on(async {
-            let channel = select_channel(config).expect("failed to select channel");
+            let channel = select_channel().expect("failed to select channel");
             let mut client = BpfmanClient::new(channel);
 
             let bytecode = Some(BytecodeLocation {
@@ -68,13 +67,13 @@ pub(crate) fn execute_load_file(args: &LoadFileArgs, config: &mut Config) -> any
         })
 }
 
-pub(crate) fn execute_load_image(args: &LoadImageArgs, config: &mut Config) -> anyhow::Result<()> {
+pub(crate) fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .unwrap()
         .block_on(async {
-            let channel = select_channel(config).expect("failed to select channel");
+            let channel = select_channel().expect("failed to select channel");
             let mut client = BpfmanClient::new(channel);
 
             let bytecode = Some(BytecodeLocation {

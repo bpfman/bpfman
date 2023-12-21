@@ -7,13 +7,10 @@ use aya::programs::XdpFlags;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::util::directories::*;
-
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Config {
     pub interfaces: Option<HashMap<String, InterfaceConfig>>,
     #[serde(default)]
-    pub grpc: Grpc,
     pub signing: Option<SigningConfig>,
 }
 
@@ -78,48 +75,6 @@ impl ToString for XdpMode {
     }
 }
 
-#[derive(Debug, Deserialize, Clone)]
-pub struct Grpc {
-    #[serde(default)]
-    pub endpoints: Vec<Endpoint>,
-}
-
-impl Default for Grpc {
-    fn default() -> Self {
-        Self {
-            endpoints: vec![Endpoint::default()],
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Clone)]
-#[serde(tag = "type", rename_all = "lowercase")]
-pub enum Endpoint {
-    Unix {
-        #[serde(default = "default_unix")]
-        path: String,
-        #[serde(default = "default_enabled")]
-        enabled: bool,
-    },
-}
-
-impl Default for Endpoint {
-    fn default() -> Self {
-        Endpoint::Unix {
-            path: default_unix(),
-            enabled: default_enabled(),
-        }
-    }
-}
-
-fn default_unix() -> String {
-    RTPATH_BPFMAN_SOCKET.to_string()
-}
-
-fn default_enabled() -> bool {
-    true
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -169,105 +124,6 @@ mod test {
                 assert_eq!(i.get("eth2").unwrap().xdp_mode, XdpMode::Skb);
             }
             None => panic!("expected interfaces to be present"),
-        }
-    }
-
-    #[test]
-    fn test_config_endpoint_default() {
-        let input = r#"
-        "#;
-
-        let config: Config = toml::from_str(input).expect("error parsing toml input");
-        let endpoints = config.grpc.endpoints;
-        assert_eq!(endpoints.len(), 1);
-
-        match endpoints.get(0).unwrap() {
-            Endpoint::Unix { path, enabled } => {
-                assert_eq!(path, &default_unix());
-                assert_eq!(enabled, &true);
-            }
-        }
-    }
-
-    #[test]
-    fn test_config_endpoint_unix_default() {
-        let input = r#"
-            [[grpc.endpoints]]
-            type = "unix"
-            "#;
-
-        let config: Config = toml::from_str(input).expect("error parsing toml input");
-        let endpoints = config.grpc.endpoints;
-        assert_eq!(endpoints.len(), 1);
-
-        match endpoints.get(0).unwrap() {
-            Endpoint::Unix { path, enabled } => {
-                assert_eq!(path, &default_unix());
-                assert!(enabled);
-            }
-        }
-    }
-
-    #[test]
-    fn test_config_endpoint_unix() {
-        let input = r#"
-            [[grpc.endpoints]]
-            type = "unix"
-            path = "/tmp/socket"
-            "#;
-
-        let config: Config = toml::from_str(input).expect("error parsing toml input");
-        let endpoints = config.grpc.endpoints;
-        assert_eq!(endpoints.len(), 1);
-
-        match endpoints.get(0).unwrap() {
-            Endpoint::Unix { path, enabled } => {
-                assert_eq!(path, "/tmp/socket");
-                assert!(enabled);
-            }
-        }
-    }
-
-    #[test]
-    fn test_config_endpoint() {
-        let input = r#"
-            [[grpc.endpoints]]
-            type = "unix"
-            enabled = true
-            path = "/run/bpfman/bpfman.sock"
-
-            [[grpc.endpoints]]
-            type = "unix"
-            enabled = true
-            path = "/run/bpfman/bpfman2.sock"
-        "#;
-
-        let expected_endpoints: Vec<Endpoint> = vec![
-            Endpoint::Unix {
-                path: String::from("/run/bpfman/bpfman.sock"),
-                enabled: true,
-            },
-            Endpoint::Unix {
-                path: String::from("/run/bpfman/bpfman2.sock"),
-                enabled: true,
-            },
-        ];
-
-        let config: Config = toml::from_str(input).expect("error parsing toml input");
-        let endpoints = config.grpc.endpoints;
-        assert_eq!(endpoints.len(), 2);
-
-        for (i, endpoint) in endpoints.iter().enumerate() {
-            match endpoint {
-                Endpoint::Unix { path, enabled } => {
-                    let Endpoint::Unix {
-                        path: expected_path,
-                        enabled: expected_enabled,
-                    } = expected_endpoints.get(i).unwrap();
-                    assert_eq!(path, expected_path);
-                    assert_eq!(enabled, expected_enabled);
-                }
-            }
         }
     }
 }
