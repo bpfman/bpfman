@@ -942,15 +942,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#config-section-grpcendpoints" class="md-nav__link">
-    <span class="md-ellipsis">
-      Config Section: [grpc.endpoints]
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -1367,15 +1358,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#config-section-grpcendpoints" class="md-nav__link">
-    <span class="md-ellipsis">
-      Config Section: [grpc.endpoints]
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -1407,20 +1389,7 @@ There is an example at <code>scripts/bpfman.toml</code>, similar to:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[interfaces]</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="k">[interface.eth0]</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="n">xdp_mode</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;hw&quot;</span><span class="w"> </span><span class="c1"># Valid xdp modes are &quot;hw&quot;, &quot;skb&quot; and &quot;drv&quot;. Default: &quot;skb&quot;.</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">[[grpc.endpoints]]</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;tcp&quot;</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">  </span><span class="n">address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;::1&quot;</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">  </span><span class="n">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">50051</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="k">[[grpc.endpoints]]</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="n">type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;unix&quot;</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span><span class="n">enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">false</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span><span class="n">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;/run/bpfman/bpfman.sock&quot;</span>
 </code></pre></div>
-<p><code>bpfman-agent</code> (which is only used in Kubernetes type deployments) will also read the
-bpfman configuration file (<code>/etc/bpfman/bpfman.toml</code>) to retrieve the bpfman-client certificate file locations.</p>
 <h3 id="config-section-interfaces">Config Section: [interfaces]</h3>
 <p>This section of the configuration file allows the XDP Mode for a given interface to be set.
 If not set, the default value of <code>skb</code> will be used.
@@ -1436,16 +1405,6 @@ Multiple interfaces can be configured.</p>
 <p>Valid fields:</p>
 <ul>
 <li><strong>xdp_mode</strong>: XDP Mode for a given interface. Valid values: ["drv"|"hw"|"skb"]</li>
-</ul>
-<h3 id="config-section-grpcendpoints">Config Section: [grpc.endpoints]</h3>
-<p>In this section different endpoints can be configured for bpfman to listen on. We currently only support Unix sockets.
-Unix domain sockets provide a simpler communication with no encryption. These sockets are owned by the bpfman
-user and user group when running as a systemd or non-root process.</p>
-<p>Valid fields:</p>
-<ul>
-<li><strong>type</strong>: Specify if the endpoint will listen on a TCP or Unix domain socket. Valid values: ["unix"]</li>
-<li><strong>enabled</strong>: Configure whether bpfman should listen on the endpoint. Valid values: ["true"|"false"]</li>
-<li><strong>path</strong>: Exclusive to Unix sockets. Specify the path where the socket will be created. Valid values: A valid unix path.</li>
 </ul>
 
 

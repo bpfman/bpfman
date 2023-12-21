@@ -1610,11 +1610,10 @@ and the bpd Operator that runs on the control plane:</p>
 </code></pre></div>
 <p>To view the <code>bpfman-agent</code> logs:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">kubectl logs -n bpfman bpfman-daemon-dgqzw -c bpfman-agent</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">2023-05-05T14:41:27Z    INFO    controller-runtime.metrics  Metrics server is starting to listen    {&quot;addr&quot;: &quot;:8080&quot;}</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">2023-05-05T14:41:27Z    INFO    tls-internal    Reading...</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="go">    {&quot;Default config path&quot;: &quot;/etc/bpfman/bpfman.toml&quot;}</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go">2023-05-05T14:41:27Z    INFO    setup   Waiting for active connection to bpfman at %s   {&quot;addr&quot;: &quot;localhost:50051&quot;, &quot;creds&quot;: {}}</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="go">:</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-12-20T20:15:34Z&quot;,&quot;logger&quot;:&quot;controller-runtime.metrics&quot;,&quot;msg&quot;:&quot;Metrics server is starting to listen&quot;,&quot;addr&quot;:&quot;:8080&quot;}</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-12-20T20:15:34Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;Waiting for active connection to bpfman&quot;}</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-12-20T20:15:34Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;starting Bpfman-Agent&quot;}</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go">:</span>
 </code></pre></div>
 <h4 id="change-log-level">Change Log Level</h4>
 <p>To change the log level of the agent or daemon, edit the <code>bpfman-config</code> ConfigMap.
@@ -1626,18 +1625,13 @@ The <code>bpfman-operator</code> will detect the change and restart the bpfman d
 <a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="go">  bpfman.image: quay.io/bpfman/bpfman:latest</span>
 <a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="go">  bpfman.log.level: info                     &lt;==== Set bpfman Log Level Here</span>
 <a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="go">  bpfman.agent.log.level: info               &lt;==== Set bpfman agent Log Level Here</span>
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="go">  bpfman.toml: |</span>
-<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="go">    [[grpc.endpoints]]</span>
-<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="go">    type = &quot;unix&quot;</span>
-<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="go">    path = &quot;/bpfman-sock/bpfman.sock&quot;</span>
-<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="go">    enabled = true</span>
-<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="go">kind: ConfigMap</span>
-<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="go">metadata:</span>
-<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="go">  creationTimestamp: &quot;2023-05-05T14:41:19Z&quot;</span>
-<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="go">  name: bpfman-config</span>
-<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="go">  namespace: bpfman</span>
-<a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="go">  resourceVersion: &quot;700803&quot;</span>
-<a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="go">  uid: 0cc04af4-032c-4712-b824-748b321d319b</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="go">kind: ConfigMap</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="go">metadata:</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="go">  creationTimestamp: &quot;2023-05-05T14:41:19Z&quot;</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="go">  name: bpfman-config</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="go">  namespace: bpfman</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="go">  resourceVersion: &quot;700803&quot;</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="go">  uid: 0cc04af4-032c-4712-b824-748b321d319b</span>
 </code></pre></div>
 <p>Valid values for the <strong>daemon</strong> (<code>bpfman.log.level</code>) are:</p>
 <ul>
