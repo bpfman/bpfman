@@ -374,6 +374,7 @@ dependencies = [
  "flate2",
  "futures",
  "hex",
+ "libsystemd 0.7.0",
  "log",
  "netlink-packet-route",
  "nix 0.27.1",
@@ -1694,6 +1695,24 @@ dependencies = [
  "libc",
  "log",
  "nix 0.26.4",
+ "nom",
+ "once_cell",
+ "serde",
+ "sha2",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
+name = "libsystemd"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c592dc396b464005f78a5853555b9f240bc5378bf5221acc4e129910b2678869"
+dependencies = [
+ "hmac",
+ "libc",
+ "log",
+ "nix 0.27.1",
  "nom",
  "once_cell",
  "serde",
@@ -3347,7 +3366,7 @@ version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "356b5cb52ce54916cbfaee19b07d305c7ea8ce5435a088c58743d4a0211f3eff"
 dependencies = [
- "libsystemd",
+ "libsystemd 0.6.0",
  "log",
 ]
 

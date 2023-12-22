@@ -1,7 +1,7 @@
 [Unit]
 Description=Run bpfman as a service
 DefaultDependencies=no
-After=network.target
+Requires=bpfman.socket
 
 [Service]
 Environment="RUST_LOG=Info"

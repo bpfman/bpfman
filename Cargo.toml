@@ -45,6 +45,7 @@ hex = { version = "0.4.3", default-features = false }
 integration-test-macros = { path = "./tests/integration-test-macros" }
 inventory = { version = "0.3", default-features = false }
 lazy_static = { version = "1", default-features = false }
+libsystemd = { version = "0.7.0", default-features = false }
 log = { version = "0.4", default-features = false }
 netlink-packet-route = { version = "0.17.1", default-features = false }
 nix = { version = "0.27", default-features = false }

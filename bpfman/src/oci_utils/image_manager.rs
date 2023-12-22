@@ -147,12 +147,12 @@ impl ImageManager {
         })
     }
 
-    pub(crate) async fn run(&mut self) {
+    pub(crate) async fn run(&mut self, use_activity_timer: bool) {
         loop {
             // Start receiving messages
             select! {
                 biased;
-                _ = shutdown_handler() => {
+                _ = shutdown_handler(use_activity_timer) => {
                     info!("image_manager: Signal received to stop command processing");
                     self.database.flush().expect("Unable to flush database to disk before shutting down ImageManager");
                     break;

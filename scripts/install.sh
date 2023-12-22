@@ -42,34 +42,34 @@ del_bin() {
 }
 
 copy_svc() {
-    svc_name=$1
-    if [ -z "${svc_name}" ]; then
-        echo "service name required"
+    svc_file=$1
+    if [ -z "${svc_file}" ]; then
+        echo "service file required"
         exit 1
     fi
 
-    echo "  Copying \"${svc_name}.service\""
-    cp "${svc_name}.service" "${DST_SVC_PATH}/${svc_name}.service"
+    echo "  Copying \"${svc_file}\""
+    cp "${svc_file}" "${DST_SVC_PATH}/${svc_file}"
     systemctl daemon-reload
 }
 
 del_svc() {
-    svc_name=$1
-    if [ -z "${svc_name}" ]; then
-        echo "service name required"
+    svc_file=$1
+    if [ -z "${svc_file}" ]; then
+        echo "service file required"
         exit 1
     fi
 
-    systemctl status "${svc_name}" &>/dev/null
+    systemctl status "${svc_file}" &>/dev/null
     if [ $? -eq 0 ]; then
-        echo "  Stopping \"${svc_name}.service\""
-        systemctl disable ${svc_name}.service
-        systemctl stop ${svc_name}.service
+        echo "  Stopping \"${svc_file}\""
+        systemctl disable ${svc_file}
+        systemctl stop ${svc_file}
     fi
 
-    if test -f ${DST_SVC_PATH}/${svc_name}.service; then
-        echo "  Removing \"${svc_name}.service\""
-        rm -f "${DST_SVC_PATH}/${svc_name}.service"
+    if test -f ${DST_SVC_PATH}/${svc_file}; then
+        echo "  Removing \"${svc_file}\""
+        rm -f "${DST_SVC_PATH}/${svc_file}"
     fi
 }
 
@@ -92,8 +92,8 @@ install() {
     if [ "${reinstall}" == true ]; then
         systemctl status bpfman | grep "Active:" | grep running &>/dev/null
         if [ $? -eq 0 ]; then
-            echo "  Stopping \"${BIN_BPFMAN}.service\""
-            systemctl stop ${BIN_BPFMAN}.service
+            echo "  Stopping \"${SVC_BPFMAN_SVC}\""
+            systemctl stop ${SVC_BPFMAN_SVC}
             start_bpfman=true
         fi
     fi
@@ -101,20 +101,21 @@ install() {
     copy_bin "${BIN_BPFMAN}" ${release}
 
     if [ "${reinstall}" == false ]; then
-        echo "Copy service file:"
-        copy_svc "${BIN_BPFMAN}"
-        systemctl daemon-reload
+        echo "Copy service files:"
+        copy_svc "${SVC_BPFMAN_SOCK}"
+        copy_svc "${SVC_BPFMAN_SVC}"
     fi
 
     if [ "${start_bpfman}" == true ]; then
-        echo "  Starting \"${BIN_BPFMAN}.service\""
-        systemctl start ${BIN_BPFMAN}.service
+        echo "  Starting \"${SVC_BPFMAN_SOCK}\""
+        systemctl enable --now ${SVC_BPFMAN_SOCK}
     fi
 }
 
 uninstall() {
-    echo "Remove service file:"
-    del_svc "${BIN_BPFMAN}"
+    echo "Remove service files:"
+    del_svc "${SVC_BPFMAN_SOCK}"
+    del_svc "${SVC_BPFMAN_SVC}"
 
     echo "Remove binaries:"
     del_bin "${BIN_BPFMAN}"
@@ -123,9 +124,10 @@ uninstall() {
 
     # TO BE REMOVED!
     # Left around to cleanup deprecated `bpfd` binary
+    SVC_BPFD_SVC="bpfd.service"
     BIN_BPFD="bpfd"
     BIN_BPFCTL="bpfctl"
-    del_svc "${BIN_BPFD}"
+    del_svc "${SVC_BPFD_SVC}"
     del_bin "${BIN_BPFD}"
     del_bin "${BIN_BPFCTL}"
 }
