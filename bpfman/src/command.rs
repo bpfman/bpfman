@@ -93,12 +93,9 @@ pub(crate) enum Location {
 }
 
 impl Location {
-    async fn get_program_bytes(
-        &self,
-        allow_unsigned: bool,
-    ) -> Result<(Vec<u8>, String), BpfmanError> {
+    fn get_program_bytes(&self, allow_unsigned: bool) -> Result<(Vec<u8>, String), BpfmanError> {
         match self {
-            Location::File(l) => Ok((crate::utils::read(l).await?, "".to_owned())),
+            Location::File(l) => Ok((std::fs::read(l)?, "".to_owned())),
             Location::Image(l) => {
                 let mut image_manager = IMAGE_MANAGER.lock().expect("Unable to lock image manager");
                 let (path, bpf_function_name) = image_manager
@@ -763,12 +760,9 @@ impl ProgramData {
         self.program_bytes = Vec::new();
     }
 
-    pub(crate) async fn set_program_bytes(
-        &mut self,
-        allow_unsigned: bool,
-    ) -> Result<(), BpfmanError> {
+    pub(crate) fn set_program_bytes(&mut self, allow_unsigned: bool) -> Result<(), BpfmanError> {
         let loc = self.get_location()?;
-        match loc.get_program_bytes(allow_unsigned).await {
+        match loc.get_program_bytes(allow_unsigned) {
             Err(e) => Err(e),
             Ok((v, s)) => {
                 match loc {

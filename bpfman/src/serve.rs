@@ -44,7 +44,7 @@ pub async fn serve(config: &Config, csi_support: bool) -> anyhow::Result<()> {
     listeners.push(handle);
 
     let mut bpf_manager = BpfManager::new(config.clone(), rx);
-    bpf_manager.rebuild_state().await?;
+    bpf_manager.rebuild_state()?;
 
     // TODO(astoycos) see issue #881
     //let static_programs = get_static_programs(static_program_path).await?;
@@ -172,7 +172,7 @@ async fn std_unix_stream(path: String) -> anyhow::Result<UnixListenerStream> {
     let uds = UnixListener::bind(&path)?;
     let stream = UnixListenerStream::new(uds);
     // Always set the file permissions of our listening socket.
-    set_file_permissions(&path.clone(), SOCK_MODE).await;
+    set_file_permissions(&path.clone(), SOCK_MODE);
 
     info!("Using default Unix socket");
     Ok(stream)

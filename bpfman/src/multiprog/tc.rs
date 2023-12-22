@@ -12,9 +12,13 @@ use aya::{
     Bpf, BpfLoader,
 };
 use bpfman_api::{util::directories::*, ImagePullPolicy};
-use futures::stream::TryStreamExt;
 use log::debug;
-use netlink_packet_route::tc::Nla;
+use netlink_packet_core::{NetlinkMessage, NetlinkPayload, NLM_F_DUMP, NLM_F_REQUEST};
+use netlink_packet_route::{
+    tc::{TcAttribute, TcMessage},
+    RouteNetlinkMessage,
+};
+use netlink_sys::{self, protocols::NETLINK_ROUTE, Socket, SocketAddr};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -51,7 +55,7 @@ pub struct TcDispatcher {
 // dropped before we call await.
 #[allow(clippy::await_holding_lock)]
 impl TcDispatcher {
-    pub(crate) async fn new(
+    pub(crate) fn new(
         direction: Direction,
         if_index: &u32,
         if_name: String,
@@ -130,29 +134,51 @@ impl TcDispatcher {
             loader: Some(loader),
             program_name: Some(bpf_function_name),
         };
-        dispatcher.attach_extensions(&mut extensions).await?;
-        dispatcher.attach(old_dispatcher).await?;
+        dispatcher.attach_extensions(&mut extensions)?;
+        dispatcher.attach(old_dispatcher)?;
         dispatcher.save()?;
         Ok(dispatcher)
     }
 
     /// has_qdisc returns true if the qdisc_name is found on the if_index.
-    async fn has_qdisc(qdisc_name: String, if_index: i32) -> Result<bool, anyhow::Error> {
-        let (connection, handle, _) = rtnetlink::new_connection().unwrap();
-        tokio::spawn(connection);
+    fn has_qdisc(qdisc_name: String, if_index: i32) -> Result<bool, anyhow::Error> {
+        let mut socket = Socket::new(NETLINK_ROUTE).unwrap();
+        socket.bind_auto().unwrap();
+        socket.connect(&SocketAddr::new(0, 0)).unwrap();
 
-        let mut qdiscs = handle.qdisc().get().execute();
-        while let Some(qdisc_message) = qdiscs.try_next().await? {
-            if qdisc_message.header.index == if_index
-                && qdisc_message.nlas.contains(&Nla::Kind(qdisc_name.clone()))
-            {
-                return Ok(true);
-            }
+        let message = TcMessage::default();
+        let mut req = NetlinkMessage::from(RouteNetlinkMessage::GetQueueDiscipline(message));
+        req.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
+        req.finalize();
+
+        let mut buf = vec![0; req.header.length as usize];
+        req.serialize(&mut buf[..]);
+
+        socket
+            .send(&buf, 0)
+            .expect("failed to send netlink message");
+
+        let mut receive_buffer = vec![0; 4096];
+        while let Ok(n) = socket.recv(&mut &mut receive_buffer[..], 0) {
+            let bytes = &receive_buffer[..n];
+            let rx_packet = <NetlinkMessage<RouteNetlinkMessage>>::deserialize(bytes).unwrap();
+            match rx_packet.payload {
+                NetlinkPayload::InnerMessage(RouteNetlinkMessage::GetQueueDiscipline(msg)) => {
+                    if msg.header.index == if_index
+                        && msg
+                            .attributes
+                            .contains(&TcAttribute::Kind(qdisc_name.clone()))
+                    {
+                        return Ok(true);
+                    }
+                }
+                _ => break,
+            };
         }
         Ok(false)
     }
 
-    async fn attach(&mut self, old_dispatcher: Option<Dispatcher>) -> Result<(), BpfmanError> {
+    fn attach(&mut self, old_dispatcher: Option<Dispatcher>) -> Result<(), BpfmanError> {
         debug!(
             "TcDispatcher::attach() for if_index {}, revision {}",
             self.if_index, self.revision
@@ -164,14 +190,14 @@ impl TcDispatcher {
         // qdisc, we return an error. If the qdisc is a clsact qdisc, we do nothing. Otherwise, we add a clsact qdisc.
 
         // no need to add a new clsact qdisc if one already exists.
-        if TcDispatcher::has_qdisc("clsact".to_string(), self.if_index as i32).await? {
+        if TcDispatcher::has_qdisc("clsact".to_string(), self.if_index as i32)? {
             debug!(
                 "clsact qdisc found for if_index {}, no need to add a new clsact qdisc",
                 self.if_index
             );
 
         // if ingress qdisc exists, return error.
-        } else if TcDispatcher::has_qdisc("ingress".to_string(), self.if_index as i32).await? {
+        } else if TcDispatcher::has_qdisc("ingress".to_string(), self.if_index as i32)? {
             debug!("ingress qdisc found for if_index {}", self.if_index);
             return Err(BpfmanError::InvalidAttach(format!(
                 "Ingress qdisc found for if_index {}",
@@ -228,10 +254,7 @@ impl TcDispatcher {
         Ok(())
     }
 
-    async fn attach_extensions(
-        &mut self,
-        extensions: &mut [&mut TcProgram],
-    ) -> Result<(), BpfmanError> {
+    fn attach_extensions(&mut self, extensions: &mut [&mut TcProgram]) -> Result<(), BpfmanError> {
         debug!(
             "TcDispatcher::attach_extensions() for if_index {}, revision {}",
             self.if_index, self.revision
@@ -322,7 +345,7 @@ impl TcDispatcher {
                 if v.data.get_map_pin_path()?.is_none() {
                     let map_pin_path = calc_map_pin_path(id);
                     v.data.set_map_pin_path(&map_pin_path.clone())?;
-                    create_map_pin_path(&map_pin_path).await?;
+                    create_map_pin_path(&map_pin_path)?;
 
                     for (name, map) in loader.maps_mut() {
                         if !should_map_be_pinned(name) {

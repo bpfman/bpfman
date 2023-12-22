@@ -87,9 +87,9 @@ pub(crate) fn execute_service(args: &ServiceArgs, config: &Config) -> anyhow::Re
             create_dir_all(CFGDIR_STATIC_PROGRAMS)
                 .context("unable to create static programs directory")?;
 
-            set_dir_permissions(CFGDIR, CFGDIR_MODE).await;
-            set_dir_permissions(RTDIR, RTDIR_MODE).await;
-            set_dir_permissions(STDIR, STDIR_MODE).await;
+            set_dir_permissions(CFGDIR, CFGDIR_MODE);
+            set_dir_permissions(RTDIR, RTDIR_MODE);
+            set_dir_permissions(STDIR, STDIR_MODE);
 
             //TODO https://github.com/bpfman/bpfman/issues/881
             serve(config, args.csi_support).await?;
