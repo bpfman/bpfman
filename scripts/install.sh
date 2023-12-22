@@ -110,6 +110,8 @@ install() {
         echo "  Starting \"${SVC_BPFMAN_SOCK}\""
         systemctl enable --now ${SVC_BPFMAN_SOCK}
     fi
+
+    systemctl daemon-reload
 }
 
 uninstall() {
