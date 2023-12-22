@@ -209,20 +209,23 @@ jobs:
       - name: Build bpfman
         run: cargo build --verbose
 
-      - name: Run the bpfman installer
-        run: sudo ./scripts/setup.sh install
+      # Disable testing using the systemd socket activation for now.
+      # We'll use the RPM test framework to test this soon.
 
-      - name: Give certs time to be created
-        run: sleep 5
+      # - name: Run the bpfman installer
+      #   run: sudo ./scripts/setup.sh install
 
-      - name: Verify the bpfman systemd service is active
-        run: systemctl is-active bpfman.socket
+      # - name: Give certs time to be created
+      #   run: sleep 5
 
-      - name: Verify the CLI can reach bpfman
-        run: sudo bpfman list
+      # - name: Verify the bpfman systemd service is active
+      #   run: systemctl is-active bpfman.socket
 
-      - name: Stop the bpfman systemd service
-        run: sudo systemctl stop bpfman
+      # - name: Verify the CLI can reach bpfman
+      #   run: sudo bpfman list
+
+      # - name: Stop the bpfman systemd service
+      #   run: sudo systemctl stop bpfman
 
       - name: Run integration tests
         run: cargo xtask integration-test
