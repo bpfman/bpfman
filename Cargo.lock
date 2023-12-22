@@ -340,6 +340,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "bpf-log-exporter"
+version = "0.4.0-dev"
+dependencies = [
+ "anyhow",
+ "env_logger",
+ "futures",
+ "hex",
+ "log",
+ "netlink-packet-audit",
+ "netlink-packet-core",
+ "netlink-sys",
+ "regex",
+]
+
+[[package]]
 name = "bpf-metrics-exporter"
 version = "0.1.0-dev"
 dependencies = [
@@ -1898,6 +1913,21 @@ name = "ndk-context"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27b02d87554356db9e9a873add8782d4ea6e3e58ea071a9adb9a2e8ddb884a8b"
+
+[[package]]
+name = "netlink-packet-audit"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af2754802fc8722062c38128d0c5dffd86fe4462877db60e736ab58b0daf5144"
+dependencies = [
+ "anyhow",
+ "byteorder",
+ "bytes",
+ "log",
+ "netlink-packet-core",
+ "netlink-packet-utils",
+ "netlink-proto",
+]
 
 [[package]]
 name = "netlink-packet-core"
