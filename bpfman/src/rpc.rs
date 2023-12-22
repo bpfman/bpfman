@@ -47,13 +47,14 @@ impl Bpfman for BpfmanLoader {
             Location::File(p) => crate::command::Location::File(p),
         };
 
-        let data = ProgramData::new(
+        let data = ProgramData::new_pre_load(
             bytecode_source,
             request.name,
             request.metadata,
             request.global_data,
             request.map_owner_id,
-        );
+        )
+        .map_err(|e| Status::aborted(format!("failed to create ProgramData: {e}")))?;
 
         let load_args = LoadArgs {
             program: match request
@@ -67,13 +68,16 @@ impl Bpfman for BpfmanLoader {
                     iface,
                     position: _,
                     proceed_on,
-                }) => Program::Xdp(XdpProgram::new(
-                    data,
-                    priority,
-                    iface,
-                    XdpProceedOn::from_int32s(proceed_on)
-                        .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
-                )),
+                }) => Program::Xdp(
+                    XdpProgram::new(
+                        data,
+                        priority,
+                        iface,
+                        XdpProceedOn::from_int32s(proceed_on)
+                            .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
+                    )
+                    .map_err(|e| Status::aborted(format!("failed to create xdpprogram: {e}")))?,
+                ),
                 Info::TcAttachInfo(TcAttachInfo {
                     priority,
                     iface,
@@ -84,30 +88,35 @@ impl Bpfman for BpfmanLoader {
                     let direction = direction
                         .try_into()
                         .map_err(|_| Status::aborted("direction is not a string"))?;
-                    Program::Tc(TcProgram::new(
-                        data,
-                        priority,
-                        iface,
-                        TcProceedOn::from_int32s(proceed_on)
-                            .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
-                        direction,
-                    ))
+                    Program::Tc(
+                        TcProgram::new(
+                            data,
+                            priority,
+                            iface,
+                            TcProceedOn::from_int32s(proceed_on)
+                                .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
+                            direction,
+                        )
+                        .map_err(|e| Status::aborted(format!("failed to create tcprogram: {e}")))?,
+                    )
                 }
                 Info::TracepointAttachInfo(TracepointAttachInfo { tracepoint }) => {
-                    Program::Tracepoint(TracepointProgram::new(data, tracepoint))
+                    Program::Tracepoint(
+                        TracepointProgram::new(data, tracepoint).map_err(|e| {
+                            Status::aborted(format!("failed to create tcprogram: {e}"))
+                        })?,
+                    )
                 }
                 Info::KprobeAttachInfo(KprobeAttachInfo {
                     fn_name,
                     offset,
                     retprobe,
                     container_pid,
-                }) => Program::Kprobe(KprobeProgram::new(
-                    data,
-                    fn_name,
-                    offset,
-                    retprobe,
-                    container_pid,
-                )),
+                }) => Program::Kprobe(
+                    KprobeProgram::new(data, fn_name, offset, retprobe, container_pid).map_err(
+                        |e| Status::aborted(format!("failed to create kprobeprogram: {e}")),
+                    )?,
+                ),
                 Info::UprobeAttachInfo(UprobeAttachInfo {
                     fn_name,
                     offset,
@@ -115,15 +124,12 @@ impl Bpfman for BpfmanLoader {
                     retprobe,
                     pid,
                     container_pid,
-                }) => Program::Uprobe(UprobeProgram::new(
-                    data,
-                    fn_name,
-                    offset,
-                    target,
-                    retprobe,
-                    pid,
-                    container_pid,
-                )),
+                }) => Program::Uprobe(
+                    UprobeProgram::new(data, fn_name, offset, target, retprobe, pid, container_pid)
+                        .map_err(|e| {
+                            Status::aborted(format!("failed to create uprobeprogram: {e}"))
+                        })?,
+                ),
             },
             responder: resp_tx,
         };
@@ -136,14 +142,14 @@ impl Bpfman for BpfmanLoader {
             Ok(res) => match res {
                 Ok(program) => {
                     let reply_entry = LoadResponse {
-                        info: match (&program).try_into() {
-                            Ok(i) => Some(i),
-                            Err(_) => None,
-                        },
-                        kernel_info: match (&program).try_into() {
-                            Ok(i) => Some(i),
-                            Err(_) => None,
-                        },
+                        info: Some((&program).try_into().map_err(|e| {
+                            Status::aborted(format!("convert Program to GRPC program: {e}"))
+                        })?),
+                        kernel_info: Some((&program).try_into().map_err(|e| {
+                            Status::aborted(format!(
+                                "convert Program to GRPC kernel program info: {e}"
+                            ))
+                        })?),
                     };
                     Ok(Response::new(reply_entry))
                 }
@@ -211,14 +217,28 @@ impl Bpfman for BpfmanLoader {
             Ok(res) => match res {
                 Ok(program) => {
                     let reply_entry = GetResponse {
-                        info: match (&program).try_into() {
-                            Ok(i) => Some(i),
-                            Err(_) => None,
+                        info: if let Program::Unsupported(_) = program {
+                            None
+                        } else {
+                            Some((&program).try_into().map_err(|e| {
+                                Status::aborted(format!("failed to get program metadata: {e}"))
+                            })?)
                         },
                         kernel_info: match (&program).try_into() {
-                            Ok(i) => Some(i),
-                            Err(_) => None,
-                        },
+                            Ok(i) => {
+                                if let Program::Unsupported(_) = program {
+                                    program.delete().map_err(|e| {
+                                        Status::aborted(format!(
+                                            "failed to get program metadata: {e}"
+                                        ))
+                                    })?;
+                                };
+                                Ok(Some(i))
+                            }
+                            Err(e) => Err(Status::aborted(format!(
+                                "convert Program to GRPC kernel program info: {e}"
+                            ))),
+                        }?,
                     };
                     Ok(Response::new(reply_entry))
                 }
@@ -255,47 +275,66 @@ impl Bpfman for BpfmanLoader {
                             }
                         }
 
-                        match r.data() {
-                            // If filtering on `bpfman Only`, this program is of type Unsupported so skip
-                            Err(_) => {
-                                if request.get_ref().bpfman_programs_only()
-                                    || !request.get_ref().match_metadata.is_empty()
-                                {
-                                    continue;
-                                }
+                        // filter based on list all flag
+                        if let Program::Unsupported(_) = r {
+                            if request.get_ref().bpfman_programs_only()
+                                || !request.get_ref().match_metadata.is_empty()
+                            {
+                                continue;
                             }
-                            // Bpfman Program
-                            Ok(data) => {
-                                // Filter on the input metadata field if provided
-                                let mut meta_match = true;
-                                for (key, value) in &request.get_ref().match_metadata {
-                                    if let Some(v) = data.metadata().get(key) {
-                                        if *value != *v {
-                                            meta_match = false;
-                                            break;
-                                        }
-                                    } else {
+                        } else {
+                            // Filter on the input metadata field if provided
+                            let mut meta_match = true;
+                            for (key, value) in &request.get_ref().match_metadata {
+                                if let Some(v) = r
+                                    .get_data()
+                                    .get_metadata()
+                                    .map_err(|e| {
+                                        Status::aborted(format!(
+                                            "failed to get program metadata: {e}"
+                                        ))
+                                    })?
+                                    .get(key)
+                                {
+                                    if *value != *v {
                                         meta_match = false;
                                         break;
                                     }
+                                } else {
+                                    meta_match = false;
+                                    break;
                                 }
+                            }
 
-                                if !meta_match {
-                                    continue;
-                                }
+                            if !meta_match {
+                                continue;
                             }
                         }
 
                         // Populate the response with the Program Info and the Kernel Info.
                         let reply_entry = ListResult {
-                            info: match (&r).try_into() {
-                                Ok(i) => Some(i),
-                                Err(_) => None,
+                            info: if let Program::Unsupported(_) = r {
+                                None
+                            } else {
+                                Some((&r).try_into().map_err(|e| {
+                                    Status::aborted(format!("failed to get program metadata: {e}"))
+                                })?)
                             },
                             kernel_info: match (&r).try_into() {
-                                Ok(i) => Some(i),
-                                Err(_) => None,
-                            },
+                                Ok(i) => {
+                                    if let Program::Unsupported(_) = r {
+                                        r.delete().map_err(|e| {
+                                            Status::aborted(format!(
+                                                "failed to get program metadata: {e}"
+                                            ))
+                                        })?;
+                                    };
+                                    Ok(Some(i))
+                                }
+                                Err(e) => Err(Status::aborted(format!(
+                                    "convert Program to GRPC kernel program info: {e}"
+                                ))),
+                            }?,
                         };
                         reply.results.push(reply_entry)
                     }
@@ -353,13 +392,14 @@ impl Bpfman for BpfmanLoader {
 
 #[cfg(test)]
 mod test {
+    use std::{collections::HashMap, time::SystemTime};
+
     use bpfman_api::v1::{
         bytecode_location::Location, AttachInfo, BytecodeLocation, LoadRequest, XdpAttachInfo,
     };
     use tokio::sync::mpsc::Receiver;
 
     use super::*;
-    use crate::command::{KernelProgramInfo, Program};
 
     #[tokio::test]
     async fn test_load_with_valid_id() {
@@ -414,33 +454,33 @@ mod test {
     }
 
     async fn mock_serve(mut rx: Receiver<Command>) {
-        let kernel_info = KernelProgramInfo {
-            id: 0,
-            name: "".to_string(),
-            program_type: 0,
-            loaded_at: "".to_string(),
-            tag: "".to_string(),
-            gpl_compatible: false,
-            map_ids: vec![],
-            btf_id: 0,
-            bytes_xlated: 0,
-            jited: false,
-            bytes_jited: 0,
-            bytes_memlock: 0,
-            verified_insns: 0,
-        };
-        let mut data = ProgramData::default();
-        data.set_kernel_info(Some(kernel_info));
+        let mut data = ProgramData::new_pre_load(
+            crate::command::Location::File("/tmp/fake".to_string()),
+            "xdp_pass".to_string(),
+            HashMap::new(),
+            HashMap::new(),
+            None,
+        )
+        .unwrap();
 
-        let program = Program::Xdp(XdpProgram {
-            data,
-            priority: 0,
-            if_index: Some(9999),
-            iface: String::new(),
-            proceed_on: XdpProceedOn::default(),
-            current_position: None,
-            attached: false,
-        });
+        // Set kernel info
+        data.set_id(0).unwrap();
+        data.set_kernel_name("").unwrap();
+        data.set_kernel_program_type(0).unwrap();
+        data.set_kernel_loaded_at(SystemTime::now()).unwrap();
+        data.set_kernel_tag(0).unwrap();
+        data.set_kernel_gpl_compatible(true).unwrap();
+        data.set_kernel_map_ids(vec![]).unwrap();
+        data.set_kernel_btf_id(0).unwrap();
+        data.set_kernel_bytes_xlated(0).unwrap();
+        data.set_kernel_jited(false).unwrap();
+        data.set_kernel_bytes_jited(0).unwrap();
+        data.set_kernel_bytes_memlock(0).unwrap();
+        data.set_kernel_verified_insns(0).unwrap();
+
+        let program = Program::Xdp(
+            XdpProgram::new(data, 0, "eth0".to_string(), XdpProceedOn::default()).unwrap(),
+        );
 
         while let Some(cmd) = rx.recv().await {
             match cmd {

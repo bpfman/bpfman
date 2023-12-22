@@ -5,22 +5,23 @@
 use std::{
     collections::HashMap,
     fmt, fs,
-    io::BufReader,
     path::{Path, PathBuf},
+    time::SystemTime,
 };
 
 use aya::programs::ProgramInfo as AyaProgInfo;
 use bpfman_api::{
-    util::directories::{RTDIR_FS, RTDIR_PROGRAMS},
+    util::directories::RTDIR_FS,
     v1::{
         attach_info::Info, bytecode_location::Location as V1Location, AttachInfo, BytecodeLocation,
         KernelProgramInfo as V1KernelProgramInfo, KprobeAttachInfo, ProgramInfo as V1ProgramInfo,
         TcAttachInfo, TracepointAttachInfo, UprobeAttachInfo, XdpAttachInfo,
     },
-    ParseError, ProgramType, TcProceedOn, XdpProceedOn,
+    ParseError, ProgramType, TcProceedOn, TcProceedOnEntry, XdpProceedOn, XdpProceedOnEntry,
 };
 use chrono::{prelude::DateTime, Local};
 use log::info;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc::Sender, oneshot};
 
@@ -28,6 +29,10 @@ use crate::{
     errors::BpfmanError,
     multiprog::{DispatcherId, DispatcherInfo},
     oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
+    utils::{
+        bytes_to_bool, bytes_to_i32, bytes_to_string, bytes_to_u32, bytes_to_u64, bytes_to_usize,
+    },
+    ROOT_DB,
 };
 
 /// Provided by the requester and used by the manager task to send
@@ -53,14 +58,14 @@ pub(crate) struct LoadArgs {
     pub(crate) responder: Responder<Result<Program, BpfmanError>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) enum Program {
     Xdp(XdpProgram),
     Tc(TcProgram),
     Tracepoint(TracepointProgram),
     Kprobe(KprobeProgram),
     Uprobe(UprobeProgram),
-    Unsupported(KernelProgramInfo),
+    Unsupported(ProgramData),
 }
 
 #[derive(Debug)]
@@ -85,14 +90,6 @@ pub(crate) struct PullBytecodeArgs {
 pub(crate) enum Location {
     Image(BytecodeImage),
     File(String),
-}
-
-// TODO astoycos remove this impl, as it's only needed for a hack in the rebuild
-// dispatcher code.
-impl Default for Location {
-    fn default() -> Self {
-        Location::File(String::new())
-    }
 }
 
 impl Location {
@@ -159,55 +156,9 @@ impl TryFrom<String> for Direction {
 impl std::fmt::Display for Direction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Direction::Ingress => f.write_str("in"),
-            Direction::Egress => f.write_str("eg"),
+            Direction::Ingress => f.write_str("ingress"),
+            Direction::Egress => f.write_str("egress"),
         }
-    }
-}
-
-/// KernelProgramInfo stores information about ALL bpf programs loaded
-/// on a system.
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub(crate) struct KernelProgramInfo {
-    pub(crate) id: u32,
-    pub(crate) name: String,
-    pub(crate) program_type: u32,
-    pub(crate) loaded_at: String,
-    pub(crate) tag: String,
-    pub(crate) gpl_compatible: bool,
-    pub(crate) map_ids: Vec<u32>,
-    pub(crate) btf_id: u32,
-    pub(crate) bytes_xlated: u32,
-    pub(crate) jited: bool,
-    pub(crate) bytes_jited: u32,
-    pub(crate) bytes_memlock: u32,
-    pub(crate) verified_insns: u32,
-}
-
-impl TryFrom<AyaProgInfo> for KernelProgramInfo {
-    type Error = BpfmanError;
-
-    fn try_from(prog: AyaProgInfo) -> Result<Self, Self::Error> {
-        Ok(KernelProgramInfo {
-            id: prog.id(),
-            name: prog
-                .name_as_str()
-                .expect("Program name is not valid unicode")
-                .to_string(),
-            program_type: prog.program_type(),
-            loaded_at: DateTime::<Local>::from(prog.loaded_at())
-                .format("%Y-%m-%dT%H:%M:%S%z")
-                .to_string(),
-            tag: format!("{:x}", prog.tag()),
-            gpl_compatible: prog.gpl_compatible(),
-            map_ids: prog.map_ids().map_err(BpfmanError::BpfProgramError)?,
-            btf_id: prog.btf_id().map_or(0, |n| n.into()),
-            bytes_xlated: prog.size_translated(),
-            jited: prog.size_jitted() != 0,
-            bytes_jited: prog.size_jitted(),
-            bytes_memlock: prog.memory_locked().map_err(BpfmanError::BpfProgramError)?,
-            verified_insns: prog.verified_instruction_count(),
-        })
     }
 }
 
@@ -215,59 +166,56 @@ impl TryFrom<&Program> for V1ProgramInfo {
     type Error = BpfmanError;
 
     fn try_from(program: &Program) -> Result<Self, Self::Error> {
-        let data = program.data()?;
+        let data: &ProgramData = program.get_data();
 
-        let bytecode = match program.location() {
-            Some(l) => match l {
-                crate::command::Location::Image(m) => {
-                    Some(BytecodeLocation {
-                        location: Some(V1Location::Image(bpfman_api::v1::BytecodeImage {
-                            url: m.get_url().to_string(),
-                            image_pull_policy: m.get_pull_policy().to_owned() as i32,
-                            // Never dump Plaintext Credentials
-                            username: Some(String::new()),
-                            password: Some(String::new()),
-                        })),
-                    })
-                }
-                crate::command::Location::File(m) => Some(BytecodeLocation {
-                    location: Some(V1Location::File(m.to_string())),
-                }),
-            },
-            None => None,
+        let bytecode = match program.location()? {
+            crate::command::Location::Image(m) => {
+                Some(BytecodeLocation {
+                    location: Some(V1Location::Image(bpfman_api::v1::BytecodeImage {
+                        url: m.get_url().to_string(),
+                        image_pull_policy: m.get_pull_policy().to_owned() as i32,
+                        // Never dump Plaintext Credentials
+                        username: Some(String::new()),
+                        password: Some(String::new()),
+                    })),
+                })
+            }
+            crate::command::Location::File(m) => Some(BytecodeLocation {
+                location: Some(V1Location::File(m.to_string())),
+            }),
         };
 
         let attach_info = AttachInfo {
             info: match program.clone() {
                 Program::Xdp(p) => Some(Info::XdpAttachInfo(XdpAttachInfo {
-                    priority: p.priority,
-                    iface: p.iface,
-                    position: p.current_position.unwrap_or(0) as i32,
-                    proceed_on: p.proceed_on.as_action_vec(),
+                    priority: p.get_priority()?,
+                    iface: p.get_iface()?.to_string(),
+                    position: p.get_current_position()?.unwrap_or(0) as i32,
+                    proceed_on: p.get_proceed_on()?.as_action_vec(),
                 })),
                 Program::Tc(p) => Some(Info::TcAttachInfo(TcAttachInfo {
-                    priority: p.priority,
-                    iface: p.iface,
-                    position: p.current_position.unwrap_or(0) as i32,
-                    direction: p.direction.to_string(),
-                    proceed_on: p.proceed_on.as_action_vec(),
+                    priority: p.get_priority()?,
+                    iface: p.get_iface()?.to_string(),
+                    position: p.get_current_position()?.unwrap_or(0) as i32,
+                    direction: p.get_direction()?.to_string(),
+                    proceed_on: p.get_proceed_on()?.as_action_vec(),
                 })),
                 Program::Tracepoint(p) => Some(Info::TracepointAttachInfo(TracepointAttachInfo {
-                    tracepoint: p.tracepoint,
+                    tracepoint: p.get_tracepoint()?.to_string(),
                 })),
                 Program::Kprobe(p) => Some(Info::KprobeAttachInfo(KprobeAttachInfo {
-                    fn_name: p.fn_name,
-                    offset: p.offset,
-                    retprobe: p.retprobe,
-                    container_pid: p.container_pid,
+                    fn_name: p.get_fn_name()?.to_string(),
+                    offset: p.get_offset()?,
+                    retprobe: p.get_retprobe()?,
+                    container_pid: p.get_container_pid()?,
                 })),
                 Program::Uprobe(p) => Some(Info::UprobeAttachInfo(UprobeAttachInfo {
-                    fn_name: p.fn_name,
-                    offset: p.offset,
-                    target: p.target,
-                    retprobe: p.retprobe,
-                    pid: p.pid,
-                    container_pid: p.container_pid,
+                    fn_name: p.get_fn_name()?.map(|v| v.to_string()),
+                    offset: p.get_offset()?,
+                    target: p.get_target()?.to_string(),
+                    retprobe: p.get_retprobe()?,
+                    pid: p.get_pid()?,
+                    container_pid: p.get_container_pid()?,
                 })),
                 Program::Unsupported(_) => None,
             },
@@ -275,18 +223,20 @@ impl TryFrom<&Program> for V1ProgramInfo {
 
         // Populate the Program Info with bpfman data
         Ok(V1ProgramInfo {
-            name: data.name().to_owned(),
+            name: data.get_name()?.to_string(),
             bytecode,
             attach: Some(attach_info),
-            global_data: data.global_data().to_owned(),
-            map_owner_id: data.map_owner_id(),
+            global_data: data.get_global_data()?,
+            map_owner_id: data.get_map_owner_id()?,
             map_pin_path: data
-                .map_pin_path()
+                .get_map_pin_path()?
                 .map_or(String::new(), |v| v.to_str().unwrap().to_string()),
             map_used_by: data
-                .maps_used_by()
-                .map_or(vec![], |m| m.iter().map(|m| m.to_string()).collect()),
-            metadata: data.metadata().to_owned(),
+                .get_maps_used_by()?
+                .iter()
+                .map(|m| m.to_string())
+                .collect(),
+            metadata: data.get_metadata()?,
         })
     }
 }
@@ -296,117 +246,523 @@ impl TryFrom<&Program> for V1KernelProgramInfo {
 
     fn try_from(program: &Program) -> Result<Self, Self::Error> {
         // Get the Kernel Info.
-        let kernel_info = program.kernel_info().ok_or(BpfmanError::Error(
-            "program kernel info not available".to_string(),
-        ))?;
+        let data: &ProgramData = program.get_data();
 
         // Populate the Kernel Info.
         Ok(V1KernelProgramInfo {
-            id: kernel_info.id,
-            name: kernel_info.name.to_owned(),
+            id: data.get_id()?,
+            name: data.get_kernel_name()?.to_string(),
             program_type: program.kind() as u32,
-            loaded_at: kernel_info.loaded_at.to_owned(),
-            tag: kernel_info.tag.to_owned(),
-            gpl_compatible: kernel_info.gpl_compatible,
-            map_ids: kernel_info.map_ids.to_owned(),
-            btf_id: kernel_info.btf_id,
-            bytes_xlated: kernel_info.bytes_xlated,
-            jited: kernel_info.jited,
-            bytes_jited: kernel_info.bytes_jited,
-            bytes_memlock: kernel_info.bytes_memlock,
-            verified_insns: kernel_info.verified_insns,
+            loaded_at: data.get_kernel_loaded_at()?.to_string(),
+            tag: data.get_kernel_tag()?.to_string(),
+            gpl_compatible: data.get_kernel_gpl_compatible()?,
+            map_ids: data.get_kernel_map_ids()?,
+            btf_id: data.get_kernel_btf_id()?,
+            bytes_xlated: data.get_kernel_bytes_xlated()?,
+            jited: data.get_kernel_jited()?,
+            bytes_jited: data.get_kernel_bytes_jited()?,
+            bytes_memlock: data.get_kernel_bytes_memlock()?,
+            verified_insns: data.get_kernel_verified_insns()?,
         })
     }
 }
 
 /// ProgramInfo stores information about bpf programs that are loaded and managed
 /// by bpfman.
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[derive(Debug, Clone)]
 pub(crate) struct ProgramData {
-    // known at load time, set by user
-    name: String,
-    location: Location,
-    metadata: HashMap<String, String>,
-    global_data: HashMap<String, Vec<u8>>,
-    map_owner_id: Option<u32>,
+    // Prior to load this will be a temporary Tree with a random ID, following
+    // load it will be replaced with the main program database tree.
+    db_tree: sled::Tree,
 
-    // populated after load
-    kernel_info: Option<KernelProgramInfo>,
-    map_pin_path: Option<PathBuf>,
-    maps_used_by: Option<Vec<u32>>,
+    // populated after load, randomly generated prior to load.
+    id: u32,
 
     // program_bytes is used to temporarily cache the raw program data during
     // the loading process.  It MUST be cleared following a load so that there
     // is not a long lived copy of the program data living on the heap.
-    #[serde(skip_serializing, skip_deserializing)]
     program_bytes: Vec<u8>,
 }
 
 impl ProgramData {
-    pub(crate) fn new(
+    pub(crate) fn new(tree: sled::Tree, id: u32) -> Self {
+        Self {
+            db_tree: tree,
+            id,
+            program_bytes: Vec::new(),
+        }
+    }
+    pub(crate) fn new_pre_load(
         location: Location,
         name: String,
         metadata: HashMap<String, String>,
         global_data: HashMap<String, Vec<u8>>,
         map_owner_id: Option<u32>,
-    ) -> Self {
-        Self {
-            name,
-            location,
-            metadata,
-            global_data,
-            map_owner_id,
+    ) -> Result<Self, BpfmanError> {
+        let mut rng = rand::thread_rng();
+        let id_rand = rng.gen::<u32>();
+
+        let db_tree = ROOT_DB
+            .open_tree(id_rand.to_string())
+            .expect("Unable to open program database tree");
+
+        let mut pd = Self {
+            db_tree,
+            id: id_rand,
             program_bytes: Vec::new(),
-            kernel_info: None,
-            map_pin_path: None,
-            maps_used_by: None,
+        };
+
+        pd.set_location(location)?;
+        pd.set_name(&name)?;
+        pd.set_metadata(metadata)?;
+        pd.set_global_data(global_data)?;
+        if let Some(id) = map_owner_id {
+            pd.set_map_owner_id(id)?;
+        };
+
+        Ok(pd)
+    }
+
+    pub(crate) fn swap_tree(&mut self, new_id: u32) -> Result<(), BpfmanError> {
+        let new_tree = ROOT_DB
+            .open_tree(new_id.to_string())
+            .expect("Unable to open program database tree");
+
+        // Copy over all key's and values to new tree
+        for r in self.db_tree.into_iter() {
+            let (k, v) = r.expect("unable to iterate db_tree");
+            new_tree.insert(k, v).map_err(|e| {
+                BpfmanError::DatabaseError(
+                    "unable to insert entry during copy".to_string(),
+                    e.to_string(),
+                )
+            })?;
+        }
+
+        ROOT_DB
+            .drop_tree(self.db_tree.name())
+            .expect("unable to delete temporary program tree");
+
+        self.db_tree = new_tree;
+        self.id = new_id;
+
+        Ok(())
+    }
+
+    fn get(&self, key: &str) -> Result<Vec<u8>, BpfmanError> {
+        let value = self.db_tree.get(key).map_err(|e| {
+            BpfmanError::DatabaseError(
+                format!(
+                    "Unable to get database entry {key} from tree {}",
+                    bytes_to_string(&self.db_tree.name())
+                ),
+                e.to_string(),
+            )
+        })?;
+
+        match value.clone() {
+            Some(v) => Ok(v.to_vec()),
+            None => Err(BpfmanError::DatabaseError(
+                format!(
+                    "Database entry {key} does not exist in tree {:?}",
+                    bytes_to_string(&self.db_tree.name())
+                ),
+                "".to_string(),
+            )),
         }
     }
 
-    pub(crate) fn name(&self) -> &str {
-        &self.name
+    fn get_option(&self, key: &str) -> Result<Option<sled::IVec>, BpfmanError> {
+        self.db_tree.get(key).map_err(|e| {
+            BpfmanError::DatabaseError(
+                format!(
+                    "Unable to get database entry {key} from tree {} {}",
+                    bytes_to_string(&self.db_tree.name()),
+                    ROOT_DB
+                        .tree_names()
+                        .iter()
+                        .map(|n| bytes_to_string(n))
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                ),
+                e.to_string(),
+            )
+        })
     }
 
-    pub(crate) fn id(&self) -> Option<u32> {
-        // use as_ref here so we don't consume self.
-        self.kernel_info.as_ref().map(|i| i.id)
+    fn insert(&self, key: &str, value: &[u8]) -> Result<(), BpfmanError> {
+        self.db_tree.insert(key, value).map(|_| ()).map_err(|e| {
+            BpfmanError::DatabaseError(
+                format!(
+                    "Unable to insert database entry {key} into tree {:?}",
+                    self.db_tree.name()
+                ),
+                e.to_string(),
+            )
+        })
     }
 
-    pub(crate) fn set_kernel_info(&mut self, info: Option<KernelProgramInfo>) {
-        self.kernel_info = info
+    /*
+     * Methods for setting and getting program data for programs managed by
+     * bpfman.
+     */
+
+    // A programData's kind could be different from the kernel_program_type value
+    // since the TC and XDP programs loaded by bpfman will have a ProgramType::Ext
+    // rather than ProgramType::Xdp or ProgramType::Tc.
+    // Kind should only be set on programs loaded by bpfman.
+    fn set_kind(&mut self, kind: ProgramType) -> Result<(), BpfmanError> {
+        self.insert("kind", &(Into::<u32>::into(kind)).to_ne_bytes())
     }
 
-    pub(crate) fn kernel_info(&self) -> Option<&KernelProgramInfo> {
-        self.kernel_info.as_ref()
+    fn get_kind(&self) -> Result<Option<ProgramType>, BpfmanError> {
+        self.get_option("kind")
+            .map(|v| v.map(|v| bytes_to_u32(v.to_vec()).try_into().unwrap()))
     }
 
-    pub(crate) fn global_data(&self) -> &HashMap<String, Vec<u8>> {
-        &self.global_data
+    pub(crate) fn set_name(&mut self, name: &str) -> Result<(), BpfmanError> {
+        self.insert("name", name.as_bytes())
     }
 
-    pub(crate) fn metadata(&self) -> &HashMap<String, String> {
-        &self.metadata
+    pub(crate) fn get_name(&self) -> Result<String, BpfmanError> {
+        self.get("name").map(|v| bytes_to_string(&v))
     }
 
-    pub(crate) fn set_map_pin_path(&mut self, path: Option<PathBuf>) {
-        self.map_pin_path = path
+    pub(crate) fn set_id(&mut self, id: u32) -> Result<(), BpfmanError> {
+        // set db and local cache
+        self.id = id;
+        self.insert("id", &id.to_ne_bytes())
     }
 
-    pub(crate) fn map_pin_path(&self) -> Option<&Path> {
-        self.map_pin_path.as_deref()
+    pub(crate) fn get_id(&self) -> Result<u32, BpfmanError> {
+        self.get("id").map(|v| bytes_to_u32(v.to_vec()))
     }
 
-    pub(crate) fn map_owner_id(&self) -> Option<u32> {
-        self.map_owner_id
+    pub(crate) fn set_location(&mut self, loc: Location) -> Result<(), BpfmanError> {
+        match loc {
+            Location::File(l) => self.insert("location_filename", l.as_bytes()),
+            Location::Image(l) => {
+                self.insert("location_image_url", l.image_url.as_bytes())?;
+                self.insert(
+                    "location_image_pull_policy",
+                    l.image_pull_policy.to_string().as_bytes(),
+                )?;
+                if let Some(u) = l.username {
+                    self.insert("location_username", u.as_bytes())?;
+                };
+
+                if let Some(p) = l.password {
+                    self.insert("location_password", p.as_bytes())?;
+                };
+                Ok(())
+            }
+        }
+        .map_err(|e| {
+            BpfmanError::DatabaseError(
+                format!(
+                    "Unable to insert location database entries into tree {:?}",
+                    self.db_tree.name()
+                ),
+                e.to_string(),
+            )
+        })
     }
 
-    pub(crate) fn set_maps_used_by(&mut self, used_by: Option<Vec<u32>>) {
-        self.maps_used_by = used_by
+    pub(crate) fn get_location(&self) -> Result<Location, BpfmanError> {
+        if let Ok(l) = self.get("location_filename") {
+            Ok(Location::File(bytes_to_string(&l).to_string()))
+        } else {
+            Ok(Location::Image(BytecodeImage {
+                image_url: bytes_to_string(&self.get("location_image_url")?).to_string(),
+                image_pull_policy: bytes_to_string(&self.get("location_image_pull_policy")?)
+                    .as_str()
+                    .try_into()
+                    .unwrap(),
+                username: self
+                    .get_option("location_username")?
+                    .map(|v| bytes_to_string(&v)),
+                password: self
+                    .get_option("location_password")?
+                    .map(|v| bytes_to_string(&v)),
+            }))
+        }
     }
 
-    pub(crate) fn maps_used_by(&self) -> Option<&Vec<u32>> {
-        self.maps_used_by.as_ref()
+    pub(crate) fn set_global_data(
+        &mut self,
+        data: HashMap<String, Vec<u8>>,
+    ) -> Result<(), BpfmanError> {
+        data.iter()
+            .try_for_each(|(k, v)| self.insert(format!("global_data_{k}").as_str(), v))
     }
+
+    pub(crate) fn get_global_data(&self) -> Result<HashMap<String, Vec<u8>>, BpfmanError> {
+        self.db_tree
+            .scan_prefix("global_data_")
+            .map(|n| {
+                n.map(|(k, v)| {
+                    (
+                        bytes_to_string(&k)
+                            .strip_prefix("global_data_")
+                            .unwrap()
+                            .to_string(),
+                        v.to_vec(),
+                    )
+                })
+            })
+            .map(|n| {
+                n.map_err(|e| {
+                    BpfmanError::DatabaseError(
+                        "Failed to get global data".to_string(),
+                        e.to_string(),
+                    )
+                })
+            })
+            .collect()
+    }
+
+    pub(crate) fn set_metadata(
+        &mut self,
+        data: HashMap<String, String>,
+    ) -> Result<(), BpfmanError> {
+        data.iter()
+            .try_for_each(|(k, v)| self.insert(format!("metadata_{k}").as_str(), v.as_bytes()))
+    }
+
+    pub(crate) fn get_metadata(&self) -> Result<HashMap<String, String>, BpfmanError> {
+        self.db_tree
+            .scan_prefix("metadata_")
+            .map(|n| {
+                n.map(|(k, v)| {
+                    (
+                        bytes_to_string(&k)
+                            .strip_prefix("metadata_")
+                            .unwrap()
+                            .to_string(),
+                        bytes_to_string(&v).to_string(),
+                    )
+                })
+            })
+            .map(|n| {
+                n.map_err(|e| {
+                    BpfmanError::DatabaseError("Failed to get metadata".to_string(), e.to_string())
+                })
+            })
+            .collect()
+    }
+
+    pub(crate) fn set_map_owner_id(&mut self, id: u32) -> Result<(), BpfmanError> {
+        self.insert("map_owner_id", &id.to_ne_bytes())
+    }
+
+    pub(crate) fn get_map_owner_id(&self) -> Result<Option<u32>, BpfmanError> {
+        self.get_option("map_owner_id")
+            .map(|v| v.map(|v| bytes_to_u32(v.to_vec())))
+    }
+
+    pub(crate) fn set_map_pin_path(&mut self, path: &Path) -> Result<(), BpfmanError> {
+        self.insert("map_pin_path", path.to_str().unwrap().as_bytes())
+    }
+
+    pub(crate) fn get_map_pin_path(&self) -> Result<Option<PathBuf>, BpfmanError> {
+        self.get_option("map_pin_path")
+            .map(|v| v.map(|f| PathBuf::from(bytes_to_string(&f))))
+    }
+
+    // set_maps_used_by differs from other setters in that it's explicitly idempotent.
+    pub(crate) fn set_maps_used_by(&mut self, ids: Vec<u32>) -> Result<(), BpfmanError> {
+        self.clear_maps_used_by();
+
+        ids.iter().enumerate().try_for_each(|(i, v)| {
+            self.insert(format!("maps_used_by_{i}").as_str(), &v.to_ne_bytes())
+        })
+    }
+
+    pub(crate) fn get_maps_used_by(&self) -> Result<Vec<u32>, BpfmanError> {
+        self.db_tree
+            .scan_prefix("maps_used_by_")
+            .map(|n| n.map(|(_, v)| bytes_to_u32(v.to_vec())))
+            .map(|n| {
+                n.map_err(|e| {
+                    BpfmanError::DatabaseError(
+                        "Failed to get maps used by".to_string(),
+                        e.to_string(),
+                    )
+                })
+            })
+            .collect()
+    }
+
+    pub(crate) fn clear_maps_used_by(&self) {
+        self.db_tree.scan_prefix("maps_used_by_").for_each(|n| {
+            self.db_tree
+                .remove(n.unwrap().0)
+                .expect("unable to clear maps used by");
+        });
+    }
+
+    /*
+     * End bpfman program info getters/setters.
+     */
+
+    /*
+     * Methods for setting and getting kernel information.
+     */
+
+    pub(crate) fn get_kernel_name(&self) -> Result<String, BpfmanError> {
+        self.get("kernel_name").map(|n| bytes_to_string(&n))
+    }
+
+    pub(crate) fn set_kernel_name(&mut self, name: &str) -> Result<(), BpfmanError> {
+        self.insert("kernel_name", name.as_bytes())
+    }
+
+    pub(crate) fn get_kernel_program_type(&self) -> Result<u32, BpfmanError> {
+        self.get("kernel_program_type").map(bytes_to_u32)
+    }
+
+    pub(crate) fn set_kernel_program_type(&mut self, program_type: u32) -> Result<(), BpfmanError> {
+        self.insert("kernel_program_type", &program_type.to_ne_bytes())
+    }
+
+    pub(crate) fn get_kernel_loaded_at(&self) -> Result<String, BpfmanError> {
+        self.get("kernel_loaded_at").map(|n| bytes_to_string(&n))
+    }
+
+    pub(crate) fn set_kernel_loaded_at(
+        &mut self,
+        loaded_at: SystemTime,
+    ) -> Result<(), BpfmanError> {
+        self.insert(
+            "kernel_loaded_at",
+            DateTime::<Local>::from(loaded_at)
+                .format("%Y-%m-%dT%H:%M:%S%z")
+                .to_string()
+                .as_bytes(),
+        )
+    }
+
+    pub(crate) fn get_kernel_tag(&self) -> Result<String, BpfmanError> {
+        self.get("kernel_tag").map(|n| bytes_to_string(&n))
+    }
+
+    pub(crate) fn set_kernel_tag(&mut self, tag: u64) -> Result<(), BpfmanError> {
+        self.insert("kernel_tag", format!("{:x}", tag).as_str().as_bytes())
+    }
+
+    pub(crate) fn set_kernel_gpl_compatible(
+        &mut self,
+        gpl_compatible: bool,
+    ) -> Result<(), BpfmanError> {
+        self.insert(
+            "kernel_gpl_compatible",
+            &(gpl_compatible as i8 % 2).to_ne_bytes(),
+        )
+    }
+
+    pub(crate) fn get_kernel_gpl_compatible(&self) -> Result<bool, BpfmanError> {
+        self.get("kernel_gpl_compatible").map(bytes_to_bool)
+    }
+
+    pub(crate) fn get_kernel_map_ids(&self) -> Result<Vec<u32>, BpfmanError> {
+        self.db_tree
+            .scan_prefix("kernel_map_ids_".as_bytes())
+            .map(|n| n.map(|(_, v)| bytes_to_u32(v.to_vec())))
+            .map(|n| {
+                n.map_err(|e| {
+                    BpfmanError::DatabaseError("Failed to get map ids".to_string(), e.to_string())
+                })
+            })
+            .collect()
+    }
+
+    pub(crate) fn set_kernel_map_ids(&mut self, map_ids: Vec<u32>) -> Result<(), BpfmanError> {
+        let map_ids = map_ids.iter().map(|i| i.to_ne_bytes()).collect::<Vec<_>>();
+
+        map_ids
+            .iter()
+            .enumerate()
+            .try_for_each(|(i, v)| self.insert(format!("kernel_map_ids_{i}").as_str(), v))
+    }
+
+    pub(crate) fn get_kernel_btf_id(&self) -> Result<u32, BpfmanError> {
+        self.get("kernel_btf_id").map(bytes_to_u32)
+    }
+
+    pub(crate) fn set_kernel_btf_id(&mut self, btf_id: u32) -> Result<(), BpfmanError> {
+        self.insert("kernel_btf_id", &btf_id.to_ne_bytes())
+    }
+
+    pub(crate) fn get_kernel_bytes_xlated(&self) -> Result<u32, BpfmanError> {
+        self.get("kernel_bytes_xlated").map(bytes_to_u32)
+    }
+
+    pub(crate) fn set_kernel_bytes_xlated(&mut self, bytes_xlated: u32) -> Result<(), BpfmanError> {
+        self.insert("kernel_bytes_xlated", &bytes_xlated.to_ne_bytes())
+    }
+
+    pub(crate) fn get_kernel_jited(&self) -> Result<bool, BpfmanError> {
+        self.get("kernel_jited").map(bytes_to_bool)
+    }
+
+    pub(crate) fn set_kernel_jited(&mut self, jited: bool) -> Result<(), BpfmanError> {
+        self.insert("kernel_jited", &(jited as i8 % 2).to_ne_bytes())
+    }
+
+    pub(crate) fn get_kernel_bytes_jited(&self) -> Result<u32, BpfmanError> {
+        self.get("kernel_bytes_jited").map(bytes_to_u32)
+    }
+
+    pub(crate) fn set_kernel_bytes_jited(&mut self, bytes_jited: u32) -> Result<(), BpfmanError> {
+        self.insert("kernel_bytes_jited", &bytes_jited.to_ne_bytes())
+    }
+
+    pub(crate) fn get_kernel_bytes_memlock(&self) -> Result<u32, BpfmanError> {
+        self.get("kernel_bytes_memlock").map(bytes_to_u32)
+    }
+
+    pub(crate) fn set_kernel_bytes_memlock(
+        &mut self,
+        bytes_memlock: u32,
+    ) -> Result<(), BpfmanError> {
+        self.insert("kernel_bytes_memlock", &bytes_memlock.to_ne_bytes())
+    }
+
+    pub(crate) fn get_kernel_verified_insns(&self) -> Result<u32, BpfmanError> {
+        self.get("kernel_verified_insns").map(bytes_to_u32)
+    }
+
+    pub(crate) fn set_kernel_verified_insns(
+        &mut self,
+        verified_insns: u32,
+    ) -> Result<(), BpfmanError> {
+        self.insert("kernel_verified_insns", &verified_insns.to_ne_bytes())
+    }
+
+    pub(crate) fn set_kernel_info(&mut self, prog: &AyaProgInfo) -> Result<(), BpfmanError> {
+        self.set_id(prog.id())?;
+        self.set_kernel_name(
+            prog.name_as_str()
+                .expect("Program name is not valid unicode"),
+        )?;
+        self.set_kernel_program_type(prog.program_type())?;
+        self.set_kernel_loaded_at(prog.loaded_at())?;
+        self.set_kernel_tag(prog.tag())?;
+        self.set_kernel_gpl_compatible(prog.gpl_compatible())?;
+        self.set_kernel_map_ids(prog.map_ids().map_err(BpfmanError::BpfProgramError)?)?;
+        self.set_kernel_btf_id(prog.btf_id().map_or(0, |n| n.into()))?;
+        self.set_kernel_bytes_xlated(prog.size_translated())?;
+        self.set_kernel_jited(prog.size_jitted() != 0)?;
+        self.set_kernel_bytes_jited(prog.size_jitted())?;
+        self.set_kernel_bytes_memlock(prog.memory_locked().map_err(BpfmanError::BpfProgramError)?)?;
+        self.set_kernel_verified_insns(prog.verified_instruction_count())?;
+
+        Ok(())
+    }
+
+    /*
+     * End kernel info getters/setters.
+     */
 
     pub(crate) fn program_bytes(&self) -> &[u8] {
         &self.program_bytes
@@ -423,10 +779,11 @@ impl ProgramData {
         &mut self,
         image_manager: Sender<ImageManagerCommand>,
     ) -> Result<(), BpfmanError> {
-        match self.location.get_program_bytes(image_manager).await {
+        let loc = self.get_location()?;
+        match loc.get_program_bytes(image_manager).await {
             Err(e) => Err(e),
             Ok((v, s)) => {
-                match &self.location {
+                match loc {
                     Location::Image(l) => {
                         info!(
                             "Loading program bytecode from container image: {}",
@@ -435,14 +792,14 @@ impl ProgramData {
                         // If program name isn't provided and we're loading from a container
                         // image use the program name provided in the image metadata, otherwise
                         // always use the provided program name.
-                        let provided_name = self.name.clone();
+                        let provided_name = self.get_name()?.clone();
 
                         if provided_name.is_empty() {
-                            self.name = s;
+                            self.set_name(&s)?;
                         } else if s != provided_name {
                             return Err(BpfmanError::BytecodeMetaDataMismatch {
                                 image_prog_name: s,
-                                provided_prog_name: provided_name,
+                                provided_prog_name: provided_name.to_string(),
                             });
                         }
                     }
@@ -457,18 +814,9 @@ impl ProgramData {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct XdpProgram {
-    pub(crate) data: ProgramData,
-    // known at load time
-    pub(crate) priority: i32,
-    pub(crate) iface: String,
-    pub(crate) proceed_on: XdpProceedOn,
-    // populated after load
-    #[serde(skip)]
-    pub(crate) current_position: Option<usize>,
-    pub(crate) if_index: Option<u32>,
-    pub(crate) attached: bool,
+    data: ProgramData,
 }
 
 impl XdpProgram {
@@ -477,32 +825,110 @@ impl XdpProgram {
         priority: i32,
         iface: String,
         proceed_on: XdpProceedOn,
-    ) -> Self {
-        Self {
-            data,
-            priority,
-            iface,
-            proceed_on,
-            current_position: None,
-            if_index: None,
-            attached: false,
-        }
+    ) -> Result<Self, BpfmanError> {
+        let mut xdp_prog = Self { data };
+
+        xdp_prog.set_priority(priority)?;
+        xdp_prog.set_iface(iface)?;
+        xdp_prog.set_proceed_on(proceed_on)?;
+        xdp_prog.get_data_mut().set_kind(ProgramType::Xdp)?;
+
+        Ok(xdp_prog)
+    }
+
+    pub(crate) fn set_priority(&mut self, priority: i32) -> Result<(), BpfmanError> {
+        self.data.insert("xdp_priority", &priority.to_ne_bytes())
+    }
+
+    pub(crate) fn get_priority(&self) -> Result<i32, BpfmanError> {
+        self.data.get("xdp_priority").map(bytes_to_i32)
+    }
+
+    pub(crate) fn set_iface(&mut self, iface: String) -> Result<(), BpfmanError> {
+        self.data.insert("xdp_iface", iface.as_bytes())
+    }
+
+    pub(crate) fn get_iface(&self) -> Result<String, BpfmanError> {
+        self.data.get("xdp_iface").map(|v| bytes_to_string(&v))
+    }
+
+    pub(crate) fn set_proceed_on(&mut self, proceed_on: XdpProceedOn) -> Result<(), BpfmanError> {
+        proceed_on
+            .as_action_vec()
+            .iter()
+            .enumerate()
+            .try_for_each(|(i, v)| {
+                self.data
+                    .insert(format!("xdp_proceed_on_{i}").as_str(), &v.to_ne_bytes())
+            })
+    }
+
+    pub(crate) fn get_proceed_on(&self) -> Result<XdpProceedOn, BpfmanError> {
+        self.data
+            .db_tree
+            .scan_prefix("xdp_proceed_on_")
+            .map(|n| {
+                n.map(|(_, v)| XdpProceedOnEntry::try_from(bytes_to_i32(v.to_vec())))
+                    .unwrap()
+            })
+            .map(|n| {
+                n.map_err(|e| {
+                    BpfmanError::DatabaseError(
+                        "Failed to get proceed on".to_string(),
+                        e.to_string(),
+                    )
+                })
+            })
+            .collect()
+    }
+
+    pub(crate) fn set_current_position(&mut self, pos: usize) -> Result<(), BpfmanError> {
+        self.data.insert("xdp_current_position", &pos.to_ne_bytes())
+    }
+
+    pub(crate) fn get_current_position(&self) -> Result<Option<usize>, BpfmanError> {
+        Ok(self
+            .data
+            .get_option("xdp_current_position")?
+            .map(|v| bytes_to_usize(v.to_vec())))
+    }
+
+    pub(crate) fn set_if_index(&mut self, if_index: u32) -> Result<(), BpfmanError> {
+        self.data.insert("xdp_if_index", &if_index.to_ne_bytes())
+    }
+
+    pub(crate) fn get_if_index(&self) -> Result<Option<u32>, BpfmanError> {
+        Ok(self
+            .data
+            .get_option("xdp_if_index")?
+            .map(|v| bytes_to_u32(v.to_vec())))
+    }
+
+    pub(crate) fn set_attached(&mut self, attached: bool) -> Result<(), BpfmanError> {
+        self.data
+            .insert("xdp_attached", &(attached as i8).to_ne_bytes())
+    }
+
+    pub(crate) fn get_attached(&self) -> Result<bool, BpfmanError> {
+        Ok(self
+            .data
+            .get_option("xdp_attached")?
+            .map(|n| bytes_to_bool(n.to_vec()))
+            .unwrap_or(false))
+    }
+
+    pub(crate) fn get_data(&self) -> &ProgramData {
+        &self.data
+    }
+
+    pub(crate) fn get_data_mut(&mut self) -> &mut ProgramData {
+        &mut self.data
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct TcProgram {
     pub(crate) data: ProgramData,
-    // known at load time
-    pub(crate) priority: i32,
-    pub(crate) iface: String,
-    pub(crate) proceed_on: TcProceedOn,
-    pub(crate) direction: Direction,
-    // populated after load
-    #[serde(skip)]
-    pub(crate) current_position: Option<usize>,
-    pub(crate) if_index: Option<u32>,
-    pub(crate) attached: bool,
 }
 
 impl TcProgram {
@@ -512,41 +938,152 @@ impl TcProgram {
         iface: String,
         proceed_on: TcProceedOn,
         direction: Direction,
-    ) -> Self {
-        Self {
-            data,
-            priority,
-            iface,
-            proceed_on,
-            direction,
-            current_position: None,
-            if_index: None,
-            attached: false,
-        }
+    ) -> Result<Self, BpfmanError> {
+        let mut tc_prog = Self { data };
+
+        tc_prog.set_priority(priority)?;
+        tc_prog.set_iface(iface)?;
+        tc_prog.set_proceed_on(proceed_on)?;
+        tc_prog.set_direction(direction)?;
+        tc_prog.get_data_mut().set_kind(ProgramType::Tc)?;
+
+        Ok(tc_prog)
+    }
+
+    pub(crate) fn set_priority(&mut self, priority: i32) -> Result<(), BpfmanError> {
+        self.data.insert("tc_priority", &priority.to_ne_bytes())
+    }
+
+    pub(crate) fn get_priority(&self) -> Result<i32, BpfmanError> {
+        self.data.get("tc_priority").map(bytes_to_i32)
+    }
+
+    pub(crate) fn set_iface(&mut self, iface: String) -> Result<(), BpfmanError> {
+        self.data.insert("tc_iface", iface.as_bytes())
+    }
+
+    pub(crate) fn get_iface(&self) -> Result<String, BpfmanError> {
+        self.data.get("tc_iface").map(|v| bytes_to_string(&v))
+    }
+
+    pub(crate) fn set_proceed_on(&mut self, proceed_on: TcProceedOn) -> Result<(), BpfmanError> {
+        proceed_on
+            .as_action_vec()
+            .iter()
+            .enumerate()
+            .try_for_each(|(i, v)| {
+                self.data
+                    .insert(format!("tc_proceed_on_{i}").as_str(), &v.to_ne_bytes())
+            })
+    }
+
+    pub(crate) fn get_proceed_on(&self) -> Result<TcProceedOn, BpfmanError> {
+        self.data
+            .db_tree
+            .scan_prefix("tc_proceed_on_")
+            .map(|n| n.map(|(_, v)| TcProceedOnEntry::try_from(bytes_to_i32(v.to_vec())).unwrap()))
+            .map(|n| {
+                n.map_err(|e| {
+                    BpfmanError::DatabaseError(
+                        "Failed to get proceed on".to_string(),
+                        e.to_string(),
+                    )
+                })
+            })
+            .collect()
+    }
+
+    pub(crate) fn set_current_position(&mut self, pos: usize) -> Result<(), BpfmanError> {
+        self.data.insert("tc_current_position", &pos.to_ne_bytes())
+    }
+
+    pub(crate) fn get_current_position(&self) -> Result<Option<usize>, BpfmanError> {
+        Ok(self
+            .data
+            .get_option("tc_current_position")?
+            .map(|v| bytes_to_usize(v.to_vec())))
+    }
+
+    pub(crate) fn set_if_index(&mut self, if_index: u32) -> Result<(), BpfmanError> {
+        self.data.insert("tc_if_index", &if_index.to_ne_bytes())
+    }
+
+    pub(crate) fn get_if_index(&self) -> Result<Option<u32>, BpfmanError> {
+        Ok(self
+            .data
+            .get_option("tc_if_index")?
+            .map(|v| bytes_to_u32(v.to_vec())))
+    }
+
+    pub(crate) fn set_attached(&mut self, attached: bool) -> Result<(), BpfmanError> {
+        self.data
+            .insert("tc_attached", &(attached as i8).to_ne_bytes())
+    }
+
+    pub(crate) fn get_attached(&self) -> Result<bool, BpfmanError> {
+        Ok(self
+            .data
+            .get_option("tc_attached")?
+            .map(|n| bytes_to_bool(n.to_vec()))
+            .unwrap_or(false))
+    }
+
+    pub(crate) fn set_direction(&mut self, direction: Direction) -> Result<(), BpfmanError> {
+        self.data
+            .insert("tc_direction", direction.to_string().as_bytes())
+    }
+
+    pub(crate) fn get_direction(&self) -> Result<Direction, BpfmanError> {
+        self.data
+            .get("tc_direction")
+            .map(|v| bytes_to_string(&v).to_string().try_into().unwrap())
+    }
+
+    pub(crate) fn get_data(&self) -> &ProgramData {
+        &self.data
+    }
+
+    pub(crate) fn get_data_mut(&mut self) -> &mut ProgramData {
+        &mut self.data
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct TracepointProgram {
     pub(crate) data: ProgramData,
-    // known at load time
-    pub(crate) tracepoint: String,
 }
 
 impl TracepointProgram {
-    pub(crate) fn new(data: ProgramData, tracepoint: String) -> Self {
-        Self { data, tracepoint }
+    pub(crate) fn new(data: ProgramData, tracepoint: String) -> Result<Self, BpfmanError> {
+        let mut tp_prog = Self { data };
+        tp_prog.set_tracepoint(tracepoint)?;
+        tp_prog.get_data_mut().set_kind(ProgramType::Tracepoint)?;
+
+        Ok(tp_prog)
+    }
+
+    pub(crate) fn set_tracepoint(&mut self, tracepoint: String) -> Result<(), BpfmanError> {
+        self.data.insert("tracepoint_name", tracepoint.as_bytes())
+    }
+
+    pub(crate) fn get_tracepoint(&self) -> Result<String, BpfmanError> {
+        self.data
+            .get("tracepoint_name")
+            .map(|v| bytes_to_string(&v))
+    }
+
+    pub(crate) fn get_data(&self) -> &ProgramData {
+        &self.data
+    }
+
+    pub(crate) fn get_data_mut(&mut self) -> &mut ProgramData {
+        &mut self.data
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct KprobeProgram {
     pub(crate) data: ProgramData,
-    // Known at load time
-    pub(crate) fn_name: String,
-    pub(crate) offset: u64,
-    pub(crate) retprobe: bool,
-    pub(crate) container_pid: Option<i32>,
 }
 
 impl KprobeProgram {
@@ -556,27 +1093,71 @@ impl KprobeProgram {
         offset: u64,
         retprobe: bool,
         container_pid: Option<i32>,
-    ) -> Self {
-        Self {
-            data,
-            fn_name,
-            offset,
-            retprobe,
-            container_pid,
+    ) -> Result<Self, BpfmanError> {
+        let mut kprobe_prog = Self { data };
+        kprobe_prog.set_fn_name(fn_name)?;
+        kprobe_prog.set_offset(offset)?;
+        kprobe_prog.set_retprobe(retprobe)?;
+        kprobe_prog.get_data_mut().set_kind(ProgramType::Probe)?;
+        if container_pid.is_some() {
+            kprobe_prog.set_container_pid(container_pid.unwrap())?;
         }
+        Ok(kprobe_prog)
+    }
+
+    pub(crate) fn set_fn_name(&mut self, fn_name: String) -> Result<(), BpfmanError> {
+        self.data.insert("kprobe_fn_name", fn_name.as_bytes())
+    }
+
+    pub(crate) fn get_fn_name(&self) -> Result<String, BpfmanError> {
+        self.data.get("kprobe_fn_name").map(|v| bytes_to_string(&v))
+    }
+
+    pub(crate) fn set_offset(&mut self, offset: u64) -> Result<(), BpfmanError> {
+        self.data.insert("kprobe_offset", &offset.to_ne_bytes())
+    }
+
+    pub(crate) fn get_offset(&self) -> Result<u64, BpfmanError> {
+        self.data.get("kprobe_offset").map(bytes_to_u64)
+    }
+
+    pub(crate) fn set_retprobe(&mut self, retprobe: bool) -> Result<(), BpfmanError> {
+        self.data
+            .insert("kprobe_retprobe", &(retprobe as i8 % 2).to_ne_bytes())
+    }
+
+    pub(crate) fn get_retprobe(&self) -> Result<bool, BpfmanError> {
+        Ok(self
+            .data
+            .get_option("kprobe_retprobe")?
+            .map(|n| bytes_to_bool(n.to_vec()))
+            .unwrap_or(false))
+    }
+
+    pub(crate) fn set_container_pid(&mut self, container_pid: i32) -> Result<(), BpfmanError> {
+        self.data
+            .insert("kprobe_container_pid", &container_pid.to_ne_bytes())
+    }
+
+    pub(crate) fn get_container_pid(&self) -> Result<Option<i32>, BpfmanError> {
+        Ok(self
+            .data
+            .get_option("kprobe_container_pid")?
+            .map(|v| bytes_to_i32(v.to_vec())))
+    }
+
+    pub(crate) fn get_data(&self) -> &ProgramData {
+        &self.data
+    }
+
+    pub(crate) fn get_data_mut(&mut self) -> &mut ProgramData {
+        &mut self.data
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone)]
 pub(crate) struct UprobeProgram {
     pub(crate) data: ProgramData,
-    // Known at load time
-    pub(crate) fn_name: Option<String>,
-    pub(crate) offset: u64,
-    pub(crate) target: String,
-    pub(crate) retprobe: bool,
-    pub(crate) pid: Option<i32>,
-    pub(crate) container_pid: Option<i32>,
 }
 
 impl UprobeProgram {
@@ -588,16 +1169,95 @@ impl UprobeProgram {
         retprobe: bool,
         pid: Option<i32>,
         container_pid: Option<i32>,
-    ) -> Self {
-        Self {
-            data,
-            fn_name,
-            offset,
-            target,
-            retprobe,
-            pid,
-            container_pid,
+    ) -> Result<Self, BpfmanError> {
+        let mut uprobe_prog = Self { data };
+
+        if fn_name.is_some() {
+            uprobe_prog.set_fn_name(fn_name.unwrap())?;
         }
+
+        uprobe_prog.set_offset(offset)?;
+        uprobe_prog.set_retprobe(retprobe)?;
+        if let Some(p) = container_pid {
+            uprobe_prog.set_container_pid(p)?;
+        }
+        if let Some(p) = pid {
+            uprobe_prog.set_pid(p)?;
+        }
+        uprobe_prog.set_target(target)?;
+        uprobe_prog.get_data_mut().set_kind(ProgramType::Probe)?;
+        Ok(uprobe_prog)
+    }
+
+    pub(crate) fn set_fn_name(&mut self, fn_name: String) -> Result<(), BpfmanError> {
+        self.data.insert("uprobe_fn_name", fn_name.as_bytes())
+    }
+
+    pub(crate) fn get_fn_name(&self) -> Result<Option<String>, BpfmanError> {
+        Ok(self
+            .data
+            .get_option("uprobe_fn_name")?
+            .map(|v| bytes_to_string(&v)))
+    }
+
+    pub(crate) fn set_offset(&mut self, offset: u64) -> Result<(), BpfmanError> {
+        self.data.insert("uprobe_offset", &offset.to_ne_bytes())
+    }
+
+    pub(crate) fn get_offset(&self) -> Result<u64, BpfmanError> {
+        self.data.get("uprobe_offset").map(bytes_to_u64)
+    }
+
+    pub(crate) fn set_retprobe(&mut self, retprobe: bool) -> Result<(), BpfmanError> {
+        self.data
+            .insert("uprobe_retprobe", &(retprobe as i8 % 2).to_ne_bytes())
+    }
+
+    pub(crate) fn get_retprobe(&self) -> Result<bool, BpfmanError> {
+        Ok(self
+            .data
+            .get_option("uprobe_retprobe")?
+            .map(|n| bytes_to_bool(n.to_vec()))
+            .unwrap_or(false))
+    }
+
+    pub(crate) fn set_container_pid(&mut self, container_pid: i32) -> Result<(), BpfmanError> {
+        self.data
+            .insert("uprobe_container_pid", &container_pid.to_ne_bytes())
+    }
+
+    pub(crate) fn get_container_pid(&self) -> Result<Option<i32>, BpfmanError> {
+        Ok(self
+            .data
+            .get_option("uprobe_container_pid")?
+            .map(|v| bytes_to_i32(v.to_vec())))
+    }
+
+    pub(crate) fn set_pid(&mut self, pid: i32) -> Result<(), BpfmanError> {
+        self.data.insert("uprobe_pid", &pid.to_ne_bytes())
+    }
+
+    pub(crate) fn get_pid(&self) -> Result<Option<i32>, BpfmanError> {
+        Ok(self
+            .data
+            .get_option("uprobe_pid")?
+            .map(|v| bytes_to_i32(v.to_vec())))
+    }
+
+    pub(crate) fn set_target(&mut self, target: String) -> Result<(), BpfmanError> {
+        self.data.insert("uprobe_target", target.as_bytes())
+    }
+
+    pub(crate) fn get_target(&self) -> Result<String, BpfmanError> {
+        self.data.get("uprobe_target").map(|v| bytes_to_string(&v))
+    }
+
+    pub(crate) fn get_data(&self) -> &ProgramData {
+        &self.data
+    }
+
+    pub(crate) fn get_data_mut(&mut self) -> &mut ProgramData {
+        &mut self.data
     }
 }
 
@@ -609,97 +1269,66 @@ impl Program {
             Program::Tracepoint(_) => ProgramType::Tracepoint,
             Program::Kprobe(_) => ProgramType::Probe,
             Program::Uprobe(_) => ProgramType::Probe,
-            Program::Unsupported(i) => i.program_type.try_into().unwrap(),
+            Program::Unsupported(i) => i.get_kernel_program_type().unwrap().try_into().unwrap(),
         }
     }
 
-    pub(crate) fn dispatcher_id(&self) -> Option<DispatcherId> {
-        match self {
+    pub(crate) fn dispatcher_id(&self) -> Result<Option<DispatcherId>, BpfmanError> {
+        Ok(match self {
             Program::Xdp(p) => Some(DispatcherId::Xdp(DispatcherInfo(
-                p.if_index.expect("if_index should be known at this point"),
+                p.get_if_index()?
+                    .expect("if_index should be known at this point"),
                 None,
             ))),
             Program::Tc(p) => Some(DispatcherId::Tc(DispatcherInfo(
-                p.if_index.expect("if_index should be known at this point"),
-                Some(p.direction),
+                p.get_if_index()?
+                    .expect("if_index should be known at this point"),
+                Some(p.get_direction()?),
             ))),
             _ => None,
+        })
+    }
+
+    pub(crate) fn get_data_mut(&mut self) -> &mut ProgramData {
+        match self {
+            Program::Xdp(p) => &mut p.data,
+            Program::Tracepoint(p) => &mut p.data,
+            Program::Tc(p) => &mut p.data,
+            Program::Kprobe(p) => &mut p.data,
+            Program::Uprobe(p) => &mut p.data,
+            Program::Unsupported(p) => p,
         }
     }
 
-    pub(crate) fn data_mut(&mut self) -> Result<&mut ProgramData, BpfmanError> {
+    pub(crate) fn attached(&self) -> bool {
         match self {
-            Program::Xdp(p) => Ok(&mut p.data),
-            Program::Tracepoint(p) => Ok(&mut p.data),
-            Program::Tc(p) => Ok(&mut p.data),
-            Program::Kprobe(p) => Ok(&mut p.data),
-            Program::Uprobe(p) => Ok(&mut p.data),
-            Program::Unsupported(_) => Err(BpfmanError::Error(
-                "Unsupported program type has no ProgramData".to_string(),
-            )),
-        }
-    }
-
-    pub(crate) fn data(&self) -> Result<&ProgramData, BpfmanError> {
-        match self {
-            Program::Xdp(p) => Ok(&p.data),
-            Program::Tracepoint(p) => Ok(&p.data),
-            Program::Tc(p) => Ok(&p.data),
-            Program::Kprobe(p) => Ok(&p.data),
-            Program::Uprobe(p) => Ok(&p.data),
-            Program::Unsupported(_) => Err(BpfmanError::Error(
-                "Unsupported program type has no ProgramData".to_string(),
-            )),
-        }
-    }
-
-    pub(crate) fn attached(&self) -> Option<bool> {
-        match self {
-            Program::Xdp(p) => Some(p.attached),
-            Program::Tc(p) => Some(p.attached),
-            _ => None,
+            Program::Xdp(p) => p.get_attached().unwrap(),
+            Program::Tc(p) => p.get_attached().unwrap(),
+            _ => false,
         }
     }
 
     pub(crate) fn set_attached(&mut self) {
         match self {
-            Program::Xdp(p) => p.attached = true,
-            Program::Tc(p) => p.attached = true,
+            Program::Xdp(p) => p.set_attached(true).unwrap(),
+            Program::Tc(p) => p.set_attached(true).unwrap(),
             _ => (),
-        }
+        };
     }
 
-    pub(crate) fn set_position(&mut self, pos: Option<usize>) {
+    pub(crate) fn set_position(&mut self, pos: usize) -> Result<(), BpfmanError> {
         match self {
-            Program::Xdp(p) => p.current_position = pos,
-            Program::Tc(p) => p.current_position = pos,
-            _ => (),
+            Program::Xdp(p) => p.set_current_position(pos),
+            Program::Tc(p) => p.set_current_position(pos),
+            _ => Err(BpfmanError::Error(
+                "cannot set position on programs other than TC or XDP".to_string(),
+            )),
         }
     }
 
-    pub(crate) fn kernel_info(&self) -> Option<&KernelProgramInfo> {
-        match self {
-            Program::Xdp(p) => p.data.kernel_info.as_ref(),
-            Program::Tc(p) => p.data.kernel_info.as_ref(),
-            Program::Tracepoint(p) => p.data.kernel_info.as_ref(),
-            Program::Kprobe(p) => p.data.kernel_info.as_ref(),
-            Program::Uprobe(p) => p.data.kernel_info.as_ref(),
-            // KernelProgramInfo will never be nil for Unsupported programs
-            Program::Unsupported(p) => Some(p),
-        }
-    }
-
-    pub(crate) fn save(&self, id: u32) -> Result<(), anyhow::Error> {
-        let path = format!("{RTDIR_PROGRAMS}/{id}");
-        serde_json::to_writer(&fs::File::create(path)?, &self)?;
-        Ok(())
-    }
-
-    pub(crate) fn delete(&self, id: u32) -> Result<(), anyhow::Error> {
-        let path = format!("{RTDIR_PROGRAMS}/{id}");
-        if PathBuf::from(&path).exists() {
-            fs::remove_file(path)?;
-        }
+    pub(crate) fn delete(&self) -> Result<(), anyhow::Error> {
+        let id = self.get_data().get_id()?;
+        ROOT_DB.drop_tree(id.to_string())?;
 
         let path = format!("{RTDIR_FS}/prog_{id}");
         if PathBuf::from(&path).exists() {
@@ -712,67 +1341,107 @@ impl Program {
         Ok(())
     }
 
-    pub(crate) fn load(id: u32) -> Result<Self, anyhow::Error> {
-        let path = format!("{RTDIR_PROGRAMS}/{id}");
-        let file = fs::File::open(path)?;
-        let reader = BufReader::new(file);
-        let prog = serde_json::from_reader(reader)?;
-        Ok(prog)
-    }
-
-    pub(crate) fn if_index(&self) -> Option<u32> {
+    pub(crate) fn if_index(&self) -> Result<Option<u32>, BpfmanError> {
         match self {
-            Program::Xdp(p) => p.if_index,
-            Program::Tc(p) => p.if_index,
-            _ => None,
+            Program::Xdp(p) => p.get_if_index(),
+            Program::Tc(p) => p.get_if_index(),
+            _ => Err(BpfmanError::Error(
+                "cannot get if_index on programs other than TC or XDP".to_string(),
+            )),
         }
     }
 
-    pub(crate) fn set_if_index(&mut self, if_index: u32) {
+    pub(crate) fn set_if_index(&mut self, if_index: u32) -> Result<(), BpfmanError> {
         match self {
-            Program::Xdp(p) => p.if_index = Some(if_index),
-            Program::Tc(p) => p.if_index = Some(if_index),
-            _ => (),
+            Program::Xdp(p) => p.set_if_index(if_index),
+            Program::Tc(p) => p.set_if_index(if_index),
+            _ => Err(BpfmanError::Error(
+                "cannot set if_index on programs other than TC or XDP".to_string(),
+            )),
         }
     }
 
-    pub(crate) fn if_name(&self) -> Option<String> {
+    pub(crate) fn if_name(&self) -> Result<String, BpfmanError> {
         match self {
-            Program::Xdp(p) => Some(p.iface.clone()),
-            Program::Tc(p) => Some(p.iface.clone()),
-            _ => None,
+            Program::Xdp(p) => p.get_iface(),
+            Program::Tc(p) => p.get_iface(),
+            _ => Err(BpfmanError::Error(
+                "cannot get interface on programs other than TC or XDP".to_string(),
+            )),
         }
     }
 
-    pub(crate) fn priority(&self) -> Option<i32> {
+    pub(crate) fn priority(&self) -> Result<i32, BpfmanError> {
         match self {
-            Program::Xdp(p) => Some(p.priority),
-            Program::Tc(p) => Some(p.priority),
-            _ => None,
+            Program::Xdp(p) => p.get_priority(),
+            Program::Tc(p) => p.get_priority(),
+            _ => Err(BpfmanError::Error(
+                "cannot get priority on programs other than TC or XDP".to_string(),
+            )),
         }
     }
 
-    pub(crate) fn location(&self) -> Option<&Location> {
+    pub(crate) fn location(&self) -> Result<Location, BpfmanError> {
         match self {
-            Program::Xdp(p) => Some(&p.data.location),
-            Program::Tracepoint(p) => Some(&p.data.location),
-            Program::Tc(p) => Some(&p.data.location),
-            Program::Kprobe(p) => Some(&p.data.location),
-            Program::Uprobe(p) => Some(&p.data.location),
-            Program::Unsupported(_) => None,
+            Program::Xdp(p) => p.data.get_location(),
+            Program::Tracepoint(p) => p.data.get_location(),
+            Program::Tc(p) => p.data.get_location(),
+            Program::Kprobe(p) => p.data.get_location(),
+            Program::Uprobe(p) => p.data.get_location(),
+            Program::Unsupported(_) => Err(BpfmanError::Error(
+                "cannot get location for unsupported programs".to_string(),
+            )),
         }
     }
 
-    pub(crate) fn direction(&self) -> Option<Direction> {
+    pub(crate) fn direction(&self) -> Result<Option<Direction>, BpfmanError> {
         match self {
-            Program::Tc(p) => Some(p.direction),
-            _ => None,
+            Program::Tc(p) => Ok(Some(p.get_direction()?)),
+            _ => Ok(None),
+        }
+    }
+
+    pub(crate) fn get_data(&self) -> &ProgramData {
+        match self {
+            Program::Xdp(p) => p.get_data(),
+            Program::Tracepoint(p) => p.get_data(),
+            Program::Tc(p) => p.get_data(),
+            Program::Kprobe(p) => p.get_data(),
+            Program::Uprobe(p) => p.get_data(),
+            Program::Unsupported(p) => p,
+        }
+    }
+
+    pub(crate) fn new_from_db(id: u32, tree: sled::Tree) -> Result<Self, BpfmanError> {
+        let data = ProgramData::new(tree, id);
+
+        if data.get_id()? != id {
+            return Err(BpfmanError::Error(
+                "Program id does not match database id program isn't fully loaded".to_string(),
+            ));
+        }
+        match data.get_kind()? {
+            Some(p) => match p {
+                ProgramType::Xdp => Ok(Program::Xdp(XdpProgram { data })),
+                ProgramType::Tc => Ok(Program::Tc(TcProgram { data })),
+                ProgramType::Tracepoint => Ok(Program::Tracepoint(TracepointProgram { data })),
+                // kernel does not distinguish between kprobe and uprobe program types
+                ProgramType::Probe => {
+                    if data.db_tree.get("uprobe_offset").unwrap().is_some() {
+                        Ok(Program::Uprobe(UprobeProgram { data }))
+                    } else {
+                        Ok(Program::Kprobe(KprobeProgram { data }))
+                    }
+                }
+                _ => Err(BpfmanError::Error("Unsupported program type".to_string())),
+            },
+            None => Err(BpfmanError::Error("Unsupported program type".to_string())),
         }
     }
 }
 
 // BpfMap represents a single map pin path used by a Program.  It has to be a
-// separate object becuase it's lifetime is slightly different from a Program.
+// separate object because it's lifetime is slightly different from a Program.
 // More specifically a BpfMap can outlive a Program if other Programs are using
 // it.
 #[derive(Debug, Clone)]

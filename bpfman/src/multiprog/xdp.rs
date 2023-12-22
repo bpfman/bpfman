@@ -59,9 +59,13 @@ impl XdpDispatcher {
             .collect();
 
         let mut chain_call_actions = [0; 10];
-        extensions.sort_by(|a, b| a.current_position.cmp(&b.current_position));
+        extensions.sort_by(|a, b| {
+            a.get_current_position()
+                .unwrap()
+                .cmp(&b.get_current_position().unwrap())
+        });
         for p in extensions.iter() {
-            chain_call_actions[p.current_position.unwrap()] = p.proceed_on.mask();
+            chain_call_actions[p.get_current_position()?.unwrap()] = p.get_proceed_on()?.mask();
         }
 
         let config = XdpDispatcherConfig::new(
@@ -192,14 +196,14 @@ impl XdpDispatcher {
             .program_mut(self.program_name.clone().unwrap().as_str())
             .unwrap()
             .try_into()?;
-        extensions.sort_by(|a, b| a.current_position.cmp(&b.current_position));
+        extensions.sort_by(|a, b| {
+            a.get_current_position()
+                .unwrap()
+                .cmp(&b.get_current_position().unwrap())
+        });
         for (i, v) in extensions.iter_mut().enumerate() {
-            if v.attached {
-                let id = v
-                    .data
-                    .kernel_info()
-                    .expect("XdpProgram is loaded kernel_info should be set")
-                    .id;
+            if v.get_attached()? {
+                let id = v.get_data().get_id()?;
                 let mut ext = Extension::from_pin(format!("{RTDIR_FS}/prog_{id}"))?;
                 let target_fn = format!("prog{i}");
                 let new_link_id = ext
@@ -212,8 +216,8 @@ impl XdpDispatcher {
                 );
                 new_link.pin(path).map_err(BpfmanError::UnableToPinLink)?;
             } else {
-                let name = v.data.name();
-                let global_data = v.data.global_data();
+                let name = &v.get_data().get_name()?;
+                let global_data = &v.get_data().get_global_data()?;
 
                 let mut bpf = BpfLoader::new();
 
@@ -225,13 +229,13 @@ impl XdpDispatcher {
 
                 // If map_pin_path is set already it means we need to use a pin
                 // path which should already exist on the system.
-                if let Some(map_pin_path) = v.data.map_pin_path() {
+                if let Some(map_pin_path) = v.get_data().get_map_pin_path()? {
                     debug!("xdp program {name} is using maps from {:?}", map_pin_path);
                     bpf.map_pin_path(map_pin_path);
                 }
 
                 let mut loader = bpf
-                    .load(v.data.program_bytes())
+                    .load(v.get_data().program_bytes())
                     .map_err(BpfmanError::BpfLoadError)?;
 
                 let ext: &mut Extension = loader
@@ -242,13 +246,9 @@ impl XdpDispatcher {
                 let target_fn = format!("prog{i}");
 
                 ext.load(dispatcher.fd()?.try_clone()?, &target_fn)?;
-                v.data.set_kernel_info(Some(ext.info()?.try_into()?));
+                v.get_data_mut().set_kernel_info(&ext.info()?)?;
 
-                let id = v
-                    .data
-                    .kernel_info()
-                    .expect("kernel info should be set after load")
-                    .id;
+                let id = v.get_data().get_id()?;
 
                 ext.pin(format!("{RTDIR_FS}/prog_{id}"))
                     .map_err(BpfmanError::UnableToPinProgram)?;
@@ -263,9 +263,9 @@ impl XdpDispatcher {
                     .map_err(BpfmanError::UnableToPinLink)?;
 
                 // If this program is the map(s) owner pin all maps (except for .rodata and .bss) by name.
-                if v.data.map_pin_path().is_none() {
+                if v.get_data().get_map_pin_path()?.is_none() {
                     let map_pin_path = calc_map_pin_path(id);
-                    v.data.set_map_pin_path(Some(map_pin_path.clone()));
+                    v.get_data_mut().set_map_pin_path(&map_pin_path)?;
                     create_map_pin_path(&map_pin_path).await?;
 
                     for (name, map) in loader.maps_mut() {

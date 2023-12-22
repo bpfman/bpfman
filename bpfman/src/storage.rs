@@ -151,20 +151,20 @@ impl Node for CsiNode {
                             let prog_data = results
                                 .into_iter()
                                 .find(|p| {
-                                    if let Ok(data) = p.data() {
-                                        data.metadata().get(OPERATOR_PROGRAM_KEY)
-                                            == Some(program_name)
-                                    } else {
-                                        false
-                                    }
+                                    p.get_data()
+                                        .get_metadata()
+                                        .expect("unable to get program metadata")
+                                        .get(OPERATOR_PROGRAM_KEY)
+                                        == Some(program_name)
                                 })
                                 .ok_or(Status::new(
                                     NPV_NOT_FOUND.into(),
                                     format!("Bpfman Program {program_name} not found"),
                                 ))?;
                             Ok(prog_data
-                                .data().expect("program data is valid because we just checked it")
-                                .map_pin_path()
+                                .get_data()
+                                .get_map_pin_path()
+                                .map_err(|e| Status::aborted(format!("failed to get map_pin_path: {e}")))?
                                 .expect("map pin path should be set since the program is already loaded")
                                 .to_owned())
                         }

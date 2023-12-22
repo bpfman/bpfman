@@ -7,6 +7,8 @@ pub mod util;
 #[rustfmt::skip]
 #[allow(clippy::all)]
 pub mod v1;
+use std::iter::FromIterator;
+
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -159,6 +161,45 @@ impl TryFrom<u32> for ProgramType {
     }
 }
 
+impl From<ProgramType> for u32 {
+    fn from(val: ProgramType) -> Self {
+        match val {
+            ProgramType::Unspec => 0,
+            ProgramType::SocketFilter => 1,
+            ProgramType::Probe => 2,
+            ProgramType::Tc => 3,
+            ProgramType::SchedAct => 4,
+            ProgramType::Tracepoint => 5,
+            ProgramType::Xdp => 6,
+            ProgramType::PerfEvent => 7,
+            ProgramType::CgroupSkb => 8,
+            ProgramType::CgroupSock => 9,
+            ProgramType::LwtIn => 10,
+            ProgramType::LwtOut => 11,
+            ProgramType::LwtXmit => 12,
+            ProgramType::SockOps => 13,
+            ProgramType::SkSkb => 14,
+            ProgramType::CgroupDevice => 15,
+            ProgramType::SkMsg => 16,
+            ProgramType::RawTracepoint => 17,
+            ProgramType::CgroupSockAddr => 18,
+            ProgramType::LwtSeg6Local => 19,
+            ProgramType::LircMode2 => 20,
+            ProgramType::SkReuseport => 21,
+            ProgramType::FlowDissector => 22,
+            ProgramType::CgroupSysctl => 23,
+            ProgramType::RawTracepointWritable => 24,
+            ProgramType::CgroupSockopt => 25,
+            ProgramType::Tracing => 26,
+            ProgramType::StructOps => 27,
+            ProgramType::Ext => 28,
+            ProgramType::Lsm => 29,
+            ProgramType::SkLookup => 30,
+            ProgramType::Syscall => 31,
+        }
+    }
+}
+
 impl std::fmt::Display for ProgramType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let v = match self {
@@ -256,6 +297,18 @@ pub enum XdpProceedOnEntry {
     Tx,
     Redirect,
     DispatcherReturn = 31,
+}
+
+impl FromIterator<XdpProceedOnEntry> for XdpProceedOn {
+    fn from_iter<I: IntoIterator<Item = XdpProceedOnEntry>>(iter: I) -> Self {
+        let mut c = Vec::new();
+
+        for i in iter {
+            c.push(i);
+        }
+
+        XdpProceedOn(c)
+    }
 }
 
 impl TryFrom<String> for XdpProceedOnEntry {
@@ -457,6 +510,18 @@ impl Default for TcProceedOn {
             TcProceedOnEntry::Pipe,
             TcProceedOnEntry::DispatcherReturn,
         ])
+    }
+}
+
+impl FromIterator<TcProceedOnEntry> for TcProceedOn {
+    fn from_iter<I: IntoIterator<Item = TcProceedOnEntry>>(iter: I) -> Self {
+        let mut c = Vec::new();
+
+        for i in iter {
+            c.push(i);
+        }
+
+        TcProceedOn(c)
     }
 }
 

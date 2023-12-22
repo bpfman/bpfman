@@ -37,12 +37,10 @@ impl Dispatcher {
             .first()
             .ok_or_else(|| BpfmanError::Error("No programs to load".to_string()))?;
         let if_index = p
-            .if_index()
+            .if_index()?
             .ok_or_else(|| BpfmanError::Error("missing ifindex".to_string()))?;
-        let if_name = p
-            .if_name()
-            .ok_or_else(|| BpfmanError::Error("missing ifname".to_string()))?;
-        let direction = p.direction();
+        let if_name = p.if_name()?;
+        let direction = p.direction()?;
         let xdp_mode = if let Some(c) = config {
             c.xdp_mode
         } else {
@@ -53,7 +51,7 @@ impl Dispatcher {
                 let x = XdpDispatcher::new(
                     xdp_mode,
                     &if_index,
-                    if_name,
+                    if_name.to_string(),
                     programs,
                     revision,
                     old_dispatcher,
@@ -63,12 +61,10 @@ impl Dispatcher {
                 Dispatcher::Xdp(x)
             }
             ProgramType::Tc => {
-                let direction = direction
-                    .ok_or_else(|| BpfmanError::Error("direction required".to_string()))?;
                 let t = TcDispatcher::new(
-                    direction,
+                    direction.expect("missing direction"),
                     &if_index,
-                    if_name,
+                    if_name.to_string(),
                     programs,
                     revision,
                     old_dispatcher,

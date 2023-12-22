@@ -19,10 +19,9 @@ use bpfman_api::{
     config::Config,
     util::directories::*,
     ProbeType::{self, *},
-    ProgramType, TcProceedOn,
+    ProgramType,
 };
-use log::{debug, info, warn};
-use sled::Db;
+use log::{debug, info};
 use tokio::{
     fs::{create_dir_all, read_dir, remove_dir_all},
     select,
@@ -36,13 +35,14 @@ use crate::{
     command::{
         BpfMap, Command, Direction,
         Direction::{Egress, Ingress},
-        Program, ProgramData, PullBytecodeArgs, TcProgram, UnloadArgs,
+        Program, ProgramData, PullBytecodeArgs, UnloadArgs,
     },
     errors::BpfmanError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
     oci_utils::image_manager::Command as ImageManagerCommand,
     serve::shutdown_handler,
-    utils::{get_ifindex, set_dir_permissions, should_map_be_pinned},
+    utils::{bytes_to_string, get_ifindex, set_dir_permissions, should_map_be_pinned},
+    ROOT_DB,
 };
 
 const MAPS_MODE: u32 = 0o0660;
@@ -54,7 +54,6 @@ pub(crate) struct BpfManager {
     maps: HashMap<u32, BpfMap>,
     commands: Receiver<Command>,
     image_manager: Sender<ImageManagerCommand>,
-    _database: Db,
 }
 
 pub(crate) struct ProgramMap {
@@ -91,57 +90,82 @@ impl ProgramMap {
         direction: &'a Option<Direction>,
     ) -> impl Iterator<Item = &'a mut Program> {
         self.programs.values_mut().filter(|p| {
-            p.kind() == *program_type && p.if_index() == *if_index && p.direction() == *direction
+            p.kind() == *program_type
+                && p.if_index().unwrap() == *if_index
+                && p.direction().unwrap() == *direction
         })
+    }
+
+    // Adds a new program and sets the positions of programs that are to be attached via a dispatcher.
+    // Positions are set based on order of priority. Ties are broken based on:
+    // - Already attached programs are preferred
+    // - Program name. Lowest lexical order wins.
+    fn add_and_set_program_positions(&mut self, program: &mut Program) {
+        let program_type = program.kind();
+        let if_index = program.if_index().unwrap();
+        let direction = program.direction().unwrap();
+
+        let mut extensions = self
+            .programs
+            .values_mut()
+            .filter(|p| {
+                p.kind() == program_type
+                    && p.if_index().unwrap() == if_index
+                    && p.direction().unwrap() == direction
+            })
+            .collect::<Vec<&mut Program>>();
+
+        // add program we're loading
+        extensions.push(program);
+
+        extensions.sort_by_key(|b| {
+            (
+                b.priority().unwrap(),
+                b.attached(),
+                b.get_data().get_name().unwrap().to_owned(),
+            )
+        });
+        for (i, v) in extensions.iter_mut().enumerate() {
+            v.set_position(i).expect("unable to set program position");
+        }
     }
 
     // Sets the positions of programs that are to be attached via a dispatcher.
     // Positions are set based on order of priority. Ties are broken based on:
     // - Already attached programs are preferred
     // - Program name. Lowest lexical order wins.
-    fn set_program_positions(&mut self, program: &mut Program, is_add: bool) {
-        let program_type = program.kind();
-        let if_index = program.if_index();
-        let direction = program.direction();
-
+    fn set_program_positions(
+        &mut self,
+        program_type: ProgramType,
+        if_index: u32,
+        direction: Option<Direction>,
+    ) {
         let mut extensions = self
             .programs
             .values_mut()
             .filter(|p| {
-                p.kind() == program_type && p.if_index() == if_index && p.direction() == direction
+                p.kind() == program_type
+                    && p.if_index().unwrap() == Some(if_index)
+                    && p.direction().unwrap() == direction
             })
             .collect::<Vec<&mut Program>>();
 
-        if is_add {
-            // add program we're loading
-            extensions.push(program);
-        }
-
         extensions.sort_by_key(|b| {
             (
-                b.priority(),
-                b.attached().unwrap(),
-                b.data()
-                    .expect("All Bpfman programs should have ProgramData")
-                    .name()
-                    .to_owned(),
+                b.priority().unwrap(),
+                b.attached(),
+                b.get_data().get_name().unwrap().to_owned(),
             )
         });
         for (i, v) in extensions.iter_mut().enumerate() {
-            v.set_position(Some(i));
+            v.set_position(i).expect("unable to set program position");
         }
     }
 
     fn get_programs_iter(&self) -> impl Iterator<Item = (u32, &Program)> {
-        self.programs.values().map(|p| {
-            let kernel_info = p
-                .data()
-                .expect("All Bpfman programs should have ProgramData")
-                .kernel_info()
-                .expect("Loaded Bpfman programs should have kernel information");
-
-            (kernel_info.id, p)
-        })
+        self.programs
+            .values()
+            .map(|p| (p.get_data().get_id().unwrap(), p))
     }
 }
 
@@ -180,7 +204,6 @@ impl BpfManager {
         config: Config,
         commands: Receiver<Command>,
         image_manager: Sender<ImageManagerCommand>,
-        database: Db,
     ) -> Self {
         Self {
             config,
@@ -189,23 +212,47 @@ impl BpfManager {
             maps: HashMap::new(),
             commands,
             image_manager,
-            _database: database,
         }
     }
 
     pub(crate) async fn rebuild_state(&mut self) -> Result<(), anyhow::Error> {
         debug!("BpfManager::rebuild_state()");
-        let mut programs_dir = read_dir(RTDIR_PROGRAMS).await?;
-        while let Some(entry) = programs_dir.next_entry().await? {
-            let id = entry.file_name().to_string_lossy().parse().unwrap();
-            let mut program = Program::load(id)
-                .map_err(|e| BpfmanError::Error(format!("cant read program state {e}")))?;
-            // TODO: Should probably check for pinned prog on bpffs rather than assuming they are attached
-            program.set_attached();
+
+        // re-build programs from database
+        for tree_name in ROOT_DB.tree_names() {
+            let name = &bytes_to_string(&tree_name);
+            let tree = ROOT_DB
+                .open_tree(name)
+                .expect("unable to open database tree");
+
+            let id = match name.parse::<u32>() {
+                Ok(id) => id,
+                Err(_) => {
+                    debug!("Ignoring non-numeric tree name: {} on rebuild", name);
+                    continue;
+                }
+            };
+
             debug!("rebuilding state for program {}", id);
-            self.rebuild_map_entry(id, &mut program).await;
-            self.programs.insert(id, program);
+
+            // If there's an error here remove broken tree and continue
+            match Program::new_from_db(id, tree) {
+                Ok(mut program) => {
+                    program
+                        .get_data_mut()
+                        .set_program_bytes(self.image_manager.clone())
+                        .await?;
+                    self.rebuild_map_entry(id, &mut program).await;
+                    self.programs.insert(id, program);
+                }
+                Err(_) => {
+                    ROOT_DB
+                        .drop_tree(name)
+                        .expect("unable to remove broken program tree");
+                }
+            }
         }
+
         self.rebuild_dispatcher_state(ProgramType::Xdp, None, RTDIR_XDP_DISPATCHER)
             .await?;
         self.rebuild_dispatcher_state(ProgramType::Tc, Some(Ingress), RTDIR_TC_INGRESS_DISPATCHER)
@@ -250,23 +297,13 @@ impl BpfManager {
                         Dispatcher::Tc(dispatcher),
                     );
 
-                    // This is just used to collect and sort the dispatcher's
-                    // programs in `rebuild_multiattach_dispatcher`.
-                    // TODO(astoycos) rebuilding dispacthers need to be actual helpers
-                    // on BpfManager.Dispatchers not BpfManager itself.
-                    let fake_prog_filter = Program::Tc(TcProgram {
-                        data: ProgramData::default(),
-                        priority: 0,
-                        if_index: Some(if_index),
-                        iface: String::new(),
-                        proceed_on: TcProceedOn::default(),
-                        direction,
-                        current_position: None,
-                        attached: false,
-                    });
-
-                    self.rebuild_multiattach_dispatcher(fake_prog_filter, did)
-                        .await?;
+                    self.rebuild_multiattach_dispatcher(
+                        did,
+                        if_index,
+                        ProgramType::Tc,
+                        Some(direction),
+                    )
+                    .await?;
                 }
                 _ => return Err(anyhow!("invalid program type {:?}", program_type)),
             }
@@ -279,23 +316,21 @@ impl BpfManager {
         &mut self,
         mut program: Program,
     ) -> Result<Program, BpfmanError> {
-        let map_owner_id = program.data()?.map_owner_id();
+        let map_owner_id = program.get_data().get_map_owner_id()?;
         // Set map_pin_path if we're using another program's maps
         if let Some(map_owner_id) = map_owner_id {
             let map_pin_path = self.is_map_owner_id_valid(map_owner_id)?;
-            program
-                .data_mut()?
-                .set_map_pin_path(Some(map_pin_path.clone()));
+            program.get_data_mut().set_map_pin_path(&map_pin_path)?;
         }
 
         program
-            .data_mut()?
+            .get_data_mut()
             .set_program_bytes(self.image_manager.clone())
             .await?;
 
         let result = match program {
             Program::Xdp(_) | Program::Tc(_) => {
-                program.set_if_index(get_ifindex(&program.if_name().unwrap())?);
+                program.set_if_index(get_ifindex(&program.if_name().unwrap())?)?;
 
                 self.add_multi_attach_program(&mut program).await
             }
@@ -306,19 +341,23 @@ impl BpfManager {
         };
 
         // Program bytes MUST be cleared after load.
-        program.data_mut()?.clear_program_bytes();
+        program.get_data_mut().clear_program_bytes();
 
         match result {
             Ok(id) => {
                 info!(
                     "Added {} program with name: {} and id: {id}",
                     program.kind(),
-                    program.data()?.name()
+                    program.get_data().get_name()?
                 );
 
                 // Now that program is successfully loaded, update the id, maps hash table,
                 // and allow access to all maps by bpfman group members.
                 self.save_map(&mut program, id, map_owner_id).await?;
+
+                // Swap the db tree to be persisted with the unique program ID generated
+                // by the kernel.
+                program.get_data_mut().swap_tree(id)?;
 
                 // Only add program to bpfManager if we've completed all mutations and it's successfully loaded.
                 self.programs.insert(id, program.to_owned());
@@ -327,12 +366,10 @@ impl BpfManager {
             }
             Err(e) => {
                 // Cleanup any directories associated with the map_pin_path.
-                // Data and map_pin_path may or may not exist depending on where the original
+                // map_pin_path may or may not exist depending on where the original
                 // error occured, so don't error if not there and preserve original error.
-                if let Ok(data) = program.data() {
-                    if let Some(pin_path) = data.map_pin_path() {
-                        let _ = self.cleanup_map_pin_path(pin_path, map_owner_id).await;
-                    }
+                if let Some(pin_path) = program.get_data().get_map_pin_path()? {
+                    let _ = self.cleanup_map_pin_path(&pin_path, map_owner_id).await;
                 }
                 Err(e)
             }
@@ -344,7 +381,7 @@ impl BpfManager {
         program: &mut Program,
     ) -> Result<u32, BpfmanError> {
         debug!("BpfManager::add_multi_attach_program()");
-        let name = program.data()?.name();
+        let name = &program.get_data().get_name()?;
 
         // This load is just to verify the BPF Function Name is valid.
         // The actual load is performed in the XDP or TC logic.
@@ -352,7 +389,7 @@ impl BpfManager {
         let mut ext_loader = BpfLoader::new()
             .allow_unsupported_maps()
             .extension(name)
-            .load(program.data()?.program_bytes())?;
+            .load(program.get_data().program_bytes())?;
 
         match ext_loader.program_mut(name) {
             Some(_) => Ok(()),
@@ -360,7 +397,7 @@ impl BpfManager {
         }?;
 
         let did = program
-            .dispatcher_id()
+            .dispatcher_id()?
             .ok_or(BpfmanError::DispatcherNotRequired)?;
 
         let next_available_id = self.dispatchers.attached_programs(&did);
@@ -371,11 +408,11 @@ impl BpfManager {
         debug!("next_available_id={next_available_id}");
 
         let program_type = program.kind();
-        let if_index = program.if_index();
-        let if_name = program.if_name().unwrap();
-        let direction = program.direction();
+        let if_index = program.if_index()?;
+        let if_name = program.if_name().unwrap().to_string();
+        let direction = program.direction()?;
 
-        self.programs.set_program_positions(program, true);
+        self.programs.add_and_set_program_positions(program);
 
         let mut programs: Vec<&mut Program> = self
             .programs
@@ -407,24 +444,17 @@ impl BpfManager {
         .await
         .or_else(|e| {
             // If kernel ID was never set there's no pins to cleanup here so just continue
-            if let Some(info) = program.kernel_info() {
+            if program.get_data().get_id().is_ok() {
                 program
-                    .delete(info.id)
+                    .delete()
                     .map_err(BpfmanError::BpfmanProgramDeleteError)?;
             }
             Err(e)
         })?;
 
         self.dispatchers.insert(did, dispatcher);
-        let id = program
-            .kernel_info()
-            .expect("kernel info should be set after load")
-            .id;
-
+        let id = program.get_data().get_id()?;
         program.set_attached();
-        program
-            .save(id)
-            .map_err(|e| BpfmanError::Error(format!("unable to save program state: {e}")))?;
 
         Ok(id)
     }
@@ -434,16 +464,17 @@ impl BpfManager {
         p: &mut Program,
     ) -> Result<u32, BpfmanError> {
         debug!("BpfManager::add_single_attach_program()");
-        let name = p.data()?.name();
+        let name = &p.get_data().get_name()?;
         let mut bpf = BpfLoader::new();
 
-        for (key, value) in p.data()?.global_data() {
+        let data = &p.get_data().get_global_data()?;
+        for (key, value) in data {
             bpf.set_global(key, value.as_slice(), true);
         }
 
         // If map_pin_path is set already it means we need to use a pin
         // path which should already exist on the system.
-        if let Some(map_pin_path) = p.data()?.map_pin_path() {
+        if let Some(map_pin_path) = p.get_data().get_map_pin_path()? {
             debug!(
                 "single-attach program {name} is using maps from {:?}",
                 map_pin_path
@@ -453,7 +484,7 @@ impl BpfManager {
 
         let mut loader = bpf
             .allow_unsupported_maps()
-            .load(p.data()?.program_bytes())?;
+            .load(p.get_data().program_bytes())?;
 
         let raw_program = loader
             .program_mut(name)
@@ -461,9 +492,12 @@ impl BpfManager {
 
         let res = match p {
             Program::Tracepoint(ref mut program) => {
-                let parts: Vec<&str> = program.tracepoint.split('/').collect();
+                let tracepoint = program.get_tracepoint()?;
+                let parts: Vec<&str> = tracepoint.split('/').collect();
                 if parts.len() != 2 {
-                    return Err(BpfmanError::InvalidAttach(program.tracepoint.to_string()));
+                    return Err(BpfmanError::InvalidAttach(
+                        program.get_tracepoint()?.to_string(),
+                    ));
                 }
                 let category = parts[0].to_owned();
                 let name = parts[1].to_owned();
@@ -472,8 +506,10 @@ impl BpfManager {
 
                 tracepoint.load()?;
                 program
-                    .data
-                    .set_kernel_info(Some(tracepoint.info()?.try_into()?));
+                    .get_data_mut()
+                    .set_kernel_info(&tracepoint.info()?)?;
+
+                let id = program.data.get_id()?;
 
                 let link_id = tracepoint.attach(&category, &name)?;
 
@@ -481,8 +517,6 @@ impl BpfManager {
                 let fd_link: FdLink = owned_link
                     .try_into()
                     .expect("unable to get owned tracepoint attach link");
-
-                let id = program.data.id().expect("id should be set after load");
 
                 fd_link
                     .pin(format!("{RTDIR_FS}/prog_{}_link", id))
@@ -495,12 +529,12 @@ impl BpfManager {
                 Ok(id)
             }
             Program::Kprobe(ref mut program) => {
-                let requested_probe_type = match program.retprobe {
+                let requested_probe_type = match program.get_retprobe()? {
                     true => Kretprobe,
                     false => Kprobe,
                 };
 
-                if requested_probe_type == Kretprobe && program.offset != 0 {
+                if requested_probe_type == Kretprobe && program.get_offset()? != 0 {
                     return Err(BpfmanError::Error(format!(
                         "offset not allowed for {Kretprobe}"
                     )));
@@ -518,18 +552,16 @@ impl BpfManager {
                     )));
                 }
 
-                program
-                    .data
-                    .set_kernel_info(Some(kprobe.info()?.try_into()?));
+                program.get_data_mut().set_kernel_info(&kprobe.info()?)?;
 
-                let link_id = kprobe.attach(program.fn_name.as_str(), program.offset)?;
+                let id = program.data.get_id()?;
+
+                let link_id = kprobe.attach(program.get_fn_name()?, program.get_offset()?)?;
 
                 let owned_link: KProbeLink = kprobe.take_link(link_id)?;
                 let fd_link: FdLink = owned_link
                     .try_into()
                     .expect("unable to get owned kprobe attach link");
-
-                let id = program.data.id().expect("id should be set after load");
 
                 fd_link
                     .pin(format!("{RTDIR_FS}/prog_{}_link", id))
@@ -542,7 +574,7 @@ impl BpfManager {
                 Ok(id)
             }
             Program::Uprobe(ref mut program) => {
-                let requested_probe_type = match program.retprobe {
+                let requested_probe_type = match program.get_retprobe()? {
                     true => Uretprobe,
                     false => Uprobe,
                 };
@@ -559,25 +591,24 @@ impl BpfManager {
                     )));
                 }
 
-                program
-                    .data
-                    .set_kernel_info(Some(uprobe.info()?.try_into()?));
+                program.get_data_mut().set_kernel_info(&uprobe.info()?)?;
 
-                let id = program.data.id().expect("id should be set after load");
+                let id = program.data.get_id()?;
 
                 let program_pin_path = format!("{RTDIR_FS}/prog_{id}");
+                let fn_name = program.get_fn_name()?;
 
                 uprobe
                     .pin(program_pin_path.clone())
                     .map_err(BpfmanError::UnableToPinProgram)?;
 
-                match program.container_pid {
+                match program.get_container_pid()? {
                     None => {
                         // Attach uprobe in same container as the bpfman process
                         let link_id = uprobe.attach(
-                            program.fn_name.as_deref(),
-                            program.offset,
-                            program.target.clone(),
+                            fn_name.as_deref(),
+                            program.get_offset()?,
+                            program.get_target()?,
                             None,
                         )?;
 
@@ -592,7 +623,7 @@ impl BpfManager {
                     }
                     Some(p) => {
                         // Attach uprobe in different container from the bpfman process
-                        let offset = program.offset.to_string();
+                        let offset = program.get_offset()?.to_string();
                         let container_pid = p.to_string();
                         let mut prog_args = vec![
                             "uprobe".to_string(),
@@ -601,20 +632,20 @@ impl BpfManager {
                             "--offset".to_string(),
                             offset,
                             "--target".to_string(),
-                            program.target.clone(),
+                            program.get_target()?.to_string(),
                             "--container-pid".to_string(),
                             container_pid,
                         ];
 
-                        if let Some(fn_name) = &program.fn_name {
+                        if let Some(fn_name) = &program.get_fn_name()? {
                             prog_args.extend(["--fn-name".to_string(), fn_name.to_string()])
                         }
 
-                        if program.retprobe {
+                        if program.get_retprobe()? {
                             prog_args.push("--retprobe".to_string());
                         }
 
-                        if let Some(pid) = program.pid {
+                        if let Some(pid) = program.get_pid()? {
                             prog_args.extend(["--pid".to_string(), pid.to_string()])
                         }
 
@@ -628,7 +659,7 @@ impl BpfManager {
                         if !status.success() {
                             return Err(BpfmanError::ContainerAttachError {
                                 program_type: "uprobe".to_string(),
-                                container_pid: program.container_pid.unwrap(),
+                                container_pid: program.get_container_pid()?.unwrap(),
                             });
                         }
                     }
@@ -642,9 +673,9 @@ impl BpfManager {
         match res {
             Ok(id) => {
                 // If this program is the map(s) owner pin all maps (except for .rodata and .bss) by name.
-                if p.data()?.map_pin_path().is_none() {
+                if p.get_data().get_map_pin_path()?.is_none() {
                     let map_pin_path = calc_map_pin_path(id);
-                    p.data_mut()?.set_map_pin_path(Some(map_pin_path.clone()));
+                    p.get_data_mut().set_map_pin_path(&map_pin_path)?;
                     create_map_pin_path(&map_pin_path).await?;
 
                     for (name, map) in loader.maps_mut() {
@@ -659,19 +690,11 @@ impl BpfManager {
                             .map_err(BpfmanError::UnableToPinMap)?;
                     }
                 }
-
-                p.save(id)
-                    // we might want to log or ignore this error instead of returning here...
-                    // because otherwise it will hide the original error (from res above)
-                    .map_err(|_| {
-                        BpfmanError::Error("unable to persist program data".to_string())
-                    })?;
             }
             Err(_) => {
                 // If kernel ID was never set there's no pins to cleanup here so just continue
-                if let Some(info) = p.kernel_info() {
-                    p.delete(info.id)
-                        .map_err(BpfmanError::BpfmanProgramDeleteError)?;
+                if p.get_data().get_id().is_ok() {
+                    p.delete().map_err(BpfmanError::BpfmanProgramDeleteError)?;
                 };
             }
         };
@@ -691,10 +714,7 @@ impl BpfManager {
             }
         };
 
-        let map_owner_id = prog.data()?.map_owner_id();
-
-        prog.delete(id)
-            .map_err(BpfmanError::BpfmanProgramDeleteError)?;
+        let map_owner_id = prog.get_data().get_map_owner_id()?;
 
         match prog {
             Program::Xdp(_) | Program::Tc(_) => self.remove_multi_attach_program(&mut prog).await?,
@@ -705,6 +725,10 @@ impl BpfManager {
         }
 
         self.delete_map(id, map_owner_id).await?;
+
+        prog.delete()
+            .map_err(BpfmanError::BpfmanProgramDeleteError)?;
+
         Ok(())
     }
 
@@ -715,7 +739,7 @@ impl BpfManager {
         debug!("BpfManager::remove_multi_attach_program()");
 
         let did = program
-            .dispatcher_id()
+            .dispatcher_id()?
             .ok_or(BpfmanError::DispatcherNotRequired)?;
 
         let next_available_id = self.dispatchers.attached_programs(&did) - 1;
@@ -730,12 +754,16 @@ impl BpfManager {
             }
         }
 
-        self.programs.set_program_positions(program, false);
+        self.programs.set_program_positions(
+            program.kind(),
+            program.if_index()?.unwrap(),
+            program.direction()?,
+        );
 
         let program_type = program.kind();
-        let if_index = program.if_index();
+        let if_index = program.if_index()?;
         let if_name = program.if_name().unwrap();
-        let direction = program.direction();
+        let direction = program.direction()?;
 
         // Intentionally don't add filter program here
         let mut programs: Vec<&mut Program> = self
@@ -768,20 +796,19 @@ impl BpfManager {
 
     pub(crate) async fn rebuild_multiattach_dispatcher(
         &mut self,
-        mut filter_prog: Program,
         did: DispatcherId,
+        if_index: u32,
+        program_type: ProgramType,
+        direction: Option<Direction>,
     ) -> Result<(), BpfmanError> {
-        let program_type = filter_prog.kind();
-        let if_index = filter_prog.if_index();
-        let direction = filter_prog.direction();
-
         debug!("BpfManager::rebuild_multiattach_dispatcher() for program type {program_type} on if_index {if_index:?}");
         let mut old_dispatcher = self.dispatchers.remove(&did);
 
         if let Some(ref mut old) = old_dispatcher {
             debug!("Rebuild Multiattach Dispatcher for {did:?}");
-            self.programs.set_program_positions(&mut filter_prog, false);
-
+            self.programs
+                .set_program_positions(program_type, if_index, direction);
+            let if_index = Some(if_index);
             let mut programs: Vec<&mut Program> = self
                 .programs
                 .programs_mut(&program_type, &if_index, &direction)
@@ -836,11 +863,20 @@ impl BpfManager {
                 let prog = p.map_err(BpfmanError::BpfProgramError)?;
                 let prog_id = prog.id();
 
-                // If the program was loaded by bpfman (check the hash map), then us it.
+                // If the program was loaded by bpfman (check the hash map), then use it.
                 // Otherwise, convert the data returned from Aya into an Unsupported Program Object.
                 match bpfman_progs.remove(&prog_id) {
                     Some(p) => Ok(p.to_owned()),
-                    None => Ok(Program::Unsupported(prog.try_into()?)),
+                    None => {
+                        let db_tree = ROOT_DB
+                            .open_tree(prog_id.to_string())
+                            .expect("Unable to open program database tree for listing programs");
+
+                        let mut data = ProgramData::new(db_tree, prog_id);
+                        data.set_kernel_info(&prog)?;
+
+                        Ok(Program::Unsupported(data))
+                    }
                 }
             })
             .collect()
@@ -857,7 +893,15 @@ impl BpfManager {
                 .find_map(|p| {
                     let prog = p.ok()?;
                     if prog.id() == id {
-                        Some(Program::Unsupported(prog.try_into().ok()?))
+                        let db_tree = ROOT_DB
+                            .open_tree(prog.id().to_string())
+                            .expect("Unable to open program database tree for listing programs");
+
+                        let mut data = ProgramData::new(db_tree, prog.id());
+                        data.set_kernel_info(&prog)
+                            .expect("unable to set kernel info");
+
+                        Some(Program::Unsupported(data))
                     } else {
                         None
                     }
@@ -898,7 +942,7 @@ impl BpfManager {
                 biased;
                 _ = shutdown_handler(use_activity_timer) => {
                     info!("Signal received to stop command processing");
-                    self._database.flush().expect("Unable to flush database to disk before shutting down BpfManager");
+                    ROOT_DB.flush().expect("Unable to flush database to disk before shutting down BpfManager");
                     break;
                 }
                 Some(cmd) = self.commands.recv() => {
@@ -983,7 +1027,7 @@ impl BpfManager {
         id: u32,
         map_owner_id: Option<u32>,
     ) -> Result<(), BpfmanError> {
-        let data = program.data_mut()?;
+        let data = program.get_data_mut();
 
         match map_owner_id {
             Some(m) => {
@@ -992,18 +1036,14 @@ impl BpfManager {
 
                     // This program has no been inserted yet, so set map_used_by to
                     // newly updated list.
-                    data.set_maps_used_by(Some(map.used_by.clone()));
+                    data.set_maps_used_by(map.used_by.clone())?;
 
                     // Update all the programs using the same map with the updated map_used_by.
                     for used_by_id in map.used_by.iter() {
                         if let Some(program) = self.programs.get_mut(used_by_id) {
-                            if let Ok(data) = program.data_mut() {
-                                data.set_maps_used_by(Some(map.used_by.clone()));
-                            } else {
-                                return Err(BpfmanError::Error(
-                                    "unable to retrieve data for {id}".to_string(),
-                                ));
-                            }
+                            program
+                                .get_data_mut()
+                                .set_maps_used_by(map.used_by.clone())?;
                         }
                     }
                 } else {
@@ -1018,10 +1058,10 @@ impl BpfManager {
                 self.maps.insert(id, map);
 
                 // Update this program with the updated map_used_by
-                data.set_maps_used_by(Some(vec![id]));
+                data.set_maps_used_by(vec![id])?;
 
                 // Set the permissions on the map_pin_path directory.
-                if let Some(map_pin_path) = data.map_pin_path() {
+                if let Some(map_pin_path) = data.get_map_pin_path()? {
                     if let Some(path) = map_pin_path.to_str() {
                         debug!("bpf set dir permissions for {}", path);
                         set_dir_permissions(path, MAPS_MODE).await;
@@ -1072,9 +1112,9 @@ impl BpfManager {
                 // Update all the programs still using the same map with the updated map_used_by.
                 for id in map.used_by.iter() {
                     if let Some(program) = self.programs.get_mut(id) {
-                        if let Ok(data) = program.data_mut() {
-                            data.set_maps_used_by(Some(map.used_by.clone()));
-                        }
+                        program
+                            .get_data_mut()
+                            .set_maps_used_by(map.used_by.clone())?;
                     }
                 }
             }
@@ -1088,13 +1128,7 @@ impl BpfManager {
     }
 
     async fn rebuild_map_entry(&mut self, id: u32, program: &mut Program) {
-        let map_owner_id = match program.data() {
-            Ok(data) => data.map_owner_id(),
-            Err(_) => {
-                warn!("unable to retrieve data for {id} retrieving map_owner_id on rebuild");
-                return;
-            }
-        };
+        let map_owner_id = program.get_data().get_map_owner_id().unwrap();
         let index = match map_owner_id {
             Some(i) => i,
             None => id,
@@ -1105,32 +1139,25 @@ impl BpfManager {
 
             // This program has not been inserted yet, so update it with the
             // updated map_used_by.
-            if let Ok(data) = program.data_mut() {
-                data.set_maps_used_by(Some(map.used_by.clone()));
-            } else {
-                warn!("unable to retrieve data for {id} during rebuild of maps");
-            }
+            program
+                .get_data_mut()
+                .set_maps_used_by(map.used_by.clone())
+                .expect("unable to set map_used_by");
 
             // Update all the other programs using the same map with the updated map_used_by.
             for used_by_id in map.used_by.iter() {
                 // program may not exist yet on rebuild, so ignore if not there
                 if let Some(prog) = self.programs.get_mut(used_by_id) {
-                    if let Ok(data) = prog.data_mut() {
-                        data.set_maps_used_by(Some(map.used_by.clone()));
-                    } else {
-                        warn!("unable to retrieve data for {used_by_id} when setting map_used_by on rebuild");
-                    }
+                    prog.get_data_mut()
+                        .set_maps_used_by(map.used_by.clone())
+                        .unwrap();
                 }
             }
         } else {
             let map = BpfMap { used_by: vec![id] };
             self.maps.insert(index, map);
 
-            if let Ok(data) = program.data_mut() {
-                data.set_maps_used_by(Some(vec![id]));
-            } else {
-                warn!("unable to retrieve data for {id} during rebuild of maps");
-            }
+            program.get_data_mut().set_maps_used_by(vec![id]).unwrap();
         }
     }
 }
