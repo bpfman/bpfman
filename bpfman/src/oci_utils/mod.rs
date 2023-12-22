@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
+pub(crate) mod client;
 pub(crate) mod cosign;
 pub(crate) mod image_manager;
 
-pub(crate) use image_manager::ImageManager;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

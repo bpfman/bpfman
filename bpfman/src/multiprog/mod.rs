@@ -10,13 +10,11 @@ use bpfman_api::{
 };
 use log::debug;
 pub use tc::TcDispatcher;
-use tokio::sync::mpsc::Sender;
 pub use xdp::XdpDispatcher;
 
 use crate::{
     command::{Direction, Program},
     errors::BpfmanError,
-    oci_utils::image_manager::Command as ImageManagerCommand,
 };
 
 pub(crate) enum Dispatcher {
@@ -30,7 +28,7 @@ impl Dispatcher {
         programs: &mut [&mut Program],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
-        image_manager: Sender<ImageManagerCommand>,
+        allow_unsigned: bool,
     ) -> Result<Dispatcher, BpfmanError> {
         debug!("Dispatcher::new()");
         let p = programs
@@ -55,7 +53,7 @@ impl Dispatcher {
                     programs,
                     revision,
                     old_dispatcher,
-                    image_manager,
+                    allow_unsigned,
                 )
                 .await?;
                 Dispatcher::Xdp(x)
@@ -68,7 +66,7 @@ impl Dispatcher {
                     programs,
                     revision,
                     old_dispatcher,
-                    image_manager,
+                    allow_unsigned,
                 )
                 .await?;
                 Dispatcher::Tc(t)

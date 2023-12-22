@@ -25,10 +25,7 @@ use log::{debug, info};
 use tokio::{
     fs::{create_dir_all, read_dir, remove_dir_all},
     select,
-    sync::{
-        mpsc::{Receiver, Sender},
-        oneshot,
-    },
+    sync::mpsc::Receiver,
 };
 
 use crate::{
@@ -39,7 +36,7 @@ use crate::{
     },
     errors::BpfmanError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
-    oci_utils::image_manager::Command as ImageManagerCommand,
+    oci_utils::image_manager::IMAGE_MANAGER,
     serve::shutdown_handler,
     utils::{bytes_to_string, get_ifindex, set_dir_permissions, should_map_be_pinned},
     ROOT_DB,
@@ -53,7 +50,6 @@ pub(crate) struct BpfManager {
     programs: ProgramMap,
     maps: HashMap<u32, BpfMap>,
     commands: Receiver<Command>,
-    image_manager: Sender<ImageManagerCommand>,
 }
 
 pub(crate) struct ProgramMap {
@@ -200,19 +196,21 @@ impl DispatcherMap {
 }
 
 impl BpfManager {
-    pub(crate) fn new(
-        config: Config,
-        commands: Receiver<Command>,
-        image_manager: Sender<ImageManagerCommand>,
-    ) -> Self {
+    pub(crate) fn new(config: Config, commands: Receiver<Command>) -> Self {
         Self {
             config,
             dispatchers: DispatcherMap::new(),
             programs: ProgramMap::new(),
             maps: HashMap::new(),
             commands,
-            image_manager,
         }
+    }
+
+    fn allow_unsigned(&self) -> bool {
+        self.config
+            .signing
+            .as_ref()
+            .map_or(true, |s| s.allow_unsigned)
     }
 
     pub(crate) async fn rebuild_state(&mut self) -> Result<(), anyhow::Error> {
@@ -240,7 +238,7 @@ impl BpfManager {
                 Ok(mut program) => {
                     program
                         .get_data_mut()
-                        .set_program_bytes(self.image_manager.clone())
+                        .set_program_bytes(self.allow_unsigned())
                         .await?;
                     self.rebuild_map_entry(id, &mut program).await;
                     self.programs.insert(id, program);
@@ -325,7 +323,7 @@ impl BpfManager {
 
         program
             .get_data_mut()
-            .set_program_bytes(self.image_manager.clone())
+            .set_program_bytes(self.allow_unsigned())
             .await?;
 
         let result = match program {
@@ -382,7 +380,7 @@ impl BpfManager {
     ) -> Result<u32, BpfmanError> {
         debug!("BpfManager::add_multi_attach_program()");
         let name = &program.get_data().get_name()?;
-
+        let allow_unsigned = self.allow_unsigned();
         // This load is just to verify the BPF Function Name is valid.
         // The actual load is performed in the XDP or TC logic.
         // don't pin maps here.
@@ -439,7 +437,7 @@ impl BpfManager {
             &mut programs,
             next_revision,
             old_dispatcher,
-            self.image_manager.clone(),
+            allow_unsigned,
         )
         .await
         .or_else(|e| {
@@ -704,7 +702,7 @@ impl BpfManager {
 
     pub(crate) async fn remove_program(&mut self, id: u32) -> Result<(), BpfmanError> {
         info!("Removing program with id: {id}");
-        let mut prog = match self.programs.remove(&id) {
+        let prog = match self.programs.remove(&id) {
             Some(p) => p,
             None => {
                 return Err(BpfmanError::Error(format!(
@@ -717,7 +715,7 @@ impl BpfManager {
         let map_owner_id = prog.get_data().get_map_owner_id()?;
 
         match prog {
-            Program::Xdp(_) | Program::Tc(_) => self.remove_multi_attach_program(&mut prog).await?,
+            Program::Xdp(_) | Program::Tc(_) => self.remove_multi_attach_program(&prog).await?,
             Program::Tracepoint(_)
             | Program::Kprobe(_)
             | Program::Uprobe(_)
@@ -734,9 +732,10 @@ impl BpfManager {
 
     pub(crate) async fn remove_multi_attach_program(
         &mut self,
-        program: &mut Program,
+        program: &Program,
     ) -> Result<(), BpfmanError> {
         debug!("BpfManager::remove_multi_attach_program()");
+        let allow_unsigned = self.allow_unsigned();
 
         let did = program
             .dispatcher_id()?
@@ -787,7 +786,7 @@ impl BpfManager {
             &mut programs,
             next_revision,
             old_dispatcher,
-            self.image_manager.clone(),
+            allow_unsigned,
         )
         .await?;
         self.dispatchers.insert(did, dispatcher);
@@ -802,6 +801,7 @@ impl BpfManager {
         direction: Option<Direction>,
     ) -> Result<(), BpfmanError> {
         debug!("BpfManager::rebuild_multiattach_dispatcher() for program type {program_type} on if_index {if_index:?}");
+        let allow_unsigned = self.allow_unsigned();
         let mut old_dispatcher = self.dispatchers.remove(&did);
 
         if let Some(ref mut old) = old_dispatcher {
@@ -841,7 +841,7 @@ impl BpfManager {
                 &mut programs,
                 next_revision,
                 old_dispatcher,
-                self.image_manager.clone(),
+                allow_unsigned,
             )
             .await?;
             self.dispatchers.insert(did, dispatcher);
@@ -914,17 +914,16 @@ impl BpfManager {
     }
 
     async fn pull_bytecode(&self, args: PullBytecodeArgs) -> anyhow::Result<()> {
-        let (tx, rx) = oneshot::channel();
-        self.image_manager
-            .send(ImageManagerCommand::Pull {
-                image: args.image.image_url,
-                pull_policy: args.image.image_pull_policy.clone(),
-                username: args.image.username.clone(),
-                password: args.image.password.clone(),
-                resp: tx,
-            })
-            .await?;
-        let res = match rx.await? {
+        let mut image_manager = IMAGE_MANAGER.lock().unwrap();
+        let pull_result: Result<(String, String), crate::oci_utils::ImageError> = image_manager
+            .pull(
+                &args.image.image_url,
+                args.image.image_pull_policy.clone(),
+                args.image.username.clone(),
+                args.image.password.clone(),
+                self.allow_unsigned(),
+            );
+        let res = match pull_result {
             Ok(_) => {
                 info!("Successfully pulled bytecode");
                 Ok(())

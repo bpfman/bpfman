@@ -16,7 +16,6 @@ use futures::stream::TryStreamExt;
 use log::debug;
 use netlink_packet_route::tc::Nla;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{mpsc::Sender, oneshot};
 
 use crate::{
     bpf::{calc_map_pin_path, create_map_pin_path},
@@ -28,7 +27,7 @@ use crate::{
     dispatcher_config::TcDispatcherConfig,
     errors::BpfmanError,
     multiprog::Dispatcher,
-    oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
+    oci_utils::image_manager::{BytecodeImage, IMAGE_MANAGER},
     utils::should_map_be_pinned,
 };
 
@@ -48,7 +47,9 @@ pub struct TcDispatcher {
     loader: Option<Bpf>,
     program_name: Option<String>,
 }
-
+// Enable this clippy lint since we're still async - the lock in question is image_manager, and that lock is
+// dropped before we call await.
+#[allow(clippy::await_holding_lock)]
 impl TcDispatcher {
     pub(crate) async fn new(
         direction: Direction,
@@ -57,7 +58,7 @@ impl TcDispatcher {
         programs: &mut [&mut Program],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
-        image_manager: Sender<ImageManagerCommand>,
+        allow_unsigned: bool,
     ) -> Result<TcDispatcher, BpfmanError> {
         debug!("TcDispatcher::new() for if_index {if_index}, revision {revision}");
         let mut extensions: Vec<&mut TcProgram> = programs
@@ -85,29 +86,22 @@ impl TcDispatcher {
             None,
             None,
         );
-        let (tx, rx) = oneshot::channel();
-        image_manager
-            .send(ImageManagerCommand::Pull {
-                image: image.image_url.clone(),
-                pull_policy: image.image_pull_policy.clone(),
-                username: image.username.clone(),
-                password: image.password.clone(),
-                resp: tx,
-            })
-            .await
+
+        let mut image_manager = IMAGE_MANAGER.lock().expect("unable to lock image manager");
+        let (path, bpf_function_name) = image_manager
+            .pull(
+                &image.image_url,
+                image.image_pull_policy.clone(),
+                image.username.clone(),
+                image.password.clone(),
+                allow_unsigned,
+            )
             .map_err(|e| BpfmanError::RpcSendError(e.into()))?;
 
-        let (path, bpf_function_name) = rx
-            .await
-            .map_err(BpfmanError::RpcRecvError)?
+        let program_bytes = image_manager
+            .get_bytecode(path)
             .map_err(BpfmanError::BpfBytecodeError)?;
-
-        let (tx, rx) = oneshot::channel();
-        image_manager
-            .send(ImageManagerCommand::GetBytecode { path, resp: tx })
-            .await
-            .map_err(|e| BpfmanError::RpcSendError(e.into()))?;
-        let program_bytes = rx.await?.map_err(BpfmanError::BpfBytecodeError)?;
+        drop(image_manager);
 
         let mut loader = BpfLoader::new()
             .set_global("CONFIG", &config, true)

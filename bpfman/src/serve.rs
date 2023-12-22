@@ -26,11 +26,9 @@ use tonic::transport::Server;
 
 use crate::{
     bpf::BpfManager,
-    oci_utils::ImageManager,
     rpc::BpfmanLoader,
     storage::StorageManager,
     utils::{set_file_permissions, SOCK_MODE},
-    ROOT_DB,
 };
 
 pub async fn serve(config: &Config, csi_support: bool) -> anyhow::Result<()> {
@@ -45,15 +43,7 @@ pub async fn serve(config: &Config, csi_support: bool) -> anyhow::Result<()> {
     let (handle, use_activity_timer) = serve_unix(path.clone(), service.clone()).await?;
     listeners.push(handle);
 
-    let allow_unsigned = config.signing.as_ref().map_or(true, |s| s.allow_unsigned);
-    let (itx, irx) = mpsc::channel(32);
-
-    let mut image_manager = ImageManager::new(ROOT_DB.clone(), allow_unsigned, irx).await?;
-    let image_manager_handle = tokio::spawn(async move {
-        image_manager.run(use_activity_timer).await;
-    });
-
-    let mut bpf_manager = BpfManager::new(config.clone(), rx, itx);
+    let mut bpf_manager = BpfManager::new(config.clone(), rx);
     bpf_manager.rebuild_state().await?;
 
     // TODO(astoycos) see issue #881
@@ -75,27 +65,19 @@ pub async fn serve(config: &Config, csi_support: bool) -> anyhow::Result<()> {
         let storage_manager = StorageManager::new(tx);
         let storage_manager_handle =
             tokio::spawn(async move { storage_manager.run(use_activity_timer).await });
-        let (_, res_image, res_storage, _) = join!(
+        let (_, res_storage, _) = join!(
             join_listeners(listeners),
-            image_manager_handle,
             storage_manager_handle,
             bpf_manager.process_commands(use_activity_timer)
         );
         if let Some(e) = res_storage.err() {
             return Err(e.into());
         }
-        if let Some(e) = res_image.err() {
-            return Err(e.into());
-        }
     } else {
-        let (_, res_image, _) = join!(
+        let (_, _) = join!(
             join_listeners(listeners),
-            image_manager_handle,
             bpf_manager.process_commands(use_activity_timer)
         );
-        if let Some(e) = res_image.err() {
-            return Err(e.into());
-        }
     }
 
     Ok(())
