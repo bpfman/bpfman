@@ -40,7 +40,7 @@ clap_mangen = { version = "0.2.15", default-features = false }
 comfy-table = { version = "7.1.0", default-features = false }
 env_logger = { version = "0.10", default-features = false }
 flate2 = { version = "1.0", default-features = false }
-futures = { version = "0.3.29", default-features = false }
+futures = { version = "0.3.30", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 integration-test-macros = { path = "./tests/integration-test-macros" }
 inventory = { version = "0.3", default-features = false }
