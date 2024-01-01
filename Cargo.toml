@@ -69,7 +69,7 @@ sled = { version = "0.34.7", default-features = false }
 syn = { version = "2.0", default-features = false }
 systemd-journal-logger = { version = "1.0.0", default-features = false }
 tar = { version = "0.4", default-features = false }
-tempfile = { version = "3.8.1", default-features = false }
+tempfile = { version = "3.9.0", default-features = false }
 thiserror = { version = "1", default-features = false }
 tokio = { version = "1.35.1", default-features = false }
 tokio-stream = { version = "0.1.12", default-features = false }
