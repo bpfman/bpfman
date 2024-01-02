@@ -24,6 +24,7 @@ pub struct CosignVerifier {
 
 impl CosignVerifier {
     pub(crate) fn new() -> Result<Self, anyhow::Error> {
+        debug!("CosignVerifier::new()");
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;

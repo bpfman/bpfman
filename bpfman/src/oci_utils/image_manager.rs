@@ -109,6 +109,7 @@ pub(crate) struct ImageManager {
 
 impl ImageManager {
     pub(crate) fn new() -> Result<Self, anyhow::Error> {
+        debug!("ImageManager::new() Creating CosignVerifier");
         let cosign_verifier = CosignVerifier::new()?;
         let config = ClientConfig {
             protocol: ClientProtocol::Https,

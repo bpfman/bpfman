@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
+use log::debug;
 use oci_distribution::{
     client::{ClientConfig, ImageData},
     errors::OciDistributionError,
@@ -17,6 +18,7 @@ pub struct Client {
 
 impl Client {
     pub fn new(config: ClientConfig) -> Result<Self, anyhow::Error> {
+        debug!("Creating OCI client");
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;
