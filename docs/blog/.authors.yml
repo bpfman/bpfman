@@ -11,3 +11,7 @@ authors:
     name: Dave Tucker
     description: Senior Principal Software Engineer at Red Hat. Creator of the bpfman project.
     avatar: https://github.com/dave-tucker.png
+  billy99:
+    name: Billy McFall
+    description: Senior Principal Software Engineer at Red Hat.  Maintainer on bpfman project.
+    avatar: https://github.com/billy99.png

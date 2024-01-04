@@ -90,6 +90,10 @@ plugins:
       blog_toc: true
       post_excerpt: required
       post_excerpt_max_authors: 2
+      categories_allowed:
+        - Community Meeting
+        - "2023"
+        - "2024"
   - search
   - mike
 
