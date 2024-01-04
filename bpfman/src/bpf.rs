@@ -21,7 +21,7 @@ use bpfman_api::{
     ProbeType::{self, *},
     ProgramType,
 };
-use log::{debug, info};
+use log::{debug, info, warn};
 use tokio::{
     fs::{create_dir_all, read_dir, remove_dir_all},
     select,
