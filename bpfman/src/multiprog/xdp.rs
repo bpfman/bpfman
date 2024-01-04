@@ -34,9 +34,10 @@ pub struct XdpDispatcher {
     if_name: String,
     mode: XdpMode,
     num_extensions: usize,
+    program_name: Option<String>,
+
     #[serde(skip)]
     loader: Option<Bpf>,
-    program_name: Option<String>,
 }
 
 impl XdpDispatcher {
