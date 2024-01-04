@@ -746,13 +746,20 @@ impl ProgramData {
         self.set_kernel_loaded_at(prog.loaded_at())?;
         self.set_kernel_tag(prog.tag())?;
         self.set_kernel_gpl_compatible(prog.gpl_compatible())?;
-        self.set_kernel_map_ids(prog.map_ids().map_err(BpfmanError::BpfProgramError)?)?;
         self.set_kernel_btf_id(prog.btf_id().map_or(0, |n| n.into()))?;
         self.set_kernel_bytes_xlated(prog.size_translated())?;
         self.set_kernel_jited(prog.size_jitted() != 0)?;
         self.set_kernel_bytes_jited(prog.size_jitted())?;
-        self.set_kernel_bytes_memlock(prog.memory_locked().map_err(BpfmanError::BpfProgramError)?)?;
         self.set_kernel_verified_insns(prog.verified_instruction_count())?;
+        // Ignore errors here since it's possible the program was deleted mid
+        // list, causing aya apis which make system calls using the file descriptor
+        // to fail.
+        if let Ok(ids) = prog.map_ids() {
+            self.set_kernel_map_ids(ids)?;
+        }
+        if let Ok(bytes_memlock) = prog.memory_locked() {
+            self.set_kernel_bytes_memlock(bytes_memlock)?;
+        }
 
         Ok(())
     }

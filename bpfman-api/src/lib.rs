@@ -31,6 +31,8 @@ pub enum ParseError {
     InvalidBytecodeImagePullPolicy { pull_policy: String },
     #[error("{probe} is not a valid probe type")]
     InvalidProbeType { probe: String },
+    #[error("Invalid XdpMode: {mode}")]
+    InvalidXdpMode { mode: String },
 }
 
 #[derive(ValueEnum, Copy, Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]

@@ -225,6 +225,18 @@ impl BpfManager {
                 .open_tree(name)
                 .expect("unable to open database tree");
 
+            if name.contains("xdp_dispatcher") {
+                let dispatcher = XdpDispatcher::new_from_db(tree);
+                let if_index = dispatcher.get_ifindex()?;
+                debug!("rebuilding state for xdp dispatcher {}", if_index);
+
+                self.dispatchers.insert(
+                    DispatcherId::Xdp(DispatcherInfo(if_index, None)),
+                    Dispatcher::Xdp(dispatcher),
+                );
+                continue;
+            }
+
             let id = match name.parse::<u32>() {
                 Ok(id) => id,
                 Err(_) => {
@@ -279,13 +291,15 @@ impl BpfManager {
             let if_index: u32 = parts[0].parse().unwrap();
             let revision: u32 = parts[1].parse().unwrap();
             match program_type {
-                ProgramType::Xdp => {
-                    let dispatcher = XdpDispatcher::load(if_index, revision).unwrap();
-                    self.dispatchers.insert(
-                        DispatcherId::Xdp(DispatcherInfo(if_index, None)),
-                        Dispatcher::Xdp(dispatcher),
-                    );
-                }
+                //TODO astoycos refactor this when done with XDP
+                // ProgramType::Xdp => {
+                //     self.dispatchers.
+                //     let dispatcher = XdpDispatcher::load(if_index, revision)?;
+                //     self.dispatchers.insert(
+                //         DispatcherId::Xdp(DispatcherInfo(if_index, None)),
+                //         Dispatcher::Xdp(dispatcher),
+                //     );
+                // }
                 ProgramType::Tc => {
                     let direction = direction.expect("direction required for tc programs");
 
@@ -859,8 +873,8 @@ impl BpfManager {
 
         // Call Aya to get ALL the loaded eBPF programs, and loop through each one.
         loaded_programs()
-            .map(|p| {
-                let prog = p.map_err(BpfmanError::BpfProgramError)?;
+            .filter_map(|p| p.ok())
+            .map(|prog| {
                 let prog_id = prog.id();
 
                 // If the program was loaded by bpfman (check the hash map), then use it.
