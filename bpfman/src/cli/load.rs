@@ -20,90 +20,78 @@ use crate::cli::{
 };
 
 impl LoadSubcommand {
-    pub(crate) fn execute(&self) -> anyhow::Result<()> {
+    pub(crate) async fn execute(&self) -> anyhow::Result<()> {
         match self {
-            LoadSubcommand::File(l) => execute_load_file(l),
-            LoadSubcommand::Image(l) => execute_load_image(l),
+            LoadSubcommand::File(l) => execute_load_file(l).await,
+            LoadSubcommand::Image(l) => execute_load_image(l).await,
         }
     }
 }
 
-pub(crate) fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            let channel = select_channel().expect("failed to select channel");
-            let mut client = BpfmanClient::new(channel);
+pub(crate) async fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
+    let channel = select_channel().expect("failed to select channel");
+    let mut client = BpfmanClient::new(channel);
 
-            let bytecode = Some(BytecodeLocation {
-                location: Some(Location::File(args.path.clone())),
-            });
+    let bytecode = Some(BytecodeLocation {
+        location: Some(Location::File(args.path.clone())),
+    });
 
-            let attach = args.command.get_attach_type()?;
+    let attach = args.command.get_attach_type()?;
 
-            let request = tonic::Request::new(LoadRequest {
-                bytecode,
-                name: args.name.to_string(),
-                program_type: args.command.get_prog_type() as u32,
-                attach,
-                metadata: args
-                    .metadata
-                    .clone()
-                    .unwrap_or_default()
-                    .iter()
-                    .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                    .collect(),
-                global_data: parse_global(&args.global),
-                uuid: None,
-                map_owner_id: args.map_owner_id,
-            });
-            let response = client.load(request).await?.into_inner();
+    let request = tonic::Request::new(LoadRequest {
+        bytecode,
+        name: args.name.to_string(),
+        program_type: args.command.get_prog_type() as u32,
+        attach,
+        metadata: args
+            .metadata
+            .clone()
+            .unwrap_or_default()
+            .iter()
+            .map(|(k, v)| (k.to_owned(), v.to_owned()))
+            .collect(),
+        global_data: parse_global(&args.global),
+        uuid: None,
+        map_owner_id: args.map_owner_id,
+    });
+    let response = client.load(request).await?.into_inner();
 
-            ProgTable::new_get_bpfman(&response.info)?.print();
-            ProgTable::new_get_unsupported(&response.kernel_info)?.print();
-            Ok::<(), anyhow::Error>(())
-        })
+    ProgTable::new_get_bpfman(&response.info)?.print();
+    ProgTable::new_get_unsupported(&response.kernel_info)?.print();
+    Ok(())
 }
 
-pub(crate) fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            let channel = select_channel().expect("failed to select channel");
-            let mut client = BpfmanClient::new(channel);
+pub(crate) async fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
+    let channel = select_channel().expect("failed to select channel");
+    let mut client = BpfmanClient::new(channel);
 
-            let bytecode = Some(BytecodeLocation {
-                location: Some(Location::Image(BytecodeImage::try_from(&args.pull_args)?)),
-            });
+    let bytecode = Some(BytecodeLocation {
+        location: Some(Location::Image(BytecodeImage::try_from(&args.pull_args)?)),
+    });
 
-            let attach = args.command.get_attach_type()?;
+    let attach = args.command.get_attach_type()?;
 
-            let request = tonic::Request::new(LoadRequest {
-                bytecode,
-                name: args.name.to_string(),
-                program_type: args.command.get_prog_type() as u32,
-                attach,
-                metadata: args
-                    .metadata
-                    .clone()
-                    .unwrap_or_default()
-                    .iter()
-                    .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                    .collect(),
-                global_data: parse_global(&args.global),
-                uuid: None,
-                map_owner_id: args.map_owner_id,
-            });
-            let response = client.load(request).await?.into_inner();
+    let request = tonic::Request::new(LoadRequest {
+        bytecode,
+        name: args.name.to_string(),
+        program_type: args.command.get_prog_type() as u32,
+        attach,
+        metadata: args
+            .metadata
+            .clone()
+            .unwrap_or_default()
+            .iter()
+            .map(|(k, v)| (k.to_owned(), v.to_owned()))
+            .collect(),
+        global_data: parse_global(&args.global),
+        uuid: None,
+        map_owner_id: args.map_owner_id,
+    });
+    let response = client.load(request).await?.into_inner();
 
-            ProgTable::new_get_bpfman(&response.info)?.print();
-            ProgTable::new_get_unsupported(&response.kernel_info)?.print();
-            Ok::<(), anyhow::Error>(())
-        })
+    ProgTable::new_get_bpfman(&response.info)?.print();
+    ProgTable::new_get_unsupported(&response.kernel_info)?.print();
+    Ok(())
 }
 
 impl LoadCommands {

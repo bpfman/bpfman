@@ -704,7 +704,7 @@ impl BpfManager {
 
     pub(crate) async fn remove_program(&mut self, id: u32) -> Result<(), BpfmanError> {
         info!("Removing program with id: {id}");
-        let mut prog = match self.programs.remove(&id) {
+        let prog = match self.programs.remove(&id) {
             Some(p) => p,
             None => {
                 return Err(BpfmanError::Error(format!(
@@ -717,7 +717,7 @@ impl BpfManager {
         let map_owner_id = prog.get_data().get_map_owner_id()?;
 
         match prog {
-            Program::Xdp(_) | Program::Tc(_) => self.remove_multi_attach_program(&mut prog).await?,
+            Program::Xdp(_) | Program::Tc(_) => self.remove_multi_attach_program(&prog).await?,
             Program::Tracepoint(_)
             | Program::Kprobe(_)
             | Program::Uprobe(_)
@@ -734,7 +734,7 @@ impl BpfManager {
 
     pub(crate) async fn remove_multi_attach_program(
         &mut self,
-        program: &mut Program,
+        program: &Program,
     ) -> Result<(), BpfmanError> {
         debug!("BpfManager::remove_multi_attach_program()");
 

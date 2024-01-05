@@ -37,7 +37,8 @@ lazy_static! {
         .expect("Unable to open temporary root database");
 }
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     let cli = cli::args::Cli::parse();
-    cli.command.execute()
+    cli.command.execute().await
 }
