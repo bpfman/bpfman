@@ -76,7 +76,7 @@ pub fn start_bpfman() -> Result<ChildGuard> {
     debug!("Starting bpfman");
 
     let bpfman_process = Command::cargo_bin("bpfman")?
-        .args(["system", "service"])
+        .args(["system", "service", "--timeout=0"])
         .env("RUST_LOG", "bpfman=debug")
         .spawn()
         .map(|c| ChildGuard {

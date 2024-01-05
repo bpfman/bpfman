@@ -21,15 +21,13 @@ use tar::Archive;
 use tokio::{
     select,
     sync::{
+        broadcast,
         mpsc::{self, Receiver},
         oneshot,
     },
 };
 
-use crate::{
-    oci_utils::{cosign::CosignVerifier, ImageError},
-    serve::shutdown_handler,
-};
+use crate::oci_utils::{cosign::CosignVerifier, ImageError};
 
 #[derive(Debug, Deserialize, Default)]
 pub struct ContainerImageMetadata {
@@ -147,12 +145,12 @@ impl ImageManager {
         })
     }
 
-    pub(crate) async fn run(&mut self, use_activity_timer: bool) {
+    pub(crate) async fn run(&mut self, mut shutdown_rx: broadcast::Receiver<()>) {
         loop {
             // Start receiving messages
             select! {
                 biased;
-                _ = shutdown_handler(use_activity_timer) => {
+                _ = shutdown_rx.recv() => {
                     info!("image_manager: Signal received to stop command processing");
                     self.database.flush().expect("Unable to flush database to disk before shutting down ImageManager");
                     break;

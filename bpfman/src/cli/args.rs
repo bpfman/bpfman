@@ -312,6 +312,9 @@ pub(crate) struct ServiceArgs {
     /// Enable CSI support.
     #[clap(long)]
     pub(crate) csi_support: bool,
+    /// Shutdown after N seconds of inactivity. Use 0 to disable.
+    #[clap(long, default_value = "15")]
+    pub(crate) timeout: u64,
 }
 
 #[derive(Subcommand, Debug)]
