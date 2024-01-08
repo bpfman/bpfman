@@ -37,4 +37,4 @@ RUN dnf makecache --refresh && dnf -y install bpftool tcpdump
 
 COPY --from=bpfman-build  ./usr/src/bpfman/bpfman .
 
-ENTRYPOINT ["./bpfman", "system", "service"]
+ENTRYPOINT ["./bpfman", "system", "service", "--timeout=0"]

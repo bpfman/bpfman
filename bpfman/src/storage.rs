@@ -23,18 +23,17 @@ use bpfman_csi::v1::{
     NodeUnpublishVolumeResponse, NodeUnstageVolumeRequest, NodeUnstageVolumeResponse, ProbeRequest,
     ProbeResponse,
 };
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use nix::mount::{mount, umount, MsFlags};
 use tokio::{
     net::UnixListener,
-    sync::{mpsc, mpsc::Sender, oneshot},
+    sync::{broadcast, mpsc, mpsc::Sender, oneshot},
 };
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::{transport::Server, Request, Response, Status};
 
 use crate::{
     command::Command,
-    serve::shutdown_handler,
     utils::{create_bpffs, set_dir_permissions, set_file_permissions, SOCK_MODE},
 };
 
@@ -361,7 +360,7 @@ impl StorageManager {
         }
     }
 
-    pub async fn run(self, use_activity_timer: bool) {
+    pub async fn run(self, mut shutdown_channel: broadcast::Receiver<()>) {
         let path: &Path = Path::new(RTPATH_BPFMAN_CSI_SOCKET);
         // Listen on Unix socket
         if path.exists() {
@@ -379,7 +378,12 @@ impl StorageManager {
         let serve = Server::builder()
             .add_service(node_service)
             .add_service(identity_service)
-            .serve_with_incoming_shutdown(uds_stream, shutdown_handler(use_activity_timer));
+            .serve_with_incoming_shutdown(uds_stream, async move {
+                match shutdown_channel.recv().await {
+                    Ok(()) => debug!("Unix Socket: Received shutdown signal"),
+                    Err(e) => error!("Error receiving shutdown signal {:?}", e),
+                };
+            });
 
         tokio::spawn(async move {
             info!("CSI Plugin Listening on {}", path.display());

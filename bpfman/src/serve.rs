@@ -12,14 +12,13 @@ use bpfman_api::{
     config::Config, util::directories::RTPATH_BPFMAN_SOCKET, v1::bpfman_server::BpfmanServer,
 };
 use libsystemd::activation::IsType;
-use log::{debug, info};
+use log::{debug, error, info};
 use tokio::{
     join,
     net::UnixListener,
-    select,
     signal::unix::{signal, SignalKind},
-    sync::mpsc,
-    task::JoinHandle,
+    sync::{broadcast, mpsc},
+    task::{JoinHandle, JoinSet},
 };
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::Server;
@@ -33,7 +32,13 @@ use crate::{
     ROOT_DB,
 };
 
-pub async fn serve(config: &Config, csi_support: bool) -> anyhow::Result<()> {
+pub async fn serve(config: &Config, csi_support: bool, timeout: u64) -> anyhow::Result<()> {
+    let (shutdown_tx, shutdown_rx1) = broadcast::channel(32);
+    let shutdown_rx2 = shutdown_tx.subscribe();
+    let shutdown_rx3 = shutdown_tx.subscribe();
+    let shutdown_rx4 = shutdown_tx.subscribe();
+    let shutdown_handle = tokio::spawn(shutdown_handler(timeout, shutdown_tx));
+
     let (tx, rx) = mpsc::channel(32);
 
     let loader = BpfmanLoader::new(tx.clone());
@@ -42,7 +47,7 @@ pub async fn serve(config: &Config, csi_support: bool) -> anyhow::Result<()> {
 
     let mut listeners: Vec<_> = Vec::new();
 
-    let (handle, use_activity_timer) = serve_unix(path.clone(), service.clone()).await?;
+    let handle = serve_unix(path.clone(), service.clone(), shutdown_rx1).await?;
     listeners.push(handle);
 
     let allow_unsigned = config.signing.as_ref().map_or(true, |s| s.allow_unsigned);
@@ -50,7 +55,7 @@ pub async fn serve(config: &Config, csi_support: bool) -> anyhow::Result<()> {
 
     let mut image_manager = ImageManager::new(ROOT_DB.clone(), allow_unsigned, irx).await?;
     let image_manager_handle = tokio::spawn(async move {
-        image_manager.run(use_activity_timer).await;
+        image_manager.run(shutdown_rx2).await;
     });
 
     let mut bpf_manager = BpfManager::new(config.clone(), rx, itx);
@@ -74,12 +79,13 @@ pub async fn serve(config: &Config, csi_support: bool) -> anyhow::Result<()> {
     if csi_support {
         let storage_manager = StorageManager::new(tx);
         let storage_manager_handle =
-            tokio::spawn(async move { storage_manager.run(use_activity_timer).await });
-        let (_, res_image, res_storage, _) = join!(
+            tokio::spawn(async move { storage_manager.run(shutdown_rx3).await });
+        let (_, res_image, res_storage, _, _) = join!(
             join_listeners(listeners),
             image_manager_handle,
             storage_manager_handle,
-            bpf_manager.process_commands(use_activity_timer)
+            bpf_manager.process_commands(shutdown_rx4),
+            shutdown_handle
         );
         if let Some(e) = res_storage.err() {
             return Err(e.into());
@@ -88,10 +94,11 @@ pub async fn serve(config: &Config, csi_support: bool) -> anyhow::Result<()> {
             return Err(e.into());
         }
     } else {
-        let (_, res_image, _) = join!(
+        let (_, res_image, _, _) = join!(
             join_listeners(listeners),
             image_manager_handle,
-            bpf_manager.process_commands(use_activity_timer)
+            bpf_manager.process_commands(shutdown_rx4),
+            shutdown_handle
         );
         if let Some(e) = res_image.err() {
             return Err(e.into());
@@ -101,26 +108,29 @@ pub async fn serve(config: &Config, csi_support: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub(crate) async fn shutdown_handler(use_activity_timer: bool) {
-    const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(15);
-
-    let mut sigint = signal(SignalKind::interrupt()).unwrap();
-    let mut sigterm = signal(SignalKind::terminate()).unwrap();
-
-    if use_activity_timer {
-        let mut timer = Box::pin(tokio::time::sleep(TIMEOUT));
-
-        select! {
-            _ = sigint.recv() => {debug!("Received SIGINT")},
-            _ = sigterm.recv() => {debug!("Received SIGTERM")},
-            _ = &mut timer => {debug!("Inactivity timer expired")},
-        }
+pub(crate) async fn shutdown_handler(timeout: u64, shutdown_tx: broadcast::Sender<()>) {
+    let mut joinset = JoinSet::new();
+    if timeout > 0 {
+        info!("Using inactivity timer of {} seconds", timeout);
+        let duration: std::time::Duration = std::time::Duration::from_secs(timeout);
+        joinset.spawn(Box::pin(tokio::time::sleep(duration)));
     } else {
-        select! {
-            _ = sigint.recv() => {debug!("Received SIGINT")},
-            _ = sigterm.recv() => {debug!("Received SIGTERM")},
-        }
+        info!("Using no inactivity timer");
     }
+    let mut sigint = signal(SignalKind::interrupt()).unwrap();
+    joinset.spawn(async move {
+        sigint.recv().await;
+        debug!("Received SIGINT");
+    });
+
+    let mut sigterm = signal(SignalKind::terminate()).unwrap();
+    joinset.spawn(async move {
+        sigterm.recv().await;
+        debug!("Received SIGTERM");
+    });
+
+    joinset.join_next().await;
+    shutdown_tx.send(()).unwrap();
 }
 
 async fn join_listeners(listeners: Vec<JoinHandle<()>>) {
@@ -135,30 +145,30 @@ async fn join_listeners(listeners: Vec<JoinHandle<()>>) {
 async fn serve_unix(
     path: String,
     service: BpfmanServer<BpfmanLoader>,
-) -> anyhow::Result<(JoinHandle<()>, bool)> {
-    let use_activity_timer;
+    mut shutdown_channel: broadcast::Receiver<()>,
+) -> anyhow::Result<JoinHandle<()>> {
     let uds_stream = if let Ok(stream) = systemd_unix_stream(path.clone()) {
-        use_activity_timer = true;
         stream
     } else {
-        use_activity_timer = false;
         std_unix_stream(path.clone()).await?
     };
 
     let serve = Server::builder()
         .add_service(service)
-        .serve_with_incoming_shutdown(uds_stream, shutdown_handler(use_activity_timer));
+        .serve_with_incoming_shutdown(uds_stream, async move {
+            match shutdown_channel.recv().await {
+                Ok(()) => debug!("Unix Socket: Received shutdown signal"),
+                Err(e) => error!("Error receiving shutdown signal {:?}", e),
+            };
+        });
 
-    Ok((
-        tokio::spawn(async move {
-            info!("Listening on {path}");
-            if let Err(e) = serve.await {
-                eprintln!("Error = {e:?}");
-            }
-            info!("Shutdown Unix Handler {}", path);
-        }),
-        use_activity_timer,
-    ))
+    Ok(tokio::spawn(async move {
+        info!("Listening on {path}");
+        if let Err(e) = serve.await {
+            eprintln!("Error = {e:?}");
+        }
+        info!("Shutdown Unix Handler {}", path);
+    }))
 }
 
 fn systemd_unix_stream(_path: String) -> anyhow::Result<UnixListenerStream> {

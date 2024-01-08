@@ -24,4 +24,4 @@ FROM scratch
 
 COPY --from=bpfman-build  /usr/src/bpfman/target/x86_64-unknown-linux-musl/release/bpfman .
 
-ENTRYPOINT ["./bpfman"]
+ENTRYPOINT ["./bpfman", "system", "service", "--timeout=0"]

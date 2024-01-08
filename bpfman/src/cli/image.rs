@@ -13,9 +13,9 @@ use crate::cli::{
 };
 
 impl ImageSubCommand {
-    pub(crate) fn execute(&self) -> anyhow::Result<()> {
+    pub(crate) async fn execute(&self) -> anyhow::Result<()> {
         match self {
-            ImageSubCommand::Pull(args) => execute_pull(args),
+            ImageSubCommand::Pull(args) => execute_pull(args).await,
         }
     }
 }
@@ -44,17 +44,11 @@ impl TryFrom<&PullBytecodeArgs> for BytecodeImage {
     }
 }
 
-pub(crate) fn execute_pull(args: &PullBytecodeArgs) -> anyhow::Result<()> {
-    tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            let channel = select_channel().expect("failed to select channel");
-            let mut client = BpfmanClient::new(channel);
-            let image: BytecodeImage = args.try_into()?;
-            let request = tonic::Request::new(PullBytecodeRequest { image: Some(image) });
-            let _response = client.pull_bytecode(request).await?;
-            Ok::<(), anyhow::Error>(())
-        })
+pub(crate) async fn execute_pull(args: &PullBytecodeArgs) -> anyhow::Result<()> {
+    let channel = select_channel().expect("failed to select channel");
+    let mut client = BpfmanClient::new(channel);
+    let image: BytecodeImage = args.try_into()?;
+    let request = tonic::Request::new(PullBytecodeRequest { image: Some(image) });
+    let _response = client.pull_bytecode(request).await?;
+    Ok(())
 }
