@@ -7,7 +7,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::anyhow;
 use aya::{
     programs::{
         kprobe::KProbeLink, links::FdLink, loaded_programs, trace_point::TracePointLink,
@@ -21,9 +20,9 @@ use bpfman_api::{
     ProbeType::{self, *},
     ProgramType,
 };
-use log::{debug, info, warn};
+use log::{debug, info};
 use tokio::{
-    fs::{create_dir_all, read_dir, remove_dir_all},
+    fs::{create_dir_all, remove_dir_all},
     select,
     sync::{
         broadcast,
@@ -33,11 +32,7 @@ use tokio::{
 };
 
 use crate::{
-    command::{
-        BpfMap, Command, Direction,
-        Direction::{Egress, Ingress},
-        Program, ProgramData, PullBytecodeArgs, UnloadArgs,
-    },
+    command::{BpfMap, Command, Direction, Program, ProgramData, PullBytecodeArgs, UnloadArgs},
     errors::BpfmanError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
     oci_utils::image_manager::Command as ImageManagerCommand,
@@ -218,22 +213,18 @@ impl BpfManager {
     pub(crate) async fn rebuild_state(&mut self) -> Result<(), anyhow::Error> {
         debug!("BpfManager::rebuild_state()");
 
-        // re-build programs from database
+        // Rebuild dispatchers after rebuilding programs.
+        let mut dispatchers = Vec::new();
+
+        // re-build programs from database, cache dispatchers to rebuild after.
         for tree_name in ROOT_DB.tree_names() {
             let name = &bytes_to_string(&tree_name);
             let tree = ROOT_DB
                 .open_tree(name)
                 .expect("unable to open database tree");
 
-            if name.contains("xdp_dispatcher") {
-                let dispatcher = XdpDispatcher::new_from_db(tree);
-                let if_index = dispatcher.get_ifindex()?;
-                debug!("rebuilding state for xdp dispatcher {}", if_index);
-
-                self.dispatchers.insert(
-                    DispatcherId::Xdp(DispatcherInfo(if_index, None)),
-                    Dispatcher::Xdp(dispatcher),
-                );
+            if name.contains("dispatcher") {
+                dispatchers.push(name.clone());
                 continue;
             }
 
@@ -265,61 +256,42 @@ impl BpfManager {
             }
         }
 
-        self.rebuild_dispatcher_state(ProgramType::Xdp, None, RTDIR_XDP_DISPATCHER)
-            .await?;
-        self.rebuild_dispatcher_state(ProgramType::Tc, Some(Ingress), RTDIR_TC_INGRESS_DISPATCHER)
-            .await?;
-        self.rebuild_dispatcher_state(ProgramType::Tc, Some(Egress), RTDIR_TC_EGRESS_DISPATCHER)
-            .await?;
+        for dispatcher in dispatchers {
+            let tree = ROOT_DB
+                .open_tree(dispatcher.clone())
+                .expect("unable to open database tree");
 
-        Ok(())
-    }
+            // TODO For XDP currently this just assumes everything is correct already
+            // in the kernel, eventually we'll need to implement real xdp_dispatcher
+            // rebuild logic for XDP like what's done for TC in
+            // `rebuild_multiattach_dispatcher` as well as add unit test coverage.
+            if dispatcher.contains("xdp_dispatcher") {
+                let dispatcher = XdpDispatcher::new_from_db(tree);
+                let if_index = dispatcher.get_ifindex()?;
+                debug!("rebuilding state for xdp dispatcher {}", if_index);
 
-    pub(crate) async fn rebuild_dispatcher_state(
-        &mut self,
-        program_type: ProgramType,
-        direction: Option<Direction>,
-        path: &str,
-    ) -> Result<(), anyhow::Error> {
-        let mut dispatcher_dir = read_dir(path).await?;
-        while let Some(entry) = dispatcher_dir.next_entry().await? {
-            let name = entry.file_name();
-            let parts: Vec<&str> = name.to_str().unwrap().split('_').collect();
-            if parts.len() != 2 {
-                continue;
-            }
-            let if_index: u32 = parts[0].parse().unwrap();
-            let revision: u32 = parts[1].parse().unwrap();
-            match program_type {
-                //TODO astoycos refactor this when done with XDP
-                // ProgramType::Xdp => {
-                //     self.dispatchers.
-                //     let dispatcher = XdpDispatcher::load(if_index, revision)?;
-                //     self.dispatchers.insert(
-                //         DispatcherId::Xdp(DispatcherInfo(if_index, None)),
-                //         Dispatcher::Xdp(dispatcher),
-                //     );
-                // }
-                ProgramType::Tc => {
-                    let direction = direction.expect("direction required for tc programs");
+                self.dispatchers.insert(
+                    DispatcherId::Xdp(DispatcherInfo(if_index, None)),
+                    Dispatcher::Xdp(dispatcher),
+                );
+            } else {
+                let dispatcher = TcDispatcher::new_from_db(tree);
+                let if_index = dispatcher.get_ifindex()?;
+                let direction = dispatcher.get_direction()?;
+                debug!("rebuilding state for tc dispatcher {}", if_index);
 
-                    let dispatcher = TcDispatcher::load(if_index, direction, revision).unwrap();
-                    let did = DispatcherId::Tc(DispatcherInfo(if_index, Some(direction)));
+                let did = DispatcherId::Tc(DispatcherInfo(if_index, Some(direction)));
 
-                    self.dispatchers.insert(
-                        DispatcherId::Tc(DispatcherInfo(if_index, Some(direction))),
-                        Dispatcher::Tc(dispatcher),
-                    );
+                self.dispatchers
+                    .insert(did.clone(), Dispatcher::Tc(dispatcher));
 
-                    self.rebuild_multiattach_dispatcher(
-                        did,
-                        if_index,
-                        ProgramType::Tc,
-                        Some(direction),
-                    )
-                    .await?;
-                }
-                _ => return Err(anyhow!("invalid program type {:?}", program_type)),
+                self.rebuild_multiattach_dispatcher(
+                    did,
+                    if_index,
+                    ProgramType::Tc,
+                    Some(direction),
+                )
+                .await?;
             }
         }
 

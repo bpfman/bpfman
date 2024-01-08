@@ -65,15 +65,6 @@ impl XdpMode {
             XdpMode::Hw => XdpFlags::HW_MODE,
         }
     }
-
-    pub fn from_u32(val: u32) -> Self {
-        match val {
-            0 => XdpMode::Skb,
-            1 => XdpMode::Drv,
-            2 => XdpMode::Hw,
-            _ => panic!("unable to marshall u32 to XdpMode"),
-        }
-    }
 }
 
 impl TryFrom<u32> for XdpMode {
