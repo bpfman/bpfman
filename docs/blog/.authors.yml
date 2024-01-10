@@ -15,3 +15,7 @@ authors:
     name: Billy McFall
     description: Senior Principal Software Engineer at Red Hat.  Maintainer on bpfman project.
     avatar: https://github.com/billy99.png
+  astoycos:
+    name: Andrew Stoycos
+    description: Senior Software Engineer at Red Hat.  Maintainer on bpfman project.
+    avatar: https://github.com/astoycos.png
