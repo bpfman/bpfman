@@ -31,6 +31,7 @@ use crate::{
     oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
     utils::{
         bytes_to_bool, bytes_to_i32, bytes_to_string, bytes_to_u32, bytes_to_u64, bytes_to_usize,
+        sled_get, sled_get_option, sled_insert,
     },
     ROOT_DB,
 };
@@ -349,59 +350,6 @@ impl ProgramData {
         Ok(())
     }
 
-    fn get(&self, key: &str) -> Result<Vec<u8>, BpfmanError> {
-        let value = self.db_tree.get(key).map_err(|e| {
-            BpfmanError::DatabaseError(
-                format!(
-                    "Unable to get database entry {key} from tree {}",
-                    bytes_to_string(&self.db_tree.name())
-                ),
-                e.to_string(),
-            )
-        })?;
-
-        match value.clone() {
-            Some(v) => Ok(v.to_vec()),
-            None => Err(BpfmanError::DatabaseError(
-                format!(
-                    "Database entry {key} does not exist in tree {:?}",
-                    bytes_to_string(&self.db_tree.name())
-                ),
-                "".to_string(),
-            )),
-        }
-    }
-
-    fn get_option(&self, key: &str) -> Result<Option<sled::IVec>, BpfmanError> {
-        self.db_tree.get(key).map_err(|e| {
-            BpfmanError::DatabaseError(
-                format!(
-                    "Unable to get database entry {key} from tree {} {}",
-                    bytes_to_string(&self.db_tree.name()),
-                    ROOT_DB
-                        .tree_names()
-                        .iter()
-                        .map(|n| bytes_to_string(n))
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                ),
-                e.to_string(),
-            )
-        })
-    }
-
-    fn insert(&self, key: &str, value: &[u8]) -> Result<(), BpfmanError> {
-        self.db_tree.insert(key, value).map(|_| ()).map_err(|e| {
-            BpfmanError::DatabaseError(
-                format!(
-                    "Unable to insert database entry {key} into tree {:?}",
-                    self.db_tree.name()
-                ),
-                e.to_string(),
-            )
-        })
-    }
-
     /*
      * Methods for setting and getting program data for programs managed by
      * bpfman.
@@ -412,47 +360,52 @@ impl ProgramData {
     // rather than ProgramType::Xdp or ProgramType::Tc.
     // Kind should only be set on programs loaded by bpfman.
     fn set_kind(&mut self, kind: ProgramType) -> Result<(), BpfmanError> {
-        self.insert("kind", &(Into::<u32>::into(kind)).to_ne_bytes())
+        sled_insert(
+            &self.db_tree,
+            "kind",
+            &(Into::<u32>::into(kind)).to_ne_bytes(),
+        )
     }
 
     fn get_kind(&self) -> Result<Option<ProgramType>, BpfmanError> {
-        self.get_option("kind")
-            .map(|v| v.map(|v| bytes_to_u32(v.to_vec()).try_into().unwrap()))
+        sled_get_option(&self.db_tree, "kind")
+            .map(|v| v.map(|v| bytes_to_u32(v).try_into().unwrap()))
     }
 
     pub(crate) fn set_name(&mut self, name: &str) -> Result<(), BpfmanError> {
-        self.insert("name", name.as_bytes())
+        sled_insert(&self.db_tree, "name", name.as_bytes())
     }
 
     pub(crate) fn get_name(&self) -> Result<String, BpfmanError> {
-        self.get("name").map(|v| bytes_to_string(&v))
+        sled_get(&self.db_tree, "name").map(|v| bytes_to_string(&v))
     }
 
     pub(crate) fn set_id(&mut self, id: u32) -> Result<(), BpfmanError> {
         // set db and local cache
         self.id = id;
-        self.insert("id", &id.to_ne_bytes())
+        sled_insert(&self.db_tree, "id", &id.to_ne_bytes())
     }
 
     pub(crate) fn get_id(&self) -> Result<u32, BpfmanError> {
-        self.get("id").map(|v| bytes_to_u32(v.to_vec()))
+        sled_get(&self.db_tree, "id").map(bytes_to_u32)
     }
 
     pub(crate) fn set_location(&mut self, loc: Location) -> Result<(), BpfmanError> {
         match loc {
-            Location::File(l) => self.insert("location_filename", l.as_bytes()),
+            Location::File(l) => sled_insert(&self.db_tree, "location_filename", l.as_bytes()),
             Location::Image(l) => {
-                self.insert("location_image_url", l.image_url.as_bytes())?;
-                self.insert(
+                sled_insert(&self.db_tree, "location_image_url", l.image_url.as_bytes())?;
+                sled_insert(
+                    &self.db_tree,
                     "location_image_pull_policy",
                     l.image_pull_policy.to_string().as_bytes(),
                 )?;
                 if let Some(u) = l.username {
-                    self.insert("location_username", u.as_bytes())?;
+                    sled_insert(&self.db_tree, "location_username", u.as_bytes())?;
                 };
 
                 if let Some(p) = l.password {
-                    self.insert("location_password", p.as_bytes())?;
+                    sled_insert(&self.db_tree, "location_password", p.as_bytes())?;
                 };
                 Ok(())
             }
@@ -469,20 +422,22 @@ impl ProgramData {
     }
 
     pub(crate) fn get_location(&self) -> Result<Location, BpfmanError> {
-        if let Ok(l) = self.get("location_filename") {
+        if let Ok(l) = sled_get(&self.db_tree, "location_filename") {
             Ok(Location::File(bytes_to_string(&l).to_string()))
         } else {
             Ok(Location::Image(BytecodeImage {
-                image_url: bytes_to_string(&self.get("location_image_url")?).to_string(),
-                image_pull_policy: bytes_to_string(&self.get("location_image_pull_policy")?)
-                    .as_str()
-                    .try_into()
-                    .unwrap(),
-                username: self
-                    .get_option("location_username")?
+                image_url: bytes_to_string(&sled_get(&self.db_tree, "location_image_url")?)
+                    .to_string(),
+                image_pull_policy: bytes_to_string(&sled_get(
+                    &self.db_tree,
+                    "location_image_pull_policy",
+                )?)
+                .as_str()
+                .try_into()
+                .unwrap(),
+                username: sled_get_option(&self.db_tree, "location_username")?
                     .map(|v| bytes_to_string(&v)),
-                password: self
-                    .get_option("location_password")?
+                password: sled_get_option(&self.db_tree, "location_password")?
                     .map(|v| bytes_to_string(&v)),
             }))
         }
@@ -492,8 +447,9 @@ impl ProgramData {
         &mut self,
         data: HashMap<String, Vec<u8>>,
     ) -> Result<(), BpfmanError> {
-        data.iter()
-            .try_for_each(|(k, v)| self.insert(format!("global_data_{k}").as_str(), v))
+        data.iter().try_for_each(|(k, v)| {
+            sled_insert(&self.db_tree, format!("global_data_{k}").as_str(), v)
+        })
     }
 
     pub(crate) fn get_global_data(&self) -> Result<HashMap<String, Vec<u8>>, BpfmanError> {
@@ -525,8 +481,13 @@ impl ProgramData {
         &mut self,
         data: HashMap<String, String>,
     ) -> Result<(), BpfmanError> {
-        data.iter()
-            .try_for_each(|(k, v)| self.insert(format!("metadata_{k}").as_str(), v.as_bytes()))
+        data.iter().try_for_each(|(k, v)| {
+            sled_insert(
+                &self.db_tree,
+                format!("metadata_{k}").as_str(),
+                v.as_bytes(),
+            )
+        })
     }
 
     pub(crate) fn get_metadata(&self) -> Result<HashMap<String, String>, BpfmanError> {
@@ -552,20 +513,23 @@ impl ProgramData {
     }
 
     pub(crate) fn set_map_owner_id(&mut self, id: u32) -> Result<(), BpfmanError> {
-        self.insert("map_owner_id", &id.to_ne_bytes())
+        sled_insert(&self.db_tree, "map_owner_id", &id.to_ne_bytes())
     }
 
     pub(crate) fn get_map_owner_id(&self) -> Result<Option<u32>, BpfmanError> {
-        self.get_option("map_owner_id")
-            .map(|v| v.map(|v| bytes_to_u32(v.to_vec())))
+        sled_get_option(&self.db_tree, "map_owner_id").map(|v| v.map(bytes_to_u32))
     }
 
     pub(crate) fn set_map_pin_path(&mut self, path: &Path) -> Result<(), BpfmanError> {
-        self.insert("map_pin_path", path.to_str().unwrap().as_bytes())
+        sled_insert(
+            &self.db_tree,
+            "map_pin_path",
+            path.to_str().unwrap().as_bytes(),
+        )
     }
 
     pub(crate) fn get_map_pin_path(&self) -> Result<Option<PathBuf>, BpfmanError> {
-        self.get_option("map_pin_path")
+        sled_get_option(&self.db_tree, "map_pin_path")
             .map(|v| v.map(|f| PathBuf::from(bytes_to_string(&f))))
     }
 
@@ -574,7 +538,11 @@ impl ProgramData {
         self.clear_maps_used_by();
 
         ids.iter().enumerate().try_for_each(|(i, v)| {
-            self.insert(format!("maps_used_by_{i}").as_str(), &v.to_ne_bytes())
+            sled_insert(
+                &self.db_tree,
+                format!("maps_used_by_{i}").as_str(),
+                &v.to_ne_bytes(),
+            )
         })
     }
 
@@ -610,30 +578,35 @@ impl ProgramData {
      */
 
     pub(crate) fn get_kernel_name(&self) -> Result<String, BpfmanError> {
-        self.get("kernel_name").map(|n| bytes_to_string(&n))
+        sled_get(&self.db_tree, "kernel_name").map(|n| bytes_to_string(&n))
     }
 
     pub(crate) fn set_kernel_name(&mut self, name: &str) -> Result<(), BpfmanError> {
-        self.insert("kernel_name", name.as_bytes())
+        sled_insert(&self.db_tree, "kernel_name", name.as_bytes())
     }
 
     pub(crate) fn get_kernel_program_type(&self) -> Result<u32, BpfmanError> {
-        self.get("kernel_program_type").map(bytes_to_u32)
+        sled_get(&self.db_tree, "kernel_program_type").map(bytes_to_u32)
     }
 
     pub(crate) fn set_kernel_program_type(&mut self, program_type: u32) -> Result<(), BpfmanError> {
-        self.insert("kernel_program_type", &program_type.to_ne_bytes())
+        sled_insert(
+            &self.db_tree,
+            "kernel_program_type",
+            &program_type.to_ne_bytes(),
+        )
     }
 
     pub(crate) fn get_kernel_loaded_at(&self) -> Result<String, BpfmanError> {
-        self.get("kernel_loaded_at").map(|n| bytes_to_string(&n))
+        sled_get(&self.db_tree, "kernel_loaded_at").map(|n| bytes_to_string(&n))
     }
 
     pub(crate) fn set_kernel_loaded_at(
         &mut self,
         loaded_at: SystemTime,
     ) -> Result<(), BpfmanError> {
-        self.insert(
+        sled_insert(
+            &self.db_tree,
             "kernel_loaded_at",
             DateTime::<Local>::from(loaded_at)
                 .format("%Y-%m-%dT%H:%M:%S%z")
@@ -643,25 +616,30 @@ impl ProgramData {
     }
 
     pub(crate) fn get_kernel_tag(&self) -> Result<String, BpfmanError> {
-        self.get("kernel_tag").map(|n| bytes_to_string(&n))
+        sled_get(&self.db_tree, "kernel_tag").map(|n| bytes_to_string(&n))
     }
 
     pub(crate) fn set_kernel_tag(&mut self, tag: u64) -> Result<(), BpfmanError> {
-        self.insert("kernel_tag", format!("{:x}", tag).as_str().as_bytes())
+        sled_insert(
+            &self.db_tree,
+            "kernel_tag",
+            format!("{:x}", tag).as_str().as_bytes(),
+        )
     }
 
     pub(crate) fn set_kernel_gpl_compatible(
         &mut self,
         gpl_compatible: bool,
     ) -> Result<(), BpfmanError> {
-        self.insert(
+        sled_insert(
+            &self.db_tree,
             "kernel_gpl_compatible",
             &(gpl_compatible as i8 % 2).to_ne_bytes(),
         )
     }
 
     pub(crate) fn get_kernel_gpl_compatible(&self) -> Result<bool, BpfmanError> {
-        self.get("kernel_gpl_compatible").map(bytes_to_bool)
+        sled_get(&self.db_tree, "kernel_gpl_compatible").map(bytes_to_bool)
     }
 
     pub(crate) fn get_kernel_map_ids(&self) -> Result<Vec<u32>, BpfmanError> {
@@ -679,64 +657,83 @@ impl ProgramData {
     pub(crate) fn set_kernel_map_ids(&mut self, map_ids: Vec<u32>) -> Result<(), BpfmanError> {
         let map_ids = map_ids.iter().map(|i| i.to_ne_bytes()).collect::<Vec<_>>();
 
-        map_ids
-            .iter()
-            .enumerate()
-            .try_for_each(|(i, v)| self.insert(format!("kernel_map_ids_{i}").as_str(), v))
+        map_ids.iter().enumerate().try_for_each(|(i, v)| {
+            sled_insert(&self.db_tree, format!("kernel_map_ids_{i}").as_str(), v)
+        })
     }
 
     pub(crate) fn get_kernel_btf_id(&self) -> Result<u32, BpfmanError> {
-        self.get("kernel_btf_id").map(bytes_to_u32)
+        sled_get(&self.db_tree, "kernel_btf_id").map(bytes_to_u32)
     }
 
     pub(crate) fn set_kernel_btf_id(&mut self, btf_id: u32) -> Result<(), BpfmanError> {
-        self.insert("kernel_btf_id", &btf_id.to_ne_bytes())
+        sled_insert(&self.db_tree, "kernel_btf_id", &btf_id.to_ne_bytes())
     }
 
     pub(crate) fn get_kernel_bytes_xlated(&self) -> Result<u32, BpfmanError> {
-        self.get("kernel_bytes_xlated").map(bytes_to_u32)
+        sled_get(&self.db_tree, "kernel_bytes_xlated").map(bytes_to_u32)
     }
 
     pub(crate) fn set_kernel_bytes_xlated(&mut self, bytes_xlated: u32) -> Result<(), BpfmanError> {
-        self.insert("kernel_bytes_xlated", &bytes_xlated.to_ne_bytes())
+        sled_insert(
+            &self.db_tree,
+            "kernel_bytes_xlated",
+            &bytes_xlated.to_ne_bytes(),
+        )
     }
 
     pub(crate) fn get_kernel_jited(&self) -> Result<bool, BpfmanError> {
-        self.get("kernel_jited").map(bytes_to_bool)
+        sled_get(&self.db_tree, "kernel_jited").map(bytes_to_bool)
     }
 
     pub(crate) fn set_kernel_jited(&mut self, jited: bool) -> Result<(), BpfmanError> {
-        self.insert("kernel_jited", &(jited as i8 % 2).to_ne_bytes())
+        sled_insert(
+            &self.db_tree,
+            "kernel_jited",
+            &(jited as i8 % 2).to_ne_bytes(),
+        )
     }
 
     pub(crate) fn get_kernel_bytes_jited(&self) -> Result<u32, BpfmanError> {
-        self.get("kernel_bytes_jited").map(bytes_to_u32)
+        sled_get(&self.db_tree, "kernel_bytes_jited").map(bytes_to_u32)
     }
 
     pub(crate) fn set_kernel_bytes_jited(&mut self, bytes_jited: u32) -> Result<(), BpfmanError> {
-        self.insert("kernel_bytes_jited", &bytes_jited.to_ne_bytes())
+        sled_insert(
+            &self.db_tree,
+            "kernel_bytes_jited",
+            &bytes_jited.to_ne_bytes(),
+        )
     }
 
     pub(crate) fn get_kernel_bytes_memlock(&self) -> Result<u32, BpfmanError> {
-        self.get("kernel_bytes_memlock").map(bytes_to_u32)
+        sled_get(&self.db_tree, "kernel_bytes_memlock").map(bytes_to_u32)
     }
 
     pub(crate) fn set_kernel_bytes_memlock(
         &mut self,
         bytes_memlock: u32,
     ) -> Result<(), BpfmanError> {
-        self.insert("kernel_bytes_memlock", &bytes_memlock.to_ne_bytes())
+        sled_insert(
+            &self.db_tree,
+            "kernel_bytes_memlock",
+            &bytes_memlock.to_ne_bytes(),
+        )
     }
 
     pub(crate) fn get_kernel_verified_insns(&self) -> Result<u32, BpfmanError> {
-        self.get("kernel_verified_insns").map(bytes_to_u32)
+        sled_get(&self.db_tree, "kernel_verified_insns").map(bytes_to_u32)
     }
 
     pub(crate) fn set_kernel_verified_insns(
         &mut self,
         verified_insns: u32,
     ) -> Result<(), BpfmanError> {
-        self.insert("kernel_verified_insns", &verified_insns.to_ne_bytes())
+        sled_insert(
+            &self.db_tree,
+            "kernel_verified_insns",
+            &verified_insns.to_ne_bytes(),
+        )
     }
 
     pub(crate) fn set_kernel_info(&mut self, prog: &AyaProgInfo) -> Result<(), BpfmanError> {
@@ -749,13 +746,20 @@ impl ProgramData {
         self.set_kernel_loaded_at(prog.loaded_at())?;
         self.set_kernel_tag(prog.tag())?;
         self.set_kernel_gpl_compatible(prog.gpl_compatible())?;
-        self.set_kernel_map_ids(prog.map_ids().map_err(BpfmanError::BpfProgramError)?)?;
         self.set_kernel_btf_id(prog.btf_id().map_or(0, |n| n.into()))?;
         self.set_kernel_bytes_xlated(prog.size_translated())?;
         self.set_kernel_jited(prog.size_jitted() != 0)?;
         self.set_kernel_bytes_jited(prog.size_jitted())?;
-        self.set_kernel_bytes_memlock(prog.memory_locked().map_err(BpfmanError::BpfProgramError)?)?;
         self.set_kernel_verified_insns(prog.verified_instruction_count())?;
+        // Ignore errors here since it's possible the program was deleted mid
+        // list, causing aya apis which make system calls using the file descriptor
+        // to fail.
+        if let Ok(ids) = prog.map_ids() {
+            self.set_kernel_map_ids(ids)?;
+        }
+        if let Ok(bytes_memlock) = prog.memory_locked() {
+            self.set_kernel_bytes_memlock(bytes_memlock)?;
+        }
 
         Ok(())
     }
@@ -837,19 +841,19 @@ impl XdpProgram {
     }
 
     pub(crate) fn set_priority(&mut self, priority: i32) -> Result<(), BpfmanError> {
-        self.data.insert("xdp_priority", &priority.to_ne_bytes())
+        sled_insert(&self.data.db_tree, "xdp_priority", &priority.to_ne_bytes())
     }
 
     pub(crate) fn get_priority(&self) -> Result<i32, BpfmanError> {
-        self.data.get("xdp_priority").map(bytes_to_i32)
+        sled_get(&self.data.db_tree, "xdp_priority").map(bytes_to_i32)
     }
 
     pub(crate) fn set_iface(&mut self, iface: String) -> Result<(), BpfmanError> {
-        self.data.insert("xdp_iface", iface.as_bytes())
+        sled_insert(&self.data.db_tree, "xdp_iface", iface.as_bytes())
     }
 
     pub(crate) fn get_iface(&self) -> Result<String, BpfmanError> {
-        self.data.get("xdp_iface").map(|v| bytes_to_string(&v))
+        sled_get(&self.data.db_tree, "xdp_iface").map(|v| bytes_to_string(&v))
     }
 
     pub(crate) fn set_proceed_on(&mut self, proceed_on: XdpProceedOn) -> Result<(), BpfmanError> {
@@ -858,8 +862,11 @@ impl XdpProgram {
             .iter()
             .enumerate()
             .try_for_each(|(i, v)| {
-                self.data
-                    .insert(format!("xdp_proceed_on_{i}").as_str(), &v.to_ne_bytes())
+                sled_insert(
+                    &self.data.db_tree,
+                    format!("xdp_proceed_on_{i}").as_str(),
+                    &v.to_ne_bytes(),
+                )
             })
     }
 
@@ -883,37 +890,36 @@ impl XdpProgram {
     }
 
     pub(crate) fn set_current_position(&mut self, pos: usize) -> Result<(), BpfmanError> {
-        self.data.insert("xdp_current_position", &pos.to_ne_bytes())
+        sled_insert(
+            &self.data.db_tree,
+            "xdp_current_position",
+            &pos.to_ne_bytes(),
+        )
     }
 
     pub(crate) fn get_current_position(&self) -> Result<Option<usize>, BpfmanError> {
-        Ok(self
-            .data
-            .get_option("xdp_current_position")?
-            .map(|v| bytes_to_usize(v.to_vec())))
+        Ok(sled_get_option(&self.data.db_tree, "xdp_current_position")?.map(bytes_to_usize))
     }
 
     pub(crate) fn set_if_index(&mut self, if_index: u32) -> Result<(), BpfmanError> {
-        self.data.insert("xdp_if_index", &if_index.to_ne_bytes())
+        sled_insert(&self.data.db_tree, "xdp_if_index", &if_index.to_ne_bytes())
     }
 
     pub(crate) fn get_if_index(&self) -> Result<Option<u32>, BpfmanError> {
-        Ok(self
-            .data
-            .get_option("xdp_if_index")?
-            .map(|v| bytes_to_u32(v.to_vec())))
+        Ok(sled_get_option(&self.data.db_tree, "xdp_if_index")?.map(bytes_to_u32))
     }
 
     pub(crate) fn set_attached(&mut self, attached: bool) -> Result<(), BpfmanError> {
-        self.data
-            .insert("xdp_attached", &(attached as i8).to_ne_bytes())
+        sled_insert(
+            &self.data.db_tree,
+            "xdp_attached",
+            &(attached as i8).to_ne_bytes(),
+        )
     }
 
     pub(crate) fn get_attached(&self) -> Result<bool, BpfmanError> {
-        Ok(self
-            .data
-            .get_option("xdp_attached")?
-            .map(|n| bytes_to_bool(n.to_vec()))
+        Ok(sled_get_option(&self.data.db_tree, "xdp_attached")?
+            .map(bytes_to_bool)
             .unwrap_or(false))
     }
 
@@ -951,19 +957,19 @@ impl TcProgram {
     }
 
     pub(crate) fn set_priority(&mut self, priority: i32) -> Result<(), BpfmanError> {
-        self.data.insert("tc_priority", &priority.to_ne_bytes())
+        sled_insert(&self.data.db_tree, "tc_priority", &priority.to_ne_bytes())
     }
 
     pub(crate) fn get_priority(&self) -> Result<i32, BpfmanError> {
-        self.data.get("tc_priority").map(bytes_to_i32)
+        sled_get(&self.data.db_tree, "tc_priority").map(bytes_to_i32)
     }
 
     pub(crate) fn set_iface(&mut self, iface: String) -> Result<(), BpfmanError> {
-        self.data.insert("tc_iface", iface.as_bytes())
+        sled_insert(&self.data.db_tree, "tc_iface", iface.as_bytes())
     }
 
     pub(crate) fn get_iface(&self) -> Result<String, BpfmanError> {
-        self.data.get("tc_iface").map(|v| bytes_to_string(&v))
+        sled_get(&self.data.db_tree, "tc_iface").map(|v| bytes_to_string(&v))
     }
 
     pub(crate) fn set_proceed_on(&mut self, proceed_on: TcProceedOn) -> Result<(), BpfmanError> {
@@ -972,8 +978,11 @@ impl TcProgram {
             .iter()
             .enumerate()
             .try_for_each(|(i, v)| {
-                self.data
-                    .insert(format!("tc_proceed_on_{i}").as_str(), &v.to_ne_bytes())
+                sled_insert(
+                    &self.data.db_tree,
+                    format!("tc_proceed_on_{i}").as_str(),
+                    &v.to_ne_bytes(),
+                )
             })
     }
 
@@ -994,48 +1003,49 @@ impl TcProgram {
     }
 
     pub(crate) fn set_current_position(&mut self, pos: usize) -> Result<(), BpfmanError> {
-        self.data.insert("tc_current_position", &pos.to_ne_bytes())
+        sled_insert(
+            &self.data.db_tree,
+            "tc_current_position",
+            &pos.to_ne_bytes(),
+        )
     }
 
     pub(crate) fn get_current_position(&self) -> Result<Option<usize>, BpfmanError> {
-        Ok(self
-            .data
-            .get_option("tc_current_position")?
-            .map(|v| bytes_to_usize(v.to_vec())))
+        Ok(sled_get_option(&self.data.db_tree, "tc_current_position")?.map(bytes_to_usize))
     }
 
     pub(crate) fn set_if_index(&mut self, if_index: u32) -> Result<(), BpfmanError> {
-        self.data.insert("tc_if_index", &if_index.to_ne_bytes())
+        sled_insert(&self.data.db_tree, "tc_if_index", &if_index.to_ne_bytes())
     }
 
     pub(crate) fn get_if_index(&self) -> Result<Option<u32>, BpfmanError> {
-        Ok(self
-            .data
-            .get_option("tc_if_index")?
-            .map(|v| bytes_to_u32(v.to_vec())))
+        Ok(sled_get_option(&self.data.db_tree, "tc_if_index")?.map(bytes_to_u32))
     }
 
     pub(crate) fn set_attached(&mut self, attached: bool) -> Result<(), BpfmanError> {
-        self.data
-            .insert("tc_attached", &(attached as i8).to_ne_bytes())
+        sled_insert(
+            &self.data.db_tree,
+            "tc_attached",
+            &(attached as i8).to_ne_bytes(),
+        )
     }
 
     pub(crate) fn get_attached(&self) -> Result<bool, BpfmanError> {
-        Ok(self
-            .data
-            .get_option("tc_attached")?
-            .map(|n| bytes_to_bool(n.to_vec()))
+        Ok(sled_get_option(&self.data.db_tree, "tc_attached")?
+            .map(bytes_to_bool)
             .unwrap_or(false))
     }
 
     pub(crate) fn set_direction(&mut self, direction: Direction) -> Result<(), BpfmanError> {
-        self.data
-            .insert("tc_direction", direction.to_string().as_bytes())
+        sled_insert(
+            &self.data.db_tree,
+            "tc_direction",
+            direction.to_string().as_bytes(),
+        )
     }
 
     pub(crate) fn get_direction(&self) -> Result<Direction, BpfmanError> {
-        self.data
-            .get("tc_direction")
+        sled_get(&self.data.db_tree, "tc_direction")
             .map(|v| bytes_to_string(&v).to_string().try_into().unwrap())
     }
 
@@ -1063,13 +1073,11 @@ impl TracepointProgram {
     }
 
     pub(crate) fn set_tracepoint(&mut self, tracepoint: String) -> Result<(), BpfmanError> {
-        self.data.insert("tracepoint_name", tracepoint.as_bytes())
+        sled_insert(&self.data.db_tree, "tracepoint_name", tracepoint.as_bytes())
     }
 
     pub(crate) fn get_tracepoint(&self) -> Result<String, BpfmanError> {
-        self.data
-            .get("tracepoint_name")
-            .map(|v| bytes_to_string(&v))
+        sled_get(&self.data.db_tree, "tracepoint_name").map(|v| bytes_to_string(&v))
     }
 
     pub(crate) fn get_data(&self) -> &ProgramData {
@@ -1106,44 +1114,45 @@ impl KprobeProgram {
     }
 
     pub(crate) fn set_fn_name(&mut self, fn_name: String) -> Result<(), BpfmanError> {
-        self.data.insert("kprobe_fn_name", fn_name.as_bytes())
+        sled_insert(&self.data.db_tree, "kprobe_fn_name", fn_name.as_bytes())
     }
 
     pub(crate) fn get_fn_name(&self) -> Result<String, BpfmanError> {
-        self.data.get("kprobe_fn_name").map(|v| bytes_to_string(&v))
+        sled_get(&self.data.db_tree, "kprobe_fn_name").map(|v| bytes_to_string(&v))
     }
 
     pub(crate) fn set_offset(&mut self, offset: u64) -> Result<(), BpfmanError> {
-        self.data.insert("kprobe_offset", &offset.to_ne_bytes())
+        sled_insert(&self.data.db_tree, "kprobe_offset", &offset.to_ne_bytes())
     }
 
     pub(crate) fn get_offset(&self) -> Result<u64, BpfmanError> {
-        self.data.get("kprobe_offset").map(bytes_to_u64)
+        sled_get(&self.data.db_tree, "kprobe_offset").map(bytes_to_u64)
     }
 
     pub(crate) fn set_retprobe(&mut self, retprobe: bool) -> Result<(), BpfmanError> {
-        self.data
-            .insert("kprobe_retprobe", &(retprobe as i8 % 2).to_ne_bytes())
+        sled_insert(
+            &self.data.db_tree,
+            "kprobe_retprobe",
+            &(retprobe as i8 % 2).to_ne_bytes(),
+        )
     }
 
     pub(crate) fn get_retprobe(&self) -> Result<bool, BpfmanError> {
-        Ok(self
-            .data
-            .get_option("kprobe_retprobe")?
-            .map(|n| bytes_to_bool(n.to_vec()))
+        Ok(sled_get_option(&self.data.db_tree, "kprobe_retprobe")?
+            .map(bytes_to_bool)
             .unwrap_or(false))
     }
 
     pub(crate) fn set_container_pid(&mut self, container_pid: i32) -> Result<(), BpfmanError> {
-        self.data
-            .insert("kprobe_container_pid", &container_pid.to_ne_bytes())
+        sled_insert(
+            &self.data.db_tree,
+            "kprobe_container_pid",
+            &container_pid.to_ne_bytes(),
+        )
     }
 
     pub(crate) fn get_container_pid(&self) -> Result<Option<i32>, BpfmanError> {
-        Ok(self
-            .data
-            .get_option("kprobe_container_pid")?
-            .map(|v| bytes_to_i32(v.to_vec())))
+        Ok(sled_get_option(&self.data.db_tree, "kprobe_container_pid")?.map(bytes_to_i32))
     }
 
     pub(crate) fn get_data(&self) -> &ProgramData {
@@ -1190,66 +1199,61 @@ impl UprobeProgram {
     }
 
     pub(crate) fn set_fn_name(&mut self, fn_name: String) -> Result<(), BpfmanError> {
-        self.data.insert("uprobe_fn_name", fn_name.as_bytes())
+        sled_insert(&self.data.db_tree, "uprobe_fn_name", fn_name.as_bytes())
     }
 
     pub(crate) fn get_fn_name(&self) -> Result<Option<String>, BpfmanError> {
-        Ok(self
-            .data
-            .get_option("uprobe_fn_name")?
-            .map(|v| bytes_to_string(&v)))
+        Ok(sled_get_option(&self.data.db_tree, "uprobe_fn_name")?.map(|v| bytes_to_string(&v)))
     }
 
     pub(crate) fn set_offset(&mut self, offset: u64) -> Result<(), BpfmanError> {
-        self.data.insert("uprobe_offset", &offset.to_ne_bytes())
+        sled_insert(&self.data.db_tree, "uprobe_offset", &offset.to_ne_bytes())
     }
 
     pub(crate) fn get_offset(&self) -> Result<u64, BpfmanError> {
-        self.data.get("uprobe_offset").map(bytes_to_u64)
+        sled_get(&self.data.db_tree, "uprobe_offset").map(bytes_to_u64)
     }
 
     pub(crate) fn set_retprobe(&mut self, retprobe: bool) -> Result<(), BpfmanError> {
-        self.data
-            .insert("uprobe_retprobe", &(retprobe as i8 % 2).to_ne_bytes())
+        sled_insert(
+            &self.data.db_tree,
+            "uprobe_retprobe",
+            &(retprobe as i8 % 2).to_ne_bytes(),
+        )
     }
 
     pub(crate) fn get_retprobe(&self) -> Result<bool, BpfmanError> {
-        Ok(self
-            .data
-            .get_option("uprobe_retprobe")?
-            .map(|n| bytes_to_bool(n.to_vec()))
+        Ok(sled_get_option(&self.data.db_tree, "uprobe_retprobe")?
+            .map(bytes_to_bool)
             .unwrap_or(false))
     }
 
     pub(crate) fn set_container_pid(&mut self, container_pid: i32) -> Result<(), BpfmanError> {
-        self.data
-            .insert("uprobe_container_pid", &container_pid.to_ne_bytes())
+        sled_insert(
+            &self.data.db_tree,
+            "uprobe_container_pid",
+            &container_pid.to_ne_bytes(),
+        )
     }
 
     pub(crate) fn get_container_pid(&self) -> Result<Option<i32>, BpfmanError> {
-        Ok(self
-            .data
-            .get_option("uprobe_container_pid")?
-            .map(|v| bytes_to_i32(v.to_vec())))
+        Ok(sled_get_option(&self.data.db_tree, "uprobe_container_pid")?.map(bytes_to_i32))
     }
 
     pub(crate) fn set_pid(&mut self, pid: i32) -> Result<(), BpfmanError> {
-        self.data.insert("uprobe_pid", &pid.to_ne_bytes())
+        sled_insert(&self.data.db_tree, "uprobe_pid", &pid.to_ne_bytes())
     }
 
     pub(crate) fn get_pid(&self) -> Result<Option<i32>, BpfmanError> {
-        Ok(self
-            .data
-            .get_option("uprobe_pid")?
-            .map(|v| bytes_to_i32(v.to_vec())))
+        Ok(sled_get_option(&self.data.db_tree, "uprobe_pid")?.map(bytes_to_i32))
     }
 
     pub(crate) fn set_target(&mut self, target: String) -> Result<(), BpfmanError> {
-        self.data.insert("uprobe_target", target.as_bytes())
+        sled_insert(&self.data.db_tree, "uprobe_target", target.as_bytes())
     }
 
     pub(crate) fn get_target(&self) -> Result<String, BpfmanError> {
-        self.data.get("uprobe_target").map(|v| bytes_to_string(&v))
+        sled_get(&self.data.db_tree, "uprobe_target").map(|v| bytes_to_string(&v))
     }
 
     pub(crate) fn get_data(&self) -> &ProgramData {

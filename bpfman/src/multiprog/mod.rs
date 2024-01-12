@@ -48,16 +48,9 @@ impl Dispatcher {
         };
         let d = match p.kind() {
             ProgramType::Xdp => {
-                let x = XdpDispatcher::new(
-                    xdp_mode,
-                    &if_index,
-                    if_name.to_string(),
-                    programs,
-                    revision,
-                    old_dispatcher,
-                    image_manager,
-                )
-                .await?;
+                let mut x = XdpDispatcher::new(xdp_mode, if_index, if_name.to_string(), revision)?;
+
+                x.load(programs, old_dispatcher, image_manager).await?;
                 Dispatcher::Xdp(x)
             }
             ProgramType::Tc => {
@@ -88,7 +81,9 @@ impl Dispatcher {
 
     pub(crate) fn next_revision(&self) -> u32 {
         let current = match self {
-            Dispatcher::Xdp(d) => d.revision(),
+            Dispatcher::Xdp(d) => d
+                .get_revision()
+                .expect("faled to get xdp_dispatcher revision"),
             Dispatcher::Tc(d) => d.revision(),
         };
         current.wrapping_add(1)
@@ -96,14 +91,18 @@ impl Dispatcher {
 
     pub(crate) fn if_name(&self) -> String {
         match self {
-            Dispatcher::Xdp(d) => d.if_name(),
+            Dispatcher::Xdp(d) => d
+                .get_ifname()
+                .expect("failed to get xdp_dispatcher if_name"),
             Dispatcher::Tc(d) => d.if_name(),
         }
     }
 
     pub(crate) fn num_extensions(&self) -> usize {
         match self {
-            Dispatcher::Xdp(d) => d.num_extensions(),
+            Dispatcher::Xdp(d) => d
+                .get_num_extensions()
+                .expect("failed to get xdp_dispatcher num_extensions"),
             Dispatcher::Tc(d) => d.num_extensions(),
         }
     }

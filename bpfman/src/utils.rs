@@ -9,9 +9,10 @@ use nix::{
     mount::{mount, MsFlags},
     net::if_::if_nametoindex,
 };
+use sled::Tree;
 use tokio::{fs, io::AsyncReadExt};
 
-use crate::errors::BpfmanError;
+use crate::{errors::BpfmanError, ROOT_DB};
 
 // The bpfman socket should always allow the same users and members of the same group
 // to Read/Write to it.
@@ -114,4 +115,62 @@ pub(crate) fn bytes_to_u64(bytes: Vec<u8>) -> u64 {
             .try_into()
             .expect("unable to martial &[u8] to &[u8; 8]"),
     )
+}
+
+// Sled in memory database helper functions which help with error handling and
+// data marshalling.
+
+pub(crate) fn sled_get(db_tree: &Tree, key: &str) -> Result<Vec<u8>, BpfmanError> {
+    db_tree
+        .get(key)
+        .map_err(|e| {
+            BpfmanError::DatabaseError(
+                format!(
+                    "Unable to get database entry {key} from tree {}",
+                    bytes_to_string(&db_tree.name())
+                ),
+                e.to_string(),
+            )
+        })?
+        .map(|v| v.to_vec())
+        .ok_or(BpfmanError::DatabaseError(
+            format!(
+                "Database entry {key} does not exist in tree {:?}",
+                bytes_to_string(&db_tree.name())
+            ),
+            "".to_string(),
+        ))
+}
+
+pub(crate) fn sled_get_option(db_tree: &Tree, key: &str) -> Result<Option<Vec<u8>>, BpfmanError> {
+    db_tree
+        .get(key)
+        .map_err(|e| {
+            BpfmanError::DatabaseError(
+                format!(
+                    "Unable to get database entry {key} from tree {} {}",
+                    bytes_to_string(&db_tree.name()),
+                    ROOT_DB
+                        .tree_names()
+                        .iter()
+                        .map(|n| bytes_to_string(n))
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                ),
+                e.to_string(),
+            )
+        })
+        .map(|v| v.map(|v| v.to_vec()))
+}
+
+pub(crate) fn sled_insert(db_tree: &Tree, key: &str, value: &[u8]) -> Result<(), BpfmanError> {
+    db_tree.insert(key, value).map(|_| ()).map_err(|e| {
+        BpfmanError::DatabaseError(
+            format!(
+                "Unable to insert database entry {key} into tree {:?}",
+                db_tree.name()
+            ),
+            e.to_string(),
+        )
+    })
 }

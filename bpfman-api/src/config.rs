@@ -7,6 +7,8 @@ use aya::programs::XdpFlags;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+use crate::ParseError;
+
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Config {
     pub interfaces: Option<HashMap<String, InterfaceConfig>>,
@@ -61,6 +63,21 @@ impl XdpMode {
             XdpMode::Skb => XdpFlags::SKB_MODE,
             XdpMode::Drv => XdpFlags::DRV_MODE,
             XdpMode::Hw => XdpFlags::HW_MODE,
+        }
+    }
+}
+
+impl TryFrom<u32> for XdpMode {
+    type Error = ParseError;
+
+    fn try_from(mode: u32) -> Result<Self, Self::Error> {
+        match mode {
+            0 => Ok(XdpMode::Skb),
+            1 => Ok(XdpMode::Drv),
+            2 => Ok(XdpMode::Hw),
+            _ => Err(ParseError::InvalidXdpMode {
+                mode: mode.to_string(),
+            }),
         }
     }
 }
