@@ -77,7 +77,15 @@ pub(crate) fn bytes_to_u32(bytes: Vec<u8>) -> u32 {
     u32::from_ne_bytes(
         bytes
             .try_into()
-            .expect("unable to martial &[u8] to &[u8; 4]"),
+            .expect("unable to marshall &[u8] to &[u8; 4]"),
+    )
+}
+
+pub(crate) fn bytes_to_u16(bytes: Vec<u8>) -> u16 {
+    u16::from_ne_bytes(
+        bytes
+            .try_into()
+            .expect("unable to marshall &[u8] to &[u8; 4]"),
     )
 }
 
@@ -85,7 +93,7 @@ pub(crate) fn bytes_to_i32(bytes: Vec<u8>) -> i32 {
     i32::from_ne_bytes(
         bytes
             .try_into()
-            .expect("unable to martial &[u8] to &[u8; 4]"),
+            .expect("unable to marshall &[u8] to &[u8; 4]"),
     )
 }
 
@@ -97,7 +105,7 @@ pub(crate) fn bytes_to_bool(bytes: Vec<u8>) -> bool {
     i8::from_ne_bytes(
         bytes
             .try_into()
-            .expect("unable to martial &[u8] to &[i8; 1]"),
+            .expect("unable to marshall &[u8] to &[i8; 1]"),
     ) != 0
 }
 
@@ -105,7 +113,7 @@ pub(crate) fn bytes_to_usize(bytes: Vec<u8>) -> usize {
     usize::from_ne_bytes(
         bytes
             .try_into()
-            .expect("unable to martial &[u8] to &[u8; 8]"),
+            .expect("unable to marshall &[u8] to &[u8; 8]"),
     )
 }
 
@@ -113,7 +121,7 @@ pub(crate) fn bytes_to_u64(bytes: Vec<u8>) -> u64 {
     u64::from_ne_bytes(
         bytes
             .try_into()
-            .expect("unable to martial &[u8] to &[u8; 8]"),
+            .expect("unable to marshall &[u8] to &[u8; 8]"),
     )
 }
 

@@ -140,6 +140,20 @@ pub(crate) enum Direction {
     Egress = 2,
 }
 
+impl TryFrom<u32> for Direction {
+    type Error = ParseError;
+
+    fn try_from(v: u32) -> Result<Self, Self::Error> {
+        match v {
+            1 => Ok(Self::Ingress),
+            2 => Ok(Self::Egress),
+            m => Err(ParseError::InvalidDirection {
+                direction: m.to_string(),
+            }),
+        }
+    }
+}
+
 impl TryFrom<String> for Direction {
     type Error = ParseError;
 

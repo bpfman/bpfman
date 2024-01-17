@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use std::{fs, io::BufReader, mem};
+use std::{fs, mem};
 
 use aya::{
     programs::{
@@ -15,7 +15,6 @@ use bpfman_api::{util::directories::*, ImagePullPolicy};
 use futures::stream::TryStreamExt;
 use log::debug;
 use netlink_packet_route::tc::Nla;
-use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc::Sender, oneshot};
 
 use crate::{
@@ -29,36 +28,67 @@ use crate::{
     errors::BpfmanError,
     multiprog::Dispatcher,
     oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
-    utils::should_map_be_pinned,
+    utils::{
+        bytes_to_string, bytes_to_u16, bytes_to_u32, bytes_to_usize, should_map_be_pinned,
+        sled_get, sled_get_option, sled_insert,
+    },
+    ROOT_DB,
 };
 
 const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the dispatcher
 const TC_DISPATCHER_PRIORITY: u16 = 50; // Default TC priority for TC Dispatcher
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct TcDispatcher {
-    pub(crate) revision: u32,
-    if_index: u32,
-    if_name: String,
-    direction: Direction,
-    priority: u16,
-    handle: Option<u32>,
-    num_extensions: usize,
-    #[serde(skip)]
+    db_tree: sled::Tree,
     loader: Option<Bpf>,
-    program_name: Option<String>,
 }
 
 impl TcDispatcher {
-    pub(crate) async fn new(
+    pub(crate) fn new(
         direction: Direction,
-        if_index: &u32,
+        if_index: u32,
         if_name: String,
-        programs: &mut [&mut Program],
         revision: u32,
+    ) -> Result<Self, BpfmanError> {
+        let db_tree = ROOT_DB
+            .open_tree(format!(
+                "tc_dispatcher_{}_{}_{}",
+                if_index, direction, revision
+            ))
+            .expect("Unable to open tc dispatcher database tree");
+
+        let mut dp = Self {
+            db_tree,
+            loader: None,
+        };
+
+        dp.set_ifindex(if_index)?;
+        dp.set_ifname(&if_name)?;
+        dp.set_direction(direction)?;
+        dp.set_revision(revision)?;
+        dp.set_priority(TC_DISPATCHER_PRIORITY)?;
+        Ok(dp)
+    }
+
+    // TODO(astoycos) check to ensure the expected fs pins are there.
+    pub(crate) fn new_from_db(db_tree: sled::Tree) -> Self {
+        Self {
+            db_tree,
+            loader: None,
+        }
+    }
+
+    pub(crate) async fn load(
+        &mut self,
+        programs: &mut [&mut Program],
         old_dispatcher: Option<Dispatcher>,
         image_manager: Sender<ImageManagerCommand>,
-    ) -> Result<TcDispatcher, BpfmanError> {
+    ) -> Result<(), BpfmanError> {
+        let if_index = self.get_ifindex()?;
+        let revision = self.get_revision()?;
+        let direction = self.get_direction()?;
+
         debug!("TcDispatcher::new() for if_index {if_index}, revision {revision}");
         let mut extensions: Vec<&mut TcProgram> = programs
             .iter_mut()
@@ -125,21 +155,13 @@ impl TcDispatcher {
         let path = format!("{base}/dispatcher_{if_index}_{revision}");
         fs::create_dir_all(path).unwrap();
 
-        let mut dispatcher = TcDispatcher {
-            revision,
-            if_index: *if_index,
-            if_name,
-            direction,
-            num_extensions: extensions.len(),
-            priority: TC_DISPATCHER_PRIORITY,
-            handle: None,
-            loader: Some(loader),
-            program_name: Some(bpf_function_name),
-        };
-        dispatcher.attach_extensions(&mut extensions).await?;
-        dispatcher.attach(old_dispatcher).await?;
-        dispatcher.save()?;
-        Ok(dispatcher)
+        self.loader = Some(loader);
+        self.set_num_extensions(extensions.len())?;
+        self.set_program_name(&bpf_function_name)?;
+
+        self.attach_extensions(&mut extensions).await?;
+        self.attach(old_dispatcher).await?;
+        Ok(())
     }
 
     /// has_qdisc returns true if the qdisc_name is found on the if_index.
@@ -159,37 +181,40 @@ impl TcDispatcher {
     }
 
     async fn attach(&mut self, old_dispatcher: Option<Dispatcher>) -> Result<(), BpfmanError> {
+        let if_index = self.get_ifindex()?;
+        let iface = self.get_ifname()?;
+        let priority = self.get_priority()?;
+        let revision = self.get_revision()?;
+        let direction = self.get_direction()?;
+        let program_name = self.get_program_name()?;
+
         debug!(
             "TcDispatcher::attach() for if_index {}, revision {}",
-            self.if_index, self.revision
+            if_index, revision
         );
-        let iface = self.if_name.clone();
 
         // Aya returns an error when trying to add a qdisc that already exists, which could be ingress or clsact. We
         // need to make sure that the qdisc installed is the one that we want, i.e. clsact. If the qdisc is an ingress
         // qdisc, we return an error. If the qdisc is a clsact qdisc, we do nothing. Otherwise, we add a clsact qdisc.
 
         // no need to add a new clsact qdisc if one already exists.
-        if TcDispatcher::has_qdisc("clsact".to_string(), self.if_index as i32).await? {
+        if TcDispatcher::has_qdisc("clsact".to_string(), if_index as i32).await? {
             debug!(
                 "clsact qdisc found for if_index {}, no need to add a new clsact qdisc",
-                self.if_index
+                if_index
             );
 
         // if ingress qdisc exists, return error.
-        } else if TcDispatcher::has_qdisc("ingress".to_string(), self.if_index as i32).await? {
-            debug!("ingress qdisc found for if_index {}", self.if_index);
+        } else if TcDispatcher::has_qdisc("ingress".to_string(), if_index as i32).await? {
+            debug!("ingress qdisc found for if_index {}", if_index);
             return Err(BpfmanError::InvalidAttach(format!(
                 "Ingress qdisc found for if_index {}",
-                self.if_index
+                if_index
             )));
 
         // otherwise, add a new clsact qdisc.
         } else {
-            debug!(
-                "No qdisc found for if_index {}, adding clsact",
-                self.if_index
-            );
+            debug!("No qdisc found for if_index {}, adding clsact", if_index);
             let _ = tc::qdisc_add_clsact(&iface);
         }
 
@@ -197,11 +222,11 @@ impl TcDispatcher {
             .loader
             .as_mut()
             .ok_or(BpfmanError::NotLoaded)?
-            .program_mut(self.program_name.clone().unwrap().as_str())
+            .program_mut(program_name.as_str())
             .unwrap()
             .try_into()?;
 
-        let attach_type = match self.direction {
+        let attach_type = match direction {
             Direction::Ingress => TcAttachType::Ingress,
             Direction::Egress => TcAttachType::Egress,
         };
@@ -210,13 +235,13 @@ impl TcDispatcher {
             &iface,
             attach_type,
             TcOptions {
-                priority: self.priority,
+                priority,
                 ..Default::default()
             },
         )?;
 
         let link = new_dispatcher.take_link(link_id)?;
-        self.handle = Some(link.handle());
+        self.set_handle(link.handle())?;
         mem::forget(link);
 
         if let Some(Dispatcher::Tc(mut d)) = old_dispatcher {
@@ -224,7 +249,7 @@ impl TcDispatcher {
             // was attached above, the new dispatcher may get the same handle
             // as the old one had.  If this happens, the new dispatcher will get
             // detached if we do a full delete, so don't do it.
-            if d.handle != self.handle {
+            if d.get_handle()? != self.get_handle()? {
                 d.delete(true)?;
             } else {
                 d.delete(false)?;
@@ -238,16 +263,20 @@ impl TcDispatcher {
         &mut self,
         extensions: &mut [&mut TcProgram],
     ) -> Result<(), BpfmanError> {
+        let if_index = self.get_ifindex()?;
+        let revision = self.get_revision()?;
+        let direction = self.get_direction()?;
+        let program_name = self.get_program_name()?;
+
         debug!(
             "TcDispatcher::attach_extensions() for if_index {}, revision {}",
-            self.if_index, self.revision
+            if_index, revision
         );
-        let if_index = self.if_index;
         let dispatcher: &mut SchedClassifier = self
             .loader
             .as_mut()
             .ok_or(BpfmanError::NotLoaded)?
-            .program_mut(self.program_name.clone().unwrap().as_str())
+            .program_mut(program_name.as_str())
             .unwrap()
             .try_into()?;
 
@@ -267,11 +296,11 @@ impl TcDispatcher {
                     .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
                     .unwrap();
                 let new_link: FdLink = ext.take_link(new_link_id)?.into();
-                let base = match self.direction {
+                let base = match direction {
                     Direction::Ingress => RTDIR_FS_TC_INGRESS,
                     Direction::Egress => RTDIR_FS_TC_EGRESS,
                 };
-                let path = format!("{base}/dispatcher_{if_index}_{}/link_{id}", self.revision);
+                let path = format!("{base}/dispatcher_{if_index}_{}/link_{id}", revision);
                 new_link.pin(path).map_err(BpfmanError::UnableToPinLink)?;
             } else {
                 let name = &v.data.get_name()?;
@@ -313,14 +342,14 @@ impl TcDispatcher {
                 let new_link_id = ext.attach()?;
                 let new_link = ext.take_link(new_link_id)?;
                 let fd_link: FdLink = new_link.into();
-                let base = match self.direction {
+                let base = match direction {
                     Direction::Ingress => RTDIR_FS_TC_INGRESS,
                     Direction::Egress => RTDIR_FS_TC_EGRESS,
                 };
                 fd_link
                     .pin(format!(
                         "{base}/dispatcher_{if_index}_{}/link_{id}",
-                        self.revision,
+                        revision,
                     ))
                     .map_err(BpfmanError::UnableToPinLink)?;
 
@@ -347,82 +376,56 @@ impl TcDispatcher {
         Ok(())
     }
 
-    fn save(&self) -> Result<(), BpfmanError> {
-        debug!(
-            "TcDispatcher::save() for if_index {}, revision {}",
-            self.if_index, self.revision
-        );
-        let base = match self.direction {
-            Direction::Ingress => RTDIR_TC_INGRESS_DISPATCHER,
-            Direction::Egress => RTDIR_TC_EGRESS_DISPATCHER,
-        };
-        let path = format!("{base}/{}_{}", self.if_index, self.revision);
-        serde_json::to_writer(&fs::File::create(path).unwrap(), &self)
-            .map_err(|e| BpfmanError::Error(format!("can't save state: {e}")))?;
-        Ok(())
-    }
-
-    pub(crate) fn load(
-        if_index: u32,
-        direction: Direction,
-        revision: u32,
-    ) -> Result<Self, anyhow::Error> {
-        debug!("TcDispatcher::load() for if_index {if_index}, revision {revision}");
-        let dir = match direction {
-            Direction::Ingress => RTDIR_TC_INGRESS_DISPATCHER,
-            Direction::Egress => RTDIR_TC_EGRESS_DISPATCHER,
-        };
-        let path = format!("{dir}/{if_index}_{revision}");
-        let file = fs::File::open(path)?;
-        let reader = BufReader::new(file);
-        let prog = serde_json::from_reader(reader)?;
-        // TODO: We should check the bpffs paths here to for pinned links etc...
-        Ok(prog)
-    }
-
     pub(crate) fn delete(&mut self, full: bool) -> Result<(), BpfmanError> {
+        let if_index = self.get_ifindex()?;
+        let if_name = self.get_ifname()?;
+        let revision = self.get_revision()?;
+        let direction = self.get_direction()?;
+        let handle = self.get_handle()?;
+        let priority = self.get_priority()?;
+
         debug!(
             "TcDispatcher::delete() for if_index {}, revision {}",
-            self.if_index, self.revision
+            if_index, revision
         );
-        let base = match self.direction {
-            Direction::Ingress => RTDIR_TC_INGRESS_DISPATCHER,
-            Direction::Egress => RTDIR_TC_EGRESS_DISPATCHER,
-        };
-        let path = format!("{base}/{}_{}", self.if_index, self.revision);
-        fs::remove_file(path)
-            .map_err(|e| BpfmanError::Error(format!("unable to cleanup state: {e}")))?;
 
-        let base = match self.direction {
+        ROOT_DB.drop_tree(self.db_tree.name()).map_err(|e| {
+            BpfmanError::DatabaseError(
+                format!(
+                    "unable to drop tc dispatcher tree {:?}",
+                    self.db_tree.name()
+                ),
+                e.to_string(),
+            )
+        })?;
+
+        let base = match direction {
             Direction::Ingress => RTDIR_FS_TC_INGRESS,
             Direction::Egress => RTDIR_FS_TC_EGRESS,
         };
-        let path = format!("{base}/dispatcher_{}_{}", self.if_index, self.revision);
+        let path = format!("{base}/dispatcher_{}_{}", if_index, revision);
         fs::remove_dir_all(path)
             .map_err(|e| BpfmanError::Error(format!("unable to cleanup state: {e}")))?;
 
         if full {
             // Also detach the old dispatcher.
-            if let Some(old_handle) = self.handle {
-                let attach_type = match self.direction {
+            if let Some(old_handle) = handle {
+                let attach_type = match direction {
                     Direction::Ingress => TcAttachType::Ingress,
                     Direction::Egress => TcAttachType::Egress,
                 };
-                if let Ok(old_link) = SchedClassifierLink::attached(
-                    &self.if_name,
-                    attach_type,
-                    self.priority,
-                    old_handle,
-                ) {
+                if let Ok(old_link) =
+                    SchedClassifierLink::attached(&if_name, attach_type, priority, old_handle)
+                {
                     let detach_result = old_link.detach();
                     match detach_result {
                         Ok(_) => debug!(
-                            "TC dispatcher {}, {}, {}, {} sucessfully detached",
-                            self.if_name, self.direction, self.priority, old_handle
+                            "TC dispatcher {}, {}, {}, {} successfully detached",
+                            if_name, direction, priority, old_handle
                         ),
                         Err(_) => debug!(
                             "TC dispatcher {}, {}, {}, {} not attached when detach attempted",
-                            self.if_name, self.direction, self.priority, old_handle
+                            if_name, direction, priority, old_handle
                         ),
                     }
                 }
@@ -431,15 +434,77 @@ impl TcDispatcher {
         Ok(())
     }
 
-    pub(crate) fn if_name(&self) -> String {
-        self.if_name.clone()
+    pub(crate) fn set_revision(&mut self, revision: u32) -> Result<(), BpfmanError> {
+        sled_insert(&self.db_tree, "revision", &revision.to_ne_bytes())
     }
 
-    pub(crate) fn revision(&self) -> u32 {
-        self.revision
+    pub(crate) fn get_revision(&self) -> Result<u32, BpfmanError> {
+        sled_get(&self.db_tree, "revision").map(bytes_to_u32)
     }
 
-    pub(crate) fn num_extensions(&self) -> usize {
-        self.num_extensions
+    pub(crate) fn set_ifindex(&mut self, if_index: u32) -> Result<(), BpfmanError> {
+        sled_insert(&self.db_tree, "if_index", &if_index.to_ne_bytes())
+    }
+
+    pub(crate) fn get_ifindex(&self) -> Result<u32, BpfmanError> {
+        sled_get(&self.db_tree, "if_index").map(bytes_to_u32)
+    }
+
+    pub(crate) fn set_ifname(&mut self, if_name: &str) -> Result<(), BpfmanError> {
+        sled_insert(&self.db_tree, "if_name", if_name.as_bytes())
+    }
+
+    pub(crate) fn get_ifname(&self) -> Result<String, BpfmanError> {
+        sled_get(&self.db_tree, "if_name").map(|v| bytes_to_string(&v))
+    }
+
+    pub(crate) fn set_priority(&mut self, priority: u16) -> Result<(), BpfmanError> {
+        sled_insert(&self.db_tree, "priority", &priority.to_ne_bytes())
+    }
+
+    pub(crate) fn get_priority(&self) -> Result<u16, BpfmanError> {
+        sled_get(&self.db_tree, "priority").map(bytes_to_u16)
+    }
+
+    pub(crate) fn set_direction(&mut self, direction: Direction) -> Result<(), BpfmanError> {
+        sled_insert(
+            &self.db_tree,
+            "direction",
+            &(direction as u32).to_ne_bytes(),
+        )
+    }
+
+    pub(crate) fn get_direction(&self) -> Result<Direction, BpfmanError> {
+        sled_get(&self.db_tree, "direction").map(|v| {
+            Direction::try_from(bytes_to_u32(v)).map_err(|e| BpfmanError::Error(e.to_string()))
+        })?
+    }
+
+    pub(crate) fn set_num_extensions(&mut self, num_extensions: usize) -> Result<(), BpfmanError> {
+        sled_insert(
+            &self.db_tree,
+            "num_extensions",
+            &num_extensions.to_ne_bytes(),
+        )
+    }
+
+    pub(crate) fn get_num_extensions(&self) -> Result<usize, BpfmanError> {
+        sled_get(&self.db_tree, "num_extensions").map(bytes_to_usize)
+    }
+
+    pub(crate) fn set_program_name(&mut self, program_name: &str) -> Result<(), BpfmanError> {
+        sled_insert(&self.db_tree, "program_name", program_name.as_bytes())
+    }
+
+    pub(crate) fn get_program_name(&self) -> Result<String, BpfmanError> {
+        sled_get(&self.db_tree, "program_name").map(|v| bytes_to_string(&v))
+    }
+
+    pub(crate) fn set_handle(&mut self, handle: u32) -> Result<(), BpfmanError> {
+        sled_insert(&self.db_tree, "handle", &handle.to_ne_bytes())
+    }
+
+    pub(crate) fn get_handle(&self) -> Result<Option<u32>, BpfmanError> {
+        sled_get_option(&self.db_tree, "handle").map(|v| v.map(bytes_to_u32))
     }
 }

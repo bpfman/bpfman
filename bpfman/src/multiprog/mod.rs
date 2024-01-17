@@ -54,16 +54,14 @@ impl Dispatcher {
                 Dispatcher::Xdp(x)
             }
             ProgramType::Tc => {
-                let t = TcDispatcher::new(
+                let mut t = TcDispatcher::new(
                     direction.expect("missing direction"),
-                    &if_index,
+                    if_index,
                     if_name.to_string(),
-                    programs,
                     revision,
-                    old_dispatcher,
-                    image_manager,
-                )
-                .await?;
+                )?;
+
+                t.load(programs, old_dispatcher, image_manager).await?;
                 Dispatcher::Tc(t)
             }
             _ => return Err(BpfmanError::DispatcherNotRequired),
@@ -83,8 +81,10 @@ impl Dispatcher {
         let current = match self {
             Dispatcher::Xdp(d) => d
                 .get_revision()
-                .expect("faled to get xdp_dispatcher revision"),
-            Dispatcher::Tc(d) => d.revision(),
+                .expect("failed to get xdp_dispatcher revision"),
+            Dispatcher::Tc(d) => d
+                .get_revision()
+                .expect("failed to get tc_dispatcher revision"),
         };
         current.wrapping_add(1)
     }
@@ -94,7 +94,7 @@ impl Dispatcher {
             Dispatcher::Xdp(d) => d
                 .get_ifname()
                 .expect("failed to get xdp_dispatcher if_name"),
-            Dispatcher::Tc(d) => d.if_name(),
+            Dispatcher::Tc(d) => d.get_ifname().expect("failed to tc xdp_dispatcher if_name"),
         }
     }
 
@@ -103,16 +103,18 @@ impl Dispatcher {
             Dispatcher::Xdp(d) => d
                 .get_num_extensions()
                 .expect("failed to get xdp_dispatcher num_extensions"),
-            Dispatcher::Tc(d) => d.num_extensions(),
+            Dispatcher::Tc(d) => d
+                .get_num_extensions()
+                .expect("failed to get tc_dispatcher num_extensions"),
         }
     }
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub(crate) enum DispatcherId {
     Xdp(DispatcherInfo),
     Tc(DispatcherInfo),
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub(crate) struct DispatcherInfo(pub u32, pub Option<Direction>);
