@@ -332,7 +332,7 @@ catalog-push: ## Push a catalog image.
 
 ##@ CRD Deployment
 
-ignore-not-found ?= false
+ignore-not-found ?= true
 
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
@@ -357,6 +357,8 @@ deploy: manifests kustomize ## Deploy bpfman-operator to the K8s cluster specifi
 
 .PHONY: undeploy
 undeploy: ## Undeploy bpfman-operator from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
+	kubectl delete cm bpfman-config -n bpfman
+	sleep 5 # Wait for the operator to cleanup the daemonset
 	$(KUSTOMIZE) build config/default | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: kind-reload-images

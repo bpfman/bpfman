@@ -6,7 +6,9 @@ package integration
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"io"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -16,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -24,28 +27,43 @@ const (
 	xdpGoCounterUserspaceDsName = "go-xdp-counter-ds"
 )
 
+var xdpPassPrivateImageCreds = os.Getenv("XDP_PASS_PRIVATE_IMAGE_CREDS")
+
 func TestXdpPassPrivate(t *testing.T) {
 	t.Log("deploying secret for privated xdp bytecode image in the bpfman namespace")
 	// Generated from
 	/*
-		kubectl create secret -n bpfman docker-registry regcred --docker-server=quay.io --docker-username=bpfman-bytecode+bpfmancreds --docker-password=D49CKWI1MMOFGRCAT8SHW5A56FSVP30TGYX54BBWKY2J129XRI6Q5TVH2ZZGTJ1M
+		kubectl create secret -n bpfman docker-registry regcred --docker-server=quay.io --docker-username=<USERNAME> --docker-password=<CREDS>
 	*/
-	xdpPassPrivateSecretYAML := `---
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: regcred
-  namespace: default
-type: kubernetes.io/dockerconfigjson
-data:
-  .dockerconfigjson: eyJhdXRocyI6eyJxdWF5LmlvIjp7InVzZXJuYW1lIjoiYnBmbWFuLWJ5dGVjb2RlK2JwZm1hbmNyZWRzIiwicGFzc3dvcmQiOiJENDlDS1dJMU1NT0ZHUkNBVDhTSFc1QTU2RlNWUDMwVEdZWDU0QkJXS1kySjEyOVhSSTZRNVRWSDJaWkdUSjFNIiwiYXV0aCI6IlluQm1iV0Z1TFdKNWRHVmpiMlJsSzJKd1ptMWhibU55WldSek9rUTBPVU5MVjBreFRVMVBSa2RTUTBGVU9GTklWelZCTlRaR1UxWlFNekJVUjFsWU5UUkNRbGRMV1RKS01USTVXRkpKTmxFMVZGWklNbHBhUjFSS01VMD0ifX19
-`
 
-	require.NoError(t, clusters.ApplyManifestByYAML(ctx, env.Cluster(), xdpPassPrivateSecretYAML))
+	if xdpPassPrivateImageCreds == "" {
+		t.Log("XDP_PASS_PRIVATE_IMAGE_CREDS must be provided to run this test, skipping")
+		t.SkipNow()
+	}
+
+	xdpPassPrivateJson, err := base64.StdEncoding.DecodeString(xdpPassPrivateImageCreds)
+	require.NoError(t, err)
+
+	xdpPassPrivateSecret := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "regcred",
+			Namespace: "default",
+		},
+		Type: corev1.SecretTypeDockerConfigJson,
+		Data: map[string][]byte{".dockerconfigjson": []byte(xdpPassPrivateJson)},
+	}
+
+	yamlData, err := yaml.Marshal(xdpPassPrivateSecret)
+	require.NoError(t, err)
+
+	require.NoError(t, clusters.ApplyManifestByYAML(ctx, env.Cluster(), string(yamlData)))
 	addCleanup(func(ctx context.Context) error {
 		cleanupLog("cleaning up xdp pass private secret")
-		return clusters.DeleteManifestByYAML(ctx, env.Cluster(), xdpPassPrivateSecretYAML)
+		return clusters.DeleteManifestByYAML(ctx, env.Cluster(), string(yamlData))
 	})
 
 	xdpPassPrivateXdpProgramYAML := `---
