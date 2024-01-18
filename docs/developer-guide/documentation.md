@@ -91,6 +91,7 @@ The recommended installation method is using `pip`.
 pip install mkdocs
 pip install pymdown-extensions
 pip install mkdocs-material
+pip install mike
 ```
 
 Once installed, ensure the `mkdocs` is in your PATH:
