@@ -17,6 +17,8 @@ of the details of the actual implementation.
 [bpfman completely damonless]:https://github.com/bpfman/bpfman/blob/main/docs/design/daemonless.md
 [issue #860]:https://github.com/bpfman/bpfman/issues/860
 
+<!-- more -->
+
 ## Why?
 
 State management in bpfman has always been a headache, not
