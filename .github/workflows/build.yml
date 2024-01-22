@@ -90,6 +90,12 @@ jobs:
       - name: Build
         run: cargo build --verbose
 
+      - name: Build manpages
+        run: cargo xtask build-man-page
+
+      - name: Build CLI TAB Completion
+        run: cargo xtask build-completion
+
       ## If the push is a tag....build and upload the release bpfman binaries to an archive
       - name: Build-Release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -209,6 +215,12 @@ jobs:
       - name: Build bpfman
         run: cargo build --verbose
 
+      - name: Build manpages
+        run: cargo xtask build-man-page
+
+      - name: Build CLI TAB Completion
+        run: cargo xtask build-completion
+
       - name: Run the bpfman installer
         run: sudo ./scripts/setup.sh install
 
@@ -220,6 +232,9 @@ jobs:
 
       - name: Verify the CLI can reach bpfman
         run: sudo bpfman list
+
+      - name: Verify the manpages are installed
+        run: man bpfman list
 
       - name: Stop the bpfman systemd service
         run: sudo systemctl stop bpfman

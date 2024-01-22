@@ -21,6 +21,12 @@ DST_SVC_PATH="/usr/lib/systemd/system"
 SVC_BPFMAN_SOCK="${BIN_BPFMAN}.socket"
 SVC_BPFMAN_SVC="${BIN_BPFMAN}.service"
 
+SRC_CLI_TAB_COMPLETE_PATH="../.output/completions"
+DST_CLI_TAB_COMPLETE_PATH="/usr/share/bash-completion/completions"
+
+SRC_MANPAGE_PATH="../.output/manpage"
+DST_MANPAGE_PATH="/usr/local/share/man/man1"
+
 # ConfigurationDirectory: /etc/bpfman/
 CONFIGURATION_DIR="/etc/bpfman"
 CFG_CA_CERT_DIR="/etc/bpfman/certs/ca"
@@ -39,8 +45,12 @@ usage() {
     echo "    Prepare system for running \"bpfman\" as a systemd service. Performs the"
     echo "    following tasks:"
     echo "    * Copy \"bpfman\" binaries to \"/usr/sbin/.\"."
+    echo "    * Copy \"bpfman\" CLI TAB completeion files to"
+    echo "       \"/usr/share/bash-completion/completions/.\", if they have been generated."
+    echo "    * Copy \"bpfman\" manpages to \"/usr/local/share/man/man1/.\", if they have"
+    echo "      been generated."
     echo "    * Copy \"bpfman.service\" to \"/usr/lib/systemd/system/\"."
-    echo "    * Run \"systemctl start bpfman.service\" to start the sevice."
+    echo "    * Run \"systemctl start bpfman.socket\" to start the sevice."
     echo "sudo ./scripts/setup.sh setup [--release]"
     echo "    Same as \"install\" above, but don't start the service."
     echo "sudo ./scripts/setup.sh reinstall [--release]"

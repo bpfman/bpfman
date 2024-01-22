@@ -3,11 +3,13 @@ mod cli {
     include!("../../bpfman/src/cli/args.rs");
 }
 
-use std::{env, ffi::OsStr};
+use std::{ffi::OsStr, fs::create_dir_all, path::PathBuf};
 
 use clap::{CommandFactory, Parser};
 use clap_complete::{Generator, Shell};
 use cli::Cli;
+
+use crate::workspace::WORKSPACE_ROOT;
 
 #[derive(Debug, Parser)]
 pub struct Options {}
@@ -19,7 +21,10 @@ fn write_completions_file<G: Generator + Copy, P: AsRef<OsStr>>(generator: G, ou
 }
 
 pub fn build_completion(_opts: Options) -> Result<(), anyhow::Error> {
-    let out_dir = env::var_os("OUT_DIR").expect("out dir not set");
+    let mut out_dir = PathBuf::from(WORKSPACE_ROOT.to_string());
+    out_dir.push(".output/completions");
+    create_dir_all(&out_dir)?;
+
     write_completions_file(Shell::Bash, &out_dir);
     write_completions_file(Shell::Elvish, &out_dir);
     write_completions_file(Shell::Fish, &out_dir);
