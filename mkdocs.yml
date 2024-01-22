@@ -73,6 +73,8 @@ nav:
       - Testing: developer-guide/testing.md
       - Debugging: developer-guide/debugging.md
       - Releasing: developer-guide/release.md
+  - Design:
+      - Daemonless: design/daemonless.md
   - Blog:
       - blog/index.md
   - Community:
