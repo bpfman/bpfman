@@ -52,6 +52,7 @@ nav:
   - Getting Started:
       - Setup and Building: getting-started/building-bpfman.md
       - Run bpfman From Release Image: getting-started/running-release.md
+      - Run bpfman From RPM: getting-started/running-rpm.md
       - Bpfman on Linux Tutorial: getting-started/tutorial.md
       - CLI Guide: getting-started/cli-guide.md
       - Example eBPF Programs: getting-started/example-bpf.md

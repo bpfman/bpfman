@@ -36,3 +36,5 @@ site/
 *.tar.gz
 *.rpm
 results_*/
+*x86_64/
+cargo-vendor-filterer

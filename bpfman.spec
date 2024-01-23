@@ -80,16 +80,19 @@ install -Dpm 0755 \
     ./target/release/bpfman
 install -Dpm 644 \
     -t %{buildroot}%{_unitdir} \
+    ./scripts/bpfman.socket
+install -Dpm 644 \
+    -t %{buildroot}%{_unitdir} \
     ./scripts/bpfman.service
 
 %post
-%systemd_post bpfman.service
+%systemd_post bpfman.socket
 
 %preun
-%systemd_preun bpfman.service
+%systemd_preun bpfman.socket
 
 %postun
-%systemd_postun_with_restart bpfman.service
+%systemd_postun_with_restart bpfman.socket
 
 %files
 %license LICENSE-APACHE
@@ -99,6 +102,7 @@ install -Dpm 644 \
 %license cargo-vendor.txt
 %doc README.md
 %{_sbindir}/bpfman
+%{_unitdir}/bpfman.socket
 %{_unitdir}/bpfman.service
 
 %changelog
