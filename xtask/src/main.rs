@@ -5,6 +5,7 @@ mod copy;
 mod integration_test;
 mod protobuf;
 mod run;
+mod workspace;
 
 use std::process::exit;
 

@@ -73,6 +73,51 @@ del_svc() {
     fi
 }
 
+copy_cli_tab_completion() {
+    if [ -d ${SRC_CLI_TAB_COMPLETE_PATH} ] && [ "$(ls -A ${SRC_CLI_TAB_COMPLETE_PATH})" ]; then
+    #if [ -d ${SRC_CLI_TAB_COMPLETE_PATH} ] && [ "$(find ${SRC_CLI_TAB_COMPLETE_PATH} -mindepth 1 -maxdepth 1)" ]; then
+        case $SHELL in
+        "/bin/bash")
+            echo "  Copying \"${SRC_CLI_TAB_COMPLETE_PATH}}/bpfman.bash\" to \"${DST_CLI_TAB_COMPLETE_PATH}/.\""
+            cp ${SRC_CLI_TAB_COMPLETE_PATH}/bpfman.bash ${DST_CLI_TAB_COMPLETE_PATH}/.
+            ;;
+
+        *)
+            echo "Currently only bash is supported by this script. For other shells, manually install."
+            ;;
+        esac
+
+
+    else
+        echo "  CLI TAB Completion files not generated yet. Use \"cargo xtask build-completion\" to generate."
+    fi
+}
+
+del_cli_tab_completion() {
+    if [ -d ${DST_CLI_TAB_COMPLETE_PATH} ] && [ -f ${DST_CLI_TAB_COMPLETE_PATH}/bpfman.bash ]; then
+        echo "  Removing CLI TAB Completion files from \"${DST_CLI_TAB_COMPLETE_PATH}/bpfman.bash\""
+        rm ${DST_CLI_TAB_COMPLETE_PATH}/bpfman.bash &>/dev/null
+    fi
+}
+
+copy_manpages() {
+    if [ -d ${SRC_MANPAGE_PATH} ] && [ "$(ls -A ${SRC_MANPAGE_PATH})" ]; then
+    #if [ -d ${SRC_MANPAGE_PATH} ] && [ -z "$(find ${SRC_MANPAGE_PATH} -mindepth 1 -maxdepth 1)" ]; then
+        echo "  Copying \"${SRC_MANPAGE_PATH}\" to \"${DST_MANPAGE_PATH}\""
+        rm ${DST_MANPAGE_PATH}/bpfman*.1  &>/dev/null
+        cp ${SRC_MANPAGE_PATH}/bpfman*.1 ${DST_MANPAGE_PATH}/.
+    else
+        echo "  CLI Manpage files not generated yet. Use \"cargo xtask build-man-page\" to generate."
+    fi
+}
+
+del_manpages() {
+    if [ -d ${DST_MANPAGE_PATH} ] && [ -f ${DST_MANPAGE_PATH}/bpfman.1 ]; then
+        echo "  Removing Manpage files from \"${DST_MANPAGE_PATH}\""
+        rm ${DST_MANPAGE_PATH}/bpfman*.1 &>/dev/null
+    fi
+}
+
 install() {
     reinstall=$1
     if [ -z "${reinstall}" ]; then
@@ -86,6 +131,12 @@ install() {
     if [ -z "${release}" ]; then
         release=false
     fi
+
+    echo "Copy CLI TAB Completion files:"
+    copy_cli_tab_completion
+
+    echo "Copy Manpage files:"
+    copy_manpages
 
     echo "Copy binaries:"
 
@@ -113,6 +164,12 @@ install() {
 }
 
 uninstall() {
+    echo "Remove CLI TAB Completion files:"
+    del_cli_tab_completion
+
+    echo "Remove Manpage files:"
+    del_manpages
+
     echo "Remove service files:"
     del_svc "${SVC_BPFMAN_SOCK}"
     del_svc "${SVC_BPFMAN_SVC}"

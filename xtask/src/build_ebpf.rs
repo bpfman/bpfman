@@ -8,8 +8,8 @@ use std::{
 
 use anyhow::{bail, Context, Result};
 use clap::Parser;
-use lazy_static::lazy_static;
-use serde_json::Value;
+
+use crate::workspace::WORKSPACE_ROOT;
 
 #[derive(Debug, Copy, Clone)]
 pub enum Architecture {
@@ -52,20 +52,6 @@ pub struct Options {
     /// Required: Libbpf dir, required for compiling C code
     #[clap(long, action)]
     pub libbpf_dir: PathBuf,
-}
-
-lazy_static! {
-    pub static ref WORKSPACE_ROOT: String = workspace_root();
-}
-
-fn workspace_root() -> String {
-    let output = Command::new("cargo").arg("metadata").output().unwrap();
-    if !output.status.success() {
-        panic!("unable to run cargo metadata")
-    }
-    let stdout = String::from_utf8(output.stdout).unwrap();
-    let v: Value = serde_json::from_str(&stdout).unwrap();
-    v["workspace_root"].as_str().unwrap().to_string()
 }
 
 fn get_libbpf_headers<P: AsRef<Path>>(libbpf_dir: P, include_path: P) -> anyhow::Result<()> {

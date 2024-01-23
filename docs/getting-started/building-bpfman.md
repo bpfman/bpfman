@@ -95,6 +95,75 @@ To build bpfman:
 cargo build
 ```
 
+## Building CLI TAB completion files
+
+Optionally, to build the CLI TAB completion files, run the following command:
+
+```console
+cargo xtask build-completion
+```
+
+Files are generated for different shells:
+
+```console
+ls .output/completions/
+_bpfman  bpfman.bash  bpfman.elv  bpfman.fish  _bpfman.ps1
+```
+
+### bash
+
+For `bash`, this generates a file that can be used by the linux `bash-completion`
+utility (see [Install bash-completion](#install-bash-completion) for installation
+instructions).
+
+If the files are generated, they are installed automatically when running `bpfman` as
+a systemd service and using the `sudo ./scripts/setup.sh install` install script
+(see [Systemd Service](tutorial.md#systemd-service)).
+To install the files manually, copy the file associated with a given shell to
+`/usr/share/bash-completion/completions/`.
+For example:
+
+```console
+sudo cp .output/completions/bpfman.bash /usr/share/bash-completion/completions/.
+
+bpfman g<TAB>
+```
+
+### Other shells
+
+Files are generated other shells (Elvish, Fish, PowerShell and zsh).
+For these shells, generated file must be manually installed.
+
+## Building CLI Manpages
+
+Optionally, to build the CLI Manpage files, run the following command:
+
+```console
+cargo xtask build-man-page
+```
+
+If the files are generated, they are installed automatically when running `bpfman` as
+a systemd service and using the `sudo ./scripts/setup.sh install` install script
+(see [Systemd Service](tutorial.md#systemd-service)).
+To install the files manually, copy the generated files to `/usr/local/share/man/man1/`.
+For example:
+
+```console
+sudo cp .output/manpage/bpfman*.1 /usr/local/share/man/man1/.
+```
+
+Once installed, use `man` to view the pages.
+
+```console
+man bpfman list
+```
+
+> **NOTE:**
+> `bpfman` commands with subcommands (specifically `bpfman load`) have `-` in the
+> manpage subcommand generation.
+> So use `bpfman load-file`, `bpfman load-image`, `bpfman load-image-xdp`, etc. to
+> display the subcommand manpage files.
+
 ## Development Environment Setup
 
 To build bpfman, the following packages must be installed.
@@ -172,12 +241,39 @@ sudo dnf install perl
 sudo apt install perl
 ```
 
+### Install bash-completion
+
+`bpfman` uses the Rust crate `clap` for the CLI implementation.
+`clap` has an optional Rust crate `clap_complete`. For `bash` shell, it leverages
+`bash-completion` for CLI Command <TAB> completion.
+So in order for CLI <TAB> completion to work in a `bash` shell, `bash-completion`
+must be installed.
+This feature is optional.
+
+For the CLI <TAB> completion to work after installation, `/etc/profile.d/bash_completion.sh`
+must be sourced in the running sessions.
+New login sessions should pick it up automatically.
+
+`dnf` based OS:
+
+```console
+sudo dnf install bash-completion
+source /etc/profile.d/bash_completion.sh
+```
+
+`apt` based OS:
+
+```console
+sudo apt install bash-completion
+source /etc/profile.d/bash_completion.sh
+```
+
 ### Install Yaml Formatter
 
 As part of CI, the Yaml files are validated with a Yaml formatter.
 Optionally, to verify locally, install the
 [YAML Language Support by Red Hat](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml)
-VsCode Extension, or to format in bulk, install`prettier`.
+VsCode Extension, or to format in bulk, install `prettier`.
 
 To install `prettier`:
 
@@ -195,4 +291,19 @@ And to write changes in place, run:
 
 ```console
  prettier -f "*.yaml"
+```
+
+### Install toml Formatter
+
+As part of CI, the toml files are validated with a toml formatter.
+Optionally, to verify locally, install `taplo`.
+
+```console
+cargo install taplo-cli
+```
+
+And to verify locally:
+
+```console
+taplo fmt --check
 ```

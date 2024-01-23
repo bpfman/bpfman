@@ -6,7 +6,11 @@ use clap::{Args, Parser, Subcommand};
 use hex::FromHex;
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(
+    long_about = "An eBPF manager focusing on simplifying the deployment and administration of eBPF programs."
+)]
+#[command(name = "bpfman")]
+#[command(disable_version_flag = true)]
 pub(crate) struct Cli {
     #[command(subcommand)]
     pub(crate) command: Commands,
@@ -32,6 +36,7 @@ pub(crate) enum Commands {
 }
 
 #[derive(Subcommand, Debug)]
+#[command(disable_version_flag = true)]
 pub(crate) enum LoadSubcommand {
     /// Load an eBPF program from a local .o file.
     File(LoadFileArgs),
@@ -126,7 +131,9 @@ pub(crate) struct GlobalArg {
 }
 
 #[derive(Subcommand, Debug)]
+#[command(disable_version_flag = true)]
 pub(crate) enum LoadCommands {
+    #[command(disable_version_flag = true)]
     /// Install an eBPF program on the XDP hook point for a given interface.
     Xdp {
         /// Required: Interface to load program on.
@@ -147,6 +154,7 @@ pub(crate) enum LoadCommands {
         #[clap(long, verbatim_doc_comment, num_args(1..))]
         proceed_on: Vec<String>,
     },
+    #[command(disable_version_flag = true)]
     /// Install an eBPF program on the TC hook point for a given interface.
     Tc {
         /// Required: Direction to apply program.
@@ -174,6 +182,7 @@ pub(crate) enum LoadCommands {
         #[clap(long, verbatim_doc_comment, num_args(1..))]
         proceed_on: Vec<String>,
     },
+    #[command(disable_version_flag = true)]
     /// Install an eBPF program on a Tracepoint.
     Tracepoint {
         /// Required: The tracepoint to attach to.
@@ -181,6 +190,7 @@ pub(crate) enum LoadCommands {
         #[clap(short, long, verbatim_doc_comment)]
         tracepoint: String,
     },
+    #[command(disable_version_flag = true)]
     /// Install an eBPF kprobe or kretprobe
     Kprobe {
         /// Required: Function to attach the kprobe to.
@@ -203,6 +213,7 @@ pub(crate) enum LoadCommands {
         #[clap(short, long)]
         container_pid: Option<i32>,
     },
+    #[command(disable_version_flag = true)]
     /// Install an eBPF uprobe or uretprobe
     Uprobe {
         /// Optional: Function to attach the uprobe to.
@@ -240,12 +251,14 @@ pub(crate) enum LoadCommands {
 }
 
 #[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
 pub(crate) struct UnloadArgs {
     /// Required: Program id to be unloaded.
     pub(crate) id: u32,
 }
 
 #[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
 pub(crate) struct ListArgs {
     /// Optional: List a specific program type
     /// Example: --program-type xdp
@@ -275,18 +288,21 @@ pub(crate) struct ListArgs {
 }
 
 #[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
 pub(crate) struct GetArgs {
     /// Required: Program id to get.
     pub(crate) id: u32,
 }
 
 #[derive(Subcommand, Debug)]
+#[command(disable_version_flag = true)]
 pub(crate) enum ImageSubCommand {
     /// Pull an eBPF bytecode image from a remote registry.
     Pull(PullBytecodeArgs),
 }
 
 #[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
 pub(crate) struct PullBytecodeArgs {
     /// Required: Container Image URL.
     /// Example: --image-url quay.io/bpfman-bytecode/xdp_pass:latest
@@ -308,6 +324,7 @@ pub(crate) struct PullBytecodeArgs {
 }
 
 #[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
 pub(crate) struct ServiceArgs {
     /// Enable CSI support.
     #[clap(long)]
@@ -318,6 +335,7 @@ pub(crate) struct ServiceArgs {
 }
 
 #[derive(Subcommand, Debug)]
+#[command(disable_version_flag = true)]
 pub(crate) enum SystemSubcommand {
     /// Load an eBPF program from a local .o file.
     Service(ServiceArgs),
