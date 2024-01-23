@@ -14,7 +14,7 @@ use aya::{
 use bpfman_api::{util::directories::*, ImagePullPolicy};
 use futures::stream::TryStreamExt;
 use log::debug;
-use netlink_packet_route::tc::Nla;
+use netlink_packet_route::tc::TcAttribute;
 use tokio::sync::{mpsc::Sender, oneshot};
 
 use crate::{
@@ -37,6 +37,16 @@ use crate::{
 
 const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the dispatcher
 const TC_DISPATCHER_PRIORITY: u16 = 50; // Default TC priority for TC Dispatcher
+
+/// These constants define the key of SLED DB
+const REVISION: &str = "revision";
+const IF_INDEX: &str = "if_index";
+const IF_NAME: &str = "if_name";
+const PRIORITY: &str = "priority";
+const DIRECTION: &str = "direction";
+const NUM_EXTENSIONS: &str = "num_extension";
+const PROGRAM_NAME: &str = "program_name";
+const HANDLE: &str = "handle";
 
 #[derive(Debug)]
 pub struct TcDispatcher {
@@ -172,7 +182,9 @@ impl TcDispatcher {
         let mut qdiscs = handle.qdisc().get().execute();
         while let Some(qdisc_message) = qdiscs.try_next().await? {
             if qdisc_message.header.index == if_index
-                && qdisc_message.nlas.contains(&Nla::Kind(qdisc_name.clone()))
+                && qdisc_message
+                    .attributes
+                    .contains(&TcAttribute::Kind(qdisc_name.clone()))
             {
                 return Ok(true);
             }
@@ -435,76 +447,68 @@ impl TcDispatcher {
     }
 
     pub(crate) fn set_revision(&mut self, revision: u32) -> Result<(), BpfmanError> {
-        sled_insert(&self.db_tree, "revision", &revision.to_ne_bytes())
+        sled_insert(&self.db_tree, REVISION, &revision.to_ne_bytes())
     }
 
     pub(crate) fn get_revision(&self) -> Result<u32, BpfmanError> {
-        sled_get(&self.db_tree, "revision").map(bytes_to_u32)
+        sled_get(&self.db_tree, REVISION).map(bytes_to_u32)
     }
 
     pub(crate) fn set_ifindex(&mut self, if_index: u32) -> Result<(), BpfmanError> {
-        sled_insert(&self.db_tree, "if_index", &if_index.to_ne_bytes())
+        sled_insert(&self.db_tree, IF_INDEX, &if_index.to_ne_bytes())
     }
 
     pub(crate) fn get_ifindex(&self) -> Result<u32, BpfmanError> {
-        sled_get(&self.db_tree, "if_index").map(bytes_to_u32)
+        sled_get(&self.db_tree, IF_INDEX).map(bytes_to_u32)
     }
 
     pub(crate) fn set_ifname(&mut self, if_name: &str) -> Result<(), BpfmanError> {
-        sled_insert(&self.db_tree, "if_name", if_name.as_bytes())
+        sled_insert(&self.db_tree, IF_NAME, if_name.as_bytes())
     }
 
     pub(crate) fn get_ifname(&self) -> Result<String, BpfmanError> {
-        sled_get(&self.db_tree, "if_name").map(|v| bytes_to_string(&v))
+        sled_get(&self.db_tree, IF_NAME).map(|v| bytes_to_string(&v))
     }
 
     pub(crate) fn set_priority(&mut self, priority: u16) -> Result<(), BpfmanError> {
-        sled_insert(&self.db_tree, "priority", &priority.to_ne_bytes())
+        sled_insert(&self.db_tree, PRIORITY, &priority.to_ne_bytes())
     }
 
     pub(crate) fn get_priority(&self) -> Result<u16, BpfmanError> {
-        sled_get(&self.db_tree, "priority").map(bytes_to_u16)
+        sled_get(&self.db_tree, PRIORITY).map(bytes_to_u16)
     }
 
     pub(crate) fn set_direction(&mut self, direction: Direction) -> Result<(), BpfmanError> {
-        sled_insert(
-            &self.db_tree,
-            "direction",
-            &(direction as u32).to_ne_bytes(),
-        )
+        sled_insert(&self.db_tree, DIRECTION, &(direction as u32).to_ne_bytes())
     }
 
     pub(crate) fn get_direction(&self) -> Result<Direction, BpfmanError> {
-        sled_get(&self.db_tree, "direction").map(|v| {
+        sled_get(&self.db_tree, DIRECTION).map(|v| {
             Direction::try_from(bytes_to_u32(v)).map_err(|e| BpfmanError::Error(e.to_string()))
         })?
     }
 
     pub(crate) fn set_num_extensions(&mut self, num_extensions: usize) -> Result<(), BpfmanError> {
-        sled_insert(
-            &self.db_tree,
-            "num_extensions",
-            &num_extensions.to_ne_bytes(),
-        )
+        sled_insert(&self.db_tree, NUM_EXTENSIONS, &num_extensions.to_ne_bytes())
     }
 
     pub(crate) fn get_num_extensions(&self) -> Result<usize, BpfmanError> {
-        sled_get(&self.db_tree, "num_extensions").map(bytes_to_usize)
+        sled_get(&self.db_tree, NUM_EXTENSIONS).map(bytes_to_usize)
     }
 
     pub(crate) fn set_program_name(&mut self, program_name: &str) -> Result<(), BpfmanError> {
-        sled_insert(&self.db_tree, "program_name", program_name.as_bytes())
+        sled_insert(&self.db_tree, PROGRAM_NAME, program_name.as_bytes())
     }
 
     pub(crate) fn get_program_name(&self) -> Result<String, BpfmanError> {
-        sled_get(&self.db_tree, "program_name").map(|v| bytes_to_string(&v))
+        sled_get(&self.db_tree, PROGRAM_NAME).map(|v| bytes_to_string(&v))
     }
 
     pub(crate) fn set_handle(&mut self, handle: u32) -> Result<(), BpfmanError> {
-        sled_insert(&self.db_tree, "handle", &handle.to_ne_bytes())
+        sled_insert(&self.db_tree, HANDLE, &handle.to_ne_bytes())
     }
 
     pub(crate) fn get_handle(&self) -> Result<Option<u32>, BpfmanError> {
-        sled_get_option(&self.db_tree, "handle").map(|v| v.map(bytes_to_u32))
+        sled_get_option(&self.db_tree, HANDLE).map(|v| v.map(bytes_to_u32))
     }
 }

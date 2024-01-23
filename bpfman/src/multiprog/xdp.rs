@@ -29,6 +29,14 @@ use crate::{
 
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
 
+/// These constants define the key of SLED DB
+const REVISION: &str = "revision";
+const IF_INDEX: &str = "if_index";
+const IF_NAME: &str = "if_name";
+const MODE: &str = "mode";
+const NUM_EXTENSIONS: &str = "num_extension";
+const PROGRAM_NAME: &str = "program_name";
+
 #[derive(Debug)]
 pub struct XdpDispatcher {
     db_tree: sled::Tree,
@@ -339,56 +347,52 @@ impl XdpDispatcher {
     }
 
     pub(crate) fn set_revision(&mut self, revision: u32) -> Result<(), BpfmanError> {
-        sled_insert(&self.db_tree, "revision", &revision.to_ne_bytes())
+        sled_insert(&self.db_tree, REVISION, &revision.to_ne_bytes())
     }
 
     pub(crate) fn get_revision(&self) -> Result<u32, BpfmanError> {
-        sled_get(&self.db_tree, "revision").map(bytes_to_u32)
+        sled_get(&self.db_tree, REVISION).map(bytes_to_u32)
     }
 
     pub(crate) fn set_ifindex(&mut self, if_index: u32) -> Result<(), BpfmanError> {
-        sled_insert(&self.db_tree, "if_index", &if_index.to_ne_bytes())
+        sled_insert(&self.db_tree, IF_INDEX, &if_index.to_ne_bytes())
     }
 
     pub(crate) fn get_ifindex(&self) -> Result<u32, BpfmanError> {
-        sled_get(&self.db_tree, "if_index").map(bytes_to_u32)
+        sled_get(&self.db_tree, IF_INDEX).map(bytes_to_u32)
     }
 
     pub(crate) fn set_ifname(&mut self, if_name: &str) -> Result<(), BpfmanError> {
-        sled_insert(&self.db_tree, "if_name", if_name.as_bytes())
+        sled_insert(&self.db_tree, IF_NAME, if_name.as_bytes())
     }
 
     pub(crate) fn get_ifname(&self) -> Result<String, BpfmanError> {
-        sled_get(&self.db_tree, "if_name").map(|v| bytes_to_string(&v))
+        sled_get(&self.db_tree, IF_NAME).map(|v| bytes_to_string(&v))
     }
 
     pub(crate) fn set_mode(&mut self, mode: XdpMode) -> Result<(), BpfmanError> {
-        sled_insert(&self.db_tree, "mode", &(mode as u32).to_ne_bytes())
+        sled_insert(&self.db_tree, MODE, &(mode as u32).to_ne_bytes())
     }
 
     pub(crate) fn get_mode(&self) -> Result<XdpMode, BpfmanError> {
-        sled_get(&self.db_tree, "mode").map(|v| {
+        sled_get(&self.db_tree, MODE).map(|v| {
             XdpMode::try_from(bytes_to_u32(v)).map_err(|e| BpfmanError::Error(e.to_string()))
         })?
     }
 
     pub(crate) fn set_num_extensions(&mut self, num_extensions: usize) -> Result<(), BpfmanError> {
-        sled_insert(
-            &self.db_tree,
-            "num_extensions",
-            &num_extensions.to_ne_bytes(),
-        )
+        sled_insert(&self.db_tree, NUM_EXTENSIONS, &num_extensions.to_ne_bytes())
     }
 
     pub(crate) fn get_num_extensions(&self) -> Result<usize, BpfmanError> {
-        sled_get(&self.db_tree, "num_extensions").map(bytes_to_usize)
+        sled_get(&self.db_tree, NUM_EXTENSIONS).map(bytes_to_usize)
     }
 
     pub(crate) fn set_program_name(&mut self, program_name: &str) -> Result<(), BpfmanError> {
-        sled_insert(&self.db_tree, "program_name", program_name.as_bytes())
+        sled_insert(&self.db_tree, PROGRAM_NAME, program_name.as_bytes())
     }
 
     pub(crate) fn get_program_name(&self) -> Result<String, BpfmanError> {
-        sled_get(&self.db_tree, "program_name").map(|v| bytes_to_string(&v))
+        sled_get(&self.db_tree, PROGRAM_NAME).map(|v| bytes_to_string(&v))
     }
 }
