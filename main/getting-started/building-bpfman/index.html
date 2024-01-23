@@ -537,6 +537,48 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#building-cli-tab-completion-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building CLI TAB completion files
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building CLI TAB completion files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bash" class="md-nav__link">
+    <span class="md-ellipsis">
+      bash
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-shells" class="md-nav__link">
+    <span class="md-ellipsis">
+      Other shells
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-cli-manpages" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building CLI Manpages
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#development-environment-setup" class="md-nav__link">
     <span class="md-ellipsis">
       Development Environment Setup
@@ -601,9 +643,27 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#install-bash-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install bash-completion
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#install-yaml-formatter" class="md-nav__link">
     <span class="md-ellipsis">
       Install Yaml Formatter
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-toml-formatter" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install toml Formatter
     </span>
   </a>
   
@@ -1674,6 +1734,48 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#building-cli-tab-completion-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building CLI TAB completion files
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building CLI TAB completion files">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bash" class="md-nav__link">
+    <span class="md-ellipsis">
+      bash
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-shells" class="md-nav__link">
+    <span class="md-ellipsis">
+      Other shells
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-cli-manpages" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building CLI Manpages
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#development-environment-setup" class="md-nav__link">
     <span class="md-ellipsis">
       Development Environment Setup
@@ -1738,9 +1840,27 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#install-bash-completion" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install bash-completion
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#install-yaml-formatter" class="md-nav__link">
     <span class="md-ellipsis">
       Install Yaml Formatter
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-toml-formatter" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install toml Formatter
     </span>
   </a>
   
@@ -1854,60 +1974,132 @@ To build with local changes, use the following commands.</p>
 <p>To build bpfman:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">cargo build</span>
 </code></pre></div>
+<h2 id="building-cli-tab-completion-files">Building CLI TAB completion files</h2>
+<p>Optionally, to build the CLI TAB completion files, run the following command:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">cargo xtask build-completion</span>
+</code></pre></div>
+<p>Files are generated for different shells:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">ls .output/completions/</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go">_bpfman  bpfman.bash  bpfman.elv  bpfman.fish  _bpfman.ps1</span>
+</code></pre></div>
+<h3 id="bash">bash</h3>
+<p>For <code>bash</code>, this generates a file that can be used by the linux <code>bash-completion</code>
+utility (see <a href="#install-bash-completion">Install bash-completion</a> for installation
+instructions).</p>
+<p>If the files are generated, they are installed automatically when running <code>bpfman</code> as
+a systemd service and using the <code>sudo ./scripts/setup.sh install</code> install script
+(see <a href="../tutorial/#systemd-service">Systemd Service</a>).
+To install the files manually, copy the file associated with a given shell to
+<code>/usr/share/bash-completion/completions/</code>.
+For example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">sudo cp .output/completions/bpfman.bash /usr/share/bash-completion/completions/.</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="go">bpfman g&lt;TAB&gt;</span>
+</code></pre></div>
+<h3 id="other-shells">Other shells</h3>
+<p>Files are generated other shells (Elvish, Fish, PowerShell and zsh).
+For these shells, generated file must be manually installed.</p>
+<h2 id="building-cli-manpages">Building CLI Manpages</h2>
+<p>Optionally, to build the CLI Manpage files, run the following command:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">cargo xtask build-man-page</span>
+</code></pre></div>
+<p>If the files are generated, they are installed automatically when running <code>bpfman</code> as
+a systemd service and using the <code>sudo ./scripts/setup.sh install</code> install script
+(see <a href="../tutorial/#systemd-service">Systemd Service</a>).
+To install the files manually, copy the generated files to <code>/usr/local/share/man/man1/</code>.
+For example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">sudo cp .output/manpage/bpfman*.1 /usr/local/share/man/man1/.</span>
+</code></pre></div>
+<p>Once installed, use <code>man</code> to view the pages.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">man bpfman list</span>
+</code></pre></div>
+<blockquote>
+<p><strong>NOTE:</strong>
+<code>bpfman</code> commands with subcommands (specifically <code>bpfman load</code>) have <code>-</code> in the
+manpage subcommand generation.
+So use <code>bpfman load-file</code>, <code>bpfman load-image</code>, <code>bpfman load-image-xdp</code>, etc. to
+display the subcommand manpage files.</p>
+</blockquote>
 <h2 id="development-environment-setup">Development Environment Setup</h2>
 <p>To build bpfman, the following packages must be installed.</p>
 <h3 id="install-rust-toolchain">Install Rust Toolchain</h3>
 <p>For further detailed instructions, see
 <a href="https://www.rust-lang.org/tools/install">Rust Stable &amp; Rust Nightly</a>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">curl --proto &#39;=https&#39; --tlsv1.2 -sSf https://sh.rustup.rs | sh</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">source &quot;$HOME/.cargo/env&quot;</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">rustup toolchain install nightly -c rustfmt,clippy,rust-src</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="go">curl --proto &#39;=https&#39; --tlsv1.2 -sSf https://sh.rustup.rs | sh</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="go">source &quot;$HOME/.cargo/env&quot;</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="go">rustup toolchain install nightly -c rustfmt,clippy,rust-src</span>
 </code></pre></div>
 <h3 id="install-llvm">Install LLVM</h3>
 <p>LLVM 11 or later must be installed.
 Linux package managers should provide a recent enough release.</p>
 <p><code>dnf</code> based OS:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">sudo dnf install llvm-devel clang-devel elfutils-libelf-devel</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="go">sudo dnf install llvm-devel clang-devel elfutils-libelf-devel</span>
 </code></pre></div>
 <p><code>apt</code> based OS:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">sudo apt install clang lldb lld libelf-dev gcc-multilib</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="go">sudo apt install clang lldb lld libelf-dev gcc-multilib</span>
 </code></pre></div>
 <h3 id="install-protobuf-compiler">Install Protobuf Compiler</h3>
 <p>For further detailed instructions, see <a href="https://grpc.io/docs/protoc-installation/">protoc</a>.</p>
 <p><code>dnf</code> based OS:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">sudo dnf install protobuf-compiler</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="go">sudo dnf install protobuf-compiler</span>
 </code></pre></div>
 <p><code>apt</code> based OS:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">sudo apt install protobuf-compiler</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="go">sudo apt install protobuf-compiler</span>
 </code></pre></div>
 <h3 id="install-go-protobuf-compiler-extensions">Install GO protobuf Compiler Extensions</h3>
 <p>See <a href="https://grpc.io/docs/languages/go/quickstart/">Quick Start Guide for gRPC in Go</a> for
 installation instructions.</p>
 <h3 id="local-libbpf">Local libbpf</h3>
 <p>Checkout a local copy of libbpf.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">git clone https://github.com/libbpf/libbpf --branch v0.8.0</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="go">git clone https://github.com/libbpf/libbpf --branch v0.8.0</span>
 </code></pre></div>
 <h3 id="install-perl">Install perl</h3>
 <p>Install <code>perl</code>:</p>
 <p><code>dnf</code> based OS:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="go">sudo dnf install perl</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="go">sudo dnf install perl</span>
 </code></pre></div>
 <p><code>apt</code> based OS:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="go">sudo apt install perl</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="go">sudo apt install perl</span>
+</code></pre></div>
+<h3 id="install-bash-completion">Install bash-completion</h3>
+<p><code>bpfman</code> uses the Rust crate <code>clap</code> for the CLI implementation.
+<code>clap</code> has an optional Rust crate <code>clap_complete</code>. For <code>bash</code> shell, it leverages
+<code>bash-completion</code> for CLI Command <TAB> completion.
+So in order for CLI <TAB> completion to work in a <code>bash</code> shell, <code>bash-completion</code>
+must be installed.
+This feature is optional.</p>
+<p>For the CLI <TAB> completion to work after installation, <code>/etc/profile.d/bash_completion.sh</code>
+must be sourced in the running sessions.
+New login sessions should pick it up automatically.</p>
+<p><code>dnf</code> based OS:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="go">sudo dnf install bash-completion</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="go">source /etc/profile.d/bash_completion.sh</span>
+</code></pre></div>
+<p><code>apt</code> based OS:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="go">sudo apt install bash-completion</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="go">source /etc/profile.d/bash_completion.sh</span>
 </code></pre></div>
 <h3 id="install-yaml-formatter">Install Yaml Formatter</h3>
 <p>As part of CI, the Yaml files are validated with a Yaml formatter.
 Optionally, to verify locally, install the
 <a href="https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml">YAML Language Support by Red Hat</a>
-VsCode Extension, or to format in bulk, install<code>prettier</code>.</p>
+VsCode Extension, or to format in bulk, install <code>prettier</code>.</p>
 <p>To install <code>prettier</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="go">npm install -g prettier</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="go">npm install -g prettier</span>
 </code></pre></div>
 <p>Then to flag which files are violating the formatting guide, run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="go">prettier -l &quot;*.yaml&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="go">prettier -l &quot;*.yaml&quot;</span>
 </code></pre></div>
 <p>And to write changes in place, run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="go"> prettier -f &quot;*.yaml&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="go"> prettier -f &quot;*.yaml&quot;</span>
+</code></pre></div>
+<h3 id="install-toml-formatter">Install toml Formatter</h3>
+<p>As part of CI, the toml files are validated with a toml formatter.
+Optionally, to verify locally, install <code>taplo</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="go">cargo install taplo-cli</span>
+</code></pre></div>
+<p>And to verify locally:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="go">taplo fmt --check</span>
 </code></pre></div>
 
 
