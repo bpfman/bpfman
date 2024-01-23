@@ -14,7 +14,7 @@ use aya::{
 use bpfman_api::{util::directories::*, ImagePullPolicy};
 use futures::stream::TryStreamExt;
 use log::debug;
-use netlink_packet_route::tc::Nla;
+use netlink_packet_route::tc::TcAttribute;
 use tokio::sync::{mpsc::Sender, oneshot};
 
 use crate::{
@@ -172,7 +172,9 @@ impl TcDispatcher {
         let mut qdiscs = handle.qdisc().get().execute();
         while let Some(qdisc_message) = qdiscs.try_next().await? {
             if qdisc_message.header.index == if_index
-                && qdisc_message.nlas.contains(&Nla::Kind(qdisc_name.clone()))
+                && qdisc_message
+                    .attributes
+                    .contains(&TcAttribute::Kind(qdisc_name.clone()))
             {
                 return Ok(true);
             }
