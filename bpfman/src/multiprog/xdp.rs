@@ -30,6 +30,7 @@ use crate::{
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
 
 /// These constants define the key of SLED DB
+const XDP_DISPATCHER_PREFIX: &str = "xdp_dispatcher_";
 const REVISION: &str = "revision";
 const IF_INDEX: &str = "if_index";
 const IF_NAME: &str = "if_name";
@@ -51,7 +52,10 @@ impl XdpDispatcher {
         revision: u32,
     ) -> Result<Self, BpfmanError> {
         let db_tree = ROOT_DB
-            .open_tree(format!("xdp_dispatcher_{}_{}", if_index, revision))
+            .open_tree(format!(
+                "{}_{}_{}",
+                XDP_DISPATCHER_PREFIX, if_index, revision
+            ))
             .expect("Unable to open xdp dispatcher database tree");
 
         let mut dp = Self {

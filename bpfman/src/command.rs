@@ -37,6 +37,7 @@ use crate::{
 };
 
 /// These constants define the key of SLED DB
+const PROGRAM_PREFIX: &str = "program_";
 const KIND: &str = "kind";
 const NAME: &str = "name";
 const ID: &str = "id";
@@ -347,9 +348,6 @@ pub(crate) struct ProgramData {
     // load it will be replaced with the main program database tree.
     db_tree: sled::Tree,
 
-    // populated after load, randomly generated prior to load.
-    id: u32,
-
     // program_bytes is used to temporarily cache the raw program data during
     // the loading process.  It MUST be cleared following a load so that there
     // is not a long lived copy of the program data living on the heap.
@@ -357,10 +355,9 @@ pub(crate) struct ProgramData {
 }
 
 impl ProgramData {
-    pub(crate) fn new(tree: sled::Tree, id: u32) -> Self {
+    pub(crate) fn new(tree: sled::Tree) -> Self {
         Self {
             db_tree: tree,
-            id,
             program_bytes: Vec::new(),
         }
     }
@@ -375,15 +372,15 @@ impl ProgramData {
         let id_rand = rng.gen::<u32>();
 
         let db_tree = ROOT_DB
-            .open_tree(id_rand.to_string())
+            .open_tree(PROGRAM_PREFIX.to_string() + &id_rand.to_string())
             .expect("Unable to open program database tree");
 
         let mut pd = Self {
             db_tree,
-            id: id_rand,
             program_bytes: Vec::new(),
         };
 
+        pd.set_id(id_rand)?;
         pd.set_location(location)?;
         pd.set_name(&name)?;
         pd.set_metadata(metadata)?;
@@ -397,7 +394,7 @@ impl ProgramData {
 
     pub(crate) fn swap_tree(&mut self, new_id: u32) -> Result<(), BpfmanError> {
         let new_tree = ROOT_DB
-            .open_tree(new_id.to_string())
+            .open_tree(PROGRAM_PREFIX.to_string() + &new_id.to_string())
             .expect("Unable to open program database tree");
 
         // Copy over all key's and values to new tree
@@ -416,7 +413,7 @@ impl ProgramData {
             .expect("unable to delete temporary program tree");
 
         self.db_tree = new_tree;
-        self.id = new_id;
+        self.set_id(new_id)?;
 
         Ok(())
     }
@@ -451,8 +448,6 @@ impl ProgramData {
     }
 
     pub(crate) fn set_id(&mut self, id: u32) -> Result<(), BpfmanError> {
-        // set db and local cache
-        self.id = id;
         sled_insert(&self.db_tree, ID, &id.to_ne_bytes())
     }
 
@@ -1487,7 +1482,7 @@ impl Program {
     }
 
     pub(crate) fn new_from_db(id: u32, tree: sled::Tree) -> Result<Self, BpfmanError> {
-        let data = ProgramData::new(tree, id);
+        let data = ProgramData::new(tree);
 
         if data.get_id()? != id {
             return Err(BpfmanError::Error(

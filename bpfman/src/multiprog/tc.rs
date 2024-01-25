@@ -39,6 +39,7 @@ const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the d
 const TC_DISPATCHER_PRIORITY: u16 = 50; // Default TC priority for TC Dispatcher
 
 /// These constants define the key of SLED DB
+const TC_DISPATCHER_PREFIX: &str = "tc_dispatcher_";
 const REVISION: &str = "revision";
 const IF_INDEX: &str = "if_index";
 const IF_NAME: &str = "if_name";
@@ -63,8 +64,8 @@ impl TcDispatcher {
     ) -> Result<Self, BpfmanError> {
         let db_tree = ROOT_DB
             .open_tree(format!(
-                "tc_dispatcher_{}_{}_{}",
-                if_index, direction, revision
+                "{}_{}_{}_{}",
+                TC_DISPATCHER_PREFIX, if_index, direction, revision
             ))
             .expect("Unable to open tc dispatcher database tree");
 

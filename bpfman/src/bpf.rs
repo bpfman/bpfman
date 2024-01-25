@@ -226,32 +226,36 @@ impl BpfManager {
             if name.contains("dispatcher") {
                 dispatchers.push(name.clone());
                 continue;
-            }
-
-            let id = match name.parse::<u32>() {
-                Ok(id) => id,
-                Err(_) => {
-                    debug!("Ignoring non-numeric tree name: {} on rebuild", name);
+            } else if name.contains("program") {
+                let id = if let Some(i) = name.split('_').last() {
+                    match i.parse::<u32>() {
+                        Ok(id) => id,
+                        Err(_) => {
+                            debug!("Ignoring non-numeric tree name: {} on rebuild", name);
+                            continue;
+                        }
+                    }
+                } else {
                     continue;
-                }
-            };
+                };
 
-            debug!("rebuilding state for program {}", id);
+                debug!("rebuilding state for program {}", id);
 
-            // If there's an error here remove broken tree and continue
-            match Program::new_from_db(id, tree) {
-                Ok(mut program) => {
-                    program
-                        .get_data_mut()
-                        .set_program_bytes(self.image_manager.clone())
-                        .await?;
-                    self.rebuild_map_entry(id, &mut program).await;
-                    self.programs.insert(id, program);
-                }
-                Err(_) => {
-                    ROOT_DB
-                        .drop_tree(name)
-                        .expect("unable to remove broken program tree");
+                // If there's an error here remove broken tree and continue
+                match Program::new_from_db(id, tree) {
+                    Ok(mut program) => {
+                        program
+                            .get_data_mut()
+                            .set_program_bytes(self.image_manager.clone())
+                            .await?;
+                        self.rebuild_map_entry(id, &mut program).await;
+                        self.programs.insert(id, program);
+                    }
+                    Err(_) => {
+                        ROOT_DB
+                            .drop_tree(name)
+                            .expect("unable to remove broken program tree");
+                    }
                 }
             }
         }
@@ -888,7 +892,7 @@ impl BpfManager {
                             .open_tree(prog_id.to_string())
                             .expect("Unable to open program database tree for listing programs");
 
-                        let mut data = ProgramData::new(db_tree, prog_id);
+                        let mut data = ProgramData::new(db_tree);
                         data.set_kernel_info(&prog)?;
 
                         Ok(Program::Unsupported(data))
@@ -913,7 +917,7 @@ impl BpfManager {
                             .open_tree(prog.id().to_string())
                             .expect("Unable to open program database tree for listing programs");
 
-                        let mut data = ProgramData::new(db_tree, prog.id());
+                        let mut data = ProgramData::new(db_tree);
                         data.set_kernel_info(&prog)
                             .expect("unable to set kernel info");
 
