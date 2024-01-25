@@ -35,6 +35,24 @@ type InterfaceSelector struct {
 	PrimaryNodeInterface *bool `json:"primarynodeinterface,omitempty"`
 }
 
+// ContainerSelector identifies a set of containers. For example, this can be
+// used to identify a set of conteriners in which to attach uprobes.
+type ContainerSelector struct {
+	// Target namespaces.
+	// +optional
+	// +kubebuilder:default:=""
+	Namespace string `json:"namespace"`
+
+	// Target pods. This field must be specified, to select all pods use
+	// standard metav1.LabelSelector semantics and make it empty.
+	Pods metav1.LabelSelector `json:"pods"`
+
+	// Name(s) of container(s).  If none are specified, all containers in the
+	// pod are selected.
+	// +optional
+	ContainerNames *[]string `json:"containernames,omitempty"`
+}
+
 // BpfProgramCommon defines the common attributes for all BPF programs
 type BpfProgramCommon struct {
 	// BpfFunctionName is the name of the function that is the entry point for the BPF
@@ -243,6 +261,10 @@ const (
 	// process the bytecode selector.
 	BpfProgCondBytecodeSelectorError BpfProgramConditionType = "BytecodeSelectorError"
 
+	// BpfProgCondNoContainersOnNode indicates that there are no containers on the node
+	// that match the container selector.
+	BpfProgCondNoContainersOnNode BpfProgramConditionType = "NoContainersOnNode"
+
 	// None of the above conditions apply
 	BpfProgCondNone BpfProgramConditionType = "None"
 )
@@ -309,6 +331,14 @@ func (b BpfProgramConditionType) Condition() metav1.Condition {
 			Status:  metav1.ConditionTrue,
 			Reason:  "bytecodeSelectorError",
 			Message: "There was an error processing the provided bytecode selector",
+		}
+
+	case BpfProgCondNoContainersOnNode:
+		cond = metav1.Condition{
+			Type:    string(BpfProgCondNoContainersOnNode),
+			Status:  metav1.ConditionTrue,
+			Reason:  "noContainersOnNode",
+			Message: "There are no containers on the node that match the container selector",
 		}
 
 	case BpfProgCondNone:

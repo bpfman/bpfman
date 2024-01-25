@@ -64,7 +64,7 @@ func TestUprobeProgramReconcile(t *testing.T) {
 				},
 			},
 			FunctionName: functionName,
-			Targets:      []string{target},
+			Target:       target,
 			Offset:       uint64(offset),
 			RetProbe:     retprobe,
 		},

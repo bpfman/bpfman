@@ -6,7 +6,7 @@ use std::{fs::File, process};
 use anyhow::{bail, Context};
 use aya::programs::{links::FdLink, uprobe::UProbeLink, ProbeKind, UProbe};
 use clap::{Args, Parser, Subcommand};
-use log::debug;
+use log::{debug, error};
 use nix::sched::{setns, CloneFlags};
 
 #[derive(Debug, Parser)]
@@ -82,21 +82,31 @@ fn has_cap(cset: caps::CapSet, cap: caps::Capability) {
 
 fn execute_uprobe_attach(args: UprobeArgs, bpfman_pid: u32) -> anyhow::Result<()> {
     debug!(
-        "attempting to attach uprobe in container with pid {}",
+        "bpfman: attempting to attach uprobe in container with pid {}",
         args.container_pid
     );
 
-    let bpfman_mnt_file_path = format!("/proc/{}/ns/mnt", bpfman_pid);
-    let target_mnt_file_path = format!("/proc/{}/ns/mnt", args.container_pid);
-
-    let bpfman_mnt_file = match File::open(bpfman_mnt_file_path) {
+    let bpfman_mnt_file = match File::open(format!("/proc/{}/ns/mnt", bpfman_pid)) {
         Ok(file) => file,
-        Err(e) => bail!("error opening bpfman file: {e}"),
+        Err(e) => {
+            error!("bpfman: error opening bpfman file: {e}");
+            bail!("error opening bpfman file: {e}");
+        }
     };
 
-    let target_mnt_file = match File::open(target_mnt_file_path) {
+    // First check if the file exists at /host/proc, which is where it should be
+    // in a kubernetes deployment
+    let target_mnt_file = match File::open(format!("/host/proc/{}/ns/mnt", args.container_pid)) {
         Ok(file) => file,
-        Err(e) => bail!("error opening target file: {e}"),
+        // If that doesn't work, check for it in /proc, which is where it should
+        // be when running natively on a Linux host.
+        Err(_) => match File::open(format!("/proc/{}/ns/mnt", args.container_pid)) {
+            Ok(file) => file,
+            Err(e) => {
+                error!("bpfman: error opening target file: {e}");
+                bail!("error opening target file: {e}");
+            }
+        },
     };
 
     let mut uprobe = UProbe::from_pin(args.program_pin_path.clone(), ProbeKind::UProbe)
@@ -109,7 +119,15 @@ fn execute_uprobe_attach(args: UprobeArgs, bpfman_pid: u32) -> anyhow::Result<()
         args.container_pid as u32,
     )?;
 
-    let link_id = uprobe.attach(args.fn_name.as_deref(), args.offset, args.target, args.pid)?;
+    let attach_result = uprobe.attach(args.fn_name.as_deref(), args.offset, args.target, args.pid);
+
+    let link_id = match attach_result {
+        Ok(l) => l,
+        Err(e) => {
+            error!("bpfman: error attaching uprobe: {e}");
+            bail!("error attaching uprobe: {e}");
+        }
+    };
 
     // Set namespace back to bpfman namespace
     set_ns(bpfman_mnt_file, CloneFlags::CLONE_NEWNS, bpfman_pid)?;
@@ -131,7 +149,7 @@ fn set_ns(file: File, nstype: CloneFlags, pid: u32) -> anyhow::Result<()> {
     match setns_result {
         Ok(_) => Ok(()),
         Err(e) => {
-            debug!(
+            error!(
                 "error setting ns to PID {} {:?} namespace. error: {}",
                 pid, nstype, e
             );

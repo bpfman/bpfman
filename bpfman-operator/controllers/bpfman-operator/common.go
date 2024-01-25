@@ -91,12 +91,22 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}
 
-	// Return NotYetLoaded Status if
-	// BpfPrograms for each node haven't been created by bpfman-agent and the config isn't
-	// being deleted.
-	if len(nodes.Items) != len(bpfPrograms.Items) && prog.GetDeletionTimestamp().IsZero() {
-		// Causes Requeue
-		return rec.updateStatus(ctx, progName, bpfmaniov1alpha1.ProgramNotYetLoaded, "")
+	// If the program isn't being deleated, make sure that each node has at
+	// least one bpfprogram object.  If not, Return NotYetLoaded Status.
+	if prog.GetDeletionTimestamp().IsZero() {
+		for _, node := range nodes.Items {
+			nodeFound := false
+			for _, program := range bpfPrograms.Items {
+				bpfProgramNode := program.ObjectMeta.Labels[internal.K8sHostLabel]
+				if node.Name == bpfProgramNode {
+					nodeFound = true
+					break
+				}
+			}
+			if !nodeFound {
+				return rec.updateStatus(ctx, progName, bpfmaniov1alpha1.ProgramNotYetLoaded, "")
+			}
+		}
 	}
 
 	failedBpfPrograms := []string{}

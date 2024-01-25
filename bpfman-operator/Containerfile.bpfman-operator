@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.19 as bpfman-operator-build
+FROM golang:1.21 as bpfman-operator-build
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -24,12 +24,14 @@ COPY . .
 WORKDIR /usr/src/bpfman/bpfman-operator
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bpfman-operator ./cmd/bpfman-operator/main.go
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-# Uncomment for debug build
-# FROM gcr.io/distroless/static:debug
+# Use the fedora minimal image to reduce the size of the final image but still
+# be able to easily install extra packages.
 
-FROM gcr.io/distroless/static:nonroot
+# The full fedora image can be used for debugging purposes, but you may need to
+# change "microdnf" to "dnf" below to install extra packages.
+# FROM fedora:38
+FROM quay.io/fedora/fedora-minimal
+ARG TARGETARCH
 WORKDIR /
 COPY --from=bpfman-operator-build /usr/src/bpfman/bpfman-operator/config/bpfman-deployment/daemonset.yaml ./config/bpfman-deployment/daemonset.yaml
 COPY --from=bpfman-operator-build /usr/src/bpfman/bpfman-operator/config/bpfman-deployment/csidriverinfo.yaml ./config/bpfman-deployment/csidriverinfo.yaml

@@ -5,12 +5,12 @@ FROM rust:1 as bpfman-build
 RUN git clone https://github.com/libbpf/libbpf --branch v0.8.0 /usr/src/bpfman/libbpf
 
 RUN apt-get update && apt-get install -y\
- git\
- clang\
- protobuf-compiler\
- libelf-dev\
- gcc-multilib\
- musl-tools
+    git\
+    clang\
+    protobuf-compiler\
+    libelf-dev\
+    gcc-multilib\
+    musl-tools
 
 WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
@@ -29,6 +29,9 @@ RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
 
 RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
     cp /usr/src/bpfman/target/x86_64-unknown-linux-musl/release/bpfman ./bpfman/
+
+RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
+    cp /usr/src/bpfman/target/x86_64-unknown-linux-musl/release/bpfman-ns ./bpfman/
 
 ## Image for Local testing is much more of a debug image, give it bpftool and tcpdump
 FROM fedora:38

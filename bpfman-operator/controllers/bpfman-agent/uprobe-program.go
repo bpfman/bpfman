@@ -19,6 +19,7 @@ package bpfmanagent
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -73,30 +74,105 @@ func (r *UprobeProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				internal.BpfProgramNodePredicate(r.NodeName)),
 			),
 		).
-		// Only trigger reconciliation if node labels change since that could
-		// make the UprobeProgram no longer select the Node. Additionally only
-		// care about node events specific to our node
+		// Trigger reconciliation if node labels change since that could make
+		// the UprobeProgram no longer select the Node.  Trigger on pod events
+		// for when uprobes are attached inside containers. In both cases, only
+		// care about events specific to our node
 		Watches(
 			&source.Kind{Type: &v1.Node{}},
 			&handler.EnqueueRequestForObject{},
 			builder.WithPredicates(predicate.And(predicate.LabelChangedPredicate{}, nodePredicate(r.NodeName))),
 		).
+		// Watch for changes in Pod resources in case we are using a container selector.
+		Watches(
+			&source.Kind{Type: &v1.Pod{}},
+			&handler.EnqueueRequestForObject{},
+			builder.WithPredicates(PodOnNodePredicate{NodeName: r.NodeName}),
+		).
 		Complete(r)
+}
+
+// Figure out the list of container pids the uProbe needs to be attached to.
+func (r *UprobeProgramReconciler) getUprobeContainerInfo(ctx context.Context) (*[]uprobeContainerInfo, error) {
+
+	clientSet, err := getClientset()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get clientset: %v", err)
+	}
+
+	// Get the list of pods that match the selector.
+	podList, err := getPods(ctx, clientSet, r.currentUprobeProgram.Spec.Containers, r.NodeName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pod list: %v", err)
+	}
+
+	// Get the list of containers in the list of pods that match the selector.
+	containers, err := getContainerInfo(podList, r.currentUprobeProgram.Spec.Containers.ContainerNames, r.Logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get container info: %v", err)
+	}
+
+	r.Logger.V(1).Info("from getContainerInfo", "containers", containers)
+
+	return containers, nil
 }
 
 func (r *UprobeProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	for _, target := range r.currentUprobeProgram.Spec.Targets {
-		// sanitize uprobe name to work in a bpfProgram name
-		sanatizedUprobe := strings.Replace(strings.Replace(target, "/", "-", -1), "_", "-", -1)
-		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentUprobeProgram.Name, r.NodeName, sanatizedUprobe)
+	// sanitize uprobe name to work in a bpfProgram name
+	sanatizedUprobe := strings.Replace(strings.Replace(r.currentUprobeProgram.Spec.Target, "/", "-", -1), "_", "-", -1)
+	bpfProgramNameBase := fmt.Sprintf("%s-%s-%s", r.currentUprobeProgram.Name, r.NodeName, sanatizedUprobe)
 
-		annotations := map[string]string{internal.UprobeProgramTarget: target}
+	if r.currentUprobeProgram.Spec.Containers != nil {
 
-		prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
+		// Some containers were specified, so we need to get the containers
+		containerInfo, err := r.getUprobeContainerInfo(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
+			return nil, fmt.Errorf("failed to get container pids: %v", err)
+		}
+		if containerInfo == nil || len(*containerInfo) == 0 {
+			// There were no errors, but the container selector didn't
+			// select any containers on this node.
+
+			annotations := map[string]string{
+				internal.UprobeProgramTarget:      r.currentUprobeProgram.Spec.Target,
+				internal.UprobeNoContainersOnNode: "true",
+			}
+
+			bpfProgramName := fmt.Sprintf("%s-%s", bpfProgramNameBase, "no-containers-on-node")
+
+			prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramNameBase, err)
+			}
+
+			progs.Items = append(progs.Items, *prog)
+		} else {
+
+			// We got some containers, so create the bpfPrograms for each one.
+			for i := range *containerInfo {
+				container := (*containerInfo)[i]
+
+				annotations := map[string]string{internal.UprobeProgramTarget: r.currentUprobeProgram.Spec.Target}
+				annotations[internal.UprobeContainerPid] = strconv.FormatInt(container.pid, 10)
+
+				bpfProgramName := fmt.Sprintf("%s-%s-%s", bpfProgramNameBase, container.podName, container.containerName)
+
+				prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
+				if err != nil {
+					return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
+				}
+
+				progs.Items = append(progs.Items, *prog)
+			}
+		}
+	} else {
+		annotations := map[string]string{internal.UprobeProgramTarget: r.currentUprobeProgram.Spec.Target}
+
+		prog, err := r.createBpfProgram(ctx, bpfProgramNameBase, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramNameBase, err)
 		}
 
 		progs.Items = append(progs.Items, *prog)
@@ -182,8 +258,33 @@ func (r *UprobeProgramReconciler) buildUprobeLoadRequest(
 	bpfProgram *bpfmaniov1alpha1.BpfProgram,
 	mapOwnerId *uint32) *gobpfman.LoadRequest {
 
-	// Container PID isn't supported yet in bpfman, so set it to an empty string.
-	var container_pid int32 = 0
+	var uprobeAttachInfo *gobpfman.UprobeAttachInfo
+
+	var containerPid int32
+	hasContainerPid := false
+
+	containerPidStr, ok := bpfProgram.Annotations[internal.UprobeContainerPid]
+
+	if ok {
+		containerPidInt64, err := strconv.ParseInt(containerPidStr, 10, 32)
+		if err != nil {
+			r.Logger.Error(err, "ParseInt() error on containerPidStr", containerPidStr)
+		} else {
+			containerPid = int32(containerPidInt64)
+			hasContainerPid = true
+		}
+	}
+
+	uprobeAttachInfo = &gobpfman.UprobeAttachInfo{
+		FnName:   &r.currentUprobeProgram.Spec.FunctionName,
+		Offset:   r.currentUprobeProgram.Spec.Offset,
+		Target:   bpfProgram.Annotations[internal.UprobeProgramTarget],
+		Retprobe: r.currentUprobeProgram.Spec.RetProbe,
+	}
+
+	if hasContainerPid {
+		uprobeAttachInfo.ContainerPid = &containerPid
+	}
 
 	return &gobpfman.LoadRequest{
 		Bytecode:    bytecode,
@@ -191,13 +292,7 @@ func (r *UprobeProgramReconciler) buildUprobeLoadRequest(
 		ProgramType: uint32(internal.Kprobe),
 		Attach: &gobpfman.AttachInfo{
 			Info: &gobpfman.AttachInfo_UprobeAttachInfo{
-				UprobeAttachInfo: &gobpfman.UprobeAttachInfo{
-					FnName:       &r.currentUprobeProgram.Spec.FunctionName,
-					Offset:       r.currentUprobeProgram.Spec.Offset,
-					Target:       bpfProgram.Annotations[internal.UprobeProgramTarget],
-					Retprobe:     r.currentUprobeProgram.Spec.RetProbe,
-					ContainerPid: &container_pid,
-				},
+				UprobeAttachInfo: uprobeAttachInfo,
 			},
 		},
 		Metadata:   map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentUprobeProgram.Name},
@@ -229,6 +324,8 @@ func (r *UprobeProgramReconciler) reconcileBpfmanProgram(ctx context.Context,
 		return loadRequest, bpfmaniov1alpha1.BpfProgCondNone, nil
 	}
 
+	noContainers := noContainersOnNode(bpfProgram)
+
 	existingProgram, doesProgramExist := existingBpfPrograms[string(uuid)]
 	if !doesProgramExist {
 		r.Logger.V(1).Info("UprobeProgram doesn't exist on node")
@@ -241,6 +338,13 @@ func (r *UprobeProgramReconciler) reconcileBpfmanProgram(ctx context.Context,
 		// Make sure if we're not selected just exit
 		if !isNodeSelected {
 			return bpfmaniov1alpha1.BpfProgCondNotSelected, nil
+		}
+
+		// If a container selector is present but there were no matching
+		// containers on this node, just exit.
+		if noContainers {
+			r.Logger.V(1).Info("Program does not exist and there are no matching containers on this node")
+			return bpfmaniov1alpha1.BpfProgCondNoContainersOnNode, nil
 		}
 
 		// Make sure if the Map Owner is set but not found then just exit
@@ -278,7 +382,7 @@ func (r *UprobeProgramReconciler) reconcileBpfmanProgram(ctx context.Context,
 
 	// BpfProgram exists but either UprobeProgram is being deleted, node is no
 	// longer selected, or map is not available....unload program
-	if isBeingDeleted || !isNodeSelected ||
+	if isBeingDeleted || !isNodeSelected || noContainers ||
 		(mapOwnerStatus.isSet && (!mapOwnerStatus.isFound || !mapOwnerStatus.isLoaded)) {
 		r.Logger.V(1).Info("UprobeProgram exists on Node but is scheduled for deletion, not selected, or map not available",
 			"isDeleted", isBeingDeleted, "isSelected", isNodeSelected, "mapIsSet", mapOwnerStatus.isSet,
@@ -289,7 +393,7 @@ func (r *UprobeProgramReconciler) reconcileBpfmanProgram(ctx context.Context,
 			return bpfmaniov1alpha1.BpfProgCondNotUnloaded, nil
 		}
 
-		r.Logger.Info("bpfman called to unload UprobeProgram on Node", "Name", bpfProgram.Name, "UUID", uuid)
+		r.Logger.Info("bpfman called to unload UprobeProgram on Node", "Name", bpfProgram.Name, "Program ID", id)
 
 		if isBeingDeleted {
 			return bpfmaniov1alpha1.BpfProgCondUnloaded, nil
@@ -334,6 +438,7 @@ func (r *UprobeProgramReconciler) reconcileBpfmanProgram(ctx context.Context,
 	} else {
 		// Program exists and bpfProgram K8s Object is up to date
 		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfman")
+		r.progId = id
 	}
 
 	return bpfmaniov1alpha1.BpfProgCondLoaded, nil
