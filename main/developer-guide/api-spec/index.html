@@ -2110,7 +2110,7 @@ uint64
 <td>
 <code>target</code></br>
 <em>
-[]string
+string
 </em>
 </td>
 <td>
@@ -2140,6 +2140,25 @@ int32
 <em>(Optional)</em>
 <p>Only execute uprobe for given process identification number (PID). If PID
 is not provided, uprobe executes for all PIDs.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containers</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.ContainerSelector">
+ContainerSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Containers identifes the set of containers in which to attach the uprobe.
+If Containers are not specified, the uprobe will be attached in the
+bpfman-agent container.  The ContainerSelector is very flexible and even
+allows the selection of all containers in a cluster.  If an attempt is
+made to attach uprobes to too many containers, it can have a negative
+impact on on the cluster.</p>
 </td>
 </tr>
 </table>
@@ -2416,6 +2435,10 @@ eBPF program and that program does not exist.</p>
 <td><p>BpfProgCondMapOwnerNotLoaded indicates that the eBPF program sharing a map with another
 eBPF program and that program is not loaded.</p>
 </td>
+</tr><tr><td><p>&#34;NoContainersOnNode&#34;</p></td>
+<td><p>BpfProgCondNoContainersOnNode indicates that there are no containers on the node
+that match the container selector.</p>
+</td>
 </tr><tr><td><p>&#34;None&#34;</p></td>
 <td><p>None of the above conditions apply</p>
 </td>
@@ -2606,6 +2629,66 @@ string
 </td>
 <td>
 <p>Path is used to specify a bytecode object via filepath.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.ContainerSelector">ContainerSelector
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.ContainerSelector" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.UprobeProgramSpec">UprobeProgramSpec</a>)
+</p>
+<p>
+<p>ContainerSelector identifies a set of containers. For example, this can be
+used to identify a set of conteriners in which to attach uprobes.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Target namespaces.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pods</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<p>Target pods. This field must be specified, to select all pods use
+standard metav1.LabelSelector semantics and make it empty.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containernames</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name(s) of container(s).  If none are specified, all containers in the
+pod are selected.</p>
 </td>
 </tr>
 </tbody>
@@ -3140,7 +3223,7 @@ uint64
 <td>
 <code>target</code></br>
 <em>
-[]string
+string
 </em>
 </td>
 <td>
@@ -3170,6 +3253,25 @@ int32
 <em>(Optional)</em>
 <p>Only execute uprobe for given process identification number (PID). If PID
 is not provided, uprobe executes for all PIDs.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containers</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.ContainerSelector">
+ContainerSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Containers identifes the set of containers in which to attach the uprobe.
+If Containers are not specified, the uprobe will be attached in the
+bpfman-agent container.  The ContainerSelector is very flexible and even
+allows the selection of all containers in a cluster.  If an attempt is
+made to attach uprobes to too many containers, it can have a negative
+impact on on the cluster.</p>
 </td>
 </tr>
 </tbody>
