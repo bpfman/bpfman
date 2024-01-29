@@ -27,7 +27,7 @@ pub(crate) enum Dispatcher {
 impl Dispatcher {
     pub async fn new(
         config: Option<&InterfaceConfig>,
-        programs: &mut [&mut Program],
+        programs: &mut [Program],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
         image_manager: Sender<ImageManagerCommand>,

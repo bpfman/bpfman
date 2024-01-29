@@ -32,7 +32,10 @@ use tokio::{
 };
 
 use crate::{
-    command::{BpfMap, Command, Direction, Program, ProgramData, PullBytecodeArgs, UnloadArgs},
+    command::{
+        BpfMap, Command, Direction, Program, ProgramData, PullBytecodeArgs, UnloadArgs,
+        PROGRAM_PREFIX,
+    },
     errors::BpfmanError,
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher},
     oci_utils::image_manager::Command as ImageManagerCommand,
@@ -52,63 +55,69 @@ pub(crate) struct BpfManager {
 }
 
 pub(crate) struct ProgramMap {
-    programs: HashMap<u32, Program>,
+    _programs: HashMap<u32, Program>,
 }
 
 impl ProgramMap {
     fn new() -> Self {
         ProgramMap {
-            programs: HashMap::new(),
+            _programs: HashMap::new(),
         }
     }
 
-    fn insert(&mut self, id: u32, prog: Program) -> Option<Program> {
-        self.programs.insert(id, prog)
+    fn get(&self, id: &u32) -> Option<Program> {
+        let prog_tree: sled::IVec = (PROGRAM_PREFIX.to_string() + &id.to_string())
+            .as_bytes()
+            .into();
+        if ROOT_DB.tree_names().contains(&prog_tree) {
+            let tree = ROOT_DB
+                .open_tree(prog_tree)
+                .expect("unable to open database tree");
+            Some(Program::new_from_db(*id, tree).expect("Failed to build program from database"))
+        } else {
+            None
+        }
     }
 
-    fn remove(&mut self, id: &u32) -> Option<Program> {
-        self.programs.remove(id)
-    }
-
-    fn get_mut(&mut self, id: &u32) -> Option<&mut Program> {
-        self.programs.get_mut(id)
-    }
-
-    fn get(&self, id: &u32) -> Option<&Program> {
-        self.programs.get(id)
-    }
-
-    fn programs_mut<'a>(
-        &'a mut self,
-        program_type: &'a ProgramType,
-        if_index: &'a Option<u32>,
-        direction: &'a Option<Direction>,
-    ) -> impl Iterator<Item = &'a mut Program> {
-        self.programs.values_mut().filter(|p| {
-            p.kind() == *program_type
-                && p.if_index().unwrap() == *if_index
-                && p.direction().unwrap() == *direction
-        })
+    fn filter(
+        &self,
+        program_type: ProgramType,
+        if_index: Option<u32>,
+        direction: Option<Direction>,
+    ) -> impl Iterator<Item = Program> {
+        ROOT_DB
+            .tree_names()
+            .into_iter()
+            .filter(|p| bytes_to_string(p).contains(PROGRAM_PREFIX))
+            .map(|p| {
+                let id = bytes_to_string(&p)
+                    .split('_')
+                    .last()
+                    .unwrap()
+                    .parse::<u32>()
+                    .unwrap();
+                let tree = ROOT_DB.open_tree(p).expect("unable to open database tree");
+                Program::new_from_db(id, tree).expect("Failed to build program from database")
+            })
+            .filter(move |p| {
+                p.kind() == program_type
+                    && p.if_index().unwrap() == if_index
+                    && p.direction().unwrap() == direction
+            })
     }
 
     // Adds a new program and sets the positions of programs that are to be attached via a dispatcher.
     // Positions are set based on order of priority. Ties are broken based on:
     // - Already attached programs are preferred
     // - Program name. Lowest lexical order wins.
-    fn add_and_set_program_positions(&mut self, program: &mut Program) {
+    fn add_and_set_program_positions(&self, program: Program) {
         let program_type = program.kind();
         let if_index = program.if_index().unwrap();
         let direction = program.direction().unwrap();
 
         let mut extensions = self
-            .programs
-            .values_mut()
-            .filter(|p| {
-                p.kind() == program_type
-                    && p.if_index().unwrap() == if_index
-                    && p.direction().unwrap() == direction
-            })
-            .collect::<Vec<&mut Program>>();
+            .filter(program_type, if_index, direction)
+            .collect::<Vec<Program>>();
 
         // add program we're loading
         extensions.push(program);
@@ -130,20 +139,14 @@ impl ProgramMap {
     // - Already attached programs are preferred
     // - Program name. Lowest lexical order wins.
     fn set_program_positions(
-        &mut self,
+        &self,
         program_type: ProgramType,
         if_index: u32,
         direction: Option<Direction>,
     ) {
         let mut extensions = self
-            .programs
-            .values_mut()
-            .filter(|p| {
-                p.kind() == program_type
-                    && p.if_index().unwrap() == Some(if_index)
-                    && p.direction().unwrap() == direction
-            })
-            .collect::<Vec<&mut Program>>();
+            .filter(program_type, Some(if_index), direction)
+            .collect::<Vec<Program>>();
 
         extensions.sort_by_key(|b| {
             (
@@ -157,10 +160,24 @@ impl ProgramMap {
         }
     }
 
-    fn get_programs_iter(&self) -> impl Iterator<Item = (u32, &Program)> {
-        self.programs
-            .values()
-            .map(|p| (p.get_data().get_id().unwrap(), p))
+    fn get_programs_iter(&self) -> impl Iterator<Item = (u32, Program)> {
+        ROOT_DB
+            .tree_names()
+            .into_iter()
+            .filter(|p| bytes_to_string(p).contains(PROGRAM_PREFIX))
+            .map(|p| {
+                let id = bytes_to_string(&p)
+                    .split('_')
+                    .last()
+                    .unwrap()
+                    .parse::<u32>()
+                    .unwrap();
+                let tree = ROOT_DB.open_tree(p).expect("unable to open database tree");
+                (
+                    id,
+                    Program::new_from_db(id, tree).expect("Failed to build program from database"),
+                )
+            })
     }
 }
 
@@ -249,7 +266,6 @@ impl BpfManager {
                             .set_program_bytes(self.image_manager.clone())
                             .await?;
                         self.rebuild_map_entry(id, &mut program).await;
-                        self.programs.insert(id, program);
                     }
                     Err(_) => {
                         ROOT_DB
@@ -330,9 +346,6 @@ impl BpfManager {
             Program::Unsupported(_) => panic!("Cannot add unsupported program"),
         };
 
-        // Program bytes MUST be cleared after load.
-        program.get_data_mut().clear_program_bytes();
-
         match result {
             Ok(id) => {
                 info!(
@@ -348,9 +361,6 @@ impl BpfManager {
                 // Swap the db tree to be persisted with the unique program ID generated
                 // by the kernel.
                 program.get_data_mut().swap_tree(id)?;
-
-                // Only add program to bpfManager if we've completed all mutations and it's successfully loaded.
-                self.programs.insert(id, program.to_owned());
 
                 Ok(program)
             }
@@ -379,7 +389,7 @@ impl BpfManager {
         let mut ext_loader = BpfLoader::new()
             .allow_unsupported_maps()
             .extension(name)
-            .load(program.get_data().program_bytes())?;
+            .load(&program.get_data().get_program_bytes()?)?;
 
         match ext_loader.program_mut(name) {
             Some(_) => Ok(()),
@@ -402,15 +412,15 @@ impl BpfManager {
         let if_name = program.if_name().unwrap().to_string();
         let direction = program.direction()?;
 
-        self.programs.add_and_set_program_positions(program);
+        self.programs.add_and_set_program_positions(program.clone());
 
-        let mut programs: Vec<&mut Program> = self
+        let mut programs: Vec<Program> = self
             .programs
-            .programs_mut(&program_type, &if_index, &direction)
-            .collect::<Vec<&mut Program>>();
+            .filter(program_type, if_index, direction)
+            .collect::<Vec<Program>>();
 
         // add the program that's being loaded
-        programs.push(program);
+        programs.push(program.clone());
 
         let old_dispatcher = self.dispatchers.remove(&did);
         let if_config = if let Some(ref i) = self.config.interfaces {
@@ -474,7 +484,7 @@ impl BpfManager {
 
         let mut loader = bpf
             .allow_unsupported_maps()
-            .load(p.get_data().program_bytes())?;
+            .load(&p.get_data().get_program_bytes()?)?;
 
         let raw_program = loader
             .program_mut(name)
@@ -724,7 +734,7 @@ impl BpfManager {
 
     pub(crate) async fn remove_program(&mut self, id: u32) -> Result<(), BpfmanError> {
         info!("Removing program with id: {id}");
-        let prog = match self.programs.remove(&id) {
+        let prog = match self.programs.get(&id) {
             Some(p) => p,
             None => {
                 return Err(BpfmanError::Error(format!(
@@ -786,9 +796,9 @@ impl BpfManager {
         let direction = program.direction()?;
 
         // Intentionally don't add filter program here
-        let mut programs: Vec<&mut Program> = self
+        let mut programs: Vec<Program> = self
             .programs
-            .programs_mut(&program_type, &if_index, &direction)
+            .filter(program_type, if_index, direction)
             .collect();
 
         let if_config = if let Some(ref i) = self.config.interfaces {
@@ -829,9 +839,9 @@ impl BpfManager {
             self.programs
                 .set_program_positions(program_type, if_index, direction);
             let if_index = Some(if_index);
-            let mut programs: Vec<&mut Program> = self
+            let mut programs: Vec<Program> = self
                 .programs
-                .programs_mut(&program_type, &if_index, &direction)
+                .filter(program_type, if_index, direction)
                 .collect();
 
             debug!("programs loaded: {}", programs.len());
@@ -875,7 +885,7 @@ impl BpfManager {
         debug!("BpfManager::list_programs()");
 
         // Get an iterator for the bpfman load programs, a hash map indexed by program id.
-        let mut bpfman_progs: HashMap<u32, &Program> = self.programs.get_programs_iter().collect();
+        let mut bpfman_progs: HashMap<u32, Program> = self.programs.get_programs_iter().collect();
 
         // Call Aya to get ALL the loaded eBPF programs, and loop through each one.
         loaded_programs()
@@ -1023,7 +1033,7 @@ impl BpfManager {
         map_pin_path: &Path,
         map_owner_id: Option<u32>,
     ) -> Result<(), BpfmanError> {
-        if map_owner_id.is_none() {
+        if map_owner_id.is_none() && map_pin_path.exists() {
             let _ = remove_dir_all(map_pin_path)
                 .await
                 .map_err(|e| BpfmanError::Error(format!("can't delete map dir: {e}")));
@@ -1060,7 +1070,7 @@ impl BpfManager {
 
                     // Update all the programs using the same map with the updated map_used_by.
                     for used_by_id in map.used_by.iter() {
-                        if let Some(program) = self.programs.get_mut(used_by_id) {
+                        if let Some(mut program) = self.programs.get(used_by_id) {
                             program
                                 .get_data_mut()
                                 .set_maps_used_by(map.used_by.clone())?;
@@ -1068,7 +1078,7 @@ impl BpfManager {
                     }
                 } else {
                     return Err(BpfmanError::Error(
-                        "map_owner_id does not exists".to_string(),
+                        "map_owner_id does not exist".to_string(),
                     ));
                 }
             }
@@ -1121,9 +1131,10 @@ impl BpfManager {
                 map.used_by.swap_remove(index);
             }
 
-            if map.used_by.is_empty() {
+            let path: PathBuf = calc_map_pin_path(index);
+
+            if map.used_by.is_empty() && path.exists() {
                 // No more programs using this map, so remove the entry from the map list.
-                let path = calc_map_pin_path(index);
                 self.maps.remove(&index.clone());
                 remove_dir_all(path)
                     .await
@@ -1131,7 +1142,7 @@ impl BpfManager {
             } else {
                 // Update all the programs still using the same map with the updated map_used_by.
                 for id in map.used_by.iter() {
-                    if let Some(program) = self.programs.get_mut(id) {
+                    if let Some(mut program) = self.programs.get(id) {
                         program
                             .get_data_mut()
                             .set_maps_used_by(map.used_by.clone())?;
@@ -1167,7 +1178,7 @@ impl BpfManager {
             // Update all the other programs using the same map with the updated map_used_by.
             for used_by_id in map.used_by.iter() {
                 // program may not exist yet on rebuild, so ignore if not there
-                if let Some(prog) = self.programs.get_mut(used_by_id) {
+                if let Some(mut prog) = self.programs.get(used_by_id) {
                     prog.get_data_mut()
                         .set_maps_used_by(map.used_by.clone())
                         .unwrap();

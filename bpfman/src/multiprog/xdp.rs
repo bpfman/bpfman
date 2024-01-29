@@ -80,7 +80,7 @@ impl XdpDispatcher {
 
     pub(crate) async fn load(
         &mut self,
-        programs: &mut [&mut Program],
+        programs: &mut [Program],
         old_dispatcher: Option<Dispatcher>,
         image_manager: Sender<ImageManagerCommand>,
     ) -> Result<(), BpfmanError> {
@@ -272,7 +272,7 @@ impl XdpDispatcher {
                 }
 
                 let mut loader = bpf
-                    .load(v.get_data().program_bytes())
+                    .load(&v.get_data().get_program_bytes()?)
                     .map_err(BpfmanError::BpfLoadError)?;
 
                 let ext: &mut Extension = loader

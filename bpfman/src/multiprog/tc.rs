@@ -92,7 +92,7 @@ impl TcDispatcher {
 
     pub(crate) async fn load(
         &mut self,
-        programs: &mut [&mut Program],
+        programs: &mut [Program],
         old_dispatcher: Option<Dispatcher>,
         image_manager: Sender<ImageManagerCommand>,
     ) -> Result<(), BpfmanError> {
@@ -335,7 +335,7 @@ impl TcDispatcher {
                 }
 
                 let mut loader = bpf
-                    .load(v.data.program_bytes())
+                    .load(&v.get_data().get_program_bytes()?)
                     .map_err(BpfmanError::BpfLoadError)?;
 
                 let ext: &mut Extension = loader
