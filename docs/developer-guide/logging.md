@@ -109,7 +109,7 @@ To view the `bpfman-agent` logs:
 
 ```console
 kubectl logs -n bpfman bpfman-daemon-dgqzw -c bpfman-agent
-{"level":"info","ts":"2023-12-20T20:15:34Z","logger":"controller-runtime.metrics","msg":"Metrics server is starting to listen","addr":":8080"}
+{"level":"info","ts":"2023-12-20T20:15:34Z","logger":"controller-runtime.metrics","msg":"Metrics server is starting to listen","addr":":8174"}
 {"level":"info","ts":"2023-12-20T20:15:34Z","logger":"setup","msg":"Waiting for active connection to bpfman"}
 {"level":"info","ts":"2023-12-20T20:15:34Z","logger":"setup","msg":"starting Bpfman-Agent"}
 :
@@ -165,10 +165,10 @@ To view the `bpfman-operator` logs:
 
 ```console
 kubectl logs -n bpfman bpfman-operator-7fbf4888c4-z8w76 -c bpfman-operator
-{"level":"info","ts":"2023-05-09T18:37:11Z","logger":"controller-runtime.metrics","msg":"Metrics server is starting to listen","addr":"127.0.0.1:8080"}
+{"level":"info","ts":"2023-05-09T18:37:11Z","logger":"controller-runtime.metrics","msg":"Metrics server is starting to listen","addr":"127.0.0.1:8174"}
 {"level":"info","ts":"2023-05-09T18:37:11Z","logger":"setup","msg":"starting manager"}
-{"level":"info","ts":"2023-05-09T18:37:11Z","msg":"Starting server","kind":"health probe","addr":"[::]:8081"}
-{"level":"info","ts":"2023-05-09T18:37:11Z","msg":"Starting server","path":"/metrics","kind":"metrics","addr":"127.0.0.1:8080"}
+{"level":"info","ts":"2023-05-09T18:37:11Z","msg":"Starting server","kind":"health probe","addr":"[::]:8175"}
+{"level":"info","ts":"2023-05-09T18:37:11Z","msg":"Starting server","path":"/metrics","kind":"metrics","addr":"127.0.0.1:8174"}
 I0509 18:37:11.262885       1 leaderelection.go:248] attempting to acquire leader lease bpfman/8730d955.bpfman.io...
 I0509 18:37:11.268918       1 leaderelection.go:258] successfully acquired lease bpfman/8730d955.bpfman.io
 {"level":"info","ts":"2023-05-09T18:37:11Z","msg":"Starting EventSource","controller":"configmap","controllerGroup":"","controllerKind":"ConfigMap","source":"kind source: *v1.ConfigMap"}
@@ -212,8 +212,8 @@ spec:
       - args:
 :
       - args:
-        - --health-probe-bind-address=:8081
-        - --metrics-bind-address=127.0.0.1:8080
+        - --health-probe-bind-address=:8175
+        - --metrics-bind-address=127.0.0.1:8174
         - --leader-elect
         command:
         - /bpfman-operator

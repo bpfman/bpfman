@@ -84,13 +84,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /healthz
-              port: 8081
+              port: 8175
             initialDelaySeconds: 15
             periodSeconds: 20
           readinessProbe:
             httpGet:
               path: /readyz
-              port: 8081
+              port: 8175
             initialDelaySeconds: 5
             periodSeconds: 10
           # TODO(user): Configure the resources accordingly based on the project requirements.

@@ -11,7 +11,7 @@
             "program": "<ABSOLUTE_PATH>/github.com/bpfman/bpfman/target/debug/bpfman", // Local path to latest debug binary.
             "initCommands": [
                 "platform select remote-linux", // Execute `platform list` for a list of available remote platform plugins.
-                "platform connect connect://<IP_ADDRESS_OF_VM>:8081", // replace <IP_ADDRESS_OF_VM>
+                "platform connect connect://<IP_ADDRESS_OF_VM>:8175", // replace <IP_ADDRESS_OF_VM>
                 "settings set target.inherit-env false",
             ],
             "env": {
