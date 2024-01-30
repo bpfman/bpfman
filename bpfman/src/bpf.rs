@@ -43,8 +43,8 @@ use crate::{
     },
     oci_utils::image_manager::Command as ImageManagerCommand,
     utils::{
-        bytes_to_string, bytes_to_u32, get_ifindex, set_dir_permissions, should_map_be_pinned,
-        sled_insert,
+        bytes_to_string, bytes_to_u32, get_error_msg_from_stderr, get_ifindex, set_dir_permissions,
+        should_map_be_pinned, sled_insert,
     },
     ROOT_DB,
 };
@@ -616,22 +616,21 @@ impl BpfManager {
                             "bpfman-ns"
                         };
 
-                        let status = std::process::Command::new(bpfman_ns_path)
+                        let output = std::process::Command::new(bpfman_ns_path)
                             .args(prog_args)
-                            .status();
+                            .output();
 
-                        debug!("bpfman-ns status: {:?}", status);
-
-                        match status {
-                            Ok(s) => {
-                                if !s.success() {
-                                    debug!("bpfman-ns returned non-successful result: {:?}", s);
+                        match output {
+                            Ok(o) => {
+                                if !o.status.success() {
+                                    debug!(
+                                        "Error from bpfman-ns: {:?}",
+                                        get_error_msg_from_stderr(&o.stderr)
+                                    );
                                     return Err(BpfmanError::ContainerAttachError {
                                         program_type: "uprobe".to_string(),
                                         container_pid: program.get_container_pid()?.unwrap(),
                                     });
-                                } else {
-                                    debug!("bpfman-ns returned success: {:?}", s);
                                 };
                             }
                             Err(e) => {

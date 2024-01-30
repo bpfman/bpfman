@@ -6,7 +6,7 @@ use std::{fs::File, process};
 use anyhow::{bail, Context};
 use aya::programs::{links::FdLink, uprobe::UProbeLink, ProbeKind, UProbe};
 use clap::{Args, Parser, Subcommand};
-use log::{debug, error};
+use log::debug;
 use nix::sched::{setns, CloneFlags};
 
 #[derive(Debug, Parser)]
@@ -82,28 +82,26 @@ fn has_cap(cset: caps::CapSet, cap: caps::Capability) {
 
 fn execute_uprobe_attach(args: UprobeArgs, bpfman_pid: u32) -> anyhow::Result<()> {
     debug!(
-        "bpfman: attempting to attach uprobe in container with pid {}",
+        "attempting to attach uprobe in container with pid {}",
         args.container_pid
     );
 
     let bpfman_mnt_file = match File::open(format!("/proc/{}/ns/mnt", bpfman_pid)) {
         Ok(file) => file,
         Err(e) => {
-            error!("bpfman: error opening bpfman file: {e}");
             bail!("error opening bpfman file: {e}");
         }
     };
 
-    // First check if the file exists at /host/proc, which is where it should be
-    // in a kubernetes deployment
-    let target_mnt_file = match File::open(format!("/host/proc/{}/ns/mnt", args.container_pid)) {
+    // First check if the file exists at /proc, which is where it should be
+    // when running natively on a linux host.
+    let target_mnt_file = match File::open(format!("/proc/{}/ns/mnt", args.container_pid)) {
         Ok(file) => file,
-        // If that doesn't work, check for it in /proc, which is where it should
-        // be when running natively on a Linux host.
-        Err(_) => match File::open(format!("/proc/{}/ns/mnt", args.container_pid)) {
+        // If that doesn't work, check for it in /host/proc, which is where it should
+        // be in a kubernetes deployment.
+        Err(_) => match File::open(format!("/host/proc/{}/ns/mnt", args.container_pid)) {
             Ok(file) => file,
             Err(e) => {
-                error!("bpfman: error opening target file: {e}");
                 bail!("error opening target file: {e}");
             }
         },
@@ -124,7 +122,6 @@ fn execute_uprobe_attach(args: UprobeArgs, bpfman_pid: u32) -> anyhow::Result<()
     let link_id = match attach_result {
         Ok(l) => l,
         Err(e) => {
-            error!("bpfman: error attaching uprobe: {e}");
             bail!("error attaching uprobe: {e}");
         }
     };
@@ -149,11 +146,12 @@ fn set_ns(file: File, nstype: CloneFlags, pid: u32) -> anyhow::Result<()> {
     match setns_result {
         Ok(_) => Ok(()),
         Err(e) => {
-            error!(
+            bail!(
                 "error setting ns to PID {} {:?} namespace. error: {}",
-                pid, nstype, e
+                pid,
+                nstype,
+                e
             );
-            Err(e.into())
         }
     }
 }
