@@ -26,7 +26,7 @@ use crate::{
     },
     dispatcher_config::TcDispatcherConfig,
     errors::BpfmanError,
-    multiprog::Dispatcher,
+    multiprog::{Dispatcher, TC_DISPATCHER_PREFIX},
     oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
     utils::{
         bytes_to_string, bytes_to_u16, bytes_to_u32, bytes_to_usize, should_map_be_pinned,
@@ -39,7 +39,6 @@ const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the d
 const TC_DISPATCHER_PRIORITY: u16 = 50; // Default TC priority for TC Dispatcher
 
 /// These constants define the key of SLED DB
-const TC_DISPATCHER_PREFIX: &str = "tc_dispatcher_";
 const REVISION: &str = "revision";
 const IF_INDEX: &str = "if_index";
 const IF_NAME: &str = "if_name";

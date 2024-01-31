@@ -1380,7 +1380,7 @@ impl Program {
 
     pub(crate) fn delete(&self) -> Result<(), anyhow::Error> {
         let id = self.get_data().get_id()?;
-        ROOT_DB.drop_tree(id.to_string())?;
+        ROOT_DB.drop_tree(PROGRAM_PREFIX.to_string() + id.to_string().as_str())?;
 
         let path = format!("{RTDIR_FS}/prog_{id}");
         if PathBuf::from(&path).exists() {
@@ -1498,5 +1498,5 @@ impl Program {
 // it.
 #[derive(Debug, Clone)]
 pub(crate) struct BpfMap {
-    pub(crate) used_by: Vec<u32>,
+    pub(crate) _used_by: Vec<u32>,
 }

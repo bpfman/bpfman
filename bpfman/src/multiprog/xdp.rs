@@ -19,7 +19,7 @@ use crate::{
     command::{Program, XdpProgram},
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfmanError,
-    multiprog::Dispatcher,
+    multiprog::{Dispatcher, XDP_DISPATCHER_PREFIX},
     oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
     utils::{
         bytes_to_string, bytes_to_u32, bytes_to_usize, should_map_be_pinned, sled_get, sled_insert,
@@ -30,7 +30,6 @@ use crate::{
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
 
 /// These constants define the key of SLED DB
-const XDP_DISPATCHER_PREFIX: &str = "xdp_dispatcher_";
 const REVISION: &str = "revision";
 const IF_INDEX: &str = "if_index";
 const IF_NAME: &str = "if_name";
@@ -326,8 +325,8 @@ impl XdpDispatcher {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
         debug!(
-            "XdpDispatcher::delete() for if_index {}, revision {}",
-            if_index, revision
+            "XdpDispatcher::delete() for if_index {}, revision {}, full {}",
+            if_index, revision, full
         );
         ROOT_DB.drop_tree(self.db_tree.name()).map_err(|e| {
             BpfmanError::DatabaseError(

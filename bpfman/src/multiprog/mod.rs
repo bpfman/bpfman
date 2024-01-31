@@ -17,8 +17,13 @@ use crate::{
     command::{Direction, Program},
     errors::BpfmanError,
     oci_utils::image_manager::Command as ImageManagerCommand,
+    utils::bytes_to_string,
 };
 
+pub(crate) const TC_DISPATCHER_PREFIX: &str = "tc_dispatcher_";
+pub(crate) const XDP_DISPATCHER_PREFIX: &str = "xdp_dispatcher_";
+
+#[derive(Debug)]
 pub(crate) enum Dispatcher {
     Xdp(XdpDispatcher),
     Tc(TcDispatcher),
@@ -67,6 +72,14 @@ impl Dispatcher {
             _ => return Err(BpfmanError::DispatcherNotRequired),
         };
         Ok(d)
+    }
+
+    pub(crate) fn new_from_db(db_tree: sled::Tree) -> Dispatcher {
+        if bytes_to_string(&db_tree.name()).contains("xdp") {
+            Dispatcher::Xdp(XdpDispatcher::new_from_db(db_tree))
+        } else {
+            Dispatcher::Tc(TcDispatcher::new_from_db(db_tree))
+        }
     }
 
     pub(crate) fn delete(&mut self, full: bool) -> Result<(), BpfmanError> {
