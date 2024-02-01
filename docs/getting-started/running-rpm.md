@@ -54,7 +54,7 @@ $ sudo systemctl status bpfman.socket
      Loaded: loaded (/usr/lib/systemd/system/bpfman.socket; enabled; preset: disabled)
      Active: active (listening) since Thu 2024-01-18 21:19:29 EST; 5s ago
    Triggers: ● bpfman.service
-     Listen: /run/bpfman/sock/bpfman.sock (Stream)
+     Listen: /run/bpfman-sock/bpfman.sock (Stream)
      CGroup: /system.slice/bpfman.socket
 :
 
@@ -149,7 +149,7 @@ $ sudo systemctl status bpfman.socket
      Loaded: loaded (/usr/lib/systemd/system/bpfman.socket; enabled; preset: disabled)
      Active: active (listening) since Thu 2024-01-18 21:19:29 EST; 5s ago
    Triggers: ● bpfman.service
-     Listen: /run/bpfman/sock/bpfman.sock (Stream)
+     Listen: /run/bpfman-sock/bpfman.sock (Stream)
      CGroup: /system.slice/bpfman.socket
 :
 

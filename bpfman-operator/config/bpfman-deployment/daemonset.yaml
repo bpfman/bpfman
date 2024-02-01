@@ -75,7 +75,7 @@ spec:
                   fieldPath: spec.nodeName
           volumeMounts:
             - name: bpfman-sock
-              mountPath: /run/bpfman/sock
+              mountPath: /run/bpfman-sock
             - name: runtime
               mountPath: /run/bpfman
               mountPropagation: Bidirectional
@@ -118,7 +118,7 @@ spec:
                   key: bpfman.agent.log.level
           volumeMounts:
             - name: bpfman-sock
-              mountPath: /run/bpfman/sock
+              mountPath: /run/bpfman-sock
             - name: bpfman-config
               mountPath: /etc/bpfman/bpfman.toml
               subPath: bpfman.toml

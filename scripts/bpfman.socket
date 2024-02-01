@@ -2,7 +2,7 @@
 Description=bpfman API Socket
 
 [Socket]
-ListenStream=/run/bpfman/sock/bpfman.sock
+ListenStream=/run/bpfman-sock/bpfman.sock
 SocketMode=0660
 
 [Install]

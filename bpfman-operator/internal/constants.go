@@ -41,7 +41,7 @@ const (
 	BpfmanCsiDriverPath         = "./config/bpfman-deployment/csidriverinfo.yaml"
 	BpfmanMapFs                 = "/run/bpfman/fs/maps"
 	DefaultType                 = "tcp"
-	DefaultPath                 = "/run/bpfman/sock/bpfman.sock"
+	DefaultPath                 = "/run/bpfman-sock/bpfman.sock"
 	DefaultPort                 = 50051
 	DefaultEnabled              = true
 )
