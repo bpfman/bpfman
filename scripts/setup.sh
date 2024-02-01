@@ -34,6 +34,7 @@ CFG_CA_CERT_DIR="/etc/bpfman/certs/ca"
 # RuntimeDirectory: /run/bpfman/
 RUNTIME_DIR="/run/bpfman"
 RTDIR_FS="/run/bpfman/fs"
+RUNTIME_SOCKET_DIR="/run/bpfman-sock"
 
 # StateDirectory: /var/lib/bpfman/
 STATE_DIR="/var/lib/bpfman"

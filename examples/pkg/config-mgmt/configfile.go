@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	DefaultPath = "/run/bpfman/sock/bpfman.sock"
+	DefaultPath = "/run/bpfman-sock/bpfman.sock"
 )
 
 func CreateConnection(ctx context.Context) (*grpc.ClientConn, error) {

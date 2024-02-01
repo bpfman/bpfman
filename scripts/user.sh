@@ -12,6 +12,10 @@ delete_directories() {
         umount "${RTDIR_FS}"
         rm -rf "${RUNTIME_DIR}"
     fi
+    if test -d "${RUNTIME_SOCKET_DIR}"; then
+        echo "  Deleting \"${RUNTIME_SOCKET_DIR}\""
+        rm -rf "${RUNTIME_SOCKET_DIR}"
+    fi
     if test -d "${STATE_DIR}"; then
         echo "  Deleting \"${STATE_DIR}\""
         rm -rf "${STATE_DIR}"
