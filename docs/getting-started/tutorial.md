@@ -34,7 +34,7 @@ While learning and experimenting with `bpfman`, it may be useful to run `bpfman`
 For more details on how logging is handled in bpfman, see [Logging](../developer-guide/logging.md).
 
 ```console
-sudo RUST_LOG=info ./target/debug/bpfman
+sudo RUST_LOG=info ./target/debug/bpfman system service --timeout=0
 ```
 
 ### Step 4: Load your first program

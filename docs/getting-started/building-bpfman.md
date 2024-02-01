@@ -241,6 +241,45 @@ sudo dnf install perl
 sudo apt install perl
 ```
 
+### Install docker
+
+To build the `bpfman-agent` and `bpfman-operator` using the provided Makefile and the
+`make build-images` command, `docker` needs to be installed.
+There are several existing guides:
+
+* Fedora: [https://developer.fedoraproject.org/tools/docker/docker-installation.html](https://developer.fedoraproject.org/tools/docker/docker-installation.html)
+* Linux: [https://docs.docker.com/engine/install/](https://docs.docker.com/engine/install/)
+
+### Install Kind
+
+Optionally, to test `bpfman` running in Kubernetes, the easiest method and the one documented
+throughout the `bpfman` documentation is to run a Kubernetes Kind cluster.
+See [kind](https://kind.sigs.k8s.io/) for documentation and installation instructions.
+`kind` also requires `docker` to be installed.
+
+>> **NOTE:** By default, bpfman-operator deploys bpfman with CSI enabled.
+CSI requires Kubernetes v1.26 due to a PR
+([kubernetes/kubernetes#112597](https://github.com/kubernetes/kubernetes/pull/112597))
+that addresses a gRPC Protocol Error that was seen in the CSI client code and it doesn't appear to have
+been backported.
+It is recommended to install kind v0.20.0 or later.
+
+If the following error is seen, it means there is an older version of Kubernetes running and it
+needs to be upgraded.
+
+```console
+kubectl get pods -A
+NAMESPACE   NAME                               READY   STATUS             RESTARTS      AGE
+bpfman      bpfman-daemon-2hnhx                2/3     CrashLoopBackOff   4 (38s ago)   2m20s
+bpfman      bpfman-operator-6b6cf97857-jbvv4   2/2     Running            0             2m22s
+:
+
+kubectl logs -n bpfman bpfman-daemon-2hnhx -c node-driver-registrar
+:
+E0202 15:33:12.342704       1 main.go:101] Received NotifyRegistrationStatus call: &RegistrationStatus{PluginRegistered:false,Error:RegisterPlugin error -- plugin registration failed with err: rpc error: code = Internal desc = stream terminated by RST_STREAM with error code: PROTOCOL_ERROR,}
+E0202 15:33:12.342723       1 main.go:103] Registration process failed with error: RegisterPlugin error -- plugin registration failed with err: rpc error: code = Internal desc = stream terminated by RST_STREAM with error code: PROTOCOL_ERROR, restarting registration container.
+```
+
 ### Install bash-completion
 
 `bpfman` uses the Rust crate `clap` for the CLI implementation.
