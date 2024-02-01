@@ -26,21 +26,24 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bp
 
 # Use the fedora minimal image to reduce the size of the final image but still
 # be able to easily install extra packages.
-
-# The full fedora image can be used for debugging purposes, but you may need to
-# change "microdnf" to "dnf" below to install extra packages.
-# FROM fedora:38
 FROM quay.io/fedora/fedora-minimal
+ARG DNF_CMD="microdnf"
+
+# The full fedora image can be used for debugging purposes.  To use it, comment
+# out the FROM and ARG lines above and uncomment the FROM and ARG lines below.
+# FROM fedora:38
+# ARG DNF_CMD="dnf"
+
 ARG TARGETARCH
 WORKDIR /
 COPY --from=bpfman-agent-build /usr/src/bpfman/bpfman-operator/bpfman-agent .
 
 # Install crictl
-RUN microdnf -y install wget tar
+RUN ${DNF_CMD} -y install wget tar
 ARG VERSION="v1.28.0"
 RUN wget https://github.com/kubernetes-sigs/cri-tools/releases/download/${VERSION}/crictl-${VERSION}-linux-${TARGETARCH}.tar.gz
 RUN tar zxvf crictl-${VERSION}-linux-${TARGETARCH}.tar.gz -C /usr/local/bin
 RUN rm -f crictl-${VERSION}-linux-${TARGETARCH}.tar.gz
-RUN microdnf -y clean all
+RUN ${DNF_CMD} -y clean all
 
 ENTRYPOINT ["/bpfman-agent"]

@@ -91,7 +91,7 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}
 
-	// If the program isn't being deleated, make sure that each node has at
+	// If the program isn't being deleted, make sure that each node has at
 	// least one bpfprogram object.  If not, Return NotYetLoaded Status.
 	if prog.GetDeletionTimestamp().IsZero() {
 		for _, node := range nodes.Items {

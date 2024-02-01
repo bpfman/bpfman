@@ -122,10 +122,6 @@ spec:
           volumeMounts:
             - name: bpfman-sock
               mountPath: /run/bpfman-sock
-            - name: bpfman-config
-              mountPath: /etc/bpfman/bpfman.toml
-              subPath: bpfman.toml
-              readOnly: true
             ## The following five mounts are used by crictl for attaching
             ## uprobes in user containers
             - mountPath: /run/containerd/containerd.sock
