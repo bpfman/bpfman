@@ -37,6 +37,8 @@ const (
 	BpfmanDsName                = "bpfman-daemon"
 	BpfmanConfigName            = "bpfman-config"
 	BpfmanCsiDriverName         = "csi.bpfman.io"
+	BpfmanContainerName         = "bpfman"
+	BpfmanAgentContainerName    = "bpfman-agent"
 	BpfmanDaemonManifestPath    = "./config/bpfman-deployment/daemonset.yaml"
 	BpfmanCsiDriverPath         = "./config/bpfman-deployment/csidriverinfo.yaml"
 	BpfmanMapFs                 = "/run/bpfman/fs/maps"

@@ -21,6 +21,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -248,6 +249,8 @@ func LoadAndConfigureBpfmanDs(config *corev1.ConfigMap, path string) *appsv1.Dae
 	bpfmanAgentImage := config.Data["bpfman.agent.image"]
 	bpfmanLogLevel := config.Data["bpfman.log.level"]
 	bpfmanAgentLogLevel := config.Data["bpfman.agent.log.level"]
+	bpfmanHealthProbeAddr := config.Data["bpfman.agent.healthprobe.addr"]
+	bpfmanMetricAddr := config.Data["bpfman.agent.metric.addr"]
 
 	// Annotate the log level on the ds so we get automatic restarts on changes.
 	if staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations == nil {
@@ -256,10 +259,32 @@ func LoadAndConfigureBpfmanDs(config *corev1.ConfigMap, path string) *appsv1.Dae
 
 	staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["bpfman.io.bpfman.loglevel"] = bpfmanLogLevel
 	staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["bpfman.io.bpfman.agent.loglevel"] = bpfmanAgentLogLevel
-	staticBpfmanDeployment.Name = "bpfman-daemon"
+	staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["bpfman.io.bpfman.agent.healthprobeaddr"] = bpfmanHealthProbeAddr
+	staticBpfmanDeployment.Spec.Template.ObjectMeta.Annotations["bpfman.io.bpfman.agent.metricaddr"] = bpfmanMetricAddr
+	staticBpfmanDeployment.Name = internal.BpfmanDsName
 	staticBpfmanDeployment.Namespace = config.Namespace
-	staticBpfmanDeployment.Spec.Template.Spec.Containers[0].Image = bpfmanImage
-	staticBpfmanDeployment.Spec.Template.Spec.Containers[1].Image = bpfmanAgentImage
+	for cindex, container := range staticBpfmanDeployment.Spec.Template.Spec.Containers {
+		if container.Name == internal.BpfmanContainerName {
+			staticBpfmanDeployment.Spec.Template.Spec.Containers[cindex].Image = bpfmanImage
+		} else if container.Name == internal.BpfmanAgentContainerName {
+			staticBpfmanDeployment.Spec.Template.Spec.Containers[cindex].Image = bpfmanAgentImage
+
+			for aindex, arg := range container.Args {
+				if bpfmanHealthProbeAddr != "" {
+					if strings.Contains(arg, "health-probe-bind-address") {
+						staticBpfmanDeployment.Spec.Template.Spec.Containers[cindex].Args[aindex] =
+							"--health-probe-bind-address=" + bpfmanHealthProbeAddr
+					}
+				}
+				if bpfmanMetricAddr != "" {
+					if strings.Contains(arg, "metrics-bind-address") {
+						staticBpfmanDeployment.Spec.Template.Spec.Containers[cindex].Args[aindex] =
+							"--metrics-bind-address=" + bpfmanMetricAddr
+					}
+				}
+			}
+		}
+	}
 	controllerutil.AddFinalizer(staticBpfmanDeployment, internal.BpfmanOperatorFinalizer)
 
 	return staticBpfmanDeployment
