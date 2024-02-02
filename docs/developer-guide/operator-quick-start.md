@@ -20,6 +20,7 @@ CSI requires Kubernetes v1.26 due to a PR
 ([kubernetes/kubernetes#112597](https://github.com/kubernetes/kubernetes/pull/112597))
 that addresses a gRPC Protocol Error that was seen in the CSI client code and it doesn't appear to have
 been backported.
+It is recommended to install kind v0.20.0 or later.
 
 ## Deploy To Openshift Cluster
 
