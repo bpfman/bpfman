@@ -46,10 +46,13 @@ pub(crate) fn get_ifindex(iface: &str) -> Result<u32, BpfmanError> {
     }
 }
 
-pub(crate) async fn set_file_permissions(path: &str, mode: u32) {
+pub(crate) async fn set_file_permissions(path: &Path, mode: u32) {
     // Set the permissions on the file based on input
     if (tokio::fs::set_permissions(path, std::fs::Permissions::from_mode(mode)).await).is_err() {
-        warn!("Unable to set permissions on file {}. Continuing", path);
+        warn!(
+            "Unable to set permissions on file {}. Continuing",
+            path.to_path_buf().display()
+        );
     }
 }
 
@@ -58,7 +61,7 @@ pub(crate) async fn set_dir_permissions(directory: &str, mode: u32) {
     let mut entries = fs::read_dir(directory).await.unwrap();
     while let Some(file) = entries.next_entry().await.unwrap() {
         // Set the permissions on the file based on input
-        set_file_permissions(&file.path().into_os_string().into_string().unwrap(), mode).await;
+        set_file_permissions(&file.path(), mode).await;
     }
 }
 
