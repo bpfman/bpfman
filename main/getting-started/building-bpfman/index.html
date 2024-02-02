@@ -643,6 +643,24 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#install-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install docker
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-kind" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install Kind
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#install-bash-completion" class="md-nav__link">
     <span class="md-ellipsis">
       Install bash-completion
@@ -1840,6 +1858,24 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#install-docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install docker
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-kind" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install Kind
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#install-bash-completion" class="md-nav__link">
     <span class="md-ellipsis">
       Install bash-completion
@@ -2061,6 +2097,42 @@ installation instructions.</p>
 <p><code>apt</code> based OS:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="go">sudo apt install perl</span>
 </code></pre></div>
+<h3 id="install-docker">Install docker</h3>
+<p>To build the <code>bpfman-agent</code> and <code>bpfman-operator</code> using the provided Makefile and the
+<code>make build-images</code> command, <code>docker</code> needs to be installed.
+There are several existing guides:</p>
+<ul>
+<li>Fedora: <a href="https://developer.fedoraproject.org/tools/docker/docker-installation.html">https://developer.fedoraproject.org/tools/docker/docker-installation.html</a></li>
+<li>Linux: <a href="https://docs.docker.com/engine/install/">https://docs.docker.com/engine/install/</a></li>
+</ul>
+<h3 id="install-kind">Install Kind</h3>
+<p>Optionally, to test <code>bpfman</code> running in Kubernetes, the easiest method and the one documented
+throughout the <code>bpfman</code> documentation is to run a Kubernetes Kind cluster.
+See <a href="https://kind.sigs.k8s.io/">kind</a> for documentation and installation instructions.
+<code>kind</code> also requires <code>docker</code> to be installed.</p>
+<blockquote>
+<blockquote>
+<p><strong>NOTE:</strong> By default, bpfman-operator deploys bpfman with CSI enabled.
+CSI requires Kubernetes v1.26 due to a PR
+(<a href="https://github.com/kubernetes/kubernetes/pull/112597">kubernetes/kubernetes#112597</a>)
+that addresses a gRPC Protocol Error that was seen in the CSI client code and it doesn't appear to have
+been backported.
+It is recommended to install kind v0.20.0 or later.</p>
+</blockquote>
+</blockquote>
+<p>If the following error is seen, it means there is an older version of Kubernetes running and it
+needs to be upgraded.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="go">kubectl get pods -A</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="go">NAMESPACE   NAME                               READY   STATUS             RESTARTS      AGE</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="go">bpfman      bpfman-daemon-2hnhx                2/3     CrashLoopBackOff   4 (38s ago)   2m20s</span>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="go">bpfman      bpfman-operator-6b6cf97857-jbvv4   2/2     Running            0             2m22s</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="go">:</span>
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="go">kubectl logs -n bpfman bpfman-daemon-2hnhx -c node-driver-registrar</span>
+<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="go">:</span>
+<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="go">E0202 15:33:12.342704       1 main.go:101] Received NotifyRegistrationStatus call: &amp;RegistrationStatus{PluginRegistered:false,Error:RegisterPlugin error -- plugin registration failed with err: rpc error: code = Internal desc = stream terminated by RST_STREAM with error code: PROTOCOL_ERROR,}</span>
+<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="go">E0202 15:33:12.342723       1 main.go:103] Registration process failed with error: RegisterPlugin error -- plugin registration failed with err: rpc error: code = Internal desc = stream terminated by RST_STREAM with error code: PROTOCOL_ERROR, restarting registration container.</span>
+</code></pre></div>
 <h3 id="install-bash-completion">Install bash-completion</h3>
 <p><code>bpfman</code> uses the Rust crate <code>clap</code> for the CLI implementation.
 <code>clap</code> has an optional Rust crate <code>clap_complete</code>. For <code>bash</code> shell, it leverages
@@ -2072,12 +2144,12 @@ This feature is optional.</p>
 must be sourced in the running sessions.
 New login sessions should pick it up automatically.</p>
 <p><code>dnf</code> based OS:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="go">sudo dnf install bash-completion</span>
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="go">source /etc/profile.d/bash_completion.sh</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="go">sudo dnf install bash-completion</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="go">source /etc/profile.d/bash_completion.sh</span>
 </code></pre></div>
 <p><code>apt</code> based OS:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="go">sudo apt install bash-completion</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="go">source /etc/profile.d/bash_completion.sh</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="go">sudo apt install bash-completion</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="go">source /etc/profile.d/bash_completion.sh</span>
 </code></pre></div>
 <h3 id="install-yaml-formatter">Install Yaml Formatter</h3>
 <p>As part of CI, the Yaml files are validated with a Yaml formatter.
@@ -2085,21 +2157,21 @@ Optionally, to verify locally, install the
 <a href="https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml">YAML Language Support by Red Hat</a>
 VsCode Extension, or to format in bulk, install <code>prettier</code>.</p>
 <p>To install <code>prettier</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="go">npm install -g prettier</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="go">npm install -g prettier</span>
 </code></pre></div>
 <p>Then to flag which files are violating the formatting guide, run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="go">prettier -l &quot;*.yaml&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="go">prettier -l &quot;*.yaml&quot;</span>
 </code></pre></div>
 <p>And to write changes in place, run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="go"> prettier -f &quot;*.yaml&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="go"> prettier -f &quot;*.yaml&quot;</span>
 </code></pre></div>
 <h3 id="install-toml-formatter">Install toml Formatter</h3>
 <p>As part of CI, the toml files are validated with a toml formatter.
 Optionally, to verify locally, install <code>taplo</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="go">cargo install taplo-cli</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="go">cargo install taplo-cli</span>
 </code></pre></div>
 <p>And to verify locally:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="go">taplo fmt --check</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="go">taplo fmt --check</span>
 </code></pre></div>
 
 

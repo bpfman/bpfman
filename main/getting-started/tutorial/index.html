@@ -1878,7 +1878,7 @@ All examples, both using <code>bpfman</code> and the gRPC API use this socket.</
 <p>While learning and experimenting with <code>bpfman</code>, it may be useful to run <code>bpfman</code> in the foreground
 (which requires a second terminal to run the <code>bpfman</code> commands below).
 For more details on how logging is handled in bpfman, see <a href="../../developer-guide/logging/">Logging</a>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">sudo RUST_LOG=info ./target/debug/bpfman</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">sudo RUST_LOG=info ./target/debug/bpfman system service --timeout=0</span>
 </code></pre></div>
 <h3 id="step-4-load-your-first-program">Step 4: Load your first program</h3>
 <p>We will load the simple <code>xdp-pass</code> program, which permits all traffic to the attached interface,
