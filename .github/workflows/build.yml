@@ -58,7 +58,9 @@ jobs:
           components: rustfmt, clippy, rust-src
           override: false
 
-      - uses: Swatinem/rust-cache@v2
+      ## TODO(astoycos) Deactivate the rust-cache action until we can determine
+      ## why it's freezing at the end of the install.
+      ## - uses: Swatinem/rust-cache@v2
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
