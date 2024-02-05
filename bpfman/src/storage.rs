@@ -371,7 +371,7 @@ impl StorageManager {
         let uds = UnixListener::bind(path)
             .unwrap_or_else(|_| panic!("failed to bind {RTPATH_BPFMAN_CSI_SOCKET}"));
         let uds_stream = UnixListenerStream::new(uds);
-        set_file_permissions(RTPATH_BPFMAN_CSI_SOCKET, SOCK_MODE).await;
+        set_file_permissions(Path::new(RTPATH_BPFMAN_CSI_SOCKET), SOCK_MODE).await;
 
         let node_service = NodeServer::new(self.csi_node);
         let identity_service = IdentityServer::new(self.csi_identity);

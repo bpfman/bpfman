@@ -83,7 +83,7 @@ pub(crate) async fn execute_service(args: &ServiceArgs, config: &Config) -> anyh
     set_dir_permissions(STDIR, STDIR_MODE).await;
 
     //TODO https://github.com/bpfman/bpfman/issues/881
-    serve(config, args.csi_support, args.timeout).await?;
+    serve(config, args.csi_support, args.timeout, &args.socket_path).await?;
     Ok(())
 }
 

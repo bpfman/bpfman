@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
+use std::path::PathBuf;
+
 use bpfman_api::ProgramType;
 use clap::{Args, Parser, Subcommand};
 use hex::FromHex;
@@ -332,6 +334,9 @@ pub(crate) struct ServiceArgs {
     /// Shutdown after N seconds of inactivity. Use 0 to disable.
     #[clap(long, default_value = "15")]
     pub(crate) timeout: u64,
+    #[clap(long, default_value = "/run/bpfman-sock/bpfman.sock")]
+    /// Configure the location of the bpfman unix socket.
+    pub(crate) socket_path: PathBuf,
 }
 
 #[derive(Subcommand, Debug)]

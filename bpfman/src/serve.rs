@@ -8,9 +8,7 @@ use std::{
 };
 
 use anyhow::anyhow;
-use bpfman_api::{
-    config::Config, util::directories::RTPATH_BPFMAN_SOCKET, v1::bpfman_server::BpfmanServer,
-};
+use bpfman_api::{config::Config, v1::bpfman_server::BpfmanServer};
 use libsystemd::activation::IsType;
 use log::{debug, error, info};
 use tokio::{
@@ -32,7 +30,12 @@ use crate::{
     ROOT_DB,
 };
 
-pub async fn serve(config: &Config, csi_support: bool, timeout: u64) -> anyhow::Result<()> {
+pub async fn serve(
+    config: &Config,
+    csi_support: bool,
+    timeout: u64,
+    socket_path: &Path,
+) -> anyhow::Result<()> {
     let (shutdown_tx, shutdown_rx1) = broadcast::channel(32);
     let shutdown_rx2 = shutdown_tx.subscribe();
     let shutdown_rx3 = shutdown_tx.subscribe();
@@ -42,12 +45,11 @@ pub async fn serve(config: &Config, csi_support: bool, timeout: u64) -> anyhow::
     let (tx, rx) = mpsc::channel(32);
 
     let loader = BpfmanLoader::new(tx.clone());
-    let path = RTPATH_BPFMAN_SOCKET.to_string();
     let service = BpfmanServer::new(loader);
 
     let mut listeners: Vec<_> = Vec::new();
 
-    let handle = serve_unix(path.clone(), service.clone(), shutdown_rx1).await?;
+    let handle = serve_unix(socket_path, service.clone(), shutdown_rx1).await?;
     listeners.push(handle);
 
     let allow_unsigned = config.signing.as_ref().map_or(true, |s| s.allow_unsigned);
@@ -143,14 +145,14 @@ async fn join_listeners(listeners: Vec<JoinHandle<()>>) {
 }
 
 async fn serve_unix(
-    path: String,
+    path: &Path,
     service: BpfmanServer<BpfmanLoader>,
     mut shutdown_channel: broadcast::Receiver<()>,
 ) -> anyhow::Result<JoinHandle<()>> {
-    let uds_stream = if let Ok(stream) = systemd_unix_stream(path.clone()) {
+    let uds_stream = if let Ok(stream) = systemd_unix_stream() {
         stream
     } else {
-        std_unix_stream(path.clone()).await?
+        std_unix_stream(path).await?
     };
 
     let serve = Server::builder()
@@ -162,16 +164,20 @@ async fn serve_unix(
             };
         });
 
+    let socket_path = path.to_path_buf();
     Ok(tokio::spawn(async move {
-        info!("Listening on {path}");
+        info!("Listening on {}", socket_path.to_path_buf().display());
         if let Err(e) = serve.await {
             eprintln!("Error = {e:?}");
         }
-        info!("Shutdown Unix Handler {}", path);
+        info!(
+            "Shutdown Unix Handler {}",
+            socket_path.to_path_buf().display()
+        );
     }))
 }
 
-fn systemd_unix_stream(_path: String) -> anyhow::Result<UnixListenerStream> {
+fn systemd_unix_stream() -> anyhow::Result<UnixListenerStream> {
     let listen_fds = libsystemd::activation::receive_descriptors(true)?;
     if listen_fds.len() == 1 {
         if let Some(fd) = listen_fds.first() {
@@ -190,17 +196,17 @@ fn systemd_unix_stream(_path: String) -> anyhow::Result<UnixListenerStream> {
     Err(anyhow!("Unable to retrieve fd from systemd"))
 }
 
-async fn std_unix_stream(path: String) -> anyhow::Result<UnixListenerStream> {
+async fn std_unix_stream(path: &Path) -> anyhow::Result<UnixListenerStream> {
     // Listen on Unix socket
-    if Path::new(&path).exists() {
+    if path.exists() {
         // Attempt to remove the socket, since bind fails if it exists
-        remove_file(&path)?;
+        remove_file(path)?;
     }
 
-    let uds = UnixListener::bind(&path)?;
+    let uds = UnixListener::bind(path)?;
     let stream = UnixListenerStream::new(uds);
     // Always set the file permissions of our listening socket.
-    set_file_permissions(&path.clone(), SOCK_MODE).await;
+    set_file_permissions(path, SOCK_MODE).await;
 
     info!("Using default Unix socket");
     Ok(stream)
