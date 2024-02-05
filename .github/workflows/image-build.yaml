@@ -22,6 +22,7 @@ jobs:
       matrix:
         image:
           - registry: quay.io
+            build_language: rust
             repository: bpfman
             image: bpfman
             dockerfile: ./Containerfile.bpfman
@@ -35,6 +36,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: go
             repository: bpfman
             image: bpfman-agent
             dockerfile: ./bpfman-operator/Containerfile.bpfman-agent
@@ -48,6 +50,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: go
             repository: bpfman
             image: bpfman-operator
             dockerfile: ./bpfman-operator/Containerfile.bpfman-operator
@@ -61,6 +64,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: go
             repository: bpfman
             image: bpfman-operator-bundle
             context: ./bpfman-operator
@@ -74,6 +78,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: go
             repository: bpfman-userspace
             image: go-xdp-counter
             context: .
@@ -87,6 +92,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: go
             repository: bpfman-userspace
             image: go-tc-counter
             context: .
@@ -100,6 +106,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: go
             repository: bpfman-userspace
             image: go-tracepoint-counter
             context: .
@@ -113,6 +120,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: go
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-xdp-counter
@@ -132,6 +140,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: go
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-tc-counter
@@ -151,6 +160,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: go
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-tracepoint-counter
@@ -170,6 +180,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: xdp_pass
@@ -189,6 +200,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: xdp_pass_private
@@ -208,6 +220,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: tc_pass
@@ -227,6 +240,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: tracepoint
@@ -246,6 +260,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: uprobe
@@ -265,6 +280,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: uretprobe
@@ -284,6 +300,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: kprobe
@@ -303,6 +320,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: kretprobe
@@ -322,6 +340,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman
             image: xdp-dispatcher
@@ -332,6 +351,7 @@ jobs:
               type=raw,value=v1,enable=true
 
           - registry: quay.io
+            build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman
             image: xdp-dispatcher
@@ -342,6 +362,7 @@ jobs:
               type=raw,value=v2,enable=true
 
           - registry: quay.io
+            build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman
             image: tc-dispatcher
@@ -356,7 +377,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
-        if: ${{ matrix.image.bpf_build_wrapper == 'go' }}
+        if: ${{ matrix.image.build_language == 'go' }}
         with:
           go-version: "1.21"
 
@@ -369,7 +390,7 @@ jobs:
           path: libbpf
 
       - uses: actions-rs/toolchain@v1
-        if: ${{ matrix.image.bpf_build_wrapper == 'rust' }}
+        if: ${{ matrix.image.build_language == 'rust' }}
         with:
           toolchain: stable
           override: true
