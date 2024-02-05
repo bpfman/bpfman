@@ -34,6 +34,7 @@ use tokio::{
 use crate::{
     command::{
         Command, Direction, Program, ProgramData, PullBytecodeArgs, UnloadArgs, PROGRAM_PREFIX,
+        PROGRAM_PRE_LOAD_PREFIX,
     },
     errors::BpfmanError,
     multiprog::{
@@ -225,43 +226,15 @@ impl BpfManager {
         // re-build programs from database, cache dispatchers to rebuild after.
         for tree_name in ROOT_DB.tree_names() {
             let name = &bytes_to_string(&tree_name);
-            let tree = ROOT_DB
-                .open_tree(name)
-                .expect("unable to open database tree");
 
-            if name.contains("dispatcher") {
+            if name.contains(TC_DISPATCHER_PREFIX) || name.contains(XDP_DISPATCHER_PREFIX) {
                 dispatchers.push(name.clone());
                 continue;
-            } else if name.contains("program") {
-                let id = if let Some(i) = name.split('_').last() {
-                    match i.parse::<u32>() {
-                        Ok(id) => id,
-                        Err(_) => {
-                            debug!("Ignoring non-numeric tree name: {} on rebuild", name);
-                            continue;
-                        }
-                    }
-                } else {
-                    continue;
-                };
-
-                debug!("rebuilding state for program {}", id);
-
-                // If there's an error here remove broken tree and continue
-                match Program::new_from_db(id, tree) {
-                    Ok(mut program) => {
-                        program
-                            .get_data_mut()
-                            .set_program_bytes(self.image_manager.clone())
-                            .await?;
-                        self.rebuild_map_entry(id, &mut program).await;
-                    }
-                    Err(_) => {
-                        ROOT_DB
-                            .drop_tree(name)
-                            .expect("unable to remove broken program tree");
-                    }
-                }
+            } else if name.contains(PROGRAM_PRE_LOAD_PREFIX) {
+                // Drop temporary DB trees, as it means bpfman crashed mid load
+                ROOT_DB
+                    .drop_tree(name)
+                    .expect("unable to remove temporary program tree");
             }
         }
 
@@ -1136,44 +1109,6 @@ impl BpfManager {
         }
 
         Ok(())
-    }
-
-    async fn rebuild_map_entry(&mut self, id: u32, program: &mut Program) {
-        let map_owner_id = program.get_data().get_map_owner_id().unwrap();
-        let index = match map_owner_id {
-            Some(i) => i,
-            None => id,
-        };
-
-        if let Some(map) = get_map(index) {
-            push_maps_used_by(map.clone(), id).expect("unable to push to maps_used_by");
-
-            let used_by = get_maps_used_by(map).expect("unable to get maps used by");
-
-            // This program has not been inserted yet, so update it with the
-            // updated map_used_by.
-            program
-                .get_data_mut()
-                .set_maps_used_by(used_by.clone())
-                .expect("unable to set map_used_by");
-
-            // Update all the other programs using the same map with the updated map_used_by.
-            for used_by_id in used_by.iter() {
-                // program may not exist yet on rebuild, so ignore if not there
-                if let Some(mut prog) = self.get(used_by_id) {
-                    prog.get_data_mut()
-                        .set_maps_used_by(used_by.clone())
-                        .unwrap();
-                }
-            }
-        } else {
-            let db_tree = ROOT_DB
-                .open_tree(format!("{}{}", MAP_PREFIX, id))
-                .expect("Unable to open map db tree");
-            set_maps_used_by(db_tree, vec![id]).expect("unable to set maps used by");
-
-            program.get_data_mut().set_maps_used_by(vec![id]).unwrap();
-        }
     }
 }
 

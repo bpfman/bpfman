@@ -38,6 +38,7 @@ use crate::{
 
 /// These constants define the key of SLED DB
 pub(crate) const PROGRAM_PREFIX: &str = "program_";
+pub(crate) const PROGRAM_PRE_LOAD_PREFIX: &str = "pre_load_program_";
 const KIND: &str = "kind";
 const NAME: &str = "name";
 const ID: &str = "id";
@@ -365,7 +366,7 @@ impl ProgramData {
         let id_rand = rng.gen::<u32>();
 
         let db_tree = ROOT_DB
-            .open_tree(PROGRAM_PREFIX.to_string() + &id_rand.to_string())
+            .open_tree(PROGRAM_PRE_LOAD_PREFIX.to_string() + &id_rand.to_string())
             .expect("Unable to open program database tree");
 
         let mut pd = Self { db_tree };
@@ -1490,13 +1491,4 @@ impl Program {
             None => Err(BpfmanError::Error("Unsupported program type".to_string())),
         }
     }
-}
-
-// BpfMap represents a single map pin path used by a Program.  It has to be a
-// separate object because it's lifetime is slightly different from a Program.
-// More specifically a BpfMap can outlive a Program if other Programs are using
-// it.
-#[derive(Debug, Clone)]
-pub(crate) struct BpfMap {
-    pub(crate) _used_by: Vec<u32>,
 }
