@@ -26,7 +26,7 @@ use crate::{
     },
     dispatcher_config::TcDispatcherConfig,
     errors::BpfmanError,
-    multiprog::Dispatcher,
+    multiprog::{Dispatcher, TC_DISPATCHER_PREFIX},
     oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
     utils::{
         bytes_to_string, bytes_to_u16, bytes_to_u32, bytes_to_usize, should_map_be_pinned,
@@ -63,8 +63,8 @@ impl TcDispatcher {
     ) -> Result<Self, BpfmanError> {
         let db_tree = ROOT_DB
             .open_tree(format!(
-                "tc_dispatcher_{}_{}_{}",
-                if_index, direction, revision
+                "{}_{}_{}_{}",
+                TC_DISPATCHER_PREFIX, if_index, direction, revision
             ))
             .expect("Unable to open tc dispatcher database tree");
 
@@ -91,7 +91,7 @@ impl TcDispatcher {
 
     pub(crate) async fn load(
         &mut self,
-        programs: &mut [&mut Program],
+        programs: &mut [Program],
         old_dispatcher: Option<Dispatcher>,
         image_manager: Sender<ImageManagerCommand>,
     ) -> Result<(), BpfmanError> {
@@ -334,7 +334,7 @@ impl TcDispatcher {
                 }
 
                 let mut loader = bpf
-                    .load(v.data.program_bytes())
+                    .load(&v.get_data().get_program_bytes()?)
                     .map_err(BpfmanError::BpfLoadError)?;
 
                 let ext: &mut Extension = loader

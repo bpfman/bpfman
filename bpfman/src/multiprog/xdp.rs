@@ -19,7 +19,7 @@ use crate::{
     command::{Program, XdpProgram},
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfmanError,
-    multiprog::Dispatcher,
+    multiprog::{Dispatcher, XDP_DISPATCHER_PREFIX},
     oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
     utils::{
         bytes_to_string, bytes_to_u32, bytes_to_usize, should_map_be_pinned, sled_get, sled_insert,
@@ -51,7 +51,10 @@ impl XdpDispatcher {
         revision: u32,
     ) -> Result<Self, BpfmanError> {
         let db_tree = ROOT_DB
-            .open_tree(format!("xdp_dispatcher_{}_{}", if_index, revision))
+            .open_tree(format!(
+                "{}_{}_{}",
+                XDP_DISPATCHER_PREFIX, if_index, revision
+            ))
             .expect("Unable to open xdp dispatcher database tree");
 
         let mut dp = Self {
@@ -76,7 +79,7 @@ impl XdpDispatcher {
 
     pub(crate) async fn load(
         &mut self,
-        programs: &mut [&mut Program],
+        programs: &mut [Program],
         old_dispatcher: Option<Dispatcher>,
         image_manager: Sender<ImageManagerCommand>,
     ) -> Result<(), BpfmanError> {
@@ -268,7 +271,7 @@ impl XdpDispatcher {
                 }
 
                 let mut loader = bpf
-                    .load(v.get_data().program_bytes())
+                    .load(&v.get_data().get_program_bytes()?)
                     .map_err(BpfmanError::BpfLoadError)?;
 
                 let ext: &mut Extension = loader
@@ -322,8 +325,8 @@ impl XdpDispatcher {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
         debug!(
-            "XdpDispatcher::delete() for if_index {}, revision {}",
-            if_index, revision
+            "XdpDispatcher::delete() for if_index {}, revision {}, full {}",
+            if_index, revision, full
         );
         ROOT_DB.drop_tree(self.db_tree.name()).map_err(|e| {
             BpfmanError::DatabaseError(

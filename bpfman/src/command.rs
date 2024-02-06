@@ -37,6 +37,8 @@ use crate::{
 };
 
 /// These constants define the key of SLED DB
+pub(crate) const PROGRAM_PREFIX: &str = "program_";
+pub(crate) const PROGRAM_PRE_LOAD_PREFIX: &str = "pre_load_program_";
 const KIND: &str = "kind";
 const NAME: &str = "name";
 const ID: &str = "id";
@@ -50,6 +52,7 @@ const MAP_PIN_PATH: &str = "map_pin_path";
 const PREFIX_GLOBAL_DATA: &str = "global_data_";
 const PREFIX_METADATA: &str = "metadata_";
 const PREFIX_MAPS_USED_BY: &str = "maps_used_by_";
+const PROGRAM_BYTES: &str = "program_bytes";
 
 const KERNEL_NAME: &str = "kernel_name";
 const KERNEL_PROGRAM_TYPE: &str = "kernel_program_type";
@@ -346,23 +349,11 @@ pub(crate) struct ProgramData {
     // Prior to load this will be a temporary Tree with a random ID, following
     // load it will be replaced with the main program database tree.
     db_tree: sled::Tree,
-
-    // populated after load, randomly generated prior to load.
-    id: u32,
-
-    // program_bytes is used to temporarily cache the raw program data during
-    // the loading process.  It MUST be cleared following a load so that there
-    // is not a long lived copy of the program data living on the heap.
-    program_bytes: Vec<u8>,
 }
 
 impl ProgramData {
-    pub(crate) fn new(tree: sled::Tree, id: u32) -> Self {
-        Self {
-            db_tree: tree,
-            id,
-            program_bytes: Vec::new(),
-        }
+    pub(crate) fn new(tree: sled::Tree) -> Self {
+        Self { db_tree: tree }
     }
     pub(crate) fn new_pre_load(
         location: Location,
@@ -375,15 +366,12 @@ impl ProgramData {
         let id_rand = rng.gen::<u32>();
 
         let db_tree = ROOT_DB
-            .open_tree(id_rand.to_string())
+            .open_tree(PROGRAM_PRE_LOAD_PREFIX.to_string() + &id_rand.to_string())
             .expect("Unable to open program database tree");
 
-        let mut pd = Self {
-            db_tree,
-            id: id_rand,
-            program_bytes: Vec::new(),
-        };
+        let mut pd = Self { db_tree };
 
+        pd.set_id(id_rand)?;
         pd.set_location(location)?;
         pd.set_name(&name)?;
         pd.set_metadata(metadata)?;
@@ -397,7 +385,7 @@ impl ProgramData {
 
     pub(crate) fn swap_tree(&mut self, new_id: u32) -> Result<(), BpfmanError> {
         let new_tree = ROOT_DB
-            .open_tree(new_id.to_string())
+            .open_tree(PROGRAM_PREFIX.to_string() + &new_id.to_string())
             .expect("Unable to open program database tree");
 
         // Copy over all key's and values to new tree
@@ -416,7 +404,7 @@ impl ProgramData {
             .expect("unable to delete temporary program tree");
 
         self.db_tree = new_tree;
-        self.id = new_id;
+        self.set_id(new_id)?;
 
         Ok(())
     }
@@ -451,8 +439,6 @@ impl ProgramData {
     }
 
     pub(crate) fn set_id(&mut self, id: u32) -> Result<(), BpfmanError> {
-        // set db and local cache
-        self.id = id;
         sled_insert(&self.db_tree, ID, &id.to_ne_bytes())
     }
 
@@ -641,6 +627,48 @@ impl ProgramData {
                 .remove(n.unwrap().0)
                 .expect("unable to clear maps used by");
         });
+    }
+
+    pub(crate) fn get_program_bytes(&self) -> Result<Vec<u8>, BpfmanError> {
+        sled_get(&self.db_tree, PROGRAM_BYTES)
+    }
+
+    pub(crate) async fn set_program_bytes(
+        &mut self,
+        image_manager: Sender<ImageManagerCommand>,
+    ) -> Result<(), BpfmanError> {
+        let loc = self.get_location()?;
+        match loc.get_program_bytes(image_manager).await {
+            Err(e) => Err(e),
+            Ok((v, s)) => {
+                match loc {
+                    Location::Image(l) => {
+                        info!(
+                            "Loading program bytecode from container image: {}",
+                            l.get_url()
+                        );
+                        // If program name isn't provided and we're loading from a container
+                        // image use the program name provided in the image metadata, otherwise
+                        // always use the provided program name.
+                        let provided_name = self.get_name()?.clone();
+
+                        if provided_name.is_empty() {
+                            self.set_name(&s)?;
+                        } else if s != provided_name {
+                            return Err(BpfmanError::BytecodeMetaDataMismatch {
+                                image_prog_name: s,
+                                provided_prog_name: provided_name.to_string(),
+                            });
+                        }
+                    }
+                    Location::File(l) => {
+                        info!("Loading program bytecode from file: {}", l);
+                    }
+                }
+                sled_insert(&self.db_tree, PROGRAM_BYTES, &v)?;
+                Ok(())
+            }
+        }
     }
 
     /*
@@ -845,55 +873,6 @@ impl ProgramData {
     /*
      * End kernel info getters/setters.
      */
-
-    pub(crate) fn program_bytes(&self) -> &[u8] {
-        &self.program_bytes
-    }
-
-    // In order to ensure that the program bytes, which can be a large amount
-    // of data is only stored for as long as needed, make sure to call
-    // clear_program_bytes following a load.
-    pub(crate) fn clear_program_bytes(&mut self) {
-        self.program_bytes = Vec::new();
-    }
-
-    pub(crate) async fn set_program_bytes(
-        &mut self,
-        image_manager: Sender<ImageManagerCommand>,
-    ) -> Result<(), BpfmanError> {
-        let loc = self.get_location()?;
-        match loc.get_program_bytes(image_manager).await {
-            Err(e) => Err(e),
-            Ok((v, s)) => {
-                match loc {
-                    Location::Image(l) => {
-                        info!(
-                            "Loading program bytecode from container image: {}",
-                            l.get_url()
-                        );
-                        // If program name isn't provided and we're loading from a container
-                        // image use the program name provided in the image metadata, otherwise
-                        // always use the provided program name.
-                        let provided_name = self.get_name()?.clone();
-
-                        if provided_name.is_empty() {
-                            self.set_name(&s)?;
-                        } else if s != provided_name {
-                            return Err(BpfmanError::BytecodeMetaDataMismatch {
-                                image_prog_name: s,
-                                provided_prog_name: provided_name.to_string(),
-                            });
-                        }
-                    }
-                    Location::File(l) => {
-                        info!("Loading program bytecode from file: {}", l);
-                    }
-                }
-                self.program_bytes = v;
-                Ok(())
-            }
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -1402,7 +1381,7 @@ impl Program {
 
     pub(crate) fn delete(&self) -> Result<(), anyhow::Error> {
         let id = self.get_data().get_id()?;
-        ROOT_DB.drop_tree(id.to_string())?;
+        ROOT_DB.drop_tree(PROGRAM_PREFIX.to_string() + id.to_string().as_str())?;
 
         let path = format!("{RTDIR_FS}/prog_{id}");
         if PathBuf::from(&path).exists() {
@@ -1487,7 +1466,7 @@ impl Program {
     }
 
     pub(crate) fn new_from_db(id: u32, tree: sled::Tree) -> Result<Self, BpfmanError> {
-        let data = ProgramData::new(tree, id);
+        let data = ProgramData::new(tree);
 
         if data.get_id()? != id {
             return Err(BpfmanError::Error(
@@ -1512,13 +1491,4 @@ impl Program {
             None => Err(BpfmanError::Error("Unsupported program type".to_string())),
         }
     }
-}
-
-// BpfMap represents a single map pin path used by a Program.  It has to be a
-// separate object because it's lifetime is slightly different from a Program.
-// More specifically a BpfMap can outlive a Program if other Programs are using
-// it.
-#[derive(Debug, Clone)]
-pub(crate) struct BpfMap {
-    pub(crate) used_by: Vec<u32>,
 }
