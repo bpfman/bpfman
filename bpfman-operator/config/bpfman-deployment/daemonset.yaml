@@ -102,6 +102,9 @@ spec:
               name: host-proc
         - name: bpfman-agent
           command: [/bpfman-agent]
+          args:
+            - "--health-probe-bind-address=:8175"
+            - "--metrics-bind-address=127.0.0.1:8174"
           image: quay.io/bpfman/bpfman-agent:latest
           securityContext:
             privileged: true

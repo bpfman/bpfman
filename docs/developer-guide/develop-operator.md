@@ -184,3 +184,84 @@ The following is a brief description of the main directories and their contents.
   It uses the [kubernetes-testing-framework project](https://github.com/Kong/kubernetes-testing-framework) to
   programmatically spin-up all of the required infrastructure for our unit tests.
 - `Makefile`: Contains all of the make targets used to build, test, and generate code used by the bpfman-operator.
+
+## Troubleshooting
+
+### Metrics/Health port issues
+
+In some scenarios, the health and metric ports may are already in use by other services on the system.
+When this happens the bpfman-agent container fails to deploy.
+The ports currently default to 8175 and 8174.
+
+The ports are passed in through the [daemonset.yaml] for the `bpfman-daemon` and [deployment.yaml] and
+[manager_auth_proxy_patch.yaml] for the `bpfman-operator`.
+The easiest way to change which ports are used is to update these yaml files and rebuild the container images.
+The container images need to be rebuilt because the `bpfman-daemon` is deployed from the `bpfman-operator`
+and the associated yaml files are copied into the `bpfman-operator` image.
+
+If rebuild the container images is not desirable, then the ports can be changed on the fly.
+For the `bpfman-operator`, the ports can be updated by editing the `bpfman-operator` Deployment.
+
+```console
+kubectl edit deployment -n bpfman bpfman-operator
+
+apiVersion: apps/v1
+kind: Deployment
+:
+spec:
+  template:
+  :
+  spec:
+    containers:
+    -args:
+      - --secure-listen-address=0.0.0.0:8443
+      - --upstream=http://127.0.0.1:8174/        <-- UPDATE
+      - --logtostderr=true
+      - --v=0
+      name: kube-rbac-proxy
+      :
+    - args:
+      - --health-probe-bind-address=:8175        <-- UPDATE
+      - --metrics-bind-address=127.0.0.1:8174    <-- UPDATE
+      - --leader-elect
+      :
+      livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: 8175                           <-- UPDATE
+            scheme: HTTP
+            :
+      name: bpfman-operator
+      readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readyz
+            port: 8175                           <-- UPDATE
+            scheme: HTTP
+      :
+```
+
+For the `bpfman-daemon`, the ports could be updated by editing the `bpfman-daemon` DaemonSet.
+However, if `bpfman-daemon` is restarted for any reason by the `bpfman-operator`, the changes
+will be lost. So it is recommended to update the ports for the `bpfman-daemon` via the bpfman
+`bpfman-config` ConfigMap.
+
+```console
+kubectl edit configmap -n bpfman bpfman-config
+
+apiVersion: v1
+data:
+  bpfman.agent.healthprobe.addr: :8175                    <-- UPDATE
+  bpfman.agent.image: quay.io/bpfman/bpfman-agent:latest
+  bpfman.agent.log.level: info
+  bpfman.agent.metric.addr: 127.0.0.1:8174                <-- UPDATE
+  bpfman.image: quay.io/bpfman/bpfman:latest
+  bpfman.log.level: debug
+kind: ConfigMap
+:
+```
+
+[daemonset.yaml]: https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/bpfman-deployment/daemonset.yaml
+[deployment.yaml]: https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/bpfman-operator-deployment/deployment.yaml
+[manager_auth_proxy_patch.yaml]: https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/default/manager_auth_proxy_patch.yaml
