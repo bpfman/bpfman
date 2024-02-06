@@ -1836,7 +1836,7 @@ and the bpd Operator that runs on the control plane:</p>
 </code></pre></div>
 <p>To view the <code>bpfman-agent</code> logs:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">kubectl logs -n bpfman bpfman-daemon-dgqzw -c bpfman-agent</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-12-20T20:15:34Z&quot;,&quot;logger&quot;:&quot;controller-runtime.metrics&quot;,&quot;msg&quot;:&quot;Metrics server is starting to listen&quot;,&quot;addr&quot;:&quot;:8080&quot;}</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-12-20T20:15:34Z&quot;,&quot;logger&quot;:&quot;controller-runtime.metrics&quot;,&quot;msg&quot;:&quot;Metrics server is starting to listen&quot;,&quot;addr&quot;:&quot;:8174&quot;}</span>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-12-20T20:15:34Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;Waiting for active connection to bpfman&quot;}</span>
 <a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-12-20T20:15:34Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;starting Bpfman-Agent&quot;}</span>
 <a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go">:</span>
@@ -1881,10 +1881,10 @@ It runs with the containers <code>bpfman-operator</code> and <code>kube-rbac-pro
 <h4 id="view-logs_1">View Logs</h4>
 <p>To view the <code>bpfman-operator</code> logs:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">kubectl logs -n bpfman bpfman-operator-7fbf4888c4-z8w76 -c bpfman-operator</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-05-09T18:37:11Z&quot;,&quot;logger&quot;:&quot;controller-runtime.metrics&quot;,&quot;msg&quot;:&quot;Metrics server is starting to listen&quot;,&quot;addr&quot;:&quot;127.0.0.1:8080&quot;}</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-05-09T18:37:11Z&quot;,&quot;logger&quot;:&quot;controller-runtime.metrics&quot;,&quot;msg&quot;:&quot;Metrics server is starting to listen&quot;,&quot;addr&quot;:&quot;127.0.0.1:8174&quot;}</span>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-05-09T18:37:11Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;starting manager&quot;}</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-05-09T18:37:11Z&quot;,&quot;msg&quot;:&quot;Starting server&quot;,&quot;kind&quot;:&quot;health probe&quot;,&quot;addr&quot;:&quot;[::]:8081&quot;}</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-05-09T18:37:11Z&quot;,&quot;msg&quot;:&quot;Starting server&quot;,&quot;path&quot;:&quot;/metrics&quot;,&quot;kind&quot;:&quot;metrics&quot;,&quot;addr&quot;:&quot;127.0.0.1:8080&quot;}</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-05-09T18:37:11Z&quot;,&quot;msg&quot;:&quot;Starting server&quot;,&quot;kind&quot;:&quot;health probe&quot;,&quot;addr&quot;:&quot;[::]:8175&quot;}</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-05-09T18:37:11Z&quot;,&quot;msg&quot;:&quot;Starting server&quot;,&quot;path&quot;:&quot;/metrics&quot;,&quot;kind&quot;:&quot;metrics&quot;,&quot;addr&quot;:&quot;127.0.0.1:8174&quot;}</span>
 <a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="go">I0509 18:37:11.262885       1 leaderelection.go:248] attempting to acquire leader lease bpfman/8730d955.bpfman.io...</span>
 <a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="go">I0509 18:37:11.268918       1 leaderelection.go:258] successfully acquired lease bpfman/8730d955.bpfman.io</span>
 <a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-05-09T18:37:11Z&quot;,&quot;msg&quot;:&quot;Starting EventSource&quot;,&quot;controller&quot;:&quot;configmap&quot;,&quot;controllerGroup&quot;:&quot;&quot;,&quot;controllerKind&quot;:&quot;ConfigMap&quot;,&quot;source&quot;:&quot;kind source: *v1.ConfigMap&quot;}</span>
@@ -1921,8 +1921,8 @@ The change will get detected and the bpfman operator pod will get restarted with
 <a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="go">      - args:</span>
 <a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="go">:</span>
 <a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="go">      - args:</span>
-<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="go">        - --health-probe-bind-address=:8081</span>
-<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="go">        - --metrics-bind-address=127.0.0.1:8080</span>
+<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="go">        - --health-probe-bind-address=:8175</span>
+<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="go">        - --metrics-bind-address=127.0.0.1:8174</span>
 <a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a><span class="go">        - --leader-elect</span>
 <a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a><span class="go">        command:</span>
 <a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a><span class="go">        - /bpfman-operator</span>
