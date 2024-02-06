@@ -54,7 +54,7 @@ jobs:
 
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-2024-02-03
           components: rustfmt, clippy, rust-src
           override: false
 
@@ -83,11 +83,11 @@ jobs:
 
       - name: Check formatting
         run: |
-          cargo +nightly fmt --all -- --check
+          cargo +nightly-2024-02-03 fmt --all -- --check
 
       - name: Run clippy
         run: |
-          cargo +nightly clippy --all -- --deny warnings
+          cargo +nightly-2024-02-03 clippy --all -- --deny warnings
 
       - name: Build
         run: cargo build --verbose
@@ -207,7 +207,7 @@ jobs:
 
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-2024-02-03
           components: rust-src
           override: true
 
