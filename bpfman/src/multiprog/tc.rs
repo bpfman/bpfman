@@ -62,6 +62,8 @@ impl TcDispatcher {
         revision: u32,
     ) -> Result<Self, BpfmanError> {
         let db_tree = ROOT_DB
+            .get()
+            .expect("unable to open database")
             .open_tree(format!(
                 "{}_{}_{}_{}",
                 TC_DISPATCHER_PREFIX, if_index, direction, revision
@@ -401,15 +403,19 @@ impl TcDispatcher {
             if_index, revision
         );
 
-        ROOT_DB.drop_tree(self.db_tree.name()).map_err(|e| {
-            BpfmanError::DatabaseError(
-                format!(
-                    "unable to drop tc dispatcher tree {:?}",
-                    self.db_tree.name()
-                ),
-                e.to_string(),
-            )
-        })?;
+        ROOT_DB
+            .get()
+            .expect("unable to open database")
+            .drop_tree(self.db_tree.name())
+            .map_err(|e| {
+                BpfmanError::DatabaseError(
+                    format!(
+                        "unable to drop tc dispatcher tree {:?}",
+                        self.db_tree.name()
+                    ),
+                    e.to_string(),
+                )
+            })?;
 
         let base = match direction {
             Direction::Ingress => RTDIR_FS_TC_INGRESS,

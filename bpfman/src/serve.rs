@@ -24,10 +24,10 @@ use tonic::transport::Server;
 use crate::{
     bpf::BpfManager,
     oci_utils::ImageManager,
+    root_db_init,
     rpc::BpfmanLoader,
     storage::StorageManager,
     utils::{set_file_permissions, SOCK_MODE},
-    ROOT_DB,
 };
 
 pub async fn serve(
@@ -52,7 +52,8 @@ pub async fn serve(
 
     let allow_unsigned = config.signing.as_ref().map_or(true, |s| s.allow_unsigned);
 
-    let mut image_manager = ImageManager::new(ROOT_DB.clone(), allow_unsigned, irx).await?;
+    let mut image_manager =
+        ImageManager::new(root_db_init(config).clone(), allow_unsigned, irx).await?;
     let image_manager_handle = tokio::spawn(async move {
         image_manager.run(shutdown_rx2).await;
     });

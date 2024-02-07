@@ -51,6 +51,8 @@ impl XdpDispatcher {
         revision: u32,
     ) -> Result<Self, BpfmanError> {
         let db_tree = ROOT_DB
+            .get()
+            .expect("unable to open database")
             .open_tree(format!(
                 "{}_{}_{}",
                 XDP_DISPATCHER_PREFIX, if_index, revision
@@ -328,15 +330,19 @@ impl XdpDispatcher {
             "XdpDispatcher::delete() for if_index {}, revision {}, full {}",
             if_index, revision, full
         );
-        ROOT_DB.drop_tree(self.db_tree.name()).map_err(|e| {
-            BpfmanError::DatabaseError(
-                format!(
-                    "unable to drop xdp dispatcher tree {:?}",
-                    self.db_tree.name()
-                ),
-                e.to_string(),
-            )
-        })?;
+        ROOT_DB
+            .get()
+            .expect("unable to open database")
+            .drop_tree(self.db_tree.name())
+            .map_err(|e| {
+                BpfmanError::DatabaseError(
+                    format!(
+                        "unable to drop xdp dispatcher tree {:?}",
+                        self.db_tree.name()
+                    ),
+                    e.to_string(),
+                )
+            })?;
 
         let path = format!("{RTDIR_FS_XDP}/dispatcher_{}_{}", if_index, revision);
         fs::remove_dir_all(path)

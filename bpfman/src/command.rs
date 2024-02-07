@@ -365,7 +365,12 @@ impl ProgramData {
         let mut rng = rand::thread_rng();
         let id_rand = rng.gen::<u32>();
 
+        // This needs to be root_db_init(), but need to get config into this function
+        // or move the DB call down to bpf_manager.
+        // let db_tree = root_db_init(config)
         let db_tree = ROOT_DB
+            .get()
+            .expect("unable to open database")
             .open_tree(PROGRAM_PRE_LOAD_PREFIX.to_string() + &id_rand.to_string())
             .expect("Unable to open program database tree");
 
@@ -380,11 +385,19 @@ impl ProgramData {
             pd.set_map_owner_id(id)?;
         };
 
+        ROOT_DB
+            .get()
+            .expect("unable to open database")
+            .flush()
+            .expect("Unable to flush database to disk before shutting down BpfManager");
+
         Ok(pd)
     }
 
     pub(crate) fn swap_tree(&mut self, new_id: u32) -> Result<(), BpfmanError> {
         let new_tree = ROOT_DB
+            .get()
+            .expect("unable to open database")
             .open_tree(PROGRAM_PREFIX.to_string() + &new_id.to_string())
             .expect("Unable to open program database tree");
 
@@ -400,6 +413,8 @@ impl ProgramData {
         }
 
         ROOT_DB
+            .get()
+            .expect("unable to open database")
             .drop_tree(self.db_tree.name())
             .expect("unable to delete temporary program tree");
 
@@ -1381,7 +1396,10 @@ impl Program {
 
     pub(crate) fn delete(&self) -> Result<(), anyhow::Error> {
         let id = self.get_data().get_id()?;
-        ROOT_DB.drop_tree(PROGRAM_PREFIX.to_string() + id.to_string().as_str())?;
+        ROOT_DB
+            .get()
+            .expect("unable to open database")
+            .drop_tree(PROGRAM_PREFIX.to_string() + id.to_string().as_str())?;
 
         let path = format!("{RTDIR_FS}/prog_{id}");
         if PathBuf::from(&path).exists() {

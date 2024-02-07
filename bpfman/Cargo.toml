@@ -33,7 +33,6 @@ env_logger = { workspace = true }
 flate2 = { workspace = true, features = ["zlib"] }
 futures = { workspace = true }
 hex = { workspace = true, features = ["std"] }
-lazy_static = { workspace = true }
 libsystemd = { workspace = true }
 log = { workspace = true }
 netlink-packet-route = { workspace = true }
@@ -49,6 +48,7 @@ oci-distribution = { workspace = true, default-features = false, features = [
     "rustls-tls",
     "trust-dns",
 ] }
+once_cell = { workspace = true, features = ["std"] }
 rand = { workspace = true }
 rtnetlink = { workspace = true, features = ["tokio_socket"] }
 serde = { workspace = true, features = ["derive"] }
