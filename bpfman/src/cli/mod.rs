@@ -9,13 +9,9 @@ mod load;
 mod system;
 mod table;
 mod unload;
-use std::fs;
 
 use args::Commands;
-use bpfman_api::{
-    config::Config,
-    util::directories::{CFGPATH_BPFMAN_CONFIG, RTPATH_BPFMAN_SOCKET},
-};
+use bpfman_api::{config::Config, util::directories::RTPATH_BPFMAN_SOCKET};
 use get::execute_get;
 use list::execute_list;
 use log::warn;
@@ -25,17 +21,7 @@ use tower::service_fn;
 use unload::execute_unload;
 
 impl Commands {
-    pub(crate) async fn execute(&self) -> Result<(), anyhow::Error> {
-        let config = if let Ok(c) = fs::read_to_string(CFGPATH_BPFMAN_CONFIG) {
-            c.parse().unwrap_or_else(|_| {
-                warn!("Unable to parse config file, using defaults");
-                Config::default()
-            })
-        } else {
-            warn!("Unable to read config file, using defaults");
-            Config::default()
-        };
-
+    pub(crate) async fn execute(&self, config: Config) -> Result<(), anyhow::Error> {
         match self {
             Commands::Load(l) => l.execute().await,
             Commands::Unload(args) => execute_unload(args).await,

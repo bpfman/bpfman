@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
-#[cfg(not(test))]
-use bpfman_api::util::directories::STDIR_DB;
+use std::{thread, time::Duration};
+
+use anyhow::bail;
 use clap::Parser;
 use lazy_static::lazy_static;
-use sled::{Config, Db};
+use sled::{Config as SledConfig, Db};
+
+use crate::utils::open_config_file;
 
 mod bpf;
 mod cli;
@@ -22,23 +25,37 @@ mod utils;
 const BPFMAN_ENV_LOG_LEVEL: &str = "RUST_LOG";
 
 #[cfg(not(test))]
-lazy_static! {
-    pub static ref ROOT_DB: Db = Config::default()
-        .path(STDIR_DB)
-        .open()
-        .expect("Unable to open root database");
+fn get_db_config() -> SledConfig {
+    SledConfig::default().path(bpfman_api::util::directories::STDIR_DB)
 }
 
 #[cfg(test)]
+fn get_db_config() -> SledConfig {
+    SledConfig::default().temporary(true)
+}
+
+fn init_database(sled_config: SledConfig) -> anyhow::Result<Db> {
+    let config = open_config_file();
+    for _n in 1..config.database.as_ref().map_or(4, |d| d.max_retries) {
+        if let Ok(db) = sled_config.open() {
+            return Ok(db);
+        } else {
+            thread::sleep(Duration::from_millis(
+                config.database.as_ref().map_or(500, |d| d.millisec_delay),
+            ));
+        }
+    }
+    bail!("Timed out");
+}
+
 lazy_static! {
-    pub static ref ROOT_DB: Db = Config::default()
-        .temporary(true)
-        .open()
-        .expect("Unable to open temporary root database");
+    pub static ref ROOT_DB: Db =
+        init_database(get_db_config()).expect("Unable to open root database");
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = cli::args::Cli::parse();
-    cli.command.execute().await
+    let config = open_config_file();
+    cli.command.execute(config).await
 }

@@ -14,6 +14,7 @@ pub struct Config {
     pub interfaces: Option<HashMap<String, InterfaceConfig>>,
     #[serde(default)]
     pub signing: Option<SigningConfig>,
+    pub database: Option<DatabaseConfig>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -26,6 +27,23 @@ impl Default for SigningConfig {
         Self {
             // Allow unsigned programs by default
             allow_unsigned: true,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct DatabaseConfig {
+    pub max_retries: u32,
+    pub millisec_delay: u64,
+}
+
+impl Default for DatabaseConfig {
+    fn default() -> Self {
+        Self {
+            // Maximum numbers of times to attempt to open the database after a failed attempt
+            max_retries: 4,
+            // Number of milli-seconds to wait between failed database attempts
+            millisec_delay: 500,
         }
     }
 }

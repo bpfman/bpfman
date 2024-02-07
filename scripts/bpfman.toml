@@ -1,3 +1,10 @@
 [interfaces]
 [interface.eth0]
 xdp_mode = "hw" # Valid xdp modes are "hw", "skb" and "drv". Default: "skb".
+
+[signing]
+allow_unsigned = true
+
+[database]
+max_retries = 4
+millisec_delay = 500

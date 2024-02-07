@@ -4,6 +4,7 @@
 use std::{os::unix::fs::PermissionsExt, path::Path, str};
 
 use anyhow::{Context, Result};
+use bpfman_api::{config::Config, util::directories::CFGPATH_BPFMAN_CONFIG};
 use log::{debug, info, warn};
 use nix::{
     mount::{mount, MsFlags},
@@ -200,4 +201,16 @@ pub(crate) fn get_error_msg_from_stderr(stderr: &[u8]) -> String {
         .last()
         .unwrap_or(&"No message".to_string())
         .to_string()
+}
+
+pub(crate) fn open_config_file() -> Config {
+    if let Ok(c) = std::fs::read_to_string(CFGPATH_BPFMAN_CONFIG) {
+        c.parse().unwrap_or_else(|_| {
+            warn!("Unable to parse config file, using defaults");
+            Config::default()
+        })
+    } else {
+        warn!("Unable to read config file, using defaults");
+        Config::default()
+    }
 }
