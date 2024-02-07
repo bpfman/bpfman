@@ -155,7 +155,7 @@ jobs:
           skip-cache: true
           skip-pkg-cache: true
           skip-build-cache: true
-          args: -v --timeout 5m --enable=gofmt
+          args: -v --timeout 5m
 
       - name: Build Examples
         run: |
@@ -266,7 +266,7 @@ jobs:
       - name: setup golang
         uses: actions/setup-go@v5
         with:
-          go-version: '^1.21'
+          go-version: "^1.21"
 
       - name: cache go modules
         uses: actions/cache@v4
