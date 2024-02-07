@@ -4,6 +4,15 @@ run:
   # - vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
   # Default: true
   skip-dirs-use-default: false
+
+linters:
   enable:
     - gofmt
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
     - typecheck
+    - loggercheck

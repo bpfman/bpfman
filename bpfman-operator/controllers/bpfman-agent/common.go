@@ -629,7 +629,7 @@ func getContainerInfo(podList *v1.PodList, containerNames *[]string, logger logr
 		}
 
 		if !podFound {
-			logger.V(1).Info("Pod %s not found in crictl pod list", pod.Name)
+			logger.V(1).Info("Pod not found in crictl pod list", "pod", pod.Name)
 			return nil, fmt.Errorf("pod %s not found in crictl pod list", pod.Name)
 		}
 

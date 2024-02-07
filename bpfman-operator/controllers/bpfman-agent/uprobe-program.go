@@ -268,7 +268,7 @@ func (r *UprobeProgramReconciler) buildUprobeLoadRequest(
 	if ok {
 		containerPidInt64, err := strconv.ParseInt(containerPidStr, 10, 32)
 		if err != nil {
-			r.Logger.Error(err, "ParseInt() error on containerPidStr", containerPidStr)
+			r.Logger.Error(err, "ParseInt() error on containerPidStr", "containerPidStr", containerPidStr)
 		} else {
 			containerPid = int32(containerPidInt64)
 			hasContainerPid = true
