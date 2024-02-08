@@ -6,7 +6,7 @@ kind: Kustomization
 patches:
   - target:
       kind: TcProgram
-      name: "go-tc-counter-example"
+      name: go-tc-counter-example
     patch: |-
       - op: replace
         path: "/spec/bytecode/image/url"

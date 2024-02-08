@@ -30,13 +30,13 @@ spec:
             allowPrivilegeEscalation: false
             capabilities:
               drop:
-                - "ALL"
+                - ALL
           image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.0
           args:
-            - "--secure-listen-address=0.0.0.0:8443"
-            - "--upstream=http://127.0.0.1:8174/"
-            - "--logtostderr=true"
-            - "--v=0"
+            - --secure-listen-address=0.0.0.0:8443
+            - --upstream=http://127.0.0.1:8174/
+            - --logtostderr=true
+            - --v=0
           ports:
             - containerPort: 8443
               protocol: TCP
@@ -50,6 +50,6 @@ spec:
               memory: 64Mi
         - name: bpfman-operator
           args:
-            - "--health-probe-bind-address=:8175"
-            - "--metrics-bind-address=127.0.0.1:8174"
-            - "--leader-elect"
+            - --health-probe-bind-address=:8175
+            - --metrics-bind-address=127.0.0.1:8174
+            - --leader-elect

@@ -6,7 +6,7 @@ kind: Kustomization
 patches:
   - target:
       kind: XdpProgram
-      name: "go-xdp-counter-example"
+      name: go-xdp-counter-example
     patch: |-
       - op: replace
         path: "/spec/bytecode/image/url"

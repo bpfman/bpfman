@@ -8,8 +8,8 @@ data:
   bpfman.agent.image: quay.io/bpfman/bpfman-agent:latest
   bpfman.image: quay.io/bpfman/bpfman:latest
   ## Can be set to "info", "debug", or "trace"
-  bpfman.agent.log.level: "info"
+  bpfman.agent.log.level: info
   ## See https://docs.rs/env_logger/latest/env_logger/ for configuration options
-  bpfman.log.level: "info"
-  bpfman.agent.healthprobe.addr: ":8175"
-  bpfman.agent.metric.addr: "127.0.0.1:8174"
+  bpfman.log.level: info
+  bpfman.agent.healthprobe.addr: :8175
+  bpfman.agent.metric.addr: 127.0.0.1:8174

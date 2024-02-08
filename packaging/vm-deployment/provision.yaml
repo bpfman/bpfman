@@ -6,7 +6,7 @@
   tasks:
     - name: Set Variables
       set_fact:
-        vagrant_user: "vagrant"
+        vagrant_user: vagrant
 
     - name: Make directories for bpfman binaries and scripts
       shell: |
@@ -37,7 +37,7 @@
 
     - name: Install packages
       package:
-        name: ["openssl", "acl"]
+        name: [openssl, acl]
 
     - name: Change the working directory to bpfman/scripts and run
       become: true

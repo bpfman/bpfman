@@ -5,6 +5,9 @@ rules:
   document-start: disable
   comments:
     min-spaces-from-content: 1
+  quoted-strings:
+    required: only-when-needed
+    quote-type: double
 ignore:
   - libbpf/*
   - vendor/*

@@ -3,21 +3,21 @@
 
 version: 2
 updates:
-  - package-ecosystem: "cargo"
-    directory: "/"
+  - package-ecosystem: cargo
+    directory: /
     schedule:
-      interval: "weekly"
+      interval: weekly
     groups:
       production-dependencies:
-        dependency-type: "production"
+        dependency-type: production
       development-dependencies:
-        dependency-type: "development"
-  - package-ecosystem: "github-actions"
-    directory: "/"
+        dependency-type: development
+  - package-ecosystem: github-actions
+    directory: /
     schedule:
-      interval: "weekly"
+      interval: weekly
     groups:
       production-dependencies:
-        dependency-type: "production"
+        dependency-type: production
       development-dependencies:
-        dependency-type: "development"
+        dependency-type: development

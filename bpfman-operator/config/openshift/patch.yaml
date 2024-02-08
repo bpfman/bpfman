@@ -8,8 +8,8 @@ metadata:
     pod-security.kubernetes.io/warn: privileged
   annotations:
     openshift.io/node-selector: ""
-    openshift.io/description: "Openshift bpfman components"
-    workload.openshift.io/allowed: "management"
+    openshift.io/description: Openshift bpfman components
+    workload.openshift.io/allowed: management
   name: system
 ---
 apiVersion: v1
@@ -19,5 +19,5 @@ metadata:
   namespace: kube-system
 data:
   ## Can be configured at runtime
-  bpfman.log.level: "info"
-  bpfman.agent.log.level: "info"
+  bpfman.log.level: info
+  bpfman.agent.log.level: info
