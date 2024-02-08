@@ -25,7 +25,7 @@ spec:
       - 0x0B
       - 0x0A
   containers:
-    namespace: "bpfman"
+    namespace: bpfman
     pods:
       matchLabels:
         name: bpfman-daemon

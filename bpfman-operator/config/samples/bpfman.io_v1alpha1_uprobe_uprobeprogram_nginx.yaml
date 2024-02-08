@@ -26,7 +26,7 @@ spec:
       - 0x0B
       - 0x0A
   containers:
-    namespace: "default"
+    namespace: default
     pods:
       matchLabels: {}
     containernames:

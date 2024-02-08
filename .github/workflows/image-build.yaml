@@ -4,10 +4,10 @@ on: # yamllint disable-line rule:truthy
   push:
     branches: [main]
     tags:
-      - "v*"
+      - v*
 
   pull_request:
-    paths: [".github/workflows/image-build.yaml"]
+    paths: [.github/workflows/image-build.yaml]
 
 jobs:
   build-and-push-images:
@@ -379,7 +379,8 @@ jobs:
       - uses: actions/setup-go@v5
         if: ${{ matrix.image.build_language == 'go' }}
         with:
-          go-version: "1.21"
+          # prettier-ignore
+          go-version: '1.21' # yamllint disable-line rule:quoted-strings
 
       - uses: sigstore/cosign-installer@v3.4.0
 

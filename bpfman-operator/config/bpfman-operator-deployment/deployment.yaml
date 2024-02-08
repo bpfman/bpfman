@@ -74,13 +74,13 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: GO_LOG
-              value: "debug"
+              value: debug
           name: bpfman-operator
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
               drop:
-                - "ALL"
+                - ALL
           livenessProbe:
             httpGet:
               path: /healthz

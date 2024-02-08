@@ -6,7 +6,7 @@ kind: Kustomization
 patches:
   - target:
       kind: TracepointProgram
-      name: "go-tracepoint-counter-example"
+      name: go-tracepoint-counter-example
     patch: |-
       - op: replace
         path: "/spec/bytecode/image/url"

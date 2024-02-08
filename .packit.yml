@@ -10,7 +10,7 @@ srpm_build_deps:
   - openssl-devel
 actions:
   fix-spec-file:
-    - "bash .packit.sh"
+    - bash .packit.sh
   get-current-version:
     - bash -c 'cargo metadata --format-version 1 | jq -r ".packages[] | select(.name == \"bpfman\") | .version"'
   post-upstream-clone:
@@ -26,7 +26,7 @@ jobs:
     branch: main
     specfile_path: bpfman.spec
     owner: "@ebpf-sig"
-    project: "bpfman-next"
+    project: bpfman-next
     targets:
       - fedora-all
   - job: tests
@@ -39,7 +39,7 @@ jobs:
     branch: main
     specfile_path: bpfman.spec
     owner: "@ebpf-sig"
-    project: "bpfman"
+    project: bpfman
     targets:
       - fedora-all
   - job: tests
