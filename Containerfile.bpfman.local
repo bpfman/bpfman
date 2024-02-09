@@ -2,13 +2,7 @@
 ## builds, dramatically speeding up the local development process.
 FROM rust:1 as bpfman-build
 
-RUN git clone https://github.com/libbpf/libbpf --branch v0.8.0 /usr/src/bpfman/libbpf
-
 RUN apt-get update && apt-get install -y\
-    git\
-    clang\
-    protobuf-compiler\
-    libelf-dev\
     gcc-multilib\
     musl-tools
 
@@ -16,11 +10,6 @@ WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
 
 RUN rustup target add x86_64-unknown-linux-musl
-
-# Compile only the C ebpf bytecode
-RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
-    --mount=type=cache,target=/usr/local/cargo/registry \
-    cargo xtask build-ebpf --release --libbpf-dir /usr/src/bpfman/libbpf
 
 # Compile only bpfman
 RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
