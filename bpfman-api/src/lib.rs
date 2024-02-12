@@ -637,16 +637,17 @@ impl From<ImagePullPolicy> for i32 {
     }
 }
 
-impl ToString for Location {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for Location {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
             // Cast imagePullPolicy into it's concrete type so we can easily print.
-            Location::Image(i) => format!(
+            Location::Image(i) => write!(
+                f,
                 "image: {{ url: {}, pullpolicy: {} }}",
                 i.url,
                 TryInto::<ImagePullPolicy>::try_into(i.image_pull_policy).unwrap()
             ),
-            Location::File(p) => format!("file: {{ path: {p} }}"),
+            Location::File(p) => write!(f, "file: {{ path: {p} }}"),
         }
     }
 }
