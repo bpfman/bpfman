@@ -33,7 +33,7 @@ base64 = { version = "0.21.7", default-features = false }
 bpfman-api = { version = "0.4.0-dev", path = "./bpfman-api" }
 bpfman-csi = { version = "1.8.0", path = "./csi" }
 caps = { version = "0.5.4", default-features = false }
-chrono = { version = "0.4.33", default-features = false }
+chrono = { version = "0.4.34", default-features = false }
 clap = { version = "4", default-features = false }
 clap_complete = { version = "4.5.0", default-features = false }
 clap_mangen = { version = "0.2.20", default-features = false }
