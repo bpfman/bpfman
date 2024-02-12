@@ -347,11 +347,11 @@ func handleProgDelete(
 	return internal.Unchanged, nil
 }
 
-// handleProgCreate compares the expected bpfPrograms to the existing
+// handleProgCreateOrUpdate compares the expected bpfPrograms to the existing
 // bpfPrograms.  If a bpfProgram is expected but doesn't exist, it is created.
 // If an expected bpfProgram exists, it is reconciled. If a bpfProgram exists
 // but is not expected, it is deleted.
-func handleProgCreate(
+func handleProgCreateOrUpdate(
 	ctx context.Context,
 	r *ReconcilerCommon,
 	common *bpfmaniov1alpha1.BpfProgramCommon,
@@ -499,7 +499,7 @@ func reconcileProgram(ctx context.Context,
 		if err != nil {
 			return internal.Requeue, fmt.Errorf("failed to get expected bpfPrograms: %v", err)
 		}
-		return handleProgCreate(ctx, r, common, rec, program, existingPrograms,
+		return handleProgCreateOrUpdate(ctx, r, common, rec, program, existingPrograms,
 			expectedPrograms, programMap, isNodeSelected, isBeingDeleted, mapOwnerStatus)
 	}
 
