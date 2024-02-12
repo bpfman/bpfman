@@ -623,7 +623,7 @@ impl BpfManager {
                         match output {
                             Ok(o) => {
                                 if !o.status.success() {
-                                    debug!(
+                                    info!(
                                         "Error from bpfman-ns: {:?}",
                                         get_error_msg_from_stderr(&o.stderr)
                                     );
@@ -634,7 +634,7 @@ impl BpfManager {
                                 };
                             }
                             Err(e) => {
-                                debug!("bpfman-ns returned error: {:?}", e);
+                                info!("bpfman-ns returned error: {:?}", e);
                                 return Err(BpfmanError::ContainerAttachError {
                                     program_type: "uprobe".to_string(),
                                     container_pid: program.get_container_pid()?.unwrap(),
