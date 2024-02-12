@@ -82,12 +82,12 @@ impl TryFrom<u32> for XdpMode {
     }
 }
 
-impl ToString for XdpMode {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for XdpMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            XdpMode::Skb => "skb".to_string(),
-            XdpMode::Drv => "drv".to_string(),
-            XdpMode::Hw => "hw".to_string(),
+            XdpMode::Skb => write!(f, "skb"),
+            XdpMode::Drv => write!(f, "drv"),
+            XdpMode::Hw => write!(f, "hw"),
         }
     }
 }
