@@ -231,10 +231,12 @@ impl BpfManager {
                 dispatchers.push(name.clone());
                 continue;
             } else if name.contains(PROGRAM_PRE_LOAD_PREFIX) {
+                debug!("Removing temporary tree on rebuild: {name}");
                 // Drop temporary DB trees, as it means bpfman crashed mid load
                 ROOT_DB
                     .drop_tree(name)
                     .expect("unable to remove temporary program tree");
+                continue;
             }
         }
 
