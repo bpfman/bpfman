@@ -12,7 +12,7 @@ use nix::{
 use sled::Tree;
 use tokio::{fs, io::AsyncReadExt};
 
-use crate::{errors::BpfmanError, ROOT_DB};
+use crate::errors::BpfmanError;
 
 // The bpfman socket should always allow the same users and members of the same group
 // to Read/Write to it.
@@ -159,14 +159,8 @@ pub(crate) fn sled_get_option(db_tree: &Tree, key: &str) -> Result<Option<Vec<u8
         .map_err(|e| {
             BpfmanError::DatabaseError(
                 format!(
-                    "Unable to get database entry {key} from tree {} {}",
+                    "Unable to get database entry {key} from tree {}",
                     bytes_to_string(&db_tree.name()),
-                    ROOT_DB
-                        .tree_names()
-                        .iter()
-                        .map(|n| bytes_to_string(n))
-                        .collect::<Vec<_>>()
-                        .join(", "),
                 ),
                 e.to_string(),
             )
