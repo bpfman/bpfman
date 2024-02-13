@@ -20,7 +20,7 @@ use bpfman_api::{
     ProbeType::{self, *},
     ProgramType,
 };
-use log::{debug, info};
+use log::{debug, error, info};
 use tokio::{
     fs::{create_dir_all, remove_dir_all},
     select,
@@ -49,22 +49,21 @@ use crate::{
     },
     ROOT_DB,
 };
-
 const MAPS_MODE: u32 = 0o0660;
 const MAP_PREFIX: &str = "map_";
 const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
 
 pub(crate) struct BpfManager {
     config: Config,
-    commands: Receiver<Command>,
-    image_manager: Sender<ImageManagerCommand>,
+    commands: Option<Receiver<Command>>,
+    image_manager: Option<Sender<ImageManagerCommand>>,
 }
 
 impl BpfManager {
     pub(crate) fn new(
         config: Config,
-        commands: Receiver<Command>,
-        image_manager: Sender<ImageManagerCommand>,
+        commands: Option<Receiver<Command>>,
+        image_manager: Option<Sender<ImageManagerCommand>>,
     ) -> Self {
         Self {
             config,
@@ -310,10 +309,16 @@ impl BpfManager {
             program.get_data_mut().set_map_pin_path(&map_pin_path)?;
         }
 
-        program
-            .get_data_mut()
-            .set_program_bytes(self.image_manager.clone())
-            .await?;
+        if let Some(image_manager) = self.image_manager.clone() {
+            program
+                .get_data_mut()
+                .set_program_bytes(image_manager)
+                .await?;
+        } else {
+            return Err(BpfmanError::InternalError(
+                "ImageManager not set.".to_string(),
+            ));
+        }
 
         let result = match program {
             Program::Xdp(_) | Program::Tc(_) => {
@@ -412,23 +417,29 @@ impl BpfManager {
             1
         };
 
-        Dispatcher::new(
-            if_config,
-            &mut programs,
-            next_revision,
-            old_dispatcher,
-            self.image_manager.clone(),
-        )
-        .await
-        .or_else(|e| {
-            // If kernel ID was never set there's no pins to cleanup here so just continue
-            if program.get_data().get_id().is_ok() {
-                program
-                    .delete()
-                    .map_err(BpfmanError::BpfmanProgramDeleteError)?;
-            }
-            Err(e)
-        })?;
+        if let Some(image_manager) = self.image_manager.clone() {
+            Dispatcher::new(
+                if_config,
+                &mut programs,
+                next_revision,
+                old_dispatcher,
+                image_manager.clone(),
+            )
+            .await
+            .or_else(|e| {
+                // If kernel ID was never set there's no pins to cleanup here so just continue
+                if program.get_data().get_id().is_ok() {
+                    program
+                        .delete()
+                        .map_err(BpfmanError::BpfmanProgramDeleteError)?;
+                }
+                Err(e)
+            })?;
+        } else {
+            return Err(BpfmanError::InternalError(
+                "ImageManager not set.".to_string(),
+            ));
+        }
 
         let id = program.get_data().get_id()?;
         program.set_attached();
@@ -790,15 +801,21 @@ impl BpfManager {
             1
         };
         debug!("next_revision = {next_revision}");
-        Dispatcher::new(
-            if_config,
-            &mut programs,
-            next_revision,
-            old_dispatcher,
-            self.image_manager.clone(),
-        )
-        .await?;
-        Ok(())
+        if let Some(image_manager) = self.image_manager.clone() {
+            Dispatcher::new(
+                if_config,
+                &mut programs,
+                next_revision,
+                old_dispatcher,
+                image_manager.clone(),
+            )
+            .await?;
+            Ok(())
+        } else {
+            Err(BpfmanError::InternalError(
+                "ImageManager not set.".to_string(),
+            ))
+        }
     }
 
     pub(crate) async fn rebuild_multiattach_dispatcher(
@@ -840,14 +857,20 @@ impl BpfManager {
                 1
             };
 
-            Dispatcher::new(
-                if_config,
-                &mut programs,
-                next_revision,
-                old_dispatcher,
-                self.image_manager.clone(),
-            )
-            .await?;
+            if let Some(image_manager) = self.image_manager.clone() {
+                Dispatcher::new(
+                    if_config,
+                    &mut programs,
+                    next_revision,
+                    old_dispatcher,
+                    image_manager.clone(),
+                )
+                .await?;
+            } else {
+                return Err(BpfmanError::InternalError(
+                    "ImageManager not set.".to_string(),
+                ));
+            }
         } else {
             debug!("No dispatcher found in rebuild_multiattach_dispatcher() for {did:?}");
         }
@@ -921,61 +944,72 @@ impl BpfManager {
     }
 
     async fn pull_bytecode(&self, args: PullBytecodeArgs) -> anyhow::Result<()> {
+        let res;
         let (tx, rx) = oneshot::channel();
-        self.image_manager
-            .send(ImageManagerCommand::Pull {
-                image: args.image.image_url,
-                pull_policy: args.image.image_pull_policy.clone(),
-                username: args.image.username.clone(),
-                password: args.image.password.clone(),
-                resp: tx,
-            })
-            .await?;
-        let res = match rx.await? {
-            Ok(_) => {
-                info!("Successfully pulled bytecode");
-                Ok(())
-            }
-            Err(e) => Err(BpfmanError::BpfBytecodeError(e)),
-        };
+        if let Some(image_manager) = self.image_manager.clone() {
+            image_manager
+                .send(ImageManagerCommand::Pull {
+                    image: args.image.image_url,
+                    pull_policy: args.image.image_pull_policy.clone(),
+                    username: args.image.username.clone(),
+                    password: args.image.password.clone(),
+                    resp: tx,
+                })
+                .await?;
+            res = match rx.await? {
+                Ok(_) => {
+                    info!("Successfully pulled bytecode");
+                    Ok(())
+                }
+                Err(e) => Err(BpfmanError::BpfBytecodeError(e)),
+            };
+        } else {
+            res = Err(BpfmanError::InternalError(
+                "ImageManager not set.".to_string(),
+            ));
+        }
         let _ = args.responder.send(res);
         Ok(())
     }
 
     pub(crate) async fn process_commands(&mut self, mut shutdown_channel: broadcast::Receiver<()>) {
-        loop {
-            // Start receiving messages
-            select! {
-                biased;
-                _ = shutdown_channel.recv() => {
-                    info!("Signal received to stop command processing");
-                    ROOT_DB.get().expect("unable to open database").flush().expect("Unable to flush database to disk before shutting down BpfManager");
-                    break;
-                }
-                Some(cmd) = self.commands.recv() => {
-                    match cmd {
-                        Command::Load(args) => {
-                            let prog = self.add_program(args.program).await;
-                            // Ignore errors as they'll be propagated to caller in the RPC status
-                            let _ = args.responder.send(prog);
-                        },
-                        Command::Unload(args) => self.unload_command(args).await.unwrap(),
-                        Command::List { responder } => {
-                            let progs = self.list_programs();
-                            // Ignore errors as they'll be propagated to caller in the RPC status
-                            let _ = responder.send(progs);
+        if self.commands.is_none() {
+            error!("Internal error occurred. Commands not set.");
+        } else {
+            loop {
+                // Start receiving messages
+                select! {
+                    biased;
+                    _ = shutdown_channel.recv() => {
+                        info!("Signal received to stop command processing");
+                        ROOT_DB.get().expect("unable to open database").flush().expect("Unable to flush database to disk before shutting down BpfManager");
+                        break;
+                    }
+                    Some(cmd) = self.commands.as_mut().unwrap().recv() => {
+                        match cmd {
+                            Command::Load(args) => {
+                                let prog = self.add_program(args.program).await;
+                                // Ignore errors as they'll be propagated to caller in the RPC status
+                                let _ = args.responder.send(prog);
+                            },
+                            Command::Unload(args) => self.unload_command(args).await.unwrap(),
+                            Command::List { responder } => {
+                                let progs = self.list_programs();
+                                // Ignore errors as they'll be propagated to caller in the RPC status
+                                let _ = responder.send(progs);
+                            }
+                            Command::Get(args) => {
+                                let prog = self.get_program(args.id);
+                                // Ignore errors as they'll be propagated to caller in the RPC status
+                                let _ = args.responder.send(prog);
+                            },
+                            Command::PullBytecode (args) => self.pull_bytecode(args).await.unwrap(),
                         }
-                        Command::Get(args) => {
-                            let prog = self.get_program(args.id);
-                            // Ignore errors as they'll be propagated to caller in the RPC status
-                            let _ = args.responder.send(prog);
-                        },
-                        Command::PullBytecode (args) => self.pull_bytecode(args).await.unwrap(),
                     }
                 }
             }
+            info!("Stopping processing commands");
         }
-        info!("Stopping processing commands");
     }
 
     async fn unload_command(&mut self, args: UnloadArgs) -> anyhow::Result<()> {

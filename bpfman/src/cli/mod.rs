@@ -11,6 +11,7 @@ mod table;
 mod unload;
 use std::fs;
 
+use anyhow::anyhow;
 use args::Commands;
 use bpfman_api::{
     config::Config,
@@ -23,6 +24,8 @@ use tokio::net::UnixStream;
 use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
 use unload::execute_unload;
+
+use crate::cli::system::initialize_bpfman;
 
 impl Commands {
     pub(crate) async fn execute(&self) -> Result<(), anyhow::Error> {
@@ -40,7 +43,12 @@ impl Commands {
             Commands::Load(l) => l.execute().await,
             Commands::Unload(args) => execute_unload(args).await,
             Commands::List(args) => execute_list(args).await,
-            Commands::Get(args) => execute_get(args).await,
+            Commands::Get(args) => {
+                initialize_bpfman().await?;
+                execute_get(&config, args)
+                    .await
+                    .map_err(|e| anyhow!("get error: {e}"))
+            }
             Commands::Image(i) => i.execute().await,
             Commands::System(s) => s.execute(&config).await,
         }

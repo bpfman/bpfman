@@ -36,6 +36,7 @@ pub async fn serve(
     timeout: u64,
     socket_path: &Path,
 ) -> anyhow::Result<()> {
+    // BILLY: ONLY IMAGE/LOAD/SYSTEM - BEGIN
     let (shutdown_tx, shutdown_rx1) = broadcast::channel(32);
     let shutdown_rx2 = shutdown_tx.subscribe();
     let shutdown_rx3 = shutdown_tx.subscribe();
@@ -51,16 +52,16 @@ pub async fn serve(
     let (itx, irx) = mpsc::channel(32);
 
     let allow_unsigned = config.signing.as_ref().map_or(true, |s| s.allow_unsigned);
-
     let mut image_manager =
         ImageManager::new(root_db_init(config).clone(), allow_unsigned, irx).await?;
     let image_manager_handle = tokio::spawn(async move {
         image_manager.run(shutdown_rx2).await;
     });
+    // BILLY: ONLY IMAGE/LOAD/SYSTEM - END
 
     // Rebuild bpf_manager before starting the unix server to ensure that it
     // doesn't race with the creation of a `ProgramData` object in rpc.rs.
-    let mut bpf_manager = BpfManager::new(config.clone(), rx, itx);
+    let mut bpf_manager = BpfManager::new(config.clone(), Some(rx), Some(itx));
     bpf_manager.rebuild_state().await?;
 
     let handle = serve_unix(socket_path, service.clone(), shutdown_rx1).await?;
