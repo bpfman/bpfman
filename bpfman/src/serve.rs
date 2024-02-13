@@ -59,7 +59,7 @@ pub async fn serve(
 
     // Rebuild bpf_manager before starting the unix server to ensure that it
     // doesn't race with the creation of a `ProgramData` object in rpc.rs.
-    let mut bpf_manager = BpfManager::new(config.clone(), rx, itx);
+    let mut bpf_manager = BpfManager::new(config.clone(), Some(rx), Some(itx));
     bpf_manager.rebuild_state().await?;
 
     let handle = serve_unix(socket_path, service.clone(), shutdown_rx1).await?;

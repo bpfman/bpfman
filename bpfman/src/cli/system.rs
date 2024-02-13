@@ -33,6 +33,14 @@ impl SystemSubcommand {
 }
 
 pub(crate) async fn execute_service(args: &ServiceArgs, config: &Config) -> anyhow::Result<()> {
+    initialize_bpfman().await?;
+
+    //TODO https://github.com/bpfman/bpfman/issues/881
+    serve(config, args.csi_support, args.timeout, &args.socket_path).await?;
+    Ok(())
+}
+
+pub(crate) async fn initialize_bpfman() -> anyhow::Result<()> {
     if connected_to_journal() {
         // If bpfman is running as a service, log to journald.
         JournalLog::default()
@@ -82,8 +90,6 @@ pub(crate) async fn execute_service(args: &ServiceArgs, config: &Config) -> anyh
     set_dir_permissions(RTDIR, RTDIR_MODE).await;
     set_dir_permissions(STDIR, STDIR_MODE).await;
 
-    //TODO https://github.com/bpfman/bpfman/issues/881
-    serve(config, args.csi_support, args.timeout, &args.socket_path).await?;
     Ok(())
 }
 
