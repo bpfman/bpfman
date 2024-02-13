@@ -185,3 +185,25 @@ pub(crate) fn sled_insert(db_tree: &Tree, key: &str, value: &[u8]) -> Result<(),
         )
     })
 }
+
+// Helper function to get the error message from stderr
+pub(crate) fn get_error_msg_from_stderr(stderr: &[u8]) -> String {
+    // Convert to lines
+    let stderr_lines = String::from_utf8_lossy(stderr)
+        .split('\n')
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+
+    // Remove empty lines
+    let stderr_lines = stderr_lines
+        .iter()
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+
+    // return the last line if it exists, otherwise return "No message"
+    stderr_lines
+        .last()
+        .unwrap_or(&"No message".to_string())
+        .to_string()
+}

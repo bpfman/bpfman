@@ -36,7 +36,7 @@ type InterfaceSelector struct {
 }
 
 // ContainerSelector identifies a set of containers. For example, this can be
-// used to identify a set of conteriners in which to attach uprobes.
+// used to identify a set of containers in which to attach uprobes.
 type ContainerSelector struct {
 	// Target namespaces.
 	// +optional

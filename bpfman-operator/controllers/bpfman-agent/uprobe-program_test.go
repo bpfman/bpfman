@@ -60,7 +60,6 @@ func TestUprobeProgramControllerCreate(t *testing.T) {
 		bpfProgName     = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, "libc")
 		bpfProg         = &bpfmaniov1alpha1.BpfProgram{}
 		fakeUID         = "ef71d42c-aa21-48e8-a697-82391d801a81"
-		// uprobecontainerpid int32 = 0
 	)
 	// A UprobeProgram object with metadata and spec.
 	Uprobe := &bpfmaniov1alpha1.UprobeProgram{
@@ -172,7 +171,6 @@ func TestUprobeProgramControllerCreate(t *testing.T) {
 					Target:   target,
 					Offset:   uint64(offset),
 					Retprobe: retprobe,
-					// ContainerPid: nil,
 				},
 			},
 		},
@@ -246,7 +244,7 @@ func TestGetPods(t *testing.T) {
 	require.NoError(t, err)
 
 	// Call getPods and check the returned PodList
-	podList, err := getPods(ctx, clientset, containerSelector, nodeName)
+	podList, err := getPodsForNode(ctx, clientset, containerSelector, nodeName)
 	require.NoError(t, err)
 	require.Len(t, podList.Items, 1)
 	require.Equal(t, "test-pod", podList.Items[0].Name)
@@ -259,7 +257,7 @@ func TestGetPods(t *testing.T) {
 		},
 	}
 
-	podList, err = getPods(ctx, clientset, containerSelector, nodeName)
+	podList, err = getPodsForNode(ctx, clientset, containerSelector, nodeName)
 	require.NoError(t, err)
 	require.Len(t, podList.Items, 1)
 	require.Equal(t, "test-pod", podList.Items[0].Name)

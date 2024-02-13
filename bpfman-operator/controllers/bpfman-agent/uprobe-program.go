@@ -87,13 +87,13 @@ func (r *UprobeProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&source.Kind{Type: &v1.Pod{}},
 			&handler.EnqueueRequestForObject{},
-			builder.WithPredicates(PodOnNodePredicate{NodeName: r.NodeName}),
+			builder.WithPredicates(podOnNodePredicate(r.NodeName)),
 		).
 		Complete(r)
 }
 
 // Figure out the list of container pids the uProbe needs to be attached to.
-func (r *UprobeProgramReconciler) getUprobeContainerInfo(ctx context.Context) (*[]uprobeContainerInfo, error) {
+func (r *UprobeProgramReconciler) getUprobeContainerInfo(ctx context.Context) (*[]containerInfo, error) {
 
 	clientSet, err := getClientset()
 	if err != nil {
@@ -101,7 +101,7 @@ func (r *UprobeProgramReconciler) getUprobeContainerInfo(ctx context.Context) (*
 	}
 
 	// Get the list of pods that match the selector.
-	podList, err := getPods(ctx, clientSet, r.currentUprobeProgram.Spec.Containers, r.NodeName)
+	podList, err := getPodsForNode(ctx, clientSet, r.currentUprobeProgram.Spec.Containers, r.NodeName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pod list: %v", err)
 	}
