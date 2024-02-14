@@ -84,6 +84,7 @@ pub fn start_bpfman() -> Result<ChildGuard> {
             child: c,
         })?;
 
+    debug!("started process");
     // Wait for up to 5 seconds for bpfman to be ready
     sleep(Duration::from_millis(100));
     for i in 1..51 {

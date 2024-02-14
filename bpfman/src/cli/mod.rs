@@ -12,7 +12,7 @@ mod unload;
 
 use anyhow::anyhow;
 use args::Commands;
-use bpfman_api::{config::Config, util::directories::RTPATH_BPFMAN_SOCKET};
+use bpfman_api::util::directories::RTPATH_BPFMAN_SOCKET;
 use get::execute_get;
 use list::execute_list;
 use log::warn;
@@ -21,10 +21,12 @@ use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
 use unload::execute_unload;
 
-use crate::cli::system::initialize_bpfman;
+use crate::{cli::system::initialize_bpfman, utils::open_config_file};
 
 impl Commands {
-    pub(crate) async fn execute(&self, config: Config) -> Result<(), anyhow::Error> {
+    pub(crate) async fn execute(&self) -> Result<(), anyhow::Error> {
+        let config = open_config_file();
+
         match self {
             Commands::Load(l) => l.execute().await,
             Commands::Unload(args) => execute_unload(args).await,

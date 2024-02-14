@@ -336,7 +336,7 @@ pub(crate) struct ServiceArgs {
     #[clap(long, verbatim_doc_comment, default_value = "15")]
     pub(crate) timeout: u64,
     #[clap(long, default_value = "/run/bpfman-sock/bpfman.sock")]
-    /// Configure the location of the bpfman unix socket.
+    /// Optional: Configure the location of the bpfman unix socket.
     pub(crate) socket_path: PathBuf,
 }
 

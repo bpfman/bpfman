@@ -5,6 +5,7 @@ use std::{thread, time::Duration};
 use anyhow::bail;
 use clap::Parser;
 use lazy_static::lazy_static;
+use log::info;
 use sled::{Config as SledConfig, Db};
 
 use crate::utils::open_config_file;
@@ -36,10 +37,15 @@ fn get_db_config() -> SledConfig {
 
 fn init_database(sled_config: SledConfig) -> anyhow::Result<Db> {
     let config = open_config_file();
-    for _n in 1..config.database.as_ref().map_or(4, |d| d.max_retries) {
+    for _ in 1..config.database.as_ref().map_or(4, |d| d.max_retries) {
         if let Ok(db) = sled_config.open() {
+            info!("Successfully opened database");
             return Ok(db);
         } else {
+            info!(
+                "Failed to open database, retrying after {} milliseconds",
+                config.database.clone().map_or(500, |v| v.millisec_delay)
+            );
             thread::sleep(Duration::from_millis(
                 config.database.as_ref().map_or(500, |d| d.millisec_delay),
             ));
@@ -56,6 +62,5 @@ lazy_static! {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = cli::args::Cli::parse();
-    let config = open_config_file();
-    cli.command.execute(config).await
+    cli.command.execute().await
 }

@@ -365,9 +365,6 @@ impl ProgramData {
         let mut rng = rand::thread_rng();
         let id_rand = rng.gen::<u32>();
 
-        // This needs to be root_db_init(), but need to get config into this function
-        // or move the DB call down to bpf_manager.
-        // let db_tree = root_db_init(config)
         let db_tree = ROOT_DB
             .open_tree(PROGRAM_PRE_LOAD_PREFIX.to_string() + &id_rand.to_string())
             .expect("Unable to open program database tree");
@@ -382,10 +379,6 @@ impl ProgramData {
         if let Some(id) = map_owner_id {
             pd.set_map_owner_id(id)?;
         };
-
-        ROOT_DB
-            .flush()
-            .expect("Unable to flush database to disk before shutting down BpfManager");
 
         Ok(pd)
     }

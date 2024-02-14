@@ -15,10 +15,6 @@ use crate::{
 };
 
 pub(crate) async fn execute_get(config: &Config, args: &GetArgs) -> Result<(), BpfmanError> {
-    //let channel = select_channel().expect("failed to select channel");
-    //let mut client = BpfmanClient::new(channel);
-    //let request = tonic::Request::new(GetRequest { id: args.id });
-    //let response = client.get(request).await?.into_inner();
     let mut bpf_manager = BpfManager::new(config.clone(), None, None);
 
     match bpf_manager.get_program(args.id) {
