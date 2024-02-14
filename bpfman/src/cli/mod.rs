@@ -9,13 +9,10 @@ mod load;
 mod system;
 mod table;
 mod unload;
-use std::fs;
 
+use anyhow::anyhow;
 use args::Commands;
-use bpfman_api::{
-    config::Config,
-    util::directories::{CFGPATH_BPFMAN_CONFIG, RTPATH_BPFMAN_SOCKET},
-};
+use bpfman_api::util::directories::RTPATH_BPFMAN_SOCKET;
 use get::execute_get;
 use list::execute_list;
 use log::warn;
@@ -24,23 +21,22 @@ use tonic::transport::{Channel, Endpoint, Uri};
 use tower::service_fn;
 use unload::execute_unload;
 
+use crate::{cli::system::initialize_bpfman, utils::open_config_file};
+
 impl Commands {
     pub(crate) async fn execute(&self) -> Result<(), anyhow::Error> {
-        let config = if let Ok(c) = fs::read_to_string(CFGPATH_BPFMAN_CONFIG) {
-            c.parse().unwrap_or_else(|_| {
-                warn!("Unable to parse config file, using defaults");
-                Config::default()
-            })
-        } else {
-            warn!("Unable to read config file, using defaults");
-            Config::default()
-        };
+        let config = open_config_file();
 
         match self {
             Commands::Load(l) => l.execute().await,
             Commands::Unload(args) => execute_unload(args).await,
             Commands::List(args) => execute_list(args).await,
-            Commands::Get(args) => execute_get(args).await,
+            Commands::Get(args) => {
+                initialize_bpfman().await?;
+                execute_get(&config, args)
+                    .await
+                    .map_err(|e| anyhow!("get error: {e}"))
+            }
             Commands::Image(i) => i.execute().await,
             Commands::System(s) => s.execute(&config).await,
         }

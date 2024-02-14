@@ -56,4 +56,6 @@ pub enum BpfmanError {
     },
     #[error("{0}: {1}")]
     DatabaseError(String, String),
+    #[error("Internal error occurred. {0}")]
+    InternalError(String),
 }

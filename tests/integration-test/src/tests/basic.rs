@@ -80,7 +80,7 @@ fn test_load_unload_xdp() {
 fn test_map_sharing_load_unload_xdp() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    let _bpfman_guard = start_bpfman().unwrap();
+    let bpfman_guard = start_bpfman().unwrap();
     let load_type = LoadType::Image;
 
     assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
@@ -163,9 +163,13 @@ fn test_map_sharing_load_unload_xdp() {
     // Unload the Map Owner Program
     bpfman_del_program(&(map_owner_id.unwrap()));
 
+    drop(bpfman_guard);
+
     // Retrive the Program sharing the map
     let stdout_3 = bpfman_get(shared_owner_id.as_ref().unwrap());
     let binding_3 = stdout_3.unwrap();
+
+    let _bpfman_guard = start_bpfman().unwrap();
 
     // Verify "Map Used By:" field is set to only the
     // 2nd loaded program (one sharing the map).

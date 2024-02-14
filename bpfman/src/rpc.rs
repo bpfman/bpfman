@@ -134,7 +134,10 @@ impl Bpfman for BpfmanLoader {
             responder: resp_tx,
         };
 
-        // Send the GET request
+        // Send the LOAD request
+        // TODO: This channel can be removed. It was in place because main bpfman thread
+        //       had the privileges and RPC thread did not. But now that we are unwinding
+        //       that, this can call bpfman directly.
         self.tx.send(Command::Load(load_args)).await.unwrap();
 
         // Await the response

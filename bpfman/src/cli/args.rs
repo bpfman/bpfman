@@ -20,7 +20,7 @@ pub(crate) struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub(crate) enum Commands {
-    /// Load an eBPF program from a local .o file.
+    /// Load an eBPF program on the system.
     #[command(subcommand)]
     Load(LoadSubcommand),
     /// Unload an eBPF program using the program id.
@@ -328,21 +328,22 @@ pub(crate) struct PullBytecodeArgs {
 #[derive(Args, Debug)]
 #[command(disable_version_flag = true)]
 pub(crate) struct ServiceArgs {
-    /// Enable CSI support.
-    #[clap(long)]
+    /// Optional: Enable CSI support. Only supported when run in a Kubernetes
+    /// environment with bpfman-agent.
+    #[clap(long, verbatim_doc_comment)]
     pub(crate) csi_support: bool,
-    /// Shutdown after N seconds of inactivity. Use 0 to disable.
-    #[clap(long, default_value = "15")]
+    /// Optional: Shutdown after N seconds of inactivity. Use 0 to disable.
+    #[clap(long, verbatim_doc_comment, default_value = "15")]
     pub(crate) timeout: u64,
     #[clap(long, default_value = "/run/bpfman-sock/bpfman.sock")]
-    /// Configure the location of the bpfman unix socket.
+    /// Optional: Configure the location of the bpfman unix socket.
     pub(crate) socket_path: PathBuf,
 }
 
 #[derive(Subcommand, Debug)]
 #[command(disable_version_flag = true)]
 pub(crate) enum SystemSubcommand {
-    /// Load an eBPF program from a local .o file.
+    /// Run bpfman as a service.
     Service(ServiceArgs),
 }
 

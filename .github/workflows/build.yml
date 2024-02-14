@@ -240,7 +240,9 @@ jobs:
         run: man bpfman list
 
       - name: Stop the bpfman systemd service
-        run: sudo systemctl stop bpfman
+        run: |
+          sudo systemctl stop bpfman
+          sudo ./scripts/setup.sh uninstall
 
       - name: Run integration tests
         run: cargo xtask integration-test
