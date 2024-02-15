@@ -31,7 +31,7 @@ impl Commands {
         match self {
             Commands::Load(l) => l.execute(&mut bpf_manager).await,
             Commands::Unload(args) => execute_unload(args).await,
-            Commands::List(args) => execute_list(args).await,
+            Commands::List(args) => execute_list(&mut bpf_manager, args).await,
             Commands::Get(args) => {
                 initialize_bpfman().await?;
                 execute_get(&mut bpf_manager, args)

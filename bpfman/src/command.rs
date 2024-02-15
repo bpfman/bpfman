@@ -20,7 +20,7 @@ use bpfman_api::{
     ParseError, ProgramType, TcProceedOn, TcProceedOnEntry, XdpProceedOn, XdpProceedOnEntry,
 };
 use chrono::{prelude::DateTime, Local};
-use log::info;
+use log::{info, warn};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc::Sender, oneshot};
@@ -107,10 +107,83 @@ pub(crate) enum Command {
     Load(LoadArgs),
     Unload(UnloadArgs),
     List {
-        responder: Responder<Result<Vec<Program>, BpfmanError>>,
+        responder: Responder<Vec<Program>>,
+        filter: ListFilter,
     },
     Get(GetArgs),
     PullBytecode(PullBytecodeArgs),
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct ListFilter {
+    pub(crate) program_type: Option<u32>,
+    pub(crate) metadata_selector: HashMap<String, String>,
+    pub(crate) bpfman_programs_only: bool,
+}
+
+impl ListFilter {
+    pub(crate) fn new(
+        program_type: Option<u32>,
+        metadata_selector: HashMap<String, String>,
+        bpfman_programs_only: bool,
+    ) -> Self {
+        Self {
+            program_type,
+            metadata_selector,
+            bpfman_programs_only,
+        }
+    }
+
+    pub(crate) fn matches(&self, program: &Program) -> bool {
+        if let Program::Unsupported(_) = program {
+            if self.bpfman_programs_only {
+                return false;
+            }
+
+            if let Some(prog_type) = self.program_type {
+                match program.get_data().get_kernel_program_type() {
+                    Ok(kernel_prog_type) => {
+                        if kernel_prog_type != prog_type {
+                            return false;
+                        }
+                    }
+                    Err(e) => {
+                        warn!("Failed to get kernel program type during list match: {}", e);
+                        return false;
+                    }
+                }
+            }
+        } else {
+            // Program type filtering has to be done differently for bpfman owned
+            // programs since XDP and TC programs have a type EXT when loaded by
+            // bpfman.
+            let prog_type_internal: u32 = program.kind().into();
+            if let Some(prog_type) = self.program_type {
+                if prog_type_internal != prog_type {
+                    return false;
+                }
+            }
+            // Filter on the input metadata field if provided
+            for (key, value) in &self.metadata_selector {
+                match program.get_data().get_metadata() {
+                    Ok(metadata) => {
+                        if let Some(v) = metadata.get(key) {
+                            if *value != *v {
+                                return false;
+                            }
+                        } else {
+                            return false;
+                        }
+                    }
+                    Err(e) => {
+                        warn!("Failed to get metadata during list match: {}", e);
+                        return false;
+                    }
+                }
+            }
+        }
+        true
+    }
 }
 
 #[derive(Debug)]
