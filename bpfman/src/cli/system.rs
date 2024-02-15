@@ -33,8 +33,6 @@ impl SystemSubcommand {
 }
 
 pub(crate) async fn execute_service(args: &ServiceArgs, config: &Config) -> anyhow::Result<()> {
-    initialize_bpfman().await?;
-
     //TODO https://github.com/bpfman/bpfman/issues/881
     serve(config, args.csi_support, args.timeout, &args.socket_path).await?;
     Ok(())

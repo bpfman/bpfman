@@ -25,22 +25,22 @@ impl TryFrom<&PullBytecodeArgs> for BytecodeImage {
     type Error = anyhow::Error;
 
     fn try_from(value: &PullBytecodeArgs) -> Result<Self, Self::Error> {
-        let pull_policy: ImagePullPolicy = value.pull_policy.as_str().try_into()?;
+        let image_pull_policy: ImagePullPolicy = value.pull_policy.as_str().try_into()?;
         let (username, password) = match &value.registry_auth {
             Some(a) => {
                 let auth_raw = general_purpose::STANDARD.decode(a)?;
                 let auth_string = String::from_utf8(auth_raw)?;
                 let (username, password) = auth_string.split_once(':').unwrap();
-                (username.to_owned(), password.to_owned())
+                (Some(username.to_owned()), Some(password.to_owned()))
             }
-            None => ("".to_owned(), "".to_owned()),
+            None => (None, None),
         };
 
         Ok(BytecodeImage {
             image_url: value.image_url.clone(),
-            image_pull_policy: pull_policy,
-            username: Some(username),
-            password: Some(password),
+            image_pull_policy,
+            username,
+            password,
         })
     }
 }

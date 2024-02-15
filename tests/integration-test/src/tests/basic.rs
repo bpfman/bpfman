@@ -25,7 +25,7 @@ fn test_bpfmanhelptext() {
 fn test_load_unload_xdp() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    let bpfman_guard = start_bpfman().unwrap();
+    //let bpfman_guard = start_bpfman().unwrap();
 
     assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
@@ -68,8 +68,8 @@ fn test_load_unload_xdp() {
     assert!(bpffs_has_entries(RTDIR_FS_XDP));
 
     // Verify rule persistence between restarts
-    drop(bpfman_guard);
-    let _bpfman_guard = start_bpfman().unwrap();
+    // drop(bpfman_guard);
+    // let _bpfman_guard = start_bpfman().unwrap();
 
     verify_and_delete_programs(loaded_ids);
 
@@ -80,7 +80,7 @@ fn test_load_unload_xdp() {
 fn test_map_sharing_load_unload_xdp() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    let bpfman_guard = start_bpfman().unwrap();
+    //let bpfman_guard = start_bpfman().unwrap();
     let load_type = LoadType::Image;
 
     assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
@@ -163,13 +163,13 @@ fn test_map_sharing_load_unload_xdp() {
     // Unload the Map Owner Program
     bpfman_del_program(&(map_owner_id.unwrap()));
 
-    drop(bpfman_guard);
+    //drop(bpfman_guard);
 
     // Retrive the Program sharing the map
     let stdout_3 = bpfman_get(shared_owner_id.as_ref().unwrap());
     let binding_3 = stdout_3.unwrap();
 
-    let _bpfman_guard = start_bpfman().unwrap();
+    //let _bpfman_guard = start_bpfman().unwrap();
 
     // Verify "Map Used By:" field is set to only the
     // 2nd loaded program (one sharing the map).
@@ -185,7 +185,7 @@ fn test_map_sharing_load_unload_xdp() {
 fn test_load_unload_tc() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    let _bpfman_guard = start_bpfman().unwrap();
+    //let _bpfman_guard = start_bpfman().unwrap();
 
     assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
@@ -246,8 +246,6 @@ fn test_load_unload_tc() {
 
 #[integration_test]
 fn test_load_unload_tracepoint() {
-    let _bpfman_guard = start_bpfman().unwrap();
-
     debug!("Installing tracepoint programs");
 
     let globals = vec!["GLOBAL_u8=61", "GLOBAL_u32=0D0C0B0A"];
@@ -269,8 +267,6 @@ fn test_load_unload_tracepoint() {
 
 #[integration_test]
 fn test_load_unload_uprobe() {
-    let _bpfman_guard = start_bpfman().unwrap();
-
     debug!("Installing uprobe program");
 
     let globals = vec!["GLOBAL_u8=63", "GLOBAL_u32=0D0C0B0A"];
@@ -294,8 +290,6 @@ fn test_load_unload_uprobe() {
 
 #[integration_test]
 fn test_load_unload_uretprobe() {
-    let _bpfman_guard = start_bpfman().unwrap();
-
     debug!("Installing uretprobe program");
 
     let globals = vec!["GLOBAL_u8=63", "GLOBAL_u32=0D0C0B0A"];
@@ -318,8 +312,6 @@ fn test_load_unload_uretprobe() {
 
 #[integration_test]
 fn test_load_unload_kprobe() {
-    let _bpfman_guard = start_bpfman().unwrap();
-
     debug!("Installing kprobe program");
 
     let globals = vec!["GLOBAL_u8=63", "GLOBAL_u32=0D0C0B0A"];
@@ -337,8 +329,6 @@ fn test_load_unload_kprobe() {
 
 #[integration_test]
 fn test_load_unload_kretprobe() {
-    let _bpfman_guard = start_bpfman().unwrap();
-
     debug!("Installing kretprobe program");
 
     let globals = vec!["GLOBAL_u8=63", "GLOBAL_u32=0D0C0B0A"];
@@ -362,8 +352,6 @@ fn test_load_unload_kretprobe() {
 
 #[integration_test]
 fn test_pull_bytecode() {
-    let _bpfman_guard = start_bpfman().unwrap();
-
     debug!("Pull bytecode image");
 
     // Just ensure this doesn't panic
@@ -373,7 +361,6 @@ fn test_pull_bytecode() {
 #[integration_test]
 fn test_list_with_metadata() {
     let _namespace_guard = create_namespace().unwrap();
-    let bpfman_guard = start_bpfman().unwrap();
 
     assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
@@ -438,10 +425,6 @@ fn test_list_with_metadata() {
     assert_eq!(loaded_ids.len(), 5);
 
     assert!(bpffs_has_entries(RTDIR_FS_XDP));
-
-    // Verify rule persistence between restarts
-    drop(bpfman_guard);
-    let _bpfman_guard = start_bpfman().unwrap();
 
     verify_and_delete_programs(loaded_ids);
 

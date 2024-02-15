@@ -72,36 +72,36 @@ impl Drop for ChildGuard {
 }
 
 /// Spawn a bpfman process
-pub fn start_bpfman() -> Result<ChildGuard> {
-    debug!("Starting bpfman");
+// pub fn start_bpfman() -> Result<ChildGuard> {
+//     debug!("Starting bpfman");
 
-    let bpfman_process = Command::cargo_bin("bpfman")?
-        .args(["system", "service", "--timeout=0"])
-        .env("RUST_LOG", "bpfman=debug")
-        .spawn()
-        .map(|c| ChildGuard {
-            name: "bpfman",
-            child: c,
-        })?;
+//     let bpfman_process = Command::cargo_bin("bpfman")?
+//         .args(["system", "service", "--timeout=0"])
+//         .env("RUST_LOG", "bpfman=debug")
+//         .spawn()
+//         .map(|c| ChildGuard {
+//             name: "bpfman",
+//             child: c,
+//         })?;
 
-    debug!("started process");
-    // Wait for up to 5 seconds for bpfman to be ready
-    sleep(Duration::from_millis(100));
-    for i in 1..51 {
-        if let Err(e) = Command::cargo_bin("bpfman")?.args(["list"]).ok() {
-            if i == 50 {
-                panic!("bpfman not ready after {} ms. Error:\n{}", i * 100, e);
-            } else {
-                sleep(Duration::from_millis(100));
-            }
-        } else {
-            break;
-        }
-    }
-    debug!("Successfully Started bpfman");
+//     debug!("started process");
+//     // Wait for up to 5 seconds for bpfman to be ready
+//     sleep(Duration::from_millis(100));
+//     for i in 1..51 {
+//         if let Err(e) = Command::cargo_bin("bpfman")?.args(["list"]).ok() {
+//             if i == 50 {
+//                 panic!("bpfman not ready after {} ms. Error:\n{}", i * 100, e);
+//             } else {
+//                 sleep(Duration::from_millis(100));
+//             }
+//         } else {
+//             break;
+//         }
+//     }
+//     debug!("Successfully Started bpfman");
 
-    Ok(bpfman_process)
-}
+//     Ok(bpfman_process)
+// }
 
 /// Install an xdp program with bpfman
 #[allow(clippy::too_many_arguments)]
