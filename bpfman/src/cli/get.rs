@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use bpfman_api::{
-    config::Config,
-    v1::{KernelProgramInfo, ProgramInfo},
-};
+use bpfman_api::v1::{KernelProgramInfo, ProgramInfo};
 use log::warn;
 
 use crate::{
@@ -14,9 +11,10 @@ use crate::{
     errors::BpfmanError,
 };
 
-pub(crate) async fn execute_get(config: &Config, args: &GetArgs) -> Result<(), BpfmanError> {
-    let mut bpf_manager = BpfManager::new(config.clone(), None, None);
-
+pub(crate) async fn execute_get(
+    bpf_manager: &mut BpfManager,
+    args: &GetArgs,
+) -> Result<(), BpfmanError> {
     match bpf_manager.get_program(args.id) {
         Ok(program) => {
             let info: Option<ProgramInfo> = if let Program::Unsupported(_) = program {
@@ -27,7 +25,7 @@ pub(crate) async fn execute_get(config: &Config, args: &GetArgs) -> Result<(), B
             let kernel_info: Option<KernelProgramInfo> = match (&program).try_into() {
                 Ok(i) => {
                     if let Program::Unsupported(_) = program {
-                        program.delete()?;
+                        program.delete()?
                     };
                     Some(i)
                 }

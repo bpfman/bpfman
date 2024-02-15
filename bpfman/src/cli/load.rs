@@ -4,108 +4,87 @@
 use std::collections::HashMap;
 
 use anyhow::bail;
-use bpfman_api::{
-    v1::{
-        attach_info::Info, bpfman_client::BpfmanClient, bytecode_location::Location, AttachInfo,
-        BytecodeImage, BytecodeLocation, KprobeAttachInfo, LoadRequest, TcAttachInfo,
-        TracepointAttachInfo, UprobeAttachInfo, XdpAttachInfo,
-    },
-    ProgramType, TcProceedOn, XdpProceedOn,
-};
+use bpfman_api::{TcProceedOn, XdpProceedOn};
 
-use crate::cli::{
-    args::{GlobalArg, LoadCommands, LoadFileArgs, LoadImageArgs, LoadSubcommand},
-    select_channel,
-    table::ProgTable,
+use crate::{
+    bpf::BpfManager,
+    cli::{
+        args::{GlobalArg, LoadCommands, LoadFileArgs, LoadImageArgs, LoadSubcommand},
+        table::ProgTable,
+    },
+    command::{
+        KprobeProgram, Program, ProgramData, TcProgram, TracepointProgram, UprobeProgram,
+        XdpProgram,
+    },
 };
 
 impl LoadSubcommand {
-    pub(crate) async fn execute(&self) -> anyhow::Result<()> {
+    pub(crate) async fn execute(&self, bpf_manager: &mut BpfManager) -> anyhow::Result<()> {
         match self {
-            LoadSubcommand::File(l) => execute_load_file(l).await,
-            LoadSubcommand::Image(l) => execute_load_image(l).await,
+            LoadSubcommand::File(l) => execute_load_file(bpf_manager, l).await,
+            LoadSubcommand::Image(l) => execute_load_image(bpf_manager, l).await,
         }
     }
 }
 
-pub(crate) async fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
-    let channel = select_channel().expect("failed to select channel");
-    let mut client = BpfmanClient::new(channel);
+pub(crate) async fn execute_load_file(
+    bpf_manager: &mut BpfManager,
+    args: &LoadFileArgs,
+) -> anyhow::Result<()> {
+    let bytecode_source = crate::command::Location::File(args.path.clone());
 
-    let bytecode = Some(BytecodeLocation {
-        location: Some(Location::File(args.path.clone())),
-    });
-
-    let attach = args.command.get_attach_type()?;
-
-    let request = tonic::Request::new(LoadRequest {
-        bytecode,
-        name: args.name.to_string(),
-        program_type: args.command.get_prog_type() as u32,
-        attach,
-        metadata: args
-            .metadata
+    let data = ProgramData::new_pre_load(
+        bytecode_source,
+        args.name.clone(),
+        args.metadata
             .clone()
             .unwrap_or_default()
             .iter()
             .map(|(k, v)| (k.to_owned(), v.to_owned()))
             .collect(),
-        global_data: parse_global(&args.global),
-        uuid: None,
-        map_owner_id: args.map_owner_id,
-    });
-    let response = client.load(request).await?.into_inner();
+        parse_global(&args.global),
+        args.map_owner_id,
+    )?;
 
-    ProgTable::new_get_bpfman(&response.info)?.print();
-    ProgTable::new_get_unsupported(&response.kernel_info)?.print();
+    let program = bpf_manager
+        .add_program(args.command.get_program(data)?)
+        .await?;
+
+    ProgTable::new_get_bpfman(&Some((&program).try_into()?))?.print();
+    ProgTable::new_get_unsupported(&Some((&program).try_into()?))?.print();
     Ok(())
 }
 
-pub(crate) async fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
-    let channel = select_channel().expect("failed to select channel");
-    let mut client = BpfmanClient::new(channel);
+pub(crate) async fn execute_load_image(
+    bpf_manager: &mut BpfManager,
+    args: &LoadImageArgs,
+) -> anyhow::Result<()> {
+    let bytecode_source = crate::command::Location::Image((&args.pull_args).try_into()?);
 
-    let bytecode = Some(BytecodeLocation {
-        location: Some(Location::Image(BytecodeImage::try_from(&args.pull_args)?)),
-    });
-
-    let attach = args.command.get_attach_type()?;
-
-    let request = tonic::Request::new(LoadRequest {
-        bytecode,
-        name: args.name.to_string(),
-        program_type: args.command.get_prog_type() as u32,
-        attach,
-        metadata: args
-            .metadata
+    let data = ProgramData::new_pre_load(
+        bytecode_source,
+        args.name.clone(),
+        args.metadata
             .clone()
             .unwrap_or_default()
             .iter()
             .map(|(k, v)| (k.to_owned(), v.to_owned()))
             .collect(),
-        global_data: parse_global(&args.global),
-        uuid: None,
-        map_owner_id: args.map_owner_id,
-    });
-    let response = client.load(request).await?.into_inner();
+        parse_global(&args.global),
+        args.map_owner_id,
+    )?;
 
-    ProgTable::new_get_bpfman(&response.info)?.print();
-    ProgTable::new_get_unsupported(&response.kernel_info)?.print();
+    let program = bpf_manager
+        .add_program(args.command.get_program(data)?)
+        .await?;
+
+    ProgTable::new_get_bpfman(&Some((&program).try_into()?))?.print();
+    ProgTable::new_get_unsupported(&Some((&program).try_into()?))?.print();
     Ok(())
 }
 
 impl LoadCommands {
-    pub(crate) fn get_prog_type(&self) -> ProgramType {
-        match self {
-            LoadCommands::Xdp { .. } => ProgramType::Xdp,
-            LoadCommands::Tc { .. } => ProgramType::Tc,
-            LoadCommands::Tracepoint { .. } => ProgramType::Tracepoint,
-            LoadCommands::Kprobe { .. } => ProgramType::Probe,
-            LoadCommands::Uprobe { .. } => ProgramType::Probe,
-        }
-    }
-
-    pub(crate) fn get_attach_type(&self) -> Result<Option<AttachInfo>, anyhow::Error> {
+    pub(crate) fn get_program(&self, data: ProgramData) -> Result<Program, anyhow::Error> {
         match self {
             LoadCommands::Xdp {
                 iface,
@@ -116,14 +95,12 @@ impl LoadCommands {
                     Ok(p) => p,
                     Err(e) => bail!("error parsing proceed_on {e}"),
                 };
-                Ok(Some(AttachInfo {
-                    info: Some(Info::XdpAttachInfo(XdpAttachInfo {
-                        priority: *priority,
-                        iface: iface.to_string(),
-                        position: 0,
-                        proceed_on: proc_on.as_action_vec(),
-                    })),
-                }))
+                Ok(Program::Xdp(XdpProgram::new(
+                    data,
+                    *priority,
+                    iface.to_string(),
+                    XdpProceedOn::from_int32s(proc_on.as_action_vec())?,
+                )?))
             }
             LoadCommands::Tc {
                 direction,
@@ -139,21 +116,17 @@ impl LoadCommands {
                     Ok(p) => p,
                     Err(e) => bail!("error parsing proceed_on {e}"),
                 };
-                Ok(Some(AttachInfo {
-                    info: Some(Info::TcAttachInfo(TcAttachInfo {
-                        priority: *priority,
-                        iface: iface.to_string(),
-                        position: 0,
-                        direction: direction.to_string(),
-                        proceed_on: proc_on.as_action_vec(),
-                    })),
-                }))
+                Ok(Program::Tc(TcProgram::new(
+                    data,
+                    *priority,
+                    iface.to_string(),
+                    proc_on,
+                    direction.to_string().try_into()?,
+                )?))
             }
-            LoadCommands::Tracepoint { tracepoint } => Ok(Some(AttachInfo {
-                info: Some(Info::TracepointAttachInfo(TracepointAttachInfo {
-                    tracepoint: tracepoint.to_string(),
-                })),
-            })),
+            LoadCommands::Tracepoint { tracepoint } => Ok(Program::Tracepoint(
+                TracepointProgram::new(data, tracepoint.to_string())?,
+            )),
             LoadCommands::Kprobe {
                 fn_name,
                 offset,
@@ -164,14 +137,13 @@ impl LoadCommands {
                     bail!("kprobe container option not supported yet");
                 }
                 let offset = offset.unwrap_or(0);
-                Ok(Some(AttachInfo {
-                    info: Some(Info::KprobeAttachInfo(KprobeAttachInfo {
-                        fn_name: fn_name.to_string(),
-                        offset,
-                        retprobe: *retprobe,
-                        container_pid: *container_pid,
-                    })),
-                }))
+                Ok(Program::Kprobe(KprobeProgram::new(
+                    data,
+                    fn_name.to_string(),
+                    offset,
+                    *retprobe,
+                    None,
+                )?))
             }
             LoadCommands::Uprobe {
                 fn_name,
@@ -182,16 +154,15 @@ impl LoadCommands {
                 container_pid,
             } => {
                 let offset = offset.unwrap_or(0);
-                Ok(Some(AttachInfo {
-                    info: Some(Info::UprobeAttachInfo(UprobeAttachInfo {
-                        fn_name: fn_name.clone(),
-                        offset,
-                        target: target.clone(),
-                        retprobe: *retprobe,
-                        pid: *pid,
-                        container_pid: *container_pid,
-                    })),
-                }))
+                Ok(Program::Uprobe(UprobeProgram::new(
+                    data,
+                    fn_name.clone(),
+                    offset,
+                    target.to_string(),
+                    *retprobe,
+                    *pid,
+                    *container_pid,
+                )?))
             }
         }
     }

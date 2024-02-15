@@ -54,7 +54,7 @@ const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
 pub(crate) struct BpfManager {
     config: Config,
     commands: Option<Receiver<Command>>,
-    image_manager: Option<Sender<ImageManagerCommand>>,
+    pub(crate) image_manager: Option<Sender<ImageManagerCommand>>,
 }
 
 impl BpfManager {
@@ -913,7 +913,7 @@ impl BpfManager {
         }
     }
 
-    async fn pull_bytecode(&self, args: PullBytecodeArgs) -> anyhow::Result<()> {
+    pub(crate) async fn pull_bytecode(&self, args: PullBytecodeArgs) -> anyhow::Result<()> {
         let res;
         let (tx, rx) = oneshot::channel();
         if let Some(image_manager) = self.image_manager.clone() {
