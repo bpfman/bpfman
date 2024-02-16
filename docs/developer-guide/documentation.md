@@ -50,14 +50,10 @@ The file
 [docs/developer-guide/api-spec.md](https://github.com/bpfman/bpfman/blob/main/docs/developer-guide/api-spec.md)
 documents the CRDs used in a Kubernetes deployment.
 The contents are auto-generated when PRs are pushed to Github.
-The script [scripts/make-docs.sh](https://github.com/bpfman/bpfman/blob/main/scripts/make-docs.sh)
-manages the generation of this file.
+
+The contents can be generated locally by running the command `make -C bpfman-operator apidocs.html` from the root bpfman directory.
 
 ## Generate Documentation
-
-On each PR pushed to https://github.com/bpfman/bpfman the documentation is generated.
-To preview of the generated site, click on the `Details` link of the
-`netlify/bpfman/deploy-preview` Check from the Github GUI.
 
 If you would like to test locally, build and preview the generated documentation,
 from the bpfman root directory, use `mkdocs` to build:
@@ -66,6 +62,9 @@ from the bpfman root directory, use `mkdocs` to build:
 cd bpfman/
 mkdocs build
 ```
+
+>**NOTE:** If `mkdocs build` gives you an error, make sure you have the mkdocs
+packages listed below installed.
 
 To preview from a build on a local machine, start the mkdocs dev-server with the command below,
 then open up `http://127.0.0.1:8000/` in your browser, and you'll see the default home page
@@ -100,3 +99,6 @@ Once installed, ensure the `mkdocs` is in your PATH:
 mkdocs -V
 mkdocs, version 1.4.3 from /home/$USER/.local/lib/python3.11/site-packages/mkdocs (Python 3.11)
 ```
+
+>**NOTE:** If you have an older version of mkdocs installed, you may need to use
+the `--upgrade` option (e.g., `pip install --upgrade mkdocs`) to get it to work.

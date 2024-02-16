@@ -45,7 +45,7 @@ discuss the problems bpfman can help solve, and how to deploy and use it.
 
 While some organizations have had success developing, deploying, and maintaining
 production software which includes eBPF programs, the barrier to entry is still
-very high. 
+very high.
 
 Following the basic eBPF development workflow, which often involves many hours
 trying to interpret and fix mind-bending [eBPF verifier] errors, the process of
@@ -71,7 +71,6 @@ what eBPF does, and how it can help reduce the costs
 associated with deploying and managing eBPF-powered workloads.
 
 [eBPF verifier]:https://docs.kernel.org/bpf/verifier.html
-[bpfman]:https://bpfman.io
 
 ## bpfman Overview
 
@@ -80,7 +79,7 @@ lifecycle of eBPF programs.  In particular, it can load, unload, modify, and
 monitor eBPF programs on a single host, or across a full Kubernetes cluster. The
 key components of bpfman include the bpfman daemon itself which can run
 independently on any Linux box, an accompanying Kubernetes Operator designed
-to bring first-class support to clusters via Custom Resource Definitions (CRDs), 
+to bring first-class support to clusters via Custom Resource Definitions (CRDs),
 and eBPF program packaging.
 
 These components will be covered in more detail in the following sections.
@@ -136,7 +135,6 @@ interact.
 
 [Aya]:https://aya-rs.dev/
 [multi-prog]:https://github.com/xdp-project/xdp-tools/blob/master/lib/libxdp/protocol.org
-
 
 ### bpfman Kubernetes Support
 
@@ -281,8 +279,9 @@ status:
     status: "True"
     type: ReconcileSuccess
 ```
-More details about this process can be seen
-[here](https://bpfman.io/getting-started/example-bpf-k8s/)
+
+More details about this process can be seen [here]
+[here]:../../getting-started/example-bpf-k8s.md
 
 #### eBPF program packaging
 
@@ -315,7 +314,7 @@ using bpfman, only the bpfman daemon, which can be tightly controlled, needs the
 privileges required to load eBPF programs, while access to the API can be
 controlled via standard RBAC methods on a per-application and per-CRD basis.
 Additionally, the signing and validating of bytecode images enables supply chain
-security. 
+security.
 
 #### Visibility and Debuggability
 
@@ -336,6 +335,7 @@ this for you so you don't have to.  eBPF bytecode images help here as well by
 simplifying the distribution of eBPF bytecode to multiple nodes in a cluster,
 and also allowing separate fine-grained versioning control for user space and
 kernel space code.
+
 ### Demonstration
 
 This demonstration is adapted from the instructions documented by Andrew Stoycos
@@ -344,10 +344,12 @@ This demonstration is adapted from the instructions documented by Andrew Stoycos
 These instructions use kind and bpfman release v0.2.1. It should also be possible
 to run this demo on other environments such as minikube or an actual cluster.
 
-Another option is to [build the code
-yourself](https://bpfman.io/getting-started/building-bpfman/) and use [`make
-run-on-kind`](https://bpfman.io/getting-started/example-bpf-k8s/) to create the
-cluster as is described in the given links.  Then, start with step 5.
+Another option is to [build the code yourself] and use [make run-on-kind]
+
+[build the code yourself]:../../getting-started/building-bpfman.md#development-environment-setup
+[make run-on-kind]:../../getting-started/example-bpf-k8s.md
+
+to create the cluster as is described in the given links.  Then, start with step 5.
 
 #### Run the demo
 
@@ -439,7 +441,7 @@ Notes:
 for the pod's primary node interface, which may not have a lot of traffic.
 However, running the `kubectl` command below generates traffic on that
 interface, so run the command a few times and give it a few seconds in between
-to confirm whether the counters are incrementing. 
+to confirm whether the counters are incrementing.
 - Replace "go-xdp-counter-ds-9lpgp" with the go-xdp-counter pod name for
 your deployment.
 
@@ -605,4 +607,4 @@ to see you there!
 [bpfman-disc]:https://github.com/bpfman/bpfman/discussions/new/choose
 [bpfman-iss]:https://github.com/bpfman/bpfman/issues/new
 [k8s-slack]:https://kubernetes.slack.com
-[sync]:https://bpfman.io/governance/meetings/
+[sync]:../../governance/MEETINGS.md
