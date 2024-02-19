@@ -7,7 +7,6 @@ pub mod util;
 #[rustfmt::skip]
 #[allow(clippy::all)]
 pub mod v1;
-use std::iter::FromIterator;
 
 use clap::ValueEnum;
 use serde::{Deserialize, Serialize};
