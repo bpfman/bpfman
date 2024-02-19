@@ -3,7 +3,6 @@ use std::{
     fs::{self, create_dir_all},
     path::{Path, PathBuf},
     process::Command,
-    string::String,
 };
 
 use anyhow::{bail, Context, Result};

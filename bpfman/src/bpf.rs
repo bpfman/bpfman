@@ -3,7 +3,6 @@
 
 use std::{
     collections::HashMap,
-    convert::TryInto,
     path::{Path, PathBuf},
 };
 
