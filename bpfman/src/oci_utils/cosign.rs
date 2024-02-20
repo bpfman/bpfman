@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use std::str::FromStr;
+use std::{path::PathBuf, str::FromStr};
 
 use anyhow::{anyhow, bail};
 use log::{debug, info, warn};
@@ -21,13 +21,23 @@ pub struct CosignVerifier {
     pub allow_unsigned: bool,
 }
 
+#[cfg(test)]
+fn get_tuf_path() -> Option<PathBuf> {
+    None
+}
+
+#[cfg(not(test))]
+fn get_tuf_path() -> Option<PathBuf> {
+    Some(PathBuf::from(bpfman_api::util::directories::RTDIR_TUF))
+}
+
 impl CosignVerifier {
     pub(crate) async fn new(allow_unsigned: bool) -> Result<Self, anyhow::Error> {
         // We must use spawn_blocking here.
         // See: https://docs.rs/sigstore/0.7.2/sigstore/oauth/openidflow/index.html
         let repo: sigstore::errors::Result<SigstoreRepository> = spawn_blocking(|| {
             info!("Starting Cosign Verifier, downloading data from Sigstore TUF repository");
-            sigstore::tuf::SigstoreRepository::fetch(None)
+            sigstore::tuf::SigstoreRepository::fetch(get_tuf_path().as_deref())
         })
         .await
         .map_err(|e| anyhow!("Error spawning blocking task inside of tokio: {}", e))?;

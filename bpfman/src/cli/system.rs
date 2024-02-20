@@ -81,6 +81,7 @@ pub(crate) async fn initialize_bpfman() -> anyhow::Result<()> {
     create_dir_all(RTDIR_BPFMAN_CSI).context("unable to create CSI directory")?;
     create_dir_all(RTDIR_BPFMAN_CSI_FS).context("unable to create CSI socket directory")?;
     create_dir_all(RTDIR_SOCK).context("unable to create socket directory")?;
+    create_dir_all(RTDIR_TUF).context("unable to create TUF directory")?;
 
     create_dir_all(STDIR).context("unable to create state directory")?;
 

@@ -39,6 +39,8 @@ pub mod directories {
     pub const RTDIR_BPFMAN_CSI: &str = "/run/bpfman/csi";
     pub const RTPATH_BPFMAN_CSI_SOCKET: &str = "/run/bpfman/csi/csi.sock";
     pub const RTDIR_BPFMAN_CSI_FS: &str = "/run/bpfman/csi/fs";
+    // The TUF repository is used to store Rekor and Fulcio public keys.
+    pub const RTDIR_TUF: &str = "/run/bpfman/tuf";
 
     // StateDirectory: /var/lib/bpfman/
     pub const STDIR_MODE: u32 = 0o6770;
