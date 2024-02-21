@@ -33,7 +33,6 @@ fn test_proceed_on_xdp() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
     let trace_guard = start_trace_pipe().unwrap();
-    let _bpfman_guard = start_bpfman().unwrap();
 
     assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
@@ -141,7 +140,6 @@ fn test_unload_xdp() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
     let trace_guard = start_trace_pipe().unwrap();
-    let _bpfman_guard = start_bpfman().unwrap();
 
     assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
@@ -238,7 +236,6 @@ fn test_proceed_on_tc() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
     let trace_guard = start_trace_pipe().unwrap();
-    let bpfman_guard = start_bpfman().unwrap();
 
     assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
@@ -377,10 +374,6 @@ fn test_proceed_on_tc() {
     assert!(trace_pipe_log.contains(TC_EG_GLOBAL_6_LOG));
     debug!("Successfully completed tc egress proceed-on test");
 
-    // Verify that the programs still work after we stop and restart bpfman
-    drop(bpfman_guard);
-    let _bpfman_guard = start_bpfman().unwrap();
-
     // Make sure it still works like it did before we stopped and restarted bpfman
     debug!("Clear the trace_pipe_log");
     drop(trace_guard);
@@ -415,7 +408,6 @@ fn test_unload_tc() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
     let trace_guard = start_trace_pipe().unwrap();
-    let _bpfman_guard = start_bpfman().unwrap();
 
     assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
@@ -554,7 +546,6 @@ fn test_program_execution_with_global_variables() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
     let _trace_guard = start_trace_pipe().unwrap();
-    let _bpfman_guard = start_bpfman().unwrap();
 
     assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
@@ -698,7 +689,6 @@ fn test_program_execution_with_global_variables() {
 fn test_load_unload_xdp_maps() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    let bpfman_guard = start_bpfman().unwrap();
 
     assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
@@ -725,10 +715,6 @@ fn test_load_unload_xdp_maps() {
     let map_pin_path = bpfman_output_map_pin_path(&binding);
     assert!(PathBuf::from(map_pin_path).join("xdp_stats_map").exists());
 
-    // Verify rule persistence between restarts
-    drop(bpfman_guard);
-    let _bpfman_guard = start_bpfman().unwrap();
-
     verify_and_delete_programs(vec![prog_id.unwrap()]);
 
     assert!(!bpffs_has_entries(RTDIR_FS_XDP));
@@ -738,7 +724,6 @@ fn test_load_unload_xdp_maps() {
 fn test_load_unload_tc_maps() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    let bpfman_guard = start_bpfman().unwrap();
 
     assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
@@ -764,10 +749,6 @@ fn test_load_unload_tc_maps() {
     let map_pin_path = bpfman_output_map_pin_path(&binding);
     assert!(PathBuf::from(map_pin_path).join("tc_stats_map").exists());
 
-    // Verify rule persistence between restarts
-    drop(bpfman_guard);
-    let _bpfman_guard = start_bpfman().unwrap();
-
     verify_and_delete_programs(vec![prog_id.unwrap()]);
 
     assert!(!bpffs_has_entries(RTDIR_FS_TC_INGRESS));
@@ -777,7 +758,6 @@ fn test_load_unload_tc_maps() {
 fn test_load_unload_tracepoint_maps() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    let bpfman_guard = start_bpfman().unwrap();
 
     debug!("Installing tracepoint_counter program");
 
@@ -792,10 +772,6 @@ fn test_load_unload_tracepoint_maps() {
         .join("tracepoint_stats_map")
         .exists());
 
-    // Verify rule persistence between restarts
-    drop(bpfman_guard);
-    let _bpfman_guard = start_bpfman().unwrap();
-
     verify_and_delete_programs(vec![prog_id.unwrap()]);
 }
 
@@ -805,7 +781,6 @@ fn test_uprobe_container() {
 
     let container = start_container().unwrap();
     let _trace_guard = start_trace_pipe().unwrap();
-    let _bpfman_guard = start_bpfman().unwrap();
 
     let mut loaded_ids = vec![];
 

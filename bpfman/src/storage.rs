@@ -33,7 +33,7 @@ use tokio_stream::wrappers::UnixListenerStream;
 use tonic::{transport::Server, Request, Response, Status};
 
 use crate::{
-    command::Command,
+    command::{Command, ListFilter},
     utils::{create_bpffs, set_dir_permissions, set_file_permissions, SOCK_MODE},
 };
 
@@ -137,41 +137,42 @@ impl Node for CsiNode {
 
                 // Get the program information from the BpfManager
                 let (resp_tx, resp_rx) = oneshot::channel();
-                let cmd = Command::List { responder: resp_tx };
+                let cmd = Command::List {
+                    responder: resp_tx,
+                    filter: ListFilter::default(),
+                };
 
                 // Send the LIST request
                 self.tx.send(cmd).await.unwrap();
 
                 // Await the response
                 let core_map_path = match resp_rx.await {
-                    Ok(res) => match res {
+                    Ok(results) => {
                         // Find the Program with the specified *Program CRD name
-                        Ok(results) => {
-                            let prog_data = results
-                                .into_iter()
-                                .find(|p| {
-                                    p.get_data()
-                                        .get_metadata()
-                                        .expect("unable to get program metadata")
-                                        .get(OPERATOR_PROGRAM_KEY)
-                                        == Some(program_name)
-                                })
-                                .ok_or(Status::new(
-                                    NPV_NOT_FOUND.into(),
-                                    format!("Bpfman Program {program_name} not found"),
-                                ))?;
-                            Ok(prog_data
-                                .get_data()
-                                .get_map_pin_path()
-                                .map_err(|e| Status::aborted(format!("failed to get map_pin_path: {e}")))?
-                                .expect("map pin path should be set since the program is already loaded")
-                                .to_owned())
-                        }
-                        Err(_) => Err(Status::new(
-                            NPV_NOT_FOUND.into(),
-                            format!("Bpfman Program {program_name} not found"),
-                        )),
-                    },
+                        let prog_data = results
+                            .into_iter()
+                            .find(|p| {
+                                p.get_data()
+                                    .get_metadata()
+                                    .expect("unable to get program metadata")
+                                    .get(OPERATOR_PROGRAM_KEY)
+                                    == Some(program_name)
+                            })
+                            .ok_or(Status::new(
+                                NPV_NOT_FOUND.into(),
+                                format!("Bpfman Program {program_name} not found"),
+                            ))?;
+                        Ok(prog_data
+                            .get_data()
+                            .get_map_pin_path()
+                            .map_err(|e| {
+                                Status::aborted(format!("failed to get map_pin_path: {e}"))
+                            })?
+                            .expect(
+                                "map pin path should be set since the program is already loaded",
+                            )
+                            .to_owned())
+                    }
                     Err(_) => Err(Status::new(
                         NPV_NOT_FOUND.into(),
                         format!("Unable to list bpfman programs {program_name} not found"),

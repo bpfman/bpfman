@@ -15,8 +15,8 @@ use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
 
 use crate::command::{
-    Command, GetArgs, KprobeProgram, LoadArgs, Program, ProgramData, PullBytecodeArgs, TcProgram,
-    TracepointProgram, UnloadArgs, UprobeProgram, XdpProgram,
+    Command, GetArgs, KprobeProgram, ListFilter, LoadArgs, Program, ProgramData, PullBytecodeArgs,
+    TcProgram, TracepointProgram, UnloadArgs, UprobeProgram, XdpProgram,
 };
 
 #[derive(Debug)]
@@ -261,93 +261,52 @@ impl Bpfman for BpfmanLoader {
         let mut reply = ListResponse { results: vec![] };
 
         let (resp_tx, resp_rx) = oneshot::channel();
-        let cmd = Command::List { responder: resp_tx };
 
-        // Send the GET request
+        let cmd = Command::List {
+            responder: resp_tx,
+            filter: ListFilter::new(
+                request.get_ref().program_type,
+                request.get_ref().match_metadata.clone(),
+                request.get_ref().bpfman_programs_only(),
+            ),
+        };
+
+        // Send the List request
         self.tx.send(cmd).await.unwrap();
 
         // Await the response
         match resp_rx.await {
-            Ok(res) => match res {
-                Ok(results) => {
-                    for r in results {
-                        // If filtering on Program Type, then make sure this program matches, else skip.
-                        if let Some(p) = request.get_ref().program_type {
-                            if p != r.kind() as u32 {
-                                continue;
-                            }
-                        }
-
-                        // filter based on list all flag
-                        if let Program::Unsupported(_) = r {
-                            if request.get_ref().bpfman_programs_only()
-                                || !request.get_ref().match_metadata.is_empty()
-                            {
-                                continue;
-                            }
+            Ok(results) => {
+                for r in results {
+                    // Populate the response with the Program Info and the Kernel Info.
+                    let reply_entry = ListResult {
+                        info: if let Program::Unsupported(_) = r {
+                            None
                         } else {
-                            // Filter on the input metadata field if provided
-                            let mut meta_match = true;
-                            for (key, value) in &request.get_ref().match_metadata {
-                                if let Some(v) = r
-                                    .get_data()
-                                    .get_metadata()
-                                    .map_err(|e| {
+                            Some((&r).try_into().map_err(|e| {
+                                Status::aborted(format!("failed to get program metadata: {e}"))
+                            })?)
+                        },
+                        kernel_info: match (&r).try_into() {
+                            Ok(i) => {
+                                if let Program::Unsupported(_) = r {
+                                    r.delete().map_err(|e| {
                                         Status::aborted(format!(
                                             "failed to get program metadata: {e}"
                                         ))
-                                    })?
-                                    .get(key)
-                                {
-                                    if *value != *v {
-                                        meta_match = false;
-                                        break;
-                                    }
-                                } else {
-                                    meta_match = false;
-                                    break;
-                                }
+                                    })?;
+                                };
+                                Ok(Some(i))
                             }
-
-                            if !meta_match {
-                                continue;
-                            }
-                        }
-
-                        // Populate the response with the Program Info and the Kernel Info.
-                        let reply_entry = ListResult {
-                            info: if let Program::Unsupported(_) = r {
-                                None
-                            } else {
-                                Some((&r).try_into().map_err(|e| {
-                                    Status::aborted(format!("failed to get program metadata: {e}"))
-                                })?)
-                            },
-                            kernel_info: match (&r).try_into() {
-                                Ok(i) => {
-                                    if let Program::Unsupported(_) = r {
-                                        r.delete().map_err(|e| {
-                                            Status::aborted(format!(
-                                                "failed to get program metadata: {e}"
-                                            ))
-                                        })?;
-                                    };
-                                    Ok(Some(i))
-                                }
-                                Err(e) => Err(Status::aborted(format!(
-                                    "convert Program to GRPC kernel program info: {e}"
-                                ))),
-                            }?,
-                        };
-                        reply.results.push(reply_entry)
-                    }
-                    Ok(Response::new(reply))
+                            Err(e) => Err(Status::aborted(format!(
+                                "convert Program to GRPC kernel program info: {e}"
+                            ))),
+                        }?,
+                    };
+                    reply.results.push(reply_entry)
                 }
-                Err(e) => {
-                    warn!("BPFMAN list error: {}", e);
-                    Err(Status::aborted(format!("{e}")))
-                }
-            },
+                Ok(Response::new(reply))
+            }
             Err(e) => {
                 warn!("RPC list error: {}", e);
                 Err(Status::aborted(format!("{e}")))
@@ -489,7 +448,7 @@ mod test {
             match cmd {
                 Command::Load(args) => args.responder.send(Ok(program.clone())).unwrap(),
                 Command::Unload(args) => args.responder.send(Ok(())).unwrap(),
-                Command::List { responder, .. } => responder.send(Ok(vec![])).unwrap(),
+                Command::List { responder, .. } => responder.send(vec![]).unwrap(),
                 Command::Get(args) => args.responder.send(Ok(program.clone())).unwrap(),
                 Command::PullBytecode(args) => args.responder.send(Ok(())).unwrap(),
             }

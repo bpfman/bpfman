@@ -19,7 +19,7 @@ use bpfman_api::{
     ProbeType::{self, *},
     ProgramType,
 };
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use tokio::{
     fs::{create_dir_all, remove_dir_all},
     select,
@@ -32,8 +32,8 @@ use tokio::{
 
 use crate::{
     command::{
-        Command, Direction, Program, ProgramData, PullBytecodeArgs, UnloadArgs, PROGRAM_PREFIX,
-        PROGRAM_PRE_LOAD_PREFIX,
+        Command, Direction, ListFilter, Program, ProgramData, PullBytecodeArgs, UnloadArgs,
+        PROGRAM_PREFIX, PROGRAM_PRE_LOAD_PREFIX,
     },
     errors::BpfmanError,
     multiprog::{
@@ -54,7 +54,7 @@ const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
 pub(crate) struct BpfManager {
     config: Config,
     commands: Option<Receiver<Command>>,
-    image_manager: Option<Sender<ImageManagerCommand>>,
+    pub(crate) image_manager: Option<Sender<ImageManagerCommand>>,
 }
 
 impl BpfManager {
@@ -851,7 +851,7 @@ impl BpfManager {
         Ok(())
     }
 
-    pub(crate) fn list_programs(&mut self) -> Result<Vec<Program>, BpfmanError> {
+    pub(crate) fn list_programs(&mut self, filter: ListFilter) -> Vec<Program> {
         debug!("BpfManager::list_programs()");
 
         // Get an iterator for the bpfman load programs, a hash map indexed by program id.
@@ -866,19 +866,22 @@ impl BpfManager {
                 // If the program was loaded by bpfman (check the hash map), then use it.
                 // Otherwise, convert the data returned from Aya into an Unsupported Program Object.
                 match bpfman_progs.remove(&prog_id) {
-                    Some(p) => Ok(p.to_owned()),
+                    Some(p) => p.to_owned(),
                     None => {
                         let db_tree = ROOT_DB
                             .open_tree(prog_id.to_string())
                             .expect("Unable to open program database tree for listing programs");
 
                         let mut data = ProgramData::new(db_tree);
-                        data.set_kernel_info(&prog)?;
+                        if let Err(e) = data.set_kernel_info(&prog) {
+                            warn!("Unable to set kernal info for prog {prog_id}, error: {e}");
+                        };
 
-                        Ok(Program::Unsupported(data))
+                        Program::Unsupported(data)
                     }
                 }
             })
+            .filter(|p| filter.matches(p))
             .collect()
     }
 
@@ -913,7 +916,7 @@ impl BpfManager {
         }
     }
 
-    async fn pull_bytecode(&self, args: PullBytecodeArgs) -> anyhow::Result<()> {
+    pub(crate) async fn pull_bytecode(&self, args: PullBytecodeArgs) -> anyhow::Result<()> {
         let res;
         let (tx, rx) = oneshot::channel();
         if let Some(image_manager) = self.image_manager.clone() {
@@ -963,8 +966,8 @@ impl BpfManager {
                                 let _ = args.responder.send(prog);
                             },
                             Command::Unload(args) => self.unload_command(args).await.unwrap(),
-                            Command::List { responder } => {
-                                let progs = self.list_programs();
+                            Command::List { responder, filter } => {
+                                let progs = self.list_programs(filter);
                                 // Ignore errors as they'll be propagated to caller in the RPC status
                                 let _ = responder.send(progs);
                             }

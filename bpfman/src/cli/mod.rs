@@ -12,47 +12,46 @@ mod unload;
 
 use anyhow::anyhow;
 use args::Commands;
-use bpfman_api::util::directories::RTPATH_BPFMAN_SOCKET;
 use get::execute_get;
 use list::execute_list;
-use log::warn;
-use tokio::net::UnixStream;
-use tonic::transport::{Channel, Endpoint, Uri};
-use tower::service_fn;
+use tokio::sync::{broadcast, mpsc};
 use unload::execute_unload;
 
-use crate::{cli::system::initialize_bpfman, utils::open_config_file};
+use crate::{
+    bpf::BpfManager, cli::system::initialize_bpfman, oci_utils::ImageManager,
+    utils::open_config_file,
+};
 
 impl Commands {
     pub(crate) async fn execute(&self) -> Result<(), anyhow::Error> {
+        initialize_bpfman().await?;
+
         let config = open_config_file();
+        let (shutdown_tx, shutdown_rx1) = broadcast::channel(32);
+        let allow_unsigned: bool = config.signing.as_ref().map_or(true, |s| s.allow_unsigned);
+        let (itx, irx) = mpsc::channel(32);
+
+        let mut image_manager = ImageManager::new(allow_unsigned, irx).await?;
+        let image_manager_handle = tokio::spawn(async move {
+            image_manager.run(shutdown_rx1).await;
+        });
+        let mut bpf_manager = BpfManager::new(config.clone(), None, Some(itx));
 
         match self {
-            Commands::Load(l) => l.execute().await,
-            Commands::Unload(args) => execute_unload(args).await,
-            Commands::List(args) => execute_list(args).await,
-            Commands::Get(args) => {
-                initialize_bpfman().await?;
-                execute_get(&config, args)
-                    .await
-                    .map_err(|e| anyhow!("get error: {e}"))
-            }
-            Commands::Image(i) => i.execute().await,
+            Commands::Load(l) => l.execute(&mut bpf_manager).await,
+            Commands::Unload(args) => execute_unload(&mut bpf_manager, args).await,
+            Commands::List(args) => execute_list(&mut bpf_manager, args).await,
+            Commands::Get(args) => execute_get(&mut bpf_manager, args)
+                .await
+                .map_err(|e| anyhow!("get error: {e}")),
+            Commands::Image(i) => i.execute(&mut bpf_manager).await,
             Commands::System(s) => s.execute(&config).await,
-        }
+        }?;
+
+        // Shutdown the image_manager thread and wait for it to finish
+        shutdown_tx.send(()).unwrap();
+        image_manager_handle.await?;
+
+        Ok(())
     }
-}
-
-fn select_channel() -> Option<Channel> {
-    let path = RTPATH_BPFMAN_SOCKET.to_string();
-
-    let address = Endpoint::try_from(format!("unix:/{path}"));
-    if let Err(e) = address {
-        warn!("Failed to parse unix endpoint: {e:?}");
-        return None;
-    };
-    let address = address.unwrap();
-    let channel = address
-        .connect_with_connector_lazy(service_fn(move |_: Uri| UnixStream::connect(path.clone())));
-    Some(channel)
 }
