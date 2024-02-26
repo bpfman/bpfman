@@ -35,7 +35,7 @@ Be trustworthy. During a review, your actions both build and help maintain the t
 
 ## Process
 
-* Reviewers are automatically assigned based on the [CODEOWNERS](./CODEOWNERS) file.
+* Reviewers are automatically assigned based on the [CODEOWNERS](https://github.com/bpfman/bpfman/blob/main/CODEOWNERS) file.
 * Reviewers should wait for automated checks to pass before reviewing
 * At least 1 approved review is required from a maintainer before a pull request can be merged
 * All CI checks must pass

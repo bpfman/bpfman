@@ -330,9 +330,9 @@ the project will be able to completely transition to becoming a library without
 having to worry about data and state management.
 
 If you are interested in in memory databases, eBPF, Rust, or any of the technologies
-discussed today please don't hesitate to reach out on [kubernetes slack at `#bpfman`]
-or join one of the [community meetings] to get involved.
+discussed today please don't hesitate to reach out at [kubernetes slack] on channel
+`#bpfman` or join one of the [community meetings] to get involved.
 
 [sled]:https://github.com/spacejam/sled
-[kubernetes slack at `#bpfman`]:(https://kubernetes.slack.com/archives/C04UJBW2553)
-[community meetings]:[https://bpfman.io/main/governance/meetings/]
+[kubernetes slack]:https://kubernetes.slack.com/archives/C04UJBW2553
+[community meetings]:../../governance/MEETINGS.md

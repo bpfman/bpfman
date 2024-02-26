@@ -81,13 +81,13 @@ Our process is currently as follows:
 1. When you open a PR a maintainer will automatically be assigned for review
 1. Make sure that your PR is passing CI - if you need help with failing checks please feel free to ask!
 1. Once it is passing all CI checks, a maintainer will review your PR and you may be asked to make changes.
-1. When you have received at least one approval from a maintainer, your PR will be merged automiatcally.
+1. When you have received at least one approval from a maintainer, your PR will be merged automatically.
 
 In some cases, other changes may conflict with your PR. If this happens, you will get notified by a comment in the issue that your PR requires a rebase, and the `needs-rebase` label will be applied. Once a rebase has been performed, this label will be automatically removed.
 
 ## Development Environment Setup
 
-[Instructions](https://bpfman.netlify.app/building-bpfman/#development-environment-setup)
+[Instructions](https://bpfman.io/main/governance/contributing/#development-environment-setup)
 
 ## Signoff Your Commits
 
@@ -138,8 +138,8 @@ A good commit message should describe what changed and why.
 
   Examples:
 
-    * bpfman: validate program section names
-    * bpf: add dispatcher program test slot
+  * bpfman: validate program section names
+  * bpf: add dispatcher program test slot
 
 2. Keep the second line blank.
 3. Wrap all other lines at 72 columns (except for long URLs).
@@ -189,9 +189,9 @@ cargo +nightly clippy --all -- --deny warnings
 
 * Verify that Go code has been formatted and linted
 * Verify that Yaml files have been formatted (see
-  [Install Yaml Formatter](https://bpfman.io/getting-started/building-bpfman/#install-yaml-formatter))
+  [Install Yaml Formatter](https://bpfman.io/main/getting-started/building-bpfman/#install-yaml-formatter))
 * Verify that unit tests are passing locally (see
-  [Unit Testing](https://bpfman.io/developer-guide/testing/#unit-testing)):
+  [Unit Testing](https://bpfman.io/main/developer-guide/testing/#unit-testing)):
 
 ```console
 cd src/bpfman/
@@ -199,7 +199,7 @@ cargo test
 ```
 
 * Verify that integration tests are passing locally (see
-  [Basic Integration Tests](https://bpfman.io/developer-guide/testing/#basic-integration-tests)):
+  [Basic Integration Tests](https://bpfman.io/main/developer-guide/testing/#basic-integration-tests)):
 
 ```console
 cd src/bpfman/
@@ -216,7 +216,7 @@ make test
 
 * If developing the bpfman-operator, verify that bpfman-operator integration tests
   are passing locally (see
-  [Kubernetes Integration Tests](https://bpfman.io/developer-guide/testing/#kubernetes-integration-tests)):
+  [Kubernetes Integration Tests](https://bpfman.io/main/developer-guide/testing/#kubernetes-integration-tests)):
 
 ```console
 cd src/bpfman/bpfman-operator/
