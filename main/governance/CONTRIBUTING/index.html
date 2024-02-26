@@ -1850,11 +1850,11 @@ that you want to work on it. Something like "I want to work on this" is fine.</p
 <li>When you open a PR a maintainer will automatically be assigned for review</li>
 <li>Make sure that your PR is passing CI - if you need help with failing checks please feel free to ask!</li>
 <li>Once it is passing all CI checks, a maintainer will review your PR and you may be asked to make changes.</li>
-<li>When you have received at least one approval from a maintainer, your PR will be merged automiatcally.</li>
+<li>When you have received at least one approval from a maintainer, your PR will be merged automatically.</li>
 </ol>
 <p>In some cases, other changes may conflict with your PR. If this happens, you will get notified by a comment in the issue that your PR requires a rebase, and the <code>needs-rebase</code> label will be applied. Once a rebase has been performed, this label will be automatically removed.</p>
 <h2 id="development-environment-setup">Development Environment Setup</h2>
-<p><a href="https://bpfman.netlify.app/building-bpfman/#development-environment-setup">Instructions</a></p>
+<p><a href="https://bpfman.io/main/governance/contributing/#development-environment-setup">Instructions</a></p>
 <h2 id="signoff-your-commits">Signoff Your Commits</h2>
 <h3 id="dco">DCO</h3>
 <p>Licensing is important to open source projects. It provides some assurances that
@@ -1897,17 +1897,20 @@ When addressing review comments, please perform an interactive rebase and edit c
 <li>be prefixed with the name of the sub crate being changed</li>
 </ol>
 <p>Examples:</p>
-<div class="highlight"><pre><span></span><code>* bpfman: validate program section names
-* bpf: add dispatcher program test slot
-</code></pre></div>
-<ol>
-<li>Keep the second line blank.</li>
+<ul>
+<li>bpfman: validate program section names</li>
+<li>
+<p>bpf: add dispatcher program test slot</p>
+</li>
+<li>
+<p>Keep the second line blank.</p>
+</li>
 <li>Wrap all other lines at 72 columns (except for long URLs).</li>
 <li>If your patch fixes an open issue, you can add a reference to it at the end
    of the log. Use the <code>Fixes: #</code> prefix and the issue number. For other
    references use <code>Refs: #</code>. <code>Refs</code> may include multiple issues, separated by a
    comma.</li>
-</ol>
+</ul>
 <p>Examples:</p>
 <ul>
 <li><code>Fixes: #1337</code></li>
@@ -1944,16 +1947,16 @@ before you submit your code:</p>
 <ul>
 <li>Verify that Go code has been formatted and linted</li>
 <li>Verify that Yaml files have been formatted (see
-  <a href="https://bpfman.io/getting-started/building-bpfman/#install-yaml-formatter">Install Yaml Formatter</a>)</li>
+  <a href="https://bpfman.io/main/getting-started/building-bpfman/#install-yaml-formatter">Install Yaml Formatter</a>)</li>
 <li>Verify that unit tests are passing locally (see
-  <a href="https://bpfman.io/developer-guide/testing/#unit-testing">Unit Testing</a>):</li>
+  <a href="https://bpfman.io/main/developer-guide/testing/#unit-testing">Unit Testing</a>):</li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">cd src/bpfman/</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">cargo test</span>
 </code></pre></div>
 <ul>
 <li>Verify that integration tests are passing locally (see
-  <a href="https://bpfman.io/developer-guide/testing/#basic-integration-tests">Basic Integration Tests</a>):</li>
+  <a href="https://bpfman.io/main/developer-guide/testing/#basic-integration-tests">Basic Integration Tests</a>):</li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">cd src/bpfman/</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">cargo xtask integration-test</span>
@@ -1968,7 +1971,7 @@ before you submit your code:</p>
 <ul>
 <li>If developing the bpfman-operator, verify that bpfman-operator integration tests
   are passing locally (see
-  <a href="https://bpfman.io/developer-guide/testing/#kubernetes-integration-tests">Kubernetes Integration Tests</a>):</li>
+  <a href="https://bpfman.io/main/developer-guide/testing/#kubernetes-integration-tests">Kubernetes Integration Tests</a>):</li>
 </ul>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">cd src/bpfman/bpfman-operator/</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go">make test-integration</span>

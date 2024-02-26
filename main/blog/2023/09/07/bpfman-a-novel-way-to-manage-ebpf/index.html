@@ -1759,7 +1759,7 @@ discuss the problems bpfman can help solve, and how to deploy and use it.</p>
 <h2 id="current-challenges-with-developing-and-deploying-ebpf-programs">Current Challenges with Developing and Deploying eBPF Programs</h2>
 <p>While some organizations have had success developing, deploying, and maintaining
 production software which includes eBPF programs, the barrier to entry is still
-very high. </p>
+very high.</p>
 <p>Following the basic eBPF development workflow, which often involves many hours
 trying to interpret and fix mind-bending <a href="https://docs.kernel.org/bpf/verifier.html">eBPF verifier</a> errors, the process of
 deploying a program in testing and staging environments often results in a lot
@@ -1786,7 +1786,7 @@ lifecycle of eBPF programs.  In particular, it can load, unload, modify, and
 monitor eBPF programs on a single host, or across a full Kubernetes cluster. The
 key components of bpfman include the bpfman daemon itself which can run
 independently on any Linux box, an accompanying Kubernetes Operator designed
-to bring first-class support to clusters via Custom Resource Definitions (CRDs), 
+to bring first-class support to clusters via Custom Resource Definitions (CRDs),
 and eBPF program packaging.</p>
 <p>These components will be covered in more detail in the following sections.</p>
 <h3 id="bpfman-daemon">bpfman Daemon</h3>
@@ -1913,7 +1913,7 @@ the node(s) that had a problem.  The following is the XdpProgram CRD as updated
 by the operator.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>kubectl<span class="w"> </span>get<span class="w"> </span>xdpprograms.bpfman.io<span class="w"> </span>xdp-pass-all-nodes<span class="w"> </span>-o<span class="w"> </span>yaml
 </code></pre></div>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bpfman.io/v1alpha1</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bpfman.io/v1alpha1</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">XdpProgram</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="nt">metadata</span><span class="p">:</span>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">annotations</span><span class="p">:</span>
@@ -1957,8 +1957,7 @@ by the operator.</p>
 <a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="w">    </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;True&quot;</span>
 <a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a><span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ReconcileSuccess</span>
 </code></pre></div>
-More details about this process can be seen
-<a href="https://bpfman.io/getting-started/example-bpf-k8s/">here</a></p>
+<p>More details about this process can be seen <a href="../../../../../getting-started/example-bpf-k8s/">here</a></p>
 <h4 id="ebpf-program-packaging">eBPF program packaging</h4>
 <p>The eBPF Bytecode Image specification was created as part of the bpfman project to
 define a way to package eBPF bytecode as OCI container images.  Its use was
@@ -1985,7 +1984,7 @@ using bpfman, only the bpfman daemon, which can be tightly controlled, needs the
 privileges required to load eBPF programs, while access to the API can be
 controlled via standard RBAC methods on a per-application and per-CRD basis.
 Additionally, the signing and validating of bytecode images enables supply chain
-security. </p>
+security.</p>
 <h4 id="visibility-and-debuggability">Visibility and Debuggability</h4>
 <p>eBPF programs can interact with each other in unexpected ways.  The
 multi-program support described above helps control these interactions by
@@ -2007,10 +2006,8 @@ kernel space code.</p>
 <a href="https://gist.githubusercontent.com/astoycos/c4019178c7cd69b0b5a8d069a26281ee/raw/16ae12f45dc61e01e5c7e90419709096d7944a41/Demo.md">here</a>.</p>
 <p>These instructions use kind and bpfman release v0.2.1. It should also be possible
 to run this demo on other environments such as minikube or an actual cluster.</p>
-<p>Another option is to <a href="https://bpfman.io/getting-started/building-bpfman/">build the code
-yourself</a> and use <a href="https://bpfman.io/getting-started/example-bpf-k8s/"><code>make
-run-on-kind</code></a> to create the
-cluster as is described in the given links.  Then, start with step 5.</p>
+<p>Another option is to <a href="../../../../../getting-started/building-bpfman/#development-environment-setup">build the code yourself</a> and use <a href="../../../../../getting-started/example-bpf-k8s/">make run-on-kind</a></p>
+<p>to create the cluster as is described in the given links.  Then, start with step 5.</p>
 <h4 id="run-the-demo">Run the demo</h4>
 <p>1. Create Kind Cluster</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>kind<span class="w"> </span>create<span class="w"> </span>cluster<span class="w"> </span>--name<span class="o">=</span>test-bpfman
@@ -2067,7 +2064,7 @@ cluster as is described in the given links.  Then, start with step 5.</p>
 for the pod's primary node interface, which may not have a lot of traffic.
 However, running the <code>kubectl</code> command below generates traffic on that
 interface, so run the command a few times and give it a few seconds in between
-to confirm whether the counters are incrementing. </li>
+to confirm whether the counters are incrementing.</li>
 <li>Replace "go-xdp-counter-ds-9lpgp" with the go-xdp-counter pod name for
 your deployment.</li>
 </ul>
@@ -2187,7 +2184,7 @@ community in multiple ways. If you have some simple questions or need some help
 feel free to <a href="https://github.com/bpfman/bpfman/discussions/new/choose">start a discussion</a>. If you find an issue, or you want
 to request a new feature, please <a href="https://github.com/bpfman/bpfman/issues/new">create an issue</a>. If you want
 something a little more synchronous, the project maintains a <code>#bpfman</code> channel on
-<a href="https://kubernetes.slack.com">Kubernetes Slack</a> and we have a <a href="https://bpfman.io/governance/meetings/">weekly community meeting</a>
+<a href="https://kubernetes.slack.com">Kubernetes Slack</a> and we have a <a href="../../../../../governance/MEETINGS/">weekly community meeting</a>
 where everyone can join and bring topics to discuss about the project. We hope
 to see you there!</p>
 

@@ -1737,18 +1737,18 @@ This indicates to <code>mkdocs</code> to pull the additional file from the proje
 <p>The file
 <a href="https://github.com/bpfman/bpfman/blob/main/docs/developer-guide/api-spec.md">docs/developer-guide/api-spec.md</a>
 documents the CRDs used in a Kubernetes deployment.
-The contents are auto-generated when PRs are pushed to Github.
-The script <a href="https://github.com/bpfman/bpfman/blob/main/scripts/make-docs.sh">scripts/make-docs.sh</a>
-manages the generation of this file.</p>
+The contents are auto-generated when PRs are pushed to Github.</p>
+<p>The contents can be generated locally by running the command <code>make -C bpfman-operator apidocs.html</code> from the root bpfman directory.</p>
 <h2 id="generate-documentation">Generate Documentation</h2>
-<p>On each PR pushed to https://github.com/bpfman/bpfman the documentation is generated.
-To preview of the generated site, click on the <code>Details</code> link of the
-<code>netlify/bpfman/deploy-preview</code> Check from the Github GUI.</p>
 <p>If you would like to test locally, build and preview the generated documentation,
 from the bpfman root directory, use <code>mkdocs</code> to build:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">cd bpfman/</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">mkdocs build</span>
 </code></pre></div>
+<blockquote>
+<p><strong>NOTE:</strong> If <code>mkdocs build</code> gives you an error, make sure you have the mkdocs
+packages listed below installed.</p>
+</blockquote>
 <p>To preview from a build on a local machine, start the mkdocs dev-server with the command below,
 then open up <code>http://127.0.0.1:8000/</code> in your browser, and you'll see the default home page
 being displayed:</p>
@@ -1770,6 +1770,10 @@ being displayed:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">mkdocs -V</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">mkdocs, version 1.4.3 from /home/$USER/.local/lib/python3.11/site-packages/mkdocs (Python 3.11)</span>
 </code></pre></div>
+<blockquote>
+<p><strong>NOTE:</strong> If you have an older version of mkdocs installed, you may need to use
+the <code>--upgrade</code> option (e.g., <code>pip install --upgrade mkdocs</code>) to get it to work.</p>
+</blockquote>
 
 
 
