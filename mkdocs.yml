@@ -35,6 +35,16 @@ extra:
   version:
     provider: mike
 
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    absolute_links: warn
+    unrecognized_links: warn
+
 markdown_extensions:
   - admonition
   - pymdownx.highlight:
@@ -99,5 +109,6 @@ plugins:
         - "2024"
   - search
   - mike
+  - include-markdown
 
 copyright: Copyright &copy; 2021-2023 The bpfman contributors

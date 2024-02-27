@@ -1,1 +1,2 @@
---8<-- "MEETINGS.md"
+{% include "../../MEETINGS.md" %}
+
