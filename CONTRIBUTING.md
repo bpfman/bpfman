@@ -191,7 +191,7 @@ cargo +nightly clippy --all -- --deny warnings
 * Verify that Yaml files have been formatted (see
   [Install Yaml Formatter](https://bpfman.io/main/getting-started/building-bpfman/#install-yaml-formatter))
 * Verify that unit tests are passing locally (see
-  [Unit Testing](https://bpfman.io/main/developer-guide/testing/#unit-testing)):
+  [Unit Testing](./docs/developer-guide/testing.md#unit-testing)):
 
 ```console
 cd src/bpfman/
@@ -199,7 +199,7 @@ cargo test
 ```
 
 * Verify that integration tests are passing locally (see
-  [Basic Integration Tests](https://bpfman.io/main/developer-guide/testing/#basic-integration-tests)):
+  [Basic Integration Tests](./docs/developer-guide/testing.md#basic-integration-tests)):
 
 ```console
 cd src/bpfman/
