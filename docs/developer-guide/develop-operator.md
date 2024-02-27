@@ -98,28 +98,7 @@ Which will rebuild the bpfman-operator, bpfman-agent, and bpfman images and load
 
 ## Testing Locally
 
-To run all of the **Unit Tests** defined in the bpfman-operator controller code simply run `make test`.
-
-To run **Integration Tests** locally:
-
-1. Build the images locally with the `int-test` tag.
-
-```bash
-    BPFMAN_AGENT_IMG=quay.io/bpfman/bpfman-agent:int-test BPFMAN_IMG=quay.io/bpfman/bpfman:int-test BPFMAN_OPERATOR_IMG=quay.io/bpfman/bpfman-operator:int-test make build-images
-```
-
-2. Run the integration test suite.
-
-```bash
-    BPFMAN_AGENT_IMG=quay.io/bpfman/bpfman-agent:int-test BPFMAN_IMG=quay.io/bpfman/bpfman:int-test BPFMAN_OPERATOR_IMG=quay.io/bpfman/bpfman-operator:int-test make test-integration
-```
-
-Additionally the integration test can be configured with the following environment variables:
-
-* **KEEP_TEST_CLUSTER**: If set to `true` the test cluster will not be torn down after the integration test
-  suite completes.
-* **USE_EXISTING_KIND_CLUSTER**: If this is set to the name of the existing kind cluster the integration test
-  suite will use that cluster instead of creating a new one.
+See [Kubernetes Operator Tests](https://bpfman.io/main/developer-guide/testing/#kubernetes-operator-tests). 
 
 ## Project Layout
 
@@ -129,7 +108,6 @@ and the [standard golang project-layout](https://github.com/golang-standards/pro
 The following is a brief description of the main directories and their contents.
 
 **NOTE: Bolded directories contain auto-generated code**
-
 
 - **`/apis`**: Contains the K8s CRD api definitions(`*_types.go`) for each version along with the
   auto-generated register and deepcopy methods(`zz_generated.deepcopy.go` and `zz_generate_register.go`).

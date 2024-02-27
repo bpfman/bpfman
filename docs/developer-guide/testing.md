@@ -1,12 +1,17 @@
 # Testing
 
 This document describes the automated testing that is done for each pull request
-submitted to [bpfman](https://github.com/bpfman/bpfman).
+submitted to [bpfman](https://github.com/bpfman/bpfman), and also provides
+instructions for running them locally when doing development.
 
 ## Unit Testing
 
-Unit testing is executed as part of the `build` job  by running the `cargo test`
+Unit testing is executed as part of the `build` job by running the following
 command in the top-level bpfman directory.
+
+```
+ cargo test
+```
 
 ## Go Example Tests
 
@@ -79,6 +84,44 @@ However, as a word of caution, be aware that existing integration tests will
 start using the new programs immediately, so this should only be done if the
 modified program is backward compatible.
 
-## Kubernetes Integration Tests
+## Kubernetes Operator Tests
 
-Detailed decription TBD
+### Kubernetes Operator Unit Tests
+
+To run all of the unit tests defined in the bpfman-operator controller code run
+`make test` in the bpfman-operator directory.
+
+### Kubernetes Operator Integration Tests
+
+To run the Kubernetes Operator integration tests locally:
+
+1. Build the example test code images.
+
+```bash
+    # in bpfman/examples
+    make build-us-images
+    make build-bc-images
+```
+
+2. Build the bpfman images locally with the `int-test` tag.
+
+```bash
+    # in bpfman/bpfman-operator
+    BPFMAN_AGENT_IMG=quay.io/bpfman/bpfman-agent:int-test BPFMAN_IMG=quay.io/bpfman/bpfman:int-test BPFMAN_OPERATOR_IMG=quay.io/bpfman/bpfman-operator:int-test make build-images
+```
+
+3. Run the integration test suite.
+
+```bash
+    # in bpfman/bpfman-operator
+    BPFMAN_AGENT_IMG=quay.io/bpfman/bpfman-agent:int-test BPFMAN_IMG=quay.io/bpfman/bpfman:int-test BPFMAN_OPERATOR_IMG=quay.io/bpfman/bpfman-operator:int-test make test-integration
+```
+
+Additionally the integration test can be configured with the following environment variables:
+
+* **KEEP_TEST_CLUSTER**: If set to `true` the test cluster will not be torn down
+  after the integration test suite completes.
+* **USE_EXISTING_KIND_CLUSTER**: If this is set to the name of the existing kind
+  cluster the integration test suite will use that cluster instead of creating a
+  new one.
+
