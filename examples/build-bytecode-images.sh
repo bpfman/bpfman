@@ -23,3 +23,11 @@ docker build \
  --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
  -f ../Containerfile.bytecode \
  ./go-tracepoint-counter -t $IMAGE_TP_BC
+
+docker build \
+ --build-arg PROGRAM_NAME=kprobe_counter \
+ --build-arg BPF_FUNCTION_NAME=kprobe_counter \
+ --build-arg PROGRAM_TYPE=kprobe \
+ --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
+ -f ../Containerfile.bytecode \
+ ./go-kprobe-counter -t $IMAGE_KP_BC

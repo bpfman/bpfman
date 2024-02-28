@@ -44,10 +44,11 @@ const (
 	ProgTypeXdp ProgType = iota
 	ProgTypeTc
 	ProgTypeTracepoint
+	ProgTypeKprobe
 )
 
 func (s ProgType) String() string {
-	return [...]string{"xdp", "tc", "tracepoint"}[s]
+	return [...]string{"xdp", "tc", "tracepoint", "kprobe"}[s]
 }
 
 const (
