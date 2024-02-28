@@ -153,6 +153,11 @@ impl ListFilter {
                     }
                 }
             }
+
+            // If a selector was provided, skip over non-bpfman loaded programs.
+            if !self.metadata_selector.is_empty() {
+                return false;
+            }
         } else {
             // Program type filtering has to be done differently for bpfman owned
             // programs since XDP and TC programs have a type EXT when loaded by

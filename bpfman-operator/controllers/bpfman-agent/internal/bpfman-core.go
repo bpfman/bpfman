@@ -165,8 +165,10 @@ func GetBpfmanProgram(ctx context.Context, bpfmanClient gobpfman.BpfmanClient, u
 		return nil, err
 	}
 
-	if len(listResponse.Results) != 1 {
-		return nil, fmt.Errorf("multiple programs found for uuid: %+v ", uuid)
+	if len(listResponse.Results) == 0 {
+		return nil, fmt.Errorf("unable to find program for uuid: %+v ", uuid)
+	} else if len(listResponse.Results) != 1 {
+		return nil, fmt.Errorf("multiple programs found for uuid: %+v instances: %d", uuid, len(listResponse.Results))
 	}
 
 	return listResponse.Results[0], nil
