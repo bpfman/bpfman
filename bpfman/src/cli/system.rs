@@ -41,7 +41,7 @@ pub(crate) async fn execute_service(args: &ServiceArgs, config: &Config) -> anyh
 pub(crate) async fn initialize_bpfman() -> anyhow::Result<()> {
     if connected_to_journal() {
         // If bpfman is running as a service, log to journald.
-        JournalLog::default()
+        JournalLog::new()?
             .with_extra_fields(vec![("VERSION", env!("CARGO_PKG_VERSION"))])
             .install()
             .unwrap();

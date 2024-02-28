@@ -12,12 +12,11 @@ use sigstore::{
     },
     errors::SigstoreError::RegistryPullManifestError,
     registry::{Auth, ClientConfig, ClientProtocol, OciReference},
-    tuf::SigstoreRepository,
 };
 use tokio::task::spawn_blocking;
 
 pub struct CosignVerifier {
-    pub client: sigstore::cosign::Client,
+    pub client: sigstore::cosign::Client<'static>,
     pub allow_unsigned: bool,
 }
 
@@ -33,26 +32,21 @@ fn get_tuf_path() -> Option<PathBuf> {
 
 impl CosignVerifier {
     pub(crate) async fn new(allow_unsigned: bool) -> Result<Self, anyhow::Error> {
-        // We must use spawn_blocking here.
-        // See: https://docs.rs/sigstore/0.7.2/sigstore/oauth/openidflow/index.html
-        let repo: sigstore::errors::Result<SigstoreRepository> = spawn_blocking(|| {
-            info!("Starting Cosign Verifier, downloading data from Sigstore TUF repository");
-            sigstore::tuf::SigstoreRepository::fetch(get_tuf_path().as_deref())
-        })
-        .await
-        .map_err(|e| anyhow!("Error spawning blocking task inside of tokio: {}", e))?;
-
-        let repo: SigstoreRepository = repo?;
+        info!("Starting Cosign Verifier, downloading data from Sigstore TUF repository");
 
         let oci_config = ClientConfig {
             protocol: ClientProtocol::Https,
             ..Default::default()
         };
 
+        // The cosign is a static ref which needs to live for the rest of the program's
+        // lifecycle so therefore the repo ALSO needs to be static, requiring us
+        // to leak it here.
+        let repo: &dyn sigstore::tuf::Repository = Box::leak(fetch_sigstore_tuf_data().await?);
+
         let cosign_client = ClientBuilder::default()
             .with_oci_client_config(oci_config)
-            .with_rekor_pub_key(repo.rekor_pub_key())
-            .with_fulcio_certs(repo.fulcio_certs())
+            .with_trust_repository(repo)?
             .enable_registry_caching()
             .build()?;
 
@@ -111,4 +105,26 @@ impl CosignVerifier {
             },
         }
     }
+}
+
+async fn fetch_sigstore_tuf_data() -> anyhow::Result<Box<dyn sigstore::tuf::Repository>> {
+    Ok(Box::new(
+        spawn_blocking(|| {
+            let tuf =
+                sigstore::tuf::SigstoreRepository::new(get_tuf_path().as_deref()).map_err(|e| {
+                    anyhow!(
+                        "Error spawning blocking task to build sigstore repo inside of tokio: {}",
+                        e
+                    )
+                })?;
+
+            tuf.prefetch().map_err(|e| {
+                anyhow!(
+                    "Error spawning blocking task to prefetch tuf data inside of tokio: {}",
+                    e
+                )
+            })
+        })
+        .await??,
+    ))
 }
