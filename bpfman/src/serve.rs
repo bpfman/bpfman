@@ -23,7 +23,6 @@ use tonic::transport::Server;
 
 use crate::{
     bpf::BpfManager,
-    oci_utils::ImageManager,
     rpc::BpfmanLoader,
     storage::StorageManager,
     utils::{set_file_permissions, SOCK_MODE},
@@ -36,7 +35,6 @@ pub async fn serve(
     socket_path: &Path,
 ) -> anyhow::Result<()> {
     let (shutdown_tx, shutdown_rx1) = broadcast::channel(32);
-    let shutdown_rx2 = shutdown_tx.subscribe();
     let shutdown_rx3 = shutdown_tx.subscribe();
     let shutdown_rx4 = shutdown_tx.subscribe();
     let shutdown_handle = tokio::spawn(shutdown_handler(timeout, shutdown_tx));
@@ -47,18 +45,10 @@ pub async fn serve(
     let service = BpfmanServer::new(loader);
 
     let mut listeners: Vec<_> = Vec::new();
-    let (itx, irx) = mpsc::channel(32);
-
-    let allow_unsigned = config.signing.as_ref().map_or(true, |s| s.allow_unsigned);
-
-    let mut image_manager = ImageManager::new(allow_unsigned, irx).await?;
-    let image_manager_handle = tokio::spawn(async move {
-        image_manager.run(shutdown_rx2).await;
-    });
 
     // Rebuild bpf_manager before starting the unix server to ensure that it
     // doesn't race with the creation of a `ProgramData` object in rpc.rs.
-    let mut bpf_manager = BpfManager::new(config.clone(), Some(rx), Some(itx));
+    let mut bpf_manager = BpfManager::new(config.clone(), Some(rx));
     bpf_manager.rebuild_state().await?;
 
     let handle = serve_unix(socket_path, service.clone(), shutdown_rx1).await?;
@@ -83,9 +73,8 @@ pub async fn serve(
         let storage_manager = StorageManager::new(tx);
         let storage_manager_handle =
             tokio::spawn(async move { storage_manager.run(shutdown_rx3).await });
-        let (_, res_image, res_storage, _, _) = join!(
+        let (_, res_storage, _, _) = join!(
             join_listeners(listeners),
-            image_manager_handle,
             storage_manager_handle,
             bpf_manager.process_commands(shutdown_rx4),
             shutdown_handle
@@ -93,17 +82,13 @@ pub async fn serve(
         if let Some(e) = res_storage.err() {
             return Err(e.into());
         }
-        if let Some(e) = res_image.err() {
-            return Err(e.into());
-        }
     } else {
-        let (_, res_image, _, _) = join!(
+        let (_, _, res) = join!(
             join_listeners(listeners),
-            image_manager_handle,
             bpf_manager.process_commands(shutdown_rx4),
             shutdown_handle
         );
-        if let Some(e) = res_image.err() {
+        if let Some(e) = res.err() {
             return Err(e.into());
         }
     }

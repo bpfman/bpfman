@@ -3,14 +3,11 @@
 
 use base64::{engine::general_purpose, Engine};
 use bpfman_api::ImagePullPolicy;
-use log::info;
-use tokio::sync::oneshot;
 
 use crate::{
     bpf::BpfManager,
     cli::args::{ImageSubCommand, PullBytecodeArgs},
-    errors::BpfmanError,
-    oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
+    oci_utils::image_manager::BytecodeImage,
 };
 
 impl ImageSubCommand {
@@ -50,32 +47,7 @@ pub(crate) async fn execute_pull(
     args: &PullBytecodeArgs,
 ) -> anyhow::Result<()> {
     let image: BytecodeImage = args.try_into()?;
-    let (tx, rx) = oneshot::channel();
-    let res;
-    if let Some(image_manager) = bpf_manager.image_manager.clone() {
-        image_manager
-            .send(ImageManagerCommand::Pull {
-                image: image.image_url,
-                pull_policy: image.image_pull_policy.clone(),
-                username: image.username.clone(),
-                password: image.password.clone(),
-                resp: tx,
-            })
-            .await?;
-        res = match rx.await? {
-            Ok(_) => {
-                info!("Successfully pulled bytecode");
-                Ok(())
-            }
-            Err(e) => Err(BpfmanError::BpfBytecodeError(e)),
-        };
-    } else {
-        res = Err(BpfmanError::InternalError(
-            "ImageManager not set.".to_string(),
-        ));
-    }
-
-    res?;
+    bpf_manager.pull_bytecode(image).await?;
 
     Ok(())
 }
