@@ -38,7 +38,7 @@ pub(crate) async fn execute_service(args: &ServiceArgs, config: &Config) -> anyh
     Ok(())
 }
 
-pub(crate) async fn initialize_bpfman() -> anyhow::Result<()> {
+pub(crate) fn initialize_bpfman() -> anyhow::Result<()> {
     if connected_to_journal() {
         // If bpfman is running as a service, log to journald.
         JournalLog::new()?
@@ -85,9 +85,9 @@ pub(crate) async fn initialize_bpfman() -> anyhow::Result<()> {
 
     create_dir_all(CFGDIR_STATIC_PROGRAMS).context("unable to create static programs directory")?;
 
-    set_dir_permissions(CFGDIR, CFGDIR_MODE).await;
-    set_dir_permissions(RTDIR, RTDIR_MODE).await;
-    set_dir_permissions(STDIR, STDIR_MODE).await;
+    set_dir_permissions(CFGDIR, CFGDIR_MODE);
+    set_dir_permissions(RTDIR, RTDIR_MODE);
+    set_dir_permissions(STDIR, STDIR_MODE);
 
     Ok(())
 }

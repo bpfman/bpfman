@@ -24,7 +24,7 @@ use crate::{
 
 impl Commands {
     pub(crate) async fn execute(&self) -> Result<(), anyhow::Error> {
-        initialize_bpfman().await?;
+        initialize_bpfman()?;
 
         let config = open_config_file();
         let (shutdown_tx, shutdown_rx1) = broadcast::channel(32);

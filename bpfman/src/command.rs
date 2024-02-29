@@ -237,7 +237,7 @@ impl Location {
         image_manager: Sender<ImageManagerCommand>,
     ) -> Result<(Vec<u8>, String), BpfmanError> {
         match self {
-            Location::File(l) => Ok((crate::utils::read(l).await?, "".to_owned())),
+            Location::File(l) => Ok((crate::utils::read(l)?, "".to_owned())),
             Location::Image(l) => {
                 let (tx, rx) = oneshot::channel();
                 image_manager

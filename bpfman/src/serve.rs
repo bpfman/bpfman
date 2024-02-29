@@ -207,7 +207,7 @@ async fn std_unix_stream(path: &Path) -> anyhow::Result<UnixListenerStream> {
     let uds = UnixListener::bind(path)?;
     let stream = UnixListenerStream::new(uds);
     // Always set the file permissions of our listening socket.
-    set_file_permissions(path, SOCK_MODE).await;
+    set_file_permissions(path, SOCK_MODE);
 
     info!("Using default Unix socket");
     Ok(stream)
