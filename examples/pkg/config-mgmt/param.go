@@ -45,10 +45,11 @@ const (
 	ProgTypeTc
 	ProgTypeTracepoint
 	ProgTypeKprobe
+	ProgTypeUprobe
 )
 
 func (s ProgType) String() string {
-	return [...]string{"xdp", "tc", "tracepoint", "kprobe"}[s]
+	return [...]string{"xdp", "tc", "tracepoint", "kprobe", "uprobe"}[s]
 }
 
 const (

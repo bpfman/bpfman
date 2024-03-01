@@ -1,0 +1,20 @@
+FROM golang:1.19 as go-target-build
+
+RUN apt-get update && apt-get install -y \
+    clang \
+    gcc-multilib \
+    libbpf-dev
+
+WORKDIR /usr/src/bpfman/
+COPY ./ /usr/src/bpfman/
+
+WORKDIR /usr/src/bpfman/examples/go-target
+
+# Compile go-target
+RUN go build
+
+FROM registry.fedoraproject.org/fedora-minimal:latest
+
+COPY --from=go-target-build  /usr/src/bpfman/examples/go-target/go-target .
+
+ENTRYPOINT ["./go-target", "--crd"]
