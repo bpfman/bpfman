@@ -15,4 +15,4 @@ spec:
   bytecode:
     image:
       url: quay.io/bpfman-bytecode/go-kprobe-counter:latest
-      imagepullpolicy: Always
+      imagepullpolicy: IfNotPresent
