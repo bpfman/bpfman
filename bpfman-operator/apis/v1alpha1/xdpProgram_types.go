@@ -31,6 +31,7 @@ import (
 // XdpProgram is the Schema for the XdpPrograms API
 // +kubebuilder:printcolumn:name="BpfFunctionName",type=string,JSONPath=`.spec.bpffunctionname`
 // +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[0].reason`
 // +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`,priority=1
 // +kubebuilder:printcolumn:name="InterfaceSelector",type=string,JSONPath=`.spec.interfaceselector`,priority=1
 // +kubebuilder:printcolumn:name="ProceedOn",type=string,JSONPath=`.spec.proceedon`,priority=1

@@ -22,6 +22,9 @@ spec:
     - jsonPath: .spec.nodeselector
       name: NodeSelector
       type: string
+    - jsonPath: .status.conditions[0].reason
+      name: Status
+      type: string
     - jsonPath: .spec.priority
       name: Priority
       priority: 1

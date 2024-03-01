@@ -31,6 +31,7 @@ import (
 // TcProgram is the Schema for the TcProgram API
 // +kubebuilder:printcolumn:name="BpfFunctionName",type=string,JSONPath=`.spec.bpffunctionname`
 // +kubebuilder:printcolumn:name="NodeSelector",type=string,JSONPath=`.spec.nodeselector`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[0].reason`
 // +kubebuilder:printcolumn:name="Priority",type=string,JSONPath=`.spec.priority`,priority=1
 // +kubebuilder:printcolumn:name="Direction",type=string,JSONPath=`.spec.direction`,priority=1
 // +kubebuilder:printcolumn:name="InterfaceSelector",type=string,JSONPath=`.spec.interfaceselector`,priority=1
