@@ -1,7 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-pub(crate) mod args;
+use anyhow::anyhow;
+use args::Commands;
+use bpfman::{
+    utils::{initialize_bpfman, open_config_file},
+    BpfManager,
+};
+use clap::Parser;
+use get::execute_get;
+use list::execute_list;
+use unload::execute_unload;
+
+mod args;
 mod get;
 mod image;
 mod list;
@@ -10,13 +21,13 @@ mod system;
 mod table;
 mod unload;
 
-use anyhow::anyhow;
-use args::Commands;
-use get::execute_get;
-use list::execute_list;
-use unload::execute_unload;
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let cli = crate::args::Cli::parse();
+    initialize_bpfman()?;
 
-use crate::{bpf::BpfManager, utils::open_config_file};
+    cli.command.execute().await
+}
 
 impl Commands {
     pub(crate) async fn execute(&self) -> Result<(), anyhow::Error> {

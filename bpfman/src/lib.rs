@@ -5,8 +5,11 @@ use std::{
     collections::HashMap,
     fs::{create_dir_all, remove_dir_all},
     path::{Path, PathBuf},
+    thread,
+    time::Duration,
 };
 
+use anyhow::bail;
 use aya::{
     programs::{
         fentry::FEntryLink, fexit::FExitLink, kprobe::KProbeLink, links::FdLink, loaded_programs,
@@ -20,7 +23,9 @@ use bpfman_api::{
     ProbeType::{self, *},
     ProgramType,
 };
+use lazy_static::lazy_static;
 use log::{debug, error, info, warn};
+use sled::{Config as SledConfig, Db};
 use tokio::{
     select,
     sync::{broadcast, mpsc::Receiver},
@@ -36,25 +41,71 @@ use crate::{
         Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher,
         TC_DISPATCHER_PREFIX, XDP_DISPATCHER_PREFIX,
     },
-    oci_utils::{image_manager::BytecodeImage, ImageManager},
+    oci_utils::image_manager::{BytecodeImage, ImageManager},
     utils::{
         bytes_to_string, bytes_to_u32, get_error_msg_from_stderr, get_ifindex, open_config_file,
         set_dir_permissions, should_map_be_pinned, sled_insert,
     },
-    ROOT_DB,
 };
+
+pub mod command;
+mod dispatcher_config;
+pub mod errors;
+mod multiprog;
+pub mod oci_utils;
+mod rpc;
+pub mod serve;
+mod static_program;
+mod storage;
+pub mod utils;
+
 const MAPS_MODE: u32 = 0o0660;
 const MAP_PREFIX: &str = "map_";
 const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
+pub const BPFMAN_ENV_LOG_LEVEL: &str = "RUST_LOG";
 
-pub(crate) struct BpfManager {
+#[cfg(not(test))]
+fn get_db_config() -> SledConfig {
+    SledConfig::default().path(bpfman_api::util::directories::STDIR_DB)
+}
+
+#[cfg(test)]
+fn get_db_config() -> SledConfig {
+    SledConfig::default().temporary(true)
+}
+
+fn init_database(sled_config: SledConfig) -> anyhow::Result<Db> {
+    let config = open_config_file();
+    for _ in 1..config.database.as_ref().map_or(4, |d| d.max_retries) {
+        if let Ok(db) = sled_config.open() {
+            info!("Successfully opened database");
+            return Ok(db);
+        } else {
+            info!(
+                "Failed to open database, retrying after {} milliseconds",
+                config.database.clone().map_or(500, |v| v.millisec_delay)
+            );
+            thread::sleep(Duration::from_millis(
+                config.database.as_ref().map_or(500, |d| d.millisec_delay),
+            ));
+        }
+    }
+    bail!("Timed out");
+}
+
+lazy_static! {
+    pub static ref ROOT_DB: Db =
+        init_database(get_db_config()).expect("Unable to open root database");
+}
+
+pub struct BpfManager {
     config: Config,
     commands: Option<Receiver<Command>>,
-    pub(crate) image_manager: Option<ImageManager>,
+    pub image_manager: Option<ImageManager>,
 }
 
 impl BpfManager {
-    pub(crate) fn new(config: Config, commands: Option<Receiver<Command>>) -> Self {
+    pub fn new(config: Config, commands: Option<Receiver<Command>>) -> Self {
         Self {
             config,
             commands,
@@ -282,10 +333,7 @@ impl BpfManager {
         Ok(())
     }
 
-    pub(crate) async fn add_program(
-        &mut self,
-        mut program: Program,
-    ) -> Result<Program, BpfmanError> {
+    pub async fn add_program(&mut self, mut program: Program) -> Result<Program, BpfmanError> {
         self.init_image_manager().await;
 
         let map_owner_id = program.get_data().get_map_owner_id()?;
@@ -745,7 +793,7 @@ impl BpfManager {
         res
     }
 
-    pub(crate) async fn remove_program(&mut self, id: u32) -> Result<(), BpfmanError> {
+    pub async fn remove_program(&mut self, id: u32) -> Result<(), BpfmanError> {
         info!("Removing program with id: {id}");
         let prog = match self.get(&id) {
             Some(p) => p,
@@ -896,7 +944,7 @@ impl BpfManager {
         Ok(())
     }
 
-    pub(crate) fn list_programs(&mut self, filter: ListFilter) -> Vec<Program> {
+    pub fn list_programs(&mut self, filter: ListFilter) -> Vec<Program> {
         debug!("BpfManager::list_programs()");
 
         // Get an iterator for the bpfman load programs, a hash map indexed by program id.
@@ -930,7 +978,7 @@ impl BpfManager {
             .collect()
     }
 
-    pub(crate) fn get_program(&mut self, id: u32) -> Result<Program, BpfmanError> {
+    pub fn get_program(&mut self, id: u32) -> Result<Program, BpfmanError> {
         debug!("Getting program with id: {id}");
         // If the program was loaded by bpfman, then use it.
         // Otherwise, call Aya to get ALL the loaded eBPF programs, and convert the data
@@ -961,7 +1009,7 @@ impl BpfManager {
         }
     }
 
-    pub(crate) async fn pull_bytecode(&mut self, image: BytecodeImage) -> anyhow::Result<()> {
+    pub async fn pull_bytecode(&mut self, image: BytecodeImage) -> anyhow::Result<()> {
         self.init_image_manager().await;
 
         self.image_manager

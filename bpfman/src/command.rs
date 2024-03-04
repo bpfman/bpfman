@@ -29,7 +29,7 @@ use tokio::sync::oneshot;
 use crate::{
     errors::BpfmanError,
     multiprog::{DispatcherId, DispatcherInfo},
-    oci_utils::{image_manager::BytecodeImage, ImageManager},
+    oci_utils::image_manager::{BytecodeImage, ImageManager},
     utils::{
         bytes_to_bool, bytes_to_i32, bytes_to_string, bytes_to_u32, bytes_to_u64, bytes_to_usize,
         sled_get, sled_get_option, sled_insert,
@@ -107,7 +107,7 @@ type Responder<T> = oneshot::Sender<T>;
 
 /// Multiple different commands are multiplexed over a single channel.
 #[derive(Debug)]
-pub(crate) enum Command {
+pub enum Command {
     /// Load a program
     Load(LoadArgs),
     Unload(UnloadArgs),
@@ -120,14 +120,14 @@ pub(crate) enum Command {
 }
 
 #[derive(Debug, Clone, Default)]
-pub(crate) struct ListFilter {
+pub struct ListFilter {
     pub(crate) program_type: Option<u32>,
     pub(crate) metadata_selector: HashMap<String, String>,
     pub(crate) bpfman_programs_only: bool,
 }
 
 impl ListFilter {
-    pub(crate) fn new(
+    pub fn new(
         program_type: Option<u32>,
         metadata_selector: HashMap<String, String>,
         bpfman_programs_only: bool,
@@ -197,13 +197,13 @@ impl ListFilter {
 }
 
 #[derive(Debug)]
-pub(crate) struct LoadArgs {
+pub struct LoadArgs {
     pub(crate) program: Program,
     pub(crate) responder: Responder<Result<Program, BpfmanError>>,
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum Program {
+pub enum Program {
     Xdp(XdpProgram),
     Tc(TcProgram),
     Tracepoint(TracepointProgram),
@@ -215,25 +215,25 @@ pub(crate) enum Program {
 }
 
 #[derive(Debug)]
-pub(crate) struct UnloadArgs {
+pub struct UnloadArgs {
     pub(crate) id: u32,
     pub(crate) responder: Responder<Result<(), BpfmanError>>,
 }
 
 #[derive(Debug)]
-pub(crate) struct GetArgs {
+pub struct GetArgs {
     pub(crate) id: u32,
     pub(crate) responder: Responder<Result<Program, BpfmanError>>,
 }
 
 #[derive(Debug)]
-pub(crate) struct PullBytecodeArgs {
+pub struct PullBytecodeArgs {
     pub(crate) image: BytecodeImage,
     pub(crate) responder: Responder<Result<(), BpfmanError>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub(crate) enum Location {
+pub enum Location {
     Image(BytecodeImage),
     File(String),
 }
@@ -263,7 +263,7 @@ impl Location {
 }
 
 #[derive(Debug, Serialize, Hash, Deserialize, Eq, PartialEq, Copy, Clone)]
-pub(crate) enum Direction {
+pub enum Direction {
     Ingress = 1,
     Egress = 2,
 }
@@ -419,17 +419,17 @@ impl TryFrom<&Program> for V1KernelProgramInfo {
 /// ProgramInfo stores information about bpf programs that are loaded and managed
 /// by bpfman.
 #[derive(Debug, Clone)]
-pub(crate) struct ProgramData {
+pub struct ProgramData {
     // Prior to load this will be a temporary Tree with a random ID, following
     // load it will be replaced with the main program database tree.
     db_tree: sled::Tree,
 }
 
 impl ProgramData {
-    pub(crate) fn new(tree: sled::Tree) -> Self {
+    pub fn new(tree: sled::Tree) -> Self {
         Self { db_tree: tree }
     }
-    pub(crate) fn new_pre_load(
+    pub fn new_pre_load(
         location: Location,
         name: String,
         metadata: HashMap<String, String>,
@@ -950,12 +950,12 @@ impl ProgramData {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct XdpProgram {
+pub struct XdpProgram {
     data: ProgramData,
 }
 
 impl XdpProgram {
-    pub(crate) fn new(
+    pub fn new(
         data: ProgramData,
         priority: i32,
         iface: String,
@@ -1060,12 +1060,12 @@ impl XdpProgram {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct TcProgram {
+pub struct TcProgram {
     pub(crate) data: ProgramData,
 }
 
 impl TcProgram {
-    pub(crate) fn new(
+    pub fn new(
         data: ProgramData,
         priority: i32,
         iface: String,
@@ -1182,12 +1182,12 @@ impl TcProgram {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct TracepointProgram {
+pub struct TracepointProgram {
     pub(crate) data: ProgramData,
 }
 
 impl TracepointProgram {
-    pub(crate) fn new(data: ProgramData, tracepoint: String) -> Result<Self, BpfmanError> {
+    pub fn new(data: ProgramData, tracepoint: String) -> Result<Self, BpfmanError> {
         let mut tp_prog = Self { data };
         tp_prog.set_tracepoint(tracepoint)?;
         tp_prog.get_data_mut().set_kind(ProgramType::Tracepoint)?;
@@ -1213,12 +1213,12 @@ impl TracepointProgram {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct KprobeProgram {
+pub struct KprobeProgram {
     pub(crate) data: ProgramData,
 }
 
 impl KprobeProgram {
-    pub(crate) fn new(
+    pub fn new(
         data: ProgramData,
         fn_name: String,
         offset: u64,
@@ -1288,12 +1288,12 @@ impl KprobeProgram {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct UprobeProgram {
+pub struct UprobeProgram {
     pub(crate) data: ProgramData,
 }
 
 impl UprobeProgram {
-    pub(crate) fn new(
+    pub fn new(
         data: ProgramData,
         fn_name: Option<String>,
         offset: u64,
@@ -1389,12 +1389,12 @@ impl UprobeProgram {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct FentryProgram {
+pub struct FentryProgram {
     pub(crate) data: ProgramData,
 }
 
 impl FentryProgram {
-    pub(crate) fn new(data: ProgramData, fn_name: String) -> Result<Self, BpfmanError> {
+    pub fn new(data: ProgramData, fn_name: String) -> Result<Self, BpfmanError> {
         let mut fentry_prog = Self { data };
         fentry_prog.set_fn_name(fn_name)?;
         fentry_prog.get_data_mut().set_kind(ProgramType::Tracing)?;
@@ -1420,12 +1420,12 @@ impl FentryProgram {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct FexitProgram {
+pub struct FexitProgram {
     pub(crate) data: ProgramData,
 }
 
 impl FexitProgram {
-    pub(crate) fn new(data: ProgramData, fn_name: String) -> Result<Self, BpfmanError> {
+    pub fn new(data: ProgramData, fn_name: String) -> Result<Self, BpfmanError> {
         let mut fexit_prog = Self { data };
         fexit_prog.set_fn_name(fn_name)?;
         fexit_prog.get_data_mut().set_kind(ProgramType::Tracing)?;
@@ -1519,7 +1519,7 @@ impl Program {
         }
     }
 
-    pub(crate) fn delete(&self) -> Result<(), anyhow::Error> {
+    pub fn delete(&self) -> Result<(), anyhow::Error> {
         let id = self.get_data().get_id()?;
         ROOT_DB.drop_tree(self.get_data().db_tree.name())?;
 

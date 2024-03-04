@@ -36,11 +36,11 @@ pub struct ContainerImageMetadata {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub(crate) struct BytecodeImage {
-    pub(crate) image_url: String,
-    pub(crate) image_pull_policy: ImagePullPolicy,
-    pub(crate) username: Option<String>,
-    pub(crate) password: Option<String>,
+pub struct BytecodeImage {
+    pub image_url: String,
+    pub image_pull_policy: ImagePullPolicy,
+    pub username: Option<String>,
+    pub password: Option<String>,
 }
 
 impl BytecodeImage {
@@ -93,13 +93,13 @@ impl From<bpfman_api::v1::BytecodeImage> for BytecodeImage {
     }
 }
 
-pub(crate) struct ImageManager {
+pub struct ImageManager {
     client: Client,
     cosign_verifier: CosignVerifier,
 }
 
 impl ImageManager {
-    pub(crate) async fn new(allow_unsigned: bool) -> Result<Self, anyhow::Error> {
+    pub async fn new(allow_unsigned: bool) -> Result<Self, anyhow::Error> {
         let cosign_verifier = CosignVerifier::new(allow_unsigned).await?;
         let config = ClientConfig {
             protocol: ClientProtocol::Https,

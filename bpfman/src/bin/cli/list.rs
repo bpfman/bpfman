@@ -2,13 +2,13 @@
 // Copyright Authors of bpfman
 
 use anyhow::bail;
+use bpfman::{
+    command::{ListFilter, Program},
+    BpfManager,
+};
 use bpfman_api::v1::list_response::ListResult;
 
-use crate::{
-    bpf::BpfManager,
-    cli::{args::ListArgs, table::ProgTable},
-    command::{ListFilter, Program},
-};
+use crate::{args::ListArgs, table::ProgTable};
 
 pub(crate) async fn execute_list(
     bpf_manager: &mut BpfManager,

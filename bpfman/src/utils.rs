@@ -73,7 +73,7 @@ pub(crate) fn set_dir_permissions(directory: &str, mode: u32) {
     }
 }
 
-pub(crate) fn create_bpffs(directory: &str) -> anyhow::Result<()> {
+pub fn create_bpffs(directory: &str) -> anyhow::Result<()> {
     debug!("Creating bpffs at {directory}");
     let flags = MsFlags::MS_NOSUID | MsFlags::MS_NODEV | MsFlags::MS_NOEXEC | MsFlags::MS_RELATIME;
     mount::<str, str, str, str>(None, directory, Some("bpf"), flags, None)
@@ -210,7 +210,7 @@ pub(crate) fn get_error_msg_from_stderr(stderr: &[u8]) -> String {
         .to_string()
 }
 
-pub(crate) fn open_config_file() -> Config {
+pub fn open_config_file() -> Config {
     if let Ok(c) = std::fs::read_to_string(CFGPATH_BPFMAN_CONFIG) {
         c.parse().unwrap_or_else(|_| {
             warn!("Unable to parse config file, using defaults");
@@ -246,7 +246,7 @@ fn is_bpffs_mounted() -> Result<bool, anyhow::Error> {
     Ok(false)
 }
 
-pub(crate) fn initialize_bpfman() -> anyhow::Result<()> {
+pub fn initialize_bpfman() -> anyhow::Result<()> {
     if connected_to_journal() {
         // If bpfman is running as a service, log to journald.
         JournalLog::new()?

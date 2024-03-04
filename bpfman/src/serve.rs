@@ -22,10 +22,10 @@ use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::Server;
 
 use crate::{
-    bpf::BpfManager,
     rpc::BpfmanLoader,
     storage::StorageManager,
     utils::{set_file_permissions, SOCK_MODE},
+    BpfManager,
 };
 
 pub async fn serve(

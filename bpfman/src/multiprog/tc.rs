@@ -17,12 +17,13 @@ use log::debug;
 use netlink_packet_route::tc::TcAttribute;
 
 use crate::{
-    bpf::{calc_map_pin_path, create_map_pin_path},
+    calc_map_pin_path,
     command::{
         Direction,
         Direction::{Egress, Ingress},
         Program, TcProgram,
     },
+    create_map_pin_path,
     dispatcher_config::TcDispatcherConfig,
     errors::BpfmanError,
     multiprog::{Dispatcher, TC_DISPATCHER_PREFIX},
@@ -157,17 +158,17 @@ impl TcDispatcher {
         self.set_program_name(&bpf_function_name)?;
 
         self.attach_extensions(&mut extensions)?;
-        self.attach(old_dispatcher)?;
+        self.attach(old_dispatcher).await?;
         Ok(())
     }
 
     /// has_qdisc returns true if the qdisc_name is found on the if_index.
-    fn has_qdisc(qdisc_name: String, if_index: i32) -> Result<bool, anyhow::Error> {
+    async fn has_qdisc(qdisc_name: String, if_index: i32) -> Result<bool, anyhow::Error> {
         let (connection, handle, _) = rtnetlink::new_connection().unwrap();
         tokio::spawn(connection);
 
         let mut qdiscs = handle.qdisc().get().execute();
-        while let Some(qdisc_message) = futures::executor::block_on(qdiscs.try_next())? {
+        while let Some(qdisc_message) = qdiscs.try_next().await? {
             if qdisc_message.header.index == if_index
                 && qdisc_message
                     .attributes
@@ -176,10 +177,11 @@ impl TcDispatcher {
                 return Ok(true);
             }
         }
+
         Ok(false)
     }
 
-    fn attach(&mut self, old_dispatcher: Option<Dispatcher>) -> Result<(), BpfmanError> {
+    async fn attach(&mut self, old_dispatcher: Option<Dispatcher>) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let iface = self.get_ifname()?;
         let priority = self.get_priority()?;
@@ -197,14 +199,14 @@ impl TcDispatcher {
         // qdisc, we return an error. If the qdisc is a clsact qdisc, we do nothing. Otherwise, we add a clsact qdisc.
 
         // no need to add a new clsact qdisc if one already exists.
-        if TcDispatcher::has_qdisc("clsact".to_string(), if_index as i32)? {
+        if TcDispatcher::has_qdisc("clsact".to_string(), if_index as i32).await? {
             debug!(
                 "clsact qdisc found for if_index {}, no need to add a new clsact qdisc",
                 if_index
             );
 
         // if ingress qdisc exists, return error.
-        } else if TcDispatcher::has_qdisc("ingress".to_string(), if_index as i32)? {
+        } else if TcDispatcher::has_qdisc("ingress".to_string(), if_index as i32).await? {
             debug!("ingress qdisc found for if_index {}", if_index);
             return Err(BpfmanError::InvalidAttach(format!(
                 "Ingress qdisc found for if_index {}",

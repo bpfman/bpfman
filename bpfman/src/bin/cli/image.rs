@@ -2,13 +2,10 @@
 // Copyright Authors of bpfman
 
 use base64::{engine::general_purpose, Engine};
+use bpfman::{oci_utils::image_manager::BytecodeImage, BpfManager};
 use bpfman_api::ImagePullPolicy;
 
-use crate::{
-    bpf::BpfManager,
-    cli::args::{ImageSubCommand, PullBytecodeArgs},
-    oci_utils::image_manager::BytecodeImage,
-};
+use crate::args::{ImageSubCommand, PullBytecodeArgs};
 
 impl ImageSubCommand {
     pub(crate) async fn execute(&self, bpf_manager: &mut BpfManager) -> anyhow::Result<()> {

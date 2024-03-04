@@ -1,15 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
+use bpfman::{command::Program, errors::BpfmanError, BpfManager};
 use bpfman_api::v1::{KernelProgramInfo, ProgramInfo};
 use log::warn;
 
-use crate::{
-    bpf::BpfManager,
-    cli::{args::GetArgs, table::ProgTable},
-    command::Program,
-    errors::BpfmanError,
-};
+use crate::{args::GetArgs, table::ProgTable};
 
 pub(crate) async fn execute_get(
     bpf_manager: &mut BpfManager,

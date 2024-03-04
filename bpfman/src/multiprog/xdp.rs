@@ -14,12 +14,13 @@ use bpfman_api::{config::XdpMode, util::directories::*, ImagePullPolicy};
 use log::debug;
 
 use crate::{
-    bpf::{calc_map_pin_path, create_map_pin_path},
+    calc_map_pin_path,
     command::{Program, XdpProgram},
+    create_map_pin_path,
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfmanError,
     multiprog::{Dispatcher, XDP_DISPATCHER_PREFIX},
-    oci_utils::{image_manager::BytecodeImage, ImageManager},
+    oci_utils::image_manager::{BytecodeImage, ImageManager},
     utils::{
         bytes_to_string, bytes_to_u32, bytes_to_usize, should_map_be_pinned, sled_get, sled_insert,
     },

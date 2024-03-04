@@ -4,18 +4,18 @@
 use std::collections::HashMap;
 
 use anyhow::bail;
+use bpfman::{
+    command::{
+        FentryProgram, FexitProgram, KprobeProgram, Location, Program, ProgramData, TcProgram,
+        TracepointProgram, UprobeProgram, XdpProgram,
+    },
+    BpfManager,
+};
 use bpfman_api::{TcProceedOn, XdpProceedOn};
 
 use crate::{
-    bpf::BpfManager,
-    cli::{
-        args::{GlobalArg, LoadCommands, LoadFileArgs, LoadImageArgs, LoadSubcommand},
-        table::ProgTable,
-    },
-    command::{
-        FentryProgram, FexitProgram, KprobeProgram, Program, ProgramData, TcProgram,
-        TracepointProgram, UprobeProgram, XdpProgram,
-    },
+    args::{GlobalArg, LoadCommands, LoadFileArgs, LoadImageArgs, LoadSubcommand},
+    table::ProgTable,
 };
 
 impl LoadSubcommand {
@@ -31,7 +31,7 @@ pub(crate) async fn execute_load_file(
     bpf_manager: &mut BpfManager,
     args: &LoadFileArgs,
 ) -> anyhow::Result<()> {
-    let bytecode_source = crate::command::Location::File(args.path.clone());
+    let bytecode_source = Location::File(args.path.clone());
 
     let data = ProgramData::new_pre_load(
         bytecode_source,
@@ -59,7 +59,7 @@ pub(crate) async fn execute_load_image(
     bpf_manager: &mut BpfManager,
     args: &LoadImageArgs,
 ) -> anyhow::Result<()> {
-    let bytecode_source = crate::command::Location::Image((&args.pull_args).try_into()?);
+    let bytecode_source = Location::Image((&args.pull_args).try_into()?);
 
     let data = ProgramData::new_pre_load(
         bytecode_source,

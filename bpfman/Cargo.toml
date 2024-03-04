@@ -6,9 +6,13 @@ name = "bpfman"
 repository.workspace = true
 version.workspace = true
 
+[lib]
+name = "bpfman"
+path = "src/lib.rs"
+
 [[bin]]
 name = "bpfman"
-path = "src/main.rs"
+path = "src/bin/cli/main.rs"
 
 [dependencies]
 anyhow = { workspace = true, features = ["std"] }
