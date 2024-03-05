@@ -206,19 +206,7 @@ cd src/bpfman/
 cargo xtask integration-test
 ```
 
-* If developing the bpfman-operator, verify that bpfman-operator unit tests
+* If developing the bpfman-operator, verify that bpfman-operator unit and integration tests
   are passing locally:
-
-```console
-cd src/bpfman/bpfman-operator/
-make test
-```
-
-* If developing the bpfman-operator, verify that bpfman-operator integration tests
-  are passing locally (see
-  [Kubernetes Integration Tests](https://bpfman.io/main/developer-guide/testing/#kubernetes-integration-tests)):
-
-```console
-cd src/bpfman/bpfman-operator/
-make test-integration
-```
+  
+  See [Kubernetes Operator Tests](https://bpfman.io/main/developer-guide/testing/#kubernetes-operator-tests).
