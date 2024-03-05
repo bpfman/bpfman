@@ -1776,25 +1776,7 @@ by default local image builds will be used for the kind deployment.</p>
 </code></pre></div>
 <p>Which will rebuild the bpfman-operator, bpfman-agent, and bpfman images and load them into the kind cluster.</p>
 <h2 id="testing-locally">Testing Locally</h2>
-<p>To run all of the <strong>Unit Tests</strong> defined in the bpfman-operator controller code simply run <code>make test</code>.</p>
-<p>To run <strong>Integration Tests</strong> locally:</p>
-<ol>
-<li>Build the images locally with the <code>int-test</code> tag.</li>
-</ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="w">    </span><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-agent:int-test<span class="w"> </span><span class="nv">BPFMAN_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman:int-test<span class="w"> </span><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-operator:int-test<span class="w"> </span>make<span class="w"> </span>build-images
-</code></pre></div>
-<ol>
-<li>Run the integration test suite.</li>
-</ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="w">    </span><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-agent:int-test<span class="w"> </span><span class="nv">BPFMAN_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman:int-test<span class="w"> </span><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-operator:int-test<span class="w"> </span>make<span class="w"> </span>test-integration
-</code></pre></div>
-<p>Additionally the integration test can be configured with the following environment variables:</p>
-<ul>
-<li><strong>KEEP_TEST_CLUSTER</strong>: If set to <code>true</code> the test cluster will not be torn down after the integration test
-  suite completes.</li>
-<li><strong>USE_EXISTING_KIND_CLUSTER</strong>: If this is set to the name of the existing kind cluster the integration test
-  suite will use that cluster instead of creating a new one.</li>
-</ul>
+<p>See <a href="https://bpfman.io/main/developer-guide/testing/#kubernetes-operator-tests">Kubernetes Operator Tests</a>. </p>
 <h2 id="project-layout">Project Layout</h2>
 <p>The bpfman-operator project layout is guided by the recommendations from both the
 <a href="https://sdk.operatorframework.io/docs/building-operators/golang/tutorial/#project-layout">operator-sdk framework</a>
@@ -1876,60 +1858,60 @@ The container images need to be rebuilt because the <code>bpfman-daemon</code> i
 and the associated yaml files are copied into the <code>bpfman-operator</code> image.</p>
 <p>If rebuild the container images is not desirable, then the ports can be changed on the fly.
 For the <code>bpfman-operator</code>, the ports can be updated by editing the <code>bpfman-operator</code> Deployment.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">kubectl edit deployment -n bpfman bpfman-operator</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="go">apiVersion: apps/v1</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="go">kind: Deployment</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="go">:</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="go">spec:</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="go">  template:</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="go">  :</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="go">  spec:</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="go">    containers:</span>
-<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="go">    -args:</span>
-<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="go">      - --secure-listen-address=0.0.0.0:8443</span>
-<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="go">      - --upstream=http://127.0.0.1:8174/        &lt;-- UPDATE</span>
-<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="go">      - --logtostderr=true</span>
-<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="go">      - --v=0</span>
-<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="go">      name: kube-rbac-proxy</span>
-<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="go">      :</span>
-<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="go">    - args:</span>
-<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="go">      - --health-probe-bind-address=:8175        &lt;-- UPDATE</span>
-<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="go">      - --metrics-bind-address=127.0.0.1:8174    &lt;-- UPDATE</span>
-<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="go">      - --leader-elect</span>
-<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a><span class="go">      :</span>
-<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a><span class="go">      livenessProbe:</span>
-<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a><span class="go">          failureThreshold: 3</span>
-<a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a><span class="go">          httpGet:</span>
-<a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a><span class="go">            path: /healthz</span>
-<a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a><span class="go">            port: 8175                           &lt;-- UPDATE</span>
-<a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a><span class="go">            scheme: HTTP</span>
-<a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a><span class="go">            :</span>
-<a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a><span class="go">      name: bpfman-operator</span>
-<a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a><span class="go">      readinessProbe:</span>
-<a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a><span class="go">          failureThreshold: 3</span>
-<a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a><span class="go">          httpGet:</span>
-<a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a><span class="go">            path: /readyz</span>
-<a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a><span class="go">            port: 8175                           &lt;-- UPDATE</span>
-<a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a><span class="go">            scheme: HTTP</span>
-<a id="__codelineno-6-37" name="__codelineno-6-37" href="#__codelineno-6-37"></a><span class="go">      :</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">kubectl edit deployment -n bpfman bpfman-operator</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">apiVersion: apps/v1</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go">kind: Deployment</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="go">:</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="go">spec:</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="go">  template:</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="go">  :</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="go">  spec:</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="go">    containers:</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="go">    -args:</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="go">      - --secure-listen-address=0.0.0.0:8443</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="go">      - --upstream=http://127.0.0.1:8174/        &lt;-- UPDATE</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="go">      - --logtostderr=true</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="go">      - --v=0</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="go">      name: kube-rbac-proxy</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="go">      :</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="go">    - args:</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="go">      - --health-probe-bind-address=:8175        &lt;-- UPDATE</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="go">      - --metrics-bind-address=127.0.0.1:8174    &lt;-- UPDATE</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="go">      - --leader-elect</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="go">      :</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="go">      livenessProbe:</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="go">          failureThreshold: 3</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="go">          httpGet:</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="go">            path: /healthz</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="go">            port: 8175                           &lt;-- UPDATE</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="go">            scheme: HTTP</span>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="go">            :</span>
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="go">      name: bpfman-operator</span>
+<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="go">      readinessProbe:</span>
+<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="go">          failureThreshold: 3</span>
+<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="go">          httpGet:</span>
+<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="go">            path: /readyz</span>
+<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="go">            port: 8175                           &lt;-- UPDATE</span>
+<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="go">            scheme: HTTP</span>
+<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a><span class="go">      :</span>
 </code></pre></div>
 <p>For the <code>bpfman-daemon</code>, the ports could be updated by editing the <code>bpfman-daemon</code> DaemonSet.
 However, if <code>bpfman-daemon</code> is restarted for any reason by the <code>bpfman-operator</code>, the changes
 will be lost. So it is recommended to update the ports for the <code>bpfman-daemon</code> via the bpfman
 <code>bpfman-config</code> ConfigMap.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">kubectl edit configmap -n bpfman bpfman-config</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">apiVersion: v1</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="go">data:</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go">  bpfman.agent.healthprobe.addr: :8175                    &lt;-- UPDATE</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="go">  bpfman.agent.image: quay.io/bpfman/bpfman-agent:latest</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="go">  bpfman.agent.log.level: info</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="go">  bpfman.agent.metric.addr: 127.0.0.1:8174                &lt;-- UPDATE</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="go">  bpfman.image: quay.io/bpfman/bpfman:latest</span>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="go">  bpfman.log.level: debug</span>
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="go">kind: ConfigMap</span>
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="go">:</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">kubectl edit configmap -n bpfman bpfman-config</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">apiVersion: v1</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go">data:</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go">  bpfman.agent.healthprobe.addr: :8175                    &lt;-- UPDATE</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go">  bpfman.agent.image: quay.io/bpfman/bpfman-agent:latest</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="go">  bpfman.agent.log.level: info</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="go">  bpfman.agent.metric.addr: 127.0.0.1:8174                &lt;-- UPDATE</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="go">  bpfman.image: quay.io/bpfman/bpfman:latest</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="go">  bpfman.log.level: debug</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="go">kind: ConfigMap</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="go">:</span>
 </code></pre></div>
 
 
