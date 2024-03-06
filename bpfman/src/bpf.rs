@@ -9,10 +9,10 @@ use std::{
 
 use aya::{
     programs::{
-        kprobe::KProbeLink, links::FdLink, loaded_programs, trace_point::TracePointLink,
-        uprobe::UProbeLink, KProbe, TracePoint, UProbe,
+        fentry::FEntryLink, fexit::FExitLink, kprobe::KProbeLink, links::FdLink, loaded_programs,
+        trace_point::TracePointLink, uprobe::UProbeLink, FEntry, FExit, KProbe, TracePoint, UProbe,
     },
-    BpfLoader,
+    BpfLoader, Btf,
 };
 use bpfman_api::{
     config::Config,
@@ -306,9 +306,11 @@ impl BpfManager {
 
                 self.add_multi_attach_program(&mut program).await
             }
-            Program::Tracepoint(_) | Program::Kprobe(_) | Program::Uprobe(_) => {
-                self.add_single_attach_program(&mut program)
-            }
+            Program::Tracepoint(_)
+            | Program::Kprobe(_)
+            | Program::Uprobe(_)
+            | Program::Fentry(_)
+            | Program::Fexit(_) => self.add_single_attach_program(&mut program),
             Program::Unsupported(_) => panic!("Cannot add unsupported program"),
         };
 
@@ -489,7 +491,7 @@ impl BpfManager {
                     .map_err(BpfmanError::UnableToPinLink)?;
 
                 tracepoint
-                    .pin(format!("{RTDIR_FS}/prog_{id}"))
+                    .pin(format!("{RTDIR_FS}/prog_{}", id))
                     .map_err(BpfmanError::UnableToPinProgram)?;
 
                 Ok(id)
@@ -534,7 +536,7 @@ impl BpfManager {
                     .map_err(BpfmanError::UnableToPinLink)?;
 
                 kprobe
-                    .pin(format!("{RTDIR_FS}/prog_{id}"))
+                    .pin(format!("{RTDIR_FS}/prog_{}", id))
                     .map_err(BpfmanError::UnableToPinProgram)?;
 
                 Ok(id)
@@ -561,7 +563,7 @@ impl BpfManager {
 
                 let id = program.data.get_id()?;
 
-                let program_pin_path = format!("{RTDIR_FS}/prog_{id}");
+                let program_pin_path = format!("{RTDIR_FS}/prog_{}", id);
                 let fn_name = program.get_fn_name()?;
 
                 uprobe
@@ -662,6 +664,52 @@ impl BpfManager {
 
                 Ok(id)
             }
+            Program::Fentry(ref mut program) => {
+                let fn_name = program.get_fn_name()?;
+                let btf = Btf::from_sys_fs()?;
+                let fentry: &mut FEntry = raw_program.try_into()?;
+                fentry
+                    .load(&fn_name, &btf)
+                    .map_err(BpfmanError::BpfProgramError)?;
+                program.get_data_mut().set_kernel_info(&fentry.info()?)?;
+
+                let id = program.data.get_id()?;
+                let link_id = fentry.attach()?;
+                let owned_link: FEntryLink = fentry.take_link(link_id)?;
+                let fd_link: FdLink = owned_link.into();
+                fd_link
+                    .pin(format!("{RTDIR_FS}/prog_{}_link", id))
+                    .map_err(BpfmanError::UnableToPinLink)?;
+
+                fentry
+                    .pin(format!("{RTDIR_FS}/prog_{}", id))
+                    .map_err(BpfmanError::UnableToPinProgram)?;
+
+                Ok(id)
+            }
+            Program::Fexit(ref mut program) => {
+                let fn_name = program.get_fn_name()?;
+                let btf = Btf::from_sys_fs()?;
+                let fexit: &mut FExit = raw_program.try_into()?;
+                fexit
+                    .load(&fn_name, &btf)
+                    .map_err(BpfmanError::BpfProgramError)?;
+                program.get_data_mut().set_kernel_info(&fexit.info()?)?;
+
+                let id = program.data.get_id()?;
+                let link_id = fexit.attach()?;
+                let owned_link: FExitLink = fexit.take_link(link_id)?;
+                let fd_link: FdLink = owned_link.into();
+                fd_link
+                    .pin(format!("{RTDIR_FS}/prog_{}_link", id))
+                    .map_err(BpfmanError::UnableToPinLink)?;
+
+                fexit
+                    .pin(format!("{RTDIR_FS}/prog_{}", id))
+                    .map_err(BpfmanError::UnableToPinProgram)?;
+
+                Ok(id)
+            }
             _ => panic!("not a supported single attach program"),
         };
 
@@ -730,6 +778,8 @@ impl BpfManager {
             Program::Tracepoint(_)
             | Program::Kprobe(_)
             | Program::Uprobe(_)
+            | Program::Fentry(_)
+            | Program::Fexit(_)
             | Program::Unsupported(_) => {
                 prog.delete()
                     .map_err(BpfmanError::BpfmanProgramDeleteError)?;

@@ -5,8 +5,8 @@ use anyhow::bail;
 use bpfman_api::{
     v1::{
         attach_info::Info, bytecode_location::Location, list_response::ListResult,
-        KernelProgramInfo, KprobeAttachInfo, ProgramInfo, TcAttachInfo, TracepointAttachInfo,
-        UprobeAttachInfo, XdpAttachInfo,
+        FentryAttachInfo, FexitAttachInfo, KernelProgramInfo, KprobeAttachInfo, ProgramInfo,
+        TcAttachInfo, TracepointAttachInfo, UprobeAttachInfo, XdpAttachInfo,
     },
     ImagePullPolicy,
     ProbeType::{Kprobe, Kretprobe, Uprobe, Uretprobe},
@@ -195,6 +195,12 @@ impl ProgTable {
                         "Container PID",
                         &container_pid.unwrap_or(0).to_string(),
                     ]);
+                }
+                Info::FentryAttachInfo(FentryAttachInfo { fn_name }) => {
+                    table.add_row(vec!["Function Name:", &fn_name]);
+                }
+                Info::FexitAttachInfo(FexitAttachInfo { fn_name }) => {
+                    table.add_row(vec!["Function Name:", &fn_name]);
                 }
             }
         }

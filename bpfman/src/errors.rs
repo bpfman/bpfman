@@ -58,4 +58,6 @@ pub enum BpfmanError {
     DatabaseError(String, String),
     #[error("Internal error occurred. {0}")]
     InternalError(String),
+    #[error(transparent)]
+    BtfError(#[from] aya::BtfError),
 }

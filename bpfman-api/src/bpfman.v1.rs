@@ -151,6 +151,18 @@ pub struct UprobeAttachInfo {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FentryAttachInfo {
+    #[prost(string, tag = "1")]
+    pub fn_name: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FexitAttachInfo {
+    #[prost(string, tag = "1")]
+    pub fn_name: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AttachInfo {
     #[prost(oneof = "attach_info::Info", tags = "2, 3, 4, 5, 6")]
     pub info: ::core::option::Option<attach_info::Info>,
@@ -170,6 +182,10 @@ pub mod attach_info {
         KprobeAttachInfo(super::KprobeAttachInfo),
         #[prost(message, tag = "6")]
         UprobeAttachInfo(super::UprobeAttachInfo),
+        #[prost(message, tag = "7")]
+        FentryAttachInfo(super::FentryAttachInfo),
+        #[prost(message, tag = "8")]
+        FexitAttachInfo(super::FexitAttachInfo),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
