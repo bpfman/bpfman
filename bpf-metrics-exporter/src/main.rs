@@ -7,7 +7,7 @@ use opentelemetry::{
     KeyValue,
 };
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{metrics::MeterProvider as SdkMeterProvider, runtime, Resource};
+use opentelemetry_sdk::{metrics::SdkMeterProvider, runtime, Resource};
 use tokio::signal::ctrl_c;
 
 fn init_meter_provider(grpc_endpoint: &str) -> SdkMeterProvider {
