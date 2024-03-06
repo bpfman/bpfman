@@ -1502,6 +1502,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#technical-challenges-for-attaching-ebpf-programs-in-containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Technical Challenges for Attaching eBPF Programs in Containers
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#community-meeting-january-11-and-18-2024" class="md-nav__link">
     <span class="md-ellipsis">
       Community Meeting: January 11 and 18, 2024
@@ -1569,6 +1578,55 @@
       <header class="md-typeset">
         <h1 id="bpfman-blog">Bpfman Blog</h1>
       </header>
+      
+        <article class="md-post md-post--excerpt">
+  <header class="md-post__header">
+    
+      <nav class="md-post__authors md-typeset">
+        
+          <span class="md-author">
+            <img src="https://github.com/anfredette.png" alt="Andre Fredette">
+          </span>
+        
+      </nav>
+    
+    <div class="md-post__meta md-meta">
+      <ul class="md-meta__list">
+        <li class="md-meta__item">
+          <time datetime="2024-02-26 00:00:00">February 26, 2024</time></li>
+        
+        
+          
+          <li class="md-meta__item">
+            
+              14 min read
+            
+          </li>
+        
+      </ul>
+      
+    </div>
+  </header>
+  <div class="md-post__content md-typeset">
+    <h2 id="technical-challenges-for-attaching-ebpf-programs-in-containers"><a class="toclink" href="2024/02/26/technical-challenges-for-attaching-ebpf-programs-in-containers/">Technical Challenges for Attaching eBPF Programs in Containers</a></h2>
+<p>We recently added support for attaching uprobes inside containers. The purpose
+of this blog is to give a brief overview of the feature, to document the
+technical challenges encountered, and describe our solutions for those
+challenges. In particular, how to attach an eBPF program inside of a container,
+and how to find the host Process ID (PID) on the node for the container?</p>
+<p>The solutions seem relatively straightforward now that they are done, but we
+found limited information elsewhere, so we thought it would be helpful to
+document them here.</p>
+<p>The uprobe implementation will be used as the example in this blog, but the
+concepts can (and will eventually) be applied to other program types.</p>
+
+    <nav class="md-post__action">
+      <a href="2024/02/26/technical-challenges-for-attaching-ebpf-programs-in-containers/">
+        Continue reading
+      </a>
+    </nav>
+  </div>
+</article>
       
         <article class="md-post md-post--excerpt">
   <header class="md-post__header">
