@@ -4,26 +4,24 @@ FROM rust:1 as bpfman-build
 
 RUN apt-get update && apt-get install -y\
     gcc-multilib\
-    musl-tools
+    libssl-dev
 
 WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
 
-RUN rustup target add x86_64-unknown-linux-musl
-
 # Compile only bpfman
 RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry \
-    cargo build --release --target x86_64-unknown-linux-musl
+    cargo build --release
 
 RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
-    cp /usr/src/bpfman/target/x86_64-unknown-linux-musl/release/bpfman ./bpfman/
+    cp /usr/src/bpfman/target/release/bpfman ./bpfman/
 
 RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
-    cp /usr/src/bpfman/target/x86_64-unknown-linux-musl/release/bpfman-ns ./bpfman/
+    cp /usr/src/bpfman/target/release/bpfman-ns ./bpfman/
 
 ## Image for Local testing is much more of a debug image, give it bpftool and tcpdump
-FROM fedora:38
+FROM fedora:39
 
 RUN dnf makecache --refresh && dnf -y install bpftool tcpdump
 
