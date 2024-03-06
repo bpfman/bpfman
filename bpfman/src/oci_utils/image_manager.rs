@@ -5,7 +5,7 @@ use std::io::{copy, Read};
 
 use bpfman_api::ImagePullPolicy;
 use flate2::read::GzDecoder;
-use log::{debug, info, trace};
+use log::{debug, trace};
 use oci_distribution::{
     client::{ClientConfig, ClientProtocol},
     manifest,
@@ -17,14 +17,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use tar::Archive;
-use tokio::{
-    select,
-    sync::{
-        broadcast,
-        mpsc::{self, Receiver},
-        oneshot,
-    },
-};
 
 use crate::{
     oci_utils::{cosign::CosignVerifier, ImageError},
@@ -104,33 +96,10 @@ impl From<bpfman_api::v1::BytecodeImage> for BytecodeImage {
 pub(crate) struct ImageManager {
     client: Client,
     cosign_verifier: CosignVerifier,
-    rx: Receiver<Command>,
-}
-
-/// Provided by the requester and used by the manager task to send
-/// the command response back to the requester.
-type Responder<T> = oneshot::Sender<T>;
-
-#[derive(Debug)]
-pub(crate) enum Command {
-    Pull {
-        image: String,
-        pull_policy: ImagePullPolicy,
-        username: Option<String>,
-        password: Option<String>,
-        resp: Responder<Result<(String, String), ImageError>>,
-    },
-    GetBytecode {
-        path: String,
-        resp: Responder<Result<Vec<u8>, ImageError>>,
-    },
 }
 
 impl ImageManager {
-    pub(crate) async fn new(
-        allow_unsigned: bool,
-        rx: mpsc::Receiver<Command>,
-    ) -> Result<Self, anyhow::Error> {
+    pub(crate) async fn new(allow_unsigned: bool) -> Result<Self, anyhow::Error> {
         let cosign_verifier = CosignVerifier::new(allow_unsigned).await?;
         let config = ClientConfig {
             protocol: ClientProtocol::Https,
@@ -140,35 +109,7 @@ impl ImageManager {
         Ok(Self {
             cosign_verifier,
             client,
-            rx,
         })
-    }
-
-    pub(crate) async fn run(&mut self, mut shutdown_rx: broadcast::Receiver<()>) {
-        loop {
-            // Start receiving messages
-            select! {
-                biased;
-                _ = shutdown_rx.recv() => {
-                    info!("image_manager: Signal received to stop command processing");
-                    ROOT_DB.flush().expect("Unable to flush database to disk before shutting down ImageManager");
-                    break;
-                }
-                Some(cmd) = self.rx.recv() => {
-                    match cmd {
-                        Command::Pull { image, pull_policy, username, password, resp } => {
-                            let result = self.get_image(&image, pull_policy, username, password).await;
-                            let _ = resp.send(result);
-                        },
-                        Command::GetBytecode { path, resp } => {
-                            let result = self.get_bytecode_from_image_store(path).await;
-                            let _ = resp.send(result);
-                        }
-                    }
-                }
-            }
-        }
-        info!("image_manager: Stopped processing commands");
     }
 
     pub(crate) async fn get_image(
@@ -332,7 +273,7 @@ impl ImageManager {
         Ok(image_labels)
     }
 
-    pub(crate) async fn get_bytecode_from_image_store(
+    pub(crate) fn get_bytecode_from_image_store(
         &self,
         base_key: String,
     ) -> Result<Vec<u8>, ImageError> {
@@ -479,9 +420,7 @@ mod tests {
 
     #[tokio::test]
     async fn image_pull_and_bytecode_verify() {
-        let (_tx, rx) = mpsc::channel(32);
-        let mut mgr = ImageManager::new(true, rx).await.unwrap();
-
+        let mut mgr = ImageManager::new(true).await.unwrap();
         let (image_content_key, _) = mgr
             .get_image(
                 "quay.io/bpfman-bytecode/xdp_pass:latest",
@@ -497,7 +436,6 @@ mod tests {
 
         let program_bytes = mgr
             .get_bytecode_from_image_store(image_content_key)
-            .await
             .expect("failed to get bytecode from image store");
 
         assert!(!program_bytes.is_empty())
@@ -505,8 +443,7 @@ mod tests {
 
     #[tokio::test]
     async fn image_pull_policy_never_failure() {
-        let (_tx, rx) = mpsc::channel(32);
-        let mut mgr = ImageManager::new(true, rx).await.unwrap();
+        let mut mgr = ImageManager::new(true).await.unwrap();
 
         let result = mgr
             .get_image(
@@ -523,8 +460,7 @@ mod tests {
     #[tokio::test]
     #[should_panic]
     async fn private_image_pull_failure() {
-        let (_tx, rx) = mpsc::channel(32);
-        let mut mgr = ImageManager::new(true, rx).await.unwrap();
+        let mut mgr = ImageManager::new(true).await.unwrap();
 
         mgr.get_image(
             "quay.io/bpfman-bytecode/xdp_pass_private:latest",
@@ -539,9 +475,7 @@ mod tests {
     #[tokio::test]
     async fn private_image_pull_and_bytecode_verify() {
         env_logger::init();
-
-        let (_tx, rx) = mpsc::channel(32);
-        let mut mgr = ImageManager::new(true, rx).await.unwrap();
+        let mut mgr = ImageManager::new(true).await.unwrap();
 
         let (image_content_key, _) = mgr
             .get_image(
@@ -558,7 +492,6 @@ mod tests {
 
         let program_bytes = mgr
             .get_bytecode_from_image_store(image_content_key)
-            .await
             .expect("failed to get bytecode from image store");
 
         assert!(!program_bytes.is_empty())
@@ -566,8 +499,7 @@ mod tests {
 
     #[tokio::test]
     async fn image_pull_failure() {
-        let (_tx, rx) = mpsc::channel(32);
-        let mut mgr = ImageManager::new(true, rx).await.unwrap();
+        let mut mgr = ImageManager::new(true).await.unwrap();
 
         let result = mgr
             .get_image(
@@ -581,8 +513,8 @@ mod tests {
         assert_matches!(result, Err(ImageError::ByteCodeImageNotfound(_)));
     }
 
-    #[tokio::test]
-    async fn test_good_image_content_key() {
+    #[test]
+    fn test_good_image_content_key() {
         struct Case {
             input: &'static str,
             output: &'static str,

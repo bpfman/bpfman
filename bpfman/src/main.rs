@@ -8,7 +8,7 @@ use lazy_static::lazy_static;
 use log::info;
 use sled::{Config as SledConfig, Db};
 
-use crate::utils::open_config_file;
+use crate::utils::{initialize_bpfman, open_config_file};
 
 mod bpf;
 mod cli;
@@ -62,5 +62,7 @@ lazy_static! {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = cli::args::Cli::parse();
+    initialize_bpfman()?;
+
     cli.command.execute().await
 }

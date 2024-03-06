@@ -188,7 +188,7 @@ impl Node for CsiNode {
                             format!("failed creating target path {target_path:?}: {e}"),
                         )
                     })?;
-                    set_dir_permissions(target_path, OWNER_READ_WRITE).await;
+                    set_dir_permissions(target_path, OWNER_READ_WRITE);
                 }
 
                 // Make a new bpf fs specifically for the pod.
@@ -372,7 +372,7 @@ impl StorageManager {
         let uds = UnixListener::bind(path)
             .unwrap_or_else(|_| panic!("failed to bind {RTPATH_BPFMAN_CSI_SOCKET}"));
         let uds_stream = UnixListenerStream::new(uds);
-        set_file_permissions(Path::new(RTPATH_BPFMAN_CSI_SOCKET), SOCK_MODE).await;
+        set_file_permissions(Path::new(RTPATH_BPFMAN_CSI_SOCKET), SOCK_MODE);
 
         let node_service = NodeServer::new(self.csi_node);
         let identity_service = IdentityServer::new(self.csi_identity);

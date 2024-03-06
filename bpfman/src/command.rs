@@ -23,12 +23,12 @@ use chrono::{prelude::DateTime, Local};
 use log::{info, warn};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{mpsc::Sender, oneshot};
+use tokio::sync::oneshot;
 
 use crate::{
     errors::BpfmanError,
     multiprog::{DispatcherId, DispatcherInfo},
-    oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
+    oci_utils::{image_manager::BytecodeImage, ImageManager},
     utils::{
         bytes_to_bool, bytes_to_i32, bytes_to_string, bytes_to_u32, bytes_to_u64, bytes_to_usize,
         sled_get, sled_get_option, sled_insert,
@@ -234,37 +234,20 @@ pub(crate) enum Location {
 impl Location {
     async fn get_program_bytes(
         &self,
-        image_manager: Sender<ImageManagerCommand>,
+        image_manager: &mut ImageManager,
     ) -> Result<(Vec<u8>, String), BpfmanError> {
         match self {
-            Location::File(l) => Ok((crate::utils::read(l).await?, "".to_owned())),
+            Location::File(l) => Ok((crate::utils::read(l)?, "".to_owned())),
             Location::Image(l) => {
-                let (tx, rx) = oneshot::channel();
-                image_manager
-                    .send(ImageManagerCommand::Pull {
-                        image: l.image_url.clone(),
-                        pull_policy: l.image_pull_policy.clone(),
-                        username: l.username.clone(),
-                        password: l.password.clone(),
-                        resp: tx,
-                    })
-                    .await
-                    .map_err(|e| BpfmanError::RpcSendError(e.into()))?;
-                let (path, bpf_function_name) = rx
-                    .await
-                    .map_err(BpfmanError::RpcRecvError)?
-                    .map_err(BpfmanError::BpfBytecodeError)?;
-
-                let (tx, rx) = oneshot::channel();
-                image_manager
-                    .send(ImageManagerCommand::GetBytecode { path, resp: tx })
-                    .await
-                    .map_err(|e| BpfmanError::RpcSendError(e.into()))?;
-
-                let bytecode = rx
-                    .await
-                    .map_err(BpfmanError::RpcRecvError)?
-                    .map_err(BpfmanError::BpfBytecodeError)?;
+                let (path, bpf_function_name) = image_manager
+                    .get_image(
+                        &l.image_url,
+                        l.image_pull_policy.clone(),
+                        l.username.clone(),
+                        l.password.clone(),
+                    )
+                    .await?;
+                let bytecode = image_manager.get_bytecode_from_image_store(path)?;
 
                 Ok((bytecode, bpf_function_name))
             }
@@ -713,7 +696,7 @@ impl ProgramData {
 
     pub(crate) async fn set_program_bytes(
         &mut self,
-        image_manager: Sender<ImageManagerCommand>,
+        image_manager: &mut ImageManager,
     ) -> Result<(), BpfmanError> {
         let loc = self.get_location()?;
         match loc.get_program_bytes(image_manager).await {

@@ -1,35 +1,42 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use std::{os::unix::fs::PermissionsExt, path::Path, str};
+use std::{
+    env,
+    fs::{create_dir_all, set_permissions, File, OpenOptions},
+    io::{BufRead, BufReader, Read},
+    os::unix::fs::{OpenOptionsExt, PermissionsExt},
+    path::Path,
+    str::FromStr,
+};
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use bpfman_api::{config::Config, util::directories::CFGPATH_BPFMAN_CONFIG};
 use log::{debug, info, warn};
 use nix::{
+    libc::RLIM_INFINITY,
     mount::{mount, MsFlags},
     net::if_::if_nametoindex,
+    sys::resource::{setrlimit, Resource},
 };
 use sled::Tree;
-use tokio::{fs, io::AsyncReadExt};
+use systemd_journal_logger::{connected_to_journal, JournalLog};
 
-use crate::errors::BpfmanError;
+use crate::{errors::BpfmanError, BPFMAN_ENV_LOG_LEVEL};
 
 // The bpfman socket should always allow the same users and members of the same group
 // to Read/Write to it.
 pub(crate) const SOCK_MODE: u32 = 0o0660;
 
 // Like tokio::fs::read, but with O_NOCTTY set
-pub(crate) async fn read<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, BpfmanError> {
+pub(crate) fn read<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, BpfmanError> {
     let mut data = vec![];
-    tokio::fs::OpenOptions::new()
+    OpenOptions::new()
         .custom_flags(nix::libc::O_NOCTTY)
         .read(true)
         .open(path)
-        .await
         .map_err(|e| BpfmanError::Error(format!("can't open file: {e}")))?
         .read_to_end(&mut data)
-        .await
         .map_err(|e| BpfmanError::Error(format!("can't read file: {e}")))?;
     Ok(data)
 }
@@ -47,9 +54,9 @@ pub(crate) fn get_ifindex(iface: &str) -> Result<u32, BpfmanError> {
     }
 }
 
-pub(crate) async fn set_file_permissions(path: &Path, mode: u32) {
+pub(crate) fn set_file_permissions(path: &Path, mode: u32) {
     // Set the permissions on the file based on input
-    if (tokio::fs::set_permissions(path, std::fs::Permissions::from_mode(mode)).await).is_err() {
+    if (set_permissions(path, std::fs::Permissions::from_mode(mode))).is_err() {
         warn!(
             "Unable to set permissions on file {}. Continuing",
             path.to_path_buf().display()
@@ -57,12 +64,12 @@ pub(crate) async fn set_file_permissions(path: &Path, mode: u32) {
     }
 }
 
-pub(crate) async fn set_dir_permissions(directory: &str, mode: u32) {
+pub(crate) fn set_dir_permissions(directory: &str, mode: u32) {
     // Iterate through the files in the provided directory
-    let mut entries = fs::read_dir(directory).await.unwrap();
-    while let Some(file) = entries.next_entry().await.unwrap() {
+    let entries = std::fs::read_dir(directory).unwrap();
+    for file in entries.flatten() {
         // Set the permissions on the file based on input
-        set_file_permissions(&file.path(), mode).await;
+        set_file_permissions(&file.path(), mode);
     }
 }
 
@@ -212,5 +219,96 @@ pub(crate) fn open_config_file() -> Config {
     } else {
         warn!("Unable to read config file, using defaults");
         Config::default()
+    }
+}
+
+fn has_cap(cset: caps::CapSet, cap: caps::Capability) {
+    info!("Has {}: {}", cap, caps::has_cap(None, cset, cap).unwrap());
+}
+
+fn is_bpffs_mounted() -> Result<bool, anyhow::Error> {
+    let file = File::open("/proc/mounts").context("Failed to open /proc/mounts")?;
+    let reader = BufReader::new(file);
+    for l in reader.lines() {
+        match l {
+            Ok(line) => {
+                let parts: Vec<&str> = line.split(' ').collect();
+                if parts.len() != 6 {
+                    bail!("expected 6 parts in proc mount")
+                }
+                if parts[0] == "none" && parts[1].contains("bpfman") && parts[2] == "bpf" {
+                    return Ok(true);
+                }
+            }
+            Err(e) => bail!("problem reading lines {}", e),
+        }
+    }
+    Ok(false)
+}
+
+pub(crate) fn initialize_bpfman() -> anyhow::Result<()> {
+    if connected_to_journal() {
+        // If bpfman is running as a service, log to journald.
+        JournalLog::new()?
+            .with_extra_fields(vec![("VERSION", env!("CARGO_PKG_VERSION"))])
+            .install()
+            .unwrap();
+        manage_journal_log_level();
+        log::info!("Log using journald");
+    } else {
+        // Otherwise fall back to logging to standard error.
+        env_logger::init();
+        log::info!("Log using env_logger");
+    }
+
+    has_cap(caps::CapSet::Effective, caps::Capability::CAP_BPF);
+    has_cap(caps::CapSet::Effective, caps::Capability::CAP_SYS_ADMIN);
+
+    setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
+
+    // Create directories associated with bpfman
+    use bpfman_api::util::directories::*;
+    create_dir_all(RTDIR).context("unable to create runtime directory")?;
+    create_dir_all(RTDIR_FS).context("unable to create mountpoint")?;
+    create_dir_all(RTDIR_TC_INGRESS_DISPATCHER).context("unable to create dispatcher directory")?;
+    create_dir_all(RTDIR_TC_EGRESS_DISPATCHER).context("unable to create dispatcher directory")?;
+    create_dir_all(RTDIR_XDP_DISPATCHER).context("unable to create dispatcher directory")?;
+    create_dir_all(RTDIR_PROGRAMS).context("unable to create programs directory")?;
+
+    if !is_bpffs_mounted()? {
+        create_bpffs(RTDIR_FS)?;
+    }
+    create_dir_all(RTDIR_FS_XDP).context("unable to create xdp dispatcher directory")?;
+    create_dir_all(RTDIR_FS_TC_INGRESS)
+        .context("unable to create tc ingress dispatcher directory")?;
+    create_dir_all(RTDIR_FS_TC_EGRESS)
+        .context("unable to create tc egress dispatcher directory")?;
+    create_dir_all(RTDIR_FS_MAPS).context("unable to create maps directory")?;
+    create_dir_all(RTDIR_BPFMAN_CSI).context("unable to create CSI directory")?;
+    create_dir_all(RTDIR_BPFMAN_CSI_FS).context("unable to create CSI socket directory")?;
+    create_dir_all(RTDIR_SOCK).context("unable to create socket directory")?;
+    create_dir_all(RTDIR_TUF).context("unable to create TUF directory")?;
+
+    create_dir_all(STDIR).context("unable to create state directory")?;
+
+    create_dir_all(CFGDIR_STATIC_PROGRAMS).context("unable to create static programs directory")?;
+
+    set_dir_permissions(CFGDIR, CFGDIR_MODE);
+    set_dir_permissions(RTDIR, RTDIR_MODE);
+    set_dir_permissions(STDIR, STDIR_MODE);
+
+    Ok(())
+}
+
+fn manage_journal_log_level() {
+    // env_logger uses the environment variable RUST_LOG to set the log
+    // level. Parse RUST_LOG to set the log level for journald.
+    log::set_max_level(log::LevelFilter::Error);
+    if env::var(BPFMAN_ENV_LOG_LEVEL).is_ok() {
+        let rust_log = log::LevelFilter::from_str(&env::var(BPFMAN_ENV_LOG_LEVEL).unwrap());
+        match rust_log {
+            Ok(value) => log::set_max_level(value),
+            Err(e) => log::error!("Invalid Log Level: {}", e),
+        }
     }
 }

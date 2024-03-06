@@ -15,7 +15,6 @@ use bpfman_api::{util::directories::*, ImagePullPolicy};
 use futures::stream::TryStreamExt;
 use log::debug;
 use netlink_packet_route::tc::TcAttribute;
-use tokio::sync::{mpsc::Sender, oneshot};
 
 use crate::{
     bpf::{calc_map_pin_path, create_map_pin_path},
@@ -27,7 +26,7 @@ use crate::{
     dispatcher_config::TcDispatcherConfig,
     errors::BpfmanError,
     multiprog::{Dispatcher, TC_DISPATCHER_PREFIX},
-    oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
+    oci_utils::image_manager::{BytecodeImage, ImageManager},
     utils::{
         bytes_to_string, bytes_to_u16, bytes_to_u32, bytes_to_usize, should_map_be_pinned,
         sled_get, sled_get_option, sled_insert,
@@ -93,7 +92,7 @@ impl TcDispatcher {
         &mut self,
         programs: &mut [Program],
         old_dispatcher: Option<Dispatcher>,
-        image_manager: Sender<ImageManagerCommand>,
+        image_manager: &mut ImageManager,
     ) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
@@ -125,29 +124,17 @@ impl TcDispatcher {
             None,
             None,
         );
-        let (tx, rx) = oneshot::channel();
-        image_manager
-            .send(ImageManagerCommand::Pull {
-                image: image.image_url.clone(),
-                pull_policy: image.image_pull_policy.clone(),
-                username: image.username.clone(),
-                password: image.password.clone(),
-                resp: tx,
-            })
-            .await
-            .map_err(|e| BpfmanError::RpcSendError(e.into()))?;
 
-        let (path, bpf_function_name) = rx
-            .await
-            .map_err(BpfmanError::RpcRecvError)?
-            .map_err(BpfmanError::BpfBytecodeError)?;
+        let (path, bpf_function_name) = image_manager
+            .get_image(
+                &image.image_url,
+                image.image_pull_policy.clone(),
+                image.username.clone(),
+                image.password.clone(),
+            )
+            .await?;
 
-        let (tx, rx) = oneshot::channel();
-        image_manager
-            .send(ImageManagerCommand::GetBytecode { path, resp: tx })
-            .await
-            .map_err(|e| BpfmanError::RpcSendError(e.into()))?;
-        let program_bytes = rx.await?.map_err(BpfmanError::BpfBytecodeError)?;
+        let program_bytes = image_manager.get_bytecode_from_image_store(path)?;
 
         let mut loader = BpfLoader::new()
             .set_global("CONFIG", &config, true)
@@ -169,18 +156,18 @@ impl TcDispatcher {
         self.set_num_extensions(extensions.len())?;
         self.set_program_name(&bpf_function_name)?;
 
-        self.attach_extensions(&mut extensions).await?;
-        self.attach(old_dispatcher).await?;
+        self.attach_extensions(&mut extensions)?;
+        self.attach(old_dispatcher)?;
         Ok(())
     }
 
     /// has_qdisc returns true if the qdisc_name is found on the if_index.
-    async fn has_qdisc(qdisc_name: String, if_index: i32) -> Result<bool, anyhow::Error> {
+    fn has_qdisc(qdisc_name: String, if_index: i32) -> Result<bool, anyhow::Error> {
         let (connection, handle, _) = rtnetlink::new_connection().unwrap();
         tokio::spawn(connection);
 
         let mut qdiscs = handle.qdisc().get().execute();
-        while let Some(qdisc_message) = qdiscs.try_next().await? {
+        while let Some(qdisc_message) = futures::executor::block_on(qdiscs.try_next())? {
             if qdisc_message.header.index == if_index
                 && qdisc_message
                     .attributes
@@ -192,7 +179,7 @@ impl TcDispatcher {
         Ok(false)
     }
 
-    async fn attach(&mut self, old_dispatcher: Option<Dispatcher>) -> Result<(), BpfmanError> {
+    fn attach(&mut self, old_dispatcher: Option<Dispatcher>) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let iface = self.get_ifname()?;
         let priority = self.get_priority()?;
@@ -210,14 +197,14 @@ impl TcDispatcher {
         // qdisc, we return an error. If the qdisc is a clsact qdisc, we do nothing. Otherwise, we add a clsact qdisc.
 
         // no need to add a new clsact qdisc if one already exists.
-        if TcDispatcher::has_qdisc("clsact".to_string(), if_index as i32).await? {
+        if TcDispatcher::has_qdisc("clsact".to_string(), if_index as i32)? {
             debug!(
                 "clsact qdisc found for if_index {}, no need to add a new clsact qdisc",
                 if_index
             );
 
         // if ingress qdisc exists, return error.
-        } else if TcDispatcher::has_qdisc("ingress".to_string(), if_index as i32).await? {
+        } else if TcDispatcher::has_qdisc("ingress".to_string(), if_index as i32)? {
             debug!("ingress qdisc found for if_index {}", if_index);
             return Err(BpfmanError::InvalidAttach(format!(
                 "Ingress qdisc found for if_index {}",
@@ -271,10 +258,7 @@ impl TcDispatcher {
         Ok(())
     }
 
-    async fn attach_extensions(
-        &mut self,
-        extensions: &mut [&mut TcProgram],
-    ) -> Result<(), BpfmanError> {
+    fn attach_extensions(&mut self, extensions: &mut [&mut TcProgram]) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
         let direction = self.get_direction()?;
@@ -369,7 +353,7 @@ impl TcDispatcher {
                 if v.data.get_map_pin_path()?.is_none() {
                     let map_pin_path = calc_map_pin_path(id);
                     v.data.set_map_pin_path(&map_pin_path.clone())?;
-                    create_map_pin_path(&map_pin_path).await?;
+                    create_map_pin_path(&map_pin_path)?;
 
                     for (name, map) in loader.maps_mut() {
                         if !should_map_be_pinned(name) {

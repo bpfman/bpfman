@@ -12,7 +12,6 @@ use aya::{
 };
 use bpfman_api::{config::XdpMode, util::directories::*, ImagePullPolicy};
 use log::debug;
-use tokio::sync::{mpsc::Sender, oneshot};
 
 use crate::{
     bpf::{calc_map_pin_path, create_map_pin_path},
@@ -20,7 +19,7 @@ use crate::{
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfmanError,
     multiprog::{Dispatcher, XDP_DISPATCHER_PREFIX},
-    oci_utils::image_manager::{BytecodeImage, Command as ImageManagerCommand},
+    oci_utils::{image_manager::BytecodeImage, ImageManager},
     utils::{
         bytes_to_string, bytes_to_u32, bytes_to_usize, should_map_be_pinned, sled_get, sled_insert,
     },
@@ -81,7 +80,7 @@ impl XdpDispatcher {
         &mut self,
         programs: &mut [Program],
         old_dispatcher: Option<Dispatcher>,
-        image_manager: Sender<ImageManagerCommand>,
+        image_manager: &mut ImageManager,
     ) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
@@ -119,32 +118,18 @@ impl XdpDispatcher {
             None,
             None,
         );
-        let (tx, rx) = oneshot::channel();
-        image_manager
-            .send(ImageManagerCommand::Pull {
-                image: image.image_url.clone(),
-                pull_policy: image.image_pull_policy.clone(),
-                username: image.username.clone(),
-                password: image.password.clone(),
-                resp: tx,
-            })
-            .await
-            .map_err(|e| BpfmanError::RpcSendError(e.into()))?;
 
-        let (path, bpf_function_name) = rx
-            .await
-            .map_err(BpfmanError::RpcRecvError)?
-            .map_err(BpfmanError::BpfBytecodeError)?;
+        let (path, bpf_function_name) = image_manager
+            .get_image(
+                &image.image_url.clone(),
+                image.image_pull_policy.clone(),
+                image.username.clone(),
+                image.password.clone(),
+            )
+            .await?;
 
-        let (tx, rx) = oneshot::channel();
-        image_manager
-            .send(ImageManagerCommand::GetBytecode { path, resp: tx })
-            .await
-            .map_err(|e| BpfmanError::RpcSendError(e.into()))?;
-        let program_bytes = rx
-            .await
-            .map_err(BpfmanError::RpcRecvError)?
-            .map_err(BpfmanError::BpfBytecodeError)?;
+        let program_bytes = image_manager.get_bytecode_from_image_store(path)?;
+
         let mut loader = BpfLoader::new()
             .set_global("conf", &config, true)
             .load(&program_bytes)?;
@@ -160,7 +145,7 @@ impl XdpDispatcher {
         self.set_num_extensions(extensions.len())?;
         self.set_program_name(&bpf_function_name)?;
 
-        self.attach_extensions(&mut extensions).await?;
+        self.attach_extensions(&mut extensions)?;
         self.attach()?;
         if let Some(mut old) = old_dispatcher {
             old.delete(false)?;
@@ -214,10 +199,7 @@ impl XdpDispatcher {
         Ok(())
     }
 
-    async fn attach_extensions(
-        &mut self,
-        extensions: &mut [&mut XdpProgram],
-    ) -> Result<(), BpfmanError> {
+    fn attach_extensions(&mut self, extensions: &mut [&mut XdpProgram]) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
         let program_name = self.get_program_name()?;
@@ -302,7 +284,7 @@ impl XdpDispatcher {
                 if v.get_data().get_map_pin_path()?.is_none() {
                     let map_pin_path = calc_map_pin_path(id);
                     v.get_data_mut().set_map_pin_path(&map_pin_path)?;
-                    create_map_pin_path(&map_pin_path).await?;
+                    create_map_pin_path(&map_pin_path)?;
 
                     for (name, map) in loader.maps_mut() {
                         if !should_map_be_pinned(name) {

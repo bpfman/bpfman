@@ -356,9 +356,7 @@ impl Bpfman for BpfmanLoader {
 mod test {
     use std::{collections::HashMap, time::SystemTime};
 
-    use bpfman_api::v1::{
-        bytecode_location::Location, AttachInfo, BytecodeLocation, LoadRequest, XdpAttachInfo,
-    };
+    use bpfman_api::v1::{AttachInfo, BytecodeLocation};
     use tokio::sync::mpsc::Receiver;
 
     use super::*;

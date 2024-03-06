@@ -3,6 +3,7 @@
 
 use std::{
     collections::HashMap,
+    fs::{create_dir_all, remove_dir_all},
     path::{Path, PathBuf},
 };
 
@@ -21,29 +22,24 @@ use bpfman_api::{
 };
 use log::{debug, error, info, warn};
 use tokio::{
-    fs::{create_dir_all, remove_dir_all},
     select,
-    sync::{
-        broadcast,
-        mpsc::{Receiver, Sender},
-        oneshot,
-    },
+    sync::{broadcast, mpsc::Receiver},
 };
 
 use crate::{
     command::{
-        Command, Direction, ListFilter, Program, ProgramData, PullBytecodeArgs, UnloadArgs,
-        PROGRAM_PREFIX, PROGRAM_PRE_LOAD_PREFIX,
+        Command, Direction, ListFilter, Program, ProgramData, UnloadArgs, PROGRAM_PREFIX,
+        PROGRAM_PRE_LOAD_PREFIX,
     },
     errors::BpfmanError,
     multiprog::{
         Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher,
         TC_DISPATCHER_PREFIX, XDP_DISPATCHER_PREFIX,
     },
-    oci_utils::image_manager::Command as ImageManagerCommand,
+    oci_utils::{image_manager::BytecodeImage, ImageManager},
     utils::{
-        bytes_to_string, bytes_to_u32, get_error_msg_from_stderr, get_ifindex, set_dir_permissions,
-        should_map_be_pinned, sled_insert,
+        bytes_to_string, bytes_to_u32, get_error_msg_from_stderr, get_ifindex, open_config_file,
+        set_dir_permissions, should_map_be_pinned, sled_insert,
     },
     ROOT_DB,
 };
@@ -54,19 +50,32 @@ const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
 pub(crate) struct BpfManager {
     config: Config,
     commands: Option<Receiver<Command>>,
-    pub(crate) image_manager: Option<Sender<ImageManagerCommand>>,
+    pub(crate) image_manager: Option<ImageManager>,
 }
 
 impl BpfManager {
-    pub(crate) fn new(
-        config: Config,
-        commands: Option<Receiver<Command>>,
-        image_manager: Option<Sender<ImageManagerCommand>>,
-    ) -> Self {
+    pub(crate) fn new(config: Config, commands: Option<Receiver<Command>>) -> Self {
         Self {
             config,
             commands,
-            image_manager,
+            image_manager: None,
+        }
+    }
+
+    // Make sure to call init_image_manger if the command requires interation with
+    // an OCI based container registry. It should ONLY be used where needed, to
+    // explicitly control when bpfman blocks for network calls to both sigstore's
+    // cosign tuf registries and container registries.
+    pub(crate) async fn init_image_manager(&mut self) {
+        if self.image_manager.is_none() {
+            let config = open_config_file();
+            self.image_manager = Some(
+                ImageManager::new(config.signing.as_ref().map_or(true, |s| s.allow_unsigned))
+                    .await
+                    .expect("failed to initialize image manager"),
+            );
+        } else {
+            warn!("Image manager already initialized");
         }
     }
 
@@ -217,6 +226,7 @@ impl BpfManager {
 
     pub(crate) async fn rebuild_state(&mut self) -> Result<(), anyhow::Error> {
         debug!("BpfManager::rebuild_state()");
+        self.init_image_manager().await;
 
         // Rebuild dispatchers after rebuilding programs.
         let mut dispatchers = Vec::new();
@@ -276,6 +286,8 @@ impl BpfManager {
         &mut self,
         mut program: Program,
     ) -> Result<Program, BpfmanError> {
+        self.init_image_manager().await;
+
         let map_owner_id = program.get_data().get_map_owner_id()?;
         // Set map_pin_path if we're using another program's maps
         if let Some(map_owner_id) = map_owner_id {
@@ -283,16 +295,10 @@ impl BpfManager {
             program.get_data_mut().set_map_pin_path(&map_pin_path)?;
         }
 
-        if let Some(image_manager) = self.image_manager.clone() {
-            program
-                .get_data_mut()
-                .set_program_bytes(image_manager)
-                .await?;
-        } else {
-            return Err(BpfmanError::InternalError(
-                "ImageManager not set.".to_string(),
-            ));
-        }
+        program
+            .get_data_mut()
+            .set_program_bytes(self.image_manager.as_mut().expect("image manager not set"))
+            .await?;
 
         let result = match program {
             Program::Xdp(_) | Program::Tc(_) => {
@@ -301,7 +307,7 @@ impl BpfManager {
                 self.add_multi_attach_program(&mut program).await
             }
             Program::Tracepoint(_) | Program::Kprobe(_) | Program::Uprobe(_) => {
-                self.add_single_attach_program(&mut program).await
+                self.add_single_attach_program(&mut program)
             }
             Program::Unsupported(_) => panic!("Cannot add unsupported program"),
         };
@@ -316,7 +322,7 @@ impl BpfManager {
 
                 // Now that program is successfully loaded, update the id, maps hash table,
                 // and allow access to all maps by bpfman group members.
-                self.save_map(&mut program, id, map_owner_id).await?;
+                self.save_map(&mut program, id, map_owner_id)?;
 
                 // Swap the db tree to be persisted with the unique program ID generated
                 // by the kernel.
@@ -329,7 +335,7 @@ impl BpfManager {
                 // map_pin_path may or may not exist depending on where the original
                 // error occured, so don't error if not there and preserve original error.
                 if let Some(pin_path) = program.get_data().get_map_pin_path()? {
-                    let _ = self.cleanup_map_pin_path(&pin_path, map_owner_id).await;
+                    let _ = self.cleanup_map_pin_path(&pin_path, map_owner_id);
                 }
                 Err(e)
             }
@@ -391,29 +397,23 @@ impl BpfManager {
             1
         };
 
-        if let Some(image_manager) = self.image_manager.clone() {
-            Dispatcher::new(
-                if_config,
-                &mut programs,
-                next_revision,
-                old_dispatcher,
-                image_manager.clone(),
-            )
-            .await
-            .or_else(|e| {
-                // If kernel ID was never set there's no pins to cleanup here so just continue
-                if program.get_data().get_id().is_ok() {
-                    program
-                        .delete()
-                        .map_err(BpfmanError::BpfmanProgramDeleteError)?;
-                }
-                Err(e)
-            })?;
-        } else {
-            return Err(BpfmanError::InternalError(
-                "ImageManager not set.".to_string(),
-            ));
-        }
+        Dispatcher::new(
+            if_config,
+            &mut programs,
+            next_revision,
+            old_dispatcher,
+            self.image_manager.as_mut().expect("image manager not set"),
+        )
+        .await
+        .or_else(|e| {
+            // If kernel ID was never set there's no pins to cleanup here so just continue
+            if program.get_data().get_id().is_ok() {
+                program
+                    .delete()
+                    .map_err(BpfmanError::BpfmanProgramDeleteError)?;
+            }
+            Err(e)
+        })?;
 
         let id = program.get_data().get_id()?;
         program.set_attached();
@@ -421,7 +421,7 @@ impl BpfManager {
         Ok(id)
     }
 
-    pub(crate) async fn add_single_attach_program(
+    pub(crate) fn add_single_attach_program(
         &mut self,
         p: &mut Program,
     ) -> Result<u32, BpfmanError> {
@@ -667,7 +667,7 @@ impl BpfManager {
                 if p.get_data().get_map_pin_path()?.is_none() {
                     let map_pin_path = calc_map_pin_path(id);
                     p.get_data_mut().set_map_pin_path(&map_pin_path)?;
-                    create_map_pin_path(&map_pin_path).await?;
+                    create_map_pin_path(&map_pin_path)?;
 
                     for (name, map) in loader.maps_mut() {
                         if !should_map_be_pinned(name) {
@@ -732,7 +732,7 @@ impl BpfManager {
             }
         }
 
-        self.delete_map(id, map_owner_id).await?;
+        self.delete_map(id, map_owner_id)?;
 
         Ok(())
     }
@@ -746,6 +746,7 @@ impl BpfManager {
         direction: Option<Direction>,
     ) -> Result<(), BpfmanError> {
         debug!("BpfManager::remove_multi_attach_program()");
+        self.init_image_manager().await;
 
         let next_available_id = self.attached_programs(&did) - 1;
         debug!("next_available_id = {next_available_id}");
@@ -775,21 +776,17 @@ impl BpfManager {
             1
         };
         debug!("next_revision = {next_revision}");
-        if let Some(image_manager) = self.image_manager.clone() {
-            Dispatcher::new(
-                if_config,
-                &mut programs,
-                next_revision,
-                old_dispatcher,
-                image_manager.clone(),
-            )
-            .await?;
-            Ok(())
-        } else {
-            Err(BpfmanError::InternalError(
-                "ImageManager not set.".to_string(),
-            ))
-        }
+
+        Dispatcher::new(
+            if_config,
+            &mut programs,
+            next_revision,
+            old_dispatcher,
+            self.image_manager.as_mut().expect("image manager not set"),
+        )
+        .await?;
+
+        Ok(())
     }
 
     pub(crate) async fn rebuild_multiattach_dispatcher(
@@ -831,20 +828,14 @@ impl BpfManager {
                 1
             };
 
-            if let Some(image_manager) = self.image_manager.clone() {
-                Dispatcher::new(
-                    if_config,
-                    &mut programs,
-                    next_revision,
-                    old_dispatcher,
-                    image_manager.clone(),
-                )
-                .await?;
-            } else {
-                return Err(BpfmanError::InternalError(
-                    "ImageManager not set.".to_string(),
-                ));
-            }
+            Dispatcher::new(
+                if_config,
+                &mut programs,
+                next_revision,
+                old_dispatcher,
+                self.image_manager.as_mut().expect("image manager not set"),
+            )
+            .await?;
         } else {
             debug!("No dispatcher found in rebuild_multiattach_dispatcher() for {did:?}");
         }
@@ -916,32 +907,19 @@ impl BpfManager {
         }
     }
 
-    pub(crate) async fn pull_bytecode(&self, args: PullBytecodeArgs) -> anyhow::Result<()> {
-        let res;
-        let (tx, rx) = oneshot::channel();
-        if let Some(image_manager) = self.image_manager.clone() {
-            image_manager
-                .send(ImageManagerCommand::Pull {
-                    image: args.image.image_url,
-                    pull_policy: args.image.image_pull_policy.clone(),
-                    username: args.image.username.clone(),
-                    password: args.image.password.clone(),
-                    resp: tx,
-                })
-                .await?;
-            res = match rx.await? {
-                Ok(_) => {
-                    info!("Successfully pulled bytecode");
-                    Ok(())
-                }
-                Err(e) => Err(BpfmanError::BpfBytecodeError(e)),
-            };
-        } else {
-            res = Err(BpfmanError::InternalError(
-                "ImageManager not set.".to_string(),
-            ));
-        }
-        let _ = args.responder.send(res);
+    pub(crate) async fn pull_bytecode(&mut self, image: BytecodeImage) -> anyhow::Result<()> {
+        self.init_image_manager().await;
+
+        self.image_manager
+            .as_mut()
+            .expect("image manager not set")
+            .get_image(
+                &image.image_url,
+                image.image_pull_policy.clone(),
+                image.username.clone(),
+                image.password.clone(),
+            )
+            .await?;
         Ok(())
     }
 
@@ -976,7 +954,11 @@ impl BpfManager {
                                 // Ignore errors as they'll be propagated to caller in the RPC status
                                 let _ = args.responder.send(prog);
                             },
-                            Command::PullBytecode (args) => self.pull_bytecode(args).await.unwrap(),
+                            Command::PullBytecode(args) => {
+                                let res = self.pull_bytecode(args.image).await;
+                                // Ignore errors as they'll be propagated to caller in the RPC status
+                                let _ = args.responder.send(res.map_err(|e| e.into()));
+                            }
                         }
                     }
                 }
@@ -1013,14 +995,13 @@ impl BpfManager {
     // then map the directory is still in use and there is nothing to do.
     // Otherwise, the map directory was created so it must
     // deleted.
-    async fn cleanup_map_pin_path(
+    fn cleanup_map_pin_path(
         &mut self,
         map_pin_path: &Path,
         map_owner_id: Option<u32>,
     ) -> Result<(), BpfmanError> {
         if map_owner_id.is_none() && map_pin_path.exists() {
             let _ = remove_dir_all(map_pin_path)
-                .await
                 .map_err(|e| BpfmanError::Error(format!("can't delete map dir: {e}")));
             Ok(())
         } else {
@@ -1036,7 +1017,7 @@ impl BpfManager {
     // the Used-By array.
 
     // TODO this should probably be program.save_map not bpfmanager.save_map
-    async fn save_map(
+    fn save_map(
         &mut self,
         program: &mut Program,
         id: u32,
@@ -1080,7 +1061,7 @@ impl BpfManager {
                 if let Some(map_pin_path) = data.get_map_pin_path()? {
                     if let Some(path) = map_pin_path.to_str() {
                         debug!("bpf set dir permissions for {}", path);
-                        set_dir_permissions(path, MAPS_MODE).await;
+                        set_dir_permissions(path, MAPS_MODE);
                     } else {
                         return Err(BpfmanError::Error(format!(
                             "invalid map_pin_path {} for {}",
@@ -1106,7 +1087,7 @@ impl BpfManager {
     // directory is removed. If this eBPF program is referencing a
     // map from another eBPF program, then this eBPF programs ID
     // is removed from the UsedBy array.
-    async fn delete_map(&mut self, id: u32, map_owner_id: Option<u32>) -> Result<(), BpfmanError> {
+    fn delete_map(&mut self, id: u32, map_owner_id: Option<u32>) -> Result<(), BpfmanError> {
         let index = match map_owner_id {
             Some(i) => i,
             None => id,
@@ -1129,7 +1110,6 @@ impl BpfManager {
                     .drop_tree(MAP_PREFIX.to_string() + &index.to_string())
                     .expect("unable to drop maps tree");
                 remove_dir_all(path)
-                    .await
                     .map_err(|e| BpfmanError::Error(format!("can't delete map dir: {e}")))?;
             } else {
                 // Update all the programs still using the same map with the updated map_used_by.
@@ -1158,10 +1138,8 @@ pub fn calc_map_pin_path(id: u32) -> PathBuf {
 }
 
 // Create the map_pin_path for a given program.
-pub async fn create_map_pin_path(p: &Path) -> Result<(), BpfmanError> {
-    create_dir_all(p)
-        .await
-        .map_err(|e| BpfmanError::Error(format!("can't create map dir: {e}")))
+pub fn create_map_pin_path(p: &Path) -> Result<(), BpfmanError> {
+    create_dir_all(p).map_err(|e| BpfmanError::Error(format!("can't create map dir: {e}")))
 }
 
 // set_maps_used_by differs from other setters in that it's explicitly idempotent.
