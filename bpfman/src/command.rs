@@ -1442,7 +1442,7 @@ impl Program {
 
     pub(crate) fn delete(&self) -> Result<(), anyhow::Error> {
         let id = self.get_data().get_id()?;
-        ROOT_DB.drop_tree(PROGRAM_PREFIX.to_string() + id.to_string().as_str())?;
+        ROOT_DB.drop_tree(self.get_data().db_tree.name())?;
 
         let path = format!("{RTDIR_FS}/prog_{id}");
         if PathBuf::from(&path).exists() {

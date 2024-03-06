@@ -337,6 +337,10 @@ impl BpfManager {
                 if let Some(pin_path) = program.get_data().get_map_pin_path()? {
                     let _ = self.cleanup_map_pin_path(&pin_path, map_owner_id);
                 }
+
+                // Cleanup any program that failed to create. Ignore any delete errors.
+                let _ = program.delete();
+
                 Err(e)
             }
         }
