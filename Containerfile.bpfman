@@ -8,23 +8,21 @@ RUN apt-get update && apt-get install -y\
  protobuf-compiler\
  libelf-dev\
  gcc-multilib\
- musl-tools
+ libssl-dev
 
 WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
 
-RUN rustup target add x86_64-unknown-linux-musl
-
 # Compile only the C ebpf bytecode
 RUN cargo xtask build-ebpf --release --libbpf-dir /usr/src/bpfman/libbpf
-# Compile bpfman 
-RUN cargo build --release -p bpfman --target x86_64-unknown-linux-musl
-# Compile bpfman-ns 
-RUN cargo build --release -p bpfman-ns --target x86_64-unknown-linux-musl
+# Compile bpfman
+RUN cargo build --release -p bpfman
+# Compile bpfman-ns
+RUN cargo build --release -p bpfman-ns
 
-FROM scratch
+FROM redhat/ubi9-minimal
 
-COPY --from=bpfman-build  /usr/src/bpfman/target/x86_64-unknown-linux-musl/release/bpfman .
-COPY --from=bpfman-build  /usr/src/bpfman/target/x86_64-unknown-linux-musl/release/bpfman-ns .
+COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman .
+COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman-ns .
 
 ENTRYPOINT ["./bpfman", "system", "service", "--timeout=0"]
