@@ -3,6 +3,7 @@
 
 use thiserror::Error;
 use tokio::sync::oneshot;
+use url::ParseError as urlParseError;
 
 use crate::oci_utils::ImageError;
 
@@ -60,4 +61,28 @@ pub enum BpfmanError {
     InternalError(String),
     #[error(transparent)]
     BtfError(#[from] aya::BtfError),
+    #[error("Failed to acquire database lock, please try again later")]
+    DatabaseLockError,
+}
+
+#[derive(Error, Debug)]
+pub enum ParseError {
+    #[error("{program} is not a valid program type")]
+    InvalidProgramType { program: String },
+    #[error("{proceedon} is not a valid proceed-on value")]
+    InvalidProceedOn { proceedon: String },
+    #[error("not a valid direction: {direction}")]
+    InvalidDirection { direction: String },
+    #[error("Failed to Parse bytecode location: {0}")]
+    BytecodeLocationParseFailure(#[source] urlParseError),
+    #[error("Invalid bytecode location: {location}")]
+    InvalidBytecodeLocation { location: String },
+    #[error("Invalid bytecode image pull policy: {pull_policy}")]
+    InvalidBytecodeImagePullPolicy { pull_policy: String },
+    #[error("{probe} is not a valid probe type")]
+    InvalidProbeType { probe: String },
+    #[error("Invalid XdpMode: {mode}")]
+    InvalidXdpMode { mode: String },
+    #[error("Error parsing config file: {0}")]
+    ConfigParseError(#[from] toml::de::Error),
 }

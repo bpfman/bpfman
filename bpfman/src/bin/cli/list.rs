@@ -2,11 +2,7 @@
 // Copyright Authors of bpfman
 
 use anyhow::bail;
-use bpfman::{
-    command::{ListFilter, Program},
-    BpfManager,
-};
-use bpfman_api::v1::list_response::ListResult;
+use bpfman::{types::ListFilter, BpfManager};
 
 use crate::{args::ListArgs, table::ProgTable};
 
@@ -29,25 +25,8 @@ pub(crate) async fn execute_list(
 
     let mut table = ProgTable::new_list();
 
-    // TODO(astoycos) cleanup all table printing to accept core types not bpfman_api types.
     for r in bpf_manager.list_programs(filter) {
-        let list_entry = ListResult {
-            info: if let Program::Unsupported(_) = r {
-                None
-            } else {
-                Some((&r).try_into()?)
-            },
-            kernel_info: match (&r).try_into() {
-                Ok(i) => {
-                    if let Program::Unsupported(_) = r {
-                        r.delete()?;
-                    };
-                    Ok(Some(i))
-                }
-                Err(e) => Err(e),
-            }?,
-        };
-        if let Err(e) = table.add_response_prog(list_entry) {
+        if let Err(e) = table.add_response_prog(r) {
             bail!(e)
         }
     }

@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y\
 WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
 
-# Compile only bpfman
+# Compile bpfman cli, bpfman-ns, and bpfman-rpc binaries
 RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
     --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --release
@@ -20,6 +20,9 @@ RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
 RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
     cp /usr/src/bpfman/target/release/bpfman-ns ./bpfman/
 
+RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
+    cp /usr/src/bpfman/target/release/bpfman-rpc ./bpfman/
+
 ## Image for Local testing is much more of a debug image, give it bpftool and tcpdump
 FROM fedora:39
 
@@ -27,4 +30,4 @@ RUN dnf makecache --refresh && dnf -y install bpftool tcpdump
 
 COPY --from=bpfman-build  ./usr/src/bpfman/bpfman .
 
-ENTRYPOINT ["./bpfman", "system", "service", "--timeout=0"]
+ENTRYPOINT ["./bpfman-rpc", "--timeout=0"]

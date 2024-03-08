@@ -4,18 +4,16 @@
 mod tc;
 mod xdp;
 
-use bpfman_api::{
-    config::{InterfaceConfig, XdpMode},
-    ProgramType,
-};
 use log::debug;
+use sled::Db;
 pub use tc::TcDispatcher;
 pub use xdp::XdpDispatcher;
 
 use crate::{
-    command::{Direction, Program},
+    config::{InterfaceConfig, XdpMode},
     errors::BpfmanError,
     oci_utils::image_manager::ImageManager,
+    types::{Direction, Program, ProgramType},
     utils::bytes_to_string,
 };
 
@@ -30,6 +28,7 @@ pub(crate) enum Dispatcher {
 
 impl Dispatcher {
     pub async fn new(
+        root_db: &Db,
         config: Option<&InterfaceConfig>,
         programs: &mut [Program],
         revision: u32,
@@ -52,20 +51,24 @@ impl Dispatcher {
         };
         let d = match p.kind() {
             ProgramType::Xdp => {
-                let mut x = XdpDispatcher::new(xdp_mode, if_index, if_name.to_string(), revision)?;
+                let mut x =
+                    XdpDispatcher::new(root_db, xdp_mode, if_index, if_name.to_string(), revision)?;
 
-                x.load(programs, old_dispatcher, image_manager).await?;
+                x.load(root_db, programs, old_dispatcher, image_manager)
+                    .await?;
                 Dispatcher::Xdp(x)
             }
             ProgramType::Tc => {
                 let mut t = TcDispatcher::new(
+                    root_db,
                     direction.expect("missing direction"),
                     if_index,
                     if_name.to_string(),
                     revision,
                 )?;
 
-                t.load(programs, old_dispatcher, image_manager).await?;
+                t.load(root_db, programs, old_dispatcher, image_manager)
+                    .await?;
                 Dispatcher::Tc(t)
             }
             _ => return Err(BpfmanError::DispatcherNotRequired),
@@ -81,11 +84,11 @@ impl Dispatcher {
         }
     }
 
-    pub(crate) fn delete(&mut self, full: bool) -> Result<(), BpfmanError> {
+    pub(crate) fn delete(&mut self, root_db: &Db, full: bool) -> Result<(), BpfmanError> {
         debug!("Dispatcher::delete()");
         match self {
-            Dispatcher::Xdp(d) => d.delete(full),
-            Dispatcher::Tc(d) => d.delete(full),
+            Dispatcher::Xdp(d) => d.delete(root_db, full),
+            Dispatcher::Tc(d) => d.delete(root_db, full),
         }
     }
 

@@ -5,9 +5,8 @@ use std::{collections::HashMap, str::FromStr};
 
 use aya::programs::XdpFlags;
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 
-use crate::ParseError;
+use crate::errors::ParseError;
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct Config {
@@ -41,24 +40,18 @@ impl Default for DatabaseConfig {
     fn default() -> Self {
         Self {
             // Maximum numbers of times to attempt to open the database after a failed attempt
-            max_retries: 4,
+            max_retries: 10,
             // Number of milli-seconds to wait between failed database attempts
-            millisec_delay: 500,
+            millisec_delay: 1000,
         }
     }
 }
 
-#[derive(Debug, Error)]
-pub enum ConfigError {
-    #[error("Error parsing config file: {0}")]
-    ParseError(#[from] toml::de::Error),
-}
-
 impl FromStr for Config {
-    type Err = ConfigError;
+    type Err = ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        toml::from_str(s).map_err(ConfigError::ParseError)
+        toml::from_str(s).map_err(ParseError::ConfigParseError)
     }
 }
 

@@ -15,14 +15,13 @@ COPY ./ /usr/src/bpfman
 
 # Compile only the C ebpf bytecode
 RUN cargo xtask build-ebpf --release --libbpf-dir /usr/src/bpfman/libbpf
-# Compile bpfman
-RUN cargo build --release -p bpfman
-# Compile bpfman-ns
-RUN cargo build --release -p bpfman-ns
+# Compile bpfman cli, bpfman-ns, and bpfman-rpc binaries
+RUN cargo build --release
 
 FROM redhat/ubi9-minimal
 
 COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman .
 COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman-ns .
+COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman-rpc .
 
-ENTRYPOINT ["./bpfman", "system", "service", "--timeout=0"]
+ENTRYPOINT ["./bpfman-rpc", "--timeout=0"]

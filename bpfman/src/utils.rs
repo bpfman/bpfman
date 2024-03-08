@@ -11,7 +11,6 @@ use std::{
 };
 
 use anyhow::{bail, Context, Result};
-use bpfman_api::{config::Config, util::directories::CFGPATH_BPFMAN_CONFIG};
 use log::{debug, info, warn};
 use nix::{
     libc::RLIM_INFINITY,
@@ -22,11 +21,11 @@ use nix::{
 use sled::Tree;
 use systemd_journal_logger::{connected_to_journal, JournalLog};
 
-use crate::{errors::BpfmanError, BPFMAN_ENV_LOG_LEVEL};
+use crate::{config::Config, directories::*, errors::BpfmanError, BPFMAN_ENV_LOG_LEVEL};
 
 // The bpfman socket should always allow the same users and members of the same group
 // to Read/Write to it.
-pub(crate) const SOCK_MODE: u32 = 0o0660;
+pub const SOCK_MODE: u32 = 0o0660;
 
 // Like tokio::fs::read, but with O_NOCTTY set
 pub(crate) fn read<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, BpfmanError> {
@@ -54,7 +53,7 @@ pub(crate) fn get_ifindex(iface: &str) -> Result<u32, BpfmanError> {
     }
 }
 
-pub(crate) fn set_file_permissions(path: &Path, mode: u32) {
+pub fn set_file_permissions(path: &Path, mode: u32) {
     // Set the permissions on the file based on input
     if (set_permissions(path, std::fs::Permissions::from_mode(mode))).is_err() {
         warn!(
@@ -267,7 +266,6 @@ pub fn initialize_bpfman() -> anyhow::Result<()> {
     setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
 
     // Create directories associated with bpfman
-    use bpfman_api::util::directories::*;
     create_dir_all(RTDIR).context("unable to create runtime directory")?;
     create_dir_all(RTDIR_FS).context("unable to create mountpoint")?;
     create_dir_all(RTDIR_TC_INGRESS_DISPATCHER).context("unable to create dispatcher directory")?;

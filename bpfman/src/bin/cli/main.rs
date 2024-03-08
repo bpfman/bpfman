@@ -17,7 +17,6 @@ mod get;
 mod image;
 mod list;
 mod load;
-mod system;
 mod table;
 mod unload;
 
@@ -33,7 +32,7 @@ impl Commands {
     pub(crate) async fn execute(&self) -> Result<(), anyhow::Error> {
         let config = open_config_file();
 
-        let mut bpf_manager = BpfManager::new(config.clone(), None);
+        let mut bpf_manager = BpfManager::new(config.clone());
 
         match self {
             Commands::Load(l) => l.execute(&mut bpf_manager).await,
@@ -43,7 +42,6 @@ impl Commands {
                 .await
                 .map_err(|e| anyhow!("get error: {e}")),
             Commands::Image(i) => i.execute(&mut bpf_manager).await,
-            Commands::System(s) => s.execute(&config).await,
         }?;
 
         Ok(())

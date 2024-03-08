@@ -1,7 +1,7 @@
 use std::process::Command;
 
 use assert_cmd::prelude::*;
-use bpfman_api::util::directories::{RTDIR_FS_MAPS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP};
+use bpfman::directories::{RTDIR_FS_MAPS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP};
 use log::debug;
 use rand::Rng;
 

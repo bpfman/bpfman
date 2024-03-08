@@ -8,48 +8,40 @@ use std::{
 };
 
 use anyhow::anyhow;
-use bpfman_api::{config::Config, v1::bpfman_server::BpfmanServer};
+use bpfman::{
+    config::Config,
+    storage::StorageManager,
+    utils::{set_file_permissions, SOCK_MODE},
+};
+use bpfman_api::v1::bpfman_server::BpfmanServer;
 use libsystemd::activation::IsType;
 use log::{debug, error, info};
 use tokio::{
     join,
     net::UnixListener,
     signal::unix::{signal, SignalKind},
-    sync::{broadcast, mpsc},
+    sync::broadcast,
     task::{JoinHandle, JoinSet},
 };
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::Server;
 
-use crate::{
-    rpc::BpfmanLoader,
-    storage::StorageManager,
-    utils::{set_file_permissions, SOCK_MODE},
-    BpfManager,
-};
+use crate::rpc::BpfmanLoader;
 
 pub async fn serve(
-    config: &Config,
+    config: Config,
     csi_support: bool,
     timeout: u64,
     socket_path: &Path,
 ) -> anyhow::Result<()> {
     let (shutdown_tx, shutdown_rx1) = broadcast::channel(32);
     let shutdown_rx3 = shutdown_tx.subscribe();
-    let shutdown_rx4 = shutdown_tx.subscribe();
     let shutdown_handle = tokio::spawn(shutdown_handler(timeout, shutdown_tx));
 
-    let (tx, rx) = mpsc::channel(32);
-
-    let loader = BpfmanLoader::new(tx.clone());
+    let loader = BpfmanLoader::new(config);
     let service = BpfmanServer::new(loader);
 
     let mut listeners: Vec<_> = Vec::new();
-
-    // Rebuild bpf_manager before starting the unix server to ensure that it
-    // doesn't race with the creation of a `ProgramData` object in rpc.rs.
-    let mut bpf_manager = BpfManager::new(config.clone(), Some(rx));
-    bpf_manager.rebuild_state().await?;
 
     let handle = serve_unix(socket_path, service.clone(), shutdown_rx1).await?;
     listeners.push(handle);
@@ -70,24 +62,19 @@ pub async fn serve(
     // };
 
     if csi_support {
-        let storage_manager = StorageManager::new(tx);
+        let storage_manager = StorageManager::new();
         let storage_manager_handle =
             tokio::spawn(async move { storage_manager.run(shutdown_rx3).await });
-        let (_, res_storage, _, _) = join!(
+        let (_, res_storage, _) = join!(
             join_listeners(listeners),
             storage_manager_handle,
-            bpf_manager.process_commands(shutdown_rx4),
             shutdown_handle
         );
         if let Some(e) = res_storage.err() {
             return Err(e.into());
         }
     } else {
-        let (_, _, res) = join!(
-            join_listeners(listeners),
-            bpf_manager.process_commands(shutdown_rx4),
-            shutdown_handle
-        );
+        let (_, res) = join!(join_listeners(listeners), shutdown_handle);
         if let Some(e) = res.err() {
             return Err(e.into());
         }

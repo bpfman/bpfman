@@ -13,3 +13,7 @@ data:
   bpfman.log.level: info
   bpfman.agent.healthprobe.addr: :8175
   bpfman.agent.metric.addr: 127.0.0.1:8174
+  bpfman.toml: |
+    [database]
+    max_retries = 10
+    millisec_delay = 2000

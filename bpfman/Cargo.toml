@@ -20,7 +20,6 @@ async-trait = { workspace = true }
 aya = { workspace = true }
 base16ct = { workspace = true, features = ["alloc"] }
 base64 = { workspace = true }
-bpfman-api = { workspace = true }
 bpfman-csi = { workspace = true }
 caps = { workspace = true }
 chrono = { workspace = true }
@@ -38,7 +37,6 @@ flate2 = { workspace = true, features = ["zlib"] }
 futures = { workspace = true }
 hex = { workspace = true, features = ["std"] }
 lazy_static = { workspace = true }
-libsystemd = { workspace = true }
 log = { workspace = true }
 netlink-packet-route = { workspace = true }
 nix = { workspace = true, features = [
@@ -70,11 +68,10 @@ tempfile = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["full", "signal"] }
 tokio-stream = { workspace = true, features = ["net"] }
-toml = { workspace = true }
+toml = { workspace = true, features = ["parse"] }
 tonic = { workspace = true, features = ["transport"] }
 tower = { workspace = true }
 url = { workspace = true }
-users = { workspace = true }
 
 [dev-dependencies]
 assert_matches = { workspace = true }

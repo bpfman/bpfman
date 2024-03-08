@@ -5,13 +5,12 @@ use std::collections::HashMap;
 
 use anyhow::bail;
 use bpfman::{
-    command::{
-        FentryProgram, FexitProgram, KprobeProgram, Location, Program, ProgramData, TcProgram,
-        TracepointProgram, UprobeProgram, XdpProgram,
+    types::{
+        FentryProgram, FexitProgram, KprobeProgram, Location, Program, ProgramData, TcProceedOn,
+        TcProgram, TracepointProgram, UprobeProgram, XdpProceedOn, XdpProgram,
     },
     BpfManager,
 };
-use bpfman_api::{TcProceedOn, XdpProceedOn};
 
 use crate::{
     args::{GlobalArg, LoadCommands, LoadFileArgs, LoadImageArgs, LoadSubcommand},
@@ -34,6 +33,7 @@ pub(crate) async fn execute_load_file(
     let bytecode_source = Location::File(args.path.clone());
 
     let data = ProgramData::new_pre_load(
+        &bpf_manager.root_db,
         bytecode_source,
         args.name.clone(),
         args.metadata
@@ -50,8 +50,8 @@ pub(crate) async fn execute_load_file(
         .add_program(args.command.get_program(data)?)
         .await?;
 
-    ProgTable::new_get_bpfman(&Some((&program).try_into()?))?.print();
-    ProgTable::new_get_unsupported(&Some((&program).try_into()?))?.print();
+    ProgTable::new_program(&program)?.print();
+    ProgTable::new_kernel_info(&program)?.print();
     Ok(())
 }
 
@@ -62,6 +62,7 @@ pub(crate) async fn execute_load_image(
     let bytecode_source = Location::Image((&args.pull_args).try_into()?);
 
     let data = ProgramData::new_pre_load(
+        &bpf_manager.root_db,
         bytecode_source,
         args.name.clone(),
         args.metadata
@@ -78,8 +79,8 @@ pub(crate) async fn execute_load_image(
         .add_program(args.command.get_program(data)?)
         .await?;
 
-    ProgTable::new_get_bpfman(&Some((&program).try_into()?))?.print();
-    ProgTable::new_get_unsupported(&Some((&program).try_into()?))?.print();
+    ProgTable::new_program(&program)?.print();
+    ProgTable::new_kernel_info(&program)?.print();
     Ok(())
 }
 

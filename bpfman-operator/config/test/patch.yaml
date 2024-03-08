@@ -6,4 +6,5 @@ metadata:
 data:
   bpfman.agent.image: quay.io/bpfman/bpfman-agent:int-test
   bpfman.image: quay.io/bpfman/bpfman:int-test
-  bpfman.log.level: debug
+  bpfman.log.level: bpfman=debug
+  bpfman.agent.log.level: debug

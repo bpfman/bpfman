@@ -10,21 +10,22 @@ use aya::{
     },
     Bpf, BpfLoader,
 };
-use bpfman_api::{config::XdpMode, util::directories::*, ImagePullPolicy};
 use log::debug;
+use sled::Db;
 
 use crate::{
     calc_map_pin_path,
-    command::{Program, XdpProgram},
+    config::XdpMode,
     create_map_pin_path,
+    directories::*,
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfmanError,
     multiprog::{Dispatcher, XDP_DISPATCHER_PREFIX},
     oci_utils::image_manager::{BytecodeImage, ImageManager},
+    types::{ImagePullPolicy, Program, XdpProgram},
     utils::{
         bytes_to_string, bytes_to_u32, bytes_to_usize, should_map_be_pinned, sled_get, sled_insert,
     },
-    ROOT_DB,
 };
 
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
@@ -45,12 +46,13 @@ pub struct XdpDispatcher {
 
 impl XdpDispatcher {
     pub(crate) fn new(
+        root_db: &Db,
         mode: XdpMode,
         if_index: u32,
         if_name: String,
         revision: u32,
     ) -> Result<Self, BpfmanError> {
-        let db_tree = ROOT_DB
+        let db_tree = root_db
             .open_tree(format!(
                 "{}_{}_{}",
                 XDP_DISPATCHER_PREFIX, if_index, revision
@@ -79,6 +81,7 @@ impl XdpDispatcher {
 
     pub(crate) async fn load(
         &mut self,
+        root_db: &Db,
         programs: &mut [Program],
         old_dispatcher: Option<Dispatcher>,
         image_manager: &mut ImageManager,
@@ -122,6 +125,7 @@ impl XdpDispatcher {
 
         let (path, bpf_function_name) = image_manager
             .get_image(
+                root_db,
                 &image.image_url.clone(),
                 image.image_pull_policy.clone(),
                 image.username.clone(),
@@ -129,7 +133,7 @@ impl XdpDispatcher {
             )
             .await?;
 
-        let program_bytes = image_manager.get_bytecode_from_image_store(path)?;
+        let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
 
         let mut loader = BpfLoader::new()
             .set_global("conf", &config, true)
@@ -149,7 +153,7 @@ impl XdpDispatcher {
         self.attach_extensions(&mut extensions)?;
         self.attach()?;
         if let Some(mut old) = old_dispatcher {
-            old.delete(false)?;
+            old.delete(root_db, false)?;
         }
         Ok(())
     }
@@ -304,14 +308,14 @@ impl XdpDispatcher {
         Ok(())
     }
 
-    pub(crate) fn delete(&self, full: bool) -> Result<(), BpfmanError> {
+    pub(crate) fn delete(&self, root_db: &Db, full: bool) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
         debug!(
             "XdpDispatcher::delete() for if_index {}, revision {}, full {}",
             if_index, revision, full
         );
-        ROOT_DB.drop_tree(self.db_tree.name()).map_err(|e| {
+        root_db.drop_tree(self.db_tree.name()).map_err(|e| {
             BpfmanError::DatabaseError(
                 format!(
                     "unable to drop xdp dispatcher tree {:?}",

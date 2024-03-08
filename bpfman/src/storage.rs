@@ -10,7 +10,6 @@ use std::{
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use aya::maps::MapData;
-use bpfman_api::util::directories::{RTDIR_BPFMAN_CSI_FS, RTPATH_BPFMAN_CSI_SOCKET};
 use bpfman_csi::v1::{
     identity_server::{Identity, IdentityServer},
     node_server::{Node, NodeServer},
@@ -25,16 +24,16 @@ use bpfman_csi::v1::{
 };
 use log::{debug, error, info, warn};
 use nix::mount::{mount, umount, MsFlags};
-use tokio::{
-    net::UnixListener,
-    sync::{broadcast, mpsc, mpsc::Sender, oneshot},
-};
+use tokio::{net::UnixListener, sync::broadcast};
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::{transport::Server, Request, Response, Status};
 
 use crate::{
-    command::{Command, ListFilter},
-    utils::{create_bpffs, set_dir_permissions, set_file_permissions, SOCK_MODE},
+    config::Config,
+    directories::{RTDIR_BPFMAN_CSI_FS, RTPATH_BPFMAN_CSI_SOCKET},
+    types::ListFilter,
+    utils::{create_bpffs, open_config_file, set_dir_permissions, set_file_permissions, SOCK_MODE},
+    BpfManager,
 };
 
 const DRIVER_NAME: &str = "csi.bpfman.io";
@@ -45,7 +44,7 @@ const OPERATOR_PROGRAM_KEY: &str = "bpfman.io/ProgramName";
 const NPV_NOT_FOUND: i32 = 5;
 const OWNER_READ_WRITE: u32 = 0o0750;
 
-pub(crate) struct StorageManager {
+pub struct StorageManager {
     csi_identity: CsiIdentity,
     csi_node: CsiNode,
 }
@@ -57,7 +56,6 @@ struct CsiIdentity {
 
 struct CsiNode {
     node_id: String,
-    tx: Sender<Command>,
 }
 
 #[async_trait]
@@ -135,49 +133,31 @@ impl Node for CsiNode {
             (Some(m), Some(program_name)) => {
                 let maps: Vec<&str> = m.split(',').collect();
 
-                // Get the program information from the BpfManager
-                let (resp_tx, resp_rx) = oneshot::channel();
-                let cmd = Command::List {
-                    responder: resp_tx,
-                    filter: ListFilter::default(),
-                };
+                let config: Config = open_config_file();
+                let mut bpf_manager = BpfManager::new(config);
 
-                // Send the LIST request
-                self.tx.send(cmd).await.unwrap();
-
-                // Await the response
-                let core_map_path = match resp_rx.await {
-                    Ok(results) => {
-                        // Find the Program with the specified *Program CRD name
-                        let prog_data = results
-                            .into_iter()
-                            .find(|p| {
-                                p.get_data()
-                                    .get_metadata()
-                                    .expect("unable to get program metadata")
-                                    .get(OPERATOR_PROGRAM_KEY)
-                                    == Some(program_name)
-                            })
-                            .ok_or(Status::new(
-                                NPV_NOT_FOUND.into(),
-                                format!("Bpfman Program {program_name} not found"),
-                            ))?;
-                        Ok(prog_data
-                            .get_data()
-                            .get_map_pin_path()
-                            .map_err(|e| {
-                                Status::aborted(format!("failed to get map_pin_path: {e}"))
-                            })?
-                            .expect(
-                                "map pin path should be set since the program is already loaded",
-                            )
-                            .to_owned())
-                    }
-                    Err(_) => Err(Status::new(
+                // Find the Program with the specified *Program CRD name
+                let prog_data = bpf_manager
+                    .list_programs(ListFilter::default())
+                    .into_iter()
+                    .find(|p| {
+                        p.get_data()
+                            .get_metadata()
+                            .expect("unable to get program metadata")
+                            .get(OPERATOR_PROGRAM_KEY)
+                            == Some(program_name)
+                    })
+                    .ok_or(Status::new(
                         NPV_NOT_FOUND.into(),
-                        format!("Unable to list bpfman programs {program_name} not found"),
-                    )),
-                }?;
+                        format!("Bpfman Program {program_name} not found"),
+                    ))?;
+
+                let core_map_path = prog_data
+                    .get_data()
+                    .get_map_pin_path()
+                    .map_err(|e| Status::aborted(format!("failed to get map_pin_path: {e}")))?
+                    .expect("map pin path should be set since the program is already loaded")
+                    .to_owned();
 
                 // Create the Target Path if it doesn't exist
                 let target = Path::new(target_path);
@@ -342,8 +322,14 @@ impl Node for CsiNode {
     }
 }
 
+impl Default for StorageManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl StorageManager {
-    pub fn new(tx: mpsc::Sender<Command>) -> Self {
+    pub fn new() -> Self {
         const VERSION: &str = env!("CARGO_PKG_VERSION");
         let node_id = std::env::var("KUBE_NODE_NAME")
             .expect("cannot start bpfman csi driver if KUBE_NODE_NAME not set");
@@ -353,7 +339,7 @@ impl StorageManager {
             version: VERSION.to_string(),
         };
 
-        let csi_node = CsiNode { node_id, tx };
+        let csi_node = CsiNode { node_id };
 
         Self {
             csi_node,

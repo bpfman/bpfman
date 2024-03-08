@@ -2,8 +2,7 @@
 // Copyright Authors of bpfman
 
 use base64::{engine::general_purpose, Engine};
-use bpfman::{oci_utils::image_manager::BytecodeImage, BpfManager};
-use bpfman_api::ImagePullPolicy;
+use bpfman::{oci_utils::image_manager::BytecodeImage, types::ImagePullPolicy, BpfManager};
 
 use crate::args::{ImageSubCommand, PullBytecodeArgs};
 

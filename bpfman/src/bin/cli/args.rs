@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 
-use bpfman_api::ProgramType;
+use bpfman::types::ProgramType;
 use clap::{Args, Parser, Subcommand};
 use hex::FromHex;
 
@@ -32,9 +32,6 @@ pub(crate) enum Commands {
     /// eBPF Bytecode Image related commands.
     #[command(subcommand)]
     Image(ImageSubCommand),
-    /// Run bpfman as a service.
-    #[command(subcommand)]
-    System(SystemSubcommand),
 }
 
 #[derive(Subcommand, Debug)]
@@ -342,10 +339,6 @@ pub(crate) struct PullBytecodeArgs {
 #[derive(Args, Debug)]
 #[command(disable_version_flag = true)]
 pub(crate) struct ServiceArgs {
-    /// Optional: Enable CSI support. Only supported when run in a Kubernetes
-    /// environment with bpfman-agent.
-    #[clap(long, verbatim_doc_comment)]
-    pub(crate) csi_support: bool,
     /// Optional: Shutdown after N seconds of inactivity. Use 0 to disable.
     #[clap(long, verbatim_doc_comment, default_value = "15")]
     pub(crate) timeout: u64,
