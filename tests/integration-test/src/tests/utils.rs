@@ -43,6 +43,8 @@ pub const KRETPROBE_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/kretprobe:latest"
 pub const XDP_COUNTER_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/go-xdp-counter";
 pub const TC_COUNTER_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/go-tc-counter";
 pub const TRACEPOINT_COUNTER_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/go-tracepoint-counter";
+pub const FENTRY_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/fentry:latest";
+pub const FEXIT_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/fexit:latest";
 
 pub const XDP_PASS_FILE_LOC: &str = "tests/integration-test/bpf/.output/xdp_pass.bpf.o";
 pub const TC_PASS_FILE_LOC: &str = "tests/integration-test/bpf/.output/tc_pass.bpf.o";
@@ -51,6 +53,8 @@ pub const UPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/uprobe.bpf
 pub const URETPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/uprobe.bpf.o";
 pub const KPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/kprobe.bpf.o";
 pub const KRETPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/kprobe.bpf.o";
+pub const FENTRY_FILE_LOC: &str = "tests/integration-test/bpf/.output/fentry.bpf.o";
+pub const FEXIT_FILE_LOC: &str = "tests/integration-test/bpf/.output/fentry.bpf.o";
 
 /// Exit on panic as well as the passing of a test
 #[derive(Debug)]
@@ -457,6 +461,58 @@ pub fn add_kretprobe(
         "Successfully added kretprobe program: {:?} from: {:?}",
         prog_id, load_type
     );
+    Ok(prog_id)
+}
+
+/// Install a fentry or fexit program with bpfman
+pub fn add_fentry_or_fexit(
+    load_type: &LoadType,
+    image_url: &str,
+    file_path: &str,
+    fentry: bool,
+) -> Result<String> {
+    let mut args = vec!["load"];
+    match load_type {
+        LoadType::Image => {
+            args.push("image");
+        }
+        LoadType::File => {
+            args.push("file");
+        }
+    }
+
+    match load_type {
+        LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
+        LoadType::File => {
+            if fentry {
+                args.extend(["-n", "test_fentry", "--path", file_path]);
+            } else {
+                args.extend(["-n", "test_fexit", "--path", file_path]);
+            }
+        }
+    }
+
+    if fentry {
+        args.extend(["fentry", "-f", "do_unlinkat"]);
+    } else {
+        args.extend(["fexit", "-f", "do_unlinkat"]);
+    }
+
+    let output = Command::cargo_bin("bpfman")?.args(args).ok();
+    let stdout = String::from_utf8(output.unwrap().stdout).unwrap();
+    let prog_id = bpfman_output_parse_id(&stdout);
+    assert!(!prog_id.is_empty());
+    if fentry {
+        debug!(
+            "Successfully added fentry program: {:?} from: {:?}",
+            prog_id, load_type
+        );
+    } else {
+        debug!(
+            "Successfully added fexit program: {:?} from: {:?}",
+            prog_id, load_type
+        );
+    }
     Ok(prog_id)
 }
 

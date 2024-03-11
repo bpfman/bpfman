@@ -430,3 +430,31 @@ fn test_list_with_metadata() {
 
     assert!(!bpffs_has_entries(RTDIR_FS_XDP));
 }
+
+#[integration_test]
+fn test_load_unload_fentry() {
+    debug!("Installing fentry program");
+
+    let mut loaded_ids = vec![];
+
+    for lt in LOAD_TYPES {
+        let prog_id = add_fentry_or_fexit(lt, FENTRY_IMAGE_LOC, FENTRY_FILE_LOC, true).unwrap();
+        loaded_ids.push(prog_id);
+    }
+
+    verify_and_delete_programs(loaded_ids);
+}
+
+#[integration_test]
+fn test_load_unload_fexit() {
+    debug!("Installing fexit program");
+
+    let mut loaded_ids = vec![];
+
+    for lt in LOAD_TYPES {
+        let prog_id = add_fentry_or_fexit(lt, FEXIT_IMAGE_LOC, FEXIT_FILE_LOC, false).unwrap();
+        loaded_ids.push(prog_id);
+    }
+
+    verify_and_delete_programs(loaded_ids);
+}

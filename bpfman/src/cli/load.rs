@@ -13,8 +13,8 @@ use crate::{
         table::ProgTable,
     },
     command::{
-        KprobeProgram, Program, ProgramData, TcProgram, TracepointProgram, UprobeProgram,
-        XdpProgram,
+        FentryProgram, FexitProgram, KprobeProgram, Program, ProgramData, TcProgram,
+        TracepointProgram, UprobeProgram, XdpProgram,
     },
 };
 
@@ -164,6 +164,14 @@ impl LoadCommands {
                     *container_pid,
                 )?))
             }
+            LoadCommands::Fentry { fn_name } => Ok(Program::Fentry(FentryProgram::new(
+                data,
+                fn_name.to_string(),
+            )?)),
+            LoadCommands::Fexit { fn_name } => Ok(Program::Fexit(FexitProgram::new(
+                data,
+                fn_name.to_string(),
+            )?)),
         }
     }
 }

@@ -82,4 +82,23 @@ docker build \
 
 docker push quay.io/bpfman-bytecode/kretprobe
 
+docker build \
+ --build-arg PROGRAM_NAME=do_unlinkat \
+ --build-arg BPF_FUNCTION_NAME=test_fentry \
+ --build-arg PROGRAM_TYPE=fentry \
+ --build-arg BYTECODE_FILENAME=fentry.bpf.o \
+ -f ../../../Containerfile.bytecode \
+ ./.output -t quay.io/bpfman-bytecode/fentry:latest
+
+docker push quay.io/bpfman-bytecode/fentry
+
+docker build \
+ --build-arg PROGRAM_NAME=do_unlinkat \
+ --build-arg BPF_FUNCTION_NAME=test_fexit \
+ --build-arg PROGRAM_TYPE=fexit \
+ --build-arg BYTECODE_FILENAME=fentry.bpf.o \
+ -f ../../../Containerfile.bytecode \
+ ./.output -t quay.io/bpfman-bytecode/fexit:latest
+
+docker push quay.io/bpfman-bytecode/fexit
 

@@ -62,7 +62,7 @@ pub enum ProgramType {
     CgroupSysctl,
     RawTracepointWritable,
     CgroupSockopt,
-    Tracing,
+    Tracing, // fentry, fexit
     StructOps,
     Ext,
     Lsm,

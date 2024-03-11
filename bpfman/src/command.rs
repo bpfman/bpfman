@@ -14,8 +14,9 @@ use bpfman_api::{
     util::directories::RTDIR_FS,
     v1::{
         attach_info::Info, bytecode_location::Location as V1Location, AttachInfo, BytecodeLocation,
-        KernelProgramInfo as V1KernelProgramInfo, KprobeAttachInfo, ProgramInfo as V1ProgramInfo,
-        TcAttachInfo, TracepointAttachInfo, UprobeAttachInfo, XdpAttachInfo,
+        FentryAttachInfo, FexitAttachInfo, KernelProgramInfo as V1KernelProgramInfo,
+        KprobeAttachInfo, ProgramInfo as V1ProgramInfo, TcAttachInfo, TracepointAttachInfo,
+        UprobeAttachInfo, XdpAttachInfo,
     },
     ParseError, ProgramType, TcProceedOn, TcProceedOnEntry, XdpProceedOn, XdpProceedOnEntry,
 };
@@ -95,6 +96,10 @@ const UPROBE_RETPROBE: &str = "uprobe_retprobe";
 const UPROBE_CONTAINER_PID: &str = "uprobe_container_pid";
 const UPROBE_PID: &str = "uprobe_pid";
 const UPROBE_TARGET: &str = "uprobe_target";
+
+const FENTRY_FN_NAME: &str = "fentry_fn_name";
+
+const FEXIT_FN_NAME: &str = "fexit_fn_name";
 
 /// Provided by the requester and used by the manager task to send
 /// the command response back to the requester.
@@ -204,6 +209,8 @@ pub(crate) enum Program {
     Tracepoint(TracepointProgram),
     Kprobe(KprobeProgram),
     Uprobe(UprobeProgram),
+    Fentry(FentryProgram),
+    Fexit(FexitProgram),
     Unsupported(ProgramData),
 }
 
@@ -352,6 +359,12 @@ impl TryFrom<&Program> for V1ProgramInfo {
                     retprobe: p.get_retprobe()?,
                     pid: p.get_pid()?,
                     container_pid: p.get_container_pid()?,
+                })),
+                Program::Fentry(p) => Some(Info::FentryAttachInfo(FentryAttachInfo {
+                    fn_name: p.get_fn_name()?.to_string(),
+                })),
+                Program::Fexit(p) => Some(Info::FexitAttachInfo(FexitAttachInfo {
+                    fn_name: p.get_fn_name()?.to_string(),
                 })),
                 Program::Unsupported(_) => None,
             },
@@ -1375,6 +1388,68 @@ impl UprobeProgram {
     }
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct FentryProgram {
+    pub(crate) data: ProgramData,
+}
+
+impl FentryProgram {
+    pub(crate) fn new(data: ProgramData, fn_name: String) -> Result<Self, BpfmanError> {
+        let mut fentry_prog = Self { data };
+        fentry_prog.set_fn_name(fn_name)?;
+        fentry_prog.get_data_mut().set_kind(ProgramType::Tracing)?;
+
+        Ok(fentry_prog)
+    }
+
+    pub(crate) fn set_fn_name(&mut self, fn_name: String) -> Result<(), BpfmanError> {
+        sled_insert(&self.data.db_tree, FENTRY_FN_NAME, fn_name.as_bytes())
+    }
+
+    pub(crate) fn get_fn_name(&self) -> Result<String, BpfmanError> {
+        sled_get(&self.data.db_tree, FENTRY_FN_NAME).map(|v| bytes_to_string(&v))
+    }
+
+    pub(crate) fn get_data(&self) -> &ProgramData {
+        &self.data
+    }
+
+    pub(crate) fn get_data_mut(&mut self) -> &mut ProgramData {
+        &mut self.data
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct FexitProgram {
+    pub(crate) data: ProgramData,
+}
+
+impl FexitProgram {
+    pub(crate) fn new(data: ProgramData, fn_name: String) -> Result<Self, BpfmanError> {
+        let mut fexit_prog = Self { data };
+        fexit_prog.set_fn_name(fn_name)?;
+        fexit_prog.get_data_mut().set_kind(ProgramType::Tracing)?;
+
+        Ok(fexit_prog)
+    }
+
+    pub(crate) fn set_fn_name(&mut self, fn_name: String) -> Result<(), BpfmanError> {
+        sled_insert(&self.data.db_tree, FEXIT_FN_NAME, fn_name.as_bytes())
+    }
+
+    pub(crate) fn get_fn_name(&self) -> Result<String, BpfmanError> {
+        sled_get(&self.data.db_tree, FEXIT_FN_NAME).map(|v| bytes_to_string(&v))
+    }
+
+    pub(crate) fn get_data(&self) -> &ProgramData {
+        &self.data
+    }
+
+    pub(crate) fn get_data_mut(&mut self) -> &mut ProgramData {
+        &mut self.data
+    }
+}
+
 impl Program {
     pub(crate) fn kind(&self) -> ProgramType {
         match self {
@@ -1383,6 +1458,8 @@ impl Program {
             Program::Tracepoint(_) => ProgramType::Tracepoint,
             Program::Kprobe(_) => ProgramType::Probe,
             Program::Uprobe(_) => ProgramType::Probe,
+            Program::Fentry(_) => ProgramType::Tracing,
+            Program::Fexit(_) => ProgramType::Tracing,
             Program::Unsupported(i) => i.get_kernel_program_type().unwrap().try_into().unwrap(),
         }
     }
@@ -1410,6 +1487,8 @@ impl Program {
             Program::Tc(p) => &mut p.data,
             Program::Kprobe(p) => &mut p.data,
             Program::Uprobe(p) => &mut p.data,
+            Program::Fentry(p) => &mut p.data,
+            Program::Fexit(p) => &mut p.data,
             Program::Unsupported(p) => p,
         }
     }
@@ -1442,7 +1521,7 @@ impl Program {
 
     pub(crate) fn delete(&self) -> Result<(), anyhow::Error> {
         let id = self.get_data().get_id()?;
-        ROOT_DB.drop_tree(PROGRAM_PREFIX.to_string() + id.to_string().as_str())?;
+        ROOT_DB.drop_tree(self.get_data().db_tree.name())?;
 
         let path = format!("{RTDIR_FS}/prog_{id}");
         if PathBuf::from(&path).exists() {
@@ -1502,6 +1581,8 @@ impl Program {
             Program::Tc(p) => p.data.get_location(),
             Program::Kprobe(p) => p.data.get_location(),
             Program::Uprobe(p) => p.data.get_location(),
+            Program::Fentry(p) => p.data.get_location(),
+            Program::Fexit(p) => p.data.get_location(),
             Program::Unsupported(_) => Err(BpfmanError::Error(
                 "cannot get location for unsupported programs".to_string(),
             )),
@@ -1522,6 +1603,8 @@ impl Program {
             Program::Tc(p) => p.get_data(),
             Program::Kprobe(p) => p.get_data(),
             Program::Uprobe(p) => p.get_data(),
+            Program::Fentry(p) => p.get_data(),
+            Program::Fexit(p) => p.get_data(),
             Program::Unsupported(p) => p,
         }
     }
@@ -1541,10 +1624,18 @@ impl Program {
                 ProgramType::Tracepoint => Ok(Program::Tracepoint(TracepointProgram { data })),
                 // kernel does not distinguish between kprobe and uprobe program types
                 ProgramType::Probe => {
-                    if data.db_tree.get("uprobe_offset").unwrap().is_some() {
+                    if data.db_tree.get(UPROBE_OFFSET).unwrap().is_some() {
                         Ok(Program::Uprobe(UprobeProgram { data }))
                     } else {
                         Ok(Program::Kprobe(KprobeProgram { data }))
+                    }
+                }
+                // kernel does not distinguish between fentry and fexit program types
+                ProgramType::Tracing => {
+                    if data.db_tree.get(FENTRY_FN_NAME).unwrap().is_some() {
+                        Ok(Program::Fentry(FentryProgram { data }))
+                    } else {
+                        Ok(Program::Fexit(FexitProgram { data }))
                     }
                 }
                 _ => Err(BpfmanError::Error("Unsupported program type".to_string())),

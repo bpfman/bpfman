@@ -250,6 +250,20 @@ pub(crate) enum LoadCommands {
         #[clap(short, long)]
         container_pid: Option<i32>,
     },
+    #[command(disable_version_flag = true)]
+    /// Install a fentry eBPF program
+    Fentry {
+        /// Required: Kernel function to attach the fentry program.
+        #[clap(short, long)]
+        fn_name: String,
+    },
+    #[command(disable_version_flag = true)]
+    /// Install a fexit eBPF program
+    Fexit {
+        /// Required: Kernel function to attach the fexit program.
+        #[clap(short, long)]
+        fn_name: String,
+    },
 }
 
 #[derive(Args, Debug)]
@@ -265,7 +279,7 @@ pub(crate) struct ListArgs {
     /// Optional: List a specific program type
     /// Example: --program-type xdp
     ///
-    /// [possible values: unspec, socket-filter, kprobe, tc, sched-act,
+    /// [possible values: unspec, socket-filter, probe, tc, sched-act,
     ///                   tracepoint, xdp, perf-event, cgroup-skb,
     ///                   cgroup-sock, lwt-in, lwt-out, lwt-xmit, sock-ops,
     ///                   sk-skb, cgroup-device, sk-msg, raw-tracepoint,

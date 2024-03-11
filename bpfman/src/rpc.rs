@@ -3,10 +3,10 @@
 use bpfman_api::{
     v1::{
         attach_info::Info, bpfman_server::Bpfman, bytecode_location::Location,
-        list_response::ListResult, GetRequest, GetResponse, KprobeAttachInfo, ListRequest,
-        ListResponse, LoadRequest, LoadResponse, PullBytecodeRequest, PullBytecodeResponse,
-        TcAttachInfo, TracepointAttachInfo, UnloadRequest, UnloadResponse, UprobeAttachInfo,
-        XdpAttachInfo,
+        list_response::ListResult, FentryAttachInfo, FexitAttachInfo, GetRequest, GetResponse,
+        KprobeAttachInfo, ListRequest, ListResponse, LoadRequest, LoadResponse,
+        PullBytecodeRequest, PullBytecodeResponse, TcAttachInfo, TracepointAttachInfo,
+        UnloadRequest, UnloadResponse, UprobeAttachInfo, XdpAttachInfo,
     },
     TcProceedOn, XdpProceedOn,
 };
@@ -15,8 +15,9 @@ use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tonic::{Request, Response, Status};
 
 use crate::command::{
-    Command, GetArgs, KprobeProgram, ListFilter, LoadArgs, Program, ProgramData, PullBytecodeArgs,
-    TcProgram, TracepointProgram, UnloadArgs, UprobeProgram, XdpProgram,
+    Command, FentryProgram, FexitProgram, GetArgs, KprobeProgram, ListFilter, LoadArgs, Program,
+    ProgramData, PullBytecodeArgs, TcProgram, TracepointProgram, UnloadArgs, UprobeProgram,
+    XdpProgram,
 };
 
 #[derive(Debug)]
@@ -130,6 +131,16 @@ impl Bpfman for BpfmanLoader {
                             Status::aborted(format!("failed to create uprobeprogram: {e}"))
                         })?,
                 ),
+                Info::FentryAttachInfo(FentryAttachInfo { fn_name }) => {
+                    Program::Fentry(FentryProgram::new(data, fn_name).map_err(|e| {
+                        Status::aborted(format!("failed to create fentryprogram: {e}"))
+                    })?)
+                }
+                Info::FexitAttachInfo(FexitAttachInfo { fn_name }) => {
+                    Program::Fexit(FexitProgram::new(data, fn_name).map_err(|e| {
+                        Status::aborted(format!("failed to create fexitprogram: {e}"))
+                    })?)
+                }
             },
             responder: resp_tx,
         };
