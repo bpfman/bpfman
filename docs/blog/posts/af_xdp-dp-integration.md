@@ -105,8 +105,12 @@ For pods to create and use AF_XDP sockets on their interfaces, they can either:
       - Finally, the CNI also unloads the eBPF program from the netdev and clear any hardware
         filters when the Pod is terminated.
 
-    > **NOTE**: The ``AF_XDP CNI`` manages the unloading of the eBPF program due to the ``AF_XDP DP``
-      not being aware of when a pod terminates (it's only invoked by ``Kubelet`` during pod creation).
+    > **NOTE 1**: The ``AF_XDP CNI`` manages the unloading of the eBPF program due to the ``AF_XDP DP``
+    not being aware of when a pod terminates (it's only invoked by ``Kubelet`` during pod creation).
+
+    > **NOTE 2**: Prior to bpfman integration, the CNI was extended to signal the AF_XDP DP on pod
+    termination (via gRPC) in an effort to support eBPF map pinning directly in the AF_XDP DP. The
+    AF_XDP DP was managing BPFFS(es) for map pinning and needed to be signalled to clean them up.
 
 ### bpfman Integration
 
@@ -126,8 +130,6 @@ So what are the benefits of bpfman integration for the AF_XDP DP and CNI?
 
   - Additionally the CNI runs as a binary on the Kubernetes node so we would need to
     statically compile libbpf/libxdp as part of the CNI.
-
-  > **NOTE**: The CNI has been extended to signal the AF_XDP DP on pod termination (via gRPC).
 
 - More diverse XDP program support through bpfman's eBPF Bytecode Image Specification. Not
   only do the AF_XDP eBPF programs no longer need to be stored in the Device Plugin
@@ -236,9 +238,9 @@ The pod will include a volume definition as follows:
    volumes:
    - name: bpf-maps
      csi:
-       driver: csi.bpfd.dev
+       driver: csi.bpfman.dev
        volumeAttributes:
-         csi.bpfd.dev/thru-annotations: true
+         csi.bpfman.dev/thru-annotations: true
 ```
 
 The idea here is when the `Allocate()` request comes in from Kubelet, the AF_XDP
