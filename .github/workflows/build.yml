@@ -353,7 +353,7 @@ jobs:
           name: bpfman-release
 
       - name: release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           body_path: ./changelogs/CHANGELOG-${{ env.RELEASE_VERSION }}.md
           files: |
