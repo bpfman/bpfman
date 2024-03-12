@@ -9,10 +9,8 @@
       
       
       
-        <link rel="prev" href="../../15/bpfmans-shift-towards-a-daemonless-design-and-using-sled-a-high-performance-embedded-database/">
+        <link rel="prev" href="../../26/technical-challenges-for-attaching-ebpf-programs-in-containers/">
       
-      
-        <link rel="next" href="../../../02/26/technical-challenges-for-attaching-ebpf-programs-in-containers/">
       
       
       <link rel="icon" href="../../../../../img/favicon.svg">
@@ -20,7 +18,7 @@
     
     
       
-        <title>Community Meeting: January 11 and 18, 2024 - bpfman</title>
+        <title>bpfman's Integration with the AF_XDP Device Plugin and CNI for Kubernetes - bpfman</title>
       
     
     
@@ -77,7 +75,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#community-meeting-january-11-and-18-2024" class="md-skip">
+        <a href="#bpfmans-integration-with-the-af_xdp-device-plugin-and-cni-for-kubernetes" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Community Meeting: January 11 and 18, 2024
+              bpfman's Integration with the AF_XDP Device Plugin and CNI for Kubernetes
             
           </span>
         </div>
@@ -1506,55 +1504,47 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#hit-the-ground-running" class="md-nav__link">
+  <a href="#what-does-the-af_xdp-device-plugin-and-cni-do" class="md-nav__link">
     <span class="md-ellipsis">
-      Hit the Ground Running
+      What does the AF_XDP Device Plugin and CNI do?
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#january-11-2024" class="md-nav__link">
-    <span class="md-ellipsis">
-      January 11, 2024
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="January 11, 2024">
+    <nav class="md-nav" aria-label="What does the AF_XDP Device Plugin and CNI do?">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#manpagecli-tab-completion-questions-jan-11" class="md-nav__link">
+  <a href="#bpfman-integration" class="md-nav__link">
     <span class="md-ellipsis">
-      Manpage/CLI TAB Completion Questions (Jan 11)
+      bpfman Integration
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="bpfman Integration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#integration-benefits" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration benefits
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#kubernetes-support-for-attaching-uprobes-in-containers-jan-11" class="md-nav__link">
+  <a href="#af_xdp-device-plugin-ebpf-programmap-management" class="md-nav__link">
     <span class="md-ellipsis">
-      Kubernetes Support for Attaching uprobes in Containers (Jan 11)
+      AF_XDP Device Plugin eBPF program/map management
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#netify-preview-in-github-removed-jan-11" class="md-nav__link">
+  <a href="#af_xdp-cni-ebpf-programmap-management" class="md-nav__link">
     <span class="md-ellipsis">
-      netify Preview in Github Removed (Jan 11)
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#attendees-jan-11" class="md-nav__link">
-    <span class="md-ellipsis">
-      Attendees (Jan 11)
+      AF_XDP CNI eBPF program/map management
     </span>
   </a>
   
@@ -1564,39 +1554,53 @@
     </nav>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
         <li class="md-nav__item">
-  <a href="#january-18-2024" class="md-nav__link">
+  <a href="#is-there-a-working-example" class="md-nav__link">
     <span class="md-ellipsis">
-      January 18, 2024
+      Is there a working example?
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="January 18, 2024">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#af_xdp-dp-and-cnis-integration-with-bpfman-in-images" class="md-nav__link">
+    <span class="md-ellipsis">
+      AF_XDP DP and CNI's integration with bpfman in images
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AF_XDP DP and CNI's integration with bpfman in images">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#rpm-builds-and-socket-activation-jan-18" class="md-nav__link">
+  <a href="#af_xdp-dp-and-cni-managing-ebpf-programs-independently" class="md-nav__link">
     <span class="md-ellipsis">
-      RPM Builds and Socket Activation (Jan 18)
+      AF_XDP DP and CNI managing eBPF programs independently
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#kubecon-eu-discussion-jan-18" class="md-nav__link">
+  <a href="#af_xdp-dp-and-cni-integrated-with-bpfman-no-csi" class="md-nav__link">
     <span class="md-ellipsis">
-      KubeCon EU Discussion (Jan 18)
+      AF_XDP DP and CNI integrated with bpfman (no csi)
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#attendees-jan-18" class="md-nav__link">
+  <a href="#af_xdp-dp-and-cni-integrated-with-bpfman-with-csi" class="md-nav__link">
     <span class="md-ellipsis">
-      Attendees (Jan 18)
+      AF_XDP DP and CNI integrated with bpfman (with csi)
     </span>
   </a>
   
@@ -1636,11 +1640,11 @@
                 
                   <div class="md-profile md-post__profile">
                     <span class="md-author md-author--long">
-                      <img src="https://github.com/billy99.png" alt="Billy McFall">
+                      <img src="https://github.com/maryamtahhan.png" alt="Maryam Tahhan">
                     </span>
                     <span class="md-profile__description">
-                      <strong>Billy McFall</strong><br>
-                      Senior Principal Software Engineer at Red Hat. Maintainer on bpfman project.
+                      <strong>Maryam Tahhan</strong><br>
+                      Principal Engineer at Red Hat. Working on AF_XDP and integration into Kubernetes.
                     </span>
                   </div>
                 
@@ -1658,21 +1662,10 @@
                     <li class="md-nav__item">
                       <div class="md-nav__link">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5v-5Z"/></svg>
-                        <time datetime="2024-01-19 00:00:00" class="md-ellipsis">January 19, 2024</time>
+                        <time datetime="2024-02-27 00:00:00" class="md-ellipsis">February 27, 2024</time>
                       </div>
                     </li>
                     
-                    
-                      <li class="md-nav__item">
-                        <div class="md-nav__link">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 3v15h3V3H9m3 2 4 13 3-1-4-13-3 1M5 5v13h3V5H5M3 19v2h18v-2H3Z"/></svg>
-                          <span class="md-ellipsis">
-                            in
-                            
-                              <a href="../../../../category/community-meeting/">Community Meeting</a>, 
-                              <a href="../../../../category/2024/">2024</a></span>
-                        </div>
-                      </li>
                     
                     
                       
@@ -1681,7 +1674,7 @@
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7h1.5Z"/></svg>
                           <span class="md-ellipsis">
                             
-                              3 min read
+                              8 min read
                             
                           </span>
                         </div>
@@ -1704,99 +1697,245 @@
   
 
 
-<h1 id="community-meeting-january-11-and-18-2024">Community Meeting: January 11 and 18, 2024</h1>
-<h2 id="hit-the-ground-running">Hit the Ground Running</h2>
-<p>Another set of <code>bpfman</code> Community Meetings for 2024.
-There is a lot going on with <code>bpfman</code> in Q1 of 2024.
-Spending a lot of time making <code>bpfman</code> <a href="https://bpfman.io/main/design/daemonless/">daemonless</a>.
-I bailed for a ski trip after the Jan 11 meeting, so the notes didn't get written up.
-So this summary will include two weeks of meetings.</p>
-<p>Below were some of the discussion points from the last two weeks Community Meetings.</p>
-<ul>
-<li>Manpage/CLI TAB Completion Questions (Jan 11)</li>
-<li>Kubernetes Support for Attaching uprobes in Containers (Jan 11)</li>
-<li>netify Preview in Github Removed (Jan 11)</li>
-<li>RPM Builds and Socket Activation (Jan 18)</li>
-<li>KubeCon EU Discussion (Jan 18)</li>
-</ul>
+<h1 id="bpfmans-integration-with-the-af_xdp-device-plugin-and-cni-for-kubernetes">bpfman's Integration with the AF_XDP Device Plugin and CNI for Kubernetes</h1>
+<p><a href="https://www.kernel.org/doc/html/next/networking/af_xdp.html">AF_XDP</a> is an address/socket family that is optimized for high performance packet processing.
+It takes advantage of <a href="https://docs.cilium.io/en/latest/bpf/progtypes/#xdp">XDP</a> (an in Kernel fastpath), which essentially runs an eBPF
+program as early as possible on a network driver's receive path, and redirects the
+packet to an AF_XDP socket.</p>
+<p><img alt="AF_XDP" src="../../../../img/2024-02-27/AF_XDP-overview.png" /></p>
+<p>AF_XDP sockets (XSKs) are created in Userspace and have a 1:1 mapping with netdev queues.
+An XSKMAP is an eBPF map of AF_XDP sockets for a particular netdev. It's a simple key:value
+map where the key is the netdev's queue-id and the value is the AF_XDP socket that's attached
+to that queue. The eBPF program (at the XDP hook) will leverage the XSKMAP and the XDP_REDIRECT
+action to redirect packets to an AF_XDP socket. In the image below the XDP program is redirecting
+an incoming packet to the XSK attached to Queue 2.</p>
+<blockquote>
+<p><strong>NOTE</strong>: If no XSK is attached to a queue, the XDP program will simply pass the packet to the
+Kernel Network Stack.</p>
+</blockquote>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>+---------------------------------------------------+
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="p">|</span><span class="w">     </span>XSK<span class="w"> </span>A<span class="w">      </span><span class="p">|</span><span class="w">     </span>XSK<span class="w"> </span>B<span class="w">       </span><span class="p">|</span><span class="w">      </span>XSK<span class="w"> </span>C<span class="w">     </span><span class="p">|</span>&lt;---+<span class="w">  </span><span class="nv">Userspace</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="o">=========================================================</span><span class="p">|</span><span class="o">==========</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="p">|</span><span class="w">    </span>Queue<span class="w"> </span><span class="m">0</span><span class="w">     </span><span class="p">|</span><span class="w">     </span>Queue<span class="w"> </span><span class="m">1</span><span class="w">     </span><span class="p">|</span><span class="w">     </span>Queue<span class="w"> </span><span class="m">2</span><span class="w">    </span><span class="p">|</span><span class="w">    </span><span class="p">|</span><span class="w">  </span>Kernel<span class="w"> </span>space
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>+---------------------------------------------------+<span class="w">    </span><span class="p">|</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">|</span><span class="w">                  </span>Netdev<span class="w"> </span>eth0<span class="w">                      </span><span class="p">|</span><span class="w">    </span><span class="p">|</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>+---------------------------------------------------+<span class="w">    </span><span class="p">|</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">|</span><span class="w">                            </span>+<span class="o">=============</span>+<span class="w">        </span><span class="p">|</span><span class="w">    </span><span class="p">|</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">|</span><span class="w">                            </span><span class="p">|</span><span class="w"> </span>key<span class="w"> </span><span class="p">|</span><span class="w">  </span>xsk<span class="w">  </span><span class="p">|</span><span class="w">        </span><span class="p">|</span><span class="w">    </span><span class="p">|</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">|</span><span class="w">  </span>+---------+<span class="w">               </span>+<span class="o">=============</span>+<span class="w">        </span><span class="p">|</span><span class="w">    </span><span class="p">|</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">|</span><span class="w">  </span><span class="p">|</span><span class="w">         </span><span class="p">|</span><span class="w">               </span><span class="p">|</span><span class="w">  </span><span class="m">0</span><span class="w">  </span><span class="p">|</span><span class="w"> </span>xsk<span class="w"> </span>A<span class="w"> </span><span class="p">|</span><span class="w">        </span><span class="p">|</span><span class="w">    </span><span class="p">|</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">|</span><span class="w">  </span><span class="p">|</span><span class="w">         </span><span class="p">|</span><span class="w">               </span>+-------------+<span class="w">        </span><span class="p">|</span><span class="w">    </span><span class="p">|</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="p">|</span><span class="w">  </span><span class="p">|</span><span class="w">         </span><span class="p">|</span><span class="w">               </span><span class="p">|</span><span class="w">  </span><span class="m">1</span><span class="w">  </span><span class="p">|</span><span class="w"> </span>xsk<span class="w"> </span>B<span class="w"> </span><span class="p">|</span><span class="w">        </span><span class="p">|</span><span class="w">    </span><span class="p">|</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">|</span><span class="w">  </span><span class="p">|</span><span class="w"> </span>BPF<span class="w">     </span><span class="p">|</span><span class="w">               </span>+-------------+<span class="w">        </span><span class="p">|</span><span class="w">    </span><span class="p">|</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="p">|</span><span class="w">  </span><span class="p">|</span><span class="w"> </span>prog<span class="w">    </span><span class="p">|</span>--<span class="w"> </span>redirect<span class="w"> </span>--&gt;<span class="p">|</span><span class="w">  </span><span class="m">2</span><span class="w">  </span><span class="p">|</span><span class="w"> </span>xsk<span class="w"> </span>C<span class="w"> </span><span class="p">|</span>-------------+
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">|</span><span class="w">  </span><span class="p">|</span><span class="w"> </span><span class="o">(</span>XDP<span class="w">    </span><span class="p">|</span><span class="w">               </span>+-------------+<span class="w">        </span><span class="p">|</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="p">|</span><span class="w">  </span><span class="p">|</span><span class="w">  </span>HOOK<span class="o">)</span><span class="w">  </span><span class="p">|</span><span class="w">                   </span>xskmap<span class="w">             </span><span class="p">|</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="p">|</span><span class="w">  </span><span class="p">|</span><span class="w">         </span><span class="p">|</span><span class="w">                                      </span><span class="p">|</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="p">|</span><span class="w">  </span>+---------+<span class="w">                                      </span><span class="p">|</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="p">|</span><span class="w">                                                   </span><span class="p">|</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>+---------------------------------------------------+
+</code></pre></div>
+<p>The <a href="https://github.com/intel/afxdp-plugins-for-kubernetes">AF_XDP Device Plugin and CNI</a> project provides the Kubernetes components to
+provision, advertise and manage AF_XDP networking devices for Kubernetes pods. These
+networking devices are typically used as a Secondary networking interface for a pod.
+A key goal of this project is to enable pods to run without any special privileges,
+without it pods that wish to use AF_XDP will need to run with elevated privileges
+in order to manage the eBPF program on the interface. The infrastructure
+will have little to no control over what these pods can load. Therefore it's ideal
+to leverage a central/infrastructure centric eBPF program management approach.  This blog
+will discuss the eBPF program management journey for the AF_XDP Device Plugin and CNI.</p>
 <!-- more -->
 
-<h2 id="january-11-2024">January 11, 2024</h2>
-<h3 id="manpagecli-tab-completion-questions-jan-11">Manpage/CLI TAB Completion Questions (Jan 11)</h3>
-<p>The <code>bpfman</code> CLI now has TAB Completion and man pages.
-However, a couple nits need to be cleaned up <a href="https://github.com/bpfman/bpfman/issues/913">Issue#913</a> and Billy (<a href="https://github.com/billy99">@billy99</a>)
-wanted to clarify a few issues encountered.
-The current implementation for both features  is using an environment variable to
-set the destination directory for the generated files.
-Other features don't work this way and there was a discussion on the proper location
-for the generated files.
-The decision was to use <code>.output/.</code>.</p>
-<p>There was another discussion around <code>clap</code> (Rust CLI crate) and passing variables
-to <code>clap</code> from the Cargo.toml file.
-In the CLI code, <code>#[command(author, version, about, long_about = None)]</code> implies
-to pull the values from the Config.toml file, but we aren’t setting any of those
-variables.
-Also, for <code>cargo xtask build-man-page</code> and <code>cargo xtask build-completion</code> they pull
-from the xtask Cargo.toml file.
-The decision was to set the variables implicitly in code and not pull from Cargo.toml.</p>
-<h3 id="kubernetes-support-for-attaching-uprobes-in-containers-jan-11">Kubernetes Support for Attaching uprobes in Containers (Jan 11)</h3>
-<p>Andre (<a href="https://github.com/anfredette">@anfredette</a>) is working on a feature to enable attaching uprobes in other
-Containers.
-Currently, <code>bpfman</code> only supports attaching uprobes within the <code>bpfman</code> container.
-There was a discussion on proper way to format a query to the KubeAPI server to
-match on NodeName on a Pod list.
-The discussion included so code walk through.
-Andrew (<a href="https://github.com/astoycos">@astoycos</a>) found a possible solution <a href="https://github.com/kubernetes/client-go/issues/410">client-go:Issue#410</a> and
-Dave (<a href="https://github.com/dave-tucker">@dave-tucker</a>) suggested <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.26/#podspec-v1-core">kubernetes-api:podspec-v1-core</a>.</p>
-<h3 id="netify-preview-in-github-removed-jan-11">netify Preview in Github Removed (Jan 11)</h3>
-<p>Lastly, there was a discussion on the <code>netify</code> preview being removed from github
-and a reminder why.
-Dave (<a href="https://github.com/dave-tucker">@dave-tucker</a>) explained that with the docs release history now in place,
-"current" is from a branch and it is not easy to preview.
-So for now, document developers need to run mkdocs locally (See <a href="https://bpfman.io/main/developer-guide/documentation/#generate-documentation">generate-documention</a>).</p>
-<h3 id="attendees-jan-11">Attendees (Jan 11)</h3>
-<ul>
-<li>Andre Fredette (Red Hat)</li>
-<li>Andrew Stoycos (Red Hat)</li>
-<li>Billy McFall (Red Hat)</li>
-<li>Dave Tucker (Red Hat)</li>
-<li>Shane Utt (Kong)</li>
-</ul>
-<h2 id="january-18-2024">January 18, 2024</h2>
-<h3 id="rpm-builds-and-socket-activation-jan-18">RPM Builds and Socket Activation (Jan 18)</h3>
-<p>RPM Builds for <code>bpfman</code> went in fairly recently and Billy (<a href="https://github.com/billy99">@billy99</a>)
-had some questions around their implementation.
-RPM and Socket Activation were developed and merged around the same
-time and the RPM builds are not installing socket activation properly.
-Just verifying that RPMs should be installing the <code>bpfman.socket</code> file.
-And they should.
-There were also some questions on how to build RPMs locally.
-Verified that <code>packit build locally</code> is the way forward.</p>
+<h2 id="what-does-the-af_xdp-device-plugin-and-cni-do">What does the AF_XDP Device Plugin and CNI do?</h2>
+<p>For pods to create and use AF_XDP sockets on their interfaces, they can either:</p>
+<ol>
+<li>Create the AF_XDP socket on an interface already plumbed to the Pod (via SR-IOV
+   Device Plugin and the Host CNI) --&gt; But this requires CAP_BPF or CAP_SYS_ADMIN
+   privileges in order to load the BPF program on the netdev.</li>
+</ol>
+<p>OR</p>
+<ol>
+<li>
+<p>Use the AF_XDP Device Plugin (DP) and CNI in order to support a Pod without the
+   aforementioned root like privileges.</p>
 <blockquote>
-<p><strong>Note:</strong> Socket activation was added to RPM Builds along with documentation
-on building and using RPMs in <a href="https://github.com/bpfman/bpfman/pull/922">PR#922</a></p>
+<p><strong>NOTE</strong>: Prior to kernel 5.19, all BPF sys calls required CAP_BPF, which are
+used to access maps shared between the BPF program and the userspace program.
+In kernel 5.19, a change went in that only requires CAP_BPF for map creation
+(BPF_MAP_CREATE) and loading programs (BPF_PROG_LOAD).</p>
 </blockquote>
-<h3 id="kubecon-eu-discussion-jan-18">KubeCon EU Discussion (Jan 18)</h3>
-<p>With KubeCon EU just around the corner (March 19-22, 2024 in Paris), discussion
-around bpfman talks and who was attending.
-Dave (<a href="https://github.com/dave-tucker">@dave-tucker</a>) is probably attending and Shane (<a href="https://github.com/shaneutt">@shaneutt</a>) might attend.
-So if you are planning on attending KubeCon EU and are interested in <code>bpfman</code> or
-just eBPF, keep an eye out for these guys for some lively discussions!</p>
-<h3 id="attendees-jan-18">Attendees (Jan 18)</h3>
+<p>In this scenario, the <code>AF_XDP DP</code>, will advertise resource pools (of netdevs) to
+<code>Kubelet</code>. When a Pod requests a resource from these pools, <code>Kubelet</code> will
+<code>Allocate()</code> one of these devices through the <code>AF_XDP DP</code>. The <code>AF_XDP DP</code> will load the eBPF
+program (to redirect packets to an AF_XDP socket) on the allocated device.</p>
+<p>The default behaviour of the <code>AF_XDP DP</code> (unless otherwise configured) is to take note of the
+XSKMAP File Descriptor (FD) for that netdev. It will also mount a Unix Domain Socket
+(UDS), as a hostpath mount, in the Pod. This UDS will be used by the AF_XDP application
+to perform a handshake with the <code>AF_XDP DP</code> to retrieve the XSKMAP FD. The application needs
+the XSKMAP FD to "attach" AF_XDP sockets it creates to the netdev queues.</p>
+<blockquote>
+<p><strong>NOTE</strong>: Newer versions of the <code>AF_XDP DP</code> support eBPF map pinning which eliminate the
+need to perform this (non trivial) handshake with AF_XDP pods. It now mounts the
+pinned XSKMAP into the Pod using a hostpath mount. The downside of this approach is that
+the <code>AF_XDP DP</code> now needs to manage several eBPF File Systems (BPFFS), one per pod.</p>
+</blockquote>
+<p>The <code>AF_XDP CNI</code> (like any CNI) has the task of moving the netdev (with the loaded eBPF
+program) into the Pod namespace. It also does a few other important things:</p>
 <ul>
-<li>Billy McFall (Red Hat)</li>
-<li>Dave Tucker (Red Hat)</li>
-<li>Shane Utt (Kong)</li>
+<li>It does not rename the netdev (to allow the DP to avoid IF_INDEX clashes as it manages
+     the AF_XDP resource pools).</li>
+<li>The CNI is also capable of configuring hardware filters on the NIC.</li>
+<li>Finally, the CNI also unloads the eBPF program from the netdev and clear any hardware
+    filters when the Pod is terminated.</li>
 </ul>
-<h1 id="bpfman-community-info">bpfman Community Info</h1>
-<p>A friendly reminder that the Community Meetings are every Thursday 10am-11am
-Eastern US Time and all are welcome!</p>
-<p>Google Meet joining info:</p>
+<blockquote>
+<p><strong>NOTE 1</strong>: The <code>AF_XDP CNI</code> manages the unloading of the eBPF program due to the <code>AF_XDP DP</code>
+not being aware of when a pod terminates (it's only invoked by <code>Kubelet</code> during pod creation).</p>
+<p><strong>NOTE 2</strong>: Prior to bpfman integration, the CNI was extended to signal the AF_XDP DP on pod
+termination (via gRPC) in an effort to support eBPF map pinning directly in the AF_XDP DP. The
+AF_XDP DP was managing BPFFS(es) for map pinning and needed to be signalled to clean them up.</p>
+</blockquote>
+</li>
+</ol>
+<h3 id="bpfman-integration">bpfman Integration</h3>
+<p>Prior to bpfman integration the AF_XDP Device Plugin and CNI managed the eBPF program
+for redirecting incoming packets to AF_XDP sockets, its associated map (XSKMAP), and/or several BPFFS.</p>
+<h4 id="integration-benefits">Integration benefits</h4>
+<p>So what are the benefits of bpfman integration for the AF_XDP DP and CNI?</p>
 <ul>
-<li><a href="https://meet.google.com/ggz-zkmp-pxx">Google Meet</a></li>
-<li>Or dial: (US) +1 984-221-0859 PIN: 613 588 790#</li>
-<li><a href="https://docs.google.com/document/d/17l96_3NMOQS-1a3gfJPPcTnhTrqJb3KWYxFWbRgD-yk/edit">Agenda Document</a></li>
+<li>
+<p>Removes code for loading and managing eBPF from the AF_XDP DP and CNI codebase.</p>
+</li>
+<li>
+<p>This presented a difficulty particularly when trying to find/update appropriate
+    base container images to use for the AF_XDP device plugin. Different images
+    supported different versions of eBPF management libraries (i.e libbpf or libxdp) which
+    forced multiple changes around the loading and attaching of the base eBPF program.</p>
+</li>
+<li>
+<p>Additionally the CNI runs as a binary on the Kubernetes node so we would need to
+    statically compile libbpf/libxdp as part of the CNI.</p>
+</li>
+<li>
+<p>More diverse XDP program support through bpfman's eBPF Bytecode Image Specification. Not
+  only do the AF_XDP eBPF programs no longer need to be stored in the Device Plugin
+  itself, but it's now configurable on a per pool basis.</p>
+</li>
+<li>
+<p>No longer required to leverage Hostpath volume mounts to mount the AF_XDP maps inside
+  a Pod. But rather take advantage of the bpfman CSI support to ensure that maps are
+  pinned in the context of the Pod itself and not in a BPFFS on the host (then shared
+  to the Pod).</p>
+</li>
 </ul>
+<h4 id="af_xdp-device-plugin-ebpf-programmap-management">AF_XDP Device Plugin eBPF program/map management</h4>
+<p>The role of the <code>AF_XDP DP</code> in eBPF program/map management <strong>prior to bpfman integration</strong>:</p>
+<ul>
+<li>
+<p>Loads the default AF_XDP BPF prog onto the netdev at Pod creation and manages info
+regarding the XSKMAP for that netdev.</p>
+</li>
+<li>
+<p>Mounts a UDS as a hostpath volume in the Pod OR creates a BPFFS per netdev and pins the
+  XSKMAP to it, then mounts this BPFFS as a hostpath volume in the Pod.</p>
+</li>
+<li>
+<p>Shares the XSKMAP file descriptor via UDS (involves a handshake with the Pod).</p>
+</li>
+</ul>
+<p>The role of the <code>AF_XDP DP</code> in eBPF program/map management <strong>after bpfman integration</strong>:</p>
+<ul>
+<li>
+<p>Uses bpfman's client APIs to load the BPF prog.</p>
+</li>
+<li>
+<p>Shares the XSKMAP (that bpfman pinned ) with the Pod as a hostpath volume.</p>
+</li>
+</ul>
+<h4 id="af_xdp-cni-ebpf-programmap-management">AF_XDP CNI eBPF program/map management</h4>
+<p>The role of the <code>AF_XDP CNI</code> in eBPF program/map management <strong>prior to bpfman integration</strong>:</p>
+<ul>
+<li>Unloads the eBPF program when a device is returned to the Host network namespace.</li>
+</ul>
+<p>The role of the <code>AF_XDP CNI</code> in eBPF program/map management <strong>after bpfman integration</strong>:</p>
+<ul>
+<li>Uses gRPC to signal to the Device Plugin to request bpfman to unload the eBPF program
+  using the client APIs.</li>
+</ul>
+<h2 id="is-there-a-working-example">Is there a working example?</h2>
+<p>The bpfman integration with the AF_XDP Device Plugin and CNI was demo'ed as part
+of a series of demos that show the migration of a DPDK application to AF_XDP (without)
+any application modification. The demo can be watched below:</p>
+<p><a href="https://www.youtube.com/embed/wcmSO5HwNJQ"><img src="https://img.youtube.com/vi/wcmSO5HwNJQ/hqdefault.jpg" width="600" height="300"
+/></a></p>
+<h2 id="af_xdp-dp-and-cnis-integration-with-bpfman-in-images">AF_XDP DP and CNI's integration with bpfman in images</h2>
+<p>The following sections will present the evolution of the AF_XDP DP and CNI
+from independent eBPF program management to leveraging bpfman to manage eBPF programs on
+their behalf.</p>
+<h3 id="af_xdp-dp-and-cni-managing-ebpf-programs-independently">AF_XDP DP and CNI managing eBPF programs independently</h3>
+<p>The following diagram details how the AF_XDP DP and CNI worked prior to bpfman integration.</p>
+<p><img alt="AF_XDP DP and CNI managing eBPF programs independently" src="../../../../img/2024-02-27/af_xdp.png" /></p>
+<ol>
+<li>
+<p>Setup Subfunctions on the network devices (if the are supported/being used).</p>
+</li>
+<li>
+<p>Create an AF_XDP DP and CNI configuration file to setup the device resource pools and
+   deploy the DP and CNI.</p>
+</li>
+<li>
+<p>When the AF_XDP DP runs it will discover the netdevs on the host and create the resource pools.</p>
+</li>
+<li>
+<p>The AF_XDP DP registers the resource pools with Kubelet.</p>
+</li>
+<li>
+<p>When a pod (that requests an AF_XDP resource) is started, Kubelet will send an <code>Allocate()</code>
+   request to the AF_XDP DP. The AF_XDP DP loads the eBPF program on the interface and mounts the
+   UDS in the pod and sets some environment variables in the pod using the Downward API.</p>
+</li>
+</ol>
+<blockquote>
+<p><strong>NOTE</strong>: In the case where eBPF map pinning is used rather than the UDS, the AF_XDP
+   DP will create a BPFFS where it pins the XSKMAP and mounts the BPFFS as a hostpath volume
+   in the pod.</p>
+</blockquote>
+<ol>
+<li>
+<p>The AF_XDP DP signals success to the Kubelet so that the device is added to the pod.</p>
+</li>
+<li>
+<p>Kubelet triggers multus, which in turn triggers the AF_XDP CNI. The CNI does the relevant network
+   configuration and moves the netdev into the pod network namespace.</p>
+</li>
+<li>
+<p>The application in the pod start and initiates a handshake with the AF_XDP DP over the mounted UDS
+   to retrieve the XSKMAP FD.</p>
+</li>
+</ol>
+<h3 id="af_xdp-dp-and-cni-integrated-with-bpfman-no-csi">AF_XDP DP and CNI integrated with bpfman (no csi)</h3>
+<p>The following diagram details how the AF_XDP DP and CNI worked after bpfman integration.</p>
+<p><img alt="AF_XDP DP and CNI integrated with bpfman (no csi)" src="../../../../img/2024-02-27/af_xdp-bpfman-no-csi.png" /></p>
+<p>The main difference here is that when the <code>Allocate()</code> request comes in from Kubelet, the AF_XDP
+DP uses the bpfman client API to load the eBPF program on the relevant netdev. It takes note of
+where bpfman pins the XSKMAP and mounts this directory as a hostpath volume in the pod.</p>
+<h3 id="af_xdp-dp-and-cni-integrated-with-bpfman-with-csi">AF_XDP DP and CNI integrated with bpfman (with csi)</h3>
+<p>The following diagram details how the AF_XDP DP and CNI will work with bpfman leveraging
+the new CSI implementation.</p>
+<p><img alt="AF_XDP DP and CNI integrated with bpfman (with csi)" src="../../../../img/2024-02-27/af_xdp-bpfman-csi.png" /></p>
+<p>The pod will include a volume definition as follows:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="w">   </span><span class="nt">volumes</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">   </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bpf-maps</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">     </span><span class="nt">csi</span><span class="p">:</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">       </span><span class="nt">driver</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">csi.bpfman.dev</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">       </span><span class="nt">volumeAttributes</span><span class="p">:</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">         </span><span class="nt">csi.bpfman.dev/thru-annotations</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
+<p>The idea here is when the <code>Allocate()</code> request comes in from Kubelet, the AF_XDP
+DP uses the bpfman client API to load the eBPF program on the relevant netdev. The
+AF_XDP DP will annotate the pod with the XdpProgram name, map and mountpath. When the
+bpfman CSI plugin is triggered by Kubelet, it will retrieve the information it needs
+from the pod annotations in order to pin the map inside the Pod.</p>
 
 
 
