@@ -1,7 +1,7 @@
 authors:
   anfredette:
     name: Andre Fredette
-    description: Senior Principal Software Engineer at Red Hat.  Maintainer on bpfman project.
+    description: Senior Principal Software Engineer at Red Hat. Maintainer on bpfman project.
     avatar: https://github.com/anfredette.png
   shaneutt:
     name: Shane Utt
@@ -13,9 +13,13 @@ authors:
     avatar: https://github.com/dave-tucker.png
   billy99:
     name: Billy McFall
-    description: Senior Principal Software Engineer at Red Hat.  Maintainer on bpfman project.
+    description: Senior Principal Software Engineer at Red Hat. Maintainer on bpfman project.
     avatar: https://github.com/billy99.png
   astoycos:
     name: Andrew Stoycos
-    description: Senior Software Engineer at Red Hat.  Maintainer on bpfman project.
+    description: Senior Software Engineer at Red Hat. Maintainer on bpfman project.
     avatar: https://github.com/astoycos.png
+  maryamtahhan:
+    name: Maryam Tahhan
+    description: Principal Engineer at Red Hat. Working on AF_XDP and integration into Kubernetes.
+    avatar: https://github.com/maryamtahhan.png
