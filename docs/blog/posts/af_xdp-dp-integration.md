@@ -1,7 +1,7 @@
 ---
 date: 2024-02-27
 authors:
-  - mtahhan
+  - maryamtahhan
 ---
 # bpfman's Integration with the AF_XDP Device Plugin and CNI for Kubernetes
 
