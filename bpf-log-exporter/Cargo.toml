@@ -1,0 +1,21 @@
+[package]
+documentation.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+name = "bpf-log-exporter"
+repository.workspace = true
+version.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = { workspace = true }
+env_logger = { workspace = true }
+futures = { workspace = true }
+hex = { workspace = true }
+log = { workspace = true }
+netlink-packet-audit = { workspace = true }
+netlink-packet-core = { workspace = true }
+netlink-sys = { workspace = true }
+regex = { workspace = true }
