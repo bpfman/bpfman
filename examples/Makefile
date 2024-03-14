@@ -181,7 +181,12 @@ ifndef TAG
 else
 	$(eval KUST_DIR=$(TAG))
 endif
-	$(KUSTOMIZE) build config/$(KUST_DIR)/$(CONFIG_DIR) | kubectl apply -f -
+	@if [ -f config/$(KUST_DIR)/$(CONFIG_DIR)/kustomization.yaml ]; then \
+		$(KUSTOMIZE) build config/$(KUST_DIR)/$(CONFIG_DIR) | kubectl apply -f - ; \
+	else \
+		echo "Version $(KUST_DIR) not supported for program $(PROG_NAME)" ; \
+		exit 1 ; \
+	fi
 
 
 .PHONY: undeploy-prog
@@ -192,8 +197,12 @@ ifndef TAG
 else
 	$(eval KUST_DIR=$(TAG))
 endif
-	$(KUSTOMIZE) build config/$(KUST_DIR)/$(CONFIG_DIR) | kubectl delete --ignore-not-found=$(ignore-not-found) -f -; \
-
+	@if [ -f config/$(KUST_DIR)/$(CONFIG_DIR)/kustomization.yaml ]; then \
+		$(KUSTOMIZE) build config/$(KUST_DIR)/$(CONFIG_DIR) | kubectl delete --ignore-not-found=$(ignore-not-found) -f -; \
+	else \
+		echo "Version $(KUST_DIR) not supported for program $(PROG_NAME)" ; \
+		exit 1 ; \
+	fi
 
 .PHONY: deploy-tc
 deploy-tc: PROG_NAME=go-tc-counter
