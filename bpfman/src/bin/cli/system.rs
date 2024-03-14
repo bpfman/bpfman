@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
+use bpfman::serve::serve;
 use bpfman_api::config::Config;
 
-use crate::{
-    cli::args::{ServiceArgs, SystemSubcommand},
-    serve::serve,
-};
+use crate::args::{ServiceArgs, SystemSubcommand};
 
 impl SystemSubcommand {
     pub(crate) async fn execute(&self, config: &Config) -> anyhow::Result<()> {

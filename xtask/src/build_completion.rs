@@ -1,6 +1,6 @@
 #[allow(dead_code)]
 mod cli {
-    include!("../../bpfman/src/cli/args.rs");
+    include!("../../bpfman/src/bin/cli/args.rs");
 }
 
 use std::{ffi::OsStr, fs::create_dir_all, path::PathBuf};

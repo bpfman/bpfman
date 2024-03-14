@@ -11,7 +11,6 @@ use std::{
 };
 
 use anyhow::{bail, Context, Result};
-use bpfman_api::{config::Config, util::directories::CFGPATH_BPFMAN_CONFIG};
 use log::{debug, info, warn};
 use nix::{
     libc::RLIM_INFINITY,
@@ -22,11 +21,11 @@ use nix::{
 use sled::Tree;
 use systemd_journal_logger::{connected_to_journal, JournalLog};
 
-use crate::{errors::BpfmanError, BPFMAN_ENV_LOG_LEVEL};
+use crate::{config::Config, directories::*, errors::BpfmanError, BPFMAN_ENV_LOG_LEVEL};
 
 // The bpfman socket should always allow the same users and members of the same group
 // to Read/Write to it.
-pub(crate) const SOCK_MODE: u32 = 0o0660;
+pub const SOCK_MODE: u32 = 0o0660;
 
 // Like tokio::fs::read, but with O_NOCTTY set
 pub(crate) fn read<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, BpfmanError> {
@@ -54,7 +53,7 @@ pub(crate) fn get_ifindex(iface: &str) -> Result<u32, BpfmanError> {
     }
 }
 
-pub(crate) fn set_file_permissions(path: &Path, mode: u32) {
+pub fn set_file_permissions(path: &Path, mode: u32) {
     // Set the permissions on the file based on input
     if (set_permissions(path, std::fs::Permissions::from_mode(mode))).is_err() {
         warn!(
@@ -73,7 +72,7 @@ pub(crate) fn set_dir_permissions(directory: &str, mode: u32) {
     }
 }
 
-pub(crate) fn create_bpffs(directory: &str) -> anyhow::Result<()> {
+pub fn create_bpffs(directory: &str) -> anyhow::Result<()> {
     debug!("Creating bpffs at {directory}");
     let flags = MsFlags::MS_NOSUID | MsFlags::MS_NODEV | MsFlags::MS_NOEXEC | MsFlags::MS_RELATIME;
     mount::<str, str, str, str>(None, directory, Some("bpf"), flags, None)
@@ -210,7 +209,7 @@ pub(crate) fn get_error_msg_from_stderr(stderr: &[u8]) -> String {
         .to_string()
 }
 
-pub(crate) fn open_config_file() -> Config {
+pub fn open_config_file() -> Config {
     if let Ok(c) = std::fs::read_to_string(CFGPATH_BPFMAN_CONFIG) {
         c.parse().unwrap_or_else(|_| {
             warn!("Unable to parse config file, using defaults");
@@ -246,7 +245,7 @@ fn is_bpffs_mounted() -> Result<bool, anyhow::Error> {
     Ok(false)
 }
 
-pub(crate) fn initialize_bpfman() -> anyhow::Result<()> {
+pub fn initialize_bpfman() -> anyhow::Result<()> {
     if connected_to_journal() {
         // If bpfman is running as a service, log to journald.
         JournalLog::new()?
@@ -267,7 +266,6 @@ pub(crate) fn initialize_bpfman() -> anyhow::Result<()> {
     setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
 
     // Create directories associated with bpfman
-    use bpfman_api::util::directories::*;
     create_dir_all(RTDIR).context("unable to create runtime directory")?;
     create_dir_all(RTDIR_FS).context("unable to create mountpoint")?;
     create_dir_all(RTDIR_TC_INGRESS_DISPATCHER).context("unable to create dispatcher directory")?;

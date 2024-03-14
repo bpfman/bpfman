@@ -6,14 +6,67 @@ name = "bpfman-api"
 repository.workspace = true
 version.workspace = true
 
+[[bin]]
+name = "bpfman-rpc"
+path = "src/bin/rpc/main.rs"
+
 [dependencies]
+anyhow = { workspace = true, features = ["std"] }
+async-trait = { workspace = true }
 aya = { workspace = true }
-clap = { workspace = true, features = ["derive", "std"] }
+base16ct = { workspace = true, features = ["alloc"] }
+base64 = { workspace = true }
+bpfman = { workspace = true }
+bpfman-csi = { workspace = true }
+caps = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true, features = [
+    "color",
+    "derive",
+    "help",
+    "std",
+    "suggestions",
+    "usage",
+] }
+env_logger = { workspace = true }
+flate2 = { workspace = true, features = ["zlib"] }
+futures = { workspace = true }
+hex = { workspace = true, features = ["std"] }
+lazy_static = { workspace = true }
+libsystemd = { workspace = true }
 log = { workspace = true }
+netlink-packet-route = { workspace = true }
+nix = { workspace = true, features = [
+    "fs",
+    "mount",
+    "net",
+    "resource",
+    "socket",
+    "user",
+] }
+oci-distribution = { workspace = true, default-features = false, features = [
+    "rustls-tls",
+    "trust-dns",
+] }
 prost = { workspace = true, features = ["prost-derive", "std"] }
+rand = { workspace = true }
+rtnetlink = { workspace = true, features = ["tokio_socket"] }
 serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true, features = ["std"] }
+sha2 = { workspace = true }
+sigstore = { workspace = true, features = [
+    "cached-client",
+    "cosign-rustls-tls",
+    "tuf",
+] }
+sled = { workspace = true }
+systemd-journal-logger = { workspace = true }
+tar = { workspace = true }
+tempfile = { workspace = true }
 thiserror = { workspace = true }
-tokio = { workspace = true, features = ["full"] }
+tokio = { workspace = true, features = ["full", "signal"] }
+tokio-stream = { workspace = true, features = ["net"] }
 toml = { workspace = true, features = ["parse"] }
-tonic = { workspace = true, features = ["codegen", "prost"] }
+tonic = { workspace = true, features = ["codegen", "prost", "transport"] }
+tower = { workspace = true }
 url = { workspace = true }

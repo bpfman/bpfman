@@ -5,6 +5,8 @@ use std::{
     collections::HashMap,
     fs::{create_dir_all, remove_dir_all},
     path::{Path, PathBuf},
+    thread,
+    time::Duration,
 };
 
 use aya::{
@@ -14,51 +16,129 @@ use aya::{
     },
     BpfLoader, Btf,
 };
-use bpfman_api::{
-    config::Config,
-    util::directories::*,
-    ProbeType::{self, *},
-    ProgramType,
-};
-use log::{debug, error, info, warn};
-use tokio::{
-    select,
-    sync::{broadcast, mpsc::Receiver},
-};
+use log::{debug, info, warn};
+use sled::{Config as SledConfig, Db};
 
 use crate::{
-    command::{
-        Command, Direction, ListFilter, Program, ProgramData, UnloadArgs, PROGRAM_PREFIX,
-        PROGRAM_PRE_LOAD_PREFIX,
-    },
+    config::Config,
+    directories::*,
     errors::BpfmanError,
     multiprog::{
         Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher,
         TC_DISPATCHER_PREFIX, XDP_DISPATCHER_PREFIX,
     },
-    oci_utils::{image_manager::BytecodeImage, ImageManager},
+    oci_utils::image_manager::{BytecodeImage, ImageManager},
+    types::{
+        Direction, ListFilter,
+        ProbeType::{self, *},
+        Program, ProgramData, ProgramType, PROGRAM_PREFIX, PROGRAM_PRE_LOAD_PREFIX,
+    },
     utils::{
         bytes_to_string, bytes_to_u32, get_error_msg_from_stderr, get_ifindex, open_config_file,
         set_dir_permissions, should_map_be_pinned, sled_insert,
     },
-    ROOT_DB,
 };
+
+pub mod config;
+mod dispatcher_config;
+pub mod errors;
+mod multiprog;
+pub mod oci_utils;
+mod static_program;
+pub mod storage;
+pub mod types;
+pub mod utils;
+
 const MAPS_MODE: u32 = 0o0660;
 const MAP_PREFIX: &str = "map_";
 const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
+pub const BPFMAN_ENV_LOG_LEVEL: &str = "RUST_LOG";
 
-pub(crate) struct BpfManager {
+pub mod directories {
+    // The following directories are used by bpfman. They should be created by bpfman service
+    // via the bpfman.service settings. They will be manually created in the case where bpfman
+    // is not being run as a service.
+    //
+    // ConfigurationDirectory: /etc/bpfman/
+    pub const CFGDIR_MODE: u32 = 0o6750;
+    pub const CFGDIR: &str = "/etc/bpfman";
+    pub const CFGDIR_STATIC_PROGRAMS: &str = "/etc/bpfman/programs.d";
+    pub const CFGPATH_BPFMAN_CONFIG: &str = "/etc/bpfman/bpfman.toml";
+    pub const CFGPATH_CA_CERTS_PEM: &str = "/etc/bpfman/certs/ca/ca.pem";
+    pub const CFGPATH_CA_CERTS_KEY: &str = "/etc/bpfman/certs/ca/ca.key";
+    pub const CFGPATH_BPFMAN_CERTS_PEM: &str = "/etc/bpfman/certs/bpfman/bpfman.pem";
+    pub const CFGPATH_BPFMAN_CERTS_KEY: &str = "/etc/bpfman/certs/bpfman/bpfman.key";
+    pub const CFGPATH_BPFMAN_CLIENT_CERTS_PEM: &str =
+        "/etc/bpfman/certs/bpfman-client/bpfman-client.pem";
+    pub const CFGPATH_BPFMAN_CLIENT_CERTS_KEY: &str =
+        "/etc/bpfman/certs/bpfman-client/bpfman-client.key";
+
+    // RuntimeDirectory: /run/bpfman/
+    pub const RTDIR_MODE: u32 = 0o6770;
+    pub const RTDIR: &str = "/run/bpfman";
+    pub const RTDIR_XDP_DISPATCHER: &str = "/run/bpfman/dispatchers/xdp";
+    pub const RTDIR_TC_INGRESS_DISPATCHER: &str = "/run/bpfman/dispatchers/tc-ingress";
+    pub const RTDIR_TC_EGRESS_DISPATCHER: &str = "/run/bpfman/dispatchers/tc-egress";
+    pub const RTDIR_FS: &str = "/run/bpfman/fs";
+    pub const RTDIR_FS_TC_INGRESS: &str = "/run/bpfman/fs/tc-ingress";
+    pub const RTDIR_FS_TC_EGRESS: &str = "/run/bpfman/fs/tc-egress";
+    pub const RTDIR_FS_XDP: &str = "/run/bpfman/fs/xdp";
+    pub const RTDIR_FS_MAPS: &str = "/run/bpfman/fs/maps";
+    pub const RTDIR_PROGRAMS: &str = "/run/bpfman/programs";
+    pub const RTDIR_SOCK: &str = "/run/bpfman-sock";
+    pub const RTPATH_BPFMAN_SOCKET: &str = "/run/bpfman-sock/bpfman.sock";
+    // The CSI socket must be in it's own sub directory so we can easily create a dedicated
+    // K8s volume mount for it.
+    pub const RTDIR_BPFMAN_CSI: &str = "/run/bpfman/csi";
+    pub const RTPATH_BPFMAN_CSI_SOCKET: &str = "/run/bpfman/csi/csi.sock";
+    pub const RTDIR_BPFMAN_CSI_FS: &str = "/run/bpfman/csi/fs";
+    // The TUF repository is used to store Rekor and Fulcio public keys.
+    pub const RTDIR_TUF: &str = "/run/bpfman/tuf";
+    // StateDirectory: /var/lib/bpfman/
+    pub const STDIR_MODE: u32 = 0o6770;
+    pub const STDIR: &str = "/var/lib/bpfman";
+    pub const STDIR_DB: &str = "/var/lib/bpfman/db";
+}
+
+#[cfg(not(test))]
+pub(crate) fn get_db_config() -> SledConfig {
+    SledConfig::default().path(STDIR_DB)
+}
+
+#[cfg(test)]
+pub(crate) fn get_db_config() -> SledConfig {
+    SledConfig::default().temporary(true)
+}
+
+pub(crate) fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanError> {
+    let database_config = open_config_file().database.unwrap_or_default();
+    for _ in 1..database_config.max_retries {
+        if let Ok(db) = sled_config.open() {
+            debug!("Successfully opened database");
+            return Ok(db);
+        } else {
+            info!(
+                "Database lock is already held, retrying after {} milliseconds",
+                database_config.millisec_delay
+            );
+            thread::sleep(Duration::from_millis(database_config.millisec_delay));
+        }
+    }
+    Err(BpfmanError::DatabaseLockError)
+}
+
+pub struct BpfManager {
     config: Config,
-    commands: Option<Receiver<Command>>,
-    pub(crate) image_manager: Option<ImageManager>,
+    pub image_manager: Option<ImageManager>,
+    pub root_db: Db,
 }
 
 impl BpfManager {
-    pub(crate) fn new(config: Config, commands: Option<Receiver<Command>>) -> Self {
+    pub fn new(config: Config) -> Self {
         Self {
             config,
-            commands,
             image_manager: None,
+            root_db: init_database(get_db_config()).expect("Unable to open root database"),
         }
     }
 
@@ -92,12 +172,15 @@ impl BpfManager {
             }
         };
 
-        ROOT_DB
+        self.root_db
             .tree_names()
             .into_iter()
             .find(|p| bytes_to_string(p).contains(&tree_name_prefix))
             .map(|p| {
-                let tree = ROOT_DB.open_tree(p).expect("unable to open database tree");
+                let tree = self
+                    .root_db
+                    .open_tree(p)
+                    .expect("unable to open database tree");
                 Dispatcher::new_from_db(tree)
             })
     }
@@ -116,8 +199,9 @@ impl BpfManager {
         let prog_tree: sled::IVec = (PROGRAM_PREFIX.to_string() + &id.to_string())
             .as_bytes()
             .into();
-        if ROOT_DB.tree_names().contains(&prog_tree) {
-            let tree = ROOT_DB
+        if self.root_db.tree_names().contains(&prog_tree) {
+            let tree = self
+                .root_db
                 .open_tree(prog_tree)
                 .expect("unable to open database tree");
             Some(Program::new_from_db(*id, tree).expect("Failed to build program from database"))
@@ -127,12 +211,12 @@ impl BpfManager {
     }
 
     fn filter(
-        &self,
+        &'_ self,
         program_type: ProgramType,
         if_index: Option<u32>,
         direction: Option<Direction>,
-    ) -> impl Iterator<Item = Program> {
-        ROOT_DB
+    ) -> impl Iterator<Item = Program> + '_ {
+        self.root_db
             .tree_names()
             .into_iter()
             .filter(|p| bytes_to_string(p).contains(PROGRAM_PREFIX))
@@ -143,7 +227,10 @@ impl BpfManager {
                     .unwrap()
                     .parse::<u32>()
                     .unwrap();
-                let tree = ROOT_DB.open_tree(p).expect("unable to open database tree");
+                let tree = self
+                    .root_db
+                    .open_tree(p)
+                    .expect("unable to open database tree");
                 Program::new_from_db(id, tree).expect("Failed to build program from database")
             })
             .filter(move |p| {
@@ -204,8 +291,8 @@ impl BpfManager {
         }
     }
 
-    fn get_programs_iter(&self) -> impl Iterator<Item = (u32, Program)> {
-        ROOT_DB
+    fn get_programs_iter(&self) -> impl Iterator<Item = (u32, Program)> + '_ {
+        self.root_db
             .tree_names()
             .into_iter()
             .filter(|p| bytes_to_string(p).contains(PROGRAM_PREFIX))
@@ -216,7 +303,10 @@ impl BpfManager {
                     .unwrap()
                     .parse::<u32>()
                     .unwrap();
-                let tree = ROOT_DB.open_tree(p).expect("unable to open database tree");
+                let tree = self
+                    .root_db
+                    .open_tree(p)
+                    .expect("unable to open database tree");
                 (
                     id,
                     Program::new_from_db(id, tree).expect("Failed to build program from database"),
@@ -224,7 +314,7 @@ impl BpfManager {
             })
     }
 
-    pub(crate) async fn rebuild_state(&mut self) -> Result<(), anyhow::Error> {
+    pub async fn rebuild_state(&mut self) -> Result<(), anyhow::Error> {
         debug!("BpfManager::rebuild_state()");
         self.init_image_manager().await;
 
@@ -232,7 +322,7 @@ impl BpfManager {
         let mut dispatchers = Vec::new();
 
         // re-build programs from database, cache dispatchers to rebuild after.
-        for tree_name in ROOT_DB.tree_names() {
+        for tree_name in self.root_db.tree_names() {
             let name = &bytes_to_string(&tree_name);
 
             if name.contains(TC_DISPATCHER_PREFIX) || name.contains(XDP_DISPATCHER_PREFIX) {
@@ -241,7 +331,7 @@ impl BpfManager {
             } else if name.contains(PROGRAM_PRE_LOAD_PREFIX) {
                 debug!("Removing temporary tree on rebuild: {name}");
                 // Drop temporary DB trees, as it means bpfman crashed mid load
-                ROOT_DB
+                self.root_db
                     .drop_tree(name)
                     .expect("unable to remove temporary program tree");
                 continue;
@@ -249,7 +339,8 @@ impl BpfManager {
         }
 
         for dispatcher in dispatchers {
-            let tree = ROOT_DB
+            let tree = self
+                .root_db
                 .open_tree(dispatcher.clone())
                 .expect("unable to open database tree");
 
@@ -282,10 +373,7 @@ impl BpfManager {
         Ok(())
     }
 
-    pub(crate) async fn add_program(
-        &mut self,
-        mut program: Program,
-    ) -> Result<Program, BpfmanError> {
+    pub async fn add_program(&mut self, mut program: Program) -> Result<Program, BpfmanError> {
         self.init_image_manager().await;
 
         let map_owner_id = program.get_data().get_map_owner_id()?;
@@ -297,7 +385,10 @@ impl BpfManager {
 
         program
             .get_data_mut()
-            .set_program_bytes(self.image_manager.as_mut().expect("image manager not set"))
+            .set_program_bytes(
+                &self.root_db,
+                self.image_manager.as_mut().expect("image manager not set"),
+            )
             .await?;
 
         let result = match program {
@@ -328,7 +419,7 @@ impl BpfManager {
 
                 // Swap the db tree to be persisted with the unique program ID generated
                 // by the kernel.
-                program.get_data_mut().swap_tree(id)?;
+                program.get_data_mut().swap_tree(&self.root_db, id)?;
 
                 Ok(program)
             }
@@ -341,7 +432,7 @@ impl BpfManager {
                 }
 
                 // Cleanup any program that failed to create. Ignore any delete errors.
-                let _ = program.delete();
+                let _ = program.delete(&self.root_db);
 
                 Err(e)
             }
@@ -404,6 +495,7 @@ impl BpfManager {
         };
 
         Dispatcher::new(
+            &self.root_db,
             if_config,
             &mut programs,
             next_revision,
@@ -415,7 +507,7 @@ impl BpfManager {
             // If kernel ID was never set there's no pins to cleanup here so just continue
             if program.get_data().get_id().is_ok() {
                 program
-                    .delete()
+                    .delete(&self.root_db)
                     .map_err(BpfmanError::BpfmanProgramDeleteError)?;
             }
             Err(e)
@@ -737,7 +829,8 @@ impl BpfManager {
             Err(_) => {
                 // If kernel ID was never set there's no pins to cleanup here so just continue
                 if p.get_data().get_id().is_ok() {
-                    p.delete().map_err(BpfmanError::BpfmanProgramDeleteError)?;
+                    p.delete(&self.root_db)
+                        .map_err(BpfmanError::BpfmanProgramDeleteError)?;
                 };
             }
         };
@@ -745,7 +838,7 @@ impl BpfManager {
         res
     }
 
-    pub(crate) async fn remove_program(&mut self, id: u32) -> Result<(), BpfmanError> {
+    pub async fn remove_program(&mut self, id: u32) -> Result<(), BpfmanError> {
         info!("Removing program with id: {id}");
         let prog = match self.get(&id) {
             Some(p) => p,
@@ -769,7 +862,7 @@ impl BpfManager {
                 let if_name = prog.if_name().unwrap();
                 let direction = prog.direction()?;
 
-                prog.delete()
+                prog.delete(&self.root_db)
                     .map_err(BpfmanError::BpfmanProgramDeleteError)?;
 
                 self.remove_multi_attach_program(did, program_type, if_index, if_name, direction)
@@ -781,7 +874,7 @@ impl BpfManager {
             | Program::Fentry(_)
             | Program::Fexit(_)
             | Program::Unsupported(_) => {
-                prog.delete()
+                prog.delete(&self.root_db)
                     .map_err(BpfmanError::BpfmanProgramDeleteError)?;
             }
         }
@@ -810,7 +903,7 @@ impl BpfManager {
         if let Some(ref mut old) = old_dispatcher {
             if next_available_id == 0 {
                 // Delete the dispatcher
-                return old.delete(true);
+                return old.delete(&self.root_db, true);
             }
         }
 
@@ -832,6 +925,7 @@ impl BpfManager {
         debug!("next_revision = {next_revision}");
 
         Dispatcher::new(
+            &self.root_db,
             if_config,
             &mut programs,
             next_revision,
@@ -864,7 +958,7 @@ impl BpfManager {
 
             // The following checks should have been done when the dispatcher was built, but check again to confirm
             if programs.is_empty() {
-                return old.delete(true);
+                return old.delete(&self.root_db, true);
             } else if programs.len() > 10 {
                 return Err(BpfmanError::TooManyPrograms);
             }
@@ -883,6 +977,7 @@ impl BpfManager {
             };
 
             Dispatcher::new(
+                &self.root_db,
                 if_config,
                 &mut programs,
                 next_revision,
@@ -896,7 +991,7 @@ impl BpfManager {
         Ok(())
     }
 
-    pub(crate) fn list_programs(&mut self, filter: ListFilter) -> Vec<Program> {
+    pub fn list_programs(&mut self, filter: ListFilter) -> Vec<Program> {
         debug!("BpfManager::list_programs()");
 
         // Get an iterator for the bpfman load programs, a hash map indexed by program id.
@@ -913,7 +1008,8 @@ impl BpfManager {
                 match bpfman_progs.remove(&prog_id) {
                     Some(p) => p.to_owned(),
                     None => {
-                        let db_tree = ROOT_DB
+                        let db_tree = self
+                            .root_db
                             .open_tree(prog_id.to_string())
                             .expect("Unable to open program database tree for listing programs");
 
@@ -930,7 +1026,7 @@ impl BpfManager {
             .collect()
     }
 
-    pub(crate) fn get_program(&mut self, id: u32) -> Result<Program, BpfmanError> {
+    pub fn get_program(&mut self, id: u32) -> Result<Program, BpfmanError> {
         debug!("Getting program with id: {id}");
         // If the program was loaded by bpfman, then use it.
         // Otherwise, call Aya to get ALL the loaded eBPF programs, and convert the data
@@ -941,7 +1037,8 @@ impl BpfManager {
                 .find_map(|p| {
                     let prog = p.ok()?;
                     if prog.id() == id {
-                        let db_tree = ROOT_DB
+                        let db_tree = self
+                            .root_db
                             .open_tree(prog.id().to_string())
                             .expect("Unable to open program database tree for listing programs");
 
@@ -961,13 +1058,14 @@ impl BpfManager {
         }
     }
 
-    pub(crate) async fn pull_bytecode(&mut self, image: BytecodeImage) -> anyhow::Result<()> {
+    pub async fn pull_bytecode(&mut self, image: BytecodeImage) -> anyhow::Result<()> {
         self.init_image_manager().await;
 
         self.image_manager
             .as_mut()
             .expect("image manager not set")
             .get_image(
+                &self.root_db,
                 &image.image_url,
                 image.image_pull_policy.clone(),
                 image.username.clone(),
@@ -977,63 +1075,12 @@ impl BpfManager {
         Ok(())
     }
 
-    pub(crate) async fn process_commands(&mut self, mut shutdown_channel: broadcast::Receiver<()>) {
-        if self.commands.is_none() {
-            error!("Internal error occurred. Commands not set.");
-        } else {
-            loop {
-                // Start receiving messages
-                select! {
-                    biased;
-                    _ = shutdown_channel.recv() => {
-                        info!("Signal received to stop command processing");
-                        ROOT_DB.flush().expect("Unable to flush database to disk before shutting down BpfManager");
-                        break;
-                    }
-                    Some(cmd) = self.commands.as_mut().unwrap().recv() => {
-                        match cmd {
-                            Command::Load(args) => {
-                                let prog = self.add_program(args.program).await;
-                                // Ignore errors as they'll be propagated to caller in the RPC status
-                                let _ = args.responder.send(prog);
-                            },
-                            Command::Unload(args) => self.unload_command(args).await.unwrap(),
-                            Command::List { responder, filter } => {
-                                let progs = self.list_programs(filter);
-                                // Ignore errors as they'll be propagated to caller in the RPC status
-                                let _ = responder.send(progs);
-                            }
-                            Command::Get(args) => {
-                                let prog = self.get_program(args.id);
-                                // Ignore errors as they'll be propagated to caller in the RPC status
-                                let _ = args.responder.send(prog);
-                            },
-                            Command::PullBytecode(args) => {
-                                let res = self.pull_bytecode(args.image).await;
-                                // Ignore errors as they'll be propagated to caller in the RPC status
-                                let _ = args.responder.send(res.map_err(|e| e.into()));
-                            }
-                        }
-                    }
-                }
-            }
-            info!("Stopping processing commands");
-        }
-    }
-
-    async fn unload_command(&mut self, args: UnloadArgs) -> anyhow::Result<()> {
-        let res = self.remove_program(args.id).await;
-        // Ignore errors as they'll be propagated to caller in the RPC status
-        let _ = args.responder.send(res);
-        Ok(())
-    }
-
     // This function checks to see if the user provided map_owner_id is valid.
     fn is_map_owner_id_valid(&mut self, map_owner_id: u32) -> Result<PathBuf, BpfmanError> {
         let map_pin_path = calc_map_pin_path(map_owner_id);
         let name: &sled::IVec = &format!("{}{}", MAP_PREFIX, map_owner_id).as_bytes().into();
 
-        if ROOT_DB.tree_names().contains(name) {
+        if self.root_db.tree_names().contains(name) {
             // Return the map_pin_path
             return Ok(map_pin_path);
         }
@@ -1081,7 +1128,7 @@ impl BpfManager {
 
         match map_owner_id {
             Some(m) => {
-                if let Some(map) = get_map(m) {
+                if let Some(map) = get_map(m, &self.root_db) {
                     push_maps_used_by(map.clone(), id)?;
                     let used_by = get_maps_used_by(map)?;
 
@@ -1102,7 +1149,8 @@ impl BpfManager {
                 }
             }
             None => {
-                let db_tree = ROOT_DB
+                let db_tree = self
+                    .root_db
                     .open_tree(format!("{}{}", MAP_PREFIX, id))
                     .expect("Unable to open map db tree");
 
@@ -1147,7 +1195,7 @@ impl BpfManager {
             None => id,
         };
 
-        if let Some(map) = get_map(index) {
+        if let Some(map) = get_map(index, &self.root_db) {
             let mut used_by = get_maps_used_by(map.clone())?;
 
             if let Some(index) = used_by.iter().position(|value| *value == id) {
@@ -1160,7 +1208,7 @@ impl BpfManager {
             if used_by.is_empty() {
                 let path: PathBuf = calc_map_pin_path(index);
                 // No more programs using this map, so remove the entry from the map list.
-                ROOT_DB
+                self.root_db
                     .drop_tree(MAP_PREFIX.to_string() + &index.to_string())
                     .expect("unable to drop maps tree");
                 remove_dir_all(path)
@@ -1238,10 +1286,10 @@ pub(crate) fn clear_maps_used_by(db_tree: sled::Tree) {
     });
 }
 
-fn get_map(id: u32) -> Option<sled::Tree> {
-    ROOT_DB
+fn get_map(id: u32, root_db: &Db) -> Option<sled::Tree> {
+    root_db
         .tree_names()
         .into_iter()
         .find(|n| bytes_to_string(n) == format!("{}{}", MAP_PREFIX, id))
-        .map(|n| ROOT_DB.open_tree(n).expect("unable to open map tree"))
+        .map(|n| root_db.open_tree(n).expect("unable to open map tree"))
 }

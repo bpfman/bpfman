@@ -6,6 +6,7 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = { workspace = true, features = ["std"] }
+bpfman = { workspace = true }
 bpfman-api = { workspace = true }
 clap = { workspace = true, features = [
     "derive",

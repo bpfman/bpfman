@@ -3,7 +3,6 @@
 
 use std::io::{copy, Read};
 
-use bpfman_api::ImagePullPolicy;
 use flate2::read::GzDecoder;
 use log::{debug, trace};
 use oci_distribution::{
@@ -16,11 +15,12 @@ use oci_distribution::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
+use sled::Db;
 use tar::Archive;
 
 use crate::{
     oci_utils::{cosign::CosignVerifier, ImageError},
-    ROOT_DB,
+    types::ImagePullPolicy,
 };
 
 #[derive(Debug, Deserialize, Default)]
@@ -36,15 +36,15 @@ pub struct ContainerImageMetadata {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub(crate) struct BytecodeImage {
-    pub(crate) image_url: String,
-    pub(crate) image_pull_policy: ImagePullPolicy,
-    pub(crate) username: Option<String>,
-    pub(crate) password: Option<String>,
+pub struct BytecodeImage {
+    pub image_url: String,
+    pub image_pull_policy: ImagePullPolicy,
+    pub username: Option<String>,
+    pub password: Option<String>,
 }
 
 impl BytecodeImage {
-    pub(crate) fn new(
+    pub fn new(
         image_url: String,
         image_pull_policy: i32,
         username: Option<String>,
@@ -60,46 +60,22 @@ impl BytecodeImage {
         }
     }
 
-    pub(crate) fn get_url(&self) -> &str {
+    pub fn get_url(&self) -> &str {
         &self.image_url
     }
 
-    pub(crate) fn get_pull_policy(&self) -> &ImagePullPolicy {
+    pub fn get_pull_policy(&self) -> &ImagePullPolicy {
         &self.image_pull_policy
     }
 }
 
-impl From<bpfman_api::v1::BytecodeImage> for BytecodeImage {
-    fn from(value: bpfman_api::v1::BytecodeImage) -> Self {
-        // This function is mapping an empty string to None for
-        // username and password.
-        let username = if value.username.is_some() {
-            match value.username.unwrap().as_ref() {
-                "" => None,
-                u => Some(u.to_string()),
-            }
-        } else {
-            None
-        };
-        let password = if value.password.is_some() {
-            match value.password.unwrap().as_ref() {
-                "" => None,
-                u => Some(u.to_string()),
-            }
-        } else {
-            None
-        };
-        BytecodeImage::new(value.url, value.image_pull_policy, username, password)
-    }
-}
-
-pub(crate) struct ImageManager {
+pub struct ImageManager {
     client: Client,
     cosign_verifier: CosignVerifier,
 }
 
 impl ImageManager {
-    pub(crate) async fn new(allow_unsigned: bool) -> Result<Self, anyhow::Error> {
+    pub async fn new(allow_unsigned: bool) -> Result<Self, anyhow::Error> {
         let cosign_verifier = CosignVerifier::new(allow_unsigned).await?;
         let config = ClientConfig {
             protocol: ClientProtocol::Https,
@@ -114,6 +90,7 @@ impl ImageManager {
 
     pub(crate) async fn get_image(
         &mut self,
+        root_db: &Db,
         image_url: &str,
         pull_policy: ImagePullPolicy,
         username: Option<String>,
@@ -130,7 +107,7 @@ impl ImageManager {
 
         let image_content_key = get_image_content_key(&image);
 
-        let exists: bool = ROOT_DB
+        let exists: bool = root_db
             .contains_key(image_content_key.to_string() + "manifest.json")
             .map_err(|e| {
                 ImageError::DatabaseError("failed to read db".to_string(), e.to_string())
@@ -138,20 +115,20 @@ impl ImageManager {
 
         let image_meta = match pull_policy {
             ImagePullPolicy::Always => {
-                self.pull_image(image, &image_content_key, username, password)
+                self.pull_image(root_db, image, &image_content_key, username, password)
                     .await?
             }
             ImagePullPolicy::IfNotPresent => {
                 if exists {
-                    self.load_image_meta(&image_content_key)?
+                    self.load_image_meta(root_db, &image_content_key)?
                 } else {
-                    self.pull_image(image, &image_content_key, username, password)
+                    self.pull_image(root_db, image, &image_content_key, username, password)
                         .await?
                 }
             }
             ImagePullPolicy::Never => {
                 if exists {
-                    self.load_image_meta(&image_content_key)?
+                    self.load_image_meta(root_db, &image_content_key)?
                 } else {
                     Err(ImageError::ByteCodeImageNotfound(image.to_string()))?
                 }
@@ -175,6 +152,7 @@ impl ImageManager {
 
     pub async fn pull_image(
         &mut self,
+        root_db: &Db,
         image: Reference,
         base_key: &str,
         username: Option<String>,
@@ -203,12 +181,12 @@ impl ImageManager {
             .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
 
         // inset and flush to disk to avoid races across threads on write.
-        ROOT_DB
+        root_db
             .insert(image_manifest_key, image_manifest_json.as_str())
             .map_err(|e| {
                 ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
             })?;
-        ROOT_DB.flush().map_err(|e| {
+        root_db.flush().map_err(|e| {
             ImageError::DatabaseError("failed to flush db".to_string(), e.to_string())
         })?;
 
@@ -236,12 +214,12 @@ impl ImageManager {
             serde_json::from_str(&image_config["config"]["Labels"].to_string())
                 .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
 
-        ROOT_DB
+        root_db
             .insert(image_config_path, config_contents.as_str())
             .map_err(|e| {
                 ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
             })?;
-        ROOT_DB.flush().map_err(|e| {
+        root_db.flush().map_err(|e| {
             ImageError::DatabaseError("failed to flush db".to_string(), e.to_string())
         })?;
 
@@ -263,10 +241,10 @@ impl ImageManager {
             .map(|layer| layer.data)
             .ok_or(ImageError::BytecodeImageExtractFailure)?;
 
-        ROOT_DB.insert(bytecode_path, image_content).map_err(|e| {
+        root_db.insert(bytecode_path, image_content).map_err(|e| {
             ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
         })?;
-        ROOT_DB.flush().map_err(|e| {
+        root_db.flush().map_err(|e| {
             ImageError::DatabaseError("failed to flush db".to_string(), e.to_string())
         })?;
 
@@ -275,11 +253,12 @@ impl ImageManager {
 
     pub(crate) fn get_bytecode_from_image_store(
         &self,
+        root_db: &Db,
         base_key: String,
     ) -> Result<Vec<u8>, ImageError> {
         let manifest = serde_json::from_str::<OciImageManifest>(
             std::str::from_utf8(
-                &ROOT_DB
+                &root_db
                     .get(base_key.clone() + "manifest.json")
                     .map_err(|e| {
                         ImageError::DatabaseError("failed to read db".to_string(), e.to_string())
@@ -304,7 +283,7 @@ impl ImageManager {
             bytecode_key
         );
 
-        let f = ROOT_DB
+        let f = root_db
             .get(bytecode_key.clone())
             .map_err(|e| ImageError::DatabaseError("failed to read db".to_string(), e.to_string()))?
             .ok_or(ImageError::DatabaseError(
@@ -349,11 +328,12 @@ impl ImageManager {
 
     fn load_image_meta(
         &self,
+        root_db: &Db,
         image_content_key: &str,
     ) -> Result<ContainerImageMetadata, anyhow::Error> {
         let manifest = serde_json::from_str::<OciImageManifest>(
             std::str::from_utf8(
-                &ROOT_DB
+                &root_db
                     .get(image_content_key.to_string() + "manifest.json")
                     .map_err(|e| {
                         ImageError::DatabaseError("failed to read db".to_string(), e.to_string())
@@ -373,7 +353,7 @@ impl ImageManager {
 
         let image_config_key = image_content_key.to_string() + config_sha;
 
-        let db_content = &ROOT_DB
+        let db_content = &root_db
             .get(image_config_key)
             .map_err(|e| ImageError::DatabaseError("failed to read db".to_string(), e.to_string()))?
             .expect("Image manifest is empty");
@@ -417,12 +397,16 @@ mod tests {
     use assert_matches::assert_matches;
 
     use super::*;
+    use crate::{get_db_config, init_database};
 
     #[tokio::test]
     async fn image_pull_and_bytecode_verify() {
+        let root_db =
+            init_database(get_db_config()).expect("Unable to open root database for unit test");
         let mut mgr = ImageManager::new(true).await.unwrap();
         let (image_content_key, _) = mgr
             .get_image(
+                &root_db,
                 "quay.io/bpfman-bytecode/xdp_pass:latest",
                 ImagePullPolicy::Always,
                 None,
@@ -432,10 +416,10 @@ mod tests {
             .expect("failed to pull bytecode");
 
         // Assert that an manifest, config and bytecode key were formed for image.
-        assert!(ROOT_DB.scan_prefix(image_content_key.clone()).count() == 3);
+        assert!(root_db.scan_prefix(image_content_key.clone()).count() == 3);
 
         let program_bytes = mgr
-            .get_bytecode_from_image_store(image_content_key)
+            .get_bytecode_from_image_store(&root_db, image_content_key)
             .expect("failed to get bytecode from image store");
 
         assert!(!program_bytes.is_empty())
@@ -444,9 +428,12 @@ mod tests {
     #[tokio::test]
     async fn image_pull_policy_never_failure() {
         let mut mgr = ImageManager::new(true).await.unwrap();
+        let root_db =
+            init_database(get_db_config()).expect("Unable to open root database for unit test");
 
         let result = mgr
             .get_image(
+                &root_db,
                 "quay.io/bpfman-bytecode/xdp_pass:latest",
                 ImagePullPolicy::Never,
                 None,
@@ -461,8 +448,11 @@ mod tests {
     #[should_panic]
     async fn private_image_pull_failure() {
         let mut mgr = ImageManager::new(true).await.unwrap();
+        let root_db =
+            init_database(get_db_config()).expect("Unable to open root database for unit test");
 
         mgr.get_image(
+            &root_db,
             "quay.io/bpfman-bytecode/xdp_pass_private:latest",
             ImagePullPolicy::Always,
             None,
@@ -476,9 +466,12 @@ mod tests {
     async fn private_image_pull_and_bytecode_verify() {
         env_logger::init();
         let mut mgr = ImageManager::new(true).await.unwrap();
+        let root_db =
+            init_database(get_db_config()).expect("Unable to open root database for unit test");
 
         let (image_content_key, _) = mgr
             .get_image(
+                &root_db,
                 "quay.io/bpfman-bytecode/xdp_pass_private:latest",
                 ImagePullPolicy::Always,
                 Some("bpfman-bytecode+bpfmancreds".to_owned()),
@@ -488,10 +481,10 @@ mod tests {
             .expect("failed to pull bytecode");
 
         // Assert that an manifest, config and bytecode key were formed for image.
-        assert!(ROOT_DB.scan_prefix(image_content_key.clone()).count() == 3);
+        assert!(root_db.scan_prefix(image_content_key.clone()).count() == 3);
 
         let program_bytes = mgr
-            .get_bytecode_from_image_store(image_content_key)
+            .get_bytecode_from_image_store(&root_db, image_content_key)
             .expect("failed to get bytecode from image store");
 
         assert!(!program_bytes.is_empty())
@@ -500,9 +493,12 @@ mod tests {
     #[tokio::test]
     async fn image_pull_failure() {
         let mut mgr = ImageManager::new(true).await.unwrap();
+        let root_db =
+            init_database(get_db_config()).expect("Unable to open root database for unit test");
 
         let result = mgr
             .get_image(
+                &root_db,
                 "quay.io/bpfman-bytecode/xdp_pass:latest",
                 ImagePullPolicy::Never,
                 None,

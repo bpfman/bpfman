@@ -27,7 +27,7 @@ fn get_tuf_path() -> Option<PathBuf> {
 
 #[cfg(not(test))]
 fn get_tuf_path() -> Option<PathBuf> {
-    Some(PathBuf::from(bpfman_api::util::directories::RTDIR_TUF))
+    Some(PathBuf::from(crate::directories::RTDIR_TUF))
 }
 
 impl CosignVerifier {

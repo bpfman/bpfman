@@ -100,6 +100,10 @@ spec:
             # Used to attach programs inside of containers
             - mountPath: /host/proc
               name: host-proc
+            - name: bpfman-config
+              mountPath: /etc/bpfman/bpfman.toml
+              subPath: bpfman.toml
+              readOnly: true
         - name: bpfman-agent
           command: [/bpfman-agent]
           args:

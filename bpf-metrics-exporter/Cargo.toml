@@ -9,6 +9,7 @@ version = "0.1.0-dev"
 [dependencies]
 anyhow = { workspace = true }
 aya = { workspace = true }
+bpfman = { workspace = true }
 bpfman-api = { workspace = true }
 chrono = { workspace = true, features = ["std"] }
 clap = { workspace = true, features = [

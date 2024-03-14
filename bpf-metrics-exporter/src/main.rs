@@ -2,7 +2,7 @@
 // Copyright Authors of bpfman
 
 use aya::{loaded_programs, maps::loaded_maps, programs::loaded_links};
-use bpfman_api::ProgramType;
+use bpfman::types::ProgramType;
 use chrono::{prelude::DateTime, Utc};
 use clap::Parser;
 use opentelemetry::{

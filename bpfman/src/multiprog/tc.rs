@@ -11,27 +11,27 @@ use aya::{
     },
     Bpf, BpfLoader,
 };
-use bpfman_api::{util::directories::*, ImagePullPolicy};
 use futures::stream::TryStreamExt;
 use log::debug;
 use netlink_packet_route::tc::TcAttribute;
+use sled::Db;
 
 use crate::{
-    bpf::{calc_map_pin_path, create_map_pin_path},
-    command::{
-        Direction,
-        Direction::{Egress, Ingress},
-        Program, TcProgram,
-    },
+    calc_map_pin_path, create_map_pin_path,
+    directories::*,
     dispatcher_config::TcDispatcherConfig,
     errors::BpfmanError,
     multiprog::{Dispatcher, TC_DISPATCHER_PREFIX},
     oci_utils::image_manager::{BytecodeImage, ImageManager},
+    types::{
+        Direction,
+        Direction::{Egress, Ingress},
+        ImagePullPolicy, Program, TcProgram,
+    },
     utils::{
         bytes_to_string, bytes_to_u16, bytes_to_u32, bytes_to_usize, should_map_be_pinned,
         sled_get, sled_get_option, sled_insert,
     },
-    ROOT_DB,
 };
 
 const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the dispatcher
@@ -55,12 +55,13 @@ pub struct TcDispatcher {
 
 impl TcDispatcher {
     pub(crate) fn new(
+        root_db: &Db,
         direction: Direction,
         if_index: u32,
         if_name: String,
         revision: u32,
     ) -> Result<Self, BpfmanError> {
-        let db_tree = ROOT_DB
+        let db_tree = root_db
             .open_tree(format!(
                 "{}_{}_{}_{}",
                 TC_DISPATCHER_PREFIX, if_index, direction, revision
@@ -90,6 +91,7 @@ impl TcDispatcher {
 
     pub(crate) async fn load(
         &mut self,
+        root_db: &Db,
         programs: &mut [Program],
         old_dispatcher: Option<Dispatcher>,
         image_manager: &mut ImageManager,
@@ -127,6 +129,7 @@ impl TcDispatcher {
 
         let (path, bpf_function_name) = image_manager
             .get_image(
+                root_db,
                 &image.image_url,
                 image.image_pull_policy.clone(),
                 image.username.clone(),
@@ -134,7 +137,7 @@ impl TcDispatcher {
             )
             .await?;
 
-        let program_bytes = image_manager.get_bytecode_from_image_store(path)?;
+        let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
 
         let mut loader = BpfLoader::new()
             .set_global("CONFIG", &config, true)
@@ -157,17 +160,17 @@ impl TcDispatcher {
         self.set_program_name(&bpf_function_name)?;
 
         self.attach_extensions(&mut extensions)?;
-        self.attach(old_dispatcher)?;
+        self.attach(root_db, old_dispatcher).await?;
         Ok(())
     }
 
     /// has_qdisc returns true if the qdisc_name is found on the if_index.
-    fn has_qdisc(qdisc_name: String, if_index: i32) -> Result<bool, anyhow::Error> {
+    async fn has_qdisc(qdisc_name: String, if_index: i32) -> Result<bool, anyhow::Error> {
         let (connection, handle, _) = rtnetlink::new_connection().unwrap();
         tokio::spawn(connection);
 
         let mut qdiscs = handle.qdisc().get().execute();
-        while let Some(qdisc_message) = futures::executor::block_on(qdiscs.try_next())? {
+        while let Some(qdisc_message) = qdiscs.try_next().await? {
             if qdisc_message.header.index == if_index
                 && qdisc_message
                     .attributes
@@ -176,10 +179,15 @@ impl TcDispatcher {
                 return Ok(true);
             }
         }
+
         Ok(false)
     }
 
-    fn attach(&mut self, old_dispatcher: Option<Dispatcher>) -> Result<(), BpfmanError> {
+    async fn attach(
+        &mut self,
+        root_db: &Db,
+        old_dispatcher: Option<Dispatcher>,
+    ) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let iface = self.get_ifname()?;
         let priority = self.get_priority()?;
@@ -197,14 +205,14 @@ impl TcDispatcher {
         // qdisc, we return an error. If the qdisc is a clsact qdisc, we do nothing. Otherwise, we add a clsact qdisc.
 
         // no need to add a new clsact qdisc if one already exists.
-        if TcDispatcher::has_qdisc("clsact".to_string(), if_index as i32)? {
+        if TcDispatcher::has_qdisc("clsact".to_string(), if_index as i32).await? {
             debug!(
                 "clsact qdisc found for if_index {}, no need to add a new clsact qdisc",
                 if_index
             );
 
         // if ingress qdisc exists, return error.
-        } else if TcDispatcher::has_qdisc("ingress".to_string(), if_index as i32)? {
+        } else if TcDispatcher::has_qdisc("ingress".to_string(), if_index as i32).await? {
             debug!("ingress qdisc found for if_index {}", if_index);
             return Err(BpfmanError::InvalidAttach(format!(
                 "Ingress qdisc found for if_index {}",
@@ -249,9 +257,9 @@ impl TcDispatcher {
             // as the old one had.  If this happens, the new dispatcher will get
             // detached if we do a full delete, so don't do it.
             if d.get_handle()? != self.get_handle()? {
-                d.delete(true)?;
+                d.delete(root_db, true)?;
             } else {
-                d.delete(false)?;
+                d.delete(root_db, false)?;
             }
         }
 
@@ -372,7 +380,7 @@ impl TcDispatcher {
         Ok(())
     }
 
-    pub(crate) fn delete(&mut self, full: bool) -> Result<(), BpfmanError> {
+    pub(crate) fn delete(&mut self, root_db: &Db, full: bool) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let if_name = self.get_ifname()?;
         let revision = self.get_revision()?;
@@ -385,7 +393,7 @@ impl TcDispatcher {
             if_index, revision
         );
 
-        ROOT_DB.drop_tree(self.db_tree.name()).map_err(|e| {
+        root_db.drop_tree(self.db_tree.name()).map_err(|e| {
             BpfmanError::DatabaseError(
                 format!(
                     "unable to drop tc dispatcher tree {:?}",
