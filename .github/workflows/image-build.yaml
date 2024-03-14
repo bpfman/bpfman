@@ -121,6 +121,48 @@ jobs:
 
           - registry: quay.io
             build_language: go
+            repository: bpfman-userspace
+            image: go-kprobe-counter
+            context: .
+            dockerfile: ./examples/go-kprobe-counter/container-deployment/Containerfile.go-kprobe-counter
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: go
+            repository: bpfman-userspace
+            image: go-uprobe-counter
+            context: .
+            dockerfile: ./examples/go-uprobe-counter/container-deployment/Containerfile.go-uprobe-counter
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: go
+            repository: bpfman-userspace
+            image: go-target
+            context: .
+            dockerfile: ./examples/go-target/container-deployment/Containerfile.go-target
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: go
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-xdp-counter
@@ -170,6 +212,46 @@ jobs:
               PROGRAM_NAME=go-tracepoint-counter
               BPF_FUNCTION_NAME=tracepoint_kill_recorder
               PROGRAM_TYPE=tracepoint
+              BYTECODE_FILENAME=bpf_bpfel.o
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: go
+            bpf_build_wrapper: go
+            repository: bpfman-bytecode
+            image: go-kprobe-counter
+            context: ./examples/go-kprobe-counter
+            dockerfile: ./Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=kprobe_counter
+              BPF_FUNCTION_NAME=kprobe_counter
+              PROGRAM_TYPE=kprobe
+              BYTECODE_FILENAME=bpf_bpfel.o
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: go
+            bpf_build_wrapper: go
+            repository: bpfman-bytecode
+            image: go-uprobe-counter
+            context: ./examples/go-uprobe-counter
+            dockerfile: ./Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=uprobe_counter
+              BPF_FUNCTION_NAME=uprobe_counter
+              PROGRAM_TYPE=uprobe
               BYTECODE_FILENAME=bpf_bpfel.o
             tags: |
               type=ref,event=branch
