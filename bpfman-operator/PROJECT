@@ -55,4 +55,20 @@ resources:
   kind: UprobeProgram
   path: github.com/bpfman/bpfman/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: false
+  controller: true
+  domain: bpfman.io
+  kind: FentryProgram
+  path: github.com/bpfman/bpfman/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: false
+  controller: true
+  domain: bpfman.io
+  kind: FexitProgram
+  path: github.com/bpfman/bpfman/api/v1alpha1
+  version: v1alpha1
 version: "3"

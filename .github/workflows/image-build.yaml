@@ -342,6 +342,46 @@ jobs:
           - registry: quay.io
             build_language: rust
             bpf_build_wrapper: rust
+            repository: bpfman-bytecode
+            image: fentry
+            context: ./tests/integration-test/bpf/.output
+            dockerfile: ./Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=do_unlinkat
+              BPF_FUNCTION_NAME=test_fentry
+              PROGRAM_TYPE=fentry
+              BYTECODE_FILENAME=fentry.bpf.o
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: rust
+            bpf_build_wrapper: rust
+            repository: bpfman-bytecode
+            image: fexit
+            context: ./tests/integration-test/bpf/.output
+            dockerfile: ./Containerfile.bytecode
+            build_args: |
+              PROGRAM_NAME=do_unlinkat
+              BPF_FUNCTION_NAME=test_fexit
+              PROGRAM_TYPE=fexit
+              BYTECODE_FILENAME=fentry.bpf.o
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: rust
+            bpf_build_wrapper: rust
             repository: bpfman
             image: xdp-dispatcher
             context: .

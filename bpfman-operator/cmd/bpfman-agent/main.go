@@ -158,6 +158,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&bpfmanagent.FentryProgramReconciler{
+		ReconcilerCommon: common,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create fentryProgram controller", "controller", "BpfProgram")
+		os.Exit(1)
+	}
+
+	if err = (&bpfmanagent.FexitProgramReconciler{
+		ReconcilerCommon: common,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create fexitProgram controller", "controller", "BpfProgram")
+		os.Exit(1)
+	}
+
 	if err = (&bpfmanagent.DiscoveredProgramReconciler{
 		ReconcilerCommon: common,
 	}).SetupWithManager(mgr); err != nil {

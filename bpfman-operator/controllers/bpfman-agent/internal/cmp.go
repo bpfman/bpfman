@@ -155,6 +155,24 @@ func DoesProgExist(actual *gobpfman.ListResponse_ListResult, expected *gobpfman.
 					expectedUprobe, actualUprobe))
 			}
 		}
+
+		actualFentry := actualAttach.GetFentryAttachInfo()
+		expectedFentry := expectedAttach.GetFentryAttachInfo()
+		if actualFentry != nil && expectedFentry != nil {
+			if !reflect.DeepEqual(actualFentry.FnName, expectedFentry.FnName) {
+				reasons = append(reasons, fmt.Sprintf("Expected Fentry to be %v but found %v",
+					expectedFentry, actualFentry))
+			}
+		}
+
+		actualFexit := actualAttach.GetFexitAttachInfo()
+		expectedFexit := expectedAttach.GetFexitAttachInfo()
+		if actualFexit != nil && expectedFexit != nil {
+			if !reflect.DeepEqual(actualFexit.FnName, expectedFexit.FnName) {
+				reasons = append(reasons, fmt.Sprintf("Expected Fexit to be %v but found %v",
+					expectedFexit, actualFexit))
+			}
+		}
 	}
 
 	if len(reasons) == 0 {
