@@ -72,9 +72,9 @@ func TestKprobeProgramControllerCreate(t *testing.T) {
 					Path: &bytecodePath,
 				},
 			},
-			FunctionNames: []string{functionName},
-			Offset:        uint64(offset),
-			RetProbe:      retprobe,
+			FunctionName: functionName,
+			Offset:       uint64(offset),
+			RetProbe:     retprobe,
 		},
 	}
 

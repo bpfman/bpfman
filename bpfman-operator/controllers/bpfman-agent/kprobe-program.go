@@ -85,20 +85,18 @@ func (r *KprobeProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *KprobeProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
-	for _, function := range r.currentKprobeProgram.Spec.FunctionNames {
-		// sanitize kprobe name to work in a bpfProgram name
-		sanatizedKprobe := strings.Replace(strings.Replace(function, "/", "-", -1), "_", "-", -1)
-		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentKprobeProgram.Name, r.NodeName, sanatizedKprobe)
+	// sanitize kprobe name to work in a bpfProgram name
+	sanatizedKprobe := strings.Replace(strings.Replace(r.currentKprobeProgram.Spec.FunctionName, "/", "-", -1), "_", "-", -1)
+	bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentKprobeProgram.Name, r.NodeName, sanatizedKprobe)
 
-		annotations := map[string]string{internal.KprobeProgramFunction: function}
+	annotations := map[string]string{internal.KprobeProgramFunction: r.currentKprobeProgram.Spec.FunctionName}
 
-		prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentKprobeProgram, r.getRecType(), annotations)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
-		}
-
-		progs.Items = append(progs.Items, *prog)
+	prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentKprobeProgram, r.getRecType(), annotations)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 	}
+
+	progs.Items = append(progs.Items, *prog)
 
 	return progs, nil
 }

@@ -53,7 +53,7 @@ type KprobeProgramSpec struct {
 	BpfProgramCommon `json:",inline"`
 
 	// Functions to attach the kprobe to.
-	FunctionNames []string `json:"func_names"`
+	FunctionName string `json:"func_name"`
 
 	// Offset added to the address of the function for kprobe.
 	// Not allowed for kretprobes.
