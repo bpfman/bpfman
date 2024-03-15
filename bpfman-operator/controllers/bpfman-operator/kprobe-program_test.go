@@ -65,9 +65,9 @@ func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
 					Path: &bytecodePath,
 				},
 			},
-			FunctionNames: []string{functionName},
-			Offset:        uint64(offset),
-			RetProbe:      retprobe,
+			FunctionName: functionName,
+			Offset:       uint64(offset),
+			RetProbe:     retprobe,
 		},
 	}
 
