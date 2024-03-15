@@ -20,6 +20,10 @@ package v1alpha1
 
 type BpfProgramExpansion interface{}
 
+type FentryProgramExpansion interface{}
+
+type FexitProgramExpansion interface{}
+
 type KprobeProgramExpansion interface{}
 
 type TcProgramExpansion interface{}

@@ -138,6 +138,10 @@ func FromString(p string) (*ProgramType, error) {
 		programType = Kprobe
 	case "uprobe":
 		programType = Kprobe
+	case "fentry":
+		programType = Tracing
+	case "fexit":
+		programType = Tracing
 	default:
 		return nil, fmt.Errorf("unknown program type: %s", p)
 	}

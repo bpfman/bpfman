@@ -22,6 +22,14 @@ package v1alpha1
 // BpfProgramLister.
 type BpfProgramListerExpansion interface{}
 
+// FentryProgramListerExpansion allows custom methods to be added to
+// FentryProgramLister.
+type FentryProgramListerExpansion interface{}
+
+// FexitProgramListerExpansion allows custom methods to be added to
+// FexitProgramLister.
+type FexitProgramListerExpansion interface{}
+
 // KprobeProgramListerExpansion allows custom methods to be added to
 // KprobeProgramLister.
 type KprobeProgramListerExpansion interface{}

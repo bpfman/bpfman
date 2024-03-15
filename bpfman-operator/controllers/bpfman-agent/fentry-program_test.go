@@ -47,12 +47,12 @@ func TestFentryProgramControllerCreate(t *testing.T) {
 	var (
 		name            = "fakeFentryProgram"
 		namespace       = "bpfman"
-		bytecodePath    = "/tmp/fentry.o"
-		bpfFunctionName = "fentry_test"
+		bytecodePath    = "/tmp/hello.o"
+		bpfFunctionName = "test_fentry"
 		functionName    = "do_unlinkat"
 		fakeNode        = testutils.NewNode("fake-control-plane")
 		ctx             = context.TODO()
-		bpfProgName     = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, functionName)
+		bpfProgName     = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, "do-unlinkat")
 		bpfProg         = &bpfmaniov1alpha1.BpfProgram{}
 		fakeUID         = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)

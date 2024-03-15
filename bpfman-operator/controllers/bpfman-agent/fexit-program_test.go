@@ -48,11 +48,11 @@ func TestFexitProgramControllerCreate(t *testing.T) {
 		name            = "fakeFexitProgram"
 		namespace       = "bpfman"
 		bytecodePath    = "/tmp/fexit.o"
-		bpfFunctionName = "fexit_test"
+		bpfFunctionName = "test_fexit"
 		functionName    = "do_unlinkat"
 		fakeNode        = testutils.NewNode("fake-control-plane")
 		ctx             = context.TODO()
-		bpfProgName     = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, functionName)
+		bpfProgName     = fmt.Sprintf("%s-%s-%s", name, fakeNode.Name, "do-unlinkat")
 		bpfProg         = &bpfmaniov1alpha1.BpfProgram{}
 		fakeUID         = "ef71d42c-aa21-48e8-a697-82391d801a81"
 	)
