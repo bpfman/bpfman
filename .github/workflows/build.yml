@@ -133,41 +133,25 @@ jobs:
   ## Build go modules
   build-go:
     runs-on: ubuntu-latest
-    # k8s codegen requires this to be set
-    env:
-      GOPATH: ${{ github.workspace }}
     defaults:
       run:
-        ## For us to run the controller-gen generate commands from within
-        ## github actions the package name MUST match the directory layout
-        ## (i.e `GOPATH/src/github.com/bpfman/bpfman`). Otherwise when
-        ## running `make generate` generated code is deposited at
-        ## `home/runner/work/bpfman/bpfman/bpfman-operator/PKG_NAME` instead
-        ## of in `home/runner/work/bpfman/bpfman/bpfman-operator/pkg/client/...`.
-        ## This is annoying and gross but cannot be resolved until
-        ## https://github.com/kubernetes/kubernetes/issues/86753 is properly
-        ## addressed.
-        working-directory: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman/bpfman-operator
+        working-directory: ./bpfman-operator
     steps:
       - uses: actions/checkout@v4
-        with:
-          path: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman
-
       - uses: actions/setup-go@v5
         with:
           # prettier-ignore
           go-version: '1.21' # yamllint disable-line rule:quoted-strings
 
       - name: Go mod check
+        working-directory: ${{ github.workspace }}
         run: |
           go mod tidy
-          git diff --exit-code ../go.mod ../go.sum
+          git diff --exit-code go.mod go.sum
 
       - name: Lint
         uses: golangci/golangci-lint-action@v4
         with:
-          ## https://github.com/golangci/golangci-lint-action/issues/369
-          working-directory: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman
           version: v1.54.2
           skip-cache: true
           skip-pkg-cache: true
@@ -191,7 +175,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-go
-          path: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman/bpfman-operator/cover.out
+          path: ./bpfman-operator/cover.out
           if-no-files-found: error
 
   basic-integration-tests:
