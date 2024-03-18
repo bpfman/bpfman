@@ -182,6 +182,7 @@ VERIFY_FLAG=--verify-only
 endif
 
 PKG ?= github.com/bpfman/bpfman/bpfman-operator
+SCRIPT_ROOT ?= $(dir $(abspath $(firstword $(MAKEFILE_LIST))))
 COMMON_FLAGS ?= ${VERIFY_FLAG} --go-header-file $(shell pwd)/hack/boilerplate.go.txt
 
 .PHONY: manifests
@@ -197,7 +198,7 @@ generate: manifests generate-register generate-deepcopy generate-typed-clients g
 generate-register: register-gen ## Generate register code see all `zz_generated.register.go` files.
 	$(REGISTER_GEN) \
 		--input-dirs "${PKG}/apis/v1alpha1" \
-		--output-package "${PKG}/apis/" \
+		--output-package "${SCRIPT_ROOT}apis/" \
 		${COMMON_FLAGS}
 
 .PHONY: generate-deepcopy
@@ -210,7 +211,7 @@ generate-typed-clients: client-gen ## Generate typed client code
 		--clientset-name "versioned" \
 		--input-base "" \
 		--input "${PKG}/apis/v1alpha1" \
-		--output-package "${PKG}/pkg/client/clientset" \
+		--output-package "${SCRIPT_ROOT}pkg/client/clientset" \
 		${COMMON_FLAGS}
 
 
@@ -218,7 +219,7 @@ generate-typed-clients: client-gen ## Generate typed client code
 generate-typed-listers: lister-gen ## Generate typed listers code
 	$(LISTER_GEN) \
 		--input-dirs "${PKG}/apis/v1alpha1" \
-		--output-package "${PKG}/pkg/client/listers" \
+		--output-package "${SCRIPT_ROOT}pkg/client/listers" \
 		${COMMON_FLAGS}
 
 
@@ -228,7 +229,7 @@ generate-typed-informers: informer-gen ## Generate typed informers code
 		--input-dirs "${PKG}/apis/v1alpha1" \
 		--versioned-clientset-package "${PKG}/pkg/client/clientset/versioned" \
 		--listers-package "${PKG}/pkg/client/listers" \
-		--output-package "${PKG}/pkg/client/informers" \
+		--output-package "${SCRIPT_ROOT}pkg/client/informers" \
 		${COMMON_FLAGS}
 
 .PHONY: fmt
