@@ -181,10 +181,7 @@ ifeq ($(VERIFY_CODEGEN), true)
 VERIFY_FLAG=--verify-only
 endif
 
-OUTPUT_PKG ?= $(shell pwd)/bpfman-operator/pkg/client
-APIS_PKG ?= $(shell pwd)/bpfman-operator
-CLIENTSET_NAME ?= versioned
-CLIENTSET_PKG_NAME ?= clientset
+PKG ?= github.com/bpfman/bpfman/bpfman-operator
 COMMON_FLAGS ?= ${VERIFY_FLAG} --go-header-file $(shell pwd)/hack/boilerplate.go.txt
 
 .PHONY: manifests
@@ -199,8 +196,8 @@ generate: manifests generate-register generate-deepcopy generate-typed-clients g
 .PHONY: generate-register
 generate-register: register-gen ## Generate register code see all `zz_generated.register.go` files.
 	$(REGISTER_GEN) \
-		--input-dirs "${APIS_PKG}/apis/v1alpha1" \
-		--output-package "${APIS_PKG}/apis/" \
+		--input-dirs "${PKG}/apis/v1alpha1" \
+		--output-package "${PKG}/apis/" \
 		${COMMON_FLAGS}
 
 .PHONY: generate-deepcopy
@@ -210,28 +207,28 @@ generate-deepcopy: ## Generate code containing DeepCopy, DeepCopyInto, and DeepC
 .PHONY: generate-typed-clients
 generate-typed-clients: client-gen ## Generate typed client code
 	$(CLIENT_GEN) \
-		--clientset-name "${CLIENTSET_NAME}" \
+		--clientset-name "versioned" \
 		--input-base "" \
-		--input "${APIS_PKG}/apis/v1alpha1" \
-		--output-package "${OUTPUT_PKG}/${CLIENTSET_PKG_NAME}" \
+		--input "${PKG}/apis/v1alpha1" \
+		--output-package "${PKG}/pkg/client/clientset" \
 		${COMMON_FLAGS}
 
 
 .PHONY: generate-typed-listers
 generate-typed-listers: lister-gen ## Generate typed listers code
 	$(LISTER_GEN) \
-		--input-dirs "${APIS_PKG}/apis/v1alpha1" \
-		--output-package "${OUTPUT_PKG}/listers" \
+		--input-dirs "${PKG}/apis/v1alpha1" \
+		--output-package "${PKG}/pkg/client/listers" \
 		${COMMON_FLAGS}
 
 
 .PHONY: generate-typed-informers
 generate-typed-informers: informer-gen ## Generate typed informers code
 	$(INFORMER_GEN) \
-		--input-dirs "${APIS_PKG}/apis/v1alpha1" \
-		--versioned-clientset-package "${OUTPUT_PKG}/${CLIENTSET_PKG_NAME}/${CLIENTSET_NAME}" \
-		--listers-package "${OUTPUT_PKG}/listers" \
-		--output-package "${OUTPUT_PKG}/informers" \
+		--input-dirs "${PKG}/apis/v1alpha1" \
+		--versioned-clientset-package "${PKG}/pkg/client/clientset/versioned" \
+		--listers-package "${PKG}/pkg/client/listers" \
+		--output-package "${PKG}/pkg/client/informers" \
 		${COMMON_FLAGS}
 
 .PHONY: fmt
