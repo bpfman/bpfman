@@ -194,6 +194,19 @@ jobs:
           path: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman/bpfman-operator/cover.out
           if-no-files-found: error
 
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+      - name: Mkdocs Build
+        run: |
+          pip install mkdocs-material
+          pip install -r requirements.txt
+          mkdocs build --strict
+
   basic-integration-tests:
     runs-on: ubuntu-latest
     needs: [build, build-go]
@@ -388,6 +401,7 @@ jobs:
         check-license,
         build,
         build-go,
+        build-docs,
         coverage,
         basic-integration-tests,
         kubernetes-integration-tests,
