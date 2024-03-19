@@ -87,10 +87,7 @@ mkdocs serve -a 0.0.0.0:8000
 The recommended installation method is using `pip`.
 
 ```console
-pip install mkdocs
-pip install pymdown-extensions
-pip install mkdocs-material
-pip install mike
+pip install -r requirements.txt 
 ```
 
 Once installed, ensure the `mkdocs` is in your PATH:
