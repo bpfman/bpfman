@@ -104,11 +104,9 @@ spec:
                     description: Path is used to specify a bytecode object via filepath.
                     type: string
                 type: object
-              func_names:
+              func_name:
                 description: Functions to attach the kprobe to.
-                items:
-                  type: string
-                type: array
+                type: string
               globaldata:
                 additionalProperties:
                   format: byte
@@ -229,7 +227,7 @@ spec:
             required:
             - bpffunctionname
             - bytecode
-            - func_names
+            - func_name
             - nodeselector
             type: object
             x-kubernetes-validations:

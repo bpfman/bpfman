@@ -97,6 +97,9 @@ build: fmt ## Build all the userspace example code.
 	go build -o go-tc-counter/go-tc-counter go-tc-counter/main.go
 	go build -o go-tracepoint-counter/go-tracepoint-counter go-tracepoint-counter/main.go
 	go build -o go-xdp-counter/go-xdp-counter go-xdp-counter/main.go
+	go build -o go-kprobe-counter/go-kprobe-counter go-kprobe-counter/main.go
+	go build -o go-uprobe-counter/go-uprobe-counter go-uprobe-counter/main.go
+	go build -o go-target/go-target go-target/main.go
 
 .PHONY: generate
 generate: ## Run `go generate` to build the bytecode for each of the examples.
@@ -107,27 +110,36 @@ build-us-images: ## Build all example userspace images
 	docker build -t ${IMAGE_TC_US} -f ./go-tc-counter/container-deployment/Containerfile.go-tc-counter ../
 	docker build -t ${IMAGE_TP_US} -f ./go-tracepoint-counter/container-deployment/Containerfile.go-tracepoint-counter ../
 	docker build -t ${IMAGE_XDP_US} -f ./go-xdp-counter/container-deployment/Containerfile.go-xdp-counter ../
+	docker build -t ${IMAGE_KP_US} -f ./go-kprobe-counter/container-deployment/Containerfile.go-kprobe-counter ../
+	docker build -t ${IMAGE_UP_US} -f ./go-uprobe-counter/container-deployment/Containerfile.go-uprobe-counter ../
+	docker build -t ${IMAGE_GT_US} -f ./go-target/container-deployment/Containerfile.go-target ../
+
 
 .PHONY: build-bc-images
 build-bc-images: generate ## Build bytecode example userspace images
-	IMAGE_TC_BC=${IMAGE_TC_BC} IMAGE_TP_BC=${IMAGE_TP_BC} IMAGE_XDP_BC=${IMAGE_XDP_BC} ./build-bytecode-images.sh
+	IMAGE_TC_BC=${IMAGE_TC_BC} IMAGE_TP_BC=${IMAGE_TP_BC} IMAGE_XDP_BC=${IMAGE_XDP_BC} IMAGE_KP_BC=${IMAGE_KP_BC} IMAGE_UP_BC=${IMAGE_UP_BC} ./build-bytecode-images.sh
 
 .PHONY: push-us-images
 push-us-images: ## Push all example userspace images
 	docker push ${IMAGE_TC_US}
 	docker push ${IMAGE_TP_US}
 	docker push ${IMAGE_XDP_US}
+	docker push ${IMAGE_KP_US}
+	docker push ${IMAGE_UP_US}
+	docker push ${IMAGE_GT_US}
 
 .PHONY: push-bc-images
-push-bc-images: ## Push all example userspace images
+push-bc-images: ## Push all example bytecode images
 	docker push ${IMAGE_TC_BC}
 	docker push ${IMAGE_TP_BC}
 	docker push ${IMAGE_XDP_BC}
+	docker push ${IMAGE_KP_BC}
+	docker push ${IMAGE_UP_BC}
 
 
 .PHONY: load-us-images-kind
 load-us-images-kind: build-us-images ## Build and load all example userspace images into kind
-	kind load docker-image ${IMAGE_TC_US} ${IMAGE_TP_US} ${IMAGE_XDP_US} --name ${KIND_CLUSTER_NAME}
+	kind load docker-image ${IMAGE_TC_US} ${IMAGE_TP_US} ${IMAGE_XDP_US} ${IMAGE_KP_US} ${IMAGE_UP_US} ${IMAGE_GT_US} --name ${KIND_CLUSTER_NAME}
 
 ##@ Deployment Variables (not commands)
 TAG: ## Used to set all images to a fixed tag. Example: make deploy TAG=v0.2.0
@@ -137,6 +149,11 @@ IMAGE_TP_BC: ## Tracepoint Bytecode image. Example: make deploy-tracepoint IMAGE
 IMAGE_TP_US: ## Tracepoint Userspace image. Example: make deploy-tracepoint IMAGE_TP_US=quay.io/user1/go-tracepoint-counter-userspace:test
 IMAGE_XDP_BC: ## XDP Bytecode image. Example: make deploy-xdp IMAGE_XDP_BC=quay.io/user1/go-xdp-counter-bytecode:test
 IMAGE_XDP_US: ## XDP Userspace image. Example: make deploy-xdp IMAGE_XDP_US=quay.io/user1/go-xdp-counter-userspace:test
+IMAGE_KP_BC: ## Kprobe Bytecode image. Example: make deploy-kprobe IMAGE_KP_BC=quay.io/user1/go-kprobe-counter-bytecode:test
+IMAGE_KP_US: ## Kprobe Userspace image. Example: make deploy-kprobe IMAGE_KP_US=quay.io/user1/go-kprobe-counter-userspace:test
+IMAGE_UP_BC: ## Uprobe Bytecode image. Example: make deploy-uprobe IMAGE_UP_BC=quay.io/user1/go-uprobe-counter-bytecode:test
+IMAGE_UP_US: ## Uprobe Userspace image. Example: make deploy-uprobe IMAGE_UP_US=quay.io/user1/go-uprobe-counter-userspace:test
+IMAGE_GT_US: ## Uprobe Userspace target. Example: make deploy-target IMAGE_GT_US=quay.io/user1/go-target-userspace:test
 KIND_CLUSTER_NAME: ## Name of the deployed cluster to load example images to, defaults to `bpfman-deployment`
 ignore-not-found: ## For any undeploy command, set to true to ignore resource not found errors during deletion. Example: make undeploy ignore-not-found=true
 
@@ -147,95 +164,162 @@ IMAGE_TP_BC ?= quay.io/bpfman-bytecode/go-tracepoint-counter:latest
 IMAGE_TP_US ?= quay.io/bpfman-userspace/go-tracepoint-counter:latest
 IMAGE_XDP_BC ?= quay.io/bpfman-bytecode/go-xdp-counter:latest
 IMAGE_XDP_US ?= quay.io/bpfman-userspace/go-xdp-counter:latest
+IMAGE_KP_BC ?= quay.io/bpfman-bytecode/go-kprobe-counter:latest
+IMAGE_KP_US ?= quay.io/bpfman-userspace/go-kprobe-counter:latest
+IMAGE_UP_BC ?= quay.io/bpfman-bytecode/go-uprobe-counter:latest
+IMAGE_UP_US ?= quay.io/bpfman-userspace/go-uprobe-counter:latest
+IMAGE_GT_US ?= quay.io/bpfman-userspace/go-target:latest
 KUST_DIR=default
 KIND_CLUSTER_NAME ?= bpfman-deployment
 
-.PHONY: deploy-tc
-deploy-tc: kustomize ## Deploy go-tc-counter to the cluster specified in ~/.kube/config.
+
+.PHONY: deploy-prog
+deploy-prog: kustomize
 ifndef TAG
-	sed 's@URL_BC@$(IMAGE_TC_BC)@' config/default/go-tc-counter/patch.yaml.env > config/default/go-tc-counter/patch.yaml
-	cd config/default/go-tc-counter && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-tc-counter=${IMAGE_TC_US}
+	sed 's@URL_BC@$(IMAGE_BC)@' config/default/$(CONFIG_DIR)/patch.yaml.env > config/default/$(CONFIG_DIR)/patch.yaml
+	cd config/default/$(CONFIG_DIR) && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/$(PROG_NAME)=${IMAGE_US}
 else
 	$(eval KUST_DIR=$(TAG))
 endif
-	$(KUSTOMIZE) build config/$(KUST_DIR)/go-tc-counter | kubectl apply -f -
+	@if [ -f config/$(KUST_DIR)/$(CONFIG_DIR)/kustomization.yaml ]; then \
+		$(KUSTOMIZE) build config/$(KUST_DIR)/$(CONFIG_DIR) | kubectl apply -f - ; \
+	else \
+		echo "Version $(KUST_DIR) not supported for program $(PROG_NAME)" ; \
+		exit 1 ; \
+	fi
+
+
+.PHONY: undeploy-prog
+undeploy-prog:
+ifndef TAG
+	sed 's@URL_BC@$(IMAGE_BC)@' config/default/$(CONFIG_DIR)/patch.yaml.env > config/default/$(CONFIG_DIR)/patch.yaml
+	cd config/default/$(CONFIG_DIR) && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/$(PROG_NAME)=${IMAGE_US}
+else
+	$(eval KUST_DIR=$(TAG))
+endif
+	@if [ -f config/$(KUST_DIR)/$(CONFIG_DIR)/kustomization.yaml ]; then \
+		$(KUSTOMIZE) build config/$(KUST_DIR)/$(CONFIG_DIR) | kubectl delete --ignore-not-found=$(ignore-not-found) -f -; \
+	else \
+		echo "Version $(KUST_DIR) not supported for program $(PROG_NAME)" ; \
+		exit 1 ; \
+	fi
+
+.PHONY: deploy-tc
+deploy-tc: PROG_NAME=go-tc-counter
+deploy-tc: CONFIG_DIR=$(PROG_NAME)
+deploy-tc: IMAGE_BC=$(IMAGE_TC_BC)
+deploy-tc: IMAGE_US=$(IMAGE_TC_US)
+deploy-tc: deploy-prog ## Deploy go-tc-counter to the cluster specified in ~/.kube/config.
 
 .PHONY: undeploy-tc
-undeploy-tc: ## Undeploy go-tc-counter from the cluster specified in ~/.kube/config.
-ifndef TAG
-	sed 's@URL_BC@$(IMAGE_TC_BC)@' config/default/go-tc-counter/patch.yaml.env > config/default/go-tc-counter/patch.yaml
-	cd config/default/go-tc-counter && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-tc-counter=${IMAGE_TC_US}
-else
-	$(eval KUST_DIR=$(TAG))
-endif
-	$(KUSTOMIZE) build config/$(KUST_DIR)/go-tc-counter | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+undeploy-tc: PROG_NAME=go-tc-counter
+undeploy-tc: CONFIG_DIR=$(PROG_NAME)
+undeploy-tc: IMAGE_BC=$(IMAGE_TC_BC)
+undeploy-tc: IMAGE_US=$(IMAGE_TC_US)
+undeploy-tc: undeploy-prog ## Undeploy go-tc-counter from the cluster specified in ~/.kube/config.
 
 
 .PHONY: deploy-tracepoint
-deploy-tracepoint: kustomize ## Deploy go-tracepoint-counter to the cluster specified in ~/.kube/config.
-ifndef TAG
-	sed 's@URL_BC@$(IMAGE_TP_BC)@' config/default/go-tracepoint-counter/patch.yaml.env > config/default/go-tracepoint-counter/patch.yaml
-	cd config/default/go-tracepoint-counter && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-tracepoint-counter=${IMAGE_TP_US}
-else
-	$(eval KUST_DIR=$(TAG))
-endif
-	$(KUSTOMIZE) build config/$(KUST_DIR)/go-tracepoint-counter | kubectl apply -f -
+deploy-tracepoint: PROG_NAME=go-tracepoint-counter
+deploy-tracepoint: CONFIG_DIR=$(PROG_NAME)
+deploy-tracepoint: IMAGE_BC=$(IMAGE_TP_BC)
+deploy-tracepoint: IMAGE_US=$(IMAGE_TP_US)
+deploy-tracepoint: deploy-prog ## Deploy go-tracepoint-counter to the cluster specified in ~/.kube/config.
 
 .PHONY: undeploy-tracepoint
-undeploy-tracepoint: ## Undeploy go-tracepoint-counter from the cluster specified in ~/.kube/config.
-ifndef TAG
-	sed 's@URL_BC@$(IMAGE_TP_BC)@' config/default/go-tracepoint-counter/patch.yaml.env > config/default/go-tracepoint-counter/patch.yaml
-	cd config/default/go-tracepoint-counter && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-tracepoint-counter=${IMAGE_TP_US}
-else
-	$(eval KUST_DIR=$(TAG))
-endif
-	$(KUSTOMIZE) build config/$(KUST_DIR)/go-tracepoint-counter | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+undeploy-tracepoint: PROG_NAME=go-tracepoint-counter
+undeploy-tracepoint: CONFIG_DIR=$(PROG_NAME)
+undeploy-tracepoint: IMAGE_BC=$(IMAGE_TP_BC)
+undeploy-tracepoint: IMAGE_US=$(IMAGE_TP_US)
+undeploy-tracepoint: undeploy-prog ## Undeploy go-tracepoint-counter from the cluster specified in ~/.kube/config.
 
 
 .PHONY: deploy-xdp
-deploy-xdp: kustomize ## Deploy go-xdp-counter to the cluster specified in ~/.kube/config.
-ifndef TAG
-	sed 's@URL_BC@$(IMAGE_XDP_BC)@' config/default/go-xdp-counter/patch.yaml.env > config/default/go-xdp-counter/patch.yaml
-	cd config/default/go-xdp-counter && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-xdp-counter=${IMAGE_XDP_US}
-else
-	$(eval KUST_DIR=$(TAG))
-endif
-	$(KUSTOMIZE) build config/$(KUST_DIR)/go-xdp-counter | kubectl apply -f -
+deploy-xdp: PROG_NAME=go-xdp-counter
+deploy-xdp: CONFIG_DIR=$(PROG_NAME)
+deploy-xdp: IMAGE_BC=$(IMAGE_XDP_BC)
+deploy-xdp: IMAGE_US=$(IMAGE_XDP_US)
+deploy-xdp: deploy-prog ## Deploy go-xdp-counter to the cluster specified in ~/.kube/config.
 
 .PHONY: undeploy-xdp
-undeploy-xdp: ## Undeploy go-xdp-counter from the cluster specified in ~/.kube/config.
-ifndef TAG
-	sed 's@URL_BC@$(IMAGE_XDP_BC)@' config/default/go-xdp-counter/patch.yaml.env > config/default/go-xdp-counter/patch.yaml
-	cd config/default/go-xdp-counter && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-xdp-counter=${IMAGE_XDP_US}
-else
-	$(eval KUST_DIR=$(TAG))
-endif
-	$(KUSTOMIZE) build config/$(KUST_DIR)/go-xdp-counter | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+undeploy-xdp: PROG_NAME=go-xdp-counter
+undeploy-xdp: CONFIG_DIR=$(PROG_NAME)
+undeploy-xdp: IMAGE_BC=$(IMAGE_XDP_BC)
+undeploy-xdp: IMAGE_US=$(IMAGE_XDP_US)
+undeploy-xdp: undeploy-prog ## Undeploy go-xdp-counter from the cluster specified in ~/.kube/config.
 
 
 .PHONY: deploy-xdp-ms
-deploy-xdp-ms: kustomize ## Deploy go-xdp-counter-sharing-map (shares map with go-xdp-counter) to the cluster specified in ~/.kube/config.
-ifndef TAG
-	sed 's@URL_BC@$(IMAGE_XDP_BC)@' config/default/go-xdp-counter-sharing-map/patch.yaml.env > config/default/go-xdp-counter-sharing-map/patch.yaml
-	cd config/default/go-xdp-counter-sharing-map && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-xdp-counter=${IMAGE_XDP_US}
-else
-	$(eval KUST_DIR=$(TAG))
-endif
-	$(KUSTOMIZE) build config/$(KUST_DIR)/go-xdp-counter-sharing-map | kubectl apply -f -
+deploy-xdp-ms: PROG_NAME=go-xdp-counter
+deploy-xdp-ms: CONFIG_DIR=go-xdp-counter-sharing-map
+deploy-xdp-ms: IMAGE_BC=$(IMAGE_XDP_BC)
+deploy-xdp-ms: IMAGE_US=$(IMAGE_XDP_US)
+deploy-xdp-ms: deploy-prog ## Deploy go-xdp-counter-sharing-map (shares map with go-xdp-counter) to the cluster specified in ~/.kube/config.
 
 .PHONY: undeploy-xdp-ms
-undeploy-xdp-ms: ## Undeploy go-xdp-counter-sharing-map from the cluster specified in ~/.kube/config.
-ifndef TAG
-	sed 's@URL_BC@$(IMAGE_XDP_BC)@' config/default/go-xdp-counter-sharing-map/patch.yaml.env > config/default/go-xdp-counter-sharing-map/patch.yaml
-	cd config/default/go-xdp-counter-sharing-map && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/go-xdp-counter=${IMAGE_XDP_US}
-else
-	$(eval KUST_DIR=$(TAG))
-endif
-	$(KUSTOMIZE) build config/$(KUST_DIR)/go-xdp-counter-sharing-map | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+undeploy-xdp-ms: PROG_NAME=go-xdp-counter
+undeploy-xdp-ms: CONFIG_DIR=go-xdp-counter-sharing-map
+undeploy-xdp-ms: IMAGE_BC=$(IMAGE_XDP_BC)
+undeploy-xdp-ms: IMAGE_US=$(IMAGE_XDP_US)
+undeploy-xdp-ms: undeploy-prog ## Undeploy go-xdp-counter-sharing-map from the cluster specified in ~/.kube/config.
 
+
+.PHONY: deploy-kprobe
+deploy-kprobe: PROG_NAME=go-kprobe-counter
+deploy-kprobe: CONFIG_DIR=$(PROG_NAME)
+deploy-kprobe: IMAGE_BC=$(IMAGE_KP_BC)
+deploy-kprobe: IMAGE_US=$(IMAGE_KP_US)
+deploy-kprobe: deploy-prog ## Deploy go-kprobe-counter to the cluster specified in ~/.kube/config.
+
+.PHONY: undeploy-kprobe
+undeploy-kprobe: PROG_NAME=go-kprobe-counter
+undeploy-kprobe: CONFIG_DIR=$(PROG_NAME)
+undeploy-kprobe: IMAGE_BC=$(IMAGE_KP_BC)
+undeploy-kprobe: IMAGE_US=$(IMAGE_KP_US)
+undeploy-kprobe: undeploy-prog ## Undeploy go-kprobe-counter from the cluster specified in ~/.kube/config.
+
+
+.PHONY: deploy-uprobe
+deploy-uprobe: PROG_NAME=go-uprobe-counter
+deploy-uprobe: CONFIG_DIR=$(PROG_NAME)
+deploy-uprobe: IMAGE_BC=$(IMAGE_UP_BC)
+deploy-uprobe: IMAGE_US=$(IMAGE_UP_US)
+deploy-uprobe: deploy-prog ## Deploy go-uprobe-counter to the cluster specified in ~/.kube/config.
+
+.PHONY: undeploy-uprobe
+undeploy-uprobe: PROG_NAME=go-uprobe-counter
+undeploy-uprobe: CONFIG_DIR=$(PROG_NAME)
+undeploy-uprobe: IMAGE_BC=$(IMAGE_UP_BC)
+undeploy-uprobe: IMAGE_US=$(IMAGE_UP_US)
+undeploy-uprobe: undeploy-prog ## Undeploy go-uprobe-counter from the cluster specified in ~/.kube/config.
+
+
+.PHONY: deploy-target
+deploy-target: ## Deploy go-target to the cluster specified in ~/.kube/config.
+	kubectl apply -f config/base/go-target/deployment.yaml
+
+.PHONY: undeploy-target
+undeploy-target: ## Undeploy go-target from the cluster specified in ~/.kube/config.
+	kubectl delete -f config/base/go-target/deployment.yaml
+
+DEPLOY_TARGETS = deploy-tc deploy-tracepoint deploy-xdp deploy-xdp-ms deploy-kprobe deploy-target deploy-uprobe
 
 .PHONY: deploy
-deploy: deploy-tc deploy-tracepoint deploy-xdp deploy-xdp-ms  ## Deploy all examples to the cluster specified in ~/.kube/config.
+deploy: ## Deploy all examples to the cluster specified in ~/.kube/config.
+ifdef TAG
+	$(eval TAG_COMMAND="TAG=$(TAG)")
+endif
+	for target in $(DEPLOY_TARGETS) ; do \
+		$(MAKE) $$target $(TAG_COMMAND) || true; \
+	done
+
+UNDEPLOY_TARGETS = undeploy-tc undeploy-tracepoint undeploy-xdp undeploy-xdp-ms undeploy-kprobe undeploy-uprobe undeploy-target
 
 .PHONY: undeploy
-undeploy: undeploy-tc undeploy-tracepoint undeploy-xdp undeploy-xdp-ms  ## Undeploy all examples to the cluster specified in ~/.kube/config.
+undeploy: ## Undeploy all examples to the cluster specified in ~/.kube/config.
+ifdef TAG
+	$(eval TAG_COMMAND="TAG=$(TAG)")
+endif
+	for target in $(UNDEPLOY_TARGETS) ; do \
+		$(MAKE) $$target $(TAG_COMMAND) || true; \
+	done

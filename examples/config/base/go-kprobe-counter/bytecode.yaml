@@ -1,11 +1,12 @@
+---
 apiVersion: bpfman.io/v1alpha1
 kind: KprobeProgram
 metadata:
   labels:
     app.kubernetes.io/name: kprobeprogram
-  name: kprobe-example
+  name: go-kprobe-counter-example
 spec:
-  bpffunctionname: my_kprobe
+  bpffunctionname: kprobe_counter
   # Select all nodes
   nodeselector: {}
   func_name: try_to_wake_up
@@ -13,12 +14,5 @@ spec:
   retprobe: false
   bytecode:
     image:
-      url: quay.io/bpfman-bytecode/kprobe:latest
-  globaldata:
-    GLOBAL_u8:
-      - 0x01
-    GLOBAL_u32:
-      - 0x0D
-      - 0x0C
-      - 0x0B
-      - 0x0A
+      url: quay.io/bpfman-bytecode/go-kprobe-counter:latest
+      imagepullpolicy: IfNotPresent

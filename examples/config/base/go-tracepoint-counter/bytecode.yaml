@@ -13,4 +13,4 @@ spec:
   bytecode:
     image:
       url: quay.io/bpfman-bytecode/go-tracepoint-counter:latest
-      imagepullpolicy: Always
+      imagepullpolicy: IfNotPresent

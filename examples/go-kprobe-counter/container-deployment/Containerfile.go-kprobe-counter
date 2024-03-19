@@ -1,0 +1,22 @@
+FROM golang:1.19 as go-kprobe-counter-build
+
+RUN apt-get update && apt-get install -y \
+    clang \
+    gcc-multilib \
+    libbpf-dev
+
+RUN go install github.com/cilium/ebpf/cmd/bpf2go@master
+
+WORKDIR /usr/src/bpfman/
+COPY ./ /usr/src/bpfman/
+
+WORKDIR /usr/src/bpfman/examples/go-kprobe-counter
+
+# Compile go-kprobe-counter
+RUN go build
+
+FROM registry.fedoraproject.org/fedora-minimal:latest
+
+COPY --from=go-kprobe-counter-build  /usr/src/bpfman/examples/go-kprobe-counter/go-kprobe-counter .
+
+ENTRYPOINT ["./go-kprobe-counter", "--crd"]

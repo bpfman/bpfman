@@ -1,0 +1,52 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: go-target
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bpfman-app-go-target
+  namespace: go-target
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: go-target-ds
+  namespace: go-target
+  labels:
+    k8s-app: go-target
+spec:
+  selector:
+    matchLabels:
+      name: go-target
+  template:
+    metadata:
+      labels:
+        name: go-target
+    spec:
+      nodeSelector: {}
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: bpfman-app-go-target
+      tolerations:
+        # these tolerations are to have the daemonset runnable on control plane nodes
+        # remove them if your control plane nodes should not run pods
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: go-target
+          image: quay.io/bpfman-userspace/go-target:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: false
+          env:
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
