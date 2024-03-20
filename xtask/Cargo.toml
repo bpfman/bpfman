@@ -8,6 +8,7 @@ version = "0.1.0"
 anyhow = { workspace = true, features = ["std"] }
 bpfman = { workspace = true }
 bpfman-api = { workspace = true }
+cargo_metadata = { workspace = true }
 clap = { workspace = true, features = [
     "derive",
     "help",
@@ -17,7 +18,12 @@ clap = { workspace = true, features = [
 ] }
 clap_complete = { workspace = true }
 clap_mangen = { workspace = true }
+dialoguer = { workspace = true }
+diff = { workspace = true }
 hex = { workspace = true, features = ["std"] }
 lazy_static = { workspace = true }
+public-api = { workspace = true }
+rustdoc-json = { workspace = true }
+rustup-toolchain = { workspace = true }
 serde_json = { workspace = true, features = ["std"] }
 tonic-build = { workspace = true, features = ["prost"] }
