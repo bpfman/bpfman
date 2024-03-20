@@ -89,6 +89,9 @@ jobs:
         run: |
           cargo +nightly clippy --all -- --deny warnings
 
+      - name: Check public API
+        run: cargo xtask public-api
+
       - name: Build
         run: cargo build --verbose
 
