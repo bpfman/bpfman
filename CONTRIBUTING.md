@@ -193,6 +193,13 @@ cargo +nightly clippy --all -- --deny warnings
 * Verify that unit tests are passing locally (see
   [Unit Testing](https://bpfman.io/main/developer-guide/testing/#unit-testing)):
 
+* Verify any changes to the bpfman api have been "blessed"
+
+```console
+cd /src/bpfman/
+cargo +nightly xtask public-api --bless
+```
+
 ```console
 cd src/bpfman/
 cargo test
