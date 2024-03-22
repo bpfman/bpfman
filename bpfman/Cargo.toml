@@ -59,7 +59,7 @@ sha2 = { workspace = true }
 sigstore = { workspace = true, features = [
     "cached-client",
     "cosign-native-tls",
-    "tuf",
+    "sigstore-trust-root",
 ] }
 sled = { workspace = true }
 systemd-journal-logger = { workspace = true }

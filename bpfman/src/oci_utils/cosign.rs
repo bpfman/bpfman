@@ -13,7 +13,6 @@ use sigstore::{
     errors::SigstoreError::RegistryPullManifestError,
     registry::{Auth, ClientConfig, ClientProtocol, OciReference},
 };
-use tokio::task::spawn_blocking;
 
 pub struct CosignVerifier {
     pub client: sigstore::cosign::Client<'static>,
@@ -42,11 +41,12 @@ impl CosignVerifier {
         // The cosign is a static ref which needs to live for the rest of the program's
         // lifecycle so therefore the repo ALSO needs to be static, requiring us
         // to leak it here.
-        let repo: &dyn sigstore::tuf::Repository = Box::leak(fetch_sigstore_tuf_data().await?);
+        let repo: &dyn sigstore::trust::TrustRoot = Box::leak(fetch_sigstore_tuf_data().await?);
 
         let cosign_client = ClientBuilder::default()
             .with_oci_client_config(oci_config)
-            .with_trust_repository(repo)?
+            .with_trust_repository(repo)
+            .await?
             .enable_registry_caching()
             .build()?;
 
@@ -107,24 +107,23 @@ impl CosignVerifier {
     }
 }
 
-async fn fetch_sigstore_tuf_data() -> anyhow::Result<Box<dyn sigstore::tuf::Repository>> {
-    Ok(Box::new(
-        spawn_blocking(|| {
-            let tuf =
-                sigstore::tuf::SigstoreRepository::new(get_tuf_path().as_deref()).map_err(|e| {
-                    anyhow!(
-                        "Error spawning blocking task to build sigstore repo inside of tokio: {}",
-                        e
-                    )
-                })?;
+async fn fetch_sigstore_tuf_data() -> anyhow::Result<Box<dyn sigstore::trust::TrustRoot>> {
+    let tuf = sigstore::trust::sigstore::SigstoreTrustRoot::new(get_tuf_path().as_deref())
+        .await
+        .map_err(|e| {
+            anyhow!(
+                "Error spawning blocking task to build sigstore repo inside of tokio: {}",
+                e
+            )
+        })?
+        .prefetch()
+        .await
+        .map_err(|e| {
+            anyhow!(
+                "Error spawning blocking task to prefetch tuf data inside of tokio: {}",
+                e
+            )
+        })?;
 
-            tuf.prefetch().map_err(|e| {
-                anyhow!(
-                    "Error spawning blocking task to prefetch tuf data inside of tokio: {}",
-                    e
-                )
-            })
-        })
-        .await??,
-    ))
+    Ok(Box::new(tuf))
 }
