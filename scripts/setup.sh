@@ -2,7 +2,7 @@
 
 CALL_POPD=false
 if [[ "$PWD" != */scripts ]]; then
-    pushd scripts &>/dev/null
+    pushd scripts &>/dev/null || exit
 fi
 
 # Source the functions in other files
@@ -121,5 +121,5 @@ case "$1" in
 esac
 
 if [[ "$CALL_POPD" == true ]]; then
-    popd &>/dev/null
+    popd &>/dev/null || exit
 fi
