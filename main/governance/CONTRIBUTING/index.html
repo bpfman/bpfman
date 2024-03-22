@@ -1948,18 +1948,26 @@ before you submit your code:</p>
 <li>Verify that Go code has been formatted and linted</li>
 <li>Verify that Yaml files have been formatted (see
   <a href="https://bpfman.io/main/getting-started/building-bpfman/#install-yaml-formatter">Install Yaml Formatter</a>)</li>
-<li>Verify that unit tests are passing locally (see
-  <a href="https://bpfman.io/main/developer-guide/testing/#unit-testing">Unit Testing</a>):</li>
+<li>
+<p>Verify that unit tests are passing locally (see
+  <a href="https://bpfman.io/main/developer-guide/testing/#unit-testing">Unit Testing</a>):</p>
+</li>
+<li>
+<p>Verify any changes to the bpfman api have been "blessed"</p>
+</li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">cd src/bpfman/</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">cargo test</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">cd /src/bpfman/</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">cargo +nightly xtask public-api --bless</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">cd src/bpfman/</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">cargo test</span>
 </code></pre></div>
 <ul>
 <li>Verify that integration tests are passing locally (see
   <a href="https://bpfman.io/main/developer-guide/testing/#basic-integration-tests">Basic Integration Tests</a>):</li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">cd src/bpfman/</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">cargo xtask integration-test</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">cd src/bpfman/</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">cargo xtask integration-test</span>
 </code></pre></div>
 <ul>
 <li>If developing the bpfman-operator, verify that bpfman-operator unit and integration tests
