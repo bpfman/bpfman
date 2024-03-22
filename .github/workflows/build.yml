@@ -212,7 +212,7 @@ jobs:
 
   basic-integration-tests:
     runs-on: ubuntu-latest
-    needs: [build, build-go]
+    needs: [build, build-go, build-docs]
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -280,7 +280,7 @@ jobs:
         run: cargo xtask integration-test
 
   kubernetes-integration-tests:
-    needs: [build, build-go]
+    needs: [build, build-go, build-docs]
     runs-on: ubuntu-latest
     env:
       BPFMAN_IMG: quay.io/bpfman/bpfman:int-test
@@ -344,7 +344,7 @@ jobs:
           if-no-files-found: ignore
 
   coverage:
-    needs: [build, build-go]
+    needs: [build, build-go, build-docs]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
