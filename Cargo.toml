@@ -65,7 +65,7 @@ prost-types = { version = "0.12.3", default-features = false }
 public-api = { version = "0.33.1", default-features = false }
 quote = { version = "1", default-features = false }
 rand = { version = "0.8", default-features = false }
-regex = { version = "1.9.6", default-features = false }
+regex = { version = "1.10.4", default-features = false }
 rtnetlink = { version = "0.14", default-features = false }
 rustdoc-json = { version = "0.8.9", default-features = false }
 rustup-toolchain = { version = "0.1.6", default-features = false }
@@ -82,7 +82,7 @@ thiserror = { version = "1", default-features = false }
 tokio = { version = "1.36.0", default-features = false }
 tokio-stream = { version = "0.1.15", default-features = false }
 tokio-util = { version = "0.7.10", default-features = false }
-toml = { version = "0.8.11", default-features = false }
+toml = { version = "0.8.12", default-features = false }
 tonic = { version = "0.11.0", default-features = false }
 tonic-build = { version = "0.11.0", default-features = false }
 tower = { version = "0.4.13", default-features = false }
