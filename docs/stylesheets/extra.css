@@ -3,3 +3,7 @@
     --md-primary-fg-color--light: #F3C622;
     --md-primary-fg-color--dark:  #CF791D;
 }
+
+.md-copyright__netlify {
+    float: right;
+}
