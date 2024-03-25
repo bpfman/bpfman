@@ -30,7 +30,7 @@ impl BpfmanLoader {
 #[tonic::async_trait]
 impl Bpfman for BpfmanLoader {
     async fn load(&self, request: Request<LoadRequest>) -> Result<Response<LoadResponse>, Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone());
+        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
         let request = request.into_inner();
 
         let bytecode_source = match request
@@ -152,7 +152,7 @@ impl Bpfman for BpfmanLoader {
         &self,
         request: Request<UnloadRequest>,
     ) -> Result<Response<UnloadResponse>, Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone());
+        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
 
         let reply = UnloadResponse {};
         let request = request.into_inner();
@@ -166,7 +166,7 @@ impl Bpfman for BpfmanLoader {
     }
 
     async fn get(&self, request: Request<GetRequest>) -> Result<Response<GetResponse>, Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone());
+        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
         let request = request.into_inner();
         let id = request.id;
 
@@ -191,7 +191,7 @@ impl Bpfman for BpfmanLoader {
     }
 
     async fn list(&self, request: Request<ListRequest>) -> Result<Response<ListResponse>, Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone());
+        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
 
         let mut reply = ListResponse { results: vec![] };
 
@@ -225,7 +225,7 @@ impl Bpfman for BpfmanLoader {
         &self,
         request: tonic::Request<PullBytecodeRequest>,
     ) -> std::result::Result<tonic::Response<PullBytecodeResponse>, tonic::Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone());
+        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
 
         let request = request.into_inner();
         let image = match request.image {

@@ -5,8 +5,6 @@ use std::{
     collections::HashMap,
     fs::{create_dir_all, remove_dir_all},
     path::{Path, PathBuf},
-    thread,
-    time::Duration,
 };
 
 use aya::{
@@ -18,6 +16,7 @@ use aya::{
 };
 use log::{debug, info, warn};
 use sled::{Config as SledConfig, Db};
+use tokio::time::{sleep, Duration};
 
 use crate::{
     config::Config,
@@ -110,7 +109,7 @@ pub(crate) fn get_db_config() -> SledConfig {
     SledConfig::default().temporary(true)
 }
 
-pub(crate) fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanError> {
+pub(crate) async fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanError> {
     let database_config = open_config_file().database.unwrap_or_default();
     for _ in 1..database_config.max_retries {
         if let Ok(db) = sled_config.open() {
@@ -121,7 +120,7 @@ pub(crate) fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanError> 
                 "Database lock is already held, retrying after {} milliseconds",
                 database_config.millisec_delay
             );
-            thread::sleep(Duration::from_millis(database_config.millisec_delay));
+            sleep(Duration::from_millis(database_config.millisec_delay)).await;
         }
     }
     Err(BpfmanError::DatabaseLockError)
@@ -134,11 +133,13 @@ pub struct BpfManager {
 }
 
 impl BpfManager {
-    pub fn new(config: Config) -> Self {
+    pub async fn new(config: Config) -> Self {
         Self {
             config,
             image_manager: None,
-            root_db: init_database(get_db_config()).expect("Unable to open root database"),
+            root_db: init_database(get_db_config())
+                .await
+                .expect("Unable to open root database"),
         }
     }
 

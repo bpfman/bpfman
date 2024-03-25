@@ -37,8 +37,10 @@ func TestTracepointGoCounter(t *testing.T) {
 		daemon, err := env.Cluster().Client().AppsV1().DaemonSets(tracepointGoCounterUserspaceNs).Get(ctx, tracepointGoCounterUserspaceDsName, metav1.GetOptions{})
 		require.NoError(t, err)
 		return daemon.Status.DesiredNumberScheduled == daemon.Status.NumberAvailable
-	}, time.Minute, time.Second)
-
+	},
+	// Wait 5 minutes since cosign is slow, https://github.com/bpfman/bpfman/issues/1043
+	5 * time.Minute, 10 * time.Second)
+	
 	pods, err := env.Cluster().Client().CoreV1().Pods(tracepointGoCounterUserspaceNs).List(ctx, metav1.ListOptions{LabelSelector: "name=go-tracepoint-counter"})
 	require.NoError(t, err)
 	goTracepointCounterPod := pods.Items[0]

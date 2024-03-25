@@ -823,6 +823,8 @@ pub fn bpfman::types::Direction::try_from(value: U) -> core::result::Result<T, <
 impl<T, U> core::convert::TryInto<U> for bpfman::types::Direction where U: core::convert::TryFrom<T>
 pub type bpfman::types::Direction::Error = <U as core::convert::TryFrom<T>>::Error
 pub fn bpfman::types::Direction::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> ahash::specialize::CallHasher for bpfman::types::Direction where T: core::hash::Hash + core::marker::Sized
+pub fn bpfman::types::Direction::get_hash<H, B>(value: &H, build_hasher: &B) -> u64 where H: core::hash::Hash + core::marker::Sized, B: core::hash::BuildHasher
 impl<T> alloc::borrow::ToOwned for bpfman::types::Direction where T: core::clone::Clone
 pub type bpfman::types::Direction::Owned = T
 pub fn bpfman::types::Direction::clone_into(&self, target: &mut T)
@@ -2156,7 +2158,7 @@ impl bpfman::BpfManager
 pub async fn bpfman::BpfManager::add_program(&mut self, program: bpfman::types::Program) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
 pub fn bpfman::BpfManager::get_program(&mut self, id: u32) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
 pub fn bpfman::BpfManager::list_programs(&mut self, filter: bpfman::types::ListFilter) -> alloc::vec::Vec<bpfman::types::Program>
-pub fn bpfman::BpfManager::new(config: bpfman::config::Config) -> Self
+pub async fn bpfman::BpfManager::new(config: bpfman::config::Config) -> Self
 pub async fn bpfman::BpfManager::pull_bytecode(&mut self, image: bpfman::oci_utils::image_manager::BytecodeImage) -> anyhow::Result<()>
 pub async fn bpfman::BpfManager::rebuild_state(&mut self) -> core::result::Result<(), anyhow::Error>
 pub async fn bpfman::BpfManager::remove_program(&mut self, id: u32) -> core::result::Result<(), bpfman::errors::BpfmanError>

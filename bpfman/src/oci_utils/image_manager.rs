@@ -401,8 +401,9 @@ mod tests {
 
     #[tokio::test]
     async fn image_pull_and_bytecode_verify() {
-        let root_db =
-            init_database(get_db_config()).expect("Unable to open root database for unit test");
+        let root_db = init_database(get_db_config())
+            .await
+            .expect("Unable to open root database for unit test");
         let mut mgr = ImageManager::new(true).await.unwrap();
         let (image_content_key, _) = mgr
             .get_image(
@@ -428,8 +429,9 @@ mod tests {
     #[tokio::test]
     async fn image_pull_policy_never_failure() {
         let mut mgr = ImageManager::new(true).await.unwrap();
-        let root_db =
-            init_database(get_db_config()).expect("Unable to open root database for unit test");
+        let root_db = init_database(get_db_config())
+            .await
+            .expect("Unable to open root database for unit test");
 
         let result = mgr
             .get_image(
@@ -448,8 +450,9 @@ mod tests {
     #[should_panic]
     async fn private_image_pull_failure() {
         let mut mgr = ImageManager::new(true).await.unwrap();
-        let root_db =
-            init_database(get_db_config()).expect("Unable to open root database for unit test");
+        let root_db = init_database(get_db_config())
+            .await
+            .expect("Unable to open root database for unit test");
 
         mgr.get_image(
             &root_db,
@@ -466,8 +469,9 @@ mod tests {
     async fn private_image_pull_and_bytecode_verify() {
         env_logger::init();
         let mut mgr = ImageManager::new(true).await.unwrap();
-        let root_db =
-            init_database(get_db_config()).expect("Unable to open root database for unit test");
+        let root_db = init_database(get_db_config())
+            .await
+            .expect("Unable to open root database for unit test");
 
         let (image_content_key, _) = mgr
             .get_image(
@@ -493,8 +497,9 @@ mod tests {
     #[tokio::test]
     async fn image_pull_failure() {
         let mut mgr = ImageManager::new(true).await.unwrap();
-        let root_db =
-            init_database(get_db_config()).expect("Unable to open root database for unit test");
+        let root_db = init_database(get_db_config())
+            .await
+            .expect("Unable to open root database for unit test");
 
         let result = mgr
             .get_image(
