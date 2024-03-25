@@ -16,13 +16,12 @@ use log::{info, warn};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sled::Db;
-use tokio::sync::oneshot;
 
 use crate::{
     directories::RTDIR_FS,
     errors::{BpfmanError, ParseError},
     multiprog::{DispatcherId, DispatcherInfo},
-    oci_utils::image_manager::{BytecodeImage, ImageManager},
+    oci_utils::image_manager::ImageManager,
     utils::{
         bytes_to_bool, bytes_to_i32, bytes_to_string, bytes_to_u32, bytes_to_u64, bytes_to_usize,
         sled_get, sled_get_option, sled_insert,
@@ -92,10 +91,39 @@ const UPROBE_TARGET: &str = "uprobe_target";
 const FENTRY_FN_NAME: &str = "fentry_fn_name";
 const FEXIT_FN_NAME: &str = "fexit_fn_name";
 
-/// Provided by the requester and used by the manager task to send
-/// the command response back to the requester.
-type Responder<T> = oneshot::Sender<T>;
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct BytecodeImage {
+    pub image_url: String,
+    pub image_pull_policy: ImagePullPolicy,
+    pub username: Option<String>,
+    pub password: Option<String>,
+}
 
+impl BytecodeImage {
+    pub fn new(
+        image_url: String,
+        image_pull_policy: i32,
+        username: Option<String>,
+        password: Option<String>,
+    ) -> Self {
+        Self {
+            image_url,
+            image_pull_policy: image_pull_policy
+                .try_into()
+                .expect("Unable to parse ImagePullPolicy"),
+            username,
+            password,
+        }
+    }
+
+    pub fn get_url(&self) -> &str {
+        &self.image_url
+    }
+
+    pub fn get_pull_policy(&self) -> &ImagePullPolicy {
+        &self.image_pull_policy
+    }
+}
 #[derive(Debug, Clone, Default)]
 pub struct ListFilter {
     pub(crate) program_type: Option<u32>,
@@ -171,12 +199,6 @@ impl ListFilter {
         }
         true
     }
-}
-
-#[derive(Debug)]
-pub struct LoadArgs {
-    pub program: Program,
-    pub responder: Responder<Result<Program, BpfmanError>>,
 }
 
 #[derive(Debug, Clone)]
@@ -276,7 +298,7 @@ pub struct ProgramData {
 }
 
 impl ProgramData {
-    pub fn new(tree: sled::Tree) -> Self {
+    pub(crate) fn new(tree: sled::Tree) -> Self {
         Self { db_tree: tree }
     }
     pub fn new_pre_load(

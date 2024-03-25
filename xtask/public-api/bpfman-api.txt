@@ -403,8 +403,8 @@ impl core::clone::Clone for bpfman_api::v1::BytecodeImage
 pub fn bpfman_api::v1::BytecodeImage::clone(&self) -> bpfman_api::v1::BytecodeImage
 impl core::cmp::PartialEq for bpfman_api::v1::BytecodeImage
 pub fn bpfman_api::v1::BytecodeImage::eq(&self, other: &bpfman_api::v1::BytecodeImage) -> bool
-impl core::convert::From<bpfman_api::v1::BytecodeImage> for bpfman::oci_utils::image_manager::BytecodeImage
-pub fn bpfman::oci_utils::image_manager::BytecodeImage::from(value: bpfman_api::v1::BytecodeImage) -> Self
+impl core::convert::From<bpfman_api::v1::BytecodeImage> for bpfman::types::BytecodeImage
+pub fn bpfman::types::BytecodeImage::from(value: bpfman_api::v1::BytecodeImage) -> Self
 impl core::default::Default for bpfman_api::v1::BytecodeImage
 pub fn bpfman_api::v1::BytecodeImage::default() -> Self
 impl core::fmt::Debug for bpfman_api::v1::BytecodeImage

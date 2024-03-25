@@ -21,8 +21,8 @@ use crate::{
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfmanError,
     multiprog::{Dispatcher, XDP_DISPATCHER_PREFIX},
-    oci_utils::image_manager::{BytecodeImage, ImageManager},
-    types::{ImagePullPolicy, Program, XdpProgram},
+    oci_utils::image_manager::ImageManager,
+    types::{BytecodeImage, ImagePullPolicy, Program, XdpProgram},
     utils::{
         bytes_to_string, bytes_to_u32, bytes_to_usize, should_map_be_pinned, sled_get, sled_insert,
     },

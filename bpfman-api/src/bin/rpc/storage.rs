@@ -10,6 +10,11 @@ use std::{
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use aya::maps::MapData;
+use bpfman::{
+    types::ListFilter,
+    utils::{create_bpffs, set_dir_permissions, set_file_permissions, SOCK_MODE},
+    BpfManager,
+};
 use bpfman_csi::v1::{
     identity_server::{Identity, IdentityServer},
     node_server::{Node, NodeServer},
@@ -28,18 +33,12 @@ use tokio::{net::UnixListener, sync::broadcast};
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::{transport::Server, Request, Response, Status};
 
-use crate::{
-    config::Config,
-    directories::{RTDIR_BPFMAN_CSI_FS, RTPATH_BPFMAN_CSI_SOCKET},
-    types::ListFilter,
-    utils::{create_bpffs, open_config_file, set_dir_permissions, set_file_permissions, SOCK_MODE},
-    BpfManager,
-};
-
 const DRIVER_NAME: &str = "csi.bpfman.io";
 const MAPS_KEY: &str = "csi.bpfman.io/maps";
 const PROGRAM_KEY: &str = "csi.bpfman.io/program";
 const OPERATOR_PROGRAM_KEY: &str = "bpfman.io/ProgramName";
+const RTPATH_BPFMAN_CSI_SOCKET: &str = "/run/bpfman/csi/csi.sock";
+const RTDIR_BPFMAN_CSI_FS: &str = "/run/bpfman/csi/fs";
 // Node Publish Volume Error code constant mirrored from: https://github.com/container-storage-interface/spec/blob/master/spec.md#nodepublishvolume-errors
 const NPV_NOT_FOUND: i32 = 5;
 const OWNER_READ_WRITE: u32 = 0o0750;
@@ -132,9 +131,7 @@ impl Node for CsiNode {
         ) {
             (Some(m), Some(program_name)) => {
                 let maps: Vec<&str> = m.split(',').collect();
-
-                let config: Config = open_config_file();
-                let mut bpf_manager = BpfManager::new(config).await;
+                let mut bpf_manager = BpfManager::new().await;
 
                 // Find the Program with the specified *Program CRD name
                 let prog_data = bpf_manager
@@ -348,6 +345,10 @@ impl StorageManager {
     }
 
     pub async fn run(self, mut shutdown_channel: broadcast::Receiver<()>) {
+        create_dir_all(RTDIR_BPFMAN_CSI_FS)
+            .context("unable to create CSI socket directory")
+            .expect("cannot create csi filesystem");
+
         let path: &Path = Path::new(RTPATH_BPFMAN_CSI_SOCKET);
         // Listen on Unix socket
         if path.exists() {

@@ -3,10 +3,7 @@
 
 use anyhow::anyhow;
 use args::Commands;
-use bpfman::{
-    utils::{initialize_bpfman, open_config_file},
-    BpfManager,
-};
+use bpfman::{utils::initialize_bpfman, BpfManager};
 use clap::Parser;
 use get::execute_get;
 use list::execute_list;
@@ -30,9 +27,7 @@ async fn main() -> anyhow::Result<()> {
 
 impl Commands {
     pub(crate) async fn execute(&self) -> Result<(), anyhow::Error> {
-        let config = open_config_file();
-
-        let mut bpf_manager = BpfManager::new(config.clone()).await;
+        let mut bpf_manager = BpfManager::new().await;
 
         match self {
             Commands::Load(l) => l.execute(&mut bpf_manager).await,

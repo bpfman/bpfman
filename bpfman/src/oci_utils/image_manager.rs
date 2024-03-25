@@ -12,7 +12,7 @@ use oci_distribution::{
     secrets::RegistryAuth,
     Client, Reference,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use sled::Db;
@@ -33,40 +33,6 @@ pub struct ContainerImageMetadata {
     pub program_type: String,
     #[serde(rename(deserialize = "io.ebpf.filename"))]
     pub filename: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct BytecodeImage {
-    pub image_url: String,
-    pub image_pull_policy: ImagePullPolicy,
-    pub username: Option<String>,
-    pub password: Option<String>,
-}
-
-impl BytecodeImage {
-    pub fn new(
-        image_url: String,
-        image_pull_policy: i32,
-        username: Option<String>,
-        password: Option<String>,
-    ) -> Self {
-        Self {
-            image_url,
-            image_pull_policy: image_pull_policy
-                .try_into()
-                .expect("Unable to parse ImagePullPolicy"),
-            username,
-            password,
-        }
-    }
-
-    pub fn get_url(&self) -> &str {
-        &self.image_url
-    }
-
-    pub fn get_pull_policy(&self) -> &ImagePullPolicy {
-        &self.image_pull_policy
-    }
 }
 
 pub struct ImageManager {
