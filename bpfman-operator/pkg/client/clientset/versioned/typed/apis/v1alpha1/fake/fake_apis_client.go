@@ -32,6 +32,14 @@ func (c *FakeBpfmanV1alpha1) BpfPrograms() v1alpha1.BpfProgramInterface {
 	return &FakeBpfPrograms{c}
 }
 
+func (c *FakeBpfmanV1alpha1) FentryPrograms() v1alpha1.FentryProgramInterface {
+	return &FakeFentryPrograms{c}
+}
+
+func (c *FakeBpfmanV1alpha1) FexitPrograms() v1alpha1.FexitProgramInterface {
+	return &FakeFexitPrograms{c}
+}
+
 func (c *FakeBpfmanV1alpha1) KprobePrograms() v1alpha1.KprobeProgramInterface {
 	return &FakeKprobePrograms{c}
 }

@@ -126,6 +126,22 @@ message UprobeAttachInfo {
     optional int32 container_pid = 6;
 }
 
+/* FentryAttachInfo represents the program specific metadata which bpfman
+ * needs to attach and observe a Fentry program for a given kernel probe.
+ */
+
+message FentryAttachInfo {
+    string fn_name = 1;
+}
+
+/* FexitAttachInfo represents the program specific metadata which bpfman
+ * needs to attach and observe a Fexit program for a given kernel probe.
+ */
+
+message FexitAttachInfo {
+    string fn_name = 1;
+}
+
 /* Program specific parameters, mostly concerning where and how to attach
  * the eBPF program.
  */
@@ -137,6 +153,8 @@ message AttachInfo {
         TracepointAttachInfo tracepoint_attach_info = 4;
         KprobeAttachInfo kprobe_attach_info = 5;
         UprobeAttachInfo uprobe_attach_info = 6;
+        FentryAttachInfo fentry_attach_info = 7;
+        FexitAttachInfo fexit_attach_info = 8;
     }
 };
 

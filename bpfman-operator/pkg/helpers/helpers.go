@@ -46,6 +46,7 @@ const (
 	Tc         ProgramType = 3
 	Tracepoint ProgramType = 5
 	Xdp        ProgramType = 6
+	Tracing    ProgramType = 26
 )
 
 func (p ProgramType) Uint32() *uint32 {
@@ -64,6 +65,8 @@ func FromString(p string) (*ProgramType, error) {
 		programType = Xdp
 	case "tracepoint":
 		programType = Tracepoint
+	case "tracing":
+		programType = Tracing
 	default:
 		return nil, fmt.Errorf("unknown program type: %s", p)
 	}
@@ -81,6 +84,8 @@ func (p ProgramType) String() string {
 		return "xdp"
 	case Tracepoint:
 		return "tracepoint"
+	case Tracing:
+		return "tracing"
 	default:
 		return ""
 	}
@@ -163,7 +168,28 @@ func isKprobebpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string)
 		progLoaded, condType := isProgLoaded(&bpfProgConfig.Status.Conditions)
 
 		if !progLoaded {
-			log.Info("kprobProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condType)
+			log.Info("kprobeProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condType)
+			return false, nil
+		}
+
+		return true, nil
+	}
+}
+
+func isFentrybpfmanProgLoaded(c *bpfmanclientset.Clientset, progConfName string) wait.ConditionFunc {
+	ctx := context.Background()
+
+	return func() (bool, error) {
+		log.Info(".") // progress bar!
+		bpfProgConfig, err := c.BpfmanV1alpha1().FentryPrograms().Get(ctx, progConfName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+
+		progLoaded, condType := isProgLoaded(&bpfProgConfig.Status.Conditions)
+
+		if !progLoaded {
+			log.Info("fentryProgram: %s not ready with condition: %s, waiting until timeout", progConfName, condType)
 			return false, nil
 		}
 
@@ -246,9 +272,15 @@ func WaitForBpfProgConfLoad(c *bpfmanclientset.Clientset, progName string, timeo
 		return wait.PollImmediate(time.Second, timeout, isXdpbpfmanProgLoaded(c, progName))
 	case Tracepoint:
 		return wait.PollImmediate(time.Second, timeout, isTracepointbpfmanProgLoaded(c, progName))
+	case Tracing:
+		return wait.PollImmediate(time.Second, timeout, isFentrybpfmanProgLoaded(c, progName))
 	// TODO: case Uprobe: not covered.  Since Uprobe has the same ProgramType as
 	// Kprobe, we need a different way to distinguish them.  Options include
 	// creating an internal ProgramType for Uprobe or using a different
+	// identifier such as the string representation of the program type.
+	// TODO: case Fexit: not covered.  Since Fexit has the same ProgramType as
+	// Fentry, we need a different way to distinguish them.  Options include
+	// creating an internal ProgramType for Fexit or using a different
 	// identifier such as the string representation of the program type.
 	default:
 		return fmt.Errorf("unknown bpf program type: %s", progType)

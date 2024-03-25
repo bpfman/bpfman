@@ -29,6 +29,8 @@ import (
 type BpfmanV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	BpfProgramsGetter
+	FentryProgramsGetter
+	FexitProgramsGetter
 	KprobeProgramsGetter
 	TcProgramsGetter
 	TracepointProgramsGetter
@@ -43,6 +45,14 @@ type BpfmanV1alpha1Client struct {
 
 func (c *BpfmanV1alpha1Client) BpfPrograms() BpfProgramInterface {
 	return newBpfPrograms(c)
+}
+
+func (c *BpfmanV1alpha1Client) FentryPrograms() FentryProgramInterface {
+	return newFentryPrograms(c)
+}
+
+func (c *BpfmanV1alpha1Client) FexitPrograms() FexitProgramInterface {
+	return newFexitPrograms(c)
 }
 
 func (c *BpfmanV1alpha1Client) KprobePrograms() KprobeProgramInterface {

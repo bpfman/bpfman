@@ -1,0 +1,14 @@
+apiVersion: bpfman.io/v1alpha1
+kind: FexitProgram
+metadata:
+  labels:
+    app.kubernetes.io/name: fexitprogram
+  name: fexit-example
+spec:
+  bpffunctionname: test_fexit
+  # Select all nodes
+  nodeselector: {}
+  func_name: do_unlinkat
+  bytecode:
+    image:
+      url: quay.io/bpfman-bytecode/fexit:latest

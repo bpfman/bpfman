@@ -1,5 +1,5 @@
 /*
-Copyright 2022.
+Copyright 2024.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,26 +38,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
-// Runs the KprobeProgramReconcile test.  If multiCondition == true, it runs it
+// Runs the FexitProgramReconcile test.  If multiCondition == true, it runs it
 // with an error case in which the program object has multiple conditions.
-func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
+func fexitProgramReconcile(t *testing.T, multiCondition bool) {
 	var (
-		name            = "fakeKprobeProgram"
+		name            = "fakeFexitProgram"
 		bytecodePath    = "/tmp/hello.o"
-		bpfFunctionName = "test"
+		bpfFunctionName = "fexit_test"
 		fakeNode        = testutils.NewNode("fake-control-plane")
-		functionName    = "try_to_wake_up"
-		offset          = 0
-		retprobe        = false
+		functionName    = "do_unlinkat"
 		ctx             = context.TODO()
 		bpfProgName     = fmt.Sprintf("%s-%s", name, fakeNode.Name)
 	)
-	// A KprobeProgram object with metadata and spec.
-	Kprobe := &bpfmaniov1alpha1.KprobeProgram{
+	// A FexitProgram object with metadata and spec.
+	Fexit := &bpfmaniov1alpha1.FexitProgram{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Spec: bpfmaniov1alpha1.KprobeProgramSpec{
+		Spec: bpfmaniov1alpha1.FexitProgramSpec{
 			BpfProgramCommon: bpfmaniov1alpha1.BpfProgramCommon{
 				BpfFunctionName: bpfFunctionName,
 				NodeSelector:    metav1.LabelSelector{},
@@ -66,8 +64,6 @@ func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
 				},
 			},
 			FunctionName: functionName,
-			Offset:       uint64(offset),
-			RetProbe:     retprobe,
 		},
 	}
 
@@ -77,15 +73,15 @@ func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
 			Name: bpfProgName,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					Name:       Kprobe.Name,
+					Name:       Fexit.Name,
 					Controller: &[]bool{true}[0],
 				},
 			},
-			Labels:     map[string]string{internal.BpfProgramOwnerLabel: Kprobe.Name, internal.K8sHostLabel: fakeNode.Name},
-			Finalizers: []string{internal.KprobeProgramControllerFinalizer},
+			Labels:     map[string]string{internal.BpfProgramOwnerLabel: Fexit.Name, internal.K8sHostLabel: fakeNode.Name},
+			Finalizers: []string{internal.FexitProgramControllerFinalizer},
 		},
 		Spec: bpfmaniov1alpha1.BpfProgramSpec{
-			Type: "kprobe",
+			Type: "fexit",
 		},
 		Status: bpfmaniov1alpha1.BpfProgramStatus{
 			Conditions: []metav1.Condition{bpfmaniov1alpha1.BpfProgCondLoaded.Condition()},
@@ -93,11 +89,11 @@ func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
 	}
 
 	// Objects to track in the fake client.
-	objs := []runtime.Object{fakeNode, Kprobe, expectedBpfProg}
+	objs := []runtime.Object{fakeNode, Fexit, expectedBpfProg}
 
 	// Register operator types with the runtime scheme.
 	s := scheme.Scheme
-	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, Kprobe)
+	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, Fexit)
 	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.TcProgramList{})
 	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfProgram{})
 	s.AddKnownTypes(bpfmaniov1alpha1.SchemeGroupVersion, &bpfmaniov1alpha1.BpfProgramList{})
@@ -113,8 +109,8 @@ func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
 	// Set development Logger so we can see all logs in tests.
 	logf.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
-	// Create a KprobeProgram object with the scheme and fake client.
-	r := &KprobeProgramReconciler{ReconcilerCommon: rc}
+	// Create a FexitProgram object with the scheme and fake client.
+	r := &FexitProgramReconciler{ReconcilerCommon: rc}
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource .
@@ -124,7 +120,7 @@ func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
 		},
 	}
 
-	// First reconcile should add the finalzier to the kprobeProgram object
+	// First reconcile should add the finalzier to the fexitProgram object
 	res, err := r.Reconcile(ctx, req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
@@ -134,27 +130,27 @@ func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
 	require.False(t, res.Requeue)
 
 	// Check the BpfProgram Object was created successfully
-	err = cl.Get(ctx, types.NamespacedName{Name: Kprobe.Name, Namespace: metav1.NamespaceAll}, Kprobe)
+	err = cl.Get(ctx, types.NamespacedName{Name: Fexit.Name, Namespace: metav1.NamespaceAll}, Fexit)
 	require.NoError(t, err)
 
 	// Check the bpfman-operator finalizer was successfully added
-	require.Contains(t, Kprobe.GetFinalizers(), internal.BpfmanOperatorFinalizer)
+	require.Contains(t, Fexit.GetFinalizers(), internal.BpfmanOperatorFinalizer)
 
 	// NOTE: THIS IS A TEST FOR AN ERROR PATH. THERE SHOULD NEVER BE MORE THAN
 	// ONE CONDITION.
 	if multiCondition {
 		// Add some random conditions and verify that the condition still gets
 		// updated correctly.
-		meta.SetStatusCondition(&Kprobe.Status.Conditions, bpfmaniov1alpha1.ProgramDeleteError.Condition("bogus condition #1"))
-		if err := r.Status().Update(ctx, Kprobe); err != nil {
-			r.Logger.V(1).Info("failed to set KprobeProgram object status")
+		meta.SetStatusCondition(&Fexit.Status.Conditions, bpfmaniov1alpha1.ProgramDeleteError.Condition("bogus condition #1"))
+		if err := r.Status().Update(ctx, Fexit); err != nil {
+			r.Logger.V(1).Info("failed to set FexitProgram object status")
 		}
-		meta.SetStatusCondition(&Kprobe.Status.Conditions, bpfmaniov1alpha1.ProgramReconcileError.Condition("bogus condition #2"))
-		if err := r.Status().Update(ctx, Kprobe); err != nil {
-			r.Logger.V(1).Info("failed to set KprobeProgram object status")
+		meta.SetStatusCondition(&Fexit.Status.Conditions, bpfmaniov1alpha1.ProgramReconcileError.Condition("bogus condition #2"))
+		if err := r.Status().Update(ctx, Fexit); err != nil {
+			r.Logger.V(1).Info("failed to set FexitProgram object status")
 		}
 		// Make sure we have 2 conditions
-		require.Equal(t, 2, len(Kprobe.Status.Conditions))
+		require.Equal(t, 2, len(Fexit.Status.Conditions))
 	}
 
 	// Second reconcile should check bpfProgram Status and write Success condition to tcProgram Status
@@ -167,19 +163,19 @@ func kprobeProgramReconcile(t *testing.T, multiCondition bool) {
 	require.False(t, res.Requeue)
 
 	// Check the BpfProgram Object was created successfully
-	err = cl.Get(ctx, types.NamespacedName{Name: Kprobe.Name, Namespace: metav1.NamespaceAll}, Kprobe)
+	err = cl.Get(ctx, types.NamespacedName{Name: Fexit.Name, Namespace: metav1.NamespaceAll}, Fexit)
 	require.NoError(t, err)
 
 	// Make sure we only have 1 condition now
-	require.Equal(t, 1, len(Kprobe.Status.Conditions))
+	require.Equal(t, 1, len(Fexit.Status.Conditions))
 	// Make sure it's the right one.
-	require.Equal(t, Kprobe.Status.Conditions[0].Type, string(bpfmaniov1alpha1.ProgramReconcileSuccess))
+	require.Equal(t, Fexit.Status.Conditions[0].Type, string(bpfmaniov1alpha1.ProgramReconcileSuccess))
 }
 
-func TestKprobeProgramReconcile(t *testing.T) {
-	kprobeProgramReconcile(t, false)
+func TestFexitProgramReconcile(t *testing.T) {
+	fexitProgramReconcile(t, false)
 }
 
-func TestKprobeUpdateStatus(t *testing.T) {
-	kprobeProgramReconcile(t, true)
+func TestFexitUpdateStatus(t *testing.T) {
+	fexitProgramReconcile(t, true)
 }
