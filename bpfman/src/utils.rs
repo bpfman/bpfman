@@ -63,7 +63,7 @@ pub fn set_file_permissions(path: &Path, mode: u32) {
     }
 }
 
-pub(crate) fn set_dir_permissions(directory: &str, mode: u32) {
+pub fn set_dir_permissions(directory: &str, mode: u32) {
     // Iterate through the files in the provided directory
     let entries = std::fs::read_dir(directory).unwrap();
     for file in entries.flatten() {
@@ -209,7 +209,7 @@ pub(crate) fn get_error_msg_from_stderr(stderr: &[u8]) -> String {
         .to_string()
 }
 
-pub fn open_config_file() -> Config {
+pub(crate) fn open_config_file() -> Config {
     if let Ok(c) = std::fs::read_to_string(CFGPATH_BPFMAN_CONFIG) {
         c.parse().unwrap_or_else(|_| {
             warn!("Unable to parse config file, using defaults");
@@ -283,7 +283,6 @@ pub fn initialize_bpfman() -> anyhow::Result<()> {
         .context("unable to create tc egress dispatcher directory")?;
     create_dir_all(RTDIR_FS_MAPS).context("unable to create maps directory")?;
     create_dir_all(RTDIR_BPFMAN_CSI).context("unable to create CSI directory")?;
-    create_dir_all(RTDIR_BPFMAN_CSI_FS).context("unable to create CSI socket directory")?;
     create_dir_all(RTDIR_SOCK).context("unable to create socket directory")?;
     create_dir_all(RTDIR_TUF).context("unable to create TUF directory")?;
 

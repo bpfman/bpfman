@@ -8,11 +8,7 @@ use std::{
 };
 
 use anyhow::anyhow;
-use bpfman::{
-    config::Config,
-    storage::StorageManager,
-    utils::{set_file_permissions, SOCK_MODE},
-};
+use bpfman::utils::{set_file_permissions, SOCK_MODE};
 use bpfman_api::v1::bpfman_server::BpfmanServer;
 use libsystemd::activation::IsType;
 use log::{debug, error, info};
@@ -26,19 +22,14 @@ use tokio::{
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::Server;
 
-use crate::rpc::BpfmanLoader;
+use crate::{rpc::BpfmanLoader, storage::StorageManager};
 
-pub async fn serve(
-    config: Config,
-    csi_support: bool,
-    timeout: u64,
-    socket_path: &Path,
-) -> anyhow::Result<()> {
+pub async fn serve(csi_support: bool, timeout: u64, socket_path: &Path) -> anyhow::Result<()> {
     let (shutdown_tx, shutdown_rx1) = broadcast::channel(32);
     let shutdown_rx3 = shutdown_tx.subscribe();
     let shutdown_handle = tokio::spawn(shutdown_handler(timeout, shutdown_tx));
 
-    let loader = BpfmanLoader::new(config);
+    let loader = BpfmanLoader::new();
     let service = BpfmanServer::new(loader);
 
     let mut listeners: Vec<_> = Vec::new();

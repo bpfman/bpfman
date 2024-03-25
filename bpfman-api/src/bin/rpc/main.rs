@@ -2,13 +2,14 @@
 // Copyright Authors of bpfman
 use std::path::PathBuf;
 
-use bpfman::utils::{initialize_bpfman, open_config_file};
+use bpfman::utils::initialize_bpfman;
 use clap::{Args, Parser};
 
 use crate::serve::serve;
 
 mod rpc;
 mod serve;
+mod storage;
 
 #[derive(Parser, Debug)]
 #[command(long_about = "A rpc server proxy for the bpfman library")]
@@ -41,10 +42,8 @@ pub(crate) struct ServiceArgs {
 async fn main() -> anyhow::Result<()> {
     let args = Rpc::parse();
     initialize_bpfman()?;
-
-    let config = open_config_file();
     //TODO https://github.com/bpfman/bpfman/issues/881
-    serve(config, args.csi_support, args.timeout, &args.socket_path).await?;
+    serve(args.csi_support, args.timeout, &args.socket_path).await?;
 
     Ok(())
 }

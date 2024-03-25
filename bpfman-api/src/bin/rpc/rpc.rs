@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 use bpfman::{
-    config::Config,
     types::{
         FentryProgram, FexitProgram, KprobeProgram, ListFilter, Location, Program, ProgramData,
         TcProceedOn, TcProgram, TracepointProgram, UprobeProgram, XdpProceedOn, XdpProgram,
@@ -17,20 +16,18 @@ use bpfman_api::v1::{
 };
 use tonic::{Request, Response, Status};
 
-pub struct BpfmanLoader {
-    config: Config,
-}
+pub struct BpfmanLoader {}
 
 impl BpfmanLoader {
-    pub(crate) fn new(config: Config) -> BpfmanLoader {
-        BpfmanLoader { config }
+    pub(crate) fn new() -> BpfmanLoader {
+        BpfmanLoader {}
     }
 }
 
 #[tonic::async_trait]
 impl Bpfman for BpfmanLoader {
     async fn load(&self, request: Request<LoadRequest>) -> Result<Response<LoadResponse>, Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
+        let mut bpf_manager = BpfManager::new().await;
         let request = request.into_inner();
 
         let bytecode_source = match request
@@ -44,7 +41,7 @@ impl Bpfman for BpfmanLoader {
         };
 
         let data = ProgramData::new_pre_load(
-            &bpf_manager.root_db,
+            bpf_manager.get_root_db(),
             bytecode_source,
             request.name,
             request.metadata,
@@ -152,7 +149,7 @@ impl Bpfman for BpfmanLoader {
         &self,
         request: Request<UnloadRequest>,
     ) -> Result<Response<UnloadResponse>, Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
+        let mut bpf_manager = BpfManager::new().await;
 
         let reply = UnloadResponse {};
         let request = request.into_inner();
@@ -166,7 +163,7 @@ impl Bpfman for BpfmanLoader {
     }
 
     async fn get(&self, request: Request<GetRequest>) -> Result<Response<GetResponse>, Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
+        let mut bpf_manager = BpfManager::new().await;
         let request = request.into_inner();
         let id = request.id;
 
@@ -191,7 +188,7 @@ impl Bpfman for BpfmanLoader {
     }
 
     async fn list(&self, request: Request<ListRequest>) -> Result<Response<ListResponse>, Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
+        let mut bpf_manager = BpfManager::new().await;
 
         let mut reply = ListResponse { results: vec![] };
 
@@ -225,7 +222,7 @@ impl Bpfman for BpfmanLoader {
         &self,
         request: tonic::Request<PullBytecodeRequest>,
     ) -> std::result::Result<tonic::Response<PullBytecodeResponse>, tonic::Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
+        let mut bpf_manager = BpfManager::new().await;
 
         let request = request.into_inner();
         let image = match request.image {

@@ -23,14 +23,13 @@ use crate::{
     directories::*,
     errors::BpfmanError,
     multiprog::{
-        Dispatcher, DispatcherId, DispatcherInfo, TcDispatcher, XdpDispatcher,
-        TC_DISPATCHER_PREFIX, XDP_DISPATCHER_PREFIX,
+        Dispatcher, DispatcherId, DispatcherInfo, TC_DISPATCHER_PREFIX, XDP_DISPATCHER_PREFIX,
     },
-    oci_utils::image_manager::{BytecodeImage, ImageManager},
+    oci_utils::image_manager::ImageManager,
     types::{
-        Direction, ListFilter,
+        BytecodeImage, Direction, ListFilter,
         ProbeType::{self, *},
-        Program, ProgramData, ProgramType, PROGRAM_PREFIX, PROGRAM_PRE_LOAD_PREFIX,
+        Program, ProgramData, ProgramType, PROGRAM_PREFIX,
     },
     utils::{
         bytes_to_string, bytes_to_u32, get_error_msg_from_stderr, get_ifindex, open_config_file,
@@ -38,13 +37,12 @@ use crate::{
     },
 };
 
-pub mod config;
+mod config;
 mod dispatcher_config;
 pub mod errors;
 mod multiprog;
-pub mod oci_utils;
+mod oci_utils;
 mod static_program;
-pub mod storage;
 pub mod types;
 pub mod utils;
 
@@ -53,50 +51,40 @@ const MAP_PREFIX: &str = "map_";
 const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
 pub const BPFMAN_ENV_LOG_LEVEL: &str = "RUST_LOG";
 
-pub mod directories {
+pub(crate) mod directories {
     // The following directories are used by bpfman. They should be created by bpfman service
     // via the bpfman.service settings. They will be manually created in the case where bpfman
     // is not being run as a service.
     //
     // ConfigurationDirectory: /etc/bpfman/
-    pub const CFGDIR_MODE: u32 = 0o6750;
-    pub const CFGDIR: &str = "/etc/bpfman";
-    pub const CFGDIR_STATIC_PROGRAMS: &str = "/etc/bpfman/programs.d";
-    pub const CFGPATH_BPFMAN_CONFIG: &str = "/etc/bpfman/bpfman.toml";
-    pub const CFGPATH_CA_CERTS_PEM: &str = "/etc/bpfman/certs/ca/ca.pem";
-    pub const CFGPATH_CA_CERTS_KEY: &str = "/etc/bpfman/certs/ca/ca.key";
-    pub const CFGPATH_BPFMAN_CERTS_PEM: &str = "/etc/bpfman/certs/bpfman/bpfman.pem";
-    pub const CFGPATH_BPFMAN_CERTS_KEY: &str = "/etc/bpfman/certs/bpfman/bpfman.key";
-    pub const CFGPATH_BPFMAN_CLIENT_CERTS_PEM: &str =
-        "/etc/bpfman/certs/bpfman-client/bpfman-client.pem";
-    pub const CFGPATH_BPFMAN_CLIENT_CERTS_KEY: &str =
-        "/etc/bpfman/certs/bpfman-client/bpfman-client.key";
+    pub(crate) const CFGDIR_MODE: u32 = 0o6750;
+    pub(crate) const CFGDIR: &str = "/etc/bpfman";
+    pub(crate) const CFGDIR_STATIC_PROGRAMS: &str = "/etc/bpfman/programs.d";
+    pub(crate) const CFGPATH_BPFMAN_CONFIG: &str = "/etc/bpfman/bpfman.toml";
 
     // RuntimeDirectory: /run/bpfman/
-    pub const RTDIR_MODE: u32 = 0o6770;
-    pub const RTDIR: &str = "/run/bpfman";
-    pub const RTDIR_XDP_DISPATCHER: &str = "/run/bpfman/dispatchers/xdp";
-    pub const RTDIR_TC_INGRESS_DISPATCHER: &str = "/run/bpfman/dispatchers/tc-ingress";
-    pub const RTDIR_TC_EGRESS_DISPATCHER: &str = "/run/bpfman/dispatchers/tc-egress";
-    pub const RTDIR_FS: &str = "/run/bpfman/fs";
-    pub const RTDIR_FS_TC_INGRESS: &str = "/run/bpfman/fs/tc-ingress";
-    pub const RTDIR_FS_TC_EGRESS: &str = "/run/bpfman/fs/tc-egress";
-    pub const RTDIR_FS_XDP: &str = "/run/bpfman/fs/xdp";
-    pub const RTDIR_FS_MAPS: &str = "/run/bpfman/fs/maps";
-    pub const RTDIR_PROGRAMS: &str = "/run/bpfman/programs";
-    pub const RTDIR_SOCK: &str = "/run/bpfman-sock";
-    pub const RTPATH_BPFMAN_SOCKET: &str = "/run/bpfman-sock/bpfman.sock";
+    pub(crate) const RTDIR_MODE: u32 = 0o6770;
+    pub(crate) const RTDIR: &str = "/run/bpfman";
+    pub(crate) const RTDIR_XDP_DISPATCHER: &str = "/run/bpfman/dispatchers/xdp";
+    pub(crate) const RTDIR_TC_INGRESS_DISPATCHER: &str = "/run/bpfman/dispatchers/tc-ingress";
+    pub(crate) const RTDIR_TC_EGRESS_DISPATCHER: &str = "/run/bpfman/dispatchers/tc-egress";
+    pub(crate) const RTDIR_FS: &str = "/run/bpfman/fs";
+    pub(crate) const RTDIR_FS_TC_INGRESS: &str = "/run/bpfman/fs/tc-ingress";
+    pub(crate) const RTDIR_FS_TC_EGRESS: &str = "/run/bpfman/fs/tc-egress";
+    pub(crate) const RTDIR_FS_XDP: &str = "/run/bpfman/fs/xdp";
+    pub(crate) const RTDIR_FS_MAPS: &str = "/run/bpfman/fs/maps";
+    pub(crate) const RTDIR_PROGRAMS: &str = "/run/bpfman/programs";
+    pub(crate) const RTDIR_SOCK: &str = "/run/bpfman-sock";
     // The CSI socket must be in it's own sub directory so we can easily create a dedicated
     // K8s volume mount for it.
-    pub const RTDIR_BPFMAN_CSI: &str = "/run/bpfman/csi";
-    pub const RTPATH_BPFMAN_CSI_SOCKET: &str = "/run/bpfman/csi/csi.sock";
-    pub const RTDIR_BPFMAN_CSI_FS: &str = "/run/bpfman/csi/fs";
+    pub(crate) const RTDIR_BPFMAN_CSI: &str = "/run/bpfman/csi";
     // The TUF repository is used to store Rekor and Fulcio public keys.
-    pub const RTDIR_TUF: &str = "/run/bpfman/tuf";
+    pub(crate) const RTDIR_TUF: &str = "/run/bpfman/tuf";
     // StateDirectory: /var/lib/bpfman/
-    pub const STDIR_MODE: u32 = 0o6770;
-    pub const STDIR: &str = "/var/lib/bpfman";
-    pub const STDIR_DB: &str = "/var/lib/bpfman/db";
+    pub(crate) const STDIR_MODE: u32 = 0o6770;
+    pub(crate) const STDIR: &str = "/var/lib/bpfman";
+    #[cfg(not(test))]
+    pub(crate) const STDIR_DB: &str = "/var/lib/bpfman/db";
 }
 
 #[cfg(not(test))]
@@ -110,7 +98,7 @@ pub(crate) fn get_db_config() -> SledConfig {
 }
 
 pub(crate) async fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanError> {
-    let database_config = open_config_file().database.unwrap_or_default();
+    let database_config = open_config_file().database().to_owned().unwrap_or_default();
     for _ in 1..database_config.max_retries {
         if let Ok(db) = sled_config.open() {
             debug!("Successfully opened database");
@@ -128,19 +116,27 @@ pub(crate) async fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanE
 
 pub struct BpfManager {
     config: Config,
-    pub image_manager: Option<ImageManager>,
-    pub root_db: Db,
+    image_manager: Option<ImageManager>,
+    root_db: Db,
 }
 
 impl BpfManager {
-    pub async fn new(config: Config) -> Self {
+    pub async fn new() -> Self {
         Self {
-            config,
+            config: open_config_file(),
             image_manager: None,
             root_db: init_database(get_db_config())
                 .await
                 .expect("Unable to open root database"),
         }
+    }
+
+    pub fn get_image_manager(&self) -> &Option<ImageManager> {
+        &self.image_manager
+    }
+
+    pub fn get_root_db(&self) -> &Db {
+        &self.root_db
     }
 
     // Make sure to call init_image_manger if the command requires interation with
@@ -151,7 +147,7 @@ impl BpfManager {
         if self.image_manager.is_none() {
             let config = open_config_file();
             self.image_manager = Some(
-                ImageManager::new(config.signing.as_ref().map_or(true, |s| s.allow_unsigned))
+                ImageManager::new(config.signing().as_ref().map_or(true, |s| s.allow_unsigned))
                     .await
                     .expect("failed to initialize image manager"),
             );
@@ -315,65 +311,6 @@ impl BpfManager {
             })
     }
 
-    pub async fn rebuild_state(&mut self) -> Result<(), anyhow::Error> {
-        debug!("BpfManager::rebuild_state()");
-        self.init_image_manager().await;
-
-        // Rebuild dispatchers after rebuilding programs.
-        let mut dispatchers = Vec::new();
-
-        // re-build programs from database, cache dispatchers to rebuild after.
-        for tree_name in self.root_db.tree_names() {
-            let name = &bytes_to_string(&tree_name);
-
-            if name.contains(TC_DISPATCHER_PREFIX) || name.contains(XDP_DISPATCHER_PREFIX) {
-                dispatchers.push(name.clone());
-                continue;
-            } else if name.contains(PROGRAM_PRE_LOAD_PREFIX) {
-                debug!("Removing temporary tree on rebuild: {name}");
-                // Drop temporary DB trees, as it means bpfman crashed mid load
-                self.root_db
-                    .drop_tree(name)
-                    .expect("unable to remove temporary program tree");
-                continue;
-            }
-        }
-
-        for dispatcher in dispatchers {
-            let tree = self
-                .root_db
-                .open_tree(dispatcher.clone())
-                .expect("unable to open database tree");
-
-            // TODO For XDP currently this just assumes everything is correct already
-            // in the kernel, eventually we'll need to implement real xdp_dispatcher
-            // rebuild logic for XDP like what's done for TC in
-            // `rebuild_multiattach_dispatcher` as well as add unit test coverage.
-            if dispatcher.contains("xdp_dispatcher") {
-                let dispatcher = XdpDispatcher::new_from_db(tree);
-                let if_index = dispatcher.get_ifindex()?;
-                debug!("rebuilding state for xdp dispatcher {}", if_index);
-            } else {
-                let dispatcher = TcDispatcher::new_from_db(tree);
-                let if_index = dispatcher.get_ifindex()?;
-                let direction = dispatcher.get_direction()?;
-                debug!("rebuilding state for tc dispatcher {}", if_index);
-
-                let did = DispatcherId::Tc(DispatcherInfo(if_index, Some(direction)));
-
-                self.rebuild_multiattach_dispatcher(
-                    did,
-                    if_index,
-                    ProgramType::Tc,
-                    Some(direction),
-                )
-                .await?;
-            }
-        }
-
-        Ok(())
-    }
-
     pub async fn add_program(&mut self, mut program: Program) -> Result<Program, BpfmanError> {
         self.init_image_manager().await;
 
@@ -484,7 +421,7 @@ impl BpfManager {
 
         let old_dispatcher = self.get_dispatcher(&did);
 
-        let if_config = if let Some(ref i) = self.config.interfaces {
+        let if_config = if let Some(ref i) = self.config.interfaces() {
             i.get(&if_name)
         } else {
             None
@@ -913,7 +850,7 @@ impl BpfManager {
         // Intentionally don't add filter program here
         let mut programs: Vec<Program> = self.filter(program_type, if_index, direction).collect();
 
-        let if_config = if let Some(ref i) = self.config.interfaces {
+        let if_config = if let Some(ref i) = self.config.interfaces() {
             i.get(&if_name)
         } else {
             None
@@ -935,60 +872,6 @@ impl BpfManager {
         )
         .await?;
 
-        Ok(())
-    }
-
-    pub(crate) async fn rebuild_multiattach_dispatcher(
-        &mut self,
-        did: DispatcherId,
-        if_index: u32,
-        program_type: ProgramType,
-        direction: Option<Direction>,
-    ) -> Result<(), BpfmanError> {
-        debug!("BpfManager::rebuild_multiattach_dispatcher() for program type {program_type} on if_index {if_index:?}");
-        let mut old_dispatcher = self.get_dispatcher(&did);
-
-        if let Some(ref mut old) = old_dispatcher {
-            debug!("Rebuild Multiattach Dispatcher for {did:?}");
-            self.set_program_positions(program_type, if_index, direction);
-            let if_index = Some(if_index);
-            let mut programs: Vec<Program> =
-                self.filter(program_type, if_index, direction).collect();
-
-            debug!("programs loaded: {}", programs.len());
-
-            // The following checks should have been done when the dispatcher was built, but check again to confirm
-            if programs.is_empty() {
-                return old.delete(&self.root_db, true);
-            } else if programs.len() > 10 {
-                return Err(BpfmanError::TooManyPrograms);
-            }
-
-            let if_name = old.if_name();
-            let if_config = if let Some(ref i) = self.config.interfaces {
-                i.get(&if_name)
-            } else {
-                None
-            };
-
-            let next_revision = if let Some(ref old) = old_dispatcher {
-                old.next_revision()
-            } else {
-                1
-            };
-
-            Dispatcher::new(
-                &self.root_db,
-                if_config,
-                &mut programs,
-                next_revision,
-                old_dispatcher,
-                self.image_manager.as_mut().expect("image manager not set"),
-            )
-            .await?;
-        } else {
-            debug!("No dispatcher found in rebuild_multiattach_dispatcher() for {did:?}");
-        }
         Ok(())
     }
 

@@ -22,9 +22,9 @@ use crate::{
     dispatcher_config::TcDispatcherConfig,
     errors::BpfmanError,
     multiprog::{Dispatcher, TC_DISPATCHER_PREFIX},
-    oci_utils::image_manager::{BytecodeImage, ImageManager},
+    oci_utils::image_manager::ImageManager,
     types::{
-        Direction,
+        BytecodeImage, Direction,
         Direction::{Egress, Ingress},
         ImagePullPolicy, Program, TcProgram,
     },

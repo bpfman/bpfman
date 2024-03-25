@@ -1,9 +1,10 @@
 use std::{path::PathBuf, thread::sleep, time::Duration};
 
-use bpfman::directories::{RTDIR_FS_TC_EGRESS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP};
 use log::debug;
 
-use super::{integration_test, IntegrationTest};
+use super::{
+    integration_test, IntegrationTest, RTDIR_FS_TC_EGRESS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP,
+};
 use crate::tests::utils::*;
 
 const GLOBAL_1: &str = "GLOBAL_u8=25";

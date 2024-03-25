@@ -3,8 +3,7 @@
 
 use bpfman::{
     errors::BpfmanError,
-    oci_utils::image_manager::BytecodeImage,
-    types::{Location, Program, ProgramData},
+    types::{BytecodeImage, Location, Program},
 };
 
 use crate::v1::{
@@ -24,7 +23,7 @@ impl TryFrom<&Program> for ProgramInfo {
     type Error = BpfmanError;
 
     fn try_from(program: &Program) -> Result<Self, Self::Error> {
-        let data: &ProgramData = program.get_data();
+        let data = program.get_data();
 
         let bytecode = match data.get_location()? {
             Location::Image(m) => {
@@ -110,7 +109,7 @@ impl TryFrom<&Program> for V1KernelProgramInfo {
 
     fn try_from(program: &Program) -> Result<Self, Self::Error> {
         // Get the Kernel Info.
-        let data: &ProgramData = program.get_data();
+        let data = program.get_data();
 
         // Populate the Kernel Info.
         Ok(V1KernelProgramInfo {
