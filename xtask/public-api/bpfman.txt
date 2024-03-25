@@ -2158,7 +2158,7 @@ impl bpfman::BpfManager
 pub async fn bpfman::BpfManager::add_program(&mut self, program: bpfman::types::Program) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
 pub fn bpfman::BpfManager::get_program(&mut self, id: u32) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
 pub fn bpfman::BpfManager::list_programs(&mut self, filter: bpfman::types::ListFilter) -> alloc::vec::Vec<bpfman::types::Program>
-pub fn bpfman::BpfManager::new(config: bpfman::config::Config) -> Self
+pub async fn bpfman::BpfManager::new(config: bpfman::config::Config) -> Self
 pub async fn bpfman::BpfManager::pull_bytecode(&mut self, image: bpfman::oci_utils::image_manager::BytecodeImage) -> anyhow::Result<()>
 pub async fn bpfman::BpfManager::rebuild_state(&mut self) -> core::result::Result<(), anyhow::Error>
 pub async fn bpfman::BpfManager::remove_program(&mut self, id: u32) -> core::result::Result<(), bpfman::errors::BpfmanError>

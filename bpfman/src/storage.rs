@@ -134,7 +134,7 @@ impl Node for CsiNode {
                 let maps: Vec<&str> = m.split(',').collect();
 
                 let config: Config = open_config_file();
-                let mut bpf_manager = BpfManager::new(config);
+                let mut bpf_manager = BpfManager::new(config).await;
 
                 // Find the Program with the specified *Program CRD name
                 let prog_data = bpf_manager

@@ -32,7 +32,7 @@ impl Commands {
     pub(crate) async fn execute(&self) -> Result<(), anyhow::Error> {
         let config = open_config_file();
 
-        let mut bpf_manager = BpfManager::new(config.clone());
+        let mut bpf_manager = BpfManager::new(config.clone()).await;
 
         match self {
             Commands::Load(l) => l.execute(&mut bpf_manager).await,
