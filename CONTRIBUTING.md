@@ -180,29 +180,29 @@ accept and merge it. We recommend that you check the following things locally
 before you submit your code:
 
 * Verify that Rust code has been formatted and that all clippy lints have been fixed:
-
-```console
-cd src/bpfman/
-cargo +nightly fmt --all -- --check
-cargo +nightly clippy --all -- --deny warnings
-```
-
 * Verify that Go code has been formatted and linted
 * Verify that Yaml files have been formatted (see
   [Install Yaml Formatter](https://bpfman.io/main/getting-started/building-bpfman/#install-yaml-formatter))
+* Verify that Bash scripts have been linted using `shellcheck`
+
+```console
+cd src/bpfman/
+cargo xtask lint
+```
+
 * Verify that unit tests are passing locally (see
   [Unit Testing](https://bpfman.io/main/developer-guide/testing/#unit-testing)):
+
+```console
+cd src/bpfman/
+cargo xtask unit-test
+```
 
 * Verify any changes to the bpfman api have been "blessed"
 
 ```console
 cd /src/bpfman/
 cargo +nightly xtask public-api --bless
-```
-
-```console
-cd src/bpfman/
-cargo test
 ```
 
 * Verify that integration tests are passing locally (see
