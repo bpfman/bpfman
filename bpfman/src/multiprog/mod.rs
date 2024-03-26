@@ -45,9 +45,9 @@ impl Dispatcher {
         let if_name = p.if_name()?;
         let direction = p.direction()?;
         let xdp_mode = if let Some(c) = config {
-            c.xdp_mode
+            c.xdp_mode()
         } else {
-            XdpMode::Skb
+            &XdpMode::Skb
         };
         let d = match p.kind() {
             ProgramType::Xdp => {

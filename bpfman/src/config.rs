@@ -70,7 +70,13 @@ impl FromStr for Config {
 
 #[derive(Debug, Deserialize, Copy, Clone)]
 pub(crate) struct InterfaceConfig {
-    pub(crate) xdp_mode: XdpMode,
+    xdp_mode: XdpMode,
+}
+
+impl InterfaceConfig {
+    pub(crate) fn xdp_mode(&self) -> &XdpMode {
+        &self.xdp_mode
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq, Eq)]

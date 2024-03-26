@@ -298,21 +298,22 @@ pub struct ProgramData {
 }
 
 impl ProgramData {
-    pub(crate) fn new(tree: sled::Tree) -> Self {
-        Self { db_tree: tree }
-    }
-    pub fn new_pre_load(
-        root_db: &Db,
+    pub fn new(
         location: Location,
         name: String,
         metadata: HashMap<String, String>,
         global_data: HashMap<String, Vec<u8>>,
         map_owner_id: Option<u32>,
     ) -> Result<Self, BpfmanError> {
+        let db = sled::Config::default()
+            .temporary(true)
+            .open()
+            .expect("unable to open temporary database");
+
         let mut rng = rand::thread_rng();
         let id_rand = rng.gen::<u32>();
 
-        let db_tree = root_db
+        let db_tree = db
             .open_tree(PROGRAM_PRE_LOAD_PREFIX.to_string() + &id_rand.to_string())
             .expect("Unable to open program database tree");
 
@@ -328,6 +329,30 @@ impl ProgramData {
         };
 
         Ok(pd)
+    }
+
+    pub(crate) fn new_empty(tree: sled::Tree) -> Self {
+        Self { db_tree: tree }
+    }
+    pub(crate) fn load(&mut self, root_db: &Db) -> Result<(), BpfmanError> {
+        let db_tree = root_db
+            .open_tree(self.db_tree.name())
+            .expect("Unable to open program database tree");
+
+        // Copy over all key's and values to persistent tree
+        for r in self.db_tree.into_iter() {
+            let (k, v) = r.expect("unable to iterate db_tree");
+            db_tree.insert(k, v).map_err(|e| {
+                BpfmanError::DatabaseError(
+                    "unable to insert entry during copy".to_string(),
+                    e.to_string(),
+                )
+            })?;
+        }
+
+        self.db_tree = db_tree;
+
+        Ok(())
     }
 
     pub(crate) fn swap_tree(&mut self, root_db: &Db, new_id: u32) -> Result<(), BpfmanError> {
@@ -1469,7 +1494,7 @@ impl Program {
     }
 
     pub(crate) fn new_from_db(id: u32, tree: sled::Tree) -> Result<Self, BpfmanError> {
-        let data = ProgramData::new(tree);
+        let data = ProgramData::new_empty(tree);
 
         if data.get_id()? != id {
             return Err(BpfmanError::Error(

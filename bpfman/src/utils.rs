@@ -56,7 +56,7 @@ pub(crate) fn get_ifindex(iface: &str) -> Result<u32, BpfmanError> {
 pub fn set_file_permissions(path: &Path, mode: u32) {
     // Set the permissions on the file based on input
     if (set_permissions(path, std::fs::Permissions::from_mode(mode))).is_err() {
-        warn!(
+        debug!(
             "Unable to set permissions on file {}. Continuing",
             path.to_path_buf().display()
         );
@@ -245,7 +245,7 @@ fn is_bpffs_mounted() -> Result<bool, anyhow::Error> {
     Ok(false)
 }
 
-pub fn initialize_bpfman() -> anyhow::Result<()> {
+pub(crate) fn initialize_bpfman() -> anyhow::Result<()> {
     if connected_to_journal() {
         // If bpfman is running as a service, log to journald.
         JournalLog::new()?
@@ -253,11 +253,11 @@ pub fn initialize_bpfman() -> anyhow::Result<()> {
             .install()
             .unwrap();
         manage_journal_log_level();
-        log::info!("Log using journald");
+        debug!("Log using journald");
     } else {
-        // Otherwise fall back to logging to standard error.
-        env_logger::init();
-        log::info!("Log using env_logger");
+        // Ignore error if already initialized.
+        let _ = env_logger::try_init();
+        debug!("Log using env_logger");
     }
 
     has_cap(caps::CapSet::Effective, caps::Capability::CAP_BPF);
@@ -282,8 +282,6 @@ pub fn initialize_bpfman() -> anyhow::Result<()> {
     create_dir_all(RTDIR_FS_TC_EGRESS)
         .context("unable to create tc egress dispatcher directory")?;
     create_dir_all(RTDIR_FS_MAPS).context("unable to create maps directory")?;
-    create_dir_all(RTDIR_BPFMAN_CSI).context("unable to create CSI directory")?;
-    create_dir_all(RTDIR_SOCK).context("unable to create socket directory")?;
     create_dir_all(RTDIR_TUF).context("unable to create TUF directory")?;
 
     create_dir_all(STDIR).context("unable to create state directory")?;

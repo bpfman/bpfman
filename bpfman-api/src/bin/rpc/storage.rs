@@ -11,9 +11,9 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use aya::maps::MapData;
 use bpfman::{
+    list_programs,
     types::ListFilter,
     utils::{create_bpffs, set_dir_permissions, set_file_permissions, SOCK_MODE},
-    BpfManager,
 };
 use bpfman_csi::v1::{
     identity_server::{Identity, IdentityServer},
@@ -131,11 +131,11 @@ impl Node for CsiNode {
         ) {
             (Some(m), Some(program_name)) => {
                 let maps: Vec<&str> = m.split(',').collect();
-                let mut bpf_manager = BpfManager::new().await;
 
                 // Find the Program with the specified *Program CRD name
-                let prog_data = bpf_manager
-                    .list_programs(ListFilter::default())
+                let prog_data = list_programs(ListFilter::default())
+                    .await
+                    .map_err(|e| Status::aborted(format!("failed list programs: {e}")))?
                     .into_iter()
                     .find(|p| {
                         p.get_data()

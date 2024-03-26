@@ -1059,7 +1059,7 @@ pub fn bpfman::types::ProgramData::get_map_pin_path(&self) -> core::result::Resu
 pub fn bpfman::types::ProgramData::get_maps_used_by(&self) -> core::result::Result<alloc::vec::Vec<u32>, bpfman::errors::BpfmanError>
 pub fn bpfman::types::ProgramData::get_metadata(&self) -> core::result::Result<std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, bpfman::errors::BpfmanError>
 pub fn bpfman::types::ProgramData::get_name(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
-pub fn bpfman::types::ProgramData::new_pre_load(root_db: &sled::db::Db, location: bpfman::types::Location, name: alloc::string::String, metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, global_data: std::collections::hash::map::HashMap<alloc::string::String, alloc::vec::Vec<u8>>, map_owner_id: core::option::Option<u32>) -> core::result::Result<Self, bpfman::errors::BpfmanError>
+pub fn bpfman::types::ProgramData::new(location: bpfman::types::Location, name: alloc::string::String, metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, global_data: std::collections::hash::map::HashMap<alloc::string::String, alloc::vec::Vec<u8>>, map_owner_id: core::option::Option<u32>) -> core::result::Result<Self, bpfman::errors::BpfmanError>
 impl core::clone::Clone for bpfman::types::ProgramData
 pub fn bpfman::types::ProgramData::clone(&self) -> bpfman::types::ProgramData
 impl core::fmt::Debug for bpfman::types::ProgramData
@@ -1461,54 +1461,10 @@ pub fn bpfman::types::XdpProgram::vzip(self) -> V
 pub mod bpfman::utils
 pub const bpfman::utils::SOCK_MODE: u32 = 432u32
 pub fn bpfman::utils::create_bpffs(directory: &str) -> anyhow::Result<()>
-pub fn bpfman::utils::initialize_bpfman() -> anyhow::Result<()>
 pub fn bpfman::utils::set_dir_permissions(directory: &str, mode: u32)
 pub fn bpfman::utils::set_file_permissions(path: &std::path::Path, mode: u32)
-pub struct bpfman::BpfManager
-impl bpfman::BpfManager
-pub async fn bpfman::BpfManager::add_program(&mut self, program: bpfman::types::Program) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
-pub fn bpfman::BpfManager::get_image_manager(&self) -> &core::option::Option<ImageManager>
-pub fn bpfman::BpfManager::get_program(&mut self, id: u32) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
-pub fn bpfman::BpfManager::get_root_db(&self) -> &sled::db::Db
-pub fn bpfman::BpfManager::list_programs(&mut self, filter: bpfman::types::ListFilter) -> alloc::vec::Vec<bpfman::types::Program>
-pub async fn bpfman::BpfManager::new() -> Self
-pub async fn bpfman::BpfManager::pull_bytecode(&mut self, image: bpfman::types::BytecodeImage) -> anyhow::Result<()>
-pub async fn bpfman::BpfManager::remove_program(&mut self, id: u32) -> core::result::Result<(), bpfman::errors::BpfmanError>
-impl core::marker::Freeze for bpfman::BpfManager
-impl core::marker::Send for bpfman::BpfManager
-impl core::marker::Sync for bpfman::BpfManager
-impl core::marker::Unpin for bpfman::BpfManager
-impl !core::panic::unwind_safe::RefUnwindSafe for bpfman::BpfManager
-impl !core::panic::unwind_safe::UnwindSafe for bpfman::BpfManager
-impl<T, U> core::convert::Into<U> for bpfman::BpfManager where U: core::convert::From<T>
-pub fn bpfman::BpfManager::into(self) -> U
-impl<T, U> core::convert::TryFrom<U> for bpfman::BpfManager where U: core::convert::Into<T>
-pub type bpfman::BpfManager::Error = core::convert::Infallible
-pub fn bpfman::BpfManager::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
-impl<T, U> core::convert::TryInto<U> for bpfman::BpfManager where U: core::convert::TryFrom<T>
-pub type bpfman::BpfManager::Error = <U as core::convert::TryFrom<T>>::Error
-pub fn bpfman::BpfManager::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
-impl<T> core::any::Any for bpfman::BpfManager where T: 'static + core::marker::Sized
-pub fn bpfman::BpfManager::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::BpfManager where T: core::marker::Sized
-pub fn bpfman::BpfManager::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::BpfManager where T: core::marker::Sized
-pub fn bpfman::BpfManager::borrow_mut(&mut self) -> &mut T
-impl<T> core::convert::From<T> for bpfman::BpfManager
-pub fn bpfman::BpfManager::from(t: T) -> T
-impl<T> crossbeam_epoch::atomic::Pointable for bpfman::BpfManager
-pub type bpfman::BpfManager::Init = T
-pub const bpfman::BpfManager::ALIGN: usize
-pub unsafe fn bpfman::BpfManager::deref<'a>(ptr: usize) -> &'a T
-pub unsafe fn bpfman::BpfManager::deref_mut<'a>(ptr: usize) -> &'a mut T
-pub unsafe fn bpfman::BpfManager::drop(ptr: usize)
-pub unsafe fn bpfman::BpfManager::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> tracing::instrument::Instrument for bpfman::BpfManager
-impl<T> tracing::instrument::WithSubscriber for bpfman::BpfManager
-impl<T> typenum::type_operators::Same for bpfman::BpfManager
-pub type bpfman::BpfManager::Output = T
-impl<V, T> ppv_lite86::types::VZip<V> for bpfman::BpfManager where V: ppv_lite86::types::MultiLane<T>
-pub fn bpfman::BpfManager::vzip(self) -> V
-pub const bpfman::BPFMAN_ENV_LOG_LEVEL: &str
-pub fn bpfman::calc_map_pin_path(id: u32) -> std::path::PathBuf
-pub fn bpfman::create_map_pin_path(p: &std::path::Path) -> core::result::Result<(), bpfman::errors::BpfmanError>
+pub async fn bpfman::add_program(program: bpfman::types::Program) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
+pub async fn bpfman::get_program(id: u32) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
+pub async fn bpfman::list_programs(filter: bpfman::types::ListFilter) -> core::result::Result<alloc::vec::Vec<bpfman::types::Program>, bpfman::errors::BpfmanError>
+pub async fn bpfman::pull_bytecode(image: bpfman::types::BytecodeImage) -> anyhow::Result<()>
+pub async fn bpfman::remove_program(id: u32) -> core::result::Result<(), bpfman::errors::BpfmanError>

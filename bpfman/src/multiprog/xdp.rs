@@ -47,7 +47,7 @@ pub struct XdpDispatcher {
 impl XdpDispatcher {
     pub(crate) fn new(
         root_db: &Db,
-        mode: XdpMode,
+        mode: &XdpMode,
         if_index: u32,
         if_name: String,
         revision: u32,
@@ -360,8 +360,8 @@ impl XdpDispatcher {
         sled_get(&self.db_tree, IF_NAME).map(|v| bytes_to_string(&v))
     }
 
-    pub(crate) fn set_mode(&mut self, mode: XdpMode) -> Result<(), BpfmanError> {
-        sled_insert(&self.db_tree, MODE, &(mode as u32).to_ne_bytes())
+    pub(crate) fn set_mode(&mut self, mode: &XdpMode) -> Result<(), BpfmanError> {
+        sled_insert(&self.db_tree, MODE, &(*mode as u32).to_ne_bytes())
     }
 
     pub(crate) fn get_mode(&self) -> Result<XdpMode, BpfmanError> {

@@ -2,7 +2,6 @@
 // Copyright Authors of bpfman
 use std::path::PathBuf;
 
-use bpfman::utils::initialize_bpfman;
 use clap::{Args, Parser};
 
 use crate::serve::serve;
@@ -41,7 +40,6 @@ pub(crate) struct ServiceArgs {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Rpc::parse();
-    initialize_bpfman()?;
     //TODO https://github.com/bpfman/bpfman/issues/881
     serve(args.csi_support, args.timeout, &args.socket_path).await?;
 

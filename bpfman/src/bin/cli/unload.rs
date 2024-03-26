@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use bpfman::BpfManager;
+use bpfman::remove_program;
 
 use crate::args::UnloadArgs;
 
-pub(crate) async fn execute_unload(
-    bpf_manager: &mut BpfManager,
-    args: &UnloadArgs,
-) -> Result<(), anyhow::Error> {
-    bpf_manager.remove_program(args.id).await?;
+pub(crate) async fn execute_unload(args: &UnloadArgs) -> Result<(), anyhow::Error> {
+    remove_program(args.id).await?;
     Ok(())
 }
