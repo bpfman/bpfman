@@ -1537,6 +1537,10 @@ bpfman.io API group.</p>
 <ul><li>
 <a href="#bpfman.io/v1alpha1.BpfProgram">BpfProgram</a>
 </li><li>
+<a href="#bpfman.io/v1alpha1.FentryProgram">FentryProgram</a>
+</li><li>
+<a href="#bpfman.io/v1alpha1.FexitProgram">FexitProgram</a>
+</li><li>
 <a href="#bpfman.io/v1alpha1.KprobeProgram">KprobeProgram</a>
 </li><li>
 <a href="#bpfman.io/v1alpha1.TcProgram">TcProgram</a>
@@ -1626,6 +1630,210 @@ string
 <em>
 <a href="#bpfman.io/v1alpha1.BpfProgramStatus">
 BpfProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FentryProgram">FentryProgram
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FentryProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>FentryProgram is the Schema for the FentryPrograms API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfman.io/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>FentryProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FentryProgramSpec">
+FentryProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>func_name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Function to attach the fentry to.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FentryProgramStatus">
+FentryProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FexitProgram">FexitProgram
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FexitProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>FexitProgram is the Schema for the FexitPrograms API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfman.io/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>FexitProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FexitProgramSpec">
+FexitProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>func_name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Function to attach the fexit to.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FexitProgramStatus">
+FexitProgramStatus
 </a>
 </em>
 </td>
@@ -2313,6 +2521,8 @@ XdpProgramStatus
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.FentryProgramSpec">FentryProgramSpec</a>, 
+<a href="#bpfman.io/v1alpha1.FexitProgramSpec">FexitProgramSpec</a>, 
 <a href="#bpfman.io/v1alpha1.KprobeProgramSpec">KprobeProgramSpec</a>, 
 <a href="#bpfman.io/v1alpha1.TcProgramSpec">TcProgramSpec</a>, 
 <a href="#bpfman.io/v1alpha1.TracepointProgramSpec">TracepointProgramSpec</a>, 
@@ -2689,6 +2899,166 @@ standard metav1.LabelSelector semantics and make it empty.</p>
 <em>(Optional)</em>
 <p>Name(s) of container(s).  If none are specified, all containers in the
 pod are selected.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FentryProgramSpec">FentryProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FentryProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.FentryProgram">FentryProgram</a>)
+</p>
+<p>
+<p>FentryProgramSpec defines the desired state of FentryProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>func_name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Function to attach the fentry to.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FentryProgramStatus">FentryProgramStatus
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FentryProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.FentryProgram">FentryProgram</a>)
+</p>
+<p>
+<p>FentryProgramStatus defines the observed state of FentryProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<p>Conditions houses the global cluster state for the FentryProgram. The explicit
+condition types are defined internally.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FexitProgramSpec">FexitProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FexitProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.FexitProgram">FexitProgram</a>)
+</p>
+<p>
+<p>FexitProgramSpec defines the desired state of FexitProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>func_name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Function to attach the fexit to.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FexitProgramStatus">FexitProgramStatus
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FexitProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.FexitProgram">FexitProgram</a>)
+</p>
+<p>
+<p>FexitProgramStatus defines the observed state of FexitProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<p>Conditions houses the global cluster state for the FexitProgram. The explicit
+condition types are defined internally.</p>
 </td>
 </tr>
 </tbody>
