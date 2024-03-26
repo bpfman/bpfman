@@ -5,4 +5,6 @@ resources:
   - bpfman.io_v1alpha1_tc_pass_tcprogram.yaml
   - bpfman.io_v1alpha1_kprobe_kprobeprogram.yaml
   - bpfman.io_v1alpha1_uprobe_uprobeprogram.yaml
+  - bpfman.io_v1alpha1_fentry_fentryprogram.yaml
+  - bpfman.io_v1alpha1_fexit_fexitprogram.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples

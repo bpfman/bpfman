@@ -42,6 +42,16 @@ spec:
         kind: UprobeProgram
         name: uprobeprograms.bpfman.io
         version: v1alpha1
+      - description: FentryProgram is the Schema for the Fentryprograms API
+        displayName: Fentry Program
+        kind: FentryProgram
+        name: fentryprograms.bpfman.io
+        version: v1alpha1
+      - description: FexitProgram is the Schema for the Fexitprograms API
+        displayName: Fexit Program
+        kind: FexitProgram
+        name: fexitprograms.bpfman.io
+        version: v1alpha1
   description:
     "The bpfman Operator is a Kubernetes Operator for deploying [bpfman](https://bpfman.netlify.app/),
     a system daemon\nfor managing eBPF programs. It deploys bpfman itself along with
@@ -56,8 +66,8 @@ spec:
     `bpfman.image`: The image used for bpfman, defaults to `quay.io/bpfman/bpfman:latest`\n-
     `bpfman.log.level`: the log level for bpfman, currently supports
     `debug`, `info`, `warn`, `error`, and `fatal`, defaults to `info`\n- `bpfman.agent.log.level`: the log level for the bpfman-agent currently supports `info`, `debug`, and `trace` \n\nThe bpfman operator
-    deploys eBPF programs via CRDs. The following CRDs are currently avaliable, \n\n-
-    XdpProgram\n- TcProgram\n- TracepointProgram\n- KprobeProgram\n- UprobeProgram\n\n## More information\n\nPlease
+    deploys eBPF programs via CRDs. The following CRDs are currently available, \n\n-
+    XdpProgram\n- TcProgram\n- TracepointProgram\n- KprobeProgram\n- UprobeProgram\n- FentryProgram\n- FexitProgram\n\n## More information\n\nPlease
     checkout the [bpfman community website](https://bpfman.io/) for more information."
   displayName: Bpfman Operator
   icon:

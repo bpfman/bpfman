@@ -34,6 +34,34 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - fentryprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - fentryprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - fexitprograms
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - fexityprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
   - kprobeprograms
   verbs:
   - get

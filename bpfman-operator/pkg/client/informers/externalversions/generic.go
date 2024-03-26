@@ -55,6 +55,10 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=bpfman.io, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("bpfprograms"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().BpfPrograms().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("fentryprograms"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().FentryPrograms().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("fexitprograms"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().FexitPrograms().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("kprobeprograms"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Bpfman().V1alpha1().KprobePrograms().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("tcprograms"):

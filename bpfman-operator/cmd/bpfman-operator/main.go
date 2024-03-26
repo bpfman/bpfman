@@ -156,6 +156,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = (&bpfmanoperator.FentryProgramReconciler{
+		ReconcilerCommon: common,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create fentryProgram controller", "controller", "BpfProgram")
+		os.Exit(1)
+	}
+
+	if err = (&bpfmanoperator.FexitProgramReconciler{
+		ReconcilerCommon: common,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create fexitProgram controller", "controller", "BpfProgram")
+		os.Exit(1)
+	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

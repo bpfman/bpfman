@@ -26,6 +26,8 @@ const (
 	UprobeProgramTarget         = "bpfman.io.uprobeprogramcontroller/target"
 	UprobeContainerPid          = "bpfman.io.uprobeprogramcontroller/containerpid"
 	UprobeNoContainersOnNode    = "bpfman.io.uprobeprogramcontroller/nocontainersonnode"
+	FentryProgramFunction       = "bpfman.io.fentryprogramcontroller/function"
+	FexitProgramFunction        = "bpfman.io.fexitprogramcontroller/function"
 	BpfProgramOwnerLabel        = "bpfman.io/ownedByProgram"
 	K8sHostLabel                = "kubernetes.io/hostname"
 	DiscoveredLabel             = "bpfman.io/discoveredProgram"
@@ -68,9 +70,15 @@ const (
 	// KprobeProgramControllerFinalizer is the finalizer that holds a Kprobe
 	// BpfProgram object from deletion until cleanup can be performed.
 	KprobeProgramControllerFinalizer = "bpfman.io.kprobeprogramcontroller/finalizer"
-	// KprobeProgramControllerFinalizer is the finalizer that holds a Uprobe
+	// UprobeProgramControllerFinalizer is the finalizer that holds a Uprobe
 	// BpfProgram object from deletion until cleanup can be performed.
 	UprobeProgramControllerFinalizer = "bpfman.io.uprobeprogramcontroller/finalizer"
+	// FentryProgramControllerFinalizer is the finalizer that holds a Fentry
+	// BpfProgram object from deletion until cleanup can be performed.
+	FentryProgramControllerFinalizer = "bpfman.io.fentryprogramcontroller/finalizer"
+	// FexitProgramControllerFinalizer is the finalizer that holds a Fexit
+	// BpfProgram object from deletion until cleanup can be performed.
+	FexitProgramControllerFinalizer = "bpfman.io.fexitprogramcontroller/finalizer"
 )
 
 // Must match the kernel's `bpf_prog_type` enum.
@@ -130,6 +138,10 @@ func FromString(p string) (*ProgramType, error) {
 		programType = Kprobe
 	case "uprobe":
 		programType = Kprobe
+	case "fentry":
+		programType = Tracing
+	case "fexit":
+		programType = Tracing
 	default:
 		return nil, fmt.Errorf("unknown program type: %s", p)
 	}

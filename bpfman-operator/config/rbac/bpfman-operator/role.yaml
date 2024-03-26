@@ -34,6 +34,58 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - fentryprograms
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - fentryprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - fentryprograms/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - fexitprograms
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - fexitprograms/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - fexitprograms/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
   - kprobeprograms
   verbs:
   - create

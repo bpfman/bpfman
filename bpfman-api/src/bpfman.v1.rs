@@ -164,7 +164,7 @@ pub struct FexitAttachInfo {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AttachInfo {
-    #[prost(oneof = "attach_info::Info", tags = "2, 3, 4, 5, 6")]
+    #[prost(oneof = "attach_info::Info", tags = "2, 3, 4, 5, 6, 7, 8")]
     pub info: ::core::option::Option<attach_info::Info>,
 }
 /// Nested message and enum types in `AttachInfo`.
