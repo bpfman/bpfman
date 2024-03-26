@@ -23,7 +23,10 @@ use crate::{
     types::ImagePullPolicy,
 };
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Deserialize)]
+#[allow(dead_code)]
+// TODO(astoycos) upgrade the oci image spec based on
+// https://opencontainers.org/posts/blog/2023-07-07-summary-of-upcoming-changes-in-oci-image-and-distribution-specs-v-1-1/#1-official-guidance-on-how-to-create-and-store-alternative-even-non-container-artifacts
 pub struct ContainerImageMetadata {
     #[serde(rename(deserialize = "io.ebpf.program_name"))]
     pub name: String,
@@ -433,7 +436,6 @@ mod tests {
 
     #[tokio::test]
     async fn private_image_pull_and_bytecode_verify() {
-        env_logger::init();
         let mut mgr = ImageManager::new(true).await.unwrap();
         let root_db = init_database(get_db_config())
             .await

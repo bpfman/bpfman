@@ -5,11 +5,11 @@ use std::collections::HashMap;
 
 use anyhow::bail;
 use bpfman::{
+    add_program,
     types::{
         FentryProgram, FexitProgram, KprobeProgram, Location, Program, ProgramData, TcProceedOn,
         TcProgram, TracepointProgram, UprobeProgram, XdpProceedOn, XdpProgram,
     },
-    BpfManager,
 };
 
 use crate::{
@@ -18,22 +18,18 @@ use crate::{
 };
 
 impl LoadSubcommand {
-    pub(crate) async fn execute(&self, bpf_manager: &mut BpfManager) -> anyhow::Result<()> {
+    pub(crate) async fn execute(&self) -> anyhow::Result<()> {
         match self {
-            LoadSubcommand::File(l) => execute_load_file(bpf_manager, l).await,
-            LoadSubcommand::Image(l) => execute_load_image(bpf_manager, l).await,
+            LoadSubcommand::File(l) => execute_load_file(l).await,
+            LoadSubcommand::Image(l) => execute_load_image(l).await,
         }
     }
 }
 
-pub(crate) async fn execute_load_file(
-    bpf_manager: &mut BpfManager,
-    args: &LoadFileArgs,
-) -> anyhow::Result<()> {
+pub(crate) async fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
     let bytecode_source = Location::File(args.path.clone());
 
-    let data = ProgramData::new_pre_load(
-        bpf_manager.get_root_db(),
+    let data = ProgramData::new(
         bytecode_source,
         args.name.clone(),
         args.metadata
@@ -46,23 +42,17 @@ pub(crate) async fn execute_load_file(
         args.map_owner_id,
     )?;
 
-    let program = bpf_manager
-        .add_program(args.command.get_program(data)?)
-        .await?;
+    let program = add_program(args.command.get_program(data)?).await?;
 
     ProgTable::new_program(&program)?.print();
     ProgTable::new_kernel_info(&program)?.print();
     Ok(())
 }
 
-pub(crate) async fn execute_load_image(
-    bpf_manager: &mut BpfManager,
-    args: &LoadImageArgs,
-) -> anyhow::Result<()> {
+pub(crate) async fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
     let bytecode_source = Location::Image((&args.pull_args).try_into()?);
 
-    let data = ProgramData::new_pre_load(
-        bpf_manager.get_root_db(),
+    let data = ProgramData::new(
         bytecode_source,
         args.name.clone(),
         args.metadata
@@ -75,9 +65,7 @@ pub(crate) async fn execute_load_image(
         args.map_owner_id,
     )?;
 
-    let program = bpf_manager
-        .add_program(args.command.get_program(data)?)
-        .await?;
+    let program = add_program(args.command.get_program(data)?).await?;
 
     ProgTable::new_program(&program)?.print();
     ProgTable::new_kernel_info(&program)?.print();
