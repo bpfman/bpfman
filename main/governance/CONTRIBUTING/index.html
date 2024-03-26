@@ -1939,28 +1939,26 @@ accept and merge it. We recommend that you check the following things locally
 before you submit your code:</p>
 <ul>
 <li>Verify that Rust code has been formatted and that all clippy lints have been fixed:</li>
-</ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">cd src/bpfman/</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">cargo +nightly fmt --all -- --check</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="go">cargo +nightly clippy --all -- --deny warnings</span>
-</code></pre></div>
-<ul>
 <li>Verify that Go code has been formatted and linted</li>
 <li>Verify that Yaml files have been formatted (see
   <a href="https://bpfman.io/main/getting-started/building-bpfman/#install-yaml-formatter">Install Yaml Formatter</a>)</li>
-<li>
-<p>Verify that unit tests are passing locally (see
-  <a href="https://bpfman.io/main/developer-guide/testing/#unit-testing">Unit Testing</a>):</p>
-</li>
-<li>
-<p>Verify any changes to the bpfman api have been "blessed"</p>
-</li>
+<li>Verify that Bash scripts have been linted using <code>shellcheck</code></li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">cd /src/bpfman/</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">cargo +nightly xtask public-api --bless</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">cd src/bpfman/</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">cargo xtask lint</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">cd src/bpfman/</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">cargo test</span>
+<ul>
+<li>Verify that unit tests are passing locally (see
+  <a href="https://bpfman.io/main/developer-guide/testing/#unit-testing">Unit Testing</a>):</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">cd src/bpfman/</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">cargo xtask unit-test</span>
+</code></pre></div>
+<ul>
+<li>Verify any changes to the bpfman api have been "blessed"</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">cd /src/bpfman/</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">cargo +nightly xtask public-api --bless</span>
 </code></pre></div>
 <ul>
 <li>Verify that integration tests are passing locally (see
