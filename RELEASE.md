@@ -4,10 +4,17 @@
 
 A release for the bpfman project is comprised of the following major components:
 
-- bpfman binaries
-- Core GRPC API protobuf definitions
-- Kubernetes Custom Resource Definitions (CRDs)
-- Corresponding go pkg in the form of `github.com/bpfman/bpfman` which includes the following:
+- bpfman (Core library) and bpfman-api (Core GRPC API protobuf definitions) library crates
+- bpfman (CLI), and bpfman-rpc ( gRPC server ) binary crates
+- Kubernetes User Facing Custom Resource Definitions (CRDs)
+  - `TcProgram`
+  - `XdpProgram`
+  - `TracepointProgram`
+  - `UprobeProgram`
+  - `KprobeProgram`
+  - `FentryProgram`
+  - `FexitProgram`
+- Corresponding go pkgs in the form of `github.com/bpfman/bpfman` which includes the following:
   - `github.com/bpfman/bpfman/clients/gobpfman/v1`: The go client for the bpfman GRPC API
   - `github.com/bpfman/bpfman/bpfman-operator/apis`: The go bindings for the
     bpfman CRD API
@@ -15,7 +22,6 @@ A release for the bpfman project is comprised of the following major components:
     clientset for the bpfman CRD API
   - `github.com/bpfman/bpfman/bpfman-operator/pkg/helpers`: The provided bpfman CRD
     API helpers.
-- Corresponding `bpfman-api` and `bpfman`rust crates which house the rust client for the bpfman GRPC API
 - The following core component container images with tag <RELEASE_VERSION>:
   - `quay.io/bpfman/bpfman`
   - `quay.io/bpfman/bpfman-operator`
@@ -25,22 +31,29 @@ A release for the bpfman project is comprised of the following major components:
   - `quay.io/bpfman/tc-dispatcher`
 - The relevant example bytecode container images with tag <RELEASE_VERSION> from source
   code located in the bpfman project:
-  - `quay.io/bpfman-bytecode/go_xdp_counter`
-  - `quay.io/bpfman-bytecode/go_tc_counter`
-  - `quay.io/bpfman-bytecode/go_tracepoint_counter`
-  - `quay.io/bpfman-bytecode/xdp_pass`
-  - `quay.io/bpfman-bytecode/tc_pass`
+  - `quay.io/bpfman-bytecode/go-xdp-counter`
+  - `quay.io/bpfman-userspace/go-target`
+  - `quay.io/bpfman-bytecode/go-tc-counter`
+  - `quay.io/bpfman-bytecode/go-tracepoint-counter`
+  - `quay.io/bpfman-bytecode/xdp-pass`
+  - `quay.io/bpfman-bytecode/tc-pass`
   - `quay.io/bpfman-bytecode/tracepoint`
-  - `quay.io/bpfman-bytecode/xdp_pass_private`
+  - `quay.io/bpfman-bytecode/xdp-pass-private`
+  - `quay.io/bpfman-bytecode/go-uprobe-counter`
+  - `quay.io/bpfman-bytecode/go-kprobe-counter`
   - `quay.io/bpfman-bytecode/uprobe`
   - `quay.io/bpfman-bytecode/kprobe`
   - `quay.io/bpfman-bytecode/uretprobe`
   - `quay.io/bpfman-bytecode/kretprobe`
+  - `quay.io/bpfman-bytecode/fentry`
+  - `quay.io/bpfman-bytecode/fexit`
 - The relevant example userspace container images with tag <RELEASE_VERSION> from source
   code located in the bpfman project:
-  - `quay.io/bpfman-userspace/go_xdp_counter`
-  - `quay.io/bpfman-userspace/go_tc_counter`
-  - `quay.io/bpfman-userspace/go_tracepoint_counter`
+  - `quay.io/bpfman-userspace/go-xdp-counter`
+  - `quay.io/bpfman-userspace/go-tc-counter`
+  - `quay.io/bpfman-userspace/go-tracepoint-counter`
+  - `quay.io/bpfman-userspace/go-uprobe-counter`
+  - `quay.io/bpfman-userspace/go-kprobe-counter`
 - The OLM (Operator Lifecycle Manager) for the Kubernetes Operator.
   - This includes a `bundle` directory on disk as well as the
     `quay.io/bpfman/bpfman-operator-bundle` with the tag <RELEASE_VERSION>.
