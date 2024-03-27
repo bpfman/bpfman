@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 use bpfman::{
-    config::Config,
+    add_program, get_program, list_programs, pull_bytecode, remove_program,
     types::{
         FentryProgram, FexitProgram, KprobeProgram, ListFilter, Location, Program, ProgramData,
         TcProceedOn, TcProgram, TracepointProgram, UprobeProgram, XdpProceedOn, XdpProgram,
     },
-    BpfManager,
 };
 use bpfman_api::v1::{
     attach_info::Info, bpfman_server::Bpfman, bytecode_location::Location as RpcLocation,
@@ -17,20 +16,17 @@ use bpfman_api::v1::{
 };
 use tonic::{Request, Response, Status};
 
-pub struct BpfmanLoader {
-    config: Config,
-}
+pub struct BpfmanLoader {}
 
 impl BpfmanLoader {
-    pub(crate) fn new(config: Config) -> BpfmanLoader {
-        BpfmanLoader { config }
+    pub(crate) fn new() -> BpfmanLoader {
+        BpfmanLoader {}
     }
 }
 
 #[tonic::async_trait]
 impl Bpfman for BpfmanLoader {
     async fn load(&self, request: Request<LoadRequest>) -> Result<Response<LoadResponse>, Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
         let request = request.into_inner();
 
         let bytecode_source = match request
@@ -43,8 +39,7 @@ impl Bpfman for BpfmanLoader {
             RpcLocation::File(p) => Location::File(p),
         };
 
-        let data = ProgramData::new_pre_load(
-            &bpf_manager.root_db,
+        let data = ProgramData::new(
             bytecode_source,
             request.name,
             request.metadata,
@@ -130,8 +125,7 @@ impl Bpfman for BpfmanLoader {
             ),
         };
 
-        let program = bpf_manager
-            .add_program(program)
+        let program = add_program(program)
             .await
             .map_err(|e| Status::aborted(format!("{e}")))?;
 
@@ -152,13 +146,10 @@ impl Bpfman for BpfmanLoader {
         &self,
         request: Request<UnloadRequest>,
     ) -> Result<Response<UnloadResponse>, Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
-
         let reply = UnloadResponse {};
         let request = request.into_inner();
 
-        bpf_manager
-            .remove_program(request.id)
+        remove_program(request.id)
             .await
             .map_err(|e| Status::aborted(format!("{e}")))?;
 
@@ -166,12 +157,11 @@ impl Bpfman for BpfmanLoader {
     }
 
     async fn get(&self, request: Request<GetRequest>) -> Result<Response<GetResponse>, Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
         let request = request.into_inner();
         let id = request.id;
 
-        let program = bpf_manager
-            .get_program(id)
+        let program = get_program(id)
+            .await
             .map_err(|e| Status::aborted(format!("{e}")))?;
 
         let reply_entry =
@@ -191,8 +181,6 @@ impl Bpfman for BpfmanLoader {
     }
 
     async fn list(&self, request: Request<ListRequest>) -> Result<Response<ListResponse>, Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
-
         let mut reply = ListResponse { results: vec![] };
 
         let filter = ListFilter::new(
@@ -202,7 +190,10 @@ impl Bpfman for BpfmanLoader {
         );
 
         // Await the response
-        for r in bpf_manager.list_programs(filter) {
+        for r in list_programs(filter)
+            .await
+            .map_err(|e| Status::aborted(format!("failed to list programs: {e}")))?
+        {
             // Populate the response with the Program Info and the Kernel Info.
             let reply_entry = ListResult {
                 info: if let Program::Unsupported(_) = r {
@@ -225,16 +216,13 @@ impl Bpfman for BpfmanLoader {
         &self,
         request: tonic::Request<PullBytecodeRequest>,
     ) -> std::result::Result<tonic::Response<PullBytecodeResponse>, tonic::Status> {
-        let mut bpf_manager = BpfManager::new(self.config.clone()).await;
-
         let request = request.into_inner();
         let image = match request.image {
             Some(i) => i.into(),
             None => return Err(Status::aborted("Empty pull_bytecode request received")),
         };
 
-        bpf_manager
-            .pull_bytecode(image)
+        pull_bytecode(image)
             .await
             .map_err(|e| Status::aborted(format!("{e}")))?;
 

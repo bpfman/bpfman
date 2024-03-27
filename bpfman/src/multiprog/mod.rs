@@ -104,15 +104,6 @@ impl Dispatcher {
         current.wrapping_add(1)
     }
 
-    pub(crate) fn if_name(&self) -> String {
-        match self {
-            Dispatcher::Xdp(d) => d
-                .get_ifname()
-                .expect("failed to get xdp_dispatcher if_name"),
-            Dispatcher::Tc(d) => d.get_ifname().expect("failed to tc xdp_dispatcher if_name"),
-        }
-    }
-
     pub(crate) fn num_extensions(&self) -> usize {
         match self {
             Dispatcher::Xdp(d) => d

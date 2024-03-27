@@ -12,7 +12,7 @@ use oci_distribution::{
     secrets::RegistryAuth,
     Client, Reference,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use sled::Db;
@@ -23,7 +23,10 @@ use crate::{
     types::ImagePullPolicy,
 };
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Deserialize)]
+#[allow(dead_code)]
+// TODO(astoycos) upgrade the oci image spec based on
+// https://opencontainers.org/posts/blog/2023-07-07-summary-of-upcoming-changes-in-oci-image-and-distribution-specs-v-1-1/#1-official-guidance-on-how-to-create-and-store-alternative-even-non-container-artifacts
 pub struct ContainerImageMetadata {
     #[serde(rename(deserialize = "io.ebpf.program_name"))]
     pub name: String,
@@ -33,40 +36,6 @@ pub struct ContainerImageMetadata {
     pub program_type: String,
     #[serde(rename(deserialize = "io.ebpf.filename"))]
     pub filename: String,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct BytecodeImage {
-    pub image_url: String,
-    pub image_pull_policy: ImagePullPolicy,
-    pub username: Option<String>,
-    pub password: Option<String>,
-}
-
-impl BytecodeImage {
-    pub fn new(
-        image_url: String,
-        image_pull_policy: i32,
-        username: Option<String>,
-        password: Option<String>,
-    ) -> Self {
-        Self {
-            image_url,
-            image_pull_policy: image_pull_policy
-                .try_into()
-                .expect("Unable to parse ImagePullPolicy"),
-            username,
-            password,
-        }
-    }
-
-    pub fn get_url(&self) -> &str {
-        &self.image_url
-    }
-
-    pub fn get_pull_policy(&self) -> &ImagePullPolicy {
-        &self.image_pull_policy
-    }
 }
 
 pub struct ImageManager {
@@ -467,7 +436,6 @@ mod tests {
 
     #[tokio::test]
     async fn private_image_pull_and_bytecode_verify() {
-        env_logger::init();
         let mut mgr = ImageManager::new(true).await.unwrap();
         let root_db = init_database(get_db_config())
             .await
