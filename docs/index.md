@@ -130,10 +130,14 @@ The benefits of this solution include the following:
 
 For more details, please see the following:
 
+- [bpfman Overview](./getting-started/overview.md) for an overview of bpfman.
+- [Deploying Example eBPF Programs On Local Host](./getting-started/example-bpf-local.md)
+  for some examples of running `bpfman` on local host and using the CLI to install
+  eBPF programs on the host.
+- [Deploying Example eBPF Programs On Kubernetes](./getting-started/example-bpf-k8s.md)
+  for some examples of deploying eBPF programs through `bpfman` in a Kubernetes deployment.
 - [Setup and Building bpfman](./getting-started/building-bpfman.md) for instructions
   on setting up your development environment and building bpfman.
-- [Tutorial](./getting-started/tutorial.md) for some examples of starting
-  `bpfman`, managing logs, and using the CLI.
 - [Example eBPF Programs](./getting-started/example-bpf.md) for some examples of
   eBPF programs written in Go, interacting with `bpfman`.
 - [Deploying the bpfman-operator](./developer-guide/operator-quick-start.md) for

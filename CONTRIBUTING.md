@@ -1,13 +1,12 @@
 # Contributing Guide
 
-* [New Contributor Guide](#contributing-guide)
-  * [Ways to Contribute](#ways-to-contribute)
-  * [Find an Issue](#find-an-issue)
-  * [Ask for Help](#ask-for-help)
-  * [Pull Request Lifecycle](#pull-request-lifecycle)
-  * [Development Environment Setup](#development-environment-setup)
-  * [Signoff Your Commits](#signoff-your-commits)
-  * [Pull Request Checklist](#pull-request-checklist)
+* [Ways to Contribute](#ways-to-contribute)
+* [Find an Issue](#find-an-issue)
+* [Ask for Help](#ask-for-help)
+* [Pull Request Lifecycle](#pull-request-lifecycle)
+* [Development Environment Setup](#development-environment-setup)
+* [Signoff Your Commits](#signoff-your-commits)
+* [Pull Request Checklist](#pull-request-checklist)
 
 Welcome! We are glad that you want to contribute to our project! 💖
 
@@ -87,7 +86,7 @@ In some cases, other changes may conflict with your PR. If this happens, you wil
 
 ## Development Environment Setup
 
-[Instructions](https://bpfman.io/main/governance/contributing/#development-environment-setup)
+See [Setup and Building bpfman](https://bpfman.io/main/getting-started/building-bpfman/#development-environment-setup)
 
 ## Signoff Your Commits
 
@@ -185,35 +184,41 @@ before you submit your code:
   [Install Yaml Formatter](https://bpfman.io/main/getting-started/building-bpfman/#install-yaml-formatter))
 * Verify that Bash scripts have been linted using `shellcheck`
 
-```console
-cd src/bpfman/
-cargo xtask lint
-```
+    ```console
+    cd bpfman/
+    cargo xtask lint
+    ```
 
 * Verify that unit tests are passing locally (see
   [Unit Testing](https://bpfman.io/main/developer-guide/testing/#unit-testing)):
 
-```console
-cd src/bpfman/
-cargo xtask unit-test
-```
+    ```console
+    cd bpfman/
+    cargo xtask unit-test
+    ```
 
-* Verify any changes to the bpfman api have been "blessed"
+* Verify any changes to the bpfman API have been "blessed".
+  After running the below command, any changes to any of the files in
+  `bpfman/xtask/public-api/*.txt` indicate changes to the bpfman API.
+  Verify that these changes were intentional.
+  CI uses the latest nightly Rust toolchain, so make sure the public-apis
+  are verified against latest.
 
-```console
-cd /src/bpfman/
-cargo +nightly xtask public-api --bless
-```
+    ```console
+    cd bpfman/
+    rustup update nightly
+    cargo +nightly xtask public-api --bless
+    ```
 
 * Verify that integration tests are passing locally (see
   [Basic Integration Tests](https://bpfman.io/main/developer-guide/testing/#basic-integration-tests)):
 
-```console
-cd src/bpfman/
-cargo xtask integration-test
-```
+    ```console
+    cd bpfman/
+    cargo xtask integration-test
+    ```
 
 * If developing the bpfman-operator, verify that bpfman-operator unit and integration tests
   are passing locally:
   
-  See [Kubernetes Operator Tests](https://bpfman.io/main/developer-guide/testing/#kubernetes-operator-tests).
+    See [Kubernetes Operator Tests](https://bpfman.io/main/developer-guide/testing/#kubernetes-operator-tests).

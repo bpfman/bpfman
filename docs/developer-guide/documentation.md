@@ -99,3 +99,9 @@ mkdocs, version 1.4.3 from /home/$USER/.local/lib/python3.11/site-packages/mkdoc
 
 >**NOTE:** If you have an older version of mkdocs installed, you may need to use
 the `--upgrade` option (e.g., `pip install --upgrade mkdocs`) to get it to work.
+
+## Document Images
+
+Source of images used in the example documentation can be found in
+[bpfman Upstream Images](https://docs.google.com/presentation/d/1wU4xu6xeyk9cB3G-Nn-dzkf90j1-EI4PB167G7v-Xl4/edit?usp=sharing).
+Request access if required.

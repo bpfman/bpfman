@@ -32,8 +32,11 @@ Major kernel features leveraged by bpfman:
 * **BPF Perf Link:** Support BPF perf link for tracing programs (Tracepoint, Uprobe and Kprobe)
   which enables pinning for these program types.
   Introduced in Kernel 5.15.
+* **Relaxed CAP_BPF Requirement:** Prior to Kernel 5.19, all eBPF system calls required CAP_BPF.
+  This required userspace programs that wanted to access eBPF maps to have the CAP_BPF Linux capability.
+  With the kernel 5.19 change, CAP_BPF is only required for load and unload requests.
 
-Tested kernel versions:
+bpfman tested on older kernel versions:
 
 * Fedora 34: Kernel 5.17.6-100.fc34.x86_64
     * XDP, TC, Tracepoint, Uprobe and Kprobe programs all loaded with bpfman running on localhost
@@ -58,11 +61,11 @@ Tested kernel versions:
 
 ## Clone the bpfman Repo
 
-You can build and run bpfman from anywhere. However, if you plan to make changes
-to the bpfman operator, it will need to be under your `GOPATH` because Kubernetes
-Code-generator does not work outside of `GOPATH` [issue
-86753](https://github.com/kubernetes/kubernetes/issues/86753).  Assuming your
-`GOPATH` is set to the typical `$HOME/go`, your repo should live in
+You can build and run bpfman from anywhere. However, if you plan to make changes to the bpfman
+operator, specifically run `make generate`, it will need to be under your `GOPATH` because
+Kubernetes Code-generator does not work outside of `GOPATH`
+[Issue 86753](https://github.com/kubernetes/kubernetes/issues/86753).
+Assuming your `GOPATH` is set to the typical `$HOME/go`, your repo should live in
 `$HOME/go/src/github.com/bpfman/bpfman`
 
 ```
@@ -83,7 +86,8 @@ If you are building bpfman for the first time OR the eBPF code has changed:
 cargo xtask build-ebpf --libbpf-dir /path/to/libbpf
 ```
 
-If protobuf files have changed:
+If protobuf files have changed (see
+[RPC Protobuf Generation](../developer-guide/develop-operator.md#rpc-protobuf-generation)):
 
 ```console
 cargo xtask build-proto
@@ -116,9 +120,9 @@ For `bash`, this generates a file that can be used by the linux `bash-completion
 utility (see [Install bash-completion](#install-bash-completion) for installation
 instructions).
 
-If the files are generated, they are installed automatically when running `bpfman` as
-a systemd service and using the `sudo ./scripts/setup.sh install` install script
-(see [Systemd Service](tutorial.md#systemd-service)).
+If the files are generated, they are installed automatically when using the install
+script (i.e. `sudo ./scripts/setup.sh install` - See
+[Run as a systemd Service](example-bpf-local.md#run-as-a-systemd-service)).
 To install the files manually, copy the file associated with a given shell to
 `/usr/share/bash-completion/completions/`.
 For example:
@@ -142,9 +146,9 @@ Optionally, to build the CLI Manpage files, run the following command:
 cargo xtask build-man-page
 ```
 
-If the files are generated, they are installed automatically when running `bpfman` as
-a systemd service and using the `sudo ./scripts/setup.sh install` install script
-(see [Systemd Service](tutorial.md#systemd-service)).
+If the files are generated, they are installed automatically when using the install
+script (i.e. `sudo ./scripts/setup.sh install` - See
+[Run as a systemd Service](example-bpf-local.md#run-as-a-systemd-service)).
 To install the files manually, copy the generated files to `/usr/local/share/man/man1/`.
 For example:
 

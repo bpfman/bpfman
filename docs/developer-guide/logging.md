@@ -52,6 +52,7 @@ CapabilityBoundingSet=CAP_BPF CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_PERFMON CAP_
 Start the service:
 
 ```console
+sudo systemctl daemon-reload
 sudo systemctl start bpfman.service
 ```
 
