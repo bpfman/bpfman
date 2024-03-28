@@ -1725,10 +1725,17 @@
 <h2 id="overview">Overview</h2>
 <p>A release for the bpfman project is comprised of the following major components:</p>
 <ul>
-<li>bpfman binaries</li>
-<li>Core GRPC API protobuf definitions</li>
-<li>Kubernetes Custom Resource Definitions (CRDs)</li>
-<li>Corresponding go pkg in the form of <code>github.com/bpfman/bpfman</code> which includes the following:</li>
+<li>bpfman (Core library) and bpfman-api (Core GRPC API protobuf definitions) library crates</li>
+<li>bpfman (CLI), and bpfman-rpc ( gRPC server ) binary crates</li>
+<li>Kubernetes User Facing Custom Resource Definitions (CRDs)</li>
+<li><code>TcProgram</code></li>
+<li><code>XdpProgram</code></li>
+<li><code>TracepointProgram</code></li>
+<li><code>UprobeProgram</code></li>
+<li><code>KprobeProgram</code></li>
+<li><code>FentryProgram</code></li>
+<li><code>FexitProgram</code></li>
+<li>Corresponding go pkgs in the form of <code>github.com/bpfman/bpfman</code> which includes the following:</li>
 <li><code>github.com/bpfman/bpfman/clients/gobpfman/v1</code>: The go client for the bpfman GRPC API</li>
 <li><code>github.com/bpfman/bpfman/bpfman-operator/apis</code>: The go bindings for the
     bpfman CRD API</li>
@@ -1736,7 +1743,6 @@
     clientset for the bpfman CRD API</li>
 <li><code>github.com/bpfman/bpfman/bpfman-operator/pkg/helpers</code>: The provided bpfman CRD
     API helpers.</li>
-<li>Corresponding <code>bpfman-api</code> and <code>bpfman</code>rust crates which house the rust client for the bpfman GRPC API</li>
 <li>The following core component container images with tag <RELEASE_VERSION>:</li>
 <li><code>quay.io/bpfman/bpfman</code></li>
 <li><code>quay.io/bpfman/bpfman-operator</code></li>
@@ -1746,22 +1752,29 @@
 <li><code>quay.io/bpfman/tc-dispatcher</code></li>
 <li>The relevant example bytecode container images with tag <RELEASE_VERSION> from source
   code located in the bpfman project:</li>
-<li><code>quay.io/bpfman-bytecode/go_xdp_counter</code></li>
-<li><code>quay.io/bpfman-bytecode/go_tc_counter</code></li>
-<li><code>quay.io/bpfman-bytecode/go_tracepoint_counter</code></li>
-<li><code>quay.io/bpfman-bytecode/xdp_pass</code></li>
-<li><code>quay.io/bpfman-bytecode/tc_pass</code></li>
+<li><code>quay.io/bpfman-bytecode/go-xdp-counter</code></li>
+<li><code>quay.io/bpfman-userspace/go-target</code></li>
+<li><code>quay.io/bpfman-bytecode/go-tc-counter</code></li>
+<li><code>quay.io/bpfman-bytecode/go-tracepoint-counter</code></li>
+<li><code>quay.io/bpfman-bytecode/xdp-pass</code></li>
+<li><code>quay.io/bpfman-bytecode/tc-pass</code></li>
 <li><code>quay.io/bpfman-bytecode/tracepoint</code></li>
-<li><code>quay.io/bpfman-bytecode/xdp_pass_private</code></li>
+<li><code>quay.io/bpfman-bytecode/xdp-pass-private</code></li>
+<li><code>quay.io/bpfman-bytecode/go-uprobe-counter</code></li>
+<li><code>quay.io/bpfman-bytecode/go-kprobe-counter</code></li>
 <li><code>quay.io/bpfman-bytecode/uprobe</code></li>
 <li><code>quay.io/bpfman-bytecode/kprobe</code></li>
 <li><code>quay.io/bpfman-bytecode/uretprobe</code></li>
 <li><code>quay.io/bpfman-bytecode/kretprobe</code></li>
+<li><code>quay.io/bpfman-bytecode/fentry</code></li>
+<li><code>quay.io/bpfman-bytecode/fexit</code></li>
 <li>The relevant example userspace container images with tag <RELEASE_VERSION> from source
   code located in the bpfman project:</li>
-<li><code>quay.io/bpfman-userspace/go_xdp_counter</code></li>
-<li><code>quay.io/bpfman-userspace/go_tc_counter</code></li>
-<li><code>quay.io/bpfman-userspace/go_tracepoint_counter</code></li>
+<li><code>quay.io/bpfman-userspace/go-xdp-counter</code></li>
+<li><code>quay.io/bpfman-userspace/go-tc-counter</code></li>
+<li><code>quay.io/bpfman-userspace/go-tracepoint-counter</code></li>
+<li><code>quay.io/bpfman-userspace/go-uprobe-counter</code></li>
+<li><code>quay.io/bpfman-userspace/go-kprobe-counter</code></li>
 <li>The OLM (Operator Lifecycle Manager) for the Kubernetes Operator.</li>
 <li>This includes a <code>bundle</code> directory on disk as well as the
     <code>quay.io/bpfman/bpfman-operator-bundle</code> with the tag <RELEASE_VERSION>.</li>
