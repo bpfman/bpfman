@@ -44,12 +44,8 @@ import (
 // BpfProgramReconciler reconciles a BpfProgram object
 type TracepointProgramReconciler struct {
 	ReconcilerCommon
-	currentTracepointProgram *bpfmaniov1alpha1.TracepointProgram
 	ourNode                  *v1.Node
-}
-
-func (r *TracepointProgramReconciler) getRecCommon() *ReconcilerCommon {
-	return &r.ReconcilerCommon
+	currentTracepointProgram *bpfmaniov1alpha1.TracepointProgram
 }
 
 func (r *TracepointProgramReconciler) getFinalizer() string {
@@ -58,6 +54,33 @@ func (r *TracepointProgramReconciler) getFinalizer() string {
 
 func (r *TracepointProgramReconciler) getRecType() string {
 	return internal.Tracepoint.String()
+}
+
+func (r *TracepointProgramReconciler) getProgType() internal.ProgramType {
+	return internal.Tracepoint
+}
+
+func (r *TracepointProgramReconciler) getName() string {
+	return r.currentTracepointProgram.Name
+}
+
+func (r *TracepointProgramReconciler) getNode() *v1.Node {
+	return r.ourNode
+}
+
+func (r *TracepointProgramReconciler) getBpfProgramCommon() *bpfmaniov1alpha1.BpfProgramCommon {
+	return &r.currentTracepointProgram.Spec.BpfProgramCommon
+}
+
+func (r *TracepointProgramReconciler) setCurrentProgram(program client.Object) error {
+	var ok bool
+
+	r.currentTracepointProgram, ok = program.(*bpfmaniov1alpha1.TracepointProgram)
+	if !ok {
+		return fmt.Errorf("failed to cast program to TracepointProgram")
+	}
+
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -84,7 +107,7 @@ func (r *TracepointProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *TracepointProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
+func (r *TracepointProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
 	for _, tracepoint := range r.currentTracepointProgram.Spec.Names {
@@ -94,7 +117,7 @@ func (r *TracepointProgramReconciler) expectedBpfPrograms(ctx context.Context) (
 
 		annotations := map[string]string{internal.TracepointProgramTracepoint: tracepoint}
 
-		prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentTracepointProgram, r.getRecType(), annotations)
+		prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentTracepointProgram, r.getRecType(), annotations)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 		}
@@ -134,54 +157,23 @@ func (r *TracepointProgramReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{Requeue: false}, nil
 	}
 
-	// Get existing ebpf state from bpfman.
-	programMap, err := bpfmanagentinternal.ListBpfmanPrograms(ctx, r.BpfmanClient, internal.Tracepoint)
-	if err != nil {
-		r.Logger.Error(err, "failed to list loaded bpfman programs")
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+	// Create a list of Tracepoint programs to pass into reconcileCommon()
+	var tracepointObjects []client.Object = make([]client.Object, len(tracepointPrograms.Items))
+	for i := range tracepointPrograms.Items {
+		tracepointObjects[i] = &tracepointPrograms.Items[i]
 	}
 
-	// Reconcile each TracepointProgram. Don't return error here because it will trigger an infinite reconcile loop, instead
-	// report the error to user and retry if specified. For some errors the controller may not decide to retry.
-	// Note: This only results in grpc calls to bpfman if we need to change something
-	requeue := false // initialize requeue to false
-	for _, tracepointProgram := range tracepointPrograms.Items {
-		r.Logger.Info("TracepointProgramController is reconciling", "currentTracePtProgram", tracepointProgram.Name)
-		r.currentTracepointProgram = &tracepointProgram
-		result, err := reconcileProgram(ctx, r, r.currentTracepointProgram, &r.currentTracepointProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
-		if err != nil {
-			r.Logger.Error(err, "Reconciling TracepointProgram Failed", "TracepointProgramName", r.currentTracepointProgram.Name, "ReconcileResult", result.String())
-		}
-
-		switch result {
-		case internal.Unchanged:
-			// continue with next program
-		case internal.Updated:
-			// return
-			return ctrl.Result{Requeue: false}, nil
-		case internal.Requeue:
-			// remember to do a requeue when we're done and continue with next program
-			requeue = true
-		}
-	}
-
-	if requeue {
-		// A requeue has been requested
-		return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
-	} else {
-		// We've made it through all the programs in the list without anything being
-		// updated and a reque has not been requested.
-		return ctrl.Result{Requeue: false}, nil
-	}
+	// Reconcile each TcProgram.
+	return r.reconcileCommon(ctx, r, tracepointObjects)
 }
 
-func (r *TracepointProgramReconciler) buildTracepointLoadRequest(
-	bytecode *gobpfman.BytecodeLocation,
-	uuid string,
-	bpfProgram *bpfmaniov1alpha1.BpfProgram,
-	mapOwnerId *uint32) *gobpfman.LoadRequest {
+func (r *TracepointProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfProgram, mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
+	bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, &r.currentTracepointProgram.Spec.ByteCode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process bytecode selector: %v", err)
+	}
 
-	return &gobpfman.LoadRequest{
+	loadRequest := gobpfman.LoadRequest{
 		Bytecode:    bytecode,
 		Name:        r.currentTracepointProgram.Spec.BpfFunctionName,
 		ProgramType: uint32(internal.Tracepoint),
@@ -192,142 +184,10 @@ func (r *TracepointProgramReconciler) buildTracepointLoadRequest(
 				},
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentTracepointProgram.Name},
+		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.currentTracepointProgram.Name},
 		GlobalData: r.currentTracepointProgram.Spec.GlobalData,
 		MapOwnerId: mapOwnerId,
 	}
-}
 
-// reconcileBpfmanPrograms ONLY reconciles the bpfman state for a single BpfProgram.
-// It does not interact with the k8s API in any way.
-func (r *TracepointProgramReconciler) reconcileBpfmanProgram(ctx context.Context,
-	existingBpfPrograms map[string]*gobpfman.ListResponse_ListResult,
-	bytecodeSelector *bpfmaniov1alpha1.BytecodeSelector,
-	bpfProgram *bpfmaniov1alpha1.BpfProgram,
-	isNodeSelected bool,
-	isBeingDeleted bool,
-	mapOwnerStatus *MapOwnerParamStatus) (bpfmaniov1alpha1.BpfProgramConditionType, error) {
-
-	r.Logger.V(1).Info("Existing bpfProgram", "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentTracepointProgram", r.currentTracepointProgram.Name)
-	uuid := string(bpfProgram.UID)
-
-	getLoadRequest := func() (*gobpfman.LoadRequest, bpfmaniov1alpha1.BpfProgramConditionType, error) {
-		bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, bytecodeSelector)
-		if err != nil {
-			return nil, bpfmaniov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
-		}
-		loadRequest := r.buildTracepointLoadRequest(bytecode, uuid, bpfProgram, mapOwnerStatus.mapOwnerId)
-		return loadRequest, bpfmaniov1alpha1.BpfProgCondNone, nil
-	}
-
-	existingProgram, doesProgramExist := existingBpfPrograms[uuid]
-	if !doesProgramExist {
-		r.Logger.V(1).Info("TracepointProgram doesn't exist on node")
-
-		// If TracepointProgram is being deleted just exit
-		if isBeingDeleted {
-			return bpfmaniov1alpha1.BpfProgCondUnloaded, nil
-		}
-
-		// Make sure if we're not selected just exit
-		if !isNodeSelected {
-			return bpfmaniov1alpha1.BpfProgCondNotSelected, nil
-		}
-
-		// Make sure if the Map Owner is set but not found then just exit
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isFound {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotFound, nil
-		}
-
-		// Make sure if the Map Owner is set but not loaded then just exit
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isLoaded {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotLoaded, nil
-		}
-
-		// otherwise load it
-		loadRequest, condition, err := getLoadRequest()
-		if err != nil {
-			return condition, err
-		}
-
-		r.progId, err = bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
-		if err != nil {
-			r.Logger.Error(err, "Failed to load TracepointProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotLoaded, nil
-		}
-
-		r.Logger.Info("bpfman called to load TracepointProgram on Node", "Name", bpfProgram.Name, "ID", uuid)
-		return bpfmaniov1alpha1.BpfProgCondLoaded, nil
-	}
-
-	// prog ID should already have been set if program doesn't exist
-	id, err := bpfmanagentinternal.GetID(bpfProgram)
-	if err != nil {
-		r.Logger.Error(err, "Failed to get program ID")
-		return bpfmaniov1alpha1.BpfProgCondNotLoaded, nil
-	}
-
-	// BpfProgram exists but either TracepointProgram is being deleted, node is no
-	// longer selected, or map is not available....unload program
-	if isBeingDeleted || !isNodeSelected ||
-		(mapOwnerStatus.isSet && (!mapOwnerStatus.isFound || !mapOwnerStatus.isLoaded)) {
-		r.Logger.V(1).Info("TracepointProgram exists on Node but is scheduled for deletion, not selected, or map not available",
-			"isDeleted", isBeingDeleted, "isSelected", isNodeSelected, "mapIsSet", mapOwnerStatus.isSet,
-			"mapIsFound", mapOwnerStatus.isFound, "mapIsLoaded", mapOwnerStatus.isLoaded)
-
-		if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
-			r.Logger.Error(err, "Failed to unload TracepointProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotUnloaded, nil
-		}
-
-		r.Logger.Info("bpfman called to unload TracepointProgram on Node", "Name", bpfProgram.Name, "UUID", id)
-
-		if isBeingDeleted {
-			return bpfmaniov1alpha1.BpfProgCondUnloaded, nil
-		}
-
-		if !isNodeSelected {
-			return bpfmaniov1alpha1.BpfProgCondNotSelected, nil
-		}
-
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isFound {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotFound, nil
-		}
-
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isLoaded {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotLoaded, nil
-		}
-	}
-
-	// BpfProgram exists but is not correct state, unload and recreate
-	loadRequest, condition, err := getLoadRequest()
-	if err != nil {
-		return condition, err
-	}
-
-	r.Logger.V(1).WithValues("expectedProgram", loadRequest).WithValues("existingProgram", existingProgram).Info("StateMatch")
-
-	isSame, reasons := bpfmanagentinternal.DoesProgExist(existingProgram, loadRequest)
-	if !isSame {
-		r.Logger.V(1).Info("TracepointProgram is in wrong state, unloading and reloading", "Reason", reasons)
-
-		if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
-			r.Logger.Error(err, "Failed to unload TracepointProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotUnloaded, nil
-		}
-
-		r.progId, err = bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
-		if err != nil {
-			r.Logger.Error(err, "Failed to load TracepointProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotLoaded, err
-		}
-
-		r.Logger.Info("bpfman called to reload TracepointProgram on Node", "Name", bpfProgram.Name, "UUID", id)
-	} else {
-		// Program exists and bpfProgram K8s Object is up to date
-		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfman")
-		r.progId = id
-	}
-
-	return bpfmaniov1alpha1.BpfProgCondLoaded, nil
+	return &loadRequest, nil
 }

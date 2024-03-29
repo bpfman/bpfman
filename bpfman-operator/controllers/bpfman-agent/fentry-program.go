@@ -46,16 +46,39 @@ type FentryProgramReconciler struct {
 	ourNode              *v1.Node
 }
 
-func (r *FentryProgramReconciler) getRecCommon() *ReconcilerCommon {
-	return &r.ReconcilerCommon
-}
-
 func (r *FentryProgramReconciler) getFinalizer() string {
 	return internal.FentryProgramControllerFinalizer
 }
 
 func (r *FentryProgramReconciler) getRecType() string {
-	return internal.Tracing.String()
+	return internal.FentryString
+}
+
+func (r *FentryProgramReconciler) getProgType() internal.ProgramType {
+	return internal.Tracing
+}
+
+func (r *FentryProgramReconciler) getName() string {
+	return r.currentFentryProgram.Name
+}
+
+func (r *FentryProgramReconciler) getNode() *v1.Node {
+	return r.ourNode
+}
+
+func (r *FentryProgramReconciler) getBpfProgramCommon() *bpfmaniov1alpha1.BpfProgramCommon {
+	return &r.currentFentryProgram.Spec.BpfProgramCommon
+}
+
+func (r *FentryProgramReconciler) setCurrentProgram(program client.Object) error {
+	var ok bool
+
+	r.currentFentryProgram, ok = program.(*bpfmaniov1alpha1.FentryProgram)
+	if !ok {
+		return fmt.Errorf("failed to cast program to FentryProgram")
+	}
+
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -67,7 +90,7 @@ func (r *FentryProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&bpfmaniov1alpha1.FentryProgram{}, builder.WithPredicates(predicate.And(predicate.GenerationChangedPredicate{}, predicate.ResourceVersionChangedPredicate{}))).
 		Owns(&bpfmaniov1alpha1.BpfProgram{},
 			builder.WithPredicates(predicate.And(
-				internal.BpfProgramTypePredicate(internal.Tracing.String()),
+				internal.BpfProgramTypePredicate(internal.FentryString),
 				internal.BpfProgramNodePredicate(r.NodeName)),
 			),
 		).
@@ -82,7 +105,7 @@ func (r *FentryProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *FentryProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
+func (r *FentryProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
 	// sanitize fentry name to work in a bpfProgram name
@@ -91,7 +114,7 @@ func (r *FentryProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpf
 
 	annotations := map[string]string{internal.FentryProgramFunction: r.currentFentryProgram.Spec.FunctionName}
 
-	prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentFentryProgram, r.getRecType(), annotations)
+	prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentFentryProgram, r.getRecType(), annotations)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 	}
@@ -130,54 +153,23 @@ func (r *FentryProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{Requeue: false}, nil
 	}
 
-	// Get existing ebpf state from bpfman.
-	programMap, err := bpfmanagentinternal.ListBpfmanPrograms(ctx, r.BpfmanClient, internal.Tracing)
-	if err != nil {
-		r.Logger.Error(err, "failed to list loaded bpfman programs")
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+	// Create a list of fentry programs to pass into reconcileCommon()
+	var fentryObjects []client.Object = make([]client.Object, len(fentryPrograms.Items))
+	for i := range fentryPrograms.Items {
+		fentryObjects[i] = &fentryPrograms.Items[i]
 	}
 
-	// Reconcile each FentryProgram. Don't return error here because it will trigger an infinite reconcile loop, instead
-	// report the error to user and retry if specified. For some errors the controller may not decide to retry.
-	// Note: This only results in grpc calls to bpfman if we need to change something
-	requeue := false // initialize requeue to false
-	for _, fentryProgram := range fentryPrograms.Items {
-		r.Logger.Info("FentryProgramController is reconciling", "currentFentryProgram", fentryProgram.Name)
-		r.currentFentryProgram = &fentryProgram
-		result, err := reconcileProgram(ctx, r, r.currentFentryProgram, &r.currentFentryProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
-		if err != nil {
-			r.Logger.Error(err, "Reconciling FentryProgram Failed", "FentryProgramName", r.currentFentryProgram.Name, "ReconcileResult", result.String())
-		}
-
-		switch result {
-		case internal.Unchanged:
-			// continue with next program
-		case internal.Updated:
-			// return
-			return ctrl.Result{Requeue: false}, nil
-		case internal.Requeue:
-			// remember to do a requeue when we're done and continue with next program
-			requeue = true
-		}
-	}
-
-	if requeue {
-		// A requeue has been requested
-		return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
-	} else {
-		// We've made it through all the programs in the list without anything being
-		// updated and a reque has not been requested.
-		return ctrl.Result{Requeue: false}, nil
-	}
+	// Reconcile each FentryProgram.
+	return r.reconcileCommon(ctx, r, fentryObjects)
 }
 
-func (r *FentryProgramReconciler) buildFentryLoadRequest(
-	bytecode *gobpfman.BytecodeLocation,
-	uuid string,
-	bpfProgram *bpfmaniov1alpha1.BpfProgram,
-	mapOwnerId *uint32) *gobpfman.LoadRequest {
+func (r *FentryProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfProgram, mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
+	bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, &r.currentFentryProgram.Spec.ByteCode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process bytecode selector: %v", err)
+	}
 
-	return &gobpfman.LoadRequest{
+	loadRequest := gobpfman.LoadRequest{
 		Bytecode:    bytecode,
 		Name:        r.currentFentryProgram.Spec.BpfFunctionName,
 		ProgramType: uint32(internal.Tracing),
@@ -188,142 +180,10 @@ func (r *FentryProgramReconciler) buildFentryLoadRequest(
 				},
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentFentryProgram.Name},
+		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.currentFentryProgram.Name},
 		GlobalData: r.currentFentryProgram.Spec.GlobalData,
 		MapOwnerId: mapOwnerId,
 	}
-}
 
-// reconcileBpfmanPrograms ONLY reconciles the bpfman state for a single BpfProgram.
-// It does not interact with the k8s API in any way.
-func (r *FentryProgramReconciler) reconcileBpfmanProgram(ctx context.Context,
-	existingBpfPrograms map[string]*gobpfman.ListResponse_ListResult,
-	bytecodeSelector *bpfmaniov1alpha1.BytecodeSelector,
-	bpfProgram *bpfmaniov1alpha1.BpfProgram,
-	isNodeSelected bool,
-	isBeingDeleted bool,
-	mapOwnerStatus *MapOwnerParamStatus) (bpfmaniov1alpha1.BpfProgramConditionType, error) {
-
-	r.Logger.V(1).Info("Existing bpfProgram", "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentFentryProgram", r.currentFentryProgram.Name)
-
-	uuid := bpfProgram.UID
-
-	getLoadRequest := func() (*gobpfman.LoadRequest, bpfmaniov1alpha1.BpfProgramConditionType, error) {
-		bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, bytecodeSelector)
-		if err != nil {
-			return nil, bpfmaniov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
-		}
-		loadRequest := r.buildFentryLoadRequest(bytecode, string(uuid), bpfProgram, mapOwnerStatus.mapOwnerId)
-		return loadRequest, bpfmaniov1alpha1.BpfProgCondNone, nil
-	}
-
-	existingProgram, doesProgramExist := existingBpfPrograms[string(uuid)]
-	if !doesProgramExist {
-		r.Logger.V(1).Info("FentryProgram doesn't exist on node")
-
-		// If FentryProgram is being deleted just exit
-		if isBeingDeleted {
-			return bpfmaniov1alpha1.BpfProgCondUnloaded, nil
-		}
-
-		// Make sure if we're not selected just exit
-		if !isNodeSelected {
-			return bpfmaniov1alpha1.BpfProgCondNotSelected, nil
-		}
-
-		// Make sure if the Map Owner is set but not found then just exit
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isFound {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotFound, nil
-		}
-
-		// Make sure if the Map Owner is set but not loaded then just exit
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isLoaded {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotLoaded, nil
-		}
-
-		// otherwise load it
-		loadRequest, condition, err := getLoadRequest()
-		if err != nil {
-			return condition, err
-		}
-
-		r.progId, err = bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
-		if err != nil {
-			r.Logger.Error(err, "Failed to load FentryProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotLoaded, nil
-		}
-
-		r.Logger.Info("bpfman called to load FentryProgram on Node", "Name", bpfProgram.Name, "UUID", uuid)
-		return bpfmaniov1alpha1.BpfProgCondLoaded, nil
-	}
-
-	// prog ID should already have been set if program exists
-	id, err := bpfmanagentinternal.GetID(bpfProgram)
-	if err != nil {
-		r.Logger.Error(err, "Failed to get program ID")
-		return bpfmaniov1alpha1.BpfProgCondNotLoaded, nil
-	}
-
-	// BpfProgram exists but either FentryProgram is being deleted, node is no
-	// longer selected, or map is not available....unload program
-	if isBeingDeleted || !isNodeSelected ||
-		(mapOwnerStatus.isSet && (!mapOwnerStatus.isFound || !mapOwnerStatus.isLoaded)) {
-		r.Logger.V(1).Info("FentryProgram exists on Node but is scheduled for deletion, not selected, or map not available",
-			"isDeleted", isBeingDeleted, "isSelected", isNodeSelected, "mapIsSet", mapOwnerStatus.isSet,
-			"mapIsFound", mapOwnerStatus.isFound, "mapIsLoaded", mapOwnerStatus.isLoaded, "id", id)
-
-		if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
-			r.Logger.Error(err, "Failed to unload FentryProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotUnloaded, nil
-		}
-
-		r.Logger.Info("bpfman called to unload FentryProgram on Node", "Name", bpfProgram.Name, "UUID", uuid)
-
-		if isBeingDeleted {
-			return bpfmaniov1alpha1.BpfProgCondUnloaded, nil
-		}
-
-		if !isNodeSelected {
-			return bpfmaniov1alpha1.BpfProgCondNotSelected, nil
-		}
-
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isFound {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotFound, nil
-		}
-
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isLoaded {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotLoaded, nil
-		}
-	}
-
-	// BpfProgram exists but is not correct state, unload and recreate
-	loadRequest, condition, err := getLoadRequest()
-	if err != nil {
-		return condition, err
-	}
-
-	r.Logger.V(1).WithValues("expectedProgram", loadRequest).WithValues("existingProgram", existingProgram).Info("StateMatch")
-
-	isSame, reasons := bpfmanagentinternal.DoesProgExist(existingProgram, loadRequest)
-	if !isSame {
-		r.Logger.V(1).Info("FentryProgram is in wrong state, unloading and reloading", "Reason", reasons)
-		if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
-			r.Logger.Error(err, "Failed to unload FentryProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotUnloaded, nil
-		}
-
-		r.progId, err = bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
-		if err != nil {
-			r.Logger.Error(err, "Failed to load FentryProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotLoaded, err
-		}
-
-		r.Logger.Info("bpfman called to reload FentryProgram on Node", "Name", bpfProgram.Name, "UUID", uuid)
-	} else {
-		// Program exists and bpfProgram K8s Object is up to date
-		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfman")
-		r.progId = id
-	}
-
-	return bpfmaniov1alpha1.BpfProgCondLoaded, nil
+	return &loadRequest, nil
 }

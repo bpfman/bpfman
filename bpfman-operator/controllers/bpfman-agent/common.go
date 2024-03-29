@@ -74,19 +74,281 @@ type ReconcilerCommon struct {
 }
 
 // bpfmanReconciler defines a generic bpfProgram K8s object reconciler which can
-// program bpfman from user intent in K8s CRDs.
+// program bpfman from user intent in the K8s CRDs.
 type bpfmanReconciler interface {
-	getRecCommon() *ReconcilerCommon
-	reconcileBpfmanProgram(context.Context,
-		map[string]*gobpfman.ListResponse_ListResult,
-		*bpfmaniov1alpha1.BytecodeSelector,
-		*bpfmaniov1alpha1.BpfProgram,
-		bool,
-		bool,
-		*MapOwnerParamStatus) (bpfmaniov1alpha1.BpfProgramConditionType, error)
+	// SetupWithManager registers the reconciler with the manager and defines
+	// which kubernetes events will trigger a reconcile.
+	SetupWithManager(mgr ctrl.Manager) error
+	// Reconcile is the main entry point to the reconciler. It will be called by
+	// the controller runtime when something happens that the reconciler is
+	// interested in. When Reconcile is invoked, it initializes some state in
+	// the given bpfmanReconciler, retrieves a list of all programs of the given
+	// type, and then calls reconcileCommon.
+	Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error)
+	// getFinalizer returns the string used for the finalizer to prevent the
+	// BpfProgram object from deletion until cleanup can be performed
 	getFinalizer() string
+	// getRecType returns the type of the reconciler.  This is often the string
+	// representation of the ProgramType, but in cases where there are multiple
+	// reconcilers for a single ProgramType, it may be different (e.g., uprobe,
+	// fentry, and fexit)
 	getRecType() string
-	expectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error)
+	// getProgType returns the ProgramType used by bpfman for the bpfPrograms
+	// the reconciler manages.
+	getProgType() internal.ProgramType
+	// getName returns the name of the current program being reconciled.
+	getName() string
+	// getExpectedBpfPrograms returns the list of BpfPrograms that are expected
+	// to be loaded on the current node.
+	getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error)
+	// getLoadRequest returns the LoadRequest that should be sent to bpfman to
+	// load the given BpfProgram.
+	getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfProgram, mapOwnerId *uint32) (*gobpfman.LoadRequest, error)
+	// getNode returns node object for the current node.
+	getNode() *v1.Node
+	// getBpfProgramCommon returns the BpfProgramCommon object for the current
+	// Program being reconciled.
+	getBpfProgramCommon() *bpfmaniov1alpha1.BpfProgramCommon
+	// setCurrentProgram sets the current *Program for the reconciler as well as
+	// any other related state needed.
+	setCurrentProgram(program client.Object) error
+}
+
+// reconcileCommon is the common reconciler loop called by each bpfman
+// reconciler.  It reconciles each program in the list.  reconcileCommon should
+// not return error because it will trigger an infinite reconcile loop.
+// Instead, it should report the error to user and retry if specified. For some
+// errors the controller may decide not to retry. Note: This only results in
+// calls to bpfman if we need to change something
+func (r *ReconcilerCommon) reconcileCommon(ctx context.Context, rec bpfmanReconciler,
+	programs []client.Object) (ctrl.Result, error) {
+
+	r.Logger.V(1).Info("Start reconcileCommon()")
+
+	// Get existing ebpf state from bpfman.
+	loadedBpfPrograms, err := bpfmanagentinternal.ListBpfmanPrograms(ctx, r.BpfmanClient, rec.getProgType())
+	if err != nil {
+		r.Logger.Error(err, "failed to list loaded bpfman programs")
+		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+	}
+
+	requeue := false // initialize requeue to false
+	for _, program := range programs {
+		r.Logger.V(1).Info("Reconciling program", "Name", program.GetName())
+
+		// Save the *Program CRD of the current program being reconciled
+		err := rec.setCurrentProgram(program)
+		if err != nil {
+			r.Logger.Error(err, "Failed to set current program")
+			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+		}
+
+		result, err := r.reconcileProgram(ctx, rec, program, loadedBpfPrograms)
+		if err != nil {
+			r.Logger.Error(err, "Reconciling program failed", "Program Name", rec.getName, "ReconcileResult", result.String())
+		}
+
+		switch result {
+		case internal.Unchanged:
+			// continue with next program
+		case internal.Updated:
+			// return
+			return ctrl.Result{Requeue: false}, nil
+		case internal.Requeue:
+			// remember to do a requeue when we're done and continue with next program
+			requeue = true
+		}
+	}
+
+	if requeue {
+		// A requeue has been requested
+		return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
+	} else {
+		// We've made it through all the programs in the list without anything being
+		// updated and a reque has not been requested.
+		return ctrl.Result{Requeue: false}, nil
+	}
+}
+
+// reconcileBpfmanPrograms ONLY reconciles the bpfman state for a single BpfProgram.
+// It does not interact with the k8s API in any way.
+func (r *ReconcilerCommon) reconcileBpfProgram(ctx context.Context,
+	rec bpfmanReconciler,
+	loadedBpfPrograms map[string]*gobpfman.ListResponse_ListResult,
+	bpfProgram *bpfmaniov1alpha1.BpfProgram,
+	isNodeSelected bool,
+	isBeingDeleted bool,
+	mapOwnerStatus *MapOwnerParamStatus) (bpfmaniov1alpha1.BpfProgramConditionType, error) {
+
+	r.Logger.V(1).Info("enter reconcileBpfmanProgram()", "bpfProgram", bpfProgram.Name, "CurrentProgram", rec.getName())
+
+	uuid := bpfProgram.UID
+	noContainersOnNode := noContainersOnNode(bpfProgram)
+	loadedBpfProgram, isLoaded := loadedBpfPrograms[string(uuid)]
+	shouldBeLoaded := bpfProgramShouldBeLoaded(isNodeSelected, isBeingDeleted, noContainersOnNode, mapOwnerStatus)
+
+	r.Logger.V(1).Info("reconcileBpfmanProgram()", "shouldBeLoaded", shouldBeLoaded, "isLoaded", isLoaded)
+
+	switch isLoaded {
+	case true:
+		// prog ID should already have been set if program is loaded
+		id, err := bpfmanagentinternal.GetID(bpfProgram)
+		if err != nil {
+			r.Logger.Error(err, "Failed to get bpf program ID")
+			return bpfmaniov1alpha1.BpfProgCondNotLoaded, nil
+		}
+		switch shouldBeLoaded {
+		case true:
+			// The program is loaded and it should be loaded.
+			// Confirm it's in the correct state.
+			loadRequest, err := rec.getLoadRequest(bpfProgram, mapOwnerStatus.mapOwnerId)
+			if err != nil {
+				return bpfmaniov1alpha1.BpfProgCondBytecodeSelectorError, err
+			}
+
+			r.Logger.V(1).WithValues("loadRequest", loadRequest).WithValues("loadedBpfProgram", loadedBpfProgram).Info("StateMatch")
+
+			isSame, reasons := bpfmanagentinternal.DoesProgExist(loadedBpfProgram, loadRequest)
+			if !isSame {
+				r.Logger.V(1).Info("bpf program is in wrong state, unloading and reloading", "reason", reasons, "bpfProgram Name", bpfProgram.Name, "bpf program ID", id)
+				if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
+					r.Logger.Error(err, "Failed to unload BPF Program")
+					return bpfmaniov1alpha1.BpfProgCondNotUnloaded, nil
+				}
+
+				r.Logger.Info("Calling bpfman to load bpf program on Node", "bpfProgram Name", bpfProgram.Name)
+				r.progId, err = bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
+				if err != nil {
+					r.Logger.Error(err, "Failed to load bpf program")
+					return bpfmaniov1alpha1.BpfProgCondNotLoaded, err
+				}
+			} else {
+				// Program exists and bpfProgram K8s Object is up to date
+				r.Logger.V(1).Info("Program is in correct state.  Nothing to do in bpfman")
+				r.progId = id
+			}
+		case false:
+			// The program is loaded but it shouldn't be loaded.
+			r.Logger.Info("Calling bpfman to unload program on node", "bpfProgram Name", bpfProgram.Name, "Program ID", id)
+			if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
+				r.Logger.Error(err, "Failed to unload Program")
+				return bpfmaniov1alpha1.BpfProgCondNotUnloaded, nil
+			}
+		}
+	case false:
+		switch shouldBeLoaded {
+		case true:
+			// The program isn't loaded but it should be loaded.
+			loadRequest, err := rec.getLoadRequest(bpfProgram, mapOwnerStatus.mapOwnerId)
+			if err != nil {
+				return bpfmaniov1alpha1.BpfProgCondBytecodeSelectorError, err
+			}
+
+			r.Logger.Info("Calling bpfman to load program on node", "bpfProgram name", bpfProgram.Name)
+			r.progId, err = bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
+			if err != nil {
+				r.Logger.Error(err, "Failed to load Program")
+				return bpfmaniov1alpha1.BpfProgCondNotLoaded, nil
+			}
+		case false:
+			// The program isn't loaded and it shouldn't be loaded.
+		}
+	}
+
+	// The BPF program was sucessfully reconciled.
+	return r.reconcileBpfProgramSuccessCondition(
+		isLoaded,
+		shouldBeLoaded,
+		isNodeSelected,
+		isBeingDeleted,
+		noContainersOnNode,
+		mapOwnerStatus), nil
+}
+
+// reconcileBpfProgramSuccessCondition returns the proper condition for a
+// successful reconcile of a bpfProgram based on the given parameters.
+func (r *ReconcilerCommon) reconcileBpfProgramSuccessCondition(
+	isLoaded bool,
+	shouldBeLoaded bool,
+	isNodeSelected bool,
+	isBeingDeleted bool,
+	noContainersOnNode bool,
+	mapOwnerStatus *MapOwnerParamStatus) bpfmaniov1alpha1.BpfProgramConditionType {
+
+	switch isLoaded {
+	case true:
+		switch shouldBeLoaded {
+		case true:
+			// The program is loaded and it should be loaded.
+			return bpfmaniov1alpha1.BpfProgCondLoaded
+		case false:
+			// The program is loaded but it shouldn't be loaded.
+			if isBeingDeleted {
+				return bpfmaniov1alpha1.BpfProgCondUnloaded
+			}
+			if !isNodeSelected {
+				return bpfmaniov1alpha1.BpfProgCondNotSelected
+			}
+			if noContainersOnNode {
+				return bpfmaniov1alpha1.BpfProgCondNoContainersOnNode
+			}
+			if mapOwnerStatus.isSet && !mapOwnerStatus.isFound {
+				return bpfmaniov1alpha1.BpfProgCondMapOwnerNotFound
+			}
+			if mapOwnerStatus.isSet && !mapOwnerStatus.isLoaded {
+				return bpfmaniov1alpha1.BpfProgCondMapOwnerNotLoaded
+			}
+			// If we get here, there's a problem.  All of the possible reasons
+			// that a program should not be loaded should have been handled
+			// above.
+			r.Logger.Error(nil, "unhandled case in isLoaded && !shouldBeLoaded")
+			return bpfmaniov1alpha1.BpfProgCondUnloaded
+		}
+	case false:
+		switch shouldBeLoaded {
+		case true:
+			// The program isn't loaded but it should be loaded.
+			return bpfmaniov1alpha1.BpfProgCondLoaded
+		case false:
+			// The program isn't loaded and it shouldn't be loaded.
+			if isBeingDeleted {
+				return bpfmaniov1alpha1.BpfProgCondUnloaded
+			}
+			if !isNodeSelected {
+				return bpfmaniov1alpha1.BpfProgCondNotSelected
+			}
+			if noContainersOnNode {
+				return bpfmaniov1alpha1.BpfProgCondNoContainersOnNode
+			}
+			if mapOwnerStatus.isSet && !mapOwnerStatus.isFound {
+				return bpfmaniov1alpha1.BpfProgCondMapOwnerNotFound
+			}
+			if mapOwnerStatus.isSet && !mapOwnerStatus.isLoaded {
+				return bpfmaniov1alpha1.BpfProgCondMapOwnerNotLoaded
+			}
+			// If we get here, there's a problem.  All of the possible reasons
+			// that a program should not be loaded should have been handled
+			// above.
+			r.Logger.Error(nil, "unhandled case in !isLoaded && !shouldBeLoaded")
+			return bpfmaniov1alpha1.BpfProgCondUnloaded
+		}
+	}
+
+	// We should never get here, but need this return to satisfy the compiler.
+	r.Logger.Error(nil, "unhandled case in reconcileBpfProgramSuccessCondition()")
+	return bpfmaniov1alpha1.BpfProgCondNone
+}
+
+func bpfProgramShouldBeLoaded(
+	isNodeSelected bool,
+	isBeingDeleted bool,
+	noContainersOnNode bool,
+	mapOwnerStatus *MapOwnerParamStatus) bool {
+	return isNodeSelected && !isBeingDeleted && !noContainersOnNode && mapOk(mapOwnerStatus)
+}
+
+func mapOk(mapOwnerStatus *MapOwnerParamStatus) bool {
+	return !mapOwnerStatus.isSet || (mapOwnerStatus.isSet && mapOwnerStatus.isFound && mapOwnerStatus.isLoaded)
 }
 
 // Only return node updates for our node (all events)
@@ -165,7 +427,6 @@ func getInterfaces(interfaceSelector *bpfmaniov1alpha1.InterfaceSelector, ourNod
 	}
 
 	return nil, fmt.Errorf("no interfaces selected")
-
 }
 
 // removeFinalizer removes the finalizer from the BpfProgram object if is applied,
@@ -188,36 +449,36 @@ func (r *ReconcilerCommon) removeFinalizer(ctx context.Context, o client.Object,
 // updateStatus updates the status of a BpfProgram object if needed, returning
 // false if the status was already set for the given bpfProgram, meaning reconciliation
 // may continue.
-func (r *ReconcilerCommon) updateStatus(ctx context.Context, prog *bpfmaniov1alpha1.BpfProgram, cond bpfmaniov1alpha1.BpfProgramConditionType) bool {
+func (r *ReconcilerCommon) updateStatus(ctx context.Context, bpfProgram *bpfmaniov1alpha1.BpfProgram, cond bpfmaniov1alpha1.BpfProgramConditionType) bool {
 
-	r.Logger.V(1).Info("updateStatus()", "existing conds", prog.Status.Conditions, "new cond", cond)
+	r.Logger.V(1).Info("updateStatus()", "existing conds", bpfProgram.Status.Conditions, "new cond", cond)
 
-	if prog.Status.Conditions != nil {
-		numConditions := len(prog.Status.Conditions)
+	if bpfProgram.Status.Conditions != nil {
+		numConditions := len(bpfProgram.Status.Conditions)
 
 		if numConditions == 1 {
-			if prog.Status.Conditions[0].Type == string(cond) {
+			if bpfProgram.Status.Conditions[0].Type == string(cond) {
 				// No change, so just return false -- not updated
 				return false
 			} else {
 				// We're changing the condition, so delete this one.  The
 				// new condition will be added below.
-				prog.Status.Conditions = nil
+				bpfProgram.Status.Conditions = nil
 			}
 		} else if numConditions > 1 {
 			// We should only ever have one condition, so we shouldn't hit this
 			// case.  However, if we do, log a message, delete the existing
 			// conditions, and add the new one below.
 			r.Logger.Info("more than one BpfProgramCondition", "numConditions", numConditions)
-			prog.Status.Conditions = nil
+			bpfProgram.Status.Conditions = nil
 		}
 		// if numConditions == 0, just add the new condition below.
 	}
 
-	meta.SetStatusCondition(&prog.Status.Conditions, cond.Condition())
+	meta.SetStatusCondition(&bpfProgram.Status.Conditions, cond.Condition())
 
-	r.Logger.V(1).Info("Updating bpfProgram condition", "bpfProgram", prog.Name, "condition", cond.Condition().Type)
-	if err := r.Status().Update(ctx, prog); err != nil {
+	r.Logger.V(1).Info("Updating bpfProgram condition", "bpfProgram", bpfProgram.Name, "condition", cond.Condition().Type)
+	if err := r.Status().Update(ctx, bpfProgram); err != nil {
 		r.Logger.Error(err, "failed to set bpfProgram object status")
 	}
 
@@ -225,12 +486,14 @@ func (r *ReconcilerCommon) updateStatus(ctx context.Context, prog *bpfmaniov1alp
 	return true
 }
 
-func (r *ReconcilerCommon) getExistingBpfProgs(ctx context.Context, owner metav1.Object) (map[string]bpfmaniov1alpha1.BpfProgram, error) {
+func (r *ReconcilerCommon) getExistingBpfPrograms(ctx context.Context,
+	program metav1.Object) (map[string]bpfmaniov1alpha1.BpfProgram, error) {
+
 	bpfProgramList := &bpfmaniov1alpha1.BpfProgramList{}
 
 	// Only list bpfPrograms for this *Program and the controller's node
 	opts := []client.ListOption{
-		client.MatchingLabels{internal.BpfProgramOwnerLabel: owner.GetName(), internal.K8sHostLabel: r.NodeName},
+		client.MatchingLabels{internal.BpfProgramOwnerLabel: program.GetName(), internal.K8sHostLabel: r.NodeName},
 	}
 
 	err := r.List(ctx, bpfProgramList, opts...)
@@ -238,17 +501,17 @@ func (r *ReconcilerCommon) getExistingBpfProgs(ctx context.Context, owner metav1
 		return nil, err
 	}
 
-	existingProgs := map[string]bpfmaniov1alpha1.BpfProgram{}
+	existingBpfPrograms := map[string]bpfmaniov1alpha1.BpfProgram{}
 	for _, bpfProg := range bpfProgramList.Items {
-		existingProgs[bpfProg.GetName()] = bpfProg
+		existingBpfPrograms[bpfProg.GetName()] = bpfProg
 	}
 
-	return existingProgs, nil
+	return existingBpfPrograms, nil
 }
 
 // createBpfProgram moves some shared logic for building bpfProgram objects
 // into a central location.
-func (r *ReconcilerCommon) createBpfProgram(ctx context.Context,
+func (r *ReconcilerCommon) createBpfProgram(
 	bpfProgramName string,
 	finalizer string,
 	owner metav1.Object,
@@ -293,34 +556,35 @@ func (r *ReconcilerCommon) createBpfProgram(ctx context.Context,
 //
 // For the second case, we need to do the first 2 steps, and then explicitly
 // delete the bpfPrograms that are no longer needed.
-func handleProgDelete(
+func (r *ReconcilerCommon) handleProgDelete(
 	ctx context.Context,
-	r *ReconcilerCommon,
-	common *bpfmaniov1alpha1.BpfProgramCommon,
 	rec bpfmanReconciler,
-	existingPrograms map[string]bpfmaniov1alpha1.BpfProgram,
-	programMap map[string]*gobpfman.ListResponse_ListResult,
+	existingBpfPrograms map[string]bpfmaniov1alpha1.BpfProgram,
+	loadedBpfPrograms map[string]*gobpfman.ListResponse_ListResult,
 	isNodeSelected bool,
 	isBeingDeleted bool,
 	mapOwnerStatus *MapOwnerParamStatus,
 ) (internal.ReconcileResult, error) {
-	for _, prog := range existingPrograms {
+	r.Logger.V(1).Info("handleProgDelete()", "isBeingDeleted", isBeingDeleted, "isNodeSelected",
+		isNodeSelected, "mapOwnerStatus", mapOwnerStatus)
+	for _, bpfProgram := range existingBpfPrograms {
+		r.Logger.V(1).Info("Deleting bpfProgram", "Name", bpfProgram.Name)
 		// Reconcile the bpfProgram if error write condition and exit with
 		// retry.
-		cond, err := rec.reconcileBpfmanProgram(ctx,
-			programMap,
-			&common.ByteCode,
-			&prog,
+		cond, err := r.reconcileBpfProgram(ctx,
+			rec,
+			loadedBpfPrograms,
+			&bpfProgram,
 			isNodeSelected,
 			true, // delete program
 			mapOwnerStatus,
 		)
 		if err != nil {
-			r.updateStatus(ctx, &prog, cond)
+			r.updateStatus(ctx, &bpfProgram, cond)
 			return internal.Requeue, fmt.Errorf("failed to delete bpfman program: %v", err)
 		}
 
-		if r.removeFinalizer(ctx, &prog, rec.getFinalizer()) {
+		if r.removeFinalizer(ctx, &bpfProgram, rec.getFinalizer()) {
 			return internal.Updated, nil
 		}
 
@@ -328,7 +592,7 @@ func handleProgDelete(
 			// We're deleting these programs because the *Program is being
 			// deleted, so update the status and the program will be deleted
 			// when the owner is deleted.
-			if r.updateStatus(ctx, &prog, cond) {
+			if r.updateStatus(ctx, &bpfProgram, cond) {
 				return internal.Updated, nil
 			}
 		} else {
@@ -336,8 +600,8 @@ func handleProgDelete(
 			// to changes that caused the containers to not be selected anymore.
 			// So, explicitly delete them.
 			opts := client.DeleteOptions{}
-			r.Logger.Info("Deleting bpfProgram", "Name", prog.Name, "Owner", prog.GetName())
-			if err := r.Delete(ctx, &prog, &opts); err != nil {
+			r.Logger.Info("Deleting bpfProgram", "Name", bpfProgram.Name, "Owner", bpfProgram.GetName())
+			if err := r.Delete(ctx, &bpfProgram, &opts); err != nil {
 				return internal.Requeue, fmt.Errorf("failed to create bpfProgram object: %v", err)
 			}
 			return internal.Updated, nil
@@ -345,7 +609,7 @@ func handleProgDelete(
 	}
 
 	// We're done reconciling.
-	r.Logger.Info("Nothing to do for this program")
+	r.Logger.Info("Finished reconciling", "program name", rec.getName())
 	return internal.Unchanged, nil
 }
 
@@ -353,50 +617,50 @@ func handleProgDelete(
 // bpfPrograms.  If a bpfProgram is expected but doesn't exist, it is created.
 // If an expected bpfProgram exists, it is reconciled. If a bpfProgram exists
 // but is not expected, it is deleted.
-func handleProgCreateOrUpdate(
+func (r *ReconcilerCommon) handleProgCreateOrUpdate(
 	ctx context.Context,
-	r *ReconcilerCommon,
-	common *bpfmaniov1alpha1.BpfProgramCommon,
 	rec bpfmanReconciler,
 	program client.Object,
-	existingPrograms map[string]bpfmaniov1alpha1.BpfProgram,
-	expectedPrograms *bpfmaniov1alpha1.BpfProgramList,
-	programMap map[string]*gobpfman.ListResponse_ListResult,
+	existingBpfPrograms map[string]bpfmaniov1alpha1.BpfProgram,
+	expectedBpfPrograms *bpfmaniov1alpha1.BpfProgramList,
+	loadedBpfPrograms map[string]*gobpfman.ListResponse_ListResult,
 	isNodeSelected bool,
 	isBeingDeleted bool,
 	mapOwnerStatus *MapOwnerParamStatus,
 ) (internal.ReconcileResult, error) {
+	r.Logger.V(1).Info("handleProgCreateOrUpdate()", "isBeingDeleted", isBeingDeleted, "isNodeSelected",
+		isNodeSelected, "mapOwnerStatus", mapOwnerStatus)
 	// If the *Program isn't being deleted ALWAYS create the bpfPrograms
 	// even if the node isn't selected
-	for _, expectedProg := range expectedPrograms.Items {
-		prog, exists := existingPrograms[expectedProg.Name]
+	for _, expectedBpfProgram := range expectedBpfPrograms.Items {
+		r.Logger.V(1).Info("Creating or Updating", "Name", expectedBpfProgram.Name)
+		existingBpfProgram, exists := existingBpfPrograms[expectedBpfProgram.Name]
 		if exists {
 			// Remove the bpfProgram from the existingPrograms map so we know
 			// not to delete it below.
-			delete(existingPrograms, expectedProg.Name)
+			delete(existingBpfPrograms, expectedBpfProgram.Name)
 		} else {
 			// Create a new bpfProgram Object for this program.
 			opts := client.CreateOptions{}
-			r.Logger.Info("Creating bpfProgram", "Name", expectedProg.Name, "Owner", program.GetName())
-			if err := r.Create(ctx, &expectedProg, &opts); err != nil {
+			r.Logger.Info("Creating bpfProgram", "Name", expectedBpfProgram.Name, "Owner", program.GetName())
+			if err := r.Create(ctx, &expectedBpfProgram, &opts); err != nil {
 				return internal.Requeue, fmt.Errorf("failed to create bpfProgram object: %v", err)
 			}
-			existingPrograms[expectedProg.Name] = prog
 			return internal.Updated, nil
 		}
 
 		// bpfProgram Object exists go ahead and reconcile it, if there is
 		// an error write condition and exit with retry.
-		cond, err := rec.reconcileBpfmanProgram(ctx,
-			programMap,
-			&common.ByteCode,
-			&prog,
+		cond, err := r.reconcileBpfProgram(ctx,
+			rec,
+			loadedBpfPrograms,
+			&existingBpfProgram,
 			isNodeSelected,
 			isBeingDeleted,
 			mapOwnerStatus,
 		)
 		if err != nil {
-			if r.updateStatus(ctx, &prog, cond) {
+			if r.updateStatus(ctx, &existingBpfProgram, cond) {
 				// Return an error the first time.
 				return internal.Updated, fmt.Errorf("failed to reconcile bpfman program: %v", err)
 			}
@@ -407,7 +671,7 @@ func handleProgCreateOrUpdate(
 				cond == bpfmaniov1alpha1.BpfProgCondMapOwnerNotLoaded ||
 				cond == bpfmaniov1alpha1.BpfProgCondNoContainersOnNode {
 				// Write NodeNodeSelected status
-				if r.updateStatus(ctx, &prog, cond) {
+				if r.updateStatus(ctx, &existingBpfProgram, cond) {
 					r.Logger.V(1).Info("Update condition from bpfman reconcile", "condition", cond)
 					return internal.Updated, nil
 				} else {
@@ -415,23 +679,23 @@ func handleProgCreateOrUpdate(
 				}
 			}
 
-			existingId, err := bpfmanagentinternal.GetID(&prog)
+			existingId, err := bpfmanagentinternal.GetID(&existingBpfProgram)
 			if err != nil {
 				return internal.Requeue, fmt.Errorf("failed to get kernel id from bpfProgram: %v", err)
 			}
 
 			// If bpfProgram Maps OR the program ID annotation isn't up to date just update it and return
 			if !reflect.DeepEqual(existingId, r.progId) {
-				r.Logger.Info("Updating bpfProgram Object", "Id", r.progId, "bpfProgram", prog.Name)
-				// annotations should be populate on create
-				prog.Annotations[internal.IdAnnotation] = strconv.FormatUint(uint64(*r.progId), 10)
-				if err := r.Update(ctx, &prog, &client.UpdateOptions{}); err != nil {
+				r.Logger.Info("Updating bpfProgram Object", "Id", r.progId, "bpfProgram", existingBpfProgram.Name)
+				// annotations should be populated on create
+				existingBpfProgram.Annotations[internal.IdAnnotation] = strconv.FormatUint(uint64(*r.progId), 10)
+				if err := r.Update(ctx, &existingBpfProgram, &client.UpdateOptions{}); err != nil {
 					return internal.Requeue, fmt.Errorf("failed to update bpfProgram's Programs: %v", err)
 				}
 				return internal.Updated, nil
 			}
 
-			if r.updateStatus(ctx, &prog, cond) {
+			if r.updateStatus(ctx, &existingBpfProgram, cond) {
 				return internal.Updated, nil
 			}
 		}
@@ -439,7 +703,13 @@ func handleProgCreateOrUpdate(
 
 	// We're done reconciling the expected programs.  If any unexpected programs
 	// exist, delete them and return the result.
-	return handleProgDelete(ctx, r, common, rec, existingPrograms, programMap, isNodeSelected, isBeingDeleted, mapOwnerStatus)
+	if len(existingBpfPrograms) > 0 {
+		return r.handleProgDelete(ctx, rec, existingBpfPrograms, loadedBpfPrograms, isNodeSelected, isBeingDeleted, mapOwnerStatus)
+	} else {
+		// We're done reconciling.
+		r.Logger.Info("Finished reconciling", "program name", rec.getName())
+		return internal.Unchanged, nil
+	}
 }
 
 // reconcileProgram is called by ALL *Program controllers, and contains much of
@@ -450,19 +720,16 @@ func handleProgCreateOrUpdate(
 // against the K8s API. If the function returns a retry boolean and error, the
 // reconcile will be retried based on a default 5 second interval if the retry
 // boolean is set to `true`.
-func reconcileProgram(ctx context.Context,
+func (r *ReconcilerCommon) reconcileProgram(ctx context.Context,
 	rec bpfmanReconciler,
 	program client.Object,
-	common *bpfmaniov1alpha1.BpfProgramCommon,
-	ourNode *v1.Node,
-	programMap map[string]*gobpfman.ListResponse_ListResult) (internal.ReconcileResult, error) {
+	loadedBpfPrograms map[string]*gobpfman.ListResponse_ListResult) (internal.ReconcileResult, error) {
 
-	// initialize reconciler state
-	r := rec.getRecCommon()
+	r.Logger.V(1).Info("reconcileProgram", "name", program.GetName())
 
 	// Determine which node local actions should be taken based on whether the node is selected
 	// OR if the *Program is being deleted.
-	isNodeSelected, err := isNodeSelected(&common.NodeSelector, ourNode.Labels)
+	isNodeSelected, err := isNodeSelected(&rec.getBpfProgramCommon().NodeSelector, rec.getNode().Labels)
 	if err != nil {
 		return internal.Requeue, fmt.Errorf("failed to check if node is selected: %v", err)
 	}
@@ -471,14 +738,14 @@ func reconcileProgram(ctx context.Context,
 
 	// Query the K8s API to get a list of existing bpfPrograms for this *Program
 	// on this node.
-	existingPrograms, err := r.getExistingBpfProgs(ctx, program)
+	existingBpfPrograms, err := r.getExistingBpfPrograms(ctx, program)
 	if err != nil {
 		return internal.Requeue, fmt.Errorf("failed to get existing bpfPrograms: %v", err)
 	}
 
 	// Determine if the MapOwnerSelector was set, and if so, see if the MapOwner
 	// ID can be found.
-	mapOwnerStatus, err := ProcessMapOwnerParam(ctx, &common.MapOwnerSelector, r)
+	mapOwnerStatus, err := r.processMapOwnerParam(ctx, &rec.getBpfProgramCommon().MapOwnerSelector)
 	if err != nil {
 		return internal.Requeue, fmt.Errorf("failed to determine map owner: %v", err)
 	}
@@ -490,19 +757,19 @@ func reconcileProgram(ctx context.Context,
 
 	switch isBeingDeleted {
 	case true:
-		return handleProgDelete(ctx, r, common, rec, existingPrograms,
-			programMap, isNodeSelected, isBeingDeleted, mapOwnerStatus)
+		return r.handleProgDelete(ctx, rec, existingBpfPrograms, loadedBpfPrograms,
+			isNodeSelected, isBeingDeleted, mapOwnerStatus)
 	case false:
 		// Generate the list of BpfPrograms for this *Program. This handles the
 		// one *Program to many BpfPrograms (e.g., One *Program maps to multiple
 		// interfaces because of PodSelector, or one *Program needs to be
 		// installed in multiple containers because of ContainerSelector).
-		expectedPrograms, err := rec.expectedBpfPrograms(ctx)
+		expectedBpfPrograms, err := rec.getExpectedBpfPrograms(ctx)
 		if err != nil {
 			return internal.Requeue, fmt.Errorf("failed to get expected bpfPrograms: %v", err)
 		}
-		return handleProgCreateOrUpdate(ctx, r, common, rec, program, existingPrograms,
-			expectedPrograms, programMap, isNodeSelected, isBeingDeleted, mapOwnerStatus)
+		return r.handleProgCreateOrUpdate(ctx, rec, program, existingBpfPrograms, expectedBpfPrograms, loadedBpfPrograms,
+			isNodeSelected, isBeingDeleted, mapOwnerStatus)
 	}
 
 	// This return should never be reached, but it's here to satisfy the compiler.
@@ -523,9 +790,9 @@ type MapOwnerParamStatus struct {
 // function returns the ID of the BpfProgram that owns the map on this node.
 // Found or not, this function also returns some flags (isSet, isFound, isLoaded)
 // to help with the processing and setting of the proper condition on the BpfProgram Object.
-func ProcessMapOwnerParam(ctx context.Context,
-	selector *metav1.LabelSelector,
-	r *ReconcilerCommon) (*MapOwnerParamStatus, error) {
+func (r *ReconcilerCommon) processMapOwnerParam(
+	ctx context.Context,
+	selector *metav1.LabelSelector) (*MapOwnerParamStatus, error) {
 	mapOwnerStatus := &MapOwnerParamStatus{}
 
 	// Parse the MapOwnerSelector label selector.

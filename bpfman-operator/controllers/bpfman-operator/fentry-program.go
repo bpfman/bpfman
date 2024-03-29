@@ -57,7 +57,7 @@ func (r *FentryProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&source.Kind{Type: &bpfmaniov1alpha1.BpfProgram{}},
 			&handler.EnqueueRequestForObject{},
-			builder.WithPredicates(predicate.And(statusChangedPredicate(), internal.BpfProgramTypePredicate(internal.Tracing.String()))),
+			builder.WithPredicates(predicate.And(statusChangedPredicate(), internal.BpfProgramTypePredicate(internal.FentryString))),
 		).
 		Complete(r)
 }
@@ -112,5 +112,5 @@ func (r *FentryProgramReconciler) updateStatus(ctx context.Context, name string,
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}
 
-	return r.ReconcilerCommon.updateCondition(ctx, prog, &prog.Status.Conditions, cond, message)
+	return r.updateCondition(ctx, prog, &prog.Status.Conditions, cond, message)
 }

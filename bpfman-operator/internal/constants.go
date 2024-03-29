@@ -220,9 +220,12 @@ func (p ProgramType) String() string {
 	}
 }
 
-// Define a constant string for Uprobe.  It has the same kernel ProgramType as
-// Kprobe, so we can't use the ProgramType String() method above.
+// Define a constant strings for Uprobe, Fentry and Fexit.  Uprobe has the same
+// kernel ProgramType as Kprobe, and Fentry and Fexit both have the Tracing
+// ProgramType, so we can't use the ProgramType String() method above.
 const UprobeString = "uprobe"
+const FentryString = "fentry"
+const FexitString = "fexit"
 
 type ReconcileResult uint8
 
