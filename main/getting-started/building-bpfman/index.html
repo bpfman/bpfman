@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../..">
+        <link rel="prev" href="../example-bpf-k8s/">
       
       
         <link rel="next" href="../running-release/">
@@ -235,7 +235,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="./" class="md-tabs__link">
+        <a href="../overview/" class="md-tabs__link">
           
   
     
@@ -425,6 +425,8 @@
       
         
       
+        
+      
     
     
     
@@ -457,6 +459,86 @@
             Getting Started
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../launching-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Launching bpfman
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../example-bpf-local/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying Example eBPF Programs On Local Host
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../example-bpf-k8s/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying Example eBPF Programs On Kubernetes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -747,26 +829,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../tutorial/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Bpfman on Linux Tutorial
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../cli-guide/" class="md-nav__link">
         
   
@@ -792,46 +854,6 @@
   
   <span class="md-ellipsis">
     Example eBPF Programs
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../example-bpf-local/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Deploying Example eBPF Programs On Local Host
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../example-bpf-k8s/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Deploying Example eBPF Programs On Kubernetes
   </span>
   
 
@@ -875,6 +897,8 @@
   
     
     
+      
+        
       
         
       
@@ -1208,6 +1232,26 @@
   
   <span class="md-ellipsis">
     Releasing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/xdp-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    XDP Tutorial
   </span>
   
 
@@ -1954,8 +1998,11 @@ features bpfman relies on to work and which kernel the feature was first introdu
 <li><strong>BPF Perf Link:</strong> Support BPF perf link for tracing programs (Tracepoint, Uprobe and Kprobe)
   which enables pinning for these program types.
   Introduced in Kernel 5.15.</li>
+<li><strong>Relaxed CAP_BPF Requirement:</strong> Prior to Kernel 5.19, all eBPF system calls required CAP_BPF.
+  This required userspace programs that wanted to access eBPF maps to have the CAP_BPF Linux capability.
+  With the kernel 5.19 change, CAP_BPF is only required for load and unload requests.</li>
 </ul>
-<p>Tested kernel versions:</p>
+<p>bpfman tested on older kernel versions:</p>
 <ul>
 <li>Fedora 34: Kernel 5.17.6-100.fc34.x86_64<ul>
 <li>XDP, TC, Tracepoint, Uprobe and Kprobe programs all loaded with bpfman running on localhost
@@ -1987,11 +2034,11 @@ features bpfman relies on to work and which kernel the feature was first introdu
 </li>
 </ul>
 <h2 id="clone-the-bpfman-repo">Clone the bpfman Repo</h2>
-<p>You can build and run bpfman from anywhere. However, if you plan to make changes
-to the bpfman operator, it will need to be under your <code>GOPATH</code> because Kubernetes
-Code-generator does not work outside of <code>GOPATH</code> <a href="https://github.com/kubernetes/kubernetes/issues/86753">issue
-86753</a>.  Assuming your
-<code>GOPATH</code> is set to the typical <code>$HOME/go</code>, your repo should live in
+<p>You can build and run bpfman from anywhere. However, if you plan to make changes to the bpfman
+operator, specifically run <code>make generate</code>, it will need to be under your <code>GOPATH</code> because
+Kubernetes Code-generator does not work outside of <code>GOPATH</code>
+<a href="https://github.com/kubernetes/kubernetes/issues/86753">Issue 86753</a>.
+Assuming your <code>GOPATH</code> is set to the typical <code>$HOME/go</code>, your repo should live in
 <code>$HOME/go/src/github.com/bpfman/bpfman</code></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>mkdir -p $HOME/go/src/github.com/bpfman
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cd $HOME/go/src/github.com/bpfman
@@ -2004,7 +2051,8 @@ To build with local changes, use the following commands.</p>
 <p>If you are building bpfman for the first time OR the eBPF code has changed:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">cargo xtask build-ebpf --libbpf-dir /path/to/libbpf</span>
 </code></pre></div>
-<p>If protobuf files have changed:</p>
+<p>If protobuf files have changed (see
+<a href="../../developer-guide/develop-operator/#rpc-protobuf-generation">RPC Protobuf Generation</a>):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">cargo xtask build-proto</span>
 </code></pre></div>
 <p>To build bpfman:</p>
@@ -2022,9 +2070,9 @@ To build with local changes, use the following commands.</p>
 <p>For <code>bash</code>, this generates a file that can be used by the linux <code>bash-completion</code>
 utility (see <a href="#install-bash-completion">Install bash-completion</a> for installation
 instructions).</p>
-<p>If the files are generated, they are installed automatically when running <code>bpfman</code> as
-a systemd service and using the <code>sudo ./scripts/setup.sh install</code> install script
-(see <a href="../tutorial/#systemd-service">Systemd Service</a>).
+<p>If the files are generated, they are installed automatically when using the install
+script (i.e. <code>sudo ./scripts/setup.sh install</code> - See
+<a href="../example-bpf-local/#run-as-a-systemd-service">Run as a systemd Service</a>).
 To install the files manually, copy the file associated with a given shell to
 <code>/usr/share/bash-completion/completions/</code>.
 For example:</p>
@@ -2039,9 +2087,9 @@ For these shells, generated file must be manually installed.</p>
 <p>Optionally, to build the CLI Manpage files, run the following command:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">cargo xtask build-man-page</span>
 </code></pre></div>
-<p>If the files are generated, they are installed automatically when running <code>bpfman</code> as
-a systemd service and using the <code>sudo ./scripts/setup.sh install</code> install script
-(see <a href="../tutorial/#systemd-service">Systemd Service</a>).
+<p>If the files are generated, they are installed automatically when using the install
+script (i.e. <code>sudo ./scripts/setup.sh install</code> - See
+<a href="../example-bpf-local/#run-as-a-systemd-service">Run as a systemd Service</a>).
 To install the files manually, copy the generated files to <code>/usr/local/share/man/man1/</code>.
 For example:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">sudo cp .output/manpage/bpfman*.1 /usr/local/share/man/man1/.</span>

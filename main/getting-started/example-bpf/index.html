@@ -12,7 +12,7 @@
         <link rel="prev" href="../cli-guide/">
       
       
-        <link rel="next" href="../example-bpf-local/">
+        <link rel="next" href="../troubleshooting/">
       
       
       <link rel="icon" href="../../img/favicon.svg">
@@ -235,7 +235,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../building-bpfman/" class="md-tabs__link">
+        <a href="../overview/" class="md-tabs__link">
           
   
     
@@ -425,6 +425,8 @@
       
         
       
+        
+      
     
     
     
@@ -457,6 +459,86 @@
             Getting Started
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../launching-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Launching bpfman
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../example-bpf-local/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying Example eBPF Programs On Local Host
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../example-bpf-k8s/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying Example eBPF Programs On Kubernetes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -509,26 +591,6 @@
   
   <span class="md-ellipsis">
     Run bpfman From RPM
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../tutorial/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Bpfman on Linux Tutorial
   </span>
   
 
@@ -610,9 +672,99 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#notes" class="md-nav__link">
+  <a href="#example-code-breakdown" class="md-nav__link">
     <span class="md-ellipsis">
-      Notes
+      Example Code Breakdown
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example Code Breakdown">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#examples-in-local-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples in Local Deployment
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples-in-kubernetes-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples in Kubernetes Deployment
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-example-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building Example Code
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building Example Code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#building-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building Locally
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building Locally">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-ebpf-bytecode-container-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building eBPF Bytecode Container Image
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running Examples
     </span>
   </a>
   
@@ -622,46 +774,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../example-bpf-local/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Deploying Example eBPF Programs On Local Host
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../example-bpf-k8s/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Deploying Example eBPF Programs On Kubernetes
-  </span>
-  
-
-      </a>
     </li>
   
 
@@ -701,6 +813,8 @@
   
     
     
+      
+        
       
         
       
@@ -1034,6 +1148,26 @@
   
   <span class="md-ellipsis">
     Releasing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/xdp-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    XDP Tutorial
   </span>
   
 
@@ -1551,9 +1685,99 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#notes" class="md-nav__link">
+  <a href="#example-code-breakdown" class="md-nav__link">
     <span class="md-ellipsis">
-      Notes
+      Example Code Breakdown
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example Code Breakdown">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#examples-in-local-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples in Local Deployment
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples-in-kubernetes-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples in Kubernetes Deployment
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-example-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building Example Code
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building Example Code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#building-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building Locally
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building Locally">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-ebpf-bytecode-container-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building eBPF Bytecode Container Image
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running Examples
     </span>
   </a>
   
@@ -1582,42 +1806,237 @@
 <a href="https://github.com/bpfman/bpfman/tree/main/examples/">examples/</a> directory.
 Current examples include:</p>
 <ul>
+<li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-kprobe-counter">examples/go-kprobe-counter/</a></li>
 <li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-tc-counter">examples/go-tc-counter/</a></li>
 <li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter">examples/go-tracepoint-counter/</a></li>
+<li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-uprobe-counter">examples/go-uprobe-counter/</a><ul>
+<li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-target">examples/go-target/</a></li>
+</ul>
+</li>
 <li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-xdp-counter">examples/go-xdp-counter/</a></li>
 </ul>
-<p>These examples and the associated documentation is intended to provide the basics on how to deploy
+<h2 id="example-code-breakdown">Example Code Breakdown</h2>
+<p>These examples and the associated documentation are intended to provide the basics on how to deploy
 and manage an eBPF program using bpfman. Each of the examples contain an eBPF Program written in C
-(<a href="https://github.com/bpfman/bpfman/tree/main/examples/go-tc-counter/bpf/tc_counter.c">tc_counter.c</a>,
-<a href="https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter/bpf/tracepoint_counter.c">tracepoint_counter.c</a> and
+(<a href="https://github.com/bpfman/bpfman/tree/main/examples/go-kprobe-counter/bpf/kprobe_counter.c">kprobe_counter.c</a>,
+<a href="https://github.com/bpfman/bpfman/tree/main/examples/go-tc-counter/bpf/tc_counter.c">tc_counter.c</a>,
+<a href="https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter/bpf/tracepoint_counter.c">tracepoint_counter.c</a> <a href="https://github.com/bpfman/bpfman/tree/main/examples/go-uprobe-counter/bpf/uprobe_counter.c">uprobe_counter.c</a>,
+and
 <a href="https://github.com/bpfman/bpfman/tree/main/examples/go-xdp-counter/bpf/xdp_counter.c">xdp_counter.c</a>)
-that is compiled into eBPF bytecode.
+that is compiled into eBPF bytecode (bpf_bpfel.o).
 Each time the eBPF program is called, it increments the packet and byte counts in a map that is accessible
 by the userspace portion.</p>
 <p>Each of the examples also have a userspace portion written in GO.
-When run locally, the userspace program makes gRPC calls to <code>bpfman</code> requesting <code>bpfman</code> to load the eBPF program
-at the requested hook point (XDP hook point, TC hook point or Tracepoint).
-When run in a Kubernetes deployment, the <code>bpfman-agent</code> makes gRPC calls to <code>bpfman</code> requesting <code>bpfman</code> to load
-the eBPF program based on a Custom Resource Definition (CRD), which is described in more detail in that section.
-Independent of the deployment, the userspace program then polls the eBPF map every 3 seconds and logs the
-current counts.
 The userspace code is leveraging the <a href="https://github.com/cilium/ebpf">cilium/ebpf library</a>
 to manage the maps shared with the eBPF program.
 The example eBPF programs are very similar in functionality, and only vary where in the Linux networking stack
 they are inserted.
-Read more about XDP and TC programs <a href="https://docs.cilium.io/en/latest/bpf/progtypes/">here</a>.</p>
-<p>There are two ways to deploy these example applications:</p>
+The userspace program then polls the eBPF map every 3 seconds and logs the current counts.</p>
+<p>The examples were written to either run locally on a host or run in a container in a Kubernetes
+deployment.
+The userspace code flow is slightly different depending on the deployment, so input parameters
+dictate the deployment method.</p>
+<h3 id="examples-in-local-deployment">Examples in Local Deployment</h3>
+<p>When run locally, the userspace program makes gRPC calls to <code>bpfman-rpc</code> requesting <code>bpfman</code> to load
+the eBPF program at the requested hook point (XDP hook point, TC hook point, Tracepoint, etc).
+Data sent in the RPC request is either defaulted or passed in via input parameters.
+To make the examples as simple as possible to run, all input data is defaulted (except the interface
+TC and XDP programs need to attach to) but can be overwritten if desired. All example programs have
+the following common parameters (kprobe does not have any command specific parameters):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">cd bpfman/examples/go-kprobe-counter/</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="go">./go-kprobe-counter --help</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">Usage of ./go-kprobe-counter:</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="go">  -crd</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="go">        Flag to indicate all attributes should be pulled from the BpfProgram CRD.</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="go">        Used in Kubernetes deployments and is mutually exclusive with all other</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="go">        parameters.</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="go">  -file string</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="go">        File path of bytecode source. &quot;file&quot; and &quot;image&quot;/&quot;id&quot; are mutually exclusive.</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="go">        Example: -file /home/$USER/src/bpfman/examples/go-kprobe-counter/bpf_bpfel.o</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="go">  -id uint</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="go">        Optional Program ID of bytecode that has already been loaded. &quot;id&quot; and</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="go">        &quot;file&quot;/&quot;image&quot; are mutually exclusive.</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="go">        Example: -id 28341</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="go">  -image string</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="go">        Image repository URL of bytecode source. &quot;image&quot; and &quot;file&quot;/&quot;id&quot; are</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="go">        mutually exclusive.</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="go">        Example: -image quay.io/bpfman-bytecode/go-kprobe-counter:latest</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="go">  -map_owner_id int</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="go">        Program Id of loaded eBPF program this eBPF program will share a map with.</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="go">        Example: -map_owner_id 9785</span>
+</code></pre></div>
+<p>The location of the eBPF bytecode can be provided four different ways:</p>
 <ul>
-<li>Run locally on one machine: <a href="../example-bpf-local/">Deploying Example eBPF Programs On Local Host</a></li>
-<li>Deploy to multiple nodes in a Kubernetes cluster: <a href="../example-bpf-k8s/">Deploying Example eBPF Programs On Kubernetes</a></li>
+<li>Defaulted: If nothing is passed in, the code scans the local directory for
+  a <code>bpf_bpfel.o</code> file. If found, that is used. If not, it errors out.</li>
+<li><strong>file</strong>: Fully qualified path of the bytecode object file.</li>
+<li><strong>image</strong>: Image repository URL of bytecode source.</li>
+<li><strong>id</strong>: Kernel program Id of a bytecode that has already been loaded. This
+  program could have been loaded using <code>bpftool</code>, or <code>bpfman</code>. </li>
 </ul>
-<h2 id="notes">Notes</h2>
-<p>Notes regarding this document:</p>
+<p>If two userspace programs need to share the same map, <strong>map_owner_id</strong> is the Program
+ID of the first loaded program that has the map the second program wants to share.</p>
+<p>The examples require <code>sudo</code> to run because they require access the Unix socket <code>bpfman-rpc</code>
+is listening on.
+<a href="../example-bpf-local/">Deploying Example eBPF Programs On Local Host</a> steps through launching
+<code>bpfman</code> locally and running some of the examples. </p>
+<h3 id="examples-in-kubernetes-deployment">Examples in Kubernetes Deployment</h3>
+<p>When run in a Kubernetes deployment, all the input data is passed to Kubernetes through yaml files.
+To indicate to the userspace code that it is in a Kubernetes deployment and not to try to load
+the eBPF bytecode, the example is launched in the container with the <strong>crd</strong> flag.
+Example: <code>./go-kprobe-counter -crd</code></p>
+<p>For these examples, the bytecode is loaded via one yaml file which creates a *Program CRD Object
+(KprobeProgram, TcProgram, TracepointProgram, etc.) and the userspace pod is loaded via another yaml
+file.
+In a more realistic deployment, the userspace pod may have the logic to send the *Program CRD Object
+create request to the KubeAPI Server, but the two yaml files are load manually for simplicity in the
+example code.
+The <a href="https://github.com/bpfman/bpfman/tree/main/examples">examples directory</a> contain yaml files to
+load each example, leveraging <a href="https://kustomize.io/">Kustomize</a> to modify the yaml to load the latest
+images from Quay.io, to load custom images or released based images.
+It is recommended to use the commands built into the Makefile, which run kustomize, to apply and remove
+the yaml files to a Kubernetes cluster.
+Use <code>make help</code> to see all the make options.
+For example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">cd bpfman/examples/</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="gp"># </span>Deploy<span class="w"> </span><span class="k">then</span><span class="w"> </span>undeploy<span class="w"> </span>all<span class="w"> </span>the<span class="w"> </span>examples
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go">make deploy</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="go">make undeploy</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="go">OR</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="gp"># </span>Deploy<span class="w"> </span><span class="k">then</span><span class="w"> </span>undeploy<span class="w"> </span>just<span class="w"> </span>the<span class="w"> </span>TC<span class="w"> </span>example
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="go">make deploy-tc</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="go">make undeploy-tc</span>
+</code></pre></div>
+<p><a href="../example-bpf-k8s/">Deploying Example eBPF Programs On Kubernetes</a> steps through deploying
+bpfman to multiple nodes in a Kubernetes cluster and loading the examples.</p>
+<h2 id="building-example-code">Building Example Code</h2>
+<p>All the examples can be built locally as well as packaged in a container for Kubernetes
+deployment.</p>
+<h3 id="building-locally">Building Locally</h3>
+<p>To build directly on a system, make sure all the prerequisites are met, then build.</p>
+<h4 id="prerequisites">Prerequisites</h4>
+<p><em>This assumes bpfman is already installed and running on the system.
+If not, see <a href="../building-bpfman/">Setup and Building bpfman</a>.</em></p>
+<ol>
+<li>All <a href="https://github.com/cilium/ebpf#requirements">requirements defined by the <code>cilium/ebpf</code> package</a></li>
+<li>
+<p>libbpf development package to get the required eBPF c headers</p>
+<p><strong>Fedora:</strong> <code>sudo dnf install libbpf-devel</code></p>
+<p><strong>Ubuntu:</strong> <code>sudo apt-get install libbpf-dev</code></p>
+</li>
+<li>
+<p>Cilium's <code>bpf2go</code> binary</p>
+<p><code>go install github.com/cilium/ebpf/cmd/bpf2go@v0.11.0</code></p>
+</li>
+</ol>
+<h4 id="build">Build</h4>
+<p>To build all the C based eBPF counter bytecode, run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">cd bpfman/examples/</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">make generate</span>
+</code></pre></div>
+<p>To build all the Userspace GO Client examples, run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">cd bpfman/examples/</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">make build</span>
+</code></pre></div>
+<p>To build only a single example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">cd bpfman/examples/go-tc-counter/</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">go generate</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">go build</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">cd bpfman/examples/go-tracepoint-counter/</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go">go generate</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">go build</span>
+</code></pre></div>
+<p><em>Other program types are the same.</em></p>
+<h3 id="building-ebpf-bytecode-container-image">Building eBPF Bytecode Container Image</h3>
+<p><a href="../../developer-guide/shipping-bytecode/">eBPF Bytecode Image Specifications</a> provides detailed
+instructions on building and shipping bytecode in a container image.
+Pre-built eBPF container images for the examples can be loaded from:</p>
 <ul>
-<li>Source of images used in the example documentation can be found in
-  <a href="https://docs.google.com/presentation/d/1wU4xu6xeyk9cB3G-Nn-dzkf90j1-EI4PB167G7v-Xl4/edit?usp=sharing">bpfman Upstream Images</a>.
-  Request access if required.</li>
+<li><code>quay.io/bpfman-bytecode/go-kprobe-counter:latest</code></li>
+<li><code>quay.io/bpfman-bytecode/go-tc-counter:latest</code></li>
+<li><code>quay.io/bpfman-bytecode/go-tracepoint-counter:latest</code></li>
+<li><code>quay.io/bpfman-bytecode/go-uprobe-counter:latest</code></li>
+<li><code>quay.io/bpfman-bytecode/go-xdp-counter:latest</code></li>
 </ul>
+<p>To build the example eBPF bytecode container images, run the build commands below (the <code>go generate</code>
+requires the <a href="#prerequisites">Prerequisites</a> described above):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">cd bpfman/examples/go-xdp-counter/</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="go">go generate</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="go">docker build \</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="go">  --build-arg PROGRAM_NAME=go-xdp-counter \</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="go">  --build-arg BPF_FUNCTION_NAME=xdp_stats \</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="go">  --build-arg PROGRAM_TYPE=xdp \</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="go">  --build-arg BYTECODE_FILENAME=bpf_bpfel.o \</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="go">  --build-arg KERNEL_COMPILE_VER=$(uname -r) \</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="go">  -f ../../Containerfile.bytecode . -t quay.io/$USER/go-xdp-counter-bytecode:latest</span>
+</code></pre></div>
+<p>and</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">cd bpfman/examples/go-tc-counter/</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">go generate</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="go">docker build \</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go">  --build-arg PROGRAM_NAME=go-tc-counter \</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="go">  --build-arg BPF_FUNCTION_NAME=stats \</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="go">  --build-arg PROGRAM_TYPE=tc \</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="go">  --build-arg BYTECODE_FILENAME=bpf_bpfel.o \</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="go">  --build-arg KERNEL_COMPILE_VER=$(uname -r) \</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="go">  -f ../../Containerfile.bytecode . -t quay.io/$USER/go-tc-counter-bytecode:latest</span>
+</code></pre></div>
+<p><em>Other program types are the same.</em></p>
+<p><code>bpfman</code> currently does not provide a method for pre-loading bytecode images
+(see <a href="https://github.com/bpfman/bpfman/issues/603">issue #603</a>), so push the bytecode image to a remote
+repository.
+For example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">docker login quay.io</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="go">docker push quay.io/$USER/go-xdp-counter-bytecode:latest</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="go">docker push quay.io/$USER/go-tc-counter-bytecode:latest</span>
+</code></pre></div>
+<p>Then run with the privately built bytecode container image:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">sudo ./go-tc-counter -iface ens3 -direction ingress -image quay.io/$USER/go-tc-counter-bytecode:latest</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">2022/12/02 16:38:44 Using Input: Interface=ens3 Priority=50 Source=quay.io/$USER/go-tc-counter-bytecode:latest</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go">2022/12/02 16:38:45 Program registered with id 6225</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go">2022/12/02 16:38:48 4 packets received</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go">2022/12/02 16:38:48 580 bytes received</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="go">2022/12/02 16:38:51 4 packets received</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="go">2022/12/02 16:38:51 580 bytes received</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="go">^C2022/12/02 16:38:51 Exiting...</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="go">2022/12/02 16:38:51 Unloading Program: 6225</span>
+</code></pre></div>
+<h2 id="running-examples">Running Examples</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="go">cd bpfman/examples/go-xdp-counter/</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="go">sudo ./go-xdp-counter -iface &lt;INTERNET INTERFACE NAME&gt;</span>
+</code></pre></div>
+<p>or (<strong>NOTE:</strong> TC programs also require a direction, ingress or egress)</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="go">cd bpfman/examples/go-tc-counter/</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="go">sudo ./go-tc-counter -direction ingress -iface &lt;INTERNET INTERFACE NAME&gt;</span>
+</code></pre></div>
+<p>or</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="go">cd bpfman/examples/go-tracepoint-counter/</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="go">sudo ./go-tracepoint-counter</span>
+</code></pre></div>
+<p>bpfman can load eBPF bytecode from a container image built following the spec described in
+<a href="../../developer-guide/shipping-bytecode/">eBPF Bytecode Image Specifications</a>.</p>
+<p>To use the container image, pass the URL to the userspace program:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="go">sudo ./go-xdp-counter -iface ens3 -image quay.io/bpfman-bytecode/go-xdp-counter:latest</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="go">2022/12/02 16:28:32 Using Input: Interface=ens3 Priority=50 Source=quay.io/bpfman-bytecode/go-xdp-counter:latest</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="go">2022/12/02 16:28:34 Program registered with id 6223</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="go">2022/12/02 16:28:37 4 packets received</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="go">2022/12/02 16:28:37 580 bytes received</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="go">2022/12/02 16:28:40 4 packets received</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="go">2022/12/02 16:28:40 580 bytes received</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="go">^C2022/12/02 16:28:42 Exiting...</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="go">2022/12/02 16:28:42 Unloading Program: 6223</span>
+</code></pre></div>
 
 
 
