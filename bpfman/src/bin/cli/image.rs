@@ -2,14 +2,17 @@
 // Copyright Authors of bpfman
 
 use base64::{engine::general_purpose, Engine};
-use bpfman::{oci_utils::image_manager::BytecodeImage, types::ImagePullPolicy, BpfManager};
+use bpfman::{
+    pull_bytecode,
+    types::{BytecodeImage, ImagePullPolicy},
+};
 
 use crate::args::{ImageSubCommand, PullBytecodeArgs};
 
 impl ImageSubCommand {
-    pub(crate) async fn execute(&self, bpf_manager: &mut BpfManager) -> anyhow::Result<()> {
+    pub(crate) async fn execute(&self) -> anyhow::Result<()> {
         match self {
-            ImageSubCommand::Pull(args) => execute_pull(bpf_manager, args).await,
+            ImageSubCommand::Pull(args) => execute_pull(args).await,
         }
     }
 }
@@ -38,12 +41,9 @@ impl TryFrom<&PullBytecodeArgs> for BytecodeImage {
     }
 }
 
-pub(crate) async fn execute_pull(
-    bpf_manager: &mut BpfManager,
-    args: &PullBytecodeArgs,
-) -> anyhow::Result<()> {
+pub(crate) async fn execute_pull(args: &PullBytecodeArgs) -> anyhow::Result<()> {
     let image: BytecodeImage = args.try_into()?;
-    bpf_manager.pull_bytecode(image).await?;
+    pull_bytecode(image).await?;
 
     Ok(())
 }

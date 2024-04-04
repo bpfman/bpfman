@@ -45,9 +45,9 @@ impl Dispatcher {
         let if_name = p.if_name()?;
         let direction = p.direction()?;
         let xdp_mode = if let Some(c) = config {
-            c.xdp_mode
+            c.xdp_mode()
         } else {
-            XdpMode::Skb
+            &XdpMode::Skb
         };
         let d = match p.kind() {
             ProgramType::Xdp => {
@@ -102,15 +102,6 @@ impl Dispatcher {
                 .expect("failed to get tc_dispatcher revision"),
         };
         current.wrapping_add(1)
-    }
-
-    pub(crate) fn if_name(&self) -> String {
-        match self {
-            Dispatcher::Xdp(d) => d
-                .get_ifname()
-                .expect("failed to get xdp_dispatcher if_name"),
-            Dispatcher::Tc(d) => d.get_ifname().expect("failed to tc xdp_dispatcher if_name"),
-        }
     }
 
     pub(crate) fn num_extensions(&self) -> usize {

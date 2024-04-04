@@ -9,13 +9,26 @@ use serde::{Deserialize, Serialize};
 use crate::errors::ParseError;
 
 #[derive(Debug, Deserialize, Default, Clone)]
-pub struct Config {
-    pub interfaces: Option<HashMap<String, InterfaceConfig>>,
+pub(crate) struct Config {
+    interfaces: Option<HashMap<String, InterfaceConfig>>,
     #[serde(default)]
-    pub signing: Option<SigningConfig>,
-    pub database: Option<DatabaseConfig>,
+    signing: Option<SigningConfig>,
+    database: Option<DatabaseConfig>,
 }
 
+impl Config {
+    pub(crate) fn interfaces(&self) -> &Option<HashMap<String, InterfaceConfig>> {
+        &self.interfaces
+    }
+
+    pub(crate) fn signing(&self) -> &Option<SigningConfig> {
+        &self.signing
+    }
+
+    pub(crate) fn database(&self) -> &Option<DatabaseConfig> {
+        &self.database
+    }
+}
 #[derive(Debug, Deserialize, Clone)]
 pub struct SigningConfig {
     pub allow_unsigned: bool,
@@ -56,20 +69,26 @@ impl FromStr for Config {
 }
 
 #[derive(Debug, Deserialize, Copy, Clone)]
-pub struct InterfaceConfig {
-    pub xdp_mode: XdpMode,
+pub(crate) struct InterfaceConfig {
+    xdp_mode: XdpMode,
+}
+
+impl InterfaceConfig {
+    pub(crate) fn xdp_mode(&self) -> &XdpMode {
+        &self.xdp_mode
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
-pub enum XdpMode {
+pub(crate) enum XdpMode {
     Skb,
     Drv,
     Hw,
 }
 
 impl XdpMode {
-    pub fn as_flags(&self) -> XdpFlags {
+    pub(crate) fn as_flags(&self) -> XdpFlags {
         match self {
             XdpMode::Skb => XdpFlags::SKB_MODE,
             XdpMode::Drv => XdpFlags::DRV_MODE,

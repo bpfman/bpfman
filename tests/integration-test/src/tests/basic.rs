@@ -1,11 +1,10 @@
 use std::process::Command;
 
 use assert_cmd::prelude::*;
-use bpfman::directories::{RTDIR_FS_MAPS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP};
 use log::debug;
 use rand::Rng;
 
-use super::{integration_test, IntegrationTest};
+use super::{integration_test, IntegrationTest, RTDIR_FS_MAPS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP};
 use crate::tests::utils::*;
 
 #[integration_test]

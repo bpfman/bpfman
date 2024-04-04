@@ -151,15 +151,15 @@ impl<T: bpfman_api::v1::bpfman_server::Bpfman> tonic::server::NamedService for b
 pub const bpfman_api::v1::bpfman_server::BpfmanServer<T>::NAME: &'static str
 impl<T: core::fmt::Debug + bpfman_api::v1::bpfman_server::Bpfman> core::fmt::Debug for bpfman_api::v1::bpfman_server::BpfmanServer<T>
 pub fn bpfman_api::v1::bpfman_server::BpfmanServer<T>::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl<T> core::marker::Freeze for bpfman_api::v1::bpfman_server::BpfmanServer<T>
-impl<T> core::marker::Send for bpfman_api::v1::bpfman_server::BpfmanServer<T>
-impl<T> core::marker::Sync for bpfman_api::v1::bpfman_server::BpfmanServer<T>
-impl<T> core::marker::Unpin for bpfman_api::v1::bpfman_server::BpfmanServer<T>
-impl<T> core::panic::unwind_safe::RefUnwindSafe for bpfman_api::v1::bpfman_server::BpfmanServer<T> where T: core::panic::unwind_safe::RefUnwindSafe
-impl<T> core::panic::unwind_safe::UnwindSafe for bpfman_api::v1::bpfman_server::BpfmanServer<T> where T: core::panic::unwind_safe::RefUnwindSafe
+impl<T> core::marker::Freeze for bpfman_api::v1::bpfman_server::BpfmanServer<T> where T: core::marker::Sync + core::marker::Send + 'static
+impl<T> core::marker::Send for bpfman_api::v1::bpfman_server::BpfmanServer<T> where T: core::marker::Sync + core::marker::Send + 'static
+impl<T> core::marker::Sync for bpfman_api::v1::bpfman_server::BpfmanServer<T> where T: core::marker::Sync + core::marker::Send + 'static
+impl<T> core::marker::Unpin for bpfman_api::v1::bpfman_server::BpfmanServer<T> where T: core::marker::Sync + core::marker::Send + 'static
+impl<T> core::panic::unwind_safe::RefUnwindSafe for bpfman_api::v1::bpfman_server::BpfmanServer<T> where T: core::marker::Sync + core::marker::Send + 'static + core::panic::unwind_safe::RefUnwindSafe
+impl<T> core::panic::unwind_safe::UnwindSafe for bpfman_api::v1::bpfman_server::BpfmanServer<T> where T: core::marker::Sync + core::marker::Send + 'static + core::panic::unwind_safe::RefUnwindSafe
 impl<S, R> axum::service_ext::ServiceExt<R> for bpfman_api::v1::bpfman_server::BpfmanServer<T> where S: tower_service::Service<R>
 pub fn bpfman_api::v1::bpfman_server::BpfmanServer<T>::into_make_service(self) -> axum::routing::into_make_service::IntoMakeService<S>
-impl<T, ReqBody, ResBody> tonic::client::service::GrpcService<ReqBody> for bpfman_api::v1::bpfman_server::BpfmanServer<T> where T: tower_service::Service<http::request::Request<ReqBody>, Response = http::response::Response<ResBody>>, <T as tower_service::Service<http::request::Request<ReqBody>>>::Error: core::convert::Into<alloc::boxed::Box<(dyn core::error::Error + core::marker::Sync + core::marker::Send)>>, ResBody: http_body::Body, <ResBody as http_body::Body>::Error: core::convert::Into<alloc::boxed::Box<(dyn core::error::Error + core::marker::Sync + core::marker::Send)>>
+impl<T, ReqBody, ResBody> tonic::client::service::GrpcService<ReqBody> for bpfman_api::v1::bpfman_server::BpfmanServer<T> where T: tower_service::Service<http::request::Request<ReqBody>, Response = http::response::Response<ResBody>>, <T as tower_service::Service<http::request::Request<ReqBody>>>::Error: core::convert::Into<alloc::boxed::Box<(dyn core::error::Error + core::marker::Send + core::marker::Sync)>>, ResBody: http_body::Body, <ResBody as http_body::Body>::Error: core::convert::Into<alloc::boxed::Box<(dyn core::error::Error + core::marker::Send + core::marker::Sync)>>
 pub type bpfman_api::v1::bpfman_server::BpfmanServer<T>::Error = <T as tower_service::Service<http::request::Request<ReqBody>>>::Error
 pub type bpfman_api::v1::bpfman_server::BpfmanServer<T>::Future = <T as tower_service::Service<http::request::Request<ReqBody>>>::Future
 pub type bpfman_api::v1::bpfman_server::BpfmanServer<T>::ResponseBody = ResBody
@@ -403,8 +403,8 @@ impl core::clone::Clone for bpfman_api::v1::BytecodeImage
 pub fn bpfman_api::v1::BytecodeImage::clone(&self) -> bpfman_api::v1::BytecodeImage
 impl core::cmp::PartialEq for bpfman_api::v1::BytecodeImage
 pub fn bpfman_api::v1::BytecodeImage::eq(&self, other: &bpfman_api::v1::BytecodeImage) -> bool
-impl core::convert::From<bpfman_api::v1::BytecodeImage> for bpfman::oci_utils::image_manager::BytecodeImage
-pub fn bpfman::oci_utils::image_manager::BytecodeImage::from(value: bpfman_api::v1::BytecodeImage) -> Self
+impl core::convert::From<bpfman_api::v1::BytecodeImage> for bpfman::types::BytecodeImage
+pub fn bpfman::types::BytecodeImage::from(value: bpfman_api::v1::BytecodeImage) -> Self
 impl core::default::Default for bpfman_api::v1::BytecodeImage
 pub fn bpfman_api::v1::BytecodeImage::default() -> Self
 impl core::fmt::Debug for bpfman_api::v1::BytecodeImage
