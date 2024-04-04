@@ -41,13 +41,16 @@ This allows users to confidently deploy eBPF through custom resource definitions
 Here are some links to help in your bpfman journey (all links are from the bpfman website <https://bpfman.io/>):
 
 - [Welcome to bpfman](https://bpfman.io/) for overview of bpfman.
-- [Setup and Building bpfman](https://bpfman.io/main/getting-started/building-bpfman/) for
-  instructions on setting up your development environment and building bpfman.
-- [Tutorial](https://bpfman.io/main/getting-started/tutorial/) for some examples of starting
-  `bpfman`, managing logs, and using the CLI.
+- [Deploying Example eBPF Programs On Local Host](https://bpfman.io/main/getting-started/example-bpf-local/)
+  for some examples of running `bpfman` on local host and using the CLI to install
+  eBPF programs on the host.
+- [Deploying Example eBPF Programs On Kubernetes](https://bpfman.io/main/getting-started/example-bpf-k8s/)
+  for some examples of deploying eBPF programs through `bpfman` in a Kubernetes deployment.
+- [Setup and Building bpfman](https://bpfman.io/main/getting-started/building-bpfman/) for instructions
+  on setting up your development environment and building bpfman.
 - [Example eBPF Programs](https://bpfman.io/main/getting-started/example-bpf/) for some
   examples of eBPF programs written in Go, interacting with `bpfman`.
-- [How to Deploy bpfman on Kubernetes](https://bpfman.io/main/developer-guide/develop-operator/) for details on launching
+- [Deploying the bpfman-operator](https://bpfman.io/main/developer-guide/develop-operator/) for details on launching
   bpfman in a Kubernetes cluster.
 - [Meet the Community](https://bpfman.io/main/governance/meetings/) for details on community meeting details.
 

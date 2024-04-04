@@ -192,7 +192,7 @@ impl ProgTable {
         };
 
         let rows = vec![
-            vec!["ID:".to_string(), p.get_id()?.to_string()],
+            vec!["Program ID:".to_string(), p.get_id()?.to_string()],
             vec!["Name:".to_string(), name],
             vec!["Type:".to_string(), format!("{}", r.kind())],
             vec!["Loaded At:".to_string(), p.get_kernel_loaded_at()?],

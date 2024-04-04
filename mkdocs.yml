@@ -51,14 +51,15 @@ markdown_extensions:
 nav:
   - Introduction: index.md
   - Getting Started:
+      - bpfman Overview: getting-started/overview.md
+      - Launching bpfman: getting-started/launching-bpfman.md
+      - Deploying Example eBPF Programs On Local Host: getting-started/example-bpf-local.md
+      - Deploying Example eBPF Programs On Kubernetes: getting-started/example-bpf-k8s.md
       - Setup and Building: getting-started/building-bpfman.md
       - Run bpfman From Release Image: getting-started/running-release.md
       - Run bpfman From RPM: getting-started/running-rpm.md
-      - Bpfman on Linux Tutorial: getting-started/tutorial.md
       - CLI Guide: getting-started/cli-guide.md
       - Example eBPF Programs: getting-started/example-bpf.md
-      - Deploying Example eBPF Programs On Local Host: getting-started/example-bpf-local.md
-      - Deploying Example eBPF Programs On Kubernetes: getting-started/example-bpf-k8s.md
       - Troubleshooting: getting-started/troubleshooting.md
   - Developer Guide:
       - Contributing: governance/CONTRIBUTING.md
@@ -75,6 +76,7 @@ nav:
       - Testing: developer-guide/testing.md
       - Debugging: developer-guide/debugging.md
       - Releasing: developer-guide/release.md
+      - XDP Tutorial: developer-guide/xdp-overview.md
   - Design:
       - Daemonless: design/daemonless.md
   - Blog:

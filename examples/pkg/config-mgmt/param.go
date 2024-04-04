@@ -143,7 +143,7 @@ func ParseParamData(progType ProgType, bytecodeFile string) (ParameterData, erro
 	// defaults to 50 from the commandline.
 	//    ./go-xdp-counter -iface eth0 -priority 45
 
-	// "-id" and "-location" are mutually exclusive and "-id" takes precedence.
+	// "-id" and "-image" are mutually exclusive and "-id" takes precedence.
 	// Parse Commandline first.
 
 	// "-id" is a ProgramID for the bytecode that has already loaded into bpfman. If not
@@ -153,7 +153,7 @@ func ParseParamData(progType ProgType, bytecodeFile string) (ParameterData, erro
 		// "-path" is a file path for the bytecode source. If not provided, check toml file.
 		//    ./go-xdp-counter -iface eth0 -path /var/bpfman/bytecode/bpf_bpfel.o
 		if len(cmdlineFile) != 0 {
-			// "-location" was entered so it is a URL
+			// "-image" was entered so it is a URL
 			paramData.BytecodeSource = &gobpfman.BytecodeLocation{
 				Location: &gobpfman.BytecodeLocation_File{File: cmdlineFile},
 			}
@@ -164,7 +164,7 @@ func ParseParamData(progType ProgType, bytecodeFile string) (ParameterData, erro
 		// "-image" is a container registry url for the bytecode source. If not provided, check toml file.
 		//    ./go-xdp-counter -p eth0 -image quay.io/bpfman-bytecode/go-xdp-counter:latest
 		if len(cmdlineImage) != 0 {
-			// "-location" was entered so it is a URL
+			// "-image" was entered so it is a URL
 			paramData.BytecodeSource = &gobpfman.BytecodeLocation{
 				Location: &gobpfman.BytecodeLocation_Image{Image: &gobpfman.BytecodeImage{
 					Url: cmdlineImage,

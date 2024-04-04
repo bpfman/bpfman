@@ -6,6 +6,6 @@ use bpfman::remove_program;
 use crate::args::UnloadArgs;
 
 pub(crate) async fn execute_unload(args: &UnloadArgs) -> Result<(), anyhow::Error> {
-    remove_program(args.id).await?;
+    remove_program(args.program_id).await?;
     Ok(())
 }

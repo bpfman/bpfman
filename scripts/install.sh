@@ -150,6 +150,7 @@ install() {
     fi
 
     copy_bin "${BIN_BPFMAN}" ${release}
+    copy_bin "${BIN_BPFMAN_RPC}" ${release}
 
     if [ "${reinstall}" == false ]; then
         echo "Copy service files:"
@@ -176,6 +177,7 @@ uninstall() {
 
     echo "Remove binaries:"
     del_bin "${BIN_BPFMAN}"
+    del_bin "${BIN_BPFMAN_RPC}"
 
     del_kubectl_plugin
 

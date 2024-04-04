@@ -1,9 +1,7 @@
 # Deploying Example eBPF Programs On Kubernetes
 
-This section will describe loading bytecode on a Kubernetes cluster and launching the userspace
-program.
+This section will describe launching eBPF enabled applications on a Kubernetes cluster.
 The approach is slightly different when running on a Kubernetes cluster.
-The eBPF bytecode should be loaded by an administrator, not the userspace program itself.
 
 This section assumes there is already a Kubernetes cluster running and `bpfman` is running in the cluster.
 See [Deploying the bpfman-operator](../developer-guide/operator-quick-start.md) for details on
@@ -14,20 +12,19 @@ cd bpfman/bpfman-operator/
 make run-on-kind
 ```
 
-### Loading eBPF Bytecode On Kubernetes
-
-![go-xdp-counter On Kubernetes](../img/gocounter-on-k8s.png)
+## Loading eBPF Programs On Kubernetes
 
 Instead of using the userspace program or CLI to load the eBPF bytecode as done in previous sections,
 the bytecode will be loaded by creating a Kubernetes CRD object.
 There is a CRD object for each eBPF program type bpfman supports.
-Edit the sample yaml files to customize any configuration values:
 
-* TcProgram CRD: [go-tc-counter/bytecode.yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tc-counter/bytecode.yaml)
-* TracepointProgram CRD: [go-tracepoint-counter/bytecode.yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tracepoint-counter/bytecode.yaml)
-* XdpProgram CRD: [go-xdp-counter/bytecode.yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-xdp-counter/bytecode.yaml)
-* KprobeProgram CRD: [bpfman-operator/config/samples/bpfman.io_v1alpha1_kprobe_kprobeprogram.yaml](https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/samples/bpfman.io_v1alpha1_kprobe_kprobeprogram.yaml)
-* UprobeProgram CRD: [bpfman-operator/config/samples/bpfman.io_v1alpha1_uprobe_uprobeprogram.yaml](https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/samples/bpfman.io_v1alpha1_uprobe_uprobeprogram.yaml)
+* FentryProgram CRD: [Fentry Sample yaml](https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/samples/bpfman.io_v1alpha1_fentry_fentryprogram.yaml)
+* FexitProgram CRD: [Fexit Sample yaml](https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/samples/bpfman.io_v1alpha1_fexit_fexitprogram.yaml)
+* KprobeProgram CRD: [Kprobe Examples yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-kprobe-counter/bytecode.yaml)
+* TcProgram CRD: [TcProgram Examples yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tc-counter/bytecode.yaml)
+* TracepointProgram CRD: [Tracepoint Examples yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tracepoint-counter/bytecode.yaml)
+* UprobeProgram CRD: [Uprobe Examples yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-uprobe-counter/bytecode.yaml)
+* XdpProgram CRD: [XdpProgram Examples yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-xdp-counter/bytecode.yaml)
 
 Sample bytecode yaml with XdpProgram CRD:
 ```console
@@ -52,21 +49,20 @@ spec:
 
 Note that all the sample yaml files are configured with the bytecode running on all nodes
 (`nodeselector: {}`).
-This can be change to run on specific nodes, but the DaemonSet yaml for the userspace program, which
+This can be configured to run on specific nodes, but the DaemonSet yaml for the userspace program, which
 is described below, should have an equivalent change.
-Make any changes to the `go-xdp-counter-bytecode.yaml`, then repeat for `go-tc-counter-bytecode.yaml`
-and `go-tracepoint-counter-bytecode.yaml` and then apply the updated yamls:
+
+Assume the following command is run:
 
 ```console
 kubectl apply -f examples/config/base/go-xdp-counter/bytecode.yaml
   xdpprogram.bpfman.io/go-xdp-counter-example created
-
-kubectl apply -f examples/config/base/go-tc-counter/bytecode.yaml
-  tcprogram.bpfman.io/go-tc-counter-example created
-
-kubectl apply -f examples/config/base/go-tracepoint-counter/bytecode.yaml
-  tracepointprogram.bpfman.io/go-tracepoint-counter-example created
 ```
+
+The diagram below shows `go-xdp-counter` example, but the other examples operate in
+a similar fashion.
+
+![go-xdp-counter On Kubernetes](../img/gocounter-on-k8s.png)
 
 Following the diagram for XDP example (Blue numbers):
 
@@ -80,8 +76,9 @@ When it sees a `XdpProgram` object created or modified, it makes sure a `BpfProg
 node exists.
 The name of the `BpfProgram` object is the `XdpProgram` object name with the node name and interface or
 attach point appended.
+On a KIND Cluster, it would be similar to `go-xdp-counter-example-bpfman-deployment-control-plane-eth0`.
 3. `bpfman-agent` then determines if it should be running on the given node, loads or unloads as needed
-by making gRPC calls the `bpfman`.
+by making gRPC calls the `bpfman-rpc`, which calls into the `bpfman` Library.
 `bpfman` behaves the same as described in the running locally example.
 4. `bpfman-agent` finally updates the status of the `BpfProgram` object.
 5. `bpfman-operator` watches all `BpfProgram` objects, and updates the status of the `XdpProgram`
@@ -91,8 +88,8 @@ To retrieve information on the `XdpProgram` objects:
 
 ```console
 kubectl get xdpprograms
-NAME                     PRIORITY   DIRECTION
-go-xdp-counter-example   55
+NAME                     BPFFUNCTIONNAME   NODESELECTOR   STATUS
+go-xdp-counter-example   xdp_stats         {}             ReconcileSuccess
 
 
 kubectl get xdpprograms go-xdp-counter-example -o yaml
@@ -138,19 +135,12 @@ To retrieve information on the `BpfProgram` objects:
 
 ```console
 kubectl get bpfprograms
-NAME                                                                                  AGE
+NAME                                                          TYPE      STATUS         AGE
 :
-4822-bpfman-deployment-control-plane                                                    60m
-4825-bpfman-deployment-control-plane                                                    60m
-go-tc-counter-example-bpfman-deployment-control-plane-eth0                              61m
-go-tracepoint-counter-example-bpfman-deployment-control-plane-syscalls-sys-enter-kill   61m
-go-xdp-counter-example-bpfman-deployment-control-plane-eth0                             61m
-go-xdp-counter-sharing-map-example-bpfman-deployment-control-plane-eth0                 60m
-tc-dispatcher-4805-bpfman-deployment-control-plane                                      60m
-xdp-dispatcher-4816-bpfman-deployment-control-plane                                     60m
+go-xdp-counter-example-bpfman-deployment-control-plane-eth0   xdp       bpfmanLoaded   11m
 
 
-kubectl get go-xdp-counter-example-bpfman-deployment-control-plane-eth0 -o yaml
+kubectl get bpfprograms go-xdp-counter-example-bpfman-deployment-control-plane-eth0 -o yaml
 apiVersion: bpfman.io/v1alpha1
 kind: BpfProgram
 metadata:
@@ -185,7 +175,7 @@ status:
     type: Loaded
 ```
 
-### Loading Userspace Container On Kubernetes
+## Deploying an eBPF enabled application On Kubernetes
 
 Here, a userspace container is deployed to consume the map data generated by the
 eBPF counter program.
@@ -232,18 +222,22 @@ spec:
             csi.bpfman.io/maps: xdp_stats_map               <==== 1c) Map to be exposed to the container
 ```
 
-#### Loading A Userspace Container Image
+### Loading A Userspace Container Image
 
 The userspace programs have been pre-built and can be found here:
 
-* `quay.io/bpfman-userspace/go-tc-counter:latest`
-* `quay.io/bpfman-userspace/go-tracepoint-counter:latest`
-* `quay.io/bpfman-userspace/go-xdp-counter:latest`
+* [quay.io/bpfman-userspace/go-kprobe-counter:latest](https://quay.io/organization/bpfman-userspace)
+* [quay.io/bpfman-userspace/go-tc-counter:latest](https://quay.io/organization/bpfman-userspace)
+* [quay.io/bpfman-userspace/go-tracepoint-counter:latest](https://quay.io/organization/bpfman-userspace)
+* [quay.io/bpfman-userspace/go-uprobe-counter:latest](https://quay.io/organization/bpfman-userspace)
+* [quay.io/bpfman-userspace/go-xdp-counter:latest](https://quay.io/organization/bpfman-userspace)
 
 The example yaml files below are loading from these image.
 
+* [go-kprobe-counter/deployment.yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-kprobe-counter/deployment.yaml)
 * [go-tc-counter/deployment.yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tc-counter/deployment.yaml)
 * [go-tracepoint-counter/deployment.yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tracepoint-counter/deployment.yaml)
+* [go-uprobe-counter/deployment.yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-uprobe-counter/deployment.yaml)
 * [go-xdp-counter/deployment.yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-xdp-counter/deployment.yaml)
 
 The userspace program in a Kubernetes Deployment doesn't interacts directly with `bpfman` like it
@@ -264,9 +258,12 @@ can be created for each program type as follows:
 ```console
 cd bpfman/
 kubectl create -f examples/config/base/go-xdp-counter/deployment.yaml
-kubectl create -f examples/config/base/go-tc-counter/deployment.yaml
-kubectl create -f examples/config/base/go-tracepoint-counter/deployment.yaml
 ```
+
+This creates the `go-xdp-counter` userspace pod, but the other examples operate in
+a similar fashion.
+
+![go-xdp-counter On Kubernetes](../img/gocounter-on-k8s.png)
 
 Following the diagram for the XDP example (Green numbers):
 
@@ -277,11 +274,10 @@ periodically read the counter values.
 To see if the userspace programs are working, view the logs:
 
 ```console
+kubectl get pods -A
 NAMESPACE               NAME                              READY   STATUS    RESTARTS   AGE
-bpfman                    bpfman-daemon-jsgdh                 3/3     Running   0          11m
-bpfman                    bpfman-operator-6c5c8887f7-qk28x    2/2     Running   0          12m
-go-tc-counter           go-tc-counter-ds-9jv4g            1/1     Running   0          5m37s
-go-tracepoint-counter   go-tracepoint-counter-ds-2gzbt    1/1     Running   0          5m35s
+bpfman                  bpfman-daemon-jsgdh               3/3     Running   0          11m
+bpfman                  bpfman-operator-6c5c8887f7-qk28x  2/2     Running   0          12m
 go-xdp-counter          go-xdp-counter-ds-2hs6g           1/1     Running   0          6m12s
 :
 
@@ -302,15 +298,9 @@ To cleanup:
 ```console
 kubectl delete -f examples/config/base/go-xdp-counter/deployment.yaml
 kubectl delete -f examples/config/base/go-xdp-counter/bytecode.yaml
-
-kubectl delete -f examples/config/base/go-tc-counter/deployment.yaml
-kubectl delete -f examples/config/base/go-tc-counter/bytecode.yaml
-
-kubectl delete -f examples/config/base/go-tracepoint-counter/deployment.yaml
-kubectl delete -f examples/config/base/go-tracepoint-counter/bytecode.yaml
 ```
 
-#### Automated Deployment
+### Automated Deployment
 
 The steps above are automated in the `Makefile` in the examples directory.
 Run `make deploy` to load each of the example bytecode and userspace yaml files, then
@@ -319,72 +309,64 @@ Run `make deploy` to load each of the example bytecode and userspace yaml files,
 ```console
 cd bpfman/examples/
 make deploy
+  for target in deploy-tc deploy-tracepoint deploy-xdp deploy-xdp-ms deploy-kprobe deploy-target deploy-uprobe ; do \
+	  make $target  || true; \
+  done
+  make[1]: Entering directory '/home/bmcfall/go/src/github.com/bpfman/bpfman/examples'
   sed 's@URL_BC@quay.io/bpfman-bytecode/go-tc-counter:latest@' config/default/go-tc-counter/patch.yaml.env > config/default/go-tc-counter/patch.yaml
-  cd config/default/go-tc-counter && /home/bmcfall/src/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tc-counter=quay.io/bpfman-userspace/go-tc-counter:latest
-  /home/bmcfall/src/bpfman/examples/bin/kustomize build config/default/go-tc-counter | kubectl apply -f -
+  cd config/default/go-tc-counter && /home/bmcfall/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tc-counter=quay.io/bpfman-userspace/go-tc-counter:latest
   namespace/go-tc-counter created
   serviceaccount/bpfman-app-go-tc-counter created
-  clusterrolebinding.rbac.authorization.k8s.io/bpfman-app-rolebinding-go-tc-counter created
-  clusterrolebinding.rbac.authorization.k8s.io/privileged-scc-tc created
   daemonset.apps/go-tc-counter-ds created
   tcprogram.bpfman.io/go-tc-counter-example created
-  sed 's@URL_BC@quay.io/bpfman-bytecode/go-tracepoint-counter:latest@' config/default/go-tracepoint-counter/patch.yaml.env > config/default/go-tracepoint-counter/patch.yaml
-  cd config/default/go-tracepoint-counter && /home/bmcfall/src/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tracepoint-counter=quay.io/bpfman-userspace/go-tracepoint-counter:latest
-  /home/bmcfall/src/bpfman/examples/bin/kustomize build config/default/go-tracepoint-counter | kubectl apply -f -
-  namespace/go-tracepoint-counter created
-  serviceaccount/bpfman-app-go-tracepoint-counter created
-  clusterrolebinding.rbac.authorization.k8s.io/bpfman-app-rolebinding-go-tracepoint-counter created
-  clusterrolebinding.rbac.authorization.k8s.io/privileged-scc-tracepoint created
-  daemonset.apps/go-tracepoint-counter-ds created
-  tracepointprogram.bpfman.io/go-tracepoint-counter-example created
-  sed 's@URL_BC@quay.io/bpfman-bytecode/go-xdp-counter:latest@' config/default/go-xdp-counter/patch.yaml.env > config/default/go-xdp-counter/patch.yaml
-  cd config/default/go-xdp-counter && /home/bmcfall/src/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-xdp-counter=quay.io/bpfman-userspace/go-xdp-counter:latest
-  /home/bmcfall/src/bpfman/examples/bin/kustomize build config/default/go-xdp-counter | kubectl apply -f -
-  namespace/go-xdp-counter unchanged
-  serviceaccount/bpfman-app-go-xdp-counter unchanged
-  clusterrolebinding.rbac.authorization.k8s.io/bpfman-app-rolebinding-go-xdp-counter unchanged
-  clusterrolebinding.rbac.authorization.k8s.io/privileged-scc-xdp unchanged
-  daemonset.apps/go-xdp-counter-ds configured
-  xdpprogram.bpfman.io/go-xdp-counter-example unchanged
-  sed 's@URL_BC@quay.io/bpfman-bytecode/go-xdp-counter:latest@' config/default/go-xdp-counter-sharing-map/patch.yaml.env > config/default/go-xdp-counter-sharing-map/patch.yaml
-  cd config/default/go-xdp-counter-sharing-map && /home/bmcfall/src/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-xdp-counter=quay.io/bpfman-userspace/go-xdp-counter:latest
-  /home/bmcfall/src/bpfman/examples/bin/kustomize build config/default/go-xdp-counter-sharing-map | kubectl apply -f -
-  xdpprogram.bpfman.io/go-xdp-counter-sharing-map-example created
+  :
+  sed 's@URL_BC@quay.io/bpfman-bytecode/go-uprobe-counter:latest@' config/default/go-uprobe-counter/patch.yaml.env > config/default/go-uprobe-counter/patch.yaml
+  cd config/default/go-uprobe-counter && /home/bmcfall/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-uprobe-counter=quay.io/bpfman-userspace/go-uprobe-counter:latest
+  namespace/go-uprobe-counter created
+  serviceaccount/bpfman-app-go-uprobe-counter created
+  daemonset.apps/go-uprobe-counter-ds created
+  uprobeprogram.bpfman.io/go-uprobe-counter-example created
+  make[1]: Leaving directory '/home/bmcfall/go/src/github.com/bpfman/bpfman/examples'
 
 # Test Away ...
 
+kubectl get pods -A
+NAMESPACE               NAME                                                      READY   STATUS    RESTARTS   AGE
+bpfman                  bpfman-daemon-md2c5                                       3/3     Running   0          2d17h
+bpfman                  bpfman-operator-7f67bc7c57-95zf7                          2/2     Running   0          2d17h
+go-kprobe-counter       go-kprobe-counter-ds-8dkls                                1/1     Running   0          2m14s
+go-target               go-target-ds-nbdf5                                        1/1     Running   0          2m14s
+go-tc-counter           go-tc-counter-ds-7mtcw                                    1/1     Running   0          2m19s
+go-tracepoint-counter   go-tracepoint-counter-ds-bcbs7                            1/1     Running   0          2m18s
+go-uprobe-counter       go-uprobe-counter-ds-j26hc                                1/1     Running   0          2m13s
+go-xdp-counter          go-xdp-counter-ds-nls6s                                   1/1     Running   0          2m17s
+
+kubectl get bpfprograms
+NAME                                                                                                TYPE         STATUS         AGE
+go-kprobe-counter-example-bpfman-deployment-control-plane-try-to-wake-up                            kprobe       bpfmanLoaded   2m41s
+go-tc-counter-example-bpfman-deployment-control-plane-eth0                                          tc           bpfmanLoaded   2m46s
+go-tracepoint-counter-example-bpfman-deployment-control-plane-syscalls-sys-enter-kill               tracepoint   bpfmanLoaded   2m35s
+go-uprobe-counter-example-bpfman-deployment-control-plane--go-target-go-target-ds-nbdf5-go-target   uprobe       bpfmanLoaded   2m29s
+go-xdp-counter-example-bpfman-deployment-control-plane-eth0                                         xdp          bpfmanLoaded   2m24s
+go-xdp-counter-sharing-map-example-bpfman-deployment-control-plane-eth0                             xdp          bpfmanLoaded   2m21s
+
 make undeploy
+  for target in undeploy-tc undeploy-tracepoint undeploy-xdp undeploy-xdp-ms undeploy-kprobe undeploy-uprobe undeploy-target ; do \
+	  make $target  || true; \
+  done
+  make[1]: Entering directory '/home/bmcfall/go/src/github.com/bpfman/bpfman/examples'
   sed 's@URL_BC@quay.io/bpfman-bytecode/go-tc-counter:latest@' config/default/go-tc-counter/patch.yaml.env > config/default/go-tc-counter/patch.yaml
-  cd config/default/go-tc-counter && /home/bmcfall/src/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tc-counter=quay.io/bpfman-userspace/go-tc-counter:latest
-  /home/bmcfall/src/bpfman/examples/bin/kustomize build config/default/go-tc-counter | kubectl delete --ignore-not-found=false -f -
+  cd config/default/go-tc-counter && /home/bmcfall/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tc-counter=quay.io/bpfman-userspace/go-tc-counter:latest
   namespace "go-tc-counter" deleted
   serviceaccount "bpfman-app-go-tc-counter" deleted
-  clusterrolebinding.rbac.authorization.k8s.io "bpfman-app-rolebinding-go-tc-counter" deleted
-  clusterrolebinding.rbac.authorization.k8s.io "privileged-scc-tc" deleted
   daemonset.apps "go-tc-counter-ds" deleted
   tcprogram.bpfman.io "go-tc-counter-example" deleted
-  sed 's@URL_BC@quay.io/bpfman-bytecode/go-tracepoint-counter:latest@' config/default/go-tracepoint-counter/patch.yaml.env > config/default/go-tracepoint-counter/patch.yaml
-  cd config/default/go-tracepoint-counter && /home/bmcfall/src/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tracepoint-counter=quay.io/bpfman-userspace/go-tracepoint-counter:latest
-  /home/bmcfall/src/bpfman/examples/bin/kustomize build config/default/go-tracepoint-counter | kubectl delete --ignore-not-found=false -f -
-  namespace "go-tracepoint-counter" deleted
-  serviceaccount "bpfman-app-go-tracepoint-counter" deleted
-  clusterrolebinding.rbac.authorization.k8s.io "bpfman-app-rolebinding-go-tracepoint-counter" deleted
-  clusterrolebinding.rbac.authorization.k8s.io "privileged-scc-tracepoint" deleted
-  daemonset.apps "go-tracepoint-counter-ds" deleted
-  tracepointprogram.bpfman.io "go-tracepoint-counter-example" deleted
-  sed 's@URL_BC@quay.io/bpfman-bytecode/go-xdp-counter:latest@' config/default/go-xdp-counter/patch.yaml.env > config/default/go-xdp-counter/patch.yaml
-  cd config/default/go-xdp-counter && /home/bmcfall/src/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-xdp-counter=quay.io/bpfman-userspace/go-xdp-counter:latest
-  /home/bmcfall/src/bpfman/examples/bin/kustomize build config/default/go-xdp-counter | kubectl delete --ignore-not-found=false -f -
-  namespace "go-xdp-counter" deleted
-  serviceaccount "bpfman-app-go-xdp-counter" deleted
-  clusterrolebinding.rbac.authorization.k8s.io "bpfman-app-rolebinding-go-xdp-counter" deleted
-  clusterrolebinding.rbac.authorization.k8s.io "privileged-scc-xdp" deleted
-  daemonset.apps "go-xdp-counter-ds" deleted
-  xdpprogram.bpfman.io "go-xdp-counter-example" deleted
-  sed 's@URL_BC@quay.io/bpfman-bytecode/go-xdp-counter:latest@' config/default/go-xdp-counter-sharing-map/patch.yaml.env > config/default/go-xdp-counter-sharing-map/patch.yaml
-  cd config/default/go-xdp-counter-sharing-map && /home/bmcfall/src/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-xdp-counter=quay.io/bpfman-userspace/go-xdp-counter:latest
-  /home/bmcfall/src/bpfman/examples/bin/kustomize build config/default/go-xdp-counter-sharing-map | kubectl delete --ignore-not-found=false -f -
-  xdpprogram.bpfman.io "go-xdp-counter-sharing-map-example" deleted
+  :
+  kubectl delete -f config/base/go-target/deployment.yaml
+  namespace "go-target" deleted
+  serviceaccount "bpfman-app-go-target" deleted
+  daemonset.apps "go-target-ds" deleted
+  make[1]: Leaving directory '/home/bmcfall/go/src/github.com/bpfman/bpfman/examples'
 ```
 
 Individual examples can be loaded and unloaded as well, for example `make deploy-xdp` and
@@ -415,7 +397,7 @@ Build
   build-us-images  Build all example userspace images
   build-bc-images  Build bytecode example userspace images
   push-us-images   Push all example userspace images
-  push-bc-images   Push all example userspace images
+  push-bc-images   Push all example bytecode images
   load-us-images-kind  Build and load all example userspace images into kind
 
 Deployment Variables (not commands)
@@ -426,6 +408,11 @@ Deployment Variables (not commands)
   IMAGE_TP_US      Tracepoint Userspace image. Example: make deploy-tracepoint IMAGE_TP_US=quay.io/user1/go-tracepoint-counter-userspace:test
   IMAGE_XDP_BC     XDP Bytecode image. Example: make deploy-xdp IMAGE_XDP_BC=quay.io/user1/go-xdp-counter-bytecode:test
   IMAGE_XDP_US     XDP Userspace image. Example: make deploy-xdp IMAGE_XDP_US=quay.io/user1/go-xdp-counter-userspace:test
+  IMAGE_KP_BC      Kprobe Bytecode image. Example: make deploy-kprobe IMAGE_KP_BC=quay.io/user1/go-kprobe-counter-bytecode:test
+  IMAGE_KP_US      Kprobe Userspace image. Example: make deploy-kprobe IMAGE_KP_US=quay.io/user1/go-kprobe-counter-userspace:test
+  IMAGE_UP_BC      Uprobe Bytecode image. Example: make deploy-uprobe IMAGE_UP_BC=quay.io/user1/go-uprobe-counter-bytecode:test
+  IMAGE_UP_US      Uprobe Userspace image. Example: make deploy-uprobe IMAGE_UP_US=quay.io/user1/go-uprobe-counter-userspace:test
+  IMAGE_GT_US      Uprobe Userspace target. Example: make deploy-target IMAGE_GT_US=quay.io/user1/go-target-userspace:test
   KIND_CLUSTER_NAME  Name of the deployed cluster to load example images to, defaults to `bpfman-deployment`
   ignore-not-found  For any undeploy command, set to true to ignore resource not found errors during deletion. Example: make undeploy ignore-not-found=true
 
@@ -438,21 +425,30 @@ Deployment
   undeploy-xdp     Undeploy go-xdp-counter from the cluster specified in ~/.kube/config.
   deploy-xdp-ms    Deploy go-xdp-counter-sharing-map (shares map with go-xdp-counter) to the cluster specified in ~/.kube/config.
   undeploy-xdp-ms  Undeploy go-xdp-counter-sharing-map from the cluster specified in ~/.kube/config.
+  deploy-kprobe    Deploy go-kprobe-counter to the cluster specified in ~/.kube/config.
+  undeploy-kprobe  Undeploy go-kprobe-counter from the cluster specified in ~/.kube/config.
+  deploy-uprobe    Deploy go-uprobe-counter to the cluster specified in ~/.kube/config.
+  undeploy-uprobe  Undeploy go-uprobe-counter from the cluster specified in ~/.kube/config.
+  deploy-target    Deploy go-target to the cluster specified in ~/.kube/config.
+  undeploy-target  Undeploy go-target from the cluster specified in ~/.kube/config.
   deploy           Deploy all examples to the cluster specified in ~/.kube/config.
   undeploy         Undeploy all examples to the cluster specified in ~/.kube/config.
 ```
 
-#### Building A Userspace Container Image
+### Building A Userspace Container Image
 
 To build the userspace examples in a container instead of using the pre-built ones,
-from the bpfman code source directory (`quay.io/bpfman-userspace/`), run the following build commands:
+from the bpfman examples code source directory, run the following build command:
 
 ```console
-  cd bpfman/examples
-  make IMAGE_TC_US=quay.io/$USER/go-tc-counter:latest \
-    IMAGE_TP_US=quay.io/$USER/go-tracepoint-counter:latest \
-    IMAGE_XDP_US=quay.io/$USER/go-xdp-counter:latest \
-    build-us-images
+cd bpfman/examples
+make \
+  IMAGE_KP_US=quay.io/$USER/go-kprobe-counter:latest \
+  IMAGE_TC_US=quay.io/$USER/go-tc-counter:latest \
+  IMAGE_TP_US=quay.io/$USER/go-tracepoint-counter:latest \
+  IMAGE_UP_US=quay.io/$USER/go-uprobe-counter:latest \
+  IMAGE_XDP_US=quay.io/$USER/go-xdp-counter:latest \
+  build-us-images
 ```
 
 Then **EITHER** push images to a remote repository:
@@ -460,8 +456,11 @@ Then **EITHER** push images to a remote repository:
 ```console
 docker login quay.io
 cd bpfman/examples
-make IMAGE_TC_US=quay.io/$USER/go-tc-counter:latest \
+make \
+  IMAGE_KP_US=quay.io/$USER/go-kprobe-counter:latest \
+  IMAGE_TC_US=quay.io/$USER/go-tc-counter:latest \
   IMAGE_TP_US=quay.io/$USER/go-tracepoint-counter:latest \
+  IMAGE_UP_US=quay.io/$USER/go-uprobe-counter:latest \
   IMAGE_XDP_US=quay.io/$USER/go-xdp-counter:latest \
   push-us-images
 ```
@@ -470,8 +469,11 @@ make IMAGE_TC_US=quay.io/$USER/go-tc-counter:latest \
 
 ```console
 cd bpfman/examples
-make IMAGE_TC_US=quay.io/$USER/go-tc-counter:latest \
+make \
+  IMAGE_KP_US=quay.io/$USER/go-kprobe-counter:latest \
+  IMAGE_TC_US=quay.io/$USER/go-tc-counter:latest \
   IMAGE_TP_US=quay.io/$USER/go-tracepoint-counter:latest \
+  IMAGE_UP_US=quay.io/$USER/go-uprobe-counter:latest \
   IMAGE_XDP_US=quay.io/$USER/go-xdp-counter:latest \
   KIND_CLUSTER_NAME=bpfman-deployment \
   load-us-images-kind
@@ -481,12 +483,19 @@ Lastly, update the yaml to use the private images or override the yaml files usi
 
 ```console
 cd bpfman/examples/
-make deploy-xdp IMAGE_XDP_US=quay.io/$USER/go-xdp-counter:latest
-make undeploy-xdp
+
+make deploy-kprobe IMAGE_XDP_US=quay.io/$USER/go-kprobe-counter:latest
+make undeploy-kprobe
 
 make deploy-tc IMAGE_TC_US=quay.io/$USER/go-tc-counter:latest
 make undeploy-tc
 
 make deploy-tracepoint IMAGE_TP_US=quay.io/$USER/go-tracepoint-counter:latest
 make undeploy-tracepoint
+
+make deploy-uprobe IMAGE_XDP_US=quay.io/$USER/go-uprobe-counter:latest
+make undeploy-uprobe
+
+make deploy-xdp IMAGE_XDP_US=quay.io/$USER/go-xdp-counter:latest
+make undeploy-xdp
 ```

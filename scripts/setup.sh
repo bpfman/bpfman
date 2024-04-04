@@ -11,6 +11,7 @@ fi
 . user.sh
 
 BIN_BPFMAN="bpfman"
+BIN_BPFMAN_RPC="bpfman-rpc"
 BIN_BPFMAN_CLIENT="bpfman-client"
 
 # Well known directories

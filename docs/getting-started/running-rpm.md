@@ -2,9 +2,9 @@
 
 This section describes how to deploy `bpfman` from an RPM.
 RPMs are generated each time a Pull Request is merged in github for Fedora 38, 39 and
-Rawhide (see [Install Prebuilt RPM](#install-prebuilt-rpm)).
+Rawhide (see [Install Prebuilt RPM](#install-prebuilt-rpm) below).
 RPMs can also be built locally from a Fedora server
-(see [Build RPM Locally](#build-rpm-locally)).
+(see [Build RPM Locally](#build-rpm-locally) below).
 
 ## Install Prebuilt RPM
 

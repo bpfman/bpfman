@@ -7,7 +7,7 @@ use log::warn;
 use crate::{args::GetArgs, table::ProgTable};
 
 pub(crate) async fn execute_get(args: &GetArgs) -> Result<(), BpfmanError> {
-    match get_program(args.id).await {
+    match get_program(args.program_id).await {
         Ok(program) => {
             ProgTable::new_program(&program)?.print();
             ProgTable::new_kernel_info(&program)?.print();

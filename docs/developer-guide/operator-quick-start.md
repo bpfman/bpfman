@@ -5,7 +5,15 @@ This operator was built utilizing some great tooling provided by the
 [operator-sdk library](https://sdk.operatorframework.io/).
 A great first step in understanding some of the functionality can be to just run `make help`.
 
-## Deploy Locally via KIND
+## Deploy bpfman Operation
+
+The `bpfman-operator` is running as a Deployment with a ReplicaSet of one.
+It runs on the control plane and is composed of the containers `bpfman-operator` and
+`kube-rbac-proxy`.
+The operator is responsible for launching the bpfman Daemonset, which runs on every node.
+The bpfman Daemonset is composed of the containers `bpfman`, `bpfman-agent`, and `node-driver-registrar`.
+
+### Deploy Locally via KIND
 
 After reviewing the possible make targets it's quick and easy to get bpfman deployed locally on your system
 via a [KIND cluster](https://kind.sigs.k8s.io/) with:
@@ -22,11 +30,11 @@ that addresses a gRPC Protocol Error that was seen in the CSI client code and it
 been backported.
 It is recommended to install kind v0.20.0 or later.
 
-## Deploy To Openshift Cluster
+### Deploy To Openshift Cluster
 
 First deploy the operator with one of the following two options:
 
-### 1. Manually with Kustomize
+#### 1. Manually with Kustomize
 
 To install manually with Kustomize and raw manifests simply run the following
 commands.
@@ -44,7 +52,7 @@ Which can then be cleaned up at a later time with:
 make undeploy-openshift
 ```
 
-### 2. Via the OLM bundle
+#### 2. Via the OLM bundle
 
 The other option for installing the bpfman-operator is to install it using
 [OLM bundle](https://www.redhat.com/en/blog/deploying-operators-olm-bundles).
@@ -82,8 +90,6 @@ you will see the bpfman-daemon and bpfman-operator pods running without errors:
 ```bash
 kubectl get pods -n bpfman
 NAME                             READY   STATUS    RESTARTS   AGE
-bpfman-daemon-bt5xm                3/3     Running   0          130m
-bpfman-daemon-ts7dr                3/3     Running   0          129m
 bpfman-daemon-w24pr                3/3     Running   0          130m
 bpfman-operator-78cf9c44c6-rv7f2   2/2     Running   0          132m
 ```
@@ -160,7 +166,15 @@ See [api-spec.md](./api-spec.md) for a more detailed description of all the bpfm
 The multiple `*Program` CRDs are the bpfman Kubernetes API objects most relevant to users and can be used to
 understand clusterwide state for an eBPF program.
 It's designed to express how, and where eBPF programs are to be deployed within a Kubernetes cluster.
-Currently bpfman supports the use of `xdpProgram`, `tcProgram` and `tracepointProgram` objects.
+Currently bpfman supports:
+
+* `fentryProgram`
+* `fexitProgram`
+* `kprobeProgram`
+* `tcProgram`
+* `tracepointProgram`
+* `uprobeProgram`
+* `xdpProgram`
 
 ## BpfProgram CRD
 

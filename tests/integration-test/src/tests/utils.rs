@@ -867,18 +867,18 @@ pub fn bpffs_has_entries(path: &str) -> bool {
 
 fn bpfman_output_parse_id(stdout: &str) -> String {
     // Regex:
-    //   Match the string "\n ID: ".
+    //   Match the string "\n Program ID: ".
     //   The {2,} indicates to match the previous token (a space) between 2 and
     //   unlimited times.
     //   For the capture group (.*?), the . indicates to capture any character
     //   (except for line terminators) and the *? indicates to capture "the previous
     //   token between zero and unlimited times".
     //   The \s indicates to match any whites space.
-    let re = Regex::new(r"\n ID: {2,}(.*?)\s").unwrap();
+    let re = Regex::new(r"\n Program ID: {2,}(.*?)\s").unwrap();
     match re.captures(stdout) {
         Some(caps) => caps[1].to_owned(),
         None => {
-            debug!("\"ID:\" not found",);
+            debug!("\"Program ID:\" not found",);
             "".to_string()
         }
     }

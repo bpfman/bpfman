@@ -21,11 +21,11 @@ pub(crate) enum Commands {
     /// Load an eBPF program on the system.
     #[command(subcommand)]
     Load(LoadSubcommand),
-    /// Unload an eBPF program using the program id.
+    /// Unload an eBPF program using the Program Id.
     Unload(UnloadArgs),
     /// List all eBPF programs loaded via bpfman.
     List(ListArgs),
-    /// Get an eBPF program using the program id.
+    /// Get an eBPF program using the Program Id.
     Get(GetArgs),
     /// eBPF Bytecode Image related commands.
     #[command(subcommand)]
@@ -71,7 +71,7 @@ pub(crate) struct LoadFileArgs {
     #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
     pub(crate) metadata: Option<Vec<(String, String)>>,
 
-    /// Optional: Program id of loaded eBPF program this eBPF program will share a map with.
+    /// Optional: Program Id of loaded eBPF program this eBPF program will share a map with.
     /// Only used when multiple eBPF programs need to share a map.
     /// Example: --map-owner-id 63178
     #[clap(long, verbatim_doc_comment)]
@@ -111,7 +111,7 @@ pub(crate) struct LoadImageArgs {
     #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
     pub(crate) metadata: Option<Vec<(String, String)>>,
 
-    /// Optional: Program id of loaded eBPF program this eBPF program will share a map with.
+    /// Optional: Program Id of loaded eBPF program this eBPF program will share a map with.
     /// Only used when multiple eBPF programs need to share a map.
     /// Example: --map-owner-id 63178
     #[clap(long, verbatim_doc_comment)]
@@ -188,7 +188,7 @@ pub(crate) enum LoadCommands {
         tracepoint: String,
     },
     #[command(disable_version_flag = true)]
-    /// Install an eBPF kprobe or kretprobe
+    /// Install a kprobe or kretprobe eBPF probe
     Kprobe {
         /// Required: Function to attach the kprobe to.
         #[clap(short, long)]
@@ -211,7 +211,7 @@ pub(crate) enum LoadCommands {
         container_pid: Option<i32>,
     },
     #[command(disable_version_flag = true)]
-    /// Install an eBPF uprobe or uretprobe
+    /// Install a uprobe or uretprobe eBPF probe
     Uprobe {
         /// Optional: Function to attach the uprobe to.
         #[clap(short, long)]
@@ -246,16 +246,16 @@ pub(crate) enum LoadCommands {
         container_pid: Option<i32>,
     },
     #[command(disable_version_flag = true)]
-    /// Install a fentry eBPF program
+    /// Install a fentry eBPF probe
     Fentry {
-        /// Required: Kernel function to attach the fentry program.
+        /// Required: Kernel function to attach the fentry probe.
         #[clap(short, long)]
         fn_name: String,
     },
     #[command(disable_version_flag = true)]
-    /// Install a fexit eBPF program
+    /// Install a fexit eBPF probe
     Fexit {
-        /// Required: Kernel function to attach the fexit program.
+        /// Required: Kernel function to attach the fexit probe.
         #[clap(short, long)]
         fn_name: String,
     },
@@ -264,8 +264,8 @@ pub(crate) enum LoadCommands {
 #[derive(Args, Debug)]
 #[command(disable_version_flag = true)]
 pub(crate) struct UnloadArgs {
-    /// Required: Program id to be unloaded.
-    pub(crate) id: u32,
+    /// Required: Program Id to be unloaded.
+    pub(crate) program_id: u32,
 }
 
 #[derive(Args, Debug)]
@@ -301,8 +301,8 @@ pub(crate) struct ListArgs {
 #[derive(Args, Debug)]
 #[command(disable_version_flag = true)]
 pub(crate) struct GetArgs {
-    /// Required: Program id to get.
-    pub(crate) id: u32,
+    /// Required: Program Id to get.
+    pub(crate) program_id: u32,
 }
 
 #[derive(Subcommand, Debug)]

@@ -6,5 +6,5 @@ xdp_mode = "hw" # Valid xdp modes are "hw", "skb" and "drv". Default: "skb".
 allow_unsigned = true
 
 [database]
-max_retries = 4
-millisec_delay = 500
+max_retries = 10
+millisec_delay = 1000

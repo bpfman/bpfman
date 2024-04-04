@@ -37,22 +37,21 @@ Below are the commands supported by `bpfman`.
 
 ```console
 sudo bpfman --help
-A system daemon for loading BPF programs
+An eBPF manager focusing on simplifying the deployment and administration of eBPF programs.
 
 Usage: bpfman <COMMAND>
 
 Commands:
-  load           Load an eBPF program from a local .o file
-  unload         Unload an eBPF program using the program id
-  list           List all eBPF programs loaded via bpfman
-  get            Get an eBPF program using the program id
-  image          eBPF Bytecode Image related commands
-  system         Run bpfman as a service
-  help           Print this message or the help of the given subcommand(s)
+  load    Load an eBPF program on the system
+  unload  Unload an eBPF program using the Program Id
+  list    List all eBPF programs loaded via bpfman
+  get     Get an eBPF program using the Program Id
+  image   eBPF Bytecode Image related commands
+  help    Print this message or the help of the given subcommand(s)
 
 Options:
-  -h, --help     Print help
-  -V, --version  Print version
+  -h, --help
+          Print help (see a summary with '-h')
 ```
 
 ## bpfman load
@@ -70,22 +69,21 @@ sudo bpfman load file --help
 Load an eBPF program from a local .o file
 
 Usage: bpfman load file [OPTIONS] --path <PATH> --name <NAME> <COMMAND>
-------
 
 Commands:
----------
   xdp         Install an eBPF program on the XDP hook point for a given interface
   tc          Install an eBPF program on the TC hook point for a given interface
   tracepoint  Install an eBPF program on a Tracepoint
-  kprobe      Install an eBPF kprobe or kretprobe
-  uprobe      Install an eBPF uprobe or uretprobe
+  kprobe      Install a kprobe or kretprobe eBPF probe
+  uprobe      Install a uprobe or uretprobe eBPF probe
+  fentry      Install a fentry eBPF probe
+  fexit       Install a fexit eBPF probe
   help        Print this message or the help of the given subcommand(s)
 
 Options:
---------
   -p, --path <PATH>
-          Required: Location of local bytecode file as fully qualified file path.
-          Example: --path $HOME/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o
+          Required: Location of local bytecode file
+          Example: --path /run/bpfman/examples/go-xdp-counter/bpf_bpfel.o
 
   -n, --name <NAME>
           Required: The name of the function that is the entry point for the BPF program
@@ -93,7 +91,7 @@ Options:
   -g, --global <GLOBAL>...
           Optional: Global variables to be set when program is loaded.
           Format: <NAME>=<Hex Value>
-          
+
           This is a very low level primitive. The caller is responsible for formatting
           the byte string appropriately considering such things as size, endianness,
           alignment and packing of data structures.
@@ -102,12 +100,13 @@ Options:
           Optional: Specify Key/Value metadata to be attached to a program when it
           is loaded by bpfman.
           Format: <KEY>=<VALUE>
-          
-          This can later be used to list a certain subset of programs which contain
+
+          This can later be used to `list` a certain subset of programs which contain
           the specified metadata.
+          Example: --metadata owner=acme
 
       --map-owner-id <MAP_OWNER_ID>
-          Optional: Program id of loaded eBPF program this eBPF program will share a map with.
+          Optional: Program Id of loaded eBPF program this eBPF program will share a map with.
           Only used when multiple eBPF programs need to share a map.
           Example: --map-owner-id 63178
 
@@ -127,8 +126,10 @@ Commands:
   xdp         Install an eBPF program on the XDP hook point for a given interface
   tc          Install an eBPF program on the TC hook point for a given interface
   tracepoint  Install an eBPF program on a Tracepoint
-  kprobe      Install an eBPF kprobe or kretprobe
-  uprobe      Install an eBPF uprobe or uretprobe
+  kprobe      Install a kprobe or kretprobe eBPF probe
+  uprobe      Install a uprobe or uretprobe eBPF probe
+  fentry      Install a fentry eBPF probe
+  fexit       Install a fexit eBPF probe
   help        Print this message or the help of the given subcommand(s)
 
 Options:
@@ -173,7 +174,7 @@ Options:
           Example: --metadata owner=acme
 
       --map-owner-id <MAP_OWNER_ID>
-          Optional: Program id of loaded eBPF program this eBPF program will share a map with.
+          Optional: Program Id of loaded eBPF program this eBPF program will share a map with.
           Only used when multiple eBPF programs need to share a map.
           Example: --map-owner-id 63178
 
@@ -192,10 +193,8 @@ sudo bpfman load file xdp --help
 Install an eBPF program on the XDP hook point for a given interface
 
 Usage: bpfman load file --path <PATH> --name <NAME> xdp [OPTIONS] --iface <IFACE> --priority <PRIORITY>
-------
 
 Options:
---------
   -i, --iface <IFACE>
           Required: Interface to load program on
 
@@ -235,10 +234,8 @@ sudo bpfman load file tc -h
 Install an eBPF program on the TC hook point for a given interface
 
 Usage: bpfman load file --path <PATH> --name <NAME> tc [OPTIONS] --direction <DIRECTION> --iface <IFACE> --priority <PRIORITY>
-------
 
 Options:
---------
   -d, --direction <DIRECTION>
           Required: Direction to apply program.
 
@@ -277,46 +274,60 @@ would be set as shown in the following snippet:
 SEC("classifier/pass")
 int accept(struct __sk_buff *skb)
 {
+    :
+}
 ```
 
 ### Additional Load Examples
 
 Below are some additional examples of `bpfman load` commands:
 
-XDP
+#### Fentry
 
 ```console
-sudo bpfman load file --path $HOME/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o --name "xdp_stats" xdp --iface vethb2795c7 --priority 35
+sudo bpfman load image --image-url quay.io/bpfman-bytecode/fentry:latest fentry -f do_unlinkat
 ```
 
-TC
+#### Fexit
 
 ```console
-sudo bpfman load file --path $HOME/src/bpfman/examples/go-tc-counter/bpf_bpfel.o --name "stats"" tc --direction ingress --iface vethb2795c7 --priority 110
+sudo bpfman load image --image-url quay.io/bpfman-bytecode/fexit:latest fexit -f do_unlinkat
 ```
 
-Kprobe
+#### Kprobe
 
 ```console
 sudo bpfman load image --image-url quay.io/bpfman-bytecode/kprobe:latest kprobe -f try_to_wake_up
 ```
 
-Kretprobe
+#### Kretprobe
 
 ```console
 sudo bpfman load image --image-url quay.io/bpfman-bytecode/kretprobe:latest kprobe -f try_to_wake_up -r
 ```
 
-Uprobe
+#### TC
+
+```console
+sudo bpfman load file --path $HOME/src/bpfman/examples/go-tc-counter/bpf_bpfel.o --name "stats"" tc --direction ingress --iface vethb2795c7 --priority 110
+```
+
+#### Uprobe
 
 ```console
 sudo bpfman load image --image-url quay.io/bpfman-bytecode/uprobe:latest uprobe -f "malloc" -t "libc"
 ```
 
-Uretprobe
+#### Uretprobe
 
 ```console
 sudo bpfman load image --image-url quay.io/bpfman-bytecode/uretprobe:latest uprobe -f "malloc" -t "libc" -r
+```
+
+#### XDP
+
+```console
+sudo bpfman load file --path $HOME/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o --name "xdp_stats" xdp --iface vethb2795c7 --priority 35
 ```
 
 ### Setting Global Variables in eBPF Programs
@@ -373,7 +384,7 @@ sudo bpfman load file --path $HOME/src/bpfman/examples/go-xdp-counter/bpf_bpfel.
 6373
 ```
 
-Use the `bpfman get <ID>` command to display the configuration:
+Use the `bpfman get <PROGRAM_ID>` command to display the configuration:
 
 ```console
 sudo bpfman list
@@ -459,16 +470,17 @@ sudo bpfman list --all
  167         dump_bpf_prog     tracing        2023-05-03T12:53:52-0400
  455                           cgroup_device  2023-05-03T12:58:26-0400
  :
- 6190                          cgroup_skb     2023-07-17T17:15:23-0400
- 6191                          cgroup_device  2023-07-17T17:15:23-0400
- 6192                          cgroup_skb     2023-07-17T17:15:23-0400
- 6193                          cgroup_skb     2023-07-17T17:15:23-0400
  6194                          cgroup_device  2023-07-17T17:15:23-0400
  6201        pass              xdp            2023-07-17T17:17:53-0400
  6202        sys_enter_openat  tracepoint     2023-07-17T17:19:09-0400
  6203        dispatcher        tc             2023-07-17T17:20:14-0400
  6204        stats             tc             2023-07-17T17:20:14-0400
  6207        xdp               xdp            2023-07-17T17:27:13-0400
+ 6210        test_fentry       tracing        2023-07-17T17:28:34-0400
+ 6212        test_fexit        tracing        2023-07-17T17:29:02-0400
+ 6223        my_uprobe         probe          2023-07-17T17:31:45-0400
+ 6225        my_kretprobe      probe          2023-07-17T17:32:27-0400
+ 6928        my_kprobe         probe          2023-07-17T17:33:49-0400
 ```
 
 To filter on a given program type, include the `--program-type` parameter:
@@ -480,10 +492,14 @@ sudo bpfman list --all --program-type tc
  6204        stats       tc    2023-07-17T17:20:14-0400
 ```
 
+Note: The list filters by the Kernel Program Type.
+`kprobe`, `kretprobe`, `uprobe` and `uretprobe` all map to the `probe` Kernel Program Type.
+`fentry` and `fexit` both map to the `tracing` Kernel Program Type.
+
 ## bpfman get
 
 To retrieve detailed information for a loaded eBPF program, use the
-`bpfman get <ID>` command.
+`bpfman get <PROGRAM_ID>` command.
 If the eBPF program was loaded via bpfman, then there will be a `Bpfman State`
 section with bpfman related attributes and a `Kernel State` section with
 kernel information.
@@ -510,7 +526,7 @@ sudo bpfman get 6204
 
  Kernel State
 ----------------------------------
- ID:                               6204
+ Program ID:                       6204
  Name:                             stats
  Type:                             tc
  Loaded At:                        2023-07-17T17:20:14-0400
@@ -533,7 +549,7 @@ NONE
 
  Kernel State
 ----------------------------------
-ID:                                6190
+Program ID:                        6190
 Name:                              None
 Type:                              cgroup_skb
 Loaded At:                         2023-07-17T17:15:23-0400
@@ -571,7 +587,7 @@ by a load command.
 
 ```console
 sudo bpfman image pull --help
-Pull a bytecode image for future use by a load command
+Pull an eBPF bytecode image from a remote registry
 
 Usage: bpfman image pull [OPTIONS] --image-url <IMAGE_URL>
 
@@ -610,7 +626,7 @@ Then when loaded, the local image will be used:
 sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --pull-policy IfNotPresent xdp --iface vethff657c7 --priority 100
  Bpfman State                                           
  ---------------
-Name:          pass                                  
+ Name:          pass                                  
  Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest 
  Pull Policy:   IfNotPresent                          
  Global:        None                                  
@@ -625,7 +641,7 @@ Name:          pass
 
  Kernel State                                               
  ----------------------------------
-ID:                               406681                   
+ Program ID:                       406681                   
  Name:                             pass                     
  Type:                             xdp                      
  Loaded At:                        1917-01-27T01:37:06-0500 
