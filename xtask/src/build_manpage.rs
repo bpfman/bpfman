@@ -21,7 +21,7 @@ fn generate_manpage(
     name: String,
     out_dir: &PathBuf,
 ) -> Result<(), anyhow::Error> {
-    let man = clap_mangen::Man::new(cmd.version("0.4.0-dev"));
+    let man = clap_mangen::Man::new(cmd.version("0.4.0"));
     let mut buffer: Vec<u8> = Default::default();
     man.render(&mut buffer)?;
     let file_path = Path::new(out_dir).join(format!("{}.1", name));

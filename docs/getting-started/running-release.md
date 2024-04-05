@@ -7,17 +7,17 @@ releases.
 > **Note:** Instructions for interacting with bpfman change from release to release, so reference
 > release specific documentation. For example:
 >
->    [https://bpfman.io/v0.3.1/getting-started/running-release/](https://bpfman.io/v0.3.1/getting-started/running-release/)
+>    [https://bpfman.io/v0.4.0/getting-started/running-release/](https://bpfman.io/v0.4.0/getting-started/running-release/)
 
 Jump to the [Setup and Building bpfman](./building-bpfman.md) section
 for help building from the latest code or building from a release branch.
 
 [Start bpfman-rpc](./launching-bpfman.md/#start-bpfman-rpc) contains more details on the different
 modes to run `bpfman` in on the host.
-Use [Run as a Long Lived Process](#run-as-a-long-lived-process) or [Run as a Systemd Service](#run-as-a-systemd-service)
-below for deploying released version of `bpfman` and then use
+Use [Run using an rpm](./running-rpm.md)
+for deploying a released version of `bpfman` from an rpm as a systemd service and then use
 [Deploying Example eBPF Programs On Local Host](./example-bpf-local.md)
-for further information on how to test and interact with `bpfman`. 
+for further information on how to test and interact with `bpfman`.
 
 [Deploying the bpfman-operator](../developer-guide/operator-quick-start.md) contains
 more details on deploying `bpfman` in a Kubernetes deployment and
@@ -25,33 +25,29 @@ more details on deploying `bpfman` in a Kubernetes deployment and
 more details on interacting with `bpfman` running in a Kubernetes deployment.
 Use [Deploying Release Version of the bpfman-operator](#deploying-release-version-of-the-bpfman-operator)
 below for deploying released version of `bpfman` in Kubernetes and then use the
-links above for further information on how to test and interact with `bpfman`. 
+links above for further information on how to test and interact with `bpfman`.
 
 ## Run as a Long Lived Process
-
-To run `bpfman` in the foreground, download the release binary tar files and unpack them.
 
 ```console
 export BPFMAN_REL=0.4.0
 mkdir -p $HOME/src/bpfman-${BPFMAN_REL}/; cd $HOME/src/bpfman-${BPFMAN_REL}/
 wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-linux-x86_64.tar.gz
 tar -xzvf bpfman-linux-x86_64.tar.gz; rm bpfman-linux-x86_64.tar.gz
-wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-rpc-linux-x86_64.tar.gz
-tar -xzvf bpfmam-rpc-linux-x86_64.tar.gz; rm bpfman-rpc-linux-x86_64.tar.gz
 
 $ tree
 .
-└── target
-    └── x86_64-unknown-linux-musl
-        └── release
-            ├── bpfman
-            └── bpfman-rpc
+├── bpf-log-exporter
+├── bpfman
+├── bpfman-ns
+├── bpfman-rpc
+└── bpf-metrics-exporter
 ```
 
 To deploy `bpfman-rpc`:
 
 ```console
-sudo RUST_LOG=info ./target/x86_64-unknown-linux-musl/release/bpfman-rpc --timeout=0
+sudo RUST_LOG=info ./bpfman-rpc --timeout=0
 [INFO  bpfman::utils] Log using env_logger
 [INFO  bpfman::utils] Has CAP_BPF: true
 [INFO  bpfman::utils] Has CAP_SYS_ADMIN: true
@@ -65,40 +61,8 @@ sudo RUST_LOG=info ./target/x86_64-unknown-linux-musl/release/bpfman-rpc --timeo
 To use the CLI:
 
 ```console
-sudo ./target/x86_64-unknown-linux-musl/release/bpfman list
+sudo ./bpfman list
  Program ID  Name  Type  Load Time
-```
-
-Continue in [Deploying Example eBPF Programs On Local Host](./example-bpf-local.md) if desired.
-
-## Run as a Systemd Service
-
-To run `bpfman` as a systemd service, the binaries will be placed in a well known location
-(`/usr/sbin/.`) and a service configuration files will be added
-(`/usr/lib/systemd/system/bpfman.service` and `/usr/lib/systemd/system/bpfman.socket`).
-There is a script that is used to install the service properly, so the source code needs
-to be downloaded to retrieve the script.
-Download and unpack the source code, then download and unpack the binaries.
-
-```console
-export BPFMAN_REL=0.4.0
-mkdir -p $HOME/src/; cd $HOME/src/
-wget https://github.com/bpfman/bpfman/archive/refs/tags/v${BPFMAN_REL}.tar.gz
-tar -xzvf v${BPFMAN_REL}.tar.gz; rm v${BPFMAN_REL}.tar.gz
-cd bpfman-${BPFMAN_REL}
-
-wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-linux-x86_64.tar.gz
-tar -xzvf bpfmna-linux-x86_64.tar.gz; rm bpfman-linux-x86_64.tar.gz
-wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-rpc-linux-x86_64.tar.gz
-tar -xzvf bpfman-rpc-linux-x86_64.tar.gz; rm bpfman-rpc-linux-x86_64.tar.gz
-```
-
-Run the following command to copy the `bpfman-rpc` and `bpfman` binaries to `/usr/sbin/` and copy a
-default `bpfman.service` and `bpfman.socket` files to `/usr/lib/systemd/system/`.
-This option will also start the systemd service `bpfman.socket` by default.
-
-```console
-sudo ./scripts/setup.sh install
 ```
 
 Continue in [Deploying Example eBPF Programs On Local Host](./example-bpf-local.md) if desired.

@@ -73,6 +73,12 @@ echo "Generated:" release-v${VERSION}/go-tc-counter-install.yaml
 ### TRACEPOINT
 ${KUSTOMIZE} build ../examples/config/v${VERSION}/go-tracepoint-counter > release-v${VERSION}/go-tracepoint-counter-install.yaml
 echo "Generated:" release-v${VERSION}/go-tracepoint-counter-install.yaml
+### UPROBE
+${KUSTOMIZE} build ../examples/config/v${VERSION}/go-uprobe-counter > release-v${VERSION}/go-uprobe-counter-install.yaml
+echo "Generated:" release-v${VERSION}/go-uprobe-counter-install.yaml
+### KPROBE
+${KUSTOMIZE} build ../examples/config/v${VERSION}/go-kprobe-counter > release-v${VERSION}/go-kprobe-counter-install.yaml
+echo "Generated:" release-v${VERSION}/go-kprobe-counter-install.yaml
 
 ## 4. examples install yamls for OCP
 ### XDP
@@ -84,3 +90,9 @@ echo "Generated:" release-v${VERSION}/go-tc-counter-install-ocp.yaml
 ### TRACEPOINT
 ${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-tracepoint-counter > release-v${VERSION}/go-tracepoint-counter-install-ocp.yaml
 echo "Generated:" release-v${VERSION}/go-tracepoint-counter-install-ocp.yaml
+### UPROBE
+${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-uprobe-counter > release-v${VERSION}/go-uprobe-counter-install-ocp.yaml
+echo "Generated:" release-v${VERSION}/go-uprobe-counter-install-ocp.yaml
+### KPROBE
+${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-kprobe-counter > release-v${VERSION}/go-kprobe-counter-install-ocp.yaml
+echo "Generated:" release-v${VERSION}/go-kprobe-counter-install-ocp.yaml

@@ -1,10 +1,10 @@
 [package]
-description = "gRPC bindings to the bpfman API"
+description = "Binary for exporting eBPF subsystem metrics via prometheus"
 edition.workspace = true
 license.workspace = true
 name = "bpf-metrics-exporter"
 repository.workspace = true
-version = "0.1.0-dev"
+version.workspace = true
 
 [dependencies]
 anyhow = { workspace = true }

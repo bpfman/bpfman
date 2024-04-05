@@ -15,7 +15,7 @@ use crate::workspace::WORKSPACE_ROOT;
 pub struct Options {}
 
 fn write_completions_file<G: Generator + Copy, P: AsRef<OsStr>>(generator: G, out_dir: P) {
-    let mut cmd = Cli::command().name("bpfman").version("0.4.0-dev");
+    let mut cmd = Cli::command().name("bpfman").version("0.4.0");
     clap_complete::generate_to(generator, &mut cmd, "bpfman", &out_dir)
         .expect("clap complete generation failed");
 }

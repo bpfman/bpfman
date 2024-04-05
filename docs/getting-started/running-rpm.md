@@ -8,7 +8,7 @@ RPMs can also be built locally from a Fedora server
 
 ## Install Prebuilt RPM
 
-This section describes how to install an RPM built autmatically by the
+This section describes how to install an RPM built automatically by the
 [Packit Service](https://dashboard.packit.dev/projects/github.com/bpfman/bpfman).
 The Packit Service builds RPMs for each Pull Request merged.
 
