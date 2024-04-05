@@ -20,7 +20,7 @@ set -o pipefail
 
 thisyear=`date +"%Y"`
 
-mkdir -p release/
+mkdir -p release-v${VERSION}/
 
 ## Location to install dependencies to
 LOCALBIN=$(pwd)/bin
@@ -33,9 +33,9 @@ KUSTOMIZE=${LOCALBIN}/kustomize
 ## 1. bpfman CRD install
 
 # Make clean files with boilerplate
-cat hack/boilerplate.sh.txt > release/bpfman-crds-install-v${VERSION}.yaml
-sed -i "s/YEAR/$thisyear/g" release/bpfman-crds-install-v${VERSION}.yaml
-cat << EOF >> release/bpfman-crds-install-v${VERSION}.yaml
+cat hack/boilerplate.sh.txt > release-v${VERSION}/bpfman-crds-install.yaml
+sed -i "s/YEAR/$thisyear/g" release-v${VERSION}/bpfman-crds-install.yaml
+cat << EOF >> release-v${VERSION}/bpfman-crds-install.yaml
 #
 # bpfman Kubernetes API install
 #
@@ -43,44 +43,44 @@ EOF
 
 for file in `ls config/crd/bases/bpfman*.yaml`
 do
-    echo "---" >> release/bpfman-crds-install-v${VERSION}.yaml
-    echo "#" >> release/bpfman-crds-install-v${VERSION}.yaml
-    echo "# $file" >> release/bpfman-crds-install-v${VERSION}.yaml
-    echo "#" >> release/bpfman-crds-install-v${VERSION}.yaml
-    cat $file >> release/bpfman-crds-install-v${VERSION}.yaml
+    echo "---" >> release-v${VERSION}/bpfman-crds-install.yaml
+    echo "#" >> release-v${VERSION}/bpfman-crds-install.yaml
+    echo "# $file" >> release-v${VERSION}/bpfman-crds-install.yaml
+    echo "#" >> release-v${VERSION}/bpfman-crds-install.yaml
+    cat $file >> release-v${VERSION}/bpfman-crds-install.yaml
 done
 
-echo "Generated:" release/bpfman-crds-install-v${VERSION}.yaml
+echo "Generated:" release-v${VERSION}/bpfman-crds-install.yaml
 
 ## 2. bpfman-operator install yaml
 
 $(cd ./config/bpfman-operator-deployment && ${KUSTOMIZE} edit set image quay.io/bpfman/bpfman-operator=quay.io/bpfman/bpfman-operator:v${VERSION})
-${KUSTOMIZE} build ./config/default > release/bpfman-operator-install-v${VERSION}.yaml
+${KUSTOMIZE} build ./config/default > release-v${VERSION}/bpfman-operator-install.yaml
 ### replace configmap :latest images with :v${VERSION}
-sed -i "s/quay.io\/bpfman\/bpfman-agent:latest/quay.io\/bpfman\/bpfman-agent:v${VERSION}/g" release/bpfman-operator-install-v${VERSION}.yaml
-sed -i "s/quay.io\/bpfman\/bpfman:latest/quay.io\/bpfman\/bpfman:v${VERSION}/g" release/bpfman-operator-install-v${VERSION}.yaml
+sed -i "s/quay.io\/bpfman\/bpfman-agent:latest/quay.io\/bpfman\/bpfman-agent:v${VERSION}/g" release-v${VERSION}/bpfman-operator-install.yaml
+sed -i "s/quay.io\/bpfman\/bpfman:latest/quay.io\/bpfman\/bpfman:v${VERSION}/g" release-v${VERSION}/bpfman-operator-install.yaml
 
-echo "Generated:" release/bpfman-operator-install-v${VERSION}.yaml
+echo "Generated:" release-v${VERSION}/bpfman-operator-install.yaml
 
 ## 3. examples install yamls
 
 ### XDP
-${KUSTOMIZE} build ../examples/config/v${VERSION}/go-xdp-counter > release/go-xdp-counter-install-v${VERSION}.yaml
-echo "Generated:" go-xdp-counter-install-v${VERSION}.yaml
+${KUSTOMIZE} build ../examples/config/v${VERSION}/go-xdp-counter > release-v${VERSION}/go-xdp-counter-install.yaml
+echo "Generated:" release-v${VERSION}/go-xdp-counter-install.yaml
 ### TC
-${KUSTOMIZE} build ../examples/config/v${VERSION}/go-tc-counter > release/go-tc-counter-install-v${VERSION}.yaml
-echo "Generated:" go-tc-counter-install-v${VERSION}.yaml
+${KUSTOMIZE} build ../examples/config/v${VERSION}/go-tc-counter > release-v${VERSION}/go-tc-counter-install.yaml
+echo "Generated:" release-v${VERSION}/go-tc-counter-install.yaml
 ### TRACEPOINT
-${KUSTOMIZE} build ../examples/config/v${VERSION}/go-tracepoint-counter > release/go-tracepoint-counter-install-v${VERSION}.yaml
-echo "Generated:" go-tracepoint-counter-install-v${VERSION}.yaml
+${KUSTOMIZE} build ../examples/config/v${VERSION}/go-tracepoint-counter > release-v${VERSION}/go-tracepoint-counter-install.yaml
+echo "Generated:" release-v${VERSION}/go-tracepoint-counter-install.yaml
 
 ## 4. examples install yamls for OCP
 ### XDP
-${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-xdp-counter > release/go-xdp-counter-install-ocp-v${VERSION}.yaml
-echo "Generated:" go-xdp-counter-install-ocp-v${VERSION}.yaml
+${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-xdp-counter > release-v${VERSION}/go-xdp-counter-install-ocp.yaml
+echo "Generated:" release-v${VERSION}/go-xdp-counter-install-ocp.yaml
 ### TC
-${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-tc-counter > release/go-tc-counter-install-ocp-v${VERSION}.yaml
-echo "Generated:" go-tc-counter-install-ocp-v${VERSION}.yaml
+${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-tc-counter > release-v${VERSION}/go-tc-counter-install-ocp.yaml
+echo "Generated:" release-v${VERSION}/go-tc-counter-install-ocp.yaml
 ### TRACEPOINT
-${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-tracepoint-counter > release/go-tracepoint-counter-install-ocp-v${VERSION}.yaml
-echo "Generated:" go-tracepoint-counter-install-ocp-v${VERSION}.yaml
+${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-tracepoint-counter > release-v${VERSION}/go-tracepoint-counter-install-ocp.yaml
+echo "Generated:" release-v${VERSION}/go-tracepoint-counter-install-ocp.yaml

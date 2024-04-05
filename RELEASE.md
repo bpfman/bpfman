@@ -143,11 +143,11 @@ For a **MAJOR** or **MINOR** release:
   page.
 - The Release will be automatically created, after that is complete do the following:
   - run `make build-release-yamls` and attach the yamls for the version to the release. These will include:
-    - `bpfman-crds-install-vx.x.x.yaml`
-    - `bpfman-operator-install-vx.x.x.yaml`
-    - `go-xdp-counter-install-vx.x.x.yaml`
-    - `go-tc-counter-install-vx.x.x.yaml`
-    - `go-tracepoint-counter-install-vx.x.x.yaml`
+    - `bpfman-crds-install.yaml`
+    - `bpfman-operator-install.yaml`
+    - `go-xdp-counter-install.yaml`
+    - `go-tc-counter-install.yaml`
+    - `go-tracepoint-counter-install.yaml`
 
 [release]: https://github.com/bpfman/bpfman/releases
 [bpfman-team]: https://github.com/bpfman/bpfman/blob/main/CODEOWNERS
