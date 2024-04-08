@@ -37,7 +37,7 @@ chrono = { version = "0.4.35", default-features = false }
 clap = { version = "4", default-features = false }
 clap_complete = { version = "4.5.1", default-features = false }
 clap_mangen = { version = "0.2.20", default-features = false }
-comfy-table = { version = "7.1.0", default-features = false }
+comfy-table = { version = "7.1.1", default-features = false }
 dialoguer = { version = "0.11", default-features = false }
 diff = { version = "0.1.13", default-features = false }
 env_logger = { version = "0.11.3", default-features = false }
@@ -60,8 +60,8 @@ opentelemetry-otlp = { version = "0.15.0", default-features = false }
 opentelemetry-semantic-conventions = { version = "0.14.0" }
 opentelemetry_sdk = { version = "0.22.1", default-features = false }
 predicates = { version = "3.0.4", default-features = false }
-prost = { version = "0.12.3", default-features = false }
-prost-types = { version = "0.12.3", default-features = false }
+prost = { version = "0.12.4", default-features = false }
+prost-types = { version = "0.12.4", default-features = false }
 public-api = { version = "0.33.1", default-features = false }
 quote = { version = "1", default-features = false }
 rand = { version = "0.8", default-features = false }
