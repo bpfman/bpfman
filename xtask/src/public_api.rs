@@ -28,12 +28,14 @@ pub fn public_api(options: Options, metadata: Metadata) -> Result<()> {
 
     if !rustup_toolchain::is_installed(toolchain)? {
         if Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("No nightly toolchain detected. Would you like to install one?")
+            .with_prompt(
+                format! {"No {toolchain} toolchain detected. Would you like to install one?"},
+            )
             .interact()?
         {
             rustup_toolchain::install(toolchain)?;
         } else {
-            bail!("nightly toolchain not installed")
+            bail!(format! {"{toolchain} toolchain not installed"})
         }
     }
 
@@ -52,7 +54,10 @@ pub fn public_api(options: Options, metadata: Metadata) -> Result<()> {
                  targets,
                  ..
              }| {
-                if matches!(publish, Some(publish) if publish.is_empty()) {
+                if matches!(publish, Some(publish) if publish.is_empty())
+                    || name == "bpfman-api"
+                    || name == "bpfman-csi"
+                {
                     Ok(())
                 } else {
                     if !targets
