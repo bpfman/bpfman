@@ -1,11 +1,13 @@
-FROM golang:1.19 as go-tracepoint-counter-build
+FROM golang:1.21 as go-tracepoint-counter-build
 
 RUN apt-get update && apt-get install -y \
  clang \
  gcc-multilib \
  libbpf-dev
 
-RUN go install github.com/cilium/ebpf/cmd/bpf2go@master
+ARG CILIUMVERSION="v0.14.0"
+RUN go install github.com/cilium/ebpf/cmd/bpf2go@$CILIUMVERSION
+
 
 WORKDIR /usr/src/bpfman/
 COPY ./ /usr/src/bpfman/

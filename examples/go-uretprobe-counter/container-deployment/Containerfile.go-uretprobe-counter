@@ -1,4 +1,4 @@
-FROM golang:1.21 as go-kprobe-counter-build
+FROM golang:1.21 as go-uretprobe-counter-build
 
 RUN apt-get update && apt-get install -y \
     clang \
@@ -11,13 +11,13 @@ RUN go install github.com/cilium/ebpf/cmd/bpf2go@$CILIUMVERSION
 WORKDIR /usr/src/bpfman/
 COPY ./ /usr/src/bpfman/
 
-WORKDIR /usr/src/bpfman/examples/go-kprobe-counter
+WORKDIR /usr/src/bpfman/examples/go-uretprobe-counter
 
-# Compile go-kprobe-counter
+# Compile go-uprobe-counter
 RUN go build
 
 FROM registry.fedoraproject.org/fedora-minimal:latest
 
-COPY --from=go-kprobe-counter-build  /usr/src/bpfman/examples/go-kprobe-counter/go-kprobe-counter .
+COPY --from=go-uretprobe-counter-build  /usr/src/bpfman/examples/go-uretprobe-counter/go-uretprobe-counter .
 
-ENTRYPOINT ["./go-kprobe-counter", "--crd"]
+ENTRYPOINT ["./go-uretprobe-counter", "--crd"]

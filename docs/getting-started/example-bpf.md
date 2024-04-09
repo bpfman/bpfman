@@ -8,7 +8,8 @@ Current examples include:
 * [examples/go-tc-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-tc-counter)
 * [examples/go-tracepoint-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter)
 * [examples/go-uprobe-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-uprobe-counter)
-    * [examples/go-target/](https://github.com/bpfman/bpfman/tree/main/examples/go-target)
+* [examples/go-uretprobe-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-uretprobe-counter)
+* [examples/go-target/](https://github.com/bpfman/bpfman/tree/main/examples/go-target)
 * [examples/go-xdp-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-xdp-counter)
 
 ## Example Code Breakdown
@@ -17,7 +18,9 @@ These examples and the associated documentation are intended to provide the basi
 and manage an eBPF program using bpfman. Each of the examples contain an eBPF Program written in C
 ([kprobe_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-kprobe-counter/bpf/kprobe_counter.c),
 [tc_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-tc-counter/bpf/tc_counter.c),
-[tracepoint_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter/bpf/tracepoint_counter.c) [uprobe_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-uprobe-counter/bpf/uprobe_counter.c),
+[tracepoint_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter/bpf/tracepoint_counter.c) 
+[uprobe_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-uprobe-counter/bpf/uprobe_counter.c),
+[uretprobe_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-uretprobe-counter/bpf/uretprobe_counter.c),
 and
 [xdp_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-xdp-counter/bpf/xdp_counter.c))
 that is compiled into eBPF bytecode (bpf_bpfel.o).
@@ -148,7 +151,7 @@ If not, see [Setup and Building bpfman](./building-bpfman.md)._
 
 3. Cilium's `bpf2go` binary
 
-    `go install github.com/cilium/ebpf/cmd/bpf2go@v0.11.0`
+    `go install github.com/cilium/ebpf/cmd/bpf2go@v0.14.0`
 
 #### Build
 
@@ -192,6 +195,7 @@ Pre-built eBPF container images for the examples can be loaded from:
 - `quay.io/bpfman-bytecode/go-tc-counter:latest`
 - `quay.io/bpfman-bytecode/go-tracepoint-counter:latest`
 - `quay.io/bpfman-bytecode/go-uprobe-counter:latest`
+- `quay.io/bpfman-bytecode/go-uretprobe-counter:latest`
 - `quay.io/bpfman-bytecode/go-xdp-counter:latest`
 
 To build the example eBPF bytecode container images, run the build commands below (the `go generate`

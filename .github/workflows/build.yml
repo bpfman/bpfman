@@ -321,7 +321,7 @@ jobs:
       ## tests with these locally built bytecode images.
       - name: build example bytecode images
         run: |
-          go install github.com/cilium/ebpf/cmd/bpf2go@v0.11.0
+          go install github.com/cilium/ebpf/cmd/bpf2go@v0.14.0
           cd examples
           make build-bc-images
 
