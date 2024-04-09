@@ -24,6 +24,8 @@ lint_all() {
     cargo +nightly clippy --all -- --deny warnings
     echo "### Linting golang code"
     golangci-lint run ../bpfman-operator/... ../examples/...
+    echo "### Linting bpf c code"
+    git ls-files -- '*.c' '*.h' | xargs clang-format --dry-run --Werror
 }
 
 lint_all
