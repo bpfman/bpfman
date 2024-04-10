@@ -621,15 +621,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#run-as-a-systemd-service" class="md-nav__link">
-    <span class="md-ellipsis">
-      Run as a Systemd Service
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#deploying-release-version-of-the-bpfman-operator" class="md-nav__link">
     <span class="md-ellipsis">
       Deploying Release Version of the bpfman-operator
@@ -1622,15 +1613,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#run-as-a-systemd-service" class="md-nav__link">
-    <span class="md-ellipsis">
-      Run as a Systemd Service
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#deploying-release-version-of-the-bpfman-operator" class="md-nav__link">
     <span class="md-ellipsis">
       Deploying Release Version of the bpfman-operator
@@ -1664,42 +1646,39 @@ releases.</p>
 <blockquote>
 <p><strong>Note:</strong> Instructions for interacting with bpfman change from release to release, so reference
 release specific documentation. For example:</p>
-<p><a href="https://bpfman.io/v0.3.1/getting-started/running-release/">https://bpfman.io/v0.3.1/getting-started/running-release/</a></p>
+<p><a href="https://bpfman.io/v0.4.0/getting-started/running-release/">https://bpfman.io/v0.4.0/getting-started/running-release/</a></p>
 </blockquote>
 <p>Jump to the <a href="../building-bpfman/">Setup and Building bpfman</a> section
 for help building from the latest code or building from a release branch.</p>
 <p><a href="../launching-bpfman/#start-bpfman-rpc">Start bpfman-rpc</a> contains more details on the different
 modes to run <code>bpfman</code> in on the host.
-Use <a href="#run-as-a-long-lived-process">Run as a Long Lived Process</a> or <a href="#run-as-a-systemd-service">Run as a Systemd Service</a>
-below for deploying released version of <code>bpfman</code> and then use
+Use <a href="../running-rpm/">Run using an rpm</a>
+for deploying a released version of <code>bpfman</code> from an rpm as a systemd service and then use
 <a href="../example-bpf-local/">Deploying Example eBPF Programs On Local Host</a>
-for further information on how to test and interact with <code>bpfman</code>. </p>
+for further information on how to test and interact with <code>bpfman</code>.</p>
 <p><a href="../../developer-guide/operator-quick-start/">Deploying the bpfman-operator</a> contains
 more details on deploying <code>bpfman</code> in a Kubernetes deployment and
 <a href="../example-bpf-k8s/">Deploying Example eBPF Programs On Kubernetes</a> contains
 more details on interacting with <code>bpfman</code> running in a Kubernetes deployment.
 Use <a href="#deploying-release-version-of-the-bpfman-operator">Deploying Release Version of the bpfman-operator</a>
 below for deploying released version of <code>bpfman</code> in Kubernetes and then use the
-links above for further information on how to test and interact with <code>bpfman</code>. </p>
+links above for further information on how to test and interact with <code>bpfman</code>.</p>
 <h2 id="run-as-a-long-lived-process">Run as a Long Lived Process</h2>
-<p>To run <code>bpfman</code> in the foreground, download the release binary tar files and unpack them.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">export BPFMAN_REL=0.4.0</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">mkdir -p $HOME/src/bpfman-${BPFMAN_REL}/; cd $HOME/src/bpfman-${BPFMAN_REL}/</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="go">wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-linux-x86_64.tar.gz</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">tar -xzvf bpfman-linux-x86_64.tar.gz; rm bpfman-linux-x86_64.tar.gz</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="go">wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-rpc-linux-x86_64.tar.gz</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="go">tar -xzvf bpfmam-rpc-linux-x86_64.tar.gz; rm bpfman-rpc-linux-x86_64.tar.gz</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="gp">$ </span>tree
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="go">.</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="go">└── target</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="go">    └── x86_64-unknown-linux-musl</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="go">        └── release</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="go">            ├── bpfman</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="go">            └── bpfman-rpc</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gp">$ </span>tree
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="go">.</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="go">├── bpf-log-exporter</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="go">├── bpfman</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="go">├── bpfman-ns</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="go">├── bpfman-rpc</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="go">└── bpf-metrics-exporter</span>
 </code></pre></div>
 <p>To deploy <code>bpfman-rpc</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">sudo RUST_LOG=info ./target/x86_64-unknown-linux-musl/release/bpfman-rpc --timeout=0</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">sudo RUST_LOG=info ./bpfman-rpc --timeout=0</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">[INFO  bpfman::utils] Log using env_logger</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="go">[INFO  bpfman::utils] Has CAP_BPF: true</span>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go">[INFO  bpfman::utils] Has CAP_SYS_ADMIN: true</span>
@@ -1710,49 +1689,25 @@ links above for further information on how to test and interact with <code>bpfma
 <a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="go">:</span>
 </code></pre></div>
 <p>To use the CLI:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">sudo ./target/x86_64-unknown-linux-musl/release/bpfman list</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">sudo ./bpfman list</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go"> Program ID  Name  Type  Load Time</span>
-</code></pre></div>
-<p>Continue in <a href="../example-bpf-local/">Deploying Example eBPF Programs On Local Host</a> if desired.</p>
-<h2 id="run-as-a-systemd-service">Run as a Systemd Service</h2>
-<p>To run <code>bpfman</code> as a systemd service, the binaries will be placed in a well known location
-(<code>/usr/sbin/.</code>) and a service configuration files will be added
-(<code>/usr/lib/systemd/system/bpfman.service</code> and <code>/usr/lib/systemd/system/bpfman.socket</code>).
-There is a script that is used to install the service properly, so the source code needs
-to be downloaded to retrieve the script.
-Download and unpack the source code, then download and unpack the binaries.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">export BPFMAN_REL=0.4.0</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">mkdir -p $HOME/src/; cd $HOME/src/</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="go">wget https://github.com/bpfman/bpfman/archive/refs/tags/v${BPFMAN_REL}.tar.gz</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="go">tar -xzvf v${BPFMAN_REL}.tar.gz; rm v${BPFMAN_REL}.tar.gz</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="go">cd bpfman-${BPFMAN_REL}</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="go">wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-linux-x86_64.tar.gz</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="go">tar -xzvf bpfmna-linux-x86_64.tar.gz; rm bpfman-linux-x86_64.tar.gz</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="go">wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-rpc-linux-x86_64.tar.gz</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="go">tar -xzvf bpfman-rpc-linux-x86_64.tar.gz; rm bpfman-rpc-linux-x86_64.tar.gz</span>
-</code></pre></div>
-<p>Run the following command to copy the <code>bpfman-rpc</code> and <code>bpfman</code> binaries to <code>/usr/sbin/</code> and copy a
-default <code>bpfman.service</code> and <code>bpfman.socket</code> files to <code>/usr/lib/systemd/system/</code>.
-This option will also start the systemd service <code>bpfman.socket</code> by default.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">sudo ./scripts/setup.sh install</span>
 </code></pre></div>
 <p>Continue in <a href="../example-bpf-local/">Deploying Example eBPF Programs On Local Host</a> if desired.</p>
 <h2 id="deploying-release-version-of-the-bpfman-operator">Deploying Release Version of the bpfman-operator</h2>
 <p>The quickest solution for running <code>bpfman</code> in a Kubernetes deployment is to run a
 Kubernetes KIND Cluster:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">kind create cluster --name=test-bpfman</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">kind create cluster --name=test-bpfman</span>
 </code></pre></div>
 <p>Next, deploy the bpfman CRDs:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">export BPFMAN_REL=0.4.0</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="go">kubectl apply -f  https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">export BPFMAN_REL=0.4.0</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">kubectl apply -f  https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml</span>
 </code></pre></div>
 <p>Next, deploy the <code>bpfman-operator</code>, which will also deploy the <code>bpfman-daemon</code>, which contains
 <code>bpfman-rpc</code>, <code>bpfman</code> Library and <code>bpfman-agent</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-operator-install-v${BPFMAN_REL}.yaml</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-operator-install-v${BPFMAN_REL}.yaml</span>
 </code></pre></div>
 <p>Finally, deploy an example eBPF program.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/go-xdp-counter-install-v${BPFMAN_REL}.yaml</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/go-xdp-counter-install-v${BPFMAN_REL}.yaml</span>
 </code></pre></div>
 <p>There are other example programs in the <a href="https://github.com/bpfman/bpfman/releases">Releases</a>
 page.</p>
@@ -1761,7 +1716,7 @@ page.</p>
 Keep in mind that prior to v0.4.0, <code>bpfman</code> was released as <code>bpfd</code>.
 So follow the release specific documentation.</p>
 <p>Use the following command to teardown the cluster:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">kind delete cluster -n test-bpfman</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">kind delete cluster -n test-bpfman</span>
 </code></pre></div>
 
 
