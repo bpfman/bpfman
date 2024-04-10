@@ -9,11 +9,11 @@ difference is that the `bpfctl` CLI can now simply be called directly with the
 On top of transitioning to a library the community has also implemented some
 exciting new features:
 
-- Support for Uprobe Programs
+- Support for Uprobe Programs in both core and kubernetes
 - The ability to attach Uprobes inside containers (locally and in Kubernetes), see [the blog](https://bpfman.io/main/blog/2024/02/26/technical-challenges-for-attaching-ebpf-programs-in-containers/) for more.
-- Support for Kprobe Programs
-- Support for Fentry Programs
-- Support for Fexit Programs
+- Support for Kprobe Programs in both core and kubernetes
+- Support for Fentry Programs in core
+- Support for Fexit Programs in core
 
 Additionally this release provides some new binary crates. The `bpfman-rpc` binary
 allows other languages to call into the bpfman library using the existing
