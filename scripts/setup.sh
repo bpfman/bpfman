@@ -6,17 +6,16 @@ if [[ "$PWD" != */scripts ]]; then
 fi
 
 # Source the functions in other files
-. certificates.sh
 . install.sh
 . user.sh
 
 BIN_BPFMAN="bpfman"
 BIN_BPFMAN_RPC="bpfman-rpc"
-BIN_BPFMAN_CLIENT="bpfman-client"
+BIN_BPFMAN_NS="bpfman-ns"
 
 # Well known directories
 SRC_DEBUG_BIN_PATH="../target/debug"
-SRC_RELEASE_BIN_PATH="../target/x86_64-unknown-linux-musl/release"
+SRC_RELEASE_BIN_PATH="../target/x86_64-unknown-linux-gnu/release"
 DST_BIN_PATH="/usr/sbin"
 DST_SVC_PATH="/usr/lib/systemd/system"
 SVC_BPFMAN_SOCK="${BIN_BPFMAN}.socket"
@@ -106,10 +105,6 @@ case "$1" in
     "uninstall")
         uninstall
         user_cleanup
-        ;;
-    "certs")
-        regen_cert=true
-        cert_init ${regen_cert}
         ;;
     "help"|"--help"|"?")
         usage

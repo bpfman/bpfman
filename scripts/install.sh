@@ -151,6 +151,7 @@ install() {
 
     copy_bin "${BIN_BPFMAN}" ${release}
     copy_bin "${BIN_BPFMAN_RPC}" ${release}
+    copy_bin "${BIN_BPFMAN_NS}" ${release}
 
     if [ "${reinstall}" == false ]; then
         echo "Copy service files:"

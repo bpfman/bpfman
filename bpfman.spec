@@ -61,9 +61,6 @@ An eBPF Program Manager.}
 
 # Source1 is vendored dependencies
 tar -xoaf %{SOURCE1}
-# Replace the Git Dependency on Aya with a path dependency
-# TODO: This will be removed when we do an upstream Aya release
-sed -i 's#aya = { git = "https://github.com/aya-rs/aya", branch = "main" }#aya = { path = "vendor/aya" }#g' Cargo.toml
 # Let the macros setup Cargo.toml to use vendored sources
 %cargo_prep -v vendor
 %cargo_license_summary
