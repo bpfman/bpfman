@@ -393,11 +393,11 @@ jobs:
       - name: publish bpfman-csi crate
         run: cargo publish -p bpfman-csi --token ${{ secrets.BPFMAN_DEV_TOKEN }}
 
-      - name: publish bpfman-api crate
-        run: cargo publish -p bpfman-api --token ${{ secrets.BPFMAN_DEV_TOKEN }}
-
       - name: publish bpfman crate
         run: cargo publish -p bpfman --token ${{ secrets.BPFMAN_DEV_TOKEN }}
+
+      - name: publish bpfman-api crate
+        run: cargo publish -p bpfman-api --token ${{ secrets.BPFMAN_DEV_TOKEN }}
 
       - name: publish bpf-log-exporter crate
         run: cargo publish -p bpfman-log-exporter --token ${{ secrets.BPFMAN_DEV_TOKEN }}
