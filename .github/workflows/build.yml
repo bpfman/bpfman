@@ -389,10 +389,10 @@ jobs:
           body_path: ./changelogs/CHANGELOG-${{ env.RELEASE_VERSION }}.md
           files: |
             bpfman-linux-x86_64.tar.gz
-      
+
       - name: publish bpfman-csi crate
         run: cargo publish -p bpfman-csi --token ${{ secrets.BPFMAN_DEV_TOKEN }}
-      
+
       - name: publish bpfman-api crate
         run: cargo publish -p bpfman-api --token ${{ secrets.BPFMAN_DEV_TOKEN }}
 
