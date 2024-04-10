@@ -12,7 +12,7 @@ version.workspace = true
 anyhow = { workspace = true }
 env_logger = { workspace = true }
 futures = { workspace = true }
-hex = { workspace = true }
+hex = { workspace = true, features = ["alloc"] }
 log = { workspace = true }
 netlink-packet-audit = { workspace = true }
 netlink-packet-core = { workspace = true }
