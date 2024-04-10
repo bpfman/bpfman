@@ -13,6 +13,8 @@ use cli::Cli;
 
 use crate::workspace::WORKSPACE_ROOT;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(Debug, Parser)]
 pub struct Options {}
 
@@ -21,7 +23,7 @@ fn generate_manpage(
     name: String,
     out_dir: &PathBuf,
 ) -> Result<(), anyhow::Error> {
-    let man = clap_mangen::Man::new(cmd.version("0.4.0"));
+    let man = clap_mangen::Man::new(cmd.version(VERSION));
     let mut buffer: Vec<u8> = Default::default();
     man.render(&mut buffer)?;
     let file_path = Path::new(out_dir).join(format!("{}.1", name));

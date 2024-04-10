@@ -7,7 +7,7 @@ This document describes how to cut a release for the bpfman project.
 A release for the bpfman project is comprised of the following major components:
 
 - bpfman (Core library) and bpfman-api (Core GRPC API protobuf definitions) library crates
-- bpfman (CLI), and bpfman-rpc ( gRPC server ) binary crates
+- bpfman (CLI), and bpfman-rpc (gRPC server) binary crates
 - bpf-metrics-exporter and bpf-log-exporter binary crates
 - Kubernetes User Facing Custom Resource Definitions (CRDs)
     - `TcProgram`
@@ -35,7 +35,6 @@ A release for the bpfman project is comprised of the following major components:
 - The relevant example bytecode container images with tag <RELEASE_VERSION> from source
   code located in the bpfman project:
     - `quay.io/bpfman-bytecode/go-xdp-counter`
-    - `quay.io/bpfman-userspace/go-target`
     - `quay.io/bpfman-bytecode/go-tc-counter`
     - `quay.io/bpfman-bytecode/go-tracepoint-counter`
     - `quay.io/bpfman-bytecode/xdp-pass`
@@ -56,6 +55,7 @@ A release for the bpfman project is comprised of the following major components:
     - `quay.io/bpfman-userspace/go-tc-counter`
     - `quay.io/bpfman-userspace/go-tracepoint-counter`
     - `quay.io/bpfman-userspace/go-uprobe-counter`
+    - `quay.io/bpfman-userspace/go-target`
     - `quay.io/bpfman-userspace/go-kprobe-counter`
 - The OLM (Operator Lifecycle Manager) for the Kubernetes Operator.
     - This includes a `bundle` directory on disk as well as the
@@ -111,8 +111,14 @@ For a **PATCH** release:
 - Create a pull request of the `<githubuser>/release-x.x.x` branch into the `release-x.x` branch upstream.
   Add a hold on this PR waiting for at least one maintainer/codeowner to provide a `lgtm`. This PR should:
     - Add a new changelog for the release
-    - Update the cargo.toml version for the workspace.
-    - Update the bpfman-operator version in it's MAKEFILE and run `make bundle` to update the bundle version.
+    - Update the [Cargo.toml](https://github.com/bpfman/bpfman/blob/main/Cargo.toml) version for the workspace:
+        - `version = "x.x.x"`
+        - `bpfman = { version = "x.x.x", path = "./bpfman" }"`
+        - `bpfman-api = { version = "x.x.x", path = "./bpfman-api" }`
+        - Note: `bpfman-csi` does not need to be updated.
+    - Update the bpfman-operator version in it's [Makefile](https://github.com/bpfman/bpfman/blob/main/bpfman-operator/Makefile):
+        - `VERSION ?= x.x.x`
+    - Run `make bundle` from the bpfman-operator directory to update the bundle version.
       This will generate a new `/bpfman-operator/bundle` directory which will ONLY be tracked in the
       `release-x.x` branch not `main`.
 - Verify the CI tests pass and merge the PR into `release-x.x`.
@@ -135,8 +141,14 @@ For a **MAJOR** or **MINOR** release:
 
 - Open an update PR that:
     - Adds a new changelog for the release
-    - Updates the cargo.toml version for the workspace.
-    - Updates the bpfman-operator version in it's MAKEFILE and run `make bundle` to update the bundle version
+    - Update the [Cargo.toml](https://github.com/bpfman/bpfman/blob/main/Cargo.toml) version for the workspace:
+        - `version = "x.x.x"`
+        - `bpfman = { version = "x.x.x", path = "./bpfman" }"`
+        - `bpfman-api = { version = "x.x.x", path = "./bpfman-api" }`
+        - Note: `bpfman-csi` does not need to be updated.
+    - Update the bpfman-operator version in it's [Makefile](https://github.com/bpfman/bpfman/blob/main/bpfman-operator/Makefile):
+        - `VERSION ?= x.x.x`
+    - Run `make bundle` from the bpfman-operator directory to update the bundle version.
     - Add's a new `examples` config directory for the release version
 - Make sure CI is green and merge the update PR.
 - Create a tag using the `HEAD` of the `main` branch. This can be done using the `git` CLI or
