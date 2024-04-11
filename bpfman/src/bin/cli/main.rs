@@ -6,6 +6,7 @@ use args::Commands;
 use clap::Parser;
 use get::execute_get;
 use list::execute_list;
+use log::debug;
 use unload::execute_unload;
 
 mod args;
@@ -18,6 +19,9 @@ mod unload;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    env_logger::try_init()?;
+    debug!("Log using env_logger");
+
     let cli = crate::args::Cli::parse();
 
     cli.command.execute().await

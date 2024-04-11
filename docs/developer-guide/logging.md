@@ -19,7 +19,6 @@ Example:
 
 ```console
 $ sudo RUST_LOG=info /usr/local/bin/bpfman
-[2022-08-08T20:29:31Z INFO  bpfman] Log using env_logger
 [2022-08-08T20:29:31Z INFO  bpfman::server] Loading static programs from /etc/bpfman/programs.d
 [2022-08-08T20:29:31Z INFO  bpfman::server::bpf] Map veth12fa8e3 to 13
 [2022-08-08T20:29:31Z INFO  bpfman::server] Listening on [::1]:50051
@@ -61,7 +60,6 @@ Check the logs:
 ```console
 $ sudo journalctl -f -u bpfman
 Aug 08 16:25:04 ebpf03 systemd[1]: Started bpfman.service - Run bpfman as a service.
-Aug 08 16:25:04 ebpf03 bpfman[180118]: Log using journald
 Aug 08 16:25:04 ebpf03 bpfman[180118]: Loading static programs from /etc/bpfman/programs.d
 Aug 08 16:25:04 ebpf03 bpfman[180118]: Map veth12fa8e3 to 13
 Aug 08 16:25:04 ebpf03 bpfman[180118]: Listening on [::1]:50051
@@ -100,7 +98,6 @@ To view the `bpfman` logs:
 
 ```console
 kubectl logs -n bpfman bpfman-daemon-dgqzw -c bpfman
-[2023-05-05T14:41:26Z INFO  bpfman] Log using env_logger
 [2023-05-05T14:41:26Z INFO  bpfman] Has CAP_BPF: false
 [2023-05-05T14:41:26Z INFO  bpfman] Has CAP_SYS_ADMIN: true
 :

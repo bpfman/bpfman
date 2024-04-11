@@ -32,7 +32,6 @@ For more details on how logging is handled in bpfman, see [Logging](../developer
 
 ```console
 sudo RUST_LOG=info ./target/debug/bpfman-rpc --timeout=0
-[INFO  bpfman::utils] Log using env_logger
 [INFO  bpfman::utils] Has CAP_BPF: true
 [INFO  bpfman::utils] Has CAP_SYS_ADMIN: true
 [WARN  bpfman::utils] Unable to read config file, using defaults
@@ -75,7 +74,6 @@ sudo journalctl -f -u bpfman.service -u bpfman.socket
 Mar 27 09:13:54 server-calvin systemd[1]: Listening on bpfman.socket - bpfman API Socket.
   <RUN "sudo ./go-kprobe-counter">
 Mar 27 09:15:43 server-calvin systemd[1]: Started bpfman.service - Run bpfman as a service.
-Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Log using journald
 Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Has CAP_BPF: true
 Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Has CAP_SYS_ADMIN: true
 Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Unable to read config file, using defaults
