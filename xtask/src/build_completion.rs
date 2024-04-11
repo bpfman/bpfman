@@ -11,11 +11,13 @@ use cli::Cli;
 
 use crate::workspace::WORKSPACE_ROOT;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(Debug, Parser)]
 pub struct Options {}
 
 fn write_completions_file<G: Generator + Copy, P: AsRef<OsStr>>(generator: G, out_dir: P) {
-    let mut cmd = Cli::command().name("bpfman").version("0.4.0");
+    let mut cmd = Cli::command().name("bpfman").version(VERSION);
     clap_complete::generate_to(generator, &mut cmd, "bpfman", &out_dir)
         .expect("clap complete generation failed");
 }

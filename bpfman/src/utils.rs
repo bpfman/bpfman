@@ -213,7 +213,7 @@ pub(crate) fn open_config_file() -> Config {
             Config::default()
         })
     } else {
-        warn!("Unable to read config file, using defaults");
+        debug!("Unable to read config file, using defaults");
         Config::default()
     }
 }

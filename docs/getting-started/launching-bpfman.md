@@ -34,7 +34,6 @@ For more details on how logging is handled in bpfman, see [Logging](../developer
 sudo RUST_LOG=info ./target/debug/bpfman-rpc --timeout=0
 [INFO  bpfman::utils] Has CAP_BPF: true
 [INFO  bpfman::utils] Has CAP_SYS_ADMIN: true
-[WARN  bpfman::utils] Unable to read config file, using defaults
 [INFO  bpfman_rpc::serve] Using no inactivity timer
 [INFO  bpfman_rpc::serve] Using default Unix socket
 [INFO  bpfman_rpc::serve] Listening on /run/bpfman-sock/bpfman.sock
@@ -76,16 +75,12 @@ Mar 27 09:13:54 server-calvin systemd[1]: Listening on bpfman.socket - bpfman AP
 Mar 27 09:15:43 server-calvin systemd[1]: Started bpfman.service - Run bpfman as a service.
 Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Has CAP_BPF: true
 Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Has CAP_SYS_ADMIN: true
-Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Unable to read config file, using defaults
 Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Using a Unix socket from systemd
 Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Using inactivity timer of 15 seconds
 Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Listening on /run/bpfman-sock/bpfman.sock
-Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Unable to read config file, using defaults
-Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Unable to read config file, using defaults
 Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Starting Cosign Verifier, downloading data from Sigstore TUF repository
 Mar 27 09:15:45 server-calvin bpfman-rpc[2548091]: Loading program bytecode from file: /home/<USER>/src/bpfman/examples/go-kprobe-counter/bpf_bpfel.o
 Mar 27 09:15:45 server-calvin bpfman-rpc[2548091]: Added probe program with name: kprobe_counter and id: 7568
-Mar 27 09:15:48 server-calvin bpfman-rpc[2548091]: Unable to read config file, using defaults
 Mar 27 09:15:48 server-calvin bpfman-rpc[2548091]: Removing program with id: 7568
 Mar 27 09:15:58 server-calvin bpfman-rpc[2548091]: Shutdown Unix Handler /run/bpfman-sock/bpfman.sock
 Mar 27 09:15:58 server-calvin systemd[1]: bpfman.service: Deactivated successfully.

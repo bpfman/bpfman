@@ -2,7 +2,7 @@
 edition = "2021"
 name = "xtask"
 publish = false
-version = "0.1.0"
+version.workspace = true
 
 [dependencies]
 anyhow = { workspace = true, features = ["std"] }

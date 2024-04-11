@@ -50,7 +50,6 @@ To deploy `bpfman-rpc`:
 sudo RUST_LOG=info ./bpfman-rpc --timeout=0
 [INFO  bpfman::utils] Has CAP_BPF: true
 [INFO  bpfman::utils] Has CAP_SYS_ADMIN: true
-[WARN  bpfman::utils] Unable to read config file, using defaults
 [INFO  bpfman_rpc::serve] Using no inactivity timer
 [INFO  bpfman_rpc::serve] Using default Unix socket
 [INFO  bpfman_rpc::serve] Listening on /run/bpfman-sock/bpfman.sock
