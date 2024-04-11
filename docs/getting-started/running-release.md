@@ -48,7 +48,6 @@ To deploy `bpfman-rpc`:
 
 ```console
 sudo RUST_LOG=info ./bpfman-rpc --timeout=0
-[INFO  bpfman::utils] Log using env_logger
 [INFO  bpfman::utils] Has CAP_BPF: true
 [INFO  bpfman::utils] Has CAP_SYS_ADMIN: true
 [WARN  bpfman::utils] Unable to read config file, using defaults

@@ -2,12 +2,12 @@
 // Copyright Authors of bpfman
 
 use std::{
-    fs::{create_dir_all, remove_file},
+    fs::remove_file,
     os::unix::prelude::{FromRawFd, IntoRawFd},
     path::Path,
 };
 
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use bpfman::utils::{set_file_permissions, SOCK_MODE};
 use bpfman_api::v1::bpfman_server::BpfmanServer;
 use libsystemd::activation::IsType;
@@ -24,11 +24,6 @@ use tonic::transport::Server;
 
 use crate::{rpc::BpfmanLoader, storage::StorageManager};
 
-pub(crate) const RTDIR_SOCK: &str = "/run/bpfman-sock";
-// The CSI socket must be in it's own sub directory so we can easily create a dedicated
-// K8s volume mount for it.
-pub(crate) const RTDIR_BPFMAN_CSI: &str = "/run/bpfman/csi";
-
 pub async fn serve(csi_support: bool, timeout: u64, socket_path: &Path) -> anyhow::Result<()> {
     let (shutdown_tx, shutdown_rx1) = broadcast::channel(32);
     let shutdown_rx3 = shutdown_tx.subscribe();
@@ -43,8 +38,6 @@ pub async fn serve(csi_support: bool, timeout: u64, socket_path: &Path) -> anyho
     listeners.push(handle);
 
     if csi_support {
-        create_dir_all(RTDIR_BPFMAN_CSI).context("unable to create CSI directory")?;
-        create_dir_all(RTDIR_SOCK).context("unable to create socket directory")?;
         let storage_manager = StorageManager::new();
         let storage_manager_handle =
             tokio::spawn(async move { storage_manager.run(shutdown_rx3).await });

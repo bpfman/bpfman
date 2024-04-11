@@ -2,12 +2,10 @@
 // Copyright Authors of bpfman
 
 use std::{
-    env,
     fs::{create_dir_all, set_permissions, File, OpenOptions},
     io::{BufRead, BufReader, Read},
     os::unix::fs::{OpenOptionsExt, PermissionsExt},
     path::Path,
-    str::FromStr,
 };
 
 use anyhow::{bail, Context, Result};
@@ -19,9 +17,8 @@ use nix::{
     sys::resource::{setrlimit, Resource},
 };
 use sled::Tree;
-use systemd_journal_logger::{connected_to_journal, JournalLog};
 
-use crate::{config::Config, directories::*, errors::BpfmanError, BPFMAN_ENV_LOG_LEVEL};
+use crate::{config::Config, directories::*, errors::BpfmanError};
 
 // The bpfman socket should always allow the same users and members of the same group
 // to Read/Write to it.
@@ -246,20 +243,6 @@ fn is_bpffs_mounted() -> Result<bool, anyhow::Error> {
 }
 
 pub(crate) fn initialize_bpfman() -> anyhow::Result<()> {
-    if connected_to_journal() {
-        // If bpfman is running as a service, log to journald.
-        JournalLog::new()?
-            .with_extra_fields(vec![("VERSION", env!("CARGO_PKG_VERSION"))])
-            .install()
-            .unwrap();
-        manage_journal_log_level();
-        debug!("Log using journald");
-    } else {
-        // Ignore error if already initialized.
-        let _ = env_logger::try_init();
-        debug!("Log using env_logger");
-    }
-
     has_cap(caps::CapSet::Effective, caps::Capability::CAP_BPF);
     has_cap(caps::CapSet::Effective, caps::Capability::CAP_SYS_ADMIN);
 
@@ -293,17 +276,4 @@ pub(crate) fn initialize_bpfman() -> anyhow::Result<()> {
     set_dir_permissions(STDIR, STDIR_MODE);
 
     Ok(())
-}
-
-fn manage_journal_log_level() {
-    // env_logger uses the environment variable RUST_LOG to set the log
-    // level. Parse RUST_LOG to set the log level for journald.
-    log::set_max_level(log::LevelFilter::Error);
-    if env::var(BPFMAN_ENV_LOG_LEVEL).is_ok() {
-        let rust_log = log::LevelFilter::from_str(&env::var(BPFMAN_ENV_LOG_LEVEL).unwrap());
-        match rust_log {
-            Ok(value) => log::set_max_level(value),
-            Err(e) => log::error!("Invalid Log Level: {}", e),
-        }
-    }
 }

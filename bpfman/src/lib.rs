@@ -50,7 +50,6 @@ pub mod utils;
 const MAPS_MODE: u32 = 0o0660;
 const MAP_PREFIX: &str = "map_";
 const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
-pub(crate) const BPFMAN_ENV_LOG_LEVEL: &str = "RUST_LOG";
 
 pub(crate) mod directories {
     // The following directories are used by bpfman. They should be created by bpfman service
