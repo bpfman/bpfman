@@ -464,7 +464,7 @@ jobs:
           # prettier-ignore
           go-version: '1.21' # yamllint disable-line rule:quoted-strings
 
-      - uses: sigstore/cosign-installer@v3.4.0
+      - uses: sigstore/cosign-installer@v3.5.0
 
       - uses: actions/checkout@v4
         if: ${{ matrix.image.bpf_build_wrapper == 'rust' }}
