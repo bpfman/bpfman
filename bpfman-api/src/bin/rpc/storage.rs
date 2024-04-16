@@ -4,6 +4,7 @@
 use std::{
     collections::HashMap,
     fs::{create_dir_all, remove_dir_all, remove_file},
+    os::unix::fs::chown,
     path::Path,
 };
 
@@ -18,14 +19,14 @@ use bpfman::{
 use bpfman_csi::v1::{
     identity_server::{Identity, IdentityServer},
     node_server::{Node, NodeServer},
-    node_service_capability, GetPluginCapabilitiesRequest, GetPluginCapabilitiesResponse,
-    GetPluginInfoRequest, GetPluginInfoResponse, NodeExpandVolumeRequest, NodeExpandVolumeResponse,
-    NodeGetCapabilitiesRequest, NodeGetCapabilitiesResponse, NodeGetInfoRequest,
-    NodeGetInfoResponse, NodeGetVolumeStatsRequest, NodeGetVolumeStatsResponse,
-    NodePublishVolumeRequest, NodePublishVolumeResponse, NodeServiceCapability,
-    NodeStageVolumeRequest, NodeStageVolumeResponse, NodeUnpublishVolumeRequest,
-    NodeUnpublishVolumeResponse, NodeUnstageVolumeRequest, NodeUnstageVolumeResponse, ProbeRequest,
-    ProbeResponse,
+    node_service_capability, volume_capability, GetPluginCapabilitiesRequest,
+    GetPluginCapabilitiesResponse, GetPluginInfoRequest, GetPluginInfoResponse,
+    NodeExpandVolumeRequest, NodeExpandVolumeResponse, NodeGetCapabilitiesRequest,
+    NodeGetCapabilitiesResponse, NodeGetInfoRequest, NodeGetInfoResponse,
+    NodeGetVolumeStatsRequest, NodeGetVolumeStatsResponse, NodePublishVolumeRequest,
+    NodePublishVolumeResponse, NodeServiceCapability, NodeStageVolumeRequest,
+    NodeStageVolumeResponse, NodeUnpublishVolumeRequest, NodeUnpublishVolumeResponse,
+    NodeUnstageVolumeRequest, NodeUnstageVolumeResponse, ProbeRequest, ProbeResponse,
 };
 use log::{debug, error, info, warn};
 use nix::mount::{mount, umount, MsFlags};
@@ -110,6 +111,16 @@ impl Node for CsiNode {
     ) -> std::result::Result<Response<NodePublishVolumeResponse>, tonic::Status> {
         let req = request.get_ref();
         let volume_cap = &req.volume_capability;
+        let fs_group = volume_cap.as_ref().and_then(|volume_capability| {
+            volume_capability
+                .access_type
+                .as_ref()
+                .and_then(|at| match at {
+                    volume_capability::AccessType::Mount(v) => Some(&v.volume_mount_group),
+                    _ => None,
+                })
+        });
+
         let volume_id = &req.volume_id;
         let target_path = &req.target_path;
         let volume_context = &req.volume_context;
@@ -122,7 +133,8 @@ impl Node for CsiNode {
                 volume_id: {volume_id},\n\
                 target_path: {target_path},\n\
                 volume_context: {volume_context:#?},\n\
-                read_only: {read_only}"
+                read_only: {read_only}, \n
+                fs_group: {fs_group:?}"
         );
 
         match (
@@ -187,8 +199,13 @@ impl Node for CsiNode {
                     )
                 })?;
 
+                // Allow unprivileged container to access the bpffs
+                if let Some(fs_group) = fs_group {
+                    debug!("Setting GID of bpffs {} to {fs_group}", path.display());
+                    chown(path, None, fs_group.parse().ok())?;
+                };
+
                 // Load the desired maps from the fs and re-pin to new fs.
-                // TODO(astoycos) all aya calls should be completed by main bpfManager thread.
                 maps.iter().try_for_each(|m| {
                     debug!("Loading map {m} from {core_map_path:?}");
                     let map = MapData::from_pin(core_map_path.join(m)).map_err(|e| {
@@ -198,14 +215,26 @@ impl Node for CsiNode {
                         )
                     })?;
                     debug!("Re-pinning map {m} to {path:?}");
-                    map.pin(path.join(m)).map_err(|e| {
+                    let map_path = path.join(m);
+                    map.pin(&map_path).map_err(|e| {
                         Status::new(
                             NPV_NOT_FOUND.into(),
                             format!(
                                 "failed re-pinning map {m} for {program_name}'s bpf-fs: {e:#?}"
                             ),
                         )
-                    })
+                    })?;
+
+                    // Ensure unprivileged container access to bpffs pins
+                    if let Some(fs_group) = fs_group {
+                        debug!(
+                            "Setting GID and permissions of map {} to {fs_group} and 0660",
+                            map_path.display()
+                        );
+                        chown(&map_path, None, fs_group.parse().ok())?;
+                        set_file_permissions(&map_path, 0o0660)
+                    };
+                    Ok::<(), Status>(())
                 })?;
 
                 // mount the bpffs into the container
@@ -298,7 +327,7 @@ impl Node for CsiNode {
             capabilities: vec![NodeServiceCapability {
                 r#type: Some(node_service_capability::Type::Rpc(
                     node_service_capability::Rpc {
-                        r#type: node_service_capability::rpc::Type::Unknown.into(),
+                        r#type: node_service_capability::rpc::Type::VolumeMountGroup.into(),
                     },
                 )),
             }],
@@ -408,6 +437,7 @@ pub(crate) fn unmount(directory: &str) -> anyhow::Result<()> {
 pub(crate) fn mount_fs_in_container(path: &str, target_path: &str) -> anyhow::Result<()> {
     debug!("Mounting {path} at {target_path}");
     let flags = MsFlags::MS_BIND;
+
     mount::<str, str, str, str>(Some(path), target_path, None, flags, None)
         .with_context(|| format!("unable to mount bpffs {path} in container at {target_path}"))
 }

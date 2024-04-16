@@ -27,9 +27,11 @@ spec:
         name: go-tc-counter
     spec:
       nodeSelector: {}
-      hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       serviceAccountName: bpfman-app-go-tc-counter
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 65534
       tolerations:
         # these tolerations are to have the daemonset runnable on control plane nodes
         # remove them if your control plane nodes should not run pods
@@ -44,7 +46,11 @@ spec:
           image: quay.io/bpfman-userspace/go-tc-counter:latest
           imagePullPolicy: IfNotPresent
           securityContext:
-            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            runAsUser: 65534
+            runAsGroup: 65534
           env:
             - name: NODENAME
               valueFrom:

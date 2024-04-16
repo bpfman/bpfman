@@ -27,8 +27,10 @@ spec:
         name: go-tracepoint-counter
     spec:
       nodeSelector: {}
-      hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 65534
       serviceAccountName: bpfman-app-go-tracepoint-counter
       tolerations:
         # these tolerations are to have the daemonset runnable on control plane nodes
@@ -44,7 +46,11 @@ spec:
           image: quay.io/bpfman-userspace/go-tracepoint-counter:latest
           imagePullPolicy: IfNotPresent
           securityContext:
-            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            runAsUser: 65534
+            runAsGroup: 65534
           env:
             - name: NODENAME
               valueFrom:
