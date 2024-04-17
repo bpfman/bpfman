@@ -76,6 +76,12 @@ tar -xoaf %{SOURCE1}
 install -Dpm 0755 \
     -t %{buildroot}%{_sbindir} \
     ./target/release/bpfman
+install -Dpm 0755 \
+    -t %{buildroot}%{_sbindir} \
+    ./target/release/bpfman-ns
+install -Dpm 0755 \
+    -t %{buildroot}%{_sbindir} \
+    ./target/release/bpfman-rpc
 install -Dpm 644 \
     -t %{buildroot}%{_unitdir} \
     ./scripts/bpfman.socket
@@ -100,6 +106,8 @@ install -Dpm 644 \
 %license cargo-vendor.txt
 %doc README.md
 %{_sbindir}/bpfman
+%{_sbindir}/bpfman-ns
+%{_sbindir}/bpfman-rpc
 %{_unitdir}/bpfman.socket
 %{_unitdir}/bpfman.service
 
