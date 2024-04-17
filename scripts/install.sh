@@ -24,7 +24,7 @@ copy_bin() {
         return
     fi
 
-    echo "  Copying \"${src_path}/${bin_name}\" to \"${DST_BIN_PATH}\""
+    echo "  Copying \"${src_path}/${bin_name}\" to \"${DST_BIN_PATH}/.\""
     cp "${src_path}/${bin_name}" "${DST_BIN_PATH}/${bin_name}"
 }
 
@@ -48,7 +48,7 @@ copy_svc() {
         exit 1
     fi
 
-    echo "  Copying \"${svc_file}\""
+    echo "  Copying \"${svc_file}\" to \"${DST_SVC_PATH}/.\""
     cp "${svc_file}" "${DST_SVC_PATH}/${svc_file}"
     systemctl daemon-reload
 }
@@ -78,7 +78,7 @@ copy_cli_tab_completion() {
     #if [ -d ${SRC_CLI_TAB_COMPLETE_PATH} ] && [ "$(find ${SRC_CLI_TAB_COMPLETE_PATH} -mindepth 1 -maxdepth 1)" ]; then
         case $SHELL in
         "/bin/bash")
-            echo "  Copying \"${SRC_CLI_TAB_COMPLETE_PATH}}/bpfman.bash\" to \"${DST_CLI_TAB_COMPLETE_PATH}/.\""
+            echo "  Copying \"${SRC_CLI_TAB_COMPLETE_PATH}/bpfman.bash\" to \"${DST_CLI_TAB_COMPLETE_PATH}/.\""
             cp ${SRC_CLI_TAB_COMPLETE_PATH}/bpfman.bash ${DST_CLI_TAB_COMPLETE_PATH}/.
             ;;
 
@@ -103,7 +103,7 @@ del_cli_tab_completion() {
 copy_manpages() {
     if [ -d ${SRC_MANPAGE_PATH} ] && [ "$(ls -A ${SRC_MANPAGE_PATH})" ]; then
     #if [ -d ${SRC_MANPAGE_PATH} ] && [ -z "$(find ${SRC_MANPAGE_PATH} -mindepth 1 -maxdepth 1)" ]; then
-        echo "  Copying \"${SRC_MANPAGE_PATH}\" to \"${DST_MANPAGE_PATH}\""
+        echo "  Copying \"${SRC_MANPAGE_PATH}/*\" to \"${DST_MANPAGE_PATH}/.\""
         rm ${DST_MANPAGE_PATH}/bpfman*.1  &>/dev/null
         cp ${SRC_MANPAGE_PATH}/bpfman*.1 ${DST_MANPAGE_PATH}/.
     else
@@ -179,6 +179,7 @@ uninstall() {
     echo "Remove binaries:"
     del_bin "${BIN_BPFMAN}"
     del_bin "${BIN_BPFMAN_RPC}"
+    del_bin "${BIN_BPFMAN_NS}"
 
     del_kubectl_plugin
 
