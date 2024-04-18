@@ -33,3 +33,4 @@ resources:
   - ../bpfman-operator-deployment
   - ../bpfman-deployment
   - rbac.yaml
+  - user-scc.yaml

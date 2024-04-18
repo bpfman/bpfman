@@ -177,22 +177,21 @@ IMAGE_UP_US ?= quay.io/bpfman-userspace/go-uprobe-counter:latest
 IMAGE_URP_BC ?= quay.io/bpfman-bytecode/go-uretprobe-counter:latest
 IMAGE_URP_US ?= quay.io/bpfman-userspace/go-uretprobe-counter:latest
 IMAGE_GT_US ?= quay.io/bpfman-userspace/go-target:latest
-KUST_DIR=default
 KIND_CLUSTER_NAME ?= bpfman-deployment
 
 
 .PHONY: deploy-prog
 deploy-prog: kustomize
 ifndef TAG
-	sed 's@URL_BC@$(IMAGE_BC)@' config/default/$(CONFIG_DIR)/patch.yaml.env > config/default/$(CONFIG_DIR)/patch.yaml
-	cd config/default/$(CONFIG_DIR) && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/$(PROG_NAME)=${IMAGE_US}
+	sed 's@URL_BC@$(IMAGE_BC)@' config/$(CONFIG_DIR)/patch.yaml.env > config/$(CONFIG_DIR)/patch.yaml
+	cd config/$(CONFIG_DIR) && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/$(PROG_NAME)=${IMAGE_US}
 else
 	$(eval KUST_DIR=$(TAG))
 endif
-	@if [ -f config/$(KUST_DIR)/$(CONFIG_DIR)/kustomization.yaml ]; then \
-		$(KUSTOMIZE) build config/$(KUST_DIR)/$(CONFIG_DIR) | kubectl apply -f - ; \
+	@if [ -f config/$(CONFIG_DIR)/kustomization.yaml ]; then \
+		$(KUSTOMIZE) build config/$(CONFIG_DIR) | kubectl apply -f - ; \
 	else \
-		echo "Version $(KUST_DIR) not supported for program $(PROG_NAME)" ; \
+		echo "Manifests $(CONFIG_DIR) do not exist for program $(PROG_NAME)" ; \
 		exit 1 ; \
 	fi
 
@@ -200,28 +199,28 @@ endif
 .PHONY: undeploy-prog
 undeploy-prog:
 ifndef TAG
-	sed 's@URL_BC@$(IMAGE_BC)@' config/default/$(CONFIG_DIR)/patch.yaml.env > config/default/$(CONFIG_DIR)/patch.yaml
-	cd config/default/$(CONFIG_DIR) && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/$(PROG_NAME)=${IMAGE_US}
+	sed 's@URL_BC@$(IMAGE_BC)@' config/$(CONFIG_DIR)/patch.yaml.env > config/$(CONFIG_DIR)/patch.yaml
+	cd config/$(CONFIG_DIR) && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/$(PROG_NAME)=${IMAGE_US}
 else
-	$(eval KUST_DIR=$(TAG))
+	$(eval CONFIG_DIR=$(TAG))
 endif
-	@if [ -f config/$(KUST_DIR)/$(CONFIG_DIR)/kustomization.yaml ]; then \
-		$(KUSTOMIZE) build config/$(KUST_DIR)/$(CONFIG_DIR) | kubectl delete --ignore-not-found=$(ignore-not-found) -f -; \
+	@if [ -f config/$(CONFIG_DIR)/kustomization.yaml ]; then \
+		$(KUSTOMIZE) build config/$(CONFIG_DIR) | kubectl delete --ignore-not-found=$(ignore-not-found) -f -; \
 	else \
-		echo "Version $(KUST_DIR) not supported for program $(PROG_NAME)" ; \
+		echo "Manifests $(CONFIG_DIR) does not exist for program $(PROG_NAME)" ; \
 		exit 1 ; \
 	fi
 
 .PHONY: deploy-tc
 deploy-tc: PROG_NAME=go-tc-counter
-deploy-tc: CONFIG_DIR=$(PROG_NAME)
+deploy-tc: CONFIG_DIR=default/$(PROG_NAME)
 deploy-tc: IMAGE_BC=$(IMAGE_TC_BC)
 deploy-tc: IMAGE_US=$(IMAGE_TC_US)
 deploy-tc: deploy-prog ## Deploy go-tc-counter to the cluster specified in ~/.kube/config.
 
 .PHONY: undeploy-tc
 undeploy-tc: PROG_NAME=go-tc-counter
-undeploy-tc: CONFIG_DIR=$(PROG_NAME)
+undeploy-tc: CONFIG_DIR=default/$(PROG_NAME)
 undeploy-tc: IMAGE_BC=$(IMAGE_TC_BC)
 undeploy-tc: IMAGE_US=$(IMAGE_TC_US)
 undeploy-tc: undeploy-prog ## Undeploy go-tc-counter from the cluster specified in ~/.kube/config.
@@ -229,14 +228,14 @@ undeploy-tc: undeploy-prog ## Undeploy go-tc-counter from the cluster specified 
 
 .PHONY: deploy-tracepoint
 deploy-tracepoint: PROG_NAME=go-tracepoint-counter
-deploy-tracepoint: CONFIG_DIR=$(PROG_NAME)
+deploy-tracepoint: CONFIG_DIR=default/$(PROG_NAME)
 deploy-tracepoint: IMAGE_BC=$(IMAGE_TP_BC)
 deploy-tracepoint: IMAGE_US=$(IMAGE_TP_US)
 deploy-tracepoint: deploy-prog ## Deploy go-tracepoint-counter to the cluster specified in ~/.kube/config.
 
 .PHONY: undeploy-tracepoint
 undeploy-tracepoint: PROG_NAME=go-tracepoint-counter
-undeploy-tracepoint: CONFIG_DIR=$(PROG_NAME)
+undeploy-tracepoint: CONFIG_DIR=default/$(PROG_NAME)
 undeploy-tracepoint: IMAGE_BC=$(IMAGE_TP_BC)
 undeploy-tracepoint: IMAGE_US=$(IMAGE_TP_US)
 undeploy-tracepoint: undeploy-prog ## Undeploy go-tracepoint-counter from the cluster specified in ~/.kube/config.
@@ -244,14 +243,14 @@ undeploy-tracepoint: undeploy-prog ## Undeploy go-tracepoint-counter from the cl
 
 .PHONY: deploy-xdp
 deploy-xdp: PROG_NAME=go-xdp-counter
-deploy-xdp: CONFIG_DIR=$(PROG_NAME)
+deploy-xdp: CONFIG_DIR=default/$(PROG_NAME)
 deploy-xdp: IMAGE_BC=$(IMAGE_XDP_BC)
 deploy-xdp: IMAGE_US=$(IMAGE_XDP_US)
 deploy-xdp: deploy-prog ## Deploy go-xdp-counter to the cluster specified in ~/.kube/config.
 
 .PHONY: undeploy-xdp
 undeploy-xdp: PROG_NAME=go-xdp-counter
-undeploy-xdp: CONFIG_DIR=$(PROG_NAME)
+undeploy-xdp: CONFIG_DIR=default/$(PROG_NAME)
 undeploy-xdp: IMAGE_BC=$(IMAGE_XDP_BC)
 undeploy-xdp: IMAGE_US=$(IMAGE_XDP_US)
 undeploy-xdp: undeploy-prog ## Undeploy go-xdp-counter from the cluster specified in ~/.kube/config.
@@ -259,14 +258,14 @@ undeploy-xdp: undeploy-prog ## Undeploy go-xdp-counter from the cluster specifie
 
 .PHONY: deploy-xdp-ms
 deploy-xdp-ms: PROG_NAME=go-xdp-counter
-deploy-xdp-ms: CONFIG_DIR=go-xdp-counter-sharing-map
+deploy-xdp-ms: CONFIG_DIR=default/go-xdp-counter-sharing-map
 deploy-xdp-ms: IMAGE_BC=$(IMAGE_XDP_BC)
 deploy-xdp-ms: IMAGE_US=$(IMAGE_XDP_US)
 deploy-xdp-ms: deploy-prog ## Deploy go-xdp-counter-sharing-map (shares map with go-xdp-counter) to the cluster specified in ~/.kube/config.
 
 .PHONY: undeploy-xdp-ms
 undeploy-xdp-ms: PROG_NAME=go-xdp-counter
-undeploy-xdp-ms: CONFIG_DIR=go-xdp-counter-sharing-map
+undeploy-xdp-ms: CONFIG_DIR=default/go-xdp-counter-sharing-map
 undeploy-xdp-ms: IMAGE_BC=$(IMAGE_XDP_BC)
 undeploy-xdp-ms: IMAGE_US=$(IMAGE_XDP_US)
 undeploy-xdp-ms: undeploy-prog ## Undeploy go-xdp-counter-sharing-map from the cluster specified in ~/.kube/config.
@@ -274,14 +273,14 @@ undeploy-xdp-ms: undeploy-prog ## Undeploy go-xdp-counter-sharing-map from the c
 
 .PHONY: deploy-kprobe
 deploy-kprobe: PROG_NAME=go-kprobe-counter
-deploy-kprobe: CONFIG_DIR=$(PROG_NAME)
+deploy-kprobe: CONFIG_DIR=default/$(PROG_NAME)
 deploy-kprobe: IMAGE_BC=$(IMAGE_KP_BC)
 deploy-kprobe: IMAGE_US=$(IMAGE_KP_US)
 deploy-kprobe: deploy-prog ## Deploy go-kprobe-counter to the cluster specified in ~/.kube/config.
 
 .PHONY: undeploy-kprobe
 undeploy-kprobe: PROG_NAME=go-kprobe-counter
-undeploy-kprobe: CONFIG_DIR=$(PROG_NAME)
+undeploy-kprobe: CONFIG_DIR=default/$(PROG_NAME)
 undeploy-kprobe: IMAGE_BC=$(IMAGE_KP_BC)
 undeploy-kprobe: IMAGE_US=$(IMAGE_KP_US)
 undeploy-kprobe: undeploy-prog ## Undeploy go-kprobe-counter from the cluster specified in ~/.kube/config.
@@ -289,32 +288,134 @@ undeploy-kprobe: undeploy-prog ## Undeploy go-kprobe-counter from the cluster sp
 
 .PHONY: deploy-uprobe
 deploy-uprobe: PROG_NAME=go-uprobe-counter
-deploy-uprobe: CONFIG_DIR=$(PROG_NAME)
+deploy-uprobe: CONFIG_DIR=default/$(PROG_NAME)
 deploy-uprobe: IMAGE_BC=$(IMAGE_UP_BC)
 deploy-uprobe: IMAGE_US=$(IMAGE_UP_US)
 deploy-uprobe: deploy-prog ## Deploy go-uprobe-counter to the cluster specified in ~/.kube/config.
 
 .PHONY: undeploy-uprobe
 undeploy-uprobe: PROG_NAME=go-uprobe-counter
-undeploy-uprobe: CONFIG_DIR=$(PROG_NAME)
+undeploy-uprobe: CONFIG_DIR=default/$(PROG_NAME)
 undeploy-uprobe: IMAGE_BC=$(IMAGE_UP_BC)
 undeploy-uprobe: IMAGE_US=$(IMAGE_UP_US)
 undeploy-uprobe: undeploy-prog ## Undeploy go-uprobe-counter from the cluster specified in ~/.kube/config.
 
 .PHONY: deploy-uretprobe
 deploy-uretprobe: PROG_NAME=go-uretprobe-counter
-deploy-uretprobe: CONFIG_DIR=$(PROG_NAME)
+deploy-uretprobe: CONFIG_DIR=default/$(PROG_NAME)
 deploy-uretprobe: IMAGE_BC=$(IMAGE_URP_BC)
 deploy-uretprobe: IMAGE_US=$(IMAGE_URP_US)
 deploy-uretprobe: deploy-prog ## Deploy go-uretprobe-counter to the cluster specified in ~/.kube/config.
 
 .PHONY: undeploy-uretprobe
 undeploy-uretprobe: PROG_NAME=go-uretprobe-counter
-undeploy-uretprobe: CONFIG_DIR=$(PROG_NAME)
+undeploy-uretprobe: CONFIG_DIR=default/$(PROG_NAME)
 undeploy-uretprobe: IMAGE_BC=$(IMAGE_URP_BC)
 undeploy-uretprobe: IMAGE_US=$(IMAGE_URP_US)
 undeploy-uretprobe: undeploy-prog ## Undeploy go-uretprobe-counter from the cluster specified in ~/.kube/config.
 
+.PHONY: deploy-tc-selinux
+deploy-tc-selinux: PROG_NAME=go-tc-counter
+deploy-tc-selinux: CONFIG_DIR=selinux/$(PROG_NAME)
+deploy-tc-selinux: IMAGE_BC=$(IMAGE_TC_BC)
+deploy-tc-selinux: IMAGE_US=$(IMAGE_TC_US)
+deploy-tc-selinux: deploy-prog ## Deploy go-tc-counter to the cluster specified in ~/.kube/config.
+
+.PHONY: undeploy-tc-selinux
+undeploy-tc-selinux: PROG_NAME=go-tc-counter
+undeploy-tc-selinux: CONFIG_DIR=selinux/$(PROG_NAME)
+undeploy-tc-selinux: IMAGE_BC=$(IMAGE_TC_BC)
+undeploy-tc-selinux: IMAGE_US=$(IMAGE_TC_US)
+undeploy-tc-selinux: undeploy-prog ## Undeploy go-tc-counter from the cluster specified in ~/.kube/config.
+
+
+.PHONY: deploy-tracepoint-selinux
+deploy-tracepoint-selinux: PROG_NAME=go-tracepoint-counter
+deploy-tracepoint-selinux: CONFIG_DIR=selinux/$(PROG_NAME)
+deploy-tracepoint-selinux: IMAGE_BC=$(IMAGE_TP_BC)
+deploy-tracepoint-selinux: IMAGE_US=$(IMAGE_TP_US)
+deploy-tracepoint-selinux: deploy-prog ## Deploy go-tracepoint-counter to the cluster specified in ~/.kube/config.
+
+.PHONY: undeploy-tracepoint-selinux
+undeploy-tracepoint-selinux: PROG_NAME=go-tracepoint-counter
+undeploy-tracepoint-selinux: CONFIG_DIR=selinux/$(PROG_NAME)
+undeploy-tracepoint-selinux: IMAGE_BC=$(IMAGE_TP_BC)
+undeploy-tracepoint-selinux: IMAGE_US=$(IMAGE_TP_US)
+undeploy-tracepoint-selinux: undeploy-prog ## Undeploy go-tracepoint-counter from the cluster specified in ~/.kube/config.
+
+
+.PHONY: deploy-xdp-selinux
+deploy-xdp-selinux: PROG_NAME=go-xdp-counter
+deploy-xdp-selinux: CONFIG_DIR=selinux/$(PROG_NAME)
+deploy-xdp-selinux: IMAGE_BC=$(IMAGE_XDP_BC)
+deploy-xdp-selinux: IMAGE_US=$(IMAGE_XDP_US)
+deploy-xdp-selinux: deploy-prog ## Deploy go-xdp-counter to the cluster specified in ~/.kube/config.
+
+.PHONY: undeploy-xdp-selinux
+undeploy-xdp-selinux: PROG_NAME=go-xdp-counter
+undeploy-xdp-selinux: CONFIG_DIR=selinux/$(PROG_NAME)
+undeploy-xdp-selinux: IMAGE_BC=$(IMAGE_XDP_BC)
+undeploy-xdp-selinux: IMAGE_US=$(IMAGE_XDP_US)
+undeploy-xdp-selinux: undeploy-prog ## Undeploy go-xdp-counter from the cluster specified in ~/.kube/config.
+
+
+.PHONY: deploy-xdp-ms-selinux
+deploy-xdp-ms-selinux: PROG_NAME=go-xdp-counter
+deploy-xdp-ms-selinux: CONFIG_DIR=selinux/go-xdp-counter-sharing-map
+deploy-xdp-ms-selinux: IMAGE_BC=$(IMAGE_XDP_BC)
+deploy-xdp-ms-selinux: IMAGE_US=$(IMAGE_XDP_US)
+deploy-xdp-ms-selinux: deploy-prog ## Deploy go-xdp-counter-sharing-map (shares map with go-xdp-counter) to the cluster specified in ~/.kube/config.
+
+.PHONY: undeploy-xdp-ms-selinux
+undeploy-xdp-ms-selinux: PROG_NAME=go-xdp-counter
+undeploy-xdp-ms-selinux: CONFIG_DIR=selinux/go-xdp-counter-sharing-map
+undeploy-xdp-ms-selinux: IMAGE_BC=$(IMAGE_XDP_BC)
+undeploy-xdp-ms-selinux: IMAGE_US=$(IMAGE_XDP_US)
+undeploy-xdp-ms-selinux: undeploy-prog ## Undeploy go-xdp-counter-sharing-map from the cluster specified in ~/.kube/config.
+
+
+.PHONY: deploy-kprobe-selinux
+deploy-kprobe-selinux: PROG_NAME=go-kprobe-counter
+deploy-kprobe-selinux: CONFIG_DIR=selinux/$(PROG_NAME)
+deploy-kprobe-selinux: IMAGE_BC=$(IMAGE_KP_BC)
+deploy-kprobe-selinux: IMAGE_US=$(IMAGE_KP_US)
+deploy-kprobe-selinux: deploy-prog ## Deploy go-kprobe-counter to the cluster specified in ~/.kube/config.
+
+.PHONY: undeploy-kprobe-selinux
+undeploy-kprobe-selinux: PROG_NAME=go-kprobe-counter
+undeploy-kprobe-selinux: CONFIG_DIR=selinux/$(PROG_NAME)
+undeploy-kprobe-selinux: IMAGE_BC=$(IMAGE_KP_BC)
+undeploy-kprobe-selinux: IMAGE_US=$(IMAGE_KP_US)
+undeploy-kprobe-selinux: undeploy-prog ## Undeploy go-kprobe-counter from the cluster specified in ~/.kube/config.
+
+
+.PHONY: deploy-uprobe-selinux
+deploy-uprobe-selinux: PROG_NAME=go-uprobe-counter
+deploy-uprobe-selinux: CONFIG_DIR=selinux/$(PROG_NAME)
+deploy-uprobe-selinux: IMAGE_BC=$(IMAGE_UP_BC)
+deploy-uprobe-selinux: IMAGE_US=$(IMAGE_UP_US)
+deploy-uprobe-selinux: deploy-prog ## Deploy go-uprobe-counter to the cluster specified in ~/.kube/config.
+
+.PHONY: undeploy-uprobe-selinux
+undeploy-uprobe-selinux: PROG_NAME=go-uprobe-counter
+undeploy-uprobe-selinux: CONFIG_DIR=selinux/$(PROG_NAME)
+undeploy-uprobe-selinux: IMAGE_BC=$(IMAGE_UP_BC)
+undeploy-uprobe-selinux: IMAGE_US=$(IMAGE_UP_US)
+undeploy-uprobe-selinux: undeploy-prog ## Undeploy go-uprobe-counter from the cluster specified in ~/.kube/config.
+
+.PHONY: deploy-uretprobe-selinux
+deploy-uretprobe-selinux: PROG_NAME=go-uretprobe-counter
+deploy-uretprobe-selinux: CONFIG_DIR=selinux/$(PROG_NAME)
+deploy-uretprobe-selinux: IMAGE_BC=$(IMAGE_URP_BC)
+deploy-uretprobe-selinux: IMAGE_US=$(IMAGE_URP_US)
+deploy-uretprobe-selinux: deploy-prog ## Deploy go-uretprobe-counter to the cluster specified in ~/.kube/config.
+
+.PHONY: undeploy-uretprobe-selinux
+undeploy-uretprobe-selinux: PROG_NAME=go-uretprobe-counter
+undeploy-uretprobe-selinux: CONFIG_DIR=selinux/$(PROG_NAME)
+undeploy-uretprobe-selinux: IMAGE_BC=$(IMAGE_URP_BC)
+undeploy-uretprobe-selinux: IMAGE_US=$(IMAGE_URP_US)
+undeploy-uretprobe-selinux: undeploy-prog ## Undeploy go-uretprobe-counter from the cluster specified in ~/.kube/config.
 
 .PHONY: deploy-target
 deploy-target: ## Deploy go-target to the cluster specified in ~/.kube/config.

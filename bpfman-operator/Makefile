@@ -263,6 +263,7 @@ bundle: operator-sdk generate kustomize manifests ## Generate bundle manifests a
 	cd config/bpfman-operator-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-operator=${BPFMAN_OPERATOR_IMG}
 	cd config/bpfman-deployment && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman=${BPFMAN_IMG} && $(KUSTOMIZE) edit set image quay.io/bpfman/bpfman-agent=${BPFMAN_AGENT_IMG}
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
+	cp config/manifests/dependencies.yaml bundle/metadata/
 	$(OPERATOR_SDK) bundle validate ./bundle
 
 .PHONY: build-release-yamls

@@ -1,0 +1,6 @@
+dependencies:
+  - type: olm.gvk
+    value:
+      group: security-profiles-operator.x-k8s.io
+      kind: SelinuxProfile
+      version: v1alpha2
