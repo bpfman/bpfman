@@ -99,6 +99,7 @@ build: fmt ## Build all the userspace example code.
 	go build -o go-xdp-counter/go-xdp-counter go-xdp-counter/main.go
 	go build -o go-kprobe-counter/go-kprobe-counter go-kprobe-counter/main.go
 	go build -o go-uprobe-counter/go-uprobe-counter go-uprobe-counter/main.go
+	go build -o go-uretprobe-counter/go-uretprobe-counter go-uretprobe-counter/main.go
 	go build -o go-target/go-target go-target/main.go
 
 .PHONY: generate
@@ -112,12 +113,13 @@ build-us-images: ## Build all example userspace images
 	docker build -t ${IMAGE_XDP_US} -f ./go-xdp-counter/container-deployment/Containerfile.go-xdp-counter ../
 	docker build -t ${IMAGE_KP_US} -f ./go-kprobe-counter/container-deployment/Containerfile.go-kprobe-counter ../
 	docker build -t ${IMAGE_UP_US} -f ./go-uprobe-counter/container-deployment/Containerfile.go-uprobe-counter ../
+	docker build -t ${IMAGE_URP_US} -f ./go-uretprobe-counter/container-deployment/Containerfile.go-uretprobe-counter ../
 	docker build -t ${IMAGE_GT_US} -f ./go-target/container-deployment/Containerfile.go-target ../
 
 
 .PHONY: build-bc-images
 build-bc-images: generate ## Build bytecode example userspace images
-	IMAGE_TC_BC=${IMAGE_TC_BC} IMAGE_TP_BC=${IMAGE_TP_BC} IMAGE_XDP_BC=${IMAGE_XDP_BC} IMAGE_KP_BC=${IMAGE_KP_BC} IMAGE_UP_BC=${IMAGE_UP_BC} ./build-bytecode-images.sh
+	IMAGE_TC_BC=${IMAGE_TC_BC} IMAGE_TP_BC=${IMAGE_TP_BC} IMAGE_XDP_BC=${IMAGE_XDP_BC} IMAGE_KP_BC=${IMAGE_KP_BC} IMAGE_UP_BC=${IMAGE_UP_BC}  IMAGE_URP_BC=${IMAGE_URP_BC} ./build-bytecode-images.sh
 
 .PHONY: push-us-images
 push-us-images: ## Push all example userspace images
@@ -126,6 +128,7 @@ push-us-images: ## Push all example userspace images
 	docker push ${IMAGE_XDP_US}
 	docker push ${IMAGE_KP_US}
 	docker push ${IMAGE_UP_US}
+	docker push ${IMAGE_URP_US}
 	docker push ${IMAGE_GT_US}
 
 .PHONY: push-bc-images
@@ -135,6 +138,7 @@ push-bc-images: ## Push all example bytecode images
 	docker push ${IMAGE_XDP_BC}
 	docker push ${IMAGE_KP_BC}
 	docker push ${IMAGE_UP_BC}
+	docker push ${IMAGE_URP_BC}
 
 
 .PHONY: load-us-images-kind
@@ -153,6 +157,8 @@ IMAGE_KP_BC: ## Kprobe Bytecode image. Example: make deploy-kprobe IMAGE_KP_BC=q
 IMAGE_KP_US: ## Kprobe Userspace image. Example: make deploy-kprobe IMAGE_KP_US=quay.io/user1/go-kprobe-counter-userspace:test
 IMAGE_UP_BC: ## Uprobe Bytecode image. Example: make deploy-uprobe IMAGE_UP_BC=quay.io/user1/go-uprobe-counter-bytecode:test
 IMAGE_UP_US: ## Uprobe Userspace image. Example: make deploy-uprobe IMAGE_UP_US=quay.io/user1/go-uprobe-counter-userspace:test
+IMAGE_URP_BC: ## URetprobe Userspace image. Example: make deploy-uretprobe IMAGE_URP_BC=quay.io/user1/go-uretprobe-counter-bytecode:test
+IMAGE_URP_US: ## URetprobe Userspace image. Example: make deploy-uretprobe IMAGE_URP_US=quay.io/user1/go-uretprobe-counter-userspace:test
 IMAGE_GT_US: ## Uprobe Userspace target. Example: make deploy-target IMAGE_GT_US=quay.io/user1/go-target-userspace:test
 KIND_CLUSTER_NAME: ## Name of the deployed cluster to load example images to, defaults to `bpfman-deployment`
 ignore-not-found: ## For any undeploy command, set to true to ignore resource not found errors during deletion. Example: make undeploy ignore-not-found=true
@@ -168,6 +174,8 @@ IMAGE_KP_BC ?= quay.io/bpfman-bytecode/go-kprobe-counter:latest
 IMAGE_KP_US ?= quay.io/bpfman-userspace/go-kprobe-counter:latest
 IMAGE_UP_BC ?= quay.io/bpfman-bytecode/go-uprobe-counter:latest
 IMAGE_UP_US ?= quay.io/bpfman-userspace/go-uprobe-counter:latest
+IMAGE_URP_BC ?= quay.io/bpfman-bytecode/go-uretprobe-counter:latest
+IMAGE_URP_US ?= quay.io/bpfman-userspace/go-uretprobe-counter:latest
 IMAGE_GT_US ?= quay.io/bpfman-userspace/go-target:latest
 KUST_DIR=default
 KIND_CLUSTER_NAME ?= bpfman-deployment
@@ -293,6 +301,20 @@ undeploy-uprobe: IMAGE_BC=$(IMAGE_UP_BC)
 undeploy-uprobe: IMAGE_US=$(IMAGE_UP_US)
 undeploy-uprobe: undeploy-prog ## Undeploy go-uprobe-counter from the cluster specified in ~/.kube/config.
 
+.PHONY: deploy-uretprobe
+deploy-uretprobe: PROG_NAME=go-uretprobe-counter
+deploy-uretprobe: CONFIG_DIR=$(PROG_NAME)
+deploy-uretprobe: IMAGE_BC=$(IMAGE_URP_BC)
+deploy-uretprobe: IMAGE_US=$(IMAGE_URP_US)
+deploy-uretprobe: deploy-prog ## Deploy go-uretprobe-counter to the cluster specified in ~/.kube/config.
+
+.PHONY: undeploy-uretprobe
+undeploy-uretprobe: PROG_NAME=go-uretprobe-counter
+undeploy-uretprobe: CONFIG_DIR=$(PROG_NAME)
+undeploy-uretprobe: IMAGE_BC=$(IMAGE_URP_BC)
+undeploy-uretprobe: IMAGE_US=$(IMAGE_URP_US)
+undeploy-uretprobe: undeploy-prog ## Undeploy go-uretprobe-counter from the cluster specified in ~/.kube/config.
+
 
 .PHONY: deploy-target
 deploy-target: ## Deploy go-target to the cluster specified in ~/.kube/config.
@@ -302,7 +324,7 @@ deploy-target: ## Deploy go-target to the cluster specified in ~/.kube/config.
 undeploy-target: ## Undeploy go-target from the cluster specified in ~/.kube/config.
 	kubectl delete -f config/base/go-target/deployment.yaml
 
-DEPLOY_TARGETS = deploy-tc deploy-tracepoint deploy-xdp deploy-xdp-ms deploy-kprobe deploy-target deploy-uprobe
+DEPLOY_TARGETS = deploy-tc deploy-tracepoint deploy-xdp deploy-xdp-ms deploy-kprobe deploy-target deploy-uprobe deploy-uretprobe
 
 .PHONY: deploy
 deploy: ## Deploy all examples to the cluster specified in ~/.kube/config.
@@ -313,7 +335,7 @@ endif
 		$(MAKE) $$target $(TAG_COMMAND) || true; \
 	done
 
-UNDEPLOY_TARGETS = undeploy-tc undeploy-tracepoint undeploy-xdp undeploy-xdp-ms undeploy-kprobe undeploy-uprobe undeploy-target
+UNDEPLOY_TARGETS = undeploy-tc undeploy-tracepoint undeploy-xdp undeploy-xdp-ms undeploy-kprobe undeploy-uprobe undeploy-uretprobe undeploy-target
 
 .PHONY: undeploy
 undeploy: ## Undeploy all examples to the cluster specified in ~/.kube/config.

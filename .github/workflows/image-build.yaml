@@ -150,6 +150,20 @@ jobs:
           - registry: quay.io
             build_language: go
             repository: bpfman-userspace
+            image: go-uretprobe-counter
+            context: .
+            dockerfile: ./examples/go-uretprobe-counter/container-deployment/Containerfile.go-uretprobe-counter
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: go
+            repository: bpfman-userspace
             image: go-target
             context: .
             dockerfile: ./examples/go-target/container-deployment/Containerfile.go-target
@@ -492,7 +506,7 @@ jobs:
       - name: Install bpf2go
         if: ${{ matrix.image.bpf_build_wrapper == 'go' }}
         run: |
-          go install github.com/cilium/ebpf/cmd/bpf2go@v0.11.0
+          go install github.com/cilium/ebpf/cmd/bpf2go@v0.14.0
 
       - name: Generate go wrapped eBPF
         if: ${{ matrix.image.bpf_build_wrapper == 'go' }}
