@@ -200,6 +200,22 @@ sudo dnf install llvm-devel clang-devel elfutils-libelf-devel
 sudo apt install clang lldb lld libelf-dev gcc-multilib
 ```
 
+### Install libssl Development Library
+
+`apt` based OS:
+
+```console
+sudo apt install libssl-dev
+```
+
+### Install bpf Helper Header Files
+
+`apt` based OS:
+
+```console
+sudo apt install libbpf-dev
+```
+
 ### Install Protobuf Compiler
 
 For further detailed instructions, see [protoc](https://grpc.io/docs/protoc-installation/).

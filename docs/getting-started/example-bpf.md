@@ -149,10 +149,6 @@ If not, see [Setup and Building bpfman](./building-bpfman.md)._
 
     **Ubuntu:** `sudo apt-get install libbpf-dev`
 
-3. Cilium's `bpf2go` binary
-
-    `go install github.com/cilium/ebpf/cmd/bpf2go@v0.14.0`
-
 #### Build
 
 To build all the C based eBPF counter bytecode, run:

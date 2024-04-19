@@ -8,7 +8,7 @@ Assume the following command is run:
 
 ```console
 cd bpfman/examples/go-xdp-counter/
-sudo ./go-xdp-counter -iface eno3
+go run -exec sudo . -iface eno3
 ```
 
 The diagram below shows `go-xdp-counter` example, but the other examples operate in
@@ -50,7 +50,7 @@ The output should show the count and total bytes of packets as they pass through
 interface as shown below:
 
 ```console
-sudo ./go-xdp-counter --iface eno3
+go run -exec sudo . --iface eno3
 2023/07/17 17:43:58 Using Input: Interface=eno3 Priority=50 Source=/home/<$USER>/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o
 2023/07/17 17:43:58 Program registered with id 6211
 2023/07/17 17:44:01 4 packets received

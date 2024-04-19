@@ -26,7 +26,7 @@ const (
 	MapsMountPoint = "/run/uretprobe/maps"
 )
 
-//go:generate bpf2go -cc clang -no-strip -cflags "-O2 -g -Wall" -target amd64 bpf ./bpf/uretprobe_counter.c -- -I.:/usr/include/bpf:/usr/include/linux
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc clang -no-strip -cflags "-O2 -g -Wall" -target amd64 bpf ./bpf/uretprobe_counter.c -- -I.:/usr/include/bpf:/usr/include/linux
 
 func main() {
 	stop := make(chan os.Signal, 1)
