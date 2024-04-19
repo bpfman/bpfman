@@ -689,6 +689,24 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#install-libssl-development-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install libssl Development Library
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-bpf-helper-header-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install bpf Helper Header Files
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#install-protobuf-compiler" class="md-nav__link">
     <span class="md-ellipsis">
       Install Protobuf Compiler
@@ -1866,6 +1884,24 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#install-libssl-development-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install libssl Development Library
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#install-bpf-helper-header-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      Install bpf Helper Header Files
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#install-protobuf-compiler" class="md-nav__link">
     <span class="md-ellipsis">
       Install Protobuf Compiler
@@ -2122,28 +2158,36 @@ Linux package managers should provide a recent enough release.</p>
 <p><code>apt</code> based OS:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="go">sudo apt install clang lldb lld libelf-dev gcc-multilib</span>
 </code></pre></div>
+<h3 id="install-libssl-development-library">Install libssl Development Library</h3>
+<p><code>apt</code> based OS:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="go">sudo apt install libssl-dev</span>
+</code></pre></div>
+<h3 id="install-bpf-helper-header-files">Install bpf Helper Header Files</h3>
+<p><code>apt</code> based OS:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="go">sudo apt install libbpf-dev</span>
+</code></pre></div>
 <h3 id="install-protobuf-compiler">Install Protobuf Compiler</h3>
 <p>For further detailed instructions, see <a href="https://grpc.io/docs/protoc-installation/">protoc</a>.</p>
 <p><code>dnf</code> based OS:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="go">sudo dnf install protobuf-compiler</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="go">sudo dnf install protobuf-compiler</span>
 </code></pre></div>
 <p><code>apt</code> based OS:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="go">sudo apt install protobuf-compiler</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="go">sudo apt install protobuf-compiler</span>
 </code></pre></div>
 <h3 id="install-go-protobuf-compiler-extensions">Install GO protobuf Compiler Extensions</h3>
 <p>See <a href="https://grpc.io/docs/languages/go/quickstart/">Quick Start Guide for gRPC in Go</a> for
 installation instructions.</p>
 <h3 id="local-libbpf">Local libbpf</h3>
 <p>Checkout a local copy of libbpf.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="go">git clone https://github.com/libbpf/libbpf --branch v0.8.0</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="go">git clone https://github.com/libbpf/libbpf --branch v0.8.0</span>
 </code></pre></div>
 <h3 id="install-perl">Install perl</h3>
 <p>Install <code>perl</code>:</p>
 <p><code>dnf</code> based OS:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="go">sudo dnf install perl</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="go">sudo dnf install perl</span>
 </code></pre></div>
 <p><code>apt</code> based OS:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="go">sudo apt install perl</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="go">sudo apt install perl</span>
 </code></pre></div>
 <h3 id="install-docker">Install docker</h3>
 <p>To build the <code>bpfman-agent</code> and <code>bpfman-operator</code> using the provided Makefile and the
@@ -2170,16 +2214,16 @@ It is recommended to install kind v0.20.0 or later.</p>
 </blockquote>
 <p>If the following error is seen, it means there is an older version of Kubernetes running and it
 needs to be upgraded.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="go">kubectl get pods -A</span>
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="go">NAMESPACE   NAME                               READY   STATUS             RESTARTS      AGE</span>
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="go">bpfman      bpfman-daemon-2hnhx                2/3     CrashLoopBackOff   4 (38s ago)   2m20s</span>
-<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="go">bpfman      bpfman-operator-6b6cf97857-jbvv4   2/2     Running            0             2m22s</span>
-<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="go">:</span>
-<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>
-<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="go">kubectl logs -n bpfman bpfman-daemon-2hnhx -c node-driver-registrar</span>
-<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="go">:</span>
-<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="go">E0202 15:33:12.342704       1 main.go:101] Received NotifyRegistrationStatus call: &amp;RegistrationStatus{PluginRegistered:false,Error:RegisterPlugin error -- plugin registration failed with err: rpc error: code = Internal desc = stream terminated by RST_STREAM with error code: PROTOCOL_ERROR,}</span>
-<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="go">E0202 15:33:12.342723       1 main.go:103] Registration process failed with error: RegisterPlugin error -- plugin registration failed with err: rpc error: code = Internal desc = stream terminated by RST_STREAM with error code: PROTOCOL_ERROR, restarting registration container.</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="go">kubectl get pods -A</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="go">NAMESPACE   NAME                               READY   STATUS             RESTARTS      AGE</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="go">bpfman      bpfman-daemon-2hnhx                2/3     CrashLoopBackOff   4 (38s ago)   2m20s</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="go">bpfman      bpfman-operator-6b6cf97857-jbvv4   2/2     Running            0             2m22s</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="go">:</span>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="go">kubectl logs -n bpfman bpfman-daemon-2hnhx -c node-driver-registrar</span>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="go">:</span>
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="go">E0202 15:33:12.342704       1 main.go:101] Received NotifyRegistrationStatus call: &amp;RegistrationStatus{PluginRegistered:false,Error:RegisterPlugin error -- plugin registration failed with err: rpc error: code = Internal desc = stream terminated by RST_STREAM with error code: PROTOCOL_ERROR,}</span>
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a><span class="go">E0202 15:33:12.342723       1 main.go:103] Registration process failed with error: RegisterPlugin error -- plugin registration failed with err: rpc error: code = Internal desc = stream terminated by RST_STREAM with error code: PROTOCOL_ERROR, restarting registration container.</span>
 </code></pre></div>
 <h3 id="install-bash-completion">Install bash-completion</h3>
 <p><code>bpfman</code> uses the Rust crate <code>clap</code> for the CLI implementation.
@@ -2192,12 +2236,12 @@ This feature is optional.</p>
 must be sourced in the running sessions.
 New login sessions should pick it up automatically.</p>
 <p><code>dnf</code> based OS:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="go">sudo dnf install bash-completion</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="go">source /etc/profile.d/bash_completion.sh</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="go">sudo dnf install bash-completion</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="go">source /etc/profile.d/bash_completion.sh</span>
 </code></pre></div>
 <p><code>apt</code> based OS:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="go">sudo apt install bash-completion</span>
-<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="go">source /etc/profile.d/bash_completion.sh</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="go">sudo apt install bash-completion</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="go">source /etc/profile.d/bash_completion.sh</span>
 </code></pre></div>
 <h3 id="install-yaml-formatter">Install Yaml Formatter</h3>
 <p>As part of CI, the Yaml files are validated with a Yaml formatter.
@@ -2205,21 +2249,21 @@ Optionally, to verify locally, install the
 <a href="https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml">YAML Language Support by Red Hat</a>
 VsCode Extension, or to format in bulk, install <code>prettier</code>.</p>
 <p>To install <code>prettier</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="go">npm install -g prettier</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="go">npm install -g prettier</span>
 </code></pre></div>
 <p>Then to flag which files are violating the formatting guide, run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="go">prettier -l &quot;*.yaml&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="go">prettier -l &quot;*.yaml&quot;</span>
 </code></pre></div>
 <p>And to write changes in place, run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="go"> prettier -f &quot;*.yaml&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="go"> prettier -f &quot;*.yaml&quot;</span>
 </code></pre></div>
 <h3 id="install-toml-formatter">Install toml Formatter</h3>
 <p>As part of CI, the toml files are validated with a toml formatter.
 Optionally, to verify locally, install <code>taplo</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="go">cargo install taplo-cli</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="go">cargo install taplo-cli</span>
 </code></pre></div>
 <p>And to verify locally:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="go">taplo fmt --check</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="go">taplo fmt --check</span>
 </code></pre></div>
 
 

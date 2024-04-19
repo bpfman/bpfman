@@ -1662,7 +1662,7 @@
 <h2 id="example-overview">Example Overview</h2>
 <p>Assume the following command is run:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">cd bpfman/examples/go-xdp-counter/</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">sudo ./go-xdp-counter -iface eno3</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">go run -exec sudo . -iface eno3</span>
 </code></pre></div>
 <p>The diagram below shows <code>go-xdp-counter</code> example, but the other examples operate in
 a similar fashion.</p>
@@ -1696,7 +1696,7 @@ program to and then start the go program.
 In this example, <code>eno3</code> will be used, as shown in the diagram at the top of the page. 
 The output should show the count and total bytes of packets as they pass through the
 interface as shown below:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">sudo ./go-xdp-counter --iface eno3</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">go run -exec sudo . --iface eno3</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">2023/07/17 17:43:58 Using Input: Interface=eno3 Priority=50 Source=/home/&lt;$USER&gt;/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="go">2023/07/17 17:43:58 Program registered with id 6211</span>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go">2023/07/17 17:44:01 4 packets received</span>
