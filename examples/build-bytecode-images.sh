@@ -43,7 +43,7 @@ docker build \
 docker build \
  --build-arg PROGRAM_NAME=uretprobe_counter \
  --build-arg BPF_FUNCTION_NAME=uretprobe_counter \
- --build-arg PROGRAM_TYPE=uprobe \
+ --build-arg PROGRAM_TYPE=uretprobe \
  --build-arg BYTECODE_FILENAME=bpf_x86_bpfel.o \
  -f ../Containerfile.bytecode \
  ./go-uretprobe-counter -t $IMAGE_URP_BC

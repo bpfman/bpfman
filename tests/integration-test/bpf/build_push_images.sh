@@ -45,7 +45,7 @@ docker push quay.io/bpfman-bytecode/tracepoint
 docker build \
  --build-arg PROGRAM_NAME=uprobe \
  --build-arg BPF_FUNCTION_NAME=my_uprobe \
- --build-arg PROGRAM_TYPE=kprobe \
+ --build-arg PROGRAM_TYPE=uprobe \
  --build-arg BYTECODE_FILENAME=uprobe.bpf.o \
  -f ../../../Containerfile.bytecode \
  ./.output -t quay.io/bpfman-bytecode/uprobe:latest
@@ -55,7 +55,7 @@ docker push quay.io/bpfman-bytecode/uprobe
 docker build \
  --build-arg PROGRAM_NAME=uretprobe \
  --build-arg BPF_FUNCTION_NAME=my_uretprobe \
- --build-arg PROGRAM_TYPE=kprobe \
+ --build-arg PROGRAM_TYPE=uretprobe \
  --build-arg BYTECODE_FILENAME=uprobe.bpf.o \
  -f ../../../Containerfile.bytecode \
  ./.output -t quay.io/bpfman-bytecode/uretprobe:latest
@@ -75,7 +75,7 @@ docker push quay.io/bpfman-bytecode/kprobe
 docker build \
  --build-arg PROGRAM_NAME=kretprobe \
  --build-arg BPF_FUNCTION_NAME=my_kretprobe \
- --build-arg PROGRAM_TYPE=kprobe \
+ --build-arg PROGRAM_TYPE=kretprobe \
  --build-arg BYTECODE_FILENAME=kprobe.bpf.o \
  -f ../../../Containerfile.bytecode \
  ./.output -t quay.io/bpfman-bytecode/kretprobe:latest
