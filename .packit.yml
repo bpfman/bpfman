@@ -28,22 +28,16 @@ jobs:
     owner: "@ebpf-sig"
     project: bpfman-next
     targets:
-      - fedora-all
+      - fedora-development
+      - fedora-stable
   - job: tests
     trigger: commit
     targets:
-      - fedora-all
+      - fedora-development
+      - fedora-stable
     specfile_path: bpfman.spec
-  - job: copr_build
+  - job: propose_downstream
     trigger: release
-    branch: main
-    specfile_path: bpfman.spec
-    owner: "@ebpf-sig"
-    project: bpfman
-    targets:
-      - fedora-all
-  - job: tests
-    trigger: release
-    targets:
-      - fedora-all
-    specfile_path: bpfman.spec
+    dist_git_branches:
+      - fedora-development
+      - fedora-stable
