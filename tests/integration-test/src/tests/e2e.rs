@@ -42,12 +42,13 @@ fn test_proceed_on_xdp() {
     debug!("Installing 1st xdp program");
     let (prog_id, _) = add_xdp(
         DEFAULT_BPFMAN_IFACE,
-        75,
+        75, // priority
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None, // proceed_on
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -71,12 +72,13 @@ fn test_proceed_on_xdp() {
     debug!("Installing 2nd xdp program");
     let (prog_id, _) = add_xdp(
         DEFAULT_BPFMAN_IFACE,
-        50,
+        50, // priority
         Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["drop", "dispatcher_return"].to_vec()),
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -101,12 +103,13 @@ fn test_proceed_on_xdp() {
     debug!("Installing 3rd xdp program");
     let (prog_id, _) = add_xdp(
         DEFAULT_BPFMAN_IFACE,
-        25,
+        25, // priority
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["pass", "dispatcher_return"].to_vec()),
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -150,12 +153,13 @@ fn test_unload_xdp() {
     debug!("Installing 1st xdp program");
     let (prog_id, _) = add_xdp(
         DEFAULT_BPFMAN_IFACE,
-        75,
+        75, // priority
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["pass", "dispatcher_return"].to_vec()),
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -166,12 +170,13 @@ fn test_unload_xdp() {
     debug!("Installing 2nd xdp program");
     let (prog_id, _) = add_xdp(
         DEFAULT_BPFMAN_IFACE,
-        50,
+        50, // priority
         Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["pass", "dispatcher_return"].to_vec()),
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -182,12 +187,13 @@ fn test_unload_xdp() {
     debug!("Installing 3rd xdp program");
     let (prog_id_high_pri, _) = add_xdp(
         DEFAULT_BPFMAN_IFACE,
-        25,
+        25, // priority
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         Some(["pass", "dispatcher_return"].to_vec()),
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -212,7 +218,8 @@ fn test_unload_xdp() {
     // Now delete the highest priority program and confirm that the other two
     // are still running.
 
-    bpfman_del_program(prog_id_high_pri.unwrap().as_str());
+    let result = bpfman_del_program(prog_id_high_pri.unwrap().as_str());
+    assert!(result.is_ok());
 
     debug!("Clear the trace_pipe_log");
     drop(trace_guard);
@@ -517,8 +524,10 @@ fn test_unload_tc() {
     debug!("All 3 tc egress logs found");
 
     // Unload the 3rd programs
-    bpfman_del_program(prog_id_ing_high_pri.unwrap().as_str());
-    bpfman_del_program(prog_id_eg_high_pri.unwrap().as_str());
+    let result = bpfman_del_program(prog_id_ing_high_pri.unwrap().as_str());
+    assert!(result.is_ok());
+    let result = bpfman_del_program(prog_id_eg_high_pri.unwrap().as_str());
+    assert!(result.is_ok());
 
     debug!("Clear the trace_pipe_log");
     drop(trace_guard);
@@ -555,12 +564,13 @@ fn test_program_execution_with_global_variables() {
     debug!("Installing xdp program");
     let (prog_id, _) = add_xdp(
         DEFAULT_BPFMAN_IFACE,
-        75,
+        75, // priority
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         None, // proceed_on
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -607,6 +617,7 @@ fn test_program_execution_with_global_variables() {
         &LoadType::Image,
         TRACEPOINT_IMAGE_LOC,
         TRACEPOINT_FILE_LOC,
+        TRACEPOINT_TRACEPOINT_NAME,
     );
 
     loaded_ids.push(prog_id.unwrap());
@@ -617,7 +628,9 @@ fn test_program_execution_with_global_variables() {
         &LoadType::Image,
         UPROBE_IMAGE_LOC,
         UPROBE_FILE_LOC,
-        None,
+        UPROBE_KERNEL_FUNCTION_NAME,
+        UPROBE_TARGET,
+        None, // container_pid
     );
 
     loaded_ids.push(prog_id.unwrap());
@@ -628,6 +641,8 @@ fn test_program_execution_with_global_variables() {
         &LoadType::Image,
         URETPROBE_IMAGE_LOC,
         URETPROBE_FILE_LOC,
+        URETPROBE_FUNCTION_NAME,
+        None, // target
     );
 
     loaded_ids.push(prog_id.unwrap());
@@ -638,6 +653,8 @@ fn test_program_execution_with_global_variables() {
         &LoadType::Image,
         KPROBE_IMAGE_LOC,
         KPROBE_FILE_LOC,
+        KPROBE_KERNEL_FUNCTION_NAME,
+        None, // container_pid
     );
 
     loaded_ids.push(prog_id.unwrap());
@@ -648,6 +665,7 @@ fn test_program_execution_with_global_variables() {
         &LoadType::Image,
         KRETPROBE_IMAGE_LOC,
         KRETPROBE_FILE_LOC,
+        KRETPROBE_KERNEL_FUNCTION_NAME,
     );
 
     loaded_ids.push(prog_id.unwrap());
@@ -698,12 +716,13 @@ fn test_load_unload_xdp_maps() {
     // Install an xdp counter program
     let (prog_id, stdout) = add_xdp(
         DEFAULT_BPFMAN_IFACE,
-        100,
+        100,  // priority
         None, // globals
         None, // proceed_on
         &LoadType::Image,
         XDP_COUNTER_IMAGE_LOC,
-        "",
+        "", // file_path
+        XDP_COUNTER_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -762,8 +781,13 @@ fn test_load_unload_tracepoint_maps() {
 
     debug!("Installing tracepoint_counter program");
 
-    let (prog_id, stdout) =
-        add_tracepoint(None, &LoadType::Image, TRACEPOINT_COUNTER_IMAGE_LOC, "");
+    let (prog_id, stdout) = add_tracepoint(
+        None,
+        &LoadType::Image,
+        TRACEPOINT_COUNTER_IMAGE_LOC,
+        "",
+        TRACEPOINT_TRACEPOINT_NAME,
+    );
     let binding = stdout.unwrap();
 
     debug!("Verify tracepiont_counter map pin directory was created, and maps were pinned");
@@ -793,6 +817,8 @@ fn test_uprobe_container() {
         &LoadType::Image,
         UPROBE_IMAGE_LOC,
         UPROBE_FILE_LOC,
+        UPROBE_KERNEL_CONT_PID_FUNCTION_NAME,
+        UPROBE_TARGET, // unused - local command path is used
         Some(&container_pid),
     );
 

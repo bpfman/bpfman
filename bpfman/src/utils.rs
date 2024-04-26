@@ -8,7 +8,7 @@ use std::{
     path::Path,
 };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use log::{debug, info, warn};
 use nix::{
     libc::RLIM_INFINITY,
@@ -246,7 +246,9 @@ pub(crate) fn initialize_bpfman() -> anyhow::Result<()> {
     has_cap(caps::CapSet::Effective, caps::Capability::CAP_BPF);
     has_cap(caps::CapSet::Effective, caps::Capability::CAP_SYS_ADMIN);
 
-    setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).unwrap();
+    if setrlimit(Resource::RLIMIT_MEMLOCK, RLIM_INFINITY, RLIM_INFINITY).is_err() {
+        return Err(anyhow!("must be privileged to run bpfman"));
+    }
 
     // Create directories associated with bpfman
     create_dir_all(RTDIR).context("unable to create runtime directory")?;

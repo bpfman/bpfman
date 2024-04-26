@@ -56,6 +56,7 @@ fn test_load_unload_xdp() {
                 lt,
                 XDP_PASS_IMAGE_LOC,
                 XDP_PASS_FILE_LOC,
+                XDP_PASS_NAME,
                 None, // metadata
                 None, // map_owner_id
             );
@@ -93,7 +94,8 @@ fn test_map_sharing_load_unload_xdp() {
         None, // proceed_on
         &load_type,
         XDP_COUNTER_IMAGE_LOC,
-        "",   // file_path
+        "", // file_path
+        XDP_COUNTER_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -123,12 +125,13 @@ fn test_map_sharing_load_unload_xdp() {
     };
     let (shared_owner_id, stdout_2) = add_xdp(
         DEFAULT_BPFMAN_IFACE,
-        50,
+        50,   // priority
         None, // globals
         None, // proceed_on
         &load_type,
         XDP_COUNTER_IMAGE_LOC,
-        "",
+        "", // file_path
+        XDP_COUNTER_NAME,
         None, // metadata
         map_owner_id_u32,
     );
@@ -160,7 +163,8 @@ fn test_map_sharing_load_unload_xdp() {
     assert!(map_pin_path_2 == map_pin_path);
 
     // Unload the Map Owner Program
-    bpfman_del_program(&(map_owner_id.unwrap()));
+    let result = bpfman_del_program(&(map_owner_id.unwrap()));
+    assert!(result.is_ok());
 
     //drop(bpfman_guard);
 
@@ -177,7 +181,8 @@ fn test_map_sharing_load_unload_xdp() {
     assert!(map_used_by_3[0] == *(shared_owner_id.as_ref().unwrap()));
 
     // Unload the Map Sharing Program
-    bpfman_del_program(&(shared_owner_id.unwrap()));
+    let result = bpfman_del_program(&(shared_owner_id.unwrap()));
+    assert!(result.is_ok());
 }
 
 #[integration_test]
@@ -257,6 +262,7 @@ fn test_load_unload_tracepoint() {
             lt,
             TRACEPOINT_IMAGE_LOC,
             TRACEPOINT_FILE_LOC,
+            TRACEPOINT_TRACEPOINT_NAME,
         );
         loaded_ids.push(prog_id.unwrap());
     }
@@ -277,8 +283,10 @@ fn test_load_unload_uprobe() {
             Some(globals.clone()),
             lt,
             UPROBE_IMAGE_LOC,
-            URETPROBE_FILE_LOC,
-            None,
+            UPROBE_FILE_LOC,
+            UPROBE_KERNEL_FUNCTION_NAME,
+            UPROBE_TARGET,
+            None, // container_pid
         )
         .unwrap();
         loaded_ids.push(prog_id);
@@ -301,6 +309,8 @@ fn test_load_unload_uretprobe() {
             lt,
             URETPROBE_IMAGE_LOC,
             URETPROBE_FILE_LOC,
+            URETPROBE_FUNCTION_NAME,
+            None, // target
         )
         .unwrap();
         loaded_ids.push(prog_id);
@@ -318,8 +328,15 @@ fn test_load_unload_kprobe() {
     let mut loaded_ids = vec![];
 
     for lt in LOAD_TYPES {
-        let prog_id =
-            add_kprobe(Some(globals.clone()), lt, KPROBE_IMAGE_LOC, KPROBE_FILE_LOC).unwrap();
+        let prog_id = add_kprobe(
+            Some(globals.clone()),
+            lt,
+            KPROBE_IMAGE_LOC,
+            KPROBE_FILE_LOC,
+            KPROBE_KERNEL_FUNCTION_NAME,
+            None, // container_pid
+        )
+        .unwrap();
         loaded_ids.push(prog_id);
     }
 
@@ -341,6 +358,7 @@ fn test_load_unload_kretprobe() {
             lt,
             KRETPROBE_IMAGE_LOC,
             KRETPROBE_FILE_LOC,
+            KRETPROBE_KERNEL_FUNCTION_NAME,
         )
         .unwrap();
         loaded_ids.push(prog_id);
@@ -354,7 +372,7 @@ fn test_pull_bytecode() {
     debug!("Pull bytecode image");
 
     // Just ensure this doesn't panic
-    assert!(bpfman_pull_bytecode().is_ok());
+    assert!(bpfman_pull_bytecode(TRACEPOINT_IMAGE_LOC, Some(PULL_POLICY_ALWAYS), None).is_ok());
 }
 
 #[integration_test]
@@ -391,6 +409,7 @@ fn test_list_with_metadata() {
                 lt,
                 XDP_PASS_IMAGE_LOC,
                 XDP_PASS_FILE_LOC,
+                XDP_PASS_NAME,
                 None, // metadata
                 None, // map_owner_id
             );
@@ -408,6 +427,7 @@ fn test_list_with_metadata() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
+        XDP_PASS_NAME,
         Some(vec![key]),
         None, // map_owner_id
     );
@@ -415,7 +435,7 @@ fn test_list_with_metadata() {
 
     debug!("Listing programs with metadata {key}");
     // ensure listing with metadata works
-    let list_output = bpfman_list(Some(vec![key])).unwrap();
+    let list_output = bpfman_list(None, Some(vec![key])).unwrap();
 
     assert!(list_output.contains(&id));
 
@@ -437,7 +457,14 @@ fn test_load_unload_fentry() {
     let mut loaded_ids = vec![];
 
     for lt in LOAD_TYPES {
-        let prog_id = add_fentry_or_fexit(lt, FENTRY_IMAGE_LOC, FENTRY_FILE_LOC, true).unwrap();
+        let prog_id = add_fentry_or_fexit(
+            lt,
+            FENTRY_IMAGE_LOC,
+            FENTRY_FILE_LOC,
+            true,
+            FENTRY_FEXIT_KERNEL_FUNCTION_NAME,
+        )
+        .unwrap();
         loaded_ids.push(prog_id);
     }
 
@@ -451,7 +478,14 @@ fn test_load_unload_fexit() {
     let mut loaded_ids = vec![];
 
     for lt in LOAD_TYPES {
-        let prog_id = add_fentry_or_fexit(lt, FEXIT_IMAGE_LOC, FEXIT_FILE_LOC, false).unwrap();
+        let prog_id = add_fentry_or_fexit(
+            lt,
+            FEXIT_IMAGE_LOC,
+            FEXIT_FILE_LOC,
+            false,
+            FENTRY_FEXIT_KERNEL_FUNCTION_NAME,
+        )
+        .unwrap();
         loaded_ids.push(prog_id);
     }
 

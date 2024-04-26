@@ -1,5 +1,6 @@
 pub mod basic;
 pub mod e2e;
+pub mod error;
 pub mod utils;
 
 pub use integration_test_macros::integration_test;
