@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../documentation/">
+        <link rel="prev" href="../xdp-overview/">
       
       
-        <link rel="next" href="../logging/">
+        <link rel="next" href="../../design/daemonless/">
       
       
       <link rel="icon" href="../../img/favicon.svg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Linux Capabilities - bpfman</title>
+        <title>Running the Examples as Non-Root on Selinux Distributions - bpfman</title>
       
     
     
@@ -77,7 +77,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#linux-capabilities" class="md-skip">
+        <a href="#running-the-examples-as-non-root-on-selinux-distributions" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Linux Capabilities
+              Running the Examples as Non-Root on Selinux Distributions
             
           </span>
         </div>
@@ -904,29 +904,9 @@
                 
   
   
-    
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Linux Capabilities
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../linux-capabilities/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -935,77 +915,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#current-bpfman-linux-capabilities" class="md-nav__link">
-    <span class="md-ellipsis">
-      Current bpfman Linux Capabilities
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#debugging-linux-capabilities" class="md-nav__link">
-    <span class="md-ellipsis">
-      Debugging Linux Capabilities
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Debugging Linux Capabilities">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#determine-required-capabilities" class="md-nav__link">
-    <span class="md-ellipsis">
-      Determine Required Capabilities
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#determine-capabilities-per-thread" class="md-nav__link">
-    <span class="md-ellipsis">
-      Determine Capabilities Per Thread
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#removing-cap_bpf-from-bpfman-clients" class="md-nav__link">
-    <span class="md-ellipsis">
-      Removing CAP_BPF from bpfman Clients
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1135,9 +1044,18 @@
                 
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../k8s-selinux-distros/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -1146,6 +1064,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -1652,65 +1571,6 @@
     
   
   
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#current-bpfman-linux-capabilities" class="md-nav__link">
-    <span class="md-ellipsis">
-      Current bpfman Linux Capabilities
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#debugging-linux-capabilities" class="md-nav__link">
-    <span class="md-ellipsis">
-      Debugging Linux Capabilities
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Debugging Linux Capabilities">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#determine-required-capabilities" class="md-nav__link">
-    <span class="md-ellipsis">
-      Determine Required Capabilities
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#determine-capabilities-per-thread" class="md-nav__link">
-    <span class="md-ellipsis">
-      Determine Capabilities Per Thread
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#removing-cap_bpf-from-bpfman-clients" class="md-nav__link">
-    <span class="md-ellipsis">
-      Removing CAP_BPF from bpfman Clients
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
 </nav>
                   </div>
                 </div>
@@ -1727,149 +1587,28 @@
   
 
 
-<h1 id="linux-capabilities">Linux Capabilities</h1>
-<p>Linux divides the privileges traditionally associated with superuser into distinct units,
-known as capabilities, which can be independently enabled and disabled.
-Capabilities are a per-thread attribute.
-See <a href="https://man7.org/linux/man-pages/man7/capabilities.7.html">capabilities man-page</a>.</p>
-<p>When <code>bpfman</code> is run as a systemd service, the set of linux capabilities are restricted to only the
-required set of capabilities via the <code>bpfman.service</code> file using the <code>AmbientCapabilities</code> and
-<code>CapabilityBoundingSet</code> fields (see <a href="https://github.com/bpfman/bpfman/tree/main/scripts/bpfman.service">bpfman.service</a>).
-All spawned threads are stripped of all capabilities, removing all sudo privileges
-(see <code>drop_linux_capabilities()</code> usage), leaving only the main thread with only the needed set of capabilities.</p>
-<h2 id="current-bpfman-linux-capabilities">Current bpfman Linux Capabilities</h2>
-<p>Below are the current set of Linux capabilities required by bpfman to operate:</p>
-<ul>
-<li><strong>CAP_BPF:</strong><ul>
-<li>Required to load BPF programs and create BPF maps.</li>
-</ul>
-</li>
-<li><strong>CAP_DAC_READ_SEARCH:</strong><ul>
-<li>Required by Tracepoint programs, needed by aya to check the tracefs mount point.
-  For example, trying to read "/sys/kernel/tracing" and "/sys/kernel/debug/tracing".</li>
-</ul>
-</li>
-<li><strong>CAP_NET_ADMIN:</strong><ul>
-<li>Required for TC programs to attach/detach to/from a qdisc.</li>
-</ul>
-</li>
-<li><strong>CAP_SETPCAP:</strong><ul>
-<li>Required to allow bpfman to drop Linux Capabilities on spawned threads.</li>
-</ul>
-</li>
-<li><strong>CAP_SYS_ADMIN:</strong> <ul>
-<li>Kprobe (Kprobe and Uprobe) and Tracepoint programs are considered perfmon programs and require CAP_PERFMON and CAP_SYS_ADMIN to load.</li>
-<li>TC and XDP programs are considered admin programs and require CAP_NET_ADMIN and CAP_SYS_ADMIN to load.</li>
-</ul>
-</li>
-<li><strong>CAP_SYS_RESOURCE:</strong><ul>
-<li>Required by bpfman to call <code>setrlimit()</code> on <code>RLIMIT_MEMLOCK</code>.</li>
-</ul>
-</li>
-</ul>
-<h2 id="debugging-linux-capabilities">Debugging Linux Capabilities</h2>
-<p>As new features are added, the set of Linux capabilities required by bpfman may change over time.
-The following describes the steps to determine the set of capabilities required by bpfman.
-If there are any <code>Permission denied (os error 13)</code> type errors when starting or running bpfman as a
-systemd service, adjusting the linux capabilities is a good place to start.</p>
-<h3 id="determine-required-capabilities">Determine Required Capabilities</h3>
-<p>The first step is to turn all capabilities on and see if that fixes the problem.
-This can be done without recompiling the code by editing <code>bpfman.service</code>.
-Comment out the finite list of granted capabilities and set to <code>~</code>,  which indicates all capabilities.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>sudo<span class="w"> </span>vi<span class="w"> </span>/usr/lib/systemd/system/bpfman.service
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>:
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="o">[</span>Service<span class="o">]</span>
+<h1 id="running-the-examples-as-non-root-on-selinux-distributions">Running the Examples as Non-Root on Selinux Distributions</h1>
+<p>Developer instances of Kubernetes such as kind often set SElinux to permissive
+mode, ensuring the security subsystem does not interfere with the local
+cluster operations.  However, in production distributions such as
+Openshift, EKS, GKE and AWS where security is paramount, selinux and other
+security subsystems are often enabled by default.  This among other things
+presents unique challenges when determining how to deploy unprivileged applications
+with bpfman.</p>
+<p>In order to deploy the provided examples on selinux distributions, users must
+first install the <a href="https://github.com/kubernetes-sigs/security-profiles-operator">security-profiles-operator</a>.
+This will allow bpfman to deploy custom SELinux policies which will allow container users
+access to bpf maps (i.e <code>map_read</code> and <code>map_write</code> actions).</p>
+<p>It can easily be installed via operatorhub.io from <a href="https://operatorhub.io/operator/security-profiles-operator">here</a>.</p>
+<p>Once the security-profiles-operator and bpfman are installed simply deploy desired
+examples:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span>examples/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>make<span class="w"> </span>deploy-tc-selinux
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>make<span class="w"> </span>deploy-xdp-selinux
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>:
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nv">AmbientCapabilities</span><span class="o">=</span>~
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="nv">CapabilityBoundingSet</span><span class="o">=</span>~
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1">#AmbientCapabilities=CAP_BPF CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_PERFMON CAP_SETPCAP CAP_SYS_ADMIN CAP_SYS_RESOURCE</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1">#CapabilityBoundingSet=CAP_BPF CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_PERFMON CAP_SETPCAP CAP_SYS_ADMIN CAP_SYS_RESOURCE</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>make<span class="w"> </span>undeploy-tc-selinux
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>make<span class="w"> </span>undeploy-xdp-selinux
 </code></pre></div>
-<p>Reload the service file and start/restart bpfman and watch the bpfman logs and see if the problem is resolved:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>daemon-reload
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>sudo<span class="w"> </span>systemctl<span class="w"> </span>start<span class="w"> </span>bpfman
-</code></pre></div>
-<p>If so, then the next step is to watch the set of capabilities being requested by bpfman.
-Run the bcc <code>capable</code> tool to watch capabilities being requested real-time and restart bpfman:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$<span class="w"> </span>sudo<span class="w"> </span>/usr/share/bcc/tools/capable
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>TIME<span class="w">      </span>UID<span class="w">    </span>PID<span class="w">    </span>COMM<span class="w">             </span>CAP<span class="w">  </span>NAME<span class="w">                 </span>AUDIT
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>:
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">979</span><span class="w">    </span><span class="m">75553</span><span class="w">  </span>tokio-runtime-w<span class="w">  </span><span class="m">8</span><span class="w">    </span>CAP_SETPCAP<span class="w">          </span><span class="m">1</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">979</span><span class="w">    </span><span class="m">75553</span><span class="w">  </span>tokio-runtime-w<span class="w">  </span><span class="m">8</span><span class="w">    </span>CAP_SETPCAP<span class="w">          </span><span class="m">1</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">979</span><span class="w">    </span><span class="m">75553</span><span class="w">  </span>tokio-runtime-w<span class="w">  </span><span class="m">8</span><span class="w">    </span>CAP_SETPCAP<span class="w">          </span><span class="m">1</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">0</span><span class="w">      </span><span class="m">616</span><span class="w">    </span>systemd-journal<span class="w">  </span><span class="m">19</span><span class="w">   </span>CAP_SYS_PTRACE<span class="w">       </span><span class="m">1</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">0</span><span class="w">      </span><span class="m">616</span><span class="w">    </span>systemd-journal<span class="w">  </span><span class="m">19</span><span class="w">   </span>CAP_SYS_PTRACE<span class="w">       </span><span class="m">1</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">979</span><span class="w">    </span><span class="m">75550</span><span class="w">  </span>bpfman<span class="w">             </span><span class="m">24</span><span class="w">   </span>CAP_SYS_RESOURCE<span class="w">     </span><span class="m">1</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">979</span><span class="w">    </span><span class="m">75550</span><span class="w">  </span>bpfman<span class="w">             </span><span class="m">1</span><span class="w">    </span>CAP_DAC_OVERRIDE<span class="w">     </span><span class="m">1</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">979</span><span class="w">    </span><span class="m">75550</span><span class="w">  </span>bpfman<span class="w">             </span><span class="m">21</span><span class="w">   </span>CAP_SYS_ADMIN<span class="w">        </span><span class="m">1</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">979</span><span class="w">    </span><span class="m">75550</span><span class="w">  </span>bpfman<span class="w">             </span><span class="m">21</span><span class="w">   </span>CAP_SYS_ADMIN<span class="w">        </span><span class="m">1</span>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">0</span><span class="w">      </span><span class="m">75555</span><span class="w">  </span>modprobe<span class="w">         </span><span class="m">16</span><span class="w">   </span>CAP_SYS_MODULE<span class="w">       </span><span class="m">1</span>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">0</span><span class="w">      </span><span class="m">628</span><span class="w">    </span>systemd-udevd<span class="w">    </span><span class="m">2</span><span class="w">    </span>CAP_DAC_READ_SEARCH<span class="w">  </span><span class="m">1</span>
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">0</span><span class="w">      </span><span class="m">75556</span><span class="w">  </span>bpf_preload<span class="w">      </span><span class="m">24</span><span class="w">   </span>CAP_SYS_RESOURCE<span class="w">     </span><span class="m">1</span>
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">0</span><span class="w">      </span><span class="m">75556</span><span class="w">  </span>bpf_preload<span class="w">      </span><span class="m">39</span><span class="w">   </span>CAP_BPF<span class="w">              </span><span class="m">1</span>
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">0</span><span class="w">      </span><span class="m">75556</span><span class="w">  </span>bpf_preload<span class="w">      </span><span class="m">39</span><span class="w">   </span>CAP_BPF<span class="w">              </span><span class="m">1</span>
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">0</span><span class="w">      </span><span class="m">75556</span><span class="w">  </span>bpf_preload<span class="w">      </span><span class="m">39</span><span class="w">   </span>CAP_BPF<span class="w">              </span><span class="m">1</span>
-<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">0</span><span class="w">      </span><span class="m">75556</span><span class="w">  </span>bpf_preload<span class="w">      </span><span class="m">38</span><span class="w">   </span>CAP_PERFMON<span class="w">          </span><span class="m">1</span>
-<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">0</span><span class="w">      </span><span class="m">75556</span><span class="w">  </span>bpf_preload<span class="w">      </span><span class="m">38</span><span class="w">   </span>CAP_PERFMON<span class="w">          </span><span class="m">1</span>
-<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="m">16</span>:36:00<span class="w">  </span><span class="m">0</span><span class="w">      </span><span class="m">75556</span><span class="w">  </span>bpf_preload<span class="w">      </span><span class="m">38</span><span class="w">   </span>CAP_PERFMON<span class="w">          </span><span class="m">1</span>
-<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>:
-</code></pre></div>
-<p>Compare the output to list in <code>bpfman.service</code> and determine the delta.</p>
-<h3 id="determine-capabilities-per-thread">Determine Capabilities Per Thread</h3>
-<p>For additional debugging, it may be helpful to know the granted capabilities on a per thread basis.
-As mentioned above, all spawned threads are stripped of all Linux capabilities, so if a thread is
-requesting a capability, that functionality should be moved off the spawned thread and onto the main thread.</p>
-<p>First, determine the <code>bpfman</code> process id, then determine the set of threads:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$<span class="w"> </span>ps<span class="w"> </span>-ef<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>bpfman
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>:
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>bpfman<span class="w">       </span><span class="m">75550</span><span class="w">       </span><span class="m">1</span><span class="w">  </span><span class="m">0</span><span class="w"> </span><span class="m">16</span>:36<span class="w"> </span>?<span class="w">        </span><span class="m">00</span>:00:00<span class="w"> </span>/usr/sbin/bpfman
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>:
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>$<span class="w"> </span>ps<span class="w"> </span>-T<span class="w"> </span>-p<span class="w"> </span><span class="m">75550</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span>PID<span class="w">    </span>SPID<span class="w"> </span>TTY<span class="w">          </span>TIME<span class="w"> </span>CMD
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span><span class="m">75550</span><span class="w">   </span><span class="m">75550</span><span class="w"> </span>?<span class="w">        </span><span class="m">00</span>:00:00<span class="w"> </span>bpfman
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span><span class="m">75550</span><span class="w">   </span><span class="m">75551</span><span class="w"> </span>?<span class="w">        </span><span class="m">00</span>:00:00<span class="w"> </span>tokio-runtime-w
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">  </span><span class="m">75550</span><span class="w">   </span><span class="m">75552</span><span class="w"> </span>?<span class="w">        </span><span class="m">00</span>:00:00<span class="w"> </span>tokio-runtime-w
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">  </span><span class="m">75550</span><span class="w">   </span><span class="m">75553</span><span class="w"> </span>?<span class="w">        </span><span class="m">00</span>:00:00<span class="w"> </span>tokio-runtime-w
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">  </span><span class="m">75550</span><span class="w">   </span><span class="m">75554</span><span class="w"> </span>?<span class="w">        </span><span class="m">00</span>:00:00<span class="w"> </span>tokio-runtime-w
-</code></pre></div>
-<p>Then dump the capabilities of each thread:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>$ grep Cap /proc/75550/status
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>CapInh: 000000c001201106
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>CapPrm: 000000c001201106
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>CapEff: 000000c001201106
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>CapBnd: 000000c001201106
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>CapAmb: 000000c001201106
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>$ grep Cap /proc/75551/status
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>CapInh: 0000000000000000
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>CapPrm: 0000000000000000
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>CapEff: 0000000000000000
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>CapBnd: 0000000000000000
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>CapAmb: 0000000000000000
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>$ grep Cap /proc/75552/status
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>CapInh: 0000000000000000
-<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>CapPrm: 0000000000000000
-<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>CapEff: 0000000000000000
-<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>CapBnd: 0000000000000000
-<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>CapAmb: 0000000000000000
-<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>
-<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>:
-<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>
-<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>$ capsh --decode=000000c001201106
-<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>0x000000c001201106=cap_dac_override,cap_dac_read_search,cap_setpcap,cap_net_admin,cap_sys_admin,cap_sys_resource,cap_perfmon,cap_bpf
-</code></pre></div>
-<h2 id="removing-cap_bpf-from-bpfman-clients">Removing CAP_BPF from bpfman Clients</h2>
-<p>One of the advantages of using bpfman is that it is doing all the loading and unloading of eBPF programs,
-so it requires CAP_BPF, but clients of bpfman are just making gRPC calls to bpfman, so they do not need to
-be privileged or require CAP_BPF.
-It must be noted that this is only true for kernels 5.19 or higher.
-Prior to <strong>kernel 5.19</strong>, all eBPF sys calls required CAP_BPF, which are used to access maps shared between
-the BFP program and the userspace program.
-In kernel 5.19, a change went in that only requires CAP_BPF for map creation (BPF_MAP_CREATE) and loading
-programs (BPF_PROG_LOAD).
-See <a href="https://git.kernel.org/pub/scm/linux/kernel/git/bpf/bpf-next.git/commit/?id=c8644cd0efe7">bpf: refine kernel.unprivileged_bpf_disabled behaviour</a>.</p>
 
 
 
