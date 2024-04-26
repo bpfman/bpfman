@@ -76,23 +76,29 @@ echo "Generated:" release-v${VERSION}/go-tracepoint-counter-install.yaml
 ### UPROBE
 ${KUSTOMIZE} build ../examples/config/v${VERSION}/go-uprobe-counter > release-v${VERSION}/go-uprobe-counter-install.yaml
 echo "Generated:" release-v${VERSION}/go-uprobe-counter-install.yaml
+### URETPROBE
+${KUSTOMIZE} build ../examples/config/v${VERSION}/go-uretprobe-counter > release-v${VERSION}/go-uretprobe-counter-install.yaml
+echo "Generated:" release-v${VERSION}/go-uretprobe-counter-install.yaml
 ### KPROBE
 ${KUSTOMIZE} build ../examples/config/v${VERSION}/go-kprobe-counter > release-v${VERSION}/go-kprobe-counter-install.yaml
 echo "Generated:" release-v${VERSION}/go-kprobe-counter-install.yaml
 
-## 4. examples install yamls for OCP
+## 4. examples install yamls for SELINUX distros
 ### XDP
-${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-xdp-counter > release-v${VERSION}/go-xdp-counter-install-ocp.yaml
-echo "Generated:" release-v${VERSION}/go-xdp-counter-install-ocp.yaml
+${KUSTOMIZE} build ../examples/config/v${VERSION}-selinux/go-xdp-counter > release-v${VERSION}/go-xdp-counter-install-selinux.yaml
+echo "Generated:" release-v${VERSION}/go-xdp-counter-install-selinux.yaml
 ### TC
-${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-tc-counter > release-v${VERSION}/go-tc-counter-install-ocp.yaml
-echo "Generated:" release-v${VERSION}/go-tc-counter-install-ocp.yaml
+${KUSTOMIZE} build ../examples/config/v${VERSION}-selinux/go-tc-counter > release-v${VERSION}/go-tc-counter-install-selinux.yaml
+echo "Generated:" release-v${VERSION}/go-tc-counter-install-selinux.yaml
 ### TRACEPOINT
-${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-tracepoint-counter > release-v${VERSION}/go-tracepoint-counter-install-ocp.yaml
-echo "Generated:" release-v${VERSION}/go-tracepoint-counter-install-ocp.yaml
+${KUSTOMIZE} build ../examples/config/v${VERSION}-selinux/go-tracepoint-counter > release-v${VERSION}/go-tracepoint-counter-install-selinux.yaml
+echo "Generated:" release-v${VERSION}/go-tracepoint-counter-install-selinux.yaml
 ### UPROBE
-${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-uprobe-counter > release-v${VERSION}/go-uprobe-counter-install-ocp.yaml
-echo "Generated:" release-v${VERSION}/go-uprobe-counter-install-ocp.yaml
+${KUSTOMIZE} build ../examples/config/v${VERSION}-selinux/go-uprobe-counter > release-v${VERSION}/go-uprobe-counter-install-selinux.yaml
+echo "Generated:" release-v${VERSION}/go-uprobe-counter-install-selinux.yaml
+### URETPROBE
+${KUSTOMIZE} build ../examples/config/v${VERSION}-selinux/go-uretprobe-counter > release-v${VERSION}/go-uretprobe-counter-install-selinux.yaml
+echo "Generated:" release-v${VERSION}/go-uretprobe-counter-install-selinux.yaml
 ### KPROBE
-${KUSTOMIZE} build ../examples/config/v${VERSION}-ocp/go-kprobe-counter > release-v${VERSION}/go-kprobe-counter-install-ocp.yaml
-echo "Generated:" release-v${VERSION}/go-kprobe-counter-install-ocp.yaml
+${KUSTOMIZE} build ../examples/config/v${VERSION}-selinux/go-kprobe-counter > release-v${VERSION}/go-kprobe-counter-install-selinux.yaml
+echo "Generated:" release-v${VERSION}/go-kprobe-counter-install-selinux.yaml
