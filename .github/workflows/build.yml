@@ -14,6 +14,32 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  get-more-space:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check disk space
+        run: df -h
+
+      - name: Free up space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/local/lib/android
+          sudo apt-get update
+          sudo eatmydata apt-get purge --auto-remove -y \
+            azure-cli aspnetcore-* dotnet-* ghc-* firefox \
+            google-chrome-stable \
+            llvm-* microsoft-edge-stable mono-* \
+            msbuild mysql-server-core-* php-* php7* \
+            powershell temurin-* zulu-*
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean -y
+
+      - name: Check disk space again
+        run: df -h
+
   check-license:
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -131,6 +157,15 @@ jobs:
           name: coverage-rust
           path: lcov.info
           if-no-files-found: error
+
+      - name: Check disk space
+        run: df -h
+
+      - name: cargo clean
+        run: cargo clean
+
+      - name: Check disk space
+        run: df -h
 
   ## Build go modules
   build-go:
@@ -278,8 +313,17 @@ jobs:
       - name: Run integration tests
         run: cargo xtask integration-test
 
+      - name: Check disk space
+        run: df -h
+
+      - name: cargo clean
+        run: cargo clean
+
+      - name: Check disk space
+        run: df -h
+
   kubernetes-integration-tests:
-    needs: [build, build-go, build-docs]
+    needs: [get-more-space, build, build-go, build-docs, basic-integration-tests]
     runs-on: ubuntu-latest
     env:
       BPFMAN_IMG: quay.io/bpfman/bpfman:int-test
@@ -287,6 +331,24 @@ jobs:
       BPFMAN_OPERATOR_IMG: quay.io/bpfman/bpfman-operator:int-test
       XDP_PASS_PRIVATE_IMAGE_CREDS: ${{ secrets.XDP_PASS_PRIVATE_IMAGE_CREDS }}
     steps:
+      - name: Check disk space
+        run: |
+          df -h
+          sudo docker images
+          sudo du -h -d 1 /usr
+          sudo du -h -d 1 /var
+          sudo du -h -d 1 /mnt
+          sudo du -h -d 1 /opt
+
+
+      - name: Free up space
+        run: |
+          cargo clean
+          go clean -cache -testcache
+
+      - name: Check disk space
+        run: df -h
+
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -329,6 +391,28 @@ jobs:
 
       - name: build images
         run: cd bpfman-operator && make build-images
+
+      - name: Check disk space
+        run: |
+          df -h
+          sudo docker images
+          sudo du -h -d 1 /usr
+          sudo du -h -d 1 /var
+          sudo du -h -d 1 /mnt
+          sudo du -h -d 1 /opt
+
+      - name: Free up space
+        run: |
+          cargo clean
+          go clean
+
+      - name: Check disk space again
+        run: |
+          df -h
+          sudo du -h -d 1 /usr
+          sudo du -h -d 1 /var
+          sudo du -h -d 1 /mnt
+          sudo du -h -d 1 /opt
 
       - name: run integration tests
         run: cd bpfman-operator && make test-integration
