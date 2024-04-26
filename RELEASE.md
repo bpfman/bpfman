@@ -9,6 +9,7 @@ A release for the bpfman project is comprised of the following major components:
 - bpfman (Core library) and bpfman-api (Core GRPC API protobuf definitions) library crates
 - bpfman (CLI), and bpfman-rpc (gRPC server) binary crates
 - bpf-metrics-exporter and bpf-log-exporter binary crates
+- bpfman RPMs stored in the [bpfman COPR repository][copr-repo].
 - Kubernetes User Facing Custom Resource Definitions (CRDs)
     - `TcProgram`
     - `XdpProgram`
@@ -66,7 +67,7 @@ A release for the bpfman project is comprised of the following major components:
 ### Overview
 
 Each new release of bpfman is defined with a "bundle version" that
-represents the Git tag of a release, such as `v0.4.0`. This contains the
+represents the Git tag of a release, such as `v0.4.1`. This contains the
 components described above
 
 #### Kubernetes API Versions (e.g. v1alpha2, v1beta1)
@@ -97,11 +98,50 @@ a PR. This must go through the regular PR review process and get merged into the
 `main` branch. Approval of the PR indicates community consensus for a new
 release.
 
+Additionally you can navigate to the github release page and draft a release
+generating release notes there as well.
+
 ### Release Steps
 
-The following steps must be done by one of the [bpfman maintainers][bpfman-team]:
+The following steps must be done by one of the [bpfman maintainers][bpfman-team],
+please always try and cut a release candidate before pushing an official major
+or minor release.
 
-For a **PATCH** release:
+#### RELEASE CANDIDATE Release
+
+Often times cutting a release candidate is a great way to test any changes to
+our release infrastructure before cutting an official release. Make sure release
+candidate versions contain an `rc` suffix i.e `0.4.0-rc1`.  This is a lighter
+weight process meaning many of the versioned manifests do not necessarily need
+to be created.
+
+- Open an update PR that:
+    - Adds a new changelog for the release
+    - Updates the [Cargo.toml](https://github.com/bpfman/bpfman/blob/main/Cargo.toml) version for the workspace:
+        - `version = "x.x.x"`
+        - `bpfman = { version = "x.x.x", path = "./bpfman" }"`
+        - `bpfman-api = { version = "x.x.x", path = "./bpfman-api" }`
+        - Note: `bpfman-csi` does not need to be updated.
+    - Runs `cargo generate-lockfile`
+    - Updates the bpfman-operator version in it's [Makefile](https://github.com/bpfman/bpfman/blob/main/bpfman-operator/Makefile):
+        - `VERSION ?= x.x.x`
+- Make sure CI is green and merge the update PR.
+- Create a tag using the `HEAD` of the `main` branch. This can be done using the `git` CLI or
+  Github's [release][release] page.
+- Tag the release using the commit on `main` where the changelog update merged.
+  This can  be done using the `git` CLI or Github's [release][release]
+  page.
+
+Once these steps are completed:
+
+- Make sure a new RPM has been built and pushed to the bpfman COPR repository.
+- Make sure all [actions][gh-actions] have completed successfully
+- Ensure images are built and updated with the new version tag at:
+    - quay.io/bpfman
+    - quay.io/bpfman-bytecode
+    - quay.io/bpfman-userspace
+
+#### PATCH Release
 
 - Create a new branch in your fork named something like `<githubuser>/release-x.x.x`. Use the new branch
   in the upcoming steps.
@@ -109,16 +149,17 @@ For a **PATCH** release:
 - Create a branch from the major-minor tag of interest i.e:
   `git checkout -b release-x.x.x <major.minor.patch>`
 - Create a pull request of the `<githubuser>/release-x.x.x` branch into the `release-x.x` branch upstream.
-  Add a hold on this PR waiting for at least one maintainer/codeowner to provide a `lgtm`. This PR should:
-    - Add a new changelog for the release
-    - Update the [Cargo.toml](https://github.com/bpfman/bpfman/blob/main/Cargo.toml) version for the workspace:
+  Add a hold on this PR waiting for at least one maintainer/codeowner to provide a `lgtm`. This PR:
+    - Adds a new changelog for the release
+    - Updates the [Cargo.toml](https://github.com/bpfman/bpfman/blob/main/Cargo.toml) version for the workspace:
         - `version = "x.x.x"`
         - `bpfman = { version = "x.x.x", path = "./bpfman" }"`
         - `bpfman-api = { version = "x.x.x", path = "./bpfman-api" }`
         - Note: `bpfman-csi` does not need to be updated.
-    - Update the bpfman-operator version in it's [Makefile](https://github.com/bpfman/bpfman/blob/main/bpfman-operator/Makefile):
+    - Runs `cargo generate-lockfile`
+    - Updates the bpfman-operator version in it's [Makefile](https://github.com/bpfman/bpfman/blob/main/bpfman-operator/Makefile):
         - `VERSION ?= x.x.x`
-    - Run `make bundle` from the bpfman-operator directory to update the bundle version.
+    - Runs `make bundle` from the bpfman-operator directory to update the bundle version.
       This will generate a new `/bpfman-operator/bundle` directory which will ONLY be tracked in the
       `release-x.x` branch not `main`.
 - Verify the CI tests pass and merge the PR into `release-x.x`.
@@ -131,25 +172,35 @@ For a **PATCH** release:
         - `go-xdp-counter-install.yaml`
         - `go-tc-counter-install.yaml`
         - `go-tracepoint-counter-install.yaml`
+        - `go-uprobe-counter-install.yaml`
+        - `go-uretprobe-counter-install.yaml`
+        - `go-kprobe-counter-install.yaml`
+        - `go-xdp-counter-install-selinux.yaml`
+        - `go-tc-counter-install-selinux.yaml`
+        - `go-tracepoint-counter-install-selinux.yaml`
+        - `go-uprobe-counter-install-selinux.yaml`
+        - `go-uretprobe-counter-install-selinux.yaml`
+        - `go-kprobe-counter-install-selinux.yaml`
 - Update the [community-operator](https://github.com/k8s-operatorhub/community-operators) and
   [community-operators-prod](https://github.com/redhat-openshift-ecosystem/community-operators-prod) repositories with
   the latest bundle manifests. See the following PRs as examples:
     - https://github.com/redhat-openshift-ecosystem/community-operators-prod/pull/2696
     - https://github.com/k8s-operatorhub/community-operators/pull/2790
 
-For a **MAJOR** or **MINOR** release:
+#### MAJOR or MINOR Release
 
 - Open an update PR that:
     - Adds a new changelog for the release
-    - Update the [Cargo.toml](https://github.com/bpfman/bpfman/blob/main/Cargo.toml) version for the workspace:
+    - Updates the [Cargo.toml](https://github.com/bpfman/bpfman/blob/main/Cargo.toml) version for the workspace:
         - `version = "x.x.x"`
         - `bpfman = { version = "x.x.x", path = "./bpfman" }"`
         - `bpfman-api = { version = "x.x.x", path = "./bpfman-api" }`
         - Note: `bpfman-csi` does not need to be updated.
-    - Update the bpfman-operator version in it's [Makefile](https://github.com/bpfman/bpfman/blob/main/bpfman-operator/Makefile):
+    - Runs `cargo generate-lockfile`
+    - Updates the bpfman-operator version in it's [Makefile](https://github.com/bpfman/bpfman/blob/main/bpfman-operator/Makefile):
         - `VERSION ?= x.x.x`
-    - Run `make bundle` from the bpfman-operator directory to update the bundle version.
-    - Add's a new `examples` config directory for the release version
+    - Runs `make bundle` from the bpfman-operator directory to update the bundle version.
+    - Adds a new `examples` config directory for the release version
 - Make sure CI is green and merge the update PR.
 - Create a tag using the `HEAD` of the `main` branch. This can be done using the `git` CLI or
   Github's [release][release] page.
@@ -163,6 +214,17 @@ For a **MAJOR** or **MINOR** release:
         - `go-xdp-counter-install.yaml`
         - `go-tc-counter-install.yaml`
         - `go-tracepoint-counter-install.yaml`
+        - `go-uprobe-counter-install.yaml`
+        - `go-uretprobe-counter-install.yaml`
+        - `go-kprobe-counter-install.yaml`
+        - `go-xdp-counter-install-selinux.yaml`
+        - `go-tc-counter-install-selinux.yaml`
+        - `go-tracepoint-counter-install-selinux.yaml`
+        - `go-uprobe-counter-install-selinux.yaml`
+        - `go-uretprobe-counter-install-selinux.yaml`
+        - `go-kprobe-counter-install-selinux.yaml`
 
 [release]: https://github.com/bpfman/bpfman/releases
 [bpfman-team]: https://github.com/bpfman/bpfman/blob/main/CODEOWNERS
+[copr-repo]: https://copr.fedorainfracloud.org/coprs/g/ebpf-sig/bpfman/
+[gh-actions]: https://github.com/bpfman/bpfman/actions
