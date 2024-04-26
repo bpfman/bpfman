@@ -27,7 +27,6 @@ spec:
         name: go-target
     spec:
       nodeSelector: {}
-      hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
       serviceAccountName: bpfman-app-go-target
       tolerations:
