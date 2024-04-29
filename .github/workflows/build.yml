@@ -23,32 +23,6 @@ jobs:
       - name: Check License Header
         uses: apache/skywalking-eyes@cd7b195c51fd3d6ad52afceb760719ddc6b3ee91
 
-  get-more-space:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check disk space
-        run: df -h
-
-      - name: Free up space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          sudo rm -rf /usr/local/lib/android
-          sudo apt-get update
-          sudo eatmydata apt-get purge --auto-remove -y \
-            azure-cli aspnetcore-* dotnet-* ghc-* firefox \
-            google-chrome-stable \
-            llvm-* microsoft-edge-stable mono-* \
-            msbuild mysql-server-core-* php-* php7* \
-            powershell temurin-* zulu-*
-          sudo apt-get autoremove -y
-          sudo apt-get autoclean -y
-
-      - name: Check disk space again
-        run: df -h
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -305,7 +279,7 @@ jobs:
         run: cargo xtask integration-test
 
   kubernetes-integration-tests:
-    needs: [get-more-space, build, build-go, build-docs, basic-integration-tests]
+    needs: [build, build-go, build-docs]
     runs-on: ubuntu-latest
     env:
       BPFMAN_IMG: quay.io/bpfman/bpfman:int-test
@@ -316,10 +290,29 @@ jobs:
       - name: Check disk space
         run: df -h
 
-      - name: Prune Docker
-        run: sudo docker system prune -a -f --volumes
+      - name: Free up space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/local/lib/android
 
-      - name: Check disk space
+        # The following are additional commands that could be run to free up
+        # more space if necessary:
+        #
+        # sudo apt-get update
+        # sudo eatmydata apt-get purge --auto-remove -y \
+        #   azure-cli aspnetcore-* dotnet-* ghc-* firefox \
+        #   google-chrome-stable \
+        #   llvm-* microsoft-edge-stable mono-* \
+        #   msbuild mysql-server-core-* php-* php7* \
+        #   powershell temurin-* zulu-*
+        # sudo apt-get autoremove -y
+        # sudo apt-get autoclean -y
+        # sudo docker system prune -a -f --volumes
+
+      - name: Check disk space again
         run: df -h
 
       - name: Install dependencies
@@ -359,20 +352,8 @@ jobs:
           cd examples
           make build-all-images
 
-      - name: Check disk space
-        run: df -h
-
       - name: build images
         run: cd bpfman-operator && make build-images
-
-      - name: Check disk space
-        run: df -h
-
-      - name: run cargo clean
-        run: cargo clean
-
-      - name: Check disk space
-        run: df -h
 
       - name: run integration tests
         run: cd bpfman-operator && make test-integration
