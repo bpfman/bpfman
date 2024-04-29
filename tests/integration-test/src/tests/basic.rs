@@ -56,7 +56,7 @@ fn test_load_unload_xdp() {
                 lt,
                 XDP_PASS_IMAGE_LOC,
                 XDP_PASS_FILE_LOC,
-                XDP_PASS_NAME,
+                Some(XDP_PASS_NAME),
                 None, // metadata
                 None, // map_owner_id
             );
@@ -95,7 +95,7 @@ fn test_map_sharing_load_unload_xdp() {
         &load_type,
         XDP_COUNTER_IMAGE_LOC,
         "", // file_path
-        XDP_COUNTER_NAME,
+        None,
         None, // metadata
         None, // map_owner_id
     );
@@ -131,7 +131,7 @@ fn test_map_sharing_load_unload_xdp() {
         &load_type,
         XDP_COUNTER_IMAGE_LOC,
         "", // file_path
-        XDP_COUNTER_NAME,
+        None,
         None, // metadata
         map_owner_id_u32,
     );
@@ -409,7 +409,7 @@ fn test_list_with_metadata() {
                 lt,
                 XDP_PASS_IMAGE_LOC,
                 XDP_PASS_FILE_LOC,
-                XDP_PASS_NAME,
+                Some(XDP_PASS_NAME),
                 None, // metadata
                 None, // map_owner_id
             );
@@ -427,7 +427,7 @@ fn test_list_with_metadata() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         Some(vec![key]),
         None, // map_owner_id
     );
