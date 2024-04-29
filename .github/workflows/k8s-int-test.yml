@@ -14,8 +14,13 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  get-more-space:
+  kubernetes-integration-tests:
     runs-on: ubuntu-latest
+    env:
+      BPFMAN_IMG: quay.io/bpfman/bpfman:int-test
+      BPFMAN_AGENT_IMG: quay.io/bpfman/bpfman-agent:int-test
+      BPFMAN_OPERATOR_IMG: quay.io/bpfman/bpfman-operator:int-test
+      XDP_PASS_PRIVATE_IMAGE_CREDS: ${{ secrets.XDP_PASS_PRIVATE_IMAGE_CREDS }}
     steps:
       - name: Check disk space
         run: df -h
@@ -37,95 +42,6 @@ jobs:
           sudo apt-get autoremove -y
           sudo apt-get autoclean -y
 
-      - name: Check disk space again
-        run: df -h
-
-  build:
-    needs: [get-more-space]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -qy \
-            git \
-            clang \
-            llvm \
-            protobuf-compiler \
-            cmake \
-            perl \
-            libssl-dev \
-            gcc-multilib \
-            libelf-dev \
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        with:
-          repository: libbpf/libbpf
-          path: libbpf
-          fetch-depth: 0
-
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          override: true
-
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          components: rustfmt, clippy, rust-src
-          override: false
-
-      ## TODO(astoycos) Deactivate the rust-cache action until we can determine
-      ## why it's freezing at the end of the install.
-      ## - uses: Swatinem/rust-cache@v2
-
-      - name: Build eBPF
-        run: |
-          cargo xtask build-ebpf --libbpf-dir ./libbpf
-
-      - name: Build
-        run: cargo build --verbose
-
-      - name: Check disk space
-        run: df -h
-
-  ## Build go modules
-  build-go:
-    needs: [get-more-space]
-    runs-on: ubuntu-latest
-    # k8s codegen requires this to be set
-    env:
-      GOPATH: ${{ github.workspace }}
-      XDP_PASS_PRIVATE_IMAGE_CREDS: ${{ secrets.XDP_PASS_PRIVATE_IMAGE_CREDS }}
-    defaults:
-      run:
-        ## For us to run the controller-gen generate commands from within
-        ## github actions the package name MUST match the directory layout
-        ## (i.e `GOPATH/src/github.com/bpfman/bpfman`). Otherwise when
-        ## running `make generate` generated code is deposited at
-        ## `home/runner/work/bpfman/bpfman/bpfman-operator/PKG_NAME` instead
-        ## of in `home/runner/work/bpfman/bpfman/bpfman-operator/pkg/client/...`.
-        ## This is annoying and gross but cannot be resolved until
-        ## https://github.com/kubernetes/kubernetes/issues/86753 is properly
-        ## addressed.
-        working-directory: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman/bpfman-operator
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman
-
-      - name: Build Operator
-        run: make build
-
-  kubernetes-integration-tests:
-    needs: [get-more-space, build, build-go]
-    runs-on: ubuntu-latest
-    env:
-      BPFMAN_IMG: quay.io/bpfman/bpfman:int-test
-      BPFMAN_AGENT_IMG: quay.io/bpfman/bpfman-agent:int-test
-      BPFMAN_OPERATOR_IMG: quay.io/bpfman/bpfman-operator:int-test
-      XDP_PASS_PRIVATE_IMAGE_CREDS: ${{ secrets.XDP_PASS_PRIVATE_IMAGE_CREDS }}
-    steps:
       - name: Check disk space
         run: df -h
 
@@ -208,8 +124,6 @@ jobs:
   k8s-int-test-workflow-complete:
     needs:
       [
-        build,
-        build-go,
         kubernetes-integration-tests,
       ]
     runs-on: ubuntu-latest
