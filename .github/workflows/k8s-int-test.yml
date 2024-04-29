@@ -1,0 +1,218 @@
+name: k8s-int-test
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main]
+    tags:
+      - v*
+
+  pull_request:
+    branches:
+      - main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  get-more-space:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check disk space
+        run: df -h
+
+      - name: Free up space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/local/lib/android
+          sudo apt-get update
+          sudo eatmydata apt-get purge --auto-remove -y \
+            azure-cli aspnetcore-* dotnet-* ghc-* firefox \
+            google-chrome-stable \
+            llvm-* microsoft-edge-stable mono-* \
+            msbuild mysql-server-core-* php-* php7* \
+            powershell temurin-* zulu-*
+          sudo apt-get autoremove -y
+          sudo apt-get autoclean -y
+
+      - name: Check disk space again
+        run: df -h
+
+  build:
+    needs: [get-more-space]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy \
+            git \
+            clang \
+            llvm \
+            protobuf-compiler \
+            cmake \
+            perl \
+            libssl-dev \
+            gcc-multilib \
+            libelf-dev \
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: libbpf/libbpf
+          path: libbpf
+          fetch-depth: 0
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: rustfmt, clippy, rust-src
+          override: false
+
+      ## TODO(astoycos) Deactivate the rust-cache action until we can determine
+      ## why it's freezing at the end of the install.
+      ## - uses: Swatinem/rust-cache@v2
+
+      - name: Build eBPF
+        run: |
+          cargo xtask build-ebpf --libbpf-dir ./libbpf
+
+      - name: Build
+        run: cargo build --verbose
+
+      - name: Check disk space
+        run: df -h
+
+  ## Build go modules
+  build-go:
+    needs: [get-more-space]
+    runs-on: ubuntu-latest
+    # k8s codegen requires this to be set
+    env:
+      GOPATH: ${{ github.workspace }}
+      XDP_PASS_PRIVATE_IMAGE_CREDS: ${{ secrets.XDP_PASS_PRIVATE_IMAGE_CREDS }}
+    defaults:
+      run:
+        ## For us to run the controller-gen generate commands from within
+        ## github actions the package name MUST match the directory layout
+        ## (i.e `GOPATH/src/github.com/bpfman/bpfman`). Otherwise when
+        ## running `make generate` generated code is deposited at
+        ## `home/runner/work/bpfman/bpfman/bpfman-operator/PKG_NAME` instead
+        ## of in `home/runner/work/bpfman/bpfman/bpfman-operator/pkg/client/...`.
+        ## This is annoying and gross but cannot be resolved until
+        ## https://github.com/kubernetes/kubernetes/issues/86753 is properly
+        ## addressed.
+        working-directory: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman/bpfman-operator
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman
+
+      - name: Build Operator
+        run: make build
+
+  kubernetes-integration-tests:
+    needs: [get-more-space, build, build-go]
+    runs-on: ubuntu-latest
+    env:
+      BPFMAN_IMG: quay.io/bpfman/bpfman:int-test
+      BPFMAN_AGENT_IMG: quay.io/bpfman/bpfman-agent:int-test
+      BPFMAN_OPERATOR_IMG: quay.io/bpfman/bpfman-operator:int-test
+      XDP_PASS_PRIVATE_IMAGE_CREDS: ${{ secrets.XDP_PASS_PRIVATE_IMAGE_CREDS }}
+    steps:
+      - name: Check disk space
+        run: df -h
+
+      - name: Prune Docker
+        run: sudo docker system prune -a -f --volumes
+
+      - name: Check disk space
+        run: df -h
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy \
+            git \
+            clang \
+            llvm \
+            gcc-multilib \
+            libbpf-dev
+
+      - name: setup golang
+        uses: actions/setup-go@v5
+        with:
+          # prettier-ignore
+          go-version: '1.21' # yamllint disable-line rule:quoted-strings
+
+      - name: cache go modules
+        uses: actions/cache@v4
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-build-codegen-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-build-codegen-
+      - name: checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check disk space
+        run: df -h
+
+      ## TODO(astoycos) Currently this is just done to ensure we have coverage
+      ## on all image builds. Ultimately we should be running the integration
+      ## tests with these locally built bytecode images.
+      - name: build example bytecode images
+        run: |
+          go install github.com/cilium/ebpf/cmd/bpf2go@v0.14.0
+          cd examples
+          make build-all-images
+
+      - name: Check disk space
+        run: df -h
+
+      - name: build k8s operator images
+        run: cd bpfman-operator && make build-images
+
+      - name: Check disk space
+        run: df -h
+
+      - name: run cargo clean
+        run: cargo clean
+
+      - name: Check disk space
+        run: df -h
+
+      - name: run integration tests
+        run: cd bpfman-operator && make test-integration
+
+      - name: Check disk space
+        run: df -h
+
+      ## Upload diagnostics if integration test step failed.
+      - name: upload diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubernetes-integration-test-diag
+          path: /tmp/ktf-diag*
+          if-no-files-found: ignore
+
+  k8s-int-test-workflow-complete:
+    needs:
+      [
+        build,
+        build-go,
+        kubernetes-integration-tests,
+      ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: k8s-int-test Complete
+        run: echo "k8s-int-test Complete"

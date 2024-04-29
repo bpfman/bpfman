@@ -192,7 +192,7 @@ jobs:
           git diff --exit-code ../go.mod ../go.sum
 
       - name: Lint
-        uses: golangci/golangci-lint-action@v5
+        uses: golangci/golangci-lint-action@v4
         with:
           ## https://github.com/golangci/golangci-lint-action/issues/369
           working-directory: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman
@@ -304,91 +304,6 @@ jobs:
       - name: Run integration tests
         run: cargo xtask integration-test
 
-  kubernetes-integration-tests:
-    needs: [get-more-space, build, build-go, build-docs, basic-integration-tests]
-    runs-on: ubuntu-latest
-    env:
-      BPFMAN_IMG: quay.io/bpfman/bpfman:int-test
-      BPFMAN_AGENT_IMG: quay.io/bpfman/bpfman-agent:int-test
-      BPFMAN_OPERATOR_IMG: quay.io/bpfman/bpfman-operator:int-test
-      XDP_PASS_PRIVATE_IMAGE_CREDS: ${{ secrets.XDP_PASS_PRIVATE_IMAGE_CREDS }}
-    steps:
-      - name: Check disk space
-        run: df -h
-
-      - name: Prune Docker
-        run: sudo docker system prune -a -f --volumes
-
-      - name: Check disk space
-        run: df -h
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -qy \
-            git \
-            clang \
-            llvm \
-            gcc-multilib \
-            libbpf-dev
-
-      - name: setup golang
-        uses: actions/setup-go@v5
-        with:
-          # prettier-ignore
-          go-version: '1.21' # yamllint disable-line rule:quoted-strings
-
-      - name: cache go modules
-        uses: actions/cache@v4
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-build-codegen-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-build-codegen-
-      - name: checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      ## TODO(astoycos) Currently this is just done to ensure we have coverage
-      ## on all image builds. Ultimately we should be running the integration
-      ## tests with these locally built bytecode images.
-      - name: build example bytecode images
-        run: |
-          go install github.com/cilium/ebpf/cmd/bpf2go@v0.14.0
-          cd examples
-          make build-all-images
-
-      - name: Check disk space
-        run: df -h
-
-      - name: build images
-        run: cd bpfman-operator && make build-images
-
-      - name: Check disk space
-        run: df -h
-
-      - name: run cargo clean
-        run: cargo clean
-
-      - name: Check disk space
-        run: df -h
-
-      - name: run integration tests
-        run: cd bpfman-operator && make test-integration
-
-      - name: Check disk space
-        run: df -h
-
-      ## Upload diagnostics if integration test step failed.
-      - name: upload diagnostics
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: kubernetes-integration-test-diag
-          path: /tmp/ktf-diag*
-          if-no-files-found: ignore
-
   coverage:
     needs: [build, build-go, build-docs]
     runs-on: ubuntu-latest
@@ -461,7 +376,6 @@ jobs:
         build-docs,
         coverage,
         basic-integration-tests,
-        kubernetes-integration-tests,
       ]
     runs-on: ubuntu-latest
     steps:
