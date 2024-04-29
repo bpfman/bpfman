@@ -166,7 +166,7 @@ jobs:
           git diff --exit-code ../go.mod ../go.sum
 
       - name: Lint
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v5
         with:
           ## https://github.com/golangci/golangci-lint-action/issues/369
           working-directory: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman
