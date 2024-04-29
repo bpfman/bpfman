@@ -49,16 +49,39 @@ type UprobeProgramReconciler struct {
 	ourNode              *v1.Node
 }
 
-func (r *UprobeProgramReconciler) getRecCommon() *ReconcilerCommon {
-	return &r.ReconcilerCommon
-}
-
 func (r *UprobeProgramReconciler) getFinalizer() string {
 	return internal.UprobeProgramControllerFinalizer
 }
 
 func (r *UprobeProgramReconciler) getRecType() string {
 	return internal.UprobeString
+}
+
+func (r *UprobeProgramReconciler) getProgType() internal.ProgramType {
+	return internal.Kprobe
+}
+
+func (r *UprobeProgramReconciler) getName() string {
+	return r.currentUprobeProgram.Name
+}
+
+func (r *UprobeProgramReconciler) getNode() *v1.Node {
+	return r.ourNode
+}
+
+func (r *UprobeProgramReconciler) getBpfProgramCommon() *bpfmaniov1alpha1.BpfProgramCommon {
+	return &r.currentUprobeProgram.Spec.BpfProgramCommon
+}
+
+func (r *UprobeProgramReconciler) setCurrentProgram(program client.Object) error {
+	var ok bool
+
+	r.currentUprobeProgram, ok = program.(*bpfmaniov1alpha1.UprobeProgram)
+	if !ok {
+		return fmt.Errorf("failed to cast program to UprobeProgram")
+	}
+
+	return nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -117,7 +140,7 @@ func (r *UprobeProgramReconciler) getUprobeContainerInfo(ctx context.Context) (*
 	return containers, nil
 }
 
-func (r *UprobeProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
+func (r *UprobeProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 
 	// sanitize uprobe name to work in a bpfProgram name
@@ -142,7 +165,7 @@ func (r *UprobeProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpf
 
 			bpfProgramName := fmt.Sprintf("%s-%s", bpfProgramNameBase, "no-containers-on-node")
 
-			prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
+			prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramNameBase, err)
 			}
@@ -159,7 +182,7 @@ func (r *UprobeProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpf
 
 				bpfProgramName := fmt.Sprintf("%s-%s-%s", bpfProgramNameBase, container.podName, container.containerName)
 
-				prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
+				prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
 				if err != nil {
 					return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 				}
@@ -170,7 +193,7 @@ func (r *UprobeProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpf
 	} else {
 		annotations := map[string]string{internal.UprobeProgramTarget: r.currentUprobeProgram.Spec.Target}
 
-		prog, err := r.createBpfProgram(ctx, bpfProgramNameBase, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
+		prog, err := r.createBpfProgram(bpfProgramNameBase, r.getFinalizer(), r.currentUprobeProgram, r.getRecType(), annotations)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramNameBase, err)
 		}
@@ -210,53 +233,21 @@ func (r *UprobeProgramReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{Requeue: false}, nil
 	}
 
-	// Get existing ebpf state from bpfman. Since both uprobes and kprobes have
-	// the same kernel ProgramType, we use internal.Kprobe below.
-	programMap, err := bpfmanagentinternal.ListBpfmanPrograms(ctx, r.BpfmanClient, internal.Kprobe)
-	if err != nil {
-		r.Logger.Error(err, "failed to list loaded bpfman programs")
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+	// Create a list of Uprobe programs to pass into reconcileCommon()
+	var uprobeObjects []client.Object = make([]client.Object, len(uprobePrograms.Items))
+	for i := range uprobePrograms.Items {
+		uprobeObjects[i] = &uprobePrograms.Items[i]
 	}
 
-	// Reconcile each UprobeProgram. Don't return error here because it will trigger an infinite reconcile loop, instead
-	// report the error to user and retry if specified. For some errors the controller may not decide to retry.
-	// Note: This only results in grpc calls to bpfman if we need to change something
-	requeue := false // initialize requeue to false
-	for _, uprobeProgram := range uprobePrograms.Items {
-		r.Logger.Info("UprobeProgramController is reconciling", "currentUprobeProgram", uprobeProgram.Name)
-		r.currentUprobeProgram = &uprobeProgram
-		result, err := reconcileProgram(ctx, r, r.currentUprobeProgram, &r.currentUprobeProgram.Spec.BpfProgramCommon, r.ourNode, programMap)
-		if err != nil {
-			r.Logger.Error(err, "Reconciling UprobeProgram Failed", "UprobeProgramName", r.currentUprobeProgram.Name, "ReconcileResult", result.String())
-		}
-
-		switch result {
-		case internal.Unchanged:
-			// continue with next program
-		case internal.Updated:
-			// return
-			return ctrl.Result{Requeue: false}, nil
-		case internal.Requeue:
-			// remember to do a requeue when we're done and continue with next program
-			requeue = true
-		}
-	}
-
-	if requeue {
-		// A requeue has been requested
-		return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
-	} else {
-		// We've made it through all the programs in the list without anything being
-		// updated and a reque has not been requested.
-		return ctrl.Result{Requeue: false}, nil
-	}
+	// Reconcile each TcProgram.
+	return r.reconcileCommon(ctx, r, uprobeObjects)
 }
 
-func (r *UprobeProgramReconciler) buildUprobeLoadRequest(
-	bytecode *gobpfman.BytecodeLocation,
-	uuid string,
-	bpfProgram *bpfmaniov1alpha1.BpfProgram,
-	mapOwnerId *uint32) *gobpfman.LoadRequest {
+func (r *UprobeProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfProgram, mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
+	bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, &r.currentUprobeProgram.Spec.ByteCode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process bytecode selector: %v", err)
+	}
 
 	var uprobeAttachInfo *gobpfman.UprobeAttachInfo
 
@@ -286,7 +277,7 @@ func (r *UprobeProgramReconciler) buildUprobeLoadRequest(
 		uprobeAttachInfo.ContainerPid = &containerPid
 	}
 
-	return &gobpfman.LoadRequest{
+	loadRequest := gobpfman.LoadRequest{
 		Bytecode:    bytecode,
 		Name:        r.currentUprobeProgram.Spec.BpfFunctionName,
 		ProgramType: uint32(internal.Kprobe),
@@ -295,151 +286,10 @@ func (r *UprobeProgramReconciler) buildUprobeLoadRequest(
 				UprobeAttachInfo: uprobeAttachInfo,
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentUprobeProgram.Name},
+		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.currentUprobeProgram.Name},
 		GlobalData: r.currentUprobeProgram.Spec.GlobalData,
 		MapOwnerId: mapOwnerId,
 	}
-}
 
-// reconcileBpfmanPrograms ONLY reconciles the bpfman state for a single BpfProgram.
-// It does not interact with the k8s API in any way.
-func (r *UprobeProgramReconciler) reconcileBpfmanProgram(ctx context.Context,
-	existingBpfPrograms map[string]*gobpfman.ListResponse_ListResult,
-	bytecodeSelector *bpfmaniov1alpha1.BytecodeSelector,
-	bpfProgram *bpfmaniov1alpha1.BpfProgram,
-	isNodeSelected bool,
-	isBeingDeleted bool,
-	mapOwnerStatus *MapOwnerParamStatus) (bpfmaniov1alpha1.BpfProgramConditionType, error) {
-
-	r.Logger.V(1).Info("Existing bpfProgram", "UUID", bpfProgram.UID, "Name", bpfProgram.Name, "CurrentUprobeProgram", r.currentUprobeProgram.Name)
-
-	uuid := bpfProgram.UID
-
-	getLoadRequest := func() (*gobpfman.LoadRequest, bpfmaniov1alpha1.BpfProgramConditionType, error) {
-		bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, bytecodeSelector)
-		if err != nil {
-			return nil, bpfmaniov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
-		}
-		loadRequest := r.buildUprobeLoadRequest(bytecode, string(uuid), bpfProgram, mapOwnerStatus.mapOwnerId)
-		return loadRequest, bpfmaniov1alpha1.BpfProgCondNone, nil
-	}
-
-	noContainers := noContainersOnNode(bpfProgram)
-
-	existingProgram, doesProgramExist := existingBpfPrograms[string(uuid)]
-	if !doesProgramExist {
-		r.Logger.V(1).Info("UprobeProgram doesn't exist on node")
-
-		// If UprobeProgram is being deleted just exit
-		if isBeingDeleted {
-			return bpfmaniov1alpha1.BpfProgCondUnloaded, nil
-		}
-
-		// Make sure if we're not selected just exit
-		if !isNodeSelected {
-			return bpfmaniov1alpha1.BpfProgCondNotSelected, nil
-		}
-
-		// If a container selector is present but there were no matching
-		// containers on this node, just exit.
-		if noContainers {
-			r.Logger.V(1).Info("Program does not exist and there are no matching containers on this node")
-			return bpfmaniov1alpha1.BpfProgCondNoContainersOnNode, nil
-		}
-
-		// Make sure if the Map Owner is set but not found then just exit
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isFound {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotFound, nil
-		}
-
-		// Make sure if the Map Owner is set but not loaded then just exit
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isLoaded {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotLoaded, nil
-		}
-
-		// otherwise load it
-		loadRequest, condition, err := getLoadRequest()
-		if err != nil {
-			return condition, err
-		}
-
-		r.progId, err = bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
-		if err != nil {
-			r.Logger.Error(err, "Failed to load UprobeProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotLoaded, nil
-		}
-
-		r.Logger.Info("bpfman called to load UprobeProgram on Node", "Name", bpfProgram.Name, "UUID", uuid)
-		return bpfmaniov1alpha1.BpfProgCondLoaded, nil
-	}
-
-	// prog ID should already have been set if program exists
-	id, err := bpfmanagentinternal.GetID(bpfProgram)
-	if err != nil {
-		r.Logger.Error(err, "Failed to get program ID")
-		return bpfmaniov1alpha1.BpfProgCondNotLoaded, nil
-	}
-
-	// BpfProgram exists but either UprobeProgram is being deleted, node is no
-	// longer selected, or map is not available....unload program
-	if isBeingDeleted || !isNodeSelected || noContainers ||
-		(mapOwnerStatus.isSet && (!mapOwnerStatus.isFound || !mapOwnerStatus.isLoaded)) {
-		r.Logger.V(1).Info("UprobeProgram exists on Node but is scheduled for deletion, not selected, or map not available",
-			"isDeleted", isBeingDeleted, "isSelected", isNodeSelected, "mapIsSet", mapOwnerStatus.isSet,
-			"mapIsFound", mapOwnerStatus.isFound, "mapIsLoaded", mapOwnerStatus.isLoaded)
-
-		if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
-			r.Logger.Error(err, "Failed to unload UprobeProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotUnloaded, nil
-		}
-
-		r.Logger.Info("bpfman called to unload UprobeProgram on Node", "Name", bpfProgram.Name, "Program ID", id)
-
-		if isBeingDeleted {
-			return bpfmaniov1alpha1.BpfProgCondUnloaded, nil
-		}
-
-		if !isNodeSelected {
-			return bpfmaniov1alpha1.BpfProgCondNotSelected, nil
-		}
-
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isFound {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotFound, nil
-		}
-
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isLoaded {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotLoaded, nil
-		}
-	}
-
-	// BpfProgram exists but is not correct state, unload and recreate
-	loadRequest, condition, err := getLoadRequest()
-	if err != nil {
-		return condition, err
-	}
-
-	r.Logger.V(1).WithValues("expectedProgram", loadRequest).WithValues("existingProgram", existingProgram).Info("StateMatch")
-
-	isSame, reasons := bpfmanagentinternal.DoesProgExist(existingProgram, loadRequest)
-	if !isSame {
-		r.Logger.V(1).Info("UprobeProgram is in wrong state, unloading and reloading", "Reason", reasons)
-		if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
-			r.Logger.Error(err, "Failed to unload UprobeProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotUnloaded, nil
-		}
-
-		r.progId, err = bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
-		if err != nil {
-			r.Logger.Error(err, "Failed to load UprobeProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotLoaded, err
-		}
-
-		r.Logger.Info("bpfman called to reload UprobeProgram on Node", "Name", bpfProgram.Name, "UUID", uuid)
-	} else {
-		// Program exists and bpfProgram K8s Object is up to date
-		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfman")
-		r.progId = id
-	}
-
-	return bpfmaniov1alpha1.BpfProgCondLoaded, nil
+	return &loadRequest, nil
 }

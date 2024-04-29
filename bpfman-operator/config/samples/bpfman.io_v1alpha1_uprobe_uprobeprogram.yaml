@@ -10,7 +10,7 @@ spec:
   bpffunctionname: my_uprobe
   func_name: syscall
   # offset: 0 # optional offset w/in function
-  target: bpfman
+  target: libc
   retprobe: false
   # pid: 0 # optional pid to execute uprobe for
   bytecode:

@@ -107,7 +107,7 @@ generate: ## Run `go generate` to build the bytecode for each of the examples.
 	go generate ./...
 
 .PHONY: build-us-images
-build-us-images: ## Build all example userspace images
+build-us-images: build ## Build all example userspace images
 	docker build -t ${IMAGE_TC_US} -f ./go-tc-counter/container-deployment/Containerfile.go-tc-counter ../
 	docker build -t ${IMAGE_TP_US} -f ./go-tracepoint-counter/container-deployment/Containerfile.go-tracepoint-counter ../
 	docker build -t ${IMAGE_XDP_US} -f ./go-xdp-counter/container-deployment/Containerfile.go-xdp-counter ../
@@ -116,10 +116,11 @@ build-us-images: ## Build all example userspace images
 	docker build -t ${IMAGE_URP_US} -f ./go-uretprobe-counter/container-deployment/Containerfile.go-uretprobe-counter ../
 	docker build -t ${IMAGE_GT_US} -f ./go-target/container-deployment/Containerfile.go-target ../
 
-
 .PHONY: build-bc-images
 build-bc-images: generate ## Build bytecode example userspace images
 	IMAGE_TC_BC=${IMAGE_TC_BC} IMAGE_TP_BC=${IMAGE_TP_BC} IMAGE_XDP_BC=${IMAGE_XDP_BC} IMAGE_KP_BC=${IMAGE_KP_BC} IMAGE_UP_BC=${IMAGE_UP_BC}  IMAGE_URP_BC=${IMAGE_URP_BC} ./build-bytecode-images.sh
+
+build-all-images: build-bc-images build-us-images ## Build both bytecode and userspace images
 
 .PHONY: push-us-images
 push-us-images: ## Push all example userspace images
@@ -436,7 +437,7 @@ endif
 		$(MAKE) $$target $(TAG_COMMAND) || true; \
 	done
 
-UNDEPLOY_TARGETS = undeploy-tc undeploy-tracepoint undeploy-xdp undeploy-xdp-ms undeploy-kprobe undeploy-uprobe undeploy-uretprobe undeploy-target
+UNDEPLOY_TARGETS = undeploy-tc undeploy-tracepoint undeploy-xdp-ms undeploy-xdp undeploy-kprobe undeploy-uprobe undeploy-uretprobe undeploy-target
 
 .PHONY: undeploy
 undeploy: ## Undeploy all examples to the cluster specified in ~/.kube/config.

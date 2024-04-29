@@ -114,5 +114,5 @@ func (r *XdpProgramReconciler) updateStatus(ctx context.Context, name string, co
 		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationOperator}, nil
 	}
 
-	return r.ReconcilerCommon.updateCondition(ctx, prog, &prog.Status.Conditions, cond, message)
+	return r.updateCondition(ctx, prog, &prog.Status.Conditions, cond, message)
 }

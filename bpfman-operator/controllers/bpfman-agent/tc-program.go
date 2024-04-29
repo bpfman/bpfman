@@ -45,12 +45,8 @@ import (
 type TcProgramReconciler struct {
 	ReconcilerCommon
 	currentTcProgram *bpfmaniov1alpha1.TcProgram
-	ourNode          *v1.Node
 	interfaces       []string
-}
-
-func (r *TcProgramReconciler) getRecCommon() *ReconcilerCommon {
-	return &r.ReconcilerCommon
+	ourNode          *v1.Node
 }
 
 func (r *TcProgramReconciler) getFinalizer() string {
@@ -59,6 +55,39 @@ func (r *TcProgramReconciler) getFinalizer() string {
 
 func (r *TcProgramReconciler) getRecType() string {
 	return internal.Tc.String()
+}
+
+func (r *TcProgramReconciler) getProgType() internal.ProgramType {
+	return internal.Tc
+}
+
+func (r *TcProgramReconciler) getName() string {
+	return r.currentTcProgram.Name
+}
+
+func (r *TcProgramReconciler) getNode() *v1.Node {
+	return r.ourNode
+}
+
+func (r *TcProgramReconciler) getBpfProgramCommon() *bpfmaniov1alpha1.BpfProgramCommon {
+	return &r.currentTcProgram.Spec.BpfProgramCommon
+}
+
+func (r *TcProgramReconciler) setCurrentProgram(program client.Object) error {
+	var err error
+	var ok bool
+
+	r.currentTcProgram, ok = program.(*bpfmaniov1alpha1.TcProgram)
+	if !ok {
+		return fmt.Errorf("failed to cast program to TcProgram")
+	}
+
+	r.interfaces, err = getInterfaces(&r.currentTcProgram.Spec.InterfaceSelector, r.ourNode)
+	if err != nil {
+		return fmt.Errorf("failed to get interfaces for TcProgram: %v", err)
+	}
+
+	return nil
 }
 
 // Must match with bpfman internal types
@@ -123,13 +152,13 @@ func (r *TcProgramReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *TcProgramReconciler) expectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
+func (r *TcProgramReconciler) getExpectedBpfPrograms(ctx context.Context) (*bpfmaniov1alpha1.BpfProgramList, error) {
 	progs := &bpfmaniov1alpha1.BpfProgramList{}
 	for _, iface := range r.interfaces {
 		bpfProgramName := fmt.Sprintf("%s-%s-%s", r.currentTcProgram.Name, r.NodeName, iface)
 		annotations := map[string]string{internal.TcProgramInterface: iface}
 
-		prog, err := r.createBpfProgram(ctx, bpfProgramName, r.getFinalizer(), r.currentTcProgram, r.getRecType(), annotations)
+		prog, err := r.createBpfProgram(bpfProgramName, r.getFinalizer(), r.currentTcProgram, r.getRecType(), annotations)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create BpfProgram %s: %v", bpfProgramName, err)
 		}
@@ -145,7 +174,6 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	r.currentTcProgram = &bpfmaniov1alpha1.TcProgram{}
 	r.ourNode = &v1.Node{}
 	r.Logger = ctrl.Log.WithName("tc")
-	var err error
 
 	ctxLogger := log.FromContext(ctx)
 	ctxLogger.Info("Reconcile TC: Enter", "ReconcileKey", req)
@@ -170,61 +198,23 @@ func (r *TcProgramReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{Requeue: false}, nil
 	}
 
-	// Get existing ebpf state from bpfman.
-	existingPrograms, err := bpfmanagentinternal.ListBpfmanPrograms(ctx, r.BpfmanClient, internal.Tc)
-	if err != nil {
-		r.Logger.Error(err, "failed to list loaded bpfman programs")
-		return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
+	// Create a list of tc programs to pass into reconcileCommon()
+	var tcObjects []client.Object = make([]client.Object, len(tcPrograms.Items))
+	for i := range tcPrograms.Items {
+		tcObjects[i] = &tcPrograms.Items[i]
 	}
 
-	// Reconcile each TcProgram. Don't return error here because it will trigger an infinite reconcile loop, instead
-	// report the error to user and retry if specified. For some errors the controller may not decide to retry.
-	// Note: This only results in grpc calls to bpfman if we need to change something
-	requeue := false // initialize requeue to false
-	for _, tcProgram := range tcPrograms.Items {
-		r.Logger.Info("TcProgramController is reconciling", "currentTcProgram", tcProgram.Name)
-		r.currentTcProgram = &tcProgram
-
-		r.interfaces, err = getInterfaces(&r.currentTcProgram.Spec.InterfaceSelector, r.ourNode)
-		if err != nil {
-			r.Logger.Error(err, "failed to get interfaces for TcProgram")
-			return ctrl.Result{Requeue: true, RequeueAfter: retryDurationAgent}, nil
-		}
-
-		result, err := reconcileProgram(ctx, r, r.currentTcProgram, &r.currentTcProgram.Spec.BpfProgramCommon, r.ourNode, existingPrograms)
-		if err != nil {
-			r.Logger.Error(err, "Reconciling TcProgram Failed", "TcProgramName", r.currentTcProgram.Name, "ReconcileResult", result.String())
-		}
-
-		switch result {
-		case internal.Unchanged:
-			// continue with next program
-		case internal.Updated:
-			// return
-			return ctrl.Result{Requeue: false}, nil
-		case internal.Requeue:
-			// remember to do a requeue when we're done and continue with next program
-			requeue = true
-		}
-	}
-
-	if requeue {
-		// A requeue has been requested
-		return ctrl.Result{RequeueAfter: retryDurationAgent}, nil
-	} else {
-		// We've made it through all the programs in the list without anything being
-		// updated and a reque has not been requested.
-		return ctrl.Result{Requeue: false}, nil
-	}
+	// Reconcile each TcProgram.
+	return r.reconcileCommon(ctx, r, tcObjects)
 }
 
-func (r *TcProgramReconciler) buildTcLoadRequest(
-	bytecode *gobpfman.BytecodeLocation,
-	uuid string,
-	iface string,
-	mapOwnerId *uint32) *gobpfman.LoadRequest {
+func (r *TcProgramReconciler) getLoadRequest(bpfProgram *bpfmaniov1alpha1.BpfProgram, mapOwnerId *uint32) (*gobpfman.LoadRequest, error) {
+	bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, &r.currentTcProgram.Spec.ByteCode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process bytecode selector: %v", err)
+	}
 
-	return &gobpfman.LoadRequest{
+	loadRequest := gobpfman.LoadRequest{
 		Bytecode:    bytecode,
 		Name:        r.currentTcProgram.Spec.BpfFunctionName,
 		ProgramType: uint32(internal.Tc),
@@ -232,151 +222,16 @@ func (r *TcProgramReconciler) buildTcLoadRequest(
 			Info: &gobpfman.AttachInfo_TcAttachInfo{
 				TcAttachInfo: &gobpfman.TCAttachInfo{
 					Priority:  r.currentTcProgram.Spec.Priority,
-					Iface:     iface,
+					Iface:     bpfProgram.Annotations[internal.TcProgramInterface],
 					Direction: r.currentTcProgram.Spec.Direction,
 					ProceedOn: tcProceedOnToInt(r.currentTcProgram.Spec.ProceedOn),
 				},
 			},
 		},
-		Metadata:   map[string]string{internal.UuidMetadataKey: uuid, internal.ProgramNameKey: r.currentTcProgram.Name},
+		Metadata:   map[string]string{internal.UuidMetadataKey: string(bpfProgram.UID), internal.ProgramNameKey: r.currentTcProgram.Name},
 		GlobalData: r.currentTcProgram.Spec.GlobalData,
 		MapOwnerId: mapOwnerId,
 	}
-}
 
-// reconcileBpfmanPrograms ONLY reconciles the bpfman state for a single BpfProgram.
-// It does not interact with the k8s API in any way.
-func (r *TcProgramReconciler) reconcileBpfmanProgram(ctx context.Context,
-	existingBpfPrograms map[string]*gobpfman.ListResponse_ListResult,
-	bytecodeSelector *bpfmaniov1alpha1.BytecodeSelector,
-	bpfProgram *bpfmaniov1alpha1.BpfProgram,
-	isNodeSelected bool,
-	isBeingDeleted bool,
-	mapOwnerStatus *MapOwnerParamStatus) (bpfmaniov1alpha1.BpfProgramConditionType, error) {
-
-	r.Logger.V(1).Info("Existing bpfProgram", "UUID", bpfProgram.UID, "Name", bpfProgram.Name)
-	iface := bpfProgram.Annotations[internal.TcProgramInterface]
-
-	var err error
-	uuid := string(bpfProgram.UID)
-
-	getLoadRequest := func() (*gobpfman.LoadRequest, bpfmaniov1alpha1.BpfProgramConditionType, error) {
-		bytecode, err := bpfmanagentinternal.GetBytecode(r.Client, bytecodeSelector)
-		if err != nil {
-			return nil, bpfmaniov1alpha1.BpfProgCondBytecodeSelectorError, fmt.Errorf("failed to process bytecode selector: %v", err)
-		}
-		loadRequest := r.buildTcLoadRequest(bytecode, string(uuid), iface, mapOwnerStatus.mapOwnerId)
-		return loadRequest, bpfmaniov1alpha1.BpfProgCondNone, nil
-	}
-
-	existingProgram, doesProgramExist := existingBpfPrograms[string(uuid)]
-	if !doesProgramExist {
-		r.Logger.V(1).Info("TcProgram doesn't exist on node for iface", "interface", iface)
-
-		// If TcProgram is being deleted just break out and remove finalizer
-		if isBeingDeleted {
-			return bpfmaniov1alpha1.BpfProgCondUnloaded, nil
-		}
-
-		// Make sure if we're not selected just exit
-		if !isNodeSelected {
-			return bpfmaniov1alpha1.BpfProgCondNotSelected, nil
-		}
-
-		// Make sure if the Map Owner is set but not found then just exit
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isFound {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotFound, nil
-		}
-
-		// Make sure if the Map Owner is set but not loaded then just exit
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isLoaded {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotLoaded, nil
-		}
-
-		// otherwise load it
-		loadRequest, condition, err := getLoadRequest()
-		if err != nil {
-			return condition, err
-		}
-
-		r.progId, err = bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
-		if err != nil {
-			r.Logger.Error(err, "Failed to load TcProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotLoaded, nil
-		}
-
-		r.Logger.Info("bpfman called to load TcProgram on Node", "Name", bpfProgram.Name, "UUID", uuid)
-		return bpfmaniov1alpha1.BpfProgCondLoaded, nil
-	}
-
-	// prog ID should already have been set
-	id, err := bpfmanagentinternal.GetID(bpfProgram)
-	if err != nil {
-		r.Logger.Error(err, "Failed to get program ID")
-		return bpfmaniov1alpha1.BpfProgCondNotLoaded, nil
-	}
-
-	// BpfProgram exists but either BpfProgramConfig is being deleted or node is no
-	// longer selected....unload program
-	// BpfProgram exists but either TcProgram is being deleted, node is no
-	// longer selected, or map is not available....unload program
-	if isBeingDeleted || !isNodeSelected ||
-		(mapOwnerStatus.isSet && (!mapOwnerStatus.isFound || !mapOwnerStatus.isLoaded)) {
-		r.Logger.V(1).Info("TcProgram exists on Node but is scheduled for deletion, not selected, or map not available",
-			"isDeleted", isBeingDeleted, "isSelected", isNodeSelected, "mapIsSet", mapOwnerStatus.isSet,
-			"mapIsFound", mapOwnerStatus.isFound, "mapIsLoaded", mapOwnerStatus.isLoaded)
-
-		if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
-			r.Logger.Error(err, "Failed to unload TcProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotUnloaded, nil
-		}
-
-		r.Logger.Info("bpfman called to unload TcProgram on Node", "Name", bpfProgram.Name, "UUID", id)
-
-		if isBeingDeleted {
-			return bpfmaniov1alpha1.BpfProgCondUnloaded, nil
-		}
-
-		if !isNodeSelected {
-			return bpfmaniov1alpha1.BpfProgCondNotSelected, nil
-		}
-
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isFound {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotFound, nil
-		}
-
-		if mapOwnerStatus.isSet && !mapOwnerStatus.isLoaded {
-			return bpfmaniov1alpha1.BpfProgCondMapOwnerNotLoaded, nil
-		}
-	}
-
-	// BpfProgram exists but is not correct state, unload and recreate
-	loadRequest, condition, err := getLoadRequest()
-	if err != nil {
-		return condition, err
-	}
-
-	isSame, reasons := bpfmanagentinternal.DoesProgExist(existingProgram, loadRequest)
-	if !isSame {
-		r.Logger.V(1).Info("TcProgram is in wrong state, unloading and reloading", "Reason", reasons)
-
-		if err := bpfmanagentinternal.UnloadBpfmanProgram(ctx, r.BpfmanClient, *id); err != nil {
-			r.Logger.Error(err, "Failed to unload TcProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotUnloaded, nil
-		}
-
-		r.progId, err = bpfmanagentinternal.LoadBpfmanProgram(ctx, r.BpfmanClient, loadRequest)
-		if err != nil {
-			r.Logger.Error(err, "Failed to load TcProgram")
-			return bpfmaniov1alpha1.BpfProgCondNotLoaded, nil
-		}
-
-		r.Logger.Info("bpfman called to reload TcProgram on Node", "Name", bpfProgram.Name, "UUID", id)
-	} else {
-		// Program exists and bpfProgram K8s Object is up to date
-		r.Logger.V(1).Info("Ignoring Object Change nothing to do in bpfman")
-		r.progId = id
-	}
-
-	return bpfmaniov1alpha1.BpfProgCondLoaded, nil
+	return &loadRequest, nil
 }
