@@ -48,7 +48,7 @@ fn test_proceed_on_xdp() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
@@ -78,7 +78,7 @@ fn test_proceed_on_xdp() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
@@ -109,7 +109,7 @@ fn test_proceed_on_xdp() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
@@ -159,7 +159,7 @@ fn test_unload_xdp() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
@@ -176,7 +176,7 @@ fn test_unload_xdp() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
@@ -193,7 +193,7 @@ fn test_unload_xdp() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
@@ -570,7 +570,7 @@ fn test_program_execution_with_global_variables() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
@@ -722,7 +722,7 @@ fn test_load_unload_xdp_maps() {
         &LoadType::Image,
         XDP_COUNTER_IMAGE_LOC,
         "", // file_path
-        XDP_COUNTER_NAME,
+        Some(XDP_COUNTER_NAME),
         None, // metadata
         None, // map_owner_id
     );

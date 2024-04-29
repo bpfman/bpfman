@@ -123,7 +123,7 @@ pub fn add_xdp(
     load_type: &LoadType,
     image_url: &str,
     file_path: &str,
-    name: &str,
+    name: Option<&str>,
     metadata: Option<Vec<&str>>,
     map_owner_id: Option<u32>,
 ) -> (Result<String>, Result<String>) {
@@ -158,9 +158,13 @@ pub fn add_xdp(
         args.extend(["--map-owner-id", owner_id.as_str()]);
     }
 
+    if let Some(n) = name {
+        args.extend(["--name", n]);
+    }
+
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-n", name, "--path", file_path]),
+        LoadType::File => args.extend(["--path", file_path]),
     }
 
     args.extend(["xdp", "--iface", iface]);

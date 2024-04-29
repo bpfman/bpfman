@@ -67,7 +67,7 @@ fn common_load_parameter_testing() {
         test_bpfmanlist();
     }
 
-    debug!("Error checking common load parameters: non-existent name");
+    debug!("Error checking common load parameters: File non-existent name");
     let (error_prog_id, _) = add_xdp(
         DEFAULT_BPFMAN_IFACE,
         35,   // priority
@@ -76,7 +76,24 @@ fn common_load_parameter_testing() {
         &LoadType::File,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        NONEXISTENT_XDP_PASS_NAME,
+        Some(NONEXISTENT_XDP_PASS_NAME),
+        None, // metadata
+        None, // map_owner_id
+    );
+    assert!(error_prog_id.is_err());
+    // Make sure bpfman is still accessible after command
+    test_bpfmanlist();
+
+    debug!("Error checking common load parameters: Image non-existent name");
+    let (error_prog_id, _) = add_xdp(
+        DEFAULT_BPFMAN_IFACE,
+        35,   // priority
+        None, // globals
+        None, // proceed_on
+        &LoadType::Image,
+        XDP_PASS_IMAGE_LOC,
+        XDP_PASS_FILE_LOC,
+        Some(NONEXISTENT_XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
@@ -93,7 +110,7 @@ fn common_load_parameter_testing() {
         &LoadType::File,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        INVALID_XDP_PASS_NAME,
+        Some(INVALID_XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
@@ -124,7 +141,7 @@ fn common_load_parameter_testing() {
         &LoadType::File,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         Some(vec![key]), // metadata
         None,            // map_owner_id
     );
@@ -141,7 +158,7 @@ fn common_load_parameter_testing() {
         &LoadType::File,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
@@ -560,7 +577,7 @@ fn xdp_load_parameter_testing() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
@@ -577,7 +594,7 @@ fn xdp_load_parameter_testing() {
         &LoadType::Image,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
@@ -594,7 +611,7 @@ fn xdp_load_parameter_testing() {
         &LoadType::File,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
@@ -612,7 +629,7 @@ fn xdp_load_parameter_testing() {
         &LoadType::File,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
@@ -634,7 +651,7 @@ fn xdp_load_parameter_testing() {
     //        lt,
     //        TC_PASS_IMAGE_LOC,
     //        TC_PASS_FILE_LOC,
-    //        XDP_PASS_NAME,
+    //        Some(XDP_PASS_NAME),
     //        None, // metadata
     //        None, // map_owner_id
     //    );
@@ -750,7 +767,7 @@ fn test_invalid_parameters() {
         &LoadType::File,
         XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        XDP_PASS_NAME,
+        Some(XDP_PASS_NAME),
         None, // metadata
         None, // map_owner_id
     );
