@@ -9,7 +9,7 @@ patches:
         path: "/spec/bytecode/image/url"
         value: quay.io/bpfman-bytecode/go-kprobe-counter:v0.4.0
     target:
-      kind: TcProgram
+      kind: KprobeProgram
       name: go-kprobe-counter-example
   - patch: |-
       - op: replace
