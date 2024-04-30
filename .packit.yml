@@ -2,7 +2,7 @@ downstream_package_name: bpfman
 upstream_project_url: https://github.com/bpfman/bpfman
 specfile_path: bpfman.spec
 prerelease_suffix_pattern: ([.\-_~^]?)(dev|alpha|beta|rc|pre(view)?)([.\-_]?\d+)?
-prerelease_suffix_macro: prerelease
+release_suffix: dev.{PACKIT_RPMSPEC_RELEASE}
 srpm_build_deps:
   - cargo
   - rust
@@ -22,6 +22,7 @@ actions:
     cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . &&
     ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz'
 jobs:
+  ## Ensure https://copr.fedorainfracloud.org/coprs/g/ebpf-sig/bpfman-next/ tracks HEAD.
   - job: copr_build
     trigger: commit
     branch: main
@@ -37,3 +38,14 @@ jobs:
       - fedora-development
       - fedora-stable
     specfile_path: bpfman.spec
+  ## Ensure https://copr.fedorainfracloud.org/coprs/g/ebpf-sig/bpfman/ tracks the
+  ## latest release.
+  - job: copr_build
+    trigger: release
+    update_release: false
+    specfile_path: bpfman.spec
+    owner: "@ebpf-sig"
+    project: bpfman
+    dist_git_branches:
+      - fedora-development
+      - fedora-stable
