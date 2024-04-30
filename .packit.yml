@@ -37,8 +37,3 @@ jobs:
       - fedora-development
       - fedora-stable
     specfile_path: bpfman.spec
-  - job: propose_downstream
-    trigger: release
-    dist_git_branches:
-      - fedora-development
-      - fedora-stable
