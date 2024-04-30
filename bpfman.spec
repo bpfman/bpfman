@@ -4,8 +4,8 @@
 %global crate bpfman
 %global commit GITSHA
 %global shortcommit GITSHORTSHA
-%global base_version 0.4.0
-%global prerelease dev
+%global base_version 0.4.1
+%global prerelease rc1
 %global package_version %{base_version}%{?prerelease:~%{prerelease}}
 %global upstream_version %{base_version}%{?prerelease:~%{prerelease}}
 

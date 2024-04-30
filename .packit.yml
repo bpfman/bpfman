@@ -2,6 +2,7 @@ downstream_package_name: bpfman
 upstream_project_url: https://github.com/bpfman/bpfman
 specfile_path: bpfman.spec
 prerelease_suffix_pattern: ([.\-_~^]?)(dev|alpha|beta|rc|pre(view)?)([.\-_]?\d+)?
+prerelease_suffix_macro: prerelease
 srpm_build_deps:
   - cargo
   - rust
