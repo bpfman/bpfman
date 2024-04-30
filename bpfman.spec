@@ -2,12 +2,16 @@
 %bcond_without check
 
 %global crate bpfman
-%global commit GITSHA
-%global shortcommit GITSHORTSHA
-%global base_version 0.4.1
-%global prerelease rc1
+
+## START DO NOT OVERRIDE: These are generated at runtime by .packit.sh
+%global commit 0
+%global shortcommit 0
+%global base_version 0
+%global prerelease 0
+## END DO NOT OVERRIDE
+
 %global package_version %{base_version}%{?prerelease:~%{prerelease}}
-%global upstream_version %{base_version}%{?prerelease:~%{prerelease}}
+%global upstream_version %{base_version}%{?prerelease:-%{prerelease}}
 
 Name:           bpfman
 Version:        %{package_version}
