@@ -337,9 +337,9 @@ checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
 
 [[package]]
 name = "base64"
-version = "0.22.0"
+version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9475866fec1451be56a3c2400fd081ff546538961565ccb5b7142cbd22bc7a51"
+checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
 name = "base64ct"
@@ -379,7 +379,7 @@ dependencies = [
 
 [[package]]
 name = "bpf-log-exporter"
-version = "0.4.1-rc2"
+version = "0.4.1-rc3"
 dependencies = [
  "anyhow",
  "env_logger",
@@ -394,7 +394,7 @@ dependencies = [
 
 [[package]]
 name = "bpf-metrics-exporter"
-version = "0.4.1-rc2"
+version = "0.4.1-rc3"
 dependencies = [
  "anyhow",
  "aya",
@@ -412,14 +412,14 @@ dependencies = [
 
 [[package]]
 name = "bpfman"
-version = "0.4.1-rc2"
+version = "0.4.1-rc3"
 dependencies = [
  "anyhow",
  "assert_matches",
  "async-trait",
  "aya",
  "base16ct",
- "base64 0.22.0",
+ "base64 0.22.1",
  "bpfman-csi",
  "caps",
  "chrono",
@@ -455,13 +455,13 @@ dependencies = [
 
 [[package]]
 name = "bpfman-api"
-version = "0.4.1-rc2"
+version = "0.4.1-rc3"
 dependencies = [
  "anyhow",
  "async-trait",
  "aya",
  "base16ct",
- "base64 0.22.0",
+ "base64 0.22.1",
  "bpfman",
  "bpfman-csi",
  "caps",
@@ -508,7 +508,7 @@ dependencies = [
 
 [[package]]
 name = "bpfman-ns"
-version = "0.4.1-rc2"
+version = "0.4.1-rc3"
 dependencies = [
  "anyhow",
  "aya",
@@ -2731,7 +2731,7 @@ version = "3.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e459365e590736a54c3fa561947c84837534b8e9af6fc5bf781307e82658fae"
 dependencies = [
- "base64 0.22.0",
+ "base64 0.22.1",
  "serde",
 ]
 
@@ -3590,7 +3590,7 @@ version = "3.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ad483d2ab0149d5a5ebcd9972a3852711e0153d863bf5a5d0391d28883c4a20"
 dependencies = [
- "base64 0.22.0",
+ "base64 0.22.1",
  "chrono",
  "hex",
  "indexmap 1.9.3",
@@ -3668,7 +3668,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86debd0b4c8afb24efa09179ccba9da5daf9bbc7a4b786f3fb7ea26214bdfaf7"
 dependencies = [
  "async-trait",
- "base64 0.22.0",
+ "base64 0.22.1",
  "cached",
  "cfg-if",
  "chrono",
@@ -4418,9 +4418,9 @@ dependencies = [
 
 [[package]]
 name = "value-bag"
-version = "1.8.1"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "74797339c3b98616c009c7c3eb53a0ce41e85c8ec66bd3db96ed132d20cfdee8"
+checksum = "5a84c137d37ab0142f0f2ddfe332651fdbf252e7b7dbb4e67b6c1f1b2e925101"
 
 [[package]]
 name = "vcpkg"
@@ -4866,7 +4866,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.4.1-rc2"
+version = "0.4.1-rc3"
 dependencies = [
  "anyhow",
  "bpfman",
