@@ -44,6 +44,15 @@ jobs:
     actions:
       fix-spec-file:
         - bash -c "OVERWRITE_RELEASE=false bash .packit.sh"
+      get-current-version:
+        - bash -c 'cargo metadata --format-version 1 | jq -r ".packages[] | select(.name == \"bpfman\") | .version"'
+      post-upstream-clone:
+        bash -c 'if [[ ! -d /var/tmp/cargo-vendor-filterer ]]; then git clone https://github.com/coreos/cargo-vendor-filterer.git /var/tmp/cargo-vendor-filterer; fi &&
+        cd /var/tmp/cargo-vendor-filterer &&
+        cargo build &&
+        cd - &&
+        cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . &&
+        ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz'
     specfile_path: bpfman.spec
     owner: "@ebpf-sig"
     project: bpfman

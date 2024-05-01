@@ -425,10 +425,10 @@ jobs:
         run: cargo publish -p bpfman-api --token ${{ secrets.BPFMAN_DEV_TOKEN }}
 
       - name: publish bpf-log-exporter crate
-        run: cargo publish -p bpfman-log-exporter --token ${{ secrets.BPFMAN_DEV_TOKEN }}
+        run: cargo publish -p bpf-log-exporter --token ${{ secrets.BPFMAN_DEV_TOKEN }}
 
       - name: publish bpf-metrics-exporter crate
-        run: cargo publish -p bpfman-metrics-exporter --token ${{ secrets.BPFMAN_DEV_TOKEN }}
+        run: cargo publish -p bpf-metrics-exporter --token ${{ secrets.BPFMAN_DEV_TOKEN }}
 
   build-workflow-complete:
     needs:
