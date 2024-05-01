@@ -418,9 +418,6 @@ jobs:
           files: |
             bpfman-linux-x86_64.tar.gz
 
-      - name: publish bpfman-csi crate
-        run: cargo publish -p bpfman-csi --token ${{ secrets.BPFMAN_DEV_TOKEN }}
-
       - name: publish bpfman crate
         run: cargo publish -p bpfman --token ${{ secrets.BPFMAN_DEV_TOKEN }}
 

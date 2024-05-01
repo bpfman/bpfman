@@ -17,3 +17,12 @@ sed -i "s/^%global base_version.*/%global base_version $BASE_VERSION/" bpfman.sp
 
 # Use the correct pre-release version in the rpm spec
 sed -i "s/^%global prerelease.*/%global prerelease $PRE_RELEASE/" bpfman.spec
+
+if [ "$OVERWRITE_RELEASE" == "true" ]; then
+    # Use Packit's supplied variable in the Release field in rpm spec.
+    sed -i "s/^Release:.*/Release: $PACKIT_RPMSPEC_RELEASE%{?dist}/" bpfman.spec
+
+    # Ensure last part of the release string is the git shortcommit without a
+    # prepended "g"
+    sed -i "/^Release: $PACKIT_RPMSPEC_RELEASE%{?dist}/ s/\(.*\)g/\1/" bpfman.spec
+fi

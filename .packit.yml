@@ -2,7 +2,6 @@ downstream_package_name: bpfman
 upstream_project_url: https://github.com/bpfman/bpfman
 specfile_path: bpfman.spec
 prerelease_suffix_pattern: ([.\-_~^]?)(dev|alpha|beta|rc|pre(view)?)([.\-_]?\d+)?
-release_suffix: dev.{PACKIT_RPMSPEC_RELEASE}
 srpm_build_deps:
   - cargo
   - rust
@@ -11,7 +10,7 @@ srpm_build_deps:
   - openssl-devel
 actions:
   fix-spec-file:
-    - bash .packit.sh
+    - bash -c "OVERWRITE_RELEASE=true bash .packit.sh"
   get-current-version:
     - bash -c 'cargo metadata --format-version 1 | jq -r ".packages[] | select(.name == \"bpfman\") | .version"'
   post-upstream-clone:
@@ -42,7 +41,9 @@ jobs:
   ## latest release.
   - job: copr_build
     trigger: release
-    update_release: false
+    actions:
+      fix-spec-file:
+        - bash -c "OVERWRITE_RELEASE=false bash .packit.sh"
     specfile_path: bpfman.spec
     owner: "@ebpf-sig"
     project: bpfman
