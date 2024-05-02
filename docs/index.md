@@ -13,6 +13,10 @@ bpfman operates as an eBPF manager, focusing on simplifying the deployment and a
 Our program loader and eBPF filesystem manager ensure the secure deployment of eBPF applications.
 Furthermore, bpfman includes a Kubernetes operator, extending these capabilities to Kubernetes. This allows users to confidently deploy eBPF through custom resource definitions across nodes in a cluster.
 
+## Quick Start
+
+To get up and running with bpfman go straight to the [quick start documentation](./quick-start.md).
+
 ## Why eBPF?
 
 eBPF is a powerful general-purpose framework that allows running sandboxed
