@@ -406,7 +406,7 @@ jobs:
       - name: Set env
         run: |
           echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-          if [[ ${GITHUB_REF#refs/*/} =~ "rc"]]; then
+          if [[ ${GITHUB_REF#refs/*/} =~ "rc" ]]; then
             echo "PRE_RELEASE=true" >> $GITHUB_ENV
           else
             echo "PRE_RELEASE=false" >> $GITHUB_ENV
