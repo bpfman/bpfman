@@ -406,6 +406,11 @@ jobs:
       - name: Set env
         run: |
           echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+          if [[ ${GITHUB_REF#refs/*/} =~ "rc"]]; then
+            echo "PRE_RELEASE=true" >> $GITHUB_ENV
+          else
+            echo "PRE_RELEASE=false" >> $GITHUB_ENV
+          fi
 
       - uses: actions/download-artifact@v4
         with:
@@ -415,6 +420,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           body_path: ./changelogs/CHANGELOG-${{ env.RELEASE_VERSION }}.md
+          prerelease: ${{ env.PRE_RELEASE }}
           files: |
             bpfman-linux-x86_64.tar.gz
 
