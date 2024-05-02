@@ -21,14 +21,30 @@ to be installed:
 
 ```console
 sudo dnf install -y dnf-plugins-core
+```
+
+To install officially released versions:
+
+```console
+sudo dnf copr enable @ebpf-sig/bpfman
+```
+
+To install nightly builds:
+
+```console
 sudo dnf copr enable @ebpf-sig/bpfman-next
 ```
 
+> **Note:** If both the bpfman and bpfman-next copr repos are enabled DNF will
+> automatically pull from bpfman-next.  To disable one or the other simply run
+> ```console
+> sudo dnf copr disable @ebpf-sig/bpfman-next
+> ```
+
 ### Install RPM From Packit Service
 
-To load an RPM from a specific commit, find the commit from
-[bpfman commits](https://github.com/bpfman/bpfman/commits/main/), and click on
-the green check showing a given Pull Request was verified.
+To load a RPM from a specific commit (@ebpf-sig/bpfman-next needs to be enabled
+instead of @ebpf-sig/bpfman), find the commit from [bpfman commits](https://github.com/bpfman/bpfman/commits/main/), and click on the green check showing a given Pull Request was verified.
 At the bottom of the list of checks are the RPM builds, click on the `details`,
 and follow the Packit Dashboard link to the `Copr Build Results`.
 Then install the given RPM:

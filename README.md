@@ -41,6 +41,7 @@ This allows users to confidently deploy eBPF through custom resource definitions
 Here are some links to help in your bpfman journey (all links are from the bpfman website <https://bpfman.io/>):
 
 - [Welcome to bpfman](https://bpfman.io/) for overview of bpfman.
+- [Quick Start](https://bpfman.io/main/quick-start)
 - [Deploying Example eBPF Programs On Local Host](https://bpfman.io/main/getting-started/example-bpf-local/)
   for some examples of running `bpfman` on local host and using the CLI to install
   eBPF programs on the host.

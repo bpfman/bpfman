@@ -50,7 +50,8 @@ markdown_extensions:
 
 nav:
   - Introduction: index.md
-  - Getting Started:
+  - Quick Start: quick-start.md
+  - Documentation:
       - bpfman Overview: getting-started/overview.md
       - Launching bpfman: getting-started/launching-bpfman.md
       - Deploying Example eBPF Programs On Local Host: getting-started/example-bpf-local.md
@@ -61,7 +62,7 @@ nav:
       - CLI Guide: getting-started/cli-guide.md
       - Example eBPF Programs: getting-started/example-bpf.md
       - Troubleshooting: getting-started/troubleshooting.md
-  - Developer Guide:
+  - Developer Documentation:
       - Contributing: governance/CONTRIBUTING.md
       - Reviewing Guide: governance/REVIEWING.md
       - Deploying the bpfman-operator: developer-guide/operator-quick-start.md
