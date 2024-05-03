@@ -60,6 +60,7 @@ type ProgramReconciler interface {
 		cond bpfmaniov1alpha1.ProgramConditionType,
 		message string) (ctrl.Result, error)
 	getFinalizer() string
+	getNodeStatus(ctx context.Context, prog client.Object) ([]bpfmaniov1alpha1.NodeStatusEntry, error)
 }
 
 func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client.Object) (ctrl.Result, error) {
@@ -70,6 +71,13 @@ func reconcileBpfProgram(ctx context.Context, rec ProgramReconciler, prog client
 
 	if !controllerutil.ContainsFinalizer(prog, internal.BpfmanOperatorFinalizer) {
 		return r.addFinalizer(ctx, prog, internal.BpfmanOperatorFinalizer)
+	}
+
+	nodeStatus, err := rec.getNodeStatus(ctx, prog)
+	if err != nil {
+		r.Logger.Error(err, "Failed to get NodeStatus list")
+	} else {
+		r.Logger.Info("NodeStatus list", "NodeStatus", nodeStatus)
 	}
 
 	// reconcile Program Object on all other events

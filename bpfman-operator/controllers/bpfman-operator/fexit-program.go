@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -113,4 +114,15 @@ func (r *FexitProgramReconciler) updateStatus(ctx context.Context, name string, 
 	}
 
 	return r.updateCondition(ctx, prog, &prog.Status.Conditions, cond, message)
+}
+
+func (r *FexitProgramReconciler) getNodeStatus(ctx context.Context, prog client.Object) ([]bpfmaniov1alpha1.NodeStatusEntry, error) {
+	//var ok bool
+
+	program, ok := prog.(*bpfmaniov1alpha1.FexitProgram)
+	if !ok {
+		return nil, fmt.Errorf("failed to cast program to FexitProgram")
+	}
+
+	return program.Status.NodeStatus, nil
 }

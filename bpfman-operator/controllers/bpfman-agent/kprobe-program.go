@@ -27,6 +27,7 @@ import (
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -37,7 +38,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-//+kubebuilder:rbac:groups=bpfman.io,resources=kprobeprograms,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfman.io,resources=kprobeprograms,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=bpfman.io,resources=kprobeprograms/status,verbs=get;list;update;patch
 
 // BpfProgramReconciler reconciles a BpfProgram object
 type KprobeProgramReconciler struct {
@@ -79,6 +81,37 @@ func (r *KprobeProgramReconciler) setCurrentProgram(program client.Object) error
 	}
 
 	return nil
+}
+
+func (r *KprobeProgramReconciler) getNodeStatus(ctx context.Context) []bpfmaniov1alpha1.NodeStatusEntry {
+	// Update the current program
+	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.currentKprobeProgram.GetName()}, r.currentKprobeProgram); err != nil {
+		r.Logger.Error(err, "Failed to get KprobeProgram")
+	}
+	return r.currentKprobeProgram.Status.NodeStatus
+}
+
+func (r *KprobeProgramReconciler) setNodeStatus(ctx context.Context, nodeStatus []bpfmaniov1alpha1.NodeStatusEntry) error {
+	// patch := client.StrategicMergeFrom(r.currentKprobeProgram.DeepCopy())
+	patch := client.MergeFrom(r.currentKprobeProgram.DeepCopy())
+	r.currentKprobeProgram.Status.NodeStatus = nodeStatus
+
+	if err := r.Status().Patch(ctx, r.currentKprobeProgram, patch); err != nil {
+		r.Logger.Info("Failed to update NodeStatus for Program", "Reason", err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *KprobeProgramReconciler) updateNodeCondition(ctx context.Context, status bpfmaniov1alpha1.NodeStatusType) {
+	r.Logger.V(1).Info("updateNodeCondition()", "existing NodeCondition", r.currentKprobeProgram.Status.NodeConditions, "new conditions", status)
+
+	meta.SetStatusCondition(&r.currentKprobeProgram.Status.NodeConditions, status.NSCondition(r.NodeName))
+
+	if err := r.Status().Update(ctx, r.currentKprobeProgram); err != nil {
+		r.Logger.Error(err, "failed to set KprobeProgram Node Condition")
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.

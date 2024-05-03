@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -113,4 +114,16 @@ func (r *KprobeProgramReconciler) updateStatus(ctx context.Context, name string,
 	}
 
 	return r.updateCondition(ctx, prog, &prog.Status.Conditions, cond, message)
+}
+
+func (r *KprobeProgramReconciler) getNodeStatus(ctx context.Context, prog client.Object) ([]bpfmaniov1alpha1.NodeStatusEntry, error) {
+	//var ok bool
+
+	program := &bpfmaniov1alpha1.KprobeProgram{}
+	if err := r.Get(ctx, types.NamespacedName{Namespace: corev1.NamespaceAll, Name: prog.GetName()}, program); err != nil {
+		r.Logger.V(1).Info("failed to get program object")
+		return nil, fmt.Errorf("failed to get program object: %v", err)
+	}
+
+	return program.Status.NodeStatus, nil
 }

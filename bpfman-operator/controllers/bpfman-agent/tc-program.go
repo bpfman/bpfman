@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -38,7 +39,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-//+kubebuilder:rbac:groups=bpfman.io,resources=tcprograms,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfman.io,resources=tcprograms,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=bpfman.io,resources=tcprograms/status,verbs=get;list;update;patch
 
 // TcProgramReconciler reconciles a tcProgram object by creating multiple
 // bpfProgram objects and managing bpfman for each one.
@@ -88,6 +90,36 @@ func (r *TcProgramReconciler) setCurrentProgram(program client.Object) error {
 	}
 
 	return nil
+}
+
+func (r *TcProgramReconciler) getNodeStatus(ctx context.Context) []bpfmaniov1alpha1.NodeStatusEntry {
+	// Update the current program
+	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.currentTcProgram.GetName()}, r.currentTcProgram); err != nil {
+		r.Logger.Error(err, "Failed to get TcProgram")
+	}
+	return r.currentTcProgram.Status.NodeStatus
+}
+
+func (r *TcProgramReconciler) setNodeStatus(ctx context.Context, nodeStatus []bpfmaniov1alpha1.NodeStatusEntry) error {
+	patch := client.MergeFrom(r.currentTcProgram.DeepCopy())
+	r.currentTcProgram.Status.NodeStatus = nodeStatus
+
+	if err := r.Status().Patch(ctx, r.currentTcProgram, patch); err != nil {
+		r.Logger.Info("Failed to update NodeStatus for Program", "Reason", err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *TcProgramReconciler) updateNodeCondition(ctx context.Context, status bpfmaniov1alpha1.NodeStatusType) {
+	r.Logger.V(1).Info("updateNodeCondition()", "existing NodeCondition", r.currentTcProgram.Status.NodeConditions, "new conditions", status)
+
+	meta.SetStatusCondition(&r.currentTcProgram.Status.NodeConditions, status.NSCondition(r.NodeName))
+
+	if err := r.Status().Update(ctx, r.currentTcProgram); err != nil {
+		r.Logger.Error(err, "failed to set TcProgram Node Condition")
+	}
 }
 
 // Must match with bpfman internal types
