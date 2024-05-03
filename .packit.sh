@@ -16,7 +16,13 @@ sed -i "s/^%global shortcommit.*/%global shortcommit $GIT_SHORT_SHA/" bpfman.spe
 sed -i "s/^%global base_version.*/%global base_version $BASE_VERSION/" bpfman.spec
 
 # Use the correct pre-release version in the rpm spec
-sed -i "s/^%global prerelease.*/%global prerelease $PRE_RELEASE/" bpfman.spec
+if [ -z "${PRE_RELEASE}" ]; then
+    echo "Pre-Release unset, removing from Spec"
+    sed -i "s/^%global prerelease.*//" bpfman.spec
+else
+    echo "Overriding Spec Pre-Release to $PRE_RELEASE"
+    sed -i "s/^%global prerelease.*/%global prerelease $PRE_RELEASE/" bpfman.spec
+fi
 
 if [ "$OVERWRITE_RELEASE" == "true" ]; then
     # Use Packit's supplied variable in the Release field in rpm spec.
