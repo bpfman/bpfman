@@ -1161,6 +1161,39 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Release Steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#release-candidate-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      RELEASE CANDIDATE Release
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#patch-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      PATCH Release
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#major-or-minor-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      MAJOR or MINOR Release
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1798,6 +1831,39 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Release Steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#release-candidate-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      RELEASE CANDIDATE Release
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#patch-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      PATCH Release
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#major-or-minor-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      MAJOR or MINOR Release
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1831,6 +1897,7 @@
 <li>bpfman (Core library) and bpfman-api (Core GRPC API protobuf definitions) library crates</li>
 <li>bpfman (CLI), and bpfman-rpc (gRPC server) binary crates</li>
 <li>bpf-metrics-exporter and bpf-log-exporter binary crates</li>
+<li>bpfman RPMs stored in the <a href="https://copr.fedorainfracloud.org/coprs/g/ebpf-sig/bpfman/">bpfman COPR repository</a>.</li>
 <li>Kubernetes User Facing Custom Resource Definitions (CRDs)<ul>
 <li><code>TcProgram</code></li>
 <li><code>XdpProgram</code></li>
@@ -1898,7 +1965,7 @@
 <h2 id="versioning-strategy">Versioning strategy</h2>
 <h3 id="overview_1">Overview</h3>
 <p>Each new release of bpfman is defined with a "bundle version" that
-represents the Git tag of a release, such as <code>v0.4.0</code>. This contains the
+represents the Git tag of a release, such as <code>v0.4.1</code>. This contains the
 components described above</p>
 <h4 id="kubernetes-api-versions-eg-v1alpha2-v1beta1">Kubernetes API Versions (e.g. v1alpha2, v1beta1)</h4>
 <p>Within the bpfman-operator, API versions are primarily used to indicate the stability of
@@ -1920,9 +1987,54 @@ provides a good starting point. Once you're satisfied with the changelog, create
 a PR. This must go through the regular PR review process and get merged into the
 <code>main</code> branch. Approval of the PR indicates community consensus for a new
 release.</p>
+<p>Additionally you can navigate to the github release page and draft a release
+generating release notes there as well.</p>
 <h3 id="release-steps">Release Steps</h3>
-<p>The following steps must be done by one of the <a href="https://github.com/bpfman/bpfman/blob/main/CODEOWNERS">bpfman maintainers</a>:</p>
-<p>For a <strong>PATCH</strong> release:</p>
+<p>The following steps must be done by one of the <a href="https://github.com/bpfman/bpfman/blob/main/CODEOWNERS">bpfman maintainers</a>,
+please always try and cut a release candidate before pushing an official major
+or minor release.</p>
+<h4 id="release-candidate-release">RELEASE CANDIDATE Release</h4>
+<p>Often times cutting a release candidate is a great way to test any changes to
+our release infrastructure before cutting an official release. Make sure release
+candidate versions contain an <code>rc</code> suffix i.e <code>0.4.0-rc1</code>.  This is a lighter
+weight process meaning many of the versioned manifests do not necessarily need
+to be created.</p>
+<ul>
+<li>Open an update PR that:<ul>
+<li>Adds a new changelog for the release</li>
+<li>Updates the <a href="https://github.com/bpfman/bpfman/blob/main/Cargo.toml">Cargo.toml</a> version for the workspace:<ul>
+<li><code>version = "x.x.x"</code></li>
+<li><code>bpfman = { version = "x.x.x", path = "./bpfman" }"</code></li>
+<li><code>bpfman-api = { version = "x.x.x", path = "./bpfman-api" }</code></li>
+<li>Note: <code>bpfman-csi</code> does not need to be updated.</li>
+</ul>
+</li>
+<li>Runs <code>cargo generate-lockfile</code></li>
+<li>Updates the bpfman-operator version in it's <a href="https://github.com/bpfman/bpfman/blob/main/bpfman-operator/Makefile">Makefile</a>:<ul>
+<li><code>VERSION ?= x.x.x</code></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Make sure CI is green and merge the update PR.</li>
+<li>Create a tag using the <code>HEAD</code> of the <code>main</code> branch. This can be done using the <code>git</code> CLI or
+  Github's <a href="https://github.com/bpfman/bpfman/releases">release</a> page.</li>
+<li>Tag the release using the commit on <code>main</code> where the changelog update merged.
+  This can  be done using the <code>git</code> CLI or Github's <a href="https://github.com/bpfman/bpfman/releases">release</a>
+  page.</li>
+</ul>
+<p>Once these steps are completed:</p>
+<ul>
+<li>Make sure a new RPM has been built and pushed to the bpfman COPR repository.</li>
+<li>Make sure all <a href="https://github.com/bpfman/bpfman/actions">actions</a> have completed successfully</li>
+<li>Ensure images are built and updated with the new version tag at:<ul>
+<li>quay.io/bpfman</li>
+<li>quay.io/bpfman-bytecode</li>
+<li>quay.io/bpfman-userspace</li>
+</ul>
+</li>
+</ul>
+<h4 id="patch-release">PATCH Release</h4>
 <ul>
 <li>Create a new branch in your fork named something like <code>&lt;githubuser&gt;/release-x.x.x</code>. Use the new branch
   in the upcoming steps.</li>
@@ -1930,20 +2042,21 @@ release.</p>
 <li>Create a branch from the major-minor tag of interest i.e:
   <code>git checkout -b release-x.x.x &lt;major.minor.patch&gt;</code></li>
 <li>Create a pull request of the <code>&lt;githubuser&gt;/release-x.x.x</code> branch into the <code>release-x.x</code> branch upstream.
-  Add a hold on this PR waiting for at least one maintainer/codeowner to provide a <code>lgtm</code>. This PR should:<ul>
-<li>Add a new changelog for the release</li>
-<li>Update the <a href="https://github.com/bpfman/bpfman/blob/main/Cargo.toml">Cargo.toml</a> version for the workspace:<ul>
+  Add a hold on this PR waiting for at least one maintainer/codeowner to provide a <code>lgtm</code>. This PR:<ul>
+<li>Adds a new changelog for the release</li>
+<li>Updates the <a href="https://github.com/bpfman/bpfman/blob/main/Cargo.toml">Cargo.toml</a> version for the workspace:<ul>
 <li><code>version = "x.x.x"</code></li>
 <li><code>bpfman = { version = "x.x.x", path = "./bpfman" }"</code></li>
 <li><code>bpfman-api = { version = "x.x.x", path = "./bpfman-api" }</code></li>
 <li>Note: <code>bpfman-csi</code> does not need to be updated.</li>
 </ul>
 </li>
-<li>Update the bpfman-operator version in it's <a href="https://github.com/bpfman/bpfman/blob/main/bpfman-operator/Makefile">Makefile</a>:<ul>
+<li>Runs <code>cargo generate-lockfile</code></li>
+<li>Updates the bpfman-operator version in it's <a href="https://github.com/bpfman/bpfman/blob/main/bpfman-operator/Makefile">Makefile</a>:<ul>
 <li><code>VERSION ?= x.x.x</code></li>
 </ul>
 </li>
-<li>Run <code>make bundle</code> from the bpfman-operator directory to update the bundle version.
+<li>Runs <code>make bundle</code> from the bpfman-operator directory to update the bundle version.
   This will generate a new <code>/bpfman-operator/bundle</code> directory which will ONLY be tracked in the
   <code>release-x.x</code> branch not <code>main</code>.</li>
 </ul>
@@ -1958,6 +2071,15 @@ release.</p>
 <li><code>go-xdp-counter-install.yaml</code></li>
 <li><code>go-tc-counter-install.yaml</code></li>
 <li><code>go-tracepoint-counter-install.yaml</code></li>
+<li><code>go-uprobe-counter-install.yaml</code></li>
+<li><code>go-uretprobe-counter-install.yaml</code></li>
+<li><code>go-kprobe-counter-install.yaml</code></li>
+<li><code>go-xdp-counter-install-selinux.yaml</code></li>
+<li><code>go-tc-counter-install-selinux.yaml</code></li>
+<li><code>go-tracepoint-counter-install-selinux.yaml</code></li>
+<li><code>go-uprobe-counter-install-selinux.yaml</code></li>
+<li><code>go-uretprobe-counter-install-selinux.yaml</code></li>
+<li><code>go-kprobe-counter-install-selinux.yaml</code></li>
 </ul>
 </li>
 </ul>
@@ -1970,23 +2092,24 @@ release.</p>
 </ul>
 </li>
 </ul>
-<p>For a <strong>MAJOR</strong> or <strong>MINOR</strong> release:</p>
+<h4 id="major-or-minor-release">MAJOR or MINOR Release</h4>
 <ul>
 <li>Open an update PR that:<ul>
 <li>Adds a new changelog for the release</li>
-<li>Update the <a href="https://github.com/bpfman/bpfman/blob/main/Cargo.toml">Cargo.toml</a> version for the workspace:<ul>
+<li>Updates the <a href="https://github.com/bpfman/bpfman/blob/main/Cargo.toml">Cargo.toml</a> version for the workspace:<ul>
 <li><code>version = "x.x.x"</code></li>
 <li><code>bpfman = { version = "x.x.x", path = "./bpfman" }"</code></li>
 <li><code>bpfman-api = { version = "x.x.x", path = "./bpfman-api" }</code></li>
 <li>Note: <code>bpfman-csi</code> does not need to be updated.</li>
 </ul>
 </li>
-<li>Update the bpfman-operator version in it's <a href="https://github.com/bpfman/bpfman/blob/main/bpfman-operator/Makefile">Makefile</a>:<ul>
+<li>Runs <code>cargo generate-lockfile</code></li>
+<li>Updates the bpfman-operator version in it's <a href="https://github.com/bpfman/bpfman/blob/main/bpfman-operator/Makefile">Makefile</a>:<ul>
 <li><code>VERSION ?= x.x.x</code></li>
 </ul>
 </li>
-<li>Run <code>make bundle</code> from the bpfman-operator directory to update the bundle version.</li>
-<li>Add's a new <code>examples</code> config directory for the release version</li>
+<li>Runs <code>make bundle</code> from the bpfman-operator directory to update the bundle version.</li>
+<li>Adds a new <code>examples</code> config directory for the release version</li>
 </ul>
 </li>
 <li>Make sure CI is green and merge the update PR.</li>
@@ -2002,6 +2125,15 @@ release.</p>
 <li><code>go-xdp-counter-install.yaml</code></li>
 <li><code>go-tc-counter-install.yaml</code></li>
 <li><code>go-tracepoint-counter-install.yaml</code></li>
+<li><code>go-uprobe-counter-install.yaml</code></li>
+<li><code>go-uretprobe-counter-install.yaml</code></li>
+<li><code>go-kprobe-counter-install.yaml</code></li>
+<li><code>go-xdp-counter-install-selinux.yaml</code></li>
+<li><code>go-tc-counter-install-selinux.yaml</code></li>
+<li><code>go-tracepoint-counter-install-selinux.yaml</code></li>
+<li><code>go-uprobe-counter-install-selinux.yaml</code></li>
+<li><code>go-uretprobe-counter-install-selinux.yaml</code></li>
+<li><code>go-kprobe-counter-install-selinux.yaml</code></li>
 </ul>
 </li>
 </ul>
