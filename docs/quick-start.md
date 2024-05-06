@@ -30,15 +30,27 @@ To see information about the latest released version of bpfman simply run
 ```console
 sudo dnf info bpfman
 
-Last metadata expiration check: 0:00:31 ago on Thu 02 May 2024 02:34:05 PM EDT.
+Last metadata expiration check: 0:03:10 ago on Mon 06 May 2024 10:37:37 AM EDT.
 Available Packages
 Name         : bpfman
-Version      : 0.4.1~rc4
-Release      : 1.20240501170848095747.main.0.64edab6a.fc38
+Version      : 0.4.1
+Release      : 1.fc39
+Architecture : src
+Size         : 41 M
+Source       : None
+Repository   : copr:copr.fedorainfracloud.org:group_ebpf-sig:bpfman
+Summary      : An eBPF program manager
+URL          : https://bpfman.io
+License      : Apache-2.0
+Description  : An eBPF Program Manager.
+
+Name         : bpfman
+Version      : 0.4.1
+Release      : 1.fc39
 Architecture : x86_64
-Size         : 10 M
-Source       : bpfman-0.4.1~rc4-1.20240501170848095747.main.0.64edab6a.fc38.src.rpm
-Repository   : copr:copr.fedorainfracloud.org:group_ebpf-sig:bpfman-next
+Size         : 9.7 M
+Source       : bpfman-0.4.1-1.fc39.src.rpm
+Repository   : copr:copr.fedorainfracloud.org:group_ebpf-sig:bpfman
 Summary      : An eBPF program manager
 URL          : https://bpfman.io
 License      : Apache-2.0 AND Unicode-DFS-2016 AND BSD-3-Clause AND ISC AND MIT AND MPL-2.0
@@ -65,15 +77,31 @@ sudo systemctl enable bpfman.socket
 sudo systemctl start bpfman.socket
 ```
 
-Finally you run one of the local example applications:
+Finally you can run one of the sample applications:
 
 ```console
-go run -exec sudo ./examples/go-tracepoint-counter/main.go -image quay.io/bpfman-bytecode/go-tracepoint-counter
-2024/05/02 14:58:10 Using Input: Interface= Priority=0 Source=quay.io/bpfman-bytecode/go-tracepoint-counter
-2024/05/02 14:58:13 Program registered with id 18569
-2024/05/02 14:58:14 SIGUSR1 signal count: 8
-2024/05/02 14:58:15 SIGUSR1 signal count: 9
-2024/05/02 14:58:16 SIGUSR1 signal count: 10
+sudo bpfman load image --image-url quay.io/bpfd-bytecode/tracepoint:latest tracepoint --tracepoint sched/sched_switch
+
+sudo bpfman list
+ Program ID  Name          Type        Load Time                
+ 1552        enter_openat  tracepoint  2024-05-06T10:50:57-0400 
+
+sudo bpfman unload 1552
+```
+
+When ready to uninstall, determine the RPM that is currently loaded:
+
+```console
+$ sudo rpm -qa | grep bpfman
+bpfman-0.4.1-1.fc39.x86_64
+```
+
+Then to uninstall the RPM:
+
+```console
+sudo dnf erase -y bpfman-0.4.1-1.fc39.x86_64
+
+sudo systemctl daemon-reload
 ```
 
 ## Deploy Released container images on Kubernetes
@@ -96,13 +124,17 @@ Next, deploy the `bpfman-operator`, which will also deploy the `bpfman-daemon`, 
 `bpfman-rpc`, `bpfman` Library and `bpfman-agent`:
 
 ```console
-kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-operator-install-v${BPFMAN_REL}.yaml
+kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-operator-install.yaml
 ```
 
 Finally, deploy an example eBPF program:
 
 ```console
-kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/go-xdp-counter-install-v${BPFMAN_REL}.yaml
+kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/go-xdp-counter-install.yaml
+
+kubectl get xdpprograms
+NAME                     BPFFUNCTIONNAME   NODESELECTOR   STATUS
+go-xdp-counter-example   xdp_stats         {}             ReconcileSuccess
 ```
 
 There are other example program install yamls in the artifacts for each

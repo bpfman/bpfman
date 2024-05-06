@@ -135,6 +135,9 @@ The benefits of this solution include the following:
 For more details, please see the following:
 
 - [bpfman Overview](./getting-started/overview.md) for an overview of bpfman.
+- [Quick Start](./quick-start.md) for a quick installation of bpfman without having to download or
+  build the code from source.
+  Good for just getting familiar with bpfman and playing around with it.
 - [Deploying Example eBPF Programs On Local Host](./getting-started/example-bpf-local.md)
   for some examples of running `bpfman` on local host and using the CLI to install
   eBPF programs on the host.
