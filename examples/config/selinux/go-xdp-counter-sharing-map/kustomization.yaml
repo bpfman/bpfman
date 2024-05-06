@@ -35,6 +35,7 @@ patches:
 resources:
   - selinux.yaml
   - binding.yaml
+  - user-scc.yaml
   - ../../base/go-xdp-counter-sharing-map
 images:
   - name: quay.io/bpfman-userspace/go-xdp-counter

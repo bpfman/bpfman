@@ -36,4 +36,5 @@ patches:
 resources:
   - selinux.yaml
   - binding.yaml
+  - user-scc.yaml
   - ../../base/go-kprobe-counter

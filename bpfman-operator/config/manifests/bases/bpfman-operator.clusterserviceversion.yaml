@@ -3,6 +3,7 @@ kind: ClusterServiceVersion
 metadata:
   annotations:
     alm-examples: "[]"
+    categories: OpenShift Optional
     capabilities: Basic Install
     containerImage: quay.io/bpfman/bpfman-operator:v0.0.0
     repository: https://github.com/bpfman/bpfman
