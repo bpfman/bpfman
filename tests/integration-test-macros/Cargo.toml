@@ -1,8 +1,12 @@
 [package]
-edition = "2021"
 name = "integration-test-macros"
 publish = false
-version = "0.1.0"
+documentation.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
 quote = { workspace = true }

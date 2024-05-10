@@ -1,10 +1,13 @@
 [package]
 description = "gRPC bindings to the bpfman API"
-edition.workspace = true
-license.workspace = true
 name = "bpfman-api"
+documentation.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
 repository.workspace = true
 version.workspace = true
+
 
 [[bin]]
 name = "bpfman-rpc"
@@ -54,11 +57,7 @@ rtnetlink = { workspace = true, features = ["tokio_socket"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }
-sigstore = { workspace = true, features = [
-    "cached-client",
-    "cosign-rustls-tls",
-    "sigstore-trust-root",
-] }
+sigstore = { workspace = true, features = ["full-native-tls", "cached-client", "sigstore-trust-root", "sign"] }
 sled = { workspace = true }
 systemd-journal-logger = { workspace = true }
 tar = { workspace = true }
