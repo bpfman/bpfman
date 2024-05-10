@@ -18,29 +18,7 @@ Version:        %{package_version}
 Release:        %autorelease
 Summary:        An eBPF program manager
 
-SourceLicense:  Apache-2.0
-# (Apache-2.0 OR MIT) AND BSD-3-Clause
-# (MIT OR Apache-2.0) AND Unicode-DFS-2016
-# 0BSD OR MIT OR Apache-2.0
-# Apache-2.0
-# Apache-2.0 OR BSL-1.0
-# Apache-2.0 OR ISC OR MIT
-# Apache-2.0 OR MIT
-# Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT
-# BSD-2-Clause OR Apache-2.0 OR MIT
-# BSD-3-Clause
-# ISC
-# MIT
-# MIT AND BSD-3-Clause
-# MIT OR Apache-2.0
-# MIT OR Apache-2.0 OR BSD-1-Clause
-# MIT OR Apache-2.0 OR Zlib
-# MIT OR Zlib OR Apache-2.0
-# MPL-2.0
-# Unlicense OR MIT
-# Zlib OR Apache-2.0 OR MIT
-License: Apache-2.0 AND Unicode-DFS-2016 AND BSD-3-Clause AND ISC AND MIT AND MPL-2.0
-# LICENSE.dependencies contains a full license breakdown
+License: Apache-2.0 
 
 URL:             https://bpfman.io
 Source0:         https://github.com/bpfman/bpfman/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
@@ -104,8 +82,6 @@ install -Dpm 644 \
 
 %files
 %license LICENSE-APACHE
-%license LICENSE-BSD2
-%license LICENSE-GPL2
 %license LICENSE.dependencies
 %license cargo-vendor.txt
 %doc README.md
