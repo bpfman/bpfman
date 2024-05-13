@@ -1,11 +1,11 @@
 [package]
 description = "gRPC bindings to the CSI spec"
-name = "bpfman-csi"
-version = "1.8.0"
 edition.workspace = true
 homepage.workspace = true
 license.workspace = true
+name = "bpfman-csi"
 repository.workspace = true
+version = "1.8.0"
 
 [dependencies]
 prost = { workspace = true, features = ["prost-derive", "std"] }

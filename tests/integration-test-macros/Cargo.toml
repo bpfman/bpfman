@@ -1,10 +1,10 @@
 [package]
-name = "integration-test-macros"
-publish = false
 documentation.workspace = true
 edition.workspace = true
 homepage.workspace = true
 license.workspace = true
+name = "integration-test-macros"
+publish = false
 repository.workspace = true
 version.workspace = true
 

@@ -93,5 +93,6 @@ install -Dpm 644 \
 %{_unitdir}/bpfman.socket
 %{_unitdir}/bpfman.service
 
+%cargo_test
 %changelog
 %autochangelog
