@@ -31,6 +31,7 @@ BuildRequires:  cargo-rpm-macros >= 25
 BuildRequires:  systemd-rpm-macros
 BuildRequires:  openssl-devel
 BuildRequires:  pkgconfig(zlib)
+BuildRequires:  gcc
 
 # TODO: Generate Provides for all of the vendored dependencies
 
