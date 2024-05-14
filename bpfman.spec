@@ -93,6 +93,11 @@ install -Dpm 644 \
 %{_unitdir}/bpfman.socket
 %{_unitdir}/bpfman.service
 
-%cargo_test
+%if %{with check}
+%check
+# Skip image_pull_* tests as require Internet to pull images from a registry
+%cargo_test -- -- --skip oci_utils::image_manager::tests::image_pull_failure --skip oci_utils::image_manager::tests::image_pull_and_bytecode_verify --skip oci_utils::image_manager::tests::private_image_pull_and_bytecode_verify --skip oci_utils::image_manager::tests::image_pull_policy_never_failure
+%endif
+
 %changelog
 %autochangelog
