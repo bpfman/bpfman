@@ -419,6 +419,7 @@ dependencies = [
  "assert_matches",
  "async-trait",
  "aya",
+ "aya-obj",
  "base16ct",
  "base64 0.22.1",
  "bpfman-csi",
@@ -426,6 +427,7 @@ dependencies = [
  "chrono",
  "clap",
  "comfy-table",
+ "current_platform",
  "env_logger",
  "flate2",
  "futures",
@@ -920,6 +922,12 @@ dependencies = [
  "subtle",
  "zeroize",
 ]
+
+[[package]]
+name = "current_platform"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a74858bcfe44b22016cb49337d7b6f04618c58e5dbfdef61b06b8c434324a0bc"
 
 [[package]]
 name = "curve25519-dalek"

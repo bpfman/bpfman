@@ -18,6 +18,7 @@ path = "src/bin/cli/main.rs"
 anyhow = { workspace = true, features = ["std"] }
 async-trait = { workspace = true }
 aya = { workspace = true }
+aya-obj = { workspace = true }
 base16ct = { workspace = true, features = ["alloc"] }
 base64 = { workspace = true }
 bpfman-csi = { workspace = true }
@@ -32,6 +33,7 @@ clap = { workspace = true, features = [
     "usage",
 ] }
 comfy-table = { workspace = true, features = ["tty"] }
+current_platform = { workspace = true }
 env_logger = { workspace = true }
 flate2 = { workspace = true, features = ["zlib"] }
 futures = { workspace = true }
