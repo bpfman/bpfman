@@ -23,7 +23,77 @@ jobs:
       - name: Check License Header
         uses: apache/skywalking-eyes@cd7b195c51fd3d6ad52afceb760719ddc6b3ee91
 
-  build:
+  lint-fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout bpfman
+        uses: actions/checkout@v4
+
+      - name: Install rust toolchain - stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install rust toolchain - nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: rustfmt, clippy, rust-src
+          override: false
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: taplo-cli
+
+      - run: taplo fmt --check
+
+      - name: yaml-lint
+        run: yamllint -c .yamllint.yaml --strict .
+
+      - name: Check C formatting
+        run: git ls-files -- '*.c' '*.h' | xargs clang-format --dry-run --Werror
+
+      - name: Check formatting
+        run: |
+          cargo +nightly fmt --all -- --check
+
+      - name: Run clippy
+        run: |
+          cargo +nightly clippy --all -- --deny warnings
+
+      - name: Check public API
+        run: cargo xtask public-api
+
+      - name: Build manpages
+        run: cargo xtask build-man-page
+
+      - name: Package manpages
+        run: |
+          tar -czvf manpages.tar.gz .output/manpage/
+
+      - name: Archive manpages
+        uses: actions/upload-artifact@v4
+        with:
+          name: bpfman-manpages
+          path: |
+            manpages.tar.gz
+
+      - name: Build CLI TAB Completion
+        run: cargo xtask build-completion
+
+      - name: Package CLI TAB Completion
+        run: |
+          tar -czvf cli-tab-completion.tar.gz .output/completions/
+
+      - name: Archive CLI TAB Completion
+        uses: actions/upload-artifact@v4
+        with:
+          name: bpfman-cli-tab-completion
+          path: |
+            cli-tab-completion.tar.gz
+
+  build-ebpf:
     runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
@@ -39,23 +109,73 @@ jobs:
             libssl-dev \
             gcc-multilib \
             libelf-dev \
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+
+      - name: Checkout bpfman
+        uses: actions/checkout@v4
+
+      - name: Checkout libbpf
+        uses: actions/checkout@v4
         with:
           repository: libbpf/libbpf
           path: libbpf
           fetch-depth: 0
 
-      - uses: actions-rs/toolchain@v1
+      - name: Install rust toolchain - stable
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
 
-      - uses: actions-rs/toolchain@v1
+      - name: Build eBPF
+        run: |
+          cargo xtask build-ebpf --libbpf-dir ./libbpf
+
+      - name: Package Integration Test eBPF
+        run: |
+          tar -czvf integration-test.tar.gz tests/integration-test/bpf/.output
+
+      - name: Archive Integration Test eBPF
+        uses: actions/upload-artifact@v4
         with:
-          toolchain: nightly
-          components: rustfmt, clippy, rust-src
-          override: false
+          name: bpfman-integration-test
+          path: |
+            integration-test.tar.gz
+
+  build:
+    strategy:
+      # amd64,arm64,ppc64le,s390x
+      fail-fast: false
+      matrix:
+        arch:
+          - arch: amd64
+            rust-target: x86_64-unknown-linux-gnu
+            filename: linux-x86_64
+          - arch: arm64
+            rust-target: aarch64-unknown-linux-gnu
+            filename: linux-arm64
+            # - arch: ppc64le
+            # rust-target: powerpc64le-unknown-linux-gnu
+            # filename: linux-ppc64le
+            # - arch: s390x
+            # rust-target: s390x-unknown-linux-gnu
+            # filename: linux-s390x
+    runs-on: ubuntu-latest
+    steps:
+      - uses: taiki-e/install-action@cargo-hack
+
+      - uses: taiki-e/setup-cross-toolchain-action@v1
+        with:
+          target: ${{ matrix.arch.rust-target }}
+
+      - name: Checkout bpfman
+        uses: actions/checkout@v4
+
+      - name: Install rust toolchain - stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          target: ${{ matrix.arch.rust-target }}
 
       ## TODO(astoycos) Deactivate the rust-cache action until we can determine
       ## why it's freezing at the end of the install.
@@ -63,69 +183,55 @@ jobs:
 
       - name: Install cargo-llvm-cov
         uses: taiki-e/install-action@cargo-llvm-cov
-
-      - uses: taiki-e/install-action@v2
         with:
-          tool: taplo-cli
-
-      - run: taplo fmt --check
-
-      - name: yaml-lint
-        run: yamllint -c .yamllint.yaml --strict .
-
-      - name: Check C formatting
-        run: git ls-files -- '*.c' '*.h' | xargs clang-format --dry-run --Werror
-
-      - name: Build eBPF
-        run: |
-          cargo xtask build-ebpf --libbpf-dir ./libbpf
-
-      - name: Check formatting
-        run: |
-          cargo +nightly fmt --all -- --check
-
-      - name: Run clippy
-        run: |
-          cargo +nightly clippy --all -- --deny warnings
-
-      - name: Check public API
-        run: cargo xtask public-api
+          target: ${{ matrix.arch.rust-target }}
 
       - name: Build
-        run: cargo build --verbose
-
-      - name: Build manpages
-        run: cargo xtask build-man-page
-
-      - name: Build CLI TAB Completion
-        run: cargo xtask build-completion
-
-      ## If the push is a tag....build and upload the release bpfman binaries to an archive
-      - name: Build-Release
-        if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          cargo build --release --target x86_64-unknown-linux-gnu
+          cargo build --verbose --target ${{ matrix.arch.rust-target }}
+          ls -al target/${{ matrix.arch.rust-target }}/debug
 
-      - name: Package-Binaries
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Package bpfman Binaries
         run: |
-          cd target/x86_64-unknown-linux-gnu/release
-          tar -czvf bpfman-linux-x86_64.tar.gz bpfman bpfman-rpc bpfman-ns bpf-metrics-exporter bpf-log-exporter
+          cd target/${{ matrix.arch.rust-target }}/debug
+          tar -czvf bpfman-debug-${{ matrix.arch.filename }}.tar.gz bpfman bpfman-rpc bpfman-ns bpf-metrics-exporter bpf-log-exporter
 
-      - name: Archive bpfman Release Binaries
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Archive bpfman Binaries
         uses: actions/upload-artifact@v4
         with:
-          name: bpfman-release
+          name: bpfman-debug-${{ matrix.arch.filename }}
           path: |
-            ./target/x86_64-unknown-linux-gnu/release/bpfman-linux-x86_64.tar.gz
+            ./target/${{ matrix.arch.rust-target }}/debug/bpfman-debug-${{ matrix.arch.filename }}.tar.gz
+
+      ## If the push is a tag....build and upload the release bpfman binaries to an archive
+      - name: Build Release
+        ### if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          cargo build --release --target ${{ matrix.arch.rust-target }}
+
+      - name: Package bpfman Release Binaries
+        ### if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          cd target/${{ matrix.arch.rust-target }}/release
+          tar -czvf bpfman-${{ matrix.arch.filename }}.tar.gz bpfman bpfman-rpc bpfman-ns bpf-metrics-exporter bpf-log-exporter
+
+      - name: Archive bpfman Release Binaries
+        ### if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: bpfman-release-${{ matrix.arch.filename }}
+          path: ./target/${{ matrix.arch.rust-target }}/release/bpfman-${{ matrix.arch.filename }}.tar.gz
 
       - name: Run tests
+        # Only need to run the test coverage for once, so just pick one of the arch to run on.
+        if: matrix.arch.arch == 'amd64'
         run: cargo llvm-cov test --all-features -p bpfman -p bpfman-api --lcov --output-path lcov.info
         env:
           RUST_BACKTRACE: full
 
       - name: Archive Rust code coverage results
+        # Only need to archive the test coverage once, use the same arch as 'Run tests'.
+        if: matrix.arch.arch == 'amd64'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-rust
@@ -134,6 +240,19 @@ jobs:
 
   ## Build go modules
   build-go:
+    strategy:
+      # amd64,arm64,ppc64le,s390x
+      fail-fast: false
+      matrix:
+        arch:
+          - arch: amd64
+            filename: linux-x86_64
+          - arch: arm64
+            filename: linux-arm64
+            # - arch: ppc64le
+            # filename: linux-ppc64le
+            # - arch: s390x
+            # filename: linux-s390x
     runs-on: ubuntu-latest
     # k8s codegen requires this to be set
     env:
@@ -151,21 +270,27 @@ jobs:
         ## addressed.
         working-directory: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman/bpfman-operator
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout bpfman
+        uses: actions/checkout@v4
         with:
           path: ${{ env.GOPATH }}/src/github.com/bpfman/bpfman
 
-      - uses: actions/setup-go@v5
+      - name: Install go
+        uses: actions/setup-go@v5
         with:
           # prettier-ignore
           go-version: '1.21' # yamllint disable-line rule:quoted-strings
 
       - name: Go mod check
+        # Only need to run go mod once, so just pick one of the arch to run on.
+        if: matrix.arch.arch == 'amd64'
         run: |
           go mod tidy
           git diff --exit-code ../go.mod ../go.sum
 
       - name: Lint
+        # Only need to lint the code once, so just pick one of the arch to run on.
+        if: matrix.arch.arch == 'amd64'
         uses: golangci/golangci-lint-action@v6
         with:
           ## https://github.com/golangci/golangci-lint-action/issues/369
@@ -181,7 +306,7 @@ jobs:
           go build ./...
 
       - name: Build Operator
-        run: make build
+        run: ARCH_TARGET=${{ matrix.arch.arch }} make build
 
       - name: Verify Operator
         run: make verify
@@ -190,6 +315,8 @@ jobs:
         run: make test
 
       - name: Archive Go code coverage results
+        # Only need to run the test coverage for once, so just pick one of the arch to run on.
+        if: matrix.arch.arch == 'amd64'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-go
@@ -199,10 +326,14 @@ jobs:
   build-docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout bpfman
+        uses: actions/checkout@v4
+
+      - name: Install Python3
+        uses: actions/setup-python@v5
         with:
           python-version: 3.x
+
       - name: Mkdocs Build
         run: |
           pip install mkdocs-material
@@ -211,49 +342,96 @@ jobs:
 
   basic-integration-tests:
     runs-on: ubuntu-latest
-    needs: [build, build-go, build-docs]
+    needs: [build, build-ebpf, build-go, build-docs, lint-fmt]
     env:
       CARGO_TERM_COLOR: always
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout bpfman
+        uses: actions/checkout@v4
 
-      - name: Install dependencies
+      # - name: Install dependencies
+      #  run: |
+      #    sudo apt-get update
+      #    sudo apt-get install -qy \
+      #      git \
+      #      clang \
+      #      llvm \
+      #      protobuf-compiler \
+      #      cmake \
+      #      perl \
+      #      libssl-dev \
+      #      gcc-multilib \
+      #      libelf-dev
+
+      # - uses: actions/checkout@v4
+      #  with:
+      #    repository: libbpf/libbpf
+      #    path: libbpf
+      #    fetch-depth: 0
+
+      # - uses: actions-rs/toolchain@v1
+      #  with:
+      #    toolchain: nightly
+      #    components: rust-src
+      #    override: true
+
+      # - name: Build eBPF
+      #  run: cargo xtask build-ebpf --libbpf-dir ./libbpf
+
+      # - name: Build bpfman
+      #  run: cargo build --verbose
+
+      # - name: Build manpages
+      #  run: cargo xtask build-man-page
+
+      # - name: Build CLI TAB Completion
+      #  run: cargo xtask build-completion
+
+      - name: Download bpfman x86_64 build
+        uses: actions/download-artifact@v4
+        with:
+          name: bpfman-debug-linux-x86_64
+          merge-multiple: true
+
+      - name: Unpack binaries
         run: |
-          sudo apt-get update
-          sudo apt-get install -qy \
-            git \
-            clang \
-            llvm \
-            protobuf-compiler \
-            cmake \
-            perl \
-            libssl-dev \
-            gcc-multilib \
-            libelf-dev
+          ls -al
+          mkdir -p target/debug
+          tar -C target/debug -xzvf bpfman-debug-linux-x86_64.tar.gz
+          ls -al target/debug
 
-      - uses: actions/checkout@v4
+      - name: Download Integration Test eBPF
+        uses: actions/download-artifact@v4
         with:
-          repository: libbpf/libbpf
-          path: libbpf
-          fetch-depth: 0
+          name: bpfman-integration-test
+          merge-multiple: true
 
-      - uses: actions-rs/toolchain@v1
+      - name: Unpack Integration Test eBPF
+        run: |
+          ls -al
+          tar -xzvf integration-test.tar.gz
+
+      - name: Download manpages
+        uses: actions/download-artifact@v4
         with:
-          toolchain: nightly
-          components: rust-src
-          override: true
+          name: bpfman-manpages
+          merge-multiple: true
 
-      - name: Build eBPF
-        run: cargo xtask build-ebpf --libbpf-dir ./libbpf
+      - name: Unpack manpages
+        run: |
+          ls -al
+          tar -xzvf manpages.tar.gz
 
-      - name: Build bpfman
-        run: cargo build --verbose
+      - name: Download CLI TAB Completion
+        uses: actions/download-artifact@v4
+        with:
+          name: bpfman-cli-tab-completion
+          merge-multiple: true
 
-      - name: Build manpages
-        run: cargo xtask build-man-page
-
-      - name: Build CLI TAB Completion
-        run: cargo xtask build-completion
+      - name: Unpack CLI TAB Completion
+        run: |
+          ls -al
+          tar -xzvf cli-tab-completion.tar.gz
 
       - name: Run the bpfman installer
         run: sudo ./scripts/setup.sh install
@@ -396,12 +574,13 @@ jobs:
   # Copies built bpfman binaries to release artifacts
   # Publish's bpfman and bpfman-api crates to crates.io
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    ### if: startsWith(github.ref, 'refs/tags/v')
     needs: [build]
-    environment: crates.io
+    ### environment: crates.io
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout bpfman
+        uses: actions/checkout@v4
 
       - name: Set env
         run: |
@@ -412,34 +591,43 @@ jobs:
             echo "PRE_RELEASE=false" >> $GITHUB_ENV
           fi
 
-      - uses: actions/download-artifact@v4
+      - name: Download bpfman Release Binaries
+        uses: actions/download-artifact@v4
         with:
-          name: bpfman-release
+          pattern: bpfman-release-*
+          merge-multiple: true
 
-      - name: release
-        uses: softprops/action-gh-release@v2
-        with:
-          body_path: ./changelogs/CHANGELOG-${{ env.RELEASE_VERSION }}.md
-          prerelease: ${{ env.PRE_RELEASE }}
-          files: |
-            bpfman-linux-x86_64.tar.gz
+      # To Be Removed
+      - name: Dump Release Files
+        run: |
+          ls -al bpfman-*.tar.gz
 
-      - name: publish bpfman crate
-        run: cargo publish -p bpfman --token ${{ secrets.BPFMAN_DEV_TOKEN }}
+      ### - name: release
+      ###  uses: softprops/action-gh-release@v2
+      ###  with:
+      ###    body_path: ./changelogs/CHANGELOG-${{ env.RELEASE_VERSION }}.md
+      ###    prerelease: ${{ env.PRE_RELEASE }}
+      ###    files: |
+      ###      bpfman-${{ matrix.arch.filename }}.tar.gz
 
-      - name: publish bpfman-api crate
-        run: cargo publish -p bpfman-api --token ${{ secrets.BPFMAN_DEV_TOKEN }}
+      ### - name: publish bpfman crate
+      ###  run: cargo publish -p bpfman --token ${{ secrets.BPFMAN_DEV_TOKEN }}
 
-      - name: publish bpf-log-exporter crate
-        run: cargo publish -p bpf-log-exporter --token ${{ secrets.BPFMAN_DEV_TOKEN }}
+      ### - name: publish bpfman-api crate
+      ###  run: cargo publish -p bpfman-api --token ${{ secrets.BPFMAN_DEV_TOKEN }}
 
-      - name: publish bpf-metrics-exporter crate
-        run: cargo publish -p bpf-metrics-exporter --token ${{ secrets.BPFMAN_DEV_TOKEN }}
+      ### - name: publish bpf-log-exporter crate
+      ###  run: cargo publish -p bpf-log-exporter --token ${{ secrets.BPFMAN_DEV_TOKEN }}
+
+      ### - name: publish bpf-metrics-exporter crate
+      ###  run: cargo publish -p bpf-metrics-exporter --token ${{ secrets.BPFMAN_DEV_TOKEN }}
 
   build-workflow-complete:
     needs:
       [
         check-license,
+        lint-fmt,
+        build-ebpf,
         build,
         build-go,
         build-docs,

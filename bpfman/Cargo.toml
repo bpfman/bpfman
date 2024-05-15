@@ -51,6 +51,7 @@ oci-distribution = { workspace = true, default-features = false, features = [
     "native-tls",
     "trust-dns",
 ] }
+openssl = { workspace = true, features = ["vendored"] }
 rand = { workspace = true }
 rtnetlink = { workspace = true, features = ["tokio_socket"] }
 serde = { workspace = true, features = ["derive"] }

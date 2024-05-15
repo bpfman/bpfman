@@ -14,7 +14,9 @@ BIN_BPFMAN_RPC="bpfman-rpc"
 BIN_BPFMAN_NS="bpfman-ns"
 
 # Well known directories
-SRC_DEBUG_BIN_PATH="../target/debug"
+SRC_CURRENT_BIN_PATH="../bin"
+SRC_DEBUG_1_BIN_PATH="../target/debug"
+SRC_DEBUG_2_BIN_PATH="../target/x86_64-unknown-linux-gnu/debug"
 SRC_RELEASE_BIN_PATH="../target/x86_64-unknown-linux-gnu/release"
 DST_BIN_PATH="/usr/sbin"
 DST_SVC_PATH="/usr/lib/systemd/system"
@@ -39,12 +41,16 @@ RUNTIME_SOCKET_DIR="/run/bpfman-sock"
 # StateDirectory: /var/lib/bpfman/
 STATE_DIR="/var/lib/bpfman"
 
-
 usage() {
     echo "USAGE:"
-    echo "sudo ./scripts/setup.sh install [--release]"
-    echo "    Prepare system for running \"bpfman\" as a systemd service. Performs the"
-    echo "    following tasks:"
+    echo "sudo ./scripts/setup.sh install [--release | --debug]"
+    echo "    Prepare system for running \"bpfman\" as a systemd service. Script looks for binary"
+    echo "    files in following order:"
+    echo "    * Current directory"
+    echo "    * Release directory (./target/<CURR_ARCH>/release)"
+    echo "    * Debug directory (./target/debug or ./target/<CURR_ARCH>/debug)"
+    echo "    The order can be overridden using \"--release\" or \"--debug\"."
+    echo "    Performs the following tasks:"
     echo "    * Copy \"bpfman\" binaries to \"/usr/sbin/.\"."
     echo "    * Copy \"bpfman\" CLI TAB completeion files to"
     echo "       \"/usr/share/bash-completion/completions/.\", if they have been generated."
@@ -52,9 +58,9 @@ usage() {
     echo "      been generated."
     echo "    * Copy \"bpfman.service\" to \"/usr/lib/systemd/system/\"."
     echo "    * Run \"systemctl start bpfman.socket\" to start the sevice."
-    echo "sudo ./scripts/setup.sh setup [--release]"
+    echo "sudo ./scripts/setup.sh setup [--release | --debug]"
     echo "    Same as \"install\" above, but don't start the service."
-    echo "sudo ./scripts/setup.sh reinstall [--release]"
+    echo "sudo ./scripts/setup.sh reinstall [--release | --debug]"
     echo "    Only copy the \"bpfman\" binaries to \"/usr/sbin/.\""
     echo "    \"bpfman\" service will be restarted if it was running."
     echo "sudo ./scripts/setup.sh uninstall"
@@ -73,34 +79,30 @@ if [ $USER != "root" ]; then
     exit
 fi
 
+release=false
+debug=false
+if [ "$2" == "--release" ] || [ "$2" == "release" ] ; then
+    release=true
+elif [ "$2" == "--debug" ] || [ "$2" == "debug" ] ; then
+    debug=true
+fi
+
 case "$1" in
     "install")
         reinstall=false
         start_bpfman=true
-        release=false
-        if [ "$2" == "--release" ] || [ "$2" == "release" ] ; then
-            release=true
-        fi
-        install ${reinstall} ${start_bpfman} ${release}
+        install ${reinstall} ${start_bpfman} ${release} ${debug}
         ;;
     "setup")
         reinstall=false
         start_bpfman=false
-        release=false
-        if [ "$2" == "--release" ] || [ "$2" == "release" ] ; then
-            release=true
-        fi
-        install ${reinstall} ${start_bpfman} ${release}
+        install ${reinstall} ${start_bpfman} ${release} ${debug}
         ;;
     "reinstall")
         reinstall=true
         # With reinstall true, start_bpfman will be set in function if bpfman is already running or not.
         start_bpfman=false
-        release=false
-        if [ "$2" == "--release" ] || [ "$2" == "release" ] ; then
-            release=true
-        fi
-        install ${reinstall} ${start_bpfman} ${release}
+        install ${reinstall} ${start_bpfman} ${release} ${debug}
         ;;
     "uninstall")
         uninstall

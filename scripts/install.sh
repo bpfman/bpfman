@@ -10,17 +10,30 @@ copy_bin() {
     if [ -z "${release}" ]; then
         release=false
     fi
+    debug=$3
+    if [ -z "${debug}" ]; then
+        debug=false
+    fi
 
 
     # To be backwards compatible, the logic is:
     # if "--release" was entered, only copy from the release directory,
-    # if nothing was entered, try debug, if not there, try release.
-    if [ "${release}" == false ] && test -f ${SRC_DEBUG_BIN_PATH}/${bin_name}; then
-        src_path=${SRC_DEBUG_BIN_PATH}
+    # if "--debug" was entered, only copy from the debug directory,
+    # if nothing was entered, try current directory, then try debug directory, then release directory.
+    if [ "${release}" == false ] && [ "${debug}" == false ] && test -f ${SRC_CURRENT_BIN_PATH}/${bin_name}; then
+        src_path=${SRC_CURRENT_BIN_PATH}
+    elif [ "${release}" == false ] && test -f ${SRC_DEBUG_1_BIN_PATH}/${bin_name}; then
+        src_path=${SRC_DEBUG_1_BIN_PATH}
+    elif [ "${release}" == false ] && test -f ${SRC_DEBUG_2_BIN_PATH}/${bin_name}; then
+        src_path=${SRC_DEBUG_2_BIN_PATH}
     elif test -f ${SRC_RELEASE_BIN_PATH}/${bin_name}; then
         src_path=${SRC_RELEASE_BIN_PATH}
     else
-        echo "  ERROR: Unable to find \"${bin_name}\" in \"${SRC_DEBUG_BIN_PATH}\" or \"${SRC_RELEASE_BIN_PATH}\""
+        echo "  ERROR: Unable to find \"${bin_name}\" in:"
+        echo "    ${SRC_RELEASE_BIN_PATH}"
+        echo "    ${SRC_DEBUG_1_BIN_PATH}"
+        echo "    ${SRC_DEBUG_2_BIN_PATH}"
+        echo "    ${SRC_CURRENT_BIN_PATH}"
         return
     fi
 
@@ -131,6 +144,10 @@ install() {
     if [ -z "${release}" ]; then
         release=false
     fi
+    debug=$4
+    if [ -z "${debug}" ]; then
+        debug=false
+    fi
 
     echo "Copy CLI TAB Completion files:"
     copy_cli_tab_completion
@@ -149,9 +166,9 @@ install() {
         fi
     fi
 
-    copy_bin "${BIN_BPFMAN}" ${release}
-    copy_bin "${BIN_BPFMAN_RPC}" ${release}
-    copy_bin "${BIN_BPFMAN_NS}" ${release}
+    copy_bin "${BIN_BPFMAN}" ${release} ${debug}
+    copy_bin "${BIN_BPFMAN_RPC}" ${release} ${debug}
+    copy_bin "${BIN_BPFMAN_NS}" ${release} ${debug}
 
     if [ "${reinstall}" == false ]; then
         echo "Copy service files:"
