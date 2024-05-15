@@ -1,10 +1,13 @@
 [package]
 description = "gRPC bindings to the bpfman API"
+documentation.workspace = true
 edition.workspace = true
+homepage.workspace = true
 license.workspace = true
 name = "bpfman-api"
 repository.workspace = true
 version.workspace = true
+
 
 [[bin]]
 name = "bpfman-rpc"
@@ -56,7 +59,8 @@ serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }
 sigstore = { workspace = true, features = [
     "cached-client",
-    "cosign-rustls-tls",
+    "full-native-tls",
+    "sign",
     "sigstore-trust-root",
 ] }
 sled = { workspace = true }

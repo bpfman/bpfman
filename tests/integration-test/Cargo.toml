@@ -1,8 +1,12 @@
 [package]
-edition = "2021"
+documentation.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
 name = "integration-test"
 publish = false
-version = "0.1.0"
+repository.workspace = true
+version.workspace = true
 
 [dependencies]
 anyhow = { workspace = true, features = ["std"] }

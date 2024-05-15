@@ -1,6 +1,7 @@
 [package]
 description = "gRPC bindings to the CSI spec"
 edition.workspace = true
+homepage.workspace = true
 license.workspace = true
 name = "bpfman-csi"
 repository.workspace = true

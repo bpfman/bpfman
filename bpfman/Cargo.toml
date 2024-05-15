@@ -1,6 +1,8 @@
 [package]
 description = "An eBPF Program Manager"
+documentation.workspace = true
 edition.workspace = true
+homepage.workspace = true
 license.workspace = true
 name = "bpfman"
 repository.workspace = true
