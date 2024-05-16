@@ -40,6 +40,12 @@ pub enum BpfmanError {
         image_prog_name: String,
         provided_prog_name: String,
     },
+    #[error("Program {expected_prog_name} not found in bytecode image {bytecode_image} with program names {program_names:?}")]
+    ProgramNotFoundInBytecode {
+        bytecode_image: String,
+        expected_prog_name: String,
+        program_names: Vec<String>,
+    },
     #[error("Unable to delete program {0}")]
     BpfmanProgramDeleteError(#[source] anyhow::Error),
     #[error(transparent)]
@@ -69,6 +75,8 @@ pub enum BpfmanError {
 pub enum ParseError {
     #[error("{program} is not a valid program type")]
     InvalidProgramType { program: String },
+    #[error("{map} is not a valid map type")]
+    InvalidMapType { map: String },
     #[error("{proceedon} is not a valid proceed-on value")]
     InvalidProceedOn { proceedon: String },
     #[error("not a valid direction: {direction}")]

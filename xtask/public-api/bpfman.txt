@@ -22,6 +22,10 @@ pub bpfman::errors::BpfmanError::InternalError(alloc::string::String)
 pub bpfman::errors::BpfmanError::InvalidAttach(alloc::string::String)
 pub bpfman::errors::BpfmanError::InvalidInterface
 pub bpfman::errors::BpfmanError::NotLoaded
+pub bpfman::errors::BpfmanError::ProgramNotFoundInBytecode
+pub bpfman::errors::BpfmanError::ProgramNotFoundInBytecode::bytecode_image: alloc::string::String
+pub bpfman::errors::BpfmanError::ProgramNotFoundInBytecode::expected_prog_name: alloc::string::String
+pub bpfman::errors::BpfmanError::ProgramNotFoundInBytecode::program_names: alloc::vec::Vec<alloc::string::String>
 pub bpfman::errors::BpfmanError::RpcRecvError(tokio::sync::oneshot::error::RecvError)
 pub bpfman::errors::BpfmanError::RpcSendError(anyhow::Error)
 pub bpfman::errors::BpfmanError::TooManyPrograms
@@ -94,6 +98,8 @@ pub bpfman::errors::ParseError::InvalidBytecodeLocation
 pub bpfman::errors::ParseError::InvalidBytecodeLocation::location: alloc::string::String
 pub bpfman::errors::ParseError::InvalidDirection
 pub bpfman::errors::ParseError::InvalidDirection::direction: alloc::string::String
+pub bpfman::errors::ParseError::InvalidMapType
+pub bpfman::errors::ParseError::InvalidMapType::map: alloc::string::String
 pub bpfman::errors::ParseError::InvalidProbeType
 pub bpfman::errors::ParseError::InvalidProbeType::probe: alloc::string::String
 pub bpfman::errors::ParseError::InvalidProceedOn
@@ -373,6 +379,84 @@ impl<T> typenum::type_operators::Same for bpfman::types::Location
 pub type bpfman::types::Location::Output = T
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::Location where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::Location::vzip(self) -> V
+pub enum bpfman::types::MapType
+pub bpfman::types::MapType::Arena
+pub bpfman::types::MapType::Array
+pub bpfman::types::MapType::ArrayOfMaps
+pub bpfman::types::MapType::BloomFilter
+pub bpfman::types::MapType::CgroupArray
+pub bpfman::types::MapType::CgroupStorage
+pub bpfman::types::MapType::CgrpStorage
+pub bpfman::types::MapType::Cpumap
+pub bpfman::types::MapType::Devmap
+pub bpfman::types::MapType::DevmapHash
+pub bpfman::types::MapType::Hash
+pub bpfman::types::MapType::HashOfMaps
+pub bpfman::types::MapType::InodeStorage
+pub bpfman::types::MapType::LpmTrie
+pub bpfman::types::MapType::LruHash
+pub bpfman::types::MapType::LruPerCpuHash
+pub bpfman::types::MapType::PerCpuArray
+pub bpfman::types::MapType::PerCpuCgroupStorage
+pub bpfman::types::MapType::PerCpuHash
+pub bpfman::types::MapType::PerfEventArray
+pub bpfman::types::MapType::ProgArray
+pub bpfman::types::MapType::Queue
+pub bpfman::types::MapType::ReuseportSockarray
+pub bpfman::types::MapType::Ringbuf
+pub bpfman::types::MapType::SkStorage
+pub bpfman::types::MapType::Sockhash
+pub bpfman::types::MapType::Sockmap
+pub bpfman::types::MapType::Stack
+pub bpfman::types::MapType::StackTrace
+pub bpfman::types::MapType::StructOps
+pub bpfman::types::MapType::TaskStorage
+pub bpfman::types::MapType::Unspec
+pub bpfman::types::MapType::UserRingbuf
+pub bpfman::types::MapType::Xskmap
+impl core::convert::From<u32> for bpfman::types::MapType
+pub fn bpfman::types::MapType::from(value: u32) -> Self
+impl core::fmt::Debug for bpfman::types::MapType
+pub fn bpfman::types::MapType::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for bpfman::types::MapType
+pub fn bpfman::types::MapType::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::MapType
+impl core::marker::Send for bpfman::types::MapType
+impl core::marker::Sync for bpfman::types::MapType
+impl core::marker::Unpin for bpfman::types::MapType
+impl core::panic::unwind_safe::RefUnwindSafe for bpfman::types::MapType
+impl core::panic::unwind_safe::UnwindSafe for bpfman::types::MapType
+impl<T, U> core::convert::Into<U> for bpfman::types::MapType where U: core::convert::From<T>
+pub fn bpfman::types::MapType::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::MapType where U: core::convert::Into<T>
+pub type bpfman::types::MapType::Error = core::convert::Infallible
+pub fn bpfman::types::MapType::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::MapType where U: core::convert::TryFrom<T>
+pub type bpfman::types::MapType::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::MapType::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::string::ToString for bpfman::types::MapType where T: core::fmt::Display + core::marker::Sized
+pub fn bpfman::types::MapType::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for bpfman::types::MapType where T: 'static + core::marker::Sized
+pub fn bpfman::types::MapType::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::MapType where T: core::marker::Sized
+pub fn bpfman::types::MapType::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::MapType where T: core::marker::Sized
+pub fn bpfman::types::MapType::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for bpfman::types::MapType
+pub fn bpfman::types::MapType::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::MapType
+pub type bpfman::types::MapType::Init = T
+pub const bpfman::types::MapType::ALIGN: usize
+pub unsafe fn bpfman::types::MapType::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::MapType::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::MapType::drop(ptr: usize)
+pub unsafe fn bpfman::types::MapType::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> tracing::instrument::Instrument for bpfman::types::MapType
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::MapType
+impl<T> typenum::type_operators::Same for bpfman::types::MapType
+pub type bpfman::types::MapType::Output = T
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::MapType where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::MapType::vzip(self) -> V
 pub enum bpfman::types::ProbeType
 pub bpfman::types::ProbeType::Kprobe
 pub bpfman::types::ProbeType::Kretprobe
@@ -556,6 +640,8 @@ pub fn bpfman::types::ProgramType::clone(&self) -> bpfman::types::ProgramType
 impl core::cmp::Eq for bpfman::types::ProgramType
 impl core::cmp::PartialEq for bpfman::types::ProgramType
 pub fn bpfman::types::ProgramType::eq(&self, other: &bpfman::types::ProgramType) -> bool
+impl core::convert::From<aya_obj::obj::ProgramSection> for bpfman::types::ProgramType
+pub fn bpfman::types::ProgramType::from(value: aya_obj::obj::ProgramSection) -> Self
 impl core::convert::From<bpfman::types::ProgramType> for u32
 pub fn u32::from(val: bpfman::types::ProgramType) -> Self
 impl core::convert::TryFrom<alloc::string::String> for bpfman::types::ProgramType

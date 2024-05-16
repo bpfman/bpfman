@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
+use std::{io::ErrorKind, path::PathBuf, str::FromStr};
+
 use bpfman::types::ProgramType;
 use clap::{Args, Parser, Subcommand};
 use hex::FromHex;
@@ -310,6 +312,101 @@ pub(crate) struct GetArgs {
 pub(crate) enum ImageSubCommand {
     /// Pull an eBPF bytecode image from a remote registry.
     Pull(PullBytecodeArgs),
+    /// Build an eBPF bytecode image from local bytecode objects.
+    Build(BuildBytecodeArgs),
+    /// Generate the OCI image labels for a given bytecode file.
+    GenerateBuildArgs(GenerateArgs),
+}
+
+// Targets understood by bpf2go.
+//
+// Targets without a Linux string can't be used directly and are only included
+// for the generic bpf, bpfel, bpfeb targets.
+//
+// See https://go.dev/doc/install/source#environment for valid GOARCHes when
+// GOOS=linux.
+// var targetByGoArch = map[goarch]target{
+// 	"386":      {"bpfel", "x86"},
+// 	"amd64":    {"bpfel", "x86"},
+// 	"arm":      {"bpfel", "arm"},
+// 	"arm64":    {"bpfel", "arm64"},
+// 	"loong64":  {"bpfel", "loongarch"},
+// 	"mips":     {"bpfeb", "mips"},
+// 	"mipsle":   {"bpfel", ""},
+// 	"mips64":   {"bpfeb", ""},
+// 	"mips64le": {"bpfel", ""},
+// 	"ppc64":    {"bpfeb", "powerpc"},
+// 	"ppc64le":  {"bpfel", "powerpc"},
+// 	"riscv64":  {"bpfel", "riscv"},
+// 	"s390x":    {"bpfeb", "s390"},
+// }
+
+#[derive(Debug, Clone)]
+pub(crate) enum GoArch {
+    X386,
+    Amd64,
+    Arm,
+    Arm64,
+    Loong64,
+    Mips,
+    Mipsle,
+    Mips64,
+    Mips64le,
+    Ppc64,
+    Ppc64le,
+    Riscv64,
+    S390x,
+}
+
+impl FromStr for GoArch {
+    type Err = std::io::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "386" => Ok(GoArch::X386),
+            "amd64" => Ok(GoArch::Amd64),
+            "arm" => Ok(GoArch::Arm),
+            "arm64" => Ok(GoArch::Arm64),
+            "loong64" => Ok(GoArch::Loong64),
+            "mips" => Ok(GoArch::Mips),
+            "mipsle" => Ok(GoArch::Mipsle),
+            "mips64" => Ok(GoArch::Mips64),
+            "mips64le" => Ok(GoArch::Mips64le),
+            "ppc64" => Ok(GoArch::Ppc64),
+            "ppc64le" => Ok(GoArch::Ppc64le),
+            "riscv64" => Ok(GoArch::Riscv64),
+            "s390x" => Ok(GoArch::S390x),
+            _ => Err(std::io::Error::new(ErrorKind::InvalidInput, "not a valid bytecode arch, please refer to https://go.dev/doc/install/source#environment for valid GOARCHes when GOOS=linux.")),
+        }
+    }
+}
+
+#[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) struct BuildBytecodeArgs {
+    /// Required: Dockerfile to use for building the image.
+    /// Example: --file Containerfile.bytecode
+    #[clap(short, long, verbatim_doc_comment)]
+    pub(crate) bytecode_file: PathBuf,
+
+    /// Required: Name and optionally a tag in the name:tag format.
+    /// Example: --tag quay.io/bpfman-bytecode/xdp_pass:latest
+    #[clap(short, long, verbatim_doc_comment)]
+    pub(crate) tag: String,
+
+    /// Required: Dockerfile to use for building the image.
+    /// Example: --file Containerfile.bytecode
+    #[clap(short = 'f', long, verbatim_doc_comment)]
+    pub(crate) container_file: PathBuf,
+}
+
+#[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) struct GenerateArgs {
+    /// Required: Dockerfile to use for building the image.
+    /// Example: --file Containerfile.bytecode
+    #[clap(short, long, verbatim_doc_comment)]
+    pub(crate) bytecode_file: PathBuf,
 }
 
 #[derive(Args, Debug)]
