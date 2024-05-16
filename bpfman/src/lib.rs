@@ -479,12 +479,7 @@ fn get_programs_iter(root_db: &Db) -> impl Iterator<Item = (u32, Program)> + '_ 
 async fn setup() -> Result<(Config, Db), BpfmanError> {
     initialize_bpfman()?;
 
-    Ok((
-        open_config_file(),
-        init_database(get_db_config())
-            .await
-            .expect("Unable to open root database"),
-    ))
+    Ok((open_config_file(), init_database(get_db_config()).await?))
 }
 
 async fn add_multi_attach_program(
