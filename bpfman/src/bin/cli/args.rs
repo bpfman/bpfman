@@ -1,8 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
+use std::{
+    io::ErrorKind,
+    path::{Path, PathBuf},
+    str::FromStr,
+};
+
 use bpfman::types::ProgramType;
-use clap::{Args, Parser, Subcommand};
+use clap::{ArgGroup, Args, Parser, Subcommand};
 use hex::FromHex;
 
 #[derive(Parser, Debug)]
@@ -307,9 +313,241 @@ pub(crate) struct GetArgs {
 
 #[derive(Subcommand, Debug)]
 #[command(disable_version_flag = true)]
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum ImageSubCommand {
     /// Pull an eBPF bytecode image from a remote registry.
     Pull(PullBytecodeArgs),
+    /// Build an eBPF bytecode image from local bytecode objects, and push to a registry.
+    Build(BuildBytecodeArgs),
+    /// Generate the OCI image labels for a given bytecode file.
+    GenerateBuildArgs(GenerateArgs),
+}
+
+/// GoArch represents the architectures understood by golang when the GOOS=linux.
+/// They are used here since the OCI spec and most container tools also use them.
+/// This structure is also the centralized entry point for specifying ALL multi-arch
+/// eBPF bytecode building.
+#[derive(Debug, Clone)]
+pub(crate) enum GoArch {
+    X386,
+    Amd64,
+    Arm,
+    Arm64,
+    Loong64,
+    Mips,
+    Mipsle,
+    Mips64,
+    Mips64le,
+    Ppc64,
+    Ppc64le,
+    Riscv64,
+    S390x,
+}
+
+impl FromStr for GoArch {
+    type Err = std::io::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "386" => Ok(GoArch::X386),
+            "amd64" => Ok(GoArch::Amd64),
+            "arm" => Ok(GoArch::Arm),
+            "arm64" => Ok(GoArch::Arm64),
+            "loong64" => Ok(GoArch::Loong64),
+            "mips" => Ok(GoArch::Mips),
+            "mipsle" => Ok(GoArch::Mipsle),
+            "mips64" => Ok(GoArch::Mips64),
+            "mips64le" => Ok(GoArch::Mips64le),
+            "ppc64" => Ok(GoArch::Ppc64),
+            "ppc64le" => Ok(GoArch::Ppc64le),
+            "riscv64" => Ok(GoArch::Riscv64),
+            "s390x" => Ok(GoArch::S390x),
+            _ => Err(std::io::Error::new(ErrorKind::InvalidInput, "not a valid bytecode arch, please refer to https://go.dev/doc/install/source#environment for valid GOARCHes when GOOS=linux.")),
+        }
+    }
+}
+
+impl GoArch {
+    pub(crate) fn get_platform(&self) -> String {
+        match self {
+            GoArch::X386 => "linux/386".to_string(),
+            GoArch::Amd64 => "linux/amd64".to_string(),
+            GoArch::Arm => "linux/arm".to_string(),
+            GoArch::Arm64 => "linux/arm64".to_string(),
+            GoArch::Loong64 => "linux/loong64".to_string(),
+            GoArch::Mips => "linux/mips".to_string(),
+            GoArch::Mipsle => "linux/mipsle".to_string(),
+            GoArch::Mips64 => "linux/mips64".to_string(),
+            GoArch::Mips64le => "linux/mips64le".to_string(),
+            GoArch::Ppc64 => "linux/ppc64".to_string(),
+            GoArch::Ppc64le => "linux/ppc64le".to_string(),
+            GoArch::Riscv64 => "linux/riscv64".to_string(),
+            GoArch::S390x => "linux/s390x".to_string(),
+        }
+    }
+
+    pub(crate) fn get_build_arg(&self, bc: &Path) -> String {
+        match self {
+            GoArch::X386 => format!("BC_386_EL={}", bc.display()),
+            GoArch::Amd64 => format!("BC_AMD64_EL={}", bc.display()),
+            GoArch::Arm => format!("BC_ARM_EL={}", bc.display()),
+            GoArch::Arm64 => format!("BC_ARM64_EL={}", bc.display()),
+            GoArch::Loong64 => format!("BC_LOONG64_EL={}", bc.display()),
+            GoArch::Mips => format!("BC_MIPS_EB={}", bc.display()),
+            GoArch::Mipsle => format!("BC_MIPSLE_EL={}", bc.display()),
+            GoArch::Mips64 => format!("BC_MIPS64_EB={}", bc.display()),
+            GoArch::Mips64le => format!("BC_MIPS64LE_EL={}", bc.display()),
+            GoArch::Ppc64 => format!("BC_PPC64_EB={}", bc.display()),
+            GoArch::Ppc64le => format!("BC_PPC64LE_EL={}", bc.display()),
+            GoArch::Riscv64 => format!("BC_RISCV64_EL={}", bc.display()),
+            GoArch::S390x => format!("BC_S390X_EB={}", bc.display()),
+        }
+    }
+
+    pub(crate) fn from_cilium_ebpf_file_str(s: &str) -> Result<Self, std::io::Error> {
+        if s.contains("bpf_x86_bpfel.o") {
+            Ok(GoArch::Amd64)
+        } else if s.contains("bpf_arm_bpfel.o") {
+            Ok(GoArch::Arm)
+        } else if s.contains("bpf_arm64_bpfel.o") {
+            Ok(GoArch::Arm64)
+        } else if s.contains("bpf_loongarch_bpfel.o") {
+            Ok(GoArch::Loong64)
+        } else if s.contains("bpf_mips_bpfeb.o") {
+            Ok(GoArch::Mips)
+        } else if s.contains("bpf_powerpc_bpfeb.o") {
+            Ok(GoArch::Ppc64)
+        } else if s.contains("bpf_powerpc_bpfel.o") {
+            Ok(GoArch::Ppc64le)
+        } else if s.contains("bpf_riscv_bpfel.o") {
+            Ok(GoArch::Riscv64)
+        } else if s.contains("bpf_s390_bpfeb.o") {
+            Ok(GoArch::S390x)
+        } else {
+            Err(std::io::Error::new(ErrorKind::InvalidInput, "not a valid cilium/ebpf bytecode filename, please refer to https://github.com/cilium/ebpf/blob/main/cmd/bpf2go/gen/target.go#L14"))
+        }
+    }
+}
+
+#[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) struct BuildBytecodeArgs {
+    #[clap(flatten)]
+    pub(crate) bytecode_file: BytecodeFile,
+
+    /// Required: Name and optionally a tag in the name:tag format.
+    /// Example: --tag quay.io/bpfman-bytecode/xdp_pass:latest
+    #[clap(short, long, verbatim_doc_comment)]
+    pub(crate) tag: String,
+
+    /// Required: Dockerfile to use for building the image.
+    /// Example: --file Containerfile.bytecode
+    #[clap(short = 'f', long, verbatim_doc_comment)]
+    pub(crate) container_file: PathBuf,
+
+    /// Optional: Container runtime to use, works with docker or podman, defaults to docker
+    /// Example: --runtime podman
+    #[clap(short, long, verbatim_doc_comment)]
+    pub(crate) runtime: Option<String>,
+}
+
+#[derive(Args, Debug)]
+#[clap(group(
+    ArgGroup::new("bytecodefile")
+        .multiple(false)
+        .conflicts_with("multi-arch")
+        .args(&["bytecode", "cilium_ebpf_project"]),
+))]
+#[clap(group(
+    ArgGroup::new("multi-arch")
+        .multiple(true)
+        .args(&["bc_386_el", "bc_amd64_el", "bc_arm_el", "bc_arm64_el", "bc_loong64_el", "bc_mips_eb", "bc_mipsle_el", "bc_mips64_eb", "bc_mips64le_el", "bc_ppc64_eb", "bc_ppc64le_el", "bc_riscv64_el", "bc_s390x_eb"]),
+))]
+#[command(disable_version_flag = true)]
+#[group(required = true)]
+pub(crate) struct BytecodeFile {
+    /// Optional: bytecode file to use for building the image assuming host architecture.
+    /// Example: -b ./bpf_x86_bpfel.o
+    #[clap(short, long, verbatim_doc_comment)]
+    pub(crate) bytecode: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming amd64 architecture.
+    /// Example: --bc-386-el ./examples/go-xdp-counter/bpf_386_bpfel.o
+    #[clap(long, verbatim_doc_comment, group = "multi-arch")]
+    pub(crate) bc_386_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming amd64 architecture.
+    /// Example: --bc-amd64-el ./examples/go-xdp-counter/bpf_x86_bpfel.o
+    #[clap(long, verbatim_doc_comment, group = "multi-arch")]
+    pub(crate) bc_amd64_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming arm architecture.
+    /// Example: --bc-arm-el ./examples/go-xdp-counter/bpf_arm_bpfel.o
+    #[clap(long, verbatim_doc_comment, group = "multi-arch")]
+    pub(crate) bc_arm_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming arm64 architecture.
+    /// Example: --bc-arm64-el ./examples/go-xdp-counter/bpf_arm64_bpfel.o
+    #[clap(long, verbatim_doc_comment, group = "multi-arch")]
+    pub(crate) bc_arm64_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming loong64 architecture.
+    /// Example: --bc-loong64-el ./examples/go-xdp-counter/bpf_loong64_bpfel.o
+    #[clap(long, verbatim_doc_comment, group = "multi-arch")]
+    pub(crate) bc_loong64_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming mips architecture.
+    /// Example: --bc-mips-eb ./examples/go-xdp-counter/bpf_mips_bpfeb.o
+    #[clap(long, verbatim_doc_comment, group = "multi-arch")]
+    pub(crate) bc_mips_eb: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming mipsle architecture.
+    /// Example: --bc-mipsle-el ./examples/go-xdp-counter/bpf_mipsle_bpfel.o
+    #[clap(long, verbatim_doc_comment, group = "multi-arch")]
+    pub(crate) bc_mipsle_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming mips64 architecture.
+    /// Example: --bc-mips64-eb ./examples/go-xdp-counter/bpf_mips64_bpfeb.o
+    #[clap(long, verbatim_doc_comment, group = "multi-arch")]
+    pub(crate) bc_mips64_eb: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming mips64le architecture.
+    /// Example: --bc-mips64le-el ./examples/go-xdp-counter/bpf_mips64le_bpfel.o
+    #[clap(long, verbatim_doc_comment, group = "multi-arch")]
+    pub(crate) bc_mips64le_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming ppc64 architecture.
+    /// Example: --bc-ppc64-eb ./examples/go-xdp-counter/bpf_ppc64_bpfeb.o
+    #[clap(long, verbatim_doc_comment, group = "multi-arch")]
+    pub(crate) bc_ppc64_eb: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming ppc64le architecture.
+    /// Example: --bc-ppc64le-el ./examples/go-xdp-counter/bpf_ppc64le_bpfel.o
+    #[clap(long, verbatim_doc_comment, group = "multi-arch")]
+    pub(crate) bc_ppc64le_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming riscv64 architecture.
+    /// Example: --bc-riscv64-el ./examples/go-xdp-counter/bpf_riscv64_bpfel.o
+    #[clap(long, verbatim_doc_comment, group = "multi-arch")]
+    pub(crate) bc_riscv64_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming s390x architecture.
+    /// Example: --bc-s390x-eb ./examples/go-xdp-counter/bpf_s390x_bpfeb.o
+    #[clap(long, verbatim_doc_comment, group = "multi-arch")]
+    pub(crate) bc_s390x_eb: Option<PathBuf>,
+
+    /// Optional: If specified pull multi-arch bytecode files from a cilium/ebpf formatted project
+    /// where the bytecode files all contain a standard bpf_<GOARCH>_<(el/eb)>.o tag.
+    /// Example: --cilium-ebpf-project ./examples/go-xdp-counter
+    #[clap(short, long, verbatim_doc_comment)]
+    pub(crate) cilium_ebpf_project: Option<PathBuf>,
+}
+
+#[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) struct GenerateArgs {
+    #[clap(flatten)]
+    pub(crate) bytecode: BytecodeFile,
 }
 
 #[derive(Args, Debug)]

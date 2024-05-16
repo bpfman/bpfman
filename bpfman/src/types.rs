@@ -12,7 +12,7 @@ use std::{
 use aya::programs::ProgramInfo as AyaProgInfo;
 use chrono::{prelude::DateTime, Local};
 use clap::ValueEnum;
-use log::{debug, info, warn};
+use log::{info, warn};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sled::Db;
@@ -224,11 +224,11 @@ impl Location {
         &self,
         root_db: &Db,
         image_manager: &mut ImageManager,
-    ) -> Result<(Vec<u8>, String), BpfmanError> {
+    ) -> Result<(Vec<u8>, Vec<String>), BpfmanError> {
         match self {
-            Location::File(l) => Ok((crate::utils::read(l)?, "".to_owned())),
+            Location::File(l) => Ok((crate::utils::read(l)?, Vec::new())),
             Location::Image(l) => {
-                let (path, bpf_function_name) = image_manager
+                let (path, bpf_function_names) = image_manager
                     .get_image(
                         root_db,
                         &l.image_url,
@@ -239,7 +239,7 @@ impl Location {
                     .await?;
                 let bytecode = image_manager.get_bytecode_from_image_store(root_db, path)?;
 
-                Ok((bytecode, bpf_function_name))
+                Ok((bytecode, bpf_function_names))
             }
         }
     }
@@ -625,14 +625,14 @@ impl ProgramData {
                         // always use the provided program name.
                         let provided_name = self.get_name()?.clone();
 
-                        if provided_name.is_empty() {
-                            self.set_name(&s)?;
-                        } else if s != provided_name {
-                            debug!(
-                                "Bytecode image bpf function name: {} isn't equal to the provided bpf function name: {}",
-                                s,
-                                provided_name
-                            );
+                        if s.contains(&provided_name) {
+                            self.set_name(&provided_name)?;
+                        } else {
+                            return Err(BpfmanError::ProgramNotFoundInBytecode {
+                                bytecode_image: l.image_url,
+                                expected_prog_name: provided_name,
+                                program_names: s,
+                            });
                         }
                     }
                     Location::File(l) => {
@@ -1530,6 +1530,134 @@ impl Program {
     }
 }
 
+/// MapType must match the the bpf_map_type enum defined in the linux kernel.
+/// <https://elixir.bootlin.com/linux/v6.9.5/source/include/uapi/linux/bpf.h#L964>
+#[derive(Debug)]
+pub enum MapType {
+    Unspec,
+    Hash,
+    Array,
+    ProgArray,
+    PerfEventArray,
+    PerCpuHash,
+    PerCpuArray,
+    StackTrace,
+    CgroupArray,
+    LruHash,
+    LruPerCpuHash,
+    LpmTrie,
+    ArrayOfMaps,
+    HashOfMaps,
+    Devmap,
+    Sockmap,
+    Cpumap,
+    Xskmap,
+    Sockhash,
+    CgroupStorage,
+    ReuseportSockarray,
+    PerCpuCgroupStorage,
+    Queue,
+    Stack,
+    SkStorage,
+    DevmapHash,
+    StructOps,
+    Ringbuf,
+    InodeStorage,
+    TaskStorage,
+    BloomFilter,
+    UserRingbuf,
+    CgrpStorage,
+    Arena,
+}
+
+/// This function is only used in the oci-utils for taking an object
+/// file parsed by aya-obj, pulling out the maps included in it, and
+/// presenting it in a user frendly manner, it will panic if it's called
+/// with a non-checked integer, only use where pre-processing has occured.
+impl From<u32> for MapType {
+    fn from(value: u32) -> Self {
+        match value {
+            0 => MapType::Unspec,
+            1 => MapType::Hash,
+            2 => MapType::Array,
+            3 => MapType::ProgArray,
+            4 => MapType::PerfEventArray,
+            5 => MapType::PerCpuHash,
+            6 => MapType::PerCpuArray,
+            7 => MapType::StackTrace,
+            8 => MapType::CgroupArray,
+            9 => MapType::LruHash,
+            10 => MapType::LruPerCpuHash,
+            11 => MapType::LpmTrie,
+            12 => MapType::ArrayOfMaps,
+            13 => MapType::HashOfMaps,
+            14 => MapType::Devmap,
+            15 => MapType::Sockmap,
+            16 => MapType::Cpumap,
+            17 => MapType::Xskmap,
+            18 => MapType::Sockhash,
+            20 => MapType::ReuseportSockarray,
+            22 => MapType::Queue,
+            23 => MapType::Stack,
+            24 => MapType::SkStorage,
+            25 => MapType::DevmapHash,
+            26 => MapType::StructOps,
+            27 => MapType::Ringbuf,
+            28 => MapType::InodeStorage,
+            29 => MapType::TaskStorage,
+            30 => MapType::BloomFilter,
+            31 => MapType::UserRingbuf,
+            32 => MapType::CgrpStorage,
+            33 => MapType::Arena,
+            v => panic!("Unknown map type {v}"),
+        }
+    }
+}
+
+impl std::fmt::Display for MapType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let v = match self {
+            MapType::Unspec => "unspec",
+            MapType::Hash => "hash",
+            MapType::Array => "array",
+            MapType::ProgArray => "prog_array",
+            MapType::PerfEventArray => "perf_event_array",
+            MapType::PerCpuHash => "per_cpu_hash",
+            MapType::PerCpuArray => "per_cpu_array",
+            MapType::StackTrace => "stack_trace",
+            MapType::CgroupArray => "cgroup_array",
+            MapType::LruHash => "lru_hash",
+            MapType::LruPerCpuHash => "lru_per_cpu_hash",
+            MapType::LpmTrie => "lpm_trie",
+            MapType::ArrayOfMaps => "array_of_maps",
+            MapType::HashOfMaps => "hash_of_maps",
+            MapType::Devmap => "devmap",
+            MapType::Sockmap => "sockmap",
+            MapType::Cpumap => "cpumap",
+            MapType::Xskmap => "xskmap",
+            MapType::Sockhash => "sockhash",
+            MapType::CgroupStorage => "cgroup_storage",
+            MapType::ReuseportSockarray => "reuseport_sockarray",
+            MapType::PerCpuCgroupStorage => "per_cpu_cgroup_storage",
+            MapType::Queue => "queue",
+            MapType::Stack => "stack",
+            MapType::SkStorage => "sk_storage",
+            MapType::DevmapHash => "devmap_hash",
+            MapType::StructOps => "struct_ops",
+            MapType::Ringbuf => "ringbuf",
+            MapType::InodeStorage => "inode_storage",
+            MapType::TaskStorage => "task_storage",
+            MapType::BloomFilter => "bloom_filter",
+            MapType::UserRingbuf => "user_ringbuf",
+            MapType::CgrpStorage => "cgrp_storage",
+            MapType::Arena => "arena",
+        };
+        write!(f, "{}", v)
+    }
+}
+
+/// ProgramType must match the the bpf_prog_type enum defined in the linux kernel.
+/// <https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/bpf.h#L1024>
 #[derive(ValueEnum, Copy, Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
 pub enum ProgramType {
     Unspec,
@@ -1564,6 +1692,42 @@ pub enum ProgramType {
     Lsm,
     SkLookup,
     Syscall,
+}
+
+impl From<aya_obj::ProgramSection> for ProgramType {
+    fn from(value: aya_obj::ProgramSection) -> Self {
+        match value {
+            aya_obj::ProgramSection::KRetProbe => ProgramType::Probe,
+            aya_obj::ProgramSection::KProbe => ProgramType::Probe,
+            aya_obj::ProgramSection::UProbe { .. } => ProgramType::Probe,
+            aya_obj::ProgramSection::URetProbe { .. } => ProgramType::Probe,
+            aya_obj::ProgramSection::TracePoint => ProgramType::Tracepoint,
+            aya_obj::ProgramSection::SocketFilter => ProgramType::SocketFilter,
+            aya_obj::ProgramSection::Xdp { .. } => ProgramType::Xdp,
+            aya_obj::ProgramSection::SkMsg => ProgramType::SkMsg,
+            aya_obj::ProgramSection::SkSkbStreamParser => ProgramType::SkSkb,
+            aya_obj::ProgramSection::SkSkbStreamVerdict => ProgramType::SkSkb,
+            aya_obj::ProgramSection::SockOps => ProgramType::SockOps,
+            aya_obj::ProgramSection::SchedClassifier => ProgramType::Tc,
+            aya_obj::ProgramSection::CgroupSkb => ProgramType::CgroupSkb,
+            aya_obj::ProgramSection::CgroupSkbIngress => ProgramType::CgroupSkb,
+            aya_obj::ProgramSection::CgroupSkbEgress => ProgramType::CgroupSkb,
+            aya_obj::ProgramSection::CgroupSockAddr { .. } => ProgramType::CgroupSockAddr,
+            aya_obj::ProgramSection::CgroupSysctl => ProgramType::CgroupSysctl,
+            aya_obj::ProgramSection::CgroupSockopt { .. } => ProgramType::CgroupSockopt,
+            aya_obj::ProgramSection::LircMode2 => ProgramType::LircMode2,
+            aya_obj::ProgramSection::PerfEvent => ProgramType::PerfEvent,
+            aya_obj::ProgramSection::RawTracePoint => ProgramType::RawTracepoint,
+            aya_obj::ProgramSection::Lsm { .. } => ProgramType::Lsm,
+            aya_obj::ProgramSection::BtfTracePoint => ProgramType::Tracepoint,
+            aya_obj::ProgramSection::FEntry { .. } => ProgramType::Tracing,
+            aya_obj::ProgramSection::FExit { .. } => ProgramType::Tracing,
+            aya_obj::ProgramSection::Extension => ProgramType::Ext,
+            aya_obj::ProgramSection::SkLookup => ProgramType::SkLookup,
+            aya_obj::ProgramSection::CgroupSock { .. } => ProgramType::CgroupSock,
+            aya_obj::ProgramSection::CgroupDevice { .. } => ProgramType::CgroupDevice,
+        }
+    }
 }
 
 impl TryFrom<String> for ProgramType {

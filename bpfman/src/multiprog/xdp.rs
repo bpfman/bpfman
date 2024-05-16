@@ -29,6 +29,7 @@ use crate::{
 };
 
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
+const XDP_DISPATCHER_PROGRAM_NAME: &str = "xdp_dispatcher";
 
 /// These constants define the key of SLED DB
 const REVISION: &str = "revision";
@@ -123,7 +124,7 @@ impl XdpDispatcher {
             None,
         );
 
-        let (path, bpf_function_name) = image_manager
+        let (path, bpf_program_names) = image_manager
             .get_image(
                 root_db,
                 &image.image_url.clone(),
@@ -133,13 +134,24 @@ impl XdpDispatcher {
             )
             .await?;
 
+        if !bpf_program_names.contains(&XDP_DISPATCHER_PROGRAM_NAME.to_string()) {
+            return Err(BpfmanError::ProgramNotFoundInBytecode {
+                bytecode_image: image.image_url,
+                expected_prog_name: XDP_DISPATCHER_PROGRAM_NAME.to_string(),
+                program_names: bpf_program_names,
+            });
+        }
+
         let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
 
         let mut loader = BpfLoader::new()
             .set_global("conf", &config, true)
             .load(&program_bytes)?;
 
-        let dispatcher: &mut Xdp = loader.program_mut(&bpf_function_name).unwrap().try_into()?;
+        let dispatcher: &mut Xdp = loader
+            .program_mut(XDP_DISPATCHER_PROGRAM_NAME)
+            .unwrap()
+            .try_into()?;
 
         dispatcher.load()?;
 
@@ -148,7 +160,7 @@ impl XdpDispatcher {
 
         self.loader = Some(loader);
         self.set_num_extensions(extensions.len())?;
-        self.set_program_name(&bpf_function_name)?;
+        self.set_program_name(XDP_DISPATCHER_PROGRAM_NAME)?;
 
         self.attach_extensions(&mut extensions)?;
         self.attach()?;
