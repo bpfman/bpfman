@@ -307,7 +307,7 @@ pub async fn pull_bytecode(image: BytecodeImage) -> anyhow::Result<()> {
 
 pub(crate) async fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanError> {
     let database_config = open_config_file().database().to_owned().unwrap_or_default();
-    for _ in 1..database_config.max_retries {
+    for _ in 0..=database_config.max_retries {
         if let Ok(db) = sled_config.open() {
             debug!("Successfully opened database");
             return Ok(db);
