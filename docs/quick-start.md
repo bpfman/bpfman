@@ -96,9 +96,12 @@ $ sudo rpm -qa | grep bpfman
 bpfman-0.4.1-1.fc39.x86_64
 ```
 
-Then to uninstall the RPM:
+To stop bpfman and uninstall the RPM:
 
 ```console
+sudo systemctl stop bpfman.socket
+sudo systemctl disable bpfman.socket
+
 sudo dnf erase -y bpfman-0.4.1-1.fc39.x86_64
 
 sudo systemctl daemon-reload

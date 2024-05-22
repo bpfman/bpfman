@@ -97,9 +97,12 @@ $ sudo rpm -qa | grep bpfman
 bpfman-0.4.0~dev-1.20240117143006587102.main.191.gda44a71.fc39.x86_64
 ```
 
-To uninstall the RPM:
+To stop bpfman and uninstall the RPM:
 
 ```console
+sudo systemctl stop bpfman.socket
+sudo systemctl disable bpfman.socket
+
 sudo dnf erase -y bpfman-0.4.0~dev-1.20240117143006587102.main.191.gda44a71.fc39.x86_64
 
 sudo systemctl daemon-reload
@@ -135,9 +138,26 @@ This will generate several RPMs in a `x86_64/` directory:
 
 ```console
 $ ls x86_64/
-bpfman-0.4.0~dev-1.20240118212420167308.<USERNAME>.rpm.socket.192.gb2ea1b9.fc39.x86_64.rpm
-bpfman-debuginfo-0.4.0~dev-1.20240118212420167308.<USERNAME>.rpm.socket.192.gb2ea1b9.fc39.x86_64.rpm
-bpfman-debugsource-0.4.0~dev-1.20240118212420167308.<USERNAME>.rpm.socket.192.gb2ea1b9.fc39.x86_64.rpm
+bpfman-0.4.1-1.20240521101705214906.main.19.b47994a3.fc39.x86_64.rpm
+bpfman-debuginfo-0.4.1-1.20240521101705214906.main.19.b47994a3.fc39.x86_64.rpm
+bpfman-debugsource-0.4.1-1.20240521101705214906.main.19.b47994a3.fc39.x86_64.rpm
+```
+
+If local RPM builds were previously run on the system, the `packit build locally` command may
+fail with something similar to:
+
+```console
+packit build locally
+2024-05-21 10:00:03.904 base_git.py       INFO   Using user-defined script for ActionName.post_upstream_clone: [['bash', '-c', 'if [[ ! -d /var/tmp/cargo-vendor-filterer ]]; then git clone https://github.com/coreos/cargo-vendor-filterer.git /var/tmp/cargo-vendor-filterer; fi && cd /var/tmp/cargo-vendor-filterer && cargo build && cd - && cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . && ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz']]
+2024-05-21 10:00:03.956 logging.py        INFO   error: could not find `Cargo.toml` in `/var/tmp/cargo-vendor-filterer` or any parent directory
+2024-05-21 10:00:03.957 commands.py       ERROR  Command 'bash -c if [[ ! -d /var/tmp/cargo-vendor-filterer ]]; then git clone https://github.com/coreos/cargo-vendor-filterer.git /var/tmp/cargo-vendor-filterer; fi && cd /var/tmp/cargo-vendor-filterer && cargo build && cd - && cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . && ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz' failed.
+2024-05-21 10:00:03.957 utils.py          ERROR  Command 'bash -c if [[ ! -d /var/tmp/cargo-vendor-filterer ]]; then git clone https://github.com/coreos/cargo-vendor-filterer.git /var/tmp/cargo-vendor-filterer; fi && cd /var/tmp/cargo-vendor-filterer && cargo build && cd - && cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . && ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz' failed.
+```
+
+To fix, run:
+
+```console
+sudo rm -rf /var/tmp/cargo-vendor-filterer/
 ```
 
 ### Install Local Build
@@ -145,7 +165,7 @@ bpfman-debugsource-0.4.0~dev-1.20240118212420167308.<USERNAME>.rpm.socket.192.gb
 Install the RPM:
 
 ```console
-sudo rpm -i x86_64/bpfman-0.4.0~dev-1.20240118212420167308.<USERNAME>.rpm.socket.192.gb2ea1b9.fc39.x86_64.rpm
+sudo rpm -i x86_64/bpfman-0.4.1-1.20240521101705214906.main.19.b47994a3.fc39.x86_64.rpm
 ```
 
 `bpfman` is now installed but not running.
@@ -189,13 +209,16 @@ To determine the RPM that is currently loaded:
 
 ```console
 $ sudo rpm -qa | grep bpfman
-bpfman-0.4.0~dev-1.20240118212420167308.<USERNAME>.rpm.socket.192.gb2ea1b9.fc39.x86_64
+bpfman-0.4.1-1.20240521101705214906.main.19.b47994a3.fc39.x86_64
 ```
 
-To uninstall the RPM:
+To stop bpfman and uninstall the RPM:
 
 ```console
-sudo rpm -e bpfman-0.4.0~dev-1.20240118212420167308.<USERNAME>.rpm.socket.192.gb2ea1b9.fc39.x86_64
+sudo systemctl stop bpfman.socket
+sudo systemctl disable bpfman.socket
+
+sudo rpm -e bpfman-0.4.1-1.20240521101705214906.main.19.b47994a3.fc39.x86_64
 
 sudo systemctl daemon-reload
 ```
