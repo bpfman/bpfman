@@ -18,7 +18,7 @@ Version:        %{package_version}
 Release:        %autorelease
 Summary:        An eBPF program manager
 
-License: Apache-2.0 
+License: Apache-2.0
 
 URL:             https://bpfman.io
 Source0:         https://github.com/bpfman/bpfman/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
@@ -74,13 +74,13 @@ install -Dpm 644 \
     ./scripts/bpfman.service
 
 %post
-%systemd_post bpfman.socket
+%systemd_post bpfman.service
 
 %preun
-%systemd_preun bpfman.socket
+%systemd_preun bpfman.service
 
 %postun
-%systemd_postun_with_restart bpfman.socket
+%systemd_postun_with_restart bpfman.service
 
 %files
 %license LICENSE-APACHE
