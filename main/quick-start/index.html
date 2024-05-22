@@ -1764,10 +1764,13 @@ to be installed:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>rpm<span class="w"> </span>-qa<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>bpfman
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">bpfman-0.4.1-1.fc39.x86_64</span>
 </code></pre></div>
-<p>Then to uninstall the RPM:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">sudo dnf erase -y bpfman-0.4.1-1.fc39.x86_64</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="go">sudo systemctl daemon-reload</span>
+<p>To stop bpfman and uninstall the RPM:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">sudo systemctl stop bpfman.socket</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="go">sudo systemctl disable bpfman.socket</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="go">sudo dnf erase -y bpfman-0.4.1-1.fc39.x86_64</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="go">sudo systemctl daemon-reload</span>
 </code></pre></div>
 <h2 id="deploy-released-container-images-on-kubernetes">Deploy Released container images on Kubernetes</h2>
 <p>The quickest solution for running <code>bpfman</code> in a Kubernetes deployment is to run a
