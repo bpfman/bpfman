@@ -38,6 +38,13 @@ BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:v$(VERSION)
 # BUNDLE_GEN_FLAGS are the flags passed to the operator-sdk generate bundle command
 BUNDLE_GEN_FLAGS ?= -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
 
+# MULTIARCH_TARGET defines the architectures to build.
+# The list of valid architectures can be found here:
+# https://github.com/golang/go/blob/master/src/go/build/syslist.go
+# Local build default to x86_64, but can be overwritten.
+# For example, github actions uses the following on each PR: amd64 arm64 ppc64le s390x
+ARCH_TARGET ?= amd64
+
 # USE_IMAGE_DIGESTS defines if images are resolved via tags or digests
 # You can enable this value if you would like to use SHA Based Digests
 # To enable set flag to true
@@ -274,8 +281,8 @@ build-release-yamls: generate kustomize ## Generate the crd install bundle for a
 
 .PHONY: build
 build: fmt ## Build bpfman-operator and bpfman-agent binaries.
-	go build -o bin/bpfman-operator cmd/bpfman-operator/main.go
-	go build -o bin/bpfman-agent cmd/bpfman-agent/main.go
+	GOARCH=$(ARCH_TARGET) go build -o bin/bpfman-operator cmd/bpfman-operator/main.go
+	GOARCH=$(ARCH_TARGET) go build -o bin/bpfman-agent cmd/bpfman-agent/main.go
 
 # If you wish built the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64 ). However, you must enable docker buildKit for it.
@@ -284,7 +291,10 @@ build: fmt ## Build bpfman-operator and bpfman-agent binaries.
 build-images: ## Build bpfman, bpfman-agent, and bpfman-operator images.
 	docker build -t ${BPFMAN_OPERATOR_IMG} -f Containerfile.bpfman-operator ../
 	docker build -t ${BPFMAN_AGENT_IMG} -f Containerfile.bpfman-agent ../
-	DOCKER_BUILDKIT=1 docker build -t ${BPFMAN_IMG} -f ../Containerfile.bpfman.local ../
+	DOCKER_BUILDKIT=1 docker buildx build \
+		--build-arg TARGETPLATFORM=linux/$(1) \
+		--build-arg RUSTTARGET=$(1) \
+		-t ${BPFMAN_IMG} -f ../Containerfile.bpfman.local ../
 
 .PHONY: push-images
 push-images: ## Push bpfman, bpfman-agent, bpfman-operator images.

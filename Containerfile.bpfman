@@ -1,27 +1,45 @@
-FROM rust:1 as bpfman-build
+# We do not use --platform feature to auto fill this ARG because of incompatibility between podman and docker
+ARG BUILDPLATFORM=linux/amd64
+ARG RUSTTARGET=x86_64-unknown-linux-gnu
 
-RUN git clone https://github.com/libbpf/libbpf --branch v0.8.0 /usr/src/bpfman/libbpf
+FROM --platform=$BUILDPLATFORM rust:1 as bpfman-build
 
-RUN apt-get update && apt-get install -y\
- git\
- clang\
- protobuf-compiler\
- libelf-dev\
- gcc-multilib\
- libssl-dev
+ARG BUILDPLATFORM
+ARG RUSTTARGET
+
+ARG TARGETARCH
+ARG TARGETOS
+ARG TARGETPLATFORM
+ARG TARGETVARIANT
+
+RUN echo "TARGETARCH=${{ TARGETARCH }}  TARGETOS=${{ TARGETOS }}  TARGETPLATFORM=${{ TARGETPLATFORM }}  TARGETVARIANT=${{ TARGETVARIANT }}"
+RUN apt-get update
 
 WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
 
-# Compile only the C ebpf bytecode
-RUN cargo xtask build-ebpf --release --libbpf-dir /usr/src/bpfman/libbpf
 # Compile bpfman cli, bpfman-ns, and bpfman-rpc binaries
-RUN cargo build --release
+RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
+      cargo build --release --target $RUSTTARGET;\
+    elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
+      apt-get install -y gcc-aarch64-linux-gnu && \
+      rustup target add $RUSTTARGET && \
+      CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc cargo build --release --target $RUSTTARGET; \
+    elif [ "$TARGETPLATFORM" = "linux/ppc64le" ]; then \
+      rustup target add $RUSTTARGET && \
+      cargo build --release --target $RUSTTARGET; \
+    elif [ "$TARGETPLATFORM" = "linux/s390x" ]; then \
+      rustup target add $RUSTTARGET && \
+      cargo build --release --target $RUSTTARGET; \
+    fi
 
-FROM redhat/ubi9-minimal
+FROM --platform=$TARGETPLATFORM redhat/ubi9-minimal
 
-COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman .
-COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman-ns .
-COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman-rpc .
+ARG RUSTTARGET
+ARG TARGETPLATFORM
+
+COPY --from=bpfman-build  /usr/src/bpfman/target/$RUSTTARGET/release/bpfman .
+COPY --from=bpfman-build  /usr/src/bpfman/target/$RUSTTARGET/release/bpfman-ns .
+COPY --from=bpfman-build  /usr/src/bpfman/target/$RUSTTARGET/release/bpfman-rpc .
 
 ENTRYPOINT ["./bpfman-rpc", "--timeout=0"]

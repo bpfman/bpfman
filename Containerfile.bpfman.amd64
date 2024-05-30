@@ -1,0 +1,22 @@
+# We do not use --platform feature to auto fill this ARG because of incompatibility between podman and docker
+ARG BUILDPLATFORM=linux/amd64
+
+FROM --platform=$BUILDPLATFORM rust:1 as bpfman-build
+
+ARG BUILDPLATFORM
+
+RUN apt-get update
+
+WORKDIR /usr/src/bpfman
+COPY ./ /usr/src/bpfman
+
+# Compile bpfman cli, bpfman-ns, and bpfman-rpc binaries
+RUN cargo build --release --target x86_64-unknown-linux-gnu
+
+FROM --platform= x86_64-unknown-linux-gnu redhat/ubi9-minimal
+
+COPY --from=bpfman-build  /usr/src/bpfman/target/x86_64-unknown-linux-gnu/release/bpfman .
+COPY --from=bpfman-build  /usr/src/bpfman/target/x86_64-unknown-linux-gnu/release/bpfman-ns .
+COPY --from=bpfman-build  /usr/src/bpfman/target/ x86_64-unknown-linux-gnu/release/bpfman-rpc .
+
+ENTRYPOINT ["./bpfman-rpc", "--timeout=0"]
