@@ -1,3 +1,6 @@
+# taplo wants to reorder commands in alphabetical order, but order is important here
+exclude = ["Cross.toml"]
+
 [[rule]]
 
 [rule.formatting]

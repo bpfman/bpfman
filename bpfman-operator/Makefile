@@ -109,6 +109,9 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 CM_VERIFIER ?= $(LOCALBIN)/cm-verifier
 OPERATOR_SDK ?= $(LOCALBIN)/operator-sdk
 
+GOARCH ?= $(shell go env GOHOSTARCH)
+PLATFORM ?= $(shell go env GOHOSTOS)/$(shell go env GOHOSTARCH)
+
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.8.7
 CONTROLLER_TOOLS_VERSION ?= v0.11.3
@@ -274,17 +277,17 @@ build-release-yamls: generate kustomize ## Generate the crd install bundle for a
 
 .PHONY: build
 build: fmt ## Build bpfman-operator and bpfman-agent binaries.
-	go build -o bin/bpfman-operator cmd/bpfman-operator/main.go
-	go build -o bin/bpfman-agent cmd/bpfman-agent/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -o bin/bpfman-operator cmd/bpfman-operator/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) go build -o bin/bpfman-agent cmd/bpfman-agent/main.go
 
 # If you wish built the manager image targeting other platforms you can use the --platform flag.
 # (i.e. docker build --platform linux/arm64 ). However, you must enable docker buildKit for it.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: build-images
 build-images: ## Build bpfman, bpfman-agent, and bpfman-operator images.
-	docker build -t ${BPFMAN_OPERATOR_IMG} -f Containerfile.bpfman-operator ../
-	docker build -t ${BPFMAN_AGENT_IMG} -f Containerfile.bpfman-agent ../
-	DOCKER_BUILDKIT=1 docker build -t ${BPFMAN_IMG} -f ../Containerfile.bpfman.local ../
+	docker buildx build -t ${BPFMAN_OPERATOR_IMG} --platform ${PLATFORM} --load -f Containerfile.bpfman-operator ../
+	docker buildx build -t ${BPFMAN_AGENT_IMG} --platform ${PLATFORM} --load -f Containerfile.bpfman-agent ../
+	DOCKER_BUILDKIT=1 docker buildx build -t ${BPFMAN_IMG} --platform ${PLATFORM} --load -f ../Containerfile.bpfman.local ../
 
 .PHONY: push-images
 push-images: ## Push bpfman, bpfman-agent, bpfman-operator images.
