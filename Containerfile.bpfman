@@ -1,27 +1,54 @@
-FROM rust:1 as bpfman-build
+# We do not use --platform feature to auto fill this ARG because of incompatibility between podman and docker
+ARG BUILDPLATFORM=linux/amd64
 
-RUN git clone https://github.com/libbpf/libbpf --branch v0.8.0 /usr/src/bpfman/libbpf
+FROM --platform=$BUILDPLATFORM rust:1 as bpfman-build
 
-RUN apt-get update && apt-get install -y\
- git\
- clang\
- protobuf-compiler\
- libelf-dev\
- gcc-multilib\
- libssl-dev
+ARG BUILDPLATFORM
+
+# The following ARGs are set internally by docker or podman on multiarch builds
+ARG TARGETARCH=amd64
+ARG TARGETOS=linux
+ARG TARGETPLATFORM=linux/amd64
+
+RUN apt-get update
 
 WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
 
-# Compile only the C ebpf bytecode
-RUN cargo xtask build-ebpf --release --libbpf-dir /usr/src/bpfman/libbpf
 # Compile bpfman cli, bpfman-ns, and bpfman-rpc binaries
-RUN cargo build --release
+RUN mkdir -p bin/
+RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
+      cargo build --release --target x86_64-unknown-linux-gnu && \
+      cp target/x86_64-unknown-linux-gnu/release/bpfman bin/. && \
+      cp target/x86_64-unknown-linux-gnu/release/bpfman-ns bin/. && \
+      cp target/x86_64-unknown-linux-gnu/release/bpfman-rpc bin/.; \
+    elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
+      apt-get install -y gcc-aarch64-linux-gnu && \
+      rustup target add aarch64-unknown-linux-gnu && \
+      CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc cargo build --release --target aarch64-unknown-linux-gnu && \
+      cp target/aarch64-unknown-linux-gnu/release/bpfman bin/. && \
+      cp target/aarch64-unknown-linux-gnu/release/bpfman-ns bin/. && \
+      cp target/aarch64-unknown-linux-gnu/release/bpfman-rpc bin/.; \
+    elif [ "$TARGETPLATFORM" = "linux/ppc64le" ]; then \
+      rustup target add powerpc64le-unknown-linux-gnu && \
+      cargo build --release --target powerpc64le-unknown-linux-gnu && \
+      cp target/powerpc64le-unknown-linux-gnu/release/bpfman bin/. && \
+      cp target/powerpc64le-unknown-linux-gnu/release/bpfman-ns bin/. && \
+      cp target/powerpc64le-unknown-linux-gnu/release/bpfman-rpc bin/.; \
+    elif [ "$TARGETPLATFORM" = "linux/s390x" ]; then \
+      rustup target add s390x-unknown-linux-gnu && \
+      cargo build --release --target s390x-unknown-linux-gnu && \
+      cp target/s390x-unknown-linux-gnu/release/bpfman bin/. && \
+      cp target/s390x-unknown-linux-gnu/release/bpfman-ns bin/. && \
+      cp target/s390x-unknown-linux-gnu/release/bpfman-rpc bin/.; \
+    fi
 
-FROM redhat/ubi9-minimal
+FROM --platform=$TARGETPLATFORM redhat/ubi9-minimal
 
-COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman .
-COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman-ns .
-COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman-rpc .
+ARG TARGETPLATFORM
+
+COPY --from=bpfman-build  /usr/src/bpfman/bin/bpfman .
+COPY --from=bpfman-build  /usr/src/bpfman/bin/bpfman-ns .
+COPY --from=bpfman-build  /usr/src/bpfman/bin/bpfman-rpc .
 
 ENTRYPOINT ["./bpfman-rpc", "--timeout=0"]

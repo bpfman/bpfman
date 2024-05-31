@@ -22,7 +22,7 @@ jobs:
       matrix:
         image:
           - registry: quay.io
-            build_language: rust
+            # build_language: rust - Not building locally, so don't install rust toolchain
             repository: bpfman
             image: bpfman
             dockerfile: ./Containerfile.bpfman
@@ -36,7 +36,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            build_language: go
+            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman
             image: bpfman-agent
             dockerfile: ./bpfman-operator/Containerfile.bpfman-agent
@@ -50,7 +50,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            build_language: go
+            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman
             image: bpfman-operator
             dockerfile: ./bpfman-operator/Containerfile.bpfman-operator
@@ -64,7 +64,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            build_language: go
+            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman
             image: bpfman-operator-bundle
             context: ./bpfman-operator
@@ -78,7 +78,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            build_language: go
+            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-xdp-counter
             context: .
@@ -92,7 +92,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            build_language: go
+            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-tc-counter
             context: .
@@ -106,7 +106,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            build_language: go
+            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-tracepoint-counter
             context: .
@@ -120,7 +120,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            build_language: go
+            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-kprobe-counter
             context: .
@@ -134,7 +134,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            build_language: go
+            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-uprobe-counter
             context: .
@@ -148,7 +148,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            build_language: go
+            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-uretprobe-counter
             context: .
@@ -162,7 +162,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            build_language: go
+            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-target
             context: .
@@ -175,6 +175,97 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
+    name: Build Image (${{ matrix.image.image }})
+    steps:
+      - name: Checkout bpfman
+        uses: actions/checkout@v4
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.5.0
+
+      - name: Generate olm bundle on disk
+        if: ${{ matrix.image.image == 'bpfman-operator-bundle' }}
+        run: |
+          cd bpfman-operator && make bundle
+
+      - name: Login to quay.io/bpfman
+        uses: redhat-actions/podman-login@v1
+        if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfman'}}
+        with:
+          registry: ${{ matrix.image.registry }}
+          username: ${{ secrets.BPFMAN_USERNAME }}
+          password: ${{ secrets.BPFMAN_ROBOT_TOKEN }}
+
+      - name: Login to quay.io/bpfman-userspace
+        uses: redhat-actions/podman-login@v1
+        if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfman-userspace'}}
+        with:
+          registry: ${{ matrix.image.registry }}
+          username: ${{ secrets.BPFMAN_USERSPACE_USERNAME }}
+          password: ${{ secrets.BPFMAN_USERSPACE_ROBOT_TOKEN }}
+
+      - name: Login to quay.io/bpfman-bytecode
+        uses: redhat-actions/podman-login@v1
+        if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfman-bytecode' }}
+        with:
+          registry: ${{ matrix.image.registry }}
+          username: ${{ secrets.BPFMAN_BYTECODE_USERNAME }}
+          password: ${{ secrets.BPFMAN_BYTECODE_ROBOT_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for image
+        id: meta
+        uses: docker/metadata-action@v5.5.1
+        with:
+          images: ${{ matrix.image.registry }}/${{ matrix.image.repository }}/${{ matrix.image.image }}
+          tags: ${{ matrix.image.tags }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Set push flag
+        id: set-push
+        run: |
+          if [ ${{ github.event_name }} == 'push' ]; then
+            echo "push_flag=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "push_flag=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push
+        id: build-push-image
+        uses: docker/build-push-action@v5
+        with:
+          platforms: linux/amd64, linux/arm64
+          # TBD: linux/ppc64le, linux/s390x
+          push: ${{ fromJSON(steps.set-push.outputs.push_flag) }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: ${{ matrix.image.dockerfile }}
+          build-args: ${{ matrix.image.build_args }}
+          context: ${{ matrix.image.context }}
+
+      - name: Sign the images with GitHub OIDC Token
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          readarray -t tags <<<"${{ steps.meta.outputs.tags }}"
+          for tag in ${tags[@]}; do
+            cosign sign -y "${tag}@${{ steps.build-push-image.outputs.digest }}"
+          done
+
+  build-and-push-bytecode-images:
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # needed for signing the images with GitHub OIDC Token
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
           - registry: quay.io
             build_language: go
             bpf_build_wrapper: go
@@ -528,25 +619,30 @@ jobs:
               type=sha,format=long
               type=raw,value=v1,enable=true
 
-    name: Build Image (${{ matrix.image.image }})
+    name: Build eBPF Image (${{ matrix.image.image }})
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout bpfman
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
+      - name: Install Golang
+        uses: actions/setup-go@v5
         if: ${{ matrix.image.build_language == 'go' }}
         with:
           # prettier-ignore
-          go-version: '1.21' # yamllint disable-line rule:quoted-strings
+          go-version: '1.22' # yamllint disable-line rule:quoted-strings
 
-      - uses: sigstore/cosign-installer@v3.5.0
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3.5.0
 
-      - uses: actions/checkout@v4
+      - name: Checkout libbpf
+        uses: actions/checkout@v4
         if: ${{ matrix.image.bpf_build_wrapper == 'rust' }}
         with:
           repository: libbpf/libbpf
           path: libbpf
 
-      - uses: actions-rs/toolchain@v1
+      - name: Install rust toolchain - stable
+        uses: actions-rs/toolchain@v1
         if: ${{ matrix.image.build_language == 'rust' }}
         with:
           toolchain: stable
@@ -563,20 +659,10 @@ jobs:
         run: |
           cargo xtask build-ebpf --libbpf-dir ./libbpf
 
-      - name: Install bpf2go
-        if: ${{ matrix.image.bpf_build_wrapper == 'go' }}
-        run: |
-          go install github.com/cilium/ebpf/cmd/bpf2go@v0.14.0
-
       - name: Generate go wrapped eBPF
         if: ${{ matrix.image.bpf_build_wrapper == 'go' }}
         run: |
           cd examples && make generate
-
-      - name: Generate olm bundle on disk
-        if: ${{ matrix.image.image == 'bpfman-operator-bundle' }}
-        run: |
-          cd bpfman-operator && make bundle
 
       - name: Login to quay.io/bpfman
         uses: redhat-actions/podman-login@v1
