@@ -3177,9 +3177,9 @@ dependencies = [
 
 [[package]]
 name = "public-api"
-version = "0.33.1"
+version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b759eeee807ac96096fce568abeb9ef8d23db7be771a65252b1e5093fe7938c4"
+checksum = "5c92cea150e7e5501c3f01b90928d26566335e4681c79e0aead3be096bf5e2d4"
 dependencies = [
  "hashbag",
  "rustdoc-types",
@@ -3491,9 +3491,9 @@ dependencies = [
 
 [[package]]
 name = "rustdoc-types"
-version = "0.23.0"
+version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc646f09069d689083b975698bdac4edb96c2f0e7d270b701760814b886bb224"
+checksum = "0b9be1bc4a0ec3445cfa2e4ba112827544890d43d68b7d1eda5359a9c09d2cd8"
 dependencies = [
  "serde",
 ]
