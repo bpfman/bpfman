@@ -1,0 +1,49 @@
+---
+apiVersion: bpfman.io/v1alpha1
+kind: BpfApplication
+metadata:
+  labels:
+    app.kubernetes.io/name: bpfapplication
+  name: go-application-counter-example
+spec:
+  # Select all nodes
+  nodeselector: {}
+  bytecode:
+    image:
+      url: quay.io/bpfman-bytecode/go-application-counter:latest
+      imagepullpolicy: IfNotPresent
+  programs:
+    - type: Kprobe
+      kprobe:
+        bpffunctionname: kprobe_counter
+        func_name: try_to_wake_up
+        offset: 0
+        retprobe: false
+    - type: Tracepoint
+      tracepoint:
+        bpffunctionname: tracepoint_kill_recorder
+        names: [syscalls/sys_enter_kill]
+    - type: TC
+      tc:
+        bpffunctionname: stats
+        interfaceselector:
+          primarynodeinterface: true
+        priority: 55
+        direction: ingress
+    - type: Uprobe
+      uprobe:
+        bpffunctionname: uprobe_counter
+        func_name: main.getCount
+        target: /go-target
+        retprobe: false
+        containers:
+          namespace: go-target
+          pods: {}
+          containernames:
+            - go-target
+    - type: XDP
+      xdp:
+        bpffunctionname: xdp_stats
+        interfaceselector:
+          primarynodeinterface: true
+        priority: 55

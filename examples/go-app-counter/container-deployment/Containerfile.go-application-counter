@@ -1,0 +1,23 @@
+FROM golang:1.21 as go-application-counter-build
+
+RUN apt-get update && apt-get install -y \
+    clang \
+    gcc-multilib \
+    libbpf-dev
+
+ARG CILIUMVERSION="v0.14.0"
+RUN go install github.com/cilium/ebpf/cmd/bpf2go@$CILIUMVERSION
+
+WORKDIR /usr/src/bpfman/
+COPY ./ /usr/src/bpfman/
+
+WORKDIR /usr/src/bpfman/examples/go-app-counter
+
+# Compile go-application-counter
+RUN go build
+
+FROM registry.fedoraproject.org/fedora-minimal:latest
+
+COPY --from=go-application-counter-build  /usr/src/bpfman/examples/go-app-counter/go-app-counter .
+
+ENTRYPOINT ["./go-app-counter", "--crd"]

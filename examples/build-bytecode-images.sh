@@ -47,3 +47,8 @@ docker build \
  --build-arg BYTECODE_FILENAME=bpf_x86_bpfel.o \
  -f ../Containerfile.bytecode \
  ./go-uretprobe-counter -t $IMAGE_URP_BC
+
+docker build \
+ --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
+ -f ../Containerfile.bytecode \
+ ./go-app-counter -t $IMAGE_APP_BC
