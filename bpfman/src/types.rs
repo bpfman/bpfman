@@ -12,7 +12,7 @@ use std::{
 use aya::programs::ProgramInfo as AyaProgInfo;
 use chrono::{prelude::DateTime, Local};
 use clap::ValueEnum;
-use log::{info, warn};
+use log::{debug, info, warn};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sled::Db;
@@ -628,10 +628,11 @@ impl ProgramData {
                         if provided_name.is_empty() {
                             self.set_name(&s)?;
                         } else if s != provided_name {
-                            return Err(BpfmanError::BytecodeMetaDataMismatch {
-                                image_prog_name: s,
-                                provided_prog_name: provided_name.to_string(),
-                            });
+                            debug!(
+                                "Bytecode image bpf function name: {} isn't equal to the provided bpf function name: {}",
+                                s,
+                                provided_name
+                            );
                         }
                     }
                     Location::File(l) => {
