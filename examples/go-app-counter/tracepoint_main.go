@@ -29,6 +29,9 @@ type TPStats struct {
 }
 
 func processTracepoint(stop chan os.Signal) {
+
+	initMutex.Lock()
+
 	// pull the BPFMAN config management data to determine if we're running on a
 	// system with BPFMAN available.
 	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTracepoint, DefaultByteCodeFile)
@@ -171,6 +174,8 @@ func processTracepoint(stop chan os.Signal) {
 		}
 	}()
 
+	initMutex.Unlock()
+
 	// retrieve and report on the number of kill -SIGUSR1 calls
 	index := uint32(0)
 	ticker := time.NewTicker(1 * time.Second)
@@ -188,7 +193,7 @@ func processTracepoint(stop chan os.Signal) {
 				totalCalls += stat.Calls
 			}
 
-			log.Printf("SIGUSR1 signal count: %d\n", totalCalls)
+			log.Printf("Tracepoint: SIGUSR1 signal count: %d\n", totalCalls)
 		}
 	}()
 

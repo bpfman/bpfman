@@ -33,6 +33,9 @@ const (
 )
 
 func processXdp(stop chan os.Signal) {
+
+	initMutex.Lock()
+
 	// Parse Input Parameters (CmdLine and Config File)
 	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeXdp, DefaultByteCodeFile)
 	if err != nil {
@@ -159,6 +162,8 @@ func processXdp(stop chan os.Signal) {
 		return
 	}
 
+	initMutex.Unlock()
+
 	ticker := time.NewTicker(3 * time.Second)
 	go func() {
 		for range ticker.C {
@@ -178,8 +183,8 @@ func processXdp(stop chan os.Signal) {
 				totalBytes += cpuStat.Bytes
 			}
 
-			log.Printf("%d packets received\n", totalPackets)
-			log.Printf("%d bytes received\n\n", totalBytes)
+			log.Printf("XDP: %d packets received\n", totalPackets)
+			log.Printf("XDP: %d bytes received\n\n", totalBytes)
 		}
 	}()
 

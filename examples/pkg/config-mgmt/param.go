@@ -79,8 +79,8 @@ func ParseParamData(progType ProgType, bytecodeFile string) (ParameterData, erro
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
 	if progType == ProgTypeXdp || progType == ProgTypeTc {
-		flag.StringVar(&paramData.Iface, "iface", "",
-			"Interface to load bytecode. Required.")
+		flag.StringVar(&paramData.Iface, "iface", "eno3",
+			"Interface to load bytecode. Optional.")
 		flag.IntVar(&paramData.Priority, "priority", 50,
 			"Priority to load program in bpfman. Optional.")
 	}
@@ -100,8 +100,8 @@ func ParseParamData(progType ProgType, bytecodeFile string) (ParameterData, erro
 			"Used in Kubernetes deployments and is mutually exclusive with all other\n"+
 			"parameters.")
 	if progType == ProgTypeTc {
-		flag.StringVar(&direction_str, "direction", "",
-			"Direction to apply program (ingress, egress). Required.")
+		flag.StringVar(&direction_str, "direction", "ingress",
+			"Direction to apply program (ingress, egress). Optional.")
 	}
 	flag.IntVar(&paramData.MapOwnerId, "map_owner_id", 0,
 		"Program Id of loaded eBPF program this eBPF program will share a map with.\n"+

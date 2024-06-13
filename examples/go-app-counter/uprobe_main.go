@@ -28,6 +28,9 @@ type Stats struct {
 }
 
 func processUprobe(stop chan os.Signal) {
+
+	initMutex.Lock()
+
 	// pull the BPFMAN config management data to determine if we're running on a
 	// system with BPFMAN available.
 	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeUprobe, DefaultByteCodeFile)
@@ -160,6 +163,8 @@ func processUprobe(stop chan os.Signal) {
 		return
 	}
 
+	initMutex.Unlock()
+
 	// retrieve and report on the number of times the uprobe is executed.
 	index := uint32(0)
 	ticker := time.NewTicker(1 * time.Second)
@@ -177,7 +182,7 @@ func processUprobe(stop chan os.Signal) {
 				totalCount += stat.Counter
 			}
 
-			log.Printf("Uprobe count: %d\n", totalCount)
+			log.Printf("Uprobe: count: %d\n", totalCount)
 		}
 	}()
 

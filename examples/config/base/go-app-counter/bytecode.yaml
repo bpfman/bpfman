@@ -11,7 +11,7 @@ spec:
   bytecode:
     image:
       url: quay.io/bpfman-bytecode/go-application-counter:latest
-      imagepullpolicy: IfNotPresent
+      imagepullpolicy: Always
   programs:
     - type: Kprobe
       kprobe:

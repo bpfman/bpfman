@@ -4,8 +4,10 @@
 package main
 
 import (
+	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 )
 
@@ -13,18 +15,26 @@ const (
 	DefaultByteCodeFile = "bpf_bpfel.o"
 )
 
+var initMutex = &sync.Mutex{}
+
 //go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc clang -no-strip -cflags "-O2 -g -Wall" bpf ./bpf/app_counter.c -- -I.:/usr/include/bpf:/usr/include/linux
 func main() {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	processKprobe(stop)
+	go processKprobe(stop)
 
-	processTracepoint(stop)
+	go processTracepoint(stop)
 
-	processTC(stop)
+	go processTC(stop)
 
-	processUprobe(stop)
+	go processUprobe(stop)
 
-	processXdp(stop)
+	go processXdp(stop)
+
+	//select {} // wait forever
+
+	<-stop
+
+	log.Printf("Exiting go-app-counter...\n")
 }

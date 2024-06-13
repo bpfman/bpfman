@@ -34,6 +34,8 @@ const (
 
 func processTC(stop chan os.Signal) {
 
+	initMutex.Lock()
+
 	// Parse Input Parameters (CmdLine and Config File)
 	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTc, DefaultByteCodeFile)
 	if err != nil {
@@ -172,6 +174,8 @@ func processTC(stop chan os.Signal) {
 		return
 	}
 
+	initMutex.Unlock()
+
 	ticker := time.NewTicker(3 * time.Second)
 	go func() {
 		for range ticker.C {
@@ -191,8 +195,8 @@ func processTC(stop chan os.Signal) {
 				totalBytes += cpuStat.Bytes
 			}
 
-			log.Printf("%d packets %s\n", totalPackets, action)
-			log.Printf("%d bytes %s\n\n", totalBytes, action)
+			log.Printf("TC: %d packets received %s\n", totalPackets, action)
+			log.Printf("TC: %d bytes received %s\n\n", totalBytes, action)
 		}
 	}()
 
