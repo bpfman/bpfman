@@ -1,5 +1,11 @@
 # Build the manager binary
-FROM golang:1.21 as bpfman-agent-build
+ARG BUILDPLATFORM=linux/amd64
+
+FROM --platform=$BUILDPLATFORM golang:1.22 as bpfman-agent-build
+
+ARG BUILDPLATFORM
+
+# The following ARGs are set internally by docker or podman on multiarch builds
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -26,7 +32,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bp
 
 # Use the fedora minimal image to reduce the size of the final image but still
 # be able to easily install extra packages.
-FROM quay.io/fedora/fedora-minimal
+FROM --platform=$TARGETPLATFORM quay.io/fedora/fedora-minimal
 ARG DNF_CMD="microdnf"
 
 # The full fedora image can be used for debugging purposes.  To use it, comment
@@ -35,6 +41,8 @@ ARG DNF_CMD="microdnf"
 # ARG DNF_CMD="dnf"
 
 ARG TARGETARCH
+ARG TARGETPLATFORM
+
 WORKDIR /
 COPY --from=bpfman-agent-build /usr/src/bpfman/bpfman-operator/bpfman-agent .
 

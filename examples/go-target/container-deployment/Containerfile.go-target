@@ -1,4 +1,11 @@
-FROM golang:1.21 as go-target-build
+ARG BUILDPLATFORM=linux/amd64
+
+FROM --platform=$BUILDPLATFORM golang:1.22 as go-target-build
+
+ARG BUILDPLATFORM
+
+# The following ARGs are set internally by docker or podman on multiarch builds
+ARG TARGETPLATFORM=linux/amd64
 
 RUN apt-get update && apt-get install -y \
     clang \
@@ -11,9 +18,12 @@ COPY ./ /usr/src/bpfman/
 WORKDIR /usr/src/bpfman/examples/go-target
 
 # Compile go-target
-RUN go build
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build
 
-FROM registry.fedoraproject.org/fedora-minimal:latest
+
+FROM --platform=$TARGETPLATFORM registry.fedoraproject.org/fedora-minimal:latest
+
+ARG TARGETPLATFORM
 
 COPY --from=go-target-build  /usr/src/bpfman/examples/go-target/go-target .
 

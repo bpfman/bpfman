@@ -1,13 +1,16 @@
-FROM golang:1.21 as go-tracepoint-counter-build
+ARG BUILDPLATFORM=linux/amd64
+
+FROM --platform=$BUILDPLATFORM golang:1.22 as go-tracepoint-counter-build
+
+ARG BUILDPLATFORM
+
+# The following ARGs are set internally by docker or podman on multiarch builds
+ARG TARGETPLATFORM=linux/amd64
 
 RUN apt-get update && apt-get install -y \
  clang \
  gcc-multilib \
  libbpf-dev
-
-ARG CILIUMVERSION="v0.14.0"
-RUN go install github.com/cilium/ebpf/cmd/bpf2go@$CILIUMVERSION
-
 
 WORKDIR /usr/src/bpfman/
 COPY ./ /usr/src/bpfman/
@@ -15,9 +18,12 @@ COPY ./ /usr/src/bpfman/
 WORKDIR /usr/src/bpfman/examples/go-tracepoint-counter
 
 # Compile go-tracepoint-counter
-RUN go build
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build
 
-FROM registry.fedoraproject.org/fedora-minimal:latest
+
+FROM --platform=$TARGETPLATFORM registry.fedoraproject.org/fedora-minimal:latest
+
+ARG TARGETPLATFORM
 
 COPY --from=go-tracepoint-counter-build  /usr/src/bpfman/examples/go-tracepoint-counter/go-tracepoint-counter .
 

@@ -1,5 +1,11 @@
 # Build the manager binary
-FROM golang:1.21 as bpfman-operator-build
+ARG BUILDPLATFORM=linux/amd64
+
+FROM --platform=$BUILDPLATFORM golang:1.22 as bpfman-operator-build
+
+ARG BUILDPLATFORM
+
+# The following ARGs are set internally by docker or podman on multiarch builds
 ARG TARGETOS
 ARG TARGETARCH
 
