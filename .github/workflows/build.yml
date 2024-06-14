@@ -303,7 +303,7 @@ jobs:
         with:
           # prettier-ignore
           ## `make verify` failing on 1.22, so leave at 1.21 until issue determined.
-          go-version: '1.21' # yamllint disable-line rule:quoted-strings
+          go-version: '1.22' # yamllint disable-line rule:quoted-strings
 
       - name: Go mod check
         # Only need to run go mod once, so just pick one of the arch to run on.
@@ -534,8 +534,6 @@ jobs:
     needs: [build, build-go]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
       - name: Download golang coverage artifacts
         uses: actions/download-artifact@v4
         with:

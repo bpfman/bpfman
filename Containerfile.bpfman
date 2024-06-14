@@ -5,10 +5,12 @@ FROM --platform=$BUILDPLATFORM rust:1 as bpfman-build
 
 ARG BUILDPLATFORM
 
-# The following ARGs are set internally by docker or podman on multiarch builds
+# The following ARGs are set internally by docker/build-push-action in github actions
 ARG TARGETARCH=amd64
 ARG TARGETOS=linux
 ARG TARGETPLATFORM=linux/amd64
+
+RUN echo "TARGETOS=${TARGETOS}  TARGETARCH=${TARGETARCH}  BUILDPLATFORM=${BUILDPLATFORM}  TARGETPLATFORM=${TARGETPLATFORM}"
 
 RUN apt-get update
 

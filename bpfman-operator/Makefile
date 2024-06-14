@@ -232,7 +232,6 @@ generate-typed-informers: informer-gen ## Generate typed informers code
 		--versioned-clientset-package "${PKG}/pkg/client/clientset/versioned" \
 		--listers-package "${PKG}/pkg/client/listers" \
 		--output-package "${PKG}/pkg/client/informers" \
-		${COMMON_FLAGS}
 
 .PHONY: fmt
 fmt: ## Run go fmt against code.
@@ -285,9 +284,21 @@ build: fmt ## Build bpfman-operator and bpfman-agent binaries.
 # More info: https://docs.docker.com/develop/develop-images/build_enhancements/
 .PHONY: build-images
 build-images: ## Build bpfman, bpfman-agent, and bpfman-operator images.
-	docker buildx build -t ${BPFMAN_OPERATOR_IMG} --platform ${PLATFORM} --load -f Containerfile.bpfman-operator ../
-	docker buildx build -t ${BPFMAN_AGENT_IMG} --platform ${PLATFORM} --load -f Containerfile.bpfman-agent ../
-	DOCKER_BUILDKIT=1 docker buildx build -t ${BPFMAN_IMG} --platform ${PLATFORM} --load -f ../Containerfile.bpfman.local ../
+	docker buildx build --load -t ${BPFMAN_OPERATOR_IMG} \
+	  --build-arg TARGETPLATFORM=linux/$(GOARCH) \
+	  --build-arg TARGETARCH=$(GOARCH) \
+	  --build-arg BUILDPLATFORM=linux/amd64 \
+	  -f Containerfile.bpfman-operator ../
+	docker buildx build --load -t ${BPFMAN_AGENT_IMG} \
+	  --build-arg TARGETPLATFORM=linux/$(GOARCH) \
+	  --build-arg TARGETARCH=$(GOARCH) \
+	  --build-arg BUILDPLATFORM=linux/amd64 \
+	  -f Containerfile.bpfman-agent ../
+	DOCKER_BUILDKIT=1 docker buildx build --load -t ${BPFMAN_IMG} \
+	  --build-arg TARGETPLATFORM=linux/$(GOARCH) \
+	  --build-arg TARGETARCH=$(GOARCH) \
+	  --build-arg BUILDPLATFORM=linux/amd64 \
+	  -f ../Containerfile.bpfman.local ../
 
 .PHONY: push-images
 push-images: ## Push bpfman, bpfman-agent, bpfman-operator images.
