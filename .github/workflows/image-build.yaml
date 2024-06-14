@@ -1,13 +1,25 @@
+# yamllint disable
 name: bpfman-image-build
 
 on: # yamllint disable-line rule:truthy
-  push:
-    branches: [main]
-    tags:
-      - v*
+  # push:
+  #   branches: [main]
+  #   tags:
+  #     - v*
+  # we need access to the archived binaries which are build in the build workflow,
+  # make sure the main trigger for image building is a successful build run,
+  # and then also filter to ensure we only run whenever we merge to main, create
+  # a tag or edit the image-yaml file.
+  workflow_run:
+    workflows: [build]
+    types: [completed]
+    # branches: [main]
+    # tags:
+    #   - v*
+    # paths: [.github/workflows/image-build.yaml]
 
-  pull_request:
-    paths: [.github/workflows/image-build.yaml]
+  # pull_request:
+  #   paths: [.github/workflows/image-build.yaml]
 
 jobs:
   build-and-push-images:
@@ -176,6 +188,7 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
     name: Build Image (${{ matrix.image.image }})
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout bpfman
         uses: actions/checkout@v4
@@ -620,6 +633,7 @@ jobs:
               type=raw,value=v1,enable=true
 
     name: Build eBPF Image (${{ matrix.image.image }})
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout bpfman
         uses: actions/checkout@v4
