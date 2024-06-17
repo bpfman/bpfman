@@ -37,48 +37,6 @@ jobs:
 
           - registry: quay.io
             # build_language: go - Not building locally, so don't install go tools
-            repository: bpfman
-            image: bpfman-agent
-            dockerfile: ./bpfman-operator/Containerfile.bpfman-agent
-            context: .
-            tags: |
-              type=ref,event=branch
-              type=ref,event=tag
-              type=ref,event=pr
-              type=sha,format=long
-              # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}}
-
-          - registry: quay.io
-            # build_language: go - Not building locally, so don't install go tools
-            repository: bpfman
-            image: bpfman-operator
-            dockerfile: ./bpfman-operator/Containerfile.bpfman-operator
-            context: .
-            tags: |
-              type=ref,event=branch
-              type=ref,event=tag
-              type=ref,event=pr
-              type=sha,format=long
-              # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}}
-
-          - registry: quay.io
-            # build_language: go - Not building locally, so don't install go tools
-            repository: bpfman
-            image: bpfman-operator-bundle
-            context: ./bpfman-operator
-            dockerfile: ./bpfman-operator/Containerfile.bundle
-            tags: |
-              type=ref,event=branch
-              type=ref,event=tag
-              type=ref,event=pr
-              type=sha,format=long
-              # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}}
-
-          - registry: quay.io
-            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-xdp-counter
             context: .
@@ -183,11 +141,6 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@v3.5.0
 
-      - name: Generate olm bundle on disk
-        if: ${{ matrix.image.image == 'bpfman-operator-bundle' }}
-        run: |
-          cd bpfman-operator && make bundle
-
       - name: Login to quay.io/bpfman
         uses: redhat-actions/podman-login@v1
         if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfman'}}
@@ -203,14 +156,6 @@ jobs:
           registry: ${{ matrix.image.registry }}
           username: ${{ secrets.BPFMAN_USERSPACE_USERNAME }}
           password: ${{ secrets.BPFMAN_USERSPACE_ROBOT_TOKEN }}
-
-      - name: Login to quay.io/bpfman-bytecode
-        uses: redhat-actions/podman-login@v1
-        if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfman-bytecode' }}
-        with:
-          registry: ${{ matrix.image.registry }}
-          username: ${{ secrets.BPFMAN_BYTECODE_USERNAME }}
-          password: ${{ secrets.BPFMAN_BYTECODE_ROBOT_TOKEN }}
 
       - name: Extract metadata (tags, labels) for image
         id: meta

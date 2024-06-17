@@ -5,9 +5,12 @@ FROM --platform=$BUILDPLATFORM golang:1.22 as bpfman-operator-build
 
 ARG BUILDPLATFORM
 
-# The following ARGs are set internally by docker or podman on multiarch builds
+# The following ARGs are set internally by docker/build-push-action in github actions
 ARG TARGETOS
 ARG TARGETARCH
+ARG TARGETPLATFORM
+
+RUN echo "TARGETOS=${TARGETOS}  TARGETARCH=${TARGETARCH}  BUILDPLATFORM=${BUILDPLATFORM}  TARGETPLATFORM=${TARGETPLATFORM}"
 
 WORKDIR /usr/src/bpfman/
 
