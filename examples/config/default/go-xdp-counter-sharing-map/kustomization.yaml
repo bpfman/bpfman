@@ -1,4 +1,3 @@
----
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 # Patch the bytecode.yaml to change tag on the "url" field (which is an
@@ -6,12 +5,13 @@ kind: Kustomization
 # variable and using sed to replace, moved to patch.yaml.env which is
 # converted to patch.yaml using the sed command in Makefile.
 patches:
-  - path: patch.yaml
-    target:
-      kind: XdpProgram
-      name: go-xdp-counter-example
-resources: [../../base/go-xdp-counter-sharing-map]
+- path: patch.yaml
+  target:
+    kind: XdpProgram
+    name: go-xdp-counter-example
+resources:
+- ../../base/go-xdp-counter-sharing-map
 images:
-  - name: quay.io/bpfman-userspace/go-xdp-counter
-    newName: quay.io/bpfman-userspace/go-xdp-counter
-    newTag: latest
+- name: quay.io/bpfman-userspace/go-xdp-counter
+  newName: quay.io/bpfman-userspace/go-xdp-counter
+  newTag: latest

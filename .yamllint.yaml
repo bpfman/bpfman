@@ -16,3 +16,5 @@ ignore:
   ## Kustomize automatically formats these incorrectly
   - bpfman-operator/config/bpfman-deployment/kustomization.yaml
   - bpfman-operator/config/bpfman-operator-deployment/kustomization.yaml
+  - examples/config/default/*/kustomization.yaml
+  - examples/config/selinux/*/kustomization.yaml
