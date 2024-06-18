@@ -189,13 +189,15 @@ deploy-prog: kustomize
 ifndef TAG
 	sed 's@URL_BC@$(IMAGE_BC)@' config/$(CONFIG_DIR)/patch.yaml.env > config/$(CONFIG_DIR)/patch.yaml
 	cd config/$(CONFIG_DIR) && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/$(PROG_NAME)=${IMAGE_US}
+	$(eval KUST_DIR=$(CONFIG_DIR))
 else
-	$(eval KUST_DIR=$(TAG))
+	$(eval KUST_DIR=$(TAG)/$(PROG_NAME))
 endif
-	@if [ -f config/$(CONFIG_DIR)/kustomization.yaml ]; then \
-		$(KUSTOMIZE) build config/$(CONFIG_DIR) | kubectl apply -f - ; \
+	@if [ -f config/$(KUST_DIR)/kustomization.yaml ]; then \
+		echo "Using KUST_DIR=$(KUST_DIR)" ; \
+		$(KUSTOMIZE) build config/$(KUST_DIR) | kubectl apply -f - ; \
 	else \
-		echo "Manifests $(CONFIG_DIR) do not exist for program $(PROG_NAME)" ; \
+		echo "Manifests $(KUST_DIR) do not exist for program $(PROG_NAME)" ; \
 		exit 1 ; \
 	fi
 
@@ -205,13 +207,15 @@ undeploy-prog:
 ifndef TAG
 	sed 's@URL_BC@$(IMAGE_BC)@' config/$(CONFIG_DIR)/patch.yaml.env > config/$(CONFIG_DIR)/patch.yaml
 	cd config/$(CONFIG_DIR) && $(KUSTOMIZE) edit set image quay.io/bpfman-userspace/$(PROG_NAME)=${IMAGE_US}
+	$(eval KUST_DIR=$(CONFIG_DIR))
 else
-	$(eval CONFIG_DIR=$(TAG))
+	$(eval KUST_DIR=$(TAG)/$(PROG_NAME))
 endif
-	@if [ -f config/$(CONFIG_DIR)/kustomization.yaml ]; then \
-		$(KUSTOMIZE) build config/$(CONFIG_DIR) | kubectl delete --ignore-not-found=$(ignore-not-found) -f -; \
+	@if [ -f config/$(KUST_DIR)/kustomization.yaml ]; then \
+		echo "Using KUST_DIR=$(KUST_DIR)" ; \
+		$(KUSTOMIZE) build config/$(KUST_DIR) | kubectl delete --ignore-not-found=$(ignore-not-found) -f -; \
 	else \
-		echo "Manifests $(CONFIG_DIR) does not exist for program $(PROG_NAME)" ; \
+		echo "Manifests $(KUST_DIR) does not exist for program $(PROG_NAME)" ; \
 		exit 1 ; \
 	fi
 
