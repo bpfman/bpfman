@@ -6,3 +6,6 @@ bin
 **/bpf_bpf*.o
 **/bpf_*_bpf*.go
 **/bpf_*_bpf*.o
+
+# Temporary patch files, generated from patch.yaml.env files using sed in Makefile
+**/patch.yaml
