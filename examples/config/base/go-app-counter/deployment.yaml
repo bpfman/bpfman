@@ -44,7 +44,7 @@ spec:
       containers:
         - name: go-application-counter
           image: quay.io/bpfman-userspace/go-application-counter:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -58,12 +58,12 @@ spec:
                   fieldPath: spec.nodeName
           volumeMounts:
             - name: go-application-counter-maps
-              mountPath: /run/kprobe/maps
+              mountPath: /run/application/maps
               readOnly: true
       volumes:
         - name: go-application-counter-maps
           csi:
             driver: csi.bpfman.io
             volumeAttributes:
-              csi.bpfman.io/program: go-application-counter-example
-              csi.bpfman.io/maps: tracepoint_stats_map,kprobe_stats_map,tc_stats_map,uprobe_stats_map,xdp_stats_map
+              csi.bpfman.io/program: app-counter
+              csi.bpfman.io/maps: kprobe_stats_map,tracepoint_stats_map,tc_stats_map,uprobe_stats_map,xdp_stats_map

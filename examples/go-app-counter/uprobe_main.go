@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	bpfmanHelpers "github.com/bpfman/bpfman/bpfman-operator/pkg/helpers"
@@ -18,27 +17,13 @@ import (
 
 const (
 	UprobeBpfProgramMapIndex = "uprobe_stats_map"
-
-	// UprobeMapsMountPoint is the "go-uprobe-counter-maps" volumeMount "mountPath" from "deployment.yaml"
-	UprobeMapsMountPoint = "/run/uprobe/maps"
 )
 
 type Stats struct {
 	Counter uint64
 }
 
-func processUprobe(stop chan os.Signal) {
-
-	initMutex.Lock()
-
-	// pull the BPFMAN config management data to determine if we're running on a
-	// system with BPFMAN available.
-	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeUprobe, DefaultByteCodeFile)
-	if err != nil {
-		log.Printf("error processing parameters: %v\n", err)
-		return
-	}
-
+func processUprobe(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 	// determine the path to the uprobe_stats_map, whether provided via CRD
 	// or BPFMAN or otherwise.
 	var mapPath string
@@ -47,21 +32,9 @@ func processUprobe(stop chan os.Signal) {
 	// and the CSI Driver.
 	if paramData.CrdFlag {
 		// 3. Get access to our map
-		mapPath = fmt.Sprintf("%s/%s", UprobeMapsMountPoint, UprobeBpfProgramMapIndex)
+		mapPath = fmt.Sprintf("%s/%s", ApplicationMapsMountPoint, UprobeBpfProgramMapIndex)
 	} else { // if not on k8s, find the map path from the system
-		ctx := context.Background()
-
-		// connect to the BPFMAN server
-		conn, err := configMgmt.CreateConnection(ctx)
-		if err != nil {
-			log.Printf("failed to create client connection: %v", err)
-			return
-		}
-
-		c := gobpfman.NewBpfmanClient(conn)
-
 		fnName := "malloc"
-
 		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcProgId {
 			var loadRequest *gobpfman.LoadRequest
@@ -99,9 +72,9 @@ func processUprobe(stop chan os.Signal) {
 
 			// 1. Load Program using bpfman
 			var res *gobpfman.LoadResponse
-			res, err = c.Load(ctx, loadRequest)
+			var err error
+			res, err = loadBpfProgram(loadRequest)
 			if err != nil {
-				conn.Close()
 				log.Print(err)
 				return
 			}
@@ -110,7 +83,6 @@ func processUprobe(stop chan os.Signal) {
 			if kernelInfo != nil {
 				paramData.ProgId = uint(kernelInfo.GetId())
 			} else {
-				conn.Close()
 				log.Printf("kernelInfo not returned in LoadResponse")
 				return
 			}
@@ -119,13 +91,11 @@ func processUprobe(stop chan os.Signal) {
 			// 2. Set up defer to unload program when this is closed
 			defer func(id uint) {
 				log.Printf("unloading program: %d\n", id)
-				_, err = c.Unload(ctx, &gobpfman.UnloadRequest{Id: uint32(id)})
+				_, err = unloadBpfProgram(id)
 				if err != nil {
-					conn.Close()
 					log.Print(err)
 					return
 				}
-				conn.Close()
 			}(paramData.ProgId)
 
 			// 3. Get access to our map
@@ -135,14 +105,9 @@ func processUprobe(stop chan os.Signal) {
 				return
 			}
 		} else {
-			// 2. Set up defer to close connection
-			defer func(id uint) {
-				log.Printf("Closing Connection for Program: %d\n", id)
-				conn.Close()
-			}(paramData.ProgId)
-
 			// 3. Get access to our map
-			mapPath, err = configMgmt.RetrieveMapPinPath(ctx, c, paramData.ProgId, "uprobe_stats_map")
+			var err error
+			mapPath, err = getMapPinPath(paramData.ProgId, "uprobe_stats_map")
 			if err != nil {
 				log.Print(err)
 				return
@@ -163,13 +128,15 @@ func processUprobe(stop chan os.Signal) {
 		return
 	}
 
-	initMutex.Unlock()
-
 	// retrieve and report on the number of times the uprobe is executed.
 	index := uint32(0)
-	ticker := time.NewTicker(1 * time.Second)
-	go func() {
-		for range ticker.C {
+	ticker := time.NewTicker(2 * time.Second)
+	for range ticker.C {
+		select {
+		case <-cancelCtx.Done():
+			log.Printf("Exiting...\n")
+			return
+		default:
 			var stats []Stats
 			var totalCount uint64
 
@@ -184,9 +151,5 @@ func processUprobe(stop chan os.Signal) {
 
 			log.Printf("Uprobe: count: %d\n", totalCount)
 		}
-	}()
-
-	<-stop
-
-	log.Printf("Exiting...\n")
+	}
 }

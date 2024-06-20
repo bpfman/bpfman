@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	bpfmanHelpers "github.com/bpfman/bpfman/bpfman-operator/pkg/helpers"
@@ -23,26 +22,13 @@ type XdpStats struct {
 
 const (
 	XDPBpfProgramMapIndex = "xdp_stats_map"
-
-	// XDPMapsMountPoint is the "go-xdp-counter-maps" volumeMount "mountPath" from "deployment.yaml"
-	XDPMapsMountPoint = "/run/xdp/maps"
 )
 
 const (
 	XDP_ACT_OK = 2
 )
 
-func processXdp(stop chan os.Signal) {
-
-	initMutex.Lock()
-
-	// Parse Input Parameters (CmdLine and Config File)
-	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeXdp, DefaultByteCodeFile)
-	if err != nil {
-		log.Printf("error processing parameters: %v\n", err)
-		return
-	}
-
+func processXdp(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 	var mapPath string
 
 	// If running in a Kubernetes deployment, the eBPF program is already loaded.
@@ -50,18 +36,8 @@ func processXdp(stop chan os.Signal) {
 	// and the CSI Driver.
 	if paramData.CrdFlag {
 		// 3. Get access to our map
-		mapPath = fmt.Sprintf("%s/%s", XDPMapsMountPoint, XDPBpfProgramMapIndex)
+		mapPath = fmt.Sprintf("%s/%s", ApplicationMapsMountPoint, XDPBpfProgramMapIndex)
 	} else {
-		ctx := context.Background()
-
-		conn, err := configMgmt.CreateConnection(ctx)
-		if err != nil {
-			log.Printf("failed to create client connection: %v", err)
-			return
-		}
-
-		c := gobpfman.NewBpfmanClient(conn)
-
 		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcProgId {
 			var loadRequest *gobpfman.LoadRequest
@@ -99,9 +75,9 @@ func processXdp(stop chan os.Signal) {
 
 			// 1. Load Program using bpfman
 			var res *gobpfman.LoadResponse
-			res, err = c.Load(ctx, loadRequest)
+			var err error
+			res, err = loadBpfProgram(loadRequest)
 			if err != nil {
-				conn.Close()
 				log.Print(err)
 				return
 			}
@@ -110,7 +86,6 @@ func processXdp(stop chan os.Signal) {
 			if kernelInfo != nil {
 				paramData.ProgId = uint(kernelInfo.GetId())
 			} else {
-				conn.Close()
 				log.Printf("kernelInfo not returned in LoadResponse")
 				return
 			}
@@ -119,13 +94,11 @@ func processXdp(stop chan os.Signal) {
 			// 2. Set up defer to unload program when this is closed
 			defer func(id uint) {
 				log.Printf("Unloading Program: %d\n", id)
-				_, err = c.Unload(ctx, &gobpfman.UnloadRequest{Id: uint32(id)})
+				_, err = unloadBpfProgram(id)
 				if err != nil {
-					conn.Close()
 					log.Print(err)
 					return
 				}
-				conn.Close()
 			}(paramData.ProgId)
 
 			// 3. Get access to our map
@@ -135,14 +108,9 @@ func processXdp(stop chan os.Signal) {
 				return
 			}
 		} else {
-			// 2. Set up defer to close connection
-			defer func(id uint) {
-				log.Printf("Closing Connection for Program: %d\n", id)
-				conn.Close()
-			}(paramData.ProgId)
-
 			// 3. Get access to our map
-			mapPath, err = configMgmt.RetrieveMapPinPath(ctx, c, paramData.ProgId, "xdp_stats_map")
+			var err error
+			mapPath, err = getMapPinPath(paramData.ProgId, "xdp_stats_map")
 			if err != nil {
 				log.Print(err)
 				return
@@ -162,11 +130,13 @@ func processXdp(stop chan os.Signal) {
 		return
 	}
 
-	initMutex.Unlock()
-
-	ticker := time.NewTicker(3 * time.Second)
-	go func() {
-		for range ticker.C {
+	ticker := time.NewTicker(2 * time.Second)
+	for range ticker.C {
+		select {
+		case <-cancelCtx.Done():
+			log.Printf("Exiting XDP...\n")
+			return
+		default:
 			key := uint32(XDP_ACT_OK)
 			var stats []XdpStats
 			var totalPackets uint64
@@ -184,11 +154,7 @@ func processXdp(stop chan os.Signal) {
 			}
 
 			log.Printf("XDP: %d packets received\n", totalPackets)
-			log.Printf("XDP: %d bytes received\n\n", totalBytes)
+			log.Printf("XDP: %d bytes received\n", totalBytes)
 		}
-	}()
-
-	<-stop
-
-	log.Printf("Exiting XDP...\n")
+	}
 }

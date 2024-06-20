@@ -46,10 +46,11 @@ const (
 	ProgTypeTracepoint
 	ProgTypeKprobe
 	ProgTypeUprobe
+	ProgTypeApplication
 )
 
 func (s ProgType) String() string {
-	return [...]string{"xdp", "tc", "tracepoint", "kprobe", "uprobe"}[s]
+	return [...]string{"xdp", "tc", "tracepoint", "kprobe", "uprobe", "application"}[s]
 }
 
 const (
@@ -78,7 +79,7 @@ func ParseParamData(progType ProgType, bytecodeFile string) (ParameterData, erro
 
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
-	if progType == ProgTypeXdp || progType == ProgTypeTc {
+	if progType == ProgTypeXdp || progType == ProgTypeTc || progType == ProgTypeApplication {
 		flag.StringVar(&paramData.Iface, "iface", "eno3",
 			"Interface to load bytecode. Optional.")
 		flag.IntVar(&paramData.Priority, "priority", 50,
@@ -99,7 +100,7 @@ func ParseParamData(progType ProgType, bytecodeFile string) (ParameterData, erro
 		"Flag to indicate all attributes should be pulled from the BpfProgram CRD.\n"+
 			"Used in Kubernetes deployments and is mutually exclusive with all other\n"+
 			"parameters.")
-	if progType == ProgTypeTc {
+	if progType == ProgTypeTc || progType == ProgTypeApplication {
 		flag.StringVar(&direction_str, "direction", "ingress",
 			"Direction to apply program (ingress, egress). Optional.")
 	}
@@ -118,17 +119,15 @@ func ParseParamData(progType ProgType, bytecodeFile string) (ParameterData, erro
 
 	// "-iface" is the interface to run bpf program on. If not provided, error.
 	//    ./go-xdp-counter -iface eth0
-	if (progType == ProgTypeTc || progType == ProgTypeXdp) && len(paramData.Iface) == 0 {
+	if (progType == ProgTypeTc || progType == ProgTypeXdp || progType == ProgTypeApplication) &&
+		len(paramData.Iface) == 0 {
 		return paramData, fmt.Errorf("interface is required")
 	}
 
-	if progType == ProgTypeTc {
+	if progType == ProgTypeTc || progType == ProgTypeApplication {
 		// "-direction" is the direction in which to run the bpf program. Valid values
-		// are "ingress" and "egress". If not provided, error.
+		// are "ingress" and "egress". If not provided, defaults to "ingress".
 		//    ./go-tc-counter -iface eth0 -direction ingress
-		if len(direction_str) == 0 {
-			return paramData, fmt.Errorf("direction is required")
-		}
 
 		if direction_str == "ingress" {
 			paramData.Direction = TcDirectionIngress

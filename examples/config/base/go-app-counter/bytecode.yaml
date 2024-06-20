@@ -4,7 +4,7 @@ kind: BpfApplication
 metadata:
   labels:
     app.kubernetes.io/name: bpfapplication
-  name: go-application-counter-example
+  name: app-counter
 spec:
   # Select all nodes
   nodeselector: {}

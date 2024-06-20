@@ -19,27 +19,13 @@ import (
 
 const (
 	TPBpfProgramMapIndex = "tracepoint_stats_map"
-
-	// TPMapsMountPoint is the "go-tracepoint-counter-maps" volumeMount "mountPath" from "deployment.yaml"
-	TPMapsMountPoint = "/run/tracepoint/maps"
 )
 
 type TPStats struct {
 	Calls uint64
 }
 
-func processTracepoint(stop chan os.Signal) {
-
-	initMutex.Lock()
-
-	// pull the BPFMAN config management data to determine if we're running on a
-	// system with BPFMAN available.
-	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTracepoint, DefaultByteCodeFile)
-	if err != nil {
-		log.Printf("error processing parameters: %v\n", err)
-		return
-	}
-
+func processTracepoint(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 	// determine the path to the tracepoint_stats_map, whether provided via CRD
 	// or BPFMAN or otherwise.
 	var mapPath string
@@ -48,19 +34,8 @@ func processTracepoint(stop chan os.Signal) {
 	// and the CSI Driver.
 	if paramData.CrdFlag {
 		// 3. Get access to our map
-		mapPath = fmt.Sprintf("%s/%s", TPMapsMountPoint, TPBpfProgramMapIndex)
+		mapPath = fmt.Sprintf("%s/%s", ApplicationMapsMountPoint, TPBpfProgramMapIndex)
 	} else { // if not on k8s, find the map path from the system
-		ctx := context.Background()
-
-		// connect to the BPFMAN server
-		conn, err := configMgmt.CreateConnection(ctx)
-		if err != nil {
-			log.Printf("failed to create client connection: %v", err)
-			return
-		}
-
-		c := gobpfman.NewBpfmanClient(conn)
-
 		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcProgId {
 			var loadRequest *gobpfman.LoadRequest
@@ -96,9 +71,9 @@ func processTracepoint(stop chan os.Signal) {
 
 			// 1. Load Program using bpfman
 			var res *gobpfman.LoadResponse
-			res, err = c.Load(ctx, loadRequest)
+			var err error
+			res, err = loadBpfProgram(loadRequest)
 			if err != nil {
-				conn.Close()
 				log.Print(err)
 				return
 			}
@@ -107,7 +82,6 @@ func processTracepoint(stop chan os.Signal) {
 			if kernelInfo != nil {
 				paramData.ProgId = uint(kernelInfo.GetId())
 			} else {
-				conn.Close()
 				log.Printf("kernelInfo not returned in LoadResponse")
 				return
 			}
@@ -116,13 +90,11 @@ func processTracepoint(stop chan os.Signal) {
 			// 2. Set up defer to unload program when this is closed
 			defer func(id uint) {
 				log.Printf("unloading program: %d\n", id)
-				_, err = c.Unload(ctx, &gobpfman.UnloadRequest{Id: uint32(id)})
+				_, err = unloadBpfProgram(id)
 				if err != nil {
-					conn.Close()
 					log.Print(err)
 					return
 				}
-				conn.Close()
 			}(paramData.ProgId)
 
 			// 3. Get access to our map
@@ -132,14 +104,9 @@ func processTracepoint(stop chan os.Signal) {
 				return
 			}
 		} else {
-			// 2. Set up defer to close connection
-			defer func(id uint) {
-				log.Printf("Closing Connection for Program: %d\n", id)
-				conn.Close()
-			}(paramData.ProgId)
-
 			// 3. Get access to our map
-			mapPath, err = configMgmt.RetrieveMapPinPath(ctx, c, paramData.ProgId, "tracepoint_stats_map")
+			var err error
+			mapPath, err = getMapPinPath(paramData.ProgId, "tracepoint_stats_map")
 			if err != nil {
 				log.Print(err)
 				return
@@ -174,13 +141,15 @@ func processTracepoint(stop chan os.Signal) {
 		}
 	}()
 
-	initMutex.Unlock()
-
 	// retrieve and report on the number of kill -SIGUSR1 calls
 	index := uint32(0)
-	ticker := time.NewTicker(1 * time.Second)
-	go func() {
-		for range ticker.C {
+	ticker := time.NewTicker(2 * time.Second)
+	for range ticker.C {
+		select {
+		case <-cancelCtx.Done():
+			log.Printf("Exiting Tracepoint...\n")
+			return
+		default:
 			var stats []TPStats
 			var totalCalls uint64
 
@@ -195,9 +164,5 @@ func processTracepoint(stop chan os.Signal) {
 
 			log.Printf("Tracepoint: SIGUSR1 signal count: %d\n", totalCalls)
 		}
-	}()
-
-	<-stop
-
-	log.Printf("Exiting Tracepoint...\n")
+	}
 }

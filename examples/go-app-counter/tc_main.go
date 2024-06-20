@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	bpfmanHelpers "github.com/bpfman/bpfman/bpfman-operator/pkg/helpers"
@@ -23,26 +22,13 @@ type TCStats struct {
 
 const (
 	TCBpfProgramMapIndex = "tc_stats_map"
-
-	// TCMapsMountPoint is the "go-tc-counter-maps" volumeMount "mountPath" from "deployment.yaml"
-	TCMapsMountPoint = "/run/tc/maps"
 )
 
 const (
 	TC_ACT_OK = 0
 )
 
-func processTC(stop chan os.Signal) {
-
-	initMutex.Lock()
-
-	// Parse Input Parameters (CmdLine and Config File)
-	paramData, err := configMgmt.ParseParamData(configMgmt.ProgTypeTc, DefaultByteCodeFile)
-	if err != nil {
-		log.Printf("error processing parameters: %v\n", err)
-		return
-	}
-
+func processTC(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 	var action string
 	var direction bpfmanHelpers.TcProgramDirection
 	if paramData.Direction == configMgmt.TcDirectionIngress {
@@ -60,19 +46,10 @@ func processTC(stop chan os.Signal) {
 	// and the CSI Driver.
 	if paramData.CrdFlag {
 		// 3. Get access to our map
-		mapPath = fmt.Sprintf("%s/%s", TCMapsMountPoint, TCBpfProgramMapIndex)
+		mapPath = fmt.Sprintf("%s/%s", ApplicationMapsMountPoint, TCBpfProgramMapIndex)
 	} else {
-		ctx := context.Background()
 
-		// Set up a connection to the server.
-		conn, err := configMgmt.CreateConnection(ctx)
-		if err != nil {
-			log.Printf("failed to create client connection: %v", err)
-			return
-		}
-		c := gobpfman.NewBpfmanClient(conn)
-
-		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
+		// Set up a connection to the server.		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcProgId {
 			var loadRequest *gobpfman.LoadRequest
 			if paramData.MapOwnerId != 0 {
@@ -111,9 +88,9 @@ func processTC(stop chan os.Signal) {
 
 			// 1. Load Program using bpfman
 			var res *gobpfman.LoadResponse
-			res, err = c.Load(ctx, loadRequest)
+			var err error
+			res, err = loadBpfProgram(loadRequest)
 			if err != nil {
-				conn.Close()
 				log.Print(err)
 				return
 			}
@@ -122,7 +99,6 @@ func processTC(stop chan os.Signal) {
 			if kernelInfo != nil {
 				paramData.ProgId = uint(kernelInfo.GetId())
 			} else {
-				conn.Close()
 				log.Printf("kernelInfo not returned in LoadResponse")
 				return
 			}
@@ -131,13 +107,11 @@ func processTC(stop chan os.Signal) {
 			// 2. Set up defer to unload program when this is closed
 			defer func(id uint) {
 				log.Printf("Unloading Program: %d\n", id)
-				_, err = c.Unload(ctx, &gobpfman.UnloadRequest{Id: uint32(id)})
+				_, err = unloadBpfProgram(id)
 				if err != nil {
-					conn.Close()
 					log.Print(err)
 					return
 				}
-				conn.Close()
 			}(paramData.ProgId)
 
 			// 3. Get access to our map
@@ -147,14 +121,9 @@ func processTC(stop chan os.Signal) {
 				return
 			}
 		} else {
-			// 2. Set up defer to close connection
-			defer func(id uint) {
-				log.Printf("Closing Connection for Program: %d\n", id)
-				conn.Close()
-			}(paramData.ProgId)
-
 			// 3. Get access to our map
-			mapPath, err = configMgmt.RetrieveMapPinPath(ctx, c, paramData.ProgId, "tc_stats_map")
+			var err error
+			mapPath, err = getMapPinPath(paramData.ProgId, "tc_stats_map")
 			if err != nil {
 				log.Print(err)
 				return
@@ -174,11 +143,13 @@ func processTC(stop chan os.Signal) {
 		return
 	}
 
-	initMutex.Unlock()
-
-	ticker := time.NewTicker(3 * time.Second)
-	go func() {
-		for range ticker.C {
+	ticker := time.NewTicker(2 * time.Second)
+	for range ticker.C {
+		select {
+		case <-cancelCtx.Done():
+			log.Printf("Exiting TC ...\n")
+			return
+		default:
 			key := uint32(TC_ACT_OK)
 			var stats []TCStats
 			var totalPackets uint64
@@ -196,11 +167,7 @@ func processTC(stop chan os.Signal) {
 			}
 
 			log.Printf("TC: %d packets received %s\n", totalPackets, action)
-			log.Printf("TC: %d bytes received %s\n\n", totalBytes, action)
+			log.Printf("TC: %d bytes received %s\n", totalBytes, action)
 		}
-	}()
-
-	<-stop
-
-	log.Printf("Exiting TC ...\n")
+	}
 }
