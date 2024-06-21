@@ -231,7 +231,7 @@ jobs:
       - name: Build Release
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          cargo build --release --target ${{ matrix.arch.rust-target }}
+          ${{ matrix.arch.command }} build --verbose --release --target ${{ matrix.arch.rust-target }}
 
       - name: Package bpfman Release Binaries
         if: startsWith(github.ref, 'refs/tags/v')
