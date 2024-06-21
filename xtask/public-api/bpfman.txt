@@ -208,6 +208,10 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::Direction where T: core::mark
 pub fn bpfman::types::Direction::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::Direction where T: core::marker::Sized
 pub fn bpfman::types::Direction::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::Direction where T: core::clone::Clone
+pub unsafe fn bpfman::types::Direction::clone_to_uninit(&self, dst: *mut T)
+impl<T> core::clone::CloneToUninit for bpfman::types::Direction where T: core::marker::Copy
+pub unsafe fn bpfman::types::Direction::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::Direction
 pub fn bpfman::types::Direction::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::Direction
@@ -280,6 +284,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::ImagePullPolicy where T: core
 pub fn bpfman::types::ImagePullPolicy::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::ImagePullPolicy where T: core::marker::Sized
 pub fn bpfman::types::ImagePullPolicy::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::ImagePullPolicy where T: core::clone::Clone
+pub unsafe fn bpfman::types::ImagePullPolicy::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::ImagePullPolicy
 pub fn bpfman::types::ImagePullPolicy::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::ImagePullPolicy
@@ -343,6 +349,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::Location where T: core::marke
 pub fn bpfman::types::Location::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::Location where T: core::marker::Sized
 pub fn bpfman::types::Location::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::Location where T: core::clone::Clone
+pub unsafe fn bpfman::types::Location::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::Location
 pub fn bpfman::types::Location::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::Location
@@ -422,6 +430,10 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::ProbeType where T: core::mark
 pub fn bpfman::types::ProbeType::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::ProbeType where T: core::marker::Sized
 pub fn bpfman::types::ProbeType::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::ProbeType where T: core::clone::Clone
+pub unsafe fn bpfman::types::ProbeType::clone_to_uninit(&self, dst: *mut T)
+impl<T> core::clone::CloneToUninit for bpfman::types::ProbeType where T: core::marker::Copy
+pub unsafe fn bpfman::types::ProbeType::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::ProbeType
 pub fn bpfman::types::ProbeType::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::ProbeType
@@ -484,6 +496,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::Program where T: core::marker
 pub fn bpfman::types::Program::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::Program where T: core::marker::Sized
 pub fn bpfman::types::Program::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::Program where T: core::clone::Clone
+pub unsafe fn bpfman::types::Program::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::Program
 pub fn bpfman::types::Program::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::Program
@@ -592,6 +606,10 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::ProgramType where T: core::ma
 pub fn bpfman::types::ProgramType::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::ProgramType where T: core::marker::Sized
 pub fn bpfman::types::ProgramType::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::ProgramType where T: core::clone::Clone
+pub unsafe fn bpfman::types::ProgramType::clone_to_uninit(&self, dst: *mut T)
+impl<T> core::clone::CloneToUninit for bpfman::types::ProgramType where T: core::marker::Copy
+pub unsafe fn bpfman::types::ProgramType::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::ProgramType
 pub fn bpfman::types::ProgramType::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::ProgramType
@@ -673,6 +691,10 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::TcProceedOnEntry where T: cor
 pub fn bpfman::types::TcProceedOnEntry::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::TcProceedOnEntry where T: core::marker::Sized
 pub fn bpfman::types::TcProceedOnEntry::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::TcProceedOnEntry where T: core::clone::Clone
+pub unsafe fn bpfman::types::TcProceedOnEntry::clone_to_uninit(&self, dst: *mut T)
+impl<T> core::clone::CloneToUninit for bpfman::types::TcProceedOnEntry where T: core::marker::Copy
+pub unsafe fn bpfman::types::TcProceedOnEntry::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::TcProceedOnEntry
 pub fn bpfman::types::TcProceedOnEntry::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::TcProceedOnEntry
@@ -749,6 +771,10 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::XdpProceedOnEntry where T: co
 pub fn bpfman::types::XdpProceedOnEntry::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::XdpProceedOnEntry where T: core::marker::Sized
 pub fn bpfman::types::XdpProceedOnEntry::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::XdpProceedOnEntry where T: core::clone::Clone
+pub unsafe fn bpfman::types::XdpProceedOnEntry::clone_to_uninit(&self, dst: *mut T)
+impl<T> core::clone::CloneToUninit for bpfman::types::XdpProceedOnEntry where T: core::marker::Copy
+pub unsafe fn bpfman::types::XdpProceedOnEntry::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::XdpProceedOnEntry
 pub fn bpfman::types::XdpProceedOnEntry::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::XdpProceedOnEntry
@@ -814,6 +840,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::BytecodeImage where T: core::
 pub fn bpfman::types::BytecodeImage::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::BytecodeImage where T: core::marker::Sized
 pub fn bpfman::types::BytecodeImage::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::BytecodeImage where T: core::clone::Clone
+pub unsafe fn bpfman::types::BytecodeImage::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::BytecodeImage
 pub fn bpfman::types::BytecodeImage::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::BytecodeImage
@@ -868,6 +896,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::FentryProgram where T: core::
 pub fn bpfman::types::FentryProgram::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::FentryProgram where T: core::marker::Sized
 pub fn bpfman::types::FentryProgram::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::FentryProgram where T: core::clone::Clone
+pub unsafe fn bpfman::types::FentryProgram::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::FentryProgram
 pub fn bpfman::types::FentryProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::FentryProgram
@@ -917,6 +947,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::FexitProgram where T: core::m
 pub fn bpfman::types::FexitProgram::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::FexitProgram where T: core::marker::Sized
 pub fn bpfman::types::FexitProgram::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::FexitProgram where T: core::clone::Clone
+pub unsafe fn bpfman::types::FexitProgram::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::FexitProgram
 pub fn bpfman::types::FexitProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::FexitProgram
@@ -969,6 +1001,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::KprobeProgram where T: core::
 pub fn bpfman::types::KprobeProgram::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::KprobeProgram where T: core::marker::Sized
 pub fn bpfman::types::KprobeProgram::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::KprobeProgram where T: core::clone::Clone
+pub unsafe fn bpfman::types::KprobeProgram::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::KprobeProgram
 pub fn bpfman::types::KprobeProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::KprobeProgram
@@ -1019,6 +1053,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::ListFilter where T: core::mar
 pub fn bpfman::types::ListFilter::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::ListFilter where T: core::marker::Sized
 pub fn bpfman::types::ListFilter::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::ListFilter where T: core::clone::Clone
+pub unsafe fn bpfman::types::ListFilter::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::ListFilter
 pub fn bpfman::types::ListFilter::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::ListFilter
@@ -1088,6 +1124,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::ProgramData where T: core::ma
 pub fn bpfman::types::ProgramData::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::ProgramData where T: core::marker::Sized
 pub fn bpfman::types::ProgramData::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::ProgramData where T: core::clone::Clone
+pub unsafe fn bpfman::types::ProgramData::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::ProgramData
 pub fn bpfman::types::ProgramData::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::ProgramData
@@ -1154,6 +1192,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::TcProceedOn where T: core::ma
 pub fn bpfman::types::TcProceedOn::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::TcProceedOn where T: core::marker::Sized
 pub fn bpfman::types::TcProceedOn::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::TcProceedOn where T: core::clone::Clone
+pub unsafe fn bpfman::types::TcProceedOn::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::TcProceedOn
 pub fn bpfman::types::TcProceedOn::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::TcProceedOn
@@ -1214,6 +1254,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::TcProgram where T: core::mark
 pub fn bpfman::types::TcProgram::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::TcProgram where T: core::marker::Sized
 pub fn bpfman::types::TcProgram::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::TcProgram where T: core::clone::Clone
+pub unsafe fn bpfman::types::TcProgram::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::TcProgram
 pub fn bpfman::types::TcProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::TcProgram
@@ -1263,6 +1305,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::TracepointProgram where T: co
 pub fn bpfman::types::TracepointProgram::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::TracepointProgram where T: core::marker::Sized
 pub fn bpfman::types::TracepointProgram::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::TracepointProgram where T: core::clone::Clone
+pub unsafe fn bpfman::types::TracepointProgram::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::TracepointProgram
 pub fn bpfman::types::TracepointProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::TracepointProgram
@@ -1317,6 +1361,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::UprobeProgram where T: core::
 pub fn bpfman::types::UprobeProgram::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::UprobeProgram where T: core::marker::Sized
 pub fn bpfman::types::UprobeProgram::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::UprobeProgram where T: core::clone::Clone
+pub unsafe fn bpfman::types::UprobeProgram::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::UprobeProgram
 pub fn bpfman::types::UprobeProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::UprobeProgram
@@ -1382,6 +1428,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::XdpProceedOn where T: core::m
 pub fn bpfman::types::XdpProceedOn::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::XdpProceedOn where T: core::marker::Sized
 pub fn bpfman::types::XdpProceedOn::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::XdpProceedOn where T: core::clone::Clone
+pub unsafe fn bpfman::types::XdpProceedOn::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::XdpProceedOn
 pub fn bpfman::types::XdpProceedOn::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::XdpProceedOn
@@ -1441,6 +1489,8 @@ impl<T> core::borrow::Borrow<T> for bpfman::types::XdpProgram where T: core::mar
 pub fn bpfman::types::XdpProgram::borrow(&self) -> &T
 impl<T> core::borrow::BorrowMut<T> for bpfman::types::XdpProgram where T: core::marker::Sized
 pub fn bpfman::types::XdpProgram::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::XdpProgram where T: core::clone::Clone
+pub unsafe fn bpfman::types::XdpProgram::clone_to_uninit(&self, dst: *mut T)
 impl<T> core::convert::From<T> for bpfman::types::XdpProgram
 pub fn bpfman::types::XdpProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::XdpProgram
