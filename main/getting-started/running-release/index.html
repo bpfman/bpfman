@@ -1704,7 +1704,7 @@ releases.</p>
 <blockquote>
 <p><strong>Note:</strong> Instructions for interacting with bpfman change from release to release, so reference
 release specific documentation. For example:</p>
-<p><a href="https://bpfman.io/v0.4.1/getting-started/running-release/">https://bpfman.io/v0.4.1/getting-started/running-release/</a></p>
+<p><a href="https://bpfman.io/v0.4.2/getting-started/running-release/">https://bpfman.io/v0.4.2/getting-started/running-release/</a></p>
 </blockquote>
 <p>Jump to the <a href="../building-bpfman/">Setup and Building bpfman</a> section
 for help building from the latest code or building from a release branch.</p>
@@ -1722,7 +1722,7 @@ Use <a href="#deploying-release-version-of-the-bpfman-operator">Deploying Releas
 below for deploying released version of <code>bpfman</code> in Kubernetes and then use the
 links above for further information on how to test and interact with <code>bpfman</code>.</p>
 <h2 id="run-as-a-long-lived-process">Run as a Long Lived Process</h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">export BPFMAN_REL=0.4.1</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">export BPFMAN_REL=0.4.2</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">mkdir -p $HOME/src/bpfman-${BPFMAN_REL}/; cd $HOME/src/bpfman-${BPFMAN_REL}/</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="go">wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-linux-x86_64.tar.gz</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">tar -xzvf bpfman-linux-x86_64.tar.gz; rm bpfman-linux-x86_64.tar.gz</span>
@@ -1755,7 +1755,7 @@ Kubernetes KIND Cluster:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">kind create cluster --name=test-bpfman</span>
 </code></pre></div>
 <p>Next, deploy the bpfman CRDs:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">export BPFMAN_REL=0.4.1</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">export BPFMAN_REL=0.4.2</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">kubectl apply -f  https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml</span>
 </code></pre></div>
 <p>Next, deploy the <code>bpfman-operator</code>, which will also deploy the <code>bpfman-daemon</code>, which contains
