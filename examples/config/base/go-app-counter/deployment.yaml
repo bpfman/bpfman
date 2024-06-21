@@ -1,0 +1,69 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: go-application-counter
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bpfman-app-go-application-counter
+  namespace: go-application-counter
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: go-application-counter-ds
+  namespace: go-application-counter
+  labels:
+    k8s-app: go-application-counter
+spec:
+  selector:
+    matchLabels:
+      name: go-application-counter
+  template:
+    metadata:
+      labels:
+        name: go-application-counter
+    spec:
+      nodeSelector: {}
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: bpfman-app-go-application-counter
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 65534
+      tolerations:
+        # these tolerations are to have the daemonset runnable on control plane nodes
+        # remove them if your control plane nodes should not run pods
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: go-application-counter
+          image: quay.io/bpfman-userspace/go-application-counter:latest
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            runAsUser: 65534
+            runAsGroup: 65534
+          env:
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: go-application-counter-maps
+              mountPath: /run/application/maps
+              readOnly: true
+      volumes:
+        - name: go-application-counter-maps
+          csi:
+            driver: csi.bpfman.io
+            volumeAttributes:
+              csi.bpfman.io/program: app-counter
+              csi.bpfman.io/maps: kprobe_stats_map,tracepoint_stats_map,tc_stats_map,uprobe_stats_map,xdp_stats_map

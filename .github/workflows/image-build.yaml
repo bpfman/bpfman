@@ -133,6 +133,20 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
+          - registry: quay.io
+            # build_language: go - Not building locally, so don't install go tools
+            repository: bpfman-userspace
+            image: go-app-counter
+            context: .
+            dockerfile: ./examples/go-app-counter/container-deployment/Containerfile.go-application-counter
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
     name: Build Image (${{ matrix.image.image }})
     steps:
       - name: Checkout bpfman
@@ -323,6 +337,23 @@ jobs:
               BPF_FUNCTION_NAME=uretprobe_counter
               PROGRAM_TYPE=uretprobe
               BYTECODE_FILENAME=bpf_x86_bpfel.o
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: go
+            bpf_build_wrapper: go
+            repository: bpfman-bytecode
+            image: go-app-counter
+            context: ./examples/go-app-counter
+            dockerfile: ./Containerfile.bytecode
+            build_args: |
+              BYTECODE_FILENAME=bpf_bpfel.o
             tags: |
               type=ref,event=branch
               type=ref,event=tag

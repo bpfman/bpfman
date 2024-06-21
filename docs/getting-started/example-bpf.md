@@ -11,11 +11,12 @@ Current examples include:
 * [examples/go-uretprobe-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-uretprobe-counter)
 * [examples/go-target/](https://github.com/bpfman/bpfman/tree/main/examples/go-target)
 * [examples/go-xdp-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-xdp-counter)
+* [examples/go-app-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-app-counter)
 
 ## Example Code Breakdown
 
 These examples and the associated documentation are intended to provide the basics on how to deploy
-and manage an eBPF program using bpfman. Each of the examples contain an eBPF Program written in C
+and manage an eBPF program using bpfman. Each of the examples contains an eBPF Program(s) written in C
 ([kprobe_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-kprobe-counter/bpf/kprobe_counter.c),
 [tc_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-tc-counter/bpf/tc_counter.c),
 [tracepoint_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter/bpf/tracepoint_counter.c) 
@@ -23,6 +24,7 @@ and manage an eBPF program using bpfman. Each of the examples contain an eBPF Pr
 [uretprobe_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-uretprobe-counter/bpf/uretprobe_counter.c),
 and
 [xdp_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-xdp-counter/bpf/xdp_counter.c))
+([app_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-kprobe-counter/bpf/app_counter.c),
 that is compiled into eBPF bytecode (bpf_bpfel.o).
 Each time the eBPF program is called, it increments the packet and byte counts in a map that is accessible
 by the userspace portion.
@@ -193,6 +195,7 @@ Pre-built eBPF container images for the examples can be loaded from:
 - `quay.io/bpfman-bytecode/go-uprobe-counter:latest`
 - `quay.io/bpfman-bytecode/go-uretprobe-counter:latest`
 - `quay.io/bpfman-bytecode/go-xdp-counter:latest`
+- `quay.io/bpfman-bytecode/go-application-counter:latest`
 
 To build the example eBPF bytecode container images, run the build commands below (the `go generate`
 requires the [Prerequisites](#prerequisites) described above):
