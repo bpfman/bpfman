@@ -107,7 +107,7 @@ sudo dnf erase -y bpfman-0.4.2-1.fc39.x86_64
 sudo systemctl daemon-reload
 ```
 
-## Deploy Released container images on Kubernetes
+## Deploy Released Container Images on Kubernetes
 
 The quickest solution for running `bpfman` in a Kubernetes deployment is to run a
 [local Kubernetes KIND Cluster](https://kind.sigs.k8s.io/docs/user/quick-start/):
@@ -119,7 +119,7 @@ kind create cluster --name=test-bpfman
 Next, deploy the bpfman CRDs:
 
 ```console
-export BPFMAN_REL=0.4.2
+export BPFMAN_REL=0.5.1
 kubectl apply -f  https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml
 ```
 

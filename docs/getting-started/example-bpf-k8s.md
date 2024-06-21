@@ -312,21 +312,21 @@ make deploy
   for target in deploy-tc deploy-tracepoint deploy-xdp deploy-xdp-ms deploy-kprobe deploy-target deploy-uprobe ; do \
 	  make $target  || true; \
   done
-  make[1]: Entering directory '/home/bmcfall/go/src/github.com/bpfman/bpfman/examples'
+  make[1]: Entering directory '/home/<$USER>/go/src/github.com/bpfman/bpfman/examples'
   sed 's@URL_BC@quay.io/bpfman-bytecode/go-tc-counter:latest@' config/default/go-tc-counter/patch.yaml.env > config/default/go-tc-counter/patch.yaml
-  cd config/default/go-tc-counter && /home/bmcfall/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tc-counter=quay.io/bpfman-userspace/go-tc-counter:latest
+  cd config/default/go-tc-counter && /home/<$USER>/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tc-counter=quay.io/bpfman-userspace/go-tc-counter:latest
   namespace/go-tc-counter created
   serviceaccount/bpfman-app-go-tc-counter created
   daemonset.apps/go-tc-counter-ds created
   tcprogram.bpfman.io/go-tc-counter-example created
   :
   sed 's@URL_BC@quay.io/bpfman-bytecode/go-uprobe-counter:latest@' config/default/go-uprobe-counter/patch.yaml.env > config/default/go-uprobe-counter/patch.yaml
-  cd config/default/go-uprobe-counter && /home/bmcfall/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-uprobe-counter=quay.io/bpfman-userspace/go-uprobe-counter:latest
+  cd config/default/go-uprobe-counter && /home/<$USER>/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-uprobe-counter=quay.io/bpfman-userspace/go-uprobe-counter:latest
   namespace/go-uprobe-counter created
   serviceaccount/bpfman-app-go-uprobe-counter created
   daemonset.apps/go-uprobe-counter-ds created
   uprobeprogram.bpfman.io/go-uprobe-counter-example created
-  make[1]: Leaving directory '/home/bmcfall/go/src/github.com/bpfman/bpfman/examples'
+  make[1]: Leaving directory '/home/<$USER>/go/src/github.com/bpfman/bpfman/examples'
 
 # Test Away ...
 
@@ -354,9 +354,9 @@ make undeploy
   for target in undeploy-tc undeploy-tracepoint undeploy-xdp undeploy-xdp-ms undeploy-kprobe undeploy-uprobe undeploy-target ; do \
 	  make $target  || true; \
   done
-  make[1]: Entering directory '/home/bmcfall/go/src/github.com/bpfman/bpfman/examples'
+  make[1]: Entering directory '/home/<$USER>/go/src/github.com/bpfman/bpfman/examples'
   sed 's@URL_BC@quay.io/bpfman-bytecode/go-tc-counter:latest@' config/default/go-tc-counter/patch.yaml.env > config/default/go-tc-counter/patch.yaml
-  cd config/default/go-tc-counter && /home/bmcfall/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tc-counter=quay.io/bpfman-userspace/go-tc-counter:latest
+  cd config/default/go-tc-counter && /home/<$USER>/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tc-counter=quay.io/bpfman-userspace/go-tc-counter:latest
   namespace "go-tc-counter" deleted
   serviceaccount "bpfman-app-go-tc-counter" deleted
   daemonset.apps "go-tc-counter-ds" deleted
@@ -366,7 +366,7 @@ make undeploy
   namespace "go-target" deleted
   serviceaccount "bpfman-app-go-target" deleted
   daemonset.apps "go-target-ds" deleted
-  make[1]: Leaving directory '/home/bmcfall/go/src/github.com/bpfman/bpfman/examples'
+  make[1]: Leaving directory '/home/<$USER>/go/src/github.com/bpfman/bpfman/examples'
 ```
 
 Individual examples can be loaded and unloaded as well, for example `make deploy-xdp` and

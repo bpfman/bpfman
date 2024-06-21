@@ -50,6 +50,8 @@ The output should show the count and total bytes of packets as they pass through
 interface as shown below:
 
 ```console
+cd ~/src/bpfman/examples/go-xdp-counter/
+
 go run -exec sudo . --iface eno3
 2023/07/17 17:43:58 Using Input: Interface=eno3 Priority=50 Source=/home/<$USER>/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o
 2023/07/17 17:43:58 Program registered with id 6211

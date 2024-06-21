@@ -18,11 +18,14 @@ functions, but that is not supported at the moment.
 
 ![bpfman library](../img/bpfman_library.png)
 
-The `bpfman-rpc` server can run in one of two modes.
-It can be run as a long running process or as a systemd service that uses
+## Local Host Deployment
+
+When deploying `bpfman` on a local server, the `bpfman-rpc` binary runs as a systemd service that uses
 [socket activation](https://man7.org/linux/man-pages/man1/systemd-socket-activate.1.html)
 to start `bpfman-rpc` only when there is a RPC message to process.
 More details are provided in [Deploying Example eBPF Programs On Local Host](./example-bpf-local.md).
+
+## Kubernetes Deployment
 
 When deploying `bpfman` in a Kubernetes deployment, `bpfman-agent`, `bpfman-rpc`, and the
 `bpfman` library are packaged in a container.
