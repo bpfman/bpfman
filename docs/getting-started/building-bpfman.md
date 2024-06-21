@@ -162,11 +162,11 @@ Once installed, use `man` to view the pages.
 man bpfman list
 ```
 
-> **NOTE:**
-> `bpfman` commands with subcommands (specifically `bpfman load`) have `-` in the
-> manpage subcommand generation.
-> So use `bpfman load-file`, `bpfman load-image`, `bpfman load-image-xdp`, etc. to
-> display the subcommand manpage files.
+!!! Note
+    `bpfman` commands with subcommands (specifically `bpfman load`) have `-` in the
+    manpage subcommand generation.
+    So use `bpfman load-file`, `bpfman load-image`, `bpfman load-image-xdp`, etc. to
+    display the subcommand manpage files.
 
 ## Development Environment Setup
 
@@ -277,12 +277,13 @@ throughout the `bpfman` documentation is to run a Kubernetes Kind cluster.
 See [kind](https://kind.sigs.k8s.io/) for documentation and installation instructions.
 `kind` also requires `docker` to be installed.
 
->> **NOTE:** By default, bpfman-operator deploys bpfman with CSI enabled.
-CSI requires Kubernetes v1.26 due to a PR
-([kubernetes/kubernetes#112597](https://github.com/kubernetes/kubernetes/pull/112597))
-that addresses a gRPC Protocol Error that was seen in the CSI client code and it doesn't appear to have
-been backported.
-It is recommended to install kind v0.20.0 or later.
+!!! Note
+    By default, bpfman-operator deploys bpfman with CSI enabled.
+    CSI requires Kubernetes v1.26 due to a PR
+    ([kubernetes/kubernetes#112597](https://github.com/kubernetes/kubernetes/pull/112597))
+    that addresses a gRPC Protocol Error that was seen in the CSI client code and it doesn't appear
+    to have been backported.
+    It is recommended to install kind v0.20.0 or later.
 
 If the following error is seen, it means there is an older version of Kubernetes running and it
 needs to be upgraded.

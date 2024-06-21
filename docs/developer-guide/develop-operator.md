@@ -167,14 +167,15 @@ When editing
 follow best practices describe in
 [Proto Best Practices](https://protobuf.dev/programming-guides/dos-donts/).
 
-**Note:** `cargo xtask build-proto` also pulls in 
-[proto/csi.proto](https://github.com/bpfman/bpfman/blob/main/proto/csi.proto) (which is in the
-same directory as
-[proto/bpfman.proto](https://github.com/bpfman/bpfman/blob/main/proto/bpfman.proto)).
-[proto/csi.proto](https://github.com/bpfman/bpfman/blob/main/proto/csi.proto) is taken from
-[container-storage-interface/spec/csi.proto](https://github.com/container-storage-interface/spec/blob/master/csi.proto).
-See [container-storage-interface/spec/spec.md](https://github.com/container-storage-interface/spec/blob/master/spec.md)
-for more details.
+!!! Note
+    `cargo xtask build-proto` also pulls in 
+    [proto/csi.proto](https://github.com/bpfman/bpfman/blob/main/proto/csi.proto) (which is in the
+    same directory as
+    [proto/bpfman.proto](https://github.com/bpfman/bpfman/blob/main/proto/bpfman.proto)).
+    [proto/csi.proto](https://github.com/bpfman/bpfman/blob/main/proto/csi.proto) is taken from
+    [container-storage-interface/spec/csi.proto](https://github.com/container-storage-interface/spec/blob/master/csi.proto).
+    See [container-storage-interface/spec/spec.md](https://github.com/container-storage-interface/spec/blob/master/spec.md)
+    for more details.
 
 ### Generated Files
 

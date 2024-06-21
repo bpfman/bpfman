@@ -17,14 +17,15 @@ XDP programs on a given interface.
 This tutorial will show you how to use `bpfman` to load multiple XDP programs
 on an interface.
 
-**Note:** The TC hook point is also associated with an interface.
-Within bpfman, TC is implemented in a similar fashion to XDP in that it uses a dispatcher with
-stub functions.
-TCX is a fairly new kernel feature that improves how the kernel handles multiple TC programs
-on a given interface.
-bpfman is on the process of integrating TCX support, which will replace the dispatcher logic
-for TC.
-Until then, assume TC behaves in a similar fashion to XDP.
+!!! Note:
+    The TC hook point is also associated with an interface.
+    Within bpfman, TC is implemented in a similar fashion to XDP in that it uses a dispatcher with
+    stub functions.
+    TCX is a fairly new kernel feature that improves how the kernel handles multiple TC programs
+    on a given interface.
+    bpfman is on the process of integrating TCX support, which will replace the dispatcher logic
+    for TC.
+    Until then, assume TC behaves in a similar fashion to XDP.
 
 See [Launching bpfman](../getting-started/launching-bpfman.md)
 for more detailed instructions on building and loading bpfman.

@@ -40,9 +40,10 @@ This indicates to `mkdocs` to pull the additional file from the project root dir
 
 For example: [docs/governance/MEETINGS.md](https://github.com/bpfman/bpfman/blob/main/docs/governance/MEETINGS.md)
 
-> **NOTE:** This works for the website generation, but if a Markdown file is viewed through
-  Github (not the website), the link is broken.
-  So these files should only be linked from `docs/index.md` and `mkdocs.yml`.
+!!! Note
+    This works for the website generation, but if a Markdown file is viewed through
+    Github (not the website), the link is broken.
+    So these files should only be linked from `docs/index.md` and `mkdocs.yml`.
 
 ### docs/developer-guide/api-spec.md
 
@@ -63,8 +64,9 @@ cd bpfman/
 mkdocs build
 ```
 
->**NOTE:** If `mkdocs build` gives you an error, make sure you have the mkdocs
-packages listed below installed.
+!!! Note
+    If `mkdocs build` gives you an error, make sure you have the mkdocs
+    packages listed below installed.
 
 To preview from a build on a local machine, start the mkdocs dev-server with the command below,
 then open up `http://127.0.0.1:8000/` in your browser, and you'll see the default home page
@@ -97,8 +99,9 @@ mkdocs -V
 mkdocs, version 1.4.3 from /home/$USER/.local/lib/python3.11/site-packages/mkdocs (Python 3.11)
 ```
 
->**NOTE:** If you have an older version of mkdocs installed, you may need to use
-the `--upgrade` option (e.g., `pip install --upgrade mkdocs`) to get it to work.
+!!! Note
+    If you have an older version of mkdocs installed, you may need to use
+    the `--upgrade` option (e.g., `pip install --upgrade mkdocs`) to get it to work.
 
 ## Document Images
 

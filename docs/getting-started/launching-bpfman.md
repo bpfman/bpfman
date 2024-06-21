@@ -124,9 +124,10 @@ The socket service is the long lived process, which doesn't have any special per
 The service that runs `bpfman-rpc` is only started when there is a request on the socket,
 and then `bpfman-rpc` stops itself after an inactivity timeout.
 
-> For security reasons, it is recommended to run `bpfman-rpc` as a systemd service when running
-on a local host.
-For local development, some may find it useful to run `bpfman-rpc` as a long lived process.
+!!! Note
+    For security reasons, it is recommended to run `bpfman-rpc` as a systemd service when running
+    on a local host.
+    For local development, some may find it useful to run `bpfman-rpc` as a long lived process.
 
 When run as a systemd service, the set of linux capabilities are limited to only the required set.
 If permission errors are encountered, see [Linux Capabilities](../developer-guide/linux-capabilities.md)

@@ -4,10 +4,11 @@ This section describes how to deploy `bpfman` from a given release.
 See [Releases](https://github.com/bpfman/bpfman/releases) for the set of bpfman
 releases.
 
-> **Note:** Instructions for interacting with bpfman change from release to release, so reference
-> release specific documentation. For example:
->
->    [https://bpfman.io/v0.4.2/getting-started/running-release/](https://bpfman.io/v0.4.2/getting-started/running-release/)
+!!! Note
+    Instructions for interacting with bpfman change from release to release, so reference
+    release specific documentation. For example:
+    
+    [https://bpfman.io/v0.4.2/getting-started/running-release/](https://bpfman.io/v0.4.2/getting-started/running-release/)
 
 Jump to the [Setup and Building bpfman](./building-bpfman.md) section
 for help building from the latest code or building from a release branch.
