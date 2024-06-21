@@ -445,7 +445,7 @@ jobs:
           body_path: ./changelogs/CHANGELOG-${{ env.RELEASE_VERSION }}.md
           prerelease: ${{ env.PRE_RELEASE }}
           files: |
-            bpfman-${{ matrix.arch.filename }}.tar.gz
+            bpfman-linux-x86_64.tar.gz
 
       - name: publish bpfman crate
         run: cargo publish -p bpfman --token ${{ secrets.BPFMAN_DEV_TOKEN }}

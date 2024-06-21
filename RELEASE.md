@@ -67,7 +67,7 @@ A release for the bpfman project is comprised of the following major components:
 ### Overview
 
 Each new release of bpfman is defined with a "bundle version" that
-represents the Git tag of a release, such as `v0.4.1`. This contains the
+represents the Git tag of a release, such as `v0.4.2`. This contains the
 components described above
 
 #### Kubernetes API Versions (e.g. v1alpha2, v1beta1)
