@@ -77,14 +77,12 @@ pub unsafe fn bpfman::errors::BpfmanError::deref<'a>(ptr: usize) -> &'a T
 pub unsafe fn bpfman::errors::BpfmanError::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn bpfman::errors::BpfmanError::drop(ptr: usize)
 pub unsafe fn bpfman::errors::BpfmanError::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for bpfman::errors::BpfmanError
 impl<T> snafu::AsErrorSource for bpfman::errors::BpfmanError where T: core::error::Error + 'static
 pub fn bpfman::errors::BpfmanError::as_error_source(&self) -> &(dyn core::error::Error + 'static)
 impl<T> tracing::instrument::Instrument for bpfman::errors::BpfmanError
 impl<T> tracing::instrument::WithSubscriber for bpfman::errors::BpfmanError
 impl<T> typenum::type_operators::Same for bpfman::errors::BpfmanError
 pub type bpfman::errors::BpfmanError::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::errors::BpfmanError where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::errors::BpfmanError where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::errors::BpfmanError::vzip(self) -> V
 pub enum bpfman::errors::ParseError
@@ -143,14 +141,12 @@ pub unsafe fn bpfman::errors::ParseError::deref<'a>(ptr: usize) -> &'a T
 pub unsafe fn bpfman::errors::ParseError::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn bpfman::errors::ParseError::drop(ptr: usize)
 pub unsafe fn bpfman::errors::ParseError::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> icu_provider::any::MaybeSendSync for bpfman::errors::ParseError
 impl<T> snafu::AsErrorSource for bpfman::errors::ParseError where T: core::error::Error + 'static
 pub fn bpfman::errors::ParseError::as_error_source(&self) -> &(dyn core::error::Error + 'static)
 impl<T> tracing::instrument::Instrument for bpfman::errors::ParseError
 impl<T> tracing::instrument::WithSubscriber for bpfman::errors::ParseError
 impl<T> typenum::type_operators::Same for bpfman::errors::ParseError
 pub type bpfman::errors::ParseError::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::errors::ParseError where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::errors::ParseError where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::errors::ParseError::vzip(self) -> V
 pub mod bpfman::types
@@ -223,7 +219,6 @@ pub unsafe fn bpfman::types::Direction::drop(ptr: usize)
 pub unsafe fn bpfman::types::Direction::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::Direction where T: core::clone::Clone
 pub fn bpfman::types::Direction::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::Direction
 impl<T> jwt::FromBase64 for bpfman::types::Direction where T: for<'de> serde::de::Deserialize<'de>
 pub fn bpfman::types::Direction::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::Direction where T: serde::ser::Serialize
@@ -233,7 +228,6 @@ impl<T> tracing::instrument::Instrument for bpfman::types::Direction
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::Direction
 impl<T> typenum::type_operators::Same for bpfman::types::Direction
 pub type bpfman::types::Direction::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::Direction where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::Direction where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::Direction::vzip(self) -> V
 pub enum bpfman::types::ImagePullPolicy
@@ -297,7 +291,6 @@ pub unsafe fn bpfman::types::ImagePullPolicy::drop(ptr: usize)
 pub unsafe fn bpfman::types::ImagePullPolicy::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::ImagePullPolicy where T: core::clone::Clone
 pub fn bpfman::types::ImagePullPolicy::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::ImagePullPolicy
 impl<T> jwt::FromBase64 for bpfman::types::ImagePullPolicy where T: for<'de> serde::de::Deserialize<'de>
 pub fn bpfman::types::ImagePullPolicy::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::ImagePullPolicy where T: serde::ser::Serialize
@@ -307,7 +300,6 @@ impl<T> tracing::instrument::Instrument for bpfman::types::ImagePullPolicy
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::ImagePullPolicy
 impl<T> typenum::type_operators::Same for bpfman::types::ImagePullPolicy
 pub type bpfman::types::ImagePullPolicy::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::ImagePullPolicy where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::ImagePullPolicy where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::ImagePullPolicy::vzip(self) -> V
 pub enum bpfman::types::Location
@@ -362,7 +354,6 @@ pub unsafe fn bpfman::types::Location::drop(ptr: usize)
 pub unsafe fn bpfman::types::Location::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::Location where T: core::clone::Clone
 pub fn bpfman::types::Location::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::Location
 impl<T> jwt::FromBase64 for bpfman::types::Location where T: for<'de> serde::de::Deserialize<'de>
 pub fn bpfman::types::Location::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::Location where T: serde::ser::Serialize
@@ -372,7 +363,6 @@ impl<T> tracing::instrument::Instrument for bpfman::types::Location
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::Location
 impl<T> typenum::type_operators::Same for bpfman::types::Location
 pub type bpfman::types::Location::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::Location where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::Location where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::Location::vzip(self) -> V
 pub enum bpfman::types::ProbeType
@@ -443,7 +433,6 @@ pub unsafe fn bpfman::types::ProbeType::drop(ptr: usize)
 pub unsafe fn bpfman::types::ProbeType::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::ProbeType where T: core::clone::Clone
 pub fn bpfman::types::ProbeType::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::ProbeType
 impl<T> jwt::FromBase64 for bpfman::types::ProbeType where T: for<'de> serde::de::Deserialize<'de>
 pub fn bpfman::types::ProbeType::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::ProbeType where T: serde::ser::Serialize
@@ -453,7 +442,6 @@ impl<T> tracing::instrument::Instrument for bpfman::types::ProbeType
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::ProbeType
 impl<T> typenum::type_operators::Same for bpfman::types::ProbeType
 pub type bpfman::types::ProbeType::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::ProbeType where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::ProbeType where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::ProbeType::vzip(self) -> V
 pub enum bpfman::types::Program
@@ -507,12 +495,10 @@ pub unsafe fn bpfman::types::Program::drop(ptr: usize)
 pub unsafe fn bpfman::types::Program::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::Program where T: core::clone::Clone
 pub fn bpfman::types::Program::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::Program
 impl<T> tracing::instrument::Instrument for bpfman::types::Program
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::Program
 impl<T> typenum::type_operators::Same for bpfman::types::Program
 pub type bpfman::types::Program::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::Program where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::Program where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::Program::vzip(self) -> V
 pub enum bpfman::types::ProgramType
@@ -617,7 +603,6 @@ pub unsafe fn bpfman::types::ProgramType::drop(ptr: usize)
 pub unsafe fn bpfman::types::ProgramType::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::ProgramType where T: core::clone::Clone
 pub fn bpfman::types::ProgramType::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::ProgramType
 impl<T> jwt::FromBase64 for bpfman::types::ProgramType where T: for<'de> serde::de::Deserialize<'de>
 pub fn bpfman::types::ProgramType::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::ProgramType where T: serde::ser::Serialize
@@ -627,7 +612,6 @@ impl<T> tracing::instrument::Instrument for bpfman::types::ProgramType
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::ProgramType
 impl<T> typenum::type_operators::Same for bpfman::types::ProgramType
 pub type bpfman::types::ProgramType::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::ProgramType where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::ProgramType where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::ProgramType::vzip(self) -> V
 pub enum bpfman::types::TcProceedOnEntry
@@ -700,7 +684,6 @@ pub unsafe fn bpfman::types::TcProceedOnEntry::drop(ptr: usize)
 pub unsafe fn bpfman::types::TcProceedOnEntry::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::TcProceedOnEntry where T: core::clone::Clone
 pub fn bpfman::types::TcProceedOnEntry::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::TcProceedOnEntry
 impl<T> jwt::FromBase64 for bpfman::types::TcProceedOnEntry where T: for<'de> serde::de::Deserialize<'de>
 pub fn bpfman::types::TcProceedOnEntry::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::TcProceedOnEntry where T: serde::ser::Serialize
@@ -710,7 +693,6 @@ impl<T> tracing::instrument::Instrument for bpfman::types::TcProceedOnEntry
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::TcProceedOnEntry
 impl<T> typenum::type_operators::Same for bpfman::types::TcProceedOnEntry
 pub type bpfman::types::TcProceedOnEntry::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::TcProceedOnEntry where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::TcProceedOnEntry where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::TcProceedOnEntry::vzip(self) -> V
 pub enum bpfman::types::XdpProceedOnEntry
@@ -778,7 +760,6 @@ pub unsafe fn bpfman::types::XdpProceedOnEntry::drop(ptr: usize)
 pub unsafe fn bpfman::types::XdpProceedOnEntry::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::XdpProceedOnEntry where T: core::clone::Clone
 pub fn bpfman::types::XdpProceedOnEntry::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::XdpProceedOnEntry
 impl<T> jwt::FromBase64 for bpfman::types::XdpProceedOnEntry where T: for<'de> serde::de::Deserialize<'de>
 pub fn bpfman::types::XdpProceedOnEntry::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::XdpProceedOnEntry where T: serde::ser::Serialize
@@ -788,7 +769,6 @@ impl<T> tracing::instrument::Instrument for bpfman::types::XdpProceedOnEntry
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::XdpProceedOnEntry
 impl<T> typenum::type_operators::Same for bpfman::types::XdpProceedOnEntry
 pub type bpfman::types::XdpProceedOnEntry::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::XdpProceedOnEntry where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::XdpProceedOnEntry where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::XdpProceedOnEntry::vzip(self) -> V
 pub struct bpfman::types::BytecodeImage
@@ -845,7 +825,6 @@ pub unsafe fn bpfman::types::BytecodeImage::drop(ptr: usize)
 pub unsafe fn bpfman::types::BytecodeImage::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::BytecodeImage where T: core::clone::Clone
 pub fn bpfman::types::BytecodeImage::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::BytecodeImage
 impl<T> jwt::FromBase64 for bpfman::types::BytecodeImage where T: for<'de> serde::de::Deserialize<'de>
 pub fn bpfman::types::BytecodeImage::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::BytecodeImage where T: serde::ser::Serialize
@@ -855,7 +834,6 @@ impl<T> tracing::instrument::Instrument for bpfman::types::BytecodeImage
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::BytecodeImage
 impl<T> typenum::type_operators::Same for bpfman::types::BytecodeImage
 pub type bpfman::types::BytecodeImage::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::BytecodeImage where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::BytecodeImage where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::BytecodeImage::vzip(self) -> V
 pub struct bpfman::types::FentryProgram
@@ -901,12 +879,10 @@ pub unsafe fn bpfman::types::FentryProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::FentryProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::FentryProgram where T: core::clone::Clone
 pub fn bpfman::types::FentryProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::FentryProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::FentryProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::FentryProgram
 impl<T> typenum::type_operators::Same for bpfman::types::FentryProgram
 pub type bpfman::types::FentryProgram::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::FentryProgram where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::FentryProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::FentryProgram::vzip(self) -> V
 pub struct bpfman::types::FexitProgram
@@ -952,12 +928,10 @@ pub unsafe fn bpfman::types::FexitProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::FexitProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::FexitProgram where T: core::clone::Clone
 pub fn bpfman::types::FexitProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::FexitProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::FexitProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::FexitProgram
 impl<T> typenum::type_operators::Same for bpfman::types::FexitProgram
 pub type bpfman::types::FexitProgram::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::FexitProgram where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::FexitProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::FexitProgram::vzip(self) -> V
 pub struct bpfman::types::KprobeProgram
@@ -1006,12 +980,10 @@ pub unsafe fn bpfman::types::KprobeProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::KprobeProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::KprobeProgram where T: core::clone::Clone
 pub fn bpfman::types::KprobeProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::KprobeProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::KprobeProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::KprobeProgram
 impl<T> typenum::type_operators::Same for bpfman::types::KprobeProgram
 pub type bpfman::types::KprobeProgram::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::KprobeProgram where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::KprobeProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::KprobeProgram::vzip(self) -> V
 pub struct bpfman::types::ListFilter
@@ -1058,12 +1030,10 @@ pub unsafe fn bpfman::types::ListFilter::drop(ptr: usize)
 pub unsafe fn bpfman::types::ListFilter::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::ListFilter where T: core::clone::Clone
 pub fn bpfman::types::ListFilter::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::ListFilter
 impl<T> tracing::instrument::Instrument for bpfman::types::ListFilter
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::ListFilter
 impl<T> typenum::type_operators::Same for bpfman::types::ListFilter
 pub type bpfman::types::ListFilter::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::ListFilter where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::ListFilter where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::ListFilter::vzip(self) -> V
 pub struct bpfman::types::ProgramData
@@ -1129,12 +1099,10 @@ pub unsafe fn bpfman::types::ProgramData::drop(ptr: usize)
 pub unsafe fn bpfman::types::ProgramData::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::ProgramData where T: core::clone::Clone
 pub fn bpfman::types::ProgramData::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::ProgramData
 impl<T> tracing::instrument::Instrument for bpfman::types::ProgramData
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::ProgramData
 impl<T> typenum::type_operators::Same for bpfman::types::ProgramData
 pub type bpfman::types::ProgramData::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::ProgramData where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::ProgramData where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::ProgramData::vzip(self) -> V
 pub struct bpfman::types::TcProceedOn(_)
@@ -1197,7 +1165,6 @@ pub unsafe fn bpfman::types::TcProceedOn::drop(ptr: usize)
 pub unsafe fn bpfman::types::TcProceedOn::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::TcProceedOn where T: core::clone::Clone
 pub fn bpfman::types::TcProceedOn::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::TcProceedOn
 impl<T> jwt::FromBase64 for bpfman::types::TcProceedOn where T: for<'de> serde::de::Deserialize<'de>
 pub fn bpfman::types::TcProceedOn::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::TcProceedOn where T: serde::ser::Serialize
@@ -1207,7 +1174,6 @@ impl<T> tracing::instrument::Instrument for bpfman::types::TcProceedOn
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::TcProceedOn
 impl<T> typenum::type_operators::Same for bpfman::types::TcProceedOn
 pub type bpfman::types::TcProceedOn::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::TcProceedOn where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::TcProceedOn where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::TcProceedOn::vzip(self) -> V
 pub struct bpfman::types::TcProgram
@@ -1259,12 +1225,10 @@ pub unsafe fn bpfman::types::TcProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::TcProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::TcProgram where T: core::clone::Clone
 pub fn bpfman::types::TcProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::TcProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::TcProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::TcProgram
 impl<T> typenum::type_operators::Same for bpfman::types::TcProgram
 pub type bpfman::types::TcProgram::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::TcProgram where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::TcProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::TcProgram::vzip(self) -> V
 pub struct bpfman::types::TracepointProgram
@@ -1310,12 +1274,10 @@ pub unsafe fn bpfman::types::TracepointProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::TracepointProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::TracepointProgram where T: core::clone::Clone
 pub fn bpfman::types::TracepointProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::TracepointProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::TracepointProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::TracepointProgram
 impl<T> typenum::type_operators::Same for bpfman::types::TracepointProgram
 pub type bpfman::types::TracepointProgram::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::TracepointProgram where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::TracepointProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::TracepointProgram::vzip(self) -> V
 pub struct bpfman::types::UprobeProgram
@@ -1366,12 +1328,10 @@ pub unsafe fn bpfman::types::UprobeProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::UprobeProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::UprobeProgram where T: core::clone::Clone
 pub fn bpfman::types::UprobeProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::UprobeProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::UprobeProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::UprobeProgram
 impl<T> typenum::type_operators::Same for bpfman::types::UprobeProgram
 pub type bpfman::types::UprobeProgram::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::UprobeProgram where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::UprobeProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::UprobeProgram::vzip(self) -> V
 pub struct bpfman::types::XdpProceedOn(_)
@@ -1433,7 +1393,6 @@ pub unsafe fn bpfman::types::XdpProceedOn::drop(ptr: usize)
 pub unsafe fn bpfman::types::XdpProceedOn::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::XdpProceedOn where T: core::clone::Clone
 pub fn bpfman::types::XdpProceedOn::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::XdpProceedOn
 impl<T> jwt::FromBase64 for bpfman::types::XdpProceedOn where T: for<'de> serde::de::Deserialize<'de>
 pub fn bpfman::types::XdpProceedOn::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::XdpProceedOn where T: serde::ser::Serialize
@@ -1443,7 +1402,6 @@ impl<T> tracing::instrument::Instrument for bpfman::types::XdpProceedOn
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::XdpProceedOn
 impl<T> typenum::type_operators::Same for bpfman::types::XdpProceedOn
 pub type bpfman::types::XdpProceedOn::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::XdpProceedOn where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::XdpProceedOn where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::XdpProceedOn::vzip(self) -> V
 pub struct bpfman::types::XdpProgram
@@ -1494,16 +1452,14 @@ pub unsafe fn bpfman::types::XdpProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::XdpProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::XdpProgram where T: core::clone::Clone
 pub fn bpfman::types::XdpProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::XdpProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::XdpProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::XdpProgram
 impl<T> typenum::type_operators::Same for bpfman::types::XdpProgram
 pub type bpfman::types::XdpProgram::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::XdpProgram where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::XdpProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::XdpProgram::vzip(self) -> V
 pub mod bpfman::utils
-pub const bpfman::utils::SOCK_MODE: u32 = 432u32
+pub const bpfman::utils::SOCK_MODE: u32
 pub fn bpfman::utils::create_bpffs(directory: &str) -> anyhow::Result<()>
 pub fn bpfman::utils::set_dir_permissions(directory: &str, mode: u32)
 pub fn bpfman::utils::set_file_permissions(path: &std::path::Path, mode: u32)

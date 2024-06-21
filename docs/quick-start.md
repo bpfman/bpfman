@@ -33,7 +33,7 @@ sudo dnf info bpfman
 Last metadata expiration check: 0:03:10 ago on Mon 06 May 2024 10:37:37 AM EDT.
 Available Packages
 Name         : bpfman
-Version      : 0.4.1
+Version      : 0.4.2
 Release      : 1.fc39
 Architecture : src
 Size         : 41 M
@@ -45,11 +45,11 @@ License      : Apache-2.0
 Description  : An eBPF Program Manager.
 
 Name         : bpfman
-Version      : 0.4.1
+Version      : 0.4.2
 Release      : 1.fc39
 Architecture : x86_64
 Size         : 9.7 M
-Source       : bpfman-0.4.1-1.fc39.src.rpm
+Source       : bpfman-0.4.2-1.fc39.src.rpm
 Repository   : copr:copr.fedorainfracloud.org:group_ebpf-sig:bpfman
 Summary      : An eBPF program manager
 URL          : https://bpfman.io
@@ -93,7 +93,7 @@ When ready to uninstall, determine the RPM that is currently loaded:
 
 ```console
 $ sudo rpm -qa | grep bpfman
-bpfman-0.4.1-1.fc39.x86_64
+bpfman-0.4.2-1.fc39.x86_64
 ```
 
 To stop bpfman and uninstall the RPM:
@@ -102,7 +102,7 @@ To stop bpfman and uninstall the RPM:
 sudo systemctl stop bpfman.socket
 sudo systemctl disable bpfman.socket
 
-sudo dnf erase -y bpfman-0.4.1-1.fc39.x86_64
+sudo dnf erase -y bpfman-0.4.2-1.fc39.x86_64
 
 sudo systemctl daemon-reload
 ```
@@ -119,7 +119,7 @@ kind create cluster --name=test-bpfman
 Next, deploy the bpfman CRDs:
 
 ```console
-export BPFMAN_REL=0.4.1
+export BPFMAN_REL=0.4.2
 kubectl apply -f  https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml
 ```
 
