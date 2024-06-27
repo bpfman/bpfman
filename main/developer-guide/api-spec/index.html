@@ -1637,6 +1637,8 @@ bpfman.io API group.</p>
 </p>
 <p>Resource Types:</p>
 <ul><li>
+<a href="#bpfman.io/v1alpha1.BpfApplication">BpfApplication</a>
+</li><li>
 <a href="#bpfman.io/v1alpha1.BpfProgram">BpfProgram</a>
 </li><li>
 <a href="#bpfman.io/v1alpha1.FentryProgram">FentryProgram</a>
@@ -1653,6 +1655,111 @@ bpfman.io API group.</p>
 </li><li>
 <a href="#bpfman.io/v1alpha1.XdpProgram">XdpProgram</a>
 </li></ul>
+<h3 id="bpfman.io/v1alpha1.BpfApplication">BpfApplication
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfApplication" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>BpfApplication is the Schema for the bpfapplications API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfman.io/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>BpfApplication</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationSpec">
+BpfApplicationSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>programs</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">
+[]BpfApplicationProgram
+</a>
+</em>
+</td>
+<td>
+<p>Programs is a list of bpf programs supported for a specific application.
+It&rsquo;s possible that the application can selectively choose which program(s)
+to run from this list.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationStatus">
+BpfApplicationStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="bpfman.io/v1alpha1.BpfProgram">BpfProgram
 <a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfProgram" title="Permanent link">¶</a>
 </h3>
@@ -1801,28 +1908,32 @@ FentryProgramSpec
 <table>
 <tr>
 <td>
-<code>BpfProgramCommon</code></br>
+<code>FentryProgramInfo</code></br>
 <em>
-<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
-BpfProgramCommon
+<a href="#bpfman.io/v1alpha1.FentryProgramInfo">
+FentryProgramInfo
 </a>
 </em>
 </td>
 <td>
 <p>
-(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+(Members of <code>FentryProgramInfo</code> are embedded into this type.)
 </p>
 </td>
 </tr>
 <tr>
 <td>
-<code>func_name</code></br>
+<code>BpfAppCommon</code></br>
 <em>
-string
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
 </em>
 </td>
 <td>
-<p>Function to attach the fentry to.</p>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </table>
@@ -1903,28 +2014,32 @@ FexitProgramSpec
 <table>
 <tr>
 <td>
-<code>BpfProgramCommon</code></br>
+<code>FexitProgramInfo</code></br>
 <em>
-<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
-BpfProgramCommon
+<a href="#bpfman.io/v1alpha1.FexitProgramInfo">
+FexitProgramInfo
 </a>
 </em>
 </td>
 <td>
 <p>
-(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+(Members of <code>FexitProgramInfo</code> are embedded into this type.)
 </p>
 </td>
 </tr>
 <tr>
 <td>
-<code>func_name</code></br>
+<code>BpfAppCommon</code></br>
 <em>
-string
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
 </em>
 </td>
 <td>
-<p>Function to attach the fexit to.</p>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </table>
@@ -2005,53 +2120,32 @@ KprobeProgramSpec
 <table>
 <tr>
 <td>
-<code>BpfProgramCommon</code></br>
+<code>KprobeProgramInfo</code></br>
 <em>
-<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
-BpfProgramCommon
+<a href="#bpfman.io/v1alpha1.KprobeProgramInfo">
+KprobeProgramInfo
 </a>
 </em>
 </td>
 <td>
 <p>
-(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+(Members of <code>KprobeProgramInfo</code> are embedded into this type.)
 </p>
 </td>
 </tr>
 <tr>
 <td>
-<code>func_name</code></br>
+<code>BpfAppCommon</code></br>
 <em>
-string
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
 </em>
 </td>
 <td>
-<p>Functions to attach the kprobe to.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>offset</code></br>
-<em>
-uint64
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Offset added to the address of the function for kprobe.
-Not allowed for kretprobes.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>retprobe</code></br>
-<em>
-bool
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Whether the program is a kretprobe.  Default is false</p>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </table>
@@ -2132,70 +2226,32 @@ TcProgramSpec
 <table>
 <tr>
 <td>
-<code>BpfProgramCommon</code></br>
+<code>TcProgramInfo</code></br>
 <em>
-<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
-BpfProgramCommon
+<a href="#bpfman.io/v1alpha1.TcProgramInfo">
+TcProgramInfo
 </a>
 </em>
 </td>
 <td>
 <p>
-(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+(Members of <code>TcProgramInfo</code> are embedded into this type.)
 </p>
 </td>
 </tr>
 <tr>
 <td>
-<code>interfaceselector</code></br>
+<code>BpfAppCommon</code></br>
 <em>
-<a href="#bpfman.io/v1alpha1.InterfaceSelector">
-InterfaceSelector
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
 </a>
 </em>
 </td>
 <td>
-<p>Selector to determine the network interface (or interfaces)</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>priority</code></br>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Priority specifies the priority of the tc program in relation to
-other programs of the same type with the same attach point. It is a value
-from 0 to 1000 where lower values have higher precedence.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>direction</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Direction specifies the direction of traffic the tc program should
-attach to for a given network device.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>proceedon</code></br>
-<em>
-<a href="#bpfman.io/v1alpha1.TcProceedOnValue">
-[]TcProceedOnValue
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>ProceedOn allows the user to call other tc programs in chain on this exit code.
-Multiple values are supported by repeating the parameter.</p>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </table>
@@ -2276,29 +2332,32 @@ TracepointProgramSpec
 <table>
 <tr>
 <td>
-<code>BpfProgramCommon</code></br>
+<code>TracepointProgramInfo</code></br>
 <em>
-<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
-BpfProgramCommon
+<a href="#bpfman.io/v1alpha1.TracepointProgramInfo">
+TracepointProgramInfo
 </a>
 </em>
 </td>
 <td>
 <p>
-(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+(Members of <code>TracepointProgramInfo</code> are embedded into this type.)
 </p>
 </td>
 </tr>
 <tr>
 <td>
-<code>names</code></br>
+<code>BpfAppCommon</code></br>
 <em>
-[]string
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
 </em>
 </td>
 <td>
-<p>Names refers to the names of kernel tracepoints to attach the
-bpf program to.</p>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </table>
@@ -2379,96 +2438,32 @@ UprobeProgramSpec
 <table>
 <tr>
 <td>
-<code>BpfProgramCommon</code></br>
+<code>UprobeProgramInfo</code></br>
 <em>
-<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
-BpfProgramCommon
+<a href="#bpfman.io/v1alpha1.UprobeProgramInfo">
+UprobeProgramInfo
 </a>
 </em>
 </td>
 <td>
 <p>
-(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+(Members of <code>UprobeProgramInfo</code> are embedded into this type.)
 </p>
 </td>
 </tr>
 <tr>
 <td>
-<code>func_name</code></br>
+<code>BpfAppCommon</code></br>
 <em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Function to attach the uprobe to.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>offset</code></br>
-<em>
-uint64
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Offset added to the address of the function for uprobe.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>target</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Library name or the absolute path to a binary or library.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>retprobe</code></br>
-<em>
-bool
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Whether the program is a uretprobe.  Default is false</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>pid</code></br>
-<em>
-int32
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Only execute uprobe for given process identification number (PID). If PID
-is not provided, uprobe executes for all PIDs.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>containers</code></br>
-<em>
-<a href="#bpfman.io/v1alpha1.ContainerSelector">
-ContainerSelector
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
 </a>
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>Containers identifes the set of containers in which to attach the uprobe.
-If Containers is not specified, the uprobe will be attached in the
-bpfman-agent container.  The ContainerSelector is very flexible and even
-allows the selection of all containers in a cluster.  If an attempt is
-made to attach uprobes to too many containers, it can have a negative
-impact on on the cluster.</p>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </table>
@@ -2549,55 +2544,32 @@ XdpProgramSpec
 <table>
 <tr>
 <td>
-<code>BpfProgramCommon</code></br>
+<code>XdpProgramInfo</code></br>
 <em>
-<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
-BpfProgramCommon
+<a href="#bpfman.io/v1alpha1.XdpProgramInfo">
+XdpProgramInfo
 </a>
 </em>
 </td>
 <td>
 <p>
-(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+(Members of <code>XdpProgramInfo</code> are embedded into this type.)
 </p>
 </td>
 </tr>
 <tr>
 <td>
-<code>interfaceselector</code></br>
+<code>BpfAppCommon</code></br>
 <em>
-<a href="#bpfman.io/v1alpha1.InterfaceSelector">
-InterfaceSelector
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
 </a>
 </em>
 </td>
 <td>
-<p>Selector to determine the network interface (or interfaces)</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>priority</code></br>
-<em>
-int32
-</em>
-</td>
-<td>
-<p>Priority specifies the priority of the bpf program in relation to
-other programs of the same type with the same attach point. It is a value
-from 0 to 1000 where lower values have higher precedence.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>proceedon</code></br>
-<em>
-<a href="#bpfman.io/v1alpha1.XdpProceedOnValue">
-[]XdpProceedOnValue
-</a>
-</em>
-</td>
-<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </table>
@@ -2618,11 +2590,12 @@ XdpProgramStatus
 </tr>
 </tbody>
 </table>
-<h3 id="bpfman.io/v1alpha1.BpfProgramCommon">BpfProgramCommon
-<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfProgramCommon" title="Permanent link">¶</a>
+<h3 id="bpfman.io/v1alpha1.BpfAppCommon">BpfAppCommon
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfAppCommon" title="Permanent link">¶</a>
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationSpec">BpfApplicationSpec</a>, 
 <a href="#bpfman.io/v1alpha1.FentryProgramSpec">FentryProgramSpec</a>, 
 <a href="#bpfman.io/v1alpha1.FexitProgramSpec">FexitProgramSpec</a>, 
 <a href="#bpfman.io/v1alpha1.KprobeProgramSpec">KprobeProgramSpec</a>, 
@@ -2630,6 +2603,334 @@ XdpProgramStatus
 <a href="#bpfman.io/v1alpha1.TracepointProgramSpec">TracepointProgramSpec</a>, 
 <a href="#bpfman.io/v1alpha1.UprobeProgramSpec">UprobeProgramSpec</a>, 
 <a href="#bpfman.io/v1alpha1.XdpProgramSpec">XdpProgramSpec</a>)
+</p>
+<p>
+<p>BpfAppCommon defines the common attributes for all BpfApp programs</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>nodeselector</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<p>NodeSelector allows the user to specify which nodes to deploy the
+bpf program to. This field must be specified, to select all nodes
+use standard metav1.LabelSelector semantics and make it empty.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>globaldata</code></br>
+<em>
+map[string][]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GlobalData allows the user to set global variables when the program is loaded
+with an array of raw bytes. This is a very low level primitive. The caller
+is responsible for formatting the byte string appropriately considering
+such things as size, endianness, alignment and packing of data structures.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bytecode</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BytecodeSelector">
+BytecodeSelector
+</a>
+</em>
+</td>
+<td>
+<p>Bytecode configures where the bpf program&rsquo;s bytecode should be loaded
+from.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfApplicationProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationSpec">BpfApplicationSpec</a>)
+</p>
+<p>
+<p>BpfApplicationProgram defines the desired state of BpfApplication</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.EBPFProgType">
+EBPFProgType
+</a>
+</em>
+</td>
+<td>
+<p>Type specifies the bpf program type</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>xdp</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.XdpProgramInfo">
+XdpProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>xdp defines the desired state of the application&rsquo;s XdpPrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tc</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TcProgramInfo">
+TcProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>tc defines the desired state of the application&rsquo;s TcPrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tcx</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TcProgramInfo">
+TcProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>tcx defines the desired state of the application&rsquo;s TcPrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fentry</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FentryProgramInfo">
+FentryProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>fentry defines the desired state of the application&rsquo;s FentryPrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fexit</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FexitProgramInfo">
+FexitProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>fexit defines the desired state of the application&rsquo;s FexitPrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kprobe</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.KprobeProgramInfo">
+KprobeProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>kprobe defines the desired state of the application&rsquo;s KprobePrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kretprobe</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.KprobeProgramInfo">
+KprobeProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>kretprobe defines the desired state of the application&rsquo;s KretprobePrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>uprobe</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.UprobeProgramInfo">
+UprobeProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>uprobe defines the desired state of the application&rsquo;s UprobePrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>uretprobe</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.UprobeProgramInfo">
+UprobeProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>uretprobe defines the desired state of the application&rsquo;s UretprobePrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tracepoint</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TracepointProgramInfo">
+TracepointProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>tracepoint defines the desired state of the application&rsquo;s TracepointPrograms.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BpfApplicationSpec">BpfApplicationSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfApplicationSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplication">BpfApplication</a>)
+</p>
+<p>
+<p>BpfApplicationSpec defines the desired state of BpfApplication</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>programs</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">
+[]BpfApplicationProgram
+</a>
+</em>
+</td>
+<td>
+<p>Programs is a list of bpf programs supported for a specific application.
+It&rsquo;s possible that the application can selectively choose which program(s)
+to run from this list.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BpfApplicationStatus">BpfApplicationStatus
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfApplicationStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplication">BpfApplication</a>)
+</p>
+<p>
+<p>BpfApplicationStatus defines the observed state of BpfApplication</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramStatusCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BpfProgramCommon">BpfProgramCommon
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfProgramCommon" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.FentryProgramInfo">FentryProgramInfo</a>, 
+<a href="#bpfman.io/v1alpha1.FexitProgramInfo">FexitProgramInfo</a>, 
+<a href="#bpfman.io/v1alpha1.KprobeProgramInfo">KprobeProgramInfo</a>, 
+<a href="#bpfman.io/v1alpha1.TcProgramInfo">TcProgramInfo</a>, 
+<a href="#bpfman.io/v1alpha1.TracepointProgramInfo">TracepointProgramInfo</a>, 
+<a href="#bpfman.io/v1alpha1.UprobeProgramInfo">UprobeProgramInfo</a>, 
+<a href="#bpfman.io/v1alpha1.XdpProgramInfo">XdpProgramInfo</a>)
 </p>
 <p>
 <p>BpfProgramCommon defines the common attributes for all BPF programs</p>
@@ -2652,50 +2953,6 @@ string
 <td>
 <p>BpfFunctionName is the name of the function that is the entry point for the BPF
 program</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>nodeselector</code></br>
-<em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#labelselector-v1-meta">
-Kubernetes meta/v1.LabelSelector
-</a>
-</em>
-</td>
-<td>
-<p>NodeSelector allows the user to specify which nodes to deploy the
-bpf program to.  This field must be specified, to select all nodes
-use standard metav1.LabelSelector semantics and make it empty.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>bytecode</code></br>
-<em>
-<a href="#bpfman.io/v1alpha1.BytecodeSelector">
-BytecodeSelector
-</a>
-</em>
-</td>
-<td>
-<p>Bytecode configures where the bpf program&rsquo;s bytecode should be loaded
-from.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>globaldata</code></br>
-<em>
-map[string][]byte
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>GlobalData allows the user to to set global variables when the program is loaded
-with an array of raw bytes. This is a very low level primitive. The caller
-is responsible for formatting the byte string appropriately considering
-such things as size, endianness, alignment and packing of data structures.</p>
 </td>
 </tr>
 <tr>
@@ -2732,7 +2989,7 @@ program at the individual node level.</p>
 </tr>
 </thead>
 <tbody><tr><td><p>&#34;BytecodeSelectorError&#34;</p></td>
-<td><p>BpfProgCondByteCodeError indicates that an error occured when trying to
+<td><p>BpfProgCondBytecodeSelectorError indicates that an error occurred when trying to
 process the bytecode selector.</p>
 </td>
 </tr><tr><td><p>&#34;Loaded&#34;</p></td>
@@ -2841,6 +3098,47 @@ Known .status.conditions.type are: &ldquo;Available&rdquo;, &ldquo;Progressing&r
 </tr>
 </tbody>
 </table>
+<h3 id="bpfman.io/v1alpha1.BpfProgramStatusCommon">BpfProgramStatusCommon
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfProgramStatusCommon" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationStatus">BpfApplicationStatus</a>, 
+<a href="#bpfman.io/v1alpha1.FentryProgramStatus">FentryProgramStatus</a>, 
+<a href="#bpfman.io/v1alpha1.FexitProgramStatus">FexitProgramStatus</a>, 
+<a href="#bpfman.io/v1alpha1.KprobeProgramStatus">KprobeProgramStatus</a>, 
+<a href="#bpfman.io/v1alpha1.TcProgramStatus">TcProgramStatus</a>, 
+<a href="#bpfman.io/v1alpha1.TracepointProgramStatus">TracepointProgramStatus</a>, 
+<a href="#bpfman.io/v1alpha1.UprobeProgramStatus">UprobeProgramStatus</a>, 
+<a href="#bpfman.io/v1alpha1.XdpProgramStatus">XdpProgramStatus</a>)
+</p>
+<p>
+<p>BpfProgramStatusCommon defines the BpfProgram status</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<p>Conditions houses the global cluster state for the eBPFProgram. The explicit
+condition types are defined internally.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="bpfman.io/v1alpha1.BytecodeImage">BytecodeImage
 <a class="headerlink" href="#bpfman.io%2fv1alpha1.BytecodeImage" title="Permanent link">¶</a>
 </h3>
@@ -2906,7 +3204,7 @@ repository secrets.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#bpfman.io/v1alpha1.BpfProgramCommon">BpfProgramCommon</a>)
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">BpfAppCommon</a>)
 </p>
 <p>
 <p>BytecodeSelector defines the various ways to reference bpf bytecode objects.</p>
@@ -2950,7 +3248,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#bpfman.io/v1alpha1.UprobeProgramSpec">UprobeProgramSpec</a>)
+<a href="#bpfman.io/v1alpha1.UprobeProgramInfo">UprobeProgramInfo</a>)
 </p>
 <p>
 <p>ContainerSelector identifies a set of containers. For example, this can be
@@ -3005,15 +3303,65 @@ pod are selected.</p>
 </tr>
 </tbody>
 </table>
-<h3 id="bpfman.io/v1alpha1.FentryProgramSpec">FentryProgramSpec
-<a class="headerlink" href="#bpfman.io%2fv1alpha1.FentryProgramSpec" title="Permanent link">¶</a>
+<h3 id="bpfman.io/v1alpha1.EBPFProgType">EBPFProgType
+(<code>string</code> alias)</p><a class="headerlink" href="#bpfman.io%2fv1alpha1.EBPFProgType" title="Permanent link">¶</a>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#bpfman.io/v1alpha1.FentryProgram">FentryProgram</a>)
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>)
 </p>
 <p>
-<p>FentryProgramSpec defines the desired state of FentryProgram</p>
+<p>EBPFProgType defines the supported eBPF program types</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Fentry&#34;</p></td>
+<td><p>ProgTypeFentry refers to the Fentry program type.</p>
+</td>
+</tr><tr><td><p>&#34;Fexit&#34;</p></td>
+<td><p>ProgTypeFexit refers to the Fexit program type.</p>
+</td>
+</tr><tr><td><p>&#34;Kprobe&#34;</p></td>
+<td><p>ProgTypeKprobe refers to the Kprobe program type.</p>
+</td>
+</tr><tr><td><p>&#34;Kretprobe&#34;</p></td>
+<td><p>ProgTypeKretprobe refers to the Kprobe program type.</p>
+</td>
+</tr><tr><td><p>&#34;TC&#34;</p></td>
+<td><p>ProgTypeTC refers to the TC program type.</p>
+</td>
+</tr><tr><td><p>&#34;TCX&#34;</p></td>
+<td><p>ProgTypeTCX refers to the TCx program type.</p>
+</td>
+</tr><tr><td><p>&#34;Tracepoint&#34;</p></td>
+<td><p>ProgTypeTracepoint refers to the Tracepoint program type.</p>
+</td>
+</tr><tr><td><p>&#34;Uprobe&#34;</p></td>
+<td><p>ProgTypeUprobe refers to the Uprobe program type.</p>
+</td>
+</tr><tr><td><p>&#34;Uretprobe&#34;</p></td>
+<td><p>ProgTypeUretprobe refers to the Uretprobe program type.</p>
+</td>
+</tr><tr><td><p>&#34;XDP&#34;</p></td>
+<td><p>ProgTypeXDP refers to the XDP program type.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FentryProgramInfo">FentryProgramInfo
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FentryProgramInfo" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>, 
+<a href="#bpfman.io/v1alpha1.FentryProgramSpec">FentryProgramSpec</a>)
+</p>
+<p>
+<p>FentryProgramInfo defines the Fentry program details</p>
 </p>
 <table>
 <thead>
@@ -3051,6 +3399,56 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="bpfman.io/v1alpha1.FentryProgramSpec">FentryProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FentryProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.FentryProgram">FentryProgram</a>)
+</p>
+<p>
+<p>FentryProgramSpec defines the desired state of FentryProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>FentryProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FentryProgramInfo">
+FentryProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>FentryProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="bpfman.io/v1alpha1.FentryProgramStatus">FentryProgramStatus
 <a class="headerlink" href="#bpfman.io%2fv1alpha1.FentryProgramStatus" title="Permanent link">¶</a>
 </h3>
@@ -3071,29 +3469,31 @@ string
 <tbody>
 <tr>
 <td>
-<code>conditions</code></br>
+<code>BpfProgramStatusCommon</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
-[]Kubernetes meta/v1.Condition
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
 </a>
 </em>
 </td>
 <td>
-<p>Conditions houses the global cluster state for the FentryProgram. The explicit
-condition types are defined internally.</p>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </tbody>
 </table>
-<h3 id="bpfman.io/v1alpha1.FexitProgramSpec">FexitProgramSpec
-<a class="headerlink" href="#bpfman.io%2fv1alpha1.FexitProgramSpec" title="Permanent link">¶</a>
+<h3 id="bpfman.io/v1alpha1.FexitProgramInfo">FexitProgramInfo
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FexitProgramInfo" title="Permanent link">¶</a>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#bpfman.io/v1alpha1.FexitProgram">FexitProgram</a>)
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>, 
+<a href="#bpfman.io/v1alpha1.FexitProgramSpec">FexitProgramSpec</a>)
 </p>
 <p>
-<p>FexitProgramSpec defines the desired state of FexitProgram</p>
+<p>FexitProgramInfo defines the Fexit program details</p>
 </p>
 <table>
 <thead>
@@ -3131,6 +3531,56 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="bpfman.io/v1alpha1.FexitProgramSpec">FexitProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FexitProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.FexitProgram">FexitProgram</a>)
+</p>
+<p>
+<p>FexitProgramSpec defines the desired state of FexitProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>FexitProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FexitProgramInfo">
+FexitProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>FexitProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="bpfman.io/v1alpha1.FexitProgramStatus">FexitProgramStatus
 <a class="headerlink" href="#bpfman.io%2fv1alpha1.FexitProgramStatus" title="Permanent link">¶</a>
 </h3>
@@ -3151,16 +3601,17 @@ string
 <tbody>
 <tr>
 <td>
-<code>conditions</code></br>
+<code>BpfProgramStatusCommon</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
-[]Kubernetes meta/v1.Condition
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
 </a>
 </em>
 </td>
 <td>
-<p>Conditions houses the global cluster state for the FexitProgram. The explicit
-condition types are defined internally.</p>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </tbody>
@@ -3212,8 +3663,8 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#bpfman.io/v1alpha1.TcProgramSpec">TcProgramSpec</a>, 
-<a href="#bpfman.io/v1alpha1.XdpProgramSpec">XdpProgramSpec</a>)
+<a href="#bpfman.io/v1alpha1.TcProgramInfo">TcProgramInfo</a>, 
+<a href="#bpfman.io/v1alpha1.XdpProgramInfo">XdpProgramInfo</a>)
 </p>
 <p>
 <p>InterfaceSelector defines interface to attach to.</p>
@@ -3253,15 +3704,16 @@ bool
 </tr>
 </tbody>
 </table>
-<h3 id="bpfman.io/v1alpha1.KprobeProgramSpec">KprobeProgramSpec
-<a class="headerlink" href="#bpfman.io%2fv1alpha1.KprobeProgramSpec" title="Permanent link">¶</a>
+<h3 id="bpfman.io/v1alpha1.KprobeProgramInfo">KprobeProgramInfo
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.KprobeProgramInfo" title="Permanent link">¶</a>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#bpfman.io/v1alpha1.KprobeProgram">KprobeProgram</a>)
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>, 
+<a href="#bpfman.io/v1alpha1.KprobeProgramSpec">KprobeProgramSpec</a>)
 </p>
 <p>
-<p>KprobeProgramSpec defines the desired state of KprobeProgram</p>
+<p>KprobeProgramInfo defines the common fields for KprobeProgram</p>
 </p>
 <table>
 <thead>
@@ -3324,6 +3776,56 @@ bool
 </tr>
 </tbody>
 </table>
+<h3 id="bpfman.io/v1alpha1.KprobeProgramSpec">KprobeProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.KprobeProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.KprobeProgram">KprobeProgram</a>)
+</p>
+<p>
+<p>KprobeProgramSpec defines the desired state of KprobeProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>KprobeProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.KprobeProgramInfo">
+KprobeProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>KprobeProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="bpfman.io/v1alpha1.KprobeProgramStatus">KprobeProgramStatus
 <a class="headerlink" href="#bpfman.io%2fv1alpha1.KprobeProgramStatus" title="Permanent link">¶</a>
 </h3>
@@ -3344,16 +3846,17 @@ bool
 <tbody>
 <tr>
 <td>
-<code>conditions</code></br>
+<code>BpfProgramStatusCommon</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
-[]Kubernetes meta/v1.Condition
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
 </a>
 </em>
 </td>
 <td>
-<p>Conditions houses the global cluster state for the KprobeProgram. The explicit
-condition types are defined internally.</p>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </tbody>
@@ -3381,7 +3884,7 @@ deletion, but deletion was unsuccessful.</p>
 yet been loaded on all nodes in the cluster.</p>
 </td>
 </tr><tr><td><p>&#34;ReconcileError&#34;</p></td>
-<td><p>ProgramReconcileError indicates that an unforseen situation has
+<td><p>ProgramReconcileError indicates that an unforeseen situation has
 occurred in the controller logic, and the controller will retry.</p>
 </td>
 </tr><tr><td><p>&#34;ReconcileSuccess&#34;</p></td>
@@ -3427,19 +3930,20 @@ runtime, but not necessarily relevant to human users or integrations.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#bpfman.io/v1alpha1.TcProgramSpec">TcProgramSpec</a>)
+<a href="#bpfman.io/v1alpha1.TcProgramInfo">TcProgramInfo</a>)
 </p>
 <p>
 </p>
-<h3 id="bpfman.io/v1alpha1.TcProgramSpec">TcProgramSpec
-<a class="headerlink" href="#bpfman.io%2fv1alpha1.TcProgramSpec" title="Permanent link">¶</a>
+<h3 id="bpfman.io/v1alpha1.TcProgramInfo">TcProgramInfo
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.TcProgramInfo" title="Permanent link">¶</a>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#bpfman.io/v1alpha1.TcProgram">TcProgram</a>)
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>, 
+<a href="#bpfman.io/v1alpha1.TcProgramSpec">TcProgramSpec</a>)
 </p>
 <p>
-<p>TcProgramSpec defines the desired state of TcProgram</p>
+<p>TcProgramInfo defines the tc program details</p>
 </p>
 <table>
 <thead>
@@ -3519,6 +4023,56 @@ Multiple values are supported by repeating the parameter.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="bpfman.io/v1alpha1.TcProgramSpec">TcProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.TcProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.TcProgram">TcProgram</a>)
+</p>
+<p>
+<p>TcProgramSpec defines the desired state of TcProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>TcProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TcProgramInfo">
+TcProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>TcProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="bpfman.io/v1alpha1.TcProgramStatus">TcProgramStatus
 <a class="headerlink" href="#bpfman.io%2fv1alpha1.TcProgramStatus" title="Permanent link">¶</a>
 </h3>
@@ -3539,29 +4093,31 @@ Multiple values are supported by repeating the parameter.</p>
 <tbody>
 <tr>
 <td>
-<code>conditions</code></br>
+<code>BpfProgramStatusCommon</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
-[]Kubernetes meta/v1.Condition
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
 </a>
 </em>
 </td>
 <td>
-<p>Conditions houses the global cluster state for the TcProgram. The explicit
-condition types are defined internally.</p>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </tbody>
 </table>
-<h3 id="bpfman.io/v1alpha1.TracepointProgramSpec">TracepointProgramSpec
-<a class="headerlink" href="#bpfman.io%2fv1alpha1.TracepointProgramSpec" title="Permanent link">¶</a>
+<h3 id="bpfman.io/v1alpha1.TracepointProgramInfo">TracepointProgramInfo
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.TracepointProgramInfo" title="Permanent link">¶</a>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#bpfman.io/v1alpha1.TracepointProgram">TracepointProgram</a>)
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>, 
+<a href="#bpfman.io/v1alpha1.TracepointProgramSpec">TracepointProgramSpec</a>)
 </p>
 <p>
-<p>TracepointProgramSpec defines the desired state of TracepointProgram</p>
+<p>TracepointProgramInfo defines the Tracepoint program details</p>
 </p>
 <table>
 <thead>
@@ -3600,6 +4156,56 @@ bpf program to.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="bpfman.io/v1alpha1.TracepointProgramSpec">TracepointProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.TracepointProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.TracepointProgram">TracepointProgram</a>)
+</p>
+<p>
+<p>TracepointProgramSpec defines the desired state of TracepointProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>TracepointProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TracepointProgramInfo">
+TracepointProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>TracepointProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="bpfman.io/v1alpha1.TracepointProgramStatus">TracepointProgramStatus
 <a class="headerlink" href="#bpfman.io%2fv1alpha1.TracepointProgramStatus" title="Permanent link">¶</a>
 </h3>
@@ -3620,29 +4226,31 @@ bpf program to.</p>
 <tbody>
 <tr>
 <td>
-<code>conditions</code></br>
+<code>BpfProgramStatusCommon</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
-[]Kubernetes meta/v1.Condition
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
 </a>
 </em>
 </td>
 <td>
-<p>Conditions houses the global cluster state for the TracepointProgram. The explicit
-condition types are defined internally.</p>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </tbody>
 </table>
-<h3 id="bpfman.io/v1alpha1.UprobeProgramSpec">UprobeProgramSpec
-<a class="headerlink" href="#bpfman.io%2fv1alpha1.UprobeProgramSpec" title="Permanent link">¶</a>
+<h3 id="bpfman.io/v1alpha1.UprobeProgramInfo">UprobeProgramInfo
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.UprobeProgramInfo" title="Permanent link">¶</a>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#bpfman.io/v1alpha1.UprobeProgram">UprobeProgram</a>)
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>, 
+<a href="#bpfman.io/v1alpha1.UprobeProgramSpec">UprobeProgramSpec</a>)
 </p>
 <p>
-<p>UprobeProgramSpec defines the desired state of UprobeProgram</p>
+<p>UprobeProgramInfo contains the information about the uprobe program</p>
 </p>
 <table>
 <thead>
@@ -3748,6 +4356,56 @@ impact on on the cluster.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="bpfman.io/v1alpha1.UprobeProgramSpec">UprobeProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.UprobeProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.UprobeProgram">UprobeProgram</a>)
+</p>
+<p>
+<p>UprobeProgramSpec defines the desired state of UprobeProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>UprobeProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.UprobeProgramInfo">
+UprobeProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>UprobeProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="bpfman.io/v1alpha1.UprobeProgramStatus">UprobeProgramStatus
 <a class="headerlink" href="#bpfman.io%2fv1alpha1.UprobeProgramStatus" title="Permanent link">¶</a>
 </h3>
@@ -3768,16 +4426,17 @@ impact on on the cluster.</p>
 <tbody>
 <tr>
 <td>
-<code>conditions</code></br>
+<code>BpfProgramStatusCommon</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
-[]Kubernetes meta/v1.Condition
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
 </a>
 </em>
 </td>
 <td>
-<p>Conditions houses the global cluster state for the UprobeProgram. The explicit
-condition types are defined internally.</p>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </tbody>
@@ -3787,19 +4446,20 @@ condition types are defined internally.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#bpfman.io/v1alpha1.XdpProgramSpec">XdpProgramSpec</a>)
+<a href="#bpfman.io/v1alpha1.XdpProgramInfo">XdpProgramInfo</a>)
 </p>
 <p>
 </p>
-<h3 id="bpfman.io/v1alpha1.XdpProgramSpec">XdpProgramSpec
-<a class="headerlink" href="#bpfman.io%2fv1alpha1.XdpProgramSpec" title="Permanent link">¶</a>
+<h3 id="bpfman.io/v1alpha1.XdpProgramInfo">XdpProgramInfo
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.XdpProgramInfo" title="Permanent link">¶</a>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#bpfman.io/v1alpha1.XdpProgram">XdpProgram</a>)
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>, 
+<a href="#bpfman.io/v1alpha1.XdpProgramSpec">XdpProgramSpec</a>)
 </p>
 <p>
-<p>XdpProgramSpec defines the desired state of XdpProgram</p>
+<p>XdpProgramInfo defines the common fields for all XdpProgram types</p>
 </p>
 <table>
 <thead>
@@ -3864,6 +4524,56 @@ from 0 to 1000 where lower values have higher precedence.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="bpfman.io/v1alpha1.XdpProgramSpec">XdpProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.XdpProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.XdpProgram">XdpProgram</a>)
+</p>
+<p>
+<p>XdpProgramSpec defines the desired state of XdpProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>XdpProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.XdpProgramInfo">
+XdpProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>XdpProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="bpfman.io/v1alpha1.XdpProgramStatus">XdpProgramStatus
 <a class="headerlink" href="#bpfman.io%2fv1alpha1.XdpProgramStatus" title="Permanent link">¶</a>
 </h3>
@@ -3884,16 +4594,17 @@ from 0 to 1000 where lower values have higher precedence.</p>
 <tbody>
 <tr>
 <td>
-<code>conditions</code></br>
+<code>BpfProgramStatusCommon</code></br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
-[]Kubernetes meta/v1.Condition
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
 </a>
 </em>
 </td>
 <td>
-<p>Conditions houses the global cluster state for the XdpProgram. The explicit
-condition types are defined internally.</p>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 </tbody>
