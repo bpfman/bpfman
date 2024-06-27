@@ -34,10 +34,12 @@ import (
 
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 )
 
-//+kubebuilder:rbac:groups=bpfman.io,resources=xdpprograms,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfman.io,resources=xdpprograms,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=bpfman.io,resources=xdpprograms/status,verbs=get;list;update;patch
 
 // BpfProgramReconciler reconciles a BpfProgram object
 type XdpProgramReconciler struct {
@@ -86,6 +88,36 @@ func (r *XdpProgramReconciler) setCurrentProgram(program client.Object) error {
 	}
 
 	return nil
+}
+
+func (r *XdpProgramReconciler) getNodeStatus(ctx context.Context) []bpfmaniov1alpha1.NodeStatusEntry {
+	// Update the current program
+	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.currentXdpProgram.GetName()}, r.currentXdpProgram); err != nil {
+		r.Logger.Error(err, "Failed to get XdpProgram")
+	}
+	return r.currentXdpProgram.Status.NodeStatus
+}
+
+func (r *XdpProgramReconciler) setNodeStatus(ctx context.Context, nodeStatus []bpfmaniov1alpha1.NodeStatusEntry) error {
+	patch := client.MergeFrom(r.currentXdpProgram.DeepCopy())
+	r.currentXdpProgram.Status.NodeStatus = nodeStatus
+
+	if err := r.Status().Patch(ctx, r.currentXdpProgram, patch); err != nil {
+		r.Logger.Info("Failed to update NodeStatus for Program", "Reason", err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *XdpProgramReconciler) updateNodeCondition(ctx context.Context, status bpfmaniov1alpha1.NodeStatusType) {
+	r.Logger.V(1).Info("updateNodeCondition()", "existing NodeCondition", r.currentXdpProgram.Status.NodeConditions, "new conditions", status)
+
+	meta.SetStatusCondition(&r.currentXdpProgram.Status.NodeConditions, status.NSCondition(r.NodeName))
+
+	if err := r.Status().Update(ctx, r.currentXdpProgram); err != nil {
+		r.Logger.Error(err, "failed to set XdpProgram Node Condition")
+	}
 }
 
 // Must match with bpfman internal types

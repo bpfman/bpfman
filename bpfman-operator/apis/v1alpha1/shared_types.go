@@ -83,6 +83,12 @@ type BpfProgramCommon struct {
 	MapOwnerSelector metav1.LabelSelector `json:"mapownerselector"`
 }
 
+type NodeStatusEntry struct {
+	// NodeName is the name of the node.
+	NodeName string `json:"nodename"`
+	Status   string `json:"status"`
+}
+
 // PullPolicy describes a policy for if/when to pull a container image
 // +kubebuilder:validation:Enum=Always;Never;IfNotPresent
 type PullPolicy string
@@ -352,3 +358,61 @@ func (b BpfProgramConditionType) Condition() metav1.Condition {
 
 	return cond
 }
+
+func (s NodeStatusType) NSCondition(nodeName string) metav1.Condition {
+	var cond metav1.Condition
+
+	switch s {
+	case NodeStatusSuccess:
+		cond = metav1.Condition{
+			Type:    nodeName,
+			Status:  metav1.ConditionTrue,
+			Reason:  string(NodeStatusSuccess),
+			Message: "Successfully reconciled program on node",
+		}
+	case NodeStatusInProgress:
+		cond = metav1.Condition{
+			Type:    nodeName,
+			Status:  metav1.ConditionTrue,
+			Reason:  string(NodeStatusInProgress),
+			Message: "Program reconciliation in progress on node",
+		}
+	case NodeStatusError:
+		cond = metav1.Condition{
+			Type:    nodeName,
+			Status:  metav1.ConditionTrue,
+			Reason:  string(NodeStatusError),
+			Message: "One or more bpfPrograms failed to reconcile on node",
+		}
+	default:
+		cond = metav1.Condition{
+			Type:    nodeName,
+			Status:  metav1.ConditionTrue,
+			Reason:  string(s),
+			Message: "Invalid status provided",
+		}
+	}
+
+	return cond
+}
+
+// constants defining the agregate node status for the BpfPrograms created for
+// a given *Program on a given node.  The values are Success, InProgress, or Error.
+type NodeStatusType string
+
+const (
+	// NodeStatusSuccess indicates that all BpfPrograms for a given *Program
+	// have been successfully reconciled on the node.
+	NodeStatusSuccess NodeStatusType = "Success"
+
+	// NodeStatusInProgress indicates that one or more BpfPrograms for a given
+	// *Program are still in the process of being reconciled on the node.
+	NodeStatusInProgress NodeStatusType = "InProgress"
+
+	// NodeStatusError indicates indicates that one or more BpfPrograms for a
+	// given *Program have failed on the node.
+	NodeStatusError NodeStatusType = "Error"
+
+	// NodeStatusUnknown is an initial state.
+	NodeStatusUnknown NodeStatusType = "Unknown"
+)

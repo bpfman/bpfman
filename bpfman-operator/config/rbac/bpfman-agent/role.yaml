@@ -38,6 +38,8 @@ rules:
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - bpfman.io
@@ -48,11 +50,31 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - fentryprograms/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
   - fexitprograms
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
+- apiGroups:
+  - bpfman.io
+  resources:
+  - fexitprograms/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
 - apiGroups:
   - bpfman.io
   resources:
@@ -66,6 +88,8 @@ rules:
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - bpfman.io
@@ -76,10 +100,21 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - kprobeprograms/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
   - tcprograms
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - bpfman.io
@@ -90,10 +125,21 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - tcprograms/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
   - tracepointprograms
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - bpfman.io
@@ -104,10 +150,21 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - tracepointprograms/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
   - uprobeprograms
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - bpfman.io
@@ -118,16 +175,36 @@ rules:
 - apiGroups:
   - bpfman.io
   resources:
+  - uprobeprograms/status
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
   - xdpprograms
   verbs:
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - bpfman.io
   resources:
   - xdpprograms/finalizers
   verbs:
+  - update
+- apiGroups:
+  - bpfman.io
+  resources:
+  - xdpprograms/status
+  verbs:
+  - get
+  - list
+  - patch
   - update
 - apiGroups:
   - ""

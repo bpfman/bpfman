@@ -27,6 +27,7 @@ import (
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -37,7 +38,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-//+kubebuilder:rbac:groups=bpfman.io,resources=fexitprograms,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfman.io,resources=fexitprograms,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=bpfman.io,resources=fexitprograms/status,verbs=get;list;update;patch
 
 // BpfProgramReconciler reconciles a BpfProgram object
 type FexitProgramReconciler struct {
@@ -79,6 +81,36 @@ func (r *FexitProgramReconciler) setCurrentProgram(program client.Object) error 
 	}
 
 	return nil
+}
+
+func (r *FexitProgramReconciler) getNodeStatus(ctx context.Context) []bpfmaniov1alpha1.NodeStatusEntry {
+	// Update the current program
+	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.currentFexitProgram.GetName()}, r.currentFexitProgram); err != nil {
+		r.Logger.Error(err, "Failed to get FexitProgram")
+	}
+	return r.currentFexitProgram.Status.NodeStatus
+}
+
+func (r *FexitProgramReconciler) setNodeStatus(ctx context.Context, nodeStatus []bpfmaniov1alpha1.NodeStatusEntry) error {
+	patch := client.MergeFrom(r.currentFexitProgram.DeepCopy())
+	r.currentFexitProgram.Status.NodeStatus = nodeStatus
+
+	if err := r.Status().Patch(ctx, r.currentFexitProgram, patch); err != nil {
+		r.Logger.Info("Failed to update NodeStatus for Program", "Reason", err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *FexitProgramReconciler) updateNodeCondition(ctx context.Context, status bpfmaniov1alpha1.NodeStatusType) {
+	r.Logger.V(1).Info("updateNodeCondition()", "existing NodeCondition", r.currentFexitProgram.Status.NodeConditions, "new conditions", status)
+
+	meta.SetStatusCondition(&r.currentFexitProgram.Status.NodeConditions, status.NSCondition(r.NodeName))
+
+	if err := r.Status().Update(ctx, r.currentFexitProgram); err != nil {
+		r.Logger.Error(err, "failed to set FexitProgram Node Condition")
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.

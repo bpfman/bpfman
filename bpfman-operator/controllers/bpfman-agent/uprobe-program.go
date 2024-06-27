@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -40,7 +41,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-//+kubebuilder:rbac:groups=bpfman.io,resources=uprobeprograms,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfman.io,resources=uprobeprograms,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=bpfman.io,resources=uprobeprograms/status,verbs=get;list;update;patch
 
 // BpfProgramReconciler reconciles a BpfProgram object
 type UprobeProgramReconciler struct {
@@ -82,6 +84,36 @@ func (r *UprobeProgramReconciler) setCurrentProgram(program client.Object) error
 	}
 
 	return nil
+}
+
+func (r *UprobeProgramReconciler) getNodeStatus(ctx context.Context) []bpfmaniov1alpha1.NodeStatusEntry {
+	// Update the current program
+	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.currentUprobeProgram.GetName()}, r.currentUprobeProgram); err != nil {
+		r.Logger.Error(err, "Failed to get UprobeProgram")
+	}
+	return r.currentUprobeProgram.Status.NodeStatus
+}
+
+func (r *UprobeProgramReconciler) setNodeStatus(ctx context.Context, nodeStatus []bpfmaniov1alpha1.NodeStatusEntry) error {
+	patch := client.MergeFrom(r.currentUprobeProgram.DeepCopy())
+	r.currentUprobeProgram.Status.NodeStatus = nodeStatus
+
+	if err := r.Status().Patch(ctx, r.currentUprobeProgram, patch); err != nil {
+		r.Logger.Info("Failed to update NodeStatus for Program", "Reason", err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *UprobeProgramReconciler) updateNodeCondition(ctx context.Context, status bpfmaniov1alpha1.NodeStatusType) {
+	r.Logger.V(1).Info("updateNodeCondition()", "existing NodeCondition", r.currentUprobeProgram.Status.NodeConditions, "new conditions", status)
+
+	meta.SetStatusCondition(&r.currentUprobeProgram.Status.NodeConditions, status.NSCondition(r.NodeName))
+
+	if err := r.Status().Update(ctx, r.currentUprobeProgram); err != nil {
+		r.Logger.Error(err, "failed to set Uprobe Program Node Condition")
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.

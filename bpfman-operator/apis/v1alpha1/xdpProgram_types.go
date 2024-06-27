@@ -79,6 +79,25 @@ type XdpProgramStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+
+	// NodeStatus holds the  aggregate status of all BpfProgrms on each node,
+	// and is updated by the bpfman agent controller on each node. The possible
+	// status values are Success, InProgress, and Error.
+	// +patchMergeKey=nodename
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=nodename
+	NodeStatus []NodeStatusEntry `json:"nodestatus,omitempty" patchStrategy:"merge" patchMergeKey:"nodename" protobuf:"bytes,2,rep,name=nodesstatus"`
+
+	// NodeConditions holds the  aggregate status of all BpfProgrms on each
+	// node, and is updated by the bpfman agent controller on each node. The
+	// type of the condition is the node name and the reason holds the status.
+	// The possible status values are Success, InProgress, and Error.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
+	NodeConditions []metav1.Condition `json:"nodeconditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,3,rep,name=nodeconditions"`
 }
 
 // +kubebuilder:object:root=true

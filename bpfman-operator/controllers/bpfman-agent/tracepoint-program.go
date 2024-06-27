@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -39,7 +40,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-//+kubebuilder:rbac:groups=bpfman.io,resources=tracepointprograms,verbs=get;list;watch
+//+kubebuilder:rbac:groups=bpfman.io,resources=tracepointprograms,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=bpfman.io,resources=tracepointprograms/status,verbs=get;list;update;patch
 
 // BpfProgramReconciler reconciles a BpfProgram object
 type TracepointProgramReconciler struct {
@@ -81,6 +83,36 @@ func (r *TracepointProgramReconciler) setCurrentProgram(program client.Object) e
 	}
 
 	return nil
+}
+
+func (r *TracepointProgramReconciler) getNodeStatus(ctx context.Context) []bpfmaniov1alpha1.NodeStatusEntry {
+	// Update the current program
+	if err := r.Get(ctx, types.NamespacedName{Namespace: v1.NamespaceAll, Name: r.currentTracepointProgram.GetName()}, r.currentTracepointProgram); err != nil {
+		r.Logger.Error(err, "Failed to get TracepointProgram")
+	}
+	return r.currentTracepointProgram.Status.NodeStatus
+}
+
+func (r *TracepointProgramReconciler) setNodeStatus(ctx context.Context, nodeStatus []bpfmaniov1alpha1.NodeStatusEntry) error {
+	patch := client.MergeFrom(r.currentTracepointProgram.DeepCopy())
+	r.currentTracepointProgram.Status.NodeStatus = nodeStatus
+
+	if err := r.Status().Patch(ctx, r.currentTracepointProgram, patch); err != nil {
+		r.Logger.Info("Failed to update NodeStatus for Program", "Reason", err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *TracepointProgramReconciler) updateNodeCondition(ctx context.Context, status bpfmaniov1alpha1.NodeStatusType) {
+	r.Logger.V(1).Info("updateNodeCondition()", "existing NodeCondition", r.currentTracepointProgram.Status.NodeConditions, "new conditions", status)
+
+	meta.SetStatusCondition(&r.currentTracepointProgram.Status.NodeConditions, status.NSCondition(r.NodeName))
+
+	if err := r.Status().Update(ctx, r.currentTracepointProgram); err != nil {
+		r.Logger.Error(err, "failed to set Tracepoint Program Node Condition")
+	}
 }
 
 // SetupWithManager sets up the controller with the Manager.

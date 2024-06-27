@@ -39,6 +39,7 @@ import (
 	bpfmaniov1alpha1 "github.com/bpfman/bpfman/bpfman-operator/apis/v1alpha1"
 	bpfmanagentinternal "github.com/bpfman/bpfman/bpfman-operator/controllers/bpfman-agent/internal"
 	"github.com/bpfman/bpfman/bpfman-operator/internal"
+	bpfmanHelpers "github.com/bpfman/bpfman/bpfman-operator/pkg/helpers"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	"github.com/go-logr/logr"
 	"google.golang.org/grpc"
@@ -112,7 +113,13 @@ type bpfmanReconciler interface {
 	// setCurrentProgram sets the current *Program for the reconciler as well as
 	// any other related state needed.
 	setCurrentProgram(program client.Object) error
+	// TODO: Document the functions we keep.
+	getNodeStatus(ctx context.Context) []bpfmaniov1alpha1.NodeStatusEntry
+	setNodeStatus(ctx context.Context, nodeStatus []bpfmaniov1alpha1.NodeStatusEntry) error
+	updateNodeCondition(ctx context.Context, status bpfmaniov1alpha1.NodeStatusType)
 }
+
+// rec bpfmanReconciler
 
 // reconcileCommon is the common reconciler loop called by each bpfman
 // reconciler.  It reconciles each program in the list.  reconcileCommon should
@@ -150,13 +157,36 @@ func (r *ReconcilerCommon) reconcileCommon(ctx context.Context, rec bpfmanReconc
 
 		switch result {
 		case internal.Unchanged:
-			// continue with next program
+			// This program is done.  Update the node status and continue with
+			// next program.
+			var err error
+			if r.anyBpfProgramsFailed(ctx, program) {
+				_, err = r.updateNodeStatus(ctx, rec, string(bpfmaniov1alpha1.NodeStatusError))
+				rec.updateNodeCondition(ctx, bpfmaniov1alpha1.NodeStatusError)
+			} else {
+				_, err = r.updateNodeStatus(ctx, rec, string(bpfmaniov1alpha1.NodeStatusSuccess))
+				rec.updateNodeCondition(ctx, bpfmaniov1alpha1.NodeStatusSuccess)
+			}
+			if err != nil {
+				r.Logger.Error(err, "Failed to update node status")
+				requeue = true
+			}
 		case internal.Updated:
+			_, err = r.updateNodeStatus(ctx, rec, string(bpfmaniov1alpha1.NodeStatusInProgress))
+			if err != nil {
+				r.Logger.Error(err, "Failed to update node status")
+			}
+			rec.updateNodeCondition(ctx, bpfmaniov1alpha1.NodeStatusInProgress)
 			// return
 			return ctrl.Result{Requeue: false}, nil
 		case internal.Requeue:
 			// remember to do a requeue when we're done and continue with next program
 			requeue = true
+			_, err = r.updateNodeStatus(ctx, rec, string(bpfmaniov1alpha1.NodeStatusInProgress))
+			if err != nil {
+				r.Logger.Error(err, "Failed to update node status")
+			}
+			rec.updateNodeCondition(ctx, bpfmaniov1alpha1.NodeStatusInProgress)
 		}
 	}
 
@@ -168,6 +198,70 @@ func (r *ReconcilerCommon) reconcileCommon(ctx context.Context, rec bpfmanReconc
 		// updated and a reque has not been requested.
 		return ctrl.Result{Requeue: false}, nil
 	}
+}
+
+// Returns true if any of the BpfPrograms associated with the given *Program have failed.
+func (r *ReconcilerCommon) anyBpfProgramsFailed(ctx context.Context, program client.Object) bool {
+	bpfPrograms, _ := r.getExistingBpfPrograms(ctx, program)
+	for _, bpfProgram := range bpfPrograms {
+		if bpfmanHelpers.IsBpfProgramConditionFailure(&bpfProgram.Status.Conditions) {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *ReconcilerCommon) updateNodeStatus(ctx context.Context, rec bpfmanReconciler, status string) (bool, error) {
+	nodeStatus := rec.getNodeStatus(ctx)
+	nodeName := rec.getNode().Name
+	updateNeeded := false
+	nodeFound := false
+	currentStatus := string(bpfmaniov1alpha1.NodeStatusUnknown)
+
+	var index int
+	if len(nodeStatus) == 0 {
+		updateNeeded = true
+	} else {
+		for i, node := range nodeStatus {
+			if node.NodeName == nodeName {
+				nodeFound = true
+				if node.Status == status {
+					// No change needed
+					break
+				} else {
+					// Update Needed
+					updateNeeded = true
+					currentStatus = node.Status
+					index = i
+					break
+				}
+			}
+		}
+	}
+	if !nodeFound {
+		updateNeeded = true
+	}
+
+	if updateNeeded {
+		nodeStatusCopy := make([]bpfmaniov1alpha1.NodeStatusEntry, len(nodeStatus))
+		copy(nodeStatusCopy, nodeStatus)
+		if nodeFound {
+			nodeStatusCopy[index].Status = status
+		} else {
+			nodeStatusCopy = append(nodeStatusCopy, bpfmaniov1alpha1.NodeStatusEntry{NodeName: nodeName, Status: status})
+		}
+		r.Logger.Info("Updating node status", "NodeName", rec.getNode().Name, "ProgramName", rec.getName(),
+			"Old Status", currentStatus, "New Status", status)
+		if err := rec.setNodeStatus(ctx, nodeStatusCopy); err != nil {
+			r.Logger.Info("Failed to update NodeStatus for Program", "Reason", err)
+			return false, err
+		}
+		return true, nil
+	}
+
+	r.Logger.V(1).Info("updateNodStatus called. No update needed", "NodeName", rec.getNode().Name,
+		"ProgramName", rec.getName(), "Status", status)
+	return false, nil
 }
 
 // reconcileBpfmanPrograms ONLY reconciles the bpfman state for a single BpfProgram.
