@@ -29,7 +29,7 @@ jobs:
 
       - name: Build API docs
         run: |
-          make -C bpfman-operator apidocs.html
+          ./scripts/api-docs/generate.sh apidocs.html
 
       - name: Configure Git user
         run: |
