@@ -57,13 +57,13 @@ bpfman does provide a few image builder commands to make this whole process easi
 
 An Example Containerfile can be found at `/packaging/container/deployment/Containerfile.bytecode`
 
-#### Host Platform Image Build
+#### Host Platform Architecture Image Build
 
 ```console
 bpfman image build -b ./examples/go-xdp-counter/bpf_bpfel.o -f Containerfile.bytecode --tag quay.io/<USER>/go-xdp-counter
 ```
 
-Where `./examples/go-xdp-counter/bpf_bpfel.o` is the directory the bytecode object file is located.
+Where `./examples/go-xdp-counter/bpf_x86_bpfel.o` is the directory the bytecode object file is located.
 
 Users can also use `skopeo` to ensure the image follows the
 backwards compatible version of the spec:
@@ -102,6 +102,12 @@ skopeo inspect docker://quay.io/bpfman-bytecode/go-xdp-counter
         "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
     ]
 }
+```
+
+#### Multi-Architecture Image build
+
+```console
+bpfman image build --bc-amd64-el ./examples/go-xdp-counter/bpf_x86_bpfel.o --bc-arm64-el ./examples/go-xdp-counter/bpf_arm64_bpfel.o --bc-s390-eb ./examples/go-xdp-counter/bpf_s390_bpfeb.o --bc-powerpc-el ./examples/go-xdp-counter/bpf_powerpc_bpfel.o -f Containerfile.bytecode --tag quay.io/<USER>/go-xdp-counter
 ```
 
 ## Custom OCI compatible spec

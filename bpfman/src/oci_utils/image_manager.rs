@@ -465,6 +465,30 @@ mod tests {
 
     #[tokio::test]
     async fn image_pull_and_bytecode_verify() {
+        let root_db = init_database(get_db_config())
+            .await
+            .expect("Unable to open root database for unit test");
+        let mut mgr = ImageManager::new(true).await.unwrap();
+        let (image_content_key, _) = mgr
+            .get_image(
+                &root_db,
+                "quay.io/bpfman-bytecode/go-xdp-counter:latest",
+                ImagePullPolicy::Always,
+                None,
+                None,
+            )
+            .await
+            .expect("failed to pull bytecode");
+
+        let program_bytes = mgr
+            .get_bytecode_from_image_store(&root_db, image_content_key)
+            .expect("failed to get bytecode from image store");
+
+        assert!(!program_bytes.is_empty())
+    }
+
+    #[tokio::test]
+    async fn multi_arch_image_pull_and_bytecode_verify() {
         env_logger::init();
 
         let root_db = init_database(get_db_config())
@@ -474,7 +498,7 @@ mod tests {
         let (image_content_key, _) = mgr
             .get_image(
                 &root_db,
-                "quay.io/bpfman-bytecode/go-xdp-counter:latest",
+                "quay.io/astoycos/go-xdp-counter-multi:latest",
                 ImagePullPolicy::Always,
                 None,
                 None,

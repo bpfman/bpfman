@@ -309,10 +309,11 @@ pub(crate) struct GetArgs {
 
 #[derive(Subcommand, Debug)]
 #[command(disable_version_flag = true)]
+#[allow(clippy::large_enum_variant)]
 pub(crate) enum ImageSubCommand {
     /// Pull an eBPF bytecode image from a remote registry.
     Pull(PullBytecodeArgs),
-    /// Build an eBPF bytecode image from local bytecode objects.
+    /// Build an eBPF bytecode image from local bytecode objects, and push to a registry.
     Build(BuildBytecodeArgs),
     /// Generate the OCI image labels for a given bytecode file.
     GenerateBuildArgs(GenerateArgs),
@@ -384,10 +385,8 @@ impl FromStr for GoArch {
 #[derive(Args, Debug)]
 #[command(disable_version_flag = true)]
 pub(crate) struct BuildBytecodeArgs {
-    /// Required: Dockerfile to use for building the image.
-    /// Example: --file Containerfile.bytecode
-    #[clap(short, long, verbatim_doc_comment)]
-    pub(crate) bytecode_file: PathBuf,
+    #[clap(flatten)]
+    pub(crate) bytecode_file: BytecodeFile,
 
     /// Required: Name and optionally a tag in the name:tag format.
     /// Example: --tag quay.io/bpfman-bytecode/xdp_pass:latest
@@ -398,8 +397,96 @@ pub(crate) struct BuildBytecodeArgs {
     /// Example: --file Containerfile.bytecode
     #[clap(short = 'f', long, verbatim_doc_comment)]
     pub(crate) container_file: PathBuf,
+
+    /// Optional: Container runtime to use, works with docker or podman, defaults to docker
+    /// Example: --runtime podman
+    #[clap(short, long, verbatim_doc_comment)]
+    pub(crate) runtime: Option<String>,
 }
 
+#[derive(Args, Debug)]
+//#[group(required = true, multiple = false)]
+#[command(disable_version_flag = true)]
+pub(crate) struct BytecodeFile {
+    /// Optional: bytecode file to use for building the image assuming host architecture.
+    /// Example: -b ./bpf_x86_bpfel.o
+    #[clap(short, long, verbatim_doc_comment)]
+    pub(crate) bytecode_file: Option<PathBuf>,
+
+    /// Optional: bytecode files used for building a multi-arch image.
+    /// Example: --bc-amd64-el ./examples/go-xdp-counter/bpf_x86_bpfel.o
+    #[clap(flatten)]
+    pub(crate) bytecode_file_arch: Option<BytecodeFileArch>,
+}
+
+#[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) struct BytecodeFileArch {
+    /// Optional: bytecode file to use for building the image assuming amd64 architecture.
+    /// Example: --bc-386-el ./examples/go-xdp-counter/bpf_386_bpfel.o
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) bc_386_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming amd64 architecture.
+    /// Example: --bc-amd64-el ./examples/go-xdp-counter/bpf_x86_bpfel.o
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) bc_amd64_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming arm architecture.
+    /// Example: --bc-arm-el ./examples/go-xdp-counter/bpf_arm_bpfel.o
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) bc_arm_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming arm64 architecture.
+    /// Example: --bc-arm64-el ./examples/go-xdp-counter/bpf_arm64_bpfel.o
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) bc_arm64_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming loong64 architecture.
+    /// Example: --bc-loong64-el ./examples/go-xdp-counter/bpf_loong64_bpfel.o
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) bc_loong64_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming mips architecture.
+    /// Example: --bc-mips-eb ./examples/go-xdp-counter/bpf_mips_bpfeb.o
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) bc_mips_eb: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming mipsle architecture.
+    /// Example: --bc-mipsle-el ./examples/go-xdp-counter/bpf_mipsle_bpfel.o
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) bc_mipsle_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming mips64 architecture.
+    /// Example: --bc-mips64-eb ./examples/go-xdp-counter/bpf_mips64_bpfeb.o
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) bc_mips64_eb: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming mips64le architecture.
+    /// Example: --bc-mips64le-el ./examples/go-xdp-counter/bpf_mips64le_bpfel.o
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) bc_mips64le_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming ppc64 architecture.
+    /// Example: --bc-ppc64-eb ./examples/go-xdp-counter/bpf_ppc64_bpfeb.o
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) bc_ppc64_eb: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming ppc64le architecture.
+    /// Example: --bc-ppc64le-el ./examples/go-xdp-counter/bpf_ppc64le_bpfel.o
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) bc_ppc64le_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming riscv64 architecture.
+    /// Example: --bc-riscv64-el ./examples/go-xdp-counter/bpf_riscv64_bpfel.o
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) bc_riscv64_el: Option<PathBuf>,
+
+    /// Optional: bytecode file to use for building the image assuming s390x architecture.
+    /// Example: --bc-s390x-eb ./examples/go-xdp-counter/bpf_s390x_bpfeb.o
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) bc_s390x_eb: Option<PathBuf>,
+}
 #[derive(Args, Debug)]
 #[command(disable_version_flag = true)]
 pub(crate) struct GenerateArgs {
