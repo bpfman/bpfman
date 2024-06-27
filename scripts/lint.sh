@@ -1,5 +1,7 @@
 #!/bin/bash
 
+readonly GOLANGCI_LINT_VERSION="v1.54.2"
+
 lint_all() {
     echo "### Linting yaml"
     if command -v prettier &>/dev/null; then
@@ -23,7 +25,11 @@ lint_all() {
     cargo +nightly fmt --all -- --check
     cargo +nightly clippy --all -- --deny warnings
     echo "### Linting golang code"
-    golangci-lint run ../bpfman-operator/... ../examples/...
+    # See configuration file in .golangci.yml.
+    docker run --rm -v $(pwd)/examples:/bpfman/examples -v $(pwd)/clients:/bpfman/clients \
+        -v $(pwd)/go.mod:/bpfman/go.mod -v $(pwd)/go.sum:/bpfman/go.sum  \
+        -v $(pwd)/.golangci.yaml:/bpfman/.golangci.yaml --security-opt="label=disable" -e GOLANGCI_LINT_CACHE=/cache \
+        -w /bpfman "golangci/golangci-lint:$GOLANGCI_LINT_VERSION" golangci-lint run -v --enable=gofmt,typecheck --timeout 5m
     echo "### Linting bpf c code"
     git ls-files -- '*.c' '*.h' | xargs clang-format --dry-run --Werror
 }

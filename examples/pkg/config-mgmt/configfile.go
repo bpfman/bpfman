@@ -39,7 +39,7 @@ func CreateConnection(ctx context.Context) (*grpc.ClientConn, error) {
 	addr = fmt.Sprintf("unix://%s", DefaultPath)
 	local_creds = insecure.NewCredentials()
 
-	conn, err := grpc.DialContext(ctx, addr, grpc.WithTransportCredentials(local_creds))
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(local_creds))
 	if err == nil {
 		return conn, nil
 	}

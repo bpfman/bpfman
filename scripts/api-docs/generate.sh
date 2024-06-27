@@ -34,7 +34,7 @@ gendoc::build() {
 
 # Exec the doc generator.
 gendoc::exec() {
-    local readonly confdir="${REPO}/hack/api-docs"
+    local readonly confdir="${REPO}/scripts/api-docs"
 
     ${GOBIN}/gen-crd-api-reference-docs \
         -template-dir ${confdir} \
@@ -49,5 +49,5 @@ fi
 
 gendoc::build
 gendoc::exec \
-    -api-dir "github.com/bpfman/bpfman/bpfman-operator/apis/" \
+    -api-dir "github.com/bpfman/bpfman-operator/apis/" \
     -out-file "${1}"

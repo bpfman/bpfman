@@ -9,7 +9,7 @@ import (
 	"log"
 	"time"
 
-	bpfmanHelpers "github.com/bpfman/bpfman/bpfman-operator/pkg/helpers"
+	bpfmanHelpers "github.com/bpfman/bpfman-operator/pkg/helpers"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	configMgmt "github.com/bpfman/bpfman/examples/pkg/config-mgmt"
 	"github.com/cilium/ebpf"

@@ -51,7 +51,7 @@ The file
 documents the CRDs used in a Kubernetes deployment.
 The contents are auto-generated when PRs are pushed to Github.
 
-The contents can be generated locally by running the command `make -C bpfman-operator apidocs.html` from the root bpfman directory.
+The contents can be generated locally by running the command `./scripts/api-docs/generate.sh apidocs.html` from the root bpfman directory.
 
 ## Generate Documentation
 

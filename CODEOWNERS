@@ -1,10 +1,7 @@
 * @bpfman/bpfman-maintainers
 
-./bpfman @dave-tucker
+./bpfman @dave-tucker @astoycos
 ./bpfman/src/oci_utils @astoycos
 ./bpfman/src/multiprog/tc.rs @anfredette
-./bpfman/src/certs.rs @Billy99
-./bpfman-api @dave-tucker
-./bpfman-operator @astoycos
-./examples/go-tc-counter @anfredette
-./examples/go-xdp-counter @Billy99
+./bpfman-api @dave-tucker @astoycos
+./examples @Billy99
