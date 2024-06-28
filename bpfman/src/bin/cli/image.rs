@@ -19,7 +19,9 @@ use bpfman::{
 use log::{debug, warn};
 use object::Endianness;
 
-use crate::args::{BuildBytecodeArgs, GenerateArgs, ImageSubCommand, PullBytecodeArgs};
+use crate::args::{
+    BuildBytecodeArgs, BytecodeFile, GenerateArgs, GoArch, ImageSubCommand, PullBytecodeArgs,
+};
 
 impl ImageSubCommand {
     pub(crate) async fn execute(&self) -> anyhow::Result<()> {
@@ -75,8 +77,10 @@ pub(crate) async fn execute_build(args: &BuildBytecodeArgs) -> anyhow::Result<()
     } else {
         ContainerRuntime::new()?
     };
-
-    if let Some(bytecode_file) = &args.bytecode_file.bytecode_file {
+    
+    // host architecture image build
+    if let Some(bytecode_file) = &args.bytecode_file.bytecode {
+        debug!("building host arch bytecode image");
         // parse program data from bytecode file
         let (prog_labels, map_labels) =
             build_image_labels(bytecode_file, Some(Endianness::default()))?;
@@ -93,115 +97,170 @@ pub(crate) async fn execute_build(args: &BuildBytecodeArgs) -> anyhow::Result<()
             prog_labels,
             map_labels,
         )?;
-    } else if let Some(multi_arch_files) = &args.bytecode_file.bytecode_file_arch {
+
+        return Ok(());
+    }
+
+    // multi-architecture image build
+    let (platforms, build_args) = if let Some(project_path) =
+        &args.bytecode_file.cilium_ebpf_project
+    {
+        debug!("parsing multi-arch bytecode files from cilium eBPF project at {project_path:?}");
         // Information r.e a given platform https://github.com/containerd/containerd/blob/v1.4.3/platforms/platforms.go#L63
         let mut platforms: Vec<String> = Vec::new();
         let mut build_args: Vec<String> = Vec::new();
 
-        if let Some(bc) = &multi_arch_files.bc_386_el {
-            debug!("Found bytecode file build for 386");
-            platforms.push("linux/386".to_string());
-            build_args.push(format!("BC_386_EL={}", bc.display()));
+        for entry in fs::read_dir(project_path)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_file() && path.extension() == Some(std::ffi::OsStr::new("o")) {
+                let file_name = entry.file_name();
+                debug!("inspecting {file_name:?}");
+                let arch = if let Some(file_name) = file_name.to_str() {
+                    GoArch::from_cilium_ebpf_file_str(file_name).map_err(|e| anyhow!(e))
+                } else {
+                    return Err(anyhow!("Could not parse file name in cilium/ebpf project"));
+                }?;
+                debug!("Found bytecode file for {arch:?} in cilium/ebpf project.");
+
+                platforms.push(arch.get_platform());
+                build_args.push(arch.get_build_arg(&entry.path()));
+            }
         }
 
-        if let Some(bc) = &multi_arch_files.bc_amd64_el {
-            debug!("Found bytecode file build for amd64");
-            platforms.push("linux/amd64".to_string());
-            build_args.push(format!("BC_AMD64_EL={}", bc.display()));
-        }
+        (platforms, build_args)
+    } else {
+        debug!("parsing multi-arch bytecode files from user input");
+        args.bytecode_file.parse()
+    };
 
-        if let Some(bc) = &multi_arch_files.bc_arm_el {
-            debug!("Found bytecode file build for arm");
-            platforms.push("linux/arm".to_string());
-            build_args.push(format!("BC_ARM_EL={}", bc.display()));
-        }
-
-        if let Some(bc) = &multi_arch_files.bc_arm64_el {
-            debug!("Found bytecode file build for arm64");
-            platforms.push("linux/arm64".to_string());
-            build_args.push(format!("BC_ARM64_EL={}", bc.display()));
-        }
-
-        if let Some(bc) = &multi_arch_files.bc_loong64_el {
-            debug!("Found bytecode file build for loong64");
-            platforms.push("linux/loong64".to_string());
-            build_args.push(format!("BC_LOONG64_EL={}", bc.display()));
-        }
-
-        if let Some(bc) = &multi_arch_files.bc_mips_eb {
-            debug!("Found bytecode file build for mips");
-            platforms.push("linux/mips".to_string());
-            build_args.push(format!("BC_MIPS_EB={}", bc.display()));
-        }
-
-        if let Some(bc) = &multi_arch_files.bc_mipsle_el {
-            debug!("Found bytecode file build for mips64le");
-            platforms.push("linux/mipsle".to_string());
-            build_args.push(format!("BC_MIPSLE_EL={}", bc.display()));
-        }
-
-        if let Some(bc) = &multi_arch_files.bc_mips64_eb {
-            debug!("Found bytecode file build for mips64");
-            platforms.push("linux/mips64".to_string());
-            build_args.push(format!("BC_MIPS64_EB={}", bc.display()));
-        }
-
-        if let Some(bc) = &multi_arch_files.bc_mips64le_el {
-            debug!("Found bytecode file build for mips64le");
-            platforms.push("linux/mips64le".to_string());
-            build_args.push(format!("BC_MIPS64LE_EL={}", bc.display()));
-        }
-
-        if let Some(bc) = &multi_arch_files.bc_ppc64_eb {
-            debug!("Found bytecode file build for ppc64");
-            platforms.push("linux/ppc64".to_string());
-            build_args.push(format!("BC_PPC64_EB={}", bc.display()));
-        }
-
-        if let Some(bc) = &multi_arch_files.bc_ppc64le_el {
-            debug!("Found bytecode file build for ppc64le");
-            platforms.push("linux/ppc64le".to_string());
-            build_args.push(format!("BC_PPC64LE_EL={}", bc.display()));
-        }
-
-        if let Some(bc) = &multi_arch_files.bc_riscv64_el {
-            debug!("Found bytecode file build for riscv64");
-            platforms.push("linux/riscv64".to_string());
-            build_args.push(format!("BC_RISCV64_EL={}", bc.display()));
-        }
-
-        if let Some(bc) = &multi_arch_files.bc_s390x_eb {
-            debug!("Found bytecode file build for s390x");
-            platforms.push("linux/s390x".to_string());
-            build_args.push(format!("BC_S390X_EB={}", bc.display()));
-        }
-
-        if platforms.is_empty() || build_args.is_empty() {
-            return Err(anyhow!(
-                "No bytecode files found for building multi-arch image"
-            ));
-        }
-
-        // use first bytecode path to get the program and map labels
-        // parse program data from bytecode file
-        let first_arg: Vec<&str> = build_args[0].split('=').collect();
-        let bc_file = PathBuf::from(first_arg[1]);
-        let (prog_labels, map_labels) = if first_arg[0].contains("EL") {
-            build_image_labels(&bc_file, Some(Endianness::Little))?
-        } else {
-            build_image_labels(&bc_file, Some(Endianness::Big))?
-        };
-
-        container_tool.build_multi_arch_image(
-            &args.tag,
-            &args.container_file,
-            build_args,
-            platforms,
-            prog_labels,
-            map_labels,
-        )?;
+    if platforms.is_empty() || build_args.is_empty() {
+        return Err(anyhow!(
+            "No bytecode files found for building multi-arch image"
+        ));
     }
+
+    // use first bytecode path to get the program and map labels
+    // parse program data from bytecode file
+    let first_arg: Vec<&str> = build_args[0].split('=').collect();
+    let bc_file = PathBuf::from(first_arg[1]);
+    let (prog_labels, map_labels) = if first_arg[0].contains("EL") {
+        build_image_labels(&bc_file, Some(Endianness::Little))?
+    } else {
+        build_image_labels(&bc_file, Some(Endianness::Big))?
+    };
+
+    container_tool.build_multi_arch_image(
+        &args.tag,
+        &args.container_file,
+        build_args,
+        platforms,
+        prog_labels,
+        map_labels,
+    )?;
+
     Ok(())
+}
+
+impl BytecodeFile {
+    pub(crate) fn parse(&self) -> (Vec<String>, Vec<String>) {
+        // Information r.e a given platform https://github.com/containerd/containerd/blob/v1.4.3/platforms/platforms.go#L63
+        let mut platforms: Vec<String> = Vec::new();
+        let mut build_args: Vec<String> = Vec::new();
+
+        if let Some(bc) = &self.bc_386_el {
+            debug!("Found bytecode file for 386");
+            let arch = GoArch::X386;
+            platforms.push(arch.get_platform());
+            build_args.push(arch.get_build_arg(bc));
+        }
+
+        if let Some(bc) = &self.bc_amd64_el {
+            debug!("Found bytecode file for amd64");
+            let arch = GoArch::Amd64;
+            platforms.push(arch.get_platform());
+            build_args.push(arch.get_build_arg(bc));
+        }
+
+        if let Some(bc) = &self.bc_arm_el {
+            debug!("Found bytecode file for arm");
+            let arch = GoArch::Arm;
+            platforms.push(arch.get_platform());
+            build_args.push(arch.get_build_arg(bc));
+        }
+
+        if let Some(bc) = &self.bc_arm64_el {
+            debug!("Found bytecode file for arm64");
+            let arch = GoArch::Arm64;
+            platforms.push(arch.get_platform());
+            build_args.push(arch.get_build_arg(bc));
+        }
+
+        if let Some(bc) = &self.bc_loong64_el {
+            debug!("Found bytecode file for loong64");
+            let arch = GoArch::Loong64;
+            platforms.push(arch.get_platform());
+            build_args.push(arch.get_build_arg(bc));
+        }
+
+        if let Some(bc) = &self.bc_mips_eb {
+            debug!("Found bytecode file for mips");
+            let arch = GoArch::Mips;
+            platforms.push(arch.get_platform());
+            build_args.push(arch.get_build_arg(bc));
+        }
+
+        if let Some(bc) = &self.bc_mipsle_el {
+            debug!("Found bytecode file for mips64le");
+            let arch = GoArch::Mipsle;
+            platforms.push(arch.get_platform());
+            build_args.push(arch.get_build_arg(bc));
+        }
+
+        if let Some(bc) = &self.bc_mips64_eb {
+            debug!("Found bytecode file for mips64");
+            let arch = GoArch::Mips64;
+            platforms.push(arch.get_platform());
+            build_args.push(arch.get_build_arg(bc));
+        }
+
+        if let Some(bc) = &self.bc_mips64le_el {
+            debug!("Found bytecode file for mips64le");
+            let arch = GoArch::Mips64le;
+            platforms.push(arch.get_platform());
+            build_args.push(arch.get_build_arg(bc));
+        }
+
+        if let Some(bc) = &self.bc_ppc64_eb {
+            debug!("Found bytecode file for ppc64");
+            let arch = GoArch::Ppc64;
+            platforms.push(arch.get_platform());
+            build_args.push(arch.get_build_arg(bc));
+        }
+
+        if let Some(bc) = &self.bc_ppc64le_el {
+            debug!("Found bytecode file for ppc64le");
+            let arch = GoArch::Ppc64le;
+            platforms.push(arch.get_platform());
+            build_args.push(arch.get_build_arg(bc));
+        }
+
+        if let Some(bc) = &self.bc_riscv64_el {
+            debug!("Found bytecode file for riscv64");
+            let arch = GoArch::Riscv64;
+            platforms.push(arch.get_platform());
+            build_args.push(arch.get_build_arg(bc));
+        }
+
+        if let Some(bc) = &self.bc_s390x_eb {
+            debug!("Found bytecode file for s390x");
+            let arch = GoArch::S390x;
+            platforms.push(arch.get_platform());
+            build_args.push(arch.get_build_arg(bc));
+        }
+
+        (platforms, build_args)
+    }
 }
 
 pub(crate) async fn execute_build_args(args: &GenerateArgs) -> anyhow::Result<()> {
@@ -262,12 +321,27 @@ impl ContainerRuntime {
         match self {
             ContainerRuntime::Docker => {
                 let mut command = Command::new("docker");
-                command.args(["buildx", "build", "--push"]);
+                command.args(["build", "--push"]);
                 command
             }
             ContainerRuntime::Podman => {
                 let mut command = Command::new("podman");
                 command.arg("build");
+                command
+            }
+        }
+    }
+
+    fn build_and_push_manifest_base(&self, image_tag: &str) -> Command {
+        match self {
+            ContainerRuntime::Docker => {
+                let mut command = Command::new("docker");
+                command.args(["buildx", "build", "--push", "--tag", image_tag]);
+                command
+            }
+            ContainerRuntime::Podman => {
+                let mut command = Command::new("podman");
+                command.args(["build", "--manifest", image_tag]);
                 command
             }
         }
@@ -330,9 +404,8 @@ impl ContainerRuntime {
         program_labels: String,
         map_labels: String,
     ) -> anyhow::Result<()> {
-        let mut command = self.build_and_push_base();
+        let mut command = self.build_and_push_manifest_base(image_tag);
 
-        command.arg("-t").arg(image_tag);
         command.arg("-f").arg(container_file);
 
         command
@@ -368,7 +441,7 @@ impl ContainerRuntime {
         // if command is podman add extra push command
         if let ContainerRuntime::Podman = self {
             let mut command = self.get_command();
-            command.arg("push").arg(image_tag);
+            command.args(["manifest", "push", image_tag]);
 
             self.execute_and_tail_logs(&mut command)?;
         }
