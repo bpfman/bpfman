@@ -20,6 +20,7 @@ path = "src/bin/cli/main.rs"
 anyhow = { workspace = true, features = ["std"] }
 async-trait = { workspace = true }
 aya = { workspace = true }
+aya-obj = { workspace = true }
 base16ct = { workspace = true, features = ["alloc"] }
 base64 = { workspace = true }
 bpfman-csi = { workspace = true }
@@ -49,6 +50,7 @@ nix = { workspace = true, features = [
     "socket",
     "user",
 ] }
+object = { workspace = true, features = ["elf", "read_core"] }
 oci-distribution = { workspace = true, default-features = false, features = [
     "native-tls",
     "trust-dns",

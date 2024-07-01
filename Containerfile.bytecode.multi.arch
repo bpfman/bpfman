@@ -1,0 +1,67 @@
+## see https://go.dev/doc/install/source#environment for valid
+## GOARCHes when GOOS=linux.
+FROM scratch
+ARG TARGETARCH
+ARG TARGETOS
+
+FROM scratch AS linux386
+ARG BC_386_EL
+COPY  $BC_386_EL /
+
+FROM scratch AS linuxamd64
+ARG BC_AMD64_EL
+COPY  $BC_AMD64_EL /
+
+FROM scratch AS linuxarm
+ARG BC_ARM_EL
+COPY  $BC_ARM_EL /
+
+FROM scratch AS linuxarm64
+ARG BC_ARM64_EL
+COPY  $BC_ARM64_EL /
+
+FROM scratch AS linuxloong64
+ARG BC_LOONG64_EL
+COPY  $BC_LOONG64_EL /
+
+FROM scratch AS linuxmips
+ARG BC_MIPS_EB
+COPY  $BC_MIPS_EB /
+
+FROM scratch AS linuxmipsle
+ARG BC_MIPSLE_EL
+COPY  $BC_MIPSLE_EL /
+
+FROM scratch AS linuxmips64
+ARG BC_MIPS64_EB
+COPY  $BC_MIPS64_EB /
+
+FROM scratch AS linuxmips64le
+ARG BC_MIPS64LE_EL
+COPY  $BC_MIPS64LE_EL /
+
+FROM scratch AS linuxppc64
+ARG BC_PPC64_EB
+COPY  $BC_PPC64_EL /
+
+FROM scratch AS linuxppc64le
+ARG BC_PPC64LE_EL
+COPY  $BC_PPC64LE_EL /
+
+FROM scratch AS linuxriscv64
+ARG BC_RISCV64_EL
+COPY  $BC_RISCV64_EL /
+
+FROM scratch AS linuxs390x
+ARG BC_S390X_EB
+COPY  $BC_S390X_EB /
+
+ARG TARGETARCH
+ARG TARGETOS
+
+# Use the build argument to select the correct base image
+FROM ${TARGETOS}${TARGETARCH}
+ARG PROGRAMS
+ARG MAPS
+LABEL "io.ebpf.programs"=$PROGRAMS
+LABEL "io.ebpf.maps"=$MAPS

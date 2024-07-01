@@ -25,7 +25,7 @@ var appMutex = &sync.Mutex{}
 var c gobpfman.BpfmanClient
 var ctx context.Context
 
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc clang -no-strip -cflags "-O2 -g -Wall" bpf ./bpf/app_counter.c -- -I.:/usr/include/bpf:/usr/include/linux
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc clang -no-strip -cflags "-O2 -g -Wall" -target amd64,arm64,ppc64le,s390x bpf ./bpf/app_counter.c -- -I.:/usr/include/bpf:/usr/include/linux
 
 func main() {
 	var conn *grpc.ClientConn

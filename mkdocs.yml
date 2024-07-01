@@ -81,6 +81,7 @@ nav:
       - Running the Examples as Non-Root on SELinux Distributions: developer-guide/k8s-selinux-distros.md
   - Design:
       - Daemonless: design/daemonless.md
+      - Multi-Arch: design/supporting-multi-arch.md
   - Blog:
       - blog/index.md
   - Community:

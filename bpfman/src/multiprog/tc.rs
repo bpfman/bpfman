@@ -36,6 +36,7 @@ use crate::{
 
 const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the dispatcher
 const TC_DISPATCHER_PRIORITY: u16 = 50; // Default TC priority for TC Dispatcher
+const TC_DISPATCHER_PROGRAM_NAME: &str = "tc_dispatcher";
 
 /// These constants define the key of SLED DB
 const REVISION: &str = "revision";
@@ -127,7 +128,7 @@ impl TcDispatcher {
             None,
         );
 
-        let (path, bpf_function_name) = image_manager
+        let (path, bpf_program_names) = image_manager
             .get_image(
                 root_db,
                 &image.image_url,
@@ -137,14 +138,24 @@ impl TcDispatcher {
             )
             .await?;
 
+        if !bpf_program_names.contains(&TC_DISPATCHER_PROGRAM_NAME.to_string()) {
+            return Err(BpfmanError::ProgramNotFoundInBytecode {
+                bytecode_image: image.image_url,
+                expected_prog_name: TC_DISPATCHER_PROGRAM_NAME.to_string(),
+                program_names: bpf_program_names,
+            });
+        }
+
         let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
 
         let mut loader = BpfLoader::new()
             .set_global("CONFIG", &config, true)
             .load(&program_bytes)?;
 
-        let dispatcher: &mut SchedClassifier =
-            loader.program_mut(&bpf_function_name).unwrap().try_into()?;
+        let dispatcher: &mut SchedClassifier = loader
+            .program_mut(TC_DISPATCHER_PROGRAM_NAME)
+            .unwrap()
+            .try_into()?;
 
         dispatcher.load()?;
 
@@ -157,7 +168,7 @@ impl TcDispatcher {
 
         self.loader = Some(loader);
         self.set_num_extensions(extensions.len())?;
-        self.set_program_name(&bpf_function_name)?;
+        self.set_program_name(TC_DISPATCHER_PROGRAM_NAME)?;
 
         self.attach_extensions(&mut extensions)?;
         self.attach(root_db, old_dispatcher).await?;

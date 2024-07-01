@@ -1,9 +1,12 @@
+use core::arch;
 use std::{
     env,
     fs::{self, create_dir_all},
     path::{Path, PathBuf},
     process::Command,
 };
+
+use log::debug;
 
 use anyhow::{bail, Context, Result};
 use clap::Parser;
@@ -123,34 +126,33 @@ fn compile_with_clang<P: Clone + AsRef<Path>>(
         Ok(val) => val,
         Err(_) => String::from("/usr/bin/clang"),
     };
-    let arch = match std::env::consts::ARCH {
-        "x86_64" => "x86",
-        "aarch64" => "arm64",
-        _ => std::env::consts::ARCH,
-    };
-    let mut cmd = Command::new(clang);
-    cmd.arg(format!("-I{}", include_path.as_ref().to_string_lossy()))
-        .arg("-g")
-        .arg("-O2")
-        .arg("-target")
-        .arg("bpf")
-        .arg("-c")
-        .arg(format!("-D__TARGET_ARCH_{arch}"))
-        .arg(src.as_ref().as_os_str())
-        .arg("-o")
-        .arg(out.as_ref().as_os_str());
+    let arches = Vec::from([("bpfel", "x86"), ("bpfel", "arm64"), ("bpfeb", "s390"), ("bpfel", "powerpc")]);
+    debug!("out file {}", out.as_ref().to_string_lossy());
+    for (target, arch) in arches {
+        let mut cmd = Command::new(clang.clone());
+        cmd.arg(format!("-I{}", include_path.as_ref().to_string_lossy()))
+            .arg("-g")
+            .arg("-O2")
+            .arg("-target")
+            .arg(target)
+            .arg("-c")
+            .arg(format!("-D__TARGET_ARCH_{}", arch))
+            .arg(src.as_ref().as_os_str())
+            .arg("-o")
+            .arg(out.as_ref().as_os_str());
 
-    let output = cmd.output().context("Failed to execute clang")?;
-    if !output.status.success() {
-        bail!(
-            "Failed to compile BPF programs\n \
-            stdout=\n \
-            {}\n \
-            stderr=\n \
-            {}\n",
-            String::from_utf8(output.stdout).unwrap(),
-            String::from_utf8(output.stderr).unwrap()
-        );
+        let output = cmd.output().context("Failed to execute clang")?;
+        if !output.status.success() {
+            bail!(
+                "Failed to compile BPF programs\n \
+                stdout=\n \
+                {}\n \
+                stderr=\n \
+                {}\n",
+                String::from_utf8(output.stdout).unwrap(),
+                String::from_utf8(output.stderr).unwrap()
+            );
+        }
     }
 
     Ok(())
