@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use std::collections::HashMap;
+use std::{collections::HashMap, fs, path::PathBuf};
 
-use anyhow::bail;
+use anyhow::{anyhow, bail};
+use aya_obj::Object;
 use bpfman::{
     add_program,
     types::{
@@ -11,6 +12,8 @@ use bpfman::{
         TcProgram, TracepointProgram, UprobeProgram, XdpProceedOn, XdpProgram,
     },
 };
+use current_platform::{COMPILED_ON, CURRENT_PLATFORM};
+use log::info;
 
 use crate::{
     args::{GlobalArg, LoadCommands, LoadFileArgs, LoadImageArgs, LoadSubcommand},
@@ -27,7 +30,8 @@ impl LoadSubcommand {
 }
 
 pub(crate) async fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
-    let bytecode_source = Location::File(args.path.clone());
+    let path = manage_file_path(args.path.clone())?;
+    let bytecode_source = Location::File(path);
 
     let data = ProgramData::new(
         bytecode_source,
@@ -174,4 +178,90 @@ fn parse_global(global: &Option<Vec<GlobalArg>>) -> HashMap<String, Vec<u8>> {
         }
     }
     global_data
+}
+
+fn get_arch(target: String) -> Result<String, anyhow::Error> {
+    match target.as_str() {
+        "aarch64" | "x86_64" => Ok("x86".to_string()),
+        "armv6" | "armv7" => Ok("arm64".to_string()),
+        "powerpc64" => Ok("powerpc".to_string()),
+        "s390x" => Ok("s390".to_string()),
+        _ => Err(anyhow!("unknown target")),
+    }
+}
+
+fn manage_file_path(path: String) -> Result<String, anyhow::Error> {
+    info!("BILLY: ENTER manage_file_path({})", path.clone());
+    let p = PathBuf::from(path.clone());
+    if p.is_dir() {
+        info!("BILLY: Is a dir, adding: {}", p.display());
+        let files = fs::read_dir(p)?
+            // Filter out all those directory entries which couldn't be read
+            .filter_map(|res| res.ok())
+            // Map the directory entries to paths
+            .map(|dir_entry| dir_entry.path())
+            // Filter for files with extensions `*.o`
+            .filter_map(|path| {
+                if path.extension().map_or(false, |ext| ext == "o") {
+                    info!("Name: {}", path.display());
+                    if let Ok(bytes) = fs::read(path.clone()) {
+                        info!("Able to read {}", path.display());
+                        if Object::parse(&bytes).is_ok() {
+                            info!("Able to parse {}", path.display());
+                            Some(path)
+                        } else {
+                            info!("Failed to parse {}", path.display());
+                            None
+                        }
+                    } else {
+                        info!("Failed to read {}", path.display());
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        if files.len() == 1 {
+            info!("Only one file found");
+            if let Ok(file) = files
+                .first()
+                .expect("does not exist")
+                .clone()
+                .into_os_string()
+                .into_string()
+            {
+                return Ok(file);
+            }
+        } else if files.is_empty() {
+            return Err(anyhow!("unable to find binary in path"));
+        } else {
+            info!(
+                "Running on {}, compiled on {}.",
+                CURRENT_PLATFORM, COMPILED_ON
+            );
+            let mut parts = CURRENT_PLATFORM.split('-');
+            if let Some(target) = parts.next() {
+                info!("target: {}", target);
+                if let Ok(arch) = get_arch(target.to_string()) {
+                    info!("arch: {}", arch);
+                    for file in files {
+                        info!("Filename: {}", file.display());
+                        if file.file_name().unwrap().to_str().unwrap().contains(&arch) {
+                            info!("Found Architecture in Filename");
+                            if let Ok(file) = file.clone().into_os_string().into_string() {
+                                return Ok(file);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return Err(anyhow!("invalid path"));
+    } else {
+        info!("BILLY: Not a dir");
+    }
+
+    Ok(path)
 }
