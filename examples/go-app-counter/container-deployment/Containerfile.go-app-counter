@@ -1,6 +1,6 @@
 ARG BUILDPLATFORM=linux/amd64
 
-FROM --platform=$BUILDPLATFORM golang:1.22 as go-application-counter-build
+FROM --platform=$BUILDPLATFORM golang:1.22 as go-app-counter-build
 
 ARG BUILDPLATFORM
 
@@ -17,7 +17,7 @@ COPY ./ /usr/src/bpfman/
 
 WORKDIR /usr/src/bpfman/examples/go-app-counter
 
-# Compile go-application-counter
+# Compile go-app-counter
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build
 
 
@@ -25,6 +25,6 @@ FROM --platform=$TARGETPLATFORM registry.fedoraproject.org/fedora-minimal:latest
 
 ARG TARGETPLATFORM
 
-COPY --from=go-application-counter-build  /usr/src/bpfman/examples/go-app-counter/go-app-counter .
+COPY --from=go-app-counter-build  /usr/src/bpfman/examples/go-app-counter/go-app-counter .
 
 ENTRYPOINT ["./go-app-counter", "--crd"]

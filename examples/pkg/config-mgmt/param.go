@@ -50,7 +50,7 @@ const (
 )
 
 func (s ProgType) String() string {
-	return [...]string{"xdp", "tc", "tracepoint", "kprobe", "uprobe", "application"}[s]
+	return [...]string{"xdp", "tc", "tracepoint", "kprobe", "uprobe", "app"}[s]
 }
 
 const (

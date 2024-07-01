@@ -24,6 +24,7 @@
 ##     quay.io/bpfman-userspace/go-tracepoint-counter:v0.1.0
 ##     quay.io/bpfman-bytecode/go-xdp-counter:v0.1.0
 ##     quay.io/bpfman-userspace/go-xdp-counter:v0.1.0
+##     quay.io/bpfman-userspace/go-app-counter:v0.1.0
 ##
 
 .DEFAULT_GOAL := help
@@ -121,7 +122,7 @@ build-us-images: build ## Build all example userspace images
 	docker buildx build -t ${IMAGE_UP_US} --platform ${PLATFORM} --load -f ./go-uprobe-counter/container-deployment/Containerfile.go-uprobe-counter ../
 	docker buildx build -t ${IMAGE_URP_US} --platform ${PLATFORM} --load -f ./go-uretprobe-counter/container-deployment/Containerfile.go-uretprobe-counter ../
 	docker buildx build -t ${IMAGE_GT_US} --platform ${PLATFORM} --load -f ./go-target/container-deployment/Containerfile.go-target ../
-	docker buildx build -t ${IMAGE_GT_US} --platform ${PLATFORM} --load  -f ./go-app-counter/container-deployment/Containerfile.go-application-counter ../
+	docker buildx build -t ${IMAGE_APP_US} --platform ${PLATFORM} --load  -f ./go-app-counter/container-deployment/Containerfile.go-app-counter ../
 
 .PHONY: build-bc-images
 build-bc-images: generate ## Build bytecode example userspace images
@@ -169,8 +170,8 @@ IMAGE_UP_BC: ## Uprobe Bytecode image. Example: make deploy-uprobe IMAGE_UP_BC=q
 IMAGE_UP_US: ## Uprobe Userspace image. Example: make deploy-uprobe IMAGE_UP_US=quay.io/user1/go-uprobe-counter-userspace:test
 IMAGE_URP_BC: ## URetprobe Userspace image. Example: make deploy-uretprobe IMAGE_URP_BC=quay.io/user1/go-uretprobe-counter-bytecode:test
 IMAGE_URP_US: ## URetprobe Userspace image. Example: make deploy-uretprobe IMAGE_URP_US=quay.io/user1/go-uretprobe-counter-userspace:test
-IMAGE_APP_BC: ## Application Userspace image. Example: make deploy-application IMAGE_URP_BC=quay.io/user1/go-application-counter-bytecode:test
-IMAGE_APP_US: ## Application Userspace image. Example: make deploy-application IMAGE_URP_US=quay.io/user1/go-application-counter-userspace:test
+IMAGE_APP_BC: ## Application Userspace image. Example: make deploy-app IMAGE_URP_BC=quay.io/user1/go-app-counter-bytecode:test
+IMAGE_APP_US: ## Application Userspace image. Example: make deploy-app IMAGE_URP_US=quay.io/user1/go-app-counter-userspace:test
 IMAGE_GT_US: ## Uprobe Userspace target. Example: make deploy-target IMAGE_GT_US=quay.io/user1/go-target-userspace:test
 KIND_CLUSTER_NAME: ## Name of the deployed cluster to load example images to, defaults to `bpfman-deployment`
 ignore-not-found: ## For any undeploy command, set to true to ignore resource not found errors during deletion. Example: make undeploy ignore-not-found=true
@@ -188,8 +189,8 @@ IMAGE_UP_BC ?= quay.io/bpfman-bytecode/go-uprobe-counter:latest
 IMAGE_UP_US ?= quay.io/bpfman-userspace/go-uprobe-counter:latest
 IMAGE_URP_BC ?= quay.io/bpfman-bytecode/go-uretprobe-counter:latest
 IMAGE_URP_US ?= quay.io/bpfman-userspace/go-uretprobe-counter:latest
-IMAGE_APP_BC ?= quay.io/bpfman-bytecode/go-application-counter:latest
-IMAGE_APP_US ?= quay.io/bpfman-userspace/go-application-counter:latest
+IMAGE_APP_BC ?= quay.io/bpfman-bytecode/go-app-counter:latest
+IMAGE_APP_US ?= quay.io/bpfman-userspace/go-app-counter:latest
 IMAGE_GT_US ?= quay.io/bpfman-userspace/go-target:latest
 KIND_CLUSTER_NAME ?= bpfman-deployment
 
@@ -332,19 +333,19 @@ undeploy-uretprobe: IMAGE_BC=$(IMAGE_URP_BC)
 undeploy-uretprobe: IMAGE_US=$(IMAGE_URP_US)
 undeploy-uretprobe: undeploy-prog ## Undeploy go-uretprobe-counter from the cluster specified in ~/.kube/config.
 
-.PHONY: deploy-application
-deploy-application: PROG_NAME=go-application-counter
-deploy-application: CONFIG_DIR=default/go-app-counter
-deploy-application: IMAGE_BC=$(IMAGE_APP_BC)
-deploy-application: IMAGE_US=$(IMAGE_APP_US)
-deploy-application: deploy-prog ## Deploy go-application-counter to the cluster specified in ~/.kube/config.
+.PHONY: deploy-app
+deploy-app: PROG_NAME=go-app-counter
+deploy-app: CONFIG_DIR=default/go-app-counter
+deploy-app: IMAGE_BC=$(IMAGE_APP_BC)
+deploy-app: IMAGE_US=$(IMAGE_APP_US)
+deploy-app: deploy-prog ## Deploy go-app-counter to the cluster specified in ~/.kube/config.
 
-.PHONY: undeploy-application
-undeploy-application: PROG_NAME=go-application-counter
-undeploy-application: CONFIG_DIR=default/go-app-counter
-undeploy-application: IMAGE_BC=$(IMAGE_APP_BC)
-undeploy-application: IMAGE_US=$(IMAGE_APP_US)
-undeploy-application: undeploy-prog ## Undeploy go-application-counter from the cluster specified in ~/.kube/config.
+.PHONY: undeploy-app
+undeploy-app: PROG_NAME=go-app-counter
+undeploy-app: CONFIG_DIR=default/go-app-counter
+undeploy-app: IMAGE_BC=$(IMAGE_APP_BC)
+undeploy-app: IMAGE_US=$(IMAGE_APP_US)
+undeploy-app: undeploy-prog ## Undeploy go-app-counter from the cluster specified in ~/.kube/config.
 
 .PHONY: deploy-tc-selinux
 deploy-tc-selinux: PROG_NAME=go-tc-counter
@@ -449,19 +450,19 @@ undeploy-uretprobe-selinux: IMAGE_BC=$(IMAGE_URP_BC)
 undeploy-uretprobe-selinux: IMAGE_US=$(IMAGE_URP_US)
 undeploy-uretprobe-selinux: undeploy-prog ## Undeploy go-uretprobe-counter from the cluster specified in ~/.kube/config.
 
-.PHONY: deploy-application-selinux
-deploy-application-selinux: PROG_NAME=go-application-counter
-deploy-application-selinux: CONFIG_DIR=selinux/go-app-counter
-deploy-application-selinux: IMAGE_BC=$(IMAGE_APP_BC)
-deploy-application-selinux: IMAGE_US=$(IMAGE_APP_US)
-deploy-application-selinux: deploy-prog ## Deploy go-application-counter to the cluster specified in ~/.kube/config.
+.PHONY: deploy-app-selinux
+deploy-app-selinux: PROG_NAME=go-app-counter
+deploy-app-selinux: CONFIG_DIR=selinux/go-app-counter
+deploy-app-selinux: IMAGE_BC=$(IMAGE_APP_BC)
+deploy-app-selinux: IMAGE_US=$(IMAGE_APP_US)
+deploy-app-selinux: deploy-prog ## Deploy go-app-counter to the cluster specified in ~/.kube/config.
 
-.PHONY: undeploy-application-selinux
-undeploy-application-selinux: PROG_NAME=go-application-counter
-undeploy-application-selinux: CONFIG_DIR=selinux/go-app-counter
-undeploy-application-selinux: IMAGE_BC=$(IMAGE_APP_BC)
-undeploy-application-selinux: IMAGE_US=$(IMAGE_APP_US)
-undeploy-application-selinux: undeploy-prog ## Undeploy go-application-counter from the cluster specified in ~/.kube/config.
+.PHONY: undeploy-app-selinux
+undeploy-app-selinux: PROG_NAME=go-app-counter
+undeploy-app-selinux: CONFIG_DIR=selinux/go-app-counter
+undeploy-app-selinux: IMAGE_BC=$(IMAGE_APP_BC)
+undeploy-app-selinux: IMAGE_US=$(IMAGE_APP_US)
+undeploy-app-selinux: undeploy-prog ## Undeploy go-app-counter from the cluster specified in ~/.kube/config.
 
 .PHONY: deploy-target
 deploy-target: ## Deploy go-target to the cluster specified in ~/.kube/config.
@@ -471,7 +472,7 @@ deploy-target: ## Deploy go-target to the cluster specified in ~/.kube/config.
 undeploy-target: ## Undeploy go-target from the cluster specified in ~/.kube/config.
 	kubectl delete -f config/base/go-target/deployment.yaml
 
-DEPLOY_TARGETS = deploy-tc deploy-tracepoint deploy-xdp deploy-xdp-ms deploy-kprobe deploy-target deploy-uprobe deploy-uretprobe deploy-application
+DEPLOY_TARGETS = deploy-tc deploy-tracepoint deploy-xdp deploy-xdp-ms deploy-kprobe deploy-target deploy-uprobe deploy-uretprobe deploy-app
 
 .PHONY: deploy
 deploy: ## Deploy all examples to the cluster specified in ~/.kube/config.
@@ -482,7 +483,7 @@ endif
 		$(MAKE) $$target $(TAG_COMMAND) || true; \
 	done
 
-UNDEPLOY_TARGETS = undeploy-tc undeploy-tracepoint undeploy-xdp-ms undeploy-xdp undeploy-kprobe undeploy-uprobe undeploy-uretprobe undeploy-target undeploy-application
+UNDEPLOY_TARGETS = undeploy-tc undeploy-tracepoint undeploy-xdp-ms undeploy-xdp undeploy-kprobe undeploy-uprobe undeploy-uretprobe undeploy-target undeploy-app
 
 .PHONY: undeploy
 undeploy: ## Undeploy all examples to the cluster specified in ~/.kube/config.

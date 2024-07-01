@@ -138,7 +138,7 @@ jobs:
             repository: bpfman-userspace
             image: go-app-counter
             context: .
-            dockerfile: ./examples/go-app-counter/container-deployment/Containerfile.go-application-counter
+            dockerfile: ./examples/go-app-counter/container-deployment/Containerfile.go-app-counter
             tags: |
               type=ref,event=branch
               type=ref,event=tag

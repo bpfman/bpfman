@@ -3,8 +3,8 @@ kind: Kustomization
 # Patch the deployment.yaml to change container image in Daemonset
 # to new tag on the image.
 images:
-- name: quay.io/bpfman-userspace/go-application-counter
-  newName: quay.io/bpfman-userspace/go-application-counter
+- name: quay.io/bpfman-userspace/go-app-counter
+  newName: quay.io/bpfman-userspace/go-app-counter
   newTag: latest
 # Patch the bytecode.yaml to change tag on the "url" field (which is an
 # image) to new value. Since this is being done with an environment
@@ -14,6 +14,6 @@ patches:
 - path: patch.yaml
   target:
     kind: BpfApplication
-    name: go-application-counter-example
+    name: go-app-counter-example
 resources:
 - ../../base/go-app-counter

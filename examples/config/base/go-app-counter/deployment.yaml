@@ -2,33 +2,33 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: go-application-counter
+  name: go-app-counter
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: bpfman-app-go-application-counter
-  namespace: go-application-counter
+  name: bpfman-app-go-app-counter
+  namespace: go-app-counter
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: go-application-counter-ds
-  namespace: go-application-counter
+  name: go-app-counter-ds
+  namespace: go-app-counter
   labels:
-    k8s-app: go-application-counter
+    k8s-app: go-app-counter
 spec:
   selector:
     matchLabels:
-      name: go-application-counter
+      name: go-app-counter
   template:
     metadata:
       labels:
-        name: go-application-counter
+        name: go-app-counter
     spec:
       nodeSelector: {}
       dnsPolicy: ClusterFirstWithHostNet
-      serviceAccountName: bpfman-app-go-application-counter
+      serviceAccountName: bpfman-app-go-app-counter
       securityContext:
         runAsNonRoot: true
         fsGroup: 65534
@@ -42,8 +42,8 @@ spec:
           operator: Exists
           effect: NoSchedule
       containers:
-        - name: go-application-counter
-          image: quay.io/bpfman-userspace/go-application-counter:latest
+        - name: go-app-counter
+          image: quay.io/bpfman-userspace/go-app-counter:latest
           imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
@@ -57,11 +57,11 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
           volumeMounts:
-            - name: go-application-counter-maps
-              mountPath: /run/application/maps
+            - name: go-app-counter-maps
+              mountPath: /run/app/maps
               readOnly: true
       volumes:
-        - name: go-application-counter-maps
+        - name: go-app-counter-maps
           csi:
             driver: csi.bpfman.io
             volumeAttributes:
