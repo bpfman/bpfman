@@ -195,7 +195,7 @@ Pre-built eBPF container images for the examples can be loaded from:
 - `quay.io/bpfman-bytecode/go-uprobe-counter:latest`
 - `quay.io/bpfman-bytecode/go-uretprobe-counter:latest`
 - `quay.io/bpfman-bytecode/go-xdp-counter:latest`
-- `quay.io/bpfman-bytecode/go-application-counter:latest`
+- `quay.io/bpfman-bytecode/go-app-counter:latest`
 
 To build the example eBPF bytecode container images, run the build commands below (the `go generate`
 requires the [Prerequisites](#prerequisites) described above):

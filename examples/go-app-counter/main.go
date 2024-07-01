@@ -18,7 +18,7 @@ import (
 
 const (
 	DefaultByteCodeFile       = "bpf_bpfel.o"
-	ApplicationMapsMountPoint = "/run/application/maps"
+	ApplicationMapsMountPoint = "/run/app/maps"
 )
 
 var appMutex = &sync.Mutex{}
