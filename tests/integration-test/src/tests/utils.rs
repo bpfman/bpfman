@@ -5,6 +5,7 @@ use std::{
 
 use anyhow::{anyhow, Result};
 use assert_cmd::prelude::*;
+use lazy_static::lazy_static;
 use log::debug;
 use regex::Regex;
 
@@ -32,18 +33,34 @@ pub enum LoadType {
 
 pub static LOAD_TYPES: &[LoadType] = &[LoadType::Image, LoadType::File];
 
-pub const XDP_PASS_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/xdp_pass:latest";
-pub const TC_PASS_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/tc_pass:latest";
-pub const TRACEPOINT_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/tracepoint:latest";
-pub const UPROBE_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/uprobe:latest";
-pub const URETPROBE_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/uretprobe:latest";
-pub const KPROBE_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/kprobe:latest";
-pub const KRETPROBE_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/kretprobe:latest";
-pub const XDP_COUNTER_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/go-xdp-counter";
-pub const TC_COUNTER_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/go-tc-counter";
-pub const TRACEPOINT_COUNTER_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/go-tracepoint-counter";
-pub const FENTRY_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/fentry:latest";
-pub const FEXIT_IMAGE_LOC: &str = "quay.io/bpfman-bytecode/fexit:latest";
+lazy_static! {
+    pub static ref XDP_PASS_IMAGE_LOC: String = std::env::var("XDP_PASS_IMAGE_LOC")
+        .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/xdp_pass:latest"));
+    pub static ref TC_PASS_IMAGE_LOC: String = std::env::var("TC_PASS_IMAGE_LOC")
+        .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/tc_pass:latest"));
+    pub static ref TRACEPOINT_IMAGE_LOC: String = std::env::var("TRACEPOINT_IMAGE_LOC")
+        .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/tracepoint:latest"));
+    pub static ref UPROBE_IMAGE_LOC: String = std::env::var("UPROBE_IMAGE_LOC")
+        .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/uprobe:latest"));
+    pub static ref URETPROBE_IMAGE_LOC: String = std::env::var("URETPROBE_IMAGE_LOC")
+        .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/uretprobe:latest"));
+    pub static ref KPROBE_IMAGE_LOC: String = std::env::var("KPROBE_IMAGE_LOC")
+        .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/kprobe:latest"));
+    pub static ref KRETPROBE_IMAGE_LOC: String = std::env::var("KRETPROBE_IMAGE_LOC")
+        .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/kretprobe:latest"));
+    pub static ref XDP_COUNTER_IMAGE_LOC: String = std::env::var("XDP_COUNTER_IMAGE_LOC")
+        .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/go-xdp-counter:latest"));
+    pub static ref TC_COUNTER_IMAGE_LOC: String = std::env::var("TC_COUNTER_IMAGE_LOC")
+        .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/go-tc-counter:latest"));
+    pub static ref TRACEPOINT_COUNTER_IMAGE_LOC: String = std::env::var(
+        "TRACEPOINT_COUNTER_IMAGE_LOC"
+    )
+    .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/go-tracepoint-counter:latest"));
+    pub static ref FENTRY_IMAGE_LOC: String = std::env::var("FENTRY_IMAGE_LOC")
+        .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/fentry:latest"));
+    pub static ref FEXIT_IMAGE_LOC: String = std::env::var("FEXIT_IMAGE_LOC")
+        .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/fexit:latest"));
+}
 
 pub const XDP_PASS_FILE_LOC: &str = "tests/integration-test/bpf/.output/xdp_pass.bpf.o";
 pub const TC_PASS_FILE_LOC: &str = "tests/integration-test/bpf/.output/tc_pass.bpf.o";

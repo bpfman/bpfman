@@ -15,6 +15,7 @@ bpfman = { workspace = true }
 env_logger = { workspace = true }
 integration-test-macros = { workspace = true }
 inventory = { workspace = true }
+lazy_static = { workspace = true }
 log = { workspace = true }
 predicates = { workspace = true }
 rand = { workspace = true, features = ["std", "std_rng"] }

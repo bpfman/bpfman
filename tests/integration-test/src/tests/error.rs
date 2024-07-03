@@ -74,7 +74,7 @@ fn common_load_parameter_testing() {
         None, // globals
         None, // proceed_on
         &LoadType::File,
-        XDP_PASS_IMAGE_LOC,
+        &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
         Some(NONEXISTENT_XDP_PASS_NAME),
         None, // metadata
@@ -91,7 +91,7 @@ fn common_load_parameter_testing() {
         None, // globals
         None, // proceed_on
         &LoadType::Image,
-        XDP_PASS_IMAGE_LOC,
+        &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
         Some(NONEXISTENT_XDP_PASS_NAME),
         None, // metadata
@@ -108,7 +108,7 @@ fn common_load_parameter_testing() {
         None, // globals
         None, // proceed_on
         &LoadType::File,
-        XDP_PASS_IMAGE_LOC,
+        &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
         Some(INVALID_XDP_PASS_NAME),
         None, // metadata
@@ -123,7 +123,7 @@ fn common_load_parameter_testing() {
     let (error_prog_id, _) = add_tracepoint(
         Some(invalid_globals),
         &LoadType::File,
-        TRACEPOINT_IMAGE_LOC,
+        &TRACEPOINT_IMAGE_LOC,
         TRACEPOINT_FILE_LOC,
         TRACEPOINT_TRACEPOINT_NAME,
     );
@@ -139,7 +139,7 @@ fn common_load_parameter_testing() {
         None, // globals
         None, // proceed_on
         &LoadType::File,
-        XDP_PASS_IMAGE_LOC,
+        &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
         Some(XDP_PASS_NAME),
         Some(vec![key]), // metadata
@@ -156,7 +156,7 @@ fn common_load_parameter_testing() {
         None,            // globals
         None,            // proceed_on
         &LoadType::File,
-        XDP_PASS_IMAGE_LOC,
+        &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
         Some(XDP_PASS_NAME),
         None, // metadata
@@ -171,7 +171,7 @@ fn fentry_load_parameter_testing() {
     debug!("Error checking Fentry load parameters: invalid function name");
     let error_prog_id = add_fentry_or_fexit(
         &LoadType::Image,
-        FENTRY_IMAGE_LOC,
+        &FENTRY_IMAGE_LOC,
         FENTRY_FILE_LOC,
         true, // fentry
         "invalid",
@@ -187,7 +187,7 @@ fn fentry_load_parameter_testing() {
         );
         let error_prog_id = add_fentry_or_fexit(
             lt,
-            KPROBE_IMAGE_LOC,
+            &KPROBE_IMAGE_LOC,
             KPROBE_FILE_LOC,
             true, // fentry
             FENTRY_FEXIT_KERNEL_FUNCTION_NAME,
@@ -202,7 +202,7 @@ fn fexit_load_parameter_testing() {
     debug!("Error checking Fexit load parameters: invalid function name");
     let error_prog_id = add_fentry_or_fexit(
         &LoadType::Image,
-        FENTRY_IMAGE_LOC,
+        &FENTRY_IMAGE_LOC,
         FENTRY_FILE_LOC,
         false, // fentry
         "invalid",
@@ -218,7 +218,7 @@ fn fexit_load_parameter_testing() {
         );
         let error_prog_id = add_fentry_or_fexit(
             lt,
-            TRACEPOINT_IMAGE_LOC,
+            &TRACEPOINT_IMAGE_LOC,
             TRACEPOINT_FILE_LOC,
             false, // fentry
             FENTRY_FEXIT_KERNEL_FUNCTION_NAME,
@@ -234,7 +234,7 @@ fn kprobe_load_parameter_testing() {
     let error_prog_id = add_kprobe(
         None, // globals
         &LoadType::Image,
-        KPROBE_IMAGE_LOC,
+        &KPROBE_IMAGE_LOC,
         KPROBE_FILE_LOC,
         "invalid", // fn_name
         None,      // container_pid
@@ -246,7 +246,7 @@ fn kprobe_load_parameter_testing() {
     let error_prog_id = add_kprobe(
         None, // globals
         &LoadType::Image,
-        KPROBE_IMAGE_LOC,
+        &KPROBE_IMAGE_LOC,
         KPROBE_FILE_LOC,
         KPROBE_KERNEL_FUNCTION_NAME,
         Some("12345"), // container_pid
@@ -263,7 +263,7 @@ fn kprobe_load_parameter_testing() {
         let error_prog_id = add_kprobe(
             None, // globals
             lt,
-            URETPROBE_IMAGE_LOC,
+            &URETPROBE_IMAGE_LOC,
             URETPROBE_FILE_LOC,
             KPROBE_KERNEL_FUNCTION_NAME,
             None, // container_pid
@@ -279,7 +279,7 @@ fn kretprobe_load_parameter_testing() {
     let error_prog_id = add_kretprobe(
         None, // globals
         &LoadType::Image,
-        KRETPROBE_IMAGE_LOC,
+        &KRETPROBE_IMAGE_LOC,
         KRETPROBE_FILE_LOC,
         "invalid", // fn_name
     );
@@ -295,7 +295,7 @@ fn kretprobe_load_parameter_testing() {
         let error_prog_id = add_kretprobe(
             None, // globals
             lt,
-            UPROBE_IMAGE_LOC,
+            &UPROBE_IMAGE_LOC,
             UPROBE_FILE_LOC,
             KRETPROBE_KERNEL_FUNCTION_NAME,
         );
@@ -314,7 +314,7 @@ fn tc_load_parameter_testing() {
         None, // globals
         None, // proceed_on
         &LoadType::Image,
-        TC_PASS_IMAGE_LOC,
+        &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
     );
     assert!(error_prog_id.is_err());
@@ -329,7 +329,7 @@ fn tc_load_parameter_testing() {
         None, // globals
         None, // proceed_on
         &LoadType::Image,
-        TC_PASS_IMAGE_LOC,
+        &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
     );
     assert!(error_prog_id.is_err());
@@ -344,7 +344,7 @@ fn tc_load_parameter_testing() {
         None, // globals
         None, // proceed_on
         &LoadType::Image,
-        TC_PASS_IMAGE_LOC,
+        &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
     );
     assert!(error_prog_id.is_err());
@@ -359,7 +359,7 @@ fn tc_load_parameter_testing() {
         None,            // globals
         None,            // proceed_on
         &LoadType::File,
-        TC_PASS_IMAGE_LOC,
+        &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
     );
     assert!(error_prog_id.is_err());
@@ -375,7 +375,7 @@ fn tc_load_parameter_testing() {
         None, // globals
         Some(proceed_on.clone()),
         &LoadType::File,
-        TC_PASS_IMAGE_LOC,
+        &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
     );
     assert!(error_prog_id.is_err());
@@ -429,7 +429,7 @@ fn tracepoint_load_parameter_testing() {
     let (error_prog_id, _) = add_tracepoint(
         None, // globals
         &LoadType::Image,
-        TRACEPOINT_IMAGE_LOC,
+        &TRACEPOINT_IMAGE_LOC,
         TRACEPOINT_FILE_LOC,
         "invalid", // tracepoint
     );
@@ -445,7 +445,7 @@ fn tracepoint_load_parameter_testing() {
         let (error_prog_id, _) = add_tracepoint(
             None, // globals
             lt,
-            FENTRY_IMAGE_LOC,
+            &FENTRY_IMAGE_LOC,
             FENTRY_FILE_LOC,
             TRACEPOINT_TRACEPOINT_NAME,
         );
@@ -460,7 +460,7 @@ fn uprobe_load_parameter_testing() {
     let error_prog_id = add_uprobe(
         None, // globals
         &LoadType::Image,
-        UPROBE_IMAGE_LOC,
+        &UPROBE_IMAGE_LOC,
         UPROBE_FILE_LOC,
         "invalid",
         UPROBE_TARGET,
@@ -474,7 +474,7 @@ fn uprobe_load_parameter_testing() {
     let error_prog_id = add_uprobe(
         None, // globals
         &LoadType::File,
-        KRETPROBE_IMAGE_LOC,
+        &KRETPROBE_IMAGE_LOC,
         KRETPROBE_FILE_LOC,
         UPROBE_KERNEL_FUNCTION_NAME,
         UPROBE_TARGET,
@@ -492,7 +492,7 @@ fn uprobe_load_parameter_testing() {
         let error_prog_id = add_uprobe(
             None, // globals
             lt,
-            UPROBE_IMAGE_LOC,
+            &UPROBE_IMAGE_LOC,
             UPROBE_FILE_LOC,
             UPROBE_KERNEL_CONT_PID_FUNCTION_NAME,
             UPROBE_TARGET,
@@ -510,7 +510,7 @@ fn uprobe_load_parameter_testing() {
     let error_prog_id = add_uprobe(
         None, // globals
         &LoadType::Image,
-        UPROBE_IMAGE_LOC,
+        &UPROBE_IMAGE_LOC,
         UPROBE_FILE_LOC,
         UPROBE_KERNEL_FUNCTION_NAME,
         "invalid",
@@ -526,7 +526,7 @@ fn uretprobe_load_parameter_testing() {
     let error_prog_id = add_uretprobe(
         None, // globals
         &LoadType::Image,
-        URETPROBE_IMAGE_LOC,
+        &URETPROBE_IMAGE_LOC,
         URETPROBE_FILE_LOC,
         "invalid",
         None,
@@ -539,7 +539,7 @@ fn uretprobe_load_parameter_testing() {
     let error_prog_id = add_uretprobe(
         None, // globals
         &LoadType::Image,
-        URETPROBE_IMAGE_LOC,
+        &URETPROBE_IMAGE_LOC,
         URETPROBE_FILE_LOC,
         URETPROBE_FUNCTION_NAME,
         Some("invalid"),
@@ -556,7 +556,7 @@ fn uretprobe_load_parameter_testing() {
         let error_prog_id = add_uretprobe(
             None, // globals
             lt,
-            KPROBE_IMAGE_LOC,
+            &KPROBE_IMAGE_LOC,
             KPROBE_FILE_LOC,
             URETPROBE_FUNCTION_NAME,
             None, // target
@@ -575,7 +575,7 @@ fn xdp_load_parameter_testing() {
         None, // globals
         None, // proceed_on
         &LoadType::Image,
-        XDP_PASS_IMAGE_LOC,
+        &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
         Some(XDP_PASS_NAME),
         None, // metadata
@@ -592,7 +592,7 @@ fn xdp_load_parameter_testing() {
         None, // globals
         None, // proceed_on
         &LoadType::Image,
-        XDP_PASS_IMAGE_LOC,
+        &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
         Some(XDP_PASS_NAME),
         None, // metadata
@@ -609,7 +609,7 @@ fn xdp_load_parameter_testing() {
         None,            // globals
         None,            // proceed_on
         &LoadType::File,
-        XDP_PASS_IMAGE_LOC,
+        &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
         Some(XDP_PASS_NAME),
         None, // metadata
@@ -627,7 +627,7 @@ fn xdp_load_parameter_testing() {
         None, // globals
         Some(proceed_on.clone()),
         &LoadType::File,
-        XDP_PASS_IMAGE_LOC,
+        &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
         Some(XDP_PASS_NAME),
         None, // metadata
@@ -718,13 +718,13 @@ fn common_pull_parameter_testing() {
     test_bpfmanlist();
 
     debug!("Error checking pull parameters: invalid registry authority");
-    let output = bpfman_pull_bytecode(TRACEPOINT_IMAGE_LOC, None, Some("Invalid"));
+    let output = bpfman_pull_bytecode(&TRACEPOINT_IMAGE_LOC, None, Some("Invalid"));
     assert!(output.is_err());
     // Make sure bpfman is still accessible after command
     test_bpfmanlist();
 
     debug!("Error checking pull parameters: invalid pull policy");
-    let output = bpfman_pull_bytecode(TRACEPOINT_IMAGE_LOC, Some("Invalid"), None);
+    let output = bpfman_pull_bytecode(&TRACEPOINT_IMAGE_LOC, Some("Invalid"), None);
     assert!(output.is_err());
     // Make sure bpfman is still accessible after command
     test_bpfmanlist();
@@ -744,7 +744,7 @@ fn test_invalid_parameters() {
         let (prog_id, _) = add_tracepoint(
             None, // globals
             lt,
-            TRACEPOINT_IMAGE_LOC,
+            &TRACEPOINT_IMAGE_LOC,
             TRACEPOINT_FILE_LOC,
             TRACEPOINT_TRACEPOINT_NAME,
         );
@@ -765,7 +765,7 @@ fn test_invalid_parameters() {
         None, // globals
         None, // proceed_on
         &LoadType::File,
-        XDP_PASS_IMAGE_LOC,
+        &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
         Some(XDP_PASS_NAME),
         None, // metadata
@@ -782,7 +782,7 @@ fn test_invalid_parameters() {
         None, // globals
         None, // proceed_on
         &LoadType::Image,
-        TC_PASS_IMAGE_LOC,
+        &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
     );
     if let Ok(id) = prog_id {
@@ -796,7 +796,7 @@ fn test_invalid_parameters() {
         None, // globals
         None, // proceed_on
         &LoadType::File,
-        TC_PASS_IMAGE_LOC,
+        &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
     );
     if let Ok(id) = prog_id {

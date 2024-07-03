@@ -54,7 +54,7 @@ fn test_load_unload_xdp() {
                 Some(globals.clone()),
                 Some(proceed_on.clone()),
                 lt,
-                XDP_PASS_IMAGE_LOC,
+                &XDP_PASS_IMAGE_LOC,
                 XDP_PASS_FILE_LOC,
                 Some(XDP_PASS_NAME),
                 None, // metadata
@@ -93,7 +93,7 @@ fn test_map_sharing_load_unload_xdp() {
         None, // globals
         None, // proceed_on
         &load_type,
-        XDP_COUNTER_IMAGE_LOC,
+        &XDP_COUNTER_IMAGE_LOC,
         "", // file_path
         None,
         None, // metadata
@@ -129,7 +129,7 @@ fn test_map_sharing_load_unload_xdp() {
         None, // globals
         None, // proceed_on
         &load_type,
-        XDP_COUNTER_IMAGE_LOC,
+        &XDP_COUNTER_IMAGE_LOC,
         "", // file_path
         None,
         None, // metadata
@@ -225,7 +225,7 @@ fn test_load_unload_tc() {
                 Some(globals.clone()),
                 Some(proceed_on.clone()),
                 lt,
-                TC_PASS_IMAGE_LOC,
+                &TC_PASS_IMAGE_LOC,
                 TC_PASS_FILE_LOC,
             );
             loaded_ids.push(prog_id.unwrap());
@@ -260,7 +260,7 @@ fn test_load_unload_tracepoint() {
         let (prog_id, _) = add_tracepoint(
             Some(globals.clone()),
             lt,
-            TRACEPOINT_IMAGE_LOC,
+            &TRACEPOINT_IMAGE_LOC,
             TRACEPOINT_FILE_LOC,
             TRACEPOINT_TRACEPOINT_NAME,
         );
@@ -282,7 +282,7 @@ fn test_load_unload_uprobe() {
         let prog_id = add_uprobe(
             Some(globals.clone()),
             lt,
-            UPROBE_IMAGE_LOC,
+            &UPROBE_IMAGE_LOC,
             UPROBE_FILE_LOC,
             UPROBE_KERNEL_FUNCTION_NAME,
             UPROBE_TARGET,
@@ -307,7 +307,7 @@ fn test_load_unload_uretprobe() {
         let prog_id = add_uretprobe(
             Some(globals.clone()),
             lt,
-            URETPROBE_IMAGE_LOC,
+            &URETPROBE_IMAGE_LOC,
             URETPROBE_FILE_LOC,
             URETPROBE_FUNCTION_NAME,
             None, // target
@@ -331,7 +331,7 @@ fn test_load_unload_kprobe() {
         let prog_id = add_kprobe(
             Some(globals.clone()),
             lt,
-            KPROBE_IMAGE_LOC,
+            &KPROBE_IMAGE_LOC,
             KPROBE_FILE_LOC,
             KPROBE_KERNEL_FUNCTION_NAME,
             None, // container_pid
@@ -356,7 +356,7 @@ fn test_load_unload_kretprobe() {
         let prog_id = add_kretprobe(
             Some(globals.clone()),
             lt,
-            KRETPROBE_IMAGE_LOC,
+            &KRETPROBE_IMAGE_LOC,
             KRETPROBE_FILE_LOC,
             KRETPROBE_KERNEL_FUNCTION_NAME,
         )
@@ -372,7 +372,7 @@ fn test_pull_bytecode() {
     debug!("Pull bytecode image");
 
     // Just ensure this doesn't panic
-    assert!(bpfman_pull_bytecode(TRACEPOINT_IMAGE_LOC, Some(PULL_POLICY_ALWAYS), None).is_ok());
+    assert!(bpfman_pull_bytecode(&TRACEPOINT_IMAGE_LOC, Some(PULL_POLICY_ALWAYS), None).is_ok());
 }
 
 #[integration_test]
@@ -407,7 +407,7 @@ fn test_list_with_metadata() {
                 Some(globals.clone()),
                 Some(proceed_on.clone()),
                 lt,
-                XDP_PASS_IMAGE_LOC,
+                &XDP_PASS_IMAGE_LOC,
                 XDP_PASS_FILE_LOC,
                 Some(XDP_PASS_NAME),
                 None, // metadata
@@ -425,7 +425,7 @@ fn test_list_with_metadata() {
         Some(globals.clone()),
         Some(proceed_on.clone()),
         &LoadType::Image,
-        XDP_PASS_IMAGE_LOC,
+        &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
         Some(XDP_PASS_NAME),
         Some(vec![key]),
@@ -459,7 +459,7 @@ fn test_load_unload_fentry() {
     for lt in LOAD_TYPES {
         let prog_id = add_fentry_or_fexit(
             lt,
-            FENTRY_IMAGE_LOC,
+            &FENTRY_IMAGE_LOC,
             FENTRY_FILE_LOC,
             true,
             FENTRY_FEXIT_KERNEL_FUNCTION_NAME,
@@ -480,7 +480,7 @@ fn test_load_unload_fexit() {
     for lt in LOAD_TYPES {
         let prog_id = add_fentry_or_fexit(
             lt,
-            FEXIT_IMAGE_LOC,
+            &FEXIT_IMAGE_LOC,
             FEXIT_FILE_LOC,
             false,
             FENTRY_FEXIT_KERNEL_FUNCTION_NAME,

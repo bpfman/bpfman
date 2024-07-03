@@ -1940,6 +1940,7 @@ dependencies = [
  "env_logger",
  "integration-test-macros",
  "inventory",
+ "lazy_static",
  "log",
  "predicates",
  "rand",
