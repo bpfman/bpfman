@@ -5,11 +5,9 @@ on: # yamllint disable-line rule:truthy
     branches: [main]
     tags:
       - v*
-
   pull_request:
     branches:
       - main
-
   workflow_dispatch:
 
 env:
@@ -246,7 +244,7 @@ jobs:
           name: bpfman-release-${{ matrix.arch.filename }}
           path: ./target/${{ matrix.arch.rust-target }}/release/bpfman-${{ matrix.arch.filename }}.tar.gz
 
-      - name: Run tests
+      - name: Run Unit Tests
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
         run: cargo llvm-cov test --all-features -p bpfman -p bpfman-api --lcov --output-path lcov.info
@@ -309,6 +307,104 @@ jobs:
         run: |
           cd examples
           GOARCH=${{ matrix.arch.arch }} make build
+
+  basic-integration-tests:
+    runs-on: ubuntu-latest
+    needs: [build, build-go]
+    steps:
+      - name: Set up environment for running integration tests from manual trigger
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "XDP_PASS_IMAGE_LOC=quay.io/bpfman-bytecode/xdp_pass:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "TC_PASS_IMAGE_LOC=quay.io/bpfman-bytecode/tc_pass:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "TRACEPOINT_IMAGE_LOC=quay.io/bpfman-bytecode/tracepoint:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "UPROBE_IMAGE_LOC=quay.io/bpfman-bytecode/uprobe:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "URETPROBE_IMAGE_LOC=quay.io/bpfman-bytecode/uretprobe:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "KPROBE_IMAGE_LOC=quay.io/bpfman-bytecode/kprobe:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "KRETPROBE_IMAGE_LOC=quay.io/bpfman-bytecode/kretprobe:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "XDP_COUNTER_IMAGE_LOC=quay.io/bpfman-bytecode/go-xdp-counter:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "TC_COUNTER_IMAGE_LOC=quay.io/bpfman-bytecode/go-tc-counter:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "TRACEPOINT_COUNTER_IMAGE_LOC=quay.io/bpfman-bytecode/go-tracepoint-counter:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "FENTRY_IMAGE_LOC=quay.io/bpfman-bytecode/fentry:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "FEXIT_IMAGE_LOC=quay.io/bpfman-bytecode/fexit:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+
+      - name: Checkout bpfman
+        uses: actions/checkout@v4
+
+      - name: Download bpfman x86_64 build
+        uses: actions/download-artifact@v4
+        with:
+          name: bpfman-debug-linux-x86_64
+          merge-multiple: true
+
+      - name: Unpack binaries
+        run: |
+          mkdir -p target/debug
+          tar -C target/debug -xzvf bpfman-debug-linux-x86_64.tar.gz
+
+      - name: Download Integration Test eBPF
+        uses: actions/download-artifact@v4
+        with:
+          name: bpfman-integration-test
+          merge-multiple: true
+
+      - name: Unpack Integration Test eBPF
+        run: |
+          tar -xzvf integration-test.tar.gz
+
+      - name: Download manpages
+        uses: actions/download-artifact@v4
+        with:
+          name: bpfman-manpages
+          merge-multiple: true
+
+      - name: Unpack manpages
+        run: |
+          tar -xzvf manpages.tar.gz
+
+      - name: Download CLI TAB Completion
+        uses: actions/download-artifact@v4
+        with:
+          name: bpfman-cli-tab-completion
+          merge-multiple: true
+
+      - name: Unpack CLI TAB Completion
+        run: |
+          tar -xzvf cli-tab-completion.tar.gz
+
+      - name: Install libelf-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y linux-headers-`uname -r` clang lldb lld libelf-dev gcc-multilib libbpf-dev
+
+      - name: Generate go wrapped eBPF
+        run: |
+          cd examples && make generate
+
+      - name: Run the bpfman installer
+        run: sudo ./scripts/setup.sh install
+
+      - name: Verify the bpfman systemd service is active
+        run: systemctl is-active bpfman.socket
+
+      - name: Verify the CLI can reach bpfman
+        run: sudo bpfman list
+
+      - name: Verify the manpages are installed
+        run: man bpfman list
+
+      - name: Stop the bpfman systemd service
+        run: |
+          sudo systemctl stop bpfman
+          sudo ./scripts/setup.sh uninstall
+
+      - name: Run integration tests
+        run: cargo xtask integration-test
 
   build-docs:
     runs-on: ubuntu-latest
@@ -397,6 +493,7 @@ jobs:
         build-go,
         build-docs,
         coverage,
+        basic-integration-tests,
       ]
     runs-on: ubuntu-latest
     steps:

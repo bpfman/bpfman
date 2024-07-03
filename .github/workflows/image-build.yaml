@@ -5,10 +5,8 @@ on: # yamllint disable-line rule:truthy
     branches: [main]
     tags:
       - v*
-
   pull_request:
     paths: [.github/workflows/image-build.yaml]
-
   workflow_dispatch:
 
 jobs:
@@ -217,7 +215,6 @@ jobs:
           done
 
   build-and-push-bytecode-images:
-    needs: [build]
     permissions:
       contents: read
       packages: write
