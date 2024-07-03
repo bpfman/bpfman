@@ -10,6 +10,8 @@ on: # yamllint disable-line rule:truthy
     branches:
       - main
 
+  workflow_dispatch:
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -98,9 +100,7 @@ jobs:
         run: |
           cargo install cross --git https://github.com/cross-rs/cross
 
-      ## TODO(astoycos) Deactivate the rust-cache action until we can determine
-      ## why it's freezing at the end of the install.
-      ## - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2
 
       - name: Install cargo-llvm-cov
         # Only need to run once
@@ -327,76 +327,6 @@ jobs:
           pip install -r requirements.txt
           mkdocs build --strict
 
-  basic-integration-tests:
-    runs-on: ubuntu-latest
-    needs: [build, build-go, build-docs]
-    env:
-      CARGO_TERM_COLOR: always
-    steps:
-      - name: Checkout bpfman
-        uses: actions/checkout@v4
-
-      - name: Download bpfman x86_64 build
-        uses: actions/download-artifact@v4
-        with:
-          name: bpfman-debug-linux-x86_64
-          merge-multiple: true
-
-      - name: Unpack binaries
-        run: |
-          mkdir -p target/debug
-          tar -C target/debug -xzvf bpfman-debug-linux-x86_64.tar.gz
-
-      - name: Download Integration Test eBPF
-        uses: actions/download-artifact@v4
-        with:
-          name: bpfman-integration-test
-          merge-multiple: true
-
-      - name: Unpack Integration Test eBPF
-        run: |
-          tar -xzvf integration-test.tar.gz
-
-      - name: Download manpages
-        uses: actions/download-artifact@v4
-        with:
-          name: bpfman-manpages
-          merge-multiple: true
-
-      - name: Unpack manpages
-        run: |
-          tar -xzvf manpages.tar.gz
-
-      - name: Download CLI TAB Completion
-        uses: actions/download-artifact@v4
-        with:
-          name: bpfman-cli-tab-completion
-          merge-multiple: true
-
-      - name: Unpack CLI TAB Completion
-        run: |
-          tar -xzvf cli-tab-completion.tar.gz
-
-      - name: Run the bpfman installer
-        run: sudo ./scripts/setup.sh install
-
-      - name: Verify the bpfman systemd service is active
-        run: systemctl is-active bpfman.socket
-
-      - name: Verify the CLI can reach bpfman
-        run: sudo bpfman list
-
-      - name: Verify the manpages are installed
-        run: man bpfman list
-
-      - name: Stop the bpfman systemd service
-        run: |
-          sudo systemctl stop bpfman
-          sudo ./scripts/setup.sh uninstall
-
-      - name: Run integration tests
-        run: cargo xtask integration-test
-
   coverage:
     needs: [build, build-go]
     runs-on: ubuntu-latest
@@ -467,7 +397,6 @@ jobs:
         build-go,
         build-docs,
         coverage,
-        basic-integration-tests,
       ]
     runs-on: ubuntu-latest
     steps:

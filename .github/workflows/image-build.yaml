@@ -9,6 +9,8 @@ on: # yamllint disable-line rule:truthy
   pull_request:
     paths: [.github/workflows/image-build.yaml]
 
+  workflow_dispatch:
+
 jobs:
   build-and-push-images:
     permissions:
@@ -157,7 +159,7 @@ jobs:
 
       - name: Login to quay.io/bpfman
         uses: redhat-actions/podman-login@v1
-        if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfman'}}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch')  && matrix.image.repository == 'bpfman'}}
         with:
           registry: ${{ matrix.image.registry }}
           username: ${{ secrets.BPFMAN_USERNAME }}
@@ -165,7 +167,7 @@ jobs:
 
       - name: Login to quay.io/bpfman-userspace
         uses: redhat-actions/podman-login@v1
-        if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfman-userspace'}}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman-userspace'}}
         with:
           registry: ${{ matrix.image.registry }}
           username: ${{ secrets.BPFMAN_USERSPACE_USERNAME }}
@@ -207,7 +209,7 @@ jobs:
           context: ${{ matrix.image.context }}
 
       - name: Sign the images with GitHub OIDC Token
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
         run: |
           readarray -t tags <<<"${{ steps.meta.outputs.tags }}"
           for tag in ${tags[@]}; do
@@ -215,6 +217,7 @@ jobs:
           done
 
   build-and-push-bytecode-images:
+    needs: [build]
     permissions:
       contents: read
       packages: write
@@ -658,7 +661,7 @@ jobs:
 
       - name: Login to quay.io/bpfman-bytecode
         uses: redhat-actions/podman-login@v1
-        if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfman-bytecode' }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman-bytecode' }}
         with:
           registry: ${{ matrix.image.registry }}
           username: ${{ secrets.BPFMAN_BYTECODE_USERNAME }}
@@ -685,12 +688,12 @@ jobs:
       - name: Push to registry
         id: push-image
         uses: redhat-actions/push-to-registry@v2
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
         with:
           tags: ${{ steps.meta.outputs.tags }}
 
       - name: Sign the images with GitHub OIDC Token
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
         run: |
           readarray -t tags <<<"${{ steps.meta.outputs.tags }}"
           for tag in ${tags[@]}; do
