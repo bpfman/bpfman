@@ -62,20 +62,28 @@ lazy_static! {
         .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/fexit:latest"));
 }
 
-pub const XDP_PASS_FILE_LOC: &str = "tests/integration-test/bpf/.output/xdp_pass.bpf.o";
-pub const TC_PASS_FILE_LOC: &str = "tests/integration-test/bpf/.output/tc_pass.bpf.o";
-pub const TRACEPOINT_FILE_LOC: &str = "tests/integration-test/bpf/.output/tp_openat.bpf.o";
-pub const UPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/uprobe.bpf.o";
-pub const URETPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/uprobe.bpf.o";
-pub const KPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/kprobe.bpf.o";
-pub const KRETPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/kprobe.bpf.o";
-pub const FENTRY_FILE_LOC: &str = "tests/integration-test/bpf/.output/fentry.bpf.o";
-pub const FEXIT_FILE_LOC: &str = "tests/integration-test/bpf/.output/fentry.bpf.o";
+pub const XDP_PASS_FILE_LOC: &str =
+    "tests/integration-test/bpf/.output/xdp_pass.bpf/bpf_x86_bpfel.o";
+pub const TC_PASS_FILE_LOC: &str = "tests/integration-test/bpf/.output/tc_pass.bpf/bpf_x86_bpfel.o";
+pub const TRACEPOINT_FILE_LOC: &str =
+    "tests/integration-test/bpf/.output/tp_openat.bpf/bpf_x86_bpfel.o";
+pub const UPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/uprobe.bpf/bpf_x86_bpfel.o";
+pub const URETPROBE_FILE_LOC: &str =
+    "tests/integration-test/bpf/.output/uprobe.bpf/bpf_x86_bpfel.o";
+pub const KPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/kprobe.bpf/bpf_x86_bpfel.o";
+pub const KRETPROBE_FILE_LOC: &str =
+    "tests/integration-test/bpf/.output/kprobe.bpf/bpf_x86_bpfel.o";
+pub const FENTRY_FILE_LOC: &str = "tests/integration-test/bpf/.output/fentry.bpf/bpf_x86_bpfel.o";
+pub const FEXIT_FILE_LOC: &str = "tests/integration-test/bpf/.output/fentry.bpf/bpf_x86_bpfel.o";
 
 pub const XDP_PASS_NAME: &str = "pass";
 pub const XDP_COUNTER_NAME: &str = "xdp_stats";
+pub const TC_PASS_NAME: &str = "pass";
+pub const TC_COUNTER_NAME: &str = "stats";
 pub const FENTRY_FEXIT_KERNEL_FUNCTION_NAME: &str = "do_unlinkat";
 pub const TRACEPOINT_TRACEPOINT_NAME: &str = "syscalls/sys_enter_openat";
+pub const TRACEPOINT_NAME: &str = "enter_openat";
+pub const TRACEPOINT_COUNTER_NAME: &str = "tracepoint_kill_recorder";
 pub const UPROBE_KERNEL_FUNCTION_NAME: &str = "main";
 pub const UPROBE_KERNEL_CONT_PID_FUNCTION_NAME: &str = "malloc";
 pub const UPROBE_TARGET: &str = "libc";
@@ -111,6 +119,7 @@ fn execute_bpfman(args: Vec<&str>) -> Result<String> {
     match Command::cargo_bin("bpfman")
         .expect("bpfman missing")
         .args(args)
+        .env("RUST_LOG", "debug")
         .ok()
     {
         Ok(output) => {
@@ -140,7 +149,7 @@ pub fn add_xdp(
     load_type: &LoadType,
     image_url: &str,
     file_path: &str,
-    name: Option<&str>,
+    name: &str,
     metadata: Option<Vec<&str>>,
     map_owner_id: Option<u32>,
 ) -> (Result<String>, Result<String>) {
@@ -175,9 +184,7 @@ pub fn add_xdp(
         args.extend(["--map-owner-id", owner_id.as_str()]);
     }
 
-    if let Some(n) = name {
-        args.extend(["--name", n]);
-    }
+    args.extend(["--name", name]);
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
@@ -223,6 +230,7 @@ pub fn add_tc(
     load_type: &LoadType,
     image_url: &str,
     file_path: &str,
+    name: &str,
 ) -> (Result<String>, Result<String>) {
     let mut args = vec!["load"];
     match load_type {
@@ -241,10 +249,10 @@ pub fn add_tc(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-n", "pass", "--path", file_path]),
+        LoadType::File => args.extend(["--path", file_path]),
     }
 
-    args.extend(["tc", "--direction", direction, "--iface", iface]);
+    args.extend(["-n", name, "tc", "--direction", direction, "--iface", iface]);
 
     let p: String = if priority == INVALID_INTEGER {
         "invalid_int".to_string()
@@ -279,6 +287,7 @@ pub fn add_tracepoint(
     image_url: &str,
     file_path: &str,
     tracepoint: &str,
+    name: &str,
 ) -> (Result<String>, Result<String>) {
     let mut args = vec!["load"];
     match load_type {
@@ -297,10 +306,10 @@ pub fn add_tracepoint(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-n", "enter_openat", "--path", file_path]),
+        LoadType::File => args.extend(["--path", file_path]),
     }
 
-    args.extend(["tracepoint", "--tracepoint", tracepoint]);
+    args.extend(["-n", name, "tracepoint", "--tracepoint", tracepoint]);
 
     match execute_bpfman(args) {
         Ok(stdout) => {
@@ -349,8 +358,10 @@ pub fn add_uprobe(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-n", "my_uprobe", "--path", file_path]),
+        LoadType::File => args.extend(["--path", file_path]),
     }
+
+    args.extend(["-n", "my_uprobe"]);
 
     if let Some(pid) = container_pid {
         args.extend([
@@ -409,10 +420,10 @@ pub fn add_uretprobe(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-n", "my_uretprobe", "--path", file_path]),
+        LoadType::File => args.extend(["--path", file_path]),
     }
 
-    args.extend(["uprobe", "-f", fn_name, "-r"]);
+    args.extend(["-n", "my_uretprobe", "uprobe", "-f", fn_name, "-r"]);
 
     if let Some(t) = target {
         args.extend(["-t", t]);
@@ -460,10 +471,10 @@ pub fn add_kprobe(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-n", "my_kprobe", "--path", file_path]),
+        LoadType::File => args.extend(["--path", file_path]),
     }
 
-    args.extend(["kprobe", "-f", fn_name]);
+    args.extend(["-n", "my_kprobe", "kprobe", "-f", fn_name]);
 
     if let Some(pid) = container_pid {
         args.extend(["--container-pid", pid]);
@@ -508,10 +519,10 @@ pub fn add_kretprobe(
 
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["-n", "my_kretprobe", "--path", file_path]),
+        LoadType::File => args.extend(["--path", file_path]),
     }
 
-    args.extend(["kprobe", "--retprobe", "-f", fn_name]);
+    args.extend(["-n", "my_kretprobe", "kprobe", "--retprobe", "-f", fn_name]);
 
     match execute_bpfman(args) {
         Ok(stdout) => {
@@ -548,18 +559,14 @@ pub fn add_fentry_or_fexit(
     match load_type {
         LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
         LoadType::File => {
-            if fentry {
-                args.extend(["-n", "test_fentry", "--path", file_path]);
-            } else {
-                args.extend(["-n", "test_fexit", "--path", file_path]);
-            }
+            args.extend(["--path", file_path]);
         }
     }
 
     if fentry {
-        args.extend(["fentry", "-f", fn_name]);
+        args.extend(["-n", "test_fentry", "fentry", "-f", fn_name]);
     } else {
-        args.extend(["fexit", "-f", fn_name]);
+        args.extend(["-n", "test_fexit", "fexit", "-f", fn_name]);
     }
 
     match execute_bpfman(args) {

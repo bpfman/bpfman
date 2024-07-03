@@ -26,6 +26,7 @@ dialoguer = { workspace = true }
 diff = { workspace = true }
 hex = { workspace = true, features = ["std"] }
 lazy_static = { workspace = true }
+log = { workspace = true }
 public-api = { workspace = true }
 rustdoc-json = { workspace = true }
 rustup-toolchain = { workspace = true }

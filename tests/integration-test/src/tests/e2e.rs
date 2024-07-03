@@ -48,7 +48,7 @@ fn test_proceed_on_xdp() {
         &LoadType::Image,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -78,7 +78,7 @@ fn test_proceed_on_xdp() {
         &LoadType::Image,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -109,7 +109,7 @@ fn test_proceed_on_xdp() {
         &LoadType::Image,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -159,7 +159,7 @@ fn test_unload_xdp() {
         &LoadType::Image,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -176,7 +176,7 @@ fn test_unload_xdp() {
         &LoadType::Image,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -193,7 +193,7 @@ fn test_unload_xdp() {
         &LoadType::Image,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -259,6 +259,7 @@ fn test_proceed_on_tc() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -272,6 +273,7 @@ fn test_proceed_on_tc() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -301,6 +303,7 @@ fn test_proceed_on_tc() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -314,6 +317,7 @@ fn test_proceed_on_tc() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -346,6 +350,7 @@ fn test_proceed_on_tc() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -359,6 +364,7 @@ fn test_proceed_on_tc() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -432,6 +438,7 @@ fn test_unload_tc() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -445,6 +452,7 @@ fn test_unload_tc() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -460,6 +468,7 @@ fn test_unload_tc() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -473,6 +482,7 @@ fn test_unload_tc() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -488,6 +498,7 @@ fn test_unload_tc() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
 
     debug!("Installing 3rd tc egress program");
@@ -500,6 +511,7 @@ fn test_unload_tc() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
 
     // Don't save the 3rd prog ids because we will unload them explicitly below.
@@ -570,7 +582,7 @@ fn test_program_execution_with_global_variables() {
         &LoadType::Image,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -589,6 +601,7 @@ fn test_program_execution_with_global_variables() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
 
     loaded_ids.push(prog_id.unwrap());
@@ -605,6 +618,7 @@ fn test_program_execution_with_global_variables() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
 
     loaded_ids.push(prog_id.unwrap());
@@ -618,6 +632,7 @@ fn test_program_execution_with_global_variables() {
         &TRACEPOINT_IMAGE_LOC,
         TRACEPOINT_FILE_LOC,
         TRACEPOINT_TRACEPOINT_NAME,
+        TRACEPOINT_NAME,
     );
 
     loaded_ids.push(prog_id.unwrap());
@@ -722,7 +737,7 @@ fn test_load_unload_xdp_maps() {
         &LoadType::Image,
         &XDP_COUNTER_IMAGE_LOC,
         "", // file_path
-        Some(XDP_COUNTER_NAME),
+        XDP_COUNTER_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -759,6 +774,7 @@ fn test_load_unload_tc_maps() {
         &LoadType::Image,
         &TC_COUNTER_IMAGE_LOC,
         "",
+        TC_COUNTER_NAME,
     );
     let binding = stdout.unwrap();
 
@@ -787,10 +803,11 @@ fn test_load_unload_tracepoint_maps() {
         &TRACEPOINT_COUNTER_IMAGE_LOC,
         "",
         TRACEPOINT_TRACEPOINT_NAME,
+        TRACEPOINT_COUNTER_NAME,
     );
     let binding = stdout.unwrap();
 
-    debug!("Verify tracepiont_counter map pin directory was created, and maps were pinned");
+    debug!("Verify tracepoint_counter map pin directory was created, and maps were pinned");
 
     let map_pin_path = bpfman_output_map_pin_path(&binding);
     assert!(PathBuf::from(map_pin_path)

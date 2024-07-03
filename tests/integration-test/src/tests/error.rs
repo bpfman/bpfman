@@ -61,6 +61,7 @@ fn common_load_parameter_testing() {
             lt,
             INVALID_XDP_IMAGE_LOC,
             INVALID_XDP_FILE_LOC,
+            TC_PASS_NAME,
         );
         assert!(error_prog_id.is_err());
         // Make sure bpfman is still accessible after command
@@ -76,7 +77,7 @@ fn common_load_parameter_testing() {
         &LoadType::File,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(NONEXISTENT_XDP_PASS_NAME),
+        NONEXISTENT_XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -93,7 +94,7 @@ fn common_load_parameter_testing() {
         &LoadType::Image,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(NONEXISTENT_XDP_PASS_NAME),
+        NONEXISTENT_XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -110,7 +111,7 @@ fn common_load_parameter_testing() {
         &LoadType::File,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(INVALID_XDP_PASS_NAME),
+        INVALID_XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -126,6 +127,7 @@ fn common_load_parameter_testing() {
         &TRACEPOINT_IMAGE_LOC,
         TRACEPOINT_FILE_LOC,
         TRACEPOINT_TRACEPOINT_NAME,
+        TRACEPOINT_NAME,
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -141,7 +143,7 @@ fn common_load_parameter_testing() {
         &LoadType::File,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         Some(vec![key]), // metadata
         None,            // map_owner_id
     );
@@ -158,7 +160,7 @@ fn common_load_parameter_testing() {
         &LoadType::File,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -316,6 +318,7 @@ fn tc_load_parameter_testing() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -331,6 +334,7 @@ fn tc_load_parameter_testing() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -346,6 +350,7 @@ fn tc_load_parameter_testing() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -361,6 +366,7 @@ fn tc_load_parameter_testing() {
         &LoadType::File,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -377,6 +383,7 @@ fn tc_load_parameter_testing() {
         &LoadType::File,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -432,6 +439,7 @@ fn tracepoint_load_parameter_testing() {
         &TRACEPOINT_IMAGE_LOC,
         TRACEPOINT_FILE_LOC,
         "invalid", // tracepoint
+        TRACEPOINT_NAME,
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -448,6 +456,7 @@ fn tracepoint_load_parameter_testing() {
             &FENTRY_IMAGE_LOC,
             FENTRY_FILE_LOC,
             TRACEPOINT_TRACEPOINT_NAME,
+            TRACEPOINT_NAME,
         );
         assert!(error_prog_id.is_err());
         // Make sure bpfman is still accessible after command
@@ -577,7 +586,7 @@ fn xdp_load_parameter_testing() {
         &LoadType::Image,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -594,7 +603,7 @@ fn xdp_load_parameter_testing() {
         &LoadType::Image,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -611,7 +620,7 @@ fn xdp_load_parameter_testing() {
         &LoadType::File,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -629,7 +638,7 @@ fn xdp_load_parameter_testing() {
         &LoadType::File,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -747,6 +756,7 @@ fn test_invalid_parameters() {
             &TRACEPOINT_IMAGE_LOC,
             TRACEPOINT_FILE_LOC,
             TRACEPOINT_TRACEPOINT_NAME,
+            TRACEPOINT_NAME,
         );
 
         if let Ok(id) = prog_id {
@@ -767,7 +777,7 @@ fn test_invalid_parameters() {
         &LoadType::File,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -784,6 +794,7 @@ fn test_invalid_parameters() {
         &LoadType::Image,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     if let Ok(id) = prog_id {
         loaded_ids.push(id);
@@ -798,6 +809,7 @@ fn test_invalid_parameters() {
         &LoadType::File,
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
     );
     if let Ok(id) = prog_id {
         loaded_ids.push(id);

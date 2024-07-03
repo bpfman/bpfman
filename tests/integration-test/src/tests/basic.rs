@@ -56,7 +56,7 @@ fn test_load_unload_xdp() {
                 lt,
                 &XDP_PASS_IMAGE_LOC,
                 XDP_PASS_FILE_LOC,
-                Some(XDP_PASS_NAME),
+                XDP_PASS_NAME,
                 None, // metadata
                 None, // map_owner_id
             );
@@ -95,7 +95,7 @@ fn test_map_sharing_load_unload_xdp() {
         &load_type,
         &XDP_COUNTER_IMAGE_LOC,
         "", // file_path
-        None,
+        XDP_COUNTER_NAME,
         None, // metadata
         None, // map_owner_id
     );
@@ -131,7 +131,7 @@ fn test_map_sharing_load_unload_xdp() {
         &load_type,
         &XDP_COUNTER_IMAGE_LOC,
         "", // file_path
-        None,
+        XDP_COUNTER_NAME,
         None, // metadata
         map_owner_id_u32,
     );
@@ -227,6 +227,7 @@ fn test_load_unload_tc() {
                 lt,
                 &TC_PASS_IMAGE_LOC,
                 TC_PASS_FILE_LOC,
+                TC_PASS_NAME,
             );
             loaded_ids.push(prog_id.unwrap());
         }
@@ -263,6 +264,7 @@ fn test_load_unload_tracepoint() {
             &TRACEPOINT_IMAGE_LOC,
             TRACEPOINT_FILE_LOC,
             TRACEPOINT_TRACEPOINT_NAME,
+            TRACEPOINT_NAME,
         );
         loaded_ids.push(prog_id.unwrap());
     }
@@ -409,7 +411,7 @@ fn test_list_with_metadata() {
                 lt,
                 &XDP_PASS_IMAGE_LOC,
                 XDP_PASS_FILE_LOC,
-                Some(XDP_PASS_NAME),
+                XDP_PASS_NAME,
                 None, // metadata
                 None, // map_owner_id
             );
@@ -427,7 +429,7 @@ fn test_list_with_metadata() {
         &LoadType::Image,
         &XDP_PASS_IMAGE_LOC,
         XDP_PASS_FILE_LOC,
-        Some(XDP_PASS_NAME),
+        XDP_PASS_NAME,
         Some(vec![key]),
         None, // map_owner_id
     );

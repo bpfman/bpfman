@@ -93,9 +93,8 @@ pub(crate) struct LoadImageArgs {
     #[command(flatten)]
     pub(crate) pull_args: PullBytecodeArgs,
 
-    /// Optional: The name of the function that is the entry point for the BPF program.
-    /// If not provided, the program name defined as part of the bytecode image will be used.
-    #[clap(short, long, verbatim_doc_comment, default_value = "")]
+    /// The name of the function that is the entry point for the BPF program.
+    #[clap(short, long, verbatim_doc_comment)]
     pub(crate) name: String,
 
     /// Optional: Global variables to be set when program is loaded.
