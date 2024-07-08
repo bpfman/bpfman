@@ -561,8 +561,11 @@ jobs:
             context: .
             dockerfile: ./Containerfile.xdp_dispatcher_v1
             tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
               type=sha,format=long
-              type=raw,value=v1,enable=true
+              type=raw,value=v1,enable={{is_default_branch}}
 
           - registry: quay.io
             build_language: rust
@@ -572,8 +575,11 @@ jobs:
             context: .
             dockerfile: ./Containerfile.xdp_dispatcher_v2
             tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
               type=sha,format=long
-              type=raw,value=v2,enable=true
+              type=raw,value=v2,enable={{is_default_branch}}
 
           - registry: quay.io
             build_language: rust
@@ -583,8 +589,11 @@ jobs:
             context: .
             dockerfile: ./Containerfile.tc_dispatcher
             tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
               type=sha,format=long
-              type=raw,value=v1,enable=true
+              type=raw,value=v1,enable={{is_default_branch}}
 
     name: Build eBPF Image (${{ matrix.image.image }})
     steps:
