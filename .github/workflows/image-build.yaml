@@ -631,6 +631,14 @@ jobs:
         run: |
           cd examples && make generate
 
+      - name: Login to quay.io/bpfman
+        uses: redhat-actions/podman-login@v1
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman'}}
+        with:
+          registry: ${{ matrix.image.registry }}
+          username: ${{ secrets.BPFMAN_USERNAME }}
+          password: ${{ secrets.BPFMAN_ROBOT_TOKEN }}
+
       - name: Login to quay.io/bpfman-bytecode
         uses: redhat-actions/podman-login@v1
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman-bytecode' }}
