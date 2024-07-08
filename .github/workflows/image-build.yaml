@@ -184,22 +184,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Set push flag
-        id: set-push
-        run: |
-          if [ ${{ github.event_name }} == 'push' ]; then
-            echo "push_flag=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "push_flag=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Build and push
         id: build-push-image
         uses: docker/build-push-action@v6
         with:
           platforms: linux/amd64, linux/arm64
           # TBD: linux/ppc64le, linux/s390x
-          push: ${{ fromJSON(steps.set-push.outputs.push_flag) }}
+          push: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ matrix.image.dockerfile }}
@@ -640,22 +631,6 @@ jobs:
         run: |
           cd examples && make generate
 
-      - name: Login to quay.io/bpfman
-        uses: redhat-actions/podman-login@v1
-        if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfman'}}
-        with:
-          registry: ${{ matrix.image.registry }}
-          username: ${{ secrets.BPFMAN_USERNAME }}
-          password: ${{ secrets.BPFMAN_ROBOT_TOKEN }}
-
-      - name: Login to quay.io/bpfman-userspace
-        uses: redhat-actions/podman-login@v1
-        if: ${{ github.event_name == 'push' && matrix.image.repository == 'bpfman-userspace'}}
-        with:
-          registry: ${{ matrix.image.registry }}
-          username: ${{ secrets.BPFMAN_USERSPACE_USERNAME }}
-          password: ${{ secrets.BPFMAN_USERSPACE_ROBOT_TOKEN }}
-
       - name: Login to quay.io/bpfman-bytecode
         uses: redhat-actions/podman-login@v1
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman-bytecode' }}
@@ -671,23 +646,22 @@ jobs:
           images: ${{ matrix.image.registry }}/${{ matrix.image.repository }}/${{ matrix.image.image }}
           tags: ${{ matrix.image.tags }}
 
-      - name: Build image
-        id: build-image
-        uses: redhat-actions/buildah-build@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        id: build-push-image
+        uses: docker/build-push-action@v6
         with:
-          image: ${{ matrix.image.image }}
+          push: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          containerfiles: ${{ matrix.image.dockerfile }}
+          file: ${{ matrix.image.dockerfile }}
           build-args: ${{ matrix.image.build_args }}
           context: ${{ matrix.image.context }}
-
-      - name: Push to registry
-        id: push-image
-        uses: redhat-actions/push-to-registry@v2
-        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
-        with:
-          tags: ${{ steps.meta.outputs.tags }}
 
       - name: Sign the images with GitHub OIDC Token
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
