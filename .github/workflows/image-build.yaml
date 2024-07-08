@@ -668,5 +668,5 @@ jobs:
         run: |
           readarray -t tags <<<"${{ steps.meta.outputs.tags }}"
           for tag in ${tags[@]}; do
-            cosign sign -y "${tag}@${{ steps.push-image.outputs.digest }}"
+            cosign sign -y "${tag}@${{ steps.build-push-image.outputs.digest }}"
           done
