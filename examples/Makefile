@@ -27,6 +27,12 @@
 ##     quay.io/bpfman-userspace/go-app-counter:v0.1.0
 ##
 
+# VERSION defines the project version for the bundle.
+# Update this value when you upgrade the version of your project.
+# To re-generate a bundle for another specific version without changing the standard setup, you can:
+# - use environment variables to overwrite this value (e.g export VERSION=0.0.2)
+VERSION ?= 0.5.0
+
 .DEFAULT_GOAL := help
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
@@ -112,6 +118,10 @@ build: fmt ## Build all the userspace example code.
 .PHONY: generate
 generate: ## Run `go generate` to build the bytecode for each of the examples.
 	go generate ./...
+
+.PHONY: build-release-yamls
+build-release-yamls: kustomize ## Generate yamls examples for a specific release version.
+	VERSION=$(VERSION) ./build-release-yamls.sh
 
 .PHONY: build-us-images
 build-us-images: build ## Build all example userspace images
