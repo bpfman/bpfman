@@ -201,15 +201,64 @@ impl ListFilter {
     }
 }
 
+/// `Program` represents various types of eBPF programs that are
+/// supported by bpfman.
 #[derive(Debug, Clone)]
 pub enum Program {
+    /// An XDP (Express Data Path) program.
+    ///
+    /// XDP programs are attached to network interfaces and can
+    /// process packets at a very early stage in the network stack,
+    /// providing high-performance packet processing.
     Xdp(XdpProgram),
+
+    /// A TC (Traffic Control) program.
+    ///
+    /// TC programs are used for controlling network traffic. They can
+    /// be attached to various hooks in the Linux Traffic Control (tc)
+    /// subsystem.
     Tc(TcProgram),
+
+    /// A Tracepoint program.
+    ///
+    /// Tracepoint programs are used for tracing specific events in
+    /// the kernel, providing insights into kernel behaviour and
+    /// performance.
     Tracepoint(TracepointProgram),
+
+    /// A Kprobe (Kernel Probe) program.
+    ///
+    /// Kprobe programs are used to dynamically trace and instrument
+    /// kernel functions. They can be attached to almost any function
+    /// in the kernel.
     Kprobe(KprobeProgram),
+
+    /// A Uprobe (User-space Probe) program.
+    ///
+    /// Uprobe programs are similar to Kprobe programs but are used to
+    /// trace user-space applications. They can be attached to
+    /// functions in user-space binaries.
     Uprobe(UprobeProgram),
+
+    /// An Fentry (Function Entry) program.
+    ///
+    /// Fentry programs are a type of BPF program that are attached to
+    /// the entry points of functions, providing a mechanism to trace
+    /// and instrument the beginning of function execution.
     Fentry(FentryProgram),
+
+    /// An Fexit (Function Exit) program.
+    ///
+    /// Fexit programs are a type of BPF program that are attached to
+    /// the exit points of functions, providing a mechanism to trace
+    /// and instrument the end of function execution.
     Fexit(FexitProgram),
+
+    /// An unsupported BPF program type.
+    ///
+    /// This variant is used to represent BPF programs that are not
+    /// supported by bpfman. It contains the raw `ProgramData` for the
+    /// unsupported program.
     Unsupported(ProgramData),
 }
 
