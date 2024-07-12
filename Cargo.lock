@@ -380,7 +380,7 @@ dependencies = [
 
 [[package]]
 name = "bpf-log-exporter"
-version = "0.5.0-rc1"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "env_logger",
@@ -395,7 +395,7 @@ dependencies = [
 
 [[package]]
 name = "bpf-metrics-exporter"
-version = "0.5.0-rc1"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "aya",
@@ -413,7 +413,7 @@ dependencies = [
 
 [[package]]
 name = "bpfman"
-version = "0.5.0-rc1"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -456,7 +456,7 @@ dependencies = [
 
 [[package]]
 name = "bpfman-api"
-version = "0.5.0-rc1"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -509,7 +509,7 @@ dependencies = [
 
 [[package]]
 name = "bpfman-ns"
-version = "0.5.0-rc1"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "aya",
@@ -721,9 +721,9 @@ dependencies = [
 
 [[package]]
 name = "clap_complete"
-version = "4.5.7"
+version = "4.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d598e88f6874d4b888ed40c71efbcbf4076f1dfbae128a08a8c9e45f710605d"
+checksum = "5b4be9c4c4b1f30b78d8a750e0822b6a6102d97e62061c583a6c1dea2dfb33ae"
 dependencies = [
  "clap",
 ]
@@ -1932,7 +1932,7 @@ dependencies = [
 
 [[package]]
 name = "integration-test"
-version = "0.5.0-rc1"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "assert_cmd",
@@ -1949,7 +1949,7 @@ dependencies = [
 
 [[package]]
 name = "integration-test-macros"
-version = "0.5.0-rc1"
+version = "0.5.0"
 dependencies = [
  "quote",
  "syn 2.0.70",
@@ -5128,7 +5128,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.5.0-rc1"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "bpfman",

@@ -52,6 +52,7 @@ A release for the bpfman project is comprised of the following major components:
     - `quay.io/bpfman-bytecode/kretprobe`
     - `quay.io/bpfman-bytecode/fentry`
     - `quay.io/bpfman-bytecode/fexit`
+    - `quay.io/bpfman-bytecode/go-app-counter`
 - The relevant example userspace container images with tag <RELEASE_VERSION> from source
   code located in the bpfman project:
     - `quay.io/bpfman-userspace/go-xdp-counter`
@@ -60,6 +61,7 @@ A release for the bpfman project is comprised of the following major components:
     - `quay.io/bpfman-userspace/go-uprobe-counter`
     - `quay.io/bpfman-userspace/go-target`
     - `quay.io/bpfman-userspace/go-kprobe-counter`
+    - `quay.io/bpfman-userspace/go-app-counter`
 - The OLM (Operator Lifecycle Manager) for the Kubernetes Operator.
     - This includes a `bundle` directory on disk as well as the
       `quay.io/bpfman/bpfman-operator-bundle` image with the tag <RELEASE_VERSION>.
@@ -177,12 +179,14 @@ Once these steps are completed:
         - `go-uprobe-counter-install.yaml`
         - `go-uretprobe-counter-install.yaml`
         - `go-kprobe-counter-install.yaml`
+        - `go-app-counter-install.yaml`
         - `go-xdp-counter-install-selinux.yaml`
         - `go-tc-counter-install-selinux.yaml`
         - `go-tracepoint-counter-install-selinux.yaml`
         - `go-uprobe-counter-install-selinux.yaml`
         - `go-uretprobe-counter-install-selinux.yaml`
         - `go-kprobe-counter-install-selinux.yaml`
+        - `go-app-counter-install-selinux.yaml`
 - Update the [community-operator](https://github.com/k8s-operatorhub/community-operators) and
   [community-operators-prod](https://github.com/redhat-openshift-ecosystem/community-operators-prod) repositories with
   the latest bundle manifests. See the following PRs as examples:
@@ -219,12 +223,14 @@ Once these steps are completed:
         - `go-uprobe-counter-install.yaml`
         - `go-uretprobe-counter-install.yaml`
         - `go-kprobe-counter-install.yaml`
+        - `go-app-counter-install.yaml`
         - `go-xdp-counter-install-selinux.yaml`
         - `go-tc-counter-install-selinux.yaml`
         - `go-tracepoint-counter-install-selinux.yaml`
         - `go-uprobe-counter-install-selinux.yaml`
         - `go-uretprobe-counter-install-selinux.yaml`
         - `go-kprobe-counter-install-selinux.yaml`
+        - `go-app-counter-install-selinux.yaml`
 
 [release]: https://github.com/bpfman/bpfman/releases
 [bpfman-team]: https://github.com/bpfman/bpfman/blob/main/CODEOWNERS
