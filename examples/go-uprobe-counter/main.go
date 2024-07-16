@@ -21,7 +21,7 @@ import (
 const (
 	UprobeProgramName   = "go-uprobe-counter-example"
 	BpfProgramMapIndex  = "uprobe_stats_map"
-	DefaultByteCodeFile = "bpf_bpfel.o"
+	DefaultByteCodeFile = "bpf_x86_bpfel.o"
 
 	// MapsMountPoint is the "go-uprobe-counter-maps" volumeMount "mountPath" from "deployment.yaml"
 	MapsMountPoint = "/run/uprobe/maps"

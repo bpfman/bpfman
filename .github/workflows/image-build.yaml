@@ -13,7 +13,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout bpfman
+        uses: actions/checkout@v4
 
       - name: Build bpfman binary
         run: cargo build -p bpfman --verbose
@@ -607,11 +608,6 @@ jobs:
           username: ${{ secrets.BPFMAN_USERNAME }}
           password: ${{ secrets.BPFMAN_ROBOT_TOKEN }}
 
-      - name: Download bpfman binary
-        uses: actions/download-artifact@v4
-        with:
-          name: bpfman
-
       - name: Login to quay.io/bpfman-bytecode
         uses: redhat-actions/podman-login@v1
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman-bytecode' }}
@@ -619,6 +615,11 @@ jobs:
           registry: ${{ matrix.image.registry }}
           username: ${{ secrets.BPFMAN_BYTECODE_USERNAME }}
           password: ${{ secrets.BPFMAN_BYTECODE_ROBOT_TOKEN }}
+
+      - name: Download bpfman binary
+        uses: actions/download-artifact@v4
+        with:
+          name: bpfman
 
       - name: Unpack bpfman binary
         run: |
