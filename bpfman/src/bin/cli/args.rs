@@ -93,7 +93,7 @@ pub(crate) struct LoadImageArgs {
     #[command(flatten)]
     pub(crate) pull_args: PullBytecodeArgs,
 
-    /// The name of the function that is the entry point for the BPF program.
+    /// Required: The name of the function that is the entry point for the eBPF program.
     #[clap(short, long, verbatim_doc_comment)]
     pub(crate) name: String,
 
@@ -316,7 +316,18 @@ pub(crate) struct GetArgs {
 pub(crate) enum ImageSubCommand {
     /// Pull an eBPF bytecode image from a remote registry.
     Pull(PullBytecodeArgs),
-    /// Build an eBPF bytecode image from local bytecode objects, and push to a registry.
+    /// Build an eBPF bytecode image from local bytecode objects and push to a registry.
+    ///
+    /// To use, the --container-file and --tag must be included, as well as a pointer to
+    /// at least one bytecode file that can be passed in several ways. Use either:
+    /// * --bytecode: for a single bytecode built for the host architecture.
+    /// * --cilium-ebpf-project: for a cilium/ebpf project directory which contains
+    /// multiple object files for different architectures.
+    /// * --bc-386-el .. --bc-s390x-eb: to add one or more architecture specific bytecode files.
+    ///
+    /// Examples:
+    ///    bpfman image build -f Containerfile.bytecode -t quay.io/<USER>/go-xdp-counter:test \
+    ///      -b ./examples/go-xdp-counter/bpf_x86_bpfel.o
     Build(BuildBytecodeArgs),
     /// Generate the OCI image labels for a given bytecode file.
     GenerateBuildArgs(GenerateArgs),
@@ -367,6 +378,8 @@ impl FromStr for GoArch {
 }
 
 impl GoArch {
+    /// Converts GoArch to a platform string ($GOOS/$GOARCH) that the container
+    /// runtimes understand.
     pub(crate) fn get_platform(&self) -> String {
         match self {
             GoArch::X386 => "linux/386".to_string(),
@@ -385,6 +398,8 @@ impl GoArch {
         }
     }
 
+    /// This must be in sync with the build args described in the
+    /// Containerfile.bytecode.multi.arch file.
     pub(crate) fn get_build_arg(&self, bc: &Path) -> String {
         match self {
             GoArch::X386 => format!("BC_386_EL={}", bc.display()),
@@ -403,6 +418,7 @@ impl GoArch {
         }
     }
 
+    /// Discovers the GoArch based on the cilium/ebpf project file-naming conventions.
     pub(crate) fn from_cilium_ebpf_file_str(s: &str) -> Result<Self, std::io::Error> {
         if s.contains("bpf_x86_bpfel.o") {
             Ok(GoArch::Amd64)
@@ -431,6 +447,8 @@ impl GoArch {
 #[derive(Args, Debug)]
 #[command(disable_version_flag = true)]
 pub(crate) struct BuildBytecodeArgs {
+    /// Optional: bytecode file to use for building the image assuming host architecture.
+    /// Example: -b ./bpf_x86_bpfel.o
     #[clap(flatten)]
     pub(crate) bytecode_file: BytecodeFile,
 
@@ -440,7 +458,7 @@ pub(crate) struct BuildBytecodeArgs {
     pub(crate) tag: String,
 
     /// Required: Dockerfile to use for building the image.
-    /// Example: --file Containerfile.bytecode
+    /// Example: --container_file Containerfile.bytecode
     #[clap(short = 'f', long, verbatim_doc_comment)]
     pub(crate) container_file: PathBuf,
 

@@ -620,11 +620,9 @@ impl ProgramData {
                             "Loading program bytecode from container image: {}",
                             l.get_url()
                         );
-                        // If program name isn't provided and we're loading from a container
-                        // image use the program name provided in the image metadata, otherwise
-                        // always use the provided program name.
-                        let provided_name = self.get_name()?.clone();
 
+                        // Error out if the bytecode image doesn't contain the expected program.
+                        let provided_name = self.get_name()?.clone();
                         if s.contains(&provided_name) {
                             self.set_name(&provided_name)?;
                         } else {

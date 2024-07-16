@@ -24,7 +24,7 @@ type Stats struct {
 }
 
 const (
-	DefaultByteCodeFile = "bpf_bpfel.o"
+	DefaultByteCodeFile = "bpf_x86_bpfel.o"
 	TcProgramName       = "go-tc-counter-example"
 	BpfProgramMapIndex  = "tc_stats_map"
 

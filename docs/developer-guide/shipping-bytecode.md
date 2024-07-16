@@ -38,13 +38,13 @@ To provide relevant metadata regarding the bytecode to any consumers, some relev
 
 These labels are dynamic and defined as follows:
 
-- `io.ebpf.programs`: A label which defines The eBPF programs stored in the bytecode image.
-   the value of the label is a list which must contain a valid JSON object with
+- `io.ebpf.programs`: A label which defines the eBPF programs stored in the bytecode image.
+   The value of the label is a list which must contain a valid JSON object with
    Key's specifying the program name, and values specifying the program type i.e:
    "{ "pass" : "xdp" , "counter" : "tc", ...}".
 
-- `io.ebpf.maps`: A label which defines The eBPF maps stored in the bytecode image.
-   the value of the label is a list which must contain a valid JSON object with
+- `io.ebpf.maps`: A label which defines the eBPF maps stored in the bytecode image.
+   The value of the label is a list which must contain a valid JSON object with
    Key's specifying the map name, and values specifying the map type i.e:
    "{ "xdp_stats_map" : "per_cpu_array", ...}".
 
@@ -63,7 +63,7 @@ An Example Containerfile can be found at `/packaging/container/deployment/Contai
 bpfman image build -b ./examples/go-xdp-counter/bpf_bpfel.o -f Containerfile.bytecode --tag quay.io/<USER>/go-xdp-counter
 ```
 
-Where `./examples/go-xdp-counter/bpf_x86_bpfel.o` is the directory the bytecode object file is located.
+Where `./examples/go-xdp-counter/bpf_x86_bpfel.o` is the path to the bytecode object file.
 
 Users can also use `skopeo` to ensure the image follows the
 backwards compatible version of the spec:

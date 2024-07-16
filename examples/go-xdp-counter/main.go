@@ -24,7 +24,7 @@ type Stats struct {
 }
 
 const (
-	DefaultByteCodeFile = "bpf_bpfel.o"
+	DefaultByteCodeFile = "bpf_x86_bpfel.o"
 	XdpProgramName      = "go-xdp-counter-example"
 	BpfProgramMapIndex  = "xdp_stats_map"
 

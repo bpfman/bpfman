@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	DefaultByteCodeFile       = "bpf_bpfel.o"
+	DefaultByteCodeFile       = "bpf_x86_bpfel.o"
 	ApplicationMapsMountPoint = "/run/app/maps"
 )
 
