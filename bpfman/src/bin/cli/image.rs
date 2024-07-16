@@ -277,7 +277,7 @@ pub(crate) async fn execute_build_args(args: &GenerateArgs) -> anyhow::Result<()
     let build_context = if let Some(project_path) = &args.bytecode.cilium_ebpf_project {
         parse_bytecode_from_cilium_ebpf_project(project_path)?
     } else {
-        debug!("parsing multi-arch bytecode files from user input");
+        debug!("parsing bytecode files from user input");
         args.bytecode.parse()
     };
 
@@ -294,11 +294,12 @@ pub(crate) async fn execute_build_args(args: &GenerateArgs) -> anyhow::Result<()
         .split('=')
         .collect();
     let bc_file = PathBuf::from(first_arg[1]);
-    let (prog_labels, map_labels) = if first_arg[0].contains("EL") {
-        build_bpf_info_image_labels(&bc_file, Some(Endianness::Little))?
-    } else {
-        build_bpf_info_image_labels(&bc_file, Some(Endianness::Big))?
-    };
+    let (prog_labels, map_labels) =
+        if first_arg[0].contains("EL") || first_arg[0].contains("BYTECODE_FILE") {
+            build_bpf_info_image_labels(&bc_file, Some(Endianness::Little))?
+        } else {
+            build_bpf_info_image_labels(&bc_file, Some(Endianness::Big))?
+        };
 
     build_context.build_args.into_iter().for_each(|a| {
         println!("{a}");

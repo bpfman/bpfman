@@ -38,13 +38,13 @@ To provide relevant metadata regarding the bytecode to any consumers, some relev
 
 These labels are dynamic and defined as follows:
 
-- `io.ebpf.programs`: A label which defines The eBPF programs stored in the bytecode image.
-   the value of the label is a list which must contain a valid JSON object with
+- `io.ebpf.programs`: A label which defines the eBPF programs stored in the bytecode image.
+   The value of the label is a list which must contain a valid JSON object with
    Key's specifying the program name, and values specifying the program type i.e:
    "{ "pass" : "xdp" , "counter" : "tc", ...}".
 
-- `io.ebpf.maps`: A label which defines The eBPF maps stored in the bytecode image.
-   the value of the label is a list which must contain a valid JSON object with
+- `io.ebpf.maps`: A label which defines the eBPF maps stored in the bytecode image.
+   The value of the label is a list which must contain a valid JSON object with
    Key's specifying the map name, and values specifying the map type i.e:
    "{ "xdp_stats_map" : "per_cpu_array", ...}".
 
@@ -55,7 +55,7 @@ libraries (i.e aya, libbpf, cilium-ebpf) already do so, meaning users are expect
 to pass in the correct ebpf program bytecode for the appropriate platform. However,
 bpfman does provide a few image builder commands to make this whole process easier.
 
-An Example Containerfile can be found at `/packaging/container/deployment/Containerfile.bytecode`
+Example Containerfiles for single-arch and multi-arch can be found at `Containerfile.bytecode` and `Containerfile.bytecode.multi.arch`.
 
 #### Host Platform Architecture Image Build
 
@@ -63,7 +63,7 @@ An Example Containerfile can be found at `/packaging/container/deployment/Contai
 bpfman image build -b ./examples/go-xdp-counter/bpf_bpfel.o -f Containerfile.bytecode --tag quay.io/<USER>/go-xdp-counter
 ```
 
-Where `./examples/go-xdp-counter/bpf_x86_bpfel.o` is the directory the bytecode object file is located.
+Where `./examples/go-xdp-counter/bpf_x86_bpfel.o` is the path to the bytecode object file.
 
 Users can also use `skopeo` to ensure the image follows the
 backwards compatible version of the spec:
@@ -154,42 +154,6 @@ podman manifest inspect quay.io/bpfman-bytecode/go-xdp-counter:test-manual-build
                 "os": "linux"
             }
         },
-        {
-            "mediaType": "application/vnd.oci.image.manifest.v1+json",
-            "size": 566,
-            "digest": "sha256:592bfce90f11da71072d5bd7c5724764c77712e534ca01914fa45a7517a10a31",
-            "platform": {
-                "architecture": "unknown",
-                "os": "unknown"
-            }
-        },
-        {
-            "mediaType": "application/vnd.oci.image.manifest.v1+json",
-            "size": 566,
-            "digest": "sha256:1ce88551dfcab403fa7ab81c47fc65bf3770ae23daab47e0e344c0a6fe4c11f9",
-            "platform": {
-                "architecture": "unknown",
-                "os": "unknown"
-            }
-        },
-        {
-            "mediaType": "application/vnd.oci.image.manifest.v1+json",
-            "size": 566,
-            "digest": "sha256:5255922d976c479a094ced97d831a506a1aaa063a831e6e8626916b7e6c52f1c",
-            "platform": {
-                "architecture": "unknown",
-                "os": "unknown"
-            }
-        },
-        {
-            "mediaType": "application/vnd.oci.image.manifest.v1+json",
-            "size": 566,
-            "digest": "sha256:8b7c7b9b86dddfc9d6870ced29e03fd7b5dc996fd2f67c1a64284ff29ef229bb",
-            "platform": {
-                "architecture": "unknown",
-                "os": "unknown"
-            }
-        }
     ]
 }
 ```
