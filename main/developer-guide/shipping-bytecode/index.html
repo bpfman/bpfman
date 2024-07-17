@@ -980,6 +980,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Building a Backwards compatible OCI compliant image">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#host-platform-architecture-image-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      Host Platform Architecture Image Build
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-architecture-image-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      Multi-Architecture Image build
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1765,6 +1789,30 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Building a Backwards compatible OCI compliant image">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#host-platform-architecture-image-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      Host Platform Architecture Image Build
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multi-architecture-image-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      Multi-Architecture Image build
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
       </ul>
@@ -1807,8 +1855,8 @@ and deployment of eBPF programs within container orchestration systems such as
 Kubernetes, where it is necessary to provide a portable way to distribute
 bytecode to all nodes which need it.</p>
 <h2 id="specifications">Specifications</h2>
-<p>We provide two distinct spec variants here to ensure interoperatiblity with existing registries
-and packages which do no support the new custom media types defined here.</p>
+<p>We provide two distinct spec variants here to ensure interoperability with existing registries
+and packages which do not support the new custom media types defined here.</p>
 <ul>
 <li><a href="#custom-oci-compatible-spec">custom-data-type-spec</a></li>
 <li><a href="#backwards-compatible-oci-compliant-spec">backwards-compatable-spec</a></li>
@@ -1827,78 +1875,121 @@ a <code>.o</code> extension) placed at the root of the layer <code>./</code>.</p
 <h3 id="image-labels">Image Labels</h3>
 <p>To provide relevant metadata regarding the bytecode to any consumers, some relevant labels
 <strong>MUST</strong> be defined on the image.</p>
-<p>These labels are defined as follows:</p>
+<p>These labels are dynamic and defined as follows:</p>
 <ul>
 <li>
-<p><code>io.ebpf.program_type</code>: The eBPF program type (i.e <code>xdp</code>,<code>tc</code>, <code>sockops</code>, ...).</p>
+<p><code>io.ebpf.programs</code>: A label which defines the eBPF programs stored in the bytecode image.
+   The value of the label is a list which must contain a valid JSON object with
+   Key's specifying the program name, and values specifying the program type i.e:
+   "{ "pass" : "xdp" , "counter" : "tc", ...}".</p>
 </li>
 <li>
-<p><code>io.ebpf.filename</code>: The Filename of the bytecode stored in the image.</p>
-</li>
-<li>
-<p><code>io.ebpf.program_name</code>: The name of the eBPF Program represented in the bytecode.</p>
-</li>
-<li>
-<p><code>io.ebpf.bpf_function_name</code>: The name of the function that is the entry point for the BPF program.</p>
+<p><code>io.ebpf.maps</code>: A label which defines the eBPF maps stored in the bytecode image.
+   The value of the label is a list which must contain a valid JSON object with
+   Key's specifying the map name, and values specifying the map type i.e:
+   "{ "xdp_stats_map" : "per_cpu_array", ...}".</p>
 </li>
 </ul>
 <h3 id="building-a-backwards-compatible-oci-compliant-image">Building a Backwards compatible OCI compliant image</h3>
-<p>An Example Containerfile can be found at <code>/packaging/container/deployment/Containerfile.bytecode</code></p>
-<p>To use the provided templated Containerfile simply run a <code>docker build</code> command
-like the following:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>docker<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w"> </span>--build-arg<span class="w"> </span><span class="nv">PROGRAM_NAME</span><span class="o">=</span>xdp_pass<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w"> </span>--build-arg<span class="w"> </span><span class="nv">BPF_FUNCTION_NAME</span><span class="o">=</span>pass<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w"> </span>--build-arg<span class="w"> </span><span class="nv">PROGRAM_TYPE</span><span class="o">=</span>xdp<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w"> </span>--build-arg<span class="w"> </span><span class="nv">BYTECODE_FILENAME</span><span class="o">=</span>pass.bpf.o<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w"> </span>--build-arg<span class="w"> </span><span class="nv">KERNEL_COMPILE_VER</span><span class="o">=</span><span class="k">$(</span>uname<span class="w"> </span>-r<span class="k">)</span><span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w"> </span>-f<span class="w"> </span>Containerfile.bytecode<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w"> </span>/home/&lt;USER&gt;/bytecode<span class="w"> </span>-t<span class="w"> </span>quay.io/&lt;USER&gt;/xdp_pass:latest
+<p>Bpfman does not provide wrappers around compilers like clang since many eBPF
+libraries (i.e aya, libbpf, cilium-ebpf) already do so, meaning users are expected
+to pass in the correct ebpf program bytecode for the appropriate platform. However,
+bpfman does provide a few image builder commands to make this whole process easier.</p>
+<p>Example Containerfiles for single-arch and multi-arch can be found at <code>Containerfile.bytecode</code> and <code>Containerfile.bytecode.multi.arch</code>.</p>
+<h4 id="host-platform-architecture-image-build">Host Platform Architecture Image Build</h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">bpfman image build -b ./examples/go-xdp-counter/bpf_bpfel.o -f Containerfile.bytecode --tag quay.io/&lt;USER&gt;/go-xdp-counter</span>
 </code></pre></div>
-<p>Where <code>/home/&lt;USER&gt;/bytecode</code> is the directory the bytecode object file is located.</p>
+<p>Where <code>./examples/go-xdp-counter/bpf_x86_bpfel.o</code> is the path to the bytecode object file.</p>
 <p>Users can also use <code>skopeo</code> to ensure the image follows the
 backwards compatible version of the spec:</p>
 <ul>
 <li><code>skopeo inspect</code> will show the correctly configured labels stored in the
   configuration layer (<code>application/vnd.oci.image.config.v1+json</code>) of the image.</li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>skopeo<span class="w"> </span>inspect<span class="w"> </span>docker://quay.io/astoycos/xdp_pass:latest
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>skopeo<span class="w"> </span>inspect<span class="w"> </span>docker://quay.io/bpfman-bytecode/go-xdp-counter
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="o">{</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="s2">&quot;Name&quot;</span>:<span class="w"> </span><span class="s2">&quot;quay.io/&lt;USER&gt;/xdp_pass&quot;</span>,
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="s2">&quot;Digest&quot;</span>:<span class="w"> </span><span class="s2">&quot;sha256:db1f7dd03f9fba0913e07493238fcfaf0bf08de37b8e992cc5902775dfb9086a&quot;</span>,
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="s2">&quot;Name&quot;</span>:<span class="w"> </span><span class="s2">&quot;quay.io/bpfman-bytecode/go-xdp-counter&quot;</span>,
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="s2">&quot;Digest&quot;</span>:<span class="w"> </span><span class="s2">&quot;sha256:e8377e94c56272937689af88a1a6231d4d594f83218b5cda839eaeeea70a30d3&quot;</span>,
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="s2">&quot;RepoTags&quot;</span>:<span class="w"> </span><span class="o">[</span>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">        </span><span class="s2">&quot;latest&quot;</span>
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span><span class="o">]</span>,
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="s2">&quot;Created&quot;</span>:<span class="w"> </span><span class="s2">&quot;2022-08-14T14:27:20.147468277Z&quot;</span>,
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">    </span><span class="s2">&quot;Created&quot;</span>:<span class="w"> </span><span class="s2">&quot;2024-05-30T09:17:15.327378016-04:00&quot;</span>,
 <a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span><span class="s2">&quot;DockerVersion&quot;</span>:<span class="w"> </span><span class="s2">&quot;&quot;</span>,
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">    </span><span class="s2">&quot;Labels&quot;</span>:<span class="w"> </span><span class="o">{</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">        </span><span class="s2">&quot;io.buildah.version&quot;</span>:<span class="w"> </span><span class="s2">&quot;1.26.1&quot;</span>,
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">        </span><span class="s2">&quot;io.ebpf.filename&quot;</span>:<span class="w"> </span><span class="s2">&quot;pass.bpf.o&quot;</span>,
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">        </span><span class="s2">&quot;io.ebpf.program_name&quot;</span>:<span class="w"> </span><span class="s2">&quot;xdp_counter&quot;</span>,
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">        </span><span class="s2">&quot;io.ebpf.program_type&quot;</span>:<span class="w"> </span><span class="s2">&quot;xdp&quot;</span>,
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">        </span><span class="s2">&quot;io.ebpf.bpf_function_name&quot;</span>:<span class="w"> </span><span class="s2">&quot;pass&quot;</span>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">    </span><span class="o">}</span>,
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">    </span><span class="s2">&quot;Architecture&quot;</span>:<span class="w"> </span><span class="s2">&quot;amd64&quot;</span>,
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">    </span><span class="s2">&quot;Os&quot;</span>:<span class="w"> </span><span class="s2">&quot;linux&quot;</span>,
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">    </span><span class="s2">&quot;Layers&quot;</span>:<span class="w"> </span><span class="o">[</span>
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">        </span><span class="s2">&quot;sha256:5f6dae6f567601fdad15a936d844baac1f30c31bd3df8df0c5b5429f3e048000&quot;</span>
-<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">    </span><span class="o">]</span>,
-<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">    </span><span class="s2">&quot;Env&quot;</span>:<span class="w"> </span><span class="o">[</span>
-<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">        </span><span class="s2">&quot;PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin&quot;</span>
-<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="w">    </span><span class="o">]</span>
-<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="o">}</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">        </span><span class="s2">&quot;io.ebpf.maps&quot;</span>:<span class="w"> </span><span class="s2">&quot;{\&quot;xdp_stats_map\&quot;:\&quot;per_cpu_array\&quot;}&quot;</span>,
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">        </span><span class="s2">&quot;io.ebpf.programs&quot;</span>:<span class="w"> </span><span class="s2">&quot;{\&quot;xdp_stats\&quot;:\&quot;xdp\&quot;}&quot;</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span><span class="o">}</span>,
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">    </span><span class="s2">&quot;Architecture&quot;</span>:<span class="w"> </span><span class="s2">&quot;amd64&quot;</span>,
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">    </span><span class="s2">&quot;Os&quot;</span>:<span class="w"> </span><span class="s2">&quot;linux&quot;</span>,
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">    </span><span class="s2">&quot;Layers&quot;</span>:<span class="w"> </span><span class="o">[</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">        </span><span class="s2">&quot;sha256:c0d921d3f0d077da7cdfba8c0240fb513789e7698cdf326f80f30f388c084cff&quot;</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">    </span><span class="o">]</span>,
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">    </span><span class="s2">&quot;LayersData&quot;</span>:<span class="w"> </span><span class="o">[</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">        </span><span class="o">{</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">            </span><span class="s2">&quot;MIMEType&quot;</span>:<span class="w"> </span><span class="s2">&quot;application/vnd.docker.image.rootfs.diff.tar.gzip&quot;</span>,
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">            </span><span class="s2">&quot;Digest&quot;</span>:<span class="w"> </span><span class="s2">&quot;sha256:c0d921d3f0d077da7cdfba8c0240fb513789e7698cdf326f80f30f388c084cff&quot;</span>,
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">            </span><span class="s2">&quot;Size&quot;</span>:<span class="w"> </span><span class="m">2656</span>,
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="w">            </span><span class="s2">&quot;Annotations&quot;</span>:<span class="w"> </span>null
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">        </span><span class="o">}</span>
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">    </span><span class="o">]</span>,
+<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">    </span><span class="s2">&quot;Env&quot;</span>:<span class="w"> </span><span class="o">[</span>
+<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">        </span><span class="s2">&quot;PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin&quot;</span>
+<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">    </span><span class="o">]</span>
+<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="o">}</span>
 </code></pre></div>
-<ul>
-<li><code>skopeo inspect --raw</code> will show the correct layer type is used in the image.</li>
-</ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>skopeo<span class="w"> </span>inspect<span class="w"> </span>--raw<span class="w">  </span>docker://quay.io/astoycos/xdp_pass:latest
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="o">{</span><span class="s2">&quot;schemaVersion&quot;</span>:2,<span class="s2">&quot;mediaType&quot;</span>:<span class="s2">&quot;application/vnd.oci.image.manifest.v1+json&quot;</span>,<span class="s2">&quot;config&quot;</span>:<span class="o">{</span><span class="s2">&quot;mediaType&quot;</span>:<span class="s2">&quot;application/vnd.oci.image.config.v1+json&quot;</span>,<span class="s2">&quot;digest&quot;</span>:<span class="s2">&quot;sha256:ff4108b8405a877b2df3e06f9287c509b9d62d6c241c9a5213d81a9abee80361&quot;</span>,<span class="s2">&quot;size&quot;</span>:2385<span class="o">}</span>,<span class="s2">&quot;layers&quot;</span>:<span class="o">[{</span><span class="s2">&quot;mediaType&quot;</span>:<span class="s2">&quot;application/vnd.oci.image.layer.v1.tar+gzip&quot;</span>,<span class="s2">&quot;digest&quot;</span>:<span class="s2">&quot;sha256:5f6dae6f567601fdad15a936d844baac1f30c31bd3df8df0c5b5429f3e048000&quot;</span>,<span class="s2">&quot;size&quot;</span>:1539<span class="o">}]</span>,<span class="s2">&quot;annotations&quot;</span>:<span class="o">{</span><span class="s2">&quot;org.opencontainers.image.base.digest&quot;</span>:<span class="s2">&quot;sha256:86b59a6cf7046c624c47e40a5618b383d763be712df2c0e7aaf9391c2c9ef559&quot;</span>,<span class="s2">&quot;org.opencontainers.image.base.name&quot;</span>:<span class="s2">&quot;&quot;</span><span class="o">}}</span>
+<h4 id="multi-architecture-image-build">Multi-Architecture Image build</h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">bpfman image build -t quay.io/bpfman-bytecode/go-xdp-counter-multi --container-file ./Containerfile.bytecode.multi.arch --bc-amd64-el ./examples/go-xdp-counter/bpf_arm64_bpfel.o --bc-s390x-eb ./examples/go-xdp-counter/bpf_s390_bpfeb.o</span>
+</code></pre></div>
+<p>To better understand the available architectures users can use <code>podman manifest-inspect</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">podman manifest inspect quay.io/bpfman-bytecode/go-xdp-counter:test-manual-build</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">{</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="go">    &quot;schemaVersion&quot;: 2,</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="go">    &quot;mediaType&quot;: &quot;application/vnd.docker.distribution.manifest.list.v2+json&quot;,</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="go">    &quot;manifests&quot;: [</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="go">        {</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="go">            &quot;mediaType&quot;: &quot;application/vnd.oci.image.manifest.v1+json&quot;,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="go">            &quot;size&quot;: 478,</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="go">            &quot;digest&quot;: &quot;sha256:aed62d2e5867663fac66822422512a722003b40453325fd873bbb5840d78cba9&quot;,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="go">            &quot;platform&quot;: {</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="go">                &quot;architecture&quot;: &quot;amd64&quot;,</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="go">                &quot;os&quot;: &quot;linux&quot;</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="go">            }</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="go">        },</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="go">        {</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="go">            &quot;mediaType&quot;: &quot;application/vnd.oci.image.manifest.v1+json&quot;,</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="go">            &quot;size&quot;: 478,</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="go">            &quot;digest&quot;: &quot;sha256:a348fe2f26dc0851518d8d82e1049d2c39cc2e4f37419fe9231c1967abc4828c&quot;,</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="go">            &quot;platform&quot;: {</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="go">                &quot;architecture&quot;: &quot;arm64&quot;,</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="go">                &quot;os&quot;: &quot;linux&quot;</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="go">            }</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="go">        },</span>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="go">        {</span>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="go">            &quot;mediaType&quot;: &quot;application/vnd.oci.image.manifest.v1+json&quot;,</span>
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="go">            &quot;size&quot;: 478,</span>
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="go">            &quot;digest&quot;: &quot;sha256:d5c5d41d2d21e0cb5fb79fe9f343e540942c9a1657cf0de96b8f63e43d369743&quot;,</span>
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="go">            &quot;platform&quot;: {</span>
+<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="go">                &quot;architecture&quot;: &quot;ppc64le&quot;,</span>
+<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="go">                &quot;os&quot;: &quot;linux&quot;</span>
+<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="go">            }</span>
+<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="go">        },</span>
+<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="go">        {</span>
+<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a><span class="go">            &quot;mediaType&quot;: &quot;application/vnd.oci.image.manifest.v1+json&quot;,</span>
+<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a><span class="go">            &quot;size&quot;: 478,</span>
+<a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a><span class="go">            &quot;digest&quot;: &quot;sha256:7915c83838d73268690381b313fb84b5509912aa351c98c78204584cced50efd&quot;,</span>
+<a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a><span class="go">            &quot;platform&quot;: {</span>
+<a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a><span class="go">                &quot;architecture&quot;: &quot;s390x&quot;,</span>
+<a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a><span class="go">                &quot;os&quot;: &quot;linux&quot;</span>
+<a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a><span class="go">            }</span>
+<a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a><span class="go">        },</span>
+<a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a><span class="go">    ]</span>
+<a id="__codelineno-3-43" name="__codelineno-3-43" href="#__codelineno-3-43"></a><span class="go">}</span>
 </code></pre></div>
 <h2 id="custom-oci-compatible-spec">Custom OCI compatible spec</h2>
 <p>This variant of the eBPF bytecode image spec uses custom OCI medium types
 to represent eBPF bytecode as container images. Many toolchains and registries
 may not support this yet.</p>
-<p>TODO(astoycos)</p>
+<p>TODO https://github.com/bpfman/bpfman/issues/1162</p>
 
 
 
