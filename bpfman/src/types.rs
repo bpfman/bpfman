@@ -527,7 +527,7 @@ impl ProgramData {
         sled_insert(&self.db_tree, ID, &id.to_ne_bytes())
     }
 
-    /// Retrieves the ID of the program.
+    /// Retrieves the kernel ID of the program.
     ///
     /// # Returns
     ///
@@ -836,7 +836,7 @@ impl ProgramData {
      * Methods for setting and getting kernel information.
      */
 
-    /// Retrieves the name of the kernel.
+    /// Retrieves the name of the program.
     ///
     /// # Returns
     ///

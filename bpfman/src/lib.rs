@@ -99,7 +99,7 @@ pub(crate) fn get_db_config() -> SledConfig {
 /// and attaching operations to add it to the system. It supports
 /// various types of eBPF programs such as XDP, TC, Tracepoint,
 /// Kprobe, Uprobe, Fentry, and Fexit. If the program is successfully
-/// added, it returns the updated `Program`; otherwise, it returns a
+/// added, it returns the updated [`Program`]; otherwise, it returns a
 /// `BpfmanError`.
 ///
 /// The following steps are performed to integrate the eBPF program
@@ -199,7 +199,7 @@ pub(crate) fn get_db_config() -> SledConfig {
 /// # Errors
 ///
 /// This function will return an error if:
-/// * The setup or initialisation steps fail.
+/// * The setup or initialization steps fail.
 /// * The program data fails to load.
 /// * The map owner ID is invalid or setting the map pin path fails.
 /// * The program bytes fail to set.
@@ -288,7 +288,7 @@ pub async fn add_program(mut program: Program) -> Result<Program, BpfmanError> {
 ///
 /// # Arguments
 ///
-/// * `id` - A `u32` that uniquely identifies the eBPF program to be removed.
+/// * `id` - A `u32` kernel allocated value that uniquely identifies the eBPF program to be removed.
 ///
 /// # Returns
 ///
@@ -514,7 +514,7 @@ pub async fn list_programs(filter: ListFilter) -> Result<Vec<Program>, BpfmanErr
 /// Retrieves information about a currently loaded eBPF program.
 ///
 /// Attempts to retrieve detailed information about an eBPF program
-/// identified by the given `id`. It first checks if the program was
+/// identified by the given kernel `id`. It first checks if the program was
 /// loaded by `bpfman` and uses it if available. If not, it queries
 /// all loaded eBPF programs through the Aya library and converts the
 /// data into an unsupported program object if a match is found.
