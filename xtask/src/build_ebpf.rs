@@ -5,43 +5,13 @@ use std::{
     process::Command,
 };
 
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, Context};
 use clap::Parser;
 
 use crate::workspace::WORKSPACE_ROOT;
 
-#[derive(Debug, Copy, Clone)]
-pub enum Architecture {
-    BpfEl,
-    BpfEb,
-}
-
-impl std::str::FromStr for Architecture {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "bpfel-unknown-none" => Architecture::BpfEl,
-            "bpfeb-unknown-none" => Architecture::BpfEb,
-            _ => return Err("invalid target".to_owned()),
-        })
-    }
-}
-
-impl std::fmt::Display for Architecture {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            Architecture::BpfEl => "bpfel-unknown-none",
-            Architecture::BpfEb => "bpfeb-unknown-none",
-        })
-    }
-}
-
 #[derive(Debug, Parser)]
 pub struct Options {
-    /// Optional: Set the endianness of the BPF target
-    #[clap(default_value = "bpfel-unknown-none", long)]
-    pub target: Architecture,
     /// Optional: Build the release target
     #[clap(long)]
     pub release: bool,
@@ -77,8 +47,7 @@ fn build_ebpf_files(
         if let Some(ext) = p.extension() {
             if ext == "c" {
                 let mut out = PathBuf::from(&out_path);
-                out.push(p.file_name().unwrap());
-                out.set_extension("o");
+                out.push(p.file_stem().unwrap());
                 compile_with_clang(&p, &out, &include_path)?;
             }
         }
@@ -123,34 +92,47 @@ fn compile_with_clang<P: Clone + AsRef<Path>>(
         Ok(val) => val,
         Err(_) => String::from("/usr/bin/clang"),
     };
-    let arch = match std::env::consts::ARCH {
-        "x86_64" => "x86",
-        "aarch64" => "arm64",
-        _ => std::env::consts::ARCH,
-    };
-    let mut cmd = Command::new(clang);
-    cmd.arg(format!("-I{}", include_path.as_ref().to_string_lossy()))
-        .arg("-g")
-        .arg("-O2")
-        .arg("-target")
-        .arg("bpf")
-        .arg("-c")
-        .arg(format!("-D__TARGET_ARCH_{arch}"))
-        .arg(src.as_ref().as_os_str())
-        .arg("-o")
-        .arg(out.as_ref().as_os_str());
+    // (Clang arch string, used to define the clang -target flag, as per
+    // "clang -print-targets",
+    // Linux arch string, used to define __TARGET_ARCH_xzy macros used by
+    // https://github.com/libbpf/libbpf/blob/master/src/bpf_tracing.h)
+    //
+    let arches = Vec::from([
+        ("bpfel", "x86"),
+        ("bpfel", "arm64"),
+        ("bpfeb", "s390"),
+        ("bpfel", "powerpc"),
+    ]);
+    for (target, arch) in arches {
+        // remove the .bpf postfix
+        let mut outfile = out.as_ref().to_path_buf();
+        fs::create_dir_all(&outfile)?;
+        // make sure our filenames are compataible with cilium/ebpf
+        outfile.push(format!("bpf_{arch}_{target}.o"));
+        let mut cmd = Command::new(clang.clone());
+        cmd.arg(format!("-I{}", include_path.as_ref().to_string_lossy()))
+            .arg("-g")
+            .arg("-O2")
+            .arg("-target")
+            .arg(target)
+            .arg("-c")
+            .arg(format!("-D__TARGET_ARCH_{}", arch))
+            .arg(src.as_ref().as_os_str())
+            .arg("-o")
+            .arg(outfile);
 
-    let output = cmd.output().context("Failed to execute clang")?;
-    if !output.status.success() {
-        bail!(
-            "Failed to compile BPF programs\n \
-            stdout=\n \
-            {}\n \
-            stderr=\n \
-            {}\n",
-            String::from_utf8(output.stdout).unwrap(),
-            String::from_utf8(output.stderr).unwrap()
-        );
+        let output = cmd.output().context("Failed to execute clang")?;
+        if !output.status.success() {
+            bail!(
+                "Failed to compile BPF programs\n \
+                stdout=\n \
+                {}\n \
+                stderr=\n \
+                {}\n",
+                String::from_utf8(output.stdout).unwrap(),
+                String::from_utf8(output.stderr).unwrap()
+            );
+        }
     }
 
     Ok(())

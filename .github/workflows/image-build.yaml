@@ -10,6 +10,27 @@ on: # yamllint disable-line rule:truthy
   workflow_dispatch:
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout bpfman
+        uses: actions/checkout@v4
+
+      - name: Build bpfman binary
+        run: cargo build -p bpfman --verbose
+
+      - name: archive bpfman binary
+        run: |
+          cd target/debug
+          tar -czvf bpfman.tar.gz bpfman
+
+      - name: Archive bpfman Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: bpfman
+          path: |
+            ./target/debug/bpfman.tar.gz
+
   build-and-push-images:
     permissions:
       contents: read
@@ -206,6 +227,7 @@ jobs:
           done
 
   build-and-push-bytecode-images:
+    needs: [build]
     permissions:
       contents: read
       packages: write
@@ -221,13 +243,9 @@ jobs:
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-xdp-counter
-            context: ./examples/go-xdp-counter
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=go-xdp-counter
-              BPF_FUNCTION_NAME=xdp_stats
-              PROGRAM_TYPE=xdp
-              BYTECODE_FILENAME=bpf_bpfel.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./examples/go-xdp-counter
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -241,13 +259,9 @@ jobs:
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-tc-counter
-            context: ./examples/go-tc-counter
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=go-tc-counter
-              BPF_FUNCTION_NAME=stats
-              PROGRAM_TYPE=tc
-              BYTECODE_FILENAME=bpf_bpfel.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./examples/go-tc-counter
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -261,13 +275,9 @@ jobs:
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-tracepoint-counter
-            context: ./examples/go-tracepoint-counter
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=go-tracepoint-counter
-              BPF_FUNCTION_NAME=tracepoint_kill_recorder
-              PROGRAM_TYPE=tracepoint
-              BYTECODE_FILENAME=bpf_bpfel.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./examples/go-tracepoint-counter
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -281,13 +291,9 @@ jobs:
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-kprobe-counter
-            context: ./examples/go-kprobe-counter
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=kprobe_counter
-              BPF_FUNCTION_NAME=kprobe_counter
-              PROGRAM_TYPE=kprobe
-              BYTECODE_FILENAME=bpf_bpfel.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./examples/go-kprobe-counter
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -301,13 +307,9 @@ jobs:
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-uprobe-counter
-            context: ./examples/go-uprobe-counter
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=uprobe_counter
-              BPF_FUNCTION_NAME=uprobe_counter
-              PROGRAM_TYPE=uprobe
-              BYTECODE_FILENAME=bpf_bpfel.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./examples/go-uprobe-counter
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -321,13 +323,9 @@ jobs:
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-uretprobe-counter
-            context: ./examples/go-uretprobe-counter
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=uretprobe_counter
-              BPF_FUNCTION_NAME=uretprobe_counter
-              PROGRAM_TYPE=uretprobe
-              BYTECODE_FILENAME=bpf_x86_bpfel.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./examples/go-uretprobe-counter
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -341,10 +339,9 @@ jobs:
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-app-counter
-            context: ./examples/go-app-counter
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              BYTECODE_FILENAME=bpf_bpfel.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./examples/go-app-counter
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -358,13 +355,9 @@ jobs:
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: xdp_pass
-            context: ./tests/integration-test/bpf/.output
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=xdp_pass
-              BPF_FUNCTION_NAME=pass
-              PROGRAM_TYPE=xdp
-              BYTECODE_FILENAME=xdp_pass.bpf.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./tests/integration-test/bpf/.output/xdp_pass.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -378,13 +371,9 @@ jobs:
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: xdp_pass_private
-            context: ./tests/integration-test/bpf/.output
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=xdp_pass_private
-              BPF_FUNCTION_NAME=pass
-              PROGRAM_TYPE=xdp
-              BYTECODE_FILENAME=xdp_pass.bpf.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./tests/integration-test/bpf/.output/xdp_pass.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -398,13 +387,9 @@ jobs:
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: tc_pass
-            context: ./tests/integration-test/bpf/.output
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=tc_pass
-              BPF_FUNCTION_NAME=pass
-              PROGRAM_TYPE=tc
-              BYTECODE_FILENAME=tc_pass.bpf.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./tests/integration-test/bpf/.output/tc_pass.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -418,13 +403,9 @@ jobs:
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: tracepoint
-            context: ./tests/integration-test/bpf/.output
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=tracepoint
-              BPF_FUNCTION_NAME=enter_openat
-              PROGRAM_TYPE=tracepoint
-              BYTECODE_FILENAME=tp_openat.bpf.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./tests/integration-test/bpf/.output/tp_openat.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -438,13 +419,9 @@ jobs:
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: uprobe
-            context: ./tests/integration-test/bpf/.output
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=uprobe
-              BPF_FUNCTION_NAME=my_uprobe
-              PROGRAM_TYPE=uprobe
-              BYTECODE_FILENAME=uprobe.bpf.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./tests/integration-test/bpf/.output/uprobe.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -458,13 +435,9 @@ jobs:
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: uretprobe
-            context: ./tests/integration-test/bpf/.output
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=uretprobe
-              BPF_FUNCTION_NAME=my_uretprobe
-              PROGRAM_TYPE=uretprobe
-              BYTECODE_FILENAME=uprobe.bpf.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./tests/integration-test/bpf/.output/uprobe.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -478,13 +451,9 @@ jobs:
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: kprobe
-            context: ./tests/integration-test/bpf/.output
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=kprobe
-              BPF_FUNCTION_NAME=my_kprobe
-              PROGRAM_TYPE=kprobe
-              BYTECODE_FILENAME=kprobe.bpf.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./tests/integration-test/bpf/.output/kprobe.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -498,13 +467,9 @@ jobs:
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: kretprobe
-            context: ./tests/integration-test/bpf/.output
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=kretprobe
-              BPF_FUNCTION_NAME=my_kretprobe
-              PROGRAM_TYPE=kretprobe
-              BYTECODE_FILENAME=kprobe.bpf.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./tests/integration-test/bpf/.output/kprobe.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -518,13 +483,9 @@ jobs:
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: fentry
-            context: ./tests/integration-test/bpf/.output
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=do_unlinkat
-              BPF_FUNCTION_NAME=test_fentry
-              PROGRAM_TYPE=fentry
-              BYTECODE_FILENAME=fentry.bpf.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./tests/integration-test/bpf/.output/fentry.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -538,13 +499,9 @@ jobs:
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: fexit
-            context: ./tests/integration-test/bpf/.output
-            dockerfile: ./Containerfile.bytecode
-            build_args: |
-              PROGRAM_NAME=do_unlinkat
-              BPF_FUNCTION_NAME=test_fexit
-              PROGRAM_TYPE=fexit
-              BYTECODE_FILENAME=fentry.bpf.o
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./tests/integration-test/bpf/.output/fentry.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -559,7 +516,8 @@ jobs:
             repository: bpfman
             image: xdp-dispatcher
             context: .
-            dockerfile: ./Containerfile.xdp_dispatcher_v1
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./.output/xdp_dispatcher_v1.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -573,7 +531,8 @@ jobs:
             repository: bpfman
             image: xdp-dispatcher
             context: .
-            dockerfile: ./Containerfile.xdp_dispatcher_v2
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./.output/xdp_dispatcher_v2.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -587,7 +546,8 @@ jobs:
             repository: bpfman
             image: tc-dispatcher
             context: .
-            dockerfile: ./Containerfile.tc_dispatcher
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./.output/tc_dispatcher.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -656,6 +616,15 @@ jobs:
           username: ${{ secrets.BPFMAN_BYTECODE_USERNAME }}
           password: ${{ secrets.BPFMAN_BYTECODE_ROBOT_TOKEN }}
 
+      - name: Download bpfman binary
+        uses: actions/download-artifact@v4
+        with:
+          name: bpfman
+
+      - name: Unpack bpfman binary
+        run: |
+          tar -C /usr/local/bin -xzvf bpfman.tar.gz
+
       - name: Extract metadata (tags, labels) for image
         id: meta
         uses: docker/metadata-action@v5.5.1
@@ -669,15 +638,28 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Manually generate build args
+        id: build-tags
+        run: |
+          bytecode_data=$(bpfman image generate-build-args --cilium-ebpf-project ${{ matrix.image.bytecode_dir }})
+          build_args="${bytecode_data}\n"
+          printf BUILD_ARGS="$build_args" >> $GITHUB_ENV
+          {
+            echo 'BUILD_ARGS<<EOF'
+            printf "$build_args"
+            echo EOF
+          } >> "$GITHUB_ENV"
+
       - name: Build and push
         id: build-push-image
         uses: docker/build-push-action@v6
         with:
+          platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
           push: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           file: ${{ matrix.image.dockerfile }}
-          build-args: ${{ matrix.image.build_args }}
+          build-args: ${{ env.BUILD_ARGS }}
           context: ${{ matrix.image.context }}
 
       - name: Sign the images with GitHub OIDC Token

@@ -10,8 +10,8 @@ bytecode to all nodes which need it.
 
 ## Specifications
 
-We provide two distinct spec variants here to ensure interoperatiblity with existing registries
-and packages which do no support the new custom media types defined here.
+We provide two distinct spec variants here to ensure interoperability with existing registries
+and packages which do not support the new custom media types defined here.
 
 - [custom-data-type-spec](#custom-oci-compatible-spec)
 - [backwards-compatable-spec](#backwards-compatible-oci-compliant-spec)
@@ -36,35 +36,34 @@ a `.o` extension) placed at the root of the layer `./`.
 To provide relevant metadata regarding the bytecode to any consumers, some relevant labels
 **MUST** be defined on the image.
 
-These labels are defined as follows:
+These labels are dynamic and defined as follows:
 
-- `io.ebpf.program_type`: The eBPF program type (i.e `xdp`,`tc`, `sockops`, ...).
+- `io.ebpf.programs`: A label which defines the eBPF programs stored in the bytecode image.
+   The value of the label is a list which must contain a valid JSON object with
+   Key's specifying the program name, and values specifying the program type i.e:
+   "{ "pass" : "xdp" , "counter" : "tc", ...}".
 
-- `io.ebpf.filename`: The Filename of the bytecode stored in the image.
-
-- `io.ebpf.program_name`: The name of the eBPF Program represented in the bytecode.
-
-- `io.ebpf.bpf_function_name`: The name of the function that is the entry point for the BPF program.
+- `io.ebpf.maps`: A label which defines the eBPF maps stored in the bytecode image.
+   The value of the label is a list which must contain a valid JSON object with
+   Key's specifying the map name, and values specifying the map type i.e:
+   "{ "xdp_stats_map" : "per_cpu_array", ...}".
 
 ### Building a Backwards compatible OCI compliant image
 
-An Example Containerfile can be found at `/packaging/container/deployment/Containerfile.bytecode`
+Bpfman does not provide wrappers around compilers like clang since many eBPF
+libraries (i.e aya, libbpf, cilium-ebpf) already do so, meaning users are expected
+to pass in the correct ebpf program bytecode for the appropriate platform. However,
+bpfman does provide a few image builder commands to make this whole process easier.
 
-To use the provided templated Containerfile simply run a `docker build` command
-like the following:
+Example Containerfiles for single-arch and multi-arch can be found at `Containerfile.bytecode` and `Containerfile.bytecode.multi.arch`.
 
-```bash
-docker build \
- --build-arg PROGRAM_NAME=xdp_pass \
- --build-arg BPF_FUNCTION_NAME=pass \
- --build-arg PROGRAM_TYPE=xdp \
- --build-arg BYTECODE_FILENAME=pass.bpf.o \
- --build-arg KERNEL_COMPILE_VER=$(uname -r) \
- -f Containerfile.bytecode \
- /home/<USER>/bytecode -t quay.io/<USER>/xdp_pass:latest
+#### Host Platform Architecture Image Build
+
+```console
+bpfman image build -b ./examples/go-xdp-counter/bpf_bpfel.o -f Containerfile.bytecode --tag quay.io/<USER>/go-xdp-counter
 ```
 
-Where `/home/<USER>/bytecode` is the directory the bytecode object file is located.
+Where `./examples/go-xdp-counter/bpf_x86_bpfel.o` is the path to the bytecode object file.
 
 Users can also use `skopeo` to ensure the image follows the
 backwards compatible version of the spec:
@@ -73,26 +72,31 @@ backwards compatible version of the spec:
   configuration layer (`application/vnd.oci.image.config.v1+json`) of the image.
 
 ```bash
-skopeo inspect docker://quay.io/astoycos/xdp_pass:latest
+skopeo inspect docker://quay.io/bpfman-bytecode/go-xdp-counter
 {
-    "Name": "quay.io/<USER>/xdp_pass",
-    "Digest": "sha256:db1f7dd03f9fba0913e07493238fcfaf0bf08de37b8e992cc5902775dfb9086a",
+    "Name": "quay.io/bpfman-bytecode/go-xdp-counter",
+    "Digest": "sha256:e8377e94c56272937689af88a1a6231d4d594f83218b5cda839eaeeea70a30d3",
     "RepoTags": [
         "latest"
     ],
-    "Created": "2022-08-14T14:27:20.147468277Z",
+    "Created": "2024-05-30T09:17:15.327378016-04:00",
     "DockerVersion": "",
     "Labels": {
-        "io.buildah.version": "1.26.1",
-        "io.ebpf.filename": "pass.bpf.o",
-        "io.ebpf.program_name": "xdp_counter",
-        "io.ebpf.program_type": "xdp",
-        "io.ebpf.bpf_function_name": "pass"
+        "io.ebpf.maps": "{\"xdp_stats_map\":\"per_cpu_array\"}",
+        "io.ebpf.programs": "{\"xdp_stats\":\"xdp\"}"
     },
     "Architecture": "amd64",
     "Os": "linux",
     "Layers": [
-        "sha256:5f6dae6f567601fdad15a936d844baac1f30c31bd3df8df0c5b5429f3e048000"
+        "sha256:c0d921d3f0d077da7cdfba8c0240fb513789e7698cdf326f80f30f388c084cff"
+    ],
+    "LayersData": [
+        {
+            "MIMEType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+            "Digest": "sha256:c0d921d3f0d077da7cdfba8c0240fb513789e7698cdf326f80f30f388c084cff",
+            "Size": 2656,
+            "Annotations": null
+        }
     ],
     "Env": [
         "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
@@ -100,11 +104,58 @@ skopeo inspect docker://quay.io/astoycos/xdp_pass:latest
 }
 ```
 
-- `skopeo inspect --raw` will show the correct layer type is used in the image.
+#### Multi-Architecture Image build
 
-```bash
-skopeo inspect --raw  docker://quay.io/astoycos/xdp_pass:latest
-{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json","config":{"mediaType":"application/vnd.oci.image.config.v1+json","digest":"sha256:ff4108b8405a877b2df3e06f9287c509b9d62d6c241c9a5213d81a9abee80361","size":2385},"layers":[{"mediaType":"application/vnd.oci.image.layer.v1.tar+gzip","digest":"sha256:5f6dae6f567601fdad15a936d844baac1f30c31bd3df8df0c5b5429f3e048000","size":1539}],"annotations":{"org.opencontainers.image.base.digest":"sha256:86b59a6cf7046c624c47e40a5618b383d763be712df2c0e7aaf9391c2c9ef559","org.opencontainers.image.base.name":""}}
+```console
+bpfman image build -t quay.io/bpfman-bytecode/go-xdp-counter-multi --container-file ./Containerfile.bytecode.multi.arch --bc-amd64-el ./examples/go-xdp-counter/bpf_arm64_bpfel.o --bc-s390x-eb ./examples/go-xdp-counter/bpf_s390_bpfeb.o
+```
+
+To better understand the available architectures users can use `podman manifest-inspect`
+
+```console
+podman manifest inspect quay.io/bpfman-bytecode/go-xdp-counter:test-manual-build
+{
+    "schemaVersion": 2,
+    "mediaType": "application/vnd.docker.distribution.manifest.list.v2+json",
+    "manifests": [
+        {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "size": 478,
+            "digest": "sha256:aed62d2e5867663fac66822422512a722003b40453325fd873bbb5840d78cba9",
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        },
+        {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "size": 478,
+            "digest": "sha256:a348fe2f26dc0851518d8d82e1049d2c39cc2e4f37419fe9231c1967abc4828c",
+            "platform": {
+                "architecture": "arm64",
+                "os": "linux"
+            }
+        },
+        {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "size": 478,
+            "digest": "sha256:d5c5d41d2d21e0cb5fb79fe9f343e540942c9a1657cf0de96b8f63e43d369743",
+            "platform": {
+                "architecture": "ppc64le",
+                "os": "linux"
+            }
+        },
+        {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "size": 478,
+            "digest": "sha256:7915c83838d73268690381b313fb84b5509912aa351c98c78204584cced50efd",
+            "platform": {
+                "architecture": "s390x",
+                "os": "linux"
+            }
+        },
+    ]
+}
 ```
 
 ## Custom OCI compatible spec
@@ -113,4 +164,4 @@ This variant of the eBPF bytecode image spec uses custom OCI medium types
 to represent eBPF bytecode as container images. Many toolchains and registries
 may not support this yet.
 
-TODO(astoycos)
+TODO https://github.com/bpfman/bpfman/issues/1162

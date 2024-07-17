@@ -16,6 +16,10 @@ pub struct Options {
     /// Example: cargo xtask integration-test -- test_load_unload_tracepoint_maps test_load_unload_tc_maps
     #[clap(name = "tests", verbatim_doc_comment, last = true)]
     pub run_args: Vec<String>,
+    /// Optional: The tag used for all the integration-test bytecode images.
+    /// Example cargo xtask integration-test --bytecode-image-tag test-tag
+    #[clap(short, long, default_value = "latest")]
+    pub bytecode_image_tag: String,
 }
 
 /// Build the project
@@ -49,9 +53,62 @@ pub fn test(opts: Options) -> Result<(), anyhow::Error> {
     args.push(bin_path.as_str());
     args.append(&mut run_args);
 
+    let tag = opts.bytecode_image_tag;
+    let bytecode_images: Vec<(String, String)> = vec![
+        (
+            "XDP_PASS_IMAGE_LOC".to_string(),
+            format!("quay.io/bpfman-bytecode/xdp_pass:{tag}"),
+        ),
+        (
+            "TC_PASS_IMAGE_LOC".to_string(),
+            format!("quay.io/bpfman-bytecode/tc_pass:{tag}"),
+        ),
+        (
+            "TRACEPOINT_IMAGE_LOC".to_string(),
+            format!("quay.io/bpfman-bytecode/tracepoint:{}", tag),
+        ),
+        (
+            "UPROBE_IMAGE_LOC".to_string(),
+            format!("quay.io/bpfman-bytecode/uprobe:{}", tag),
+        ),
+        (
+            "URETPROBE_IMAGE_LOC".to_string(),
+            format!("quay.io/bpfman-bytecode/uretprobe:{}", tag),
+        ),
+        (
+            "KPROBE_IMAGE_LOC".to_string(),
+            format!("quay.io/bpfman-bytecode/kprobe:{}", tag),
+        ),
+        (
+            "KRETPROBE_IMAGE_LOC".to_string(),
+            format!("quay.io/bpfman-bytecode/kretprobe:{}", tag),
+        ),
+        (
+            "XDP_COUNTER_IMAGE_LOC".to_string(),
+            format!("quay.io/bpfman-bytecode/go-xdp-counter:{}", tag),
+        ),
+        (
+            "TC_COUNTER_IMAGE_LOC".to_string(),
+            format!("quay.io/bpfman-bytecode/go-tc-counter:{}", tag),
+        ),
+        (
+            "TRACEPOINT_COUNTER_IMAGE_LOC".to_string(),
+            format!("quay.io/bpfman-bytecode/go-tracepoint-counter:{tag}"),
+        ),
+        (
+            "FENTRY_IMAGE_LOC".to_string(),
+            format!("quay.io/bpfman-bytecode/fentry:{tag}"),
+        ),
+        (
+            "FEXIT_IMAGE_LOC".to_string(),
+            format!("quay.io/bpfman-bytecode/fexit:{tag}"),
+        ),
+    ];
+
     // spawn the command
     let err = Command::new(args.first().expect("No first argument"))
         .args(args.iter().skip(1))
+        .envs(bytecode_images)
         .exec();
 
     // we shouldn't get here unless the command failed to spawn

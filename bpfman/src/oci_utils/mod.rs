@@ -14,8 +14,8 @@ pub enum ImageError {
     ImageManifestPullFailure(#[source] oci_distribution::errors::OciDistributionError),
     #[error("Failed to pull bytecode Image: {0}")]
     BytecodeImagePullFailure(#[source] oci_distribution::errors::OciDistributionError),
-    #[error("Failed to extract bytecode from Image")]
-    BytecodeImageExtractFailure,
+    #[error("Failed to extract bytecode from Image: {0}")]
+    BytecodeImageExtractFailure(String),
     #[error(transparent)]
     ByteCodeImageProcessFailure(#[from] anyhow::Error),
     #[error("BytecodeImage not found: {0}")]

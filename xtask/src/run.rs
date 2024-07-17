@@ -3,13 +3,10 @@ use std::{os::unix::process::CommandExt, path::PathBuf, process::Command};
 use anyhow::Context as _;
 use clap::Parser;
 
-use crate::build_ebpf::{build_ebpf, Architecture, Options as BuildOptions};
+use crate::build_ebpf::{build_ebpf, Options as BuildOptions};
 
 #[derive(Debug, Parser)]
 pub struct Options {
-    /// Optional: Set the endianness of the BPF target
-    #[clap(default_value = "bpfel-unknown-none", long)]
-    pub bpf_target: Architecture,
     /// Optional: Build and run the release target
     #[clap(long)]
     pub release: bool,
@@ -45,7 +42,6 @@ fn build(opts: &Options) -> Result<(), anyhow::Error> {
 pub fn run(opts: Options) -> Result<(), anyhow::Error> {
     // build our ebpf program followed by our application
     build_ebpf(BuildOptions {
-        target: opts.bpf_target,
         release: opts.release,
         compile_rust_ebpf: opts.compile_rust_ebpf,
         libbpf_dir: PathBuf::from(&opts.libbpf_dir),
