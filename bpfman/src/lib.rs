@@ -95,8 +95,8 @@ pub(crate) fn get_db_config() -> SledConfig {
 
 /// Adds an eBPF program to the system.
 ///
-/// This function takes a `Program` and performs the necessary setup
-/// and loading operations to add it to the system. It supports
+/// This function takes a `Program` and performs the necessary loading
+/// and attaching operations to add it to the system. It supports
 /// various types of eBPF programs such as XDP, TC, Tracepoint,
 /// Kprobe, Uprobe, Fentry, and Fexit. If the program is successfully
 /// added, it returns the updated `Program`; otherwise, it returns a
