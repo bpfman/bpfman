@@ -107,12 +107,21 @@ pub(crate) async fn execute_build(args: &BuildBytecodeArgs) -> anyhow::Result<()
         .unwrap()
         .split('=')
         .collect();
+
     let bc_file = PathBuf::from(first_arg[1]);
-    let (prog_labels, map_labels) = if first_arg[0].contains("EL") {
-        build_bpf_info_image_labels(&bc_file, Some(Endianness::Little))?
+
+    // Make sure bytecode matches host endian if we're building a host endian image
+    // otherwise determine correct endianness based on build argument naming scheme
+    let expected_endianess = if build_context.platforms.is_none() {
+        Endianness::default()
+    } else if first_arg[0].contains("EL") {
+        Endianness::Little
     } else {
-        build_bpf_info_image_labels(&bc_file, Some(Endianness::Big))?
+        Endianness::Big
     };
+
+    let (prog_labels, map_labels) =
+        build_bpf_info_image_labels(&bc_file, Some(expected_endianess))?;
 
     container_tool.build_image(
         &args.tag,
@@ -258,7 +267,9 @@ pub(crate) fn parse_bytecode_from_cilium_ebpf_project(
             let arch = if let Some(file_name) = file_name.to_str() {
                 GoArch::from_cilium_ebpf_file_str(file_name).map_err(|e| anyhow!(e))
             } else {
-                return Err(anyhow!("Could not parse file name in cilium/ebpf project"));
+                return Err(anyhow!(
+                    "Could not parse file name {file_name:?} in cilium/ebpf project"
+                ));
             }?;
             debug!("Found bytecode file for {arch:?} in cilium/ebpf project.");
 
@@ -294,12 +305,19 @@ pub(crate) async fn execute_build_args(args: &GenerateArgs) -> anyhow::Result<()
         .split('=')
         .collect();
     let bc_file = PathBuf::from(first_arg[1]);
+
+    // Make sure bytecode matches host endian if we're building a host endian image
+    // otherwise determine correct endianness based on build argument naming scheme
+    let expected_endianess = if build_context.platforms.is_none() {
+        Endianness::default()
+    } else if first_arg[0].contains("EL") {
+        Endianness::Little
+    } else {
+        Endianness::Big
+    };
+
     let (prog_labels, map_labels) =
-        if first_arg[0].contains("EL") || first_arg[0].contains("BYTECODE_FILE") {
-            build_bpf_info_image_labels(&bc_file, Some(Endianness::Little))?
-        } else {
-            build_bpf_info_image_labels(&bc_file, Some(Endianness::Big))?
-        };
+        build_bpf_info_image_labels(&bc_file, Some(expected_endianess))?;
 
     build_context.build_args.into_iter().for_each(|a| {
         println!("{a}");

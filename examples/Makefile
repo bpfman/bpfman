@@ -134,10 +134,6 @@ build-us-images: build ## Build all example userspace images
 	docker buildx build -t ${IMAGE_GT_US} --platform ${PLATFORM} --load -f ./go-target/container-deployment/Containerfile.go-target ../
 	docker buildx build -t ${IMAGE_APP_US} --platform ${PLATFORM} --load  -f ./go-app-counter/container-deployment/Containerfile.go-app-counter ../
 
-.PHONY: build-bc-images
-build-bc-images: generate ## Build bytecode example userspace images
-	IMAGE_TC_BC=${IMAGE_TC_BC} IMAGE_TP_BC=${IMAGE_TP_BC} IMAGE_XDP_BC=${IMAGE_XDP_BC} IMAGE_KP_BC=${IMAGE_KP_BC} IMAGE_UP_BC=${IMAGE_UP_BC}  IMAGE_URP_BC=${IMAGE_URP_BC} IMAGE_APP_BC=${IMAGE_APP_BC} ./build-bytecode-images.sh
-
 build-all-images: build-bc-images build-us-images ## Build both bytecode and userspace images
 
 .PHONY: push-us-images

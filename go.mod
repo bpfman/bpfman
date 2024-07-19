@@ -6,7 +6,7 @@ toolchain go1.22.4
 
 require (
 	github.com/bpfman/bpfman-operator v0.0.0-20240624194413-e1574d69bcbb
-	github.com/cilium/ebpf v0.14.0
+	github.com/cilium/ebpf v0.15.0
 	google.golang.org/grpc v1.64.0
 	google.golang.org/protobuf v1.34.2
 )
