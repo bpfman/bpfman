@@ -55,7 +55,7 @@ netlink-packet-core = { version = "^0.7", default-features = false }
 netlink-packet-route = { version = "^0.19", default-features = false }
 netlink-sys = { version = "^0.8", default-features = false }
 nix = { version = "0.28", default-features = false }
-object = { version = "0.32.2", default-features = false }
+object = { version = "0.36.1", default-features = false }
 oci-distribution = { version = "0.10", default-features = false }
 opentelemetry = { version = "0.22.0", default-features = false }
 opentelemetry-otlp = { version = "0.15.0", default-features = false }
@@ -81,10 +81,10 @@ systemd-journal-logger = { version = "2.1.1", default-features = false }
 tar = { version = "0.4", default-features = false }
 tempfile = { version = "3.10.1", default-features = false }
 thiserror = { version = "1", default-features = false }
-tokio = { version = "1.38.0", default-features = false }
+tokio = { version = "1.38.1", default-features = false }
 tokio-stream = { version = "0.1.15", default-features = false }
 tokio-util = { version = "0.7.11", default-features = false }
-toml = { version = "0.8.14", default-features = false }
+toml = { version = "0.8.15", default-features = false }
 tonic = { version = "0.11.0", default-features = false }
 tonic-build = { version = "0.11.0", default-features = false }
 tower = { version = "0.4.13", default-features = false }
