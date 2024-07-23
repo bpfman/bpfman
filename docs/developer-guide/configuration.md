@@ -8,8 +8,8 @@ There is an example at `scripts/bpfman.toml`, similar to:
 
 ```toml
 [interfaces]
-  [interface.eth0]
-  xdp_mode = "hw" # Valid xdp modes are "hw", "skb" and "drv". Default: "skb".
+  [interfaces.eth0]
+  xdp_mode = "drv" # Valid xdp modes are "hw", "skb" and "drv". Default: "drv", but will fall back to "skb" on failure.
 
 [signing]
 allow_unsigned = true

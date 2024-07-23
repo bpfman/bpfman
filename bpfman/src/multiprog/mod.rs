@@ -47,7 +47,7 @@ impl Dispatcher {
         let xdp_mode = if let Some(c) = config {
             c.xdp_mode()
         } else {
-            &XdpMode::Skb
+            &XdpMode::Drv
         };
         let d = match p.kind() {
             ProgramType::Xdp => {

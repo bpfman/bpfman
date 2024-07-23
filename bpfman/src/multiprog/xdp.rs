@@ -10,7 +10,7 @@ use aya::{
     },
     Bpf, BpfLoader,
 };
-use log::debug;
+use log::{debug, info};
 use sled::Db;
 
 use crate::{
@@ -196,13 +196,25 @@ impl XdpDispatcher {
                 .attach_to_link(pinned_link.try_into().unwrap())
                 .unwrap();
         } else {
-            let flags = mode.as_flags();
-            let link = dispatcher.attach(&iface, flags).map_err(|e| {
-                BpfmanError::Error(format!(
-                    "dispatcher attach failed on interface {iface}: {e}"
-                ))
-            })?;
-            let owned_link = dispatcher.take_link(link)?;
+            let mut flags = mode.as_flags();
+            let mut link = dispatcher.attach(&iface, flags);
+            if let Err(e) = link {
+                if mode != XdpMode::Skb {
+                    info!("Unable to attach on interface {} mode {}, falling back to Skb and retrying.", iface, mode);
+                    flags = XdpMode::Skb.as_flags();
+                    link = dispatcher.attach(&iface, flags);
+                    if let Err(e) = link {
+                        return Err(BpfmanError::Error(format!(
+                            "dispatcher attach failed on interface {iface} mode {mode}: {e}"
+                        )));
+                    }
+                } else {
+                    return Err(BpfmanError::Error(format!(
+                        "dispatcher attach failed on interface {iface} mode {mode}: {e}"
+                    )));
+                }
+            }
+            let owned_link = dispatcher.take_link(link.unwrap())?;
             let path = format!("{RTDIR_FS_XDP}/dispatcher_{if_index}_link");
             let _ = TryInto::<FdLink>::try_into(owned_link)
                 .map_err(|e| {
