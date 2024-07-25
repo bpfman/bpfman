@@ -430,23 +430,23 @@ impl GoArch {
 
     /// Discovers the GoArch based on the cilium/ebpf project file-naming conventions.
     pub(crate) fn from_cilium_ebpf_file_str(s: &str) -> Result<Self, std::io::Error> {
-        if s.contains("bpf_x86_bpfel.o") {
+        if s.contains("x86") && s.contains("bpfel") && s.contains(".o") {
             Ok(GoArch::Amd64)
-        } else if s.contains("bpf_arm_bpfel.o") {
+        } else if s.contains("arm") && s.contains("bpfel") && s.contains(".o") {
             Ok(GoArch::Arm)
-        } else if s.contains("bpf_arm64_bpfel.o") {
+        } else if s.contains("arm64") && s.contains("bpfel") && s.contains(".o") {
             Ok(GoArch::Arm64)
-        } else if s.contains("bpf_loongarch_bpfel.o") {
+        } else if s.contains("loongarch") && s.contains("bpfel") && s.contains(".o") {
             Ok(GoArch::Loong64)
-        } else if s.contains("bpf_mips_bpfeb.o") {
+        } else if s.contains("mips") && s.contains("bpfeb") && s.contains(".o") {
             Ok(GoArch::Mips)
-        } else if s.contains("bpf_powerpc_bpfeb.o") {
+        } else if s.contains("powerpc") && s.contains("bpfeb") && s.contains(".o") {
             Ok(GoArch::Ppc64)
-        } else if s.contains("bpf_powerpc_bpfel.o") {
+        } else if s.contains("powerpc") && s.contains("bpfel") && s.contains(".o") {
             Ok(GoArch::Ppc64le)
-        } else if s.contains("bpf_riscv_bpfel.o") {
+        } else if s.contains("riscv") && s.contains("bpfel") && s.contains(".o") {
             Ok(GoArch::Riscv64)
-        } else if s.contains("bpf_s390_bpfeb.o") {
+        } else if s.contains("s390") && s.contains("bpfeb") && s.contains(".o") {
             Ok(GoArch::S390x)
         } else {
             Err(std::io::Error::new(ErrorKind::InvalidInput, "not a valid cilium/ebpf bytecode filename, please refer to https://github.com/cilium/ebpf/blob/main/cmd/bpf2go/gen/target.go#L14"))

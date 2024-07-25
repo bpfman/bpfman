@@ -95,22 +95,27 @@ To run all of the unit tests defined in the bpfman-operator controller code run
 
 To run the Kubernetes Operator integration tests locally:
 
-1. Build the example test code images.
+1. Build the example test code userspace images locally.
 
 ```bash
     # in bpfman/examples
     make build-us-images
-    make build-bc-images
 ```
 
-2. Build the bpfman images locally with the `int-test` tag.
+2. (optional) build the bytecode images
+
+  In order to rebuild all of the bytecode images for a PR, ask a maintainer to do so,
+  they will be built and generate by github actions with the tag
+  `quay.io/bpfman-bytecode/<example>:<branch-name>`
+
+3. Build the bpfman images locally with the `int-test` tag.
 
 ```bash
     # in bpfman/bpfman-operator
     BPFMAN_AGENT_IMG=quay.io/bpfman/bpfman-agent:int-test BPFMAN_IMG=quay.io/bpfman/bpfman:int-test BPFMAN_OPERATOR_IMG=quay.io/bpfman/bpfman-operator:int-test make build-images
 ```
 
-3. Run the integration test suite.
+4. Run the integration test suite.
 
 ```bash
     # in bpfman/bpfman-operator
