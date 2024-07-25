@@ -134,8 +134,6 @@ build-us-images: build ## Build all example userspace images
 	docker buildx build -t ${IMAGE_GT_US} --platform ${PLATFORM} --load -f ./go-target/container-deployment/Containerfile.go-target ../
 	docker buildx build -t ${IMAGE_APP_US} --platform ${PLATFORM} --load  -f ./go-app-counter/container-deployment/Containerfile.go-app-counter ../
 
-build-all-images: build-bc-images build-us-images ## Build both bytecode and userspace images
-
 .PHONY: push-us-images
 push-us-images: ## Push all example userspace images
 	docker push ${IMAGE_TC_US}
@@ -146,17 +144,6 @@ push-us-images: ## Push all example userspace images
 	docker push ${IMAGE_URP_US}
 	docker push ${IMAGE_APP_US}
 	docker push ${IMAGE_GT_US}
-
-.PHONY: push-bc-images
-push-bc-images: ## Push all example bytecode images
-	docker push ${IMAGE_TC_BC}
-	docker push ${IMAGE_TP_BC}
-	docker push ${IMAGE_XDP_BC}
-	docker push ${IMAGE_KP_BC}
-	docker push ${IMAGE_UP_BC}
-	docker push ${IMAGE_URP_BC}
-	docker push ${IMAGE_APP_BC}
-
 
 .PHONY: load-us-images-kind
 load-us-images-kind: build-us-images ## Build and load all example userspace images into kind
