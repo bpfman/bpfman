@@ -296,21 +296,36 @@ pub(crate) async fn execute_build_args(args: &GenerateArgs) -> anyhow::Result<()
         return Err(anyhow!("No bytecode files found for building eBPF image"));
     }
 
-    // use first bytecode path to get the program and map labels
+    // use one of the bytecode paths to get the program and map labels
     // parse program data from bytecode file
-    let first_arg: Vec<&str> = build_context
+
+    // TODO: Temporary fix for bpfman issue #1200
+    // Find an entry that doesn't contain "S390 because parsing an S390 file
+    // isn't currently supported by Aya"
+    let valid_bc_path = build_context
         .build_args
-        .first()
-        .unwrap()
-        .split('=')
-        .collect();
-    let bc_file = PathBuf::from(first_arg[1]);
+        .iter()
+        .find(|arg| !arg.contains("S390"));
+
+    let valid_bc_path = match valid_bc_path {
+        Some(arg) => arg.to_string(),
+        None => {
+            return Err(anyhow!(
+                "An S390 bytecode file cannot be used to generate build args"
+            ))
+        }
+    };
+
+    debug!("Using: {:?} to generate build args", valid_bc_path);
+
+    let bc_path: Vec<&str> = valid_bc_path.split('=').collect();
+    let bc_file = PathBuf::from(bc_path[1]);
 
     // Make sure bytecode matches host endian if we're building a host endian image
     // otherwise determine correct endianness based on build argument naming scheme
     let expected_endianess = if build_context.platforms.is_none() {
         Endianness::default()
-    } else if first_arg[0].contains("EL") {
+    } else if bc_path[0].contains("EL") {
         Endianness::Little
     } else {
         Endianness::Big
@@ -485,7 +500,15 @@ fn build_bpf_info_image_labels(
     expected_endianness: Option<object::Endianness>,
 ) -> Result<(String, String), anyhow::Error> {
     let bc_content = fs::read(file).context("cannot find bytecode")?;
-    let bc = Object::parse(&bc_content)?;
+    let bc_result = Object::parse(&bc_content);
+    let bc = match bc_result {
+        Ok(bc) => bc,
+        Err(e) => {
+            return Err(anyhow!(
+                "Failed to parse bytecode: {file:?} with error: {e}"
+            ));
+        }
+    };
 
     if expected_endianness.is_some_and(|e| e != bc.endianness) {
         return Err(anyhow!(
