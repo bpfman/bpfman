@@ -12,7 +12,7 @@ use aya::{
         fentry::FEntryLink, fexit::FExitLink, kprobe::KProbeLink, links::FdLink, loaded_programs,
         trace_point::TracePointLink, uprobe::UProbeLink, FEntry, FExit, KProbe, TracePoint, UProbe,
     },
-    BpfLoader, Btf,
+    Btf, EbpfLoader,
 };
 use log::{debug, info, warn};
 use sled::{Config as SledConfig, Db};
@@ -494,7 +494,7 @@ async fn add_multi_attach_program(
     // This load is just to verify the BPF Function Name is valid.
     // The actual load is performed in the XDP or TC logic.
     // don't pin maps here.
-    let mut ext_loader = BpfLoader::new()
+    let mut ext_loader = EbpfLoader::new()
         .allow_unsupported_maps()
         .extension(name)
         .load(&program.get_data().get_program_bytes()?)?;
@@ -566,7 +566,7 @@ async fn add_multi_attach_program(
 pub(crate) fn add_single_attach_program(root_db: &Db, p: &mut Program) -> Result<u32, BpfmanError> {
     debug!("BpfManager::add_single_attach_program()");
     let name = &p.get_data().get_name()?;
-    let mut bpf = BpfLoader::new();
+    let mut bpf = EbpfLoader::new();
 
     let data = &p.get_data().get_global_data()?;
     for (key, value) in data {

@@ -16,7 +16,7 @@ pub enum BpfmanError {
     #[error(transparent)]
     BpfProgramError(#[from] aya::programs::ProgramError),
     #[error(transparent)]
-    BpfLoadError(#[from] aya::BpfError),
+    BpfLoadError(#[from] aya::EbpfError),
     #[error("Unable to find a valid program with function name {0}")]
     BpfFunctionNameNotValid(String),
     #[error("No room to attach program. Please remove one and try again.")]

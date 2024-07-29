@@ -99,3 +99,7 @@ platforms = [
     "s390x-unknown-linux-gnu",
     "x86_64-unknown-linux-gnu",
 ]
+
+[patch.crates-io]
+aya = { git = "https://github.com/aya-rs/aya", rev = "25d986a26d9c88cd499a8b795054d583f01476b2" }
+aya-obj = { git = "https://github.com/aya-rs/aya", rev = "25d986a26d9c88cd499a8b795054d583f01476b2" }

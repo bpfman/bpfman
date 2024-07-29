@@ -275,8 +275,7 @@ dependencies = [
 [[package]]
 name = "aya"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90eea657cc8028447cbda5068f4e10c4fadba0131624f4f7dd1a9c46ffc8d81f"
+source = "git+https://github.com/aya-rs/aya?rev=25d986a26d9c88cd499a8b795054d583f01476b2#25d986a26d9c88cd499a8b795054d583f01476b2"
 dependencies = [
  "assert_matches",
  "aya-obj",
@@ -285,21 +284,20 @@ dependencies = [
  "lazy_static",
  "libc",
  "log",
- "object 0.32.2",
+ "object",
  "thiserror",
 ]
 
 [[package]]
 name = "aya-obj"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c02024a307161cf3d1f052161958fd13b1a33e3e038083e58082c0700fdab85"
+source = "git+https://github.com/aya-rs/aya?rev=25d986a26d9c88cd499a8b795054d583f01476b2#25d986a26d9c88cd499a8b795054d583f01476b2"
 dependencies = [
  "bytes",
  "core-error",
  "hashbrown 0.14.5",
  "log",
- "object 0.32.2",
+ "object",
  "thiserror",
 ]
 
@@ -314,7 +312,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "miniz_oxide",
- "object 0.36.1",
+ "object",
  "rustc-demangle",
 ]
 
@@ -435,7 +433,7 @@ dependencies = [
  "log",
  "netlink-packet-route",
  "nix 0.28.0",
- "object 0.36.1",
+ "object",
  "oci-distribution",
  "rand",
  "rtnetlink",
@@ -2576,19 +2574,13 @@ dependencies = [
 
 [[package]]
 name = "object"
-version = "0.32.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6a622008b6e321afc04970976f62ee297fdbaa6f95318ca343e3eebb9648441"
-dependencies = [
- "memchr",
-]
-
-[[package]]
-name = "object"
 version = "0.36.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "081b846d1d56ddfc18fdf1a922e4f6e07a11768ea1b92dec44e42b72712ccfce"
 dependencies = [
+ "crc32fast",
+ "hashbrown 0.14.5",
+ "indexmap 2.2.6",
  "memchr",
 ]
 

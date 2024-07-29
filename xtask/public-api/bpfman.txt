@@ -4,7 +4,7 @@ pub enum bpfman::errors::BpfmanError
 pub bpfman::errors::BpfmanError::BpfBytecodeError(crate::oci_utils::ImageError)
 pub bpfman::errors::BpfmanError::BpfFunctionNameNotValid(alloc::string::String)
 pub bpfman::errors::BpfmanError::BpfIOError(std::io::error::Error)
-pub bpfman::errors::BpfmanError::BpfLoadError(aya::bpf::BpfError)
+pub bpfman::errors::BpfmanError::BpfLoadError(aya::bpf::EbpfError)
 pub bpfman::errors::BpfmanError::BpfProgramError(aya::programs::ProgramError)
 pub bpfman::errors::BpfmanError::BpfmanProgramDeleteError(anyhow::Error)
 pub bpfman::errors::BpfmanError::BtfError(aya_obj::btf::btf::BtfError)
@@ -34,8 +34,8 @@ pub bpfman::errors::BpfmanError::UnableToPinMap(aya::pin::PinError)
 pub bpfman::errors::BpfmanError::UnableToPinProgram(aya::pin::PinError)
 impl core::convert::From<anyhow::Error> for bpfman::errors::BpfmanError
 pub fn bpfman::errors::BpfmanError::from(source: anyhow::Error) -> Self
-impl core::convert::From<aya::bpf::BpfError> for bpfman::errors::BpfmanError
-pub fn bpfman::errors::BpfmanError::from(source: aya::bpf::BpfError) -> Self
+impl core::convert::From<aya::bpf::EbpfError> for bpfman::errors::BpfmanError
+pub fn bpfman::errors::BpfmanError::from(source: aya::bpf::EbpfError) -> Self
 impl core::convert::From<aya::programs::ProgramError> for bpfman::errors::BpfmanError
 pub fn bpfman::errors::BpfmanError::from(source: aya::programs::ProgramError) -> Self
 impl core::convert::From<aya_obj::btf::btf::BtfError> for bpfman::errors::BpfmanError

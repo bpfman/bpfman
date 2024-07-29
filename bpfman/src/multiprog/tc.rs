@@ -9,7 +9,7 @@ use aya::{
         tc::{self, SchedClassifierLink, TcOptions},
         Extension, Link, SchedClassifier, TcAttachType,
     },
-    Bpf, BpfLoader,
+    Ebpf, EbpfLoader,
 };
 use futures::stream::TryStreamExt;
 use log::debug;
@@ -51,7 +51,7 @@ const HANDLE: &str = "handle";
 #[derive(Debug)]
 pub struct TcDispatcher {
     db_tree: sled::Tree,
-    loader: Option<Bpf>,
+    loader: Option<Ebpf>,
 }
 
 impl TcDispatcher {
@@ -148,7 +148,7 @@ impl TcDispatcher {
 
         let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
 
-        let mut loader = BpfLoader::new()
+        let mut loader = EbpfLoader::new()
             .set_global("CONFIG", &config, true)
             .load(&program_bytes)?;
 
@@ -321,7 +321,7 @@ impl TcDispatcher {
                 let name = &v.data.get_name()?;
                 let global_data = &v.data.get_global_data()?;
 
-                let mut bpf = BpfLoader::new();
+                let mut bpf = EbpfLoader::new();
 
                 bpf.allow_unsupported_maps().extension(name);
 
