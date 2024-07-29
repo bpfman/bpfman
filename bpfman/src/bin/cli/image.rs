@@ -10,6 +10,7 @@ use std::{
 };
 
 use anyhow::{anyhow, Context, Result};
+use aya::Endianness;
 use aya_obj::Object;
 use base64::{engine::general_purpose, Engine};
 use bpfman::{
@@ -17,7 +18,6 @@ use bpfman::{
     types::{BytecodeImage, ImagePullPolicy, MapType, ProgramType},
 };
 use log::{debug, warn};
-use object::Endianness;
 
 use crate::args::{
     BuildBytecodeArgs, BytecodeFile, GenerateArgs, GoArch, ImageSubCommand, PullBytecodeArgs,
@@ -497,7 +497,7 @@ impl ContainerRuntime {
 
 fn build_bpf_info_image_labels(
     file: &Path,
-    expected_endianness: Option<object::Endianness>,
+    expected_endianness: Option<Endianness>,
 ) -> Result<(String, String), anyhow::Error> {
     let bc_content = fs::read(file).context("cannot find bytecode")?;
     let bc_result = Object::parse(&bc_content);
