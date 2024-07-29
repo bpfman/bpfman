@@ -8,7 +8,7 @@ use aya::{
         links::{FdLink, PinnedLink},
         Extension, Xdp,
     },
-    Bpf, BpfLoader,
+    Ebpf, EbpfLoader,
 };
 use log::{debug, info};
 use sled::Db;
@@ -42,7 +42,7 @@ const PROGRAM_NAME: &str = "program_name";
 #[derive(Debug)]
 pub struct XdpDispatcher {
     db_tree: sled::Tree,
-    loader: Option<Bpf>,
+    loader: Option<Ebpf>,
 }
 
 impl XdpDispatcher {
@@ -144,7 +144,7 @@ impl XdpDispatcher {
 
         let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
 
-        let mut loader = BpfLoader::new()
+        let mut loader = EbpfLoader::new()
             .set_global("conf", &config, true)
             .load(&program_bytes)?;
 
@@ -266,7 +266,7 @@ impl XdpDispatcher {
                 let name = &v.get_data().get_name()?;
                 let global_data = &v.get_data().get_global_data()?;
 
-                let mut bpf = BpfLoader::new();
+                let mut bpf = EbpfLoader::new();
 
                 bpf.allow_unsupported_maps().extension(name);
 
