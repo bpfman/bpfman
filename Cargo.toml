@@ -36,12 +36,12 @@ caps = { version = "0.5.4", default-features = false }
 cargo_metadata = { version = "0.18.0", default-features = false }
 chrono = { version = "0.4.35", default-features = false }
 clap = { version = "4", default-features = false }
-clap_complete = { version = "4.5.7", default-features = false }
-clap_mangen = { version = "0.2.22", default-features = false }
+clap_complete = { version = "4.5.11", default-features = false }
+clap_mangen = { version = "0.2.23", default-features = false }
 comfy-table = { version = "7.1.1", default-features = false }
 dialoguer = { version = "0.11", default-features = false }
 diff = { version = "0.1.13", default-features = false }
-env_logger = { version = "0.11.3", default-features = false }
+env_logger = { version = "0.11.5", default-features = false }
 flate2 = { version = "1.0", default-features = false }
 futures = { version = "0.3.30", default-features = false }
 hex = { version = "0.4.3", default-features = false }
@@ -55,13 +55,13 @@ netlink-packet-core = { version = "^0.7", default-features = false }
 netlink-packet-route = { version = "^0.19", default-features = false }
 netlink-sys = { version = "^0.8", default-features = false }
 nix = { version = "0.28", default-features = false }
-object = { version = "0.32.2", default-features = false }
+object = { version = "0.36.1", default-features = false }
 oci-distribution = { version = "0.10", default-features = false }
 opentelemetry = { version = "0.22.0", default-features = false }
 opentelemetry-otlp = { version = "0.15.0", default-features = false }
 opentelemetry-semantic-conventions = { version = "0.14.0" }
 opentelemetry_sdk = { version = "0.22.1", default-features = false }
-predicates = { version = "3.0.4", default-features = false }
+predicates = { version = "3.1.2", default-features = false }
 prost = { version = "0.12.6", default-features = false }
 prost-types = { version = "0.12.6", default-features = false }
 public-api = { version = "0.35.0", default-features = false }
@@ -70,7 +70,7 @@ rand = { version = "0.8", default-features = false }
 regex = { version = "1.10.5", default-features = false }
 rtnetlink = { version = "0.14", default-features = false }
 rustdoc-json = { version = "0.8.9", default-features = false }
-rustup-toolchain = { version = "0.1.6", default-features = false }
+rustup-toolchain = { version = "0.1.7", default-features = false }
 serde = { version = "1.0", default-features = false }
 serde_json = { version = "1", default-features = false }
 sha2 = { version = "0.10.8", default-features = false }
@@ -81,10 +81,10 @@ systemd-journal-logger = { version = "2.1.1", default-features = false }
 tar = { version = "0.4", default-features = false }
 tempfile = { version = "3.10.1", default-features = false }
 thiserror = { version = "1", default-features = false }
-tokio = { version = "1.38.0", default-features = false }
+tokio = { version = "1.39.2", default-features = false }
 tokio-stream = { version = "0.1.15", default-features = false }
 tokio-util = { version = "0.7.11", default-features = false }
-toml = { version = "0.8.14", default-features = false }
+toml = { version = "0.8.16", default-features = false }
 tonic = { version = "0.11.0", default-features = false }
 tonic-build = { version = "0.11.0", default-features = false }
 tower = { version = "0.4.13", default-features = false }
