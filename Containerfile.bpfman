@@ -1,7 +1,7 @@
 # We do not use --platform feature to auto fill this ARG because of incompatibility between podman and docker
 ARG BUILDPLATFORM=linux/amd64
 
-FROM --platform=$BUILDPLATFORM rust:1 as bpfman-build
+FROM --platform=$BUILDPLATFORM rust:1 AS bpfman-build
 
 ARG BUILDPLATFORM
 

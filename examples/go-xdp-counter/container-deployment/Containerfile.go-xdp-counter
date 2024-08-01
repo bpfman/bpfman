@@ -1,6 +1,6 @@
 ARG BUILDPLATFORM=linux/amd64
 
-FROM --platform=$BUILDPLATFORM golang:1.22 as gocounter-build
+FROM --platform=$BUILDPLATFORM golang:1.22 AS gocounter-build
 
 ARG BUILDPLATFORM
 
