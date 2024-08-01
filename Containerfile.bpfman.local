@@ -1,6 +1,6 @@
 ## This Containerfile makes use of docker's Buildkit to cache crates between
 ## builds, dramatically speeding up the local development process.
-FROM rust:1 as bpfman-build
+FROM rust:1 AS bpfman-build
 
 RUN apt-get update && apt-get install -y\
     gcc-multilib\
