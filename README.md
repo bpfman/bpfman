@@ -88,3 +88,9 @@ dual licensed as above, without any additional terms or conditions.
 [BSD 2 Clause]: LICENSE-BSD2
 [libxdp]: https://github.com/xdp-project/xdp-tools
 [TC dispatcher]:https://github.com/bpfman/bpfman/blob/main/bpf/tc_dispatcher.bpf.c
+
+<br>
+We are a Cloud Native Computing Foundation sandbox project.<br>
+<div style="background-color: white; display: inline-block; padding: 10px;">
+  <img src="docs/img/cncf-color.png" alt="CNCF Logo" width="200">
+</div>

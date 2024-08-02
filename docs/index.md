@@ -151,3 +151,7 @@ For more details, please see the following:
   details on launching bpfman in a Kubernetes cluster.
 - [Meet the Community](./governance/MEETINGS.md) for details on community
   meeting details.
+
+<br>
+We are a Cloud Native Computing Foundation sandbox project.<br>
+<img src="./img/cncf-color.png" alt="CNCF Logo" width="200">
