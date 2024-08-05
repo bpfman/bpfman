@@ -30,6 +30,13 @@ spec:
           primarynodeinterface: true
         priority: 55
         direction: ingress
+    - type: TCX
+      tcx:
+        bpffunctionname: tcx_stats
+        interfaceselector:
+          primarynodeinterface: true
+        priority: 500
+        direction: ingress
     - type: Uprobe
       uprobe:
         bpffunctionname: uprobe_counter

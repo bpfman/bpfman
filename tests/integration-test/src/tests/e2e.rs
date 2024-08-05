@@ -1,6 +1,7 @@
 use std::{path::PathBuf, thread::sleep, time::Duration};
 
 use log::debug;
+use procfs::sys::kernel::Version;
 
 use super::{
     integration_test, IntegrationTest, RTDIR_FS_TC_EGRESS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP,
@@ -13,6 +14,8 @@ const GLOBAL_3: &str = "GLOBAL_u8=2B";
 const GLOBAL_4: &str = "GLOBAL_u8=35";
 const GLOBAL_5: &str = "GLOBAL_u8=3B";
 const GLOBAL_6: &str = "GLOBAL_u8=3D";
+const GLOBAL_7: &str = "GLOBAL_u8=3F";
+const GLOBAL_8: &str = "GLOBAL_u8=41";
 
 const XDP_GLOBAL_1_LOG: &str = "bpf_trace_printk: XDP: GLOBAL_u8: 0x25";
 const XDP_GLOBAL_2_LOG: &str = "bpf_trace_printk: XDP: GLOBAL_u8: 0x29";
@@ -23,6 +26,14 @@ const TC_ING_GLOBAL_3_LOG: &str = "bpf_trace_printk:  TC: GLOBAL_u8: 0x2B";
 const TC_EG_GLOBAL_4_LOG: &str = "bpf_trace_printk:  TC: GLOBAL_u8: 0x35";
 const TC_EG_GLOBAL_5_LOG: &str = "bpf_trace_printk:  TC: GLOBAL_u8: 0x3B";
 const TC_EG_GLOBAL_6_LOG: &str = "bpf_trace_printk:  TC: GLOBAL_u8: 0x3D";
+const TCX_GLOBAL_1_LOG: &str = "bpf_trace_printk:  TCX: GLOBAL_u8: 0x25";
+const TCX_GLOBAL_2_LOG: &str = "bpf_trace_printk:  TCX: GLOBAL_u8: 0x29";
+const TCX_GLOBAL_3_LOG: &str = "bpf_trace_printk:  TCX: GLOBAL_u8: 0x2B";
+const TCX_GLOBAL_4_LOG: &str = "bpf_trace_printk:  TCX: GLOBAL_u8: 0x35";
+const TCX_GLOBAL_5_LOG: &str = "bpf_trace_printk:  TCX: GLOBAL_u8: 0x3B";
+const TCX_GLOBAL_6_LOG: &str = "bpf_trace_printk:  TCX: GLOBAL_u8: 0x3D";
+const TCX_GLOBAL_7_LOG: &str = "bpf_trace_printk:  TCX: GLOBAL_u8: 0x3F";
+const TCX_GLOBAL_8_LOG: &str = "bpf_trace_printk:  TCX: GLOBAL_u8: 0x41";
 const TRACEPOINT_GLOBAL_1_LOG: &str = "bpf_trace_printk:  TP: GLOBAL_u8: 0x25";
 const UPROBE_GLOBAL_1_LOG: &str = "bpf_trace_printk:  UP: GLOBAL_u8: 0x25";
 const URETPROBE_GLOBAL_1_LOG: &str = "bpf_trace_printk: URP: GLOBAL_u8: 0x25";
@@ -849,6 +860,221 @@ fn test_uprobe_container() {
     let trace_pipe_log = read_trace_pipe_log().unwrap();
     assert!(trace_pipe_log.contains(UPROBE_GLOBAL_1_LOG));
     debug!("Successfully validated uprobe in a container");
+
+    verify_and_delete_programs(loaded_ids);
+}
+
+#[integration_test]
+fn test_tcx() {
+    // Check kernel version.  If it's less than 6.6, skip this test.
+    let kernel_version = Version::current().unwrap();
+    if kernel_version < Version::new(6, 6, 0) {
+        debug!("The kernel version is: {:?}", kernel_version);
+        debug!("Skipping tcx test.  Kernel must be at least 6.6 to support tcx.");
+        return;
+    }
+
+    let _namespace_guard = create_namespace().unwrap();
+    let _ping_guard = start_ping().unwrap();
+    let trace_guard = start_trace_pipe().unwrap();
+
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
+
+    let mut loaded_ids = vec![];
+
+    // Install a tcx pass program in each direction at priority 1000, which is
+    // the lowest priority.  We should see logs from both programs.
+    debug!("Installing 1st tcx ingress program");
+    let (prog_id_1, _) = add_tcx(
+        "ingress",
+        DEFAULT_BPFMAN_IFACE,
+        1000,
+        Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        &LoadType::Image,
+        &TCX_TEST_IMAGE_LOC,
+        TCX_TEST_FILE_LOC,
+        TCX_TEST_PASS_NAME,
+    );
+    let prog_id_1 = prog_id_1.unwrap();
+    loaded_ids.push(prog_id_1.clone());
+
+    debug!("Installing 1st tcx egress program");
+    let (prog_id_2, _) = add_tcx(
+        "egress",
+        DEFAULT_BPFMAN_IFACE,
+        1000,
+        Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        &LoadType::Image,
+        &TCX_TEST_IMAGE_LOC,
+        TCX_TEST_FILE_LOC,
+        TCX_TEST_PASS_NAME,
+    );
+    let prog_id_2 = prog_id_2.unwrap();
+    loaded_ids.push(prog_id_2.clone());
+
+    debug!("wait for some traffic to generate logs...");
+    sleep(Duration::from_secs(2));
+
+    let ping_log = read_ping_log().unwrap();
+    // Make sure we've had some pings
+    assert!(ping_log.lines().count() > 2);
+
+    // Make sure the first programs are running and logging
+    let trace_pipe_log = read_trace_pipe_log().unwrap();
+    assert!(!trace_pipe_log.is_empty());
+    assert!(trace_pipe_log.contains(TCX_GLOBAL_1_LOG));
+    assert!(trace_pipe_log.contains(TCX_GLOBAL_2_LOG));
+    debug!("Successfully completed tcx_test test case #1");
+
+    // Install a 2nd tcx program in each direction at a higher priority than the
+    // first programs that returns TCX_NEXT. We should see logs from both sets
+    // of programs.
+    debug!("Installing 2nd tcx ingress program");
+    let (prog_id_3, _) = add_tcx(
+        "ingress",
+        DEFAULT_BPFMAN_IFACE,
+        100,
+        Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        &LoadType::Image,
+        &TCX_TEST_IMAGE_LOC,
+        TCX_TEST_FILE_LOC,
+        TCX_TEST_NEXT_NAME,
+    );
+    let prog_id_3 = prog_id_3.unwrap();
+    loaded_ids.push(prog_id_3.clone());
+
+    debug!("Installing 2nd tcx egress program");
+    let (prog_id_4, _) = add_tcx(
+        "egress",
+        DEFAULT_BPFMAN_IFACE,
+        100,
+        Some([GLOBAL_4, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        &LoadType::Image,
+        &TCX_TEST_IMAGE_LOC,
+        TCX_TEST_FILE_LOC,
+        TCX_TEST_NEXT_NAME,
+    );
+    let prog_id_4 = prog_id_4.unwrap();
+    loaded_ids.push(prog_id_4.clone());
+
+    debug!("Clear the trace_pipe_log");
+    drop(trace_guard);
+    let trace_guard = start_trace_pipe().unwrap();
+
+    debug!("wait for some traffic to generate logs...");
+    sleep(Duration::from_secs(2));
+
+    // Make sure we have logs from both sets of tcx programs.
+    let trace_pipe_log = read_trace_pipe_log().unwrap();
+    assert!(!trace_pipe_log.is_empty());
+    assert!(trace_pipe_log.contains(TCX_GLOBAL_1_LOG));
+    assert!(trace_pipe_log.contains(TCX_GLOBAL_2_LOG));
+    assert!(trace_pipe_log.contains(TCX_GLOBAL_3_LOG));
+    assert!(trace_pipe_log.contains(TCX_GLOBAL_4_LOG));
+    debug!("Successfully completed tcx_test test case #2");
+
+    // Install a 3rd tcx program in each direction which returns TCX_DROP at a
+    // higher priority than the existing programs. In this case, we should see
+    // logs from the egress txc program #3 for the pings being sent from the
+    // host, however, that txc program should drop the pings so the network
+    // namespace should not respond.  We therefore will probably not see logs
+    // from the ingress txc program #3 unless it is sending traffic for some
+    // other reason.
+    debug!("Installing 3rd tcx ingress program");
+    let (prog_id_5, _) = add_tcx(
+        "ingress",
+        DEFAULT_BPFMAN_IFACE,
+        50,
+        Some([GLOBAL_5, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        &LoadType::Image,
+        &TCX_TEST_IMAGE_LOC,
+        TCX_TEST_FILE_LOC,
+        TCX_TEST_DROP_NAME,
+    );
+    loaded_ids.push(prog_id_5.unwrap());
+
+    debug!("Installing 3rd tcx egress program");
+    let (prog_id_6, _) = add_tcx(
+        "egress",
+        DEFAULT_BPFMAN_IFACE,
+        50,
+        Some([GLOBAL_6, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        &LoadType::Image,
+        &TCX_TEST_IMAGE_LOC,
+        TCX_TEST_FILE_LOC,
+        TCX_TEST_DROP_NAME,
+    );
+    loaded_ids.push(prog_id_6.unwrap());
+
+    debug!("Clear the trace_pipe_log");
+    drop(trace_guard);
+    let trace_guard = start_trace_pipe().unwrap();
+
+    debug!("wait for some traffic to generate logs...");
+    sleep(Duration::from_secs(2));
+
+    // Make sure we have logs from the 3rd egress TCX program, but not from the
+    // others.
+    let trace_pipe_log = read_trace_pipe_log().unwrap();
+    assert!(!trace_pipe_log.is_empty());
+    assert!(!trace_pipe_log.contains(TCX_GLOBAL_1_LOG));
+    assert!(!trace_pipe_log.contains(TCX_GLOBAL_2_LOG));
+    assert!(!trace_pipe_log.contains(TCX_GLOBAL_3_LOG));
+    assert!(!trace_pipe_log.contains(TCX_GLOBAL_4_LOG));
+    // don't check for ingress logs here (TCX_GLOBAL_5_LOG) because we may or
+    // may not see any since the egress is dropping the pings.
+    assert!(trace_pipe_log.contains(TCX_GLOBAL_6_LOG));
+    debug!("Successfully completed tcx_test test case #3");
+
+    // Install a 4th tcx program in each direction that returns TCX_PASS at the
+    // highest priority. We should see logs from the 4th set of programs, but
+    // not the others.
+    debug!("Installing 4th tcx ingress program");
+    let (prog_id_7, _) = add_tcx(
+        "ingress",
+        DEFAULT_BPFMAN_IFACE,
+        1,
+        Some([GLOBAL_7, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        &LoadType::Image,
+        &TCX_TEST_IMAGE_LOC,
+        TCX_TEST_FILE_LOC,
+        TCX_TEST_PASS_NAME,
+    );
+    loaded_ids.push(prog_id_7.unwrap());
+
+    debug!("Installing 4th tcx egress program");
+    let (prog_id_8, _) = add_tcx(
+        "egress",
+        DEFAULT_BPFMAN_IFACE,
+        1,
+        Some([GLOBAL_8, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        &LoadType::Image,
+        &TCX_TEST_IMAGE_LOC,
+        TCX_TEST_FILE_LOC,
+        TCX_TEST_PASS_NAME,
+    );
+    loaded_ids.push(prog_id_8.unwrap());
+
+    debug!("Clear the trace_pipe_log");
+    drop(trace_guard);
+    let _trace_guard = start_trace_pipe().unwrap();
+
+    debug!("wait for some traffic to generate logs...");
+    sleep(Duration::from_secs(2));
+
+    // Make sure we have logs from the 4th set of TCX programs, but not from the
+    // others.
+    let trace_pipe_log = read_trace_pipe_log().unwrap();
+    assert!(!trace_pipe_log.is_empty());
+    assert!(!trace_pipe_log.contains(TCX_GLOBAL_1_LOG));
+    assert!(!trace_pipe_log.contains(TCX_GLOBAL_2_LOG));
+    assert!(!trace_pipe_log.contains(TCX_GLOBAL_3_LOG));
+    assert!(!trace_pipe_log.contains(TCX_GLOBAL_4_LOG));
+    assert!(!trace_pipe_log.contains(TCX_GLOBAL_5_LOG));
+    assert!(!trace_pipe_log.contains(TCX_GLOBAL_6_LOG));
+    assert!(trace_pipe_log.contains(TCX_GLOBAL_7_LOG));
+    assert!(trace_pipe_log.contains(TCX_GLOBAL_8_LOG));
+    debug!("Successfully completed all 4 tcx_test test cases");
 
     verify_and_delete_programs(loaded_ids);
 }

@@ -9,14 +9,23 @@ use std::{
 
 use aya::{
     programs::{
-        fentry::FEntryLink, fexit::FExitLink, kprobe::KProbeLink, links::FdLink, loaded_programs,
-        trace_point::TracePointLink, uprobe::UProbeLink, FEntry, FExit, KProbe, TracePoint, UProbe,
+        fentry::FEntryLink,
+        fexit::FExitLink,
+        kprobe::KProbeLink,
+        links::FdLink,
+        loaded_programs,
+        tc::{SchedClassifierLink, SchedClassifierLinkId, TcAttachOptions},
+        trace_point::TracePointLink,
+        uprobe::UProbeLink,
+        FEntry, FExit, KProbe, LinkOrder as AyaLinkOrder, SchedClassifier, TcAttachType,
+        TracePoint, UProbe,
     },
     Btf, EbpfLoader,
 };
 use log::{debug, info, warn};
 use sled::{Config as SledConfig, Db};
 use tokio::time::{sleep, Duration};
+use types::AttachOrder;
 use utils::initialize_bpfman;
 
 use crate::{
@@ -30,7 +39,7 @@ use crate::{
     types::{
         BytecodeImage, Direction, ListFilter,
         ProbeType::{self, *},
-        Program, ProgramData, ProgramType, PROGRAM_PREFIX,
+        Program, ProgramData, ProgramType, TcxProgram, PROGRAM_PREFIX,
     },
     utils::{
         bytes_to_string, bytes_to_u32, get_error_msg_from_stderr, get_ifindex, open_config_file,
@@ -215,6 +224,10 @@ pub async fn add_program(mut program: Program) -> Result<Program, BpfmanError> {
 
             add_multi_attach_program(root_db, &mut program, &mut image_manager, config).await
         }
+        Program::Tcx(_) => {
+            program.set_if_index(get_ifindex(&program.if_name().unwrap())?)?;
+            add_single_attach_program(root_db, &mut program)
+        }
         Program::Tracepoint(_)
         | Program::Kprobe(_)
         | Program::Uprobe(_)
@@ -347,6 +360,17 @@ pub async fn remove_program(id: u32) -> Result<(), BpfmanError> {
             )
             .await?
         }
+        Program::Tcx(_) => {
+            let if_index = prog
+                .if_index()?
+                .ok_or_else(|| BpfmanError::InvalidInterface)?;
+            let direction = prog
+                .direction()?
+                .ok_or_else(|| BpfmanError::InvalidDirection)?;
+            prog.delete(root_db)
+                .map_err(BpfmanError::BpfmanProgramDeleteError)?;
+            update_tcx_program_positions(root_db, if_index, direction, None)?;
+        }
         Program::Tracepoint(_)
         | Program::Kprobe(_)
         | Program::Uprobe(_)
@@ -446,7 +470,7 @@ pub async fn list_programs(filter: ListFilter) -> Result<Vec<Program>, BpfmanErr
     Ok(loaded_programs()
         .filter_map(|p| p.ok())
         .map(|prog| {
-            let prog_id = prog.id();
+            let prog_id: u32 = prog.id();
 
             // If the program was loaded by bpfman (check the hash map), then use it.
             // Otherwise, convert the data returned from Aya into an Unsupported Program Object.
@@ -537,9 +561,10 @@ pub async fn get_program(id: u32) -> Result<Program, BpfmanError> {
         None => loaded_programs()
             .find_map(|p| {
                 let prog = p.ok()?;
-                if prog.id() == id {
+                let prog_id: u32 = prog.id();
+                if prog_id == id {
                     let db_tree = root_db
-                        .open_tree(prog.id().to_string())
+                        .open_tree(prog_id.to_string())
                         .expect("Unable to open program database tree for listing programs");
 
                     let mut data = ProgramData::new_empty(db_tree);
@@ -737,6 +762,105 @@ fn filter(
         })
 }
 
+fn get_txc_programs(root_db: &Db, if_index: u32, direction: Direction) -> Vec<TcxProgram> {
+    root_db
+        .tree_names()
+        .into_iter()
+        .filter(|p| bytes_to_string(p).contains(PROGRAM_PREFIX))
+        .filter_map(|p| {
+            let id = bytes_to_string(&p)
+                .split('_')
+                .last()
+                .unwrap()
+                .parse::<u32>()
+                .unwrap();
+            let tree = root_db.open_tree(p).expect("unable to open database tree");
+            match Program::new_from_db(id, tree) {
+                Ok(Program::Tcx(tcx_p)) => Some(tcx_p),
+                _ => None, // Skip the entry if it's not Program::Tcx or if there's an error
+            }
+        })
+        .filter(|tcx_p| {
+            if let Ok(Some(tcx_p_if_index)) = tcx_p.get_if_index() {
+                if let Ok(tcx_p_direction) = tcx_p.get_direction() {
+                    return tcx_p_if_index == if_index && tcx_p_direction == direction;
+                }
+            }
+            false
+        })
+        .collect()
+}
+
+// sort_tcx_programs sorts the tcx programs based on their priority and position.
+fn sort_tcx_programs(tcx_programs: &mut [TcxProgram]) {
+    tcx_programs.sort_by_key(|p| {
+        let priority = p.get_priority().unwrap_or(1000); // Handle the Result, default to 0 on error
+        let position = p.get_current_position().unwrap_or(None); // Handle the Option, default to None
+        (priority, position)
+    });
+}
+
+/// If a new program is provided, the update_tcx_program_positions function
+/// determines the correct position for the new program based on the priorities
+/// of existing programs, updates the position settings of all programs, and
+/// returns the AttachOrder needed to attach the new program in the correct
+/// position. If no new program is provided, it simply updates the position
+/// settings of the existing programs.
+fn update_tcx_program_positions(
+    root_db: &Db,
+    if_index: u32,
+    direction: Direction,
+    new_program: Option<&mut TcxProgram>,
+) -> Result<Option<AttachOrder>, BpfmanError> {
+    let mut tcx_programs = get_txc_programs(root_db, if_index, direction);
+    sort_tcx_programs(&mut tcx_programs);
+
+    if let Some(np) = new_program {
+        if tcx_programs.is_empty() {
+            // if there are no programs, the new program will be attached first
+            np.set_current_position(0)?;
+            return Ok(Some(AttachOrder::First));
+        }
+
+        let mut order: Option<AttachOrder> = None;
+        let mut i = 0;
+        for p in tcx_programs.iter_mut() {
+            if np.get_priority()? < p.get_priority()? && order.is_none() {
+                // The new program will be attached before the first lower
+                // priority program we find. Note that this would also put it
+                // after any programs with the same priority. After we've found
+                // the new position, keep going to set the rest of the
+                // positions.
+                np.set_current_position(i)?;
+                order = Some(AttachOrder::Before(p.get_data().get_id()?));
+                i += 1; // Increment the position to account for the new program
+                p.set_current_position(i)?;
+            } else {
+                p.set_current_position(i)?;
+            }
+            i += 1;
+        }
+
+        // If order didn't get set, the new program's priority is lower than all
+        // the existing programs, so it should be attached after the last
+        // program
+        if order.is_none() {
+            np.set_current_position(tcx_programs.len())?;
+            order = Some(AttachOrder::After(
+                tcx_programs.last().unwrap().get_data().get_id()?,
+            ));
+        }
+
+        Ok(order)
+    } else {
+        // If there's no new program, just set the positions of the existing programs
+        for (i, p) in tcx_programs.iter_mut().enumerate() {
+            p.set_current_position(i)?;
+        }
+        Ok(None)
+    }
+}
+
 // Adds a new program and sets the positions of programs that are to be attached via a dispatcher.
 // Positions are set based on order of priority. Ties are broken based on:
 // - Already attached programs are preferred
@@ -791,7 +915,7 @@ fn get_programs_iter(root_db: &Db) -> impl Iterator<Item = (u32, Program)> + '_ 
         .tree_names()
         .into_iter()
         .filter(|p| bytes_to_string(p).contains(PROGRAM_PREFIX))
-        .map(|p| {
+        .filter_map(|p| {
             let id = bytes_to_string(&p)
                 .split('_')
                 .last()
@@ -799,10 +923,10 @@ fn get_programs_iter(root_db: &Db) -> impl Iterator<Item = (u32, Program)> + '_ 
                 .parse::<u32>()
                 .unwrap();
             let tree = root_db.open_tree(p).expect("unable to open database tree");
-            (
-                id,
-                Program::new_from_db(id, tree).expect("Failed to build program from database"),
-            )
+            match Program::new_from_db(id, tree) {
+                Ok(prog) => Some((id, prog)),
+                Err(_) => None, // Skip the entry if there's an error
+            }
         })
 }
 
@@ -1169,6 +1293,60 @@ pub(crate) fn add_single_attach_program(root_db: &Db, p: &mut Program) -> Result
 
             fexit
                 .pin(format!("{RTDIR_FS}/prog_{}", id))
+                .map_err(BpfmanError::UnableToPinProgram)?;
+
+            Ok(id)
+        }
+        Program::Tcx(ref mut program) => {
+            let tcx: &mut SchedClassifier = raw_program.try_into()?;
+
+            tcx.load()?;
+            program.get_data_mut().set_kernel_info(&tcx.info()?)?;
+
+            let id = program.data.get_id()?;
+
+            let iface_string = program.get_iface()?;
+            let iface = iface_string.as_str();
+
+            let aya_direction = match program.get_direction()? {
+                Direction::Ingress => TcAttachType::Ingress,
+                Direction::Egress => TcAttachType::Egress,
+            };
+
+            let if_index = program.get_if_index()?.ok_or(BpfmanError::Error(
+                "if_index not found in program data".to_string(),
+            ))?;
+
+            let order = update_tcx_program_positions(
+                root_db,
+                if_index,
+                program.get_direction()?,
+                Some(program),
+            )?
+            .ok_or_else(|| BpfmanError::Error("AttachAction not returned".to_string()))?;
+
+            let link_order: AyaLinkOrder = order.into();
+
+            info!(
+                "Attaching tcx program to iface: {} direction: {:?} link_order: {:?}",
+                iface, aya_direction, link_order
+            );
+
+            let options = TcAttachOptions::TcxOrder(link_order);
+
+            let link_id: SchedClassifierLinkId =
+                tcx.attach_with_options(iface, aya_direction, options)?;
+
+            let owned_link: SchedClassifierLink = tcx.take_link(link_id)?;
+            let fd_link: FdLink = owned_link
+                .try_into()
+                .expect("unable to get owned tcx attach link");
+
+            fd_link
+                .pin(format!("{RTDIR_FS}/prog_{}_link", id))
+                .map_err(BpfmanError::UnableToPinLink)?;
+
+            tcx.pin(format!("{RTDIR_FS}/prog_{}", id))
                 .map_err(BpfmanError::UnableToPinProgram)?;
 
             Ok(id)
