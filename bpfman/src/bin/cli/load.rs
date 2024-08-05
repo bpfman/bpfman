@@ -8,7 +8,7 @@ use bpfman::{
     add_program,
     types::{
         FentryProgram, FexitProgram, KprobeProgram, Location, Program, ProgramData, TcProceedOn,
-        TcProgram, TracepointProgram, UprobeProgram, XdpProceedOn, XdpProgram,
+        TcProgram, TcxProgram, TracepointProgram, UprobeProgram, XdpProceedOn, XdpProgram,
     },
 };
 
@@ -110,6 +110,22 @@ impl LoadCommands {
                     *priority,
                     iface.to_string(),
                     proc_on,
+                    direction.to_string().try_into()?,
+                )?))
+            }
+            LoadCommands::Tcx {
+                direction,
+                iface,
+                priority,
+            } => {
+                match direction.as_str() {
+                    "ingress" | "egress" => (),
+                    other => bail!("{} is not a valid direction", other),
+                };
+                Ok(Program::Tcx(TcxProgram::new(
+                    data,
+                    *priority,
+                    iface.to_string(),
                     direction.to_string().try_into()?,
                 )?))
             }

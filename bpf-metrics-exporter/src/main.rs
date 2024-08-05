@@ -1,8 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use aya::{loaded_programs, maps::loaded_maps, programs::loaded_links};
-use bpfman::types::ProgramType;
+use std::time::SystemTime;
+
+use aya::{
+    maps::{loaded_maps, MapType as AyaMapType},
+    programs::{loaded_links, loaded_programs, ProgramType as AyaProgramType},
+};
+use bpfman::types::{MapType, ProgramType};
 use chrono::{prelude::DateTime, Utc};
 use clap::Parser;
 use opentelemetry::{
@@ -132,16 +137,21 @@ async fn main() -> anyhow::Result<()> {
                 for program in loaded_programs().flatten() {
                     let id = program.id();
                     let name = program.name_as_str().unwrap_or_default().to_string();
-                    let ty: ProgramType = program.program_type().try_into().unwrap();
+                    let ty: ProgramType = ProgramType::from(
+                        program
+                            .program_type()
+                            .unwrap_or(AyaProgramType::Unspecified),
+                    );
                     let tag = program.tag().to_string();
-                    let gpl_compatible = program.gpl_compatible();
-                    let map_ids = program.map_ids().unwrap_or_default();
-
-                    let load_time = DateTime::<Utc>::from(program.loaded_at());
+                    let gpl_compatible = program.gpl_compatible().unwrap_or(false);
+                    let map_ids = program.map_ids().unwrap_or_default().unwrap_or_default();
+                    let load_time = DateTime::<Utc>::from(
+                        program.loaded_at().unwrap_or(SystemTime::UNIX_EPOCH),
+                    );
                     let jitted_bytes = program.size_jitted();
-                    let translated_bytes = program.size_translated();
-                    let mem_bytes = program.memory_locked().unwrap_or_default();
-                    let verified_instructions = program.verified_instruction_count();
+                    let translated_bytes = program.size_translated().unwrap_or(0);
+                    let mem_bytes = program.memory_locked().unwrap_or(0);
+                    let verified_instructions = program.verified_instruction_count().unwrap_or(0);
 
                     let prog_info_labels = [
                         KeyValue::new("id", id.to_string()),
@@ -217,7 +227,8 @@ async fn main() -> anyhow::Result<()> {
                 for map in loaded_maps().flatten() {
                     let map_id = map.id();
                     let name = map.name_as_str().unwrap_or_default().to_string();
-                    let ty = map.map_type().to_string();
+                    let ty = MapType::from(map.map_type().unwrap_or(AyaMapType::Unspecified))
+                        .to_string();
                     let key_size = map.key_size();
                     let value_size = map.value_size();
                     let max_entries = map.max_entries();

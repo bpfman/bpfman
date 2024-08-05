@@ -6,7 +6,7 @@ use std::{fs, mem};
 use aya::{
     programs::{
         links::FdLink,
-        tc::{self, SchedClassifierLink, TcOptions},
+        tc::{self, NlOptions, SchedClassifierLink, TcAttachOptions},
         Extension, Link, SchedClassifier, TcAttachType,
     },
     Ebpf, EbpfLoader,
@@ -255,14 +255,14 @@ impl TcDispatcher {
         let link_id = new_dispatcher.attach_with_options(
             &iface,
             attach_type,
-            TcOptions {
+            TcAttachOptions::Netlink(NlOptions {
                 priority,
                 ..Default::default()
-            },
+            }),
         )?;
 
         let link = new_dispatcher.take_link(link_id)?;
-        self.set_handle(link.handle())?;
+        self.set_handle(link.handle()?)?;
         mem::forget(link);
 
         if let Some(Dispatcher::Tc(mut d)) = old_dispatcher {

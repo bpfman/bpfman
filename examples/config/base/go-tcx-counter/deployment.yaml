@@ -2,33 +2,33 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: go-app-counter
+  name: go-tcx-counter
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: bpfman-app-go-app-counter
-  namespace: go-app-counter
+  name: bpfman-app-go-tcx-counter
+  namespace: go-tcx-counter
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: go-app-counter-ds
-  namespace: go-app-counter
+  name: go-tcx-counter-ds
+  namespace: go-tcx-counter
   labels:
-    k8s-app: go-app-counter
+    k8s-app: go-tcx-counter
 spec:
   selector:
     matchLabels:
-      name: go-app-counter
+      name: go-tcx-counter
   template:
     metadata:
       labels:
-        name: go-app-counter
+        name: go-tcx-counter
     spec:
       nodeSelector: {}
       dnsPolicy: ClusterFirstWithHostNet
-      serviceAccountName: bpfman-app-go-app-counter
+      serviceAccountName: bpfman-app-go-tcx-counter
       securityContext:
         runAsNonRoot: true
         fsGroup: 65534
@@ -42,9 +42,9 @@ spec:
           operator: Exists
           effect: NoSchedule
       containers:
-        - name: go-app-counter
-          image: quay.io/bpfman-userspace/go-app-counter:latest
-          imagePullPolicy: Always
+        - name: go-tcx-counter
+          image: quay.io/bpfman-userspace/go-tcx-counter:latest
+          imagePullPolicy: IfNotPresent
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
@@ -57,13 +57,13 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
           volumeMounts:
-            - name: go-app-counter-maps
-              mountPath: /run/app/maps
+            - name: go-tcx-counter-maps
+              mountPath: /run/tcx/maps
               readOnly: true
       volumes:
-        - name: go-app-counter-maps
+        - name: go-tcx-counter-maps
           csi:
             driver: csi.bpfman.io
             volumeAttributes:
-              csi.bpfman.io/program: app-counter
-              csi.bpfman.io/maps: kprobe_stats_map,tracepoint_stats_map,tc_stats_map,tcx_stats_map,uprobe_stats_map,xdp_stats_map
+              csi.bpfman.io/program: go-tcx-counter-example
+              csi.bpfman.io/maps: tcx_stats_map

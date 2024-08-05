@@ -9,7 +9,13 @@ use std::{
     time::SystemTime,
 };
 
-use aya::programs::ProgramInfo as AyaProgInfo;
+use aya::{
+    maps::MapType as AyaMapType,
+    programs::{
+        LinkOrder as AyaLinkOrder, ProgramId, ProgramInfo as AyaProgInfo,
+        ProgramType as AyaProgramType,
+    },
+};
 use chrono::{prelude::DateTime, Local};
 use clap::ValueEnum;
 use log::{info, warn};
@@ -73,6 +79,12 @@ const TC_IF_INDEX: &str = "tc_if_index";
 const TC_ATTACHED: &str = "tc_attached";
 const TC_DIRECTION: &str = "tc_direction";
 const PREFIX_TC_PROCEED_ON: &str = "tc_proceed_on_";
+
+const TCX_PRIORITY: &str = "tcx_priority";
+const TCX_IFACE: &str = "tcx_iface";
+const TCX_CURRENT_POSITION: &str = "tcx_current_position";
+const TCX_IF_INDEX: &str = "tcx_if_index";
+const TCX_DIRECTION: &str = "tcx_direction";
 
 const TRACEPOINT_NAME: &str = "tracepoint_name";
 
@@ -218,6 +230,13 @@ pub enum Program {
     /// be attached to various hooks in the Linux Traffic Control (tc)
     /// subsystem.
     Tc(TcProgram),
+
+    /// A TCX (Traffic Control) program.
+    ///
+    /// TCX programs are similar to TC programs, and are used for controlling
+    /// network traffic. They can be attached to the TCX hook point, which
+    /// executes before any TC programs on the same hook point.
+    Tcx(TcxProgram),
 
     /// A Tracepoint program.
     ///
@@ -1124,24 +1143,22 @@ impl ProgramData {
             prog.name_as_str()
                 .expect("Program name is not valid unicode"),
         )?;
-        self.set_kernel_program_type(prog.program_type())?;
-        self.set_kernel_loaded_at(prog.loaded_at())?;
+        self.set_kernel_program_type(u32::from(ProgramType::from(
+            prog.program_type().unwrap_or(AyaProgramType::Unspecified),
+        )))?;
+        self.set_kernel_loaded_at(prog.loaded_at().unwrap_or(SystemTime::UNIX_EPOCH))?;
         self.set_kernel_tag(prog.tag())?;
-        self.set_kernel_gpl_compatible(prog.gpl_compatible())?;
-        self.set_kernel_btf_id(prog.btf_id().map_or(0, |n| n.into()))?;
-        self.set_kernel_bytes_xlated(prog.size_translated())?;
-        self.set_kernel_jited(prog.size_jitted() != 0)?;
+        self.set_kernel_gpl_compatible(prog.gpl_compatible().unwrap_or(false))?;
+        self.set_kernel_btf_id(prog.btf_id().unwrap_or(0))?;
+        self.set_kernel_bytes_xlated(prog.size_translated().unwrap_or(0))?;
+        self.set_kernel_jited(prog.size_jitted() > 0)?;
         self.set_kernel_bytes_jited(prog.size_jitted())?;
-        self.set_kernel_verified_insns(prog.verified_instruction_count())?;
+        self.set_kernel_verified_insns(prog.verified_instruction_count().unwrap_or(0))?;
         // Ignore errors here since it's possible the program was deleted mid
         // list, causing aya apis which make system calls using the file descriptor
         // to fail.
-        if let Ok(ids) = prog.map_ids() {
-            self.set_kernel_map_ids(ids)?;
-        }
-        if let Ok(bytes_memlock) = prog.memory_locked() {
-            self.set_kernel_bytes_memlock(bytes_memlock)?;
-        }
+        self.set_kernel_map_ids(prog.map_ids().unwrap_or(None).unwrap_or_default())?;
+        self.set_kernel_bytes_memlock(prog.memory_locked().unwrap_or(0))?;
 
         Ok(())
     }
@@ -1371,6 +1388,103 @@ impl TcProgram {
 
     pub fn get_direction(&self) -> Result<Direction, BpfmanError> {
         sled_get(&self.data.db_tree, TC_DIRECTION)
+            .map(|v| bytes_to_string(&v).to_string().try_into().unwrap())
+    }
+
+    pub(crate) fn get_data(&self) -> &ProgramData {
+        &self.data
+    }
+
+    pub(crate) fn get_data_mut(&mut self) -> &mut ProgramData {
+        &mut self.data
+    }
+}
+
+#[derive(Debug)]
+pub enum AttachOrder {
+    First,
+    Last,
+    Before(u32),
+    After(u32),
+}
+
+impl From<AttachOrder> for AyaLinkOrder {
+    fn from(v: AttachOrder) -> Self {
+        match v {
+            AttachOrder::First => AyaLinkOrder::first(),
+            AttachOrder::Last => AyaLinkOrder::last(),
+            AttachOrder::Before(id) => {
+                AyaLinkOrder::before_program_id(unsafe { ProgramId::new(id) })
+            }
+            AttachOrder::After(id) => AyaLinkOrder::after_program_id(unsafe { ProgramId::new(id) }),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct TcxProgram {
+    pub(crate) data: ProgramData,
+}
+
+impl TcxProgram {
+    pub fn new(
+        data: ProgramData,
+        priority: i32,
+        iface: String,
+        direction: Direction,
+    ) -> Result<Self, BpfmanError> {
+        let mut tcx_prog = Self { data };
+
+        tcx_prog.set_priority(priority)?;
+        tcx_prog.set_iface(iface)?;
+        tcx_prog.set_direction(direction)?;
+        tcx_prog.get_data_mut().set_kind(ProgramType::Tc)?;
+
+        Ok(tcx_prog)
+    }
+
+    pub(crate) fn set_priority(&mut self, priority: i32) -> Result<(), BpfmanError> {
+        sled_insert(&self.data.db_tree, TCX_PRIORITY, &priority.to_ne_bytes())
+    }
+
+    pub fn get_priority(&self) -> Result<i32, BpfmanError> {
+        sled_get(&self.data.db_tree, TCX_PRIORITY).map(bytes_to_i32)
+    }
+
+    pub(crate) fn set_current_position(&mut self, pos: usize) -> Result<(), BpfmanError> {
+        sled_insert(&self.data.db_tree, TCX_CURRENT_POSITION, &pos.to_ne_bytes())
+    }
+
+    pub fn get_current_position(&self) -> Result<Option<usize>, BpfmanError> {
+        Ok(sled_get_option(&self.data.db_tree, TCX_CURRENT_POSITION)?.map(bytes_to_usize))
+    }
+
+    pub(crate) fn set_iface(&mut self, iface: String) -> Result<(), BpfmanError> {
+        sled_insert(&self.data.db_tree, TCX_IFACE, iface.as_bytes())
+    }
+
+    pub fn get_iface(&self) -> Result<String, BpfmanError> {
+        sled_get(&self.data.db_tree, TCX_IFACE).map(|v| bytes_to_string(&v))
+    }
+
+    pub(crate) fn set_if_index(&mut self, if_index: u32) -> Result<(), BpfmanError> {
+        sled_insert(&self.data.db_tree, TCX_IF_INDEX, &if_index.to_ne_bytes())
+    }
+
+    pub fn get_if_index(&self) -> Result<Option<u32>, BpfmanError> {
+        Ok(sled_get_option(&self.data.db_tree, TCX_IF_INDEX)?.map(bytes_to_u32))
+    }
+
+    pub(crate) fn set_direction(&mut self, direction: Direction) -> Result<(), BpfmanError> {
+        sled_insert(
+            &self.data.db_tree,
+            TCX_DIRECTION,
+            direction.to_string().as_bytes(),
+        )
+    }
+
+    pub fn get_direction(&self) -> Result<Direction, BpfmanError> {
+        sled_get(&self.data.db_tree, TCX_DIRECTION)
             .map(|v| bytes_to_string(&v).to_string().try_into().unwrap())
     }
 
@@ -1657,6 +1771,7 @@ impl Program {
         match self {
             Program::Xdp(_) => ProgramType::Xdp,
             Program::Tc(_) => ProgramType::Tc,
+            Program::Tcx(_) => ProgramType::Tc,
             Program::Tracepoint(_) => ProgramType::Tracepoint,
             Program::Kprobe(_) => ProgramType::Probe,
             Program::Uprobe(_) => ProgramType::Probe,
@@ -1687,6 +1802,7 @@ impl Program {
             Program::Xdp(p) => &mut p.data,
             Program::Tracepoint(p) => &mut p.data,
             Program::Tc(p) => &mut p.data,
+            Program::Tcx(p) => &mut p.data,
             Program::Kprobe(p) => &mut p.data,
             Program::Uprobe(p) => &mut p.data,
             Program::Fentry(p) => &mut p.data,
@@ -1715,6 +1831,7 @@ impl Program {
         match self {
             Program::Xdp(p) => p.set_current_position(pos),
             Program::Tc(p) => p.set_current_position(pos),
+            Program::Tcx(p) => p.set_current_position(pos),
             _ => Err(BpfmanError::Error(
                 "cannot set position on programs other than TC or XDP".to_string(),
             )),
@@ -1740,8 +1857,9 @@ impl Program {
         match self {
             Program::Xdp(p) => p.get_if_index(),
             Program::Tc(p) => p.get_if_index(),
+            Program::Tcx(p) => p.get_if_index(),
             _ => Err(BpfmanError::Error(
-                "cannot get if_index on programs other than TC or XDP".to_string(),
+                "cannot get if_index on programs other than TC, TCX and XDP".to_string(),
             )),
         }
     }
@@ -1750,8 +1868,9 @@ impl Program {
         match self {
             Program::Xdp(p) => p.set_if_index(if_index),
             Program::Tc(p) => p.set_if_index(if_index),
+            Program::Tcx(p) => p.set_if_index(if_index),
             _ => Err(BpfmanError::Error(
-                "cannot set if_index on programs other than TC or XDP".to_string(),
+                "cannot set if_index on programs other than TC, TCX and XDP".to_string(),
             )),
         }
     }
@@ -1760,8 +1879,9 @@ impl Program {
         match self {
             Program::Xdp(p) => p.get_iface(),
             Program::Tc(p) => p.get_iface(),
+            Program::Tcx(p) => p.get_iface(),
             _ => Err(BpfmanError::Error(
-                "cannot get interface on programs other than TC or XDP".to_string(),
+                "cannot get interface on programs other than TC, TCX and XDP".to_string(),
             )),
         }
     }
@@ -1770,8 +1890,9 @@ impl Program {
         match self {
             Program::Xdp(p) => p.get_priority(),
             Program::Tc(p) => p.get_priority(),
+            Program::Tcx(p) => p.get_priority(),
             _ => Err(BpfmanError::Error(
-                "cannot get priority on programs other than TC or XDP".to_string(),
+                "cannot get priority on programs other than TC, TCX and XDP".to_string(),
             )),
         }
     }
@@ -1779,6 +1900,7 @@ impl Program {
     pub(crate) fn direction(&self) -> Result<Option<Direction>, BpfmanError> {
         match self {
             Program::Tc(p) => Ok(Some(p.get_direction()?)),
+            Program::Tcx(p) => Ok(Some(p.get_direction()?)),
             _ => Ok(None),
         }
     }
@@ -1788,6 +1910,7 @@ impl Program {
             Program::Xdp(p) => p.get_data(),
             Program::Tracepoint(p) => p.get_data(),
             Program::Tc(p) => p.get_data(),
+            Program::Tcx(p) => p.get_data(),
             Program::Kprobe(p) => p.get_data(),
             Program::Uprobe(p) => p.get_data(),
             Program::Fentry(p) => p.get_data(),
@@ -1807,7 +1930,17 @@ impl Program {
         match data.get_kind()? {
             Some(p) => match p {
                 ProgramType::Xdp => Ok(Program::Xdp(XdpProgram { data })),
-                ProgramType::Tc => Ok(Program::Tc(TcProgram { data })),
+                // We save the type that the kernel uses, and the kernel uses
+                // the same type for both tc and tcx program types.  As a
+                // result, we use the following hack to figure out which one it
+                // really is.
+                ProgramType::Tc => {
+                    if data.db_tree.get(TCX_IFACE).unwrap().is_some() {
+                        Ok(Program::Tcx(TcxProgram { data }))
+                    } else {
+                        Ok(Program::Tc(TcProgram { data }))
+                    }
+                }
                 ProgramType::Tracepoint => Ok(Program::Tracepoint(TracepointProgram { data })),
                 // kernel does not distinguish between kprobe and uprobe program types
                 ProgramType::Probe => {
@@ -1958,6 +2091,49 @@ impl std::fmt::Display for MapType {
     }
 }
 
+impl From<AyaMapType> for MapType {
+    /// Convert from Aya's MapType to our MapType
+    fn from(val: AyaMapType) -> Self {
+        match val {
+            AyaMapType::Unspecified => MapType::Unspec,
+            AyaMapType::Hash => MapType::Hash,
+            AyaMapType::Array => MapType::Array,
+            AyaMapType::ProgramArray => MapType::ProgArray,
+            AyaMapType::PerfEventArray => MapType::PerfEventArray,
+            AyaMapType::PerCpuHash => MapType::PerCpuHash,
+            AyaMapType::PerCpuArray => MapType::PerCpuArray,
+            AyaMapType::StackTrace => MapType::StackTrace,
+            AyaMapType::CgroupArray => MapType::CgroupArray,
+            AyaMapType::LruHash => MapType::LruHash,
+            AyaMapType::LruPerCpuHash => MapType::LruPerCpuHash,
+            AyaMapType::LpmTrie => MapType::LpmTrie,
+            AyaMapType::ArrayOfMaps => MapType::ArrayOfMaps,
+            AyaMapType::HashOfMaps => MapType::HashOfMaps,
+            AyaMapType::DevMap => MapType::Devmap,
+            AyaMapType::SockMap => MapType::Sockmap,
+            AyaMapType::CpuMap => MapType::Cpumap,
+            AyaMapType::XskMap => MapType::Xskmap,
+            AyaMapType::SockHash => MapType::Sockhash,
+            AyaMapType::CgroupStorage => MapType::CgroupStorage,
+            AyaMapType::ReuseportSockArray => MapType::ReuseportSockarray,
+            AyaMapType::PerCpuCgroupStorage => MapType::PerCpuCgroupStorage,
+            AyaMapType::Queue => MapType::Queue,
+            AyaMapType::Stack => MapType::Stack,
+            AyaMapType::SkStorage => MapType::SkStorage,
+            AyaMapType::DevMapHash => MapType::DevmapHash,
+            AyaMapType::StructOps => MapType::StructOps,
+            AyaMapType::RingBuf => MapType::Ringbuf,
+            AyaMapType::InodeStorage => MapType::InodeStorage,
+            AyaMapType::TaskStorage => MapType::TaskStorage,
+            AyaMapType::BloomFilter => MapType::BloomFilter,
+            AyaMapType::UserRingBuf => MapType::UserRingbuf,
+            AyaMapType::CgrpStorage => MapType::CgrpStorage,
+            AyaMapType::Arena => MapType::Arena,
+            _ => MapType::Unspec,
+        }
+    }
+}
+
 /// ProgramType must match the the bpf_prog_type enum defined in the linux kernel.
 /// <https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/bpf.h#L1024>
 #[derive(ValueEnum, Copy, Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
@@ -1994,6 +2170,7 @@ pub enum ProgramType {
     Lsm,
     SkLookup,
     Syscall,
+    Netfilter,
 }
 
 impl From<aya_obj::ProgramSection> for ProgramType {
@@ -2069,6 +2246,7 @@ impl TryFrom<String> for ProgramType {
             "lsm" => ProgramType::Lsm,
             "sk_lookup" => ProgramType::SkLookup,
             "syscall" => ProgramType::Syscall,
+            "netfilter" => ProgramType::Netfilter,
             other => {
                 return Err(ParseError::InvalidProgramType {
                     program: other.to_string(),
@@ -2115,6 +2293,7 @@ impl TryFrom<u32> for ProgramType {
             29 => ProgramType::Lsm,
             30 => ProgramType::SkLookup,
             31 => ProgramType::Syscall,
+            32 => ProgramType::Netfilter,
             other => {
                 return Err(ParseError::InvalidProgramType {
                     program: other.to_string(),
@@ -2159,6 +2338,7 @@ impl From<ProgramType> for u32 {
             ProgramType::Lsm => 29,
             ProgramType::SkLookup => 30,
             ProgramType::Syscall => 31,
+            ProgramType::Netfilter => 32,
         }
     }
 }
@@ -2198,8 +2378,51 @@ impl std::fmt::Display for ProgramType {
             ProgramType::Lsm => "lsm",
             ProgramType::SkLookup => "sk_lookup",
             ProgramType::Syscall => "syscall",
+            ProgramType::Netfilter => "netfilter",
         };
         write!(f, "{v}")
+    }
+}
+
+impl From<AyaProgramType> for ProgramType {
+    /// Convert from aya's ProgramType to our ProgramType
+    fn from(val: AyaProgramType) -> Self {
+        match val {
+            AyaProgramType::Unspecified => ProgramType::Unspec,
+            AyaProgramType::SocketFilter => ProgramType::SocketFilter,
+            AyaProgramType::KProbe => ProgramType::Probe,
+            AyaProgramType::SchedClassifier => ProgramType::Tc,
+            AyaProgramType::SchedAction => ProgramType::SchedAct,
+            AyaProgramType::TracePoint => ProgramType::Tracepoint,
+            AyaProgramType::Xdp => ProgramType::Xdp,
+            AyaProgramType::PerfEvent => ProgramType::PerfEvent,
+            AyaProgramType::CgroupSkb => ProgramType::CgroupSkb,
+            AyaProgramType::CgroupSock => ProgramType::CgroupSock,
+            AyaProgramType::LwtInput => ProgramType::LwtIn,
+            AyaProgramType::LwtOutput => ProgramType::LwtOut,
+            AyaProgramType::LwtXmit => ProgramType::LwtXmit,
+            AyaProgramType::SockOps => ProgramType::SockOps,
+            AyaProgramType::SkSkb => ProgramType::SkSkb,
+            AyaProgramType::CgroupDevice => ProgramType::CgroupDevice,
+            AyaProgramType::SkMsg => ProgramType::SkMsg,
+            AyaProgramType::RawTracePoint => ProgramType::RawTracepoint,
+            AyaProgramType::CgroupSockAddr => ProgramType::CgroupSockAddr,
+            AyaProgramType::LwtSeg6local => ProgramType::LwtSeg6Local,
+            AyaProgramType::LircMode2 => ProgramType::LircMode2,
+            AyaProgramType::SkReuseport => ProgramType::SkReuseport,
+            AyaProgramType::FlowDissector => ProgramType::FlowDissector,
+            AyaProgramType::CgroupSysctl => ProgramType::CgroupSysctl,
+            AyaProgramType::RawTracePointWritable => ProgramType::RawTracepointWritable,
+            AyaProgramType::CgroupSockopt => ProgramType::CgroupSockopt,
+            AyaProgramType::Tracing => ProgramType::Tracing,
+            AyaProgramType::StructOps => ProgramType::StructOps,
+            AyaProgramType::Extension => ProgramType::Ext,
+            AyaProgramType::Lsm => ProgramType::Lsm,
+            AyaProgramType::SkLookup => ProgramType::SkLookup,
+            AyaProgramType::Syscall => ProgramType::Syscall,
+            AyaProgramType::Netfilter => ProgramType::Netfilter,
+            _ => ProgramType::Unspec,
+        }
     }
 }
 
