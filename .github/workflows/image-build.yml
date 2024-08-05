@@ -164,6 +164,20 @@ jobs:
 
           - registry: quay.io
             repository: bpfman-userspace
+            image: go-tcx-counter
+            context: .
+            dockerfile: ./examples/go-tcx-counter/container-deployment/Containerfile.go-tcx-counter
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            # build_language: go - Not building locally, so don't install go tools
+            repository: bpfman-userspace
             image: go-tracepoint-counter
             context: .
             dockerfile: ./examples/go-tracepoint-counter/container-deployment/Containerfile.go-tracepoint-counter
@@ -375,6 +389,22 @@ jobs:
             build_language: go
             bpf_build_wrapper: go
             repository: bpfman-bytecode
+            image: go-tcx-counter
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./examples/go-tcx-counter
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: go
+            bpf_build_wrapper: go
+            repository: bpfman-bytecode
             image: go-tracepoint-counter
             context: .
             dockerfile: ./Containerfile.bytecode.multi.arch
@@ -491,6 +521,22 @@ jobs:
             context: .
             dockerfile: ./Containerfile.bytecode.multi.arch
             bytecode_dir: ./tests/integration-test/bpf/.output/tc_pass.bpf
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: rust
+            bpf_build_wrapper: rust
+            repository: bpfman-bytecode
+            image: tcx_test
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./tests/integration-test/bpf/.output/tcx_test.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag

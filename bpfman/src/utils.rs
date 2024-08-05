@@ -4,6 +4,7 @@
 use std::{
     fs::{create_dir_all, set_permissions, File, OpenOptions},
     io::{BufRead, BufReader, Read},
+    option::Option,
     os::unix::fs::{OpenOptionsExt, PermissionsExt},
     path::Path,
 };

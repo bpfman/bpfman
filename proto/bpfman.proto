@@ -93,6 +93,19 @@ message TCAttachInfo {
     repeated int32 proceed_on = 5;
 }
 
+/* TCXAttachInfo contains the information bpfman needs to attach a TCX program
+ * on a given network interface.  Priority ranges from 1-1000 with 1 highest.  
+ * If no priority is provided, the default is 1000, and the program will be 
+ * attached last.
+ */
+
+message TCXAttachInfo {
+    int32 priority = 1;
+    string iface = 2;
+    int32 position = 3;
+    string direction = 4;
+}
+
 /* TracepointAttachInfo represents the program specific metadata which bpfman
  * needs to attach and observe a Tracepoint program for a given kernel
  * tracepoint.
@@ -155,6 +168,7 @@ message AttachInfo {
         UprobeAttachInfo uprobe_attach_info = 6;
         FentryAttachInfo fentry_attach_info = 7;
         FexitAttachInfo fexit_attach_info = 8;
+        TCXAttachInfo tcx_attach_info = 9;
     }
 };
 
