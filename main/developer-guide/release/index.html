@@ -2117,14 +2117,16 @@ to be created.</p>
 </ul>
 </li>
 <li>Runs <code>make bundle</code> from the bpfman-operator directory to update the bundle version.</li>
-<li>Adds a new <code>examples</code> config directory for the release version</li>
+<li>Adds a new <code>examples</code> config directory for the release version.</li>
+<li>Modify the tag for <code>XDP_DISPATCHER_IMAGE</code> and <code>TC_DISPATCHER_IMAGE</code> in <code>bpfman/src/lib.rs</code> from <code>latest</code> to the
+  new release tag.</li>
 </ul>
 </li>
 <li>Make sure CI is green and merge the update PR.</li>
 <li>Create a tag using the <code>HEAD</code> of the <code>main</code> branch. This can be done using the <code>git</code> CLI or
   Github's <a href="https://github.com/bpfman/bpfman/releases">release</a> page.</li>
 <li>Tag the release using the commit on <code>main</code> where the changelog update merged.
-  This can  be done using the <code>git</code> CLI or Github's <a href="https://github.com/bpfman/bpfman/releases">release</a>
+  This can be done using the <code>git</code> CLI or Github's <a href="https://github.com/bpfman/bpfman/releases">release</a>
   page.</li>
 <li>The Release will be automatically created, after that is complete do the following:<ul>
 <li>run <code>make build-release-yamls</code> and attach the yamls for the version to the release. These will include:<ul>
