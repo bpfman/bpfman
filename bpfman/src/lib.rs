@@ -148,7 +148,7 @@ pub async fn add_program(mut program: Program) -> Result<Program, BpfmanError> {
             // Cleanup any directories associated with the map_pin_path.
             // map_pin_path may or may not exist depending on where the original
             // error occured, so don't error if not there and preserve original error.
-            if let Some(pin_path) = program.get_data().get_map_pin_path()? {
+            if let Ok(Some(pin_path)) = program.get_data().get_map_pin_path() {
                 let _ = cleanup_map_pin_path(&pin_path, map_owner_id);
             }
 
