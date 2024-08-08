@@ -122,7 +122,7 @@ impl TcDispatcher {
 
         debug!("tc dispatcher config: {:?}", config);
         let image = BytecodeImage::new(
-            "quay.io/bpfman/tc-dispatcher:v1".to_string(),
+            TC_DISPATCHER_IMAGE.to_string(),
             ImagePullPolicy::IfNotPresent as i32,
             None,
             None,

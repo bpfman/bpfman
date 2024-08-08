@@ -52,6 +52,10 @@ const MAP_PREFIX: &str = "map_";
 const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
 
 pub(crate) mod directories {
+    // When release is made, the dispatcher images should point to the release tag, for example v0.5.1.
+    pub(crate) const XDP_DISPATCHER_IMAGE: &str = "quay.io/bpfman/xdp-dispatcher:latest";
+    pub(crate) const TC_DISPATCHER_IMAGE: &str = "quay.io/bpfman/tc-dispatcher:latest";
+
     // The following directories are used by bpfman. They should be created by bpfman service
     // via the bpfman.service settings. They will be manually created in the case where bpfman
     // is not being run as a service.
