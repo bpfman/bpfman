@@ -517,28 +517,13 @@ jobs:
             image: xdp-dispatcher
             context: .
             dockerfile: ./Containerfile.bytecode.multi.arch
-            bytecode_dir: ./.output/xdp_dispatcher_v1.bpf
-            tags: |
-              type=ref,event=branch
-              type=ref,event=tag
-              type=ref,event=pr
-              type=sha,format=long
-              type=raw,value=v1,enable={{is_default_branch}}
-
-          - registry: quay.io
-            build_language: rust
-            bpf_build_wrapper: rust
-            repository: bpfman
-            image: xdp-dispatcher
-            context: .
-            dockerfile: ./Containerfile.bytecode.multi.arch
             bytecode_dir: ./.output/xdp_dispatcher_v2.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
               type=ref,event=pr
               type=sha,format=long
-              type=raw,value=v2,enable={{is_default_branch}}
+              type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
             build_language: rust
@@ -553,7 +538,7 @@ jobs:
               type=ref,event=tag
               type=ref,event=pr
               type=sha,format=long
-              type=raw,value=v1,enable={{is_default_branch}}
+              type=raw,value=latest,enable={{is_default_branch}}
 
     name: Build eBPF Image (${{ matrix.image.image }})
     steps:

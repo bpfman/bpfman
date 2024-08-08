@@ -52,6 +52,10 @@ const MAP_PREFIX: &str = "map_";
 const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
 
 pub(crate) mod directories {
+    // When release is made, the dispatcher images should point to the release tag, for example v0.5.1.
+    pub(crate) const XDP_DISPATCHER_IMAGE: &str = "quay.io/bpfman/xdp-dispatcher:latest";
+    pub(crate) const TC_DISPATCHER_IMAGE: &str = "quay.io/bpfman/tc-dispatcher:latest";
+
     // The following directories are used by bpfman. They should be created by bpfman service
     // via the bpfman.service settings. They will be manually created in the case where bpfman
     // is not being run as a service.
@@ -148,7 +152,7 @@ pub async fn add_program(mut program: Program) -> Result<Program, BpfmanError> {
             // Cleanup any directories associated with the map_pin_path.
             // map_pin_path may or may not exist depending on where the original
             // error occured, so don't error if not there and preserve original error.
-            if let Some(pin_path) = program.get_data().get_map_pin_path()? {
+            if let Ok(Some(pin_path)) = program.get_data().get_map_pin_path() {
                 let _ = cleanup_map_pin_path(&pin_path, map_owner_id);
             }
 

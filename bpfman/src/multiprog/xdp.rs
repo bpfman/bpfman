@@ -118,7 +118,7 @@ impl XdpDispatcher {
 
         debug!("xdp dispatcher config: {:?}", config);
         let image = BytecodeImage::new(
-            "quay.io/bpfman/xdp-dispatcher:v2".to_string(),
+            XDP_DISPATCHER_IMAGE.to_string(),
             ImagePullPolicy::IfNotPresent as i32,
             None,
             None,

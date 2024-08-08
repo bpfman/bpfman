@@ -206,12 +206,14 @@ Once these steps are completed:
     - Updates the bpfman-operator version in it's [Makefile](https://github.com/bpfman/bpfman/blob/main/bpfman-operator/Makefile):
         - `VERSION ?= x.x.x`
     - Runs `make bundle` from the bpfman-operator directory to update the bundle version.
-    - Adds a new `examples` config directory for the release version
+    - Adds a new `examples` config directory for the release version.
+    - Modify the tag for `XDP_DISPATCHER_IMAGE` and `TC_DISPATCHER_IMAGE` in `bpfman/src/lib.rs` from `latest` to the
+      new release tag.
 - Make sure CI is green and merge the update PR.
 - Create a tag using the `HEAD` of the `main` branch. This can be done using the `git` CLI or
   Github's [release][release] page.
 - Tag the release using the commit on `main` where the changelog update merged.
-  This can  be done using the `git` CLI or Github's [release][release]
+  This can be done using the `git` CLI or Github's [release][release]
   page.
 - The Release will be automatically created, after that is complete do the following:
     - run `make build-release-yamls` and attach the yamls for the version to the release. These will include:
