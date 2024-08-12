@@ -54,8 +54,13 @@ impl Dispatcher {
                 let mut x =
                     XdpDispatcher::new(root_db, xdp_mode, if_index, if_name.to_string(), revision)?;
 
-                x.load(root_db, programs, old_dispatcher, image_manager)
-                    .await?;
+                if let Err(res) = x
+                    .load(root_db, programs, old_dispatcher, image_manager)
+                    .await
+                {
+                    let _ = x.delete(root_db, true);
+                    return Err(res);
+                }
                 Dispatcher::Xdp(x)
             }
             ProgramType::Tc => {
@@ -67,8 +72,13 @@ impl Dispatcher {
                     revision,
                 )?;
 
-                t.load(root_db, programs, old_dispatcher, image_manager)
-                    .await?;
+                if let Err(res) = t
+                    .load(root_db, programs, old_dispatcher, image_manager)
+                    .await
+                {
+                    let _ = t.delete(root_db, true);
+                    return Err(res);
+                }
                 Dispatcher::Tc(t)
             }
             _ => return Err(BpfmanError::DispatcherNotRequired),
