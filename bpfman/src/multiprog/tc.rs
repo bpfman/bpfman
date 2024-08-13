@@ -150,14 +150,17 @@ impl TcDispatcher {
 
         let mut loader = EbpfLoader::new()
             .set_global("CONFIG", &config, true)
-            .load(&program_bytes)?;
+            .load(&program_bytes)
+            .map_err(|e| BpfmanError::DispatcherLoadError(format!("{e}")))?;
 
-        let dispatcher: &mut SchedClassifier = loader
-            .program_mut(TC_DISPATCHER_PROGRAM_NAME)
-            .unwrap()
-            .try_into()?;
-
-        dispatcher.load()?;
+        if let Some(program) = loader.program_mut(TC_DISPATCHER_PROGRAM_NAME) {
+            let dispatcher: &mut SchedClassifier = program.try_into()?;
+            dispatcher.load()?;
+        } else {
+            return Err(BpfmanError::DispatcherLoadError(
+                "invalid BPF function name".to_string(),
+            ));
+        }
 
         let base = match direction {
             Ingress => RTDIR_FS_TC_INGRESS,

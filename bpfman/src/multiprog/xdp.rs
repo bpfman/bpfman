@@ -146,14 +146,17 @@ impl XdpDispatcher {
 
         let mut loader = EbpfLoader::new()
             .set_global("conf", &config, true)
-            .load(&program_bytes)?;
+            .load(&program_bytes)
+            .map_err(|e| BpfmanError::DispatcherLoadError(format!("{e}")))?;
 
-        let dispatcher: &mut Xdp = loader
-            .program_mut(XDP_DISPATCHER_PROGRAM_NAME)
-            .unwrap()
-            .try_into()?;
-
-        dispatcher.load()?;
+        if let Some(program) = loader.program_mut(XDP_DISPATCHER_PROGRAM_NAME) {
+            let dispatcher: &mut Xdp = program.try_into()?;
+            dispatcher.load()?;
+        } else {
+            return Err(BpfmanError::DispatcherLoadError(
+                "invalid BPF function name".to_string(),
+            ));
+        }
 
         let path = format!("{RTDIR_FS_XDP}/dispatcher_{if_index}_{revision}");
         fs::create_dir_all(path).unwrap();

@@ -16,6 +16,7 @@ pub bpfman::errors::BpfmanError::ContainerAttachError::container_pid: i32
 pub bpfman::errors::BpfmanError::ContainerAttachError::program_type: alloc::string::String
 pub bpfman::errors::BpfmanError::DatabaseError(alloc::string::String, alloc::string::String)
 pub bpfman::errors::BpfmanError::DatabaseLockError
+pub bpfman::errors::BpfmanError::DispatcherLoadError(alloc::string::String)
 pub bpfman::errors::BpfmanError::DispatcherNotRequired
 pub bpfman::errors::BpfmanError::Error(alloc::string::String)
 pub bpfman::errors::BpfmanError::InternalError(alloc::string::String)

@@ -69,6 +69,8 @@ pub enum BpfmanError {
     BtfError(#[from] aya::BtfError),
     #[error("Failed to acquire database lock, please try again later")]
     DatabaseLockError,
+    #[error("dispatcher failed to load. {0}")]
+    DispatcherLoadError(String),
 }
 
 #[derive(Error, Debug)]
