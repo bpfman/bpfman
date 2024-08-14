@@ -9,7 +9,9 @@ use crate::{args::GetArgs, table::ProgTable};
 pub(crate) async fn execute_get(args: &GetArgs) -> Result<(), BpfmanError> {
     match get_program(args.program_id).await {
         Ok(program) => {
-            ProgTable::new_program(&program)?.print();
+            if let Ok(p) = ProgTable::new_program(&program) {
+                p.print();
+            }
             ProgTable::new_kernel_info(&program)?.print();
             Ok(())
         }
