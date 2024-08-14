@@ -165,6 +165,12 @@ jobs:
         if: ${{ matrix.arch.arch == 'amd64' }}
         run: cargo xtask public-api --target ${{ matrix.arch.rust-target }}
 
+      - name: Run documentation tests
+        # Only need to run once
+        if: ${{ matrix.arch.arch == 'amd64' }}
+        run: |
+          cargo test --doc --all-features
+
       - name: Build
         run: |
           ${{ matrix.arch.command }} build --verbose --target ${{ matrix.arch.rust-target }}
