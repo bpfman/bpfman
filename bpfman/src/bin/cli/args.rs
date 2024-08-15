@@ -320,26 +320,34 @@ pub(crate) enum ImageSubCommand {
     ///
     /// To use, the --container-file and --tag must be included, as well as a pointer to
     /// at least one bytecode file that can be passed in several ways. Use either:
+    ///
     /// * --bytecode: for a single bytecode built for the host architecture.
+    ///
     /// * --cilium-ebpf-project: for a cilium/ebpf project directory which contains
     ///     multiple object files for different architectures.
+    ///
     /// * --bc-386-el .. --bc-s390x-eb: to add one or more architecture specific bytecode files.
     ///
     /// Examples:
     ///    bpfman image build -f Containerfile.bytecode -t quay.io/<USER>/go-xdp-counter:test \
     ///      -b ./examples/go-xdp-counter/bpf_x86_bpfel.o
+    #[clap(verbatim_doc_comment)]
     Build(BuildBytecodeArgs),
     /// Generate the OCI image labels for a given bytecode file.
     ///
     /// To use, the --container-file and --tag must be included, as well as a pointer to
     /// at least one bytecode file that can be passed in several ways. Use either:
+    ///
     /// * --bytecode: for a single bytecode built for the host architecture.
+    ///
     /// * --cilium-ebpf-project: for a cilium/ebpf project directory which contains
     ///     multiple object files for different architectures.
+    ///
     /// * --bc-386-el .. --bc-s390x-eb: to add one or more architecture specific bytecode files.
     ///
     /// Examples:
     ///   bpfman image generate-build-args --bc-amd64-el ./examples/go-xdp-counter/bpf_x86_bpfel.o
+    #[clap(verbatim_doc_comment)]
     GenerateBuildArgs(GenerateArgs),
 }
 
