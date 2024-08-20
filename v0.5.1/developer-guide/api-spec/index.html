@@ -1,0 +1,4694 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../develop-operator/">
+      
+      
+        <link rel="next" href="../shipping-bytecode/">
+      
+      
+      <link rel="icon" href="../../img/favicon.svg">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.11">
+    
+    
+      
+        <title>Kubernetes CRD API-Reference - bpfman</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.fad675c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.356b1318.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="indigo">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#api-specification" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="bpfman" class="md-header__button md-logo" aria-label="bpfman" data-md-component="logo">
+      
+  <img src="../../img/favicon.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            bpfman
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Kubernetes CRD API-Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3 3.19.09m3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95 2.06.05m-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5c-.84 0-1.65.15-2.39.42L12 2M3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29L3.34 7m.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14L3.36 17M20.65 7l-1.77 3.79a7.023 7.023 0 0 0-2.38-4.15l4.15.36m-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29L20.64 17M12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44L12 22Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bpfman/bpfman" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+    
+  
+  Introduction
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../quick-start/" class="md-tabs__link">
+        
+  
+    
+  
+  Quick Start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/overview/" class="md-tabs__link">
+          
+  
+    
+  
+  Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../governance/CONTRIBUTING/" class="md-tabs__link">
+          
+  
+    
+  
+  Developer Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../design/daemonless/" class="md-tabs__link">
+          
+  
+    
+  
+  Design
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/" class="md-tabs__link">
+          
+  
+    
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../governance/MEETINGS/" class="md-tabs__link">
+          
+  
+    
+  
+  Community
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="bpfman" class="md-nav__button md-logo" aria-label="bpfman" data-md-component="logo">
+      
+  <img src="../../img/favicon.svg" alt="logo">
+
+    </a>
+    bpfman
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bpfman/bpfman" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick-start/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Documentation
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Documentation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/launching-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Launching bpfman
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/example-bpf-local/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying Example eBPF Programs On Local Host
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/example-bpf-k8s/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying Example eBPF Programs On Kubernetes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/building-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Setup and Building
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/running-release/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Run bpfman From Release Image
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/running-rpm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Run bpfman From RPM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/cli-guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CLI Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/example-bpf/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Example eBPF Programs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/troubleshooting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Troubleshooting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Developer Documentation
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Developer Documentation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/CONTRIBUTING/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/REVIEWING/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Reviewing Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operator-quick-start/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying the bpfman-operator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../develop-operator/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Developing the bpfman-operator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Kubernetes CRD API-Reference
+  </span>
+  
+
+      </a>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../shipping-bytecode/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    eBPF Bytecode Image Specifications
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../image-build/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman Container Images
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../documentation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Documentation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../linux-capabilities/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Linux Capabilities
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Logging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Testing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../debugging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Debugging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Releasing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../xdp-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    XDP Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../k8s-selinux-distros/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running the Examples as Non-Root on SELinux Distributions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/daemonless/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Daemonless
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../blog/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Blog
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Blog
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Archive
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            Archive
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/archive/2024/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2024
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/archive/2023/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2023
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Categories
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            Categories
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/category/community-meeting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Community Meeting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/category/2024/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2024
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Community
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Community
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/MEETINGS/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Meetings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/GOVERNANCE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Governance
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Code of Conduct
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/MAINTAINERS/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Maintainers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/SECURITY/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Security
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="api-specification">API Specification</h1>
+<p>Packages:</p>
+<ul>
+<li>
+<a href="#bpfman.io%2fv1alpha1">bpfman.io/v1alpha1</a>
+</li>
+</ul>
+<h2 id="bpfman.io/v1alpha1">bpfman.io/v1alpha1</h2>
+<p>
+<p>Package v1alpha1 contains API Schema definitions for the
+bpfman.io API group.</p>
+</p>
+<p>Resource Types:</p>
+<ul><li>
+<a href="#bpfman.io/v1alpha1.BpfApplication">BpfApplication</a>
+</li><li>
+<a href="#bpfman.io/v1alpha1.BpfProgram">BpfProgram</a>
+</li><li>
+<a href="#bpfman.io/v1alpha1.FentryProgram">FentryProgram</a>
+</li><li>
+<a href="#bpfman.io/v1alpha1.FexitProgram">FexitProgram</a>
+</li><li>
+<a href="#bpfman.io/v1alpha1.KprobeProgram">KprobeProgram</a>
+</li><li>
+<a href="#bpfman.io/v1alpha1.TcProgram">TcProgram</a>
+</li><li>
+<a href="#bpfman.io/v1alpha1.TracepointProgram">TracepointProgram</a>
+</li><li>
+<a href="#bpfman.io/v1alpha1.UprobeProgram">UprobeProgram</a>
+</li><li>
+<a href="#bpfman.io/v1alpha1.XdpProgram">XdpProgram</a>
+</li></ul>
+<h3 id="bpfman.io/v1alpha1.BpfApplication">BpfApplication
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfApplication" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>BpfApplication is the Schema for the bpfapplications API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfman.io/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>BpfApplication</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationSpec">
+BpfApplicationSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>programs</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">
+[]BpfApplicationProgram
+</a>
+</em>
+</td>
+<td>
+<p>Programs is a list of bpf programs supported for a specific application.
+It&rsquo;s possible that the application can selectively choose which program(s)
+to run from this list.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationStatus">
+BpfApplicationStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BpfProgram">BpfProgram
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>BpfProgram is the Schema for the Bpfprograms API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfman.io/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>BpfProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramSpec">
+BpfProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>type</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Type specifies the bpf program type</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramStatus">
+BpfProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FentryProgram">FentryProgram
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FentryProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>FentryProgram is the Schema for the FentryPrograms API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfman.io/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>FentryProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FentryProgramSpec">
+FentryProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>FentryProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FentryProgramInfo">
+FentryProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>FentryProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FentryProgramStatus">
+FentryProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FexitProgram">FexitProgram
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FexitProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>FexitProgram is the Schema for the FexitPrograms API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfman.io/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>FexitProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FexitProgramSpec">
+FexitProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>FexitProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FexitProgramInfo">
+FexitProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>FexitProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FexitProgramStatus">
+FexitProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.KprobeProgram">KprobeProgram
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.KprobeProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>KprobeProgram is the Schema for the KprobePrograms API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfman.io/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>KprobeProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.KprobeProgramSpec">
+KprobeProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>KprobeProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.KprobeProgramInfo">
+KprobeProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>KprobeProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.KprobeProgramStatus">
+KprobeProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.TcProgram">TcProgram
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.TcProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>TcProgram is the Schema for the TcProgram API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfman.io/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>TcProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TcProgramSpec">
+TcProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>TcProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TcProgramInfo">
+TcProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>TcProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TcProgramStatus">
+TcProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.TracepointProgram">TracepointProgram
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.TracepointProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>TracepointProgram is the Schema for the TracepointPrograms API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfman.io/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>TracepointProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TracepointProgramSpec">
+TracepointProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>TracepointProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TracepointProgramInfo">
+TracepointProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>TracepointProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TracepointProgramStatus">
+TracepointProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.UprobeProgram">UprobeProgram
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.UprobeProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>UprobeProgram is the Schema for the UprobePrograms API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfman.io/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>UprobeProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.UprobeProgramSpec">
+UprobeProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>UprobeProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.UprobeProgramInfo">
+UprobeProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>UprobeProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.UprobeProgramStatus">
+UprobeProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.XdpProgram">XdpProgram
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.XdpProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>XdpProgram is the Schema for the XdpPrograms API</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code></br>
+string</td>
+<td>
+<code>
+bpfman.io/v1alpha1
+</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+string
+</td>
+<td><code>XdpProgram</code></td>
+</tr>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.XdpProgramSpec">
+XdpProgramSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>XdpProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.XdpProgramInfo">
+XdpProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>XdpProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.XdpProgramStatus">
+XdpProgramStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BpfAppCommon">BpfAppCommon
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfAppCommon" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationSpec">BpfApplicationSpec</a>, 
+<a href="#bpfman.io/v1alpha1.FentryProgramSpec">FentryProgramSpec</a>, 
+<a href="#bpfman.io/v1alpha1.FexitProgramSpec">FexitProgramSpec</a>, 
+<a href="#bpfman.io/v1alpha1.KprobeProgramSpec">KprobeProgramSpec</a>, 
+<a href="#bpfman.io/v1alpha1.TcProgramSpec">TcProgramSpec</a>, 
+<a href="#bpfman.io/v1alpha1.TracepointProgramSpec">TracepointProgramSpec</a>, 
+<a href="#bpfman.io/v1alpha1.UprobeProgramSpec">UprobeProgramSpec</a>, 
+<a href="#bpfman.io/v1alpha1.XdpProgramSpec">XdpProgramSpec</a>)
+</p>
+<p>
+<p>BpfAppCommon defines the common attributes for all BpfApp programs</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>nodeselector</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<p>NodeSelector allows the user to specify which nodes to deploy the
+bpf program to. This field must be specified, to select all nodes
+use standard metav1.LabelSelector semantics and make it empty.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>globaldata</code></br>
+<em>
+map[string][]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GlobalData allows the user to set global variables when the program is loaded
+with an array of raw bytes. This is a very low level primitive. The caller
+is responsible for formatting the byte string appropriately considering
+such things as size, endianness, alignment and packing of data structures.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>bytecode</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BytecodeSelector">
+BytecodeSelector
+</a>
+</em>
+</td>
+<td>
+<p>Bytecode configures where the bpf program&rsquo;s bytecode should be loaded
+from.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfApplicationProgram" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationSpec">BpfApplicationSpec</a>)
+</p>
+<p>
+<p>BpfApplicationProgram defines the desired state of BpfApplication</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.EBPFProgType">
+EBPFProgType
+</a>
+</em>
+</td>
+<td>
+<p>Type specifies the bpf program type</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>xdp</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.XdpProgramInfo">
+XdpProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>xdp defines the desired state of the application&rsquo;s XdpPrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tc</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TcProgramInfo">
+TcProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>tc defines the desired state of the application&rsquo;s TcPrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tcx</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TcProgramInfo">
+TcProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>tcx defines the desired state of the application&rsquo;s TcPrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fentry</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FentryProgramInfo">
+FentryProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>fentry defines the desired state of the application&rsquo;s FentryPrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>fexit</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FexitProgramInfo">
+FexitProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>fexit defines the desired state of the application&rsquo;s FexitPrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kprobe</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.KprobeProgramInfo">
+KprobeProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>kprobe defines the desired state of the application&rsquo;s KprobePrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kretprobe</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.KprobeProgramInfo">
+KprobeProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>kretprobe defines the desired state of the application&rsquo;s KretprobePrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>uprobe</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.UprobeProgramInfo">
+UprobeProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>uprobe defines the desired state of the application&rsquo;s UprobePrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>uretprobe</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.UprobeProgramInfo">
+UprobeProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>uretprobe defines the desired state of the application&rsquo;s UretprobePrograms.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tracepoint</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TracepointProgramInfo">
+TracepointProgramInfo
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>tracepoint defines the desired state of the application&rsquo;s TracepointPrograms.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BpfApplicationSpec">BpfApplicationSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfApplicationSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplication">BpfApplication</a>)
+</p>
+<p>
+<p>BpfApplicationSpec defines the desired state of BpfApplication</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>programs</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">
+[]BpfApplicationProgram
+</a>
+</em>
+</td>
+<td>
+<p>Programs is a list of bpf programs supported for a specific application.
+It&rsquo;s possible that the application can selectively choose which program(s)
+to run from this list.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BpfApplicationStatus">BpfApplicationStatus
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfApplicationStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplication">BpfApplication</a>)
+</p>
+<p>
+<p>BpfApplicationStatus defines the observed state of BpfApplication</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramStatusCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BpfProgramCommon">BpfProgramCommon
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfProgramCommon" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.FentryProgramInfo">FentryProgramInfo</a>, 
+<a href="#bpfman.io/v1alpha1.FexitProgramInfo">FexitProgramInfo</a>, 
+<a href="#bpfman.io/v1alpha1.KprobeProgramInfo">KprobeProgramInfo</a>, 
+<a href="#bpfman.io/v1alpha1.TcProgramInfo">TcProgramInfo</a>, 
+<a href="#bpfman.io/v1alpha1.TracepointProgramInfo">TracepointProgramInfo</a>, 
+<a href="#bpfman.io/v1alpha1.UprobeProgramInfo">UprobeProgramInfo</a>, 
+<a href="#bpfman.io/v1alpha1.XdpProgramInfo">XdpProgramInfo</a>)
+</p>
+<p>
+<p>BpfProgramCommon defines the common attributes for all BPF programs</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>bpffunctionname</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>BpfFunctionName is the name of the function that is the entry point for the BPF
+program</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>mapownerselector</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MapOwnerSelector is used to select the loaded eBPF program this eBPF program
+will share a map with. The value is a label applied to the BpfProgram to select.
+The selector must resolve to exactly one instance of a BpfProgram on a given node
+or the eBPF program will not load.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BpfProgramConditionType">BpfProgramConditionType
+(<code>string</code> alias)</p><a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfProgramConditionType" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>BpfProgramConditionType is a condition type to indicate the status of a BPF
+program at the individual node level.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;BytecodeSelectorError&#34;</p></td>
+<td><p>BpfProgCondBytecodeSelectorError indicates that an error occurred when trying to
+process the bytecode selector.</p>
+</td>
+</tr><tr><td><p>&#34;Loaded&#34;</p></td>
+<td><p>BpfProgCondLoaded indicates that the eBPF program was successfully loaded
+into the kernel on a specific node.</p>
+</td>
+</tr><tr><td><p>&#34;MapOwnerNotFound&#34;</p></td>
+<td><p>BpfProgCondMapOwnerNotFound indicates that the eBPF program sharing a map with another
+eBPF program and that program does not exist.</p>
+</td>
+</tr><tr><td><p>&#34;MapOwnerNotLoaded&#34;</p></td>
+<td><p>BpfProgCondMapOwnerNotLoaded indicates that the eBPF program sharing a map with another
+eBPF program and that program is not loaded.</p>
+</td>
+</tr><tr><td><p>&#34;NoContainersOnNode&#34;</p></td>
+<td><p>BpfProgCondNoContainersOnNode indicates that there are no containers on the node
+that match the container selector.</p>
+</td>
+</tr><tr><td><p>&#34;None&#34;</p></td>
+<td><p>None of the above conditions apply</p>
+</td>
+</tr><tr><td><p>&#34;NotLoaded&#34;</p></td>
+<td><p>BpfProgCondNotLoaded indicates that the eBPF program has not yet been
+loaded into the kernel on a specific node.</p>
+</td>
+</tr><tr><td><p>&#34;NotSelected&#34;</p></td>
+<td><p>BpfProgCondNotSelected indicates that the eBPF program is not scheduled to be loaded
+on a specific node.</p>
+</td>
+</tr><tr><td><p>&#34;NotUnLoaded&#34;</p></td>
+<td><p>BpfProgCondUnloaded indicates that in the midst of trying to remove the
+eBPF program from the kernel on the node, that program has not yet been
+removed.</p>
+</td>
+</tr><tr><td><p>&#34;Unloaded&#34;</p></td>
+<td><p>BpfProgCondUnloaded indicates that the eBPF program has been unloaded from
+the kernel on a specific node.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BpfProgramSpec">BpfProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfProgram">BpfProgram</a>)
+</p>
+<p>
+<p>BpfProgramSpec defines the desired state of BpfProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Type specifies the bpf program type</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BpfProgramStatus">BpfProgramStatus
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfProgram">BpfProgram</a>)
+</p>
+<p>
+<p>BpfProgramStatus defines the observed state of BpfProgram
+TODO Make these a fixed set of metav1.Condition.types and metav1.Condition.reasons</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<p>Conditions houses the updates regarding the actual implementation of
+the bpf program on the node
+Known .status.conditions.type are: &ldquo;Available&rdquo;, &ldquo;Progressing&rdquo;, and &ldquo;Degraded&rdquo;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BpfProgramStatusCommon">BpfProgramStatusCommon
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BpfProgramStatusCommon" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationStatus">BpfApplicationStatus</a>, 
+<a href="#bpfman.io/v1alpha1.FentryProgramStatus">FentryProgramStatus</a>, 
+<a href="#bpfman.io/v1alpha1.FexitProgramStatus">FexitProgramStatus</a>, 
+<a href="#bpfman.io/v1alpha1.KprobeProgramStatus">KprobeProgramStatus</a>, 
+<a href="#bpfman.io/v1alpha1.TcProgramStatus">TcProgramStatus</a>, 
+<a href="#bpfman.io/v1alpha1.TracepointProgramStatus">TracepointProgramStatus</a>, 
+<a href="#bpfman.io/v1alpha1.UprobeProgramStatus">UprobeProgramStatus</a>, 
+<a href="#bpfman.io/v1alpha1.XdpProgramStatus">XdpProgramStatus</a>)
+</p>
+<p>
+<p>BpfProgramStatusCommon defines the BpfProgram status</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
+</a>
+</em>
+</td>
+<td>
+<p>Conditions houses the global cluster state for the eBPFProgram. The explicit
+condition types are defined internally.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BytecodeImage">BytecodeImage
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BytecodeImage" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BytecodeSelector">BytecodeSelector</a>)
+</p>
+<p>
+<p>BytecodeImage defines how to specify a bytecode container image.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>url</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Valid container image URL used to reference a remote bytecode image.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagepullpolicy</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.PullPolicy">
+PullPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>PullPolicy describes a policy for if/when to pull a bytecode image. Defaults to IfNotPresent.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>imagepullsecret</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.ImagePullSecretSelector">
+ImagePullSecretSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ImagePullSecret is the name of the secret bpfman should use to get remote image
+repository secrets.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.BytecodeSelector">BytecodeSelector
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.BytecodeSelector" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">BpfAppCommon</a>)
+</p>
+<p>
+<p>BytecodeSelector defines the various ways to reference bpf bytecode objects.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>image</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BytecodeImage">
+BytecodeImage
+</a>
+</em>
+</td>
+<td>
+<p>Image used to specify a bytecode container image.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path is used to specify a bytecode object via filepath.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.ContainerSelector">ContainerSelector
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.ContainerSelector" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.UprobeProgramInfo">UprobeProgramInfo</a>)
+</p>
+<p>
+<p>ContainerSelector identifies a set of containers. For example, this can be
+used to identify a set of containers in which to attach uprobes.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Target namespaces.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pods</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.23/#labelselector-v1-meta">
+Kubernetes meta/v1.LabelSelector
+</a>
+</em>
+</td>
+<td>
+<p>Target pods. This field must be specified, to select all pods use
+standard metav1.LabelSelector semantics and make it empty.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containernames</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name(s) of container(s).  If none are specified, all containers in the
+pod are selected.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.EBPFProgType">EBPFProgType
+(<code>string</code> alias)</p><a class="headerlink" href="#bpfman.io%2fv1alpha1.EBPFProgType" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>)
+</p>
+<p>
+<p>EBPFProgType defines the supported eBPF program types</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Fentry&#34;</p></td>
+<td><p>ProgTypeFentry refers to the Fentry program type.</p>
+</td>
+</tr><tr><td><p>&#34;Fexit&#34;</p></td>
+<td><p>ProgTypeFexit refers to the Fexit program type.</p>
+</td>
+</tr><tr><td><p>&#34;Kprobe&#34;</p></td>
+<td><p>ProgTypeKprobe refers to the Kprobe program type.</p>
+</td>
+</tr><tr><td><p>&#34;Kretprobe&#34;</p></td>
+<td><p>ProgTypeKretprobe refers to the Kprobe program type.</p>
+</td>
+</tr><tr><td><p>&#34;TC&#34;</p></td>
+<td><p>ProgTypeTC refers to the TC program type.</p>
+</td>
+</tr><tr><td><p>&#34;TCX&#34;</p></td>
+<td><p>ProgTypeTCX refers to the TCx program type.</p>
+</td>
+</tr><tr><td><p>&#34;Tracepoint&#34;</p></td>
+<td><p>ProgTypeTracepoint refers to the Tracepoint program type.</p>
+</td>
+</tr><tr><td><p>&#34;Uprobe&#34;</p></td>
+<td><p>ProgTypeUprobe refers to the Uprobe program type.</p>
+</td>
+</tr><tr><td><p>&#34;Uretprobe&#34;</p></td>
+<td><p>ProgTypeUretprobe refers to the Uretprobe program type.</p>
+</td>
+</tr><tr><td><p>&#34;XDP&#34;</p></td>
+<td><p>ProgTypeXDP refers to the XDP program type.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FentryProgramInfo">FentryProgramInfo
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FentryProgramInfo" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>, 
+<a href="#bpfman.io/v1alpha1.FentryProgramSpec">FentryProgramSpec</a>)
+</p>
+<p>
+<p>FentryProgramInfo defines the Fentry program details</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>func_name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Function to attach the fentry to.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FentryProgramSpec">FentryProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FentryProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.FentryProgram">FentryProgram</a>)
+</p>
+<p>
+<p>FentryProgramSpec defines the desired state of FentryProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>FentryProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FentryProgramInfo">
+FentryProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>FentryProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FentryProgramStatus">FentryProgramStatus
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FentryProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.FentryProgram">FentryProgram</a>)
+</p>
+<p>
+<p>FentryProgramStatus defines the observed state of FentryProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramStatusCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FexitProgramInfo">FexitProgramInfo
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FexitProgramInfo" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>, 
+<a href="#bpfman.io/v1alpha1.FexitProgramSpec">FexitProgramSpec</a>)
+</p>
+<p>
+<p>FexitProgramInfo defines the Fexit program details</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>func_name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Function to attach the fexit to.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FexitProgramSpec">FexitProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FexitProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.FexitProgram">FexitProgram</a>)
+</p>
+<p>
+<p>FexitProgramSpec defines the desired state of FexitProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>FexitProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.FexitProgramInfo">
+FexitProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>FexitProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.FexitProgramStatus">FexitProgramStatus
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.FexitProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.FexitProgram">FexitProgram</a>)
+</p>
+<p>
+<p>FexitProgramStatus defines the observed state of FexitProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramStatusCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.ImagePullSecretSelector">ImagePullSecretSelector
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.ImagePullSecretSelector" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BytecodeImage">BytecodeImage</a>)
+</p>
+<p>
+<p>ImagePullSecretSelector defines the name and namespace of an image pull secret.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the secret which contains the credentials to access the image repository.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Namespace of the secret which contains the credentials to access the image repository.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.InterfaceSelector">InterfaceSelector
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.InterfaceSelector" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.TcProgramInfo">TcProgramInfo</a>, 
+<a href="#bpfman.io/v1alpha1.XdpProgramInfo">XdpProgramInfo</a>)
+</p>
+<p>
+<p>InterfaceSelector defines interface to attach to.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>interfaces</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Interfaces refers to a list of network interfaces to attach the BPF
+program to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>primarynodeinterface</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Attach BPF program to the primary interface on the node. Only &lsquo;true&rsquo; accepted.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.KprobeProgramInfo">KprobeProgramInfo
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.KprobeProgramInfo" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>, 
+<a href="#bpfman.io/v1alpha1.KprobeProgramSpec">KprobeProgramSpec</a>)
+</p>
+<p>
+<p>KprobeProgramInfo defines the common fields for KprobeProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>func_name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Functions to attach the kprobe to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>offset</code></br>
+<em>
+uint64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Offset added to the address of the function for kprobe.
+Not allowed for kretprobes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retprobe</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Whether the program is a kretprobe.  Default is false</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.KprobeProgramSpec">KprobeProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.KprobeProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.KprobeProgram">KprobeProgram</a>)
+</p>
+<p>
+<p>KprobeProgramSpec defines the desired state of KprobeProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>KprobeProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.KprobeProgramInfo">
+KprobeProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>KprobeProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.KprobeProgramStatus">KprobeProgramStatus
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.KprobeProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.KprobeProgram">KprobeProgram</a>)
+</p>
+<p>
+<p>KprobeProgramStatus defines the observed state of KprobeProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramStatusCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.ProgramConditionType">ProgramConditionType
+(<code>string</code> alias)</p><a class="headerlink" href="#bpfman.io%2fv1alpha1.ProgramConditionType" title="Permanent link">¶</a>
+</h3>
+<p>
+<p>ProgramConditionType is a condition type to indicate the status of a BPF
+program at the cluster level.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;DeleteError&#34;</p></td>
+<td><p>ProgramDeleteError indicates that the BPF program was marked for
+deletion, but deletion was unsuccessful.</p>
+</td>
+</tr><tr><td><p>&#34;NotYetLoaded&#34;</p></td>
+<td><p>ProgramNotYetLoaded indicates that the program in question has not
+yet been loaded on all nodes in the cluster.</p>
+</td>
+</tr><tr><td><p>&#34;ReconcileError&#34;</p></td>
+<td><p>ProgramReconcileError indicates that an unforeseen situation has
+occurred in the controller logic, and the controller will retry.</p>
+</td>
+</tr><tr><td><p>&#34;ReconcileSuccess&#34;</p></td>
+<td><p>BpfmanProgConfigReconcileSuccess indicates that the BPF program has been
+successfully reconciled.</p>
+<p>TODO: we should consider removing &ldquo;reconciled&rdquo; type logic from the
+public API as it&rsquo;s an implementation detail of our use of controller
+runtime, but not necessarily relevant to human users or integrations.</p>
+<p>See: <a href="https://github.com/bpfman/bpfman/issues/430">https://github.com/bpfman/bpfman/issues/430</a></p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.PullPolicy">PullPolicy
+(<code>string</code> alias)</p><a class="headerlink" href="#bpfman.io%2fv1alpha1.PullPolicy" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BytecodeImage">BytecodeImage</a>)
+</p>
+<p>
+<p>PullPolicy describes a policy for if/when to pull a container image</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Always&#34;</p></td>
+<td><p>PullAlways means that bpfman always attempts to pull the latest bytecode image. Container will fail If the pull fails.</p>
+</td>
+</tr><tr><td><p>&#34;IfNotPresent&#34;</p></td>
+<td><p>PullIfNotPresent means that bpfman pulls if the image isn&rsquo;t present on disk. Container will fail if the image isn&rsquo;t present and the pull fails.</p>
+</td>
+</tr><tr><td><p>&#34;Never&#34;</p></td>
+<td><p>PullNever means that bpfman never pulls an image, but only uses a local image. Container will fail if the image isn&rsquo;t present</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.TcProceedOnValue">TcProceedOnValue
+(<code>string</code> alias)</p><a class="headerlink" href="#bpfman.io%2fv1alpha1.TcProceedOnValue" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.TcProgramInfo">TcProgramInfo</a>)
+</p>
+<p>
+</p>
+<h3 id="bpfman.io/v1alpha1.TcProgramInfo">TcProgramInfo
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.TcProgramInfo" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>, 
+<a href="#bpfman.io/v1alpha1.TcProgramSpec">TcProgramSpec</a>)
+</p>
+<p>
+<p>TcProgramInfo defines the tc program details</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>interfaceselector</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.InterfaceSelector">
+InterfaceSelector
+</a>
+</em>
+</td>
+<td>
+<p>Selector to determine the network interface (or interfaces)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>priority</code></br>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Priority specifies the priority of the tc program in relation to
+other programs of the same type with the same attach point. It is a value
+from 0 to 1000 where lower values have higher precedence.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>direction</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Direction specifies the direction of traffic the tc program should
+attach to for a given network device.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>proceedon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TcProceedOnValue">
+[]TcProceedOnValue
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProceedOn allows the user to call other tc programs in chain on this exit code.
+Multiple values are supported by repeating the parameter.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.TcProgramSpec">TcProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.TcProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.TcProgram">TcProgram</a>)
+</p>
+<p>
+<p>TcProgramSpec defines the desired state of TcProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>TcProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TcProgramInfo">
+TcProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>TcProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.TcProgramStatus">TcProgramStatus
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.TcProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.TcProgram">TcProgram</a>)
+</p>
+<p>
+<p>TcProgramStatus defines the observed state of TcProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramStatusCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.TracepointProgramInfo">TracepointProgramInfo
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.TracepointProgramInfo" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>, 
+<a href="#bpfman.io/v1alpha1.TracepointProgramSpec">TracepointProgramSpec</a>)
+</p>
+<p>
+<p>TracepointProgramInfo defines the Tracepoint program details</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>names</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>Names refers to the names of kernel tracepoints to attach the
+bpf program to.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.TracepointProgramSpec">TracepointProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.TracepointProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.TracepointProgram">TracepointProgram</a>)
+</p>
+<p>
+<p>TracepointProgramSpec defines the desired state of TracepointProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>TracepointProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.TracepointProgramInfo">
+TracepointProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>TracepointProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.TracepointProgramStatus">TracepointProgramStatus
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.TracepointProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.TracepointProgram">TracepointProgram</a>)
+</p>
+<p>
+<p>TracepointProgramStatus defines the observed state of TracepointProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramStatusCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.UprobeProgramInfo">UprobeProgramInfo
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.UprobeProgramInfo" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>, 
+<a href="#bpfman.io/v1alpha1.UprobeProgramSpec">UprobeProgramSpec</a>)
+</p>
+<p>
+<p>UprobeProgramInfo contains the information about the uprobe program</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>func_name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Function to attach the uprobe to.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>offset</code></br>
+<em>
+uint64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Offset added to the address of the function for uprobe.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>target</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Library name or the absolute path to a binary or library.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>retprobe</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Whether the program is a uretprobe.  Default is false</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>pid</code></br>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Only execute uprobe for given process identification number (PID). If PID
+is not provided, uprobe executes for all PIDs.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>containers</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.ContainerSelector">
+ContainerSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Containers identifes the set of containers in which to attach the uprobe.
+If Containers is not specified, the uprobe will be attached in the
+bpfman-agent container.  The ContainerSelector is very flexible and even
+allows the selection of all containers in a cluster.  If an attempt is
+made to attach uprobes to too many containers, it can have a negative
+impact on on the cluster.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.UprobeProgramSpec">UprobeProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.UprobeProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.UprobeProgram">UprobeProgram</a>)
+</p>
+<p>
+<p>UprobeProgramSpec defines the desired state of UprobeProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>UprobeProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.UprobeProgramInfo">
+UprobeProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>UprobeProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.UprobeProgramStatus">UprobeProgramStatus
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.UprobeProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.UprobeProgram">UprobeProgram</a>)
+</p>
+<p>
+<p>UprobeProgramStatus defines the observed state of UprobeProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramStatusCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.XdpProceedOnValue">XdpProceedOnValue
+(<code>string</code> alias)</p><a class="headerlink" href="#bpfman.io%2fv1alpha1.XdpProceedOnValue" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.XdpProgramInfo">XdpProgramInfo</a>)
+</p>
+<p>
+</p>
+<h3 id="bpfman.io/v1alpha1.XdpProgramInfo">XdpProgramInfo
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.XdpProgramInfo" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.BpfApplicationProgram">BpfApplicationProgram</a>, 
+<a href="#bpfman.io/v1alpha1.XdpProgramSpec">XdpProgramSpec</a>)
+</p>
+<p>
+<p>XdpProgramInfo defines the common fields for all XdpProgram types</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramCommon">
+BpfProgramCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>interfaceselector</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.InterfaceSelector">
+InterfaceSelector
+</a>
+</em>
+</td>
+<td>
+<p>Selector to determine the network interface (or interfaces)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>priority</code></br>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>Priority specifies the priority of the bpf program in relation to
+other programs of the same type with the same attach point. It is a value
+from 0 to 1000 where lower values have higher precedence.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>proceedon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.XdpProceedOnValue">
+[]XdpProceedOnValue
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.XdpProgramSpec">XdpProgramSpec
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.XdpProgramSpec" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.XdpProgram">XdpProgram</a>)
+</p>
+<p>
+<p>XdpProgramSpec defines the desired state of XdpProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>XdpProgramInfo</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.XdpProgramInfo">
+XdpProgramInfo
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>XdpProgramInfo</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>BpfAppCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfAppCommon">
+BpfAppCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfAppCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="bpfman.io/v1alpha1.XdpProgramStatus">XdpProgramStatus
+<a class="headerlink" href="#bpfman.io%2fv1alpha1.XdpProgramStatus" title="Permanent link">¶</a>
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#bpfman.io/v1alpha1.XdpProgram">XdpProgram</a>)
+</p>
+<p>
+<p>XdpProgramStatus defines the observed state of XdpProgram</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>BpfProgramStatusCommon</code></br>
+<em>
+<a href="#bpfman.io/v1alpha1.BpfProgramStatusCommon">
+BpfProgramStatusCommon
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>BpfProgramStatusCommon</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<p><em>
+Generated with <code>gen-crd-api-reference-docs</code>.
+</em></p>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <!--
+  Copyright (c) 2016-2024 Martin Donath <martin.donath@squidfunk.com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to
+  deal in the Software without restriction, including without limitation the
+  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+  sell copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+  IN THE SOFTWARE.
+-->
+
+<!-- Copyright and theme information -->
+<div class="md-copyright">
+    
+      <div class="md-copyright__highlight">
+        Copyright &copy; 2021-2024 The bpfman contributors.<br>The Linux Foundation® (TLF) has registered trademarks and uses trademarks. For a list of TLF trademarks, see <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage</a>.
+      </div>
+    
+    
+      Made with
+      <a
+        href="https://squidfunk.github.io/mkdocs-material/"
+        target="_blank" rel="noopener"
+      >
+        Material for MkDocs
+      </a>
+    
+  </div>
+  <div class="md-copyright__netlify">
+    <a href="https://www.netlify.com"> <img src="https://www.netlify.com/v3/img/components/netlify-color-accent.svg" alt="Deploys by Netlify" /> </a>
+  </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.6c14ae12.min.js"></script>
+      
+    
+  </body>
+</html>
