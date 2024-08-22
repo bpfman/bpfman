@@ -99,7 +99,98 @@ pub(crate) fn get_db_config() -> SledConfig {
     SledConfig::default().temporary(true)
 }
 
-/// Loads an ebpf program.
+/// Adds an eBPF program to the system.
+///
+/// This function takes a `Program` and performs the necessary loading
+/// and attaching operations to add it to the system. It supports
+/// various types of eBPF programs such as XDP, TC, TCX, Tracepoint,
+/// Kprobe, Uprobe, Fentry, and Fexit. The program can be added from a
+/// locally built bytecode file or a remote bytecode image. If the
+/// program is successfully added, it returns the updated [`Program`];
+/// otherwise, it returns a `BpfmanError`.
+///
+/// # Arguments
+///
+/// * `program` - The eBPF program to be added.
+///
+/// # Returns
+///
+/// * `Ok(Program)` - If the program is successfully added.
+/// * `Err(BpfmanError)` - If there is an error during the process.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use bpfman::add_program;
+/// use bpfman::errors::BpfmanError;
+/// use bpfman::types::{KprobeProgram, Location, Program, ProgramData};
+/// use std::collections::HashMap;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<(), BpfmanError> {
+///     // Define the location of the eBPF object file.
+///     let location = Location::File(String::from("kprobe.o"));
+///
+///     // Metadata is used by the userspace program to attach additional
+///     // information (similar to Kubernetes labels) to an eBPF program
+///     // when it is loaded. This metadata consists of key-value pairs
+///     // (e.g., `owner=acme`) and can be used for filtering or selecting
+///     // programs later, for instance, using commands like `bpfman list
+///     // --metadata-selector owner=acme`.
+///     let mut metadata = HashMap::new();
+///     metadata.insert("owner".to_string(), "acme".to_string());
+///
+///     // Optionally, initialise global data for the program. Global data
+///     // allows you to set configuration values that are applied at runtime
+///     // during the loading of the eBPF program. The keys in global_data must
+///     // already exist in the eBPF program, otherwise, an error
+///     // will be encountered. For example:
+///     let mut global_data = HashMap::new();
+///     global_data.insert("global_counter".to_string(), vec![0; 8]);
+///
+///     // Optionally specify the owner of eBPF maps as a UID (e.g.,
+///     // Some(1001)).
+///     let map_owner_id = None;
+///
+///     // Create the program data with the specified location, name,
+///     // metadata, global data, and optional map owner ID. ProgramData
+///     // holds all necessary information for an eBPF program.
+///     let program_data = ProgramData::new(location, String::from("kprobe_do_sys_open"), metadata, global_data, map_owner_id)?;
+///
+///     // Create a kprobe program with the specified function name,
+///     // offset, and options. This sets up a probe at a specific point
+///     // in the kernel function named "do_sys_open".
+///     let probe_offset: u64 = 0;
+///     let is_retprobe: bool = false;
+///     let container_pid: Option<i32> = None;
+///     let kprobe_program = KprobeProgram::new(program_data, String::from("do_sys_open"), probe_offset, is_retprobe, container_pid)?;
+///
+///     // Add the kprobe program using the bpfman manager.
+///     let added_program = add_program(Program::Kprobe(kprobe_program)).await?;
+///
+///     // Print a success message with the name of the added program.
+///     println!("Program '{}' added successfully.", added_program.get_data().get_name()?);
+///     Ok(())
+/// }
+/// ```
+///
+/// # Errors
+///
+/// This function will return an error if:
+/// * The setup or initialization steps fail.
+/// * The program data fails to load.
+/// * The map owner ID is invalid or setting the map pin path fails.
+/// * The program bytes fail to set.
+/// * Adding the program (multi-attach or single-attach) fails.
+/// * The program is unsupported.
+///
+/// In case of failure, any created directories or loaded programs
+/// will be cleaned up to maintain system integrity.
+///
+/// # Asynchronous Operation
+///
+/// This function is asynchronous and should be awaited in an
+/// asynchronous context.
 pub async fn add_program(mut program: Program) -> Result<Program, BpfmanError> {
     let (config, root_db) = &setup().await?;
     let mut image_manager = init_image_manager().await;
@@ -166,7 +257,56 @@ pub async fn add_program(mut program: Program) -> Result<Program, BpfmanError> {
     }
 }
 
-/// Unloads and ebpf program.
+/// Removes an eBPF program specified by its ID.
+///
+/// This function attempts to remove an eBPF program that has been
+/// previously loaded by the `bpfman` tool. It performs the necessary
+/// cleanup and removal steps based on the type of program (e.g., XDP,
+/// Tc, Tracepoint, Kprobe, etc.).
+///
+/// # Arguments
+///
+/// * `id` - A `u32` kernel allocated value that uniquely identifies the eBPF program to be removed.
+///
+/// # Returns
+///
+/// * `Result<(), BpfmanError>` - Returns `Ok(())` if the program is successfully
+///   removed, or a `BpfmanError` if an error occurs during the removal process.
+///
+/// # Errors
+///
+/// This function will return a `BpfmanError` in the following cases:
+///
+/// * The program with the given ID does not exist or was not created
+///   by `bpfman`.
+/// * The program with the given ID is currently in use and cannot be
+///   deleted.
+/// * The program with the given ID has dependent resources that must
+///   be deleted first.
+/// * The user does not have sufficient permissions to delete the program.
+/// * The program type specified is invalid or unsupported for deletion.
+/// * The deletion operation encountered a database error.
+/// * The deletion operation was aborted due to a system timeout or
+///   interruption.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use bpfman::remove_program;
+///
+/// #[tokio::main]
+/// async fn main() {
+///     match remove_program(42).await {
+///         Ok(()) => println!("Program successfully removed."),
+///         Err(e) => eprintln!("Failed to remove program: {:?}", e),
+///     }
+/// }
+/// ```
+///
+/// # Asynchronous Operation
+///
+/// This function is asynchronous and should be awaited in an
+/// asynchronous context.
 pub async fn remove_program(id: u32) -> Result<(), BpfmanError> {
     let (config, root_db) = &setup().await?;
 
@@ -223,7 +363,77 @@ pub async fn remove_program(id: u32) -> Result<(), BpfmanError> {
     Ok(())
 }
 
-/// Lists the currently loaded ebpf programs.
+/// Lists the currently loaded eBPF programs.
+///
+/// This function fetches the list of all eBPF programs loaded in the
+/// system, combining those managed by `bpfman` with any other loaded
+/// eBPF programs obtained from Aya. It returns a vector of `Program`
+/// objects that match the provided filter.
+///
+/// # Arguments
+///
+/// * `filter` - A `ListFilter` used to filter the programs based on the caller's criteria.
+///
+/// # Returns
+///
+/// Returns a `Result` which is:
+/// * `Ok(Vec<Program>)` containing a vector of `Program` objects matching the filter.
+/// * `Err(BpfmanError)` if there is an error in setting up the database or retrieving programs.
+///
+/// # Errors
+///
+/// This function can return the following errors:
+/// * `BpfmanError::DatabaseError` - If there is an error setting up
+///   the root database.
+/// * `BpfmanError::ProgramRetrievalError` - If there is an error
+///   while retrieving programs from the database.
+/// * `sled::Error` - If there is an error opening the program
+///   database tree for a specific program ID.
+/// * Other errors might be encountered while setting kernel
+///   information for programs, these errors will be logged with a
+///   warning but will not cause the function to return an error.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use bpfman::{errors::BpfmanError, list_programs, types::ListFilter};
+/// use std::collections::HashMap;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<(), BpfmanError> {
+///     let program_type = None;
+///     let metadata_selector = HashMap::new();
+///     let bpfman_programs_only = true;
+///
+///     // This filter is created with None for program_type, an empty
+///     // HashMap for metadata_selector, and true for
+///     // bpfman_programs_only, which means it will only match bpfman
+///     // programs. Setting program_type to None means it will match all
+///     // program types.
+///     let filter = ListFilter::new(program_type, metadata_selector, bpfman_programs_only);
+///
+///     match list_programs(filter).await {
+///         Ok(programs) => {
+///             for program in programs {
+///                 match program.get_data().get_id() {
+///                     Ok(id) => match program.get_data().get_name() {
+///                         Ok(name) => println!("Program ID: {}, Name: {}", id, name),
+///                         Err(e) => eprintln!("Error retrieving program name for ID {}: {:?}", id, e),
+///                     },
+///                     Err(e) => eprintln!("Error retrieving program ID: {:?}", e),
+///                 }
+///             }
+///         }
+///         Err(e) => eprintln!("Error listing programs: {:?}", e),
+///     }
+///     Ok(())
+/// }
+/// ```
+///
+/// # Asynchronous Operation
+///
+/// This function is asynchronous and should be awaited in an
+/// asynchronous context.
 pub async fn list_programs(filter: ListFilter) -> Result<Vec<Program>, BpfmanError> {
     let (_, root_db) = &setup().await?;
 
@@ -260,7 +470,61 @@ pub async fn list_programs(filter: ListFilter) -> Result<Vec<Program>, BpfmanErr
         .collect())
 }
 
-/// Fetches more information regarding a currently loaded ebpf program.
+/// Retrieves information about a currently loaded eBPF program.
+///
+/// Attempts to retrieve detailed information about an eBPF program
+/// identified by the given kernel `id`. If the program was loaded by
+/// `bpfman`, it uses that information; otherwise, it queries all
+/// loaded eBPF programs through the Aya library. If a match is found,
+/// the program is converted into an unsupported program object.
+///
+/// The `Location` of the program indicates whether the program's
+/// bytecode was provided via a fully qualified local path or through
+/// an OCI-compliant container image tag.
+///
+/// # Arguments
+///
+/// * `id` - A `u32` representing the unique identifier of the eBPF program.
+///
+/// # Returns
+///
+/// * `Ok(Program)` - On successful retrieval of the program
+///   information, returns a `Program` object encapsulating the
+///   program details.
+///
+/// * `Err(BpfmanError)` - Returns an error if the setup fails, the
+///   program is not found, or there is an issue opening the database
+///   tree or setting kernel information.
+///
+/// # Errors
+///
+/// This function can return several types of errors:
+/// * `BpfmanError::SetupError` - If the setup function fails.
+/// * `BpfmanError::DatabaseError` - If there is an issue opening the
+///   database tree for the program.
+/// * `BpfmanError::KernelInfoError` - If there is an issue setting
+///   the kernel information for the program data.
+/// * `BpfmanError::Error` - If the program with the specified `id`
+///   does not exist.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use bpfman::get_program;
+///
+/// #[tokio::main]
+/// async fn main() {
+///     match get_program(42).await {
+///         Ok(program) => println!("Program info: {:?}", program),
+///         Err(e) => eprintln!("Error fetching program: {:?}", e),
+///     }
+/// }
+/// ```
+///
+/// # Asynchronous Operation
+///
+/// This function is asynchronous and should be awaited in an
+/// asynchronous context.
 pub async fn get_program(id: u32) -> Result<Program, BpfmanError> {
     let (_, root_db) = &setup().await?;
 
@@ -294,7 +558,67 @@ pub async fn get_program(id: u32) -> Result<Program, BpfmanError> {
     }
 }
 
-/// Pulls an ebpf bytecode image from a remote OCI container registry.
+/// Pulls an OCI-compliant image containing eBPF bytecode from a
+/// remote container registry.
+///
+/// # Arguments
+///
+/// * `image` - A `BytecodeImage` struct that contains information
+///             about the bytecode image to be pulled, including its
+///             URL, pull policy, username, and password.
+///
+/// # Returns
+///
+/// This function returns an `anyhow::Result<()>` which, on success,
+/// contains an empty tuple `()`. On failure, it returns an
+/// `anyhow::Error` encapsulating the cause of the failure.
+///
+/// # Errors
+///
+/// This function can return the following errors:
+///
+/// * `SetupError` - If the `setup()` function fails to initialise
+///                  correctly.
+/// * `ImageManagerInitializationError` - If there is an error
+///                                        initialising the image
+///                                        manager with `init_image_manager()`.
+/// * `RegistryAuthenticationError` - If there is an authentication
+///                                    failure while accessing the
+///                                    container registry.
+/// * `NetworkError` - If there are network issues while pulling the
+///                    image from the container registry.
+/// * `ImagePullError` - If there is a problem pulling the image due
+///                      to invalid image URL, unsupported image
+///                      format, or other image-specific issues.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use bpfman::pull_bytecode;
+/// use bpfman::types::{BytecodeImage, ImagePullPolicy};
+///
+/// #[tokio::main]
+/// async fn main() {
+///     let image = BytecodeImage {
+///         image_url: "example.com/myrepository/myimage:latest".to_string(),
+///         image_pull_policy: ImagePullPolicy::IfNotPresent,
+///
+///         // Optional username/password for authentication.
+///         username: Some("username".to_string()),
+///         password: Some("password".to_string()),
+///     };
+///
+///     match pull_bytecode(image).await {
+///         Ok(_) => println!("Image pulled successfully."),
+///         Err(e) => eprintln!("Failed to pull image: {}", e),
+///     }
+/// }
+/// ```
+///
+/// # Asynchronous Operation
+///
+/// This function is asynchronous and should be awaited in an
+/// asynchronous context.
 pub async fn pull_bytecode(image: BytecodeImage) -> anyhow::Result<()> {
     let (_, root_db) = &setup().await?;
     let image_manager = &mut init_image_manager().await;
