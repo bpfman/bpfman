@@ -24,6 +24,7 @@ jobs:
         uses: apache/skywalking-eyes@cd7b195c51fd3d6ad52afceb760719ddc6b3ee91
 
   build:
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -36,15 +37,16 @@ jobs:
             rust-target: aarch64-unknown-linux-gnu
             filename: linux-arm64
             command: cross
-            # - arch: ppc64le
-            # rust-target: powerpc64le-unknown-linux-gnu
-            # filename: linux-ppc64le
-            # command: cross
-            # - arch: s390x
-            # rust-target: s390x-unknown-linux-gnu
-            # filename: linux-s390x
-            # command: cross
-    runs-on: ubuntu-latest
+          - arch: ppc64le
+            rust-target: powerpc64le-unknown-linux-gnu
+            filename: linux-ppc64le
+            command: cross
+          - arch: s390x
+            rust-target: s390x-unknown-linux-gnu
+            filename: linux-s390x
+            command: cross
+
+    name: Build bpfman (${{ matrix.arch.arch }})
     steps:
       - name: Install dependencies
         # Dependencies only needed to build eBPF and used by integration-tests, only on amd64
@@ -281,6 +283,8 @@ jobs:
           - arch: s390x
             filename: linux-s390x
     runs-on: ubuntu-latest
+
+    name: Build Go Modules (${{ matrix.arch.arch }})
     steps:
       - name: Checkout bpfman
         uses: actions/checkout@v4
@@ -478,6 +482,9 @@ jobs:
           prerelease: ${{ env.PRE_RELEASE }}
           files: |
             bpfman-linux-x86_64.tar.gz
+            bpfman-linux-arm64.tar.gz
+            bpfman-linux-ppc64le.tar.gz
+            bpfman-linux-s390x.tar.gz
 
       - name: publish bpfman crate
         run: cargo publish -p bpfman --token ${{ secrets.BPFMAN_DEV_TOKEN }}

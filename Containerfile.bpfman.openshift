@@ -4,14 +4,12 @@ ARG BUILDPLATFORM
 FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi9/ubi-minimal:9.4-1227.1725849298 AS bpfman-build
 ARG DNF_CMD="microdnf"
 
-
-# The following ARGs are set internally by docker/build-push-action in github actions
-ARG TARGETARCH=amd64
-ARG TARGETOS=linux
-ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 
-RUN echo "TARGETOS=${TARGETOS}  TARGETARCH=${TARGETARCH}  BUILDPLATFORM=${BUILDPLATFORM}  TARGETPLATFORM=${TARGETPLATFORM}"
+# The following ARGs are set internally by docker/build-push-action in github actions
+ARG TARGETPLATFORM
+
+RUN echo "BUILDPLATFORM=${BUILDPLATFORM}  TARGETPLATFORM=${TARGETPLATFORM}"
 
 WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
@@ -28,21 +26,25 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
       cp target/x86_64-unknown-linux-gnu/release/bpfman-ns bin/. && \
       cp target/x86_64-unknown-linux-gnu/release/bpfman-rpc bin/.; \
     elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
-      apt-get install -y gcc-aarch64-linux-gnu && \
+      ${DNF_CMD} install -y gcc-aarch64-linux-gnu && \
       rustup target add aarch64-unknown-linux-gnu && \
       CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc cargo build --release --target aarch64-unknown-linux-gnu && \
       cp target/aarch64-unknown-linux-gnu/release/bpfman bin/. && \
       cp target/aarch64-unknown-linux-gnu/release/bpfman-ns bin/. && \
       cp target/aarch64-unknown-linux-gnu/release/bpfman-rpc bin/.; \
     elif [ "$TARGETPLATFORM" = "linux/ppc64le" ]; then \
+      ${DNF_CMD} install -y gcc-powerpc64le-linux-gnu && \
+      cargo install cross --git https://github.com/cross-rs/cross && \
       rustup target add powerpc64le-unknown-linux-gnu && \
-      cargo build --release --target powerpc64le-unknown-linux-gnu && \
+      CARGO_TARGET_POWERPC64LE_UNKNOWN_LINUX_GNU_LINKER=powerpc64le-linux-gnu-gcc cross build --release --target powerpc64le-unknown-linux-gnu && \
       cp target/powerpc64le-unknown-linux-gnu/release/bpfman bin/. && \
       cp target/powerpc64le-unknown-linux-gnu/release/bpfman-ns bin/. && \
       cp target/powerpc64le-unknown-linux-gnu/release/bpfman-rpc bin/.; \
     elif [ "$TARGETPLATFORM" = "linux/s390x" ]; then \
+      ${DNF_CMD} install -y gcc-s390x-linux-gnu && \
+      cargo install cross --git https://github.com/cross-rs/cross && \
       rustup target add s390x-unknown-linux-gnu && \
-      cargo build --release --target s390x-unknown-linux-gnu && \
+      CARGO_TARGET_S390X_UNKNOWN_LINUX_GNU_LINKER=s390x-linux-gnu-gcc cross build --release --target s390x-unknown-linux-gnu && \
       cp target/s390x-unknown-linux-gnu/release/bpfman bin/. && \
       cp target/s390x-unknown-linux-gnu/release/bpfman-ns bin/. && \
       cp target/s390x-unknown-linux-gnu/release/bpfman-rpc bin/.; \

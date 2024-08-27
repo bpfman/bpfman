@@ -10,7 +10,10 @@ on: # yamllint disable-line rule:truthy
   workflow_dispatch:
 
 jobs:
-  build:
+  # Build bpfman and store the bpfman CLI binary in artifacts for the
+  # "build-and-push-bytecode-images" step. It will be used to generate
+  # build args with the "bpfman image generate-build-args" command.
+  build-bpfman-for-build-arg-gen:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout bpfman
@@ -27,11 +30,85 @@ jobs:
       - name: Archive bpfman Binaries
         uses: actions/upload-artifact@v4
         with:
-          name: bpfman
+          name: bpfman-for-build-args
           path: |
             ./target/debug/bpfman.tar.gz
 
-  build-and-push-images:
+  # Build bpfman for each architecture and store the bpfman binaries in artifacts
+  # for the "build-and-push-userspace-images" step. The rust tool `cross` cannot be run in a
+  # container, so build the binaries locally, and the container build will just copy
+  # the files into the container.
+  build-bpfman-per-arch:
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # needed for signing the images with GitHub OIDC Token
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - arch: amd64
+            rust-target: x86_64-unknown-linux-gnu
+            filename: linux-x86_64
+            command: cargo
+          - arch: arm64
+            rust-target: aarch64-unknown-linux-gnu
+            filename: linux-arm64
+            command: cross
+          - arch: ppc64le
+            rust-target: powerpc64le-unknown-linux-gnu
+            filename: linux-ppc64le
+            command: cross
+          - arch: s390x
+            rust-target: s390x-unknown-linux-gnu
+            filename: linux-s390x
+            command: cross
+
+    name: Build bpfman (bpfman-${{ matrix.arch.arch }})
+    steps:
+      - name: Checkout bpfman
+        uses: actions/checkout@v4
+
+      - name: Install rust toolchain - stable
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          target: ${{ matrix.arch.rust-target }}
+
+      # Only install cross if we need it
+      - name: Install Cross
+        if: ${{ matrix.arch.command == 'cross' }}
+        shell: bash
+        run: |
+          cargo install cross --git https://github.com/cross-rs/cross
+
+      # TODO: Is this needed? Quick glance this action is supposed to speed up rust builds
+      #       with some caching, but not sure of the details. Need to run with it enabled
+      #       and disabled and see if it speeds anything up or not.
+      # - uses: Swatinem/rust-cache@v2
+
+      - name: Build Binary
+        run: |
+          ${{ matrix.arch.command }} build --release --target ${{ matrix.arch.rust-target }}
+
+      - name: Package bpfman Binaries
+        run: |
+          cd target/${{ matrix.arch.rust-target }}/release
+          tar -czvf bpfman-build-${{ matrix.arch.filename }}.tar.gz bpfman bpfman-rpc bpfman-ns bpf-metrics-exporter bpf-log-exporter
+
+      - name: Archive bpfman Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: bpfman-build-${{ matrix.arch.filename }}
+          path: ./target/${{ matrix.arch.rust-target }}/release/bpfman-build-${{ matrix.arch.filename }}.tar.gz
+
+  # Build all the userspace images and push them to quay.io. This includes bpfman
+  # as well as the go-*-counter examples.
+  build-and-push-userspace-images:
+    needs: [build-bpfman-per-arch]
     permissions:
       contents: read
       packages: write
@@ -43,10 +120,9 @@ jobs:
       matrix:
         image:
           - registry: quay.io
-            # build_language: rust - Not building locally, so don't install rust toolchain
             repository: bpfman
             image: bpfman
-            dockerfile: ./Containerfile.bpfman
+            dockerfile: ./Containerfile.bpfman.multi.arch
             context: .
             tags: |
               type=ref,event=branch
@@ -57,7 +133,6 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-xdp-counter
             context: .
@@ -71,7 +146,6 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-tc-counter
             context: .
@@ -85,7 +159,6 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-tracepoint-counter
             context: .
@@ -99,7 +172,6 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-kprobe-counter
             context: .
@@ -113,7 +185,6 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-uprobe-counter
             context: .
@@ -127,7 +198,6 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-uretprobe-counter
             context: .
@@ -141,7 +211,6 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-target
             context: .
@@ -155,7 +224,6 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
-            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-app-counter
             context: .
@@ -178,7 +246,7 @@ jobs:
 
       - name: Login to quay.io/bpfman
         uses: redhat-actions/podman-login@v1
-        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch')  && matrix.image.repository == 'bpfman'}}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman'}}
         with:
           registry: ${{ matrix.image.registry }}
           username: ${{ secrets.BPFMAN_USERNAME }}
@@ -205,12 +273,38 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # bpfman ONLY
+      - name: Update .dockerignore to allow "target/" directory
+        if: ${{ matrix.image.image == 'bpfman'}}
+        run: |
+          sed -i '/target/d' ./.dockerignore
+
+      # bpfman ONLY
+      - name: Download built bpfman Binaries
+        uses: actions/download-artifact@v4
+        if: ${{ matrix.image.image == 'bpfman'}}
+        with:
+          pattern: bpfman-build-*
+          merge-multiple: true
+
+      # bpfman ONLY
+      - name: Unpack built bpfman binaries
+        if: ${{ matrix.image.image == 'bpfman'}}
+        run: |
+          mkdir -p target/x86_64-unknown-linux-gnu/release
+          tar -C target/x86_64-unknown-linux-gnu/release -xzvf bpfman-build-linux-x86_64.tar.gz
+          mkdir -p target/aarch64-unknown-linux-gnu/release
+          tar -C target/aarch64-unknown-linux-gnu/release -xzvf bpfman-build-linux-arm64.tar.gz
+          mkdir -p target/powerpc64le-unknown-linux-gnu/release
+          tar -C target/powerpc64le-unknown-linux-gnu/release -xzvf bpfman-build-linux-ppc64le.tar.gz
+          mkdir -p target/s390x-unknown-linux-gnu/release
+          tar -C target/s390x-unknown-linux-gnu/release -xzvf bpfman-build-linux-s390x.tar.gz
+
       - name: Build and push
         id: build-push-image
         uses: docker/build-push-action@v6
         with:
-          platforms: linux/amd64, linux/arm64
-          # TBD: linux/ppc64le, linux/s390x
+          platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
           push: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -226,8 +320,11 @@ jobs:
             cosign sign -y "${tag}@${{ steps.build-push-image.outputs.digest }}"
           done
 
+  # Build all the bytecode images and push them to quay.io. This includes the dispatchers
+  # for TC and XDP, all the go-*-counter examples and the bytecode images used by integration
+  # tests.
   build-and-push-bytecode-images:
-    needs: [build]
+    needs: [build-bpfman-for-build-arg-gen]
     permissions:
       contents: read
       packages: write
@@ -604,7 +701,7 @@ jobs:
       - name: Download bpfman binary
         uses: actions/download-artifact@v4
         with:
-          name: bpfman
+          name: bpfman-for-build-args
 
       - name: Unpack bpfman binary
         run: |
