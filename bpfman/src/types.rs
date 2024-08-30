@@ -201,15 +201,64 @@ impl ListFilter {
     }
 }
 
+/// `Program` represents various types of eBPF programs that are
+/// supported by bpfman.
 #[derive(Debug, Clone)]
 pub enum Program {
+    /// An XDP (Express Data Path) program.
+    ///
+    /// XDP programs are attached to network interfaces and can
+    /// process packets at a very early stage in the network stack,
+    /// providing high-performance packet processing.
     Xdp(XdpProgram),
+
+    /// A TC (Traffic Control) program.
+    ///
+    /// TC programs are used for controlling network traffic. They can
+    /// be attached to various hooks in the Linux Traffic Control (tc)
+    /// subsystem.
     Tc(TcProgram),
+
+    /// A Tracepoint program.
+    ///
+    /// Tracepoint programs are used for tracing specific events in
+    /// the kernel, providing insights into kernel behaviour and
+    /// performance.
     Tracepoint(TracepointProgram),
+
+    /// A Kprobe (Kernel Probe) program.
+    ///
+    /// Kprobe programs are used to dynamically trace and instrument
+    /// kernel functions. They can be attached to almost any function
+    /// in the kernel.
     Kprobe(KprobeProgram),
+
+    /// A Uprobe (User-space Probe) program.
+    ///
+    /// Uprobe programs are similar to Kprobe programs but are used to
+    /// trace user-space applications. They can be attached to
+    /// functions in user-space binaries.
     Uprobe(UprobeProgram),
+
+    /// An Fentry (Function Entry) program.
+    ///
+    /// Fentry programs are a type of BPF program that are attached to
+    /// the entry points of functions, providing a mechanism to trace
+    /// and instrument the beginning of function execution.
     Fentry(FentryProgram),
+
+    /// An Fexit (Function Exit) program.
+    ///
+    /// Fexit programs are a type of BPF program that are attached to
+    /// the exit points of functions, providing a mechanism to trace
+    /// and instrument the end of function execution.
     Fexit(FexitProgram),
+
+    /// An unsupported BPF program type.
+    ///
+    /// This variant is used to represent BPF programs that are not
+    /// supported by bpfman. It contains the raw `ProgramData` for the
+    /// unsupported program.
     Unsupported(ProgramData),
 }
 
@@ -298,6 +347,50 @@ pub struct ProgramData {
 }
 
 impl ProgramData {
+    /// Creates a new `ProgramData` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `location` - The location of the BPF program (file or image).
+    /// * `name` - The name of the BPF program.
+    /// * `metadata` - Metadata associated with the BPF program.
+    /// * `global_data` - Global data required by the BPF program.
+    /// * `map_owner_id` - Optional owner ID of the map.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<Self, BpfmanError>` - An instance of `ProgramData` or a `BpfmanError`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - The temporary database cannot be opened.
+    /// - The program database tree cannot be opened.
+    /// - Any of the subsequent setting operations fail (ID, location, name, metadata, global data, map owner ID).
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use bpfman::types::{Location, ProgramData};
+    /// use bpfman::errors::BpfmanError;
+    /// use std::collections::HashMap;
+    ///
+    /// fn main() -> Result<(), BpfmanError> {
+    ///     let location = Location::File(String::from("kprobe.o"));
+    ///     let metadata = HashMap::new();
+    ///     let global_data = HashMap::new();
+    ///     let map_owner_id = None;
+    ///     let program_data = ProgramData::new(
+    ///         location,
+    ///         String::from("kprobe_do_sys_open"),
+    ///         metadata,
+    ///         global_data,
+    ///         map_owner_id
+    ///     )?;
+    ///     println!("program_data: {:?}", program_data);
+    ///     Ok(())
+    /// }
+    /// ```
     pub fn new(
         location: Location,
         name: String,
@@ -398,6 +491,17 @@ impl ProgramData {
         )
     }
 
+    /// Retrieves the kind of program, which is represented by the
+    /// [`ProgramType`] structure.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<Option<ProgramType>, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the kind from the database.
     pub fn get_kind(&self) -> Result<Option<ProgramType>, BpfmanError> {
         sled_get_option(&self.db_tree, KIND).map(|v| v.map(|v| bytes_to_u32(v).try_into().unwrap()))
     }
@@ -406,6 +510,16 @@ impl ProgramData {
         sled_insert(&self.db_tree, NAME, name.as_bytes())
     }
 
+    /// Retrieves the name of the program.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<String, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the name from the database.
     pub fn get_name(&self) -> Result<String, BpfmanError> {
         sled_get(&self.db_tree, NAME).map(|v| bytes_to_string(&v))
     }
@@ -414,6 +528,16 @@ impl ProgramData {
         sled_insert(&self.db_tree, ID, &id.to_ne_bytes())
     }
 
+    /// Retrieves the kernel ID of the program.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<u32, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the ID from the database.
     pub fn get_id(&self) -> Result<u32, BpfmanError> {
         sled_get(&self.db_tree, ID).map(bytes_to_u32)
     }
@@ -449,6 +573,16 @@ impl ProgramData {
         })
     }
 
+    /// Retrieves the location of the program.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<Location, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the location from the database.
     pub fn get_location(&self) -> Result<Location, BpfmanError> {
         if let Ok(l) = sled_get(&self.db_tree, LOCATION_FILENAME) {
             Ok(Location::File(bytes_to_string(&l).to_string()))
@@ -484,6 +618,16 @@ impl ProgramData {
         })
     }
 
+    /// Retrieves the global data of the program.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<HashMap<String, Vec<u8>>, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the global data from the database.
     pub fn get_global_data(&self) -> Result<HashMap<String, Vec<u8>>, BpfmanError> {
         self.db_tree
             .scan_prefix(PREFIX_GLOBAL_DATA)
@@ -522,6 +666,16 @@ impl ProgramData {
         })
     }
 
+    /// Retrieves the metadata of the program.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<HashMap<String, String>, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the metadata from the database.
     pub fn get_metadata(&self) -> Result<HashMap<String, String>, BpfmanError> {
         self.db_tree
             .scan_prefix(PREFIX_METADATA)
@@ -548,6 +702,16 @@ impl ProgramData {
         sled_insert(&self.db_tree, MAP_OWNER_ID, &id.to_ne_bytes())
     }
 
+    /// Retrieves the owner ID of the map.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<Option<u32>, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the map owner ID from the database.
     pub fn get_map_owner_id(&self) -> Result<Option<u32>, BpfmanError> {
         sled_get_option(&self.db_tree, MAP_OWNER_ID).map(|v| v.map(bytes_to_u32))
     }
@@ -560,6 +724,16 @@ impl ProgramData {
         )
     }
 
+    /// Retrieves the map pin path.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<Option<PathBuf>, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the map pin path from the database.
     pub fn get_map_pin_path(&self) -> Result<Option<PathBuf>, BpfmanError> {
         sled_get_option(&self.db_tree, MAP_PIN_PATH)
             .map(|v| v.map(|f| PathBuf::from(bytes_to_string(&f))))
@@ -578,6 +752,16 @@ impl ProgramData {
         })
     }
 
+    /// Retrieves the IDs of maps used by the program.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<Vec<u32>, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the maps used by from the database.
     pub fn get_maps_used_by(&self) -> Result<Vec<u32>, BpfmanError> {
         self.db_tree
             .scan_prefix(PREFIX_MAPS_USED_BY)
@@ -651,6 +835,16 @@ impl ProgramData {
      * Methods for setting and getting kernel information.
      */
 
+    /// Retrieves the name of the program.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<String, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the kernel name from the database.
     pub fn get_kernel_name(&self) -> Result<String, BpfmanError> {
         sled_get(&self.db_tree, KERNEL_NAME).map(|n| bytes_to_string(&n))
     }
@@ -659,6 +853,16 @@ impl ProgramData {
         sled_insert(&self.db_tree, KERNEL_NAME, name.as_bytes())
     }
 
+    /// Retrieves the kernel program type.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<u32, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the kernel program type from the database.
     pub fn get_kernel_program_type(&self) -> Result<u32, BpfmanError> {
         sled_get(&self.db_tree, KERNEL_PROGRAM_TYPE).map(bytes_to_u32)
     }
@@ -671,6 +875,16 @@ impl ProgramData {
         )
     }
 
+    /// Retrieves the kernel loaded timestamp.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<String, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the kernel loaded timestamp from the database.
     pub fn get_kernel_loaded_at(&self) -> Result<String, BpfmanError> {
         sled_get(&self.db_tree, KERNEL_LOADED_AT).map(|n| bytes_to_string(&n))
     }
@@ -689,6 +903,16 @@ impl ProgramData {
         )
     }
 
+    /// Retrieves the kernel tag.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<String, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the kernel tag from the database.
     pub fn get_kernel_tag(&self) -> Result<String, BpfmanError> {
         sled_get(&self.db_tree, KERNEL_TAG).map(|n| bytes_to_string(&n))
     }
@@ -712,10 +936,30 @@ impl ProgramData {
         )
     }
 
+    /// Retrieves whether the kernel is GPL compatible.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<bool, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the kernel GPL compatibility status from the database.
     pub fn get_kernel_gpl_compatible(&self) -> Result<bool, BpfmanError> {
         sled_get(&self.db_tree, KERNEL_GPL_COMPATIBLE).map(bytes_to_bool)
     }
 
+    /// Retrieves the IDs of kernel maps.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<Vec<u32>, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the kernel map IDs from the database.
     pub fn get_kernel_map_ids(&self) -> Result<Vec<u32>, BpfmanError> {
         self.db_tree
             .scan_prefix(PREFIX_KERNEL_MAP_IDS.as_bytes())
@@ -740,6 +984,16 @@ impl ProgramData {
         })
     }
 
+    /// Retrieves the BTF ID of the kernel.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<u32, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the kernel BTF ID from the database.
     pub fn get_kernel_btf_id(&self) -> Result<u32, BpfmanError> {
         sled_get(&self.db_tree, KERNEL_BTF_ID).map(bytes_to_u32)
     }
@@ -748,6 +1002,16 @@ impl ProgramData {
         sled_insert(&self.db_tree, KERNEL_BTF_ID, &btf_id.to_ne_bytes())
     }
 
+    /// Retrieves the translated bytes of the kernel program.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<u32, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the kernel translated bytes from the database.
     pub fn get_kernel_bytes_xlated(&self) -> Result<u32, BpfmanError> {
         sled_get(&self.db_tree, KERNEL_BYTES_XLATED).map(bytes_to_u32)
     }
@@ -760,6 +1024,16 @@ impl ProgramData {
         )
     }
 
+    /// Retrieves whether the kernel program is JIT compiled.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<bool, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the kernel JIT status from the database.
     pub fn get_kernel_jited(&self) -> Result<bool, BpfmanError> {
         sled_get(&self.db_tree, KERNEL_JITED).map(bytes_to_bool)
     }
@@ -772,6 +1046,16 @@ impl ProgramData {
         )
     }
 
+    /// Retrieves the JIT compiled bytes of the kernel program.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<u32, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the kernel JIT compiled bytes from the database.
     pub fn get_kernel_bytes_jited(&self) -> Result<u32, BpfmanError> {
         sled_get(&self.db_tree, KERNEL_BYTES_JITED).map(bytes_to_u32)
     }
@@ -784,6 +1068,16 @@ impl ProgramData {
         )
     }
 
+    /// Retrieves the memory lock bytes of the kernel program.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<u32, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the kernel memory lock bytes from the database.
     pub fn get_kernel_bytes_memlock(&self) -> Result<u32, BpfmanError> {
         sled_get(&self.db_tree, KERNEL_BYTES_MEMLOCK).map(bytes_to_u32)
     }
@@ -799,6 +1093,16 @@ impl ProgramData {
         )
     }
 
+    /// Retrieves the number of verified instructions of the kernel program.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Result<u32, BpfmanError>`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if:
+    /// - There is an issue fetching the kernel verified instructions count from the database.
     pub fn get_kernel_verified_insns(&self) -> Result<u32, BpfmanError> {
         sled_get(&self.db_tree, KERNEL_VERIFIED_INSNS).map(bytes_to_u32)
     }
