@@ -493,3 +493,27 @@ fn test_load_unload_fexit() {
 
     verify_and_delete_programs(loaded_ids);
 }
+
+#[integration_test]
+fn test_load_unload_cosign_disabled() {
+    let _cosign_guard = disable_cosign();
+
+    debug!("Installing kprobe program with cosign disabled");
+
+    let globals = vec!["GLOBAL_u8=63", "GLOBAL_u32=0D0C0B0A"];
+
+    let mut loaded_ids = vec![];
+
+    let prog_id = add_kprobe(
+        Some(globals.clone()),
+        &LoadType::Image,
+        &KPROBE_IMAGE_LOC,
+        KPROBE_FILE_LOC,
+        KPROBE_KERNEL_FUNCTION_NAME,
+        None, // container_pid
+    )
+    .unwrap();
+    loaded_ids.push(prog_id);
+
+    verify_and_delete_programs(loaded_ids);
+}

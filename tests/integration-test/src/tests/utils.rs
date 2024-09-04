@@ -1,5 +1,10 @@
 use std::{
-    fs::File, io::Read, path::PathBuf, process::Command, str::FromStr, thread::sleep,
+    fs::{self, File},
+    io::{Read, Write},
+    path::{Path, PathBuf},
+    process::Command,
+    str::FromStr,
+    thread::sleep,
     time::Duration,
 };
 
@@ -1151,4 +1156,37 @@ pub fn start_container() -> Result<DockerContainer> {
         container_pid,
         container_id,
     })
+}
+
+pub struct DisableCosignGuard<'a> {
+    path: &'a str,
+}
+
+impl<'a> Drop for DisableCosignGuard<'a> {
+    fn drop(&mut self) {
+        if Path::new(self.path).exists() {
+            fs::remove_file(self.path).expect("Failed to delete file");
+        }
+    }
+}
+
+pub fn disable_cosign() -> Result<DisableCosignGuard<'static>> {
+    let content = "[signing]\nallow_unsigned = true\nverify_enabled = false\n";
+    let path = "/etc/bpfman/bpfman.toml";
+
+    let cosign_guard = DisableCosignGuard { path };
+
+    // Create the directory if it doesn't exist
+    fs::create_dir_all("/etc/bpfman")?;
+
+    // Write the content to the file
+    let mut file = fs::File::create(path)?;
+    file.write_all(content.as_bytes())?;
+
+    debug!(
+        "bpfman.toml with \"verify_enabled = false\" created at {}",
+        path
+    );
+
+    Ok(cosign_guard)
 }
