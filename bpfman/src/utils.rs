@@ -208,10 +208,20 @@ pub(crate) fn get_error_msg_from_stderr(stderr: &[u8]) -> String {
 
 pub(crate) fn open_config_file() -> Config {
     if let Ok(c) = std::fs::read_to_string(CFGPATH_BPFMAN_CONFIG) {
-        c.parse().unwrap_or_else(|_| {
+        if let Ok(mut config) = c.parse::<Config>() {
+            if config.signing().is_none() {
+                debug!("No signing configuration found in config file.  using defaults");
+                config.set_signing(Default::default());
+            }
+            if config.database().is_none() {
+                debug!("No database configuration found in config file.  using defaults");
+                config.set_database(Default::default());
+            }
+            config
+        } else {
             warn!("Unable to parse config file, using defaults");
             Config::default()
-        })
+        }
     } else {
         debug!("Unable to read config file, using defaults");
         Config::default()

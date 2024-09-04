@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::errors::ParseError;
 
-#[derive(Debug, Deserialize, Default, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub(crate) struct Config {
     interfaces: Option<HashMap<String, InterfaceConfig>>,
     #[serde(default)]
@@ -21,24 +21,51 @@ impl Config {
         &self.interfaces
     }
 
+    pub(crate) fn set_signing(&mut self, signing: SigningConfig) {
+        self.signing = Some(signing);
+    }
+
     pub(crate) fn signing(&self) -> &Option<SigningConfig> {
         &self.signing
+    }
+
+    pub(crate) fn set_database(&mut self, database: DatabaseConfig) {
+        self.database = Some(database);
     }
 
     pub(crate) fn database(&self) -> &Option<DatabaseConfig> {
         &self.database
     }
 }
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            interfaces: None,
+            signing: Some(SigningConfig::default()),
+            database: Some(DatabaseConfig::default()),
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct SigningConfig {
-    pub allow_unsigned: bool,
+    pub allow_unsigned: bool, // Allow unsigned programs
+    pub verify_enabled: bool, // Enable verification of signed programs
 }
 
 impl Default for SigningConfig {
     fn default() -> Self {
         Self {
-            // Allow unsigned programs by default
+            // Whether to allow unsigned programs by default
             allow_unsigned: true,
+            // Whether the signing of programs should be verified by default
+            //
+            // TODO: Since verifying signatures is a security feature it should
+            // be enabled by default, but it is currently disabled due to the
+            // the TUF issue (https://github.com/bpfman/bpfman/issues/1241).
+            // This should be set back to true once the issue is resolved.
+            verify_enabled: false,
         }
     }
 }
