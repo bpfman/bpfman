@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::anyhow;
 use flate2::read::GzDecoder;
-use log::{debug, trace};
+use log::{debug, info, trace};
 use object::{Endianness, Object};
 use oci_distribution::{
     client::{ClientConfig, ClientProtocol},
@@ -63,20 +63,24 @@ pub struct ContainerImageMetadataV1 {
 
 pub struct ImageManager {
     client: Client,
-    cosign_verifier: CosignVerifier,
+    cosign_verifier: Option<CosignVerifier>,
 }
 
 impl ImageManager {
-    pub async fn new(allow_unsigned: bool) -> Result<Self, anyhow::Error> {
-        let cosign_verifier = CosignVerifier::new(allow_unsigned).await?;
+    pub async fn new(verify_enabled: bool, allow_unsigned: bool) -> Result<Self, anyhow::Error> {
+        let cosign_verifier = if verify_enabled {
+            Some(CosignVerifier::new(allow_unsigned).await?)
+        } else {
+            None
+        };
         let config = ClientConfig {
             protocol: ClientProtocol::Https,
             ..Default::default()
         };
         let client = Client::new(config);
         Ok(Self {
-            cosign_verifier,
             client,
+            cosign_verifier,
         })
     }
 
@@ -93,9 +97,13 @@ impl ImageManager {
         // here: https://github.com/krustlet/oci-distribution/blob/main/src/reference.rs#L58
         let image: Reference = image_url.parse().map_err(ImageError::InvalidImageUrl)?;
 
-        self.cosign_verifier
-            .verify(image_url, username.as_deref(), password.as_deref())
-            .await?;
+        if let Some(cosign_verifier) = &mut self.cosign_verifier {
+            cosign_verifier
+                .verify(image_url, username.as_deref(), password.as_deref())
+                .await?;
+        } else {
+            info!("Cosign verification is disabled, so skipping verification");
+        }
 
         let image_content_key = get_image_content_key(&image);
 
@@ -437,14 +445,19 @@ mod tests {
     use assert_matches::assert_matches;
 
     use super::*;
-    use crate::{get_db_config, init_database};
+    use crate::{config::SigningConfig, get_db_config, init_database};
 
     #[tokio::test]
     async fn image_pull_and_bytecode_verify_legacy() {
         let root_db = init_database(get_db_config())
             .await
             .expect("Unable to open root database for unit test");
-        let mut mgr = ImageManager::new(true).await.unwrap();
+        let mut mgr = ImageManager::new(
+            SigningConfig::default().verify_enabled,
+            SigningConfig::default().allow_unsigned,
+        )
+        .await
+        .unwrap();
         let (image_content_key, _) = mgr
             .get_image(
                 &root_db,
@@ -468,7 +481,12 @@ mod tests {
         let root_db = init_database(get_db_config())
             .await
             .expect("Unable to open root database for unit test");
-        let mut mgr = ImageManager::new(true).await.unwrap();
+        let mut mgr = ImageManager::new(
+            SigningConfig::default().verify_enabled,
+            SigningConfig::default().allow_unsigned,
+        )
+        .await
+        .unwrap();
         let (image_content_key, _) = mgr
             .get_image(
                 &root_db,
@@ -489,7 +507,12 @@ mod tests {
 
     #[tokio::test]
     async fn image_pull_policy_never_failure() {
-        let mut mgr = ImageManager::new(true).await.unwrap();
+        let mut mgr = ImageManager::new(
+            SigningConfig::default().verify_enabled,
+            SigningConfig::default().allow_unsigned,
+        )
+        .await
+        .unwrap();
         let root_db = init_database(get_db_config())
             .await
             .expect("Unable to open root database for unit test");
@@ -510,7 +533,12 @@ mod tests {
     #[tokio::test]
     #[should_panic]
     async fn private_image_pull_failure() {
-        let mut mgr = ImageManager::new(true).await.unwrap();
+        let mut mgr = ImageManager::new(
+            SigningConfig::default().verify_enabled,
+            SigningConfig::default().allow_unsigned,
+        )
+        .await
+        .unwrap();
         let root_db = init_database(get_db_config())
             .await
             .expect("Unable to open root database for unit test");
@@ -528,7 +556,12 @@ mod tests {
 
     #[tokio::test]
     async fn private_image_pull_and_bytecode_verify() {
-        let mut mgr = ImageManager::new(true).await.unwrap();
+        let mut mgr = ImageManager::new(
+            SigningConfig::default().verify_enabled,
+            SigningConfig::default().allow_unsigned,
+        )
+        .await
+        .unwrap();
         let root_db = init_database(get_db_config())
             .await
             .expect("Unable to open root database for unit test");
@@ -553,7 +586,12 @@ mod tests {
 
     #[tokio::test]
     async fn image_pull_failure() {
-        let mut mgr = ImageManager::new(true).await.unwrap();
+        let mut mgr = ImageManager::new(
+            SigningConfig::default().verify_enabled,
+            SigningConfig::default().allow_unsigned,
+        )
+        .await
+        .unwrap();
         let root_db = init_database(get_db_config())
             .await
             .expect("Unable to open root database for unit test");

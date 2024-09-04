@@ -657,8 +657,8 @@ pub(crate) async fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanE
 // explicitly control when bpfman blocks for network calls to both sigstore's
 // cosign tuf registries and container registries.
 pub(crate) async fn init_image_manager() -> ImageManager {
-    let config = open_config_file();
-    ImageManager::new(config.signing().as_ref().map_or(true, |s| s.allow_unsigned))
+    let signing_config = open_config_file().signing().to_owned().unwrap_or_default();
+    ImageManager::new(signing_config.verify_enabled, signing_config.allow_unsigned)
         .await
         .expect("failed to initialize image manager")
 }

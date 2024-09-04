@@ -4,6 +4,7 @@ xdp_mode = "drv" # Valid xdp modes are "hw", "skb" and "drv". Default: "drv", bu
 
 [signing]
 allow_unsigned = true
+verify_enabled = true
 
 [database]
 max_retries = 10

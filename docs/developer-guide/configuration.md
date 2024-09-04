@@ -13,6 +13,7 @@ There is an example at `scripts/bpfman.toml`, similar to:
 
 [signing]
 allow_unsigned = true
+verify_enabled = true
 
 [database]
 max_retries = 10
@@ -41,16 +42,21 @@ Valid fields:
 
 ### Config Section: [signing]
 
-This section of the configuration file allows control over whether OCI packaged eBPF
-bytecode as container images are required to be signed via
-[cosign](https://docs.sigstore.dev/signing/overview/) or not.
-By default, unsigned images are allowed.
-See [eBPF Bytecode Image Specifications](./shipping-bytecode.md) for more details on
+This section of the configuration file allows control over whether signatures on
+OCI packaged eBPF bytecode as container images are verified, and whether they
+are required to be signed via
+[cosign](https://docs.sigstore.dev/signing/overview/).
+
+By default, images are verified, and unsigned images are allowed. See [eBPF
+Bytecode Image Specifications](./shipping-bytecode.md) for more details on
 building and shipping bytecode in a container image.
 
 Valid fields:
 
-- **allow_unsigned**: Flag indicating whether unsigned images are allowed or not.
+- **allow_unsigned**: Flag indicating whether unsigned images are allowed.
+  Valid values: ["true"|"false"]
+
+- **verify_enabled**: Flag indicating whether signatures should be verified.
   Valid values: ["true"|"false"]
 
 ### Config Section: [database]
