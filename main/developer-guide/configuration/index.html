@@ -1756,10 +1756,11 @@ There is an example at <code>scripts/bpfman.toml</code>, similar to:</p>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">[signing]</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">allow_unsigned</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="k">[database]</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">max_retries</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">millisec_delay</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">verify_enabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="k">[database]</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">max_retries</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">millisec_delay</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span>
 </code></pre></div>
 <h3 id="config-section-interfaces">Config Section: [interfaces]</h3>
 <p>This section of the configuration file allows the XDP Mode for a given interface to be set.
@@ -1778,16 +1779,23 @@ Multiple interfaces can be configured.</p>
 <li><strong>xdp_mode</strong>: XDP Mode for a given interface. Valid values: ["drv"|"hw"|"skb"]</li>
 </ul>
 <h3 id="config-section-signing">Config Section: [signing]</h3>
-<p>This section of the configuration file allows control over whether OCI packaged eBPF
-bytecode as container images are required to be signed via
-<a href="https://docs.sigstore.dev/signing/overview/">cosign</a> or not.
-By default, unsigned images are allowed.
-See <a href="../shipping-bytecode/">eBPF Bytecode Image Specifications</a> for more details on
+<p>This section of the configuration file allows control over whether signatures on
+OCI packaged eBPF bytecode as container images are verified, and whether they
+are required to be signed via
+<a href="https://docs.sigstore.dev/signing/overview/">cosign</a>.</p>
+<p>By default, images are verified, and unsigned images are allowed. See <a href="../shipping-bytecode/">eBPF
+Bytecode Image Specifications</a> for more details on
 building and shipping bytecode in a container image.</p>
 <p>Valid fields:</p>
 <ul>
-<li><strong>allow_unsigned</strong>: Flag indicating whether unsigned images are allowed or not.
-  Valid values: ["true"|"false"]</li>
+<li>
+<p><strong>allow_unsigned</strong>: Flag indicating whether unsigned images are allowed.
+  Valid values: ["true"|"false"]</p>
+</li>
+<li>
+<p><strong>verify_enabled</strong>: Flag indicating whether signatures should be verified.
+  Valid values: ["true"|"false"]</p>
+</li>
 </ul>
 <h3 id="config-section-database">Config Section: [database]</h3>
 <p><code>bpfman</code> uses an embedded database to store state and persistent data on disk which
