@@ -18,6 +18,8 @@ metadata:
   namespace: ocp-bpfman-tenant
 spec:
   params:
+  - name: build-source-image
+    value: "true"
   - name: git-url
     value: '{{source_url}}'
   - name: revision
