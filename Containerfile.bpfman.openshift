@@ -48,5 +48,14 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
       cp target/s390x-unknown-linux-gnu/release/bpfman-rpc bin/.; \
     fi
 
+LABEL name="bpfman/bpfman" \
+      com.redhat.component="bpfman" \
+      io.k8s.display-name="Bpfman" \
+      summary="Bpfman manages the eBPF programs lifecycle." \
+      description="Bpfman operates as an eBPF programs manager, focusing on simplifying the deployment and administration of eBPF programs." \
+      io.k8s.description="Bpfman operates as an eBPF programs manager, focusing on simplifying the deployment and administration of eBPF programs." \
+      io.openshift.tags="bpfman" \
+      version="0.5.1" \
+      vendor="Red Hat, Inc."
 
 ENTRYPOINT ["./bin/bpfman-rpc", "--timeout=0"]
