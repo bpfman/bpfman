@@ -8,8 +8,11 @@ metadata:
     build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "main" &&
+      (".tekton/multi-arch-build-pipeline.yaml".pathChanged() ||
+      ".tekton/bpfman-pull-request.yaml".pathChanged() ||
+      ".tekton/bpfman-push.yaml".pathChanged() ||
+      "Containerfile.bpfman.openshift".pathChanged())
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: bpfman
@@ -31,6 +34,14 @@ spec:
     value: 5d
   - name: dockerfile
     value: Containerfile.bpfman.openshift
+  - name: path-context
+    value: .
+  - name: build-platforms
+    value:
+      - localhost
+      - linux/arm64
+      - linux/ppc64le
+      - linux/s390x
   pipelineSpec:
     finally:
     - name: show-sbom
