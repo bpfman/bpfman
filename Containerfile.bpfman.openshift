@@ -20,13 +20,33 @@ RUN ${DNF_CMD} update -y \
     && ${DNF_CMD} install -y rust cargo openssl-devel \
     && ${DNF_CMD} clean all
 
-# Compile bpfman cli, bpfman-ns, and bpfman-rpc binaries only for amd64 for now
-# FIXME: need to support MultiArch
-RUN mkdir -p bin/ && \
-    cargo build --release --target x86_64-unknown-linux-gnu && \
-    cp target/x86_64-unknown-linux-gnu/release/bpfman bin/. && \
-    cp target/x86_64-unknown-linux-gnu/release/bpfman-ns bin/. && \
-    cp target/x86_64-unknown-linux-gnu/release/bpfman-rpc bin/.
+# Compile bpfman cli, bpfman-ns, and bpfman-rpc binaries
+RUN mkdir -p bin/
+RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
+      cargo build --release --target x86_64-unknown-linux-gnu && \
+      cp target/x86_64-unknown-linux-gnu/release/bpfman bin/. && \
+      cp target/x86_64-unknown-linux-gnu/release/bpfman-ns bin/. && \
+      cp target/x86_64-unknown-linux-gnu/release/bpfman-rpc bin/.; \
+    elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
+      apt-get install -y gcc-aarch64-linux-gnu && \
+      rustup target add aarch64-unknown-linux-gnu && \
+      CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc cargo build --release --target aarch64-unknown-linux-gnu && \
+      cp target/aarch64-unknown-linux-gnu/release/bpfman bin/. && \
+      cp target/aarch64-unknown-linux-gnu/release/bpfman-ns bin/. && \
+      cp target/aarch64-unknown-linux-gnu/release/bpfman-rpc bin/.; \
+    elif [ "$TARGETPLATFORM" = "linux/ppc64le" ]; then \
+      rustup target add powerpc64le-unknown-linux-gnu && \
+      cargo build --release --target powerpc64le-unknown-linux-gnu && \
+      cp target/powerpc64le-unknown-linux-gnu/release/bpfman bin/. && \
+      cp target/powerpc64le-unknown-linux-gnu/release/bpfman-ns bin/. && \
+      cp target/powerpc64le-unknown-linux-gnu/release/bpfman-rpc bin/.; \
+    elif [ "$TARGETPLATFORM" = "linux/s390x" ]; then \
+      rustup target add s390x-unknown-linux-gnu && \
+      cargo build --release --target s390x-unknown-linux-gnu && \
+      cp target/s390x-unknown-linux-gnu/release/bpfman bin/. && \
+      cp target/s390x-unknown-linux-gnu/release/bpfman-ns bin/. && \
+      cp target/s390x-unknown-linux-gnu/release/bpfman-rpc bin/.; \
+    fi
 
 LABEL name="bpfman/bpfman" \
       com.redhat.component="bpfman" \
