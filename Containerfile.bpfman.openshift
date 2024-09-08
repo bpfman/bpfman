@@ -1,7 +1,7 @@
 # We do not use --platform feature to auto fill this ARG because of incompatibility between podman and docker
 ARG BUILDPLATFORM
 
-FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi9/ubi-minimal:9.4-1194 AS bpfman-build
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi9/ubi-minimal:9.4-1227 AS bpfman-build
 ARG DNF_CMD="microdnf"
 
 
