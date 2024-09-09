@@ -1,4 +1,4 @@
-![bpfman logo](./docs/img/bpfman_logo_256.png) <!-- markdownlint-disable-line first-line-heading -->
+![bpfman logo](./docs/img/horizontal/color/bpfman-horizontal-color.png) <!-- markdownlint-disable-line first-line-heading -->
 
 # bpfman: An eBPF Manager
 

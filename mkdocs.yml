@@ -9,8 +9,8 @@ theme:
   name: material
   custom_dir: docs/overrides
   language: en
-  logo: img/favicon.svg
-  favicon: img/favicon.svg
+  logo: img/icon/color/bpfman-icon-color.svg
+  favicon: img/icon/color/bpfman-icon-color.svg
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default

@@ -1,4 +1,4 @@
-![bpfman logo](./img/bpfman_logo_256.png) <!-- markdownlint-disable-line first-line-heading -->
+![bpfman logo](./img/horizontal/color/bpfman-horizontal-color.png) <!-- markdownlint-disable-line first-line-heading -->
 
 _Formerly know as `bpfd`_
 
