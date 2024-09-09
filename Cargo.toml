@@ -36,7 +36,7 @@ caps = { version = "0.5.4", default-features = false }
 cargo_metadata = { version = "0.18.0", default-features = false }
 chrono = { version = "0.4.35", default-features = false }
 clap = { version = "4", default-features = false }
-clap_complete = { version = "4.5.24", default-features = false }
+clap_complete = { version = "4.5.26", default-features = false }
 clap_mangen = { version = "0.2.23", default-features = false }
 comfy-table = { version = "7.1.1", default-features = false }
 dialoguer = { version = "0.11", default-features = false }
@@ -82,8 +82,8 @@ tar = { version = "0.4", default-features = false }
 tempfile = { version = "3.12.0", default-features = false }
 thiserror = { version = "1", default-features = false }
 tokio = { version = "1.40.0", default-features = false }
-tokio-stream = { version = "0.1.15", default-features = false }
-tokio-util = { version = "0.7.11", default-features = false }
+tokio-stream = { version = "0.1.16", default-features = false }
+tokio-util = { version = "0.7.12", default-features = false }
 toml = { version = "0.8.19", default-features = false }
 tonic = { version = "0.11.0", default-features = false }
 tonic-build = { version = "0.11.0", default-features = false }
