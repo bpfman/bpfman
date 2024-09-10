@@ -4,11 +4,13 @@
 # Stage 1: Base image with Rust.
 FROM rust:latest AS bpfman-build
 ARG TARGETARCH
+# Currently defaulting to debug so builds don't take so long.
 ARG BUILD_TYPE=debug
 WORKDIR /usr/src/bpfman
 COPY . .
-RUN ./scripts/cross-build.sh ${TARGETARCH}
-RUN mkdir bin && cp target/${TARGETARCH}-unknown-linux-gnu/${BUILD_TYPE}/bpfman* bin
+RUN ./scripts/new-cross-build.sh ${TARGETARCH}
+RUN ls target target/*/${BUILD_TYPE}
+RUN mkdir bin && cp target/*/${BUILD_TYPE}/bpfman* bin
 
 # Stage 2: Final minimal runtime image.
 FROM debian:bullseye-slim
