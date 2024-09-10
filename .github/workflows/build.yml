@@ -86,7 +86,7 @@ jobs:
         if: ${{ matrix.arch.arch == 'amd64' }}
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-2024-09-09
           components: rustfmt, clippy, rust-src
           override: false
 
@@ -152,13 +152,13 @@ jobs:
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
         run: |
-          cargo +nightly fmt --all -- --check
+          cargo +nightly-2024-09-09 fmt --all -- --check
 
       - name: Run clippy
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
         run: |
-          cargo +nightly clippy --all -- --deny warnings
+          cargo +nightly-2024-09-09 clippy --all -- --deny warnings
 
       - name: Check public API
         # Only need to run once
