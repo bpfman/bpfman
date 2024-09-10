@@ -1,54 +1,24 @@
-# We do not use --platform feature to auto fill this ARG because of incompatibility between podman and docker
-ARG BUILDPLATFORM
-
-FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi9/ubi-minimal:9.4-1227.1725849298 AS bpfman-build
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.4-1227 AS bpfman-build
 ARG DNF_CMD="microdnf"
-
-ARG BUILDPLATFORM
-
-# The following ARGs are set internally by docker/build-push-action in github actions
-ARG TARGETPLATFORM
-
-RUN echo "BUILDPLATFORM=${BUILDPLATFORM}  TARGETPLATFORM=${TARGETPLATFORM}"
 
 WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
 
 RUN ${DNF_CMD} update -y \
-    && ${DNF_CMD} install -y rust cargo openssl-devel \
+    && ${DNF_CMD} install -y gcc openssl-devel \
     && ${DNF_CMD} clean all
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Compile bpfman cli, bpfman-ns, and bpfman-rpc binaries
 RUN mkdir -p bin/
-RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
-      cargo build --release --target x86_64-unknown-linux-gnu && \
-      cp target/x86_64-unknown-linux-gnu/release/bpfman bin/. && \
-      cp target/x86_64-unknown-linux-gnu/release/bpfman-ns bin/. && \
-      cp target/x86_64-unknown-linux-gnu/release/bpfman-rpc bin/.; \
-    elif [ "$TARGETPLATFORM" = "linux/arm64" ]; then \
-      ${DNF_CMD} install -y gcc-aarch64-linux-gnu && \
-      rustup target add aarch64-unknown-linux-gnu && \
-      CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc cargo build --release --target aarch64-unknown-linux-gnu && \
-      cp target/aarch64-unknown-linux-gnu/release/bpfman bin/. && \
-      cp target/aarch64-unknown-linux-gnu/release/bpfman-ns bin/. && \
-      cp target/aarch64-unknown-linux-gnu/release/bpfman-rpc bin/.; \
-    elif [ "$TARGETPLATFORM" = "linux/ppc64le" ]; then \
-      ${DNF_CMD} install -y gcc-powerpc64le-linux-gnu && \
-      cargo install cross --git https://github.com/cross-rs/cross && \
-      rustup target add powerpc64le-unknown-linux-gnu && \
-      CARGO_TARGET_POWERPC64LE_UNKNOWN_LINUX_GNU_LINKER=powerpc64le-linux-gnu-gcc cross build --release --target powerpc64le-unknown-linux-gnu && \
-      cp target/powerpc64le-unknown-linux-gnu/release/bpfman bin/. && \
-      cp target/powerpc64le-unknown-linux-gnu/release/bpfman-ns bin/. && \
-      cp target/powerpc64le-unknown-linux-gnu/release/bpfman-rpc bin/.; \
-    elif [ "$TARGETPLATFORM" = "linux/s390x" ]; then \
-      ${DNF_CMD} install -y gcc-s390x-linux-gnu && \
-      cargo install cross --git https://github.com/cross-rs/cross && \
-      rustup target add s390x-unknown-linux-gnu && \
-      CARGO_TARGET_S390X_UNKNOWN_LINUX_GNU_LINKER=s390x-linux-gnu-gcc cross build --release --target s390x-unknown-linux-gnu && \
-      cp target/s390x-unknown-linux-gnu/release/bpfman bin/. && \
-      cp target/s390x-unknown-linux-gnu/release/bpfman-ns bin/. && \
-      cp target/s390x-unknown-linux-gnu/release/bpfman-rpc bin/.; \
-    fi
+RUN cargo build --release
+
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.4-1227
+
+COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman .
+COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman-ns .
+COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman-rpc .
 
 LABEL name="bpfman/bpfman" \
       com.redhat.component="bpfman" \
@@ -60,4 +30,4 @@ LABEL name="bpfman/bpfman" \
       version="0.5.1" \
       vendor="Red Hat, Inc."
 
-ENTRYPOINT ["./bin/bpfman-rpc", "--timeout=0"]
+ENTRYPOINT ["./bpfman-rpc", "--timeout=0"]
