@@ -1,0 +1,20 @@
+# Build as:
+# $ docker buildx build -f Containerfile.cross-build --build-arg TARGETARCH=aarch64 -t bpfman-aarch64 .
+
+# Stage 1: Base image with Rust.
+FROM rust:latest AS bpfman-build
+ARG TARGETARCH
+ARG BUILD_TYPE=debug
+WORKDIR /usr/src/bpfman
+COPY . .
+RUN ./scripts/cross-build.sh ${TARGETARCH}
+RUN mkdir bin && cp target/${TARGETARCH}-unknown-linux-gnu/${BUILD_TYPE}/bpfman* bin
+
+# Stage 2: Final minimal runtime image.
+FROM debian:bullseye-slim
+WORKDIR /bpfman/bin
+COPY --from=bpfman-build /usr/src/bpfman/bin/bpfman .
+COPY --from=bpfman-build /usr/src/bpfman/bin/bpfman-ns .
+COPY --from=bpfman-build /usr/src/bpfman/bin/bpfman-rpc .
+# Entry point to allow further interaction with the container.
+CMD ["/bin/sh"]
