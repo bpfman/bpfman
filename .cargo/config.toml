@@ -1,2 +1,13 @@
 [alias]
 xtask = "run --package xtask --"
+
+[source.crates-io]
+replace-with = "vendored-sources"
+
+[source."https://github.com/aya-rs/aya"]
+git = "https://github.com/aya-rs/aya"
+rev = "ab5e688fd49fcfb402ad47d51cb445437fbd8cb7"
+replace-with = "vendored-sources"
+
+[source.vendored-sources]
+directory = "vendor"
