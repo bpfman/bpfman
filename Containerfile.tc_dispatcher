@@ -1,7 +1,0 @@
-FROM scratch
-
-COPY  .output/tc_dispatcher.bpf.o dispatcher.o
-LABEL io.ebpf.program_type tc
-LABEL io.ebpf.filename dispatcher.o
-LABEL io.ebpf.program_name tc_dispatcher
-LABEL io.ebpf.bpf_function_name tc_dispatcher

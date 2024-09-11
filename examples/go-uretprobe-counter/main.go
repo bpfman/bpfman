@@ -1,4 +1,5 @@
-//go:build amd64
+//go:build linux
+// +build linux
 
 package main
 
