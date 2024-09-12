@@ -6,7 +6,11 @@ on: # yamllint disable-line rule:truthy
     tags:
       - v*
   pull_request:
-    paths: [.github/workflows/image-build.yaml]
+    paths:
+      - .github/workflows/image-build.yaml
+      - Containerfile.bpfman.multi.arch
+      - Containerfile.bytecode.multi.arch
+      - examples/**/container-deployment/Containerfile**
   workflow_dispatch:
 
 jobs:
