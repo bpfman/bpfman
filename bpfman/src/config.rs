@@ -60,12 +60,7 @@ impl Default for SigningConfig {
             // Whether to allow unsigned programs by default
             allow_unsigned: true,
             // Whether the signing of programs should be verified by default
-            //
-            // TODO: Since verifying signatures is a security feature it should
-            // be enabled by default, but it is currently disabled due to the
-            // the TUF issue (https://github.com/bpfman/bpfman/issues/1241).
-            // This should be set back to true once the issue is resolved.
-            verify_enabled: false,
+            verify_enabled: true,
         }
     }
 }
