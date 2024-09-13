@@ -15,7 +15,7 @@ use sigstore::{
 };
 
 pub struct CosignVerifier {
-    pub client: sigstore::cosign::Client<'static>,
+    pub client: sigstore::cosign::Client,
     pub allow_unsigned: bool,
 }
 
@@ -45,8 +45,7 @@ impl CosignVerifier {
 
         let cosign_client = ClientBuilder::default()
             .with_oci_client_config(oci_config)
-            .with_trust_repository(repo)
-            .await?
+            .with_trust_repository(repo)?
             .enable_registry_caching()
             .build()?;
 
@@ -113,14 +112,6 @@ async fn fetch_sigstore_tuf_data() -> anyhow::Result<Box<dyn sigstore::trust::Tr
         .map_err(|e| {
             anyhow!(
                 "Error spawning blocking task to build sigstore repo inside of tokio: {}",
-                e
-            )
-        })?
-        .prefetch()
-        .await
-        .map_err(|e| {
-            anyhow!(
-                "Error spawning blocking task to prefetch tuf data inside of tokio: {}",
                 e
             )
         })?;
