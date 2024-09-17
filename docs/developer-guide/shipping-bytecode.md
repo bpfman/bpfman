@@ -60,7 +60,7 @@ Example Containerfiles for single-arch and multi-arch can be found at `Container
 #### Host Platform Architecture Image Build
 
 ```console
-bpfman image build -b ./examples/go-xdp-counter/bpf_bpfel.o -f Containerfile.bytecode --tag quay.io/<USER>/go-xdp-counter
+bpfman image build -b ./examples/go-xdp-counter/bpf_x86_bpfel.o -f Containerfile.bytecode --tag quay.io/<USER>/go-xdp-counter
 ```
 
 Where `./examples/go-xdp-counter/bpf_x86_bpfel.o` is the path to the bytecode object file.

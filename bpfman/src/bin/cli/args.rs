@@ -465,11 +465,6 @@ impl GoArch {
 #[derive(Args, Debug)]
 #[command(disable_version_flag = true)]
 pub(crate) struct BuildBytecodeArgs {
-    /// Optional: bytecode file to use for building the image assuming host architecture.
-    /// Example: -b ./bpf_x86_bpfel.o
-    #[clap(flatten)]
-    pub(crate) bytecode_file: BytecodeFile,
-
     /// Required: Name and optionally a tag in the name:tag format.
     /// Example: --tag quay.io/bpfman-bytecode/xdp_pass:latest
     #[clap(short, long, verbatim_doc_comment)]
@@ -484,6 +479,9 @@ pub(crate) struct BuildBytecodeArgs {
     /// Example: --runtime podman
     #[clap(short, long, verbatim_doc_comment)]
     pub(crate) runtime: Option<String>,
+
+    #[clap(flatten)]
+    pub(crate) bytecode_file: BytecodeFile,
 }
 
 #[derive(Args, Debug)]
@@ -505,6 +503,12 @@ pub(crate) struct BytecodeFile {
     /// Example: -b ./examples/go-xdp-counter/bpf_x86_bpfel.o
     #[clap(short, long, verbatim_doc_comment)]
     pub(crate) bytecode: Option<PathBuf>,
+
+    /// Optional: If specified pull multi-arch bytecode files from a cilium/ebpf formatted project
+    /// where the bytecode files all contain a standard bpf_<GOARCH>_<(el/eb)>.o tag.
+    /// Example: --cilium-ebpf-project ./examples/go-xdp-counter
+    #[clap(short, long, verbatim_doc_comment)]
+    pub(crate) cilium_ebpf_project: Option<PathBuf>,
 
     /// Optional: bytecode file to use for building the image assuming amd64 architecture.
     /// Example: --bc-386-el ./examples/go-xdp-counter/bpf_386_bpfel.o
@@ -570,12 +574,6 @@ pub(crate) struct BytecodeFile {
     /// Example: --bc-s390x-eb ./examples/go-xdp-counter/bpf_s390x_bpfeb.o
     #[clap(long, verbatim_doc_comment, group = "multi-arch")]
     pub(crate) bc_s390x_eb: Option<PathBuf>,
-
-    /// Optional: If specified pull multi-arch bytecode files from a cilium/ebpf formatted project
-    /// where the bytecode files all contain a standard bpf_<GOARCH>_<(el/eb)>.o tag.
-    /// Example: --cilium-ebpf-project ./examples/go-xdp-counter
-    #[clap(short, long, verbatim_doc_comment)]
-    pub(crate) cilium_ebpf_project: Option<PathBuf>,
 }
 
 #[derive(Args, Debug)]
