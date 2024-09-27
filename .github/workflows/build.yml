@@ -12,7 +12,7 @@ on: # yamllint disable-line rule:truthy
 
 env:
   CARGO_TERM_COLOR: always
-  # Use to pin rust nightly to specific version. Also update `xtask/src/public_api.rs`.
+  # Use to pin rust nightly to specific version.
   NIGHTLY_VERSION: nightly-2024-09-24
 
 jobs:
@@ -167,7 +167,7 @@ jobs:
       - name: Check public API
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        run: cargo xtask public-api --target ${{ matrix.arch.rust-target }}
+        run: cargo xtask public-api --target ${{ matrix.arch.rust-target }} --toolchain ${{ env.NIGHTLY_VERSION }}
 
       - name: Run documentation tests
         # Only need to run once

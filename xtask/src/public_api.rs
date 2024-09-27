@@ -13,27 +13,34 @@ use diff::{lines, Result as Diff};
 
 #[derive(Debug, Parser)]
 pub struct Options {
-    /// Bless new API changes.
+    /// Optional: Bless new API changes [default: false].
     #[clap(long)]
     pub bless: bool,
 
-    /// Bless new API changes.
+    /// Optional: Rust target to run against [default: host].
     #[clap(long)]
     pub target: Option<String>,
+
+    /// Optional: Override the rust toolchain.
+    #[clap(long, default_value = "nightly")]
+    pub toolchain: String,
 }
 
 pub fn public_api(options: Options, metadata: Metadata) -> Result<()> {
-    let toolchain = "nightly-2024-09-24";
-    let Options { bless, target } = options;
+    let Options {
+        bless,
+        target,
+        toolchain,
+    } = options;
 
-    if !rustup_toolchain::is_installed(toolchain)? {
+    if !rustup_toolchain::is_installed(&toolchain)? {
         if Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt(
                 format! {"No {toolchain} toolchain detected. Would you like to install one?"},
             )
             .interact()?
         {
-            rustup_toolchain::install(toolchain)?;
+            rustup_toolchain::install(&toolchain)?;
         } else {
             bail!(format! {"{toolchain} toolchain not installed"})
         }
@@ -77,7 +84,7 @@ pub fn public_api(options: Options, metadata: Metadata) -> Result<()> {
 
                     let diff = check_package_api(
                         &name,
-                        toolchain,
+                        &toolchain,
                         arch.cloned(),
                         bless,
                         workspace_root.as_std_path(),
