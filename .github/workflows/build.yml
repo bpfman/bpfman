@@ -12,6 +12,8 @@ on: # yamllint disable-line rule:truthy
 
 env:
   CARGO_TERM_COLOR: always
+  # Use to pin rust nightly to specific version. Also update `xtask/src/public_api.rs`.
+  NIGHTLY_VERSION: nightly-2024-09-24
 
 jobs:
   check-license:
@@ -83,12 +85,12 @@ jobs:
           override: true
           target: ${{ matrix.arch.rust-target }}
 
-      - name: Install rust toolchain - nightly-2024-09-24
+      - name: Install rust toolchain - ${{ env.NIGHTLY_VERSION }}
         # Only need for checks (like lint and clippy) that only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2024-09-24
+          toolchain: ${{ env.NIGHTLY_VERSION }}
           components: rustfmt, clippy, rust-src
           override: false
 
@@ -154,13 +156,13 @@ jobs:
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
         run: |
-          cargo +nightly-2024-09-24 fmt --all -- --check
+          cargo +${{ env.NIGHTLY_VERSION }} fmt --all -- --check
 
       - name: Run clippy
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
         run: |
-          cargo +nightly-2024-09-24 clippy --all -- --deny warnings
+          cargo +${{ env.NIGHTLY_VERSION }} clippy --all -- --deny warnings
 
       - name: Check public API
         # Only need to run once
