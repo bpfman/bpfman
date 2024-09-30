@@ -67,7 +67,7 @@ prost-types = { version = "0.12.6", default-features = false }
 public-api = { version = "0.38.0", default-features = false }
 quote = { version = "1", default-features = false }
 rand = { version = "0.8", default-features = false }
-regex = { version = "1.10.6", default-features = false }
+regex = { version = "1.11.0", default-features = false }
 rtnetlink = { version = "0.14", default-features = false }
 rustdoc-json = { version = "0.8.9", default-features = false }
 rustup-toolchain = { version = "0.1.7", default-features = false }
@@ -79,7 +79,7 @@ sled = { version = "0.34.7", default-features = false }
 syn = { version = "2.0", default-features = false }
 systemd-journal-logger = { version = "2.1.1", default-features = false }
 tar = { version = "0.4", default-features = false }
-tempfile = { version = "3.12.0", default-features = false }
+tempfile = { version = "3.13.0", default-features = false }
 thiserror = { version = "1", default-features = false }
 tokio = { version = "1.40.0", default-features = false }
 tokio-stream = { version = "0.1.16", default-features = false }
