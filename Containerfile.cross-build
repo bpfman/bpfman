@@ -8,7 +8,7 @@ ARG TARGETARCH
 ARG BUILD_TYPE=debug
 WORKDIR /usr/src/bpfman
 COPY . .
-RUN ./scripts/new-cross-build.sh ${TARGETARCH}
+RUN ./scripts/cross-build.sh ${TARGETARCH}
 RUN ls target target/*/${BUILD_TYPE}
 RUN mkdir bin && cp target/*/${BUILD_TYPE}/bpfman* bin
 
