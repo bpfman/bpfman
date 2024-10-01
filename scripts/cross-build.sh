@@ -326,9 +326,10 @@ fi
 
 # Set CC only if we are cross-compiling.
 if [ $cross_compiling -eq 1 ]; then
-    CC=$cc
+    export CC=$cc
 else
-    unset CC  # Don't explicitly set CC if we're not cross-compiling.
+    # Don't explicitly set CC if we're not cross-compiling.
+    unset CC
 fi
 
 cargo build --target "$rust_target" $CARGO_BUILD_FLAG "$@"
