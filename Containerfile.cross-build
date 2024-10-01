@@ -4,19 +4,41 @@
 # Stage 1: Base image with Rust.
 FROM rust:latest AS bpfman-build
 ARG TARGETARCH
-# Currently defaulting to debug so builds don't take so long.
+# XXX Currently defaulting to debug so builds don't take so long.
 ARG BUILD_TYPE=debug
 WORKDIR /usr/src/bpfman
 COPY . .
 RUN ./scripts/cross-build.sh ${TARGETARCH}
-RUN ls target target/*/${BUILD_TYPE}
-RUN mkdir bin && cp target/*/${BUILD_TYPE}/bpfman* bin
+
+# Copy the built binaries to /usr/local/bin in a single step. NOTE:
+# The bpfman repo has a .dockerignore file that deliberately excludes
+# the target/ directory from the build context. However, since the
+# binaries are built within the container, we can copy them directly
+# using the shell.
+RUN cp \
+    target/*/${BUILD_TYPE}/bpfman \
+    target/*/${BUILD_TYPE}/bpfman-ns \
+    target/*/${BUILD_TYPE}/bpfman-rpc \
+    target/*/${BUILD_TYPE}/bpf-log-exporter \
+    target/*/${BUILD_TYPE}/bpf-metrics-exporter /usr/local/bin/
+
+# For each binary in /usr/local/bin:
+# - Display the size of the binary with 'size'
+# - Verify the architecture with 'file'
+# - Show the needed dynamic libraries with 'readelf', filtered by 'NEEDED'
+# Each binary's information is separated by a blank line for readability.
+RUN bash -c 'for i in /usr/local/bin/*; do size $i; file $i; readelf -d $i | grep NEEDED; echo; done'
 
 # Stage 2: Final minimal runtime image.
 FROM debian:bullseye-slim
-WORKDIR /bpfman/bin
-COPY --from=bpfman-build /usr/src/bpfman/bin/bpfman .
-COPY --from=bpfman-build /usr/src/bpfman/bin/bpfman-ns .
-COPY --from=bpfman-build /usr/src/bpfman/bin/bpfman-rpc .
+WORKDIR /usr/local/bin
+
+# Copy the binaries from the build stage into the final image.
+COPY --from=bpfman-build /usr/local/bin/bpfman .
+COPY --from=bpfman-build /usr/local/bin/bpfman-ns .
+COPY --from=bpfman-build /usr/local/bin/bpfman-rpc .
+COPY --from=bpfman-build /usr/local/bin/bpf-log-exporter .
+COPY --from=bpfman-build /usr/local/bin/bpf-metrics-exporter .
+
 # Entry point to allow further interaction with the container.
 CMD ["/bin/sh"]
