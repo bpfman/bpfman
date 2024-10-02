@@ -12,6 +12,8 @@ fi
 BIN_BPFMAN="bpfman"
 BIN_BPFMAN_RPC="bpfman-rpc"
 BIN_BPFMAN_NS="bpfman-ns"
+BIN_BPF_LOG_EXPORTER="bpf-log-exporter"
+BIN_BPF_METRICS_EXPORTER="bpf-metrics-exporter"
 
 # Well known directories
 SRC_DEBUG_BIN_PATH="../target/debug"
