@@ -17,14 +17,15 @@ XDP programs on a given interface.
 This tutorial will show you how to use `bpfman` to load multiple XDP programs
 on an interface.
 
-**Note:** The TC hook point is also associated with an interface.
-Within bpfman, TC is implemented in a similar fashion to XDP in that it uses a dispatcher with
-stub functions.
-TCX is a fairly new kernel feature that improves how the kernel handles multiple TC programs
-on a given interface.
-bpfman is on the process of integrating TCX support, which will replace the dispatcher logic
-for TC.
-Until then, assume TC behaves in a similar fashion to XDP.
+!!! Note
+    The TC hook point is also associated with an interface.
+    Within bpfman, TC is implemented in a similar fashion to XDP in that it uses a dispatcher with
+    stub functions.
+    TCX is a fairly new kernel feature that improves how the kernel handles multiple TC programs
+    on a given interface.
+    bpfman is on the process of integrating TCX support, which will replace the dispatcher logic
+    for TC.
+    Until then, assume TC behaves in a similar fashion to XDP.
 
 See [Launching bpfman](../getting-started/launching-bpfman.md)
 for more detailed instructions on building and loading bpfman.
@@ -38,8 +39,8 @@ We will use the priority of 100.
 Find a deeper dive into CLI syntax in [CLI Guide](../getting-started/cli-guide.md).
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp \
-  --iface eno3 --priority 100
+sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass \
+  xdp --iface eno3 --priority 100
  Bpfman State
 ---------------
  Name:          pass
@@ -128,8 +129,8 @@ We will now load 2 more programs with different priorities to demonstrate how bp
 will ensure they are ordered correctly:
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp \
-  --iface eno3 --priority 50
+sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass \
+  xdp --iface eno3 --priority 50
  Bpfman State
 ---------------
  Name:          pass
@@ -154,8 +155,8 @@ sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp \
 ```
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp \
-  --iface eno3 --priority 200
+sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass \
+  xdp --iface eno3 --priority 200
  Bpfman State
 ---------------
  Name:          pass
@@ -260,8 +261,8 @@ then the program can be loaded with those additional return values using the `pr
 parameter (see `bpfman load image xdp --help` for list of valid values):
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp \
-  --iface eno3 --priority 150 --proceed-on "pass" --proceed-on "dispatcher_return"
+sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass \
+  xdp --iface eno3 --priority 150 --proceed-on "pass" --proceed-on "dispatcher_return"
  Bpfman State
 ---------------
  Name:          pass

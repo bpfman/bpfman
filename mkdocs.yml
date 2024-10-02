@@ -53,10 +53,10 @@ nav:
   - Quick Start: quick-start.md
   - Documentation:
       - bpfman Overview: getting-started/overview.md
+      - Setup and Building: getting-started/building-bpfman.md
       - Launching bpfman: getting-started/launching-bpfman.md
       - Deploying Example eBPF Programs On Local Host: getting-started/example-bpf-local.md
       - Deploying Example eBPF Programs On Kubernetes: getting-started/example-bpf-k8s.md
-      - Setup and Building: getting-started/building-bpfman.md
       - Run bpfman From Release Image: getting-started/running-release.md
       - Run bpfman From RPM: getting-started/running-rpm.md
       - CLI Guide: getting-started/cli-guide.md

@@ -35,11 +35,15 @@ To install nightly builds:
 sudo dnf copr enable @ebpf-sig/bpfman-next
 ```
 
-> **Note:** If both the bpfman and bpfman-next copr repos are enabled DNF will
-> automatically pull from bpfman-next.  To disable one or the other simply run
-> ```console
-> sudo dnf copr disable @ebpf-sig/bpfman-next
-> ```
+!!! Note
+    If both the `bpfman` and `bpfman-next` copr repos are enabled, `dnf` will
+    automatically pull from `bpfman-next`.
+    Either repo can be disabled.
+    For example, to disable `bpfman-next` run:
+    
+    ```console
+    sudo dnf copr disable @ebpf-sig/bpfman-next
+    ```
 
 ### Install RPM From Packit Service
 
@@ -123,8 +127,9 @@ sudo dnf install packit
 sudo dnf install cargo-rpm-macros
 ```
 
-> NOTE: `cargo-rpm-macros` needs to be version 25 or higher.
-> It appears this is only available on Fedora 37, 38, 39 and Rawhide at the moment.
+!!! Note
+    `cargo-rpm-macros` needs to be version 25 or higher.
+    It appears this is only available on Fedora 37, 38, 39 and Rawhide at the moment.
 
 ### Build Locally
 

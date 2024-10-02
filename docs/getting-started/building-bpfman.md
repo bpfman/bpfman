@@ -1,19 +1,20 @@
 # Setup and Building bpfman
 
 This section describes how to build bpfman.
-If this is the first time building bpfman, jump to the
-[Development Environment Setup](#development-environment-setup) section for help installing
-the tooling.
+If this is the first time building bpfman, the
+[Development Environment Setup](#development-environment-setup) section describes all packages needed
+to build bpfman.
 
-There is also an option to run images from a given release, or from an RPM, as opposed to
+There is also an option to run prebuilt images from a given release or from an RPM, as opposed to
 building locally.
-Jump to the [Run bpfman From Release Image](./running-release.md) section for installing
-from a fixed release or jump to the [Run bpfman From RPM](./running-rpm.md) section for installing
-from an RPM.
+Jump to:
+
+* [Run bpfman From Release Image](./running-release.md) for installing from a prebuilt fixed release.
+* [Run bpfman From RPM](./running-rpm.md) for installing from a prebuilt RPM.
 
 ## Kernel Versions
 
-eBPF is still a relatively new technology and being actively developed.
+eBPF is still a relatively new technology that is being actively developed.
 To take advantage of this constantly evolving technology, it is best to use the newest
 kernel version possible.
 If bpfman needs to be run on an older kernel, this section describes some of the kernel
@@ -35,6 +36,9 @@ Major kernel features leveraged by bpfman:
 * **Relaxed CAP_BPF Requirement:** Prior to Kernel 5.19, all eBPF system calls required CAP_BPF.
   This required userspace programs that wanted to access eBPF maps to have the CAP_BPF Linux capability.
   With the kernel 5.19 change, CAP_BPF is only required for load and unload requests.
+* **TCX:** TCX support was added in Kernel 6.6 and is expected to be added to bpfman in v0.5.2.
+  TCX has performance improvements over TC and adds support in the kernel for multiple TCX programs to run
+  on a given TC hook point.
 
 bpfman tested on older kernel versions:
 
@@ -58,115 +62,6 @@ bpfman tested on older kernel versions:
       `BPF_LINK_CREATE` call was updated in newer kernels.
     * bpfman fails to run as a systemd service because of some capabilities issues in the
       bpfman.service file.
-
-## Clone the bpfman Repo
-
-You can build and run bpfman from anywhere. However, if you plan to make changes to the bpfman
-operator, specifically run `make generate`, it will need to be under your `GOPATH` because
-Kubernetes Code-generator does not work outside of `GOPATH`
-[Issue 86753](https://github.com/kubernetes/kubernetes/issues/86753).
-Assuming your `GOPATH` is set to the typical `$HOME/go`, your repo should live in
-`$HOME/go/src/github.com/bpfman/bpfman`
-
-```
-mkdir -p $HOME/go/src/github.com/bpfman
-cd $HOME/go/src/github.com/bpfman
-git clone git@github.com:bpfman/bpfman.git
-```
-
-## Building bpfman
-
-To just test with the latest bpfman, containerized image are stored in `quay.io/bpfman`
-(see [bpfman Container Images](../developer-guide/image-build.md)).
-To build with local changes, use the following commands.
-
-If you are building bpfman for the first time OR the eBPF code has changed:
-
-```console
-cargo xtask build-ebpf --libbpf-dir /path/to/libbpf
-```
-
-If protobuf files have changed (see
-[RPC Protobuf Generation](../developer-guide/develop-operator.md#rpc-protobuf-generation)):
-
-```console
-cargo xtask build-proto
-```
-
-To build bpfman:
-
-```console
-cargo build
-```
-
-## Building CLI TAB completion files
-
-Optionally, to build the CLI TAB completion files, run the following command:
-
-```console
-cargo xtask build-completion
-```
-
-Files are generated for different shells:
-
-```console
-ls .output/completions/
-_bpfman  bpfman.bash  bpfman.elv  bpfman.fish  _bpfman.ps1
-```
-
-### bash
-
-For `bash`, this generates a file that can be used by the linux `bash-completion`
-utility (see [Install bash-completion](#install-bash-completion) for installation
-instructions).
-
-If the files are generated, they are installed automatically when using the install
-script (i.e. `sudo ./scripts/setup.sh install` - See
-[Run as a systemd Service](example-bpf-local.md#run-as-a-systemd-service)).
-To install the files manually, copy the file associated with a given shell to
-`/usr/share/bash-completion/completions/`.
-For example:
-
-```console
-sudo cp .output/completions/bpfman.bash /usr/share/bash-completion/completions/.
-
-bpfman g<TAB>
-```
-
-### Other shells
-
-Files are generated other shells (Elvish, Fish, PowerShell and zsh).
-For these shells, generated file must be manually installed.
-
-## Building CLI Manpages
-
-Optionally, to build the CLI Manpage files, run the following command:
-
-```console
-cargo xtask build-man-page
-```
-
-If the files are generated, they are installed automatically when using the install
-script (i.e. `sudo ./scripts/setup.sh install` - See
-[Run as a systemd Service](example-bpf-local.md#run-as-a-systemd-service)).
-To install the files manually, copy the generated files to `/usr/local/share/man/man1/`.
-For example:
-
-```console
-sudo cp .output/manpage/bpfman*.1 /usr/local/share/man/man1/.
-```
-
-Once installed, use `man` to view the pages.
-
-```console
-man bpfman list
-```
-
-> **NOTE:**
-> `bpfman` commands with subcommands (specifically `bpfman load`) have `-` in the
-> manpage subcommand generation.
-> So use `bpfman load-file`, `bpfman load-image`, `bpfman load-image-xdp`, etc. to
-> display the subcommand manpage files.
 
 ## Development Environment Setup
 
@@ -200,7 +95,13 @@ sudo dnf install llvm-devel clang-devel elfutils-libelf-devel
 sudo apt install clang lldb lld libelf-dev gcc-multilib
 ```
 
-### Install libssl Development Library
+### Install SSL Library
+
+`dnf` based OS:
+
+```console
+sudo dnf install openssl-devel
+```
 
 `apt` based OS:
 
@@ -218,7 +119,11 @@ sudo apt install libbpf-dev
 
 ### Install Protobuf Compiler
 
-For further detailed instructions, see [protoc](https://grpc.io/docs/protoc-installation/).
+If any of the [Protobuf files](https://github.com/bpfman/bpfman/tree/main/proto) need to be updated,
+then the protobuf-compiler will need to be installed.
+See [RPC Protobuf Generation](../developer-guide/develop-operator.md#rpc-protobuf-generation) for bpfman
+use of protobufs and see [protoc](https://grpc.io/docs/protoc-installation/) for more detailed installation
+instructions.
 
 `dnf` based OS:
 
@@ -277,12 +182,13 @@ throughout the `bpfman` documentation is to run a Kubernetes Kind cluster.
 See [kind](https://kind.sigs.k8s.io/) for documentation and installation instructions.
 `kind` also requires `docker` to be installed.
 
->> **NOTE:** By default, bpfman-operator deploys bpfman with CSI enabled.
-CSI requires Kubernetes v1.26 due to a PR
-([kubernetes/kubernetes#112597](https://github.com/kubernetes/kubernetes/pull/112597))
-that addresses a gRPC Protocol Error that was seen in the CSI client code and it doesn't appear to have
-been backported.
-It is recommended to install kind v0.20.0 or later.
+!!! Note
+    By default, bpfman-operator deploys bpfman with CSI enabled.
+    CSI requires Kubernetes v1.26 due to a PR
+    ([kubernetes/kubernetes#112597](https://github.com/kubernetes/kubernetes/pull/112597))
+    that addresses a gRPC Protocol Error that was seen in the CSI client code and it doesn't appear
+    to have been backported.
+    kind v0.20.0 or later is recommended.
 
 If the following error is seen, it means there is an older version of Kubernetes running and it
 needs to be upgraded.
@@ -366,3 +272,110 @@ And to verify locally:
 ```console
 taplo fmt --check
 ```
+
+## Clone the bpfman and bpfman-operator Repositories
+
+You can build and run bpfman from anywhere.
+For simplicity throughout this documentation, all examples will reference
+`bpfman/` and `bpfman-operator/` to indicate which repository is being used.
+bpfman-operator only needs to be cloned if deploying in Kubernetes.
+
+```
+mkdir -p $HOME/src/
+cd $HOME/src/
+git clone https://github.com/bpfman/bpfman.git
+git clone https://github.com/bpfman/bpfman-operator.git
+```
+
+## Building bpfman
+
+If you are building bpfman for the first time OR the eBPF code has changed:
+
+```console
+cd bpfman/
+cargo xtask build-ebpf --libbpf-dir /path/to/libbpf
+```
+
+If protobuf files have changed (see
+[RPC Protobuf Generation](../developer-guide/develop-operator.md#rpc-protobuf-generation)):
+
+```console
+cargo xtask build-proto
+```
+
+To build bpfman:
+
+```console
+cargo build
+```
+
+## Building CLI TAB completion files
+
+Optionally, to build the CLI TAB completion files, run the following command:
+
+```console
+cd bpfman/
+cargo xtask build-completion
+```
+
+Files are generated for different shells:
+
+```console
+ls .output/completions/
+_bpfman  bpfman.bash  bpfman.elv  bpfman.fish  _bpfman.ps1
+```
+
+### bash
+
+For `bash`, this generates a file that can be used by the linux `bash-completion`
+utility (see [Install bash-completion](#install-bash-completion) for installation
+instructions).
+
+If the files are generated, they are installed automatically when using the install
+script (i.e. `sudo ./scripts/setup.sh install` - See
+[Run as a systemd Service](example-bpf-local.md#run-as-a-systemd-service)).
+To install the files manually, copy the file associated with a given shell to
+`/usr/share/bash-completion/completions/`.
+For example:
+
+```console
+sudo cp .output/completions/bpfman.bash /usr/share/bash-completion/completions/.
+
+bpfman g<TAB>
+```
+
+### Other shells
+
+Files are generated other shells (Elvish, Fish, PowerShell and zsh).
+For these shells, generated file must be manually installed.
+
+## Building CLI Manpages
+
+Optionally, to build the CLI Manpage files, run the following command:
+
+```console
+cd bpfman/
+cargo xtask build-man-page
+```
+
+If the files are generated, they are installed automatically when using the install
+script (i.e. `sudo ./scripts/setup.sh install` - See
+[Run as a systemd Service](example-bpf-local.md#run-as-a-systemd-service)).
+To install the files manually, copy the generated files to `/usr/local/share/man/man1/`.
+For example:
+
+```console
+sudo cp .output/manpage/bpfman*.1 /usr/local/share/man/man1/.
+```
+
+Once installed, use `man` to view the pages.
+
+```console
+man bpfman list
+```
+
+!!! Note
+    `bpfman` commands with subcommands (specifically `bpfman load`) have `-` in the
+    manpage subcommand generation.
+    So use `man bpfman load-file`, `man bpfman load-image`, `man bpfman load-image-xdp`,
+    etc. to display the subcommand manpage files.

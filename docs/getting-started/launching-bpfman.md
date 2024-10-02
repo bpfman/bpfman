@@ -17,76 +17,68 @@ cd bpfman/
 cargo build
 ```
 
-## Start bpfman-rpc
-
-When running bpfman, the RPC Server `bpfman-rpc` can be run as a long running process or a
-systemd service.
-Examples run the same, independent of how bpfman is deployed.
-
-### Run as a Long Lived Process
-
-While learning and experimenting with `bpfman`, it may be useful to run `bpfman` in the foreground
-(which requires a second terminal to run the `bpfman` CLI commands).
-When run in this fashion, logs are dumped directly to the terminal.
-For more details on how logging is handled in bpfman, see [Logging](../developer-guide/logging.md).
-
-```console
-sudo RUST_LOG=info ./target/debug/bpfman-rpc --timeout=0
-[INFO  bpfman::utils] Has CAP_BPF: true
-[INFO  bpfman::utils] Has CAP_SYS_ADMIN: true
-[INFO  bpfman_rpc::serve] Using no inactivity timer
-[INFO  bpfman_rpc::serve] Using default Unix socket
-[INFO  bpfman_rpc::serve] Listening on /run/bpfman-sock/bpfman.sock
-```
-
-When a build is run for bpfman, built binaries can be found in `./target/debug/`.
-So when launching `bpfman-rpc` and calling `bpfman` CLI commands, the binary must be in the $PATH
-or referenced directly:
-
-```console
-sudo ./target/debug/bpfman list
-```
-
-For readability, the remaining sample commands will assume the `bpfman` CLI binary is in the $PATH,
-so `./target/debug/` will be dropped.
-
-### Run as a systemd Service
+## Install and Start bpfman
 
 Run the following command to copy the `bpfman` CLI and `bpfman-rpc` binaries to `/usr/sbin/` and
 copy `bpfman.socket` and `bpfman.service` files to `/usr/lib/systemd/system/`.
 This option will also enable and start the systemd services:
 
 ```console
+cd bpfman/
 sudo ./scripts/setup.sh install
 ```
 
-`bpfman` CLI is now in $PATH, so `./targer/debug/` is not needed:
+`bpfman` CLI is now in $PATH and can be used to load, view and unload eBPF programs.
 
 ```console
+sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass xdp --iface eno3 --priority 100
+
 sudo bpfman list
+ Program ID  Name  Type  Load Time                
+ 53885       pass  xdp   2024-08-26T17:41:36-0400 
+
+sudo bpfman unload 53885
 ```
 
-To view logs, use `journalctl`:
+`bpfman` CLI is a Rust program that calls the `bpfman` library directly.
+To view logs while running `bpfman` CLI commands, prepend `RUST_LOG=info` to each command
+(see [Logging](../developer-guide/logging.md) for more details):
+
+```console
+sudo RUST_LOG=info bpfman list
+[INFO  bpfman::utils] Has CAP_BPF: true
+[INFO  bpfman::utils] Has CAP_SYS_ADMIN: true
+ Program ID  Name  Type  Load Time 
+```
+
+The examples (see [Deploying Example eBPF Programs On Local Host](./example-bpf-local.md))
+are Go based programs, so they are building and sending RPC messages to the rust based binary
+`bpfman-rpc`, which in turn calls the `bpfman` library.
+
+```console
+cd bpfman/examples/go-xdp-counter/
+go run -exec sudo . -iface eno3
+```
+
+To view bpfman logs for RPC based applications, including all the provided examples, use `journalctl`:
 
 ```console
 sudo journalctl -f -u bpfman.service -u bpfman.socket
-Mar 27 09:13:54 server-calvin systemd[1]: Listening on bpfman.socket - bpfman API Socket.
-  <RUN "sudo ./go-kprobe-counter">
-Mar 27 09:15:43 server-calvin systemd[1]: Started bpfman.service - Run bpfman as a service.
-Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Has CAP_BPF: true
-Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Has CAP_SYS_ADMIN: true
-Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Using a Unix socket from systemd
-Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Using inactivity timer of 15 seconds
-Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Listening on /run/bpfman-sock/bpfman.sock
-Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Starting Cosign Verifier, downloading data from Sigstore TUF repository
-Mar 27 09:15:45 server-calvin bpfman-rpc[2548091]: Loading program bytecode from file: /home/<USER>/src/bpfman/examples/go-kprobe-counter/bpf_bpfel.o
-Mar 27 09:15:45 server-calvin bpfman-rpc[2548091]: Added probe program with name: kprobe_counter and id: 7568
-Mar 27 09:15:48 server-calvin bpfman-rpc[2548091]: Removing program with id: 7568
-Mar 27 09:15:58 server-calvin bpfman-rpc[2548091]: Shutdown Unix Handler /run/bpfman-sock/bpfman.sock
-Mar 27 09:15:58 server-calvin systemd[1]: bpfman.service: Deactivated successfully.
+:
+  <RUN "go run -exec sudo . -iface eno3">
+Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Using a Unix socket from systemd
+Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Using inactivity timer of 15 seconds
+Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Listening on /run/bpfman-sock/bpfman.sock
+Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Has CAP_BPF: true
+Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Has CAP_SYS_ADMIN: true
+Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Starting Cosign Verifier, downloading data from Sigstore TUF repository
+Aug 26 18:03:55 server-calvin bpfman-rpc[2401725]: Loading program bytecode from file: /home/$USER/src/bpfman/bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o
+Aug 26 18:03:57 server-calvin bpfman-rpc[2401725]: The bytecode image: quay.io/bpfman/xdp-dispatcher:latest is signed
+Aug 26 18:03:57 server-calvin bpfman-rpc[2401725]: Added xdp program with name: xdp_stats and id: 53919
+Aug 26 18:04:09 server-calvin bpfman-rpc[2401725]: Shutdown Unix Handler /run/bpfman-sock/bpfman.sock```
 ```
 
-#### Additional Notes
+### Additional Notes
 
 To update the configuration settings associated with running `bpfman` as a service, edit the
 service configuration files:
@@ -124,9 +116,10 @@ The socket service is the long lived process, which doesn't have any special per
 The service that runs `bpfman-rpc` is only started when there is a request on the socket,
 and then `bpfman-rpc` stops itself after an inactivity timeout.
 
-> For security reasons, it is recommended to run `bpfman-rpc` as a systemd service when running
-on a local host.
-For local development, some may find it useful to run `bpfman-rpc` as a long lived process.
+!!! Note
+    For security reasons, it is recommended to run `bpfman-rpc` as a systemd service when running
+    on a local host.
+    For local development, some may find it useful to run `bpfman-rpc` as a long lived process.
 
 When run as a systemd service, the set of linux capabilities are limited to only the required set.
 If permission errors are encountered, see [Linux Capabilities](../developer-guide/linux-capabilities.md)

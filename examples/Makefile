@@ -25,6 +25,7 @@
 ##     quay.io/bpfman-bytecode/go-xdp-counter:v0.1.0
 ##     quay.io/bpfman-userspace/go-xdp-counter:v0.1.0
 ##     quay.io/bpfman-userspace/go-app-counter:v0.1.0
+##     :
 ##
 
 # VERSION defines the project version for the bundle.
@@ -123,16 +124,89 @@ generate: ## Run `go generate` to build the bytecode for each of the examples.
 build-release-yamls: kustomize ## Generate yamls examples for a specific release version.
 	VERSION=$(VERSION) ./build-release-yamls.sh
 
+
+.PHONY: build-bc-images
+build-bc-images: generate ## Build all example bytecode images
+	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_TC_BC} -b ./go-tc-counter/bpf_x86_bpfel.o
+	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_TP_BC} -b ./go-tracepoint-counter/bpf_x86_bpfel.o
+	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_XDP_BC} -b ./go-xdp-counter/bpf_x86_bpfel.o
+	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_KP_BC} -b ./go-kprobe-counter/bpf_x86_bpfel.o
+	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_UP_BC} -b ./go-uprobe-counter/bpf_x86_bpfel.o
+	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_URP_BC} -b ./go-uretprobe-counter/bpf_x86_bpfel.o
+	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_APP_BC} -b ./go-app-counter/bpf_x86_bpfel.o
+
+.PHONY: build-bc-tc
+build-bc-tc: generate ## Build TC example bytecode image
+	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_TC_BC} -b ./go-tc-counter/bpf_x86_bpfel.o
+
+.PHONY: build-bc-tp
+build-bc-tp: generate ## Build Tracepoint example bytecode image
+	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_TP_BC} -b ./go-tracepoint-counter/bpf_x86_bpfel.o
+
+.PHONY: build-bc-xdp
+build-bc-xdp: generate ## Build XDP example bytecode image
+	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_XDP_BC} -b ./go-xdp-counter/bpf_x86_bpfel.o
+
+.PHONY: build-bc-kprobe
+build-bc-kprobe: generate ## Build kprobe example bytecode image
+	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_KP_BC} -b ./go-kprobe-counter/bpf_x86_bpfel.o
+
+.PHONY: build-bc-uprobe
+build-bc-uprobe: generate ## Build uprobe example bytecode image
+	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_UP_BC} -b ./go-uprobe-counter/bpf_x86_bpfel.o
+
+.PHONY: build-bc-uretprobe
+build-bc-uretprobe: generate ## Build uretprobe example bytecode image
+	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_URP_BC} -b ./go-uretprobe-counter/bpf_x86_bpfel.o
+
+.PHONY: build-bc-app
+build-bc-app: generate ## Build application example bytecode image
+	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_APP_BC} -b ./go-app-counter/bpf_x86_bpfel.o
+
+
 .PHONY: build-us-images
 build-us-images: build ## Build all example userspace images
-	docker buildx build -t ${IMAGE_TC_US} --platform ${PLATFORM} --load -f ./go-tc-counter/container-deployment/Containerfile.go-tc-counter ../
-	docker buildx build -t ${IMAGE_TP_US} --platform ${PLATFORM} --load -f ./go-tracepoint-counter/container-deployment/Containerfile.go-tracepoint-counter ../
+	docker buildx build -t ${IMAGE_TC_US}  --platform ${PLATFORM} --load -f ./go-tc-counter/container-deployment/Containerfile.go-tc-counter ../
+	docker buildx build -t ${IMAGE_TP_US}  --platform ${PLATFORM} --load -f ./go-tracepoint-counter/container-deployment/Containerfile.go-tracepoint-counter ../
 	docker buildx build -t ${IMAGE_XDP_US} --platform ${PLATFORM} --load -f ./go-xdp-counter/container-deployment/Containerfile.go-xdp-counter ../
-	docker buildx build -t ${IMAGE_KP_US} --platform ${PLATFORM} --load -f ./go-kprobe-counter/container-deployment/Containerfile.go-kprobe-counter ../
-	docker buildx build -t ${IMAGE_UP_US} --platform ${PLATFORM} --load -f ./go-uprobe-counter/container-deployment/Containerfile.go-uprobe-counter ../
+	docker buildx build -t ${IMAGE_KP_US}  --platform ${PLATFORM} --load -f ./go-kprobe-counter/container-deployment/Containerfile.go-kprobe-counter ../
+	docker buildx build -t ${IMAGE_UP_US}  --platform ${PLATFORM} --load -f ./go-uprobe-counter/container-deployment/Containerfile.go-uprobe-counter ../
 	docker buildx build -t ${IMAGE_URP_US} --platform ${PLATFORM} --load -f ./go-uretprobe-counter/container-deployment/Containerfile.go-uretprobe-counter ../
+	docker buildx build -t ${IMAGE_GT_US}  --platform ${PLATFORM} --load -f ./go-target/container-deployment/Containerfile.go-target ../
+	docker buildx build -t ${IMAGE_APP_US} --platform ${PLATFORM} --load -f ./go-app-counter/container-deployment/Containerfile.go-app-counter ../
+
+.PHONY: build-us-tc
+build-us-tc: build ## Build TC example userspace image
+	docker buildx build -t ${IMAGE_TC_US} --platform ${PLATFORM} --load -f ./go-tc-counter/container-deployment/Containerfile.go-tc-counter ../
+
+.PHONY: build-us-tp
+build-us-tp: build ## Build Tracepoint example userspace image
+	docker buildx build -t ${IMAGE_TP_US} --platform ${PLATFORM} --load -f ./go-tracepoint-counter/container-deployment/Containerfile.go-tracepoint-counter ../
+
+.PHONY: build-us-xdp
+build-us-xdp: build ## Build XDP example userspace image
+	docker buildx build -t ${IMAGE_XDP_US} --platform ${PLATFORM} --load -f ./go-xdp-counter/container-deployment/Containerfile.go-xdp-counter ../
+
+.PHONY: build-us-kprobe
+build-us-kprobe: build ## Build kprobe example userspace image
+	docker buildx build -t ${IMAGE_KP_US} --platform ${PLATFORM} --load -f ./go-kprobe-counter/container-deployment/Containerfile.go-kprobe-counter ../
+
+.PHONY: build-us-uprobe
+build-us-uprobe: build ## Build uprobe example userspace image
+	docker buildx build -t ${IMAGE_UP_US} --platform ${PLATFORM} --load -f ./go-uprobe-counter/container-deployment/Containerfile.go-uprobe-counter ../
+
+.PHONY: build-us-uretprobe
+build-us-uretprobe: build ## Build uretprobe example userspace image
+	docker buildx build -t ${IMAGE_URP_US} --platform ${PLATFORM} --load -f ./go-uretprobe-counter/container-deployment/Containerfile.go-uretprobe-counter ../
+
+.PHONY: build-us-target
+build-us-target: build ## Build target example userspace image
 	docker buildx build -t ${IMAGE_GT_US} --platform ${PLATFORM} --load -f ./go-target/container-deployment/Containerfile.go-target ../
+
+.PHONY: build-us-app
+build-us-app: build ## Build application example userspace image
 	docker buildx build -t ${IMAGE_APP_US} --platform ${PLATFORM} --load  -f ./go-app-counter/container-deployment/Containerfile.go-app-counter ../
+
 
 .PHONY: push-us-images
 push-us-images: ## Push all example userspace images
@@ -149,8 +223,12 @@ push-us-images: ## Push all example userspace images
 load-us-images-kind: build-us-images ## Build and load all example userspace images into kind
 	kind load docker-image ${IMAGE_TC_US} ${IMAGE_TP_US} ${IMAGE_XDP_US} ${IMAGE_KP_US} ${IMAGE_UP_US} ${IMAGE_GT_US} ${IMAGE_APP_US} --name ${KIND_CLUSTER_NAME}
 
-##@ Deployment Variables (not commands)
-TAG: ## Used to set all images to a fixed tag. Example: make deploy TAG=v0.2.0
+##@ Build and Deployment Variables (not commands)
+TAG: ## ONLY deploy commands. Used to set all images to a fixed tag. TAG takes precedence over TAG_BC or TAG_US. Example: make deploy TAG=v0.2.0
+TAG_BC: ## Used to set all bytecode images to a given tag. Example: make deploy TAG_BC=test-bc
+TAG_US: ## Used to set all userspace images to a given tag. Example: make build-us-images TAG_US=test; make deploy TAG_US=test-us
+USER_BC: ## Used to set all bytecode images to a given respository account. Example: make deploy USER_BC=$QUAY_USER
+USER_US: ## Used to set all userspace images to a given respository account. Example: make build-us-images USER_US=$QUAY_USER; make deploy USER_US=$QUAY_USER
 IMAGE_TC_BC: ## TC Bytecode image. Example: make deploy-tc IMAGE_TC_BC=quay.io/user1/go-tc-counter-bytecode:test
 IMAGE_TC_US: ## TC Userspace image. Example: make deploy-tc IMAGE_TC_US=quay.io/user1/go-tc-counter-userspace:test
 IMAGE_TP_BC: ## Tracepoint Bytecode image. Example: make deploy-tracepoint IMAGE_TP_BC=quay.io/user1/go-tracepoint-counter-bytecode:test
@@ -170,21 +248,25 @@ KIND_CLUSTER_NAME: ## Name of the deployed cluster to load example images to, de
 ignore-not-found: ## For any undeploy command, set to true to ignore resource not found errors during deletion. Example: make undeploy ignore-not-found=true
 
 ##@ Deployment
-IMAGE_TC_BC ?= quay.io/bpfman-bytecode/go-tc-counter:latest
-IMAGE_TC_US ?= quay.io/bpfman-userspace/go-tc-counter:latest
-IMAGE_TP_BC ?= quay.io/bpfman-bytecode/go-tracepoint-counter:latest
-IMAGE_TP_US ?= quay.io/bpfman-userspace/go-tracepoint-counter:latest
-IMAGE_XDP_BC ?= quay.io/bpfman-bytecode/go-xdp-counter:latest
-IMAGE_XDP_US ?= quay.io/bpfman-userspace/go-xdp-counter:latest
-IMAGE_KP_BC ?= quay.io/bpfman-bytecode/go-kprobe-counter:latest
-IMAGE_KP_US ?= quay.io/bpfman-userspace/go-kprobe-counter:latest
-IMAGE_UP_BC ?= quay.io/bpfman-bytecode/go-uprobe-counter:latest
-IMAGE_UP_US ?= quay.io/bpfman-userspace/go-uprobe-counter:latest
-IMAGE_URP_BC ?= quay.io/bpfman-bytecode/go-uretprobe-counter:latest
-IMAGE_URP_US ?= quay.io/bpfman-userspace/go-uretprobe-counter:latest
-IMAGE_APP_BC ?= quay.io/bpfman-bytecode/go-app-counter:latest
-IMAGE_APP_US ?= quay.io/bpfman-userspace/go-app-counter:latest
-IMAGE_GT_US ?= quay.io/bpfman-userspace/go-target:latest
+TAG_BC ?= latest
+TAG_US ?= latest
+USER_BC ?= bpfman-bytecode
+USER_US ?= bpfman-userspace
+IMAGE_TC_BC ?= quay.io/$(USER_BC)/go-tc-counter:$(TAG_BC)
+IMAGE_TC_US ?= quay.io/$(USER_US)/go-tc-counter:$(TAG_US)
+IMAGE_TP_BC ?= quay.io/$(USER_BC)/go-tracepoint-counter:$(TAG_BC)
+IMAGE_TP_US ?= quay.io/$(USER_US)/go-tracepoint-counter:$(TAG_US)
+IMAGE_XDP_BC ?= quay.io/$(USER_BC)/go-xdp-counter:$(TAG_BC)
+IMAGE_XDP_US ?= quay.io/$(USER_US)/go-xdp-counter:$(TAG_US)
+IMAGE_KP_BC ?= quay.io/$(USER_BC)/go-kprobe-counter:$(TAG_BC)
+IMAGE_KP_US ?= quay.io/$(USER_US)/go-kprobe-counter:$(TAG_US)
+IMAGE_UP_BC ?= quay.io/$(USER_BC)/go-uprobe-counter:$(TAG_BC)
+IMAGE_UP_US ?= quay.io/$(USER_US)/go-uprobe-counter:$(TAG_US)
+IMAGE_URP_BC ?= quay.io/$(USER_BC)/go-uretprobe-counter:$(TAG_BC)
+IMAGE_URP_US ?= quay.io/$(USER_US)/go-uretprobe-counter:$(TAG_US)
+IMAGE_APP_BC ?= quay.io/$(USER_BC)/go-app-counter:$(TAG_BC)
+IMAGE_APP_US ?= quay.io/$(USER_US)/go-app-counter:$(TAG_US)
+IMAGE_GT_US ?= quay.io/$(USER_US)/go-target:$(TAG_US)
 KIND_CLUSTER_NAME ?= bpfman-deployment
 
 
