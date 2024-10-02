@@ -520,6 +520,26 @@
   
   
     <li class="md-nav__item">
+      <a href="../../getting-started/building-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Setup and Building
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../getting-started/launching-bpfman/" class="md-nav__link">
         
   
@@ -565,26 +585,6 @@
   
   <span class="md-ellipsis">
     Deploying Example eBPF Programs On Kubernetes
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/building-bpfman/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Setup and Building
   </span>
   
 
@@ -1788,7 +1788,8 @@ instructions for running them locally when doing development.</p>
 <h2 id="unit-testing">Unit Testing</h2>
 <p>Unit testing is executed as part of the <code>build</code> job by running the following
 command in the top-level bpfman directory.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a> cargo test
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cd bpfman/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cargo test
 </code></pre></div>
 <h2 id="go-example-tests">Go Example Tests</h2>
 <p>Tests are run for each of the example programs found in directory <code>examples</code></p>
@@ -1796,7 +1797,8 @@ command in the top-level bpfman directory.</p>
 <h2 id="basic-integration-tests">Basic Integration Tests</h2>
 <p>The full set of basic integration tests are executed by running the following
 command in the top-level bpfman directory.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>cargo<span class="w"> </span>xtask<span class="w"> </span>integration-test
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman/
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cargo<span class="w"> </span>xtask<span class="w"> </span>integration-test
 </code></pre></div>
 <p>Optionally, a subset of the integration tests can be run by adding the "--" and
 a list of one or more names at the end of the command as shown below.</p>
@@ -1830,46 +1832,42 @@ running as expected.</p>
 the eBPF test programs can be found in the <code>tests/integration-test/bpf</code>
 directory.  These programs are compiled by executing <code>cargo xtask build-ebpf
 --libbpf-dir &lt;libbpf dir&gt;</code></p>
-<p>We also load some tests from local files to test the <code>load-from-file</code> option.</p>
-<p>The <code>bpf</code> directory also contains a script called <code>build_push_images.sh</code> that
-can be used to build and push new images to quay if the code is changed.
-Images get pushed automatically when code gets merged, however, it's still
-useful to be able to push them manually sometimes. For example, when a new test
-case requires that both the eBPF and integration code be changed together.  It
-is also a useful template for new eBPF test code that needs to be pushed.
-However, as a word of caution, be aware that existing integration tests will
-start using the new programs immediately, so this should only be done if the
-modified program is backward compatible.</p>
+<p>We also load some tests from local files to test the <code>bpfman load file</code> option.</p>
 <h2 id="kubernetes-operator-tests">Kubernetes Operator Tests</h2>
 <h3 id="kubernetes-operator-unit-tests">Kubernetes Operator Unit Tests</h3>
 <p>To run all of the unit tests defined in the bpfman-operator controller code run
 <code>make test</code> in the bpfman-operator directory.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>make<span class="w"> </span><span class="nb">test</span>
+</code></pre></div>
 <h3 id="kubernetes-operator-integration-tests">Kubernetes Operator Integration Tests</h3>
 <p>To run the Kubernetes Operator integration tests locally:</p>
 <ol>
-<li>Build the example test code userspace images locally.</li>
-</ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="w">    </span><span class="c1"># in bpfman/examples</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">    </span>make<span class="w"> </span>build-us-images
+<li>
+<p>Build the example test code userspace images locally.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman/examples/
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>make<span class="w"> </span>build-us-images
 </code></pre></div>
-<ol>
-<li>(optional) build the bytecode images</li>
-</ol>
+</li>
+<li>
+<p>(optional) build the bytecode images</p>
 <p>In order to rebuild all of the bytecode images for a PR, ask a maintainer to do so,
-  they will be built and generate by github actions with the tag
-  <code>quay.io/bpfman-bytecode/&lt;example&gt;:&lt;branch-name&gt;</code></p>
-<ol>
-<li>Build the bpfman images locally with the <code>int-test</code> tag.</li>
-</ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="w">    </span><span class="c1"># in bpfman/bpfman-operator</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">    </span><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-agent:int-test<span class="w"> </span><span class="nv">BPFMAN_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman:int-test<span class="w"> </span><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-operator:int-test<span class="w"> </span>make<span class="w"> </span>build-images
+they will be built and generate by github actions with the tag
+<code>quay.io/bpfman-bytecode/&lt;example&gt;:&lt;branch-name&gt;</code></p>
+</li>
+<li>
+<p>Build the bpfman images locally with a unique tag, for example: <code>int-test</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-agent:int-test<span class="w"> </span><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-operator:int-test<span class="w"> </span>make<span class="w"> </span>build-images
 </code></pre></div>
-<ol>
-<li>Run the integration test suite.</li>
-</ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="w">    </span><span class="c1"># in bpfman/bpfman-operator</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">    </span><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-agent:int-test<span class="w"> </span><span class="nv">BPFMAN_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman:int-test<span class="w"> </span><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-operator:int-test<span class="w"> </span>make<span class="w"> </span>test-integration
+</li>
+<li>
+<p>Run the integration test suite with the images from the previous step:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-agent:int-test<span class="w"> </span><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-operator:int-test<span class="w"> </span>make<span class="w"> </span>test-integration
 </code></pre></div>
+<p>If an update <code>bpfman</code> image is required, build it separately and pass to <code>make test-integration</code> using <code>BPFMAN_IMG</code>.
+See <a href="../image-build/#locally-build-bpfman-container-image">Locally Build bpfman Container Image</a>.</p>
 <p>Additionally the integration test can be configured with the following environment variables:</p>
 <ul>
 <li><strong>KEEP_TEST_CLUSTER</strong>: If set to <code>true</code> the test cluster will not be torn down
@@ -1878,6 +1876,8 @@ modified program is backward compatible.</p>
   cluster the integration test suite will use that cluster instead of creating a
   new one.</li>
 </ul>
+</li>
+</ol>
 
 
 

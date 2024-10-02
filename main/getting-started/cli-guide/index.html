@@ -522,6 +522,26 @@
   
   
     <li class="md-nav__item">
+      <a href="../building-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Setup and Building
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../launching-bpfman/" class="md-nav__link">
         
   
@@ -567,26 +587,6 @@
   
   <span class="md-ellipsis">
     Deploying Example eBPF Programs On Kubernetes
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../building-bpfman/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Setup and Building
   </span>
   
 
@@ -862,11 +862,44 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#bpfman-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      bpfman image
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="bpfman image">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#bpfman-image-pull" class="md-nav__link">
     <span class="md-ellipsis">
       bpfman image pull
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bpfman-image-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      bpfman image build
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bpfman-image-generate-build-args" class="md-nav__link">
+    <span class="md-ellipsis">
+      bpfman image generate-build-args
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2001,11 +2034,44 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#bpfman-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      bpfman image
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="bpfman image">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#bpfman-image-pull" class="md-nav__link">
     <span class="md-ellipsis">
       bpfman image pull
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bpfman-image-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      bpfman image build
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bpfman-image-generate-build-args" class="md-nav__link">
+    <span class="md-ellipsis">
+      bpfman image generate-build-args
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2051,22 +2117,21 @@ use as your system is deployed.</p>
 from the <code>bpfman</code> repository.</p>
 <h2 id="basic-syntax">Basic Syntax</h2>
 <p>Below are the commands supported by <code>bpfman</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">sudo bpfman --help</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">An eBPF manager focusing on simplifying the deployment and administration of eBPF programs.</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="go">Usage: bpfman &lt;COMMAND&gt;</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="go">Commands:</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="go">  load    Load an eBPF program on the system</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="go">  unload  Unload an eBPF program using the Program Id</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="go">  list    List all eBPF programs loaded via bpfman</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="go">  get     Get an eBPF program using the Program Id</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="go">  image   eBPF Bytecode Image related commands</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="go">  help    Print this message or the help of the given subcommand(s)</span>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="go">Options:</span>
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="go">  -h, --help</span>
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">An eBPF manager focusing on simplifying the deployment and administration of eBPF programs.</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="go">Usage: bpfman &lt;COMMAND&gt;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="go">Commands:</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="go">  load    Load an eBPF program on the system</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="go">  unload  Unload an eBPF program using the Program Id</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="go">  list    List all eBPF programs loaded via bpfman</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="go">  get     Get an eBPF program using the Program Id</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="go">  image   eBPF Bytecode Image related commands</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="go">  help    Print this message or the help of the given subcommand(s)</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="go">Options:</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="go">  -h, --help</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
 </code></pre></div>
 <h2 id="bpfman-load">bpfman load</h2>
 <p>The <code>bpfman load file</code> and <code>bpfman load image</code> commands are used to load eBPF programs.
@@ -2094,7 +2159,7 @@ There are a common set of attributes, and those MUST come before the program typ
 <a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="go">Options:</span>
 <a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="go">  -p, --path &lt;PATH&gt;</span>
 <a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="go">          Required: Location of local bytecode file</span>
-<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="go">          Example: --path /run/bpfman/examples/go-xdp-counter/bpf_bpfel.o</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="go">          Example: --path /run/bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o</span>
 <a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>
 <a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="go">  -n, --name &lt;NAME&gt;</span>
 <a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="go">          Required: The name of the function that is the entry point for the BPF program</span>
@@ -2128,7 +2193,7 @@ There are a common set of attributes, and those MUST come before the program typ
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">sudo bpfman load image --help</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">Load an eBPF program packaged in a OCI container image from a given registry</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go">Usage: bpfman load image [OPTIONS] --image-url &lt;IMAGE_URL&gt; &lt;COMMAND&gt;</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go">Usage: bpfman load image [OPTIONS] --image-url &lt;IMAGE_URL&gt; --name &lt;NAME&gt; &lt;COMMAND&gt;</span>
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="go">Commands:</span>
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="go">  xdp         Install an eBPF program on the XDP hook point for a given interface</span>
@@ -2159,35 +2224,32 @@ There are a common set of attributes, and those MUST come before the program typ
 <a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="go">          [default: IfNotPresent]</span>
 <a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a>
 <a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="go">  -n, --name &lt;NAME&gt;</span>
-<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="go">          Optional: The name of the function that is the entry point for the BPF program.</span>
-<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="go">          If not provided, the program name defined as part of the bytecode image will be used.</span>
-<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>
-<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="go">          [default: ]</span>
-<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a>
-<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="go">  -g, --global &lt;GLOBAL&gt;...</span>
-<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="go">          Optional: Global variables to be set when program is loaded.</span>
-<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="go">          Format: &lt;NAME&gt;=&lt;Hex Value&gt;</span>
-<a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a>
-<a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a><span class="go">          This is a very low level primitive. The caller is responsible for formatting</span>
-<a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a><span class="go">          the byte string appropriately considering such things as size, endianness,</span>
-<a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a><span class="go">          alignment and packing of data structures.</span>
-<a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a>
-<a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a><span class="go">  -m, --metadata &lt;METADATA&gt;</span>
-<a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a><span class="go">          Optional: Specify Key/Value metadata to be attached to a program when it</span>
-<a id="__codelineno-4-50" name="__codelineno-4-50" href="#__codelineno-4-50"></a><span class="go">          is loaded by bpfman.</span>
-<a id="__codelineno-4-51" name="__codelineno-4-51" href="#__codelineno-4-51"></a><span class="go">          Format: &lt;KEY&gt;=&lt;VALUE&gt;</span>
-<a id="__codelineno-4-52" name="__codelineno-4-52" href="#__codelineno-4-52"></a>
-<a id="__codelineno-4-53" name="__codelineno-4-53" href="#__codelineno-4-53"></a><span class="go">          This can later be used to list a certain subset of programs which contain</span>
-<a id="__codelineno-4-54" name="__codelineno-4-54" href="#__codelineno-4-54"></a><span class="go">          the specified metadata.</span>
-<a id="__codelineno-4-55" name="__codelineno-4-55" href="#__codelineno-4-55"></a><span class="go">          Example: --metadata owner=acme</span>
-<a id="__codelineno-4-56" name="__codelineno-4-56" href="#__codelineno-4-56"></a>
-<a id="__codelineno-4-57" name="__codelineno-4-57" href="#__codelineno-4-57"></a><span class="go">      --map-owner-id &lt;MAP_OWNER_ID&gt;</span>
-<a id="__codelineno-4-58" name="__codelineno-4-58" href="#__codelineno-4-58"></a><span class="go">          Optional: Program Id of loaded eBPF program this eBPF program will share a map with.</span>
-<a id="__codelineno-4-59" name="__codelineno-4-59" href="#__codelineno-4-59"></a><span class="go">          Only used when multiple eBPF programs need to share a map.</span>
-<a id="__codelineno-4-60" name="__codelineno-4-60" href="#__codelineno-4-60"></a><span class="go">          Example: --map-owner-id 63178</span>
-<a id="__codelineno-4-61" name="__codelineno-4-61" href="#__codelineno-4-61"></a>
-<a id="__codelineno-4-62" name="__codelineno-4-62" href="#__codelineno-4-62"></a><span class="go">  -h, --help</span>
-<a id="__codelineno-4-63" name="__codelineno-4-63" href="#__codelineno-4-63"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
+<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="go">          Required: The name of the function that is the entry point for the eBPF program.</span>
+<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a>
+<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a><span class="go">  -g, --global &lt;GLOBAL&gt;...</span>
+<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="go">          Optional: Global variables to be set when program is loaded.</span>
+<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="go">          Format: &lt;NAME&gt;=&lt;Hex Value&gt;</span>
+<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a>
+<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="go">          This is a very low level primitive. The caller is responsible for formatting</span>
+<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="go">          the byte string appropriately considering such things as size, endianness,</span>
+<a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a><span class="go">          alignment and packing of data structures.</span>
+<a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a>
+<a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a><span class="go">  -m, --metadata &lt;METADATA&gt;</span>
+<a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a><span class="go">          Optional: Specify Key/Value metadata to be attached to a program when it</span>
+<a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a><span class="go">          is loaded by bpfman.</span>
+<a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a><span class="go">          Format: &lt;KEY&gt;=&lt;VALUE&gt;</span>
+<a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a>
+<a id="__codelineno-4-50" name="__codelineno-4-50" href="#__codelineno-4-50"></a><span class="go">          This can later be used to list a certain subset of programs which contain</span>
+<a id="__codelineno-4-51" name="__codelineno-4-51" href="#__codelineno-4-51"></a><span class="go">          the specified metadata.</span>
+<a id="__codelineno-4-52" name="__codelineno-4-52" href="#__codelineno-4-52"></a><span class="go">          Example: --metadata owner=acme</span>
+<a id="__codelineno-4-53" name="__codelineno-4-53" href="#__codelineno-4-53"></a>
+<a id="__codelineno-4-54" name="__codelineno-4-54" href="#__codelineno-4-54"></a><span class="go">      --map-owner-id &lt;MAP_OWNER_ID&gt;</span>
+<a id="__codelineno-4-55" name="__codelineno-4-55" href="#__codelineno-4-55"></a><span class="go">          Optional: Program Id of loaded eBPF program this eBPF program will share a map with.</span>
+<a id="__codelineno-4-56" name="__codelineno-4-56" href="#__codelineno-4-56"></a><span class="go">          Only used when multiple eBPF programs need to share a map.</span>
+<a id="__codelineno-4-57" name="__codelineno-4-57" href="#__codelineno-4-57"></a><span class="go">          Example: --map-owner-id 63178</span>
+<a id="__codelineno-4-58" name="__codelineno-4-58" href="#__codelineno-4-58"></a>
+<a id="__codelineno-4-59" name="__codelineno-4-59" href="#__codelineno-4-59"></a><span class="go">  -h, --help</span>
+<a id="__codelineno-4-60" name="__codelineno-4-60" href="#__codelineno-4-60"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
 </code></pre></div>
 <p>When using either load command, <code>--path</code>, <code>--image-url</code>, <code>--registry-auth</code>, <code>--pull-policy</code>, <code>--name</code>,
  <code>--global</code>, <code>--metadata</code> and <code>--map-owner-id</code> must be entered before the <code>&lt;COMMAND&gt;</code> (<code>xdp</code>, <code>tc</code>,
@@ -2219,14 +2281,15 @@ Then each <code>&lt;COMMAND&gt;</code> has its own custom parameters (same for b
 <a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
 </code></pre></div>
 <p>Example loading from local file (<code>--path</code> is the fully qualified path):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">sudo bpfman load file --path $HOME/src/bpfman/tests/integration-test/bpf/.output/xdp_pass.bpf.o --name &quot;pass&quot; xdp --iface vethb2795c7 --priority 100</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">cd bpfman/</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="go">sudo bpfman load file --path tests/integration-test/bpf/.output/xdp_pass.bpf.o --name &quot;pass&quot; xdp --iface eno3 --priority 100</span>
 </code></pre></div>
-<p>Example from image in remote repository (Note: <code>--name</code> is built into the image and is not required):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface vethb2795c7 --priority 100</span>
+<p>Example from image in remote repository:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name &quot;pass&quot; xdp --iface eno3 --priority 100</span>
 </code></pre></div>
 <p>The <code>tc</code> command is similar to <code>xdp</code>, but it also requires the <code>direction</code> option
 and the <code>proceed-on</code> values are different.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">sudo bpfman load file tc -h</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">sudo bpfman load file tc --help</span>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="go">Install an eBPF program on the TC hook point for a given interface</span>
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
 <a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="go">Usage: bpfman load file --path &lt;PATH&gt; --name &lt;NAME&gt; tc [OPTIONS] --direction &lt;DIRECTION&gt; --iface &lt;IFACE&gt; --priority &lt;PRIORITY&gt;</span>
@@ -2257,12 +2320,13 @@ and the <code>proceed-on</code> values are different.</p>
 <a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
 </code></pre></div>
 <p>The following is an example of the <code>tc</code> command using short option names:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">sudo bpfman load file -p $HOME/src/bpfman/tests/integration-test/bpf/.output/tc_pass.bpf.o -n &quot;pass&quot; tc -d ingress -i mynet1 -p 40</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">cd bpfman/</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">sudo bpfman load file -p tests/integration-test/bpf/.output/tc_pass.bpf.o -n &quot;pass&quot; tc -d ingress -i mynet1 -p 40</span>
 </code></pre></div>
 <p>For the <code>tc_pass.bpf.o</code> program loaded with the command above, the name
-would be set as shown in the following snippet:</p>
+would be set as shown in the following snippet, taken from the function name, not <code>SEC()</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">SEC</span><span class="p">(</span><span class="s">&quot;classifier/pass&quot;</span><span class="p">)</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kt">int</span><span class="w"> </span><span class="n">accept</span><span class="p">(</span><span class="k">struct</span><span class="w"> </span><span class="nc">__sk_buff</span><span class="w"> </span><span class="o">*</span><span class="n">skb</span><span class="p">)</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kt">int</span><span class="w"> </span><span class="n">pass</span><span class="p">(</span><span class="k">struct</span><span class="w"> </span><span class="nc">__sk_buff</span><span class="w"> </span><span class="o">*</span><span class="n">skb</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="p">{</span>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">    </span><span class="o">:</span>
 <a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="p">}</span>
@@ -2270,34 +2334,37 @@ would be set as shown in the following snippet:</p>
 <h3 id="additional-load-examples">Additional Load Examples</h3>
 <p>Below are some additional examples of <code>bpfman load</code> commands:</p>
 <h4 id="fentry">Fentry</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/fentry:latest fentry -f do_unlinkat</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/fentry:latest --name &quot;test_fentry&quot; fentry -f do_unlinkat</span>
 </code></pre></div>
 <h4 id="fexit">Fexit</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/fexit:latest fexit -f do_unlinkat</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/fexit:latest --name &quot;test_fexit&quot; fexit -f do_unlinkat</span>
 </code></pre></div>
 <h4 id="kprobe">Kprobe</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/kprobe:latest kprobe -f try_to_wake_up</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/kprobe:latest --name &quot;my_kprobe&quot; kprobe -f try_to_wake_up</span>
 </code></pre></div>
 <h4 id="kretprobe">Kretprobe</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/kretprobe:latest kprobe -f try_to_wake_up -r</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/kretprobe:latest --name &quot;my_kretprobe&quot; kprobe -f try_to_wake_up -r</span>
 </code></pre></div>
 <h4 id="tc">TC</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="go">sudo bpfman load file --path $HOME/src/bpfman/examples/go-tc-counter/bpf_bpfel.o --name &quot;stats&quot;&quot; tc --direction ingress --iface vethb2795c7 --priority 110</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="go">cd bpfman/</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="go">sudo bpfman load file --path examples/go-tc-counter/bpf_x86_bpfel.o --name &quot;stats&quot; tc --direction ingress --iface eno3 --priority 110</span>
 </code></pre></div>
 <h4 id="uprobe">Uprobe</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/uprobe:latest uprobe -f &quot;malloc&quot; -t &quot;libc&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/uprobe:latest --name &quot;my_uprobe&quot; uprobe -f &quot;malloc&quot; -t &quot;libc&quot;</span>
 </code></pre></div>
 <h4 id="uretprobe">Uretprobe</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/uretprobe:latest uprobe -f &quot;malloc&quot; -t &quot;libc&quot; -r</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/uretprobe:latest --name &quot;my_uretprobe&quot; uprobe -f &quot;malloc&quot; -t &quot;libc&quot; -r</span>
 </code></pre></div>
 <h4 id="xdp">XDP</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="go">sudo bpfman load file --path $HOME/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o --name &quot;xdp_stats&quot; xdp --iface vethb2795c7 --priority 35</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="go">cd bpfman/</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="go">sudo bpfman load file --path bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o --name &quot;xdp_stats&quot; xdp --iface eno3 --priority 35</span>
 </code></pre></div>
 <h3 id="setting-global-variables-in-ebpf-programs">Setting Global Variables in eBPF Programs</h3>
 <p>Global variables can be set for any eBPF program type when loading as follows:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="go">sudo bpfman load file -p $HOME/src/bpfman/tests/integration-test/bpf/.output/tc_pass.bpf.o -g GLOBAL_u8=01020304 GLOBAL_u32=0A0B0C0D -n &quot;pass&quot; tc -d ingress -i mynet1 -p 40</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="go">cd bpfman/</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="go">sudo bpfman load file -p bpfman/tests/integration-test/bpf/.output/tc_pass.bpf.o -g GLOBAL_u8=01 GLOBAL_u32=0A0B0C0D -n &quot;pass&quot; tc -d ingress -i mynet1 -p 40</span>
 </code></pre></div>
-<p>Note, that when setting global variables, the eBPF program being loaded must
+<p>Note that when setting global variables, the eBPF program being loaded must
 have global variables named with the strings given, and the size of the value
 provided must match the size of the given variable.  For example, the above
 command can be used to update the following global variables in an eBPF program.</p>
@@ -2311,24 +2378,30 @@ The <code>proceed-on</code> setting determines whether processing will "proceed"
 next eBPF program in the list, or terminate processing and return, based on the
 program's return value. For example, the default <code>proceed-on</code> configuration for
 an <code>xdp</code> program can be modified as follows:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="go">sudo bpfman load file -p $HOME/src/bpfman/tests/integration-test/bpf/.output/xdp_pass.bpf.o -n &quot;pass&quot; xdp -i mynet1 -p 30 --proceed-on drop pass dispatcher_return</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="go">cd bpfman/</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="go">sudo bpfman load file -p tests/integration-test/bpf/.output/xdp_pass.bpf.o -n &quot;pass&quot; xdp -i mynet1 -p 30 --proceed-on drop pass dispatcher_return</span>
 </code></pre></div>
 <h3 id="sharing-maps-between-ebpf-programs">Sharing Maps Between eBPF Programs</h3>
-<blockquote>
-<p><strong>WARNING</strong> Currently for the map sharing feature to work the LIBBPF_PIN_BY_NAME
-flag <strong>MUST</strong> be set in the shared bpf map definitions. Please see <a href="https://github.com/aya-rs/aya/issues/837">this aya issue</a> for future work that will change this requirement.</p>
-</blockquote>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Currently for the map sharing feature to work the LIBBPF_PIN_BY_NAME flag <strong>MUST</strong> be set in
+the shared bpf map definitions.
+Please see <a href="https://github.com/aya-rs/aya/issues/837">this aya issue</a> for future work that will
+change this requirement.</p>
+</div>
 <p>To share maps between eBPF programs, first load the eBPF program that owns the
 maps.
 One eBPF program must own the maps.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="go">sudo bpfman load file --path $HOME/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o -n &quot;xdp_stats&quot; xdp --iface vethb2795c7 --priority 100</span>
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="go">6371</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="go">cd bpfman/</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="go">sudo bpfman load file --path examples/go-xdp-counter/bpf_x86_bpfel.o -n &quot;xdp_stats&quot; xdp --iface eno3 --priority 100</span>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="go">6371</span>
 </code></pre></div>
 <p>Next, load additional eBPF programs that will share the existing maps by passing
 the program id of the eBPF program that owns the maps using the <code>--map-owner-id</code>
 parameter:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="go">sudo bpfman load file --path $HOME/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o -n &quot;xdp_stats&quot; --map-owner-id 6371 xdp --iface vethff657c7 --priority 100</span>
-<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="go">6373</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="go">cd bpfman/</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="go">sudo bpfman load file --path examples/go-xdp-counter/bpf_x86_bpfel.o -n &quot;xdp_stats&quot; --map-owner-id 6371 xdp --iface eno3 --priority 100</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="go">6373</span>
 </code></pre></div>
 <p>Use the <code>bpfman get &lt;PROGRAM_ID&gt;</code> command to display the configuration:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="go">sudo bpfman list</span>
@@ -2340,15 +2413,15 @@ parameter:</p>
 <a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="go"> Bpfman State</span>
 <a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="go">---------------</span>
 <a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="go"> Name:          xdp_stats</span>
-<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="go"> Path:          /home/&lt;$USER&gt;/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o</span>
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="go"> Path:          /home/&lt;$USER&gt;/src/bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o</span>
 <a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="go"> Global:        None</span>
 <a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="go"> Metadata:      None</span>
 <a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/6371</span>
 <a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="go"> Map Owner ID:  None</span>
 <a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a><span class="go"> Map Used By:   6371</span>
 <a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a><span class="go">                6373</span>
-<a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a><span class="go"> Priority:      50</span>
-<a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a><span class="go"> Iface:         vethff657c7</span>
+<a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a><span class="go"> Priority:      100</span>
+<a id="__codelineno-25-13" name="__codelineno-25-13" href="#__codelineno-25-13"></a><span class="go"> Iface:         eno3</span>
 <a id="__codelineno-25-14" name="__codelineno-25-14" href="#__codelineno-25-14"></a><span class="go"> Position:      1</span>
 <a id="__codelineno-25-15" name="__codelineno-25-15" href="#__codelineno-25-15"></a><span class="go"> Proceed On:    pass, dispatcher_return</span>
 <a id="__codelineno-25-16" name="__codelineno-25-16" href="#__codelineno-25-16"></a><span class="go">:</span>
@@ -2357,15 +2430,15 @@ parameter:</p>
 <a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="go"> Bpfman State</span>
 <a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="go">---------------</span>
 <a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="go"> Name:          xdp_stats</span>
-<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="go"> Path:          /home/&lt;$USER&gt;/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o</span>
+<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="go"> Path:          /home/&lt;$USER&gt;/src/bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o</span>
 <a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a><span class="go"> Global:        None</span>
 <a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="go"> Metadata:      None</span>
 <a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/6371</span>
 <a id="__codelineno-26-9" name="__codelineno-26-9" href="#__codelineno-26-9"></a><span class="go"> Map Owner ID:  6371</span>
 <a id="__codelineno-26-10" name="__codelineno-26-10" href="#__codelineno-26-10"></a><span class="go"> Map Used By:   6371</span>
 <a id="__codelineno-26-11" name="__codelineno-26-11" href="#__codelineno-26-11"></a><span class="go">                6373</span>
-<a id="__codelineno-26-12" name="__codelineno-26-12" href="#__codelineno-26-12"></a><span class="go"> Priority:      50</span>
-<a id="__codelineno-26-13" name="__codelineno-26-13" href="#__codelineno-26-13"></a><span class="go"> Iface:         vethff657c7</span>
+<a id="__codelineno-26-12" name="__codelineno-26-12" href="#__codelineno-26-12"></a><span class="go"> Priority:      100</span>
+<a id="__codelineno-26-13" name="__codelineno-26-13" href="#__codelineno-26-13"></a><span class="go"> Iface:         eno3</span>
 <a id="__codelineno-26-14" name="__codelineno-26-14" href="#__codelineno-26-14"></a><span class="go"> Position:      0</span>
 <a id="__codelineno-26-15" name="__codelineno-26-15" href="#__codelineno-26-15"></a><span class="go"> Proceed On:    pass, dispatcher_return</span>
 <a id="__codelineno-26-16" name="__codelineno-26-16" href="#__codelineno-26-16"></a><span class="go">:</span>
@@ -2439,7 +2512,7 @@ section will be empty and <code>Kernel State</code> section will be populated.</
 <a id="__codelineno-31-10" name="__codelineno-31-10" href="#__codelineno-31-10"></a><span class="go"> Map Owner ID:  None</span>
 <a id="__codelineno-31-11" name="__codelineno-31-11" href="#__codelineno-31-11"></a><span class="go"> Map Used By:   6204</span>
 <a id="__codelineno-31-12" name="__codelineno-31-12" href="#__codelineno-31-12"></a><span class="go"> Priority:      100</span>
-<a id="__codelineno-31-13" name="__codelineno-31-13" href="#__codelineno-31-13"></a><span class="go"> Iface:         vethff657c7</span>
+<a id="__codelineno-31-13" name="__codelineno-31-13" href="#__codelineno-31-13"></a><span class="go"> Iface:         eno3</span>
 <a id="__codelineno-31-14" name="__codelineno-31-14" href="#__codelineno-31-14"></a><span class="go"> Position:      0</span>
 <a id="__codelineno-31-15" name="__codelineno-31-15" href="#__codelineno-31-15"></a><span class="go"> Direction:     eg</span>
 <a id="__codelineno-31-16" name="__codelineno-31-16" href="#__codelineno-31-16"></a><span class="go"> Proceed On:    pipe, dispatcher_return</span>
@@ -2491,7 +2564,9 @@ and unloads the requested eBPF program:</p>
 <a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="go"> 6201        pass              xdp         2023-07-17T17:17:53-0400</span>
 <a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a><span class="go"> 6202        sys_enter_openat  tracepoint  2023-07-17T17:19:09-0400</span>
 </code></pre></div>
-<h2 id="bpfman-image-pull">bpfman image pull</h2>
+<h2 id="bpfman-image">bpfman image</h2>
+<p>The <code>bpfman image</code> commands contain a set of container image related commands.</p>
+<h3 id="bpfman-image-pull">bpfman image pull</h3>
 <p>The <code>bpfman image pull</code> command pulls a given bytecode image for future use
 by a load command.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="go">sudo bpfman image pull --help</span>
@@ -2525,7 +2600,7 @@ by a load command.</p>
 <a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="go">Successfully downloaded bytecode</span>
 </code></pre></div>
 <p>Then when loaded, the local image will be used:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --pull-policy IfNotPresent xdp --iface vethff657c7 --priority 100</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --pull-policy IfNotPresent xdp --iface eno3 --priority 100</span>
 <a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a><span class="go"> Bpfman State                                           </span>
 <a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a><span class="go"> ---------------</span>
 <a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a><span class="go"> Name:          pass                                  </span>
@@ -2537,7 +2612,7 @@ by a load command.</p>
 <a id="__codelineno-37-10" name="__codelineno-37-10" href="#__codelineno-37-10"></a><span class="go"> Map Owner ID:  None                                  </span>
 <a id="__codelineno-37-11" name="__codelineno-37-11" href="#__codelineno-37-11"></a><span class="go"> Maps Used By:  None                                  </span>
 <a id="__codelineno-37-12" name="__codelineno-37-12" href="#__codelineno-37-12"></a><span class="go"> Priority:      100                                   </span>
-<a id="__codelineno-37-13" name="__codelineno-37-13" href="#__codelineno-37-13"></a><span class="go"> Iface:         vethff657c7                           </span>
+<a id="__codelineno-37-13" name="__codelineno-37-13" href="#__codelineno-37-13"></a><span class="go"> Iface:         eno3</span>
 <a id="__codelineno-37-14" name="__codelineno-37-14" href="#__codelineno-37-14"></a><span class="go"> Position:      2                                     </span>
 <a id="__codelineno-37-15" name="__codelineno-37-15" href="#__codelineno-37-15"></a><span class="go"> Proceed On:    pass, dispatcher_return               </span>
 <a id="__codelineno-37-16" name="__codelineno-37-16" href="#__codelineno-37-16"></a>
@@ -2556,6 +2631,252 @@ by a load command.</p>
 <a id="__codelineno-37-29" name="__codelineno-37-29" href="#__codelineno-37-29"></a><span class="go"> Size JITted:                      67                       </span>
 <a id="__codelineno-37-30" name="__codelineno-37-30" href="#__codelineno-37-30"></a><span class="go"> Kernel Allocated Memory (bytes):  4096                     </span>
 <a id="__codelineno-37-31" name="__codelineno-37-31" href="#__codelineno-37-31"></a><span class="go"> Verified Instruction Count:       9                        </span>
+</code></pre></div>
+<h3 id="bpfman-image-build">bpfman image build</h3>
+<p>The <code>bpfman image build</code> command is a utility command that builds and pushes an eBPF program
+in a OCI container image leveraging either <code>docker</code> or <code>podman</code>.
+The eBPF program bytecode must already be generated.
+This command calls <code>docker</code> or <code>podman</code> with the proper parameters for building
+multi-architecture based images with the proper labels for a OCI container image.</p>
+<p>Since this command is leveraging <code>docker</code> and <code>podman</code>, a container file (<code>--container-file</code> or <code>-f</code>)
+is required, along with an image tag (<code>--tag</code> of <code>-t</code>).
+In addition, the bytecode to package must be included.
+The bytecode can take several forms, but at least one must be provided:</p>
+<ul>
+<li><code>--bytecode</code> or <code>-b</code>: Use this option for a single bytecode object file built for the host architecture.
+  The value of this parameter is a single bytecode object file.</li>
+<li><code>--cilium-ebpf-project</code> or <code>-c</code>: Use this option for a cilium/ebpf based project.
+  The value of this parameter is a directory that contains multiple object files for different architectures,
+  where the object files follow the Cilium naming convention with the architecture in the name (i.e. bpf_x86_bpfel.o,
+  bpf_arm64_bpfel.o, bpf_powerpc_bpfel.o, bpf_s390_bpfeb.o).</li>
+<li><code>--bc-386-el</code> .. <code>--bc-s390x-eb</code>: Use this option to add one or more architecture specific bytecode files.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="go">bpfman image build --help</span>
+<a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="go">Build an eBPF bytecode image from local bytecode objects and push to a registry.</span>
+<a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a>
+<a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="go">To use, the --container-file and --tag must be included, as well as a pointer to</span>
+<a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a><span class="go">at least one bytecode file that can be passed in several ways. Use either:</span>
+<a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a>
+<a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a><span class="go">* --bytecode: for a single bytecode built for the host architecture.</span>
+<a id="__codelineno-38-8" name="__codelineno-38-8" href="#__codelineno-38-8"></a>
+<a id="__codelineno-38-9" name="__codelineno-38-9" href="#__codelineno-38-9"></a><span class="go">* --cilium-ebpf-project: for a cilium/ebpf project directory which contains</span>
+<a id="__codelineno-38-10" name="__codelineno-38-10" href="#__codelineno-38-10"></a><span class="go">    multiple object files for different architectures.</span>
+<a id="__codelineno-38-11" name="__codelineno-38-11" href="#__codelineno-38-11"></a>
+<a id="__codelineno-38-12" name="__codelineno-38-12" href="#__codelineno-38-12"></a><span class="go">* --bc-386-el .. --bc-s390x-eb: to add one or more architecture specific bytecode files.</span>
+<a id="__codelineno-38-13" name="__codelineno-38-13" href="#__codelineno-38-13"></a>
+<a id="__codelineno-38-14" name="__codelineno-38-14" href="#__codelineno-38-14"></a><span class="go">Examples:</span>
+<a id="__codelineno-38-15" name="__codelineno-38-15" href="#__codelineno-38-15"></a><span class="go">   bpfman image build -f Containerfile.bytecode -t quay.io/&lt;USER&gt;/go-xdp-counter:test \</span>
+<a id="__codelineno-38-16" name="__codelineno-38-16" href="#__codelineno-38-16"></a><span class="go">     -b ./examples/go-xdp-counter/bpf_x86_bpfel.o</span>
+<a id="__codelineno-38-17" name="__codelineno-38-17" href="#__codelineno-38-17"></a>
+<a id="__codelineno-38-18" name="__codelineno-38-18" href="#__codelineno-38-18"></a><span class="go">Usage: bpfman image build [OPTIONS] --tag &lt;TAG&gt; --container-file &lt;CONTAINER_FILE&gt; &lt;--bytecode &lt;BYTECODE&gt;|--cilium-ebpf-project &lt;CILIUM_EBPF_PROJECT&gt;|--bc-386-el &lt;BC_386_EL&gt;|--bc-amd64-el &lt;BC_AMD64_EL&gt;|--bc-arm-el &lt;BC_ARM_EL&gt;|--bc-arm64-el &lt;BC_ARM64_EL&gt;|--bc-loong64-el &lt;BC_LOONG64_EL&gt;|--bc-mips-eb &lt;BC_MIPS_EB&gt;|--bc-mipsle-el &lt;BC_MIPSLE_EL&gt;|--bc-mips64-eb &lt;BC_MIPS64_EB&gt;|--bc-mips64le-el &lt;BC_MIPS64LE_EL&gt;|--bc-ppc64-eb &lt;BC_PPC64_EB&gt;|--bc-ppc64le-el &lt;BC_PPC64LE_EL&gt;|--bc-riscv64-el &lt;BC_RISCV64_EL&gt;|--bc-s390x-eb &lt;BC_S390X_EB&gt;&gt;</span>
+<a id="__codelineno-38-19" name="__codelineno-38-19" href="#__codelineno-38-19"></a>
+<a id="__codelineno-38-20" name="__codelineno-38-20" href="#__codelineno-38-20"></a><span class="go">Options:</span>
+<a id="__codelineno-38-21" name="__codelineno-38-21" href="#__codelineno-38-21"></a><span class="go">  -t, --tag &lt;TAG&gt;</span>
+<a id="__codelineno-38-22" name="__codelineno-38-22" href="#__codelineno-38-22"></a><span class="go">          Required: Name and optionally a tag in the name:tag format.</span>
+<a id="__codelineno-38-23" name="__codelineno-38-23" href="#__codelineno-38-23"></a><span class="go">          Example: --tag quay.io/bpfman-bytecode/xdp_pass:latest</span>
+<a id="__codelineno-38-24" name="__codelineno-38-24" href="#__codelineno-38-24"></a>
+<a id="__codelineno-38-25" name="__codelineno-38-25" href="#__codelineno-38-25"></a><span class="go">  -f, --container-file &lt;CONTAINER_FILE&gt;</span>
+<a id="__codelineno-38-26" name="__codelineno-38-26" href="#__codelineno-38-26"></a><span class="go">          Required: Dockerfile to use for building the image.</span>
+<a id="__codelineno-38-27" name="__codelineno-38-27" href="#__codelineno-38-27"></a><span class="go">          Example: --container_file Containerfile.bytecode</span>
+<a id="__codelineno-38-28" name="__codelineno-38-28" href="#__codelineno-38-28"></a>
+<a id="__codelineno-38-29" name="__codelineno-38-29" href="#__codelineno-38-29"></a><span class="go">  -r, --runtime &lt;RUNTIME&gt;</span>
+<a id="__codelineno-38-30" name="__codelineno-38-30" href="#__codelineno-38-30"></a><span class="go">          Optional: Container runtime to use, works with docker or podman, defaults to docker</span>
+<a id="__codelineno-38-31" name="__codelineno-38-31" href="#__codelineno-38-31"></a><span class="go">          Example: --runtime podman</span>
+<a id="__codelineno-38-32" name="__codelineno-38-32" href="#__codelineno-38-32"></a>
+<a id="__codelineno-38-33" name="__codelineno-38-33" href="#__codelineno-38-33"></a><span class="go">  -b, --bytecode &lt;BYTECODE&gt;</span>
+<a id="__codelineno-38-34" name="__codelineno-38-34" href="#__codelineno-38-34"></a><span class="go">          Optional: bytecode file to use for building the image assuming host architecture.</span>
+<a id="__codelineno-38-35" name="__codelineno-38-35" href="#__codelineno-38-35"></a><span class="go">          Example: -b ./examples/go-xdp-counter/bpf_x86_bpfel.o</span>
+<a id="__codelineno-38-36" name="__codelineno-38-36" href="#__codelineno-38-36"></a>
+<a id="__codelineno-38-37" name="__codelineno-38-37" href="#__codelineno-38-37"></a><span class="go">  -c, --cilium-ebpf-project &lt;CILIUM_EBPF_PROJECT&gt;</span>
+<a id="__codelineno-38-38" name="__codelineno-38-38" href="#__codelineno-38-38"></a><span class="go">          Optional: If specified pull multi-arch bytecode files from a cilium/ebpf formatted project</span>
+<a id="__codelineno-38-39" name="__codelineno-38-39" href="#__codelineno-38-39"></a><span class="go">          where the bytecode files all contain a standard bpf_&lt;GOARCH&gt;_&lt;(el/eb)&gt;.o tag.</span>
+<a id="__codelineno-38-40" name="__codelineno-38-40" href="#__codelineno-38-40"></a><span class="go">          Example: --cilium-ebpf-project ./examples/go-xdp-counter</span>
+<a id="__codelineno-38-41" name="__codelineno-38-41" href="#__codelineno-38-41"></a>
+<a id="__codelineno-38-42" name="__codelineno-38-42" href="#__codelineno-38-42"></a><span class="go">      --bc-386-el &lt;BC_386_EL&gt;</span>
+<a id="__codelineno-38-43" name="__codelineno-38-43" href="#__codelineno-38-43"></a><span class="go">          Optional: bytecode file to use for building the image assuming amd64 architecture.</span>
+<a id="__codelineno-38-44" name="__codelineno-38-44" href="#__codelineno-38-44"></a><span class="go">          Example: --bc-386-el ./examples/go-xdp-counter/bpf_386_bpfel.o</span>
+<a id="__codelineno-38-45" name="__codelineno-38-45" href="#__codelineno-38-45"></a>
+<a id="__codelineno-38-46" name="__codelineno-38-46" href="#__codelineno-38-46"></a><span class="go">      --bc-amd64-el &lt;BC_AMD64_EL&gt;</span>
+<a id="__codelineno-38-47" name="__codelineno-38-47" href="#__codelineno-38-47"></a><span class="go">          Optional: bytecode file to use for building the image assuming amd64 architecture.</span>
+<a id="__codelineno-38-48" name="__codelineno-38-48" href="#__codelineno-38-48"></a><span class="go">          Example: --bc-amd64-el ./examples/go-xdp-counter/bpf_x86_bpfel.o</span>
+<a id="__codelineno-38-49" name="__codelineno-38-49" href="#__codelineno-38-49"></a>
+<a id="__codelineno-38-50" name="__codelineno-38-50" href="#__codelineno-38-50"></a><span class="go">      --bc-arm-el &lt;BC_ARM_EL&gt;</span>
+<a id="__codelineno-38-51" name="__codelineno-38-51" href="#__codelineno-38-51"></a><span class="go">          Optional: bytecode file to use for building the image assuming arm architecture.</span>
+<a id="__codelineno-38-52" name="__codelineno-38-52" href="#__codelineno-38-52"></a><span class="go">          Example: --bc-arm-el ./examples/go-xdp-counter/bpf_arm_bpfel.o</span>
+<a id="__codelineno-38-53" name="__codelineno-38-53" href="#__codelineno-38-53"></a>
+<a id="__codelineno-38-54" name="__codelineno-38-54" href="#__codelineno-38-54"></a><span class="go">      --bc-arm64-el &lt;BC_ARM64_EL&gt;</span>
+<a id="__codelineno-38-55" name="__codelineno-38-55" href="#__codelineno-38-55"></a><span class="go">          Optional: bytecode file to use for building the image assuming arm64 architecture.</span>
+<a id="__codelineno-38-56" name="__codelineno-38-56" href="#__codelineno-38-56"></a><span class="go">          Example: --bc-arm64-el ./examples/go-xdp-counter/bpf_arm64_bpfel.o</span>
+<a id="__codelineno-38-57" name="__codelineno-38-57" href="#__codelineno-38-57"></a>
+<a id="__codelineno-38-58" name="__codelineno-38-58" href="#__codelineno-38-58"></a><span class="go">      --bc-loong64-el &lt;BC_LOONG64_EL&gt;</span>
+<a id="__codelineno-38-59" name="__codelineno-38-59" href="#__codelineno-38-59"></a><span class="go">          Optional: bytecode file to use for building the image assuming loong64 architecture.</span>
+<a id="__codelineno-38-60" name="__codelineno-38-60" href="#__codelineno-38-60"></a><span class="go">          Example: --bc-loong64-el ./examples/go-xdp-counter/bpf_loong64_bpfel.o</span>
+<a id="__codelineno-38-61" name="__codelineno-38-61" href="#__codelineno-38-61"></a>
+<a id="__codelineno-38-62" name="__codelineno-38-62" href="#__codelineno-38-62"></a><span class="go">      --bc-mips-eb &lt;BC_MIPS_EB&gt;</span>
+<a id="__codelineno-38-63" name="__codelineno-38-63" href="#__codelineno-38-63"></a><span class="go">          Optional: bytecode file to use for building the image assuming mips architecture.</span>
+<a id="__codelineno-38-64" name="__codelineno-38-64" href="#__codelineno-38-64"></a><span class="go">          Example: --bc-mips-eb ./examples/go-xdp-counter/bpf_mips_bpfeb.o</span>
+<a id="__codelineno-38-65" name="__codelineno-38-65" href="#__codelineno-38-65"></a>
+<a id="__codelineno-38-66" name="__codelineno-38-66" href="#__codelineno-38-66"></a><span class="go">      --bc-mipsle-el &lt;BC_MIPSLE_EL&gt;</span>
+<a id="__codelineno-38-67" name="__codelineno-38-67" href="#__codelineno-38-67"></a><span class="go">          Optional: bytecode file to use for building the image assuming mipsle architecture.</span>
+<a id="__codelineno-38-68" name="__codelineno-38-68" href="#__codelineno-38-68"></a><span class="go">          Example: --bc-mipsle-el ./examples/go-xdp-counter/bpf_mipsle_bpfel.o</span>
+<a id="__codelineno-38-69" name="__codelineno-38-69" href="#__codelineno-38-69"></a>
+<a id="__codelineno-38-70" name="__codelineno-38-70" href="#__codelineno-38-70"></a><span class="go">      --bc-mips64-eb &lt;BC_MIPS64_EB&gt;</span>
+<a id="__codelineno-38-71" name="__codelineno-38-71" href="#__codelineno-38-71"></a><span class="go">          Optional: bytecode file to use for building the image assuming mips64 architecture.</span>
+<a id="__codelineno-38-72" name="__codelineno-38-72" href="#__codelineno-38-72"></a><span class="go">          Example: --bc-mips64-eb ./examples/go-xdp-counter/bpf_mips64_bpfeb.o</span>
+<a id="__codelineno-38-73" name="__codelineno-38-73" href="#__codelineno-38-73"></a>
+<a id="__codelineno-38-74" name="__codelineno-38-74" href="#__codelineno-38-74"></a><span class="go">      --bc-mips64le-el &lt;BC_MIPS64LE_EL&gt;</span>
+<a id="__codelineno-38-75" name="__codelineno-38-75" href="#__codelineno-38-75"></a><span class="go">          Optional: bytecode file to use for building the image assuming mips64le architecture.</span>
+<a id="__codelineno-38-76" name="__codelineno-38-76" href="#__codelineno-38-76"></a><span class="go">          Example: --bc-mips64le-el ./examples/go-xdp-counter/bpf_mips64le_bpfel.o</span>
+<a id="__codelineno-38-77" name="__codelineno-38-77" href="#__codelineno-38-77"></a>
+<a id="__codelineno-38-78" name="__codelineno-38-78" href="#__codelineno-38-78"></a><span class="go">      --bc-ppc64-eb &lt;BC_PPC64_EB&gt;</span>
+<a id="__codelineno-38-79" name="__codelineno-38-79" href="#__codelineno-38-79"></a><span class="go">          Optional: bytecode file to use for building the image assuming ppc64 architecture.</span>
+<a id="__codelineno-38-80" name="__codelineno-38-80" href="#__codelineno-38-80"></a><span class="go">          Example: --bc-ppc64-eb ./examples/go-xdp-counter/bpf_ppc64_bpfeb.o</span>
+<a id="__codelineno-38-81" name="__codelineno-38-81" href="#__codelineno-38-81"></a>
+<a id="__codelineno-38-82" name="__codelineno-38-82" href="#__codelineno-38-82"></a><span class="go">      --bc-ppc64le-el &lt;BC_PPC64LE_EL&gt;</span>
+<a id="__codelineno-38-83" name="__codelineno-38-83" href="#__codelineno-38-83"></a><span class="go">          Optional: bytecode file to use for building the image assuming ppc64le architecture.</span>
+<a id="__codelineno-38-84" name="__codelineno-38-84" href="#__codelineno-38-84"></a><span class="go">          Example: --bc-ppc64le-el ./examples/go-xdp-counter/bpf_ppc64le_bpfel.o</span>
+<a id="__codelineno-38-85" name="__codelineno-38-85" href="#__codelineno-38-85"></a>
+<a id="__codelineno-38-86" name="__codelineno-38-86" href="#__codelineno-38-86"></a><span class="go">      --bc-riscv64-el &lt;BC_RISCV64_EL&gt;</span>
+<a id="__codelineno-38-87" name="__codelineno-38-87" href="#__codelineno-38-87"></a><span class="go">          Optional: bytecode file to use for building the image assuming riscv64 architecture.</span>
+<a id="__codelineno-38-88" name="__codelineno-38-88" href="#__codelineno-38-88"></a><span class="go">          Example: --bc-riscv64-el ./examples/go-xdp-counter/bpf_riscv64_bpfel.o</span>
+<a id="__codelineno-38-89" name="__codelineno-38-89" href="#__codelineno-38-89"></a>
+<a id="__codelineno-38-90" name="__codelineno-38-90" href="#__codelineno-38-90"></a><span class="go">      --bc-s390x-eb &lt;BC_S390X_EB&gt;</span>
+<a id="__codelineno-38-91" name="__codelineno-38-91" href="#__codelineno-38-91"></a><span class="go">          Optional: bytecode file to use for building the image assuming s390x architecture.</span>
+<a id="__codelineno-38-92" name="__codelineno-38-92" href="#__codelineno-38-92"></a><span class="go">          Example: --bc-s390x-eb ./examples/go-xdp-counter/bpf_s390x_bpfeb.o</span>
+<a id="__codelineno-38-93" name="__codelineno-38-93" href="#__codelineno-38-93"></a>
+<a id="__codelineno-38-94" name="__codelineno-38-94" href="#__codelineno-38-94"></a><span class="go">  -h, --help</span>
+<a id="__codelineno-38-95" name="__codelineno-38-95" href="#__codelineno-38-95"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
+</code></pre></div>
+<p>Below are some different examples of building images.
+Note that <code>sudo</code> is not required.
+This command also pushed the image to a registry, so user must already be logged into the registry.</p>
+<p>Example of single bytecode image:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="go">bpfman image build -f Containerfile.bytecode -t quay.io/$QUAY_USER/go-xdp-counter:test -b ./examples/go-xdp-counter/bpf_x86_bpfel.o</span>
+</code></pre></div>
+<p>Example of directory with Cilium generated bytecode objects:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="go">bpfman image build -f Containerfile.bytecode.multi.arch -t quay.io/$QUAY_USER/go-xdp-counter:test -c ./examples/go-xdp-counter/</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To build images for multiple architectures on a local system, docker (or podman) may need additional configuration
+settings to allow for caching of non-native images. See 
+<a href="https://docs.docker.com/build/building/multi-platform/">https://docs.docker.com/build/building/multi-platform/</a>
+for more details.</p>
+</div>
+<h3 id="bpfman-image-generate-build-args">bpfman image generate-build-args</h3>
+<p>The <code>bpfman image generate-build-args</code> command is a utility command that generates the labels used
+to package eBPF program bytecode in a OCI container image.
+The eBPF program bytecode must already be generated.</p>
+<p>This command requires the bytecode to package that would be packaged in a OCI container image.
+The bytecode can take several forms, but at least one must be provided:</p>
+<ul>
+<li><code>--bytecode</code> or <code>-b</code>: Use this option for a single bytecode object file built for the host architecture.
+  The value of this parameter is a single bytecode object file.</li>
+<li><code>--cilium-ebpf-project</code> or <code>-c</code>: Use this option for a cilium/ebpf based project.
+  The value of this parameter is a directory that contains multiple object files for different architectures,
+  where the object files follow the Cilium naming convention with the architecture in the name (i.e. bpf_x86_bpfel.o,
+  bpf_arm64_bpfel.o, bpf_powerpc_bpfel.o, bpf_s390_bpfeb.o).</li>
+<li><code>--bc-386-el</code> .. <code>--bc-s390x-eb</code>: Use this option to add one or more architecture specific bytecode files.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="go">bpfman image generate-build-args --help</span>
+<a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a><span class="go">Generate the OCI image labels for a given bytecode file.</span>
+<a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a>
+<a id="__codelineno-41-4" name="__codelineno-41-4" href="#__codelineno-41-4"></a><span class="go">To use, the --container-file and --tag must be included, as well as a pointer to</span>
+<a id="__codelineno-41-5" name="__codelineno-41-5" href="#__codelineno-41-5"></a><span class="go">at least one bytecode file that can be passed in several ways. Use either:</span>
+<a id="__codelineno-41-6" name="__codelineno-41-6" href="#__codelineno-41-6"></a>
+<a id="__codelineno-41-7" name="__codelineno-41-7" href="#__codelineno-41-7"></a><span class="go">* --bytecode: for a single bytecode built for the host architecture.</span>
+<a id="__codelineno-41-8" name="__codelineno-41-8" href="#__codelineno-41-8"></a>
+<a id="__codelineno-41-9" name="__codelineno-41-9" href="#__codelineno-41-9"></a><span class="go">* --cilium-ebpf-project: for a cilium/ebpf project directory which contains</span>
+<a id="__codelineno-41-10" name="__codelineno-41-10" href="#__codelineno-41-10"></a><span class="go">    multiple object files for different architectures.</span>
+<a id="__codelineno-41-11" name="__codelineno-41-11" href="#__codelineno-41-11"></a>
+<a id="__codelineno-41-12" name="__codelineno-41-12" href="#__codelineno-41-12"></a><span class="go">* --bc-386-el .. --bc-s390x-eb: to add one or more architecture specific bytecode files.</span>
+<a id="__codelineno-41-13" name="__codelineno-41-13" href="#__codelineno-41-13"></a>
+<a id="__codelineno-41-14" name="__codelineno-41-14" href="#__codelineno-41-14"></a><span class="go">Examples:</span>
+<a id="__codelineno-41-15" name="__codelineno-41-15" href="#__codelineno-41-15"></a><span class="go">  bpfman image generate-build-args --bc-amd64-el ./examples/go-xdp-counter/bpf_x86_bpfel.o</span>
+<a id="__codelineno-41-16" name="__codelineno-41-16" href="#__codelineno-41-16"></a>
+<a id="__codelineno-41-17" name="__codelineno-41-17" href="#__codelineno-41-17"></a><span class="go">Usage: bpfman image generate-build-args &lt;--bytecode &lt;BYTECODE&gt;|--cilium-ebpf-project &lt;CILIUM_EBPF_PROJECT&gt;|--bc-386-el &lt;BC_386_EL&gt;|--bc-amd64-el &lt;BC_AMD64_EL&gt;|--bc-arm-el &lt;BC_ARM_EL&gt;|--bc-arm64-el &lt;BC_ARM64_EL&gt;|--bc-loong64-el &lt;BC_LOONG64_EL&gt;|--bc-mips-eb &lt;BC_MIPS_EB&gt;|--bc-mipsle-el &lt;BC_MIPSLE_EL&gt;|--bc-mips64-eb &lt;BC_MIPS64_EB&gt;|--bc-mips64le-el &lt;BC_MIPS64LE_EL&gt;|--bc-ppc64-eb &lt;BC_PPC64_EB&gt;|--bc-ppc64le-el &lt;BC_PPC64LE_EL&gt;|--bc-riscv64-el &lt;BC_RISCV64_EL&gt;|--bc-s390x-eb &lt;BC_S390X_EB&gt;&gt;</span>
+<a id="__codelineno-41-18" name="__codelineno-41-18" href="#__codelineno-41-18"></a>
+<a id="__codelineno-41-19" name="__codelineno-41-19" href="#__codelineno-41-19"></a><span class="go">Options:</span>
+<a id="__codelineno-41-20" name="__codelineno-41-20" href="#__codelineno-41-20"></a><span class="go">  -b, --bytecode &lt;BYTECODE&gt;</span>
+<a id="__codelineno-41-21" name="__codelineno-41-21" href="#__codelineno-41-21"></a><span class="go">          Optional: bytecode file to use for building the image assuming host architecture.</span>
+<a id="__codelineno-41-22" name="__codelineno-41-22" href="#__codelineno-41-22"></a><span class="go">          Example: -b ./examples/go-xdp-counter/bpf_x86_bpfel.o</span>
+<a id="__codelineno-41-23" name="__codelineno-41-23" href="#__codelineno-41-23"></a>
+<a id="__codelineno-41-24" name="__codelineno-41-24" href="#__codelineno-41-24"></a><span class="go">  -c, --cilium-ebpf-project &lt;CILIUM_EBPF_PROJECT&gt;</span>
+<a id="__codelineno-41-25" name="__codelineno-41-25" href="#__codelineno-41-25"></a><span class="go">          Optional: If specified pull multi-arch bytecode files from a cilium/ebpf formatted project</span>
+<a id="__codelineno-41-26" name="__codelineno-41-26" href="#__codelineno-41-26"></a><span class="go">          where the bytecode files all contain a standard bpf_&lt;GOARCH&gt;_&lt;(el/eb)&gt;.o tag.</span>
+<a id="__codelineno-41-27" name="__codelineno-41-27" href="#__codelineno-41-27"></a><span class="go">          Example: --cilium-ebpf-project ./examples/go-xdp-counter</span>
+<a id="__codelineno-41-28" name="__codelineno-41-28" href="#__codelineno-41-28"></a>
+<a id="__codelineno-41-29" name="__codelineno-41-29" href="#__codelineno-41-29"></a><span class="go">      --bc-386-el &lt;BC_386_EL&gt;</span>
+<a id="__codelineno-41-30" name="__codelineno-41-30" href="#__codelineno-41-30"></a><span class="go">          Optional: bytecode file to use for building the image assuming amd64 architecture.</span>
+<a id="__codelineno-41-31" name="__codelineno-41-31" href="#__codelineno-41-31"></a><span class="go">          Example: --bc-386-el ./examples/go-xdp-counter/bpf_386_bpfel.o</span>
+<a id="__codelineno-41-32" name="__codelineno-41-32" href="#__codelineno-41-32"></a>
+<a id="__codelineno-41-33" name="__codelineno-41-33" href="#__codelineno-41-33"></a><span class="go">      --bc-amd64-el &lt;BC_AMD64_EL&gt;</span>
+<a id="__codelineno-41-34" name="__codelineno-41-34" href="#__codelineno-41-34"></a><span class="go">          Optional: bytecode file to use for building the image assuming amd64 architecture.</span>
+<a id="__codelineno-41-35" name="__codelineno-41-35" href="#__codelineno-41-35"></a><span class="go">          Example: --bc-amd64-el ./examples/go-xdp-counter/bpf_x86_bpfel.o</span>
+<a id="__codelineno-41-36" name="__codelineno-41-36" href="#__codelineno-41-36"></a>
+<a id="__codelineno-41-37" name="__codelineno-41-37" href="#__codelineno-41-37"></a><span class="go">      --bc-arm-el &lt;BC_ARM_EL&gt;</span>
+<a id="__codelineno-41-38" name="__codelineno-41-38" href="#__codelineno-41-38"></a><span class="go">          Optional: bytecode file to use for building the image assuming arm architecture.</span>
+<a id="__codelineno-41-39" name="__codelineno-41-39" href="#__codelineno-41-39"></a><span class="go">          Example: --bc-arm-el ./examples/go-xdp-counter/bpf_arm_bpfel.o</span>
+<a id="__codelineno-41-40" name="__codelineno-41-40" href="#__codelineno-41-40"></a>
+<a id="__codelineno-41-41" name="__codelineno-41-41" href="#__codelineno-41-41"></a><span class="go">      --bc-arm64-el &lt;BC_ARM64_EL&gt;</span>
+<a id="__codelineno-41-42" name="__codelineno-41-42" href="#__codelineno-41-42"></a><span class="go">          Optional: bytecode file to use for building the image assuming arm64 architecture.</span>
+<a id="__codelineno-41-43" name="__codelineno-41-43" href="#__codelineno-41-43"></a><span class="go">          Example: --bc-arm64-el ./examples/go-xdp-counter/bpf_arm64_bpfel.o</span>
+<a id="__codelineno-41-44" name="__codelineno-41-44" href="#__codelineno-41-44"></a>
+<a id="__codelineno-41-45" name="__codelineno-41-45" href="#__codelineno-41-45"></a><span class="go">      --bc-loong64-el &lt;BC_LOONG64_EL&gt;</span>
+<a id="__codelineno-41-46" name="__codelineno-41-46" href="#__codelineno-41-46"></a><span class="go">          Optional: bytecode file to use for building the image assuming loong64 architecture.</span>
+<a id="__codelineno-41-47" name="__codelineno-41-47" href="#__codelineno-41-47"></a><span class="go">          Example: --bc-loong64-el ./examples/go-xdp-counter/bpf_loong64_bpfel.o</span>
+<a id="__codelineno-41-48" name="__codelineno-41-48" href="#__codelineno-41-48"></a>
+<a id="__codelineno-41-49" name="__codelineno-41-49" href="#__codelineno-41-49"></a><span class="go">      --bc-mips-eb &lt;BC_MIPS_EB&gt;</span>
+<a id="__codelineno-41-50" name="__codelineno-41-50" href="#__codelineno-41-50"></a><span class="go">          Optional: bytecode file to use for building the image assuming mips architecture.</span>
+<a id="__codelineno-41-51" name="__codelineno-41-51" href="#__codelineno-41-51"></a><span class="go">          Example: --bc-mips-eb ./examples/go-xdp-counter/bpf_mips_bpfeb.o</span>
+<a id="__codelineno-41-52" name="__codelineno-41-52" href="#__codelineno-41-52"></a>
+<a id="__codelineno-41-53" name="__codelineno-41-53" href="#__codelineno-41-53"></a><span class="go">      --bc-mipsle-el &lt;BC_MIPSLE_EL&gt;</span>
+<a id="__codelineno-41-54" name="__codelineno-41-54" href="#__codelineno-41-54"></a><span class="go">          Optional: bytecode file to use for building the image assuming mipsle architecture.</span>
+<a id="__codelineno-41-55" name="__codelineno-41-55" href="#__codelineno-41-55"></a><span class="go">          Example: --bc-mipsle-el ./examples/go-xdp-counter/bpf_mipsle_bpfel.o</span>
+<a id="__codelineno-41-56" name="__codelineno-41-56" href="#__codelineno-41-56"></a>
+<a id="__codelineno-41-57" name="__codelineno-41-57" href="#__codelineno-41-57"></a><span class="go">      --bc-mips64-eb &lt;BC_MIPS64_EB&gt;</span>
+<a id="__codelineno-41-58" name="__codelineno-41-58" href="#__codelineno-41-58"></a><span class="go">          Optional: bytecode file to use for building the image assuming mips64 architecture.</span>
+<a id="__codelineno-41-59" name="__codelineno-41-59" href="#__codelineno-41-59"></a><span class="go">          Example: --bc-mips64-eb ./examples/go-xdp-counter/bpf_mips64_bpfeb.o</span>
+<a id="__codelineno-41-60" name="__codelineno-41-60" href="#__codelineno-41-60"></a>
+<a id="__codelineno-41-61" name="__codelineno-41-61" href="#__codelineno-41-61"></a><span class="go">      --bc-mips64le-el &lt;BC_MIPS64LE_EL&gt;</span>
+<a id="__codelineno-41-62" name="__codelineno-41-62" href="#__codelineno-41-62"></a><span class="go">          Optional: bytecode file to use for building the image assuming mips64le architecture.</span>
+<a id="__codelineno-41-63" name="__codelineno-41-63" href="#__codelineno-41-63"></a><span class="go">          Example: --bc-mips64le-el ./examples/go-xdp-counter/bpf_mips64le_bpfel.o</span>
+<a id="__codelineno-41-64" name="__codelineno-41-64" href="#__codelineno-41-64"></a>
+<a id="__codelineno-41-65" name="__codelineno-41-65" href="#__codelineno-41-65"></a><span class="go">      --bc-ppc64-eb &lt;BC_PPC64_EB&gt;</span>
+<a id="__codelineno-41-66" name="__codelineno-41-66" href="#__codelineno-41-66"></a><span class="go">          Optional: bytecode file to use for building the image assuming ppc64 architecture.</span>
+<a id="__codelineno-41-67" name="__codelineno-41-67" href="#__codelineno-41-67"></a><span class="go">          Example: --bc-ppc64-eb ./examples/go-xdp-counter/bpf_ppc64_bpfeb.o</span>
+<a id="__codelineno-41-68" name="__codelineno-41-68" href="#__codelineno-41-68"></a>
+<a id="__codelineno-41-69" name="__codelineno-41-69" href="#__codelineno-41-69"></a><span class="go">      --bc-ppc64le-el &lt;BC_PPC64LE_EL&gt;</span>
+<a id="__codelineno-41-70" name="__codelineno-41-70" href="#__codelineno-41-70"></a><span class="go">          Optional: bytecode file to use for building the image assuming ppc64le architecture.</span>
+<a id="__codelineno-41-71" name="__codelineno-41-71" href="#__codelineno-41-71"></a><span class="go">          Example: --bc-ppc64le-el ./examples/go-xdp-counter/bpf_ppc64le_bpfel.o</span>
+<a id="__codelineno-41-72" name="__codelineno-41-72" href="#__codelineno-41-72"></a>
+<a id="__codelineno-41-73" name="__codelineno-41-73" href="#__codelineno-41-73"></a><span class="go">      --bc-riscv64-el &lt;BC_RISCV64_EL&gt;</span>
+<a id="__codelineno-41-74" name="__codelineno-41-74" href="#__codelineno-41-74"></a><span class="go">          Optional: bytecode file to use for building the image assuming riscv64 architecture.</span>
+<a id="__codelineno-41-75" name="__codelineno-41-75" href="#__codelineno-41-75"></a><span class="go">          Example: --bc-riscv64-el ./examples/go-xdp-counter/bpf_riscv64_bpfel.o</span>
+<a id="__codelineno-41-76" name="__codelineno-41-76" href="#__codelineno-41-76"></a>
+<a id="__codelineno-41-77" name="__codelineno-41-77" href="#__codelineno-41-77"></a><span class="go">      --bc-s390x-eb &lt;BC_S390X_EB&gt;</span>
+<a id="__codelineno-41-78" name="__codelineno-41-78" href="#__codelineno-41-78"></a><span class="go">          Optional: bytecode file to use for building the image assuming s390x architecture.</span>
+<a id="__codelineno-41-79" name="__codelineno-41-79" href="#__codelineno-41-79"></a><span class="go">          Example: --bc-s390x-eb ./examples/go-xdp-counter/bpf_s390x_bpfeb.o</span>
+<a id="__codelineno-41-80" name="__codelineno-41-80" href="#__codelineno-41-80"></a>
+<a id="__codelineno-41-81" name="__codelineno-41-81" href="#__codelineno-41-81"></a><span class="go">  -h, --help</span>
+<a id="__codelineno-41-82" name="__codelineno-41-82" href="#__codelineno-41-82"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
+</code></pre></div>
+<p>Below are some different examples of generating build arguments.
+Note that <code>sudo</code> is not required.</p>
+<p>Example of single bytecode image:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="gp">$ </span>bpfman<span class="w"> </span>image<span class="w"> </span>generate-build-args<span class="w"> </span>-b<span class="w"> </span>./examples/go-xdp-counter/bpf_x86_bpfel.o
+<a id="__codelineno-42-2" name="__codelineno-42-2" href="#__codelineno-42-2"></a><span class="go">BYTECODE_FILE=./examples/go-xdp-counter/bpf_x86_bpfel.o</span>
+<a id="__codelineno-42-3" name="__codelineno-42-3" href="#__codelineno-42-3"></a><span class="go">PROGRAMS={&quot;xdp_stats&quot;:&quot;xdp&quot;}</span>
+<a id="__codelineno-42-4" name="__codelineno-42-4" href="#__codelineno-42-4"></a><span class="go">MAPS={&quot;xdp_stats_map&quot;:&quot;per_cpu_array&quot;}</span>
+</code></pre></div>
+<p>Example of directory with Cilium generated bytecode objects:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="gp">$ </span>bpfman<span class="w"> </span>image<span class="w"> </span>generate-build-args<span class="w"> </span>-c<span class="w"> </span>./examples/go-xdp-counter/
+<a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="go">BC_AMD64_EL=./examples/go-xdp-counter/bpf_x86_bpfel.o</span>
+<a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a><span class="go">BC_ARM_EL=./examples/go-xdp-counter/bpf_arm64_bpfel.o</span>
+<a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a><span class="go">BC_PPC64LE_EL=./examples/go-xdp-counter/bpf_powerpc_bpfel.o</span>
+<a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a><span class="go">BC_S390X_EB=./examples/go-xdp-counter/bpf_s390_bpfeb.o</span>
+<a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a><span class="go">PROGRAMS={&quot;xdp_stats&quot;:&quot;xdp&quot;}</span>
+<a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a><span class="go">MAPS={&quot;xdp_stats_map&quot;:&quot;per_cpu_array&quot;}</span>
 </code></pre></div>
 
 

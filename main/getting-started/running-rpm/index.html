@@ -522,6 +522,26 @@
   
   
     <li class="md-nav__item">
+      <a href="../building-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Setup and Building
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../launching-bpfman/" class="md-nav__link">
         
   
@@ -567,26 +587,6 @@
   
   <span class="md-ellipsis">
     Deploying Example eBPF Programs On Kubernetes
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../building-bpfman/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Setup and Building
   </span>
   
 
@@ -1869,12 +1869,15 @@ to be installed:</p>
 <p>To install nightly builds:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">sudo dnf copr enable @ebpf-sig/bpfman-next</span>
 </code></pre></div>
-<blockquote>
-<p><strong>Note:</strong> If both the bpfman and bpfman-next copr repos are enabled DNF will
-automatically pull from bpfman-next.  To disable one or the other simply run
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If both the <code>bpfman</code> and <code>bpfman-next</code> copr repos are enabled, <code>dnf</code> will
+automatically pull from <code>bpfman-next</code>.
+Either repo can be disabled.
+For example, to disable <code>bpfman-next</code> run:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">sudo dnf copr disable @ebpf-sig/bpfman-next</span>
-</code></pre></div></p>
-</blockquote>
+</code></pre></div>
+</div>
 <h3 id="install-rpm-from-packit-service">Install RPM From Packit Service</h3>
 <p>To load a RPM from a specific commit (@ebpf-sig/bpfman-next needs to be enabled
 instead of @ebpf-sig/bpfman), find the commit from <a href="https://github.com/bpfman/bpfman/commits/main/">bpfman commits</a>, and click on the green check showing a given Pull Request was verified.
@@ -1932,10 +1935,11 @@ To start <code>bpfman</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">sudo dnf install packit</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">sudo dnf install cargo-rpm-macros</span>
 </code></pre></div>
-<blockquote>
-<p>NOTE: <code>cargo-rpm-macros</code> needs to be version 25 or higher.
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>cargo-rpm-macros</code> needs to be version 25 or higher.
 It appears this is only available on Fedora 37, 38, 39 and Rawhide at the moment.</p>
-</blockquote>
+</div>
 <h3 id="build-locally">Build Locally</h3>
 <p>To build locally, run the following command:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="go">packit build locally</span>

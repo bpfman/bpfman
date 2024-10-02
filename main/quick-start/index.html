@@ -477,7 +477,7 @@
         <li class="md-nav__item">
   <a href="#deploy-released-container-images-on-kubernetes" class="md-nav__link">
     <span class="md-ellipsis">
-      Deploy Released container images on Kubernetes
+      Deploy Released Container Images on Kubernetes
     </span>
   </a>
   
@@ -578,6 +578,26 @@
   
   
     <li class="md-nav__item">
+      <a href="../getting-started/building-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Setup and Building
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../getting-started/launching-bpfman/" class="md-nav__link">
         
   
@@ -623,26 +643,6 @@
   
   <span class="md-ellipsis">
     Deploying Example eBPF Programs On Kubernetes
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../getting-started/building-bpfman/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Setup and Building
   </span>
   
 
@@ -1671,7 +1671,7 @@
         <li class="md-nav__item">
   <a href="#deploy-released-container-images-on-kubernetes" class="md-nav__link">
     <span class="md-ellipsis">
-      Deploy Released container images on Kubernetes
+      Deploy Released Container Images on Kubernetes
     </span>
   </a>
   
@@ -1772,13 +1772,13 @@ to be installed:</p>
 <a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
 <a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="go">sudo systemctl daemon-reload</span>
 </code></pre></div>
-<h2 id="deploy-released-container-images-on-kubernetes">Deploy Released container images on Kubernetes</h2>
+<h2 id="deploy-released-container-images-on-kubernetes">Deploy Released Container Images on Kubernetes</h2>
 <p>The quickest solution for running <code>bpfman</code> in a Kubernetes deployment is to run a
 <a href="https://kind.sigs.k8s.io/docs/user/quick-start/">local Kubernetes KIND Cluster</a>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">kind create cluster --name=test-bpfman</span>
 </code></pre></div>
 <p>Next, deploy the bpfman CRDs:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="go">export BPFMAN_REL=0.4.2</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="go">export BPFMAN_REL=0.5.1</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="go">kubectl apply -f  https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml</span>
 </code></pre></div>
 <p>Next, deploy the <code>bpfman-operator</code>, which will also deploy the <code>bpfman-daemon</code>, which contains

@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../overview/">
+        <link rel="prev" href="../building-bpfman/">
       
       
         <link rel="next" href="../example-bpf-local/">
@@ -520,6 +520,26 @@
                 
   
   
+  
+    <li class="md-nav__item">
+      <a href="../building-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Setup and Building
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -577,32 +597,13 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#start-bpfman-rpc" class="md-nav__link">
+  <a href="#install-and-start-bpfman" class="md-nav__link">
     <span class="md-ellipsis">
-      Start bpfman-rpc
+      Install and Start bpfman
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Start bpfman-rpc">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#run-as-a-long-lived-process" class="md-nav__link">
-    <span class="md-ellipsis">
-      Run as a Long Lived Process
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#run-as-a-systemd-service" class="md-nav__link">
-    <span class="md-ellipsis">
-      Run as a systemd Service
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Run as a systemd Service">
+    <nav class="md-nav" aria-label="Install and Start bpfman">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -611,11 +612,6 @@
       Additional Notes
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -673,26 +669,6 @@
   
   <span class="md-ellipsis">
     Deploying Example eBPF Programs On Kubernetes
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../building-bpfman/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Setup and Building
   </span>
   
 
@@ -1719,32 +1695,13 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#start-bpfman-rpc" class="md-nav__link">
+  <a href="#install-and-start-bpfman" class="md-nav__link">
     <span class="md-ellipsis">
-      Start bpfman-rpc
+      Install and Start bpfman
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Start bpfman-rpc">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#run-as-a-long-lived-process" class="md-nav__link">
-    <span class="md-ellipsis">
-      Run as a Long Lived Process
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#run-as-a-systemd-service" class="md-nav__link">
-    <span class="md-ellipsis">
-      Run as a systemd Service
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Run as a systemd Service">
+    <nav class="md-nav" aria-label="Install and Start bpfman">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1753,11 +1710,6 @@
       Additional Notes
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
         
@@ -1806,56 +1758,52 @@ installing the bpfman RPM (see <a href="../running-rpm/">Run bpfman From RPM</a>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">cd bpfman/</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">cargo build</span>
 </code></pre></div>
-<h2 id="start-bpfman-rpc">Start bpfman-rpc</h2>
-<p>When running bpfman, the RPC Server <code>bpfman-rpc</code> can be run as a long running process or a
-systemd service.
-Examples run the same, independent of how bpfman is deployed.</p>
-<h3 id="run-as-a-long-lived-process">Run as a Long Lived Process</h3>
-<p>While learning and experimenting with <code>bpfman</code>, it may be useful to run <code>bpfman</code> in the foreground
-(which requires a second terminal to run the <code>bpfman</code> CLI commands).
-When run in this fashion, logs are dumped directly to the terminal.
-For more details on how logging is handled in bpfman, see <a href="../../developer-guide/logging/">Logging</a>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">sudo RUST_LOG=info ./target/debug/bpfman-rpc --timeout=0</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">[INFO  bpfman::utils] Has CAP_BPF: true</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="go">[INFO  bpfman::utils] Has CAP_SYS_ADMIN: true</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go">[INFO  bpfman_rpc::serve] Using no inactivity timer</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="go">[INFO  bpfman_rpc::serve] Using default Unix socket</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="go">[INFO  bpfman_rpc::serve] Listening on /run/bpfman-sock/bpfman.sock</span>
-</code></pre></div>
-<p>When a build is run for bpfman, built binaries can be found in <code>./target/debug/</code>.
-So when launching <code>bpfman-rpc</code> and calling <code>bpfman</code> CLI commands, the binary must be in the $PATH
-or referenced directly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">sudo ./target/debug/bpfman list</span>
-</code></pre></div>
-<p>For readability, the remaining sample commands will assume the <code>bpfman</code> CLI binary is in the $PATH,
-so <code>./target/debug/</code> will be dropped.</p>
-<h3 id="run-as-a-systemd-service">Run as a systemd Service</h3>
+<h2 id="install-and-start-bpfman">Install and Start bpfman</h2>
 <p>Run the following command to copy the <code>bpfman</code> CLI and <code>bpfman-rpc</code> binaries to <code>/usr/sbin/</code> and
 copy <code>bpfman.socket</code> and <code>bpfman.service</code> files to <code>/usr/lib/systemd/system/</code>.
 This option will also enable and start the systemd services:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">sudo ./scripts/setup.sh install</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">cd bpfman/</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">sudo ./scripts/setup.sh install</span>
 </code></pre></div>
-<p><code>bpfman</code> CLI is now in $PATH, so <code>./targer/debug/</code> is not needed:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">sudo bpfman list</span>
+<p><code>bpfman</code> CLI is now in $PATH and can be used to load, view and unload eBPF programs.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass xdp --iface eno3 --priority 100</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="go">sudo bpfman list</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="go"> Program ID  Name  Type  Load Time                </span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="go"> 53885       pass  xdp   2024-08-26T17:41:36-0400 </span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="go">sudo bpfman unload 53885</span>
 </code></pre></div>
-<p>To view logs, use <code>journalctl</code>:</p>
+<p><code>bpfman</code> CLI is a Rust program that calls the <code>bpfman</code> library directly.
+To view logs while running <code>bpfman</code> CLI commands, prepend <code>RUST_LOG=info</code> to each command
+(see <a href="../../developer-guide/logging/">Logging</a> for more details):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">sudo RUST_LOG=info bpfman list</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">[INFO  bpfman::utils] Has CAP_BPF: true</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="go">[INFO  bpfman::utils] Has CAP_SYS_ADMIN: true</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="go"> Program ID  Name  Type  Load Time </span>
+</code></pre></div>
+<p>The examples (see <a href="../example-bpf-local/">Deploying Example eBPF Programs On Local Host</a>)
+are Go based programs, so they are building and sending RPC messages to the rust based binary
+<code>bpfman-rpc</code>, which in turn calls the <code>bpfman</code> library.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">cd bpfman/examples/go-xdp-counter/</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">go run -exec sudo . -iface eno3</span>
+</code></pre></div>
+<p>To view bpfman logs for RPC based applications, including all the provided examples, use <code>journalctl</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">sudo journalctl -f -u bpfman.service -u bpfman.socket</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go">Mar 27 09:13:54 server-calvin systemd[1]: Listening on bpfman.socket - bpfman API Socket.</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">  &lt;RUN &quot;sudo ./go-kprobe-counter&quot;&gt;</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go">Mar 27 09:15:43 server-calvin systemd[1]: Started bpfman.service - Run bpfman as a service.</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go">Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Has CAP_BPF: true</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go">Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Has CAP_SYS_ADMIN: true</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="go">Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Using a Unix socket from systemd</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="go">Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Using inactivity timer of 15 seconds</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="go">Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Listening on /run/bpfman-sock/bpfman.sock</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="go">Mar 27 09:15:43 server-calvin bpfman-rpc[2548091]: Starting Cosign Verifier, downloading data from Sigstore TUF repository</span>
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="go">Mar 27 09:15:45 server-calvin bpfman-rpc[2548091]: Loading program bytecode from file: /home/&lt;USER&gt;/src/bpfman/examples/go-kprobe-counter/bpf_bpfel.o</span>
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="go">Mar 27 09:15:45 server-calvin bpfman-rpc[2548091]: Added probe program with name: kprobe_counter and id: 7568</span>
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="go">Mar 27 09:15:48 server-calvin bpfman-rpc[2548091]: Removing program with id: 7568</span>
-<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="go">Mar 27 09:15:58 server-calvin bpfman-rpc[2548091]: Shutdown Unix Handler /run/bpfman-sock/bpfman.sock</span>
-<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="go">Mar 27 09:15:58 server-calvin systemd[1]: bpfman.service: Deactivated successfully.</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go">:</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">  &lt;RUN &quot;go run -exec sudo . -iface eno3&quot;&gt;</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go">Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Using a Unix socket from systemd</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go">Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Using inactivity timer of 15 seconds</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go">Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Listening on /run/bpfman-sock/bpfman.sock</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="go">Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Has CAP_BPF: true</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="go">Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Has CAP_SYS_ADMIN: true</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="go">Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Starting Cosign Verifier, downloading data from Sigstore TUF repository</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="go">Aug 26 18:03:55 server-calvin bpfman-rpc[2401725]: Loading program bytecode from file: /home/$USER/src/bpfman/bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="go">Aug 26 18:03:57 server-calvin bpfman-rpc[2401725]: The bytecode image: quay.io/bpfman/xdp-dispatcher:latest is signed</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="go">Aug 26 18:03:57 server-calvin bpfman-rpc[2401725]: Added xdp program with name: xdp_stats and id: 53919</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="go">Aug 26 18:04:09 server-calvin bpfman-rpc[2401725]: Shutdown Unix Handler /run/bpfman-sock/bpfman.sock```</span>
 </code></pre></div>
-<h4 id="additional-notes">Additional Notes</h4>
+<h3 id="additional-notes">Additional Notes</h3>
 <p>To update the configuration settings associated with running <code>bpfman</code> as a service, edit the
 service configuration files:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">sudo vi /usr/lib/systemd/system/bpfman.socket</span>
@@ -1881,11 +1829,12 @@ This means that it loads a <code>bpfman.socket</code> and <code>bpfman.service</
 The socket service is the long lived process, which doesn't have any special permissions.
 The service that runs <code>bpfman-rpc</code> is only started when there is a request on the socket,
 and then <code>bpfman-rpc</code> stops itself after an inactivity timeout.</p>
-<blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
 <p>For security reasons, it is recommended to run <code>bpfman-rpc</code> as a systemd service when running
 on a local host.
 For local development, some may find it useful to run <code>bpfman-rpc</code> as a long lived process.</p>
-</blockquote>
+</div>
 <p>When run as a systemd service, the set of linux capabilities are limited to only the required set.
 If permission errors are encountered, see <a href="../../developer-guide/linux-capabilities/">Linux Capabilities</a>
 for help debugging.</p>

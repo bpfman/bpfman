@@ -12,7 +12,7 @@
         <link rel="prev" href="../example-bpf-local/">
       
       
-        <link rel="next" href="../building-bpfman/">
+        <link rel="next" href="../running-release/">
       
       
       <link rel="icon" href="../../img/icon/color/bpfman-icon-color.svg">
@@ -522,6 +522,26 @@
   
   
     <li class="md-nav__item">
+      <a href="../building-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Setup and Building
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../launching-bpfman/" class="md-nav__link">
         
   
@@ -662,26 +682,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../building-bpfman/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Setup and Building
-  </span>
-  
-
-      </a>
     </li>
   
 
@@ -2037,21 +2037,21 @@ Run <code>make deploy</code> to load each of the example bytecode and userspace 
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go">  for target in deploy-tc deploy-tracepoint deploy-xdp deploy-xdp-ms deploy-kprobe deploy-target deploy-uprobe ; do \</span>
 <a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go">      make $target  || true; \</span>
 <a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go">  done</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="go">  make[1]: Entering directory &#39;/home/bmcfall/go/src/github.com/bpfman/bpfman/examples&#39;</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="go">  make[1]: Entering directory &#39;/home/&lt;$USER&gt;/go/src/github.com/bpfman/bpfman/examples&#39;</span>
 <a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="go">  sed &#39;s@URL_BC@quay.io/bpfman-bytecode/go-tc-counter:latest@&#39; config/default/go-tc-counter/patch.yaml.env &gt; config/default/go-tc-counter/patch.yaml</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="go">  cd config/default/go-tc-counter &amp;&amp; /home/bmcfall/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tc-counter=quay.io/bpfman-userspace/go-tc-counter:latest</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="go">  cd config/default/go-tc-counter &amp;&amp; /home/&lt;$USER&gt;/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tc-counter=quay.io/bpfman-userspace/go-tc-counter:latest</span>
 <a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="go">  namespace/go-tc-counter created</span>
 <a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="go">  serviceaccount/bpfman-app-go-tc-counter created</span>
 <a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="go">  daemonset.apps/go-tc-counter-ds created</span>
 <a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="go">  tcprogram.bpfman.io/go-tc-counter-example created</span>
 <a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="go">  :</span>
 <a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="go">  sed &#39;s@URL_BC@quay.io/bpfman-bytecode/go-uprobe-counter:latest@&#39; config/default/go-uprobe-counter/patch.yaml.env &gt; config/default/go-uprobe-counter/patch.yaml</span>
-<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="go">  cd config/default/go-uprobe-counter &amp;&amp; /home/bmcfall/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-uprobe-counter=quay.io/bpfman-userspace/go-uprobe-counter:latest</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="go">  cd config/default/go-uprobe-counter &amp;&amp; /home/&lt;$USER&gt;/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-uprobe-counter=quay.io/bpfman-userspace/go-uprobe-counter:latest</span>
 <a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="go">  namespace/go-uprobe-counter created</span>
 <a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="go">  serviceaccount/bpfman-app-go-uprobe-counter created</span>
 <a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="go">  daemonset.apps/go-uprobe-counter-ds created</span>
 <a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="go">  uprobeprogram.bpfman.io/go-uprobe-counter-example created</span>
-<a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="go">  make[1]: Leaving directory &#39;/home/bmcfall/go/src/github.com/bpfman/bpfman/examples&#39;</span>
+<a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="go">  make[1]: Leaving directory &#39;/home/&lt;$USER&gt;/go/src/github.com/bpfman/bpfman/examples&#39;</span>
 <a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>
 <a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a><span class="gp"># </span>Test<span class="w"> </span>Away<span class="w"> </span>...
 <a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>
@@ -2079,9 +2079,9 @@ Run <code>make deploy</code> to load each of the example bytecode and userspace 
 <a id="__codelineno-9-45" name="__codelineno-9-45" href="#__codelineno-9-45"></a><span class="go">  for target in undeploy-tc undeploy-tracepoint undeploy-xdp undeploy-xdp-ms undeploy-kprobe undeploy-uprobe undeploy-target ; do \</span>
 <a id="__codelineno-9-46" name="__codelineno-9-46" href="#__codelineno-9-46"></a><span class="go">      make $target  || true; \</span>
 <a id="__codelineno-9-47" name="__codelineno-9-47" href="#__codelineno-9-47"></a><span class="go">  done</span>
-<a id="__codelineno-9-48" name="__codelineno-9-48" href="#__codelineno-9-48"></a><span class="go">  make[1]: Entering directory &#39;/home/bmcfall/go/src/github.com/bpfman/bpfman/examples&#39;</span>
+<a id="__codelineno-9-48" name="__codelineno-9-48" href="#__codelineno-9-48"></a><span class="go">  make[1]: Entering directory &#39;/home/&lt;$USER&gt;/go/src/github.com/bpfman/bpfman/examples&#39;</span>
 <a id="__codelineno-9-49" name="__codelineno-9-49" href="#__codelineno-9-49"></a><span class="go">  sed &#39;s@URL_BC@quay.io/bpfman-bytecode/go-tc-counter:latest@&#39; config/default/go-tc-counter/patch.yaml.env &gt; config/default/go-tc-counter/patch.yaml</span>
-<a id="__codelineno-9-50" name="__codelineno-9-50" href="#__codelineno-9-50"></a><span class="go">  cd config/default/go-tc-counter &amp;&amp; /home/bmcfall/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tc-counter=quay.io/bpfman-userspace/go-tc-counter:latest</span>
+<a id="__codelineno-9-50" name="__codelineno-9-50" href="#__codelineno-9-50"></a><span class="go">  cd config/default/go-tc-counter &amp;&amp; /home/&lt;$USER&gt;/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tc-counter=quay.io/bpfman-userspace/go-tc-counter:latest</span>
 <a id="__codelineno-9-51" name="__codelineno-9-51" href="#__codelineno-9-51"></a><span class="go">  namespace &quot;go-tc-counter&quot; deleted</span>
 <a id="__codelineno-9-52" name="__codelineno-9-52" href="#__codelineno-9-52"></a><span class="go">  serviceaccount &quot;bpfman-app-go-tc-counter&quot; deleted</span>
 <a id="__codelineno-9-53" name="__codelineno-9-53" href="#__codelineno-9-53"></a><span class="go">  daemonset.apps &quot;go-tc-counter-ds&quot; deleted</span>
@@ -2091,7 +2091,7 @@ Run <code>make deploy</code> to load each of the example bytecode and userspace 
 <a id="__codelineno-9-57" name="__codelineno-9-57" href="#__codelineno-9-57"></a><span class="go">  namespace &quot;go-target&quot; deleted</span>
 <a id="__codelineno-9-58" name="__codelineno-9-58" href="#__codelineno-9-58"></a><span class="go">  serviceaccount &quot;bpfman-app-go-target&quot; deleted</span>
 <a id="__codelineno-9-59" name="__codelineno-9-59" href="#__codelineno-9-59"></a><span class="go">  daemonset.apps &quot;go-target-ds&quot; deleted</span>
-<a id="__codelineno-9-60" name="__codelineno-9-60" href="#__codelineno-9-60"></a><span class="go">  make[1]: Leaving directory &#39;/home/bmcfall/go/src/github.com/bpfman/bpfman/examples&#39;</span>
+<a id="__codelineno-9-60" name="__codelineno-9-60" href="#__codelineno-9-60"></a><span class="go">  make[1]: Leaving directory &#39;/home/&lt;$USER&gt;/go/src/github.com/bpfman/bpfman/examples&#39;</span>
 </code></pre></div>
 <p>Individual examples can be loaded and unloaded as well, for example <code>make deploy-xdp</code> and
 <code>make undeploy-xdp</code>.

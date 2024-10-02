@@ -520,6 +520,26 @@
   
   
     <li class="md-nav__item">
+      <a href="../../getting-started/building-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Setup and Building
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../getting-started/launching-bpfman/" class="md-nav__link">
         
   
@@ -565,26 +585,6 @@
   
   <span class="md-ellipsis">
     Deploying Example eBPF Programs On Kubernetes
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../getting-started/building-bpfman/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Setup and Building
   </span>
   
 
@@ -1731,7 +1731,9 @@ which are then called in place of one of the stub functions.</p>
 XDP programs on a given interface.
 This tutorial will show you how to use <code>bpfman</code> to load multiple XDP programs
 on an interface.</p>
-<p><strong>Note:</strong> The TC hook point is also associated with an interface.
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The TC hook point is also associated with an interface.
 Within bpfman, TC is implemented in a similar fashion to XDP in that it uses a dispatcher with
 stub functions.
 TCX is a fairly new kernel feature that improves how the kernel handles multiple TC programs
@@ -1739,6 +1741,7 @@ on a given interface.
 bpfman is on the process of integrating TCX support, which will replace the dispatcher logic
 for TC.
 Until then, assume TC behaves in a similar fashion to XDP.</p>
+</div>
 <p>See <a href="../../getting-started/launching-bpfman/">Launching bpfman</a>
 for more detailed instructions on building and loading bpfman.
 This tutorial assumes bpfman has been built and the <code>bpfman</code> CLI is in $PATH.</p>
@@ -1747,8 +1750,8 @@ This tutorial assumes bpfman has been built and the <code>bpfman</code> CLI is i
 <code>eno3</code> in this example.
 We will use the priority of 100.
 Find a deeper dive into CLI syntax in <a href="../../getting-started/cli-guide/">CLI Guide</a>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp \</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">  --iface eno3 --priority 100</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass \</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">  xdp --iface eno3 --priority 100</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="go"> Bpfman State</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">---------------</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="go"> Name:          pass</span>
@@ -1826,8 +1829,8 @@ interface and thus will be executed first.</p>
 <h2 id="loading-additional-xdp-programs">Loading Additional XDP Programs</h2>
 <p>We will now load 2 more programs with different priorities to demonstrate how bpfman
 will ensure they are ordered correctly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp \</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">  --iface eno3 --priority 50</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass \</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">  xdp --iface eno3 --priority 50</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="go"> Bpfman State</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="go">---------------</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="go"> Name:          pass</span>
@@ -1850,8 +1853,8 @@ will ensure they are ordered correctly:</p>
 <a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="go"> Type:                             xdp</span>
 <a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="go">:</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp \</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">  --iface eno3 --priority 200</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass \</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">  xdp --iface eno3 --priority 200</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go"> Bpfman State</span>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go">---------------</span>
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="go"> Name:          pass</span>
@@ -1944,8 +1947,8 @@ As can be seen from the detailed output for each command below:</p>
 If the next program in the chain should be called even if a different value is returned,
 then the program can be loaded with those additional return values using the <code>proceed-on</code>
 parameter (see <code>bpfman load image xdp --help</code> for list of valid values):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp \</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">  --iface eno3 --priority 150 --proceed-on &quot;pass&quot; --proceed-on &quot;dispatcher_return&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass \</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">  xdp --iface eno3 --priority 150 --proceed-on &quot;pass&quot; --proceed-on &quot;dispatcher_return&quot;</span>
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go"> Bpfman State</span>
 <a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go">---------------</span>
 <a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go"> Name:          pass</span>
