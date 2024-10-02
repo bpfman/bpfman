@@ -52,7 +52,7 @@ sudo RUST_LOG=info bpfman list
 ```
 
 The examples (see [Deploying Example eBPF Programs On Local Host](./example-bpf-local.md))
-are Go based programs, so they are building and sending RPC messaged to the rust based binary
+are Go based programs, so they are building and sending RPC messages to the rust based binary
 `bpfman-rpc`, which in turn calls the `bpfman` library.
 
 ```console

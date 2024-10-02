@@ -10,7 +10,8 @@ Unit testing is executed as part of the `build` job by running the following
 command in the top-level bpfman directory.
 
 ```
- cargo test
+cd bpfman/
+cargo test
 ```
 
 ## Go Example Tests
@@ -25,6 +26,7 @@ The full set of basic integration tests are executed by running the following
 command in the top-level bpfman directory.
 
 ```bash
+cd bpfman/
 cargo xtask integration-test
 ```
 
@@ -72,17 +74,7 @@ the eBPF test programs can be found in the `tests/integration-test/bpf`
 directory.  These programs are compiled by executing `cargo xtask build-ebpf
 --libbpf-dir <libbpf dir>`
 
-We also load some tests from local files to test the `load-from-file` option.
-
-The `bpf` directory also contains a script called `build_push_images.sh` that
-can be used to build and push new images to quay if the code is changed.
-Images get pushed automatically when code gets merged, however, it's still
-useful to be able to push them manually sometimes. For example, when a new test
-case requires that both the eBPF and integration code be changed together.  It
-is also a useful template for new eBPF test code that needs to be pushed.
-However, as a word of caution, be aware that existing integration tests will
-start using the new programs immediately, so this should only be done if the
-modified program is backward compatible.
+We also load some tests from local files to test the `bpfman load file` option.
 
 ## Kubernetes Operator Tests
 
@@ -91,42 +83,49 @@ modified program is backward compatible.
 To run all of the unit tests defined in the bpfman-operator controller code run
 `make test` in the bpfman-operator directory.
 
+```bash
+cd bpfman-operator/
+make test
+```
+
 ### Kubernetes Operator Integration Tests
 
 To run the Kubernetes Operator integration tests locally:
 
 1. Build the example test code userspace images locally.
 
-```bash
-    # in bpfman/examples
+    ```bash
+    cd bpfman/examples/
     make build-us-images
-```
+    ```
 
 2. (optional) build the bytecode images
 
-  In order to rebuild all of the bytecode images for a PR, ask a maintainer to do so,
-  they will be built and generate by github actions with the tag
-  `quay.io/bpfman-bytecode/<example>:<branch-name>`
+    In order to rebuild all of the bytecode images for a PR, ask a maintainer to do so,
+    they will be built and generate by github actions with the tag
+    `quay.io/bpfman-bytecode/<example>:<branch-name>`
 
-3. Build the bpfman images locally with the `int-test` tag.
+3. Build the bpfman images locally with a unique tag, for example: `int-test`
 
-```bash
-    # in bpfman/bpfman-operator
-    BPFMAN_AGENT_IMG=quay.io/bpfman/bpfman-agent:int-test BPFMAN_IMG=quay.io/bpfman/bpfman:int-test BPFMAN_OPERATOR_IMG=quay.io/bpfman/bpfman-operator:int-test make build-images
-```
+    ```bash
+    cd bpfman-operator/
+    BPFMAN_AGENT_IMG=quay.io/bpfman/bpfman-agent:int-test BPFMAN_OPERATOR_IMG=quay.io/bpfman/bpfman-operator:int-test make build-images
+    ```
 
-4. Run the integration test suite.
+4. Run the integration test suite with the images from the previous step:
 
-```bash
-    # in bpfman/bpfman-operator
-    BPFMAN_AGENT_IMG=quay.io/bpfman/bpfman-agent:int-test BPFMAN_IMG=quay.io/bpfman/bpfman:int-test BPFMAN_OPERATOR_IMG=quay.io/bpfman/bpfman-operator:int-test make test-integration
-```
+    ```bash
+    cd bpfman-operator/
+    BPFMAN_AGENT_IMG=quay.io/bpfman/bpfman-agent:int-test BPFMAN_OPERATOR_IMG=quay.io/bpfman/bpfman-operator:int-test make test-integration
+    ```
 
-Additionally the integration test can be configured with the following environment variables:
+    If an update `bpfman` image is required, build it separately and pass to `make test-integration` using `BPFMAN_IMG`.
+    See [Locally Build bpfman Container Image](./image-build.md#locally-build-bpfman-container-image).
 
-* **KEEP_TEST_CLUSTER**: If set to `true` the test cluster will not be torn down
-  after the integration test suite completes.
-* **USE_EXISTING_KIND_CLUSTER**: If this is set to the name of the existing kind
-  cluster the integration test suite will use that cluster instead of creating a
-  new one.
+    Additionally the integration test can be configured with the following environment variables:
 
+    * **KEEP_TEST_CLUSTER**: If set to `true` the test cluster will not be torn down
+      after the integration test suite completes.
+    * **USE_EXISTING_KIND_CLUSTER**: If this is set to the name of the existing kind
+      cluster the integration test suite will use that cluster instead of creating a
+      new one.

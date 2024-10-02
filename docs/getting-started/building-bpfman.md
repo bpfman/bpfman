@@ -36,7 +36,7 @@ Major kernel features leveraged by bpfman:
 * **Relaxed CAP_BPF Requirement:** Prior to Kernel 5.19, all eBPF system calls required CAP_BPF.
   This required userspace programs that wanted to access eBPF maps to have the CAP_BPF Linux capability.
   With the kernel 5.19 change, CAP_BPF is only required for load and unload requests.
-* **TCX:** TCX support was added in Kernel 6.6, and added to bpfman in v0.5.2.
+* **TCX:** TCX support was added in Kernel 6.6 and is expected to be added to bpfman in v0.5.2.
   TCX has performance improvements over TC and adds support in the kernel for multiple TCX programs to run
   on a given TC hook point.
 
@@ -188,7 +188,7 @@ See [kind](https://kind.sigs.k8s.io/) for documentation and installation instruc
     ([kubernetes/kubernetes#112597](https://github.com/kubernetes/kubernetes/pull/112597))
     that addresses a gRPC Protocol Error that was seen in the CSI client code and it doesn't appear
     to have been backported.
-    It is recommended to install kind v0.20.0 or later.
+    kind v0.20.0 or later is recommended.
 
 If the following error is seen, it means there is an older version of Kubernetes running and it
 needs to be upgraded.
@@ -276,8 +276,8 @@ taplo fmt --check
 ## Clone the bpfman and bpfman-operator Repositories
 
 You can build and run bpfman from anywhere.
-For simplicity throughout this documentation, all examples will assume
-`$HOME/src/bpfman/` and `$HOME/src/bpfman-operator/`.
+For simplicity throughout this documentation, all examples will reference
+`bpfman/` and `bpfman-operator/` to indicate which repository is being used.
 bpfman-operator only needs to be cloned if deploying in Kubernetes.
 
 ```
@@ -292,7 +292,7 @@ git clone https://github.com/bpfman/bpfman-operator.git
 If you are building bpfman for the first time OR the eBPF code has changed:
 
 ```console
-cd ~/src/bpfman/
+cd bpfman/
 cargo xtask build-ebpf --libbpf-dir /path/to/libbpf
 ```
 
@@ -314,7 +314,7 @@ cargo build
 Optionally, to build the CLI TAB completion files, run the following command:
 
 ```console
-cd ~/src/bpfman/
+cd bpfman/
 cargo xtask build-completion
 ```
 
@@ -354,7 +354,7 @@ For these shells, generated file must be manually installed.
 Optionally, to build the CLI Manpage files, run the following command:
 
 ```console
-cd ~/src/bpfman/
+cd bpfman/
 cargo xtask build-man-page
 ```
 
@@ -374,7 +374,7 @@ Once installed, use `man` to view the pages.
 man bpfman list
 ```
 
-!!! NOTE
+!!! Note
     `bpfman` commands with subcommands (specifically `bpfman load`) have `-` in the
     manpage subcommand generation.
     So use `man bpfman load-file`, `man bpfman load-image`, `man bpfman load-image-xdp`,

@@ -17,7 +17,7 @@ XDP programs on a given interface.
 This tutorial will show you how to use `bpfman` to load multiple XDP programs
 on an interface.
 
-!!! Note:
+!!! Note
     The TC hook point is also associated with an interface.
     Within bpfman, TC is implemented in a similar fashion to XDP in that it uses a dispatcher with
     stub functions.

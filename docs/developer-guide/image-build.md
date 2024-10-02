@@ -1,8 +1,9 @@
 # bpfman Container Images
 
 Container images for `bpfman` are automatically built and pushed to `quay.io/` under the
-`:latest` tag whenever code is merged into the `main` branch of the `github.com/bpfman/bpfman`
-and `github.com/bpfman/bpfman-operator` repositories.
+`:latest` tag whenever code is merged into the `main` branch of the
+[bpfman](https://github.com/bpfman/bpfman) and [bpfman-operator](https://github.com/bpfman/bpfman-operator)
+repositories.
 
 * [quay.io/bpfman](https://quay.io/organization/bpfman):  This repository contains images needed
   to run bpfman.
@@ -45,7 +46,7 @@ to the bpfman-operator or bpfman-agent container images.
 The local Makefile will build and load both images based on the current changes: 
 
 ```sh
-cd $HOME/src/bpfman-operator/
+cd bpfman-operator/
 
 make build-images
 make run-on-kind
@@ -59,7 +60,7 @@ By default, bpfman-agent uses `quay.io/bpfman/bpfman:latest`.
 To build the bpfman binaries in a container image, run:
 
 ```sh
-cd $HOME/src/bpfman/
+cd bpfman/
 
 docker build -f ./Containerfile.bpfman.local . -t quay.io/$QUAY_USER/bpfman:test
 ```
@@ -69,7 +70,7 @@ Next, build and deploy the bpfman-operator and bpfman-agent with the locally bui
 image.
 
 ```sh
-cd $HOME/src/bpfman-operator/
+cd bpfman-operator/
 
 BPFMAN_IMG=quay.io/$QUAY_USER/bpfman:test make build-images
 BPFMAN_IMG=quay.io/$QUAY_USER/bpfman:test make run-on-kind
@@ -77,13 +78,14 @@ BPFMAN_IMG=quay.io/$QUAY_USER/bpfman:test make run-on-kind
 
 To use, the Kind cluster must have access to the image.
 So either the image needs to be pushed to a registry and made public (make
-public via the repo GUI after the push):
+public via the repo GUI after the push) before executing the `make run-on-kind`
+command shown above:
 
 ```sh
 docker push quay.io/$QUAY_USER/bpfman:test
 ```
 
-OR load into kind cluster:
+OR it can be loaded into the kind cluster after the cluster is running:
 
 ```sh
 kind load docker-image quay.io/$QUAY_USER/bpfman:test --name bpfman-deployment
@@ -142,8 +144,8 @@ bpfman image build -f Containerfile.bytecode.multi.arch -t quay.io/$QUAY_USER/tc
 bpfman image build -f Containerfile.bytecode.multi.arch -t quay.io/$QUAY_USER/xdp-dispatcher:test -c .output/xdp_dispatcher_v2.bpf/
 ```
 
-!!! NOTE
-    To build images for multiple architectures on a local system, docker may need additional configuration
+!!! Note
+    To build images for multiple architectures on a local system, docker (or podman) may need additional configuration
     settings to allow for caching of non-native images. See 
     [https://docs.docker.com/build/building/multi-platform/](https://docs.docker.com/build/building/multi-platform/)
     for more details.
@@ -208,8 +210,8 @@ $ make build-bc-xdp USER_BC=$QUAY_USER TAG_BC=test-bc PLATFORM=linux/amd64,linux
  => pushing quay.io/$QUAY_USER/go-xdp-counter:test-bc with docker
 ```
 
-!!! NOTE
-    To build images for multiple architectures on a local system, docker may need additional configuration
+!!! Note
+    To build images for multiple architectures on a local system, docker (or podman) may need additional configuration
     settings to allow for caching of non-native images. See 
     [https://docs.docker.com/build/building/multi-platform/](https://docs.docker.com/build/building/multi-platform/)
     for more details.
@@ -220,7 +222,7 @@ If an example userspace container image needs to be built locally, use the follo
 build the userspace container images, (optionally passing the `USER_US` and `TAG_US` for the image):
 
 ```sh
-cd ~/src/bpfman/examples/
+cd bpfman/examples/
 
 # Build all images
 $ make build-us-images USER_US=$QUAY_USER TAG_US=test-us
@@ -248,8 +250,8 @@ $ make build-us-xdp USER_US=$QUAY_USER TAG_US=test-us PLATFORM=linux/amd64,linux
  => pushing quay.io/$QUAY_USER/go-xdp-counter:test-us with docker
 ```
 
-!!! NOTE
-    To build images for multiple architectures on a local system, docker may need additional configuration
+!!! Note
+    To build images for multiple architectures on a local system, docker (or podman) may need additional configuration
     settings to allow for caching of non-native images. See 
     [https://docs.docker.com/build/building/multi-platform/](https://docs.docker.com/build/building/multi-platform/)
     for more details.
@@ -270,7 +272,7 @@ integration tests, several steps need to be performed.
 
 ## Signing Container Images
 
-It is encouraged to sign the eBPF container images, which can easily be done using
+Signing eBPF container images is encouraged and can be easily done using
 [cosign](https://docs.sigstore.dev/signing/quickstart/).
 Below is a summary of the steps needed to sign an image.
 
@@ -282,7 +284,7 @@ go install github.com/sigstore/cosign/v2/cmd/cosign@latest
 
 Then sign the image.
 The `cosign` command will generate a URL.
-Follow the URL to a `sigstore` login and login with either GitHub, Google to Microsoft.
+Follow the `sigstore` URL and login with either GitHub, Google to Microsoft.
 That will generate a verification code that will complete the `cosign` command.
 
 ```console

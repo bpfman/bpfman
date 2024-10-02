@@ -36,8 +36,10 @@ sudo dnf copr enable @ebpf-sig/bpfman-next
 ```
 
 !!! Note
-    If both the bpfman and bpfman-next copr repos are enabled DNF will
-    automatically pull from bpfman-next.  To disable one or the other simply run
+    If both the `bpfman` and `bpfman-next` copr repos are enabled, `dnf` will
+    automatically pull from `bpfman-next`.
+    Either repo can be disabled.
+    For example, to disable `bpfman-next` run:
     
     ```console
     sudo dnf copr disable @ebpf-sig/bpfman-next
