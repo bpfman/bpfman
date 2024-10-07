@@ -246,7 +246,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3.6.0
+        uses: sigstore/cosign-installer@v3.7.0
 
       - name: Login to quay.io/bpfman
         uses: redhat-actions/podman-login@v1
@@ -654,7 +654,7 @@ jobs:
           go-version: '1.22' # yamllint disable-line rule:quoted-strings
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3.6.0
+        uses: sigstore/cosign-installer@v3.7.0
 
       - name: Checkout libbpf
         uses: actions/checkout@v4
