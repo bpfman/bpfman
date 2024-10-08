@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@v4
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Build bpfman binary
         run: cargo build -p bpfman --verbose
@@ -32,7 +32,7 @@ jobs:
           tar -czvf bpfman.tar.gz bpfman
 
       - name: Archive bpfman Binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
         with:
           name: bpfman-for-build-args
           path: |
@@ -73,10 +73,10 @@ jobs:
     name: Build bpfman (bpfman-${{ matrix.arch.arch }})
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@v4
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Install rust toolchain - stable
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # @v1
         with:
           toolchain: stable
           override: true
@@ -104,7 +104,7 @@ jobs:
           tar -czvf bpfman-build-${{ matrix.arch.filename }}.tar.gz bpfman bpfman-rpc bpfman-ns bpf-metrics-exporter bpf-log-exporter
 
       - name: Archive bpfman Binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
         with:
           name: bpfman-build-${{ matrix.arch.filename }}
           path: ./target/${{ matrix.arch.rust-target }}/release/bpfman-build-${{ matrix.arch.filename }}.tar.gz
@@ -243,13 +243,13 @@ jobs:
     name: Build Image (${{ matrix.image.image }})
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@v4
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3.7.0
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # @v3.7.0
 
       - name: Login to quay.io/bpfman
-        uses: redhat-actions/podman-login@v1
+        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # @v1
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman'}}
         with:
           registry: ${{ matrix.image.registry }}
@@ -257,7 +257,7 @@ jobs:
           password: ${{ secrets.BPFMAN_ROBOT_TOKEN }}
 
       - name: Login to quay.io/bpfman-userspace
-        uses: redhat-actions/podman-login@v1
+        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # @v1
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman-userspace'}}
         with:
           registry: ${{ matrix.image.registry }}
@@ -266,16 +266,16 @@ jobs:
 
       - name: Extract metadata (tags, labels) for image
         id: meta
-        uses: docker/metadata-action@v5.5.1
+        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # @v5.5.1
         with:
           images: ${{ matrix.image.registry }}/${{ matrix.image.repository }}/${{ matrix.image.image }}
           tags: ${{ matrix.image.tags }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # @v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # @v3
 
       # bpfman ONLY
       - name: Update .dockerignore to allow "target/" directory
@@ -285,7 +285,7 @@ jobs:
 
       # bpfman ONLY
       - name: Download built bpfman Binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
         if: ${{ matrix.image.image == 'bpfman'}}
         with:
           pattern: bpfman-build-*
@@ -306,7 +306,7 @@ jobs:
 
       - name: Build and push
         id: build-push-image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # @v6
         with:
           platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
           push: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
@@ -644,27 +644,27 @@ jobs:
     name: Build eBPF Image (${{ matrix.image.image }})
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@v4
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Install Golang
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # @v5
         if: ${{ matrix.image.build_language == 'go' }}
         with:
           # prettier-ignore
           go-version: '1.22' # yamllint disable-line rule:quoted-strings
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@v3.7.0
+        uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # @v3.7.0
 
       - name: Checkout libbpf
-        uses: actions/checkout@v4
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
         if: ${{ matrix.image.bpf_build_wrapper == 'rust' }}
         with:
           repository: libbpf/libbpf
           path: libbpf
 
       - name: Install rust toolchain - stable
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # @v1
         if: ${{ matrix.image.build_language == 'rust' }}
         with:
           toolchain: stable
@@ -687,7 +687,7 @@ jobs:
           cd examples && make generate
 
       - name: Login to quay.io/bpfman
-        uses: redhat-actions/podman-login@v1
+        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # @v1
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman'}}
         with:
           registry: ${{ matrix.image.registry }}
@@ -695,7 +695,7 @@ jobs:
           password: ${{ secrets.BPFMAN_ROBOT_TOKEN }}
 
       - name: Login to quay.io/bpfman-bytecode
-        uses: redhat-actions/podman-login@v1
+        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # @v1
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman-bytecode' }}
         with:
           registry: ${{ matrix.image.registry }}
@@ -703,7 +703,7 @@ jobs:
           password: ${{ secrets.BPFMAN_BYTECODE_ROBOT_TOKEN }}
 
       - name: Download bpfman binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
         with:
           name: bpfman-for-build-args
 
@@ -713,16 +713,16 @@ jobs:
 
       - name: Extract metadata (tags, labels) for image
         id: meta
-        uses: docker/metadata-action@v5.5.1
+        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # @v5.5.1
         with:
           images: ${{ matrix.image.registry }}/${{ matrix.image.repository }}/${{ matrix.image.image }}
           tags: ${{ matrix.image.tags }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf # @v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # @v3
 
       - name: Manually generate build args
         id: build-tags
@@ -738,7 +738,7 @@ jobs:
 
       - name: Build and push
         id: build-push-image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@4f58ea79222b3b9dc2c8bbdd6debcef730109a75 # @v6
         with:
           platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
           push: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}

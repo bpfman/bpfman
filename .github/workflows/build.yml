@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 3
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
       - name: Check License Header
         uses: apache/skywalking-eyes@cd7b195c51fd3d6ad52afceb760719ddc6b3ee91
 
@@ -67,19 +67,19 @@ jobs:
             libelf-dev \
 
       - name: Checkout bpfman
-        uses: actions/checkout@v4
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Checkout libbpf
         # libbpf only needed to build eBPF and used by integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
         with:
           repository: libbpf/libbpf
           path: libbpf
           fetch-depth: 0
 
       - name: Install rust toolchain - stable
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # @v1
         with:
           toolchain: stable
           override: true
@@ -88,7 +88,7 @@ jobs:
       - name: Install rust toolchain - ${{ env.NIGHTLY_VERSION }}
         # Only need for checks (like lint and clippy) that only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # @v1
         with:
           toolchain: ${{ env.NIGHTLY_VERSION }}
           components: rustfmt, clippy, rust-src
@@ -102,17 +102,17 @@ jobs:
         run: |
           cargo install cross --git https://github.com/cross-rs/cross
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # @v2
 
       - name: Install cargo-llvm-cov
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: taiki-e/install-action@cargo-llvm-cov
+        uses: taiki-e/install-action@ac87e9813a4968fd0c941361295f6d119b826393 # @cargo-llvm-cov
 
       - name: Install toml linter
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@e29814c376696105d80cec9e9efaa98bae8e7347 # @v2
         with:
           tool: taplo-cli
 
@@ -146,7 +146,7 @@ jobs:
       - name: Archive Integration Test eBPF
         # Only need to build eBPF once and used by integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
         with:
           name: bpfman-integration-test
           path: |
@@ -189,7 +189,7 @@ jobs:
       - name: Archive bpfman Binaries
         # Tar and archive the build for basic-integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
         with:
           name: bpfman-debug-${{ matrix.arch.filename }}
           path: |
@@ -209,7 +209,7 @@ jobs:
       - name: Archive manpages
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
         with:
           name: bpfman-manpages
           path: |
@@ -229,7 +229,7 @@ jobs:
       - name: Archive CLI TAB Completion
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
         with:
           name: bpfman-cli-tab-completion
           path: |
@@ -249,7 +249,7 @@ jobs:
 
       - name: Archive bpfman Release Binaries
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
         with:
           name: bpfman-release-${{ matrix.arch.filename }}
           path: ./target/${{ matrix.arch.rust-target }}/release/bpfman-${{ matrix.arch.filename }}.tar.gz
@@ -264,7 +264,7 @@ jobs:
       - name: Archive Rust code coverage results
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
         with:
           name: coverage-rust
           path: lcov.info
@@ -289,10 +289,10 @@ jobs:
     name: Build Go Modules (${{ matrix.arch.arch }})
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@v4
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Install go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # @v5
         with:
           # prettier-ignore
           go-version: '1.22' # yamllint disable-line rule:quoted-strings
@@ -307,7 +307,7 @@ jobs:
       - name: Lint
         # Only need to lint the code once, so just pick one of the arch to run on.
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042db8 # @v6
         with:
           ## https://github.com/golangci/golangci-lint-action/issues/369
           version: v1.54.2
@@ -341,15 +341,15 @@ jobs:
           echo "FEXIT_IMAGE_LOC=quay.io/bpfman-bytecode/fexit:${GITHUB_REF_NAME}" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # @v3
         with:
           driver-opts: network=host
 
       - name: Checkout bpfman
-        uses: actions/checkout@v4
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Download bpfman x86_64 build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
         with:
           name: bpfman-debug-linux-x86_64
           merge-multiple: true
@@ -360,7 +360,7 @@ jobs:
           tar -C target/debug -xzvf bpfman-debug-linux-x86_64.tar.gz
 
       - name: Download Integration Test eBPF
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
         with:
           name: bpfman-integration-test
           merge-multiple: true
@@ -370,7 +370,7 @@ jobs:
           tar -xzvf integration-test.tar.gz
 
       - name: Download manpages
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
         with:
           name: bpfman-manpages
           merge-multiple: true
@@ -380,7 +380,7 @@ jobs:
           tar -xzvf manpages.tar.gz
 
       - name: Download CLI TAB Completion
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
         with:
           name: bpfman-cli-tab-completion
           merge-multiple: true
@@ -422,10 +422,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@v4
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Install Python3
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # @v5
         with:
           python-version: 3.x
 
@@ -440,12 +440,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download rust coverage artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
         with:
           name: coverage-rust
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # @v4
         with:
           files: ./lcov.info
           verbose: true
@@ -460,7 +460,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@v4
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Set env
         run: |
@@ -472,13 +472,13 @@ jobs:
           fi
 
       - name: Download bpfman Release Binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
         with:
           pattern: bpfman-release-*
           merge-multiple: true
 
       - name: release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # @v2
         with:
           body_path: ./changelogs/CHANGELOG-${{ env.RELEASE_VERSION }}.md
           prerelease: ${{ env.PRE_RELEASE }}
