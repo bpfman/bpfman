@@ -5,10 +5,11 @@
 [![License][apache2-badge]][apache2-url]
 [![License][bsd2-badge]][bsd2-url]
 [![License][gpl-badge]][gpl-url]
-![Build status][build-badge]
+[![Build status]][build-badge]
 [![Book][book-badge]][book-url]
 [![Netlify Status][netlify-badge]][netlify-url]
 [![Copr build status][copr-badge]][copr-url]
+[![OpenSSF Scorecard][openssf-badge]][openssf-url]
 
 [apache2-badge]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 [apache2-url]: https://opensource.org/licenses/Apache-2.0
@@ -23,6 +24,8 @@
 [copr-url]: https://copr.fedorainfracloud.org/coprs/g/ebpf-sig/bpfman-next/package/bpfman/
 [netlify-badge]: https://api.netlify.com/api/v1/badges/557ca612-4b7f-480d-a1cc-43b453502992/deploy-status
 [netlify-url]: https://app.netlify.com/sites/bpfman/deploys
+[openssf-badge]: https://api.scorecard.dev/projects/github.com/bpfman/bpfman/badge
+[openssf-url]: https://scorecard.dev/viewer/?uri=github.com/bpfman/bpfman
 
 _Formerly know as `bpfd`_
 
