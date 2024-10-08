@@ -5,7 +5,7 @@
 [![License][apache2-badge]][apache2-url]
 [![License][bsd2-badge]][bsd2-url]
 [![License][gpl-badge]][gpl-url]
-[![Build status]][build-badge]
+![Build status][build-badge]
 [![Book][book-badge]][book-url]
 [![Netlify Status][netlify-badge]][netlify-url]
 [![Copr build status][copr-badge]][copr-url]
