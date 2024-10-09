@@ -2119,7 +2119,8 @@ mentioned above, we first complete the release for <code>bpfman</code> and then 
 up with a release for <code>bpfman-operator</code>.</p>
 <h4 id="bpfman-release">bpfman Release</h4>
 <ul>
-<li>Create a new branch in your <code>bpfman</code> fork, for example</li>
+<li>Create a new branch in your <code>bpfman</code> fork, for example
+  <code>&lt;githubuser&gt;/release-x.y.z</code>, and use the new branch in the upcoming steps.</li>
 <li>Make the following changes<ul>
 <li>Add a new changelog for the release using the process described in
   <a href="#generating-release-notes">Generating Release Notes</a>.</li>
@@ -2139,8 +2140,17 @@ up with a release for <code>bpfman-operator</code>.</p>
   <code>bpfman/examples/config/v0.x.y-selinux/</code> config directory for the release
   version by copying the latest release directory and running a search for
   the current release and replace with the new release.</li>
+<li>Add new example config directories for any new examples added since the
+  last release.</li>
+<li>Update dispatcher tags.</li>
 <li>Modify the tag for <code>XDP_DISPATCHER_IMAGE</code> and <code>TC_DISPATCHER_IMAGE</code> in
-  <code>bpfman/src/lib.rs</code> from <code>latest</code> to the new release tag.</li>
+    <code>bpfman/src/lib.rs</code> from <code>latest</code> to the new release tag.</li>
+<li>Manually add the new release tag to the latest version of the following
+    dispatcher images:<ul>
+<li>https://quay.io/repository/bpfman/xdp-dispatcher</li>
+<li>https://quay.io/repository/bpfman/tc-dispatcher</li>
+</ul>
+</li>
 <li>Search the code and docs for the current version number without the "v"
   (e.g., 0.5.1) and replace it with the new version number where it makes
   sense.  (Be careful, though, because not all should be replaced.)</li>
