@@ -195,8 +195,6 @@ impl<Q, K> equivalent::Equivalent<K> for bpfman::types::Direction where Q: core:
 pub fn bpfman::types::Direction::equivalent(&self, key: &K) -> bool
 impl<Q, K> hashbrown::Equivalent<K> for bpfman::types::Direction where Q: core::cmp::Eq + core::marker::Sized, K: core::borrow::Borrow<Q> + core::marker::Sized
 pub fn bpfman::types::Direction::equivalent(&self, key: &K) -> bool
-impl<Q, K> indexmap::equivalent::Equivalent<K> for bpfman::types::Direction where Q: core::cmp::Eq + core::marker::Sized, K: core::borrow::Borrow<Q> + core::marker::Sized
-pub fn bpfman::types::Direction::equivalent(&self, key: &K) -> bool
 impl<T, U> core::convert::Into<U> for bpfman::types::Direction where U: core::convert::From<T>
 pub fn bpfman::types::Direction::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for bpfman::types::Direction where U: core::convert::Into<T>
@@ -205,8 +203,6 @@ pub fn bpfman::types::Direction::try_from(value: U) -> core::result::Result<T, <
 impl<T, U> core::convert::TryInto<U> for bpfman::types::Direction where U: core::convert::TryFrom<T>
 pub type bpfman::types::Direction::Error = <U as core::convert::TryFrom<T>>::Error
 pub fn bpfman::types::Direction::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
-impl<T> ahash::specialize::CallHasher for bpfman::types::Direction where T: core::hash::Hash + core::marker::Sized
-pub fn bpfman::types::Direction::get_hash<H, B>(value: &H, build_hasher: &B) -> u64 where H: core::hash::Hash + core::marker::Sized, B: core::hash::BuildHasher
 impl<T> alloc::borrow::ToOwned for bpfman::types::Direction where T: core::clone::Clone
 pub type bpfman::types::Direction::Owned = T
 pub fn bpfman::types::Direction::clone_into(&self, target: &mut T)
@@ -499,8 +495,6 @@ impl<Q, K> equivalent::Equivalent<K> for bpfman::types::ProbeType where Q: core:
 pub fn bpfman::types::ProbeType::equivalent(&self, key: &K) -> bool
 impl<Q, K> hashbrown::Equivalent<K> for bpfman::types::ProbeType where Q: core::cmp::Eq + core::marker::Sized, K: core::borrow::Borrow<Q> + core::marker::Sized
 pub fn bpfman::types::ProbeType::equivalent(&self, key: &K) -> bool
-impl<Q, K> indexmap::equivalent::Equivalent<K> for bpfman::types::ProbeType where Q: core::cmp::Eq + core::marker::Sized, K: core::borrow::Borrow<Q> + core::marker::Sized
-pub fn bpfman::types::ProbeType::equivalent(&self, key: &K) -> bool
 impl<T, U> core::convert::Into<U> for bpfman::types::ProbeType where U: core::convert::From<T>
 pub fn bpfman::types::ProbeType::into(self) -> U
 impl<T, U> core::convert::TryFrom<U> for bpfman::types::ProbeType where U: core::convert::Into<T>
@@ -679,8 +673,6 @@ pub fn bpfman::types::ProgramType::sign_with_key(self, key: &impl jwt::algorithm
 impl<Q, K> equivalent::Equivalent<K> for bpfman::types::ProgramType where Q: core::cmp::Eq + core::marker::Sized, K: core::borrow::Borrow<Q> + core::marker::Sized
 pub fn bpfman::types::ProgramType::equivalent(&self, key: &K) -> bool
 impl<Q, K> hashbrown::Equivalent<K> for bpfman::types::ProgramType where Q: core::cmp::Eq + core::marker::Sized, K: core::borrow::Borrow<Q> + core::marker::Sized
-pub fn bpfman::types::ProgramType::equivalent(&self, key: &K) -> bool
-impl<Q, K> indexmap::equivalent::Equivalent<K> for bpfman::types::ProgramType where Q: core::cmp::Eq + core::marker::Sized, K: core::borrow::Borrow<Q> + core::marker::Sized
 pub fn bpfman::types::ProgramType::equivalent(&self, key: &K) -> bool
 impl<T, U> core::convert::Into<U> for bpfman::types::ProgramType where U: core::convert::From<T>
 pub fn bpfman::types::ProgramType::into(self) -> U

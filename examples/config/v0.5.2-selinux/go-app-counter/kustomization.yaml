@@ -1,0 +1,20 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# Patch the bytecode.yaml to change tag on the "url" field (which is an
+# image) to new value. This actually overwrites the image with the same value.
+patches:
+  - target:
+      kind: BpfApplication
+      name: app-counter
+    patch: |-
+      - op: replace
+        path: "/spec/bytecode/image/url"
+        value: quay.io/bpfman-bytecode/go-app-counter:v0.5.2
+# Patch the deployment.yaml to change container image in Daemonset
+# to new tag on the image.
+images:
+  - name: quay.io/bpfman-userspace/go-app-counter
+    newName: quay.io/bpfman-userspace/go-app-counter
+    newTag: v0.5.2
+resources: [../../selinux/go-app-counter]
