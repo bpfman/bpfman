@@ -115,6 +115,7 @@ impl ProgTable {
                 table.add_row(vec!["Proceed On:", &format!("{}", p.get_proceed_on()?)]);
             }
             Program::Tc(p) => {
+                table.add_row(vec!["Attach Type:", "tc"]);
                 table.add_row(vec!["Priority:", &p.get_priority()?.to_string()]);
                 table.add_row(vec!["Iface:", &p.get_iface()?]);
                 table.add_row(vec![
@@ -126,6 +127,19 @@ impl ProgTable {
                 ]);
                 table.add_row(vec!["Direction:", &p.get_direction()?.to_string()]);
                 table.add_row(vec!["Proceed On:", &format!("{}", p.get_proceed_on()?)]);
+            }
+            Program::Tcx(p) => {
+                table.add_row(vec!["Attach Type:", "tcx"]);
+                table.add_row(vec!["Priority:", &p.get_priority()?.to_string()]);
+                table.add_row(vec!["Iface:", &p.get_iface()?]);
+                table.add_row(vec![
+                    "Position:",
+                    &match p.get_current_position()? {
+                        Some(pos) => pos.to_string(),
+                        None => "NONE".to_string(),
+                    },
+                ]);
+                table.add_row(vec!["Direction:", &p.get_direction()?.to_string()]);
             }
             Program::Tracepoint(p) => {
                 table.add_row(vec!["Tracepoint:", &p.get_tracepoint()?]);
@@ -146,8 +160,8 @@ impl ProgTable {
             }
             Program::Uprobe(p) => {
                 let probe_type = match p.get_retprobe()? {
-                    true => Kretprobe,
-                    false => Kprobe,
+                    true => Uretprobe,
+                    false => Uprobe,
                 };
                 table.add_row(vec!["Probe Type:", &format!["{probe_type}"]]);
                 table.add_row(vec![

@@ -43,6 +43,8 @@ lazy_static! {
         .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/xdp_pass:latest"));
     pub static ref TC_PASS_IMAGE_LOC: String = std::env::var("TC_PASS_IMAGE_LOC")
         .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/tc_pass:latest"));
+    pub static ref TCX_TEST_IMAGE_LOC: String = std::env::var("TCX_TEST_IMAGE_LOC")
+        .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/tcx_test:latest"));
     pub static ref TRACEPOINT_IMAGE_LOC: String = std::env::var("TRACEPOINT_IMAGE_LOC")
         .unwrap_or_else(|_| String::from("quay.io/bpfman-bytecode/tracepoint:latest"));
     pub static ref UPROBE_IMAGE_LOC: String = std::env::var("UPROBE_IMAGE_LOC")
@@ -70,6 +72,8 @@ lazy_static! {
 pub const XDP_PASS_FILE_LOC: &str =
     "tests/integration-test/bpf/.output/xdp_pass.bpf/bpf_x86_bpfel.o";
 pub const TC_PASS_FILE_LOC: &str = "tests/integration-test/bpf/.output/tc_pass.bpf/bpf_x86_bpfel.o";
+pub const TCX_TEST_FILE_LOC: &str =
+    "tests/integration-test/bpf/.output/tcx_test.bpf/bpf_x86_bpfel.o";
 pub const TRACEPOINT_FILE_LOC: &str =
     "tests/integration-test/bpf/.output/tp_openat.bpf/bpf_x86_bpfel.o";
 pub const UPROBE_FILE_LOC: &str = "tests/integration-test/bpf/.output/uprobe.bpf/bpf_x86_bpfel.o";
@@ -85,6 +89,9 @@ pub const XDP_PASS_NAME: &str = "pass";
 pub const XDP_COUNTER_NAME: &str = "xdp_stats";
 pub const TC_PASS_NAME: &str = "pass";
 pub const TC_COUNTER_NAME: &str = "stats";
+pub const TCX_TEST_PASS_NAME: &str = "tcx_pass";
+pub const TCX_TEST_NEXT_NAME: &str = "tcx_next";
+pub const TCX_TEST_DROP_NAME: &str = "tcx_drop";
 pub const FENTRY_FEXIT_KERNEL_FUNCTION_NAME: &str = "do_unlinkat";
 pub const TRACEPOINT_TRACEPOINT_NAME: &str = "syscalls/sys_enter_openat";
 pub const TRACEPOINT_NAME: &str = "enter_openat";
@@ -277,6 +284,69 @@ pub fn add_tc(
             assert!(!prog_id.is_empty());
             debug!(
                 "Successfully added tc {} program: {:?} from: {:?}",
+                direction, prog_id, load_type
+            );
+            (Ok(prog_id), Ok(stdout))
+        }
+        Err(e) => (Err(e), Err(anyhow!("bpfman error"))),
+    }
+}
+
+/// Install a tcx program with bpfman
+#[allow(clippy::too_many_arguments)]
+pub fn add_tcx(
+    direction: &str,
+    iface: &str,
+    priority: u32,
+    globals: Option<Vec<&str>>,
+    load_type: &LoadType,
+    image_url: &str,
+    file_path: &str,
+    name: &str,
+) -> (Result<String>, Result<String>) {
+    let mut args = vec!["load"];
+    match load_type {
+        LoadType::Image => {
+            args.push("image");
+        }
+        LoadType::File => {
+            args.push("file");
+        }
+    }
+
+    if let Some(g) = globals {
+        args.push("--global");
+        args.extend(g);
+    }
+
+    match load_type {
+        LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
+        LoadType::File => args.extend(["--path", file_path]),
+    }
+
+    args.extend([
+        "-n",
+        name,
+        "tcx",
+        "--direction",
+        direction,
+        "--iface",
+        iface,
+    ]);
+
+    let p: String = if priority == INVALID_INTEGER {
+        "invalid_int".to_string()
+    } else {
+        priority.to_string()
+    };
+    args.extend(["--priority", p.as_str()]);
+
+    match execute_bpfman(args) {
+        Ok(stdout) => {
+            let prog_id = bpfman_output_parse_id(&stdout);
+            assert!(!prog_id.is_empty());
+            debug!(
+                "Successfully added tcx {} program: {:?} from: {:?}",
                 direction, prog_id, load_type
             );
             (Ok(prog_id), Ok(stdout))

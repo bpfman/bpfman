@@ -4,15 +4,16 @@ use bpfman::{
     add_program, get_program, list_programs, pull_bytecode, remove_program,
     types::{
         FentryProgram, FexitProgram, KprobeProgram, ListFilter, Location, Program, ProgramData,
-        TcProceedOn, TcProgram, TracepointProgram, UprobeProgram, XdpProceedOn, XdpProgram,
+        TcProceedOn, TcProgram, TcxProgram, TracepointProgram, UprobeProgram, XdpProceedOn,
+        XdpProgram,
     },
 };
 use bpfman_api::v1::{
     attach_info::Info, bpfman_server::Bpfman, bytecode_location::Location as RpcLocation,
     list_response::ListResult, FentryAttachInfo, FexitAttachInfo, GetRequest, GetResponse,
     KprobeAttachInfo, ListRequest, ListResponse, LoadRequest, LoadResponse, PullBytecodeRequest,
-    PullBytecodeResponse, TcAttachInfo, TracepointAttachInfo, UnloadRequest, UnloadResponse,
-    UprobeAttachInfo, XdpAttachInfo,
+    PullBytecodeResponse, TcAttachInfo, TcxAttachInfo, TracepointAttachInfo, UnloadRequest,
+    UnloadResponse, UprobeAttachInfo, XdpAttachInfo,
 };
 use tonic::{Request, Response, Status};
 
@@ -89,6 +90,21 @@ impl Bpfman for BpfmanLoader {
                         direction,
                     )
                     .map_err(|e| Status::aborted(format!("failed to create tcprogram: {e}")))?,
+                )
+            }
+            Info::TcxAttachInfo(TcxAttachInfo {
+                priority,
+                iface,
+                position: _,
+                direction,
+            }) => {
+                let direction = direction
+                    .try_into()
+                    .map_err(|_| Status::aborted("direction is not a string"))?;
+                Program::Tcx(
+                    TcxProgram::new(data, priority, iface, direction).map_err(|e| {
+                        Status::aborted(format!("failed to create tcxprogram: {e}"))
+                    })?,
                 )
             }
             Info::TracepointAttachInfo(TracepointAttachInfo { tracepoint }) => Program::Tracepoint(

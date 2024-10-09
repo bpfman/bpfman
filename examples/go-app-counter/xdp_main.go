@@ -153,8 +153,7 @@ func processXdp(cancelCtx context.Context, paramData *configMgmt.ParameterData) 
 				totalBytes += cpuStat.Bytes
 			}
 
-			log.Printf("XDP: %d packets received\n", totalPackets)
-			log.Printf("XDP: %d bytes received\n", totalBytes)
+			log.Printf("XDP: received %d packets / %d bytes\n", totalPackets, totalBytes)
 		}
 	}
 }
