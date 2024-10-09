@@ -163,6 +163,7 @@ up with a release for `bpfman-operator`.
 #### bpfman Release
 
 - Create a new branch in your `bpfman` fork, for example
+  `<githubuser>/release-x.y.z`, and use the new branch in the upcoming steps.
 - Make the following changes
     - Add a new changelog for the release using the process described in
       [Generating Release Notes](#generating-release-notes).
@@ -180,8 +181,15 @@ up with a release for `bpfman-operator`.
       `bpfman/examples/config/v0.x.y-selinux/` config directory for the release
       version by copying the latest release directory and running a search for
       the current release and replace with the new release.
-    - Modify the tag for `XDP_DISPATCHER_IMAGE` and `TC_DISPATCHER_IMAGE` in
-      `bpfman/src/lib.rs` from `latest` to the new release tag.
+    - Add new example config directories for any new examples added since the
+      last release.
+    - Update dispatcher tags.
+      - Modify the tag for `XDP_DISPATCHER_IMAGE` and `TC_DISPATCHER_IMAGE` in
+        `bpfman/src/lib.rs` from `latest` to the new release tag.
+      - Manually add the new release tag to the latest version of the following
+        dispatcher images:
+        - https://quay.io/repository/bpfman/xdp-dispatcher
+        - https://quay.io/repository/bpfman/tc-dispatcher
     - Search the code and docs for the current version number without the "v"
       (e.g., 0.5.1) and replace it with the new version number where it makes
       sense.  (Be careful, though, because not all should be replaced.)
