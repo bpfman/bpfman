@@ -1,0 +1,17 @@
+
+reviewers:
+  - anfredette
+  - billy99
+  - dave-tucker
+  - frobware
+  - msherif1234
+approvers:
+  - anfredette
+  - billy99
+  - dave-tucker
+  - frobware
+  - msherif1234
+
+# Bugzilla info
+component: "Networking"
+subcomponent: "bpfman"
