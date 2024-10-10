@@ -51,7 +51,7 @@ markdown_extensions:
 nav:
   - Introduction: index.md
   - Quick Start: quick-start.md
-  - Documentation:
+  - User Documentation:
       - bpfman Overview: getting-started/overview.md
       - Setup and Building: getting-started/building-bpfman.md
       - Launching bpfman: getting-started/launching-bpfman.md
@@ -72,6 +72,7 @@ nav:
       - bpfman Container Images: developer-guide/image-build.md
       - Documentation: developer-guide/documentation.md
       - Linux Capabilities: developer-guide/linux-capabilities.md
+      - Observability: developer-guide/observability.md
       - Logging: developer-guide/logging.md
       - Configuration: developer-guide/configuration.md
       - Testing: developer-guide/testing.md

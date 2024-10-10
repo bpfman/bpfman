@@ -152,6 +152,8 @@ install() {
     copy_bin "${BIN_BPFMAN}" ${release}
     copy_bin "${BIN_BPFMAN_RPC}" ${release}
     copy_bin "${BIN_BPFMAN_NS}" ${release}
+    copy_bin "${BIN_BPF_LOG_EXPORTER}" ${release}
+    copy_bin "${BIN_BPF_METRICS_EXPORTER}" ${release}
 
     if [ "${reinstall}" == false ]; then
         echo "Copy service files:"
@@ -177,6 +179,8 @@ uninstall() {
     del_svc "${SVC_BPFMAN_SVC}"
 
     echo "Remove binaries:"
+    del_bin "${BIN_BPF_METRICS_EXPORTER}"
+    del_bin "${BIN_BPF_LOG_EXPORTER}"
     del_bin "${BIN_BPFMAN}"
     del_bin "${BIN_BPFMAN_RPC}"
     del_bin "${BIN_BPFMAN_NS}"
