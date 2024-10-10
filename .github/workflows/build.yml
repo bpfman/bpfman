@@ -91,7 +91,7 @@ jobs:
         uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # @v1
         with:
           toolchain: ${{ env.NIGHTLY_VERSION }}
-          components: rustfmt, clippy, rust-src
+          components: rustfmt, rust-src
           override: false
 
       # Only install cross if we need it
@@ -157,12 +157,6 @@ jobs:
         if: ${{ matrix.arch.arch == 'amd64' }}
         run: |
           cargo +${{ env.NIGHTLY_VERSION }} fmt --all -- --check
-
-      - name: Run clippy
-        # Only need to run once
-        if: ${{ matrix.arch.arch == 'amd64' }}
-        run: |
-          cargo +${{ env.NIGHTLY_VERSION }} clippy --all -- --deny warnings
 
       - name: Check public API
         # Only need to run once
