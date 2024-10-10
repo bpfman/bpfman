@@ -1,4 +1,5 @@
 build_root_image:
   namespace: openshift
   name: release
-  tag: rhel-9-release-base-openshift-4.18
+  tag: rhel-9-release-golang-1.22-openshift-4.18
+
