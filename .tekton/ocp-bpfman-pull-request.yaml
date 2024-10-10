@@ -12,7 +12,7 @@ metadata:
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: bpfman
-    appstudio.openshift.io/component: bpfman
+    appstudio.openshift.io/component: ocp-bpfman
     pipelines.appstudio.openshift.io/type: build
   name: bpfman-on-pull-request
   namespace: ocp-bpfman-tenant
