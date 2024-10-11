@@ -14,7 +14,7 @@ metadata:
     appstudio.openshift.io/application: bpfman
     appstudio.openshift.io/component: ocp-bpfman
     pipelines.appstudio.openshift.io/type: build
-  name: bpfman-on-push
+  name: ocp-bpfman-on-push
   namespace: ocp-bpfman-tenant
 spec:
   params:
@@ -25,7 +25,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman/bpfman:{{revision}}
+    value: quay.io/redhat-user-workloads/ocp-bpfman-tenant/ocp-bpfman:{{revision}}
   - name: dockerfile
     value: Containerfile.bpfman.openshift
   - name: path-context
