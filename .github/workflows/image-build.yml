@@ -32,7 +32,7 @@ jobs:
           tar -czvf bpfman.tar.gz bpfman
 
       - name: Archive bpfman Binaries
-        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
         with:
           name: bpfman-for-build-args
           path: |
@@ -104,7 +104,7 @@ jobs:
           tar -czvf bpfman-build-${{ matrix.arch.filename }}.tar.gz bpfman bpfman-rpc bpfman-ns bpf-metrics-exporter bpf-log-exporter
 
       - name: Archive bpfman Binaries
-        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
         with:
           name: bpfman-build-${{ matrix.arch.filename }}
           path: ./target/${{ matrix.arch.rust-target }}/release/bpfman-build-${{ matrix.arch.filename }}.tar.gz
