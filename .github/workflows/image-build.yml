@@ -18,7 +18,7 @@ jobs:
   # "build-and-push-bytecode-images" step. It will be used to generate
   # build args with the "bpfman image generate-build-args" command.
   build-bpfman-for-build-arg-gen:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout bpfman
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
@@ -48,7 +48,7 @@ jobs:
       packages: write
       id-token: write # needed for signing the images with GitHub OIDC Token
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -118,7 +118,7 @@ jobs:
       packages: write
       id-token: write # needed for signing the images with GitHub OIDC Token
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -334,7 +334,7 @@ jobs:
       packages: write
       id-token: write # needed for signing the images with GitHub OIDC Token
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
