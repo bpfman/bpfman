@@ -71,6 +71,10 @@ pub enum BpfmanError {
     DatabaseLockError,
     #[error("dispatcher failed to load. {0}")]
     DispatcherLoadError(String),
+    #[error("invalid priority {0}")]
+    InvalidPriority(i32),
+    #[error("direction not found")]
+    InvalidDirection,
 }
 
 #[derive(Error, Debug)]
@@ -95,4 +99,6 @@ pub enum ParseError {
     InvalidXdpMode { mode: String },
     #[error("Error parsing config file: {0}")]
     ConfigParseError(#[from] toml::de::Error),
+    #[error("not a valid link action: {action}")]
+    InvalidLinkAction { action: String },
 }

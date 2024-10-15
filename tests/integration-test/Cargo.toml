@@ -18,5 +18,6 @@ inventory = { workspace = true }
 lazy_static = { workspace = true }
 log = { workspace = true }
 predicates = { workspace = true }
+procfs = { workspace = true }
 rand = { workspace = true, features = ["std", "std_rng"] }
 regex = { workspace = true, features = ["unicode-perl"] }
