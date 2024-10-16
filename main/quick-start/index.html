@@ -1775,6 +1775,16 @@ to be installed:</p>
 <h2 id="deploy-released-container-images-on-kubernetes">Deploy Released Container Images on Kubernetes</h2>
 <p>The quickest solution for running <code>bpfman</code> in a Kubernetes deployment is to run a
 <a href="https://kind.sigs.k8s.io/docs/user/quick-start/">local Kubernetes KIND Cluster</a>:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>OpenShift has tighter security requirements and requires additional
+settings. When deploying bpfman on OpenShift, use the <code>OperatorHub</code> from the
+OpenShift console, search for <code>ebpf</code>, and install either the <code>Bpfman
+Operator by Community</code> or the <code>eBPF Manager Operator by Red Hat</code>. The
+<code>Bpfman Operator by Community</code> tracks the upstream releases of bpfman. The
+<code>eBPF Manager Operator by Red Hat</code> is based on bpfman at the time of the
+corresponding OpenShift release.</p>
+</div>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">kind create cluster --name=test-bpfman</span>
 </code></pre></div>
 <p>Next, deploy the bpfman CRDs:</p>
