@@ -31,8 +31,8 @@
 # VERSION defines the project version for the bundle.
 # Update this value when you upgrade the version of your project.
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
-# - use environment variables to overwrite this value (e.g export VERSION=0.5.3)
-VERSION ?= 0.5.3
+# - use environment variables to overwrite this value (e.g export VERSION=0.5.4)
+VERSION ?= 0.5.4
 
 .DEFAULT_GOAL := help
 

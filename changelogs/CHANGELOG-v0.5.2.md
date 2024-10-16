@@ -47,5 +47,9 @@ Other Notable Changes:
 * Upgrade to aya version 0.13.0 and aya-obj version 0.2.0 by @anfredette in
   https://github.com/bpfman/bpfman/pull/1298
 
-
 **Full Changelog**: https://github.com/bpfman/bpfman/compare/v0.5.1...v0.5.2
+
+## Known Issues
+* The the OpenShift console should not be used to install the v0.5.2 bpfman
+  community operator because it will use the latest version of the bpfman
+  container image which may or may not work. 
