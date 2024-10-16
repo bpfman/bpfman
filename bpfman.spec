@@ -45,6 +45,10 @@ An eBPF Program Manager.}
 
 # Source1 is vendored dependencies
 tar -xoaf %{SOURCE1}
+
+# Remove the executable bit from lib.rs as it affects brp_mange_shebangs
+chmod -x ./vendor/typed-path/src/lib.rs
+
 # Let the macros setup Cargo.toml to use vendored sources
 %cargo_prep -v vendor
 %cargo_license_summary
