@@ -112,6 +112,15 @@ sudo systemctl daemon-reload
 The quickest solution for running `bpfman` in a Kubernetes deployment is to run a
 [local Kubernetes KIND Cluster](https://kind.sigs.k8s.io/docs/user/quick-start/):
 
+!!! Note 
+    OpenShift has tighter security requirements and requires additional
+    settings. When deploying bpfman on OpenShift, use the `OperatorHub` from the
+    OpenShift console, search for `ebpf`, and install either the `Bpfman
+    Operator by Community` or the `eBPF Manager Operator by Red Hat`. The
+    `Bpfman Operator by Community` tracks the upstream releases of bpfman. The
+    `eBPF Manager Operator by Red Hat` is based on bpfman at the time of the
+    corresponding OpenShift release.
+
 ```console
 kind create cluster --name=test-bpfman
 ```
