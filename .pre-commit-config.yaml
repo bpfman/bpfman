@@ -1,0 +1,16 @@
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.31.0  # latest stable version
+    hooks:
+      - id: yamllint
+
+  # Custom hook to run Clippy for Rust code
+  - repo: local
+    hooks:
+      - id: clippy
+        name: Run Clippy
+        entry: cargo clippy -- -D warnings
+        language: system
+        types: [rust]
+        pass_filenames: false
