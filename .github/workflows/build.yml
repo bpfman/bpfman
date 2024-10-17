@@ -50,6 +50,14 @@ jobs:
 
     name: Build bpfman (${{ matrix.arch.arch }})
     steps:
+      - name: Free up space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/local/lib/android
+
       - name: Install dependencies
         # Dependencies only needed to build eBPF and used by integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
