@@ -7,7 +7,7 @@ on: # yamllint disable-line rule:truthy
       - v*
   pull_request:
     paths:
-      - .github/workflows/image-build.yaml
+      - .github/workflows/image-build.yml
       - Containerfile.bpfman.multi.arch
       - Containerfile.bytecode.multi.arch
       - examples/**/container-deployment/Containerfile**
