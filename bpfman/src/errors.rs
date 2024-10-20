@@ -75,6 +75,12 @@ pub enum BpfmanError {
     InvalidPriority(i32),
     #[error("direction not found")]
     InvalidDirection,
+    #[error("Invalid program tree name: {0}")]
+    InvalidTreeName(String),
+    #[error(transparent)]
+    BpfLinkError(#[from] aya::programs::links::LinkError),
+    #[error(transparent)]
+    BpfParseError(#[from] ParseError),
 }
 
 #[derive(Error, Debug)]

@@ -17,7 +17,7 @@ use nix::{
     net::if_::if_nametoindex,
     sys::resource::{setrlimit, Resource},
 };
-use sled::Tree;
+use sled::{IVec, Tree};
 
 use crate::{config::Config, directories::*, errors::BpfmanError};
 
@@ -183,6 +183,17 @@ pub(crate) fn sled_insert(db_tree: &Tree, key: &str, value: &[u8]) -> Result<(),
             e.to_string(),
         )
     })
+}
+
+pub(crate) fn id_from_tree_name(name: &IVec) -> Result<u32, BpfmanError> {
+    let id = bytes_to_string(name)
+        .split('_')
+        .last()
+        .ok_or_else(|| BpfmanError::InvalidTreeName(bytes_to_string(name)))?
+        .parse::<u32>()
+        .map_err(|_| BpfmanError::InvalidTreeName(bytes_to_string(name)))?;
+
+    Ok(id)
 }
 
 // Helper function to get the error message from stderr

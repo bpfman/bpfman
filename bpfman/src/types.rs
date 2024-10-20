@@ -1484,8 +1484,12 @@ impl TcxProgram {
     }
 
     pub fn get_direction(&self) -> Result<Direction, BpfmanError> {
-        sled_get(&self.data.db_tree, TCX_DIRECTION)
-            .map(|v| bytes_to_string(&v).to_string().try_into().unwrap())
+        sled_get(&self.data.db_tree, TCX_DIRECTION).and_then(|v| {
+            bytes_to_string(&v)
+                .to_string()
+                .try_into()
+                .map_err(BpfmanError::BpfParseError)
+        })
     }
 
     pub(crate) fn get_data(&self) -> &ProgramData {
@@ -1935,7 +1939,13 @@ impl Program {
                 // result, we use the following hack to figure out which one it
                 // really is.
                 ProgramType::Tc => {
-                    if data.db_tree.get(TCX_IFACE).unwrap().is_some() {
+                    let iface = data.db_tree.get(TCX_IFACE).map_err(|e| {
+                        BpfmanError::DatabaseError(
+                            "Failed to get TCX_IFACE".to_string(),
+                            e.to_string(),
+                        )
+                    })?;
+                    if iface.is_some() {
                         Ok(Program::Tcx(TcxProgram { data }))
                     } else {
                         Ok(Program::Tc(TcProgram { data }))
@@ -1944,7 +1954,13 @@ impl Program {
                 ProgramType::Tracepoint => Ok(Program::Tracepoint(TracepointProgram { data })),
                 // kernel does not distinguish between kprobe and uprobe program types
                 ProgramType::Probe => {
-                    if data.db_tree.get(UPROBE_OFFSET).unwrap().is_some() {
+                    let offset = data.db_tree.get(UPROBE_OFFSET).map_err(|e| {
+                        BpfmanError::DatabaseError(
+                            "Failed to get UPROBE_OFFSET".to_string(),
+                            e.to_string(),
+                        )
+                    })?;
+                    if offset.is_some() {
                         Ok(Program::Uprobe(UprobeProgram { data }))
                     } else {
                         Ok(Program::Kprobe(KprobeProgram { data }))
@@ -1952,7 +1968,13 @@ impl Program {
                 }
                 // kernel does not distinguish between fentry and fexit program types
                 ProgramType::Tracing => {
-                    if data.db_tree.get(FENTRY_FN_NAME).unwrap().is_some() {
+                    let fn_name = data.db_tree.get(FENTRY_FN_NAME).map_err(|e| {
+                        BpfmanError::DatabaseError(
+                            "Failed to get FENTRY_FN_NAME".to_string(),
+                            e.to_string(),
+                        )
+                    })?;
+                    if fn_name.is_some() {
                         Ok(Program::Fentry(FentryProgram { data }))
                     } else {
                         Ok(Program::Fexit(FexitProgram { data }))

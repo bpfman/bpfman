@@ -4,7 +4,9 @@ pub enum bpfman::errors::BpfmanError
 pub bpfman::errors::BpfmanError::BpfBytecodeError(crate::oci_utils::ImageError)
 pub bpfman::errors::BpfmanError::BpfFunctionNameNotValid(alloc::string::String)
 pub bpfman::errors::BpfmanError::BpfIOError(std::io::error::Error)
+pub bpfman::errors::BpfmanError::BpfLinkError(aya::programs::links::LinkError)
 pub bpfman::errors::BpfmanError::BpfLoadError(aya::bpf::EbpfError)
+pub bpfman::errors::BpfmanError::BpfParseError(bpfman::errors::ParseError)
 pub bpfman::errors::BpfmanError::BpfProgramError(aya::programs::ProgramError)
 pub bpfman::errors::BpfmanError::BpfmanProgramDeleteError(anyhow::Error)
 pub bpfman::errors::BpfmanError::BtfError(aya_obj::btf::btf::BtfError)
@@ -24,6 +26,7 @@ pub bpfman::errors::BpfmanError::InvalidAttach(alloc::string::String)
 pub bpfman::errors::BpfmanError::InvalidDirection
 pub bpfman::errors::BpfmanError::InvalidInterface
 pub bpfman::errors::BpfmanError::InvalidPriority(i32)
+pub bpfman::errors::BpfmanError::InvalidTreeName(alloc::string::String)
 pub bpfman::errors::BpfmanError::NotLoaded
 pub bpfman::errors::BpfmanError::ProgramNotFoundInBytecode
 pub bpfman::errors::BpfmanError::ProgramNotFoundInBytecode::bytecode_image: alloc::string::String
@@ -41,8 +44,12 @@ impl core::convert::From<aya::bpf::EbpfError> for bpfman::errors::BpfmanError
 pub fn bpfman::errors::BpfmanError::from(source: aya::bpf::EbpfError) -> Self
 impl core::convert::From<aya::programs::ProgramError> for bpfman::errors::BpfmanError
 pub fn bpfman::errors::BpfmanError::from(source: aya::programs::ProgramError) -> Self
+impl core::convert::From<aya::programs::links::LinkError> for bpfman::errors::BpfmanError
+pub fn bpfman::errors::BpfmanError::from(source: aya::programs::links::LinkError) -> Self
 impl core::convert::From<aya_obj::btf::btf::BtfError> for bpfman::errors::BpfmanError
 pub fn bpfman::errors::BpfmanError::from(source: aya_obj::btf::btf::BtfError) -> Self
+impl core::convert::From<bpfman::errors::ParseError> for bpfman::errors::BpfmanError
+pub fn bpfman::errors::BpfmanError::from(source: bpfman::errors::ParseError) -> Self
 impl core::convert::From<std::io::error::Error> for bpfman::errors::BpfmanError
 pub fn bpfman::errors::BpfmanError::from(source: std::io::error::Error) -> Self
 impl core::convert::From<tokio::sync::oneshot::error::RecvError> for bpfman::errors::BpfmanError
@@ -113,6 +120,8 @@ pub bpfman::errors::ParseError::InvalidProgramType
 pub bpfman::errors::ParseError::InvalidProgramType::program: alloc::string::String
 pub bpfman::errors::ParseError::InvalidXdpMode
 pub bpfman::errors::ParseError::InvalidXdpMode::mode: alloc::string::String
+impl core::convert::From<bpfman::errors::ParseError> for bpfman::errors::BpfmanError
+pub fn bpfman::errors::BpfmanError::from(source: bpfman::errors::ParseError) -> Self
 impl core::convert::From<toml::de::Error> for bpfman::errors::ParseError
 pub fn bpfman::errors::ParseError::from(source: toml::de::Error) -> Self
 impl core::error::Error for bpfman::errors::ParseError
