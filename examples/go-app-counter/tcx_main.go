@@ -15,20 +15,16 @@ import (
 	"github.com/cilium/ebpf"
 )
 
-type TcStats struct {
+type TcxStats struct {
 	Packets uint64
 	Bytes   uint64
 }
 
 const (
-	TCBpfProgramMapIndex = "tc_stats_map"
+	TcxBpfProgramMapIndex = "tcx_stats_map"
 )
 
-const (
-	TC_ACT_OK = 0
-)
-
-func processTc(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
+func processTcx(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 	var action string
 	var direction bpfmanHelpers.TcProgramDirection
 	if paramData.Direction == configMgmt.TcDirectionIngress {
@@ -46,22 +42,22 @@ func processTc(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 	// and the CSI Driver.
 	if paramData.CrdFlag {
 		// 3. Get access to our map
-		mapPath = fmt.Sprintf("%s/%s", ApplicationMapsMountPoint, TCBpfProgramMapIndex)
+		mapPath = fmt.Sprintf("%s/%s", ApplicationMapsMountPoint, TcxBpfProgramMapIndex)
 	} else {
 
-		// Set up a connection to the server. If the bytecode src is a Program
-		// ID, skip the loading and unloading of the bytecode.
+		// Set up a connection to the server.
+		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcProgId {
 			var loadRequest *gobpfman.LoadRequest
 			if paramData.MapOwnerId != 0 {
 				mapOwnerId := uint32(paramData.MapOwnerId)
 				loadRequest = &gobpfman.LoadRequest{
 					Bytecode:    paramData.BytecodeSource,
-					Name:        "stats",
+					Name:        "tcx_stats",
 					ProgramType: *bpfmanHelpers.Tc.Uint32(),
 					Attach: &gobpfman.AttachInfo{
-						Info: &gobpfman.AttachInfo_TcAttachInfo{
-							TcAttachInfo: &gobpfman.TCAttachInfo{
+						Info: &gobpfman.AttachInfo_TcxAttachInfo{
+							TcxAttachInfo: &gobpfman.TCXAttachInfo{
 								Priority:  int32(paramData.Priority),
 								Iface:     paramData.Iface,
 								Direction: direction.String(),
@@ -73,11 +69,11 @@ func processTc(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 			} else {
 				loadRequest = &gobpfman.LoadRequest{
 					Bytecode:    paramData.BytecodeSource,
-					Name:        "stats",
+					Name:        "tcx_stats",
 					ProgramType: *bpfmanHelpers.Tc.Uint32(),
 					Attach: &gobpfman.AttachInfo{
-						Info: &gobpfman.AttachInfo_TcAttachInfo{
-							TcAttachInfo: &gobpfman.TCAttachInfo{
+						Info: &gobpfman.AttachInfo_TcxAttachInfo{
+							TcxAttachInfo: &gobpfman.TCXAttachInfo{
 								Priority:  int32(paramData.Priority),
 								Iface:     paramData.Iface,
 								Direction: direction.String(),
@@ -103,11 +99,11 @@ func processTc(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 				log.Printf("kernelInfo not returned in LoadResponse")
 				return
 			}
-			log.Printf("TcProgram registered with id %d\n", paramData.ProgId)
+			log.Printf("TcxProgram registered with id %d\n", paramData.ProgId)
 
 			// 2. Set up defer to unload program when this is closed
 			defer func(id uint) {
-				log.Printf("Unloading Tc Program: %d\n", id)
+				log.Printf("Unloading Tcx Program: %d\n", id)
 				_, err = unloadBpfProgram(id)
 				if err != nil {
 					log.Print(err)
@@ -116,7 +112,7 @@ func processTc(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 			}(paramData.ProgId)
 
 			// 3. Get access to our map
-			mapPath, err = configMgmt.CalcMapPinPath(res.GetInfo(), "tc_stats_map")
+			mapPath, err = configMgmt.CalcMapPinPath(res.GetInfo(), "tcx_stats_map")
 			if err != nil {
 				log.Print(err)
 				return
@@ -124,7 +120,7 @@ func processTc(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 		} else {
 			// 3. Get access to our map
 			var err error
-			mapPath, err = getMapPinPath(paramData.ProgId, "tc_stats_map")
+			mapPath, err = getMapPinPath(paramData.ProgId, "tcx_stats_map")
 			if err != nil {
 				log.Print(err)
 				return
@@ -148,11 +144,11 @@ func processTc(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 	for range ticker.C {
 		select {
 		case <-cancelCtx.Done():
-			log.Printf("Exiting TC ...\n")
+			log.Printf("Exiting TCX ...\n")
 			return
 		default:
-			key := uint32(TC_ACT_OK)
-			var stats []TcStats
+			key := uint32(0)
+			var stats []TcxStats
 			var totalPackets uint64
 			var totalBytes uint64
 
@@ -167,7 +163,7 @@ func processTc(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 				totalBytes += cpuStat.Bytes
 			}
 
-			log.Printf("TC: %s %d packets / %d bytes\n", action, totalPackets, totalBytes)
+			log.Printf("TCX: %s %d packets / %d bytes\n", action, totalPackets, totalBytes)
 		}
 	}
 }

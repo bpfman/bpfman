@@ -338,6 +338,7 @@ jobs:
           echo "KRETPROBE_IMAGE_LOC=quay.io/bpfman-bytecode/kretprobe:${GITHUB_REF_NAME}" >> $GITHUB_ENV
           echo "XDP_COUNTER_IMAGE_LOC=quay.io/bpfman-bytecode/go-xdp-counter:${GITHUB_REF_NAME}" >> $GITHUB_ENV
           echo "TC_COUNTER_IMAGE_LOC=quay.io/bpfman-bytecode/go-tc-counter:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "TCX_COUNTER_IMAGE_LOC=quay.io/bpfman-bytecode/go-tcx-counter:${GITHUB_REF_NAME}" >> $GITHUB_ENV
           echo "TRACEPOINT_COUNTER_IMAGE_LOC=quay.io/bpfman-bytecode/go-tracepoint-counter:${GITHUB_REF_NAME}" >> $GITHUB_ENV
           echo "FENTRY_IMAGE_LOC=quay.io/bpfman-bytecode/fentry:${GITHUB_REF_NAME}" >> $GITHUB_ENV
           echo "FEXIT_IMAGE_LOC=quay.io/bpfman-bytecode/fexit:${GITHUB_REF_NAME}" >> $GITHUB_ENV

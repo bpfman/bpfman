@@ -185,6 +185,26 @@ pub(crate) enum LoadCommands {
         proceed_on: Vec<String>,
     },
     #[command(disable_version_flag = true)]
+    /// Install an eBPF program on the TCX hook point for a given interface and
+    /// direction.
+    Tcx {
+        /// Required: Direction to apply program.
+        ///
+        /// [possible values: ingress, egress]
+        #[clap(short, long, verbatim_doc_comment)]
+        direction: String,
+
+        /// Required: Interface to load program on.
+        #[clap(short, long)]
+        iface: String,
+
+        /// Optional: Priority to run program in chain. Lower value runs first.
+        /// [possible values: 1-1000]
+        /// [default: 1000]
+        #[clap(short, long)]
+        priority: i32,
+    },
+    #[command(disable_version_flag = true)]
     /// Install an eBPF program on a Tracepoint.
     Tracepoint {
         /// Required: The tracepoint to attach to.
