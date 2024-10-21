@@ -17,7 +17,7 @@ env:
 
 jobs:
   check-license:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
 
     steps:
@@ -26,7 +26,7 @@ jobs:
         uses: apache/skywalking-eyes@cd7b195c51fd3d6ad52afceb760719ddc6b3ee91
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -286,7 +286,7 @@ jobs:
             filename: linux-ppc64le
           - arch: s390x
             filename: linux-s390x
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Build Go Modules (${{ matrix.arch.arch }})
     steps:
@@ -323,7 +323,7 @@ jobs:
           GOARCH=${{ matrix.arch.arch }} make build
 
   basic-integration-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [build, build-go]
     steps:
       - name: Set up environment for running integration tests from manual trigger
@@ -421,7 +421,7 @@ jobs:
         run: cargo xtask integration-test
 
   build-docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout bpfman
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
@@ -439,7 +439,7 @@ jobs:
 
   coverage:
     needs: [build, build-go]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Download rust coverage artifacts
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
@@ -459,7 +459,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [build]
     environment: crates.io
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout bpfman
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
@@ -512,7 +512,7 @@ jobs:
         coverage,
         basic-integration-tests,
       ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Build Complete
         run: echo "Build Complete"
