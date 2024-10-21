@@ -1,7 +1,7 @@
 # We do not use --platform feature to auto fill this ARG because of incompatibility between podman and docker
 ARG BUILDPLATFORM=linux/amd64
 
-FROM --platform=$BUILDPLATFORM ubuntu:24.04 AS bpfman-build
+FROM --platform=$BUILDPLATFORM redhat/ubi9-minimal AS bpfman-build
 
 ARG BUILDPLATFORM
 
@@ -34,7 +34,7 @@ RUN if [ "$TARGETPLATFORM" = "linux/amd64" ]; then \
       cp target/s390x-unknown-linux-gnu/release/bpfman-rpc bin/.; \
     fi
 
-FROM ubuntu:24.04
+FROM redhat/ubi9-minimal
 
 COPY --from=bpfman-build  /usr/src/bpfman/bin/bpfman .
 COPY --from=bpfman-build  /usr/src/bpfman/bin/bpfman-ns .

@@ -7,6 +7,8 @@
 
 #include <bpf/bpf_helpers.h>
 
+#define TCX_NEXT -1
+
 /* This is the data record stored in the map */
 struct datarec {
   __u64 rx_packets;
