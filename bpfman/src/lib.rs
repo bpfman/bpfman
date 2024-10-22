@@ -7,6 +7,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use anyhow::anyhow;
 use aya::{
     programs::{
         fentry::FEntryLink,
@@ -22,7 +23,7 @@ use aya::{
     },
     Btf, EbpfLoader,
 };
-use log::{debug, info, warn};
+use log::{debug, error, info, warn};
 use sled::{Config as SledConfig, Db};
 use tokio::time::{sleep, Duration};
 use types::AttachOrder;
@@ -202,7 +203,7 @@ pub(crate) fn get_db_config() -> SledConfig {
 /// asynchronous context.
 pub async fn add_program(mut program: Program) -> Result<Program, BpfmanError> {
     let (config, root_db) = &setup().await?;
-    let mut image_manager = init_image_manager().await;
+    let mut image_manager = init_image_manager().await?;
     // This is only required in the add_program api
     program.get_data_mut().load(root_db)?;
 
@@ -647,7 +648,9 @@ pub async fn get_program(id: u32) -> Result<Program, BpfmanError> {
 /// asynchronous context.
 pub async fn pull_bytecode(image: BytecodeImage) -> anyhow::Result<()> {
     let (_, root_db) = &setup().await?;
-    let image_manager = &mut init_image_manager().await;
+    let image_manager = &mut init_image_manager()
+        .await
+        .map_err(|e| anyhow!(format!("{e}")))?;
 
     image_manager
         .get_image(
@@ -682,11 +685,18 @@ pub(crate) async fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanE
 // an OCI based container registry. It should ONLY be used where needed, to
 // explicitly control when bpfman blocks for network calls to both sigstore's
 // cosign tuf registries and container registries.
-pub(crate) async fn init_image_manager() -> ImageManager {
+pub(crate) async fn init_image_manager() -> Result<ImageManager, BpfmanError> {
     let signing_config = open_config_file().signing().to_owned().unwrap_or_default();
-    ImageManager::new(signing_config.verify_enabled, signing_config.allow_unsigned)
-        .await
-        .expect("failed to initialize image manager")
+    match ImageManager::new(signing_config.verify_enabled, signing_config.allow_unsigned).await {
+        Ok(im) => Ok(im),
+        Err(e) => {
+            error!("Unable to initialize ImageManager: {e}");
+            Err(BpfmanError::Error(format!(
+                "Unable to initialize ImageManager: {e}"
+            )))
+        }
+    }
+    //.expect("failed to initialize image manager")
 }
 
 fn get_dispatcher(id: &DispatcherId, root_db: &Db) -> Option<Dispatcher> {
@@ -1382,7 +1392,7 @@ async fn remove_multi_attach_program(
     direction: Option<Direction>,
 ) -> Result<(), BpfmanError> {
     debug!("BpfManager::remove_multi_attach_program()");
-    let mut image_manager = init_image_manager().await;
+    let mut image_manager = init_image_manager().await?;
 
     let next_available_id = num_attached_programs(&did, root_db) - 1;
     debug!("next_available_id = {next_available_id}");
