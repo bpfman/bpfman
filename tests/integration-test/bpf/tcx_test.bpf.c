@@ -7,11 +7,6 @@
 #include <bpf/bpf_helpers.h>
 // clang-format on
 
-#define TCX_NEXT -1
-#define TCX_PASS 0
-#define TCX_DROP 2
-#define TCX_REDIRECT 7
-
 volatile const __u8 GLOBAL_u8 = 0;
 volatile const __u32 GLOBAL_u32 = 0;
 
