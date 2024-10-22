@@ -736,31 +736,57 @@ fn get(root_db: &Db, id: &u32) -> Option<Program> {
     }
 }
 
-fn filter(
+fn get_multi_attach_programs(
     root_db: &'_ Db,
     program_type: ProgramType,
     if_index: Option<u32>,
     direction: Option<Direction>,
-) -> impl Iterator<Item = Program> + '_ {
-    root_db
-        .tree_names()
-        .into_iter()
-        .filter(|p| bytes_to_string(p).contains(PROGRAM_PREFIX))
-        .map(|p| {
-            let id = bytes_to_string(&p)
-                .split('_')
-                .last()
-                .unwrap()
-                .parse::<u32>()
-                .unwrap();
-            let tree = root_db.open_tree(p).expect("unable to open database tree");
-            Program::new_from_db(id, tree).expect("Failed to build program from database")
-        })
-        .filter(move |p| {
-            p.kind() == program_type
-                && p.if_index().unwrap() == if_index
-                && p.direction().unwrap() == direction
-        })
+) -> Result<Vec<Program>, BpfmanError> {
+    let mut programs = Vec::new();
+
+    for p in root_db.tree_names() {
+        let id = match id_from_tree_name(&p) {
+            Ok(id) => id,
+            Err(_) => {
+                continue;
+            }
+        };
+
+        let tree = match root_db.open_tree(p) {
+            Ok(tree) => tree,
+            Err(e) => {
+                return Err(BpfmanError::DatabaseError(
+                    "Unable to open database tree".to_string(),
+                    e.to_string(),
+                ));
+            }
+        };
+
+        let program = match Program::new_from_db(id, tree) {
+            Ok(program) => program,
+            Err(_) => {
+                continue;
+            }
+        };
+
+        if !(match program_type {
+            ProgramType::Xdp => {
+                matches!(program, Program::Xdp(_))
+            }
+            ProgramType::Tc => {
+                matches!(program, Program::Tc(_))
+            }
+            _ => false,
+        }) {
+            continue;
+        }
+
+        if program.if_index().unwrap() == if_index && program.direction().unwrap() == direction {
+            programs.push(program);
+        }
+    }
+
+    Ok(programs)
 }
 
 fn get_tcx_programs(
@@ -863,13 +889,12 @@ fn set_tcx_program_positions(
 // Positions are set based on order of priority. Ties are broken based on:
 // - Already attached programs are preferred
 // - Program name. Lowest lexical order wins.
-fn add_and_set_program_positions(root_db: &Db, program: Program) {
+fn add_and_set_program_positions(root_db: &Db, program: Program) -> Result<(), BpfmanError> {
     let program_type = program.kind();
     let if_index = program.if_index().unwrap();
     let direction = program.direction().unwrap();
 
-    let mut extensions =
-        filter(root_db, program_type, if_index, direction).collect::<Vec<Program>>();
+    let mut extensions = get_multi_attach_programs(root_db, program_type, if_index, direction)?;
 
     extensions.sort_by_key(|b| {
         (
@@ -881,6 +906,7 @@ fn add_and_set_program_positions(root_db: &Db, program: Program) {
     for (i, v) in extensions.iter_mut().enumerate() {
         v.set_position(i).expect("unable to set program position");
     }
+    Ok(())
 }
 
 // Sets the positions of programs that are to be attached via a dispatcher.
@@ -892,9 +918,9 @@ fn set_program_positions(
     program_type: ProgramType,
     if_index: u32,
     direction: Option<Direction>,
-) {
+) -> Result<(), BpfmanError> {
     let mut extensions =
-        filter(root_db, program_type, Some(if_index), direction).collect::<Vec<Program>>();
+        get_multi_attach_programs(root_db, program_type, Some(if_index), direction)?;
 
     extensions.sort_by_key(|b| {
         (
@@ -906,6 +932,7 @@ fn set_program_positions(
     for (i, v) in extensions.iter_mut().enumerate() {
         v.set_position(i).expect("unable to set program position");
     }
+    Ok(())
 }
 
 fn get_programs_iter(root_db: &Db) -> impl Iterator<Item = (u32, Program)> + '_ {
@@ -972,10 +999,9 @@ async fn add_multi_attach_program(
     let if_name = program.if_name().unwrap().to_string();
     let direction = program.direction()?;
 
-    add_and_set_program_positions(root_db, program.clone());
+    add_and_set_program_positions(root_db, program.clone())?;
 
-    let mut programs: Vec<Program> =
-        filter(root_db, program_type, if_index, direction).collect::<Vec<Program>>();
+    let mut programs = get_multi_attach_programs(root_db, program_type, if_index, direction)?;
 
     let old_dispatcher = get_dispatcher(&did, root_db);
 
@@ -1396,10 +1422,10 @@ async fn remove_multi_attach_program(
         }
     }
 
-    set_program_positions(root_db, program_type, if_index.unwrap(), direction);
+    set_program_positions(root_db, program_type, if_index.unwrap(), direction)?;
 
     // Intentionally don't add filter program here
-    let mut programs: Vec<Program> = filter(root_db, program_type, if_index, direction).collect();
+    let mut programs = get_multi_attach_programs(root_db, program_type, if_index, direction)?;
 
     let if_config = if let Some(ref i) = config.interfaces() {
         i.get(&if_name)
