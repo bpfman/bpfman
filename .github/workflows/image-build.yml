@@ -7,7 +7,7 @@ on: # yamllint disable-line rule:truthy
       - v*
   pull_request:
     paths:
-      - .github/workflows/image-build.yaml
+      - .github/workflows/image-build.yml
       - Containerfile.bpfman.multi.arch
       - Containerfile.bytecode.multi.arch
       - examples/**/container-deployment/Containerfile**
@@ -18,7 +18,7 @@ jobs:
   # "build-and-push-bytecode-images" step. It will be used to generate
   # build args with the "bpfman image generate-build-args" command.
   build-bpfman-for-build-arg-gen:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout bpfman
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
@@ -32,7 +32,7 @@ jobs:
           tar -czvf bpfman.tar.gz bpfman
 
       - name: Archive bpfman Binaries
-        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
         with:
           name: bpfman-for-build-args
           path: |
@@ -48,7 +48,7 @@ jobs:
       packages: write
       id-token: write # needed for signing the images with GitHub OIDC Token
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -104,7 +104,7 @@ jobs:
           tar -czvf bpfman-build-${{ matrix.arch.filename }}.tar.gz bpfman bpfman-rpc bpfman-ns bpf-metrics-exporter bpf-log-exporter
 
       - name: Archive bpfman Binaries
-        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
         with:
           name: bpfman-build-${{ matrix.arch.filename }}
           path: ./target/${{ matrix.arch.rust-target }}/release/bpfman-build-${{ matrix.arch.filename }}.tar.gz
@@ -118,7 +118,7 @@ jobs:
       packages: write
       id-token: write # needed for signing the images with GitHub OIDC Token
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -163,6 +163,20 @@ jobs:
               type=raw,value=latest,enable={{is_default_branch}}
 
           - registry: quay.io
+            repository: bpfman-userspace
+            image: go-tcx-counter
+            context: .
+            dockerfile: ./examples/go-tcx-counter/container-deployment/Containerfile.go-tcx-counter
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-tracepoint-counter
             context: .
@@ -334,7 +348,7 @@ jobs:
       packages: write
       id-token: write # needed for signing the images with GitHub OIDC Token
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -363,6 +377,22 @@ jobs:
             context: .
             dockerfile: ./Containerfile.bytecode.multi.arch
             bytecode_dir: ./examples/go-tc-counter
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: go
+            bpf_build_wrapper: go
+            repository: bpfman-bytecode
+            image: go-tcx-counter
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./examples/go-tcx-counter
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -491,6 +521,22 @@ jobs:
             context: .
             dockerfile: ./Containerfile.bytecode.multi.arch
             bytecode_dir: ./tests/integration-test/bpf/.output/tc_pass.bpf
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: rust
+            bpf_build_wrapper: rust
+            repository: bpfman-bytecode
+            image: tcx_test
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./tests/integration-test/bpf/.output/tcx_test.bpf
             tags: |
               type=ref,event=branch
               type=ref,event=tag
@@ -647,7 +693,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Install Golang
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # @v5
+        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # @v5
         if: ${{ matrix.image.build_language == 'go' }}
         with:
           # prettier-ignore

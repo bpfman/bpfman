@@ -266,7 +266,7 @@ integration tests, several steps need to be performed.
     * Make the new image public.
     * On the image, provide `Write` access to the `bpfman+github_actions` robot account.
 * Add the new image to the
-  [bpfman/.github/workflows/image-build.yaml](https://github.com/bpfman/bpfman/blob/main/.github/workflows/image-build.yaml)
+  [bpfman/.github/workflows/image-build.yml](https://github.com/bpfman/bpfman/blob/main/.github/workflows/image-build.yml)
   so the image is built and pushed on each PR merge.
 * For examples, update the `examples/Makefile` to build the new images.
 

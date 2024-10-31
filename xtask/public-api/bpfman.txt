@@ -4,7 +4,9 @@ pub enum bpfman::errors::BpfmanError
 pub bpfman::errors::BpfmanError::BpfBytecodeError(crate::oci_utils::ImageError)
 pub bpfman::errors::BpfmanError::BpfFunctionNameNotValid(alloc::string::String)
 pub bpfman::errors::BpfmanError::BpfIOError(std::io::error::Error)
+pub bpfman::errors::BpfmanError::BpfLinkError(aya::programs::links::LinkError)
 pub bpfman::errors::BpfmanError::BpfLoadError(aya::bpf::EbpfError)
+pub bpfman::errors::BpfmanError::BpfParseError(bpfman::errors::ParseError)
 pub bpfman::errors::BpfmanError::BpfProgramError(aya::programs::ProgramError)
 pub bpfman::errors::BpfmanError::BpfmanProgramDeleteError(anyhow::Error)
 pub bpfman::errors::BpfmanError::BtfError(aya_obj::btf::btf::BtfError)
@@ -21,7 +23,10 @@ pub bpfman::errors::BpfmanError::DispatcherNotRequired
 pub bpfman::errors::BpfmanError::Error(alloc::string::String)
 pub bpfman::errors::BpfmanError::InternalError(alloc::string::String)
 pub bpfman::errors::BpfmanError::InvalidAttach(alloc::string::String)
+pub bpfman::errors::BpfmanError::InvalidDirection
 pub bpfman::errors::BpfmanError::InvalidInterface
+pub bpfman::errors::BpfmanError::InvalidPriority(i32)
+pub bpfman::errors::BpfmanError::InvalidTreeName(alloc::string::String)
 pub bpfman::errors::BpfmanError::NotLoaded
 pub bpfman::errors::BpfmanError::ProgramNotFoundInBytecode
 pub bpfman::errors::BpfmanError::ProgramNotFoundInBytecode::bytecode_image: alloc::string::String
@@ -39,8 +44,12 @@ impl core::convert::From<aya::bpf::EbpfError> for bpfman::errors::BpfmanError
 pub fn bpfman::errors::BpfmanError::from(source: aya::bpf::EbpfError) -> Self
 impl core::convert::From<aya::programs::ProgramError> for bpfman::errors::BpfmanError
 pub fn bpfman::errors::BpfmanError::from(source: aya::programs::ProgramError) -> Self
+impl core::convert::From<aya::programs::links::LinkError> for bpfman::errors::BpfmanError
+pub fn bpfman::errors::BpfmanError::from(source: aya::programs::links::LinkError) -> Self
 impl core::convert::From<aya_obj::btf::btf::BtfError> for bpfman::errors::BpfmanError
 pub fn bpfman::errors::BpfmanError::from(source: aya_obj::btf::btf::BtfError) -> Self
+impl core::convert::From<bpfman::errors::ParseError> for bpfman::errors::BpfmanError
+pub fn bpfman::errors::BpfmanError::from(source: bpfman::errors::ParseError) -> Self
 impl core::convert::From<std::io::error::Error> for bpfman::errors::BpfmanError
 pub fn bpfman::errors::BpfmanError::from(source: std::io::error::Error) -> Self
 impl core::convert::From<tokio::sync::oneshot::error::RecvError> for bpfman::errors::BpfmanError
@@ -99,6 +108,8 @@ pub bpfman::errors::ParseError::InvalidBytecodeLocation
 pub bpfman::errors::ParseError::InvalidBytecodeLocation::location: alloc::string::String
 pub bpfman::errors::ParseError::InvalidDirection
 pub bpfman::errors::ParseError::InvalidDirection::direction: alloc::string::String
+pub bpfman::errors::ParseError::InvalidLinkAction
+pub bpfman::errors::ParseError::InvalidLinkAction::action: alloc::string::String
 pub bpfman::errors::ParseError::InvalidMapType
 pub bpfman::errors::ParseError::InvalidMapType::map: alloc::string::String
 pub bpfman::errors::ParseError::InvalidProbeType
@@ -109,6 +120,8 @@ pub bpfman::errors::ParseError::InvalidProgramType
 pub bpfman::errors::ParseError::InvalidProgramType::program: alloc::string::String
 pub bpfman::errors::ParseError::InvalidXdpMode
 pub bpfman::errors::ParseError::InvalidXdpMode::mode: alloc::string::String
+impl core::convert::From<bpfman::errors::ParseError> for bpfman::errors::BpfmanError
+pub fn bpfman::errors::BpfmanError::from(source: bpfman::errors::ParseError) -> Self
 impl core::convert::From<toml::de::Error> for bpfman::errors::ParseError
 pub fn bpfman::errors::ParseError::from(source: toml::de::Error) -> Self
 impl core::error::Error for bpfman::errors::ParseError
@@ -157,6 +170,50 @@ pub type bpfman::errors::ParseError::Output = T
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::errors::ParseError where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::errors::ParseError::vzip(self) -> V
 pub mod bpfman::types
+pub enum bpfman::types::AttachOrder
+pub bpfman::types::AttachOrder::After(u32)
+pub bpfman::types::AttachOrder::Before(u32)
+pub bpfman::types::AttachOrder::First
+pub bpfman::types::AttachOrder::Last
+impl core::convert::From<bpfman::types::AttachOrder> for aya::programs::links::LinkOrder
+pub fn aya::programs::links::LinkOrder::from(v: bpfman::types::AttachOrder) -> Self
+impl core::fmt::Debug for bpfman::types::AttachOrder
+pub fn bpfman::types::AttachOrder::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::AttachOrder
+impl core::marker::Send for bpfman::types::AttachOrder
+impl core::marker::Sync for bpfman::types::AttachOrder
+impl core::marker::Unpin for bpfman::types::AttachOrder
+impl core::panic::unwind_safe::RefUnwindSafe for bpfman::types::AttachOrder
+impl core::panic::unwind_safe::UnwindSafe for bpfman::types::AttachOrder
+impl<T, U> core::convert::Into<U> for bpfman::types::AttachOrder where U: core::convert::From<T>
+pub fn bpfman::types::AttachOrder::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::AttachOrder where U: core::convert::Into<T>
+pub type bpfman::types::AttachOrder::Error = core::convert::Infallible
+pub fn bpfman::types::AttachOrder::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::AttachOrder where U: core::convert::TryFrom<T>
+pub type bpfman::types::AttachOrder::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::AttachOrder::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> core::any::Any for bpfman::types::AttachOrder where T: 'static + core::marker::Sized
+pub fn bpfman::types::AttachOrder::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::AttachOrder where T: core::marker::Sized
+pub fn bpfman::types::AttachOrder::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::AttachOrder where T: core::marker::Sized
+pub fn bpfman::types::AttachOrder::borrow_mut(&mut self) -> &mut T
+impl<T> core::convert::From<T> for bpfman::types::AttachOrder
+pub fn bpfman::types::AttachOrder::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::AttachOrder
+pub type bpfman::types::AttachOrder::Init = T
+pub const bpfman::types::AttachOrder::ALIGN: usize
+pub unsafe fn bpfman::types::AttachOrder::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::AttachOrder::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::AttachOrder::drop(ptr: usize)
+pub unsafe fn bpfman::types::AttachOrder::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> tracing::instrument::Instrument for bpfman::types::AttachOrder
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::AttachOrder
+impl<T> typenum::type_operators::Same for bpfman::types::AttachOrder
+pub type bpfman::types::AttachOrder::Output = T
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::AttachOrder where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::AttachOrder::vzip(self) -> V
 pub enum bpfman::types::Direction
 pub bpfman::types::Direction::Egress = 2
 pub bpfman::types::Direction::Ingress = 1
@@ -544,6 +601,7 @@ pub bpfman::types::Program::Fentry(bpfman::types::FentryProgram)
 pub bpfman::types::Program::Fexit(bpfman::types::FexitProgram)
 pub bpfman::types::Program::Kprobe(bpfman::types::KprobeProgram)
 pub bpfman::types::Program::Tc(bpfman::types::TcProgram)
+pub bpfman::types::Program::Tcx(bpfman::types::TcxProgram)
 pub bpfman::types::Program::Tracepoint(bpfman::types::TracepointProgram)
 pub bpfman::types::Program::Unsupported(bpfman::types::ProgramData)
 pub bpfman::types::Program::Uprobe(bpfman::types::UprobeProgram)
@@ -1355,6 +1413,61 @@ impl<T> typenum::type_operators::Same for bpfman::types::TcProgram
 pub type bpfman::types::TcProgram::Output = T
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::TcProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::TcProgram::vzip(self) -> V
+pub struct bpfman::types::TcxProgram
+impl bpfman::types::TcxProgram
+pub fn bpfman::types::TcxProgram::get_current_position(&self) -> core::result::Result<core::option::Option<usize>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxProgram::get_direction(&self) -> core::result::Result<bpfman::types::Direction, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxProgram::get_if_index(&self) -> core::result::Result<core::option::Option<u32>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxProgram::get_iface(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxProgram::get_priority(&self) -> core::result::Result<i32, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxProgram::new(data: bpfman::types::ProgramData, priority: i32, iface: alloc::string::String, direction: bpfman::types::Direction) -> core::result::Result<Self, bpfman::errors::BpfmanError>
+impl core::clone::Clone for bpfman::types::TcxProgram
+pub fn bpfman::types::TcxProgram::clone(&self) -> bpfman::types::TcxProgram
+impl core::fmt::Debug for bpfman::types::TcxProgram
+pub fn bpfman::types::TcxProgram::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::TcxProgram
+impl core::marker::Send for bpfman::types::TcxProgram
+impl core::marker::Sync for bpfman::types::TcxProgram
+impl core::marker::Unpin for bpfman::types::TcxProgram
+impl !core::panic::unwind_safe::RefUnwindSafe for bpfman::types::TcxProgram
+impl !core::panic::unwind_safe::UnwindSafe for bpfman::types::TcxProgram
+impl<T, U> core::convert::Into<U> for bpfman::types::TcxProgram where U: core::convert::From<T>
+pub fn bpfman::types::TcxProgram::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::TcxProgram where U: core::convert::Into<T>
+pub type bpfman::types::TcxProgram::Error = core::convert::Infallible
+pub fn bpfman::types::TcxProgram::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::TcxProgram where U: core::convert::TryFrom<T>
+pub type bpfman::types::TcxProgram::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::TcxProgram::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::TcxProgram where T: core::clone::Clone
+pub type bpfman::types::TcxProgram::Owned = T
+pub fn bpfman::types::TcxProgram::clone_into(&self, target: &mut T)
+pub fn bpfman::types::TcxProgram::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::types::TcxProgram where T: 'static + core::marker::Sized
+pub fn bpfman::types::TcxProgram::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::TcxProgram where T: core::marker::Sized
+pub fn bpfman::types::TcxProgram::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::TcxProgram where T: core::marker::Sized
+pub fn bpfman::types::TcxProgram::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::TcxProgram where T: core::clone::Clone
+pub unsafe fn bpfman::types::TcxProgram::clone_to_uninit(&self, dst: *mut T)
+impl<T> core::convert::From<T> for bpfman::types::TcxProgram
+pub fn bpfman::types::TcxProgram::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::TcxProgram
+pub type bpfman::types::TcxProgram::Init = T
+pub const bpfman::types::TcxProgram::ALIGN: usize
+pub unsafe fn bpfman::types::TcxProgram::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::TcxProgram::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::TcxProgram::drop(ptr: usize)
+pub unsafe fn bpfman::types::TcxProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::TcxProgram where T: core::clone::Clone
+pub fn bpfman::types::TcxProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+impl<T> tracing::instrument::Instrument for bpfman::types::TcxProgram
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::TcxProgram
+impl<T> typenum::type_operators::Same for bpfman::types::TcxProgram
+pub type bpfman::types::TcxProgram::Output = T
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::TcxProgram where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::TcxProgram::vzip(self) -> V
 pub struct bpfman::types::TracepointProgram
 impl bpfman::types::TracepointProgram
 pub fn bpfman::types::TracepointProgram::get_tracepoint(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>

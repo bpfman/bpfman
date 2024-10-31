@@ -76,7 +76,13 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		processTC(cancelCtx, &paramData)
+		processTc(cancelCtx, &paramData)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		processTcx(cancelCtx, &paramData)
 	}()
 
 	wg.Add(1)

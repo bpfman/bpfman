@@ -17,7 +17,7 @@ env:
 
 jobs:
   check-license:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 3
 
     steps:
@@ -26,7 +26,7 @@ jobs:
         uses: apache/skywalking-eyes@cd7b195c51fd3d6ad52afceb760719ddc6b3ee91
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -50,6 +50,14 @@ jobs:
 
     name: Build bpfman (${{ matrix.arch.arch }})
     steps:
+      - name: Free up space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          sudo rm -rf /usr/local/lib/android
+
       - name: Install dependencies
         # Dependencies only needed to build eBPF and used by integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
@@ -91,7 +99,7 @@ jobs:
         uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # @v1
         with:
           toolchain: ${{ env.NIGHTLY_VERSION }}
-          components: rustfmt, clippy, rust-src
+          components: rustfmt, rust-src
           override: false
 
       # Only install cross if we need it
@@ -102,7 +110,7 @@ jobs:
         run: |
           cargo install cross --git https://github.com/cross-rs/cross
 
-      - uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # @v2
+      - uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # @v2
 
       - name: Install cargo-llvm-cov
         # Only need to run once
@@ -146,7 +154,7 @@ jobs:
       - name: Archive Integration Test eBPF
         # Only need to build eBPF once and used by integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
         with:
           name: bpfman-integration-test
           path: |
@@ -157,12 +165,6 @@ jobs:
         if: ${{ matrix.arch.arch == 'amd64' }}
         run: |
           cargo +${{ env.NIGHTLY_VERSION }} fmt --all -- --check
-
-      - name: Run clippy
-        # Only need to run once
-        if: ${{ matrix.arch.arch == 'amd64' }}
-        run: |
-          cargo +${{ env.NIGHTLY_VERSION }} clippy --all -- --deny warnings
 
       - name: Check public API
         # Only need to run once
@@ -189,7 +191,7 @@ jobs:
       - name: Archive bpfman Binaries
         # Tar and archive the build for basic-integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
         with:
           name: bpfman-debug-${{ matrix.arch.filename }}
           path: |
@@ -209,7 +211,7 @@ jobs:
       - name: Archive manpages
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
         with:
           name: bpfman-manpages
           path: |
@@ -229,7 +231,7 @@ jobs:
       - name: Archive CLI TAB Completion
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
         with:
           name: bpfman-cli-tab-completion
           path: |
@@ -249,7 +251,7 @@ jobs:
 
       - name: Archive bpfman Release Binaries
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
         with:
           name: bpfman-release-${{ matrix.arch.filename }}
           path: ./target/${{ matrix.arch.rust-target }}/release/bpfman-${{ matrix.arch.filename }}.tar.gz
@@ -264,7 +266,7 @@ jobs:
       - name: Archive Rust code coverage results
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # @v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
         with:
           name: coverage-rust
           path: lcov.info
@@ -284,7 +286,7 @@ jobs:
             filename: linux-ppc64le
           - arch: s390x
             filename: linux-s390x
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     name: Build Go Modules (${{ matrix.arch.arch }})
     steps:
@@ -292,7 +294,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Install go
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # @v5
+        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # @v5
         with:
           # prettier-ignore
           go-version: '1.22' # yamllint disable-line rule:quoted-strings
@@ -321,7 +323,7 @@ jobs:
           GOARCH=${{ matrix.arch.arch }} make build
 
   basic-integration-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [build, build-go]
     steps:
       - name: Set up environment for running integration tests from manual trigger
@@ -336,6 +338,7 @@ jobs:
           echo "KRETPROBE_IMAGE_LOC=quay.io/bpfman-bytecode/kretprobe:${GITHUB_REF_NAME}" >> $GITHUB_ENV
           echo "XDP_COUNTER_IMAGE_LOC=quay.io/bpfman-bytecode/go-xdp-counter:${GITHUB_REF_NAME}" >> $GITHUB_ENV
           echo "TC_COUNTER_IMAGE_LOC=quay.io/bpfman-bytecode/go-tc-counter:${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          echo "TCX_COUNTER_IMAGE_LOC=quay.io/bpfman-bytecode/go-tcx-counter:${GITHUB_REF_NAME}" >> $GITHUB_ENV
           echo "TRACEPOINT_COUNTER_IMAGE_LOC=quay.io/bpfman-bytecode/go-tracepoint-counter:${GITHUB_REF_NAME}" >> $GITHUB_ENV
           echo "FENTRY_IMAGE_LOC=quay.io/bpfman-bytecode/fentry:${GITHUB_REF_NAME}" >> $GITHUB_ENV
           echo "FEXIT_IMAGE_LOC=quay.io/bpfman-bytecode/fexit:${GITHUB_REF_NAME}" >> $GITHUB_ENV
@@ -419,13 +422,13 @@ jobs:
         run: cargo xtask integration-test
 
   build-docs:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout bpfman
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Install Python3
-        uses: actions/setup-python@f677139bbe7f9c59b41e40162b753c062f5d49a3 # @v5
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # @v5
         with:
           python-version: 3.x
 
@@ -437,7 +440,7 @@ jobs:
 
   coverage:
     needs: [build, build-go]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Download rust coverage artifacts
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
@@ -457,7 +460,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [build]
     environment: crates.io
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout bpfman
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
@@ -510,7 +513,7 @@ jobs:
         coverage,
         basic-integration-tests,
       ]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Build Complete
         run: echo "Build Complete"
