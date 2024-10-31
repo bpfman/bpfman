@@ -15,7 +15,7 @@ import (
 	"github.com/cilium/ebpf"
 )
 
-type TCStats struct {
+type TcStats struct {
 	Packets uint64
 	Bytes   uint64
 }
@@ -28,7 +28,7 @@ const (
 	TC_ACT_OK = 0
 )
 
-func processTC(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
+func processTc(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 	var action string
 	var direction bpfmanHelpers.TcProgramDirection
 	if paramData.Direction == configMgmt.TcDirectionIngress {
@@ -49,7 +49,8 @@ func processTC(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 		mapPath = fmt.Sprintf("%s/%s", ApplicationMapsMountPoint, TCBpfProgramMapIndex)
 	} else {
 
-		// Set up a connection to the server.		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
+		// Set up a connection to the server. If the bytecode src is a Program
+		// ID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcProgId {
 			var loadRequest *gobpfman.LoadRequest
 			if paramData.MapOwnerId != 0 {
@@ -73,7 +74,7 @@ func processTC(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 				loadRequest = &gobpfman.LoadRequest{
 					Bytecode:    paramData.BytecodeSource,
 					Name:        "stats",
-					ProgramType: *bpfmanHelpers.Xdp.Uint32(),
+					ProgramType: *bpfmanHelpers.Tc.Uint32(),
 					Attach: &gobpfman.AttachInfo{
 						Info: &gobpfman.AttachInfo_TcAttachInfo{
 							TcAttachInfo: &gobpfman.TCAttachInfo{
@@ -102,11 +103,11 @@ func processTC(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 				log.Printf("kernelInfo not returned in LoadResponse")
 				return
 			}
-			log.Printf("Program registered with id %d\n", paramData.ProgId)
+			log.Printf("TcProgram registered with id %d\n", paramData.ProgId)
 
 			// 2. Set up defer to unload program when this is closed
 			defer func(id uint) {
-				log.Printf("Unloading Program: %d\n", id)
+				log.Printf("Unloading Tc Program: %d\n", id)
 				_, err = unloadBpfProgram(id)
 				if err != nil {
 					log.Print(err)
@@ -151,7 +152,7 @@ func processTC(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 			return
 		default:
 			key := uint32(TC_ACT_OK)
-			var stats []TCStats
+			var stats []TcStats
 			var totalPackets uint64
 			var totalBytes uint64
 
@@ -166,8 +167,7 @@ func processTC(cancelCtx context.Context, paramData *configMgmt.ParameterData) {
 				totalBytes += cpuStat.Bytes
 			}
 
-			log.Printf("TC: %d packets received %s\n", totalPackets, action)
-			log.Printf("TC: %d bytes received %s\n", totalBytes, action)
+			log.Printf("TC: %s %d packets / %d bytes\n", action, totalPackets, totalBytes)
 		}
 	}
 }

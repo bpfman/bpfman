@@ -36,9 +36,10 @@ Major kernel features leveraged by bpfman:
 * **Relaxed CAP_BPF Requirement:** Prior to Kernel 5.19, all eBPF system calls required CAP_BPF.
   This required userspace programs that wanted to access eBPF maps to have the CAP_BPF Linux capability.
   With the kernel 5.19 change, CAP_BPF is only required for load and unload requests.
-* **TCX:** TCX support was added in Kernel 6.6 and is expected to be added to bpfman in v0.5.2.
-  TCX has performance improvements over TC and adds support in the kernel for multiple TCX programs to run
-  on a given TC hook point.
+* **TCX:** TCX support was added in Kernel 6.6 and is expected to be added to
+  bpfman in an upcoming release. TCX has performance improvements over TC and
+  adds support in the kernel for multiple TCX programs to run on a given TC hook
+  point.
 
 bpfman tested on older kernel versions:
 

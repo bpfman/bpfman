@@ -3,6 +3,7 @@
 
 #include "kprobe_counter.h"
 #include "tc_counter.h"
+#include "tcx_counter.h"
 #include "tracepoint_counter.h"
 #include "uprobe_counter.h"
 #include "xdp_counter.h"
