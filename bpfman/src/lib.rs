@@ -201,7 +201,33 @@ pub(crate) fn get_db_config() -> SledConfig {
 ///
 /// This function is asynchronous and should be awaited in an
 /// asynchronous context.
-pub async fn add_program(mut program: Program) -> Result<Program, BpfmanError> {
+pub async fn add_program(program: Program) -> Result<Program, BpfmanError> {
+    let kind = program
+        .get_data()
+        .get_kind()
+        .unwrap_or(Some(ProgramType::Unspec))
+        .unwrap_or(ProgramType::Unspec);
+    let name = program
+        .get_data()
+        .get_name()
+        .unwrap_or("not set".to_string());
+    info!("Request to load {kind} program named \"{name}\"");
+
+    let result = add_program_internal(program).await;
+
+    match result {
+        Ok(ref p) => {
+            let id = p.get_data().get_id().unwrap_or(0);
+            info!("Success: loaded {kind} program named \"{name}\" with id {id}");
+        }
+        Err(ref e) => {
+            error!("Error: failed to load {kind} program named \"{name}\": {e}");
+        }
+    };
+    result
+}
+
+async fn add_program_internal(mut program: Program) -> Result<Program, BpfmanError> {
     let (config, root_db) = &setup().await?;
     let mut image_manager = init_image_manager().await?;
     // This is only required in the add_program api
@@ -240,12 +266,6 @@ pub async fn add_program(mut program: Program) -> Result<Program, BpfmanError> {
 
     match result {
         Ok(id) => {
-            info!(
-                "Added {} program with name: {} and id: {id}",
-                program.kind(),
-                program.get_data().get_name()?
-            );
-
             // Now that program is successfully loaded, update the id, maps hash table,
             // and allow access to all maps by bpfman group members.
             save_map(root_db, &mut program, id, map_owner_id)?;
@@ -323,12 +343,18 @@ pub async fn add_program(mut program: Program) -> Result<Program, BpfmanError> {
 /// This function is asynchronous and should be awaited in an
 /// asynchronous context.
 pub async fn remove_program(id: u32) -> Result<(), BpfmanError> {
-    let (config, root_db) = &setup().await?;
+    let (config, root_db) = match setup().await {
+        Ok((c, r)) => &(c, r),
+        Err(e) => {
+            error!("Error: Request to unload program with id {id} but unable to open db: {e}");
+            return Err(e);
+        }
+    };
 
-    info!("Removing program with id: {id}");
     let prog = match get(root_db, &id) {
         Some(p) => p,
         None => {
+            error!("Error: Request to unload program with id {id} but id does not exist or was not created by bpfman");
             return Err(BpfmanError::Error(format!(
                 "Program {0} does not exist or was not created by bpfman",
                 id,
@@ -336,6 +362,29 @@ pub async fn remove_program(id: u32) -> Result<(), BpfmanError> {
         }
     };
 
+    let kind = prog
+        .get_data()
+        .get_kind()
+        .unwrap_or(Some(ProgramType::Unspec))
+        .unwrap_or(ProgramType::Unspec);
+    let name = prog.get_data().get_name().unwrap_or("not set".to_string());
+    info!("Request to unload {kind} program named \"{name}\" with id {id}");
+
+    let result = remove_program_internal(id, config, root_db, prog).await;
+
+    match result {
+        Ok(_) => info!("Success: unloaded {kind} program named \"{name}\" with id {id}"),
+        Err(ref e) => error!("Error: failed to unload {kind} program named \"{name}\": {e}"),
+    };
+    result
+}
+
+async fn remove_program_internal(
+    id: u32,
+    config: &Config,
+    root_db: &Db,
+    prog: Program,
+) -> Result<(), BpfmanError> {
     let map_owner_id = prog.get_data().get_map_owner_id()?;
 
     match prog {
