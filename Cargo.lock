@@ -265,9 +265,9 @@ dependencies = [
 
 [[package]]
 name = "aya"
-version = "0.13.0"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7127cbe933572dfabb7a87d2c740f5b720c3e19b4d2b8c99a262ffa35c8761ff"
+checksum = "d18bc4e506fbb85ab7392ed993a7db4d1a452c71b75a246af4a80ab8c9d2dd50"
 dependencies = [
  "assert_matches",
  "aya-obj",
