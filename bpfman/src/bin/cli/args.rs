@@ -50,7 +50,7 @@ pub(crate) enum LoadSubcommand {
 #[derive(Args, Debug)]
 pub(crate) struct LoadFileArgs {
     /// Required: Location of local bytecode file
-    /// Example: --path /run/bpfman/examples/go-xdp-counter/bpf_bpfel.o
+    /// Example: --path /run/bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o
     #[clap(short, long, verbatim_doc_comment)]
     pub(crate) path: String,
 
