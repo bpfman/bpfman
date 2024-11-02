@@ -15,7 +15,7 @@ use sled::Db;
 
 use crate::{
     calc_map_pin_path,
-    config::XdpMode,
+    config::{RegistryConfig, XdpMode},
     create_map_pin_path,
     directories::*,
     dispatcher_config::XdpDispatcherConfig,
@@ -86,6 +86,7 @@ impl XdpDispatcher {
         programs: &mut [Program],
         old_dispatcher: Option<Dispatcher>,
         image_manager: &mut ImageManager,
+        config: &RegistryConfig
     ) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
@@ -108,7 +109,7 @@ impl XdpDispatcher {
             chain_call_actions[p.get_current_position()?.unwrap()] = p.get_proceed_on()?.mask();
         }
 
-        let config = XdpDispatcherConfig::new(
+        let xdp_config = XdpDispatcherConfig::new(
             extensions.len() as u8,
             0x0,
             chain_call_actions,
@@ -116,9 +117,9 @@ impl XdpDispatcher {
             [0; 10],
         );
 
-        debug!("xdp dispatcher config: {:?}", config);
+        debug!("xdp dispatcher config: {:?}", xdp_config);
         let image = BytecodeImage::new(
-            XDP_DISPATCHER_IMAGE.to_string(),
+            config.xdp_dispatcher_image.to_string(),
             ImagePullPolicy::IfNotPresent as i32,
             None,
             None,
@@ -145,7 +146,7 @@ impl XdpDispatcher {
         let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
 
         let mut loader = EbpfLoader::new()
-            .set_global("conf", &config, true)
+            .set_global("conf", &xdp_config, true)
             .load(&program_bytes)
             .map_err(|e| BpfmanError::DispatcherLoadError(format!("{e}")))?;
 

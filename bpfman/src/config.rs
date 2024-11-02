@@ -14,7 +14,8 @@ pub(crate) struct Config {
     #[serde(default)]
     signing: Option<SigningConfig>,
     database: Option<DatabaseConfig>,
-    registry: Option<RegistryConfig>,
+    #[serde(default)]
+    registry: RegistryConfig,
 }
 
 impl Config {
@@ -39,10 +40,10 @@ impl Config {
     }
 
     pub(crate) fn set_registry(&mut self, registry: RegistryConfig) {
-        self.registry = Some(registry);
+        self.registry = registry;
     }
 
-    pub(crate) fn registry(&self) -> &Option<RegistryConfig> {
+    pub(crate) fn registry(&self) -> &RegistryConfig {
         &self.registry
     }
 
@@ -54,7 +55,7 @@ impl Default for Config {
             interfaces: None,
             signing: Some(SigningConfig::default()),
             database: Some(DatabaseConfig::default()),
-            registry: Some(RegistryConfig::default()),
+            registry: RegistryConfig::default(),
         }
     }
 }
@@ -226,20 +227,15 @@ mod test {
     }
 
     #[test]
-    fn test_config_image_registry() {
+    fn test_config_incomplete_image_registry() {
         let input = r#"
         [registry]
           xdp_dispatcher_image = "foobar"
         "#;
         let expected = String::from("foobar");
         let config: Config = toml::from_str(input).expect("error parsing toml input");
-        match config.registry {
-            Some(i) => {
-                assert_eq!(i.xdp_dispatcher_image, expected);
-                assert_eq!(i.tc_dispatcher_image, String::from(TC_DISPATCHER_IMAGE))
-            }
-            None => panic!("expected xdp image to have been parsed and tc image to have been defaulted"),
-        }
+        assert_eq!(config.registry.xdp_dispatcher_image, expected);
+        assert_eq!(config.registry.tc_dispatcher_image, String::from(TC_DISPATCHER_IMAGE))
     }
 
     #[test]
@@ -249,12 +245,15 @@ mod test {
           xdeezpatcher_image = "foobar"
         "#;
         let config: Config = toml::from_str(input).expect("error parsing toml input");
-        match config.registry {
-            Some(i) => {
-                assert_eq!(i.xdp_dispatcher_image, String::from(XDP_DISPATCHER_IMAGE));
-                assert_eq!(i.tc_dispatcher_image, String::from(TC_DISPATCHER_IMAGE))
-            }
-            None => panic!("expected xdp image to have been parsed and tc image to have been defaulted"),
-        }
+        assert_eq!(config.registry.xdp_dispatcher_image, String::from(XDP_DISPATCHER_IMAGE));
+        assert_eq!(config.registry.tc_dispatcher_image, String::from(TC_DISPATCHER_IMAGE))
+    }
+    #[test]
+    fn test_config_no_image_registry() {
+        let input = r#"
+        "#;
+        let config: Config = toml::from_str(input).expect("error parsing toml input");
+        assert_eq!(config.registry.xdp_dispatcher_image, String::from(XDP_DISPATCHER_IMAGE));
+        assert_eq!(config.registry.tc_dispatcher_image, String::from(TC_DISPATCHER_IMAGE))
     }
 }
