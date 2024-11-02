@@ -229,6 +229,10 @@ pub(crate) fn open_config_file() -> Config {
                 debug!("No database configuration found in config file.  using defaults");
                 config.set_database(Default::default());
             }
+            if config.registry().is_none() {
+                debug!("No image registry configuration found in config file.  using defaults");
+                config.set_registry(Default::default());
+            }
             config
         } else {
             warn!("Unable to parse config file, using defaults");
