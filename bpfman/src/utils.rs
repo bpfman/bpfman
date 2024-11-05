@@ -241,7 +241,7 @@ pub(crate) fn open_config_file() -> Config {
 }
 
 fn has_cap(cset: caps::CapSet, cap: caps::Capability) {
-    info!("Has {}: {}", cap, caps::has_cap(None, cset, cap).unwrap());
+    debug!("Has {}: {}", cap, caps::has_cap(None, cset, cap).unwrap());
 }
 
 fn is_bpffs_mounted() -> Result<bool, anyhow::Error> {
