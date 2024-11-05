@@ -715,7 +715,7 @@ pub async fn pull_bytecode(image: BytecodeImage) -> anyhow::Result<()> {
 }
 
 pub(crate) async fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanError> {
-    let database_config = open_config_file().database().to_owned().unwrap_or_default();
+    let database_config = open_config_file().database().to_owned();
     for _ in 0..=database_config.max_retries {
         if let Ok(db) = sled_config.open() {
             debug!("Successfully opened database");
@@ -736,7 +736,7 @@ pub(crate) async fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanE
 // explicitly control when bpfman blocks for network calls to both sigstore's
 // cosign tuf registries and container registries.
 pub(crate) async fn init_image_manager() -> Result<ImageManager, BpfmanError> {
-    let signing_config = open_config_file().signing().to_owned().unwrap_or_default();
+    let signing_config = open_config_file().signing().to_owned();
     match ImageManager::new(signing_config.verify_enabled, signing_config.allow_unsigned).await {
         Ok(im) => Ok(im),
         Err(e) => {
