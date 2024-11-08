@@ -79,6 +79,7 @@ message XDPAttachInfo {
     string iface = 2;
     int32 position = 3;
     repeated int32 proceed_on = 4;
+    optional string netns = 5;
 }
 
 /* TCAttachInfo represents the program specific metadata which bpfman needs to 
@@ -91,6 +92,7 @@ message TCAttachInfo {
     int32 position = 3;
     string direction = 4;
     repeated int32 proceed_on = 5;
+    optional string netns = 6;
 }
 
 /* TCXAttachInfo contains the information bpfman needs to attach a TCX program
@@ -104,6 +106,7 @@ message TCXAttachInfo {
     string iface = 2;
     int32 position = 3;
     string direction = 4;
+    optional string netns = 5;
 }
 
 /* TracepointAttachInfo represents the program specific metadata which bpfman

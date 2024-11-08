@@ -59,6 +59,7 @@ fn test_load_unload_xdp() {
                 XDP_PASS_NAME,
                 None, // metadata
                 None, // map_owner_id
+                None, // netns
             );
             loaded_ids.push(prog_id.unwrap());
         }
@@ -98,6 +99,7 @@ fn test_map_sharing_load_unload_xdp() {
         XDP_COUNTER_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     let binding_1 = stdout_1.unwrap();
 
@@ -134,6 +136,7 @@ fn test_map_sharing_load_unload_xdp() {
         XDP_COUNTER_NAME,
         None, // metadata
         map_owner_id_u32,
+        None, // netns
     );
     let binding_2 = stdout_2.unwrap();
 
@@ -228,6 +231,7 @@ fn test_load_unload_tc() {
                 &TC_PASS_IMAGE_LOC,
                 TC_PASS_FILE_LOC,
                 TC_PASS_NAME,
+                None, // metadata
             );
             loaded_ids.push(prog_id.unwrap());
         }
@@ -414,6 +418,7 @@ fn test_list_with_metadata() {
                 XDP_PASS_NAME,
                 None, // metadata
                 None, // map_owner_id
+                None, // netns
             );
             loaded_ids.push(prog_id.unwrap());
         }
@@ -432,6 +437,7 @@ fn test_list_with_metadata() {
         XDP_PASS_NAME,
         Some(vec![key]),
         None, // map_owner_id
+        None, // netns
     );
     let id = prog_id.unwrap();
 

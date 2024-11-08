@@ -195,6 +195,12 @@ uninstall() {
     del_svc "${SVC_BPFD_SVC}"
     del_bin "${BIN_BPFD}"
     del_bin "${BIN_BPFCTL}"
+
+    # Delete clsact and ingress qdiscs, in the default namespace and all network
+    # namespaces.  This has the side-effect of removing any tc_dispatchers (or
+    # other programs) that happen to be attached to them.
+    echo "Delete qdiscs:"
+    delete_all_bpfman_qdiscs
 }
 
 # TO BE REMOVED!
@@ -211,4 +217,25 @@ del_kubectl_plugin() {
         echo "  Deleting \"kubectl-bpfprograms\""
         rm -f "${DST_KUBECTL_PLUGIN_PATH}/kubectl-bpfprograms"
     fi
+}
+
+delete_bpfman_qdiscs() {
+    local iface
+    for iface in $(ifconfig | cut -d ' ' -f1 | tr ':' '\n' | awk NF); do
+        # delete the clsact qdisc if it exists
+        sudo tc qdisc del dev "$iface" clsact 2>/dev/null
+        # delete the ingress qdisc if it exists
+        sudo tc qdisc del dev "$iface" ingress 2>/dev/null
+    done
+}
+
+delete_all_bpfman_qdiscs() {
+    # Delete qdiscs in the default namespace
+    delete_bpfman_qdiscs
+
+    # Loop through all network namespaces and delete qdiscs
+    for netns in $(ip netns list | cut -d ' ' -f1); do
+        echo "  Processing namespace: $netns"
+        ip netns exec "$netns" bash -c "$(declare -f delete_bpfman_qdiscs); delete_bpfman_qdiscs"
+    done
 }

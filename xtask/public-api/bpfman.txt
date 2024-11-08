@@ -1401,9 +1401,10 @@ pub fn bpfman::types::TcProgram::get_current_position(&self) -> core::result::Re
 pub fn bpfman::types::TcProgram::get_direction(&self) -> core::result::Result<bpfman::types::Direction, bpfman::errors::BpfmanError>
 pub fn bpfman::types::TcProgram::get_if_index(&self) -> core::result::Result<core::option::Option<u32>, bpfman::errors::BpfmanError>
 pub fn bpfman::types::TcProgram::get_iface(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcProgram::get_netns(&self) -> core::result::Result<core::option::Option<std::path::PathBuf>, bpfman::errors::BpfmanError>
 pub fn bpfman::types::TcProgram::get_priority(&self) -> core::result::Result<i32, bpfman::errors::BpfmanError>
 pub fn bpfman::types::TcProgram::get_proceed_on(&self) -> core::result::Result<bpfman::types::TcProceedOn, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcProgram::new(data: bpfman::types::ProgramData, priority: i32, iface: alloc::string::String, proceed_on: bpfman::types::TcProceedOn, direction: bpfman::types::Direction) -> core::result::Result<Self, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcProgram::new(data: bpfman::types::ProgramData, priority: i32, iface: alloc::string::String, proceed_on: bpfman::types::TcProceedOn, direction: bpfman::types::Direction, netns: core::option::Option<std::path::PathBuf>) -> core::result::Result<Self, bpfman::errors::BpfmanError>
 impl core::clone::Clone for bpfman::types::TcProgram
 pub fn bpfman::types::TcProgram::clone(&self) -> bpfman::types::TcProgram
 impl core::fmt::Debug for bpfman::types::TcProgram
@@ -1459,8 +1460,9 @@ pub fn bpfman::types::TcxProgram::get_current_position(&self) -> core::result::R
 pub fn bpfman::types::TcxProgram::get_direction(&self) -> core::result::Result<bpfman::types::Direction, bpfman::errors::BpfmanError>
 pub fn bpfman::types::TcxProgram::get_if_index(&self) -> core::result::Result<core::option::Option<u32>, bpfman::errors::BpfmanError>
 pub fn bpfman::types::TcxProgram::get_iface(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxProgram::get_netns(&self) -> core::result::Result<core::option::Option<std::path::PathBuf>, bpfman::errors::BpfmanError>
 pub fn bpfman::types::TcxProgram::get_priority(&self) -> core::result::Result<i32, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcxProgram::new(data: bpfman::types::ProgramData, priority: i32, iface: alloc::string::String, direction: bpfman::types::Direction) -> core::result::Result<Self, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxProgram::new(data: bpfman::types::ProgramData, priority: i32, iface: alloc::string::String, direction: bpfman::types::Direction, netns: core::option::Option<std::path::PathBuf>) -> core::result::Result<Self, bpfman::errors::BpfmanError>
 impl core::clone::Clone for bpfman::types::TcxProgram
 pub fn bpfman::types::TcxProgram::clone(&self) -> bpfman::types::TcxProgram
 impl core::fmt::Debug for bpfman::types::TcxProgram
@@ -1701,9 +1703,10 @@ pub fn bpfman::types::XdpProgram::get_attached(&self) -> core::result::Result<bo
 pub fn bpfman::types::XdpProgram::get_current_position(&self) -> core::result::Result<core::option::Option<usize>, bpfman::errors::BpfmanError>
 pub fn bpfman::types::XdpProgram::get_if_index(&self) -> core::result::Result<core::option::Option<u32>, bpfman::errors::BpfmanError>
 pub fn bpfman::types::XdpProgram::get_iface(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
+pub fn bpfman::types::XdpProgram::get_netns(&self) -> core::result::Result<core::option::Option<std::path::PathBuf>, bpfman::errors::BpfmanError>
 pub fn bpfman::types::XdpProgram::get_priority(&self) -> core::result::Result<i32, bpfman::errors::BpfmanError>
 pub fn bpfman::types::XdpProgram::get_proceed_on(&self) -> core::result::Result<bpfman::types::XdpProceedOn, bpfman::errors::BpfmanError>
-pub fn bpfman::types::XdpProgram::new(data: bpfman::types::ProgramData, priority: i32, iface: alloc::string::String, proceed_on: bpfman::types::XdpProceedOn) -> core::result::Result<Self, bpfman::errors::BpfmanError>
+pub fn bpfman::types::XdpProgram::new(data: bpfman::types::ProgramData, priority: i32, iface: alloc::string::String, proceed_on: bpfman::types::XdpProceedOn, netns: core::option::Option<std::path::PathBuf>) -> core::result::Result<Self, bpfman::errors::BpfmanError>
 impl core::clone::Clone for bpfman::types::XdpProgram
 pub fn bpfman::types::XdpProgram::clone(&self) -> bpfman::types::XdpProgram
 impl core::fmt::Debug for bpfman::types::XdpProgram

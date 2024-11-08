@@ -113,6 +113,12 @@ impl ProgTable {
                     },
                 ]);
                 table.add_row(vec!["Proceed On:", &format!("{}", p.get_proceed_on()?)]);
+                table.add_row(vec![
+                    "Network Namespace:",
+                    &p.get_netns()?
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_else(|| "None".to_string()),
+                ]);
             }
             Program::Tc(p) => {
                 table.add_row(vec!["Attach Type:", "tc"]);
@@ -127,6 +133,12 @@ impl ProgTable {
                 ]);
                 table.add_row(vec!["Direction:", &p.get_direction()?.to_string()]);
                 table.add_row(vec!["Proceed On:", &format!("{}", p.get_proceed_on()?)]);
+                table.add_row(vec![
+                    "Network Namespace:",
+                    &p.get_netns()?
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_else(|| "None".to_string()),
+                ]);
             }
             Program::Tcx(p) => {
                 table.add_row(vec!["Attach Type:", "tcx"]);
@@ -140,6 +152,12 @@ impl ProgTable {
                     },
                 ]);
                 table.add_row(vec!["Direction:", &p.get_direction()?.to_string()]);
+                table.add_row(vec![
+                    "Network Namespace:",
+                    &p.get_netns()?
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_else(|| "None".to_string()),
+                ]);
             }
             Program::Tracepoint(p) => {
                 table.add_row(vec!["Tracepoint:", &p.get_tracepoint()?]);
