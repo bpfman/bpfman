@@ -39,10 +39,6 @@ impl Config {
         &self.database
     }
 
-    pub(crate) fn set_registry(&mut self, registry: RegistryConfig) {
-        self.registry = registry;
-    }
-
     pub(crate) fn registry(&self) -> &RegistryConfig {
         &self.registry
     }
