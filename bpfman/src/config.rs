@@ -46,7 +46,6 @@ impl Config {
     pub(crate) fn registry(&self) -> &RegistryConfig {
         &self.registry
     }
-
 }
 
 impl Default for Config {
@@ -94,11 +93,9 @@ impl Default for DatabaseConfig {
     }
 }
 
-
 #[derive(Debug, Deserialize, Clone)]
 #[serde(default)]
 pub struct RegistryConfig {
-    
     pub xdp_dispatcher_image: String,
     pub tc_dispatcher_image: String,
 }
@@ -235,7 +232,10 @@ mod test {
         let expected = String::from("foobar");
         let config: Config = toml::from_str(input).expect("error parsing toml input");
         assert_eq!(config.registry.xdp_dispatcher_image, expected);
-        assert_eq!(config.registry.tc_dispatcher_image, String::from(TC_DISPATCHER_IMAGE))
+        assert_eq!(
+            config.registry.tc_dispatcher_image,
+            String::from(TC_DISPATCHER_IMAGE)
+        )
     }
 
     #[test]
@@ -245,15 +245,27 @@ mod test {
           xdeezpatcher_image = "foobar"
         "#;
         let config: Config = toml::from_str(input).expect("error parsing toml input");
-        assert_eq!(config.registry.xdp_dispatcher_image, String::from(XDP_DISPATCHER_IMAGE));
-        assert_eq!(config.registry.tc_dispatcher_image, String::from(TC_DISPATCHER_IMAGE))
+        assert_eq!(
+            config.registry.xdp_dispatcher_image,
+            String::from(XDP_DISPATCHER_IMAGE)
+        );
+        assert_eq!(
+            config.registry.tc_dispatcher_image,
+            String::from(TC_DISPATCHER_IMAGE)
+        )
     }
     #[test]
     fn test_config_no_image_registry() {
         let input = r#"
         "#;
         let config: Config = toml::from_str(input).expect("error parsing toml input");
-        assert_eq!(config.registry.xdp_dispatcher_image, String::from(XDP_DISPATCHER_IMAGE));
-        assert_eq!(config.registry.tc_dispatcher_image, String::from(TC_DISPATCHER_IMAGE))
+        assert_eq!(
+            config.registry.xdp_dispatcher_image,
+            String::from(XDP_DISPATCHER_IMAGE)
+        );
+        assert_eq!(
+            config.registry.tc_dispatcher_image,
+            String::from(TC_DISPATCHER_IMAGE)
+        )
     }
 }

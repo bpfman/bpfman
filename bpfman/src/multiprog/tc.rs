@@ -17,13 +17,23 @@ use netlink_packet_route::tc::TcAttribute;
 use sled::Db;
 
 use crate::{
-    calc_map_pin_path, config::RegistryConfig, create_map_pin_path, directories::*, dispatcher_config::TcDispatcherConfig, errors::BpfmanError, multiprog::{Dispatcher, TC_DISPATCHER_PREFIX}, oci_utils::image_manager::ImageManager, types::{
-        BytecodeImage, Direction::{self, Egress, Ingress},
+    calc_map_pin_path,
+    config::RegistryConfig,
+    create_map_pin_path,
+    directories::*,
+    dispatcher_config::TcDispatcherConfig,
+    errors::BpfmanError,
+    multiprog::{Dispatcher, TC_DISPATCHER_PREFIX},
+    oci_utils::image_manager::ImageManager,
+    types::{
+        BytecodeImage,
+        Direction::{self, Egress, Ingress},
         ImagePullPolicy, Program, TcProgram,
-    }, utils::{
+    },
+    utils::{
         bytes_to_string, bytes_to_u16, bytes_to_u32, bytes_to_usize, should_map_be_pinned,
         sled_get, sled_get_option, sled_insert,
-    }
+    },
 };
 
 const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the dispatcher
@@ -88,7 +98,7 @@ impl TcDispatcher {
         programs: &mut [Program],
         old_dispatcher: Option<Dispatcher>,
         image_manager: &mut ImageManager,
-        config: &RegistryConfig
+        config: &RegistryConfig,
     ) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;

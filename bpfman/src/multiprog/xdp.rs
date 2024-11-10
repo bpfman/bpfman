@@ -86,7 +86,7 @@ impl XdpDispatcher {
         programs: &mut [Program],
         old_dispatcher: Option<Dispatcher>,
         image_manager: &mut ImageManager,
-        config: &RegistryConfig
+        config: &RegistryConfig,
     ) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;

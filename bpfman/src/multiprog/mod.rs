@@ -56,7 +56,13 @@ impl Dispatcher {
                     XdpDispatcher::new(root_db, xdp_mode, if_index, if_name.to_string(), revision)?;
 
                 if let Err(res) = x
-                    .load(root_db, programs, old_dispatcher, image_manager, registry_config)
+                    .load(
+                        root_db,
+                        programs,
+                        old_dispatcher,
+                        image_manager,
+                        registry_config,
+                    )
                     .await
                 {
                     let _ = x.delete(root_db, true);
@@ -74,7 +80,13 @@ impl Dispatcher {
                 )?;
 
                 if let Err(res) = t
-                    .load(root_db, programs, old_dispatcher, image_manager, registry_config)
+                    .load(
+                        root_db,
+                        programs,
+                        old_dispatcher,
+                        image_manager,
+                        registry_config,
+                    )
                     .await
                 {
                     let _ = t.delete(root_db, true);
