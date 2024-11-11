@@ -64,7 +64,8 @@ const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
 pub(crate) mod directories {
     // When release is made, the dispatcher images should be changed to the
     // release tag, for example "v0.5.4". After release is made, the tag should
-    // be changed back to the "latest" release tag.
+    // be changed back to the "latest" release tag. Note also that these values should
+    // be read through the public interfaces provided by config::Config's RegistryConfig
     pub(crate) const XDP_DISPATCHER_IMAGE: &str = "quay.io/bpfman/xdp-dispatcher:latest";
     pub(crate) const TC_DISPATCHER_IMAGE: &str = "quay.io/bpfman/tc-dispatcher:latest";
 
@@ -1078,6 +1079,7 @@ async fn add_multi_attach_program(
     Dispatcher::new(
         root_db,
         if_config,
+        config.registry(),
         &mut programs,
         next_revision,
         old_dispatcher,
@@ -1501,6 +1503,7 @@ async fn remove_multi_attach_program(
     Dispatcher::new(
         root_db,
         if_config,
+        config.registry(),
         &mut programs,
         next_revision,
         old_dispatcher,

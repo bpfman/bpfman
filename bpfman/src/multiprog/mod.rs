@@ -10,7 +10,7 @@ pub use tc::TcDispatcher;
 pub use xdp::XdpDispatcher;
 
 use crate::{
-    config::{InterfaceConfig, XdpMode},
+    config::{InterfaceConfig, RegistryConfig, XdpMode},
     errors::BpfmanError,
     oci_utils::image_manager::ImageManager,
     types::{Direction, Program, ProgramType},
@@ -29,7 +29,8 @@ pub(crate) enum Dispatcher {
 impl Dispatcher {
     pub async fn new(
         root_db: &Db,
-        config: Option<&InterfaceConfig>,
+        if_config: Option<&InterfaceConfig>,
+        registry_config: &RegistryConfig,
         programs: &mut [Program],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
@@ -44,7 +45,7 @@ impl Dispatcher {
             .ok_or_else(|| BpfmanError::Error("missing ifindex".to_string()))?;
         let if_name = p.if_name()?;
         let direction = p.direction()?;
-        let xdp_mode = if let Some(c) = config {
+        let xdp_mode = if let Some(c) = if_config {
             c.xdp_mode()
         } else {
             &XdpMode::Drv
@@ -55,7 +56,13 @@ impl Dispatcher {
                     XdpDispatcher::new(root_db, xdp_mode, if_index, if_name.to_string(), revision)?;
 
                 if let Err(res) = x
-                    .load(root_db, programs, old_dispatcher, image_manager)
+                    .load(
+                        root_db,
+                        programs,
+                        old_dispatcher,
+                        image_manager,
+                        registry_config,
+                    )
                     .await
                 {
                     let _ = x.delete(root_db, true);
@@ -73,7 +80,13 @@ impl Dispatcher {
                 )?;
 
                 if let Err(res) = t
-                    .load(root_db, programs, old_dispatcher, image_manager)
+                    .load(
+                        root_db,
+                        programs,
+                        old_dispatcher,
+                        image_manager,
+                        registry_config,
+                    )
                     .await
                 {
                     let _ = t.delete(root_db, true);

@@ -17,15 +17,17 @@ use netlink_packet_route::tc::TcAttribute;
 use sled::Db;
 
 use crate::{
-    calc_map_pin_path, create_map_pin_path,
+    calc_map_pin_path,
+    config::RegistryConfig,
+    create_map_pin_path,
     directories::*,
     dispatcher_config::TcDispatcherConfig,
     errors::BpfmanError,
     multiprog::{Dispatcher, TC_DISPATCHER_PREFIX},
     oci_utils::image_manager::ImageManager,
     types::{
-        BytecodeImage, Direction,
-        Direction::{Egress, Ingress},
+        BytecodeImage,
+        Direction::{self, Egress, Ingress},
         ImagePullPolicy, Program, TcProgram,
     },
     utils::{
@@ -96,6 +98,7 @@ impl TcDispatcher {
         programs: &mut [Program],
         old_dispatcher: Option<Dispatcher>,
         image_manager: &mut ImageManager,
+        config: &RegistryConfig,
     ) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
@@ -114,15 +117,15 @@ impl TcDispatcher {
             chain_call_actions[v.get_current_position()?.unwrap()] = v.get_proceed_on()?.mask()
         }
 
-        let config = TcDispatcherConfig {
+        let tc_config = TcDispatcherConfig {
             num_progs_enabled: extensions.len() as u8,
             chain_call_actions,
             run_prios: [DEFAULT_PRIORITY; 10],
         };
 
-        debug!("tc dispatcher config: {:?}", config);
+        debug!("tc dispatcher config: {:?}", tc_config);
         let image = BytecodeImage::new(
-            TC_DISPATCHER_IMAGE.to_string(),
+            config.tc_dispatcher_image.to_string(),
             ImagePullPolicy::IfNotPresent as i32,
             None,
             None,
@@ -149,7 +152,7 @@ impl TcDispatcher {
         let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
 
         let mut loader = EbpfLoader::new()
-            .set_global("CONFIG", &config, true)
+            .set_global("CONFIG", &tc_config, true)
             .load(&program_bytes)
             .map_err(|e| BpfmanError::DispatcherLoadError(format!("{e}")))?;
 
