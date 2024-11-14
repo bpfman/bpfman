@@ -1086,6 +1086,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#config-section-registry" class="md-nav__link">
+    <span class="md-ellipsis">
+      Config Section: [registry]
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1744,6 +1753,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#config-section-registry" class="md-nav__link">
+    <span class="md-ellipsis">
+      Config Section: [registry]
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1829,6 +1847,17 @@ The number of retries and the time between retries is configurable.</p>
 <ul>
 <li><strong>max_retries</strong>: The number of times to retry opening the database on a given request.</li>
 <li><strong>millisec_delay</strong>: Time in milliseconds to wait between retry attempts.</li>
+</ul>
+<h3 id="config-section-registry">Config Section: [registry]</h3>
+<p><code>bpfman</code> uses the latest public container images for the xdp and tc dispatchers by default. 
+Optionally, the configuration values for these images are user-configurable. For example, it may
+be desirable in certain enterprise environments to source the xdp and tc dispatcher images from 
+a self-hosted OCI image registry. 
+In this case, the default values for the xdp and tc dispatcher images can be overridden below. </p>
+<p>Valid fields:</p>
+<ul>
+<li><strong>xdp_dispatcher_image</strong>: The locator of the xdp dispatcher image in the format <code>quay.io/bpfman/xdp-dispatcher:latest</code></li>
+<li><strong>tc_dispatcher_image</strong>: The locator of the tc dispatcher image in the format <code>quay.io/bpfman/tc-dispatcher:latest</code></li>
 </ul>
 
 
