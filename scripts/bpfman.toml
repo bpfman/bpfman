@@ -11,5 +11,5 @@ max_retries = 10
 millisec_delay = 1000
 
 [registry]
-xdp_dispatcher_image = "quay.io/bpfman/xdp-dispatcher:latest"
 tc_dispatcher_image = "quay.io/bpfman/tc-dispatcher:latest"
+xdp_dispatcher_image = "quay.io/bpfman/xdp-dispatcher:latest"
