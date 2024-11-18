@@ -448,7 +448,7 @@ jobs:
           name: coverage-rust
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # @v4
+        uses: codecov/codecov-action@5c47607acb93fed5485fdbf7232e8a31425f672a # @v4
         with:
           files: ./lcov.info
           verbose: true
@@ -481,7 +481,7 @@ jobs:
           merge-multiple: true
 
       - name: release
-        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # @v2
+        uses: softprops/action-gh-release@01570a1f39cb168c169c802c3bceb9e93fb10974 # @v2
         with:
           body_path: ./changelogs/CHANGELOG-${{ env.RELEASE_VERSION }}.md
           prerelease: ${{ env.PRE_RELEASE }}
