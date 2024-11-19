@@ -309,6 +309,27 @@ spec:
         - name: kind
           value: task
         resolver: bundles
+    - name: rpms-signature-scan
+      when:
+        - input: $(params.skip-checks)
+          operator: in
+          values: ["false"]
+      runAfter:
+        - build-image-index
+      taskRef:
+        params:
+          - name: name
+            value: rpms-signature-scan
+          - name: bundle
+            value: quay.io/konflux-ci/tekton-catalog/task-rpms-signature-scan:0.2@sha256:0c9667fba291af05997397a32e5e938ccaa46e93a2e14bad228e64a6427c5545
+          - name: kind
+            value: task
+        resolver: bundles
+      params:
+        - name: image-url
+          value: $(tasks.build-image-index.results.IMAGE_URL)
+        - name: image-digest
+          value: $(tasks.build-image-index.results.IMAGE_DIGEST)
     - name: push-dockerfile
       params:
       - name: IMAGE
