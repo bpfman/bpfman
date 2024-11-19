@@ -27,7 +27,7 @@ LABEL name="bpfman/bpfman" \
       description="Bpfman operates as an eBPF programs manager, focusing on simplifying the deployment and administration of eBPF programs." \
       io.k8s.description="Bpfman operates as an eBPF programs manager, focusing on simplifying the deployment and administration of eBPF programs." \
       io.openshift.tags="bpfman" \
-      version="0.5.1" \
+      version="0.5.4" \
       vendor="Red Hat, Inc."
 
 ENTRYPOINT ["./bpfman-rpc", "--timeout=0"]
