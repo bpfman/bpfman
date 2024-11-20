@@ -13,7 +13,7 @@ use crate::{
     config::{InterfaceConfig, RegistryConfig, XdpMode},
     errors::BpfmanError,
     oci_utils::image_manager::ImageManager,
-    types::{Direction, Program, ProgramType},
+    types::{Direction, Link},
     utils::bytes_to_string,
 };
 
@@ -31,72 +31,67 @@ impl Dispatcher {
         root_db: &Db,
         if_config: Option<&InterfaceConfig>,
         registry_config: &RegistryConfig,
-        programs: &mut [Program],
+        links: &mut [Link],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
         image_manager: &mut ImageManager,
     ) -> Result<Dispatcher, BpfmanError> {
         debug!("Dispatcher::new()");
-        let p = programs
+        let l = links
             .first()
             .ok_or_else(|| BpfmanError::Error("No programs to load".to_string()))?;
-        let if_index = p
-            .if_index()?
+        let if_index = l
+            .ifindex()?
             .ok_or_else(|| BpfmanError::Error("missing ifindex".to_string()))?;
-        let if_name = p.if_name()?;
-        let direction = p.direction()?;
+        let if_name = l.if_name()?;
+        let direction = l.direction()?;
         let xdp_mode = if let Some(c) = if_config {
             c.xdp_mode()
         } else {
             &XdpMode::Drv
         };
-
-        let d = match p.kind() {
-            ProgramType::Xdp => {
+        let d = match l {
+            Link::Xdp(xdp_link) => {
                 let mut x = XdpDispatcher::new(
                     root_db,
                     xdp_mode,
                     if_index,
                     if_name.to_string(),
-                    p.nsid()?,
+                    xdp_link.get_nsid()?,
                     revision,
                 )?;
 
-                if let Err(res) = x.load(
+                x.load(
                     root_db,
-                    programs,
+                    links,
                     old_dispatcher,
                     image_manager,
                     registry_config,
-                    p.netns()?,
-                ) {
-                    let _ = x.delete(root_db, true);
-                    return Err(res);
-                }
+                    xdp_link.get_netns()?,
+                )?;
+
                 Dispatcher::Xdp(x)
             }
-            ProgramType::Tc => {
+            Link::Tc(tc_link) => {
                 let mut t = TcDispatcher::new(
                     root_db,
                     direction.expect("missing direction"),
                     if_index,
                     if_name.to_string(),
-                    p.nsid()?,
-                    p.netns()?,
+                    tc_link.get_nsid()?,
+                    tc_link.get_netns()?,
                     revision,
                 )?;
 
-                if let Err(res) = t.load(
+                t.load(
                     root_db,
-                    programs,
+                    links,
                     old_dispatcher,
                     image_manager,
                     registry_config,
-                    p.netns()?,
-                ) {
-                    let _ = t.delete(root_db, true);
-                    return Err(res);
-                }
+                    tc_link.get_netns()?,
+                )?;
+
                 Dispatcher::Tc(t)
             }
             _ => return Err(BpfmanError::DispatcherNotRequired),
