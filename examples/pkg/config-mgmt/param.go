@@ -64,6 +64,7 @@ type ParameterData struct {
 	Direction  int
 	CrdFlag    bool
 	ProgId     uint
+	LinkId     uint
 	MapOwnerId int
 	// The bytecodesource type has to be encapsulated in a complete BytecodeLocation
 	// because isBytecodeLocation_Location is not Public

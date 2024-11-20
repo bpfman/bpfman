@@ -7,7 +7,7 @@ use std::{
     str::FromStr,
 };
 
-use bpfman::types::ProgramType;
+use bpfman::types::BpfProgType;
 use clap::{ArgGroup, Args, Parser, Subcommand};
 use hex::FromHex;
 
@@ -29,13 +29,17 @@ pub(crate) enum Commands {
     Load(LoadSubcommand),
     /// Unload an eBPF program using the Program Id.
     Unload(UnloadArgs),
+    /// Attach an eBPF program to a hook point using the Program Id.
+    Attach(AttachArgs),
+    /// Detach an eBPF program from a hook point using the Link Id.
+    Detach(DetachArgs),
     /// List all eBPF programs loaded via bpfman.
     List(ListArgs),
     /// Get an eBPF program using the Program Id.
     Get(GetArgs),
     /// eBPF Bytecode Image related commands.
     #[command(subcommand)]
-    Image(ImageSubCommand),
+    Image(Box<ImageSubCommand>),
 }
 
 #[derive(Subcommand, Debug)]
@@ -54,9 +58,10 @@ pub(crate) struct LoadFileArgs {
     #[clap(short, long, verbatim_doc_comment)]
     pub(crate) path: String,
 
-    /// Required: The name of the function that is the entry point for the BPF program.
-    #[clap(short, long)]
-    pub(crate) name: String,
+    /// Required: The program type and function name that is the entry point
+    /// for the eBPF program(s). Should be in the format <TYPE>:<NAME>.
+    #[clap(long, verbatim_doc_comment, num_args(1..), value_parser=parse_program_type)]
+    pub(crate) programs: Vec<(String, String)>,
 
     /// Optional: Global variables to be set when program is loaded.
     /// Format: <NAME>=<Hex Value>
@@ -82,9 +87,6 @@ pub(crate) struct LoadFileArgs {
     /// Example: --map-owner-id 63178
     #[clap(long, verbatim_doc_comment)]
     pub(crate) map_owner_id: Option<u32>,
-
-    #[clap(subcommand)]
-    pub(crate) command: LoadCommands,
 }
 
 #[derive(Args, Debug)]
@@ -93,9 +95,10 @@ pub(crate) struct LoadImageArgs {
     #[command(flatten)]
     pub(crate) pull_args: PullBytecodeArgs,
 
-    /// Required: The name of the function that is the entry point for the eBPF program.
-    #[clap(short, long, verbatim_doc_comment)]
-    pub(crate) name: String,
+    /// Required: The program type and function name that is the entry point
+    /// for the eBPF program(s). Should be in the format <TYPE>:<NAME>.
+    #[clap(long, verbatim_doc_comment, num_args(1..), value_parser=parse_program_type)]
+    pub(crate) programs: Vec<(String, String)>,
 
     /// Optional: Global variables to be set when program is loaded.
     /// Format: <NAME>=<Hex Value>
@@ -121,9 +124,6 @@ pub(crate) struct LoadImageArgs {
     /// Example: --map-owner-id 63178
     #[clap(long, verbatim_doc_comment)]
     pub(crate) map_owner_id: Option<u32>,
-
-    #[clap(subcommand)]
-    pub(crate) command: LoadCommands,
 }
 
 #[derive(Clone, Debug)]
@@ -134,7 +134,7 @@ pub(crate) struct GlobalArg {
 
 #[derive(Subcommand, Debug)]
 #[command(disable_version_flag = true)]
-pub(crate) enum LoadCommands {
+pub(crate) enum AttachCommands {
     #[command(disable_version_flag = true)]
     /// Install an eBPF program on the XDP hook point for a given interface.
     Xdp {
@@ -159,6 +159,16 @@ pub(crate) enum LoadCommands {
         /// Optional: The name of the target network namespace.
         #[clap(short, long)]
         netns: Option<PathBuf>,
+
+        /// Optional: Specify Key/Value metadata to be attached to a link when it
+        /// is loaded by bpfman.
+        /// Format: <KEY>=<VALUE>
+        ///
+        /// This can later be used to list a certain subset of links which contain
+        /// the specified metadata.
+        /// Example: --metadata owner=acme
+        #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+        metadata: Option<Vec<(String, String)>>,
     },
     #[command(disable_version_flag = true)]
     /// Install an eBPF program on the TC hook point for a given interface.
@@ -191,6 +201,16 @@ pub(crate) enum LoadCommands {
         /// Optional: The name of the target network namespace.
         #[clap(short, long)]
         netns: Option<PathBuf>,
+
+        /// Optional: Specify Key/Value metadata to be attached to a link when it
+        /// is loaded by bpfman.
+        /// Format: <KEY>=<VALUE>
+        ///
+        /// This can later be used to list a certain subset of links which contain
+        /// the specified metadata.
+        /// Example: --metadata owner=acme
+        #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+        metadata: Option<Vec<(String, String)>>,
     },
     #[command(disable_version_flag = true)]
     /// Install an eBPF program on the TCX hook point for a given interface and
@@ -215,6 +235,16 @@ pub(crate) enum LoadCommands {
         /// Optional: The name of the target network namespace.
         #[clap(short, long)]
         netns: Option<PathBuf>,
+
+        /// Optional: Specify Key/Value metadata to be attached to a link when it
+        /// is loaded by bpfman.
+        /// Format: <KEY>=<VALUE>
+        ///
+        /// This can later be used to list a certain subset of links which contain
+        /// the specified metadata.
+        /// Example: --metadata owner=acme
+        #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+        metadata: Option<Vec<(String, String)>>,
     },
     #[command(disable_version_flag = true)]
     /// Install an eBPF program on a Tracepoint.
@@ -223,6 +253,16 @@ pub(crate) enum LoadCommands {
         /// Example: --tracepoint "sched/sched_switch"
         #[clap(short, long, verbatim_doc_comment)]
         tracepoint: String,
+
+        /// Optional: Specify Key/Value metadata to be attached to a link when it
+        /// is loaded by bpfman.
+        /// Format: <KEY>=<VALUE>
+        ///
+        /// This can later be used to list a certain subset of links which contain
+        /// the specified metadata.
+        /// Example: --metadata owner=acme
+        #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+        metadata: Option<Vec<(String, String)>>,
     },
     #[command(disable_version_flag = true)]
     /// Install a kprobe or kretprobe eBPF probe
@@ -246,6 +286,16 @@ pub(crate) enum LoadCommands {
         /// (NOT CURRENTLY SUPPORTED)
         #[clap(short, long)]
         container_pid: Option<i32>,
+
+        /// Optional: Specify Key/Value metadata to be attached to a link when it
+        /// is loaded by bpfman.
+        /// Format: <KEY>=<VALUE>
+        ///
+        /// This can later be used to list a certain subset of links which contain
+        /// the specified metadata.
+        /// Example: --metadata owner=acme
+        #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+        metadata: Option<Vec<(String, String)>>,
     },
     #[command(disable_version_flag = true)]
     /// Install a uprobe or uretprobe eBPF probe
@@ -281,20 +331,42 @@ pub(crate) enum LoadCommands {
         /// (NOT CURRENTLY SUPPORTED)
         #[clap(short, long)]
         container_pid: Option<i32>,
+
+        /// Optional: Specify Key/Value metadata to be attached to a link when it
+        /// is loaded by bpfman.
+        /// Format: <KEY>=<VALUE>
+        ///
+        /// This can later be used to list a certain subset of links which contain
+        /// the specified metadata.
+        /// Example: --metadata owner=acme
+        #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+        metadata: Option<Vec<(String, String)>>,
     },
     #[command(disable_version_flag = true)]
     /// Install a fentry eBPF probe
     Fentry {
-        /// Required: Kernel function to attach the fentry probe.
-        #[clap(short, long)]
-        fn_name: String,
+        /// Optional: Specify Key/Value metadata to be attached to a link when it
+        /// is loaded by bpfman.
+        /// Format: <KEY>=<VALUE>
+        ///
+        /// This can later be used to list a certain subset of links which contain
+        /// the specified metadata.
+        /// Example: --metadata owner=acme
+        #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+        metadata: Option<Vec<(String, String)>>,
     },
     #[command(disable_version_flag = true)]
     /// Install a fexit eBPF probe
     Fexit {
-        /// Required: Kernel function to attach the fexit probe.
-        #[clap(short, long)]
-        fn_name: String,
+        /// Optional: Specify Key/Value metadata to be attached to a link when it
+        /// is loaded by bpfman.
+        /// Format: <KEY>=<VALUE>
+        ///
+        /// This can later be used to list a certain subset of links which contain
+        /// the specified metadata.
+        /// Example: --metadata owner=acme
+        #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+        metadata: Option<Vec<(String, String)>>,
     },
 }
 
@@ -303,6 +375,23 @@ pub(crate) enum LoadCommands {
 pub(crate) struct UnloadArgs {
     /// Required: Program Id to be unloaded.
     pub(crate) program_id: u32,
+}
+
+#[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) struct AttachArgs {
+    /// Required: Program Id to be attached.
+    pub(crate) program_id: u32,
+
+    #[clap(subcommand)]
+    pub(crate) command: AttachCommands,
+}
+
+#[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) struct DetachArgs {
+    /// Required: Link Id to be detached.
+    pub(crate) link_id: u32,
 }
 
 #[derive(Args, Debug)]
@@ -320,7 +409,7 @@ pub(crate) struct ListArgs {
     ///                   raw-tracepoint-writable, cgroup-sockopt, tracing,
     ///                   struct-ops, ext, lsm, sk-lookup, syscall]
     #[clap(short, long, verbatim_doc_comment, hide_possible_values = true)]
-    pub(crate) program_type: Option<ProgramType>,
+    pub(crate) program_type: Option<BpfProgType>,
 
     /// Optional: List programs which contain a specific set of metadata labels
     /// that were applied when the program was loaded with `--metadata` parameter.
@@ -658,4 +747,13 @@ pub(crate) fn parse_global_arg(global_arg: &str) -> Result<GlobalArg, std::io::E
         name: name_str.to_string(),
         value,
     })
+}
+
+pub(crate) fn parse_program_type(program_type: &str) -> Result<(String, String), std::io::Error> {
+    let mut parts = program_type.split(':');
+
+    let type_str = parts.next().ok_or(std::io::ErrorKind::InvalidInput)?;
+    let name_str = parts.next().ok_or(std::io::ErrorKind::InvalidInput)?;
+
+    Ok((type_str.to_string(), name_str.to_string()))
 }

@@ -145,6 +145,7 @@ fn execute_bpfman(args: Vec<&str>) -> Result<String> {
             // Search the return buffer for a panic and if bpfman paniced, stop the tests.
             let output = e.as_output().unwrap();
             let my_stderr = String::from_utf8(output.stderr.clone()).unwrap();
+            println!("bpfman stderr: {}", my_stderr);
             assert!(!my_stderr.contains("panic"));
 
             Err(e.into())
@@ -169,24 +170,24 @@ pub fn add_xdp(
 ) -> (Result<String>, Result<String>) {
     let owner_id: String;
 
-    let mut args = vec!["load"];
+    let mut load_args = vec!["load"];
     match load_type {
         LoadType::Image => {
-            args.push("image");
+            load_args.push("image");
         }
         LoadType::File => {
-            args.push("file");
+            load_args.push("file");
         }
     }
 
     if let Some(g) = globals {
-        args.push("--global");
-        args.extend(g);
+        load_args.push("--global");
+        load_args.extend(g);
     }
 
     if let Some(g) = metadata {
-        args.push("--metadata");
-        args.extend(g);
+        load_args.push("--metadata");
+        load_args.extend(g);
     }
 
     if let Some(owner) = map_owner_id {
@@ -195,36 +196,18 @@ pub fn add_xdp(
         } else {
             owner_id = owner.to_string();
         }
-        args.extend(["--map-owner-id", owner_id.as_str()]);
+        load_args.extend(["--map-owner-id", owner_id.as_str()]);
     }
 
-    args.extend(["--name", name]);
+    let prog = format!("xdp:{}", name);
+    load_args.extend(["--programs", prog.as_str()]);
 
     match load_type {
-        LoadType::Image => args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
-        LoadType::File => args.extend(["--path", file_path]),
+        LoadType::Image => load_args.extend(["--image-url", image_url, "--pull-policy", "Always"]),
+        LoadType::File => load_args.extend(["--path", file_path]),
     }
 
-    args.extend(["xdp", "--iface", iface]);
-
-    let p: String = if priority == INVALID_INTEGER {
-        "invalid_int".to_string()
-    } else {
-        priority.to_string()
-    };
-    args.extend(["--priority", p.as_str()]);
-
-    if let Some(p_o) = proceed_on {
-        args.push("--proceed-on");
-        args.extend(p_o);
-    }
-
-    if let Some(n) = netns {
-        args.push("--netns");
-        args.push(n);
-    }
-
-    match execute_bpfman(args) {
+    let (prog_id, _) = match execute_bpfman(load_args) {
         Ok(stdout) => {
             let prog_id = bpfman_output_parse_id(&stdout);
             assert!(!prog_id.is_empty());
@@ -232,9 +215,44 @@ pub fn add_xdp(
                 "Successfully added xdp program: {:?} from: {:?}",
                 prog_id, load_type
             );
+            (prog_id, stdout)
+        }
+        Err(e) => return (Err(e), Err(anyhow!("bpfman error"))),
+    };
+
+    let mut attach_args = vec!["attach", prog_id.trim()];
+
+    attach_args.extend(["xdp", "--iface", iface]);
+
+    let p: String = if priority == INVALID_INTEGER {
+        "invalid_int".to_string()
+    } else {
+        priority.to_string()
+    };
+    attach_args.extend(["--priority", p.as_str()]);
+
+    if let Some(p_o) = proceed_on {
+        attach_args.push("--proceed-on");
+        attach_args.extend(p_o);
+    }
+
+    if let Some(n) = netns {
+        attach_args.push("--netns");
+        attach_args.push(n);
+    }
+
+    match execute_bpfman(attach_args) {
+        Ok(stdout) => {
+            /*
+            let attach_id = bpfman_output_parse_id(&stdout);
+            debug!(
+                "Successfully attached xdp program: {:?} from: {:?}",
+                attach_id, load_type
+            );
+            */
             (Ok(prog_id), Ok(stdout))
         }
-        Err(e) => (Err(e), Err(anyhow!("bpfman error"))),
+        Err(e) => (Err(e), Err(anyhow!("bpfman attach error"))),
     }
 }
 
@@ -1021,6 +1039,7 @@ pub fn read_trace_pipe_log() -> Result<String> {
 pub fn verify_and_delete_programs(loaded_ids: Vec<String>) {
     // Verify bpfman list contains the loaded_ids of each program
     let l = bpfman_list(None, None).unwrap();
+    debug!("bpfman list: {:?}", l);
     for id in loaded_ids.iter() {
         assert!(l.contains(id.trim()));
     }
