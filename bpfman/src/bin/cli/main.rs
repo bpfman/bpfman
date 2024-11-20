@@ -3,14 +3,18 @@
 
 use anyhow::anyhow;
 use args::Commands;
+use attach::execute_attach;
 use clap::Parser;
+use detach::execute_detach;
 use get::execute_get;
 use list::execute_list;
 use log::debug;
 use unload::execute_unload;
 
 mod args;
+mod attach;
 mod completions;
+mod detach;
 mod get;
 mod image;
 mod list;
@@ -33,6 +37,8 @@ impl Commands {
         match self {
             Commands::Load(l) => l.execute(),
             Commands::Unload(args) => execute_unload(args),
+            Commands::Attach(args) => execute_attach(args),
+            Commands::Detach(args) => execute_detach(args),
             Commands::List(args) => execute_list(args),
             Commands::Get(args) => execute_get(args).map_err(|e| anyhow!("get error: {e}")),
             Commands::Image(i) => i.execute(),

@@ -20,7 +20,7 @@ use nix::{
     sched::{setns, CloneFlags},
     sys::resource::{setrlimit, Resource},
 };
-use sled::{IVec, Tree};
+use sled::Tree;
 
 use crate::{
     config::Config,
@@ -127,6 +127,10 @@ pub(crate) fn bytes_to_string(bytes: &[u8]) -> String {
     String::from_utf8(bytes.to_vec()).expect("failed to convert &[u8] to string")
 }
 
+pub(crate) fn bool_to_bytes(b: bool) -> Vec<u8> {
+    i8::to_ne_bytes(b as i8).to_vec()
+}
+
 pub(crate) fn bytes_to_bool(bytes: Vec<u8>) -> bool {
     i8::from_ne_bytes(
         bytes
@@ -203,6 +207,7 @@ pub(crate) fn sled_insert(db_tree: &Tree, key: &str, value: &[u8]) -> Result<(),
     })
 }
 
+/*
 pub(crate) fn id_from_tree_name(name: &IVec) -> Result<u32, BpfmanError> {
     let id = bytes_to_string(name)
         .split('_')
@@ -213,6 +218,7 @@ pub(crate) fn id_from_tree_name(name: &IVec) -> Result<u32, BpfmanError> {
 
     Ok(id)
 }
+*/
 
 // Helper function to get the error message from stderr
 pub(crate) fn get_error_msg_from_stderr(stderr: &[u8]) -> String {
@@ -285,7 +291,6 @@ pub(crate) fn initialize_bpfman() -> anyhow::Result<()> {
     // Create directories associated with bpfman
     create_dir_all(RTDIR).context("unable to create runtime directory")?;
     create_dir_all(RTDIR_FS).context("unable to create mountpoint")?;
-    create_dir_all(RTDIR_PROGRAMS).context("unable to create programs directory")?;
 
     if !is_bpffs_mounted()? {
         create_bpffs(RTDIR_FS)?;
@@ -295,7 +300,10 @@ pub(crate) fn initialize_bpfman() -> anyhow::Result<()> {
         .context("unable to create tc ingress dispatcher directory")?;
     create_dir_all(RTDIR_FS_TC_EGRESS)
         .context("unable to create tc egress dispatcher directory")?;
+    create_dir_all(RTDIR_FS_DISPATCHER_TEST)
+        .context("unable to create dispatcher test directory")?;
     create_dir_all(RTDIR_FS_MAPS).context("unable to create maps directory")?;
+    create_dir_all(RTDIR_FS_LINKS).context("unable to create links directory")?;
     create_dir_all(RTDIR_TUF).context("unable to create TUF directory")?;
 
     create_dir_all(STDIR).context("unable to create state directory")?;

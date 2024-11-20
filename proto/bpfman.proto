@@ -5,6 +5,8 @@ option go_package = "github.com/bpfman/clients/gobpfman/v1;v1";
 service Bpfman {
     rpc Load (LoadRequest) returns (LoadResponse);
     rpc Unload (UnloadRequest) returns (UnloadResponse);
+    rpc Attach (AttachRequest) returns (AttachResponse);
+    rpc Detach(DetachRequest) returns (DetachResponse);
     rpc List (ListRequest) returns (ListResponse);
     rpc PullBytecode (PullBytecodeRequest) returns (PullBytecodeResponse);
     rpc Get (GetRequest) returns ( GetResponse );
@@ -62,7 +64,7 @@ message ProgramInfo {
     /* Name entered by user */
     string name = 1;
     BytecodeLocation bytecode = 2;
-    AttachInfo attach = 3;
+    repeated uint32 links = 3;
     map<string, bytes> global_data = 4;
     optional uint32 map_owner_id = 5;
     string map_pin_path = 6;
@@ -80,6 +82,7 @@ message XDPAttachInfo {
     int32 position = 3;
     repeated int32 proceed_on = 4;
     optional string netns = 5;
+    map<string, string> metadata = 6;
 }
 
 /* TCAttachInfo represents the program specific metadata which bpfman needs to 
@@ -93,6 +96,7 @@ message TCAttachInfo {
     string direction = 4;
     repeated int32 proceed_on = 5;
     optional string netns = 6;
+    map<string, string> metadata = 7;
 }
 
 /* TCXAttachInfo contains the information bpfman needs to attach a TCX program
@@ -107,6 +111,7 @@ message TCXAttachInfo {
     int32 position = 3;
     string direction = 4;
     optional string netns = 5;
+    map<string, string> metadata = 6;
 }
 
 /* TracepointAttachInfo represents the program specific metadata which bpfman
@@ -116,6 +121,7 @@ message TCXAttachInfo {
  
  message TracepointAttachInfo {
     string tracepoint = 1;
+    map<string, string> metadata = 2;
 }
 
 /* KprobeAttachInfo represents the program specific metadata which bpfman
@@ -127,6 +133,7 @@ message KprobeAttachInfo {
     uint64 offset = 2;
     bool retprobe = 3;
     optional int32 container_pid = 4;
+    map<string, string> metadata = 5;
 }
 
 /* UprobeAttachInfo represents the program specific metadata which bpfman
@@ -140,22 +147,23 @@ message UprobeAttachInfo {
     bool retprobe = 4;
     optional int32 pid = 5;
     optional int32 container_pid = 6;
+    map<string, string> metadata = 7;
 }
 
 /* FentryAttachInfo represents the program specific metadata which bpfman
- * needs to attach and observe a Fentry program for a given kernel probe.
+ * needs to attach and observe a fentry program for a given function.
  */
 
 message FentryAttachInfo {
-    string fn_name = 1;
+    map<string, string> metadata = 1;
 }
 
 /* FexitAttachInfo represents the program specific metadata which bpfman
- * needs to attach and observe a Fexit program for a given kernel probe.
+ * needs to attach and observe a fexit program for a given function.
  */
 
 message FexitAttachInfo {
-    string fn_name = 1;
+    map<string, string> metadata = 1;
 }
 
 /* Program specific parameters, mostly concerning where and how to attach
@@ -164,49 +172,111 @@ message FexitAttachInfo {
  
 message AttachInfo { 
     oneof info { 
-        XDPAttachInfo xdp_attach_info = 2;
-        TCAttachInfo tc_attach_info = 3;
-        TracepointAttachInfo tracepoint_attach_info = 4;
-        KprobeAttachInfo kprobe_attach_info = 5;
-        UprobeAttachInfo uprobe_attach_info = 6;
+        XDPAttachInfo xdp_attach_info = 1;
+        TCAttachInfo tc_attach_info = 2;
+        TracepointAttachInfo tracepoint_attach_info = 3;
+        KprobeAttachInfo kprobe_attach_info = 4;
+        UprobeAttachInfo uprobe_attach_info = 5;
+        TCXAttachInfo tcx_attach_info = 6;
         FentryAttachInfo fentry_attach_info = 7;
         FexitAttachInfo fexit_attach_info = 8;
-        TCXAttachInfo tcx_attach_info = 9;
     }
 };
 
 /* LoadRequest represents a request to load and attach a bpf program. */
-
 message LoadRequest {
     BytecodeLocation bytecode = 1;
-    string name = 2;
-    uint32 program_type = 3;
-    AttachInfo attach = 4;
     map<string,string> metadata = 5;
     map<string, bytes> global_data = 6;
     optional string uuid = 7;
     optional uint32 map_owner_id = 8;
+    repeated LoadInfo info = 9;
 };
+
+enum BpfmanProgramType {
+    XDP = 0;
+    TC = 1;
+    TRACEPOINT = 2;
+    KPROBE = 3;
+    UPROBE = 4;
+    FENTRY = 5;
+    FEXIT = 6;
+    TCX = 7;
+}
+
+/* LoadInfo contains per-program information for LoadRequest. */
+message LoadInfo {
+    string name = 1;
+    BpfmanProgramType program_type = 2;
+    optional ProgSpecificInfo info = 3;
+}
+
+/* FentryLoadInfo contains the program-specific load information for LoadInfo. */
+message FentryLoadInfo {
+    string fn_name = 1;
+}
+
+/* FexitLoadInfo contains the program-specific load information for LoadInfo. */
+message FexitLoadInfo {
+    string fn_name = 1;
+}
+
+/* ProgSpecificInfo contains the program-specific load information for LoadInfo. */
+message ProgSpecificInfo {
+    oneof info {
+        FentryLoadInfo fentry_load_info = 1;
+        FexitLoadInfo fexit_load_info = 2;
+    }
+}
+
+/* LoadResponseInfo represents the state for a single eBPF program that is maintained
+ * internally by bpfman. */
+message LoadResponseInfo {
+    ProgramInfo info = 1;
+    KernelProgramInfo kernel_info = 2;
+}
 
 /* LoadResponse represents a response from loading and attaching an eBPF program. 
  * It includes all of the state kept by bpfman and the Linux kernel for the
  * program.
  */
- 
  message LoadResponse {
-    ProgramInfo info  = 1;
-    KernelProgramInfo kernel_info = 2;
+    repeated LoadResponseInfo programs = 1;
 }
 
 /* UnloadRequest represents a request to unload an eBPF program that was loaded
  * and attached by bpfman. To identify a program pass in a valid kernel ID.
  */
-
 message UnloadRequest {
     uint32 id = 1;
 }
 
+/* UnloadResponse represents a response from unloading an eBPF program. */
 message UnloadResponse {}
+
+/* AttachRequest represents a request to attach an eBPF program that was loaded
+ * by bpfman. To identify a program pass in a valid kernel ID.
+ */
+message AttachRequest {
+    uint32 id = 1;
+    AttachInfo attach = 2;
+}
+
+/* AttachResponse represents a response from attaching an eBPF program. */
+message AttachResponse {
+    uint32 link_id = 1;
+}
+
+/* DetachRequest represents a request to detach an eBPF program that was loaded
+ * and attached by bpfman. To identify a program pass in a valid kernel ID.
+ */
+message DetachRequest {
+    uint32 link_id = 1;
+}
+
+
+/* DetachResponse represents a response from detaching an eBPF program. */
+message DetachResponse {};
 
 /* ListRequest represents a request to get information regarding eBPF programs
  * that are loaded and attached by bpfman AND/OR programs that are loaded by other

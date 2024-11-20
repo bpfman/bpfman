@@ -4,7 +4,7 @@ use bpfman::{
     directories::RTDIR_FS_MAPS,
     list_programs, pull_bytecode, remove_program, setup,
     types::{
-        BytecodeImage, Direction, ImagePullPolicy, ListFilter, Location, TcProceedOn, XdpProceedOn,
+        AttachInfo, BytecodeImage, ImagePullPolicy, ListFilter, Location, TcProceedOn, XdpProceedOn,
     },
 };
 use rand::Rng;
@@ -21,7 +21,6 @@ fn test_load_unload_xdp() {
     let (config, root_db) = setup().unwrap();
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    //let bpfman_guard = start_bpfman().unwrap();
 
     assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
@@ -63,10 +62,13 @@ fn test_load_unload_xdp() {
             globals.clone(),
             HashMap::new(),
             None,
-            rng.gen_range(1..255),
-            DEFAULT_BPFMAN_IFACE.to_string(),
-            proceed_on.clone(),
-            None,
+            AttachInfo::Xdp {
+                iface: DEFAULT_BPFMAN_IFACE.to_string(),
+                priority: rng.gen_range(1..255),
+                proceed_on: proceed_on.clone(),
+                netns: None,
+                metadata: HashMap::new(),
+            },
         );
         progs.push(prog);
     }
@@ -102,10 +104,13 @@ fn test_map_sharing_load_unload_xdp() {
         HashMap::new(),
         HashMap::new(),
         None,
-        50,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        XdpProceedOn::default(),
-        None,
+        AttachInfo::Xdp {
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 50,
+            proceed_on: XdpProceedOn::default(),
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
 
     // Verify "Map Used By:" field is set to only the just loaded program.
@@ -139,10 +144,13 @@ fn test_map_sharing_load_unload_xdp() {
         HashMap::new(),
         HashMap::new(),
         Some(prog_1_id),
-        50,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        XdpProceedOn::default(),
-        None,
+        AttachInfo::Xdp {
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 50,
+            proceed_on: XdpProceedOn::default(),
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
 
     // Verify the "Map Used By:" field is set to both loaded program.
@@ -242,11 +250,14 @@ fn test_load_unload_tc() {
             globals.clone(),
             HashMap::new(),
             None,
-            rng.gen_range(1..255),
-            DEFAULT_BPFMAN_IFACE.to_string(),
-            proceed_on.clone(),
-            Direction::Ingress,
-            None,
+            AttachInfo::Tc {
+                iface: DEFAULT_BPFMAN_IFACE.to_string(),
+                priority: rng.gen_range(1..255),
+                direction: "ingress".to_string(),
+                proceed_on: proceed_on.clone(),
+                netns: None,
+                metadata: HashMap::new(),
+            },
         );
         progs.push(prog);
     }
@@ -298,7 +309,10 @@ fn test_load_unload_tracepoint() {
             globals.clone(),
             HashMap::new(),
             None,
-            TRACEPOINT_TRACEPOINT_NAME.to_string(),
+            AttachInfo::Tracepoint {
+                tracepoint: TRACEPOINT_TRACEPOINT_NAME.to_string(),
+                metadata: HashMap::new(),
+            },
         );
         progs.push(prog);
     }
@@ -336,12 +350,15 @@ fn test_load_unload_uprobe() {
             globals.clone(),
             HashMap::new(),
             None,
-            Some(UPROBE_FUNCTION_NAME.to_string()),
-            0,
-            UPROBE_TARGET.to_string(),
-            false,
-            None,
-            None,
+            AttachInfo::Uprobe {
+                fn_name: Some(UPROBE_FUNCTION_NAME.to_string()),
+                offset: 0,
+                target: UPROBE_TARGET.to_string(),
+                metadata: HashMap::new(),
+                retprobe: false,
+                container_pid: None,
+                pid: None,
+            },
         );
         progs.push(prog);
     }
@@ -384,12 +401,15 @@ fn test_load_unload_uretprobe() {
             globals.clone(),
             HashMap::new(),
             None,
-            Some(URETPROBE_FUNCTION_NAME.to_string()),
-            0,
-            URETPROBE_TARGET.to_string(),
-            true,
-            None,
-            None,
+            AttachInfo::Uprobe {
+                fn_name: Some(URETPROBE_FUNCTION_NAME.to_string()),
+                offset: 0,
+                target: URETPROBE_TARGET.to_string(),
+                metadata: HashMap::new(),
+                retprobe: true,
+                container_pid: None,
+                pid: None,
+            },
         );
         progs.push(prog);
     }
@@ -427,10 +447,13 @@ fn test_load_unload_kprobe() {
             globals.clone(),
             HashMap::new(),
             None,
-            KPROBE_KERNEL_FUNCTION_NAME.to_string(),
-            0,
-            false,
-            None,
+            AttachInfo::Kprobe {
+                fn_name: KPROBE_KERNEL_FUNCTION_NAME.to_string(),
+                offset: 0,
+                metadata: HashMap::new(),
+                retprobe: false,
+                container_pid: None,
+            },
         );
         progs.push(prog);
     }
@@ -468,10 +491,13 @@ fn test_load_unload_kretprobe() {
             globals.clone(),
             HashMap::new(),
             None,
-            KRETPROBE_KERNEL_FUNCTION_NAME.to_string(),
-            0,
-            true,
-            None,
+            AttachInfo::Kprobe {
+                fn_name: KRETPROBE_KERNEL_FUNCTION_NAME.to_string(),
+                offset: 0,
+                metadata: HashMap::new(),
+                retprobe: true,
+                container_pid: None,
+            },
         );
         progs.push(prog);
     }
@@ -544,10 +570,13 @@ fn test_list_with_metadata() {
             globals.clone(),
             HashMap::new(),
             None,
-            rng.gen_range(1..255),
-            DEFAULT_BPFMAN_IFACE.to_string(),
-            proceed_on.clone(),
-            None,
+            AttachInfo::Xdp {
+                iface: DEFAULT_BPFMAN_IFACE.to_string(),
+                priority: rng.gen_range(1..255),
+                proceed_on: proceed_on.clone(),
+                netns: None,
+                metadata: HashMap::new(),
+            },
         );
         progs.push(prog);
     }
@@ -564,10 +593,13 @@ fn test_list_with_metadata() {
         globals.clone(),
         HashMap::from([(meta_key.clone(), meta_val.clone())]),
         None,
-        rng.gen_range(1..255),
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        proceed_on.clone(),
-        None,
+        AttachInfo::Xdp {
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: rng.gen_range(1..255),
+            proceed_on: proceed_on.clone(),
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
     let id = prog.get_data().get_id().unwrap();
     progs.push(prog);
@@ -613,11 +645,14 @@ fn test_load_unload_fentry() {
             &config,
             &root_db,
             FENTRY_NAME.to_string(),
+            FENTRY_FEXIT_KERNEL_FUNCTION_NAME.to_string(),
             loc,
             HashMap::new(),
             HashMap::new(),
             None,
-            FENTRY_FEXIT_KERNEL_FUNCTION_NAME.to_string(),
+            AttachInfo::Fentry {
+                metadata: HashMap::new(),
+            },
         );
         progs.push(prog);
     }
@@ -646,11 +681,14 @@ fn test_load_unload_fexit() {
             &config,
             &root_db,
             FEXIT_NAME.to_string(),
+            FENTRY_FEXIT_KERNEL_FUNCTION_NAME.to_string(),
             loc,
             HashMap::new(),
             HashMap::new(),
             None,
-            FENTRY_FEXIT_KERNEL_FUNCTION_NAME.to_string(),
+            AttachInfo::Fexit {
+                metadata: HashMap::new(),
+            },
         );
         progs.push(prog);
     }
@@ -690,10 +728,13 @@ fn test_load_unload_cosign_disabled() {
             globals.clone(),
             HashMap::new(),
             None,
-            KPROBE_KERNEL_FUNCTION_NAME.to_string(),
-            0,
-            false,
-            None,
+            AttachInfo::Kprobe {
+                fn_name: KPROBE_KERNEL_FUNCTION_NAME.to_string(),
+                offset: 0,
+                metadata: HashMap::new(),
+                retprobe: false,
+                container_pid: None,
+            },
         );
         progs.push(prog);
     }

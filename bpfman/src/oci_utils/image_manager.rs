@@ -492,7 +492,7 @@ mod tests {
     #[test]
     fn image_pull_and_bytecode_verify_legacy() {
         let root_db =
-            init_database(get_db_config()).expect("Unable to open root database for unit test");
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
         let mut mgr = ImageManager::new(
             SigningConfig::default().verify_enabled,
             SigningConfig::default().allow_unsigned,
@@ -500,7 +500,7 @@ mod tests {
         .unwrap();
         let (image_content_key, _) = mgr
             .get_image(
-                &root_db,
+                root_db,
                 "quay.io/bpfman-bytecode/go-xdp-counter-legacy-labels:latest",
                 ImagePullPolicy::Always,
                 None,
@@ -509,7 +509,7 @@ mod tests {
             .expect("failed to pull bytecode");
 
         let program_bytes = mgr
-            .get_bytecode_from_image_store(&root_db, image_content_key)
+            .get_bytecode_from_image_store(root_db, image_content_key)
             .expect("failed to get bytecode from image store");
 
         assert!(!program_bytes.is_empty())
@@ -518,7 +518,7 @@ mod tests {
     #[test]
     fn image_pull_and_bytecode_verify() {
         let root_db =
-            init_database(get_db_config()).expect("Unable to open root database for unit test");
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
         let mut mgr = ImageManager::new(
             SigningConfig::default().verify_enabled,
             SigningConfig::default().allow_unsigned,
@@ -526,7 +526,7 @@ mod tests {
         .unwrap();
         let (image_content_key, _) = mgr
             .get_image(
-                &root_db,
+                root_db,
                 "quay.io/bpfman-bytecode/go-xdp-counter:latest",
                 ImagePullPolicy::Always,
                 None,
@@ -535,7 +535,7 @@ mod tests {
             .expect("failed to pull bytecode");
 
         let program_bytes = mgr
-            .get_bytecode_from_image_store(&root_db, image_content_key)
+            .get_bytecode_from_image_store(root_db, image_content_key)
             .expect("failed to get bytecode from image store");
 
         assert!(!program_bytes.is_empty())
@@ -549,10 +549,10 @@ mod tests {
         )
         .unwrap();
         let root_db =
-            init_database(get_db_config()).expect("Unable to open root database for unit test");
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
 
         let result = mgr.get_image(
-            &root_db,
+            root_db,
             "quay.io/bpfman-bytecode/xdp_pass:latest",
             ImagePullPolicy::Never,
             None,
@@ -571,10 +571,10 @@ mod tests {
         )
         .unwrap();
         let root_db =
-            init_database(get_db_config()).expect("Unable to open root database for unit test");
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
 
         mgr.get_image(
-            &root_db,
+            root_db,
             "quay.io/bpfman-bytecode/xdp_pass_private:latest",
             ImagePullPolicy::Always,
             None,
@@ -591,11 +591,11 @@ mod tests {
         )
         .unwrap();
         let root_db =
-            init_database(get_db_config()).expect("Unable to open root database for unit test");
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
 
         let (image_content_key, _) = mgr
             .get_image(
-                &root_db,
+                root_db,
                 "quay.io/bpfman-bytecode/xdp_pass_private:latest",
                 ImagePullPolicy::Always,
                 Some("bpfman-bytecode+bpfmancreds".to_owned()),
@@ -604,7 +604,7 @@ mod tests {
             .expect("failed to pull bytecode");
 
         let program_bytes = mgr
-            .get_bytecode_from_image_store(&root_db, image_content_key)
+            .get_bytecode_from_image_store(root_db, image_content_key)
             .expect("failed to get bytecode from image store");
 
         assert!(!program_bytes.is_empty())
@@ -618,10 +618,10 @@ mod tests {
         )
         .unwrap();
         let root_db =
-            init_database(get_db_config()).expect("Unable to open root database for unit test");
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
 
         let result = mgr.get_image(
-            &root_db,
+            root_db,
             "quay.io/bpfman-bytecode/xdp_pass:latest",
             ImagePullPolicy::Never,
             None,
