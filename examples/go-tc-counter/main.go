@@ -69,73 +69,84 @@ func main() {
 	} else {
 		ctx := context.Background()
 
-		// Set up a connection to the server.
+		// connect to the BPFMAN server
 		conn, err := configMgmt.CreateConnection(ctx)
 		if err != nil {
 			log.Printf("failed to create client connection: %v", err)
 			return
 		}
+
 		c := gobpfman.NewBpfmanClient(conn)
 
 		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcProgId {
-			var loadRequest *gobpfman.LoadRequest
+			loadRequest := &gobpfman.LoadRequest{
+				Bytecode: paramData.BytecodeSource,
+				Info: []*gobpfman.LoadInfo{
+					{
+						Name:        "stats",
+						ProgramType: gobpfman.BpfmanProgramType_TC,
+					},
+				},
+			}
 			if paramData.MapOwnerId != 0 {
 				mapOwnerId := uint32(paramData.MapOwnerId)
-				loadRequest = &gobpfman.LoadRequest{
-					Bytecode:    paramData.BytecodeSource,
-					Name:        "stats",
-					ProgramType: *bpfmanHelpers.Tc.Uint32(),
-					Attach: &gobpfman.AttachInfo{
-						Info: &gobpfman.AttachInfo_TcAttachInfo{
-							TcAttachInfo: &gobpfman.TCAttachInfo{
-								Priority:  int32(paramData.Priority),
-								Iface:     paramData.Iface,
-								Direction: direction.String(),
-							},
-						},
-					},
-					MapOwnerId: &mapOwnerId,
-				}
-			} else {
-				loadRequest = &gobpfman.LoadRequest{
-					Bytecode:    paramData.BytecodeSource,
-					Name:        "stats",
-					ProgramType: *bpfmanHelpers.Xdp.Uint32(),
-					Attach: &gobpfman.AttachInfo{
-						Info: &gobpfman.AttachInfo_TcAttachInfo{
-							TcAttachInfo: &gobpfman.TCAttachInfo{
-								Priority:  int32(paramData.Priority),
-								Iface:     paramData.Iface,
-								Direction: direction.String(),
-							},
-						},
-					},
-				}
+				loadRequest.MapOwnerId = &mapOwnerId
 			}
 
 			// 1. Load Program using bpfman
-			var res *gobpfman.LoadResponse
-			res, err = c.Load(ctx, loadRequest)
+			// 1. Load Program using bpfman
+			var loadRes *gobpfman.LoadResponse
+			loadRes, err = c.Load(ctx, loadRequest)
 			if err != nil {
 				conn.Close()
 				log.Print(err)
 				return
 			}
 
-			kernelInfo := res.GetKernelInfo()
+			if len(loadRes.Programs) != 1 {
+				log.Printf("Expected 1 program, got %d\n", len(loadRes.Programs))
+				return
+			}
+
+			prog := loadRes.Programs[0]
+
+			kernelInfo := prog.GetKernelInfo()
 			if kernelInfo != nil {
 				paramData.ProgId = uint(kernelInfo.GetId())
 			} else {
-				conn.Close()
 				log.Printf("kernelInfo not returned in LoadResponse")
 				return
 			}
 			log.Printf("Program registered with id %d\n", paramData.ProgId)
 
-			// 2. Set up defer to unload program when this is closed
+			// 2. Attach the program
+			attachRequest := &gobpfman.AttachRequest{
+				Id: uint32(paramData.ProgId),
+				Attach: &gobpfman.AttachInfo{
+					Info: &gobpfman.AttachInfo_TcAttachInfo{
+						TcAttachInfo: &gobpfman.TCAttachInfo{
+							Priority:  int32(paramData.Priority),
+							Iface:     paramData.Iface,
+							Direction: direction.String(),
+						},
+					},
+				},
+			}
+
+			var attachRes *gobpfman.AttachResponse
+			attachRes, err = c.Attach(ctx, attachRequest)
+			if err != nil {
+				log.Print(err)
+				return
+			}
+
+			paramData.LinkId = uint(attachRes.LinkId)
+			log.Printf("Program attached with link id %d\n", paramData.LinkId)
+
+			// 3. Set up defer to unload program when this is closed
 			defer func(id uint) {
-				log.Printf("Unloading Program: %d\n", id)
+				log.Printf("Closing Connection for Program: %d\n", id)
 				_, err = c.Unload(ctx, &gobpfman.UnloadRequest{Id: uint32(id)})
 				if err != nil {
 					conn.Close()
@@ -145,8 +156,8 @@ func main() {
 				conn.Close()
 			}(paramData.ProgId)
 
-			// 3. Get access to our map
-			mapPath, err = configMgmt.CalcMapPinPath(res.GetInfo(), "tc_stats_map")
+			// 4. Get access to our map
+			mapPath, err = configMgmt.CalcMapPinPath(prog.GetInfo(), "tc_stats_map")
 			if err != nil {
 				log.Print(err)
 				return

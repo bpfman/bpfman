@@ -11,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	bpfmanHelpers "github.com/bpfman/bpfman-operator/pkg/helpers"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	configMgmt "github.com/bpfman/bpfman/examples/pkg/config-mgmt"
 	"github.com/cilium/ebpf"
@@ -36,49 +35,40 @@ func processTracepoint(cancelCtx context.Context, paramData *configMgmt.Paramete
 		// 3. Get access to our map
 		mapPath = fmt.Sprintf("%s/%s", ApplicationMapsMountPoint, TPBpfProgramMapIndex)
 	} else { // if not on k8s, find the map path from the system
+		// Set up a connection to the server.
 		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcProgId {
-			var loadRequest *gobpfman.LoadRequest
+			loadRequest := &gobpfman.LoadRequest{
+				Bytecode: paramData.BytecodeSource,
+				Info: []*gobpfman.LoadInfo{
+					{
+						Name:        "tracepoint_kill_recorder",
+						ProgramType: gobpfman.BpfmanProgramType_TRACEPOINT,
+					},
+				},
+			}
 			if paramData.MapOwnerId != 0 {
 				mapOwnerId := uint32(paramData.MapOwnerId)
-				loadRequest = &gobpfman.LoadRequest{
-					Bytecode:    paramData.BytecodeSource,
-					Name:        "tracepoint_kill_recorder",
-					ProgramType: *bpfmanHelpers.Tracepoint.Uint32(),
-					Attach: &gobpfman.AttachInfo{
-						Info: &gobpfman.AttachInfo_TracepointAttachInfo{
-							TracepointAttachInfo: &gobpfman.TracepointAttachInfo{
-								Tracepoint: "syscalls/sys_enter_kill",
-							},
-						},
-					},
-					MapOwnerId: &mapOwnerId,
-				}
-			} else {
-				loadRequest = &gobpfman.LoadRequest{
-					Bytecode:    paramData.BytecodeSource,
-					Name:        "tracepoint_kill_recorder",
-					ProgramType: *bpfmanHelpers.Tracepoint.Uint32(),
-					Attach: &gobpfman.AttachInfo{
-						Info: &gobpfman.AttachInfo_TracepointAttachInfo{
-							TracepointAttachInfo: &gobpfman.TracepointAttachInfo{
-								Tracepoint: "syscalls/sys_enter_kill",
-							},
-						},
-					},
-				}
+				loadRequest.MapOwnerId = &mapOwnerId
 			}
 
 			// 1. Load Program using bpfman
-			var res *gobpfman.LoadResponse
+			var loadRes *gobpfman.LoadResponse
 			var err error
-			res, err = loadBpfProgram(loadRequest)
+			loadRes, err = loadBpfProgram(loadRequest)
 			if err != nil {
 				log.Print(err)
 				return
 			}
 
-			kernelInfo := res.GetKernelInfo()
+			if len(loadRes.Programs) != 1 {
+				log.Printf("Expected 1 program, got %d\n", len(loadRes.Programs))
+				return
+			}
+
+			prog := loadRes.Programs[0]
+
+			kernelInfo := prog.GetKernelInfo()
 			if kernelInfo != nil {
 				paramData.ProgId = uint(kernelInfo.GetId())
 			} else {
@@ -87,7 +77,28 @@ func processTracepoint(cancelCtx context.Context, paramData *configMgmt.Paramete
 			}
 			log.Printf("Program registered with id %d\n", paramData.ProgId)
 
-			// 2. Set up defer to unload program when this is closed
+			// 2. Attach the program
+			attachRequest := &gobpfman.AttachRequest{
+				Id: uint32(paramData.ProgId),
+				Attach: &gobpfman.AttachInfo{
+					Info: &gobpfman.AttachInfo_TracepointAttachInfo{
+						TracepointAttachInfo: &gobpfman.TracepointAttachInfo{
+							Tracepoint: "syscalls/sys_enter_kill",
+						},
+					},
+				},
+			}
+
+			var attachRes *gobpfman.AttachResponse
+			attachRes, err = attachBpfProgram(attachRequest)
+			if err != nil {
+				log.Print(err)
+				return
+			}
+
+			paramData.LinkId = uint(attachRes.LinkId)
+
+			// 3. Set up defer to unload program when this is closed
 			defer func(id uint) {
 				log.Printf("unloading program: %d\n", id)
 				_, err = unloadBpfProgram(id)
@@ -97,8 +108,8 @@ func processTracepoint(cancelCtx context.Context, paramData *configMgmt.Paramete
 				}
 			}(paramData.ProgId)
 
-			// 3. Get access to our map
-			mapPath, err = configMgmt.CalcMapPinPath(res.GetInfo(), "tracepoint_stats_map")
+			// 4. Get access to our map
+			mapPath, err = configMgmt.CalcMapPinPath(prog.GetInfo(), "tracepoint_stats_map")
 			if err != nil {
 				log.Print(err)
 				return

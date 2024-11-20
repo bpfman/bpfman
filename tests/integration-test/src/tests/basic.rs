@@ -24,7 +24,6 @@ fn test_bpfmanhelptext() {
 fn test_load_unload_xdp() {
     let _namespace_guard = create_namespace().unwrap();
     let _ping_guard = start_ping().unwrap();
-    //let bpfman_guard = start_bpfman().unwrap();
 
     assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
 
