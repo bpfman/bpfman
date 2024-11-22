@@ -8,12 +8,13 @@ use serde::{Deserialize, Serialize};
 
 use crate::{errors::ParseError, TC_DISPATCHER_IMAGE, XDP_DISPATCHER_IMAGE};
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Default, Deserialize, Clone)]
 pub(crate) struct Config {
     interfaces: Option<HashMap<String, InterfaceConfig>>,
     #[serde(default)]
-    signing: Option<SigningConfig>,
-    database: Option<DatabaseConfig>,
+    signing: SigningConfig,
+    #[serde(default)]
+    database: DatabaseConfig,
     #[serde(default)]
     registry: RegistryConfig,
 }
@@ -23,19 +24,11 @@ impl Config {
         &self.interfaces
     }
 
-    pub(crate) fn set_signing(&mut self, signing: SigningConfig) {
-        self.signing = Some(signing);
-    }
-
-    pub(crate) fn signing(&self) -> &Option<SigningConfig> {
+    pub(crate) fn signing(&self) -> &SigningConfig {
         &self.signing
     }
 
-    pub(crate) fn set_database(&mut self, database: DatabaseConfig) {
-        self.database = Some(database);
-    }
-
-    pub(crate) fn database(&self) -> &Option<DatabaseConfig> {
+    pub(crate) fn database(&self) -> &DatabaseConfig {
         &self.database
     }
 
@@ -44,18 +37,8 @@ impl Config {
     }
 }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            interfaces: None,
-            signing: Some(SigningConfig::default()),
-            database: Some(DatabaseConfig::default()),
-            registry: RegistryConfig::default(),
-        }
-    }
-}
-
 #[derive(Debug, Deserialize, Clone)]
+#[serde(default)]
 pub struct SigningConfig {
     pub allow_unsigned: bool, // Allow unsigned programs
     pub verify_enabled: bool, // Enable verification of signed programs
@@ -73,6 +56,7 @@ impl Default for SigningConfig {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+#[serde(default)]
 pub struct DatabaseConfig {
     pub max_retries: u32,
     pub millisec_delay: u64,
