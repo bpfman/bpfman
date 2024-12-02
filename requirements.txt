@@ -1,4 +1,4 @@
-Babel==2.13.1
+Babel==2.16.0
 beautifulsoup4==4.12.3
 certifi==2023.11.17
 charset-normalizer==3.3.2
