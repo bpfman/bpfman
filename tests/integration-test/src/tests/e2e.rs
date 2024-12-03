@@ -62,6 +62,7 @@ fn test_proceed_on_xdp() {
         XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -92,6 +93,7 @@ fn test_proceed_on_xdp() {
         XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -123,6 +125,7 @@ fn test_proceed_on_xdp() {
         XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -173,6 +176,7 @@ fn test_unload_xdp() {
         XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -190,6 +194,7 @@ fn test_unload_xdp() {
         XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -207,6 +212,7 @@ fn test_unload_xdp() {
         XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
 
     // Don't save this id because we're going to unload it explicitly below.
@@ -271,6 +277,7 @@ fn test_proceed_on_tc() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -285,6 +292,7 @@ fn test_proceed_on_tc() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -315,6 +323,7 @@ fn test_proceed_on_tc() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -329,6 +338,7 @@ fn test_proceed_on_tc() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -362,6 +372,7 @@ fn test_proceed_on_tc() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -376,6 +387,7 @@ fn test_proceed_on_tc() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -450,6 +462,7 @@ fn test_unload_tc() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -464,6 +477,7 @@ fn test_unload_tc() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -480,6 +494,7 @@ fn test_unload_tc() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -494,6 +509,7 @@ fn test_unload_tc() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     loaded_ids.push(prog_id.unwrap());
 
@@ -510,6 +526,7 @@ fn test_unload_tc() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
 
     debug!("Installing 3rd tc egress program");
@@ -523,6 +540,7 @@ fn test_unload_tc() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
 
     // Don't save the 3rd prog ids because we will unload them explicitly below.
@@ -596,6 +614,7 @@ fn test_program_execution_with_global_variables() {
         XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
 
     loaded_ids.push(prog_id.unwrap());
@@ -613,6 +632,7 @@ fn test_program_execution_with_global_variables() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
 
     loaded_ids.push(prog_id.unwrap());
@@ -630,6 +650,7 @@ fn test_program_execution_with_global_variables() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
 
     loaded_ids.push(prog_id.unwrap());
@@ -751,6 +772,7 @@ fn test_load_unload_xdp_maps() {
         XDP_COUNTER_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     let binding = stdout.unwrap();
 
@@ -786,6 +808,7 @@ fn test_load_unload_tc_maps() {
         &TC_COUNTER_IMAGE_LOC,
         "",
         TC_COUNTER_NAME,
+        None, // netns
     );
     let binding = stdout.unwrap();
 
@@ -894,6 +917,7 @@ fn test_tcx() {
         &TCX_TEST_IMAGE_LOC,
         TCX_TEST_FILE_LOC,
         TCX_TEST_PASS_NAME,
+        None, // netns
     );
     let prog_id_1 = prog_id_1.unwrap();
     loaded_ids.push(prog_id_1.clone());
@@ -908,6 +932,7 @@ fn test_tcx() {
         &TCX_TEST_IMAGE_LOC,
         TCX_TEST_FILE_LOC,
         TCX_TEST_PASS_NAME,
+        None, // netns
     );
     let prog_id_2 = prog_id_2.unwrap();
     loaded_ids.push(prog_id_2.clone());
@@ -939,6 +964,7 @@ fn test_tcx() {
         &TCX_TEST_IMAGE_LOC,
         TCX_TEST_FILE_LOC,
         TCX_TEST_NEXT_NAME,
+        None, // netns
     );
     let prog_id_3 = prog_id_3.unwrap();
     loaded_ids.push(prog_id_3.clone());
@@ -953,6 +979,7 @@ fn test_tcx() {
         &TCX_TEST_IMAGE_LOC,
         TCX_TEST_FILE_LOC,
         TCX_TEST_NEXT_NAME,
+        None, // netns
     );
     let prog_id_4 = prog_id_4.unwrap();
     loaded_ids.push(prog_id_4.clone());
@@ -990,6 +1017,7 @@ fn test_tcx() {
         &TCX_TEST_IMAGE_LOC,
         TCX_TEST_FILE_LOC,
         TCX_TEST_DROP_NAME,
+        None, // netns
     );
     loaded_ids.push(prog_id_5.unwrap());
 
@@ -1003,6 +1031,7 @@ fn test_tcx() {
         &TCX_TEST_IMAGE_LOC,
         TCX_TEST_FILE_LOC,
         TCX_TEST_DROP_NAME,
+        None, // netns
     );
     loaded_ids.push(prog_id_6.unwrap());
 
@@ -1039,6 +1068,7 @@ fn test_tcx() {
         &TCX_TEST_IMAGE_LOC,
         TCX_TEST_FILE_LOC,
         TCX_TEST_PASS_NAME,
+        None, // netns
     );
     loaded_ids.push(prog_id_7.unwrap());
 
@@ -1052,6 +1082,7 @@ fn test_tcx() {
         &TCX_TEST_IMAGE_LOC,
         TCX_TEST_FILE_LOC,
         TCX_TEST_PASS_NAME,
+        None, // netns
     );
     loaded_ids.push(prog_id_8.unwrap());
 
@@ -1075,6 +1106,128 @@ fn test_tcx() {
     assert!(trace_pipe_log.contains(TCX_GLOBAL_7_LOG));
     assert!(trace_pipe_log.contains(TCX_GLOBAL_8_LOG));
     debug!("Successfully completed all 4 tcx_test test cases");
+
+    verify_and_delete_programs(loaded_ids);
+}
+
+#[integration_test]
+fn test_netns() {
+    let kernel_version = Version::current().unwrap();
+    let do_tcx = if kernel_version >= Version::new(6, 6, 0) {
+        true
+    } else {
+        debug!("The kernel version is: {:?}", kernel_version);
+        debug!("Skipping tcx test.  Kernel must be at least 6.6 to support tcx.");
+        false
+    };
+
+    let _namespace_guard = create_namespace().unwrap();
+    let _ping_guard = start_ping().unwrap();
+    let _trace_guard = start_trace_pipe().unwrap();
+
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
+
+    let mut loaded_ids = vec![];
+
+    debug!("Installing xdp program");
+    let (prog_id, _) = add_xdp(
+        NS_VETH,
+        75, // priority
+        Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        None, // proceed_on
+        &LoadType::Image,
+        &XDP_PASS_IMAGE_LOC,
+        XDP_PASS_FILE_LOC,
+        XDP_PASS_NAME,
+        None,          // metadata
+        None,          // map_owner_id
+        Some(NS_PATH), // netns
+    );
+    loaded_ids.push(prog_id.unwrap());
+
+    debug!("Installing tc ingress program");
+    let (prog_id, _) = add_tc(
+        "ingress",
+        NS_VETH,
+        75,
+        Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        None,
+        &LoadType::Image,
+        &TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
+        Some(NS_PATH), // netns
+    );
+    loaded_ids.push(prog_id.unwrap());
+
+    debug!("Installing tc egress program");
+    let (prog_id, _) = add_tc(
+        "egress",
+        NS_VETH,
+        75,
+        Some([GLOBAL_4, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        None,
+        &LoadType::Image,
+        &TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
+        Some(NS_PATH), // netns
+    );
+    loaded_ids.push(prog_id.unwrap());
+
+    if do_tcx {
+        // Install a tcx pass program in each direction at priority 1000, which is
+        // the lowest priority.  We should see logs from both programs.
+        debug!("Installing tcx ingress program");
+        let (prog_id, _) = add_tcx(
+            "ingress",
+            NS_VETH,
+            1000,
+            Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+            &LoadType::Image,
+            &TCX_TEST_IMAGE_LOC,
+            TCX_TEST_FILE_LOC,
+            TCX_TEST_PASS_NAME,
+            Some(NS_PATH), // netns
+        );
+        loaded_ids.push(prog_id.unwrap());
+
+        debug!("Installing tcx egress program");
+        let (prog_id, _) = add_tcx(
+            "egress",
+            NS_VETH,
+            1000,
+            Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+            &LoadType::Image,
+            &TCX_TEST_IMAGE_LOC,
+            TCX_TEST_FILE_LOC,
+            TCX_TEST_PASS_NAME,
+            Some(NS_PATH), // netns
+        );
+        loaded_ids.push(prog_id.unwrap());
+    }
+
+    debug!("wait for some traffic to generate logs...");
+    sleep(Duration::from_secs(2));
+
+    let ping_log = read_ping_log().unwrap();
+    // Make sure we've had some pings
+    assert!(ping_log.lines().count() > 2);
+
+    // Make sure the programs are running and logging
+    let trace_pipe_log = read_trace_pipe_log().unwrap();
+    assert!(!trace_pipe_log.is_empty());
+    assert!(trace_pipe_log.contains(XDP_GLOBAL_1_LOG));
+    debug!("xdp netns test program is working");
+    assert!(trace_pipe_log.contains(TC_ING_GLOBAL_1_LOG));
+    assert!(trace_pipe_log.contains(TC_EG_GLOBAL_4_LOG));
+    debug!("tc netns test programs are working");
+
+    if do_tcx {
+        assert!(trace_pipe_log.contains(TCX_GLOBAL_1_LOG));
+        assert!(trace_pipe_log.contains(TCX_GLOBAL_2_LOG));
+        debug!("tcx netns test programs are working");
+    }
 
     verify_and_delete_programs(loaded_ids);
 }

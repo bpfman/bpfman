@@ -155,6 +155,10 @@ pub(crate) enum LoadCommands {
         /// [default: pass, dispatcher_return]
         #[clap(long, verbatim_doc_comment, num_args(1..))]
         proceed_on: Vec<String>,
+
+        /// Optional: The name of the target network namespace.
+        #[clap(short, long)]
+        netns: Option<PathBuf>,
     },
     #[command(disable_version_flag = true)]
     /// Install an eBPF program on the TC hook point for a given interface.
@@ -183,6 +187,10 @@ pub(crate) enum LoadCommands {
         /// [default: ok, pipe, dispatcher_return]
         #[clap(long, verbatim_doc_comment, num_args(1..))]
         proceed_on: Vec<String>,
+
+        /// Optional: The name of the target network namespace.
+        #[clap(short, long)]
+        netns: Option<PathBuf>,
     },
     #[command(disable_version_flag = true)]
     /// Install an eBPF program on the TCX hook point for a given interface and
@@ -203,6 +211,10 @@ pub(crate) enum LoadCommands {
         /// [default: 1000]
         #[clap(short, long)]
         priority: i32,
+
+        /// Optional: The name of the target network namespace.
+        #[clap(short, long)]
+        netns: Option<PathBuf>,
     },
     #[command(disable_version_flag = true)]
     /// Install an eBPF program on a Tracepoint.

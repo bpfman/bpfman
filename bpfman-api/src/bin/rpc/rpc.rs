@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 use bpfman::{
@@ -60,6 +62,7 @@ impl Bpfman for BpfmanLoader {
                 iface,
                 position: _,
                 proceed_on,
+                netns,
             }) => Program::Xdp(
                 XdpProgram::new(
                     data,
@@ -67,6 +70,7 @@ impl Bpfman for BpfmanLoader {
                     iface,
                     XdpProceedOn::from_int32s(proceed_on)
                         .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
+                    netns.map(PathBuf::from),
                 )
                 .map_err(|e| Status::aborted(format!("failed to create xdpprogram: {e}")))?,
             ),
@@ -76,6 +80,7 @@ impl Bpfman for BpfmanLoader {
                 position: _,
                 direction,
                 proceed_on,
+                netns,
             }) => {
                 let direction = direction
                     .try_into()
@@ -88,6 +93,7 @@ impl Bpfman for BpfmanLoader {
                         TcProceedOn::from_int32s(proceed_on)
                             .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
                         direction,
+                        netns.map(PathBuf::from),
                     )
                     .map_err(|e| Status::aborted(format!("failed to create tcprogram: {e}")))?,
                 )
@@ -97,14 +103,16 @@ impl Bpfman for BpfmanLoader {
                 iface,
                 position: _,
                 direction,
+                netns,
             }) => {
                 let direction = direction
                     .try_into()
                     .map_err(|_| Status::aborted("direction is not a string"))?;
                 Program::Tcx(
-                    TcxProgram::new(data, priority, iface, direction).map_err(|e| {
-                        Status::aborted(format!("failed to create tcxprogram: {e}"))
-                    })?,
+                    TcxProgram::new(data, priority, iface, direction, netns.map(PathBuf::from))
+                        .map_err(|e| {
+                            Status::aborted(format!("failed to create tcxprogram: {e}"))
+                        })?,
                 )
             }
             Info::TracepointAttachInfo(TracepointAttachInfo { tracepoint }) => Program::Tracepoint(

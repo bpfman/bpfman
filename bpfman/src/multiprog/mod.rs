@@ -4,6 +4,8 @@
 mod tc;
 mod xdp;
 
+use std::path::PathBuf;
+
 use log::debug;
 use sled::Db;
 pub use tc::TcDispatcher;
@@ -17,8 +19,8 @@ use crate::{
     utils::bytes_to_string,
 };
 
-pub(crate) const TC_DISPATCHER_PREFIX: &str = "tc_dispatcher_";
-pub(crate) const XDP_DISPATCHER_PREFIX: &str = "xdp_dispatcher_";
+pub(crate) const TC_DISPATCHER_PREFIX: &str = "tc_dispatcher";
+pub(crate) const XDP_DISPATCHER_PREFIX: &str = "xdp_dispatcher";
 
 #[derive(Debug)]
 pub(crate) enum Dispatcher {
@@ -52,8 +54,14 @@ impl Dispatcher {
         };
         let d = match p.kind() {
             ProgramType::Xdp => {
-                let mut x =
-                    XdpDispatcher::new(root_db, xdp_mode, if_index, if_name.to_string(), revision)?;
+                let mut x = XdpDispatcher::new(
+                    root_db,
+                    xdp_mode,
+                    if_index,
+                    if_name.to_string(),
+                    p.netns()?,
+                    revision,
+                )?;
 
                 if let Err(res) = x
                     .load(
@@ -62,6 +70,7 @@ impl Dispatcher {
                         old_dispatcher,
                         image_manager,
                         registry_config,
+                        p.netns()?,
                     )
                     .await
                 {
@@ -76,6 +85,7 @@ impl Dispatcher {
                     direction.expect("missing direction"),
                     if_index,
                     if_name.to_string(),
+                    p.netns()?,
                     revision,
                 )?;
 
@@ -86,6 +96,7 @@ impl Dispatcher {
                         old_dispatcher,
                         image_manager,
                         registry_config,
+                        p.netns()?,
                     )
                     .await
                 {
@@ -146,4 +157,4 @@ pub(crate) enum DispatcherId {
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub(crate) struct DispatcherInfo(pub u32, pub Option<Direction>);
+pub(crate) struct DispatcherInfo(pub Option<PathBuf>, pub u32, pub Option<Direction>);

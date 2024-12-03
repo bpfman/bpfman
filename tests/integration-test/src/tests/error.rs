@@ -62,6 +62,7 @@ fn common_load_parameter_testing() {
             INVALID_XDP_IMAGE_LOC,
             INVALID_XDP_FILE_LOC,
             TC_PASS_NAME,
+            None, // netns
         );
         assert!(error_prog_id.is_err());
         // Make sure bpfman is still accessible after command
@@ -80,6 +81,7 @@ fn common_load_parameter_testing() {
         NONEXISTENT_XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -97,6 +99,7 @@ fn common_load_parameter_testing() {
         NONEXISTENT_XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -114,6 +117,7 @@ fn common_load_parameter_testing() {
         INVALID_XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -146,6 +150,7 @@ fn common_load_parameter_testing() {
         XDP_PASS_NAME,
         Some(vec![key]), // metadata
         None,            // map_owner_id
+        None,            // netns
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -163,6 +168,7 @@ fn common_load_parameter_testing() {
         XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -319,6 +325,7 @@ fn tc_load_parameter_testing() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -335,6 +342,7 @@ fn tc_load_parameter_testing() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -351,6 +359,7 @@ fn tc_load_parameter_testing() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -367,6 +376,7 @@ fn tc_load_parameter_testing() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -384,6 +394,7 @@ fn tc_load_parameter_testing() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -589,6 +600,7 @@ fn xdp_load_parameter_testing() {
         XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -606,6 +618,7 @@ fn xdp_load_parameter_testing() {
         XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -623,6 +636,7 @@ fn xdp_load_parameter_testing() {
         XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -641,6 +655,7 @@ fn xdp_load_parameter_testing() {
         XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     assert!(error_prog_id.is_err());
     // Make sure bpfman is still accessible after command
@@ -780,6 +795,7 @@ fn test_invalid_parameters() {
         XDP_PASS_NAME,
         None, // metadata
         None, // map_owner_id
+        None, // netns
     );
     if let Ok(id) = prog_id {
         loaded_ids.push(id);
@@ -795,6 +811,7 @@ fn test_invalid_parameters() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     if let Ok(id) = prog_id {
         loaded_ids.push(id);
@@ -810,6 +827,7 @@ fn test_invalid_parameters() {
         &TC_PASS_IMAGE_LOC,
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
+        None, // netns
     );
     if let Ok(id) = prog_id {
         loaded_ids.push(id);

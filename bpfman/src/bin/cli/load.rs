@@ -79,6 +79,7 @@ impl LoadCommands {
                 iface,
                 priority,
                 proceed_on,
+                netns,
             } => {
                 let proc_on = match XdpProceedOn::from_strings(proceed_on) {
                     Ok(p) => p,
@@ -89,6 +90,7 @@ impl LoadCommands {
                     *priority,
                     iface.to_string(),
                     XdpProceedOn::from_int32s(proc_on.as_action_vec())?,
+                    netns.clone(),
                 )?))
             }
             LoadCommands::Tc {
@@ -96,6 +98,7 @@ impl LoadCommands {
                 iface,
                 priority,
                 proceed_on,
+                netns,
             } => {
                 match direction.as_str() {
                     "ingress" | "egress" => (),
@@ -111,12 +114,14 @@ impl LoadCommands {
                     iface.to_string(),
                     proc_on,
                     direction.to_string().try_into()?,
+                    netns.clone(),
                 )?))
             }
             LoadCommands::Tcx {
                 direction,
                 iface,
                 priority,
+                netns,
             } => {
                 match direction.as_str() {
                     "ingress" | "egress" => (),
@@ -127,6 +132,7 @@ impl LoadCommands {
                     *priority,
                     iface.to_string(),
                     direction.to_string().try_into()?,
+                    netns.clone(),
                 )?))
             }
             LoadCommands::Tracepoint { tracepoint } => Ok(Program::Tracepoint(

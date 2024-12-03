@@ -2,11 +2,13 @@
 // Copyright Authors of bpfman
 
 use std::{
+    fs,
     fs::{create_dir_all, set_permissions, File, OpenOptions},
     io::{BufRead, BufReader, Read},
     option::Option,
-    os::unix::fs::{OpenOptionsExt, PermissionsExt},
-    path::Path,
+    os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
+    path::{Path, PathBuf},
+    process,
 };
 
 use anyhow::{anyhow, bail, Context, Result};
@@ -15,11 +17,18 @@ use nix::{
     libc::RLIM_INFINITY,
     mount::{mount, MsFlags},
     net::if_::if_nametoindex,
+    sched::{setns, CloneFlags},
     sys::resource::{setrlimit, Resource},
 };
 use sled::{IVec, Tree};
 
-use crate::{config::Config, directories::*, errors::BpfmanError};
+use crate::{
+    config::Config,
+    directories::*,
+    errors::BpfmanError,
+    multiprog::{TC_DISPATCHER_PREFIX, XDP_DISPATCHER_PREFIX},
+    types::Direction,
+};
 
 // The bpfman socket should always allow the same users and members of the same group
 // to Read/Write to it.
@@ -38,8 +47,17 @@ pub(crate) fn read<P: AsRef<Path>>(path: P) -> Result<Vec<u8>, BpfmanError> {
     Ok(data)
 }
 
-pub(crate) fn get_ifindex(iface: &str) -> Result<u32, BpfmanError> {
-    match if_nametoindex(iface) {
+pub(crate) fn get_ifindex(iface: &str, netns: Option<PathBuf>) -> Result<u32, BpfmanError> {
+    debug!("Getting ifindex for iface: {}", iface);
+    let ifindex_result = if let Some(netns) = netns {
+        let _netns_guard = enter_netns(netns)?;
+        if_nametoindex(iface)
+    } else {
+        if_nametoindex(iface)
+    };
+    debug!("ifindex result for iface: {} = {:?}", iface, ifindex_result);
+
+    match ifindex_result {
         Ok(index) => {
             debug!("Map {} to {}", iface, index);
             Ok(index)
@@ -292,4 +310,160 @@ pub(crate) fn initialize_bpfman() -> anyhow::Result<()> {
     set_dir_permissions(STDIR, STDIR_MODE);
 
     Ok(())
+}
+
+pub(crate) struct NetnsGuard {
+    original_ns: File,
+}
+
+impl Drop for NetnsGuard {
+    fn drop(&mut self) {
+        // Switch back to the original network namespace
+        debug!("Switching back to the original network namespace");
+        setns(&self.original_ns, CloneFlags::CLONE_NEWNET)
+            .expect("Failed to switch back to the original namespace");
+    }
+}
+
+pub(crate) fn enter_netns(netns: PathBuf) -> Result<NetnsGuard, BpfmanError> {
+    let bpfman_netns_file = File::open(format!("/proc/{}/ns/net", process::id()))
+        .map_err(|e| BpfmanError::Error(format!("Failed to open bpfman netns file: {e}")))?;
+
+    let target_netns_file = File::open(netns)
+        .map_err(|e| BpfmanError::Error(format!("Failed to open target netns file: {e}")))?;
+
+    // Switch to the target network namespace
+    debug!("Switching to the target network namespace");
+    setns(target_netns_file, CloneFlags::CLONE_NEWNET)
+        .map_err(|e| BpfmanError::Error(format!("setns error: {}", e)))?;
+
+    Ok(NetnsGuard {
+        original_ns: bpfman_netns_file,
+    })
+}
+
+fn nsid(ns_path: Option<PathBuf>) -> Result<u64, BpfmanError> {
+    let path = if let Some(p) = ns_path {
+        p
+    } else {
+        PathBuf::from("/proc/self/ns/net")
+    };
+
+    let metadata = fs::metadata(path).map_err(|e| {
+        BpfmanError::Error(format!("Failed to get metadata for namespace path: {e}"))
+    })?;
+
+    Ok(metadata.ino())
+}
+
+pub(crate) fn xdp_dispatcher_id(
+    netns: Option<PathBuf>,
+    if_index: u32,
+) -> Result<String, BpfmanError> {
+    let nsid = nsid(netns)?;
+    Ok(format!("{}_{}_{}", XDP_DISPATCHER_PREFIX, nsid, if_index))
+}
+
+pub(crate) fn xdp_dispatcher_db_tree_name(
+    netns: Option<PathBuf>,
+    if_index: u32,
+    revision: u32,
+) -> Result<String, BpfmanError> {
+    Ok(format!(
+        "{}_{}",
+        xdp_dispatcher_id(netns.clone(), if_index)?,
+        revision
+    ))
+}
+
+pub(crate) fn xdp_dispatcher_rev_path(
+    netns: Option<PathBuf>,
+    if_index: u32,
+    revision: u32,
+) -> Result<String, BpfmanError> {
+    let nsid = nsid(netns)?;
+    Ok(format!(
+        "{}/dispatcher_{}_{}_{}",
+        RTDIR_FS_XDP, nsid, if_index, revision
+    ))
+}
+
+pub(crate) fn xdp_dispatcher_link_path(
+    netns: Option<PathBuf>,
+    if_index: u32,
+) -> Result<String, BpfmanError> {
+    let nsid = nsid(netns)?;
+    Ok(format!(
+        "{}/dispatcher_{}_{}_link",
+        RTDIR_FS_XDP, nsid, if_index
+    ))
+}
+
+pub(crate) fn xdp_dispatcher_link_id_path(
+    netns: Option<PathBuf>,
+    if_index: u32,
+    revision: u32,
+    id: u32,
+) -> Result<String, BpfmanError> {
+    Ok(format!(
+        "{}/link_{}",
+        xdp_dispatcher_rev_path(netns, if_index, revision)?,
+        id
+    ))
+}
+
+pub(crate) fn tc_dispatcher_id(
+    netns: Option<PathBuf>,
+    if_index: u32,
+    direction: Direction,
+) -> Result<String, BpfmanError> {
+    let nsid = nsid(netns)?;
+    Ok(format!(
+        "{}_{}_{}_{}",
+        TC_DISPATCHER_PREFIX, nsid, if_index, direction
+    ))
+}
+
+pub(crate) fn tc_dispatcher_db_tree_name(
+    netns: Option<PathBuf>,
+    if_index: u32,
+    direction: Direction,
+    revision: u32,
+) -> Result<String, BpfmanError> {
+    Ok(format!(
+        "{}_{}",
+        tc_dispatcher_id(netns.clone(), if_index, direction)?,
+        revision
+    ))
+}
+
+pub(crate) fn tc_dispatcher_rev_path(
+    direction: Direction,
+    netns: Option<PathBuf>,
+    if_index: u32,
+    revision: u32,
+) -> Result<String, BpfmanError> {
+    let tc_base = match direction {
+        Direction::Ingress => RTDIR_FS_TC_INGRESS,
+        Direction::Egress => RTDIR_FS_TC_EGRESS,
+    };
+    let nsid = nsid(netns)?;
+    Ok(format!(
+        "{}/dispatcher_{}_{}_{}",
+        tc_base, nsid, if_index, revision
+    ))
+}
+
+pub(crate) fn tc_dispatcher_link_id_path(
+    direction: Direction,
+    netns: Option<PathBuf>,
+    if_index: u32,
+    revision: u32,
+    id: u32,
+) -> Result<String, BpfmanError> {
+    Ok(format!(
+        "{}/link_{}",
+        tc_dispatcher_rev_path(direction, netns, if_index, revision)?,
+        id
+    ))
 }
