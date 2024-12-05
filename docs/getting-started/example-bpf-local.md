@@ -20,7 +20,7 @@ Following the diagram (Purple numbers):
 
 1. When `go-xdp-counter` userspace is started, it will send a gRPC request over unix
    socket to `bpfman-rpc` requesting `bpfman` to load the `go-xdp-counter` eBPF bytecode located
-   on disk at `bpfman/examples/go-xdp-counter/bpf_bpfel.o` at a priority of 50 and on interface `eno3`.
+   on disk at `bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o` at a priority of 50 and on interface `eno3`.
    These values are configurable as we will see later, but for now we will use the defaults
    (except interface, which is required to be entered).
 2. `bpfman` will load it's `dispatcher` eBPF program, which links to the `go-xdp-counter` eBPF program
@@ -53,7 +53,7 @@ interface as shown below:
 cd bpfman/examples/go-xdp-counter/
 
 go run -exec sudo . --iface eno3
-2023/07/17 17:43:58 Using Input: Interface=eno3 Priority=50 Source=/home/$USER/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o
+2023/07/17 17:43:58 Using Input: Interface=eno3 Priority=50 Source=/home/$USER/src/bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o
 2023/07/17 17:43:58 Program registered with id 6211
 2023/07/17 17:44:01 4 packets received
 2023/07/17 17:44:01 580 bytes received

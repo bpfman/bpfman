@@ -1251,7 +1251,7 @@ pub struct DisableCosignGuard<'a> {
     path: &'a str,
 }
 
-impl<'a> Drop for DisableCosignGuard<'a> {
+impl Drop for DisableCosignGuard<'_> {
     fn drop(&mut self) {
         if Path::new(self.path).exists() {
             fs::remove_file(self.path).expect("Failed to delete file");

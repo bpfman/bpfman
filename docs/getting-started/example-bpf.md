@@ -1,31 +1,34 @@
 # Example eBPF Programs
 
 Example applications that use the `bpfman-go` bindings can be found in the
-[examples/](https://github.com/bpfman/bpfman/tree/main/examples/) directory.
+[bpfman/examples/](https://github.com/bpfman/bpfman/tree/main/examples/) directory.
 Current examples include:
 
-* [examples/go-kprobe-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-kprobe-counter)
-* [examples/go-tc-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-tc-counter)
-* [examples/go-tracepoint-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter)
-* [examples/go-uprobe-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-uprobe-counter)
-* [examples/go-uretprobe-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-uretprobe-counter)
-* [examples/go-target/](https://github.com/bpfman/bpfman/tree/main/examples/go-target)
-* [examples/go-xdp-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-xdp-counter)
-* [examples/go-app-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-app-counter)
+* [bpfman/examples/go-app-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-app-counter)
+* [bpfman/examples/go-kprobe-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-kprobe-counter)
+* [bpfman/examples/go-target/](https://github.com/bpfman/bpfman/tree/main/examples/go-target)
+* [bpfman/examples/go-tc-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-tc-counter)
+* [bpfman/examples/go-tcx-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-tcx-counter)
+* [bpfman/examples/go-tracepoint-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter)
+* [bpfman/examples/go-uprobe-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-uprobe-counter)
+* [bpfman/examples/go-uretprobe-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-uretprobe-counter)
+* [bpfman/examples/go-xdp-counter/](https://github.com/bpfman/bpfman/tree/main/examples/go-xdp-counter)
 
 ## Example Code Breakdown
 
 These examples and the associated documentation are intended to provide the basics on how to deploy
 and manage an eBPF program using bpfman. Each of the examples contains an eBPF Program(s) written in C
-([kprobe_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-kprobe-counter/bpf/kprobe_counter.c),
+([app_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-app-counter/bpf/app_counter.c),
+[kprobe_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-kprobe-counter/bpf/kprobe_counter.c),
 [tc_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-tc-counter/bpf/tc_counter.c),
-[tracepoint_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter/bpf/tracepoint_counter.c) 
+[tcx_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-tcx-counter/bpf/tcx_counter.c),
+[tracepoint_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter/bpf/tracepoint_counter.c),
 [uprobe_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-uprobe-counter/bpf/uprobe_counter.c),
 [uretprobe_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-uretprobe-counter/bpf/uretprobe_counter.c),
 and
 [xdp_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-xdp-counter/bpf/xdp_counter.c))
-([app_counter.c](https://github.com/bpfman/bpfman/tree/main/examples/go-kprobe-counter/bpf/app_counter.c),
-that is compiled into eBPF bytecode (bpf_bpfel.o).
+that is compiled into eBPF bytecode for each supported architecture (bpf_arm64_bpfel.o, bpf_powerpc_bpfel.o,
+bpf_s390_bpfeb.o and bpf_x86_bpfel.o).
 Each time the eBPF program is called, it increments the packet and byte counts in a map that is accessible
 by the userspace portion.
 
@@ -44,7 +47,7 @@ dictate the deployment method.
 ### Examples in Local Deployment
 
 When run locally, the userspace program makes gRPC calls to `bpfman-rpc` requesting `bpfman` to load
-the eBPF program at the requested hook point (XDP hook point, TC hook point, Tracepoint, etc).
+the eBPF program at the requested hook point (TC hook point, Tracepoint, XDP hook point, etc).
 Data sent in the RPC request is either defaulted or passed in via input parameters.
 To make the examples as simple as possible to run, all input data is defaulted (except the interface
 TC and XDP programs need to attach to) but can be overwritten if desired. All example programs have
@@ -56,29 +59,29 @@ cd bpfman/examples/go-kprobe-counter/
 ./go-kprobe-counter --help
 Usage of ./go-kprobe-counter:
   -crd
-    	Flag to indicate all attributes should be pulled from the BpfProgram CRD.
-    	Used in Kubernetes deployments and is mutually exclusive with all other
-    	parameters.
+      Flag to indicate all attributes should be pulled from the BpfProgram CRD.
+      Used in Kubernetes deployments and is mutually exclusive with all other
+      parameters.
   -file string
-    	File path of bytecode source. "file" and "image"/"id" are mutually exclusive.
-    	Example: -file /home/$USER/src/bpfman/examples/go-kprobe-counter/bpf_bpfel.o
+      File path of bytecode source. "file" and "image"/"id" are mutually exclusive.
+      Example: -file /home/$USER/src/bpfman/examples/go-kprobe-counter/bpf_x86_bpfel.o
   -id uint
-    	Optional Program ID of bytecode that has already been loaded. "id" and
-    	"file"/"image" are mutually exclusive.
-    	Example: -id 28341
+      Optional Program ID of bytecode that has already been loaded. "id" and
+      "file"/"image" are mutually exclusive.
+      Example: -id 28341
   -image string
-    	Image repository URL of bytecode source. "image" and "file"/"id" are
-    	mutually exclusive.
-    	Example: -image quay.io/bpfman-bytecode/go-kprobe-counter:latest
+      Image repository URL of bytecode source. "image" and "file"/"id" are
+      mutually exclusive.
+      Example: -image quay.io/bpfman-bytecode/go-kprobe-counter:latest
   -map_owner_id int
-    	Program Id of loaded eBPF program this eBPF program will share a map with.
-    	Example: -map_owner_id 9785
+      Program Id of loaded eBPF program this eBPF program will share a map with.
+      Example: -map_owner_id 9785
 ```
 
 The location of the eBPF bytecode can be provided four different ways:
 
 * Defaulted: If nothing is passed in, the code scans the local directory for
-  a `bpf_bpfel.o` file. If found, that is used. If not, it errors out.
+  a `bpf_x86_bpfel.o` file. If found, that is used. If not, it errors out.
 * **file**: Fully qualified path of the bytecode object file.
 * **image**: Image repository URL of bytecode source.
 * **id**: Kernel program Id of a bytecode that has already been loaded. This
@@ -170,12 +173,6 @@ make build
 To build only a single example:
 
 ```console
-cd bpfman/examples/go-tc-counter/
-go generate
-go build
-```
-
-```console
 cd bpfman/examples/go-tracepoint-counter/
 go generate
 go build
@@ -189,75 +186,61 @@ _Other program types are the same._
 instructions on building and shipping bytecode in a container image.
 Pre-built eBPF container images for the examples can be loaded from:
 
+- `quay.io/bpfman-bytecode/go-app-counter:latest`
 - `quay.io/bpfman-bytecode/go-kprobe-counter:latest`
 - `quay.io/bpfman-bytecode/go-tc-counter:latest`
+- `quay.io/bpfman-bytecode/go-tcx-counter:latest`
 - `quay.io/bpfman-bytecode/go-tracepoint-counter:latest`
 - `quay.io/bpfman-bytecode/go-uprobe-counter:latest`
 - `quay.io/bpfman-bytecode/go-uretprobe-counter:latest`
 - `quay.io/bpfman-bytecode/go-xdp-counter:latest`
-- `quay.io/bpfman-bytecode/go-app-counter:latest`
 
-To build the example eBPF bytecode container images, run the build commands below (the `go generate`
-requires the [Prerequisites](#prerequisites) described above):
+To build the example eBPF bytecode container images, first generate the bytecode (the `generate`
+commands require the [Prerequisites](#prerequisites) described above in the
+[Building Locally](#building-locally) section).
+
+To generate the bytecode for all the examples:
+
+```console
+cd bpfman/examples/
+make generate
+```
+
+OR to generate the bytecode for a single example (XDP in this case):
 
 ```console
 cd bpfman/examples/go-xdp-counter/
 go generate
-
-docker build \
-  --build-arg PROGRAM_NAME=go-xdp-counter \
-  --build-arg BPF_FUNCTION_NAME=xdp_stats \
-  --build-arg PROGRAM_TYPE=xdp \
-  --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
-  --build-arg KERNEL_COMPILE_VER=$(uname -r) \
-  -f ../../Containerfile.bytecode . -t quay.io/$USER/go-xdp-counter-bytecode:latest
 ```
 
-and
+The preferred method for building the container image is to use the `bpfman image build`
+command.
+See [bpfman image build](./cli-guide.md#bpfman-image-build) in the CLI Guide for more details.
 
 ```console
-cd bpfman/examples/go-tc-counter/
-go generate
-
-docker build \
-  --build-arg PROGRAM_NAME=go-tc-counter \
-  --build-arg BPF_FUNCTION_NAME=stats \
-  --build-arg PROGRAM_TYPE=tc \
-  --build-arg BYTECODE_FILENAME=bpf_bpfel.o \
-  --build-arg KERNEL_COMPILE_VER=$(uname -r) \
-  -f ../../Containerfile.bytecode . -t quay.io/$USER/go-tc-counter-bytecode:latest
+cd bpfman/examples/go-xdp-counter/
+bpfman image build -f ../../Containerfile.bytecode -t quay.io/$QUAY_USER/go-xdp-counter-bytecode:test -b bpf_x86_bpfel.o
 ```
 
-_Other program types are the same._
+The examples [Makefile](https://github.com/bpfman/bpfman/blob/main/examples/Makefile) has
+commands to build all the example images if needed.
+See [Locally Build Example Container Images](../developer-guide/image-build.md#locally-build-example-container-images)
+for more details.
 
 `bpfman` currently does not provide a method for pre-loading bytecode images
-(see [issue #603](https://github.com/bpfman/bpfman/issues/603)), so push the bytecode image to a remote
+(see [issue #603](https://github.com/bpfman/bpfman/issues/603)), so push the bytecode image to an image
 repository.
+
 For example:
 
 ```console
 docker login quay.io
-docker push quay.io/$USER/go-xdp-counter-bytecode:latest
-docker push quay.io/$USER/go-tc-counter-bytecode:latest
-```
-
-Then run with the privately built bytecode container image:
-
-```console
-sudo ./go-tc-counter -iface ens3 -direction ingress -image quay.io/$USER/go-tc-counter-bytecode:latest
-2022/12/02 16:38:44 Using Input: Interface=ens3 Priority=50 Source=quay.io/$USER/go-tc-counter-bytecode:latest
-2022/12/02 16:38:45 Program registered with id 6225
-2022/12/02 16:38:48 4 packets received
-2022/12/02 16:38:48 580 bytes received
-
-2022/12/02 16:38:51 4 packets received
-2022/12/02 16:38:51 580 bytes received
-
-^C2022/12/02 16:38:51 Exiting...
-2022/12/02 16:38:51 Unloading Program: 6225
+docker push quay.io/$QUAY_USER/go-xdp-counter-bytecode:test
 ```
 
 ## Running Examples
+
+Below are some examples of how to run the bpfman examples on a host where bpfman is already installed.
 
 ```console
 cd bpfman/examples/go-xdp-counter/
@@ -284,8 +267,8 @@ bpfman can load eBPF bytecode from a container image built following the spec de
 To use the container image, pass the URL to the userspace program:
 
 ```console
-sudo ./go-xdp-counter -iface ens3 -image quay.io/bpfman-bytecode/go-xdp-counter:latest
-2022/12/02 16:28:32 Using Input: Interface=ens3 Priority=50 Source=quay.io/bpfman-bytecode/go-xdp-counter:latest
+sudo ./go-xdp-counter -iface eno3 -image quay.io/bpfman-bytecode/go-xdp-counter:latest
+2022/12/02 16:28:32 Using Input: Interface=eno3 Priority=50 Source=quay.io/bpfman-bytecode/go-xdp-counter:latest
 2022/12/02 16:28:34 Program registered with id 6223
 2022/12/02 16:28:37 4 packets received
 2022/12/02 16:28:37 580 bytes received
@@ -295,4 +278,20 @@ sudo ./go-xdp-counter -iface ens3 -image quay.io/bpfman-bytecode/go-xdp-counter:
 
 ^C2022/12/02 16:28:42 Exiting...
 2022/12/02 16:28:42 Unloading Program: 6223
+```
+
+Or to run with the privately built bytecode container image:
+
+```console
+sudo ./go-xdp-counter -iface eno3 -image quay.io/$QUAY_USER/go-xdp-counter-bytecode:test
+2022/12/02 16:38:44 Using Input: Interface=eno3 Priority=50 Source=quay.io/$QUAY_USER/go-xdp-counter-bytecode:test
+2022/12/02 16:38:45 Program registered with id 6225
+2022/12/02 16:38:48 4 packets received
+2022/12/02 16:38:48 580 bytes received
+
+2022/12/02 16:38:51 4 packets received
+2022/12/02 16:38:51 580 bytes received
+
+^C2022/12/02 16:38:51 Exiting...
+2022/12/02 16:38:51 Unloading Program: 6225
 ```
