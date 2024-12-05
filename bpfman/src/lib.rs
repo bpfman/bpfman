@@ -80,9 +80,6 @@ pub(crate) mod directories {
     // RuntimeDirectory: /run/bpfman/
     pub(crate) const RTDIR_MODE: u32 = 0o6770;
     pub(crate) const RTDIR: &str = "/run/bpfman";
-    pub(crate) const RTDIR_XDP_DISPATCHER: &str = "/run/bpfman/dispatchers/xdp";
-    pub(crate) const RTDIR_TC_INGRESS_DISPATCHER: &str = "/run/bpfman/dispatchers/tc-ingress";
-    pub(crate) const RTDIR_TC_EGRESS_DISPATCHER: &str = "/run/bpfman/dispatchers/tc-egress";
     pub(crate) const RTDIR_FS: &str = "/run/bpfman/fs";
     pub(crate) const RTDIR_FS_TC_INGRESS: &str = "/run/bpfman/fs/tc-ingress";
     pub(crate) const RTDIR_FS_TC_EGRESS: &str = "/run/bpfman/fs/tc-egress";

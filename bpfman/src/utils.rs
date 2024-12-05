@@ -285,9 +285,6 @@ pub(crate) fn initialize_bpfman() -> anyhow::Result<()> {
     // Create directories associated with bpfman
     create_dir_all(RTDIR).context("unable to create runtime directory")?;
     create_dir_all(RTDIR_FS).context("unable to create mountpoint")?;
-    create_dir_all(RTDIR_TC_INGRESS_DISPATCHER).context("unable to create dispatcher directory")?;
-    create_dir_all(RTDIR_TC_EGRESS_DISPATCHER).context("unable to create dispatcher directory")?;
-    create_dir_all(RTDIR_XDP_DISPATCHER).context("unable to create dispatcher directory")?;
     create_dir_all(RTDIR_PROGRAMS).context("unable to create programs directory")?;
 
     if !is_bpffs_mounted()? {
