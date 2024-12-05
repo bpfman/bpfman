@@ -2788,8 +2788,10 @@ for more details.</p>
 <h3 id="bpfman-image-generate-build-args">bpfman image generate-build-args</h3>
 <p>The <code>bpfman image generate-build-args</code> command is a utility command that generates the labels used
 to package eBPF program bytecode in a OCI container image.
-The eBPF program bytecode must already be generated.</p>
-<p>This command requires the bytecode to package that would be packaged in a OCI container image.
+It is recommended to use the <code>bpfman image build</code> command to package the eBPF program in a OCI
+container image, but an alternative is to generate the labels then build the container image with
+<code>docker</code> or <code>podman</code>.</p>
+<p>The eBPF program bytecode must already be generated.
 The bytecode can take several forms, but at least one must be provided:</p>
 <ul>
 <li><code>--bytecode</code> or <code>-b</code>: Use this option for a single bytecode object file built for the host architecture.
@@ -2899,6 +2901,15 @@ Note that <code>sudo</code> is not required.</p>
 <a id="__codelineno-43-5" name="__codelineno-43-5" href="#__codelineno-43-5"></a><span class="go">BC_S390X_EB=./examples/go-xdp-counter/bpf_s390_bpfeb.o</span>
 <a id="__codelineno-43-6" name="__codelineno-43-6" href="#__codelineno-43-6"></a><span class="go">PROGRAMS={&quot;xdp_stats&quot;:&quot;xdp&quot;}</span>
 <a id="__codelineno-43-7" name="__codelineno-43-7" href="#__codelineno-43-7"></a><span class="go">MAPS={&quot;xdp_stats_map&quot;:&quot;per_cpu_array&quot;}</span>
+</code></pre></div>
+<p>Once the labels are generated, the eBPF program can be packaged in a OCI
+container image using <code>docker</code> or <code>podman</code> by passing the generated labels
+as <code>build-arg</code> parameters:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="go">docker build \</span>
+<a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a><span class="go">  --build-arg BYTECODE_FILE=./examples/go-xdp-counter/bpf_x86_bpfel.o \</span>
+<a id="__codelineno-44-3" name="__codelineno-44-3" href="#__codelineno-44-3"></a><span class="go">  --build-arg PROGRAMS={&quot;xdp_stats&quot;:&quot;xdp&quot;} \</span>
+<a id="__codelineno-44-4" name="__codelineno-44-4" href="#__codelineno-44-4"></a><span class="go">  --build-arg MAPS={&quot;xdp_stats_map&quot;:&quot;per_cpu_array&quot;} \</span>
+<a id="__codelineno-44-5" name="__codelineno-44-5" href="#__codelineno-44-5"></a><span class="go">  -f Containerfile.bytecode . -t quay.io/$USER/go-xdp-counter-bytecode:test</span>
 </code></pre></div>
 
 

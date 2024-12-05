@@ -1751,7 +1751,7 @@ a similar fashion.</p>
 <ol>
 <li>When <code>go-xdp-counter</code> userspace is started, it will send a gRPC request over unix
    socket to <code>bpfman-rpc</code> requesting <code>bpfman</code> to load the <code>go-xdp-counter</code> eBPF bytecode located
-   on disk at <code>bpfman/examples/go-xdp-counter/bpf_bpfel.o</code> at a priority of 50 and on interface <code>eno3</code>.
+   on disk at <code>bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o</code> at a priority of 50 and on interface <code>eno3</code>.
    These values are configurable as we will see later, but for now we will use the defaults
    (except interface, which is required to be entered).</li>
 <li><code>bpfman</code> will load it's <code>dispatcher</code> eBPF program, which links to the <code>go-xdp-counter</code> eBPF program
@@ -1779,7 +1779,7 @@ interface as shown below:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">cd bpfman/examples/go-xdp-counter/</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="go">go run -exec sudo . --iface eno3</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go">2023/07/17 17:43:58 Using Input: Interface=eno3 Priority=50 Source=/home/$USER/src/bpfman/examples/go-xdp-counter/bpf_bpfel.o</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go">2023/07/17 17:43:58 Using Input: Interface=eno3 Priority=50 Source=/home/$USER/src/bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="go">2023/07/17 17:43:58 Program registered with id 6211</span>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="go">2023/07/17 17:44:01 4 packets received</span>
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="go">2023/07/17 17:44:01 580 bytes received</span>
