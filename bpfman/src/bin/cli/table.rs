@@ -217,11 +217,7 @@ impl ProgTable {
             .fg(Color::Green)]);
 
         let p = r.get_data();
-        let name = if p.get_kernel_name()?.is_empty() {
-            "None".to_string()
-        } else {
-            p.get_kernel_name()?
-        };
+        let name = p.get_kernel_name()?;
 
         let rows = vec![
             vec!["Program ID:".to_string(), p.get_id()?.to_string()],
