@@ -82,6 +82,7 @@ nav:
       - Running the Examples as Non-Root on SELinux Distributions: developer-guide/k8s-selinux-distros.md
   - Design:
       - Daemonless: design/daemonless.md
+      - bpfman CRDs - Cluster vs Namespace Scoped: design/clusterVsNamespaceScoped.md
   - Blog:
       - blog/index.md
   - Community:
