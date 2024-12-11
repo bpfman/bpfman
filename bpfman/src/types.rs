@@ -1144,10 +1144,7 @@ impl ProgramData {
 
     pub(crate) fn set_kernel_info(&mut self, prog: &AyaProgInfo) -> Result<(), BpfmanError> {
         self.set_id(prog.id())?;
-        self.set_kernel_name(
-            prog.name_as_str()
-                .expect("Program name is not valid unicode"),
-        )?;
+        self.set_kernel_name(prog.name_as_str().unwrap_or("None"))?;
         self.set_kernel_program_type(u32::from(ProgramType::from(
             prog.program_type().unwrap_or(AyaProgramType::Unspecified),
         )))?;
