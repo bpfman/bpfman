@@ -34,7 +34,7 @@ regex==2023.10.3
 requests==2.31.0
 six==1.16.0
 soupsieve==2.5
-urllib3==2.1.0
+urllib3==2.2.3
 verspec==0.1.0
 watchdog==2.1.9
 zipp==3.8.0
