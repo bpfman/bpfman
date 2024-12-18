@@ -13,6 +13,13 @@ It runs on the control plane and is composed of the containers `bpfman-operator`
 The operator is responsible for launching the bpfman Daemonset, which runs on every node.
 The bpfman Daemonset is composed of the containers `bpfman`, `bpfman-agent`, and `node-driver-registrar`.
 
+Described below are two ways to deploy bpfman in a Kubernetes cluster:
+
+* [Deploy Locally via KIND](#deploy-locally-via-kind): Easiest way to deploy bpfman in a Kubernetes cluster
+  and great for testing.
+* [Deploy To Openshift Cluster](#deploy-to-openshift-cluster): Special steps are needed to deploy on an
+  Openshift cluster because SELinux is enable.
+
 ### Deploy Locally via KIND
 
 After reviewing the possible make targets it's quick and easy to get bpfman deployed locally on your system
@@ -158,9 +165,13 @@ NAME                 BPFFUNCTIONNAME   NODESELECTOR   PRIORITY   INTERFACESELECT
 xdp-pass-all-nodes   pass              {}             0          {"primarynodeinterface":true}   ["pass","dispatcher_return"]
 ```
 
+There are sample yamls for each of the support program type in the
+[config/samples](https://github.com/bpfman/bpfman-operator/tree/main/config/samples)
+directory.
+
 ## API Types Overview
 
-See [api-spec.md](./api-spec.md) for a more detailed description of all the bpfman Kubernetes API types.
+See [api-spec.md](../developer-guide/api-spec.md) for a more detailed description of all the bpfman Kubernetes API types.
 
 ### Multiple Program CRDs
 
