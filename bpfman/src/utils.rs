@@ -339,7 +339,7 @@ pub(crate) fn enter_netns(netns: PathBuf) -> Result<NetnsGuard, BpfmanError> {
     })
 }
 
-fn nsid(ns_path: Option<PathBuf>) -> Result<u64, BpfmanError> {
+pub(crate) fn nsid(ns_path: Option<PathBuf>) -> Result<u64, BpfmanError> {
     let path = if let Some(p) = ns_path {
         p
     } else {
@@ -353,43 +353,34 @@ fn nsid(ns_path: Option<PathBuf>) -> Result<u64, BpfmanError> {
     Ok(metadata.ino())
 }
 
-pub(crate) fn xdp_dispatcher_id(
-    netns: Option<PathBuf>,
-    if_index: u32,
-) -> Result<String, BpfmanError> {
-    let nsid = nsid(netns)?;
+pub(crate) fn xdp_dispatcher_id(nsid: u64, if_index: u32) -> Result<String, BpfmanError> {
     Ok(format!("{}_{}_{}", XDP_DISPATCHER_PREFIX, nsid, if_index))
 }
 
 pub(crate) fn xdp_dispatcher_db_tree_name(
-    netns: Option<PathBuf>,
+    nsid: u64,
     if_index: u32,
     revision: u32,
 ) -> Result<String, BpfmanError> {
     Ok(format!(
         "{}_{}",
-        xdp_dispatcher_id(netns.clone(), if_index)?,
+        xdp_dispatcher_id(nsid, if_index)?,
         revision
     ))
 }
 
 pub(crate) fn xdp_dispatcher_rev_path(
-    netns: Option<PathBuf>,
+    nsid: u64,
     if_index: u32,
     revision: u32,
 ) -> Result<String, BpfmanError> {
-    let nsid = nsid(netns)?;
     Ok(format!(
         "{}/dispatcher_{}_{}_{}",
         RTDIR_FS_XDP, nsid, if_index, revision
     ))
 }
 
-pub(crate) fn xdp_dispatcher_link_path(
-    netns: Option<PathBuf>,
-    if_index: u32,
-) -> Result<String, BpfmanError> {
-    let nsid = nsid(netns)?;
+pub(crate) fn xdp_dispatcher_link_path(nsid: u64, if_index: u32) -> Result<String, BpfmanError> {
     Ok(format!(
         "{}/dispatcher_{}_{}_link",
         RTDIR_FS_XDP, nsid, if_index
@@ -397,24 +388,23 @@ pub(crate) fn xdp_dispatcher_link_path(
 }
 
 pub(crate) fn xdp_dispatcher_link_id_path(
-    netns: Option<PathBuf>,
+    nsid: u64,
     if_index: u32,
     revision: u32,
     id: u32,
 ) -> Result<String, BpfmanError> {
     Ok(format!(
         "{}/link_{}",
-        xdp_dispatcher_rev_path(netns, if_index, revision)?,
+        xdp_dispatcher_rev_path(nsid, if_index, revision)?,
         id
     ))
 }
 
 pub(crate) fn tc_dispatcher_id(
-    netns: Option<PathBuf>,
+    nsid: u64,
     if_index: u32,
     direction: Direction,
 ) -> Result<String, BpfmanError> {
-    let nsid = nsid(netns)?;
     Ok(format!(
         "{}_{}_{}_{}",
         TC_DISPATCHER_PREFIX, nsid, if_index, direction
@@ -422,21 +412,21 @@ pub(crate) fn tc_dispatcher_id(
 }
 
 pub(crate) fn tc_dispatcher_db_tree_name(
-    netns: Option<PathBuf>,
+    nsid: u64,
     if_index: u32,
     direction: Direction,
     revision: u32,
 ) -> Result<String, BpfmanError> {
     Ok(format!(
         "{}_{}",
-        tc_dispatcher_id(netns.clone(), if_index, direction)?,
+        tc_dispatcher_id(nsid, if_index, direction)?,
         revision
     ))
 }
 
 pub(crate) fn tc_dispatcher_rev_path(
     direction: Direction,
-    netns: Option<PathBuf>,
+    nsid: u64,
     if_index: u32,
     revision: u32,
 ) -> Result<String, BpfmanError> {
@@ -444,7 +434,6 @@ pub(crate) fn tc_dispatcher_rev_path(
         Direction::Ingress => RTDIR_FS_TC_INGRESS,
         Direction::Egress => RTDIR_FS_TC_EGRESS,
     };
-    let nsid = nsid(netns)?;
     Ok(format!(
         "{}/dispatcher_{}_{}_{}",
         tc_base, nsid, if_index, revision
@@ -453,14 +442,14 @@ pub(crate) fn tc_dispatcher_rev_path(
 
 pub(crate) fn tc_dispatcher_link_id_path(
     direction: Direction,
-    netns: Option<PathBuf>,
+    nsid: u64,
     if_index: u32,
     revision: u32,
     id: u32,
 ) -> Result<String, BpfmanError> {
     Ok(format!(
         "{}/link_{}",
-        tc_dispatcher_rev_path(direction, netns, if_index, revision)?,
+        tc_dispatcher_rev_path(direction, nsid, if_index, revision)?,
         id
     ))
 }

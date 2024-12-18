@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use std::{ffi::OsStr, fs, mem, os::unix::ffi::OsStrExt, path::PathBuf};
+use std::{fs, mem, path::PathBuf};
 
 use aya::{
     programs::{
@@ -31,9 +31,9 @@ use crate::{
         ImagePullPolicy, Program, TcProgram,
     },
     utils::{
-        bytes_to_string, bytes_to_u16, bytes_to_u32, bytes_to_usize, enter_netns,
-        should_map_be_pinned, sled_get, sled_get_option, sled_insert, tc_dispatcher_db_tree_name,
-        tc_dispatcher_link_id_path, tc_dispatcher_rev_path,
+        bytes_to_string, bytes_to_u16, bytes_to_u32, bytes_to_u64, bytes_to_usize, enter_netns,
+        nsid, should_map_be_pinned, sled_get, sled_get_option, sled_insert,
+        tc_dispatcher_db_tree_name, tc_dispatcher_link_id_path, tc_dispatcher_rev_path,
     },
 };
 
@@ -50,7 +50,8 @@ const DIRECTION: &str = "direction";
 const NUM_EXTENSIONS: &str = "num_extension";
 const PROGRAM_NAME: &str = "program_name";
 const HANDLE: &str = "handle";
-const NETNS: &str = "netns";
+const NSID: &str = "nsid";
+
 #[derive(Debug)]
 pub struct TcDispatcher {
     db_tree: sled::Tree,
@@ -63,15 +64,12 @@ impl TcDispatcher {
         direction: Direction,
         if_index: u32,
         if_name: String,
-        netns: Option<PathBuf>,
+        nsid: u64,
         revision: u32,
     ) -> Result<Self, BpfmanError> {
         let db_tree = root_db
             .open_tree(tc_dispatcher_db_tree_name(
-                netns.clone(),
-                if_index,
-                direction,
-                revision,
+                nsid, if_index, direction, revision,
             )?)
             .expect("Unable to open tc dispatcher database tree");
 
@@ -85,9 +83,7 @@ impl TcDispatcher {
         dp.set_direction(direction)?;
         dp.set_revision(revision)?;
         dp.set_priority(TC_DISPATCHER_PRIORITY)?;
-        if let Some(netns) = netns {
-            dp.set_netns(netns)?;
-        }
+        dp.set_nsid(nsid)?;
         Ok(dp)
     }
 
@@ -173,7 +169,7 @@ impl TcDispatcher {
             ));
         }
 
-        let path = tc_dispatcher_rev_path(direction, netns.clone(), if_index, revision)?;
+        let path = tc_dispatcher_rev_path(direction, nsid(netns.clone())?, if_index, revision)?;
         fs::create_dir_all(path).unwrap();
 
         self.loader = Some(loader);
@@ -299,7 +295,7 @@ impl TcDispatcher {
         let revision = self.get_revision()?;
         let direction = self.get_direction()?;
         let program_name = self.get_program_name()?;
-        let netns = self.get_netns()?;
+        let nsid = self.get_nsid()?;
 
         debug!(
             "TcDispatcher::attach_extensions() for if_index {}, revision {}",
@@ -329,8 +325,7 @@ impl TcDispatcher {
                     .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
                     .unwrap();
                 let new_link: FdLink = ext.take_link(new_link_id)?.into();
-                let path =
-                    tc_dispatcher_link_id_path(direction, netns.clone(), if_index, revision, id)?;
+                let path = tc_dispatcher_link_id_path(direction, nsid, if_index, revision, id)?;
                 new_link.pin(path).map_err(BpfmanError::UnableToPinLink)?;
             } else {
                 let name = &v.data.get_name()?;
@@ -372,8 +367,7 @@ impl TcDispatcher {
                 let new_link_id = ext.attach()?;
                 let new_link = ext.take_link(new_link_id)?;
                 let fd_link: FdLink = new_link.into();
-                let path =
-                    tc_dispatcher_link_id_path(direction, netns.clone(), if_index, revision, id)?;
+                let path = tc_dispatcher_link_id_path(direction, nsid, if_index, revision, id)?;
                 fd_link.pin(path).map_err(BpfmanError::UnableToPinLink)?;
 
                 // If this program is the map(s) owner pin all maps (except for .rodata and .bss) by name.
@@ -406,7 +400,7 @@ impl TcDispatcher {
         let direction = self.get_direction()?;
         let handle = self.get_handle()?;
         let priority = self.get_priority()?;
-        let netns = self.get_netns()?;
+        let nsid = self.get_nsid()?;
 
         debug!(
             "TcDispatcher::delete() for if_index {}, revision {}",
@@ -423,7 +417,7 @@ impl TcDispatcher {
             )
         })?;
 
-        let path = tc_dispatcher_rev_path(direction, netns, if_index, revision)?;
+        let path = tc_dispatcher_rev_path(direction, nsid, if_index, revision)?;
         fs::remove_dir_all(path)
             .map_err(|e| BpfmanError::Error(format!("unable to cleanup state: {e}")))?;
 
@@ -519,12 +513,12 @@ impl TcDispatcher {
     pub(crate) fn get_handle(&self) -> Result<Option<u32>, BpfmanError> {
         sled_get_option(&self.db_tree, HANDLE).map(|v| v.map(bytes_to_u32))
     }
-    pub(crate) fn set_netns(&mut self, netns: PathBuf) -> Result<(), BpfmanError> {
-        sled_insert(&self.db_tree, NETNS, netns.as_os_str().as_bytes())
+
+    pub(crate) fn set_nsid(&mut self, offset: u64) -> Result<(), BpfmanError> {
+        sled_insert(&self.db_tree, NSID, &offset.to_ne_bytes())
     }
 
-    pub fn get_netns(&self) -> Result<Option<PathBuf>, BpfmanError> {
-        sled_get_option(&self.db_tree, NETNS)
-            .map(|opt| opt.map(|v| PathBuf::from(OsStr::from_bytes(&v))))
+    pub fn get_nsid(&self) -> Result<u64, BpfmanError> {
+        sled_get(&self.db_tree, NSID).map(bytes_to_u64)
     }
 }

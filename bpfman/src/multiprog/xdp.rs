@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use std::{ffi::OsStr, fs, os::unix::ffi::OsStrExt, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 use aya::{
     programs::{
@@ -24,9 +24,9 @@ use crate::{
     oci_utils::image_manager::ImageManager,
     types::{BytecodeImage, ImagePullPolicy, Program, XdpProgram},
     utils::{
-        bytes_to_string, bytes_to_u32, bytes_to_usize, enter_netns, should_map_be_pinned, sled_get,
-        sled_get_option, sled_insert, xdp_dispatcher_db_tree_name, xdp_dispatcher_link_id_path,
-        xdp_dispatcher_link_path, xdp_dispatcher_rev_path,
+        bytes_to_string, bytes_to_u32, bytes_to_u64, bytes_to_usize, enter_netns, nsid,
+        should_map_be_pinned, sled_get, sled_insert, xdp_dispatcher_db_tree_name,
+        xdp_dispatcher_link_id_path, xdp_dispatcher_link_path, xdp_dispatcher_rev_path,
     },
 };
 
@@ -40,7 +40,7 @@ const IF_NAME: &str = "if_name";
 const MODE: &str = "mode";
 const NUM_EXTENSIONS: &str = "num_extension";
 const PROGRAM_NAME: &str = "program_name";
-const NETNS: &str = "netns";
+const NSID: &str = "nsid";
 
 #[derive(Debug)]
 pub struct XdpDispatcher {
@@ -54,10 +54,10 @@ impl XdpDispatcher {
         mode: &XdpMode,
         if_index: u32,
         if_name: String,
-        netns: Option<PathBuf>,
+        nsid: u64,
         revision: u32,
     ) -> Result<Self, BpfmanError> {
-        let tree_name = xdp_dispatcher_db_tree_name(netns.clone(), if_index, revision)?;
+        let tree_name = xdp_dispatcher_db_tree_name(nsid, if_index, revision)?;
         info!("XdpDispatcher::new(): tree_path: {}", tree_name);
         let db_tree = root_db
             .open_tree(tree_name)
@@ -72,9 +72,7 @@ impl XdpDispatcher {
         dp.set_ifname(&if_name)?;
         dp.set_mode(mode)?;
         dp.set_revision(revision)?;
-        if let Some(netns) = netns {
-            dp.set_netns(netns)?;
-        }
+        dp.set_nsid(nsid)?;
         Ok(dp)
     }
 
@@ -166,7 +164,7 @@ impl XdpDispatcher {
             ));
         }
 
-        let path = xdp_dispatcher_rev_path(netns.clone(), if_index, revision)?;
+        let path = xdp_dispatcher_rev_path(nsid(netns.clone())?, if_index, revision)?;
         fs::create_dir_all(path).unwrap();
 
         self.loader = Some(loader);
@@ -193,7 +191,7 @@ impl XdpDispatcher {
         let revision = self.get_revision()?;
         let mode = self.get_mode()?;
         let program_name = self.get_program_name()?;
-        let netns = self.get_netns()?;
+        let nsid = self.get_nsid()?;
 
         debug!(
             "XdpDispatcher::attach() for if_index {}, revision {}",
@@ -208,7 +206,7 @@ impl XdpDispatcher {
             .unwrap()
             .try_into()?;
 
-        let path = PathBuf::from(xdp_dispatcher_link_path(netns.clone(), if_index)?);
+        let path = PathBuf::from(xdp_dispatcher_link_path(nsid, if_index)?);
         if path.exists() {
             let pinned_link: FdLink = PinnedLink::from_pin(path).unwrap().into();
             dispatcher
@@ -234,7 +232,7 @@ impl XdpDispatcher {
                 }
             }
             let owned_link = dispatcher.take_link(link.unwrap())?;
-            let path = xdp_dispatcher_link_path(netns, if_index)?;
+            let path = xdp_dispatcher_link_path(nsid, if_index)?;
             let _ = TryInto::<FdLink>::try_into(owned_link)
                 .map_err(|e| {
                     BpfmanError::Error(format!(
@@ -251,7 +249,7 @@ impl XdpDispatcher {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
         let program_name = self.get_program_name()?;
-        let netns = self.get_netns()?;
+        let nsid = self.get_nsid()?;
         debug!(
             "XdpDispatcher::attach_extensions() for if_index {}, revision {}",
             if_index, revision
@@ -277,7 +275,7 @@ impl XdpDispatcher {
                     .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
                     .unwrap();
                 let new_link: FdLink = ext.take_link(new_link_id)?.into();
-                let path = xdp_dispatcher_link_id_path(netns.clone(), if_index, revision, id)?;
+                let path = xdp_dispatcher_link_id_path(nsid, if_index, revision, id)?;
                 new_link.pin(path).map_err(BpfmanError::UnableToPinLink)?;
             } else {
                 let name = &v.get_data().get_name()?;
@@ -320,12 +318,7 @@ impl XdpDispatcher {
                 let new_link = ext.take_link(new_link_id)?;
                 let fd_link: FdLink = new_link.into();
                 fd_link
-                    .pin(xdp_dispatcher_link_id_path(
-                        netns.clone(),
-                        if_index,
-                        revision,
-                        id,
-                    )?)
+                    .pin(xdp_dispatcher_link_id_path(nsid, if_index, revision, id)?)
                     .map_err(BpfmanError::UnableToPinLink)?;
 
                 // If this program is the map(s) owner pin all maps (except for .rodata and .bss) by name.
@@ -354,7 +347,7 @@ impl XdpDispatcher {
     pub(crate) fn delete(&self, root_db: &Db, full: bool) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
-        let netns = self.get_netns()?;
+        let nsid = self.get_nsid()?;
         debug!(
             "XdpDispatcher::delete() for if_index {}, revision {}, full {}",
             if_index, revision, full
@@ -369,11 +362,11 @@ impl XdpDispatcher {
             )
         })?;
 
-        let path = xdp_dispatcher_rev_path(netns.clone(), if_index, revision)?;
+        let path = xdp_dispatcher_rev_path(nsid, if_index, revision)?;
         fs::remove_dir_all(path)
             .map_err(|e| BpfmanError::Error(format!("unable to cleanup state: {e}")))?;
         if full {
-            let path_link = xdp_dispatcher_link_path(netns, if_index)?;
+            let path_link = xdp_dispatcher_link_path(nsid, if_index)?;
             fs::remove_file(path_link)
                 .map_err(|e| BpfmanError::Error(format!("unable to cleanup state: {e}")))?;
         }
@@ -430,12 +423,11 @@ impl XdpDispatcher {
         sled_get(&self.db_tree, PROGRAM_NAME).map(|v| bytes_to_string(&v))
     }
 
-    pub(crate) fn set_netns(&mut self, netns: PathBuf) -> Result<(), BpfmanError> {
-        sled_insert(&self.db_tree, NETNS, netns.as_os_str().as_bytes())
+    pub(crate) fn set_nsid(&mut self, offset: u64) -> Result<(), BpfmanError> {
+        sled_insert(&self.db_tree, NSID, &offset.to_ne_bytes())
     }
 
-    pub fn get_netns(&self) -> Result<Option<PathBuf>, BpfmanError> {
-        sled_get_option(&self.db_tree, NETNS)
-            .map(|opt| opt.map(|v| PathBuf::from(OsStr::from_bytes(&v))))
+    pub fn get_nsid(&self) -> Result<u64, BpfmanError> {
+        sled_get(&self.db_tree, NSID).map(bytes_to_u64)
     }
 }
