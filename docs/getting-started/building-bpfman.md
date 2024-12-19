@@ -36,10 +36,8 @@ Major kernel features leveraged by bpfman:
 * **Relaxed CAP_BPF Requirement:** Prior to Kernel 5.19, all eBPF system calls required CAP_BPF.
   This required userspace programs that wanted to access eBPF maps to have the CAP_BPF Linux capability.
   With the kernel 5.19 change, CAP_BPF is only required for load and unload requests.
-* **TCX:** TCX support was added in Kernel 6.6 and is expected to be added to
-  bpfman in an upcoming release. TCX has performance improvements over TC and
-  adds support in the kernel for multiple TCX programs to run on a given TC hook
-  point.
+* **TCX:** TCX has performance improvements over TC and adds support in the kernel for multiple TCX
+  programs to run on a given TC hook point. TCX support was added in Kernel 6.6.
 
 bpfman tested on older kernel versions:
 
@@ -167,10 +165,10 @@ sudo dnf install perl
 sudo apt install perl
 ```
 
-### Install docker
+### Install docker or podman
 
 To build the `bpfman-agent` and `bpfman-operator` using the provided Makefile and the
-`make build-images` command, `docker` needs to be installed.
+`make build-images` command, `docker` or `podman` needs to be installed.
 There are several existing guides:
 
 * Fedora: [https://developer.fedoraproject.org/tools/docker/docker-installation.html](https://developer.fedoraproject.org/tools/docker/docker-installation.html)
@@ -380,3 +378,9 @@ man bpfman list
     manpage subcommand generation.
     So use `man bpfman load-file`, `man bpfman load-image`, `man bpfman load-image-xdp`,
     etc. to display the subcommand manpage files.
+
+## Building bpfman-operator
+
+Building and deploying bpfman-operator is covered in it's own section.
+See [Deploying Example eBPF Programs On Kubernetes](./example-bpf-k8s.md) and
+[Developing the bpfman-operator](../developer-guide/develop-operator.md).

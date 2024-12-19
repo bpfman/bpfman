@@ -358,7 +358,7 @@ We will use a [kind](https://kind.sigs.k8s.io/) deployment with bpfman for this
 demo. See [Deploy Locally via KIND] for instructions on how to get this running.
 
 [bpfman.io_v1alpha1_uprobe_uprobeprogram_containers.yaml]:https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/samples/bpfman.io_v1alpha1_uprobe_uprobeprogram_containers.yaml
-[Deploy Locally via KIND]:../../developer-guide/operator-quick-start.md#deploy-locally-via-kind
+[Deploy Locally via KIND]:../../getting-started/operator-quick-start.md#deploy-locally-via-kind
 
 The container selector in the above yaml file is the following.
 

@@ -12,9 +12,6 @@ For applications written in other languages, bpfman provides `bpfman-rpc`, a Rus
 based bpfman RPC server binary.
 Non-Rust applications can send a RPC message to the server, which translate the
 RPC request into a bpfman library call.
-The long term solution is to leverage the Rust Foreign Function Interface (FFI)
-feature, which enables a different (foreign) programming language to call Rust
-functions, but that is not supported at the moment.
 
 ![bpfman library](../img/bpfman_library.png)
 
