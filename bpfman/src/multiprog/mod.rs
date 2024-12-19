@@ -4,8 +4,6 @@
 mod tc;
 mod xdp;
 
-use std::path::PathBuf;
-
 use log::debug;
 use sled::Db;
 pub use tc::TcDispatcher;
@@ -59,7 +57,7 @@ impl Dispatcher {
                     xdp_mode,
                     if_index,
                     if_name.to_string(),
-                    p.netns()?,
+                    p.nsid()?,
                     revision,
                 )?;
 
@@ -85,7 +83,7 @@ impl Dispatcher {
                     direction.expect("missing direction"),
                     if_index,
                     if_name.to_string(),
-                    p.netns()?,
+                    p.nsid()?,
                     revision,
                 )?;
 
@@ -157,4 +155,4 @@ pub(crate) enum DispatcherId {
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub(crate) struct DispatcherInfo(pub Option<PathBuf>, pub u32, pub Option<Direction>);
+pub(crate) struct DispatcherInfo(pub u64, pub u32, pub Option<Direction>);

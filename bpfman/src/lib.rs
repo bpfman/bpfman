@@ -394,7 +394,7 @@ async fn remove_program_internal(
             let if_index = prog.if_index()?;
             let if_name = prog.if_name().unwrap();
             let direction = prog.direction()?;
-            let netns = prog.netns()?;
+            let nsid = prog.nsid()?;
 
             prog.delete(root_db)
                 .map_err(BpfmanError::BpfmanProgramDeleteError)?;
@@ -407,12 +407,12 @@ async fn remove_program_internal(
                 if_index,
                 if_name,
                 direction,
-                netns,
+                nsid,
             )
             .await?
         }
         Program::Tcx(_) => {
-            let netns = prog.netns()?;
+            let nsid = prog.nsid()?;
             let if_index = prog
                 .if_index()?
                 .ok_or_else(|| BpfmanError::InvalidInterface)?;
@@ -421,7 +421,7 @@ async fn remove_program_internal(
                 .ok_or_else(|| BpfmanError::InvalidDirection)?;
             prog.delete(root_db)
                 .map_err(BpfmanError::BpfmanProgramDeleteError)?;
-            set_tcx_program_positions(root_db, if_index, direction, netns)?;
+            set_tcx_program_positions(root_db, if_index, direction, nsid)?;
         }
         Program::Tracepoint(_)
         | Program::Kprobe(_)
@@ -752,11 +752,11 @@ pub(crate) async fn init_image_manager() -> Result<ImageManager, BpfmanError> {
 fn get_dispatcher(id: &DispatcherId, root_db: &Db) -> Result<Option<Dispatcher>, BpfmanError> {
     debug!("Getting dispatcher with id: {:?}", id);
     let tree_name_prefix = match id {
-        DispatcherId::Xdp(DispatcherInfo(netns, if_index, _)) => {
-            xdp_dispatcher_id(netns.clone(), *if_index)?
+        DispatcherId::Xdp(DispatcherInfo(nsid, if_index, _)) => {
+            xdp_dispatcher_id(*nsid, *if_index)?
         }
-        DispatcherId::Tc(DispatcherInfo(netns, if_index, Some(direction))) => {
-            tc_dispatcher_id(netns.clone(), *if_index, *direction)?
+        DispatcherId::Tc(DispatcherInfo(nsid, if_index, Some(direction))) => {
+            tc_dispatcher_id(*nsid, *if_index, *direction)?
         }
         _ => {
             return Ok(None);
@@ -802,7 +802,7 @@ fn get_multi_attach_programs(
     program_type: ProgramType,
     if_index: Option<u32>,
     direction: Option<Direction>,
-    netns: Option<PathBuf>,
+    nsid: u64,
 ) -> Result<Vec<Program>, BpfmanError> {
     let mut programs = Vec::new();
 
@@ -845,7 +845,7 @@ fn get_multi_attach_programs(
 
         if program.if_index().unwrap() == if_index
             && program.direction().unwrap() == direction
-            && program.netns()? == netns
+            && program.nsid()? == nsid
         {
             programs.push(program);
         }
@@ -858,7 +858,7 @@ fn get_tcx_programs(
     root_db: &Db,
     if_index: u32,
     direction: Direction,
-    netns: Option<PathBuf>,
+    nsid: u64,
 ) -> Result<Vec<TcxProgram>, BpfmanError> {
     let mut tcx_programs = Vec::new();
 
@@ -874,10 +874,10 @@ fn get_tcx_programs(
             if let Ok(Program::Tcx(tcx_p)) = Program::new_from_db(id, tree) {
                 if let Ok(Some(tcx_p_if_index)) = tcx_p.get_if_index() {
                     if let Ok(tcx_p_direction) = tcx_p.get_direction() {
-                        if let Ok(tcx_p_netns) = tcx_p.get_netns() {
+                        if let Ok(tcx_p_nsid) = tcx_p.get_nsid() {
                             if tcx_p_if_index == if_index
                                 && tcx_p_direction == direction
-                                && tcx_p_netns == netns
+                                && tcx_p_nsid == nsid
                             {
                                 tcx_programs.push(tcx_p);
                             }
@@ -912,8 +912,8 @@ fn add_and_set_tcx_program_positions(
         .get_if_index()?
         .ok_or_else(|| BpfmanError::InvalidInterface)?;
     let direction = new_program.get_direction()?;
-    let netns = new_program.get_netns()?;
-    let mut tcx_programs = get_tcx_programs(root_db, if_index, direction, netns)?;
+    let nsid = new_program.get_nsid()?;
+    let mut tcx_programs = get_tcx_programs(root_db, if_index, direction, nsid)?;
 
     if tcx_programs.is_empty() {
         new_program.set_current_position(0)?;
@@ -946,7 +946,7 @@ fn set_tcx_program_positions(
     root_db: &Db,
     if_index: u32,
     direction: Direction,
-    netns: Option<PathBuf>,
+    netns: u64,
 ) -> Result<(), BpfmanError> {
     let mut tcx_programs = get_tcx_programs(root_db, if_index, direction, netns)?;
     sort_tcx_programs(&mut tcx_programs);
@@ -966,10 +966,10 @@ fn add_and_set_program_positions(root_db: &Db, program: Program) -> Result<(), B
     let program_type = program.kind();
     let if_index = program.if_index().unwrap();
     let direction = program.direction().unwrap();
-    let netns = program.netns()?;
+    let nsid = program.nsid()?;
 
     let mut extensions =
-        get_multi_attach_programs(root_db, program_type, if_index, direction, netns)?;
+        get_multi_attach_programs(root_db, program_type, if_index, direction, nsid)?;
 
     extensions.sort_by_key(|b| {
         (
@@ -993,10 +993,10 @@ fn set_program_positions(
     program_type: ProgramType,
     if_index: u32,
     direction: Option<Direction>,
-    netns: Option<PathBuf>,
+    nsid: u64,
 ) -> Result<(), BpfmanError> {
     let mut extensions =
-        get_multi_attach_programs(root_db, program_type, Some(if_index), direction, netns)?;
+        get_multi_attach_programs(root_db, program_type, Some(if_index), direction, nsid)?;
 
     extensions.sort_by_key(|b| {
         (
@@ -1074,12 +1074,11 @@ async fn add_multi_attach_program(
     let if_index = program.if_index()?;
     let if_name = program.if_name().unwrap().to_string();
     let direction = program.direction()?;
-    let netns = program.netns()?;
+    let nsid = program.nsid()?;
 
     add_and_set_program_positions(root_db, program.clone())?;
 
-    let mut programs =
-        get_multi_attach_programs(root_db, program_type, if_index, direction, netns)?;
+    let mut programs = get_multi_attach_programs(root_db, program_type, if_index, direction, nsid)?;
 
     let old_dispatcher = get_dispatcher(&did, root_db)?;
 
@@ -1491,7 +1490,7 @@ async fn remove_multi_attach_program(
     if_index: Option<u32>,
     if_name: String,
     direction: Option<Direction>,
-    netns: Option<PathBuf>,
+    nsid: u64,
 ) -> Result<(), BpfmanError> {
     debug!("BpfManager::remove_multi_attach_program()");
     let mut image_manager = init_image_manager().await?;
@@ -1508,17 +1507,10 @@ async fn remove_multi_attach_program(
         }
     }
 
-    set_program_positions(
-        root_db,
-        program_type,
-        if_index.unwrap(),
-        direction,
-        netns.clone(),
-    )?;
+    set_program_positions(root_db, program_type, if_index.unwrap(), direction, nsid)?;
 
     // Intentionally don't add filter program here
-    let mut programs =
-        get_multi_attach_programs(root_db, program_type, if_index, direction, netns)?;
+    let mut programs = get_multi_attach_programs(root_db, program_type, if_index, direction, nsid)?;
 
     let if_config = if let Some(ref i) = config.interfaces() {
         i.get(&if_name)

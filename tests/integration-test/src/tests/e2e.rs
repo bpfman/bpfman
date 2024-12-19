@@ -1231,3 +1231,74 @@ fn test_netns() {
 
     verify_and_delete_programs(loaded_ids);
 }
+
+#[integration_test]
+fn test_netns_delete() {
+    let kernel_version = Version::current().unwrap();
+    let do_tcx = if kernel_version >= Version::new(6, 6, 0) {
+        true
+    } else {
+        debug!("The kernel version is: {:?}", kernel_version);
+        debug!("Skipping tcx test.  Kernel must be at least 6.6 to support tcx.");
+        false
+    };
+
+    let namespace_guard = create_namespace().unwrap();
+
+    assert!(iface_exists(DEFAULT_BPFMAN_IFACE));
+
+    let mut loaded_ids = vec![];
+
+    debug!("Installing xdp program");
+    let (prog_id, _) = add_xdp(
+        NS_VETH,
+        75, // priority
+        Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        None, // proceed_on
+        &LoadType::Image,
+        &XDP_PASS_IMAGE_LOC,
+        XDP_PASS_FILE_LOC,
+        XDP_PASS_NAME,
+        None,          // metadata
+        None,          // map_owner_id
+        Some(NS_PATH), // netns
+    );
+    loaded_ids.push(prog_id.unwrap());
+
+    debug!("Installing tc ingress program");
+    let (prog_id, _) = add_tc(
+        "ingress",
+        NS_VETH,
+        75,
+        Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+        None,
+        &LoadType::Image,
+        &TC_PASS_IMAGE_LOC,
+        TC_PASS_FILE_LOC,
+        TC_PASS_NAME,
+        Some(NS_PATH), // netns
+    );
+    loaded_ids.push(prog_id.unwrap());
+
+    if do_tcx {
+        // Install a tcx pass program in each direction at priority 1000, which is
+        // the lowest priority.  We should see logs from both programs.
+        debug!("Installing tcx ingress program");
+        let (prog_id, _) = add_tcx(
+            "ingress",
+            NS_VETH,
+            1000,
+            Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
+            &LoadType::Image,
+            &TCX_TEST_IMAGE_LOC,
+            TCX_TEST_FILE_LOC,
+            TCX_TEST_PASS_NAME,
+            Some(NS_PATH), // netns
+        );
+        loaded_ids.push(prog_id.unwrap());
+    }
+
+    drop(namespace_guard);
+
+    verify_and_delete_programs(loaded_ids);
+}
