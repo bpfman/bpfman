@@ -8,7 +8,7 @@ cssselect==1.2.0
 ghp-import==2.1.0
 idna==3.4
 importlib-metadata==4.11.4
-Jinja2==3.1.2
+Jinja2==3.1.5
 lxml==4.9.3
 Markdown==3.3.7
 markdown2==2.4.10
