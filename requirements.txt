@@ -1,14 +1,14 @@
 Babel==2.16.0
 beautifulsoup4==4.12.3
 certifi==2023.11.17
-charset-normalizer==3.4.0
+charset-normalizer==3.4.1
 click==8.1.8
 colorama==0.4.6
 cssselect==1.2.0
 ghp-import==2.1.0
 idna==3.10
 importlib-metadata==4.13.0
-Jinja2==3.1.4
+Jinja2==3.1.5
 lxml==4.9.4
 Markdown==3.7
 markdown2==2.5.2
