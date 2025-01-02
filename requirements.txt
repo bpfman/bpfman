@@ -2,7 +2,7 @@ Babel==2.16.0
 beautifulsoup4==4.12.3
 certifi==2023.11.17
 charset-normalizer==3.4.1
-click==8.1.7
+click==8.1.8
 colorama==0.4.6
 cssselect==1.2.0
 ghp-import==2.1.0
