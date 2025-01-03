@@ -237,7 +237,7 @@ quay.io/bpfman/bpfman-operator   latest   4fe444b7abf1   2 minutes ago    141MB
 
 ## Running Locally in KIND
 
-[Deploying the bpfman-operator](./operator-quick-start.md) goes into more detail on ways to
+[Deploying the bpfman-operator](../getting-started/operator-quick-start.md) goes into more detail on ways to
 launch bpfman in a Kubernetes cluster.
 To run locally in a Kind cluster with an up to date build simply run:
 

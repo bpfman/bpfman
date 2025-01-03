@@ -147,7 +147,7 @@ For more details, please see the following:
   on setting up your development environment and building bpfman.
 - [Example eBPF Programs](./getting-started/example-bpf.md) for some examples of
   eBPF programs written in Go, interacting with `bpfman`.
-- [Deploying the bpfman-operator](./developer-guide/operator-quick-start.md) for
+- [Deploying the bpfman-operator](./getting-started/operator-quick-start.md) for
   details on launching bpfman in a Kubernetes cluster.
 - [Meet the Community](./governance/MEETINGS.md) for details on community
   meeting details.

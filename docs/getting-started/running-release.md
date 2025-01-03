@@ -20,7 +20,7 @@ for deploying a released version of `bpfman` from an rpm as a systemd service an
 [Deploying Example eBPF Programs On Local Host](./example-bpf-local.md)
 for further information on how to test and interact with `bpfman`.
 
-[Deploying the bpfman-operator](../developer-guide/operator-quick-start.md) contains
+[Deploying the bpfman-operator](./operator-quick-start.md) contains
 more details on deploying `bpfman` in a Kubernetes deployment and
 [Deploying Example eBPF Programs On Kubernetes](./example-bpf-k8s.md) contains
 more details on interacting with `bpfman` running in a Kubernetes deployment.
@@ -98,7 +98,7 @@ kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_RE
 There are other example programs in the [Releases](https://github.com/bpfman/bpfman/releases)
 page.
 
-Continue in [Deploying the bpfman-operator](../developer-guide/operator-quick-start.md) or
+Continue in [Deploying the bpfman-operator](./operator-quick-start.md) or
 [Deploying Example eBPF Programs On Kubernetes](./example-bpf-k8s.md) if desired.
 Keep in mind that prior to v0.4.0, `bpfman` was released as `bpfd`.
 So follow the release specific documentation.

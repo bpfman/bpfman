@@ -4,7 +4,7 @@ This section will describe launching eBPF enabled applications on a Kubernetes c
 The approach is slightly different when running on a Kubernetes cluster.
 
 This section assumes there is already a Kubernetes cluster running and `bpfman` is running in the cluster.
-See [Deploying the bpfman-operator](../developer-guide/operator-quick-start.md) for details on
+See [Deploying the bpfman-operator](./operator-quick-start.md) for details on
 deploying bpfman on a Kubernetes cluster, but the quickest solution is to run a Kubernetes KIND Cluster:
 
 ```console
@@ -22,6 +22,7 @@ There is a CRD object for each eBPF program type bpfman supports.
 * FexitProgram CRD: [Fexit Sample yaml](https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/samples/bpfman.io_v1alpha1_fexit_fexitprogram.yaml)
 * KprobeProgram CRD: [Kprobe Examples yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-kprobe-counter/bytecode.yaml)
 * TcProgram CRD: [TcProgram Examples yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tc-counter/bytecode.yaml)
+* TcxProgram CRD: [TcxProgram Examples yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tcx-counter/bytecode.yaml)
 * TracepointProgram CRD: [Tracepoint Examples yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tracepoint-counter/bytecode.yaml)
 * UprobeProgram CRD: [Uprobe Examples yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-uprobe-counter/bytecode.yaml)
 * XdpProgram CRD: [XdpProgram Examples yaml](https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-xdp-counter/bytecode.yaml)
