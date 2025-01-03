@@ -8,7 +8,7 @@ releases.
     Instructions for interacting with bpfman change from release to release, so reference
     release specific documentation. For example:
     
-    [https://bpfman.io/v0.5.4/getting-started/running-release/](https://bpfman.io/v0.5.4/getting-started/running-release/)
+    [https://bpfman.io/v0.5.5/getting-started/running-release/](https://bpfman.io/v0.5.5/getting-started/running-release/)
 
 Jump to the [Setup and Building bpfman](./building-bpfman.md) section
 for help building from the latest code or building from a release branch.
@@ -31,7 +31,7 @@ links above for further information on how to test and interact with `bpfman`.
 ## Run as a Long Lived Process
 
 ```console
-export BPFMAN_REL=0.5.4
+export BPFMAN_REL=0.5.5
 mkdir -p $HOME/src/bpfman-${BPFMAN_REL}/; cd $HOME/src/bpfman-${BPFMAN_REL}/
 wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-linux-x86_64.tar.gz
 tar -xzvf bpfman-linux-x86_64.tar.gz; rm bpfman-linux-x86_64.tar.gz
@@ -78,7 +78,7 @@ kind create cluster --name=test-bpfman
 Next, deploy the bpfman CRDs:
 
 ```console
-export BPFMAN_REL=0.5.4
+export BPFMAN_REL=0.5.5
 kubectl apply -f  https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml
 ```
 

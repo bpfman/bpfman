@@ -60,12 +60,10 @@ const MAP_PREFIX: &str = "map_";
 const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
 
 pub(crate) mod directories {
-    // When release is made, the dispatcher images should be changed to the
-    // release tag, for example "v0.5.4". After release is made, the tag should
-    // be changed back to the "latest" release tag. Note also that these values should
-    // be read through the public interfaces provided by config::Config's RegistryConfig
-    pub(crate) const XDP_DISPATCHER_IMAGE: &str = "quay.io/bpfman/xdp-dispatcher:latest";
-    pub(crate) const TC_DISPATCHER_IMAGE: &str = "quay.io/bpfman/tc-dispatcher:latest";
+    // The dispatcher images don't change very often and are pinned to a SHA,
+    // but can be overwritten via the bpfman configuration file - config::Config's RegistryConfig
+    pub(crate) const XDP_DISPATCHER_IMAGE: &str = "quay.io/bpfman/xdp-dispatcher@sha256:61c34aa2df86d3069aa3c53569134466203c6227c5333f2e45c906cd02e72920";
+    pub(crate) const TC_DISPATCHER_IMAGE: &str = "quay.io/bpfman/tc-dispatcher@sha256:daa5b8d936caf3a8c94c19592cee7f55445d1e38addfd8d3af846873b8ffc831";
 
     // The following directories are used by bpfman. They should be created by bpfman service
     // via the bpfman.service settings. They will be manually created in the case where bpfman
