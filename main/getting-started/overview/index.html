@@ -463,6 +463,8 @@
       
         
       
+        
+      
     
     
     
@@ -640,6 +642,26 @@
   
   
     <li class="md-nav__item">
+      <a href="../operator-quick-start/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying the bpfman-operator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../example-bpf-k8s/" class="md-nav__link">
         
   
@@ -801,8 +823,6 @@
       
         
       
-        
-      
     
     
     
@@ -867,26 +887,6 @@
   
   <span class="md-ellipsis">
     Reviewing Guide
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../developer-guide/operator-quick-start/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Deploying the bpfman-operator
   </span>
   
 
@@ -1193,6 +1193,8 @@
       
         
       
+        
+      
     
     
     
@@ -1237,6 +1239,26 @@
   
   <span class="md-ellipsis">
     Daemonless
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/clusterVsNamespaceScoped/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman CRDs - Cluster vs Namespace Scoped
   </span>
   
 
@@ -1730,10 +1752,7 @@ Linux command prompt (see <a href="../cli-guide/">CLI Guide</a>).</p>
 <p>For applications written in other languages, bpfman provides <code>bpfman-rpc</code>, a Rust
 based bpfman RPC server binary.
 Non-Rust applications can send a RPC message to the server, which translate the
-RPC request into a bpfman library call.
-The long term solution is to leverage the Rust Foreign Function Interface (FFI)
-feature, which enables a different (foreign) programming language to call Rust
-functions, but that is not supported at the moment.</p>
+RPC request into a bpfman library call.</p>
 <p><img alt="bpfman library" src="../../img/bpfman_library.png" /></p>
 <h2 id="local-host-deployment">Local Host Deployment</h2>
 <p>When deploying <code>bpfman</code> on a local server, the <code>bpfman-rpc</code> binary runs as a systemd service that uses

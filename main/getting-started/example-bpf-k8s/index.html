@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../example-bpf-local/">
+        <link rel="prev" href="../operator-quick-start/">
       
       
         <link rel="next" href="../running-release/">
@@ -463,6 +463,8 @@
       
         
       
+        
+      
     
     
     
@@ -567,6 +569,26 @@
   
   <span class="md-ellipsis">
     Deploying Example eBPF Programs On Local Host
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operator-quick-start/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying the bpfman-operator
   </span>
   
 
@@ -834,8 +856,6 @@
       
         
       
-        
-      
     
     
     
@@ -900,26 +920,6 @@
   
   <span class="md-ellipsis">
     Reviewing Guide
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../developer-guide/operator-quick-start/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Deploying the bpfman-operator
   </span>
   
 
@@ -1226,6 +1226,8 @@
       
         
       
+        
+      
     
     
     
@@ -1270,6 +1272,26 @@
   
   <span class="md-ellipsis">
     Daemonless
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/clusterVsNamespaceScoped/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman CRDs - Cluster vs Namespace Scoped
   </span>
   
 
@@ -1789,7 +1811,7 @@
 <p>This section will describe launching eBPF enabled applications on a Kubernetes cluster.
 The approach is slightly different when running on a Kubernetes cluster.</p>
 <p>This section assumes there is already a Kubernetes cluster running and <code>bpfman</code> is running in the cluster.
-See <a href="../../developer-guide/operator-quick-start/">Deploying the bpfman-operator</a> for details on
+See <a href="../operator-quick-start/">Deploying the bpfman-operator</a> for details on
 deploying bpfman on a Kubernetes cluster, but the quickest solution is to run a Kubernetes KIND Cluster:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">cd bpfman/bpfman-operator/</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">make run-on-kind</span>
@@ -1803,6 +1825,7 @@ There is a CRD object for each eBPF program type bpfman supports.</p>
 <li>FexitProgram CRD: <a href="https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/samples/bpfman.io_v1alpha1_fexit_fexitprogram.yaml">Fexit Sample yaml</a></li>
 <li>KprobeProgram CRD: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-kprobe-counter/bytecode.yaml">Kprobe Examples yaml</a></li>
 <li>TcProgram CRD: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tc-counter/bytecode.yaml">TcProgram Examples yaml</a></li>
+<li>TcxProgram CRD: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tcx-counter/bytecode.yaml">TcxProgram Examples yaml</a></li>
 <li>TracepointProgram CRD: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tracepoint-counter/bytecode.yaml">Tracepoint Examples yaml</a></li>
 <li>UprobeProgram CRD: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-uprobe-counter/bytecode.yaml">Uprobe Examples yaml</a></li>
 <li>XdpProgram CRD: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-xdp-counter/bytecode.yaml">XdpProgram Examples yaml</a></li>

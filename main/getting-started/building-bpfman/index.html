@@ -463,6 +463,8 @@
       
         
       
+        
+      
     
     
     
@@ -659,9 +661,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#install-docker" class="md-nav__link">
+  <a href="#install-docker-or-podman" class="md-nav__link">
     <span class="md-ellipsis">
-      Install docker
+      Install docker or podman
     </span>
   </a>
   
@@ -768,6 +770,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#building-bpfman-operator" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building bpfman-operator
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -808,6 +819,26 @@
   
   <span class="md-ellipsis">
     Deploying Example eBPF Programs On Local Host
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operator-quick-start/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying the bpfman-operator
   </span>
   
 
@@ -984,8 +1015,6 @@
       
         
       
-        
-      
     
     
     
@@ -1050,26 +1079,6 @@
   
   <span class="md-ellipsis">
     Reviewing Guide
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../developer-guide/operator-quick-start/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Deploying the bpfman-operator
   </span>
   
 
@@ -1376,6 +1385,8 @@
       
         
       
+        
+      
     
     
     
@@ -1420,6 +1431,26 @@
   
   <span class="md-ellipsis">
     Daemonless
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/clusterVsNamespaceScoped/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman CRDs - Cluster vs Namespace Scoped
   </span>
   
 
@@ -1958,9 +1989,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#install-docker" class="md-nav__link">
+  <a href="#install-docker-or-podman" class="md-nav__link">
     <span class="md-ellipsis">
-      Install docker
+      Install docker or podman
     </span>
   </a>
   
@@ -2067,6 +2098,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#building-bpfman-operator" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building bpfman-operator
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2119,10 +2159,8 @@ features bpfman relies on to work and which kernel the feature was first introdu
 <li><strong>Relaxed CAP_BPF Requirement:</strong> Prior to Kernel 5.19, all eBPF system calls required CAP_BPF.
   This required userspace programs that wanted to access eBPF maps to have the CAP_BPF Linux capability.
   With the kernel 5.19 change, CAP_BPF is only required for load and unload requests.</li>
-<li><strong>TCX:</strong> TCX support was added in Kernel 6.6 and is expected to be added to
-  bpfman in an upcoming release. TCX has performance improvements over TC and
-  adds support in the kernel for multiple TCX programs to run on a given TC hook
-  point.</li>
+<li><strong>TCX:</strong> TCX has performance improvements over TC and adds support in the kernel for multiple TCX
+  programs to run on a given TC hook point. TCX support was added in Kernel 6.6.</li>
 </ul>
 <p>bpfman tested on older kernel versions:</p>
 <ul>
@@ -2211,9 +2249,9 @@ installation instructions.</p>
 <p><code>apt</code> based OS:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="go">sudo apt install perl</span>
 </code></pre></div>
-<h3 id="install-docker">Install docker</h3>
+<h3 id="install-docker-or-podman">Install docker or podman</h3>
 <p>To build the <code>bpfman-agent</code> and <code>bpfman-operator</code> using the provided Makefile and the
-<code>make build-images</code> command, <code>docker</code> needs to be installed.
+<code>make build-images</code> command, <code>docker</code> or <code>podman</code> needs to be installed.
 There are several existing guides:</p>
 <ul>
 <li>Fedora: <a href="https://developer.fedoraproject.org/tools/docker/docker-installation.html">https://developer.fedoraproject.org/tools/docker/docker-installation.html</a></li>
@@ -2356,6 +2394,10 @@ manpage subcommand generation.
 So use <code>man bpfman load-file</code>, <code>man bpfman load-image</code>, <code>man bpfman load-image-xdp</code>,
 etc. to display the subcommand manpage files.</p>
 </div>
+<h2 id="building-bpfman-operator">Building bpfman-operator</h2>
+<p>Building and deploying bpfman-operator is covered in it's own section.
+See <a href="../example-bpf-k8s/">Deploying Example eBPF Programs On Kubernetes</a> and
+<a href="../../developer-guide/develop-operator/">Developing the bpfman-operator</a>.</p>
 
 
 
