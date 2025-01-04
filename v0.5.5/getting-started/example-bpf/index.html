@@ -1,0 +1,2216 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../cli-guide/">
+      
+      
+        <link rel="next" href="../troubleshooting/">
+      
+      
+      <link rel="icon" href="../../img/icon/color/bpfman-icon-color.svg">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.11">
+    
+    
+      
+        <title>Example eBPF Programs - bpfman</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.fad675c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.356b1318.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="indigo">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#example-ebpf-programs" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="bpfman" class="md-header__button md-logo" aria-label="bpfman" data-md-component="logo">
+      
+  <img src="../../img/icon/color/bpfman-icon-color.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            bpfman
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Example eBPF Programs
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3 3.19.09m3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95 2.06.05m-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5c-.84 0-1.65.15-2.39.42L12 2M3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29L3.34 7m.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14L3.36 17M20.65 7l-1.77 3.79a7.023 7.023 0 0 0-2.38-4.15l4.15.36m-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29L20.64 17M12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44L12 22Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bpfman/bpfman" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+    
+  
+  Introduction
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../quick-start/" class="md-tabs__link">
+        
+  
+    
+  
+  Quick Start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../overview/" class="md-tabs__link">
+          
+  
+    
+  
+  User Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../governance/CONTRIBUTING/" class="md-tabs__link">
+          
+  
+    
+  
+  Developer Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../design/daemonless/" class="md-tabs__link">
+          
+  
+    
+  
+  Design
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/" class="md-tabs__link">
+          
+  
+    
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../governance/MEETINGS/" class="md-tabs__link">
+          
+  
+    
+  
+  Community
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="bpfman" class="md-nav__button md-logo" aria-label="bpfman" data-md-component="logo">
+      
+  <img src="../../img/icon/color/bpfman-icon-color.svg" alt="logo">
+
+    </a>
+    bpfman
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bpfman/bpfman" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick-start/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    User Documentation
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            User Documentation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../building-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Setup and Building
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../launching-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Launching bpfman
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../example-bpf-local/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying Example eBPF Programs On Local Host
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../operator-quick-start/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying the bpfman-operator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../example-bpf-k8s/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying Example eBPF Programs On Kubernetes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../running-release/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Run bpfman From Release Image
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../running-rpm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Run bpfman From RPM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli-guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CLI Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Example eBPF Programs
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Example eBPF Programs
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example-code-breakdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Code Breakdown
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example Code Breakdown">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#examples-in-local-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples in Local Deployment
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples-in-kubernetes-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples in Kubernetes Deployment
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-example-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building Example Code
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building Example Code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#building-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building Locally
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building Locally">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-ebpf-bytecode-container-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building eBPF Bytecode Container Image
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running Examples
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../troubleshooting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Troubleshooting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Developer Documentation
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Developer Documentation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/CONTRIBUTING/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/REVIEWING/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Reviewing Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/develop-operator/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Developing the bpfman-operator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/api-spec/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kubernetes CRD API-Reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/shipping-bytecode/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    eBPF Bytecode Image Specifications
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/image-build/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman Container Images
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/documentation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Documentation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/linux-capabilities/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Linux Capabilities
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/observability/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Observability
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/logging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Logging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/testing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Testing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/debugging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Debugging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/release/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Releasing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/xdp-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    XDP Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../developer-guide/k8s-selinux-distros/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running the Examples as Non-Root on SELinux Distributions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/daemonless/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Daemonless
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/clusterVsNamespaceScoped/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman CRDs - Cluster vs Namespace Scoped
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../blog/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Blog
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Blog
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Archive
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            Archive
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/archive/2024/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2024
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/archive/2023/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2023
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Categories
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            Categories
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/category/community-meeting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Community Meeting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/category/2024/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2024
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Community
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Community
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/MEETINGS/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Meetings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/GOVERNANCE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Governance
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Code of Conduct
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/MAINTAINERS/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Maintainers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/SECURITY/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Security
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example-code-breakdown" class="md-nav__link">
+    <span class="md-ellipsis">
+      Example Code Breakdown
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Example Code Breakdown">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#examples-in-local-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples in Local Deployment
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples-in-kubernetes-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples in Kubernetes Deployment
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-example-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building Example Code
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building Example Code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#building-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building Locally
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building Locally">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-ebpf-bytecode-container-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building eBPF Bytecode Container Image
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running Examples
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="example-ebpf-programs">Example eBPF Programs</h1>
+<p>Example applications that use the <code>bpfman-go</code> bindings can be found in the
+<a href="https://github.com/bpfman/bpfman/tree/main/examples/">bpfman/examples/</a> directory.
+Current examples include:</p>
+<ul>
+<li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-app-counter">bpfman/examples/go-app-counter/</a></li>
+<li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-kprobe-counter">bpfman/examples/go-kprobe-counter/</a></li>
+<li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-target">bpfman/examples/go-target/</a></li>
+<li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-tc-counter">bpfman/examples/go-tc-counter/</a></li>
+<li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-tcx-counter">bpfman/examples/go-tcx-counter/</a></li>
+<li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter">bpfman/examples/go-tracepoint-counter/</a></li>
+<li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-uprobe-counter">bpfman/examples/go-uprobe-counter/</a></li>
+<li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-uretprobe-counter">bpfman/examples/go-uretprobe-counter/</a></li>
+<li><a href="https://github.com/bpfman/bpfman/tree/main/examples/go-xdp-counter">bpfman/examples/go-xdp-counter/</a></li>
+</ul>
+<h2 id="example-code-breakdown">Example Code Breakdown</h2>
+<p>These examples and the associated documentation are intended to provide the basics on how to deploy
+and manage an eBPF program using bpfman. Each of the examples contains an eBPF Program(s) written in C
+(<a href="https://github.com/bpfman/bpfman/tree/main/examples/go-app-counter/bpf/app_counter.c">app_counter.c</a>,
+<a href="https://github.com/bpfman/bpfman/tree/main/examples/go-kprobe-counter/bpf/kprobe_counter.c">kprobe_counter.c</a>,
+<a href="https://github.com/bpfman/bpfman/tree/main/examples/go-tc-counter/bpf/tc_counter.c">tc_counter.c</a>,
+<a href="https://github.com/bpfman/bpfman/tree/main/examples/go-tcx-counter/bpf/tcx_counter.c">tcx_counter.c</a>,
+<a href="https://github.com/bpfman/bpfman/tree/main/examples/go-tracepoint-counter/bpf/tracepoint_counter.c">tracepoint_counter.c</a>,
+<a href="https://github.com/bpfman/bpfman/tree/main/examples/go-uprobe-counter/bpf/uprobe_counter.c">uprobe_counter.c</a>,
+<a href="https://github.com/bpfman/bpfman/tree/main/examples/go-uretprobe-counter/bpf/uretprobe_counter.c">uretprobe_counter.c</a>,
+and
+<a href="https://github.com/bpfman/bpfman/tree/main/examples/go-xdp-counter/bpf/xdp_counter.c">xdp_counter.c</a>)
+that is compiled into eBPF bytecode for each supported architecture (bpf_arm64_bpfel.o, bpf_powerpc_bpfel.o,
+bpf_s390_bpfeb.o and bpf_x86_bpfel.o).
+Each time the eBPF program is called, it increments the packet and byte counts in a map that is accessible
+by the userspace portion.</p>
+<p>Each of the examples also have a userspace portion written in GO.
+The userspace code is leveraging the <a href="https://github.com/cilium/ebpf">cilium/ebpf library</a>
+to manage the maps shared with the eBPF program.
+The example eBPF programs are very similar in functionality, and only vary where in the Linux networking stack
+they are inserted.
+The userspace program then polls the eBPF map every 3 seconds and logs the current counts.</p>
+<p>The examples were written to either run locally on a host or run in a container in a Kubernetes
+deployment.
+The userspace code flow is slightly different depending on the deployment, so input parameters
+dictate the deployment method.</p>
+<h3 id="examples-in-local-deployment">Examples in Local Deployment</h3>
+<p>When run locally, the userspace program makes gRPC calls to <code>bpfman-rpc</code> requesting <code>bpfman</code> to load
+the eBPF program at the requested hook point (TC hook point, Tracepoint, XDP hook point, etc).
+Data sent in the RPC request is either defaulted or passed in via input parameters.
+To make the examples as simple as possible to run, all input data is defaulted (except the interface
+TC and XDP programs need to attach to) but can be overwritten if desired. All example programs have
+the following common parameters (kprobe does not have any command specific parameters):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">cd bpfman/examples/go-kprobe-counter/</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="go">./go-kprobe-counter --help</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">Usage of ./go-kprobe-counter:</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="go">  -crd</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="go">      Flag to indicate all attributes should be pulled from the BpfProgram CRD.</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="go">      Used in Kubernetes deployments and is mutually exclusive with all other</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="go">      parameters.</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="go">  -file string</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="go">      File path of bytecode source. &quot;file&quot; and &quot;image&quot;/&quot;id&quot; are mutually exclusive.</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="go">      Example: -file /home/$USER/src/bpfman/examples/go-kprobe-counter/bpf_x86_bpfel.o</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="go">  -id uint</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="go">      Optional Program ID of bytecode that has already been loaded. &quot;id&quot; and</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="go">      &quot;file&quot;/&quot;image&quot; are mutually exclusive.</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="go">      Example: -id 28341</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="go">  -image string</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="go">      Image repository URL of bytecode source. &quot;image&quot; and &quot;file&quot;/&quot;id&quot; are</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="go">      mutually exclusive.</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="go">      Example: -image quay.io/bpfman-bytecode/go-kprobe-counter:latest</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="go">  -map_owner_id int</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="go">      Program Id of loaded eBPF program this eBPF program will share a map with.</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="go">      Example: -map_owner_id 9785</span>
+</code></pre></div>
+<p>The location of the eBPF bytecode can be provided four different ways:</p>
+<ul>
+<li>Defaulted: If nothing is passed in, the code scans the local directory for
+  a <code>bpf_x86_bpfel.o</code> file. If found, that is used. If not, it errors out.</li>
+<li><strong>file</strong>: Fully qualified path of the bytecode object file.</li>
+<li><strong>image</strong>: Image repository URL of bytecode source.</li>
+<li><strong>id</strong>: Kernel program Id of a bytecode that has already been loaded. This
+  program could have been loaded using <code>bpftool</code>, or <code>bpfman</code>. </li>
+</ul>
+<p>If two userspace programs need to share the same map, <strong>map_owner_id</strong> is the Program
+ID of the first loaded program that has the map the second program wants to share.</p>
+<p>The examples require <code>sudo</code> to run because they require access the Unix socket <code>bpfman-rpc</code>
+is listening on.
+<a href="../example-bpf-local/">Deploying Example eBPF Programs On Local Host</a> steps through launching
+<code>bpfman</code> locally and running some of the examples. </p>
+<h3 id="examples-in-kubernetes-deployment">Examples in Kubernetes Deployment</h3>
+<p>When run in a Kubernetes deployment, all the input data is passed to Kubernetes through yaml files.
+To indicate to the userspace code that it is in a Kubernetes deployment and not to try to load
+the eBPF bytecode, the example is launched in the container with the <strong>crd</strong> flag.
+Example: <code>./go-kprobe-counter -crd</code></p>
+<p>For these examples, the bytecode is loaded via one yaml file which creates a *Program CRD Object
+(KprobeProgram, TcProgram, TracepointProgram, etc.) and the userspace pod is loaded via another yaml
+file.
+In a more realistic deployment, the userspace pod may have the logic to send the *Program CRD Object
+create request to the KubeAPI Server, but the two yaml files are load manually for simplicity in the
+example code.
+The <a href="https://github.com/bpfman/bpfman/tree/main/examples">examples directory</a> contain yaml files to
+load each example, leveraging <a href="https://kustomize.io/">Kustomize</a> to modify the yaml to load the latest
+images from Quay.io, to load custom images or released based images.
+It is recommended to use the commands built into the Makefile, which run kustomize, to apply and remove
+the yaml files to a Kubernetes cluster.
+Use <code>make help</code> to see all the make options.
+For example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">cd bpfman/examples/</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="gp"># </span>Deploy<span class="w"> </span><span class="k">then</span><span class="w"> </span>undeploy<span class="w"> </span>all<span class="w"> </span>the<span class="w"> </span>examples
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go">make deploy</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="go">make undeploy</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="go">OR</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="gp"># </span>Deploy<span class="w"> </span><span class="k">then</span><span class="w"> </span>undeploy<span class="w"> </span>just<span class="w"> </span>the<span class="w"> </span>TC<span class="w"> </span>example
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="go">make deploy-tc</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="go">make undeploy-tc</span>
+</code></pre></div>
+<p><a href="../example-bpf-k8s/">Deploying Example eBPF Programs On Kubernetes</a> steps through deploying
+bpfman to multiple nodes in a Kubernetes cluster and loading the examples.</p>
+<h2 id="building-example-code">Building Example Code</h2>
+<p>All the examples can be built locally as well as packaged in a container for Kubernetes
+deployment.</p>
+<h3 id="building-locally">Building Locally</h3>
+<p>To build directly on a system, make sure all the prerequisites are met, then build.</p>
+<h4 id="prerequisites">Prerequisites</h4>
+<p><em>This assumes bpfman is already installed and running on the system.
+If not, see <a href="../building-bpfman/">Setup and Building bpfman</a>.</em></p>
+<ol>
+<li>All <a href="https://github.com/cilium/ebpf#requirements">requirements defined by the <code>cilium/ebpf</code> package</a></li>
+<li>
+<p>libbpf development package to get the required eBPF c headers</p>
+<p><strong>Fedora:</strong> <code>sudo dnf install libbpf-devel</code></p>
+<p><strong>Ubuntu:</strong> <code>sudo apt-get install libbpf-dev</code></p>
+</li>
+</ol>
+<h4 id="build">Build</h4>
+<p>To build all the C based eBPF counter bytecode, run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">cd bpfman/examples/</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">make generate</span>
+</code></pre></div>
+<p>To build all the Userspace GO Client examples, run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">cd bpfman/examples/</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">make build</span>
+</code></pre></div>
+<p>To build only a single example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">cd bpfman/examples/go-tracepoint-counter/</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">go generate</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">go build</span>
+</code></pre></div>
+<p><em>Other program types are the same.</em></p>
+<h3 id="building-ebpf-bytecode-container-image">Building eBPF Bytecode Container Image</h3>
+<p><a href="../../developer-guide/shipping-bytecode/">eBPF Bytecode Image Specifications</a> provides detailed
+instructions on building and shipping bytecode in a container image.
+Pre-built eBPF container images for the examples can be loaded from:</p>
+<ul>
+<li><code>quay.io/bpfman-bytecode/go-app-counter:latest</code></li>
+<li><code>quay.io/bpfman-bytecode/go-kprobe-counter:latest</code></li>
+<li><code>quay.io/bpfman-bytecode/go-tc-counter:latest</code></li>
+<li><code>quay.io/bpfman-bytecode/go-tcx-counter:latest</code></li>
+<li><code>quay.io/bpfman-bytecode/go-tracepoint-counter:latest</code></li>
+<li><code>quay.io/bpfman-bytecode/go-uprobe-counter:latest</code></li>
+<li><code>quay.io/bpfman-bytecode/go-uretprobe-counter:latest</code></li>
+<li><code>quay.io/bpfman-bytecode/go-xdp-counter:latest</code></li>
+</ul>
+<p>To build the example eBPF bytecode container images, first generate the bytecode (the <code>generate</code>
+commands require the <a href="#prerequisites">Prerequisites</a> described above in the
+<a href="#building-locally">Building Locally</a> section).</p>
+<p>To generate the bytecode for all the examples:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">cd bpfman/examples/</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go">make generate</span>
+</code></pre></div>
+<p>OR to generate the bytecode for a single example (XDP in this case):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">cd bpfman/examples/go-xdp-counter/</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="go">go generate</span>
+</code></pre></div>
+<p>The preferred method for building the container image is to use the <code>bpfman image build</code>
+command.
+See <a href="../cli-guide/#bpfman-image-build">bpfman image build</a> in the CLI Guide for more details.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">cd bpfman/examples/go-xdp-counter/</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">bpfman image build -f ../../Containerfile.bytecode -t quay.io/$QUAY_USER/go-xdp-counter-bytecode:test -b bpf_x86_bpfel.o</span>
+</code></pre></div>
+<p>The examples <a href="https://github.com/bpfman/bpfman/blob/main/examples/Makefile">Makefile</a> has
+commands to build all the example images if needed.
+See <a href="../../developer-guide/image-build/#locally-build-example-container-images">Locally Build Example Container Images</a>
+for more details.</p>
+<p><code>bpfman</code> currently does not provide a method for pre-loading bytecode images
+(see <a href="https://github.com/bpfman/bpfman/issues/603">issue #603</a>), so push the bytecode image to an image
+repository.</p>
+<p>For example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">docker login quay.io</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="go">docker push quay.io/$QUAY_USER/go-xdp-counter-bytecode:test</span>
+</code></pre></div>
+<h2 id="running-examples">Running Examples</h2>
+<p>Below are some examples of how to run the bpfman examples on a host where bpfman is already installed.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">cd bpfman/examples/go-xdp-counter/</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">sudo ./go-xdp-counter -iface &lt;INTERNET INTERFACE NAME&gt;</span>
+</code></pre></div>
+<p>or (<strong>NOTE:</strong> TC programs also require a direction, ingress or egress)</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="go">cd bpfman/examples/go-tc-counter/</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="go">sudo ./go-tc-counter -direction ingress -iface &lt;INTERNET INTERFACE NAME&gt;</span>
+</code></pre></div>
+<p>or</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="go">cd bpfman/examples/go-tracepoint-counter/</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="go">sudo ./go-tracepoint-counter</span>
+</code></pre></div>
+<p>bpfman can load eBPF bytecode from a container image built following the spec described in
+<a href="../../developer-guide/shipping-bytecode/">eBPF Bytecode Image Specifications</a>.</p>
+<p>To use the container image, pass the URL to the userspace program:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="go">sudo ./go-xdp-counter -iface eno3 -image quay.io/bpfman-bytecode/go-xdp-counter:latest</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="go">2022/12/02 16:28:32 Using Input: Interface=eno3 Priority=50 Source=quay.io/bpfman-bytecode/go-xdp-counter:latest</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="go">2022/12/02 16:28:34 Program registered with id 6223</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="go">2022/12/02 16:28:37 4 packets received</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="go">2022/12/02 16:28:37 580 bytes received</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="go">2022/12/02 16:28:40 4 packets received</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="go">2022/12/02 16:28:40 580 bytes received</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="go">^C2022/12/02 16:28:42 Exiting...</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="go">2022/12/02 16:28:42 Unloading Program: 6223</span>
+</code></pre></div>
+<p>Or to run with the privately built bytecode container image:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="go">sudo ./go-xdp-counter -iface eno3 -image quay.io/$QUAY_USER/go-xdp-counter-bytecode:test</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="go">2022/12/02 16:38:44 Using Input: Interface=eno3 Priority=50 Source=quay.io/$QUAY_USER/go-xdp-counter-bytecode:test</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="go">2022/12/02 16:38:45 Program registered with id 6225</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="go">2022/12/02 16:38:48 4 packets received</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="go">2022/12/02 16:38:48 580 bytes received</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="go">2022/12/02 16:38:51 4 packets received</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="go">2022/12/02 16:38:51 580 bytes received</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="go">^C2022/12/02 16:38:51 Exiting...</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="go">2022/12/02 16:38:51 Unloading Program: 6225</span>
+</code></pre></div>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <!--
+  Copyright (c) 2016-2024 Martin Donath <martin.donath@squidfunk.com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to
+  deal in the Software without restriction, including without limitation the
+  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+  sell copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+  IN THE SOFTWARE.
+-->
+
+<!-- Copyright and theme information -->
+<div class="md-copyright">
+    
+      <div class="md-copyright__highlight">
+        Copyright &copy; 2021-2024 The bpfman contributors.<br>The Linux Foundation® (TLF) has registered trademarks and uses trademarks. For a list of TLF trademarks, see <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage</a>.
+      </div>
+    
+    
+      Made with
+      <a
+        href="https://squidfunk.github.io/mkdocs-material/"
+        target="_blank" rel="noopener"
+      >
+        Material for MkDocs
+      </a>
+    
+  </div>
+  <div class="md-copyright__netlify">
+    <a href="https://www.netlify.com"> <img src="https://www.netlify.com/v3/img/components/netlify-color-accent.svg" alt="Deploys by Netlify" /> </a>
+  </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.6c14ae12.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,2359 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../../01/19/community-meeting-january-11-and-18-2024/">
+      
+      
+        <link rel="next" href="../../27/bpfmans-integration-with-the-af_xdp-device-plugin-and-cni-for-kubernetes/">
+      
+      
+      <link rel="icon" href="../../../../../img/icon/color/bpfman-icon-color.svg">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.11">
+    
+    
+      
+        <title>Technical Challenges for Attaching eBPF Programs in Containers - bpfman</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.fad675c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.356b1318.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="indigo">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#technical-challenges-for-attaching-ebpf-programs-in-containers" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../../../.." title="bpfman" class="md-header__button md-logo" aria-label="bpfman" data-md-component="logo">
+      
+  <img src="../../../../../img/icon/color/bpfman-icon-color.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            bpfman
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Technical Challenges for Attaching eBPF Programs in Containers
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3 3.19.09m3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95 2.06.05m-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5c-.84 0-1.65.15-2.39.42L12 2M3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29L3.34 7m.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14L3.36 17M20.65 7l-1.77 3.79a7.023 7.023 0 0 0-2.38-4.15l4.15.36m-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29L20.64 17M12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44L12 22Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bpfman/bpfman" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../../.." class="md-tabs__link">
+        
+  
+    
+  
+  Introduction
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../../../quick-start/" class="md-tabs__link">
+        
+  
+    
+  
+  Quick Start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../getting-started/overview/" class="md-tabs__link">
+          
+  
+    
+  
+  User Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../governance/CONTRIBUTING/" class="md-tabs__link">
+          
+  
+    
+  
+  Developer Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../design/daemonless/" class="md-tabs__link">
+          
+  
+    
+  
+  Design
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../../../" class="md-tabs__link">
+          
+  
+    
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../../../governance/MEETINGS/" class="md-tabs__link">
+          
+  
+    
+  
+  Community
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" hidden>
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../../.." title="bpfman" class="md-nav__button md-logo" aria-label="bpfman" data-md-component="logo">
+      
+  <img src="../../../../../img/icon/color/bpfman-icon-color.svg" alt="logo">
+
+    </a>
+    bpfman
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bpfman/bpfman" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../quick-start/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    User Documentation
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            User Documentation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../getting-started/overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../getting-started/building-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Setup and Building
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../getting-started/launching-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Launching bpfman
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../getting-started/example-bpf-local/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying Example eBPF Programs On Local Host
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../getting-started/operator-quick-start/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying the bpfman-operator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../getting-started/example-bpf-k8s/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying Example eBPF Programs On Kubernetes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../getting-started/running-release/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Run bpfman From Release Image
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../getting-started/running-rpm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Run bpfman From RPM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../getting-started/cli-guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CLI Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../getting-started/example-bpf/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Example eBPF Programs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../getting-started/troubleshooting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Troubleshooting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Developer Documentation
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Developer Documentation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../governance/CONTRIBUTING/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../governance/REVIEWING/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Reviewing Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../developer-guide/develop-operator/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Developing the bpfman-operator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../developer-guide/api-spec/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kubernetes CRD API-Reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../developer-guide/shipping-bytecode/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    eBPF Bytecode Image Specifications
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../developer-guide/image-build/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman Container Images
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../developer-guide/documentation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Documentation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../developer-guide/linux-capabilities/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Linux Capabilities
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../developer-guide/observability/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Observability
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../developer-guide/logging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Logging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../developer-guide/configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../developer-guide/testing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Testing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../developer-guide/debugging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Debugging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../developer-guide/release/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Releasing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../developer-guide/xdp-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    XDP Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../developer-guide/k8s-selinux-distros/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running the Examples as Non-Root on SELinux Distributions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../design/daemonless/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Daemonless
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../design/clusterVsNamespaceScoped/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman CRDs - Cluster vs Namespace Scoped
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../../" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Blog
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Blog
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Archive
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            Archive
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2024/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2024
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../archive/2023/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2023
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Categories
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            Categories
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/community-meeting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Community Meeting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../category/2024/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2024
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Community
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Community
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../governance/MEETINGS/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Meetings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../governance/GOVERNANCE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Governance
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../governance/CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Code of Conduct
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../governance/MAINTAINERS/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Maintainers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../../governance/SECURITY/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Security
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+                
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      Introduction
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#attaching-uprobes-in-containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      Attaching uprobes in containers
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Attaching uprobes in containers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-mount-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      The Mount Namespace
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#returning-to-the-bpfman-mount-namespace" class="md-nav__link">
+    <span class="md-ellipsis">
+      Returning to the bpfman Mount Namespace
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-setns-from-a-multi-threaded-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running setns From a Multi-threaded Process
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#finding-the-pid" class="md-nav__link">
+    <span class="md-ellipsis">
+      Finding the PID
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Finding the PID">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#finding-a-host-container-pid-on-a-linux-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      Finding a Host Container PID on a Linux Server
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Finding a Host Container PID on a Linux Server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tldr" class="md-nav__link">
+    <span class="md-ellipsis">
+      tl;dr
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#overview-of-pid-namespaces-and-container-host-pids" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview of PID namespaces and Container Host PIDs
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-bpfman-agent-finds-the-pid-on-kubernetes" class="md-nav__link">
+    <span class="md-ellipsis">
+      How bpfman Agent Finds the PID on Kubernetes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nested-containers-with-kind" class="md-nav__link">
+    <span class="md-ellipsis">
+      Nested Containers with kind
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#moving-forward" class="md-nav__link">
+    <span class="md-ellipsis">
+      Moving Forward
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+  <div class="md-content md-content--post" data-md-component="content">
+    <div class="md-sidebar md-sidebar--post" data-md-component="sidebar" data-md-type="navigation">
+      <div class="md-sidebar__scrollwrap">
+        <div class="md-sidebar__inner md-post">
+          <nav class="md-nav md-nav--primary">
+            <div class="md-post__back">
+              <div class="md-nav__title md-nav__container">
+                <a href="../../../../" class="md-nav__link">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+                  <span class="md-ellipsis">
+                    Back to index
+                  </span>
+                </a>
+              </div>
+            </div>
+            
+              <div class="md-post__authors md-typeset">
+                
+                  <div class="md-profile md-post__profile">
+                    <span class="md-author md-author--long">
+                      <img src="https://github.com/anfredette.png" alt="Andre Fredette">
+                    </span>
+                    <span class="md-profile__description">
+                      <strong>Andre Fredette</strong><br>
+                      Senior Principal Software Engineer at Red Hat. Maintainer on bpfman project.
+                    </span>
+                  </div>
+                
+              </div>
+            
+            <ul class="md-post__meta md-nav__list">
+              <li class="md-nav__item md-nav__item--section">
+                <div class="md-post__title">
+                  <span class="md-ellipsis">
+                    Metadata
+                  </span>
+                </div>
+                <nav class="md-nav">
+                  <ul class="md-nav__list">
+                    <li class="md-nav__item">
+                      <div class="md-nav__link">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5v-5Z"/></svg>
+                        <time datetime="2024-02-26 00:00:00" class="md-ellipsis">February 26, 2024</time>
+                      </div>
+                    </li>
+                    
+                    
+                    
+                      
+                      <li class="md-nav__item">
+                        <div class="md-nav__link">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7h1.5Z"/></svg>
+                          <span class="md-ellipsis">
+                            
+                              14 min read
+                            
+                          </span>
+                        </div>
+                      </li>
+                    
+                  </ul>
+                </nav>
+              </li>
+            </ul>
+          </nav>
+          
+        </div>
+      </div>
+    </div>
+    <article class="md-content__inner md-typeset">
+      
+        
+
+  
+  
+
+
+<h1 id="technical-challenges-for-attaching-ebpf-programs-in-containers">Technical Challenges for Attaching eBPF Programs in Containers</h1>
+<p>We recently added support for attaching uprobes inside containers. The purpose
+of this blog is to give a brief overview of the feature, to document the
+technical challenges encountered, and describe our solutions for those
+challenges. In particular, how to attach an eBPF program inside of a container,
+and how to find the host Process ID (PID) on the node for the container?</p>
+<p>The solutions seem relatively straightforward now that they are done, but we
+found limited information elsewhere, so we thought it would be helpful to
+document them here.</p>
+<p>The uprobe implementation will be used as the example in this blog, but the
+concepts can (and will eventually) be applied to other program types.</p>
+<!-- more -->
+
+<h2 id="introduction">Introduction</h2>
+<p>A "uprobe" (user probe) is a type of eBPF program that can be attached to a
+specific location in a user-space application. This allows developers and system
+administrators to dynamically instrument a user-space binary to inspect its
+behavior, measure performance, or debug issues without modifying the
+application's source code or binary. When the program execution reaches the
+location to which the uprobe is attached, the eBPF program associated with the
+uprobe is executed.</p>
+<p>bpfman support for uprobes has existed for some time.  We recently extended this
+support to allow users to attach uprobes inside of containers both in the
+general case of a container running on a Linux server and also for containers
+running in a Kubernetes cluster.</p>
+<p>The following is a bpfman command line example for loading a uprobe inside a
+container:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>bpfman<span class="w"> </span>load<span class="w"> </span>image<span class="w"> </span>--image-url<span class="w"> </span>quay.io/bpfman-bytecode/uprobe:latest<span class="w"> </span>uprobe<span class="w"> </span>--fn-name<span class="w"> </span><span class="s2">&quot;malloc&quot;</span><span class="w"> </span>--target<span class="w"> </span><span class="s2">&quot;libc&quot;</span><span class="w"> </span>--container-pid<span class="w"> </span><span class="m">102745</span>
+</code></pre></div>
+<p>The above command instructs bpfman to attach a uprobe to the <code>malloc</code> function
+in the <code>libc</code> library for the container with PID 102745. The main addition here
+is the ability to specify a <code>container-pid</code>, which is the PID of the container
+as it is known to the host server.</p>
+<p>The term "target" as used in the above bpfman command (and the CRD below)
+describes the library or executable that we want to attach the uprobe to.  The
+fn-name (the name of the function within that target) and/or an explicit
+"offset" can be used to identify a specific offset from the beginning of the
+target.  We also use the term "target" more generally to describe the intended
+location of the uprobe.</p>
+<p>For Kubernetes, the CRD has been extended to include a "container selector" to
+describe one or more containers as shown in the following example.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bpfman.io/v1alpha1</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">UprobeProgram</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="nt">metadata</span><span class="p">:</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nt">app.kubernetes.io/name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uprobeprogram</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uprobe-example-containers</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="nt">spec</span><span class="p">:</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">  </span><span class="c1"># Select all nodes</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">  </span><span class="nt">nodeselector</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">  </span><span class="nt">bpffunctionname</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my_uprobe</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">  </span><span class="nt">func_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">malloc</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">  </span><span class="c1"># offset: 0 # optional offset w/in function</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">libc</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">  </span><span class="nt">retprobe</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span><span class="c1"># pid: 0 # optional pid to execute uprobe for</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">  </span><span class="nt">bytecode</span><span class="p">:</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">    </span><span class="nt">image</span><span class="p">:</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">quay.io/bpfman-bytecode/uprobe:latest</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">  </span><span class="nt">containers</span><span class="p">:</span><span class="w">      </span><span class="l l-Scalar l-Scalar-Plain">&lt;=== New section for specifying containers to attach uprobe to</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">    </span><span class="l l-Scalar l-Scalar-Plain">namespace</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bpfman</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">    </span><span class="l l-Scalar l-Scalar-Plain">pods</span><span class="p p-Indicator">:</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">      </span><span class="nt">matchLabels</span><span class="p">:</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bpfman-daemon</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="w">  </span><span class="w w-Error">  </span><span class="nt">containernames</span><span class="p">:</span>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bpfman</span>
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bpfman-agent</span>
+</code></pre></div>
+<p>In the Kubernetes case, the container selector (<code>containers</code>) is used to
+identify one or more containers in which to attach the uprobe. If <code>containers</code>
+identifies any containers on a given node, the bpfman agent on that node will
+determine their host PIDs and make the calls to bpfman to attach the uprobes.</p>
+<h2 id="attaching-uprobes-in-containers">Attaching uprobes in containers</h2>
+<p>A Linux "mount namespace" is a feature that isolates the mount points seen by a
+group of processes. This means that processes in different mount namespaces can
+have different views of the filesystem.  A container typically has its own mount
+namespace that is isolated both from those of other containers and its parent.
+Because of this, files that are visible in one container are likely not visible
+to other containers or even to the parent host (at least not directly). To
+attach a uprobe to a file in a container, we need to have access to that
+container's mount namespace so we can see the file to which the uprobe needs to
+be attached.</p>
+<p>From a high level, attaching a uprobe to an executable or library in a container
+is relatively straight forward. <code>bpfman</code> needs to change to the mount namespace
+of the container, attach the uprobe to the target in that container, and then
+return to our own mount namespace so that we can save the needed state and
+continue processing other requests.</p>
+<p>The main challenges are:</p>
+<ol>
+<li>Changing to the mount namespace of the target container.</li>
+<li>Returning to the bpfman mount namespace.</li>
+<li><code>setns</code> (at least for the mount namespace) can't be called from a
+   multi-threaded application, and bpfman is currently multithreaded.</li>
+<li>How to find the right PID for the target container.</li>
+</ol>
+<h3 id="the-mount-namespace">The Mount Namespace</h3>
+<p>To enter the container namespace, <code>bpfman</code> uses the
+<a href="https://docs.rs/nix/latest/nix/sched/fn.setns.html">sched::setns</a> function from
+the Rust <a href="https://crates.io/crates/nix">nix</a> crate. The <code>setns</code> function
+requires the file descriptor for the mount namespace of the target container.</p>
+<p>For a given container PID, the namespace file needed by the <code>setns</code> function can
+be found in the <code>/proc/&lt;PID&gt;/ns/</code> directory. An example listing for the PID
+102745 directory is shown below:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sudo<span class="w"> </span>ls<span class="w"> </span>-l<span class="w"> </span>/proc/102745/ns/
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>total<span class="w"> </span><span class="m">0</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>cgroup<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;cgroup:[4026531835]&#39;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>ipc<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;ipc:[4026532858]&#39;</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>mnt<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;mnt:[4026532856]&#39;</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:07<span class="w"> </span>net<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;net:[4026532860]&#39;</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>pid<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;pid:[4026532859]&#39;</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>pid_for_children<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;pid:[4026532859]&#39;</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span><span class="nb">time</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;time:[4026531834]&#39;</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>time_for_children<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;time:[4026531834]&#39;</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>user<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;user:[4026531837]&#39;</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>uts<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;uts:[4026532857]&#39;</span>
+</code></pre></div>
+<p>In this case, the mount namespace file is <code>/proc/102745/ns/mnt</code>. </p>
+<blockquote>
+<p><strong><em>NOTE:</em></strong> How to find the PID and the relationship between parent and child
+PIDs is described in the "Finding The PID" section <a href="#finding-the-pid">below</a>.</p>
+</blockquote>
+<p>When running directly on a Linux server, <code>bpfman</code> has access to the host <code>/proc</code>
+directory and can access the mount namespace file for any PID.  However, on
+Kubernetes, <code>bpfman</code> runs in a container, so it doesn't have access to the
+namespace files of other containers or the <code>/proc</code> directory of the host by
+default. Therefore, in the Kubernetes implementation, <code>/proc</code> is mounted in the
+<code>bpfman</code> container so it has access to the ns directories of other containers. </p>
+<h3 id="returning-to-the-bpfman-mount-namespace">Returning to the <code>bpfman</code> Mount Namespace</h3>
+<p>After <code>bpfman</code> does a <code>setns</code> to the target container mount namespace, it
+has access to the target binary in that container.  However, it only has access
+to that container's view of the filesystem, and in most cases, this does not
+include access to bpfman's filesystem or the host filesystem.  As a result,
+bpfman loses the ability to access its own mount namespace file.</p>
+<p>However, before calling setns, <code>bpfman</code> has access to it's own mount namespace
+file.  Therefore, to avoid getting stranded in a different mount namespace,
+<code>bpfman</code> also opens its own mount namespace file prior to calling <code>setns</code> so it
+already has the file descriptor that will allow it to call <code>setns</code> to return to
+its own mount namespace.</p>
+<h3 id="running-setns-from-a-multi-threaded-process">Running <code>setns</code> From a Multi-threaded Process</h3>
+<p>Calling <code>setns</code> to a mount namespace doesn't work from a multi-threaded process.</p>
+<p>To work around this issue, the logic was moved to a standalone single-threaded
+executable called
+<a href="https://github.com/bpfman/bpfman/blob/main/bpfman-ns/src/main.rs">bpfman-ns</a>
+that does the job of entering the namespace, attaching the uprobe, and then
+returning to the bpfman namespace to save the needed info.</p>
+<h3 id="finding-the-pid">Finding the PID</h3>
+<h4 id="finding-a-host-container-pid-on-a-linux-server">Finding a Host Container PID on a Linux Server</h4>
+<p>This section provides an overview of PID namespaces and shows several ways to
+find the host PID for a container.</p>
+<h5 id="tldr">tl;dr</h5>
+<p>If you used Podman or Docker to run your container, <strong>and</strong> you gave the
+container a unique name, the following commands can be used to find the host PID
+of a container.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>podman<span class="w"> </span>inspect<span class="w"> </span>-f<span class="w"> </span><span class="s1">&#39;{{.State.Pid}}&#39;</span><span class="w"> </span>&lt;CONTAINER_NAME&gt;
+</code></pre></div>
+<p>or, similarly,</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>docker<span class="w"> </span>inspect<span class="w"> </span>-f<span class="w"> </span><span class="s1">&#39;{{.State.Pid}}&#39;</span><span class="w">  </span>&lt;CONTAINER_NAME&gt;
+</code></pre></div>
+<h5 id="overview-of-pid-namespaces-and-container-host-pids">Overview of PID namespaces and Container Host PIDs</h5>
+<p>Each container has a PID namespace. Each PID namespace (other than the root) is
+contained within a parent PID namespace. In general, this relationship is
+hierarchical and PID namespaces can be nested within other PID namespaces. In
+this section, we will just cover the case of a root PID namepsace on a Linux
+server that has containers with PID namespaces that are direct children of the
+root. The multi-level case is described in the section on Nested Containers with
+kind below.</p>
+<p>The PID namespaces can be listed using the <code>lsns -t pid</code> command. Before we
+start any containers, we just have the one root pid namespace as shown below.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>sudo<span class="w"> </span>lsns<span class="w"> </span>-t<span class="w"> </span>pid
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">        </span>NS<span class="w"> </span>TYPE<span class="w"> </span>NPROCS<span class="w"> </span>PID<span class="w"> </span>USER<span class="w"> </span>COMMAND
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="m">4026531836</span><span class="w"> </span>pid<span class="w">     </span><span class="m">325</span><span class="w">   </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>/usr/lib/systemd/systemd<span class="w"> </span>rhgb<span class="w"> </span>--switched-root<span class="w"> </span>--system<span class="w"> </span>--deserialize<span class="w"> </span><span class="m">30</span>
+</code></pre></div>
+<p>Now lets start a container with the following command in a new shell:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>podman<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>--name<span class="o">=</span>container_1<span class="w"> </span>fedora:latest<span class="w"> </span>/bin/bash
+</code></pre></div>
+<blockquote>
+<p><strong>NOTE:</strong> In this section, we are using <code>podman</code> to run containers. However,
+all of the same commands can also be used with <code>docker</code>.</p>
+</blockquote>
+<p>Now back on the host we have:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>sudo<span class="w"> </span>lsns<span class="w"> </span>-t<span class="w"> </span>pid
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">        </span>NS<span class="w"> </span>TYPE<span class="w"> </span>NPROCS<span class="w">    </span>PID<span class="w"> </span>USER<span class="w">      </span>COMMAND
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="m">4026531836</span><span class="w"> </span>pid<span class="w">     </span><span class="m">337</span><span class="w">      </span><span class="m">1</span><span class="w"> </span>root<span class="w">      </span>/usr/lib/systemd/systemd<span class="w"> </span>rhgb<span class="w"> </span>--switched-root<span class="w"> </span>--system<span class="w"> </span>--deserialize<span class="w"> </span><span class="m">30</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="m">4026532948</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w"> </span><span class="m">150342</span><span class="w"> </span>user_abcd<span class="w"> </span>/bin/bash
+</code></pre></div>
+<p>We can see that the host PID for the container we just started is 150342.</p>
+<p>Now let's start another container in a new shell with the same command (except
+with a different name), and run the <code>lsns</code> command again on the host.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>podman<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>--name<span class="o">=</span>container_2<span class="w"> </span>fedora:latest<span class="w"> </span>/bin/bash
+</code></pre></div>
+<p>On the host:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>sudo<span class="w"> </span>lsns<span class="w"> </span>-t<span class="w"> </span>pid
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">        </span>NS<span class="w"> </span>TYPE<span class="w"> </span>NPROCS<span class="w">    </span>PID<span class="w"> </span>USER<span class="w">      </span>COMMAND
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="m">4026531836</span><span class="w"> </span>pid<span class="w">     </span><span class="m">339</span><span class="w">      </span><span class="m">1</span><span class="w"> </span>root<span class="w">      </span>/usr/lib/systemd/systemd<span class="w"> </span>rhgb<span class="w"> </span>--switched-root<span class="w"> </span>--system<span class="w"> </span>--deserialize<span class="w"> </span><span class="m">30</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="m">4026532948</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w"> </span><span class="m">150342</span><span class="w"> </span>user_abcd<span class="w"> </span>/bin/bash
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="m">4026533041</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w"> </span><span class="m">150545</span><span class="w"> </span>user_abcd<span class="w"> </span>/bin/bash
+</code></pre></div>
+<p>We now have 3 pid namespaces -- one for root and two for the containers. Since
+we already know that the first container had PID 150342 we can conclude that the
+second container has PID 150545. However, what would we do if we didn't already
+know the PID for one of the containers?  </p>
+<p>If the container we were interested in was running a unique command, we could
+use that to disambiguate. However, in this case, both are running the same
+<code>/bin/bash</code> command.</p>
+<p>If something unique is running inside of the container, we can use the <code>ps -e -o
+pidns,pid,args</code> command to get some info.</p>
+<p>For example, run <code>sleep 1111</code> in <code>container_1</code>, then</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>sudo<span class="w"> </span>ps<span class="w"> </span>-e<span class="w"> </span>-o<span class="w"> </span>pidns,pid,args<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s1">&#39;sleep 1111&#39;</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="m">4026532948</span><span class="w">  </span><span class="m">150778</span><span class="w"> </span>sleep<span class="w"> </span><span class="m">1111</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="m">4026531836</span><span class="w">  </span><span class="m">151002</span><span class="w"> </span>grep<span class="w"> </span>--color<span class="o">=</span>auto<span class="w"> </span>sleep<span class="w"> </span><span class="m">1111</span>
+</code></pre></div>
+<p>This tells us that the <code>sleep 1111</code> command is running in PID namespace
+4026532948. And,</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>sudo<span class="w"> </span>lsns<span class="w"> </span>-t<span class="w"> </span>pid<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="m">4026532948</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="m">4026532948</span><span class="w"> </span>pid<span class="w">       </span><span class="m">2</span><span class="w"> </span><span class="m">150342</span><span class="w"> </span>user_abcd<span class="w"> </span>/bin/bash
+</code></pre></div>
+<p>Tells us that the container's host PID is 150342.</p>
+<p>Alternatively, we could run <code>lsns</code> inside of <code>container_1</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>util-linux
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>lsns<span class="w"> </span>-t<span class="w"> </span>pid
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">        </span>NS<span class="w"> </span>TYPE<span class="w"> </span>NPROCS<span class="w"> </span>PID<span class="w"> </span>USER<span class="w"> </span>COMMAND
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="m">4026532948</span><span class="w"> </span>pid<span class="w">       </span><span class="m">2</span><span class="w">   </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>/bin/bash
+</code></pre></div>
+<p>This tells us a few interesting things. </p>
+<ol>
+<li>Inside the container, the PID is 1,</li>
+<li>We can't see any of the other PID namespaces inside the container.</li>
+<li>The container PID namespace is 4026532948.</li>
+</ol>
+<p>With the container PID namespace, we can run the <code>lsns -t pid | grep 4026532948</code>
+command as we did above to find the container's host PID</p>
+<p>Finally, the container runtime knows the pid mapping. As mentioned at the
+beginning of this section, if the unique name of the container is known, the
+following command can be used to get the host PID.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>podman<span class="w"> </span>inspect<span class="w"> </span>-f<span class="w"> </span><span class="s1">&#39;{{.State.Pid}}&#39;</span><span class="w"> </span>container_1
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="m">150342</span>
+</code></pre></div>
+<h3 id="how-bpfman-agent-finds-the-pid-on-kubernetes">How bpfman Agent Finds the PID on Kubernetes</h3>
+<p>When running on Kubernetes, the "containers" field in the UprobeProgram CRD can
+be used to identify one or more containers using the following information:</p>
+<ul>
+<li>Namespace</li>
+<li>Pod Label</li>
+<li>Container Name</li>
+</ul>
+<p>If the container selector matches any containers on a given node, the
+<code>bpfman-agent</code> determines the host PID for those containers and then calls
+<code>bpfman</code> to attach the uprobe in the container with the given PID.</p>
+<p>From what we can tell, there is no way to find the host PID for a container
+running in a Kubernetes pod from the Kubernetes interface. However, the
+<a href="https://kubernetes.io/docs/concepts/architecture/cri/">container runtime</a> does
+know this mapping. </p>
+<p>The <code>bpfman-agent</code> implementation uses multiple steps to find the set of PIDs on
+a given node (if any) for the containers that are identified by the container
+selector.</p>
+<ol>
+<li>It uses the Kubernetes interface to get a list of pods on the local node that
+   match the container selector.</li>
+<li>It uses use <a href="https://kubernetes.io/docs/tasks/debug/debug-cluster/crictl/">crictl</a> with the names of the pods found to get the pod IDs</li>
+<li>It uses <code>crictl</code> with the pod ID to find the containers in those pods and
+   then checks whether any match the container selector.</li>
+<li>Finally, it uses <code>crictl</code> with the pod IDs found to get the host PIDs for the
+   containers.</li>
+</ol>
+<p>As an example, the <a href="https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/samples/bpfman.io_v1alpha1_uprobe_uprobeprogram_containers.yaml">bpfman.io_v1alpha1_uprobe_uprobeprogram_containers.yaml</a>
+file can be used with the <code>kubectl apply -f</code> command to install uprobes on two
+of the containers in the <code>bpfman-agent</code> pod. The bpfman code does this
+programmatically, but we will step through the process of finding the host PIDs
+for the two containers here using cli commands to demonstrate how it works.</p>
+<p>We will use a <a href="https://kind.sigs.k8s.io/">kind</a> deployment with bpfman for this
+demo. See <a href="../../../../../getting-started/operator-quick-start/#deploy-locally-via-kind">Deploy Locally via KIND</a> for instructions on how to get this running.</p>
+<p>The container selector in the above yaml file is the following.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="w">  </span><span class="nt">containers</span><span class="p">:</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">    </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bpfman</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">    </span><span class="nt">pods</span><span class="p">:</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">      </span><span class="nt">matchLabels</span><span class="p">:</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bpfman-daemon</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">    </span><span class="nt">containernames</span><span class="p">:</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bpfman</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bpfman-agent</span>
+</code></pre></div>
+<p><code>bpfman</code> accesses the Kubernetes API and uses <code>crictl</code> from the <code>bpfman-agent</code>
+container. However, the <code>bpfman-agent</code> container doesn't have a shell by
+default, so we will run the examples from the <code>bpfman-deployment-control-plane</code>
+node, which will yield the same results. <code>bpfman-deployment-control-plane</code> is a
+docker container in our kind cluster, so enter the container.</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>c84cae77f800<span class="w"> </span>/bin/bash
+</code></pre></div>
+Install <code>crictl</code>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>apt<span class="w"> </span>update
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>apt<span class="w"> </span>install<span class="w"> </span>wget
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="nv">VERSION</span><span class="o">=</span><span class="s2">&quot;v1.28.0&quot;</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>wget<span class="w"> </span>https://github.com/kubernetes-sigs/cri-tools/releases/download/<span class="nv">$VERSION</span>/crictl-<span class="nv">$VERSION</span>-linux-amd64.tar.gz
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>tar<span class="w"> </span>zxvf<span class="w"> </span>crictl-<span class="nv">$VERSION</span>-linux-amd64.tar.gz<span class="w"> </span>-C<span class="w"> </span>/usr/local/bin
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>rm<span class="w"> </span>-f<span class="w"> </span>crictl-<span class="nv">$VERSION</span>-linux-amd64.tar.gz
+</code></pre></div>
+<p>First use <code>kubectl</code> to get the list of pods that match our container selector.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>bpfman<span class="w"> </span>-l<span class="w"> </span><span class="nv">name</span><span class="o">=</span>bpfman-daemon
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>NAME<span class="w">                  </span>READY<span class="w">   </span>STATUS<span class="w">    </span>RESTARTS<span class="w">   </span>AGE
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>bpfman-daemon-cv9fm<span class="w">   </span><span class="m">3</span>/3<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>6m54s
+</code></pre></div>
+<blockquote>
+<p><strong><em>NOTE:</em></strong> The bpfman code also filters on the local node, but we only have
+one node in this deployment, so we'll ignore that here.</p>
+</blockquote>
+<p>Now, use <code>crictl</code> with the name of the pod found to get the pod ID.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>crictl<span class="w"> </span>pods<span class="w"> </span>--name<span class="w"> </span>bpfman-daemon-cv9fm
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>POD<span class="w"> </span>ID<span class="w">              </span>CREATED<span class="w">             </span>STATE<span class="w">               </span>NAME<span class="w">                  </span>NAMESPACE<span class="w">           </span>ATTEMPT<span class="w">             </span>RUNTIME
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>e359900d3eca5<span class="w">       </span><span class="m">46</span><span class="w"> </span>minutes<span class="w"> </span>ago<span class="w">      </span>Ready<span class="w">               </span>bpfman-daemon-cv9fm<span class="w">   </span>bpfman<span class="w">              </span><span class="m">0</span><span class="w">                   </span><span class="o">(</span>default<span class="o">)</span>
+</code></pre></div>
+<p>Now, use the pod ID to get the list of containers in the pod.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>crictl<span class="w"> </span>ps<span class="w"> </span>--pod<span class="w"> </span>e359900d3eca5
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>CONTAINER<span class="w">           </span>IMAGE<span class="w">               </span>CREATED<span class="w">             </span>STATE<span class="w">               </span>NAME<span class="w">                    </span>ATTEMPT<span class="w">             </span>POD<span class="w"> </span>ID<span class="w">              </span>POD
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>5eb3b4e5b45f8<span class="w">       </span>50013f94a28d1<span class="w">       </span><span class="m">48</span><span class="w"> </span>minutes<span class="w"> </span>ago<span class="w">      </span>Running<span class="w">             </span>node-driver-registrar<span class="w">   </span><span class="m">0</span><span class="w">                   </span>e359900d3eca5<span class="w">       </span>bpfman-daemon-cv9fm
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>629172270a384<span class="w">       </span>e507ecf33b1f8<span class="w">       </span><span class="m">48</span><span class="w"> </span>minutes<span class="w"> </span>ago<span class="w">      </span>Running<span class="w">             </span>bpfman-agent<span class="w">            </span><span class="m">0</span><span class="w">                   </span>e359900d3eca5<span class="w">       </span>bpfman-daemon-cv9fm
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>6d2420b80ddf0<span class="w">       </span>86a517196f329<span class="w">       </span><span class="m">48</span><span class="w"> </span>minutes<span class="w"> </span>ago<span class="w">      </span>Running<span class="w">             </span>bpfman<span class="w">                  </span><span class="m">0</span><span class="w">                   </span>e359900d3eca5<span class="w">       </span>bpfman-daemon-cv9fm
+</code></pre></div>
+<p>Now use the container IDs for the containers identified in the container
+selector to get the PIDs of the containers.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1"># Get PIDs for bpfman-agent container</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>crictl<span class="w"> </span>inspect<span class="w"> </span>629172270a384<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>pid
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">    </span><span class="s2">&quot;pid&quot;</span>:<span class="w"> </span><span class="m">2158</span>,
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">            </span><span class="s2">&quot;pid&quot;</span>:<span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">            </span><span class="s2">&quot;type&quot;</span>:<span class="w"> </span><span class="s2">&quot;pid&quot;</span>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="c1"># Get PIDs for bpfman container</span>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>crictl<span class="w"> </span>inspect<span class="w"> </span>6d2420b80ddf0<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>pid
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="w">    </span><span class="s2">&quot;pid&quot;</span>:<span class="w"> </span><span class="m">2108</span>,
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a><span class="w">            </span><span class="s2">&quot;pid&quot;</span>:<span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a><span class="w">            </span><span class="s2">&quot;type&quot;</span>:<span class="w"> </span><span class="s2">&quot;pid&quot;</span>
+</code></pre></div>
+<p>From the above output, we can tell that the host PID for the <code>bpfman-agent</code>
+container is 2158, and the host PID for the <code>bpfman</code> container is 2108. So, now
+<code>bpfman-agent</code> would have the information needed to call <code>bpfman</code> with a request
+to install a uprobe in the containers.</p>
+<h3 id="nested-containers-with-kind">Nested Containers with kind</h3>
+<p>kind is a tool for running local Kubernetes clusters using Docker container
+“nodes”. The kind cluster we used for the previous section had a single node.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>nodes
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>NAME<span class="w">                              </span>STATUS<span class="w">   </span>ROLES<span class="w">           </span>AGE<span class="w">   </span>VERSION
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>bpfman-deployment-control-plane<span class="w">   </span>Ready<span class="w">    </span>control-plane<span class="w">   </span>24h<span class="w">   </span>v1.27.3
+</code></pre></div>
+<p>We can see the container for that node on the base server from Docker as
+follows.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>docker<span class="w"> </span>ps
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>CONTAINER<span class="w"> </span>ID<span class="w">   </span>IMAGE<span class="w">                  </span>COMMAND<span class="w">                  </span>CREATED<span class="w">        </span>STATUS<span class="w">        </span>PORTS<span class="w">                       </span>NAMES
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>c84cae77f800<span class="w">   </span>kindest/node:v1.27.3<span class="w">   </span><span class="s2">&quot;/usr/local/bin/entr…&quot;</span><span class="w">   </span><span class="m">25</span><span class="w"> </span>hours<span class="w"> </span>ago<span class="w">   </span>Up<span class="w"> </span><span class="m">25</span><span class="w"> </span>hours<span class="w">   </span><span class="m">127</span>.0.0.1:36795-&gt;6443/tcp<span class="w">   </span>bpfman-deployment-control-plane
+</code></pre></div>
+<p>Our cluster has a number of pods as shown below.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-A
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>NAMESPACE<span class="w">            </span>NAME<span class="w">                                                      </span>READY<span class="w">   </span>STATUS<span class="w">    </span>RESTARTS<span class="w">   </span>AGE
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>bpfman<span class="w">               </span>bpfman-daemon-cv9fm<span class="w">                                       </span><span class="m">3</span>/3<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>24h
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>bpfman<span class="w">               </span>bpfman-operator-7f67bc7c57-bpw9v<span class="w">                          </span><span class="m">2</span>/2<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>24h
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>kube-system<span class="w">          </span>coredns-5d78c9869d-7tw9b<span class="w">                                  </span><span class="m">1</span>/1<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>24h
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>kube-system<span class="w">          </span>coredns-5d78c9869d-wxwfn<span class="w">                                  </span><span class="m">1</span>/1<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>24h
+<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>kube-system<span class="w">          </span>etcd-bpfman-deployment-control-plane<span class="w">                      </span><span class="m">1</span>/1<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>24h
+<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>kube-system<span class="w">          </span>kindnet-lbzw4<span class="w">                                             </span><span class="m">1</span>/1<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>24h
+<a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>kube-system<span class="w">          </span>kube-apiserver-bpfman-deployment-control-plane<span class="w">            </span><span class="m">1</span>/1<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>24h
+<a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a>kube-system<span class="w">          </span>kube-controller-manager-bpfman-deployment-control-plane<span class="w">   </span><span class="m">1</span>/1<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>24h
+<a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a>kube-system<span class="w">          </span>kube-proxy-sz8v9<span class="w">                                          </span><span class="m">1</span>/1<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>24h
+<a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a>kube-system<span class="w">          </span>kube-scheduler-bpfman-deployment-control-plane<span class="w">            </span><span class="m">1</span>/1<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>24h
+<a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a>local-path-storage<span class="w">   </span>local-path-provisioner-6bc4bddd6b-22glj<span class="w">                   </span><span class="m">1</span>/1<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>24h
+</code></pre></div>
+<p>Using the <code>lsns</code> command in the node's docker container, we can see that it has
+a number of PID namespaces (1 for each container that is running in the pods in
+the cluster), and all of these containers are nested inside of the docker "node"
+container shown above.</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>lsns<span class="w"> </span>-t<span class="w"> </span>pid
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="w">        </span>NS<span class="w"> </span>TYPE<span class="w"> </span>NPROCS<span class="w">   </span>PID<span class="w"> </span>USER<span class="w">  </span>COMMAND
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="c1"># Note: 12 rows have been deleted below to save space</span>
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="m">4026532861</span><span class="w"> </span>pid<span class="w">      </span><span class="m">17</span><span class="w">     </span><span class="m">1</span><span class="w"> </span>root<span class="w">  </span>/sbin/init
+<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="m">4026532963</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w">   </span><span class="m">509</span><span class="w"> </span>root<span class="w">  </span>kube-scheduler<span class="w"> </span>--authentication-kubeconfig<span class="o">=</span>/etc/kubernetes/scheduler.conf<span class="w"> </span>--authorization-kubeconfig<span class="o">=</span>/etc/kubernetes/scheduler.conf<span class="w"> </span>--bind-addre
+<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="m">4026532965</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w">   </span><span class="m">535</span><span class="w"> </span>root<span class="w">  </span>kube-controller-manager<span class="w"> </span>--allocate-node-cidrs<span class="o">=</span><span class="nb">true</span><span class="w"> </span>--authentication-kubeconfig<span class="o">=</span>/etc/kubernetes/controller-manager.conf<span class="w"> </span>--authorization-kubeconfi
+<a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="m">4026532967</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w">   </span><span class="m">606</span><span class="w"> </span>root<span class="w">  </span>kube-apiserver<span class="w"> </span>--advertise-address<span class="o">=</span><span class="m">172</span>.18.0.2<span class="w"> </span>--allow-privileged<span class="o">=</span><span class="nb">true</span><span class="w"> </span>--authorization-mode<span class="o">=</span>Node,RBAC<span class="w"> </span>--client-ca-file<span class="o">=</span>/etc/kubernetes/pki/ca.crt
+<a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="m">4026532969</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w">   </span><span class="m">670</span><span class="w"> </span>root<span class="w">  </span>etcd<span class="w"> </span>--advertise-client-urls<span class="o">=</span>https://172.18.0.2:2379<span class="w"> </span>--cert-file<span class="o">=</span>/etc/kubernetes/pki/etcd/server.crt<span class="w"> </span>--client-cert-auth<span class="o">=</span><span class="nb">true</span><span class="w"> </span>--data-dir<span class="o">=</span>/var/lib
+<a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="m">4026532972</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w">  </span><span class="m">1558</span><span class="w"> </span>root<span class="w">  </span>local-path-provisioner<span class="w"> </span>--debug<span class="w"> </span>start<span class="w"> </span>--helper-image<span class="w"> </span>docker.io/kindest/local-path-helper:v20230510-486859a6<span class="w"> </span>--config<span class="w"> </span>/etc/config/config.json
+<a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a><span class="m">4026533071</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w">   </span><span class="m">957</span><span class="w"> </span>root<span class="w">  </span>/usr/local/bin/kube-proxy<span class="w"> </span>--config<span class="o">=</span>/var/lib/kube-proxy/config.conf<span class="w"> </span>--hostname-override<span class="o">=</span>bpfman-deployment-control-plane
+<a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="m">4026533073</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w">  </span><span class="m">1047</span><span class="w"> </span>root<span class="w">  </span>/bin/kindnetd
+<a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a><span class="m">4026533229</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w">  </span><span class="m">1382</span><span class="w"> </span>root<span class="w">  </span>/coredns<span class="w"> </span>-conf<span class="w"> </span>/etc/coredns/Corefile
+<a id="__codelineno-24-13" name="__codelineno-24-13" href="#__codelineno-24-13"></a><span class="m">4026533312</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w">  </span><span class="m">1896</span><span class="w"> </span><span class="m">65532</span><span class="w"> </span>/usr/local/bin/kube-rbac-proxy<span class="w"> </span>--secure-listen-address<span class="o">=</span><span class="m">0</span>.0.0.0:8443<span class="w"> </span>--upstream<span class="o">=</span>http://127.0.0.1:8174/<span class="w"> </span>--logtostderr<span class="o">=</span><span class="nb">true</span><span class="w"> </span>--v<span class="o">=</span><span class="m">0</span>
+<a id="__codelineno-24-14" name="__codelineno-24-14" href="#__codelineno-24-14"></a><span class="m">4026533314</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w">  </span><span class="m">1943</span><span class="w"> </span><span class="m">65532</span><span class="w"> </span>/bpfman-operator<span class="w"> </span>--health-probe-bind-address<span class="o">=</span>:8175<span class="w"> </span>--metrics-bind-address<span class="o">=</span><span class="m">127</span>.0.0.1:8174<span class="w"> </span>--leader-elect
+<a id="__codelineno-24-15" name="__codelineno-24-15" href="#__codelineno-24-15"></a><span class="m">4026533319</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w">  </span><span class="m">2108</span><span class="w"> </span>root<span class="w">  </span>./bpfman<span class="w"> </span>system<span class="w"> </span>service<span class="w"> </span>--timeout<span class="o">=</span><span class="m">0</span><span class="w"> </span>--csi-support
+<a id="__codelineno-24-16" name="__codelineno-24-16" href="#__codelineno-24-16"></a><span class="m">4026533321</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w">  </span><span class="m">2158</span><span class="w"> </span>root<span class="w">  </span>/bpfman-agent<span class="w"> </span>--health-probe-bind-address<span class="o">=</span>:8175<span class="w"> </span>--metrics-bind-address<span class="o">=</span><span class="m">127</span>.0.0.1:8174
+<a id="__codelineno-24-17" name="__codelineno-24-17" href="#__codelineno-24-17"></a><span class="m">4026533323</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w">  </span><span class="m">2243</span><span class="w"> </span>root<span class="w">  </span>/csi-node-driver-registrar<span class="w"> </span>--v<span class="o">=</span><span class="m">5</span><span class="w"> </span>--csi-address<span class="o">=</span>/csi/csi.sock<span class="w"> </span>--kubelet-registration-path<span class="o">=</span>/var/lib/kubelet/plugins/csi-bpfman/csi.sock
+</code></pre></div>
+We can see the bpfman containers we were looking at earlier in the output above.
+Let's take a deeper look at the <code>bpfman-agent</code> container that has a PID of 2158
+on the Kubernetes node container and a PID namespace of 4026533321. If we go
+back to the base server, we can find the container's PID there.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>sudo<span class="w"> </span>lsns<span class="w"> </span>-t<span class="w"> </span>pid<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="m">4026533321</span>
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="m">4026533321</span><span class="w"> </span>pid<span class="w">       </span><span class="m">1</span><span class="w"> </span><span class="m">222225</span><span class="w"> </span>root<span class="w">  </span>/bpfman-agent<span class="w"> </span>--health-probe-bind-address<span class="o">=</span>:8175<span class="w"> </span>--metrics-bind-address<span class="o">=</span><span class="m">127</span>.0.0.1:8174
+</code></pre></div>
+<p>This command tells us that the PID of our <code>bpfman-agent</code> is 222225 on the base
+server. The information for this PID is contained in <code>/proc/222225</code>.  The
+following command will show the PID mappings for that one container at each
+level.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>sudo<span class="w"> </span>grep<span class="w"> </span>NSpid<span class="w"> </span>/proc/222225/status
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>NSpid:<span class="w">  </span><span class="m">222225</span><span class="w">  </span><span class="m">2158</span><span class="w">    </span><span class="m">1</span>
+</code></pre></div>
+<p>The output above tells us that the PIDs for the <code>bpfman-agent</code> container are
+222225 on the base server, 2158 in the Docker "node" container, and 1 inside the
+container itself.</p>
+<h2 id="moving-forward">Moving Forward</h2>
+<p>As always, there is more work to do. The highest priority goals are to support
+additional eBPF program types and to use the Container Runtime Interface
+directly.</p>
+<p>We chose uprobes first because we had a user with a specific need. However,
+there are use cases for other eBPF program types.</p>
+<p>We used <code>crictl</code> in this first implementation because it already exists,
+supports multiple container runtimes, handles the corner cases, and is
+maintained. This allowed us to focus on the bpfman implementation and get the
+feature done more quickly. However, it would be better to access the container
+runtime interface directly rather than using an external executable.</p>
+
+
+
+  
+
+
+
+      
+    </article>
+  </div>
+
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <!--
+  Copyright (c) 2016-2024 Martin Donath <martin.donath@squidfunk.com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to
+  deal in the Software without restriction, including without limitation the
+  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+  sell copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+  IN THE SOFTWARE.
+-->
+
+<!-- Copyright and theme information -->
+<div class="md-copyright">
+    
+      <div class="md-copyright__highlight">
+        Copyright &copy; 2021-2024 The bpfman contributors.<br>The Linux Foundation® (TLF) has registered trademarks and uses trademarks. For a list of TLF trademarks, see <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage</a>.
+      </div>
+    
+    
+      Made with
+      <a
+        href="https://squidfunk.github.io/mkdocs-material/"
+        target="_blank" rel="noopener"
+      >
+        Material for MkDocs
+      </a>
+    
+  </div>
+  <div class="md-copyright__netlify">
+    <a href="https://www.netlify.com"> <img src="https://www.netlify.com/v3/img/components/netlify-color-accent.svg" alt="Deploys by Netlify" /> </a>
+  </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../../../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../../../../assets/javascripts/bundle.6c14ae12.min.js"></script>
+      
+    
+  </body>
+</html>
