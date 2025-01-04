@@ -7,7 +7,7 @@ colorama==0.4.6
 cssselect==1.2.0
 ghp-import==2.1.0
 idna==3.10
-importlib-metadata==4.13.0
+importlib-metadata==8.5.0
 Jinja2==3.1.5
 lxml==4.9.4
 Markdown==3.7
