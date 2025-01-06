@@ -280,8 +280,7 @@ For simplicity throughout this documentation, all examples will reference
 bpfman-operator only needs to be cloned if deploying in Kubernetes.
 
 ```
-mkdir -p $HOME/src/
-cd $HOME/src/
+cd $SRC_DIR
 git clone https://github.com/bpfman/bpfman.git
 git clone https://github.com/bpfman/bpfman-operator.git
 ```

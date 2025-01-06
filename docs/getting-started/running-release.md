@@ -32,7 +32,7 @@ links above for further information on how to test and interact with `bpfman`.
 
 ```console
 export BPFMAN_REL=0.5.5
-mkdir -p $HOME/src/bpfman-${BPFMAN_REL}/; cd $HOME/src/bpfman-${BPFMAN_REL}/
+mkdir -p $SRC_DIR/bpfman-${BPFMAN_REL}/; cd $SRC_DIR/bpfman-${BPFMAN_REL}/
 wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-linux-x86_64.tar.gz
 tar -xzvf bpfman-linux-x86_64.tar.gz; rm bpfman-linux-x86_64.tar.gz
 
