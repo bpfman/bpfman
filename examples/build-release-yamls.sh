@@ -38,6 +38,9 @@ echo "Generated:" release-v${VERSION}/go-xdp-counter-install.yaml
 ### TC
 ${KUSTOMIZE} build ./config/v${VERSION}/go-tc-counter > release-v${VERSION}/go-tc-counter-install.yaml
 echo "Generated:" release-v${VERSION}/go-tc-counter-install.yaml
+### TCX
+${KUSTOMIZE} build ./config/v${VERSION}/go-tcx-counter > release-v${VERSION}/go-tcx-counter-install.yaml
+echo "Generated:" release-v${VERSION}/go-tcx-counter-install.yaml
 ### TRACEPOINT
 ${KUSTOMIZE} build ./config/v${VERSION}/go-tracepoint-counter > release-v${VERSION}/go-tracepoint-counter-install.yaml
 echo "Generated:" release-v${VERSION}/go-tracepoint-counter-install.yaml
@@ -61,6 +64,9 @@ echo "Generated:" release-v${VERSION}/go-xdp-counter-install-selinux.yaml
 ### TC
 ${KUSTOMIZE} build ./config/v${VERSION}-selinux/go-tc-counter > release-v${VERSION}/go-tc-counter-install-selinux.yaml
 echo "Generated:" release-v${VERSION}/go-tc-counter-install-selinux.yaml
+### TCX
+${KUSTOMIZE} build ./config/v${VERSION}-selinux/go-tcx-counter > release-v${VERSION}/go-tcx-counter-install-selinux.yaml
+echo "Generated:" release-v${VERSION}/go-tcx-counter-install-selinux.yaml
 ### TRACEPOINT
 ${KUSTOMIZE} build ./config/v${VERSION}-selinux/go-tracepoint-counter > release-v${VERSION}/go-tracepoint-counter-install-selinux.yaml
 echo "Generated:" release-v${VERSION}/go-tracepoint-counter-install-selinux.yaml
