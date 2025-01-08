@@ -101,6 +101,8 @@ pub struct XdpAttachInfo {
     pub position: i32,
     #[prost(int32, repeated, tag = "4")]
     pub proceed_on: ::prost::alloc::vec::Vec<i32>,
+    #[prost(string, optional, tag = "5")]
+    pub netns: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -115,6 +117,8 @@ pub struct TcAttachInfo {
     pub direction: ::prost::alloc::string::String,
     #[prost(int32, repeated, tag = "5")]
     pub proceed_on: ::prost::alloc::vec::Vec<i32>,
+    #[prost(string, optional, tag = "6")]
+    pub netns: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -127,6 +131,8 @@ pub struct TcxAttachInfo {
     pub position: i32,
     #[prost(string, tag = "4")]
     pub direction: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "5")]
+    pub netns: ::core::option::Option<::prost::alloc::string::String>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

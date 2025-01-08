@@ -95,7 +95,7 @@ func ParseParamData(progType ProgType, bytecodeFile string) (ParameterData, erro
 			"Example: -image quay.io/bpfman-bytecode/go-"+progType.String()+"-counter:latest")
 	flag.StringVar(&cmdlineFile, "file", "",
 		"File path of bytecode source. \"file\" and \"image\"/\"id\" are mutually exclusive.\n"+
-			"Example: -file /home/$USER/src/bpfman/examples/go-"+progType.String()+"-counter/bpf_bpfel.o")
+			"Example: -file /home/$USER/src/bpfman/examples/go-"+progType.String()+"-counter/bpf_x86_bpfel.o")
 	flag.BoolVar(&paramData.CrdFlag, "crd", false,
 		"Flag to indicate all attributes should be pulled from the BpfProgram CRD.\n"+
 			"Used in Kubernetes deployments and is mutually exclusive with all other\n"+
@@ -150,7 +150,7 @@ func ParseParamData(progType ProgType, bytecodeFile string) (ParameterData, erro
 	//    ./go-xdp-counter -iface eth0 -id 23415
 	if paramData.ProgId == UnusedProgramId {
 		// "-path" is a file path for the bytecode source. If not provided, check toml file.
-		//    ./go-xdp-counter -iface eth0 -path /var/bpfman/bytecode/bpf_bpfel.o
+		//    ./go-xdp-counter -iface eth0 -path /var/bpfman/bytecode/bpf_x86_bpfel.o
 		if len(cmdlineFile) != 0 {
 			// "-image" was entered so it is a URL
 			paramData.BytecodeSource = &gobpfman.BytecodeLocation{

@@ -15,7 +15,7 @@ use aya::{
         kprobe::KProbeLink,
         links::FdLink,
         loaded_programs,
-        tc::{SchedClassifierLink, SchedClassifierLinkId, TcAttachOptions},
+        tc::{SchedClassifierLink, TcAttachOptions},
         trace_point::TracePointLink,
         uprobe::UProbeLink,
         FEntry, FExit, KProbe, LinkOrder as AyaLinkOrder, SchedClassifier, TcAttachType,
@@ -27,15 +27,13 @@ use log::{debug, error, info, warn};
 use sled::{Config as SledConfig, Db};
 use tokio::time::{sleep, Duration};
 use types::AttachOrder;
-use utils::{id_from_tree_name, initialize_bpfman};
+use utils::{id_from_tree_name, initialize_bpfman, tc_dispatcher_id, xdp_dispatcher_id};
 
 use crate::{
     config::Config,
     directories::*,
     errors::BpfmanError,
-    multiprog::{
-        Dispatcher, DispatcherId, DispatcherInfo, TC_DISPATCHER_PREFIX, XDP_DISPATCHER_PREFIX,
-    },
+    multiprog::{Dispatcher, DispatcherId, DispatcherInfo},
     oci_utils::image_manager::ImageManager,
     types::{
         BytecodeImage, Direction, ListFilter,
@@ -43,8 +41,8 @@ use crate::{
         Program, ProgramData, ProgramType, TcxProgram, PROGRAM_PREFIX,
     },
     utils::{
-        bytes_to_string, bytes_to_u32, get_error_msg_from_stderr, get_ifindex, open_config_file,
-        set_dir_permissions, should_map_be_pinned, sled_insert,
+        bytes_to_string, bytes_to_u32, enter_netns, get_error_msg_from_stderr, get_ifindex,
+        open_config_file, set_dir_permissions, should_map_be_pinned, sled_insert,
     },
 };
 
@@ -62,11 +60,10 @@ const MAP_PREFIX: &str = "map_";
 const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
 
 pub(crate) mod directories {
-    // When release is made, the dispatcher images should be changed to the
-    // release tag, for example "v0.5.4". After release is made, the tag should
-    // be changed back to the "latest" release tag.
-    pub(crate) const XDP_DISPATCHER_IMAGE: &str = "quay.io/bpfman/xdp-dispatcher:latest";
-    pub(crate) const TC_DISPATCHER_IMAGE: &str = "quay.io/bpfman/tc-dispatcher:latest";
+    // The dispatcher images don't change very often and are pinned to a SHA,
+    // but can be overwritten via the bpfman configuration file - config::Config's RegistryConfig
+    pub(crate) const XDP_DISPATCHER_IMAGE: &str = "quay.io/bpfman/xdp-dispatcher@sha256:61c34aa2df86d3069aa3c53569134466203c6227c5333f2e45c906cd02e72920";
+    pub(crate) const TC_DISPATCHER_IMAGE: &str = "quay.io/bpfman/tc-dispatcher@sha256:daa5b8d936caf3a8c94c19592cee7f55445d1e38addfd8d3af846873b8ffc831";
 
     // The following directories are used by bpfman. They should be created by bpfman service
     // via the bpfman.service settings. They will be manually created in the case where bpfman
@@ -81,9 +78,6 @@ pub(crate) mod directories {
     // RuntimeDirectory: /run/bpfman/
     pub(crate) const RTDIR_MODE: u32 = 0o6770;
     pub(crate) const RTDIR: &str = "/run/bpfman";
-    pub(crate) const RTDIR_XDP_DISPATCHER: &str = "/run/bpfman/dispatchers/xdp";
-    pub(crate) const RTDIR_TC_INGRESS_DISPATCHER: &str = "/run/bpfman/dispatchers/tc-ingress";
-    pub(crate) const RTDIR_TC_EGRESS_DISPATCHER: &str = "/run/bpfman/dispatchers/tc-egress";
     pub(crate) const RTDIR_FS: &str = "/run/bpfman/fs";
     pub(crate) const RTDIR_FS_TC_INGRESS: &str = "/run/bpfman/fs/tc-ingress";
     pub(crate) const RTDIR_FS_TC_EGRESS: &str = "/run/bpfman/fs/tc-egress";
@@ -201,7 +195,33 @@ pub(crate) fn get_db_config() -> SledConfig {
 ///
 /// This function is asynchronous and should be awaited in an
 /// asynchronous context.
-pub async fn add_program(mut program: Program) -> Result<Program, BpfmanError> {
+pub async fn add_program(program: Program) -> Result<Program, BpfmanError> {
+    let kind = program
+        .get_data()
+        .get_kind()
+        .unwrap_or(Some(ProgramType::Unspec))
+        .unwrap_or(ProgramType::Unspec);
+    let name = program
+        .get_data()
+        .get_name()
+        .unwrap_or("not set".to_string());
+    info!("Request to load {kind} program named \"{name}\"");
+
+    let result = add_program_internal(program).await;
+
+    match result {
+        Ok(ref p) => {
+            let id = p.get_data().get_id().unwrap_or(0);
+            info!("Success: loaded {kind} program named \"{name}\" with id {id}");
+        }
+        Err(ref e) => {
+            error!("Error: failed to load {kind} program named \"{name}\": {e}");
+        }
+    };
+    result
+}
+
+async fn add_program_internal(mut program: Program) -> Result<Program, BpfmanError> {
     let (config, root_db) = &setup().await?;
     let mut image_manager = init_image_manager().await?;
     // This is only required in the add_program api
@@ -222,12 +242,14 @@ pub async fn add_program(mut program: Program) -> Result<Program, BpfmanError> {
     let result = match program {
         Program::Xdp(_) | Program::Tc(_) => {
             let if_name = program.if_name()?;
-            program.set_if_index(get_ifindex(&if_name)?)?;
+            let netns = program.netns()?;
+            program.set_if_index(get_ifindex(&if_name, netns)?)?;
             add_multi_attach_program(root_db, &mut program, &mut image_manager, config).await
         }
         Program::Tcx(_) => {
             let if_name = program.if_name()?;
-            program.set_if_index(get_ifindex(&if_name)?)?;
+            let netns = program.netns()?;
+            program.set_if_index(get_ifindex(&if_name, netns)?)?;
             add_single_attach_program(root_db, &mut program)
         }
         Program::Tracepoint(_)
@@ -240,12 +262,6 @@ pub async fn add_program(mut program: Program) -> Result<Program, BpfmanError> {
 
     match result {
         Ok(id) => {
-            info!(
-                "Added {} program with name: {} and id: {id}",
-                program.kind(),
-                program.get_data().get_name()?
-            );
-
             // Now that program is successfully loaded, update the id, maps hash table,
             // and allow access to all maps by bpfman group members.
             save_map(root_db, &mut program, id, map_owner_id)?;
@@ -323,12 +339,18 @@ pub async fn add_program(mut program: Program) -> Result<Program, BpfmanError> {
 /// This function is asynchronous and should be awaited in an
 /// asynchronous context.
 pub async fn remove_program(id: u32) -> Result<(), BpfmanError> {
-    let (config, root_db) = &setup().await?;
+    let (config, root_db) = match setup().await {
+        Ok((c, r)) => &(c, r),
+        Err(e) => {
+            error!("Error: Request to unload program with id {id} but unable to open db: {e}");
+            return Err(e);
+        }
+    };
 
-    info!("Removing program with id: {id}");
     let prog = match get(root_db, &id) {
         Some(p) => p,
         None => {
+            error!("Error: Request to unload program with id {id} but id does not exist or was not created by bpfman");
             return Err(BpfmanError::Error(format!(
                 "Program {0} does not exist or was not created by bpfman",
                 id,
@@ -336,6 +358,29 @@ pub async fn remove_program(id: u32) -> Result<(), BpfmanError> {
         }
     };
 
+    let kind = prog
+        .get_data()
+        .get_kind()
+        .unwrap_or(Some(ProgramType::Unspec))
+        .unwrap_or(ProgramType::Unspec);
+    let name = prog.get_data().get_name().unwrap_or("not set".to_string());
+    info!("Request to unload {kind} program named \"{name}\" with id {id}");
+
+    let result = remove_program_internal(id, config, root_db, prog).await;
+
+    match result {
+        Ok(_) => info!("Success: unloaded {kind} program named \"{name}\" with id {id}"),
+        Err(ref e) => error!("Error: failed to unload {kind} program named \"{name}\": {e}"),
+    };
+    result
+}
+
+async fn remove_program_internal(
+    id: u32,
+    config: &Config,
+    root_db: &Db,
+    prog: Program,
+) -> Result<(), BpfmanError> {
     let map_owner_id = prog.get_data().get_map_owner_id()?;
 
     match prog {
@@ -347,6 +392,7 @@ pub async fn remove_program(id: u32) -> Result<(), BpfmanError> {
             let if_index = prog.if_index()?;
             let if_name = prog.if_name().unwrap();
             let direction = prog.direction()?;
+            let nsid = prog.nsid()?;
 
             prog.delete(root_db)
                 .map_err(BpfmanError::BpfmanProgramDeleteError)?;
@@ -359,10 +405,12 @@ pub async fn remove_program(id: u32) -> Result<(), BpfmanError> {
                 if_index,
                 if_name,
                 direction,
+                nsid,
             )
             .await?
         }
         Program::Tcx(_) => {
+            let nsid = prog.nsid()?;
             let if_index = prog
                 .if_index()?
                 .ok_or_else(|| BpfmanError::InvalidInterface)?;
@@ -371,7 +419,7 @@ pub async fn remove_program(id: u32) -> Result<(), BpfmanError> {
                 .ok_or_else(|| BpfmanError::InvalidDirection)?;
             prog.delete(root_db)
                 .map_err(BpfmanError::BpfmanProgramDeleteError)?;
-            set_tcx_program_positions(root_db, if_index, direction)?;
+            set_tcx_program_positions(root_db, if_index, direction, nsid)?;
         }
         Program::Tracepoint(_)
         | Program::Kprobe(_)
@@ -665,7 +713,7 @@ pub async fn pull_bytecode(image: BytecodeImage) -> anyhow::Result<()> {
 }
 
 pub(crate) async fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanError> {
-    let database_config = open_config_file().database().to_owned().unwrap_or_default();
+    let database_config = open_config_file().database().to_owned();
     for _ in 0..=database_config.max_retries {
         if let Ok(db) = sled_config.open() {
             debug!("Successfully opened database");
@@ -686,7 +734,7 @@ pub(crate) async fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanE
 // explicitly control when bpfman blocks for network calls to both sigstore's
 // cosign tuf registries and container registries.
 pub(crate) async fn init_image_manager() -> Result<ImageManager, BpfmanError> {
-    let signing_config = open_config_file().signing().to_owned().unwrap_or_default();
+    let signing_config = open_config_file().signing().to_owned();
     match ImageManager::new(signing_config.verify_enabled, signing_config.allow_unsigned).await {
         Ok(im) => Ok(im),
         Err(e) => {
@@ -699,36 +747,37 @@ pub(crate) async fn init_image_manager() -> Result<ImageManager, BpfmanError> {
     //.expect("failed to initialize image manager")
 }
 
-fn get_dispatcher(id: &DispatcherId, root_db: &Db) -> Option<Dispatcher> {
+fn get_dispatcher(id: &DispatcherId, root_db: &Db) -> Result<Option<Dispatcher>, BpfmanError> {
+    debug!("Getting dispatcher with id: {:?}", id);
     let tree_name_prefix = match id {
-        DispatcherId::Xdp(DispatcherInfo(if_index, _)) => {
-            format!("{}_{}", XDP_DISPATCHER_PREFIX, if_index)
+        DispatcherId::Xdp(DispatcherInfo(nsid, if_index, _)) => {
+            xdp_dispatcher_id(*nsid, *if_index)?
         }
-        DispatcherId::Tc(DispatcherInfo(if_index, Some(direction))) => {
-            format!("{}_{}_{}", TC_DISPATCHER_PREFIX, if_index, direction)
+        DispatcherId::Tc(DispatcherInfo(nsid, if_index, Some(direction))) => {
+            tc_dispatcher_id(*nsid, *if_index, *direction)?
         }
         _ => {
-            return None;
+            return Ok(None);
         }
     };
 
-    root_db
+    Ok(root_db
         .tree_names()
         .into_iter()
         .find(|p| bytes_to_string(p).contains(&tree_name_prefix))
         .map(|p| {
             let tree = root_db.open_tree(p).expect("unable to open database tree");
             Dispatcher::new_from_db(tree)
-        })
+        }))
 }
 
 /// Returns the number of extension programs currently attached to the dispatcher that
 /// would be used to attach the provided [`Program`].
-fn num_attached_programs(did: &DispatcherId, root_db: &Db) -> usize {
-    if let Some(d) = get_dispatcher(did, root_db) {
-        d.num_extensions()
+fn num_attached_programs(did: &DispatcherId, root_db: &Db) -> Result<usize, BpfmanError> {
+    if let Some(d) = get_dispatcher(did, root_db)? {
+        Ok(d.num_extensions())
     } else {
-        0
+        Ok(0)
     }
 }
 
@@ -751,6 +800,7 @@ fn get_multi_attach_programs(
     program_type: ProgramType,
     if_index: Option<u32>,
     direction: Option<Direction>,
+    nsid: u64,
 ) -> Result<Vec<Program>, BpfmanError> {
     let mut programs = Vec::new();
 
@@ -791,7 +841,10 @@ fn get_multi_attach_programs(
             continue;
         }
 
-        if program.if_index().unwrap() == if_index && program.direction().unwrap() == direction {
+        if program.if_index().unwrap() == if_index
+            && program.direction().unwrap() == direction
+            && program.nsid()? == nsid
+        {
             programs.push(program);
         }
     }
@@ -803,6 +856,7 @@ fn get_tcx_programs(
     root_db: &Db,
     if_index: u32,
     direction: Direction,
+    nsid: u64,
 ) -> Result<Vec<TcxProgram>, BpfmanError> {
     let mut tcx_programs = Vec::new();
 
@@ -818,8 +872,13 @@ fn get_tcx_programs(
             if let Ok(Program::Tcx(tcx_p)) = Program::new_from_db(id, tree) {
                 if let Ok(Some(tcx_p_if_index)) = tcx_p.get_if_index() {
                     if let Ok(tcx_p_direction) = tcx_p.get_direction() {
-                        if tcx_p_if_index == if_index && tcx_p_direction == direction {
-                            tcx_programs.push(tcx_p);
+                        if let Ok(tcx_p_nsid) = tcx_p.get_nsid() {
+                            if tcx_p_if_index == if_index
+                                && tcx_p_direction == direction
+                                && tcx_p_nsid == nsid
+                            {
+                                tcx_programs.push(tcx_p);
+                            }
                         }
                     }
                 }
@@ -851,7 +910,8 @@ fn add_and_set_tcx_program_positions(
         .get_if_index()?
         .ok_or_else(|| BpfmanError::InvalidInterface)?;
     let direction = new_program.get_direction()?;
-    let mut tcx_programs = get_tcx_programs(root_db, if_index, direction)?;
+    let nsid = new_program.get_nsid()?;
+    let mut tcx_programs = get_tcx_programs(root_db, if_index, direction, nsid)?;
 
     if tcx_programs.is_empty() {
         new_program.set_current_position(0)?;
@@ -884,8 +944,9 @@ fn set_tcx_program_positions(
     root_db: &Db,
     if_index: u32,
     direction: Direction,
+    netns: u64,
 ) -> Result<(), BpfmanError> {
-    let mut tcx_programs = get_tcx_programs(root_db, if_index, direction)?;
+    let mut tcx_programs = get_tcx_programs(root_db, if_index, direction, netns)?;
     sort_tcx_programs(&mut tcx_programs);
 
     // Set the positions of the existing programs
@@ -903,8 +964,10 @@ fn add_and_set_program_positions(root_db: &Db, program: Program) -> Result<(), B
     let program_type = program.kind();
     let if_index = program.if_index().unwrap();
     let direction = program.direction().unwrap();
+    let nsid = program.nsid()?;
 
-    let mut extensions = get_multi_attach_programs(root_db, program_type, if_index, direction)?;
+    let mut extensions =
+        get_multi_attach_programs(root_db, program_type, if_index, direction, nsid)?;
 
     extensions.sort_by_key(|b| {
         (
@@ -928,9 +991,10 @@ fn set_program_positions(
     program_type: ProgramType,
     if_index: u32,
     direction: Option<Direction>,
+    nsid: u64,
 ) -> Result<(), BpfmanError> {
     let mut extensions =
-        get_multi_attach_programs(root_db, program_type, Some(if_index), direction)?;
+        get_multi_attach_programs(root_db, program_type, Some(if_index), direction, nsid)?;
 
     extensions.sort_by_key(|b| {
         (
@@ -997,7 +1061,7 @@ async fn add_multi_attach_program(
         .dispatcher_id()?
         .ok_or(BpfmanError::DispatcherNotRequired)?;
 
-    let next_available_id = num_attached_programs(&did, root_db);
+    let next_available_id = num_attached_programs(&did, root_db)?;
     if next_available_id >= 10 {
         return Err(BpfmanError::TooManyPrograms);
     }
@@ -1008,12 +1072,13 @@ async fn add_multi_attach_program(
     let if_index = program.if_index()?;
     let if_name = program.if_name().unwrap().to_string();
     let direction = program.direction()?;
+    let nsid = program.nsid()?;
 
     add_and_set_program_positions(root_db, program.clone())?;
 
-    let mut programs = get_multi_attach_programs(root_db, program_type, if_index, direction)?;
+    let mut programs = get_multi_attach_programs(root_db, program_type, if_index, direction, nsid)?;
 
-    let old_dispatcher = get_dispatcher(&did, root_db);
+    let old_dispatcher = get_dispatcher(&did, root_db)?;
 
     let if_config = if let Some(ref i) = config.interfaces() {
         i.get(&if_name)
@@ -1029,6 +1094,7 @@ async fn add_multi_attach_program(
     Dispatcher::new(
         root_db,
         if_config,
+        config.registry(),
         &mut programs,
         next_revision,
         old_dispatcher,
@@ -1348,18 +1414,23 @@ pub(crate) fn add_single_attach_program(root_db: &Db, p: &mut Program) -> Result
             };
 
             let order = add_and_set_tcx_program_positions(root_db, program)?;
-
             let link_order: AyaLinkOrder = order.into();
 
             info!(
-                "Attaching tcx program to iface: {} direction: {:?} link_order: {:?}",
-                iface, aya_direction, link_order
-            );
+                    "Attaching tcx program to iface: {} direction: {:?} link_order: {:?} network namespace: {:?}",
+                    iface, aya_direction, link_order, program.get_netns()
+                );
 
             let options = TcAttachOptions::TcxOrder(link_order);
 
-            let link_id: SchedClassifierLinkId =
-                tcx.attach_with_options(iface, aya_direction, options)?;
+            let link_id = if let Some(netns) = program.get_netns()? {
+                let _netns_guard = enter_netns(netns)?;
+                tcx.attach_with_options(iface, aya_direction, options)?
+            } else {
+                tcx.attach_with_options(iface, aya_direction, options)?
+            };
+
+            debug!("tcx program attached with link_id: {:?}", link_id);
 
             let owned_link: SchedClassifierLink = tcx.take_link(link_id)?;
             let fd_link: FdLink = owned_link.try_into()?;
@@ -1408,6 +1479,7 @@ pub(crate) fn add_single_attach_program(root_db: &Db, p: &mut Program) -> Result
     res
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn remove_multi_attach_program(
     root_db: &Db,
     config: &Config,
@@ -1416,14 +1488,15 @@ async fn remove_multi_attach_program(
     if_index: Option<u32>,
     if_name: String,
     direction: Option<Direction>,
+    nsid: u64,
 ) -> Result<(), BpfmanError> {
     debug!("BpfManager::remove_multi_attach_program()");
     let mut image_manager = init_image_manager().await?;
 
-    let next_available_id = num_attached_programs(&did, root_db) - 1;
+    let next_available_id = num_attached_programs(&did, root_db)? - 1;
     debug!("next_available_id = {next_available_id}");
 
-    let mut old_dispatcher = get_dispatcher(&did, root_db);
+    let mut old_dispatcher = get_dispatcher(&did, root_db)?;
 
     if let Some(ref mut old) = old_dispatcher {
         if next_available_id == 0 {
@@ -1432,10 +1505,10 @@ async fn remove_multi_attach_program(
         }
     }
 
-    set_program_positions(root_db, program_type, if_index.unwrap(), direction)?;
+    set_program_positions(root_db, program_type, if_index.unwrap(), direction, nsid)?;
 
     // Intentionally don't add filter program here
-    let mut programs = get_multi_attach_programs(root_db, program_type, if_index, direction)?;
+    let mut programs = get_multi_attach_programs(root_db, program_type, if_index, direction, nsid)?;
 
     let if_config = if let Some(ref i) = config.interfaces() {
         i.get(&if_name)
@@ -1452,6 +1525,7 @@ async fn remove_multi_attach_program(
     Dispatcher::new(
         root_db,
         if_config,
+        config.registry(),
         &mut programs,
         next_revision,
         old_dispatcher,

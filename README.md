@@ -56,7 +56,7 @@ Here are some links to help in your bpfman journey (all links are from the bpfma
   on setting up your development environment and building bpfman.
 - [Example eBPF Programs](https://bpfman.io/main/getting-started/example-bpf/) for some
   examples of eBPF programs written in Go, interacting with `bpfman`.
-- [Deploying the bpfman-operator](https://bpfman.io/main/developer-guide/develop-operator/) for details on launching
+- [Deploying the bpfman-operator](https://bpfman.io/main/getting-started/develop-operator/) for details on launching
   bpfman in a Kubernetes cluster.
 - [Meet the Community](https://bpfman.io/main/governance/meetings/) for details on community meeting details.
 

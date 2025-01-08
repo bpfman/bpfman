@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use std::{fs, mem};
+use std::{fs, mem, path::PathBuf};
 
 use aya::{
     programs::{
@@ -17,20 +17,23 @@ use netlink_packet_route::tc::TcAttribute;
 use sled::Db;
 
 use crate::{
-    calc_map_pin_path, create_map_pin_path,
+    calc_map_pin_path,
+    config::RegistryConfig,
+    create_map_pin_path,
     directories::*,
     dispatcher_config::TcDispatcherConfig,
     errors::BpfmanError,
-    multiprog::{Dispatcher, TC_DISPATCHER_PREFIX},
+    multiprog::Dispatcher,
     oci_utils::image_manager::ImageManager,
     types::{
-        BytecodeImage, Direction,
-        Direction::{Egress, Ingress},
+        BytecodeImage,
+        Direction::{self},
         ImagePullPolicy, Program, TcProgram,
     },
     utils::{
-        bytes_to_string, bytes_to_u16, bytes_to_u32, bytes_to_usize, should_map_be_pinned,
-        sled_get, sled_get_option, sled_insert,
+        bytes_to_string, bytes_to_u16, bytes_to_u32, bytes_to_u64, bytes_to_usize, enter_netns,
+        nsid, should_map_be_pinned, sled_get, sled_get_option, sled_insert,
+        tc_dispatcher_db_tree_name, tc_dispatcher_link_id_path, tc_dispatcher_rev_path,
     },
 };
 
@@ -47,6 +50,7 @@ const DIRECTION: &str = "direction";
 const NUM_EXTENSIONS: &str = "num_extension";
 const PROGRAM_NAME: &str = "program_name";
 const HANDLE: &str = "handle";
+const NSID: &str = "nsid";
 
 #[derive(Debug)]
 pub struct TcDispatcher {
@@ -60,13 +64,13 @@ impl TcDispatcher {
         direction: Direction,
         if_index: u32,
         if_name: String,
+        nsid: u64,
         revision: u32,
     ) -> Result<Self, BpfmanError> {
         let db_tree = root_db
-            .open_tree(format!(
-                "{}_{}_{}_{}",
-                TC_DISPATCHER_PREFIX, if_index, direction, revision
-            ))
+            .open_tree(tc_dispatcher_db_tree_name(
+                nsid, if_index, direction, revision,
+            )?)
             .expect("Unable to open tc dispatcher database tree");
 
         let mut dp = Self {
@@ -79,6 +83,7 @@ impl TcDispatcher {
         dp.set_direction(direction)?;
         dp.set_revision(revision)?;
         dp.set_priority(TC_DISPATCHER_PRIORITY)?;
+        dp.set_nsid(nsid)?;
         Ok(dp)
     }
 
@@ -96,6 +101,8 @@ impl TcDispatcher {
         programs: &mut [Program],
         old_dispatcher: Option<Dispatcher>,
         image_manager: &mut ImageManager,
+        config: &RegistryConfig,
+        netns: Option<PathBuf>,
     ) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
@@ -114,15 +121,15 @@ impl TcDispatcher {
             chain_call_actions[v.get_current_position()?.unwrap()] = v.get_proceed_on()?.mask()
         }
 
-        let config = TcDispatcherConfig {
+        let tc_config = TcDispatcherConfig {
             num_progs_enabled: extensions.len() as u8,
             chain_call_actions,
             run_prios: [DEFAULT_PRIORITY; 10],
         };
 
-        debug!("tc dispatcher config: {:?}", config);
+        debug!("tc dispatcher config: {:?}", tc_config);
         let image = BytecodeImage::new(
-            TC_DISPATCHER_IMAGE.to_string(),
+            config.tc_dispatcher_image.to_string(),
             ImagePullPolicy::IfNotPresent as i32,
             None,
             None,
@@ -149,7 +156,7 @@ impl TcDispatcher {
         let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
 
         let mut loader = EbpfLoader::new()
-            .set_global("CONFIG", &config, true)
+            .set_global("CONFIG", &tc_config, true)
             .load(&program_bytes)
             .map_err(|e| BpfmanError::DispatcherLoadError(format!("{e}")))?;
 
@@ -162,11 +169,7 @@ impl TcDispatcher {
             ));
         }
 
-        let base = match direction {
-            Ingress => RTDIR_FS_TC_INGRESS,
-            Egress => RTDIR_FS_TC_EGRESS,
-        };
-        let path = format!("{base}/dispatcher_{if_index}_{revision}");
+        let path = tc_dispatcher_rev_path(direction, nsid(netns.clone())?, if_index, revision)?;
         fs::create_dir_all(path).unwrap();
 
         self.loader = Some(loader);
@@ -174,7 +177,14 @@ impl TcDispatcher {
         self.set_program_name(TC_DISPATCHER_PROGRAM_NAME)?;
 
         self.attach_extensions(&mut extensions)?;
-        self.attach(root_db, old_dispatcher).await?;
+
+        if let Some(netns) = netns {
+            let _netns_guard = enter_netns(netns)?;
+            self.attach(root_db, old_dispatcher).await?;
+        } else {
+            self.attach(root_db, old_dispatcher).await?;
+        };
+
         Ok(())
     }
 
@@ -285,6 +295,7 @@ impl TcDispatcher {
         let revision = self.get_revision()?;
         let direction = self.get_direction()?;
         let program_name = self.get_program_name()?;
+        let nsid = self.get_nsid()?;
 
         debug!(
             "TcDispatcher::attach_extensions() for if_index {}, revision {}",
@@ -314,11 +325,7 @@ impl TcDispatcher {
                     .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
                     .unwrap();
                 let new_link: FdLink = ext.take_link(new_link_id)?.into();
-                let base = match direction {
-                    Direction::Ingress => RTDIR_FS_TC_INGRESS,
-                    Direction::Egress => RTDIR_FS_TC_EGRESS,
-                };
-                let path = format!("{base}/dispatcher_{if_index}_{}/link_{id}", revision);
+                let path = tc_dispatcher_link_id_path(direction, nsid, if_index, revision, id)?;
                 new_link.pin(path).map_err(BpfmanError::UnableToPinLink)?;
             } else {
                 let name = &v.data.get_name()?;
@@ -360,16 +367,8 @@ impl TcDispatcher {
                 let new_link_id = ext.attach()?;
                 let new_link = ext.take_link(new_link_id)?;
                 let fd_link: FdLink = new_link.into();
-                let base = match direction {
-                    Direction::Ingress => RTDIR_FS_TC_INGRESS,
-                    Direction::Egress => RTDIR_FS_TC_EGRESS,
-                };
-                fd_link
-                    .pin(format!(
-                        "{base}/dispatcher_{if_index}_{}/link_{id}",
-                        revision,
-                    ))
-                    .map_err(BpfmanError::UnableToPinLink)?;
+                let path = tc_dispatcher_link_id_path(direction, nsid, if_index, revision, id)?;
+                fd_link.pin(path).map_err(BpfmanError::UnableToPinLink)?;
 
                 // If this program is the map(s) owner pin all maps (except for .rodata and .bss) by name.
                 if v.data.get_map_pin_path()?.is_none() {
@@ -401,6 +400,7 @@ impl TcDispatcher {
         let direction = self.get_direction()?;
         let handle = self.get_handle()?;
         let priority = self.get_priority()?;
+        let nsid = self.get_nsid()?;
 
         debug!(
             "TcDispatcher::delete() for if_index {}, revision {}",
@@ -417,11 +417,7 @@ impl TcDispatcher {
             )
         })?;
 
-        let base = match direction {
-            Direction::Ingress => RTDIR_FS_TC_INGRESS,
-            Direction::Egress => RTDIR_FS_TC_EGRESS,
-        };
-        let path = format!("{base}/dispatcher_{}_{}", if_index, revision);
+        let path = tc_dispatcher_rev_path(direction, nsid, if_index, revision)?;
         fs::remove_dir_all(path)
             .map_err(|e| BpfmanError::Error(format!("unable to cleanup state: {e}")))?;
 
@@ -516,5 +512,13 @@ impl TcDispatcher {
 
     pub(crate) fn get_handle(&self) -> Result<Option<u32>, BpfmanError> {
         sled_get_option(&self.db_tree, HANDLE).map(|v| v.map(bytes_to_u32))
+    }
+
+    pub(crate) fn set_nsid(&mut self, offset: u64) -> Result<(), BpfmanError> {
+        sled_insert(&self.db_tree, NSID, &offset.to_ne_bytes())
+    }
+
+    pub fn get_nsid(&self) -> Result<u64, BpfmanError> {
+        sled_get(&self.db_tree, NSID).map(bytes_to_u64)
     }
 }

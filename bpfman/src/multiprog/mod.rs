@@ -10,15 +10,15 @@ pub use tc::TcDispatcher;
 pub use xdp::XdpDispatcher;
 
 use crate::{
-    config::{InterfaceConfig, XdpMode},
+    config::{InterfaceConfig, RegistryConfig, XdpMode},
     errors::BpfmanError,
     oci_utils::image_manager::ImageManager,
     types::{Direction, Program, ProgramType},
     utils::bytes_to_string,
 };
 
-pub(crate) const TC_DISPATCHER_PREFIX: &str = "tc_dispatcher_";
-pub(crate) const XDP_DISPATCHER_PREFIX: &str = "xdp_dispatcher_";
+pub(crate) const TC_DISPATCHER_PREFIX: &str = "tc_dispatcher";
+pub(crate) const XDP_DISPATCHER_PREFIX: &str = "xdp_dispatcher";
 
 #[derive(Debug)]
 pub(crate) enum Dispatcher {
@@ -29,7 +29,8 @@ pub(crate) enum Dispatcher {
 impl Dispatcher {
     pub async fn new(
         root_db: &Db,
-        config: Option<&InterfaceConfig>,
+        if_config: Option<&InterfaceConfig>,
+        registry_config: &RegistryConfig,
         programs: &mut [Program],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
@@ -44,18 +45,31 @@ impl Dispatcher {
             .ok_or_else(|| BpfmanError::Error("missing ifindex".to_string()))?;
         let if_name = p.if_name()?;
         let direction = p.direction()?;
-        let xdp_mode = if let Some(c) = config {
+        let xdp_mode = if let Some(c) = if_config {
             c.xdp_mode()
         } else {
             &XdpMode::Drv
         };
         let d = match p.kind() {
             ProgramType::Xdp => {
-                let mut x =
-                    XdpDispatcher::new(root_db, xdp_mode, if_index, if_name.to_string(), revision)?;
+                let mut x = XdpDispatcher::new(
+                    root_db,
+                    xdp_mode,
+                    if_index,
+                    if_name.to_string(),
+                    p.nsid()?,
+                    revision,
+                )?;
 
                 if let Err(res) = x
-                    .load(root_db, programs, old_dispatcher, image_manager)
+                    .load(
+                        root_db,
+                        programs,
+                        old_dispatcher,
+                        image_manager,
+                        registry_config,
+                        p.netns()?,
+                    )
                     .await
                 {
                     let _ = x.delete(root_db, true);
@@ -69,11 +83,19 @@ impl Dispatcher {
                     direction.expect("missing direction"),
                     if_index,
                     if_name.to_string(),
+                    p.nsid()?,
                     revision,
                 )?;
 
                 if let Err(res) = t
-                    .load(root_db, programs, old_dispatcher, image_manager)
+                    .load(
+                        root_db,
+                        programs,
+                        old_dispatcher,
+                        image_manager,
+                        registry_config,
+                        p.netns()?,
+                    )
                     .await
                 {
                     let _ = t.delete(root_db, true);
@@ -133,4 +155,4 @@ pub(crate) enum DispatcherId {
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub(crate) struct DispatcherInfo(pub u32, pub Option<Direction>);
+pub(crate) struct DispatcherInfo(pub u64, pub u32, pub Option<Direction>);

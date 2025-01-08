@@ -49,6 +49,9 @@ impl TryFrom<&Program> for ProgramInfo {
                     iface: p.get_iface()?.to_string(),
                     position: p.get_current_position()?.unwrap_or(0) as i32,
                     proceed_on: p.get_proceed_on()?.as_action_vec(),
+                    netns: p
+                        .get_netns()?
+                        .and_then(|path| path.into_os_string().into_string().ok()),
                 })),
                 Program::Tc(p) => Some(Info::TcAttachInfo(TcAttachInfo {
                     priority: p.get_priority()?,
@@ -56,12 +59,19 @@ impl TryFrom<&Program> for ProgramInfo {
                     position: p.get_current_position()?.unwrap_or(0) as i32,
                     direction: p.get_direction()?.to_string(),
                     proceed_on: p.get_proceed_on()?.as_action_vec(),
+                    netns: p
+                        .get_netns()?
+                        .and_then(|path| path.into_os_string().into_string().ok()),
                 })),
+
                 Program::Tcx(p) => Some(Info::TcxAttachInfo(TcxAttachInfo {
                     priority: p.get_priority()?,
                     iface: p.get_iface()?.to_string(),
                     position: p.get_current_position()?.unwrap_or(0) as i32,
                     direction: p.get_direction()?.to_string(),
+                    netns: p
+                        .get_netns()?
+                        .and_then(|path| path.into_os_string().into_string().ok()),
                 })),
                 Program::Tracepoint(p) => Some(Info::TracepointAttachInfo(TracepointAttachInfo {
                     tracepoint: p.get_tracepoint()?.to_string(),

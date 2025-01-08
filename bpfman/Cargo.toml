@@ -47,6 +47,7 @@ nix = { workspace = true, features = [
     "mount",
     "net",
     "resource",
+    "sched",
     "socket",
     "user",
 ] }

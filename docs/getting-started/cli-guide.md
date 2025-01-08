@@ -812,9 +812,11 @@ bpfman image build -f Containerfile.bytecode.multi.arch -t quay.io/$QUAY_USER/go
 
 The `bpfman image generate-build-args` command is a utility command that generates the labels used
 to package eBPF program bytecode in a OCI container image.
-The eBPF program bytecode must already be generated.
+It is recommended to use the `bpfman image build` command to package the eBPF program in a OCI
+container image, but an alternative is to generate the labels then build the container image with
+`docker` or `podman`.
 
-This command requires the bytecode to package that would be packaged in a OCI container image.
+The eBPF program bytecode must already be generated.
 The bytecode can take several forms, but at least one must be provided:
 
 * `--bytecode` or `-b`: Use this option for a single bytecode object file built for the host architecture.
@@ -932,4 +934,16 @@ BC_PPC64LE_EL=./examples/go-xdp-counter/bpf_powerpc_bpfel.o
 BC_S390X_EB=./examples/go-xdp-counter/bpf_s390_bpfeb.o
 PROGRAMS={"xdp_stats":"xdp"}
 MAPS={"xdp_stats_map":"per_cpu_array"}
+```
+
+Once the labels are generated, the eBPF program can be packaged in a OCI
+container image using `docker` or `podman` by passing the generated labels
+as `build-arg` parameters:
+
+```console
+docker build \
+  --build-arg BYTECODE_FILE=./examples/go-xdp-counter/bpf_x86_bpfel.o \
+  --build-arg PROGRAMS={"xdp_stats":"xdp"} \
+  --build-arg MAPS={"xdp_stats_map":"per_cpu_array"} \
+  -f Containerfile.bytecode . -t quay.io/$USER/go-xdp-counter-bytecode:test
 ```

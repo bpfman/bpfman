@@ -14,10 +14,11 @@ use lazy_static::lazy_static;
 use log::debug;
 use regex::Regex;
 
-const NS_NAME: &str = "bpfman-int-test";
+pub const NS_NAME: &str = "bpfman-int-test";
+pub const NS_PATH: &str = "/var/run/netns/bpfman-int-test";
 
 const HOST_VETH: &str = "veth-bpfm-host";
-const NS_VETH: &str = "veth-bpfm-ns";
+pub const NS_VETH: &str = "veth-bpfm-ns";
 
 // The default prefix can be overriden by setting the BPFMAN_IP_PREFIX environment variable
 const DEFAULT_IP_PREFIX: &str = "172.37.37";
@@ -164,6 +165,7 @@ pub fn add_xdp(
     name: &str,
     metadata: Option<Vec<&str>>,
     map_owner_id: Option<u32>,
+    netns: Option<&str>,
 ) -> (Result<String>, Result<String>) {
     let owner_id: String;
 
@@ -217,6 +219,11 @@ pub fn add_xdp(
         args.extend(p_o);
     }
 
+    if let Some(n) = netns {
+        args.push("--netns");
+        args.push(n);
+    }
+
     match execute_bpfman(args) {
         Ok(stdout) => {
             let prog_id = bpfman_output_parse_id(&stdout);
@@ -243,6 +250,7 @@ pub fn add_tc(
     image_url: &str,
     file_path: &str,
     name: &str,
+    netns: Option<&str>,
 ) -> (Result<String>, Result<String>) {
     let mut args = vec!["load"];
     match load_type {
@@ -278,6 +286,11 @@ pub fn add_tc(
         args.extend(p_o);
     }
 
+    if let Some(n) = netns {
+        args.push("--netns");
+        args.push(n);
+    }
+
     match execute_bpfman(args) {
         Ok(stdout) => {
             let prog_id = bpfman_output_parse_id(&stdout);
@@ -303,6 +316,7 @@ pub fn add_tcx(
     image_url: &str,
     file_path: &str,
     name: &str,
+    netns: Option<&str>,
 ) -> (Result<String>, Result<String>) {
     let mut args = vec!["load"];
     match load_type {
@@ -340,6 +354,11 @@ pub fn add_tcx(
         priority.to_string()
     };
     args.extend(["--priority", p.as_str()]);
+
+    if let Some(n) = netns {
+        args.push("--netns");
+        args.push(n);
+    }
 
     match execute_bpfman(args) {
         Ok(stdout) => {
@@ -1232,7 +1251,7 @@ pub struct DisableCosignGuard<'a> {
     path: &'a str,
 }
 
-impl<'a> Drop for DisableCosignGuard<'a> {
+impl Drop for DisableCosignGuard<'_> {
     fn drop(&mut self) {
         if Path::new(self.path).exists() {
             fs::remove_file(self.path).expect("Failed to delete file");
