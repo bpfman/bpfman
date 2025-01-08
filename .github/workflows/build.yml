@@ -110,7 +110,7 @@ jobs:
         run: |
           cargo install cross --git https://github.com/cross-rs/cross
 
-      - uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # @v2
+      - uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # @v2
 
       - name: Install cargo-llvm-cov
         # Only need to run once
@@ -154,7 +154,7 @@ jobs:
       - name: Archive Integration Test eBPF
         # Only need to build eBPF once and used by integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # @v4
         with:
           name: bpfman-integration-test
           path: |
@@ -191,7 +191,7 @@ jobs:
       - name: Archive bpfman Binaries
         # Tar and archive the build for basic-integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # @v4
         with:
           name: bpfman-debug-${{ matrix.arch.filename }}
           path: |
@@ -211,7 +211,7 @@ jobs:
       - name: Archive manpages
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # @v4
         with:
           name: bpfman-manpages
           path: |
@@ -231,7 +231,7 @@ jobs:
       - name: Archive CLI TAB Completion
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # @v4
         with:
           name: bpfman-cli-tab-completion
           path: |
@@ -251,7 +251,7 @@ jobs:
 
       - name: Archive bpfman Release Binaries
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # @v4
         with:
           name: bpfman-release-${{ matrix.arch.filename }}
           path: ./target/${{ matrix.arch.rust-target }}/release/bpfman-${{ matrix.arch.filename }}.tar.gz
@@ -266,7 +266,7 @@ jobs:
       - name: Archive Rust code coverage results
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # @v4
+        uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # @v4
         with:
           name: coverage-rust
           path: lcov.info
@@ -294,7 +294,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Install go
-        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # @v5
+        uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # @v5
         with:
           # prettier-ignore
           go-version: '1.22' # yamllint disable-line rule:quoted-strings
@@ -344,7 +344,7 @@ jobs:
           echo "FEXIT_IMAGE_LOC=quay.io/bpfman-bytecode/fexit:${GITHUB_REF_NAME}" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@c47758b77c9736f4b2ef4073d4d51994fabfe349 # @v3
+        uses: docker/setup-buildx-action@6524bf65af31da8d45b59e8c27de4bd072b392f5 # @v3
         with:
           driver-opts: network=host
 
@@ -448,7 +448,7 @@ jobs:
           name: coverage-rust
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # @v4
+        uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303 # @v4
         with:
           files: ./lcov.info
           verbose: true
@@ -481,7 +481,10 @@ jobs:
           merge-multiple: true
 
       - name: release
-        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # @v2
+        # Revert softprops/action-gh-release from v2.2.0 to v2.1.0 due to
+        # "Error: Request body length does not match content-length header"
+        # https://github.com/softprops/action-gh-release/issues/556
+        uses: softprops/action-gh-release@01570a1f39cb168c169c802c3bceb9e93fb10974 # @v2
         with:
           body_path: ./changelogs/CHANGELOG-${{ env.RELEASE_VERSION }}.md
           prerelease: ${{ env.PRE_RELEASE }}

@@ -4,7 +4,9 @@
 //! Commands between the RPC thread and the BPF thread
 use std::{
     collections::HashMap,
+    ffi::OsStr,
     fmt, fs,
+    os::unix::ffi::OsStrExt,
     path::{Path, PathBuf},
     time::SystemTime,
 };
@@ -30,7 +32,7 @@ use crate::{
     oci_utils::image_manager::ImageManager,
     utils::{
         bytes_to_bool, bytes_to_i32, bytes_to_string, bytes_to_u32, bytes_to_u64, bytes_to_usize,
-        sled_get, sled_get_option, sled_insert,
+        nsid, sled_get, sled_get_option, sled_insert,
     },
 };
 
@@ -71,6 +73,8 @@ const XDP_CURRENT_POSITION: &str = "xdp_current_position";
 const XDP_IF_INDEX: &str = "xdp_if_index";
 const XDP_ATTACHED: &str = "xdp_attached";
 const PREFIX_XDP_PROCEED_ON: &str = "xdp_proceed_on_";
+const XDP_NETNS: &str = "xdp_netns";
+const XDP_NSID: &str = "xdp_nsid";
 
 const TC_PRIORITY: &str = "tc_priority";
 const TC_IFACE: &str = "tc_iface";
@@ -79,12 +83,16 @@ const TC_IF_INDEX: &str = "tc_if_index";
 const TC_ATTACHED: &str = "tc_attached";
 const TC_DIRECTION: &str = "tc_direction";
 const PREFIX_TC_PROCEED_ON: &str = "tc_proceed_on_";
+const TC_NETNS: &str = "tc_netns";
+const TC_NSID: &str = "tc_nsid";
 
 const TCX_PRIORITY: &str = "tcx_priority";
 const TCX_IFACE: &str = "tcx_iface";
 const TCX_CURRENT_POSITION: &str = "tcx_current_position";
 const TCX_IF_INDEX: &str = "tcx_if_index";
 const TCX_DIRECTION: &str = "tcx_direction";
+const TCX_NETNS: &str = "tcx_netns";
+const TCX_NSID: &str = "tcx_nsid";
 
 const TRACEPOINT_NAME: &str = "tracepoint_name";
 
@@ -1139,10 +1147,7 @@ impl ProgramData {
 
     pub(crate) fn set_kernel_info(&mut self, prog: &AyaProgInfo) -> Result<(), BpfmanError> {
         self.set_id(prog.id())?;
-        self.set_kernel_name(
-            prog.name_as_str()
-                .expect("Program name is not valid unicode"),
-        )?;
+        self.set_kernel_name(prog.name_as_str().unwrap_or("None"))?;
         self.set_kernel_program_type(u32::from(ProgramType::from(
             prog.program_type().unwrap_or(AyaProgramType::Unspecified),
         )))?;
@@ -1179,12 +1184,17 @@ impl XdpProgram {
         priority: i32,
         iface: String,
         proceed_on: XdpProceedOn,
+        netns: Option<PathBuf>,
     ) -> Result<Self, BpfmanError> {
         let mut xdp_prog = Self { data };
 
         xdp_prog.set_priority(priority)?;
         xdp_prog.set_iface(iface)?;
         xdp_prog.set_proceed_on(proceed_on)?;
+        xdp_prog.set_nsid(nsid(netns.clone())?)?;
+        if let Some(n) = netns {
+            xdp_prog.set_netns(n)?;
+        }
         xdp_prog.get_data_mut().set_kind(ProgramType::Xdp)?;
 
         Ok(xdp_prog)
@@ -1269,6 +1279,23 @@ impl XdpProgram {
             .unwrap_or(false))
     }
 
+    pub(crate) fn set_netns(&mut self, netns: PathBuf) -> Result<(), BpfmanError> {
+        sled_insert(&self.data.db_tree, XDP_NETNS, netns.as_os_str().as_bytes())
+    }
+
+    pub fn get_netns(&self) -> Result<Option<PathBuf>, BpfmanError> {
+        Ok(sled_get_option(&self.data.db_tree, XDP_NETNS)?
+            .map(|v| PathBuf::from(OsStr::from_bytes(&v))))
+    }
+
+    pub(crate) fn set_nsid(&mut self, offset: u64) -> Result<(), BpfmanError> {
+        sled_insert(&self.data.db_tree, XDP_NSID, &offset.to_ne_bytes())
+    }
+
+    pub fn get_nsid(&self) -> Result<u64, BpfmanError> {
+        sled_get(&self.data.db_tree, XDP_NSID).map(bytes_to_u64)
+    }
+
     pub(crate) fn get_data(&self) -> &ProgramData {
         &self.data
     }
@@ -1290,6 +1317,7 @@ impl TcProgram {
         iface: String,
         proceed_on: TcProceedOn,
         direction: Direction,
+        netns: Option<PathBuf>,
     ) -> Result<Self, BpfmanError> {
         let mut tc_prog = Self { data };
 
@@ -1297,6 +1325,10 @@ impl TcProgram {
         tc_prog.set_iface(iface)?;
         tc_prog.set_proceed_on(proceed_on)?;
         tc_prog.set_direction(direction)?;
+        tc_prog.set_nsid(nsid(netns.clone())?)?;
+        if let Some(n) = netns {
+            tc_prog.set_netns(n)?;
+        }
         tc_prog.get_data_mut().set_kind(ProgramType::Tc)?;
 
         Ok(tc_prog)
@@ -1391,6 +1423,23 @@ impl TcProgram {
             .map(|v| bytes_to_string(&v).to_string().try_into().unwrap())
     }
 
+    pub(crate) fn set_netns(&mut self, netns: PathBuf) -> Result<(), BpfmanError> {
+        sled_insert(&self.data.db_tree, TC_NETNS, netns.as_os_str().as_bytes())
+    }
+
+    pub fn get_netns(&self) -> Result<Option<PathBuf>, BpfmanError> {
+        Ok(sled_get_option(&self.data.db_tree, TC_NETNS)?
+            .map(|v| PathBuf::from(OsStr::from_bytes(&v))))
+    }
+
+    pub(crate) fn set_nsid(&mut self, offset: u64) -> Result<(), BpfmanError> {
+        sled_insert(&self.data.db_tree, TC_NSID, &offset.to_ne_bytes())
+    }
+
+    pub fn get_nsid(&self) -> Result<u64, BpfmanError> {
+        sled_get(&self.data.db_tree, TC_NSID).map(bytes_to_u64)
+    }
+
     pub(crate) fn get_data(&self) -> &ProgramData {
         &self.data
     }
@@ -1432,12 +1481,17 @@ impl TcxProgram {
         priority: i32,
         iface: String,
         direction: Direction,
+        netns: Option<PathBuf>,
     ) -> Result<Self, BpfmanError> {
         let mut tcx_prog = Self { data };
 
         tcx_prog.set_priority(priority)?;
         tcx_prog.set_iface(iface)?;
         tcx_prog.set_direction(direction)?;
+        tcx_prog.set_nsid(nsid(netns.clone())?)?;
+        if let Some(n) = netns {
+            tcx_prog.set_netns(n)?;
+        }
         tcx_prog.get_data_mut().set_kind(ProgramType::Tc)?;
 
         Ok(tcx_prog)
@@ -1490,6 +1544,23 @@ impl TcxProgram {
                 .try_into()
                 .map_err(BpfmanError::BpfParseError)
         })
+    }
+
+    pub(crate) fn set_netns(&mut self, netns: PathBuf) -> Result<(), BpfmanError> {
+        sled_insert(&self.data.db_tree, TCX_NETNS, netns.as_os_str().as_bytes())
+    }
+
+    pub fn get_netns(&self) -> Result<Option<PathBuf>, BpfmanError> {
+        Ok(sled_get_option(&self.data.db_tree, TCX_NETNS)?
+            .map(|v| PathBuf::from(OsStr::from_bytes(&v))))
+    }
+
+    pub(crate) fn set_nsid(&mut self, offset: u64) -> Result<(), BpfmanError> {
+        sled_insert(&self.data.db_tree, TCX_NSID, &offset.to_ne_bytes())
+    }
+
+    pub fn get_nsid(&self) -> Result<u64, BpfmanError> {
+        sled_get(&self.data.db_tree, TCX_NSID).map(bytes_to_u64)
     }
 
     pub(crate) fn get_data(&self) -> &ProgramData {
@@ -1788,11 +1859,13 @@ impl Program {
     pub(crate) fn dispatcher_id(&self) -> Result<Option<DispatcherId>, BpfmanError> {
         Ok(match self {
             Program::Xdp(p) => Some(DispatcherId::Xdp(DispatcherInfo(
+                p.get_nsid()?,
                 p.get_if_index()?
                     .expect("if_index should be known at this point"),
                 None,
             ))),
             Program::Tc(p) => Some(DispatcherId::Tc(DispatcherInfo(
+                p.get_nsid()?,
                 p.get_if_index()?
                     .expect("if_index should be known at this point"),
                 Some(p.get_direction()?),
@@ -1906,6 +1979,28 @@ impl Program {
             Program::Tc(p) => Ok(Some(p.get_direction()?)),
             Program::Tcx(p) => Ok(Some(p.get_direction()?)),
             _ => Ok(None),
+        }
+    }
+
+    pub(crate) fn netns(&self) -> Result<Option<PathBuf>, BpfmanError> {
+        match self {
+            Program::Xdp(p) => p.get_netns(),
+            Program::Tc(p) => p.get_netns(),
+            Program::Tcx(p) => p.get_netns(),
+            _ => Err(BpfmanError::Error(
+                "cannot get netns on programs other than TC, TCX and XDP".to_string(),
+            )),
+        }
+    }
+
+    pub(crate) fn nsid(&self) -> Result<u64, BpfmanError> {
+        match self {
+            Program::Xdp(p) => p.get_nsid(),
+            Program::Tc(p) => p.get_nsid(),
+            Program::Tcx(p) => p.get_nsid(),
+            _ => Err(BpfmanError::Error(
+                "cannot get netns on programs other than TC, TCX and XDP".to_string(),
+            )),
         }
     }
 
