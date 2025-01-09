@@ -958,6 +958,39 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Pull Request Checklist">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bpfman-pinned-rust-toolchain" class="md-nav__link">
+    <span class="md-ellipsis">
+      bpfman Pinned Rust Toolchain
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bpfman-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      bpfman Checklist
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bpfman-operator-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      bpfman-operator Checklist
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -1907,6 +1940,39 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Pull Request Checklist">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bpfman-pinned-rust-toolchain" class="md-nav__link">
+    <span class="md-ellipsis">
+      bpfman Pinned Rust Toolchain
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bpfman-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      bpfman Checklist
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bpfman-operator-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      bpfman-operator Checklist
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
     </ul>
@@ -2081,23 +2147,56 @@ When addressing review comments, please perform an interactive rebase and edit c
 systems will run some checks on your new code. We require that your pull request
 passes these checks, but we also have more criteria than just that before we can
 accept and merge it. We recommend that you check the following things locally
-before you submit your code:</p>
+before you submit your code.</p>
+<h3 id="bpfman-pinned-rust-toolchain">bpfman Pinned Rust Toolchain</h3>
+<p>bpfman is coded in Rust and uses the latest <code>nightly</code> Rust toolchain for some of
+the tools.
+There are periods where the Rust toolchain may be pinned to a fixed version due to
+tool issues.
+Examine
+<a href="https://github.com/bpfman/bpfman/blob/main/.github/workflows/build.yml">bpfman/.github/workflows/build.yml</a>
+and find <code>NIGHTLY_VERSION</code> to determine if the nightly toolchain is currently pinned.</p>
 <ul>
-<li>Verify that Rust code has been formatted and that all clippy lints have been fixed:</li>
-<li>Verify that Go code has been formatted and linted</li>
-<li>Verify that Yaml files have been formatted (see
-  <a href="https://bpfman.io/main/getting-started/building-bpfman/#install-yaml-formatter">Install Yaml Formatter</a>)</li>
+<li>Example of using latest toolchain: <code>NIGHTLY_VERSION: nightly</code></li>
+<li>Example of using pinned toolchain: <code>NIGHTLY_VERSION: nightly-2024-09-24</code></li>
+</ul>
+<p>If the toolchain is pinned, use the following to install a pinned toolchain then show all the
+installed toolchains:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">rustup toolchain install nightly-2024-09-24</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="go">rustup show -v</span>
+</code></pre></div>
+<p>Then replace <code>+nightly</code> in the commands below with the pinned toolchain
+<code>+nightly-2024-09-24</code>.</p>
+<h3 id="bpfman-checklist">bpfman Checklist</h3>
+<p>Before submitting a pull request to the bpfman repository, verify the following:</p>
+<ul>
+<li>
+<p>Verify that Rust code has been formatted and that all clippy lints have been fixed:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">cd bpfman/</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">cargo +nightly clippy --all -- --deny warnings</span>
+</code></pre></div>
+</li>
+<li>
+<p>Verify that the code has been formatted and linted:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">cargo +nightly fmt --all -- --check</span>
+</code></pre></div>
+</li>
+<li>
+<p>Verify that Yaml files have been formatted (see
+  <a href="https://bpfman.io/main/getting-started/building-bpfman/#install-yaml-formatter">Install Yaml Formatter</a>)</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">prettier -l &quot;*.yaml&quot;</span>
+</code></pre></div>
+</li>
 <li>
 <p>Verify that Bash scripts have been linted using <code>shellcheck</code></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">cd bpfman/</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">cargo xtask lint</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">cargo xtask lint</span>
 </code></pre></div>
 </li>
 <li>
 <p>Verify that unit tests are passing locally (see
   <a href="https://bpfman.io/main/developer-guide/testing/#unit-testing">Unit Testing</a>):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">cd bpfman/</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">cargo xtask unit-test</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">cargo xtask unit-test</span>
 </code></pre></div>
 </li>
 <li>
@@ -2107,18 +2206,19 @@ before you submit your code:</p>
   Verify that these changes were intentional.
   CI uses the latest nightly Rust toolchain, so make sure the public-apis
   are verified against latest.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">cd bpfman/</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">rustup update nightly</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="go">cargo +nightly xtask public-api --bless</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">rustup update nightly</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">cargo +nightly xtask public-api --bless</span>
 </code></pre></div>
 </li>
 <li>
 <p>Verify that integration tests are passing locally (see
   <a href="https://bpfman.io/main/developer-guide/testing/#basic-integration-tests">Basic Integration Tests</a>):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">cd bpfman/</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">cargo xtask integration-test</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">cargo xtask integration-test</span>
 </code></pre></div>
 </li>
+</ul>
+<h3 id="bpfman-operator-checklist">bpfman-operator Checklist</h3>
+<ul>
 <li>
 <p>If developing the bpfman-operator, verify that bpfman-operator unit and integration tests
   are passing locally:</p>
