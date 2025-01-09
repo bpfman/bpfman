@@ -8,7 +8,7 @@ See [Deploying the bpfman-operator](./operator-quick-start.md) for details on
 deploying bpfman on a Kubernetes cluster, but the quickest solution is to run a Kubernetes KIND Cluster:
 
 ```console
-cd bpfman/bpfman-operator/
+cd bpfman-operator/
 make run-on-kind
 ```
 
