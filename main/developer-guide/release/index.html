@@ -1154,11 +1154,11 @@
         <li class="md-nav__item">
   <a href="#releasing-a-new-version" class="md-nav__link">
     <span class="md-ellipsis">
-      Releasing a new version
+      Releasing a New Version
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Releasing a new version">
+    <nav class="md-nav" aria-label="Releasing a New Version">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1882,11 +1882,11 @@
         <li class="md-nav__item">
   <a href="#releasing-a-new-version" class="md-nav__link">
     <span class="md-ellipsis">
-      Releasing a new version
+      Releasing a New Version
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Releasing a new version">
+    <nav class="md-nav" aria-label="Releasing a New Version">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -2018,16 +2018,17 @@ with the same version number.</p>
 <li>bpfman (CLI), and bpfman-rpc (gRPC server) binary crates</li>
 <li>bpf-metrics-exporter and bpf-log-exporter binary crates</li>
 <li>bpfman RPMs stored in the <a href="https://copr.fedorainfracloud.org/coprs/g/ebpf-sig/bpfman/">bpfman COPR repository</a>.</li>
-<li>Kubernetes User Facing Custom Resource Definitions (CRDs)<ul>
-<li><code>BpfApplication</code></li>
+<li>Kubernetes Custom Resource Definitions (CRDs):<ul>
+<li><code>BpfApplication</code> and <code>BpfNsApplication</code></li>
+<li><code>BpfProgram</code> and <code>BpfNsProgram</code></li>
 <li><code>FentryProgram</code></li>
 <li><code>FexitProgram</code></li>
 <li><code>KprobeProgram</code></li>
-<li><code>TcProgram</code></li>
-<li><code>TcxProgram</code></li>
+<li><code>TcProgram</code> and <code>TcNsProgram</code></li>
+<li><code>TcxProgram</code> and <code>TcxNsProgram</code></li>
 <li><code>TracepointProgram</code></li>
-<li><code>UprobeProgram</code></li>
-<li><code>XdpProgram</code></li>
+<li><code>UprobeProgram</code> and <code>UprobeNsProgram</code></li>
+<li><code>XdpProgram</code> and <code>XdpNsProgram</code></li>
 </ul>
 </li>
 <li>Corresponding go pkgs in the form of <code>github.com/bpfman/bpfman</code> which includes
@@ -2117,7 +2118,7 @@ beta, it is still possible that it could either be removed from the API or
 changed in backward incompatible ways. For more information on API versions,
 refer to the <a href="https://kubernetes.io/docs/reference/using-api/#api-versioning">Kubernetes API versioning
 documentation</a>.</p>
-<h2 id="releasing-a-new-version">Releasing a new version</h2>
+<h2 id="releasing-a-new-version">Releasing a New Version</h2>
 <h3 id="release-process-overview">Release Process Overview</h3>
 <p>Since bpfman and bpfman-operator are maintained in separate repositories, each
 requires an independent release. However, to ensure version consistency, we plan
@@ -2145,14 +2146,17 @@ release page as described below.  Note that we only use the release page to
 generate a starting point for the release notes, and don't actually create a tag
 or do a release from it. </p>
 <ol>
-<li>Go to the <a href="https://github.com/bpfman/bpfman/releases">bpfman releases page</a>.</li>
+<li>Go to the <a href="https://github.com/bpfman/bpfman/releases">bpfman releases page</a> or the 
+   <a href="https://github.com/bpfman/bpfman-operator/releases">bpfman-operator releases page</a>.</li>
 <li>Push the "Draft a new release" button.</li>
 <li>Enter the new release number in the "Choose a tag" pull-down.</li>
 <li>Choose the most recent release in the "Previous tag" pull-down.</li>
 <li>Push the "Generate release notes" button.</li>
+<li>The automatically generated output will likely need to be reorganized and
+   cleaned up a bit, but it provides a good starting point.</li>
+<li>The generated content will be used in the next section and copied into a
+   CHANGELOG-vX.Y.Z.md file.</li>
 </ol>
-<p>The automatically generated output will likely need to be reorganized and
-cleaned up a bit, but it provides a good starting point.</p>
 <p>The format for the CHANGELOG file is as follows:</p>
 <ol>
 <li>Summary of the major changes and highlights. For example: "The v0.5.5 release
@@ -2168,7 +2172,8 @@ cleaned up a bit, but it provides a good starting point.</p>
 <li>Sections 2-3 may be copied and pasted from the text generated with the GitHub
   releases page process described above.</li>
 <li>The CHANGELOG for a given release is used by GitHub to generate the initial
-  content for that release on the <a href="https://github.com/bpfman/bpfman/releases">bpfman releases page</a>.
+  content for that release on the <a href="https://github.com/bpfman/bpfman/releases">bpfman releases page</a> or the
+  <a href="https://github.com/bpfman/bpfman-operator/releases">bpfman-operator releases page</a>.
   However, after the release has been generated, updates to the CHANGELOG file
   are not automatically reflected on the GitHub releases page, so the GitHub
   releases page must be manually edited using the GitHub GUI.</li>
@@ -2186,8 +2191,10 @@ up with a release for <code>bpfman-operator</code>.</p>
 <li>Create a new branch in your <code>bpfman</code> fork, for example
   <code>&lt;githubuser&gt;/release-x.y.z</code>, and use the new branch in the upcoming steps.</li>
 <li>Make the following changes<ul>
-<li>Add a new changelog for the release using the process described in
-  <a href="#generating-release-notes">Generating Release Notes</a>.</li>
+<li>Add a new changelog file for the release using the process described in
+  <a href="#generating-release-notes">Generating Release Notes</a> and copy the generated
+  content into a new CHANGELOG-vX.Y.Z.md file in
+  <a href="https://github.com/bpfman/bpfman/tree/main/changelogs">bpfman/changelogs</a>.</li>
 <li>Update the
   <a href="https://github.com/bpfman/bpfman/blob/main/Cargo.toml">Cargo.toml</a>
   version for the workspace:<ul>
@@ -2208,17 +2215,6 @@ up with a release for <code>bpfman-operator</code>.</p>
   the current release and replace with the new release.</li>
 <li>Add new example config directories for any new examples added since the
   last release.</li>
-<li>Update dispatcher tags.<ul>
-<li>Modify the tag for <code>XDP_DISPATCHER_IMAGE</code> and <code>TC_DISPATCHER_IMAGE</code> in
-  <code>bpfman/src/lib.rs</code> from <code>latest</code> to the new release tag.</li>
-<li>Manually add the new release tag to the latest version of the
-  following dispatcher images:<ul>
-<li><a href="https://quay.io/repository/bpfman/xdp-dispatcher">https://quay.io/repository/bpfman/xdp-dispatcher</a></li>
-<li><a href="https://quay.io/repository/bpfman/tc-dispatcher">https://quay.io/repository/bpfman/tc-dispatcher</a></li>
-</ul>
-</li>
-</ul>
-</li>
 <li>Search the code and docs for the current version number without the "v"
   (e.g., 0.5.5) and replace it with the new version number where it makes
   sense.  (Be careful, though, because not all should be replaced.)</li>
@@ -2232,30 +2228,32 @@ up with a release for <code>bpfman-operator</code>.</p>
   merged.</li>
 <li>A maintainer or someone with write permission on the repo must create the
   tag.</li>
-<li>This can be done using the <code>git</code> CLI or Github's <a href="https://github.com/bpfman/bpfman/releases">release</a> page.</li>
+<li>This can be done using the <code>git</code> CLI or Github's <a href="https://github.com/bpfman/bpfman/releases">bpfman release</a> page.</li>
 </ul>
 </li>
 <li>The Release will be automatically created by GitHub actions when the tag is
   applied.</li>
 </ul>
-<p>After these steps are completed, the following should occur:
-- All <a href="https://github.com/bpfman/bpfman/actions">GitHub actions</a> should complete successfully.
-- The release appears on the GitHub Releases Page.
-- Images are built and updated with the new version tag at:
-    - quay.io/bpfman
-    - quay.io/bpfman-bytecode
-    - quay.io/bpfman-userspace
-- The new version appears at <a href="https://crates.io/crates/bpfman">crates.io</a>
-- New RPMs are built and pushed to the <a href="https://copr.fedorainfracloud.org/coprs/g/ebpf-sig/bpfman/">bpfman COPR
-  repository</a>.</p>
+<p>After these steps are completed, the following should occur:</p>
+<ul>
+<li>All <a href="https://github.com/bpfman/bpfman/actions">GitHub actions</a> should complete successfully.</li>
+<li>The release appears on the GitHub Releases Page.</li>
+<li>Images are built and updated with the new version tag at:<ul>
+<li>quay.io/bpfman</li>
+<li>quay.io/bpfman-bytecode</li>
+<li>quay.io/bpfman-userspace</li>
+</ul>
+</li>
+<li>The new version appears at <a href="https://crates.io/crates/bpfman">crates.io</a></li>
+<li>New RPMs are built and pushed to the <a href="https://copr.fedorainfracloud.org/coprs/g/ebpf-sig/bpfman/">bpfman COPR
+  repository</a>.</li>
+</ul>
 <p>After the release is complete do the following:</p>
 <ul>
 <li>Run <code>make build-release-yamls</code> from the <code>bpfman/examples</code> directory, and then
   add the yaml files generated to the release as assets from the GitHub release
   page.<ul>
 <li>The yaml files generated include:<ul>
-<li><code>bpfman-crds-install.yaml</code></li>
-<li><code>bpfman-operator-install.yaml</code></li>
 <li><code>go-app-counter-install-selinux.yaml</code></li>
 <li><code>go-app-counter-install.yaml</code></li>
 <li><code>go-kprobe-counter-install-selinux.yaml</code></li>
@@ -2276,8 +2274,6 @@ up with a release for <code>bpfman-operator</code>.</p>
 </li>
 </ul>
 </li>
-<li>Do another PR that changes the tag for <code>XDP_DISPATCHER_IMAGE</code> and
-<code>TC_DISPATCHER_IMAGE</code> in <code>bpfman/src/lib.rs</code> back to <code>latest</code>.</li>
 </ul>
 <h4 id="bpfman-operator-release">bpfman-operator Release</h4>
 <ul>
@@ -2285,7 +2281,9 @@ up with a release for <code>bpfman-operator</code>.</p>
   <code>&lt;githubuser&gt;/release-x.y.z</code>, and use the new branch in the upcoming steps.</li>
 <li>Make the following changes<ul>
 <li>Add a new changelog for the release using the process described in
-  <a href="#generating-release-notes">Generating Release Notes</a>.</li>
+  <a href="#generating-release-notes">Generating Release Notes</a> and copy the generated
+  content into a new CHANGELOG-vX.Y.Z.md file in
+  <a href="https://github.com/bpfman/bpfman-operator/tree/main/changelogs">bpfman-operator/changelogs</a>.</li>
 <li>Update the bpfman version in go.mod</li>
 <li>Run the following commands from the bpfman-operator directory:
   <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>go mod vendor
@@ -2309,7 +2307,7 @@ up with a release for <code>bpfman-operator</code>.</p>
   merged.</li>
 <li>A maintainer or someone with write permission on the repo must create the
   tag.</li>
-<li>This can be done using the <code>git</code> CLI or Github's <a href="https://github.com/bpfman/bpfman/releases">release</a> page.</li>
+<li>This can be done using the <code>git</code> CLI or Github's <a href="https://github.com/bpfman/bpfman-operator/releases">bpfman-operator release</a> page.</li>
 </ul>
 </li>
 <li>The Release will be automatically created by GitHub actions when the tag is
@@ -2317,7 +2315,7 @@ up with a release for <code>bpfman-operator</code>.</p>
 </ul>
 <p>After these steps are completed, the following should occur:</p>
 <ul>
-<li>All <a href="https://github.com/bpfman/bpfman/actions">GitHub actions</a> should complete successfully.</li>
+<li>All <a href="https://github.com/bpfman/bpfman-operator/actions">GitHub actions</a> should complete successfully.</li>
 <li>The release appears on the GitHub Releases Page.</li>
 <li>Images are built and updated with the new version tag at:<ul>
 <li><code>quay.io/bpfman/bpfman-operator</code></li>
@@ -2325,8 +2323,18 @@ up with a release for <code>bpfman-operator</code>.</p>
 </ul>
 </li>
 </ul>
-<p>After the release completes:</p>
+<p>After the release is complete do the following:</p>
 <ul>
+<li>Run <code>make build-release-yamls</code> from the <code>bpfman-operator/</code> directory, and then
+  add the yaml files generated to the release as assets from the GitHub release
+  page.<ul>
+<li>The yaml files generated include:<ul>
+<li><code>bpfman-crds-install.yaml</code></li>
+<li><code>bpfman-operator-install.yaml</code></li>
+</ul>
+</li>
+</ul>
+</li>
 <li>Update the <a href="https://github.com/k8s-operatorhub/community-operators">community-operator</a> and
   <a href="https://github.com/redhat-openshift-ecosystem/community-operators-prod">community-operators-prod</a> repositories with the
   latest bundle manifests.<ul>
@@ -2339,15 +2347,28 @@ up with a release for <code>bpfman-operator</code>.</p>
   "containerImage: quay.io/bpfman/bpfman-operator:vx.y.z".</li>
 </ul>
 </li>
-<li>Open a PR in each of the community operator repos with the following:<ul>
-<li>Copy bpfman-operator/{manifests, metadata, tests} to the new release
-  directory. Copy bpfman-operator/Containerfile.bundle.openshift to the new
-  release directory.</li>
-<li>Create a new release directory under <code>operator/bpfman-operator/</code> in each
-  repo named <code>x.y.z</code></li>
+<li>Open a PR in the <a href="https://github.com/k8s-operatorhub/community-operators">community-operator</a> repository with the following:<ul>
+<li>Create a new release directory under <code>operator/bpfman-operator/</code> named <code>x.y.z</code>:
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">cd</span><span class="w"> </span><span class="nv">$SRC_DIR</span>/community-operators/operators/bpfman-operator/
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>mkdir<span class="w"> </span>x.y.z
+</code></pre></div></li>
+<li>Copy <code>bpfman-operator/bundle/{manifests, metadata, tests}</code> to the new release
+  directory and copy<code>bpfman-operator/Containerfile.bundle.openshift</code> to the new
+  release directory and rename it <code>bundle.Dockerfile</code>.
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">cd</span><span class="w"> </span>x.y.z
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>cp<span class="w"> </span>-r<span class="w"> </span><span class="nv">$SRC_DIR</span>/bpfman-operator/bundle/manifests/<span class="w"> </span>.
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>cp<span class="w"> </span>-r<span class="w"> </span><span class="nv">$SRC_DIR</span>/bpfman-operator/bundle/metadata/<span class="w"> </span>.
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>cp<span class="w"> </span>-r<span class="w"> </span><span class="nv">$SRC_DIR</span>/bpfman-operator/bundle/tests/<span class="w"> </span>.
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>cp<span class="w"> </span><span class="nv">$SRC_DIR</span>/bpfman-operator/Containerfile.bundle.openshift<span class="w"> </span>bundle.Dockerfile
+</code></pre></div></li>
+<li>Push the PR as a draft PR to allow for review (see Note).
+  Once the PR is reviewed and all checks pass, mark it as ready for review.
+  Once it merges, move to the next repository.</li>
 </ul>
 </li>
-<li>Lessons learned about updating the community operators: <ul>
+<li>Open a PR in the <a href="https://github.com/redhat-openshift-ecosystem/community-operators-prod">community-operators-prod</a> repository.
+  Repeat the previous steps, but don't push PR as draft.</li>
+<li><strong>NOTE:</strong> Lessons learned about updating the community operators: <ul>
 <li>These PRs usually auto-merge as soon as all checks pass, and once a
   bundle for a release is merged, it cannot be modified. If any errors
   are found in the bundle files after merging, the only solution is to
@@ -2423,7 +2444,7 @@ follow that up with a release for <code>bpfman-operator</code>.</p>
   merged.</li>
 <li>A maintainer or someone with write permission on the repo must create the
   tag.</li>
-<li>This can be done using the <code>git</code> CLI or Github's <a href="https://github.com/bpfman/bpfman/releases">release</a> page.</li>
+<li>This can be done using the <code>git</code> CLI or Github's <a href="https://github.com/bpfman/bpfman/releases">bpfman release</a> page.</li>
 </ul>
 </li>
 <li>The Release will be automatically created by GitHub actions when the tag is
@@ -2466,7 +2487,7 @@ follow that up with a release for <code>bpfman-operator</code>.</p>
   merged.</li>
 <li>A maintainer or someone with write permission on the repo must create the
   tag.</li>
-<li>This can be done using the <code>git</code> CLI or Github's <a href="https://github.com/bpfman/bpfman/releases">release</a> page.</li>
+<li>This can be done using the <code>git</code> CLI or Github's <a href="https://github.com/bpfman/bpfman-operator/releases">bpfman-operator release</a> page.</li>
 </ul>
 </li>
 <li>The Release will be automatically created by GitHub actions when the tag is
@@ -2474,7 +2495,7 @@ follow that up with a release for <code>bpfman-operator</code>.</p>
 </ul>
 <p>After these steps are completed, the following should occur:</p>
 <ul>
-<li>All <a href="https://github.com/bpfman/bpfman/actions">GitHub actions</a> should complete successfully.</li>
+<li>All <a href="https://github.com/bpfman/bpfman-operator/actions">GitHub actions</a> should complete successfully.</li>
 <li>The release appears on the GitHub Releases Page.</li>
 <li>Images are built and updated with the new version tag at:<ul>
 <li><code>quay.io/bpfman/bpfman-operator</code></li>
