@@ -13,7 +13,7 @@ on: # yamllint disable-line rule:truthy
 env:
   CARGO_TERM_COLOR: always
   # Use to pin rust nightly to specific version.
-  NIGHTLY_VERSION: nightly-2024-09-24
+  NIGHTLY_VERSION: nightly
 
 jobs:
   check-license:

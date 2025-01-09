@@ -18,6 +18,10 @@ on: # yamllint disable-line rule:truthy
   schedule:
     - cron: 15 17 * * 4
 
+env:
+  # Use to pin rust nightly to specific version.
+  NIGHTLY_VERSION: nightly
+
 jobs:
   rust-clippy-analyze:
     name: Run rust-clippy analyzing
@@ -30,11 +34,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Rust toolchain
+      - name: Install Rust toolchain - ${{ env.NIGHTLY_VERSION }}
         uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # @v1
         with:
           profile: minimal
-          toolchain: nightly-2024-09-24
+          toolchain: ${{ env.NIGHTLY_VERSION }}
           components: clippy
           override: true
 
