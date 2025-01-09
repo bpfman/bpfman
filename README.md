@@ -29,6 +29,14 @@
 
 _Formerly know as `bpfd`_
 
+bpfman is a Cloud Native Computing Foundation Sandbox project
+
+<picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/cncf/artwork/main/other/cncf/horizontal/white/cncf-white.png"/>
+   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/cncf/artwork/main/other/cncf/horizontal/color/cncf-color.png"/>
+   <img alt="CNCF Logo" src="https://raw.githubusercontent.com/cncf/artwork/main/other/cncf/horizontal/color/cncf-color.png" width="200px"/>
+</picture>
+
 ## Welcome to bpfman
 
 bpfman operates as an eBPF manager, focusing on simplifying the deployment and administration of eBPF programs. Its notable features encompass:
@@ -92,8 +100,12 @@ dual licensed as above, without any additional terms or conditions.
 [libxdp]: https://github.com/xdp-project/xdp-tools
 [TC dispatcher]:https://github.com/bpfman/bpfman/blob/main/bpf/tc_dispatcher.bpf.c
 
-<br>
-We are a Cloud Native Computing Foundation sandbox project.<br>
-<div style="background-color: white; display: inline-block; padding: 10px;">
-  <img src="docs/img/cncf-color.png" alt="CNCF Logo" width="200">
-</div>
+## Star History
+
+<a href="https://star-history.com/#bpfman/bpfman&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=bpfman/bpfman&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=bpfman/bpfman&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=bpfman/bpfman&type=Date" />
+ </picture>
+</a>
