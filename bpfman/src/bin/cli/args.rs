@@ -472,10 +472,10 @@ impl GoArch {
     pub(crate) fn from_cilium_ebpf_file_str(s: &str) -> Result<Self, std::io::Error> {
         if s.contains("x86") && s.contains("bpfel") && s.contains(".o") {
             Ok(GoArch::Amd64)
-        } else if s.contains("arm") && s.contains("bpfel") && s.contains(".o") {
-            Ok(GoArch::Arm)
         } else if s.contains("arm64") && s.contains("bpfel") && s.contains(".o") {
             Ok(GoArch::Arm64)
+        } else if s.contains("arm") && s.contains("bpfel") && s.contains(".o") {
+            Ok(GoArch::Arm)
         } else if s.contains("loongarch") && s.contains("bpfel") && s.contains(".o") {
             Ok(GoArch::Loong64)
         } else if s.contains("mips") && s.contains("bpfeb") && s.contains(".o") {
