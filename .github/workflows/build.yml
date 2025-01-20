@@ -309,7 +309,7 @@ jobs:
       - name: Lint
         # Only need to lint the code once, so just pick one of the arch to run on.
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042db8 # @v6
+        uses: golangci/golangci-lint-action@ec5d18412c0aeab7936cb16880d708ba2a64e1ae # @v6
         with:
           ## https://github.com/golangci/golangci-lint-action/issues/369
           version: v1.54.2
