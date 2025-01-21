@@ -6,8 +6,8 @@ use log::warn;
 
 use crate::{args::GetArgs, table::ProgTable};
 
-pub(crate) async fn execute_get(args: &GetArgs) -> Result<(), BpfmanError> {
-    match get_program(args.program_id).await {
+pub(crate) fn execute_get(args: &GetArgs) -> Result<(), BpfmanError> {
+    match get_program(args.program_id) {
         Ok(program) => {
             if let Ok(p) = ProgTable::new_program(&program) {
                 p.print();

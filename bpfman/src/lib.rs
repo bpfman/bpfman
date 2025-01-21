@@ -5,6 +5,8 @@ use std::{
     collections::HashMap,
     fs::{create_dir_all, remove_dir_all},
     path::{Path, PathBuf},
+    thread::sleep,
+    time::Duration,
 };
 
 use anyhow::anyhow;
@@ -25,7 +27,6 @@ use aya::{
 };
 use log::{debug, error, info, warn};
 use sled::{Config as SledConfig, Db};
-use tokio::time::{sleep, Duration};
 use types::AttachOrder;
 use utils::{id_from_tree_name, initialize_bpfman, tc_dispatcher_id, xdp_dispatcher_id};
 
@@ -50,6 +51,7 @@ mod config;
 mod dispatcher_config;
 pub mod errors;
 mod multiprog;
+mod netlink;
 mod oci_utils;
 mod static_program;
 pub mod types;
@@ -130,8 +132,7 @@ pub(crate) fn get_db_config() -> SledConfig {
 /// use bpfman::types::{KprobeProgram, Location, Program, ProgramData};
 /// use std::collections::HashMap;
 ///
-/// #[tokio::main]
-/// async fn main() -> Result<(), BpfmanError> {
+/// fn main() -> Result<(), BpfmanError> {
 ///     // Define the location of the eBPF object file.
 ///     let location = Location::File(String::from("kprobe.o"));
 ///
@@ -170,7 +171,7 @@ pub(crate) fn get_db_config() -> SledConfig {
 ///     let kprobe_program = KprobeProgram::new(program_data, String::from("do_sys_open"), probe_offset, is_retprobe, container_pid)?;
 ///
 ///     // Add the kprobe program using the bpfman manager.
-///     let added_program = add_program(Program::Kprobe(kprobe_program)).await?;
+///     let added_program = add_program(Program::Kprobe(kprobe_program))?;
 ///
 ///     // Print a success message with the name of the added program.
 ///     println!("Program '{}' added successfully.", added_program.get_data().get_name()?);
@@ -195,7 +196,7 @@ pub(crate) fn get_db_config() -> SledConfig {
 ///
 /// This function is asynchronous and should be awaited in an
 /// asynchronous context.
-pub async fn add_program(program: Program) -> Result<Program, BpfmanError> {
+pub fn add_program(program: Program) -> Result<Program, BpfmanError> {
     let kind = program
         .get_data()
         .get_kind()
@@ -207,7 +208,7 @@ pub async fn add_program(program: Program) -> Result<Program, BpfmanError> {
         .unwrap_or("not set".to_string());
     info!("Request to load {kind} program named \"{name}\"");
 
-    let result = add_program_internal(program).await;
+    let result = add_program_internal(program);
 
     match result {
         Ok(ref p) => {
@@ -221,9 +222,9 @@ pub async fn add_program(program: Program) -> Result<Program, BpfmanError> {
     result
 }
 
-async fn add_program_internal(mut program: Program) -> Result<Program, BpfmanError> {
-    let (config, root_db) = &setup().await?;
-    let mut image_manager = init_image_manager().await?;
+fn add_program_internal(mut program: Program) -> Result<Program, BpfmanError> {
+    let (config, root_db) = &setup()?;
+    let mut image_manager = init_image_manager()?;
     // This is only required in the add_program api
     program.get_data_mut().load(root_db)?;
 
@@ -236,15 +237,14 @@ async fn add_program_internal(mut program: Program) -> Result<Program, BpfmanErr
 
     program
         .get_data_mut()
-        .set_program_bytes(root_db, &mut image_manager)
-        .await?;
+        .set_program_bytes(root_db, &mut image_manager)?;
 
     let result = match program {
         Program::Xdp(_) | Program::Tc(_) => {
             let if_name = program.if_name()?;
             let netns = program.netns()?;
             program.set_if_index(get_ifindex(&if_name, netns)?)?;
-            add_multi_attach_program(root_db, &mut program, &mut image_manager, config).await
+            add_multi_attach_program(root_db, &mut program, &mut image_manager, config)
         }
         Program::Tcx(_) => {
             let if_name = program.if_name()?;
@@ -325,12 +325,9 @@ async fn add_program_internal(mut program: Program) -> Result<Program, BpfmanErr
 /// ```rust,no_run
 /// use bpfman::remove_program;
 ///
-/// #[tokio::main]
-/// async fn main() {
-///     match remove_program(42).await {
-///         Ok(()) => println!("Program successfully removed."),
-///         Err(e) => eprintln!("Failed to remove program: {:?}", e),
-///     }
+/// match remove_program(42) {
+///     Ok(()) => println!("Program successfully removed."),
+///     Err(e) => eprintln!("Failed to remove program: {:?}", e),
 /// }
 /// ```
 ///
@@ -338,8 +335,8 @@ async fn add_program_internal(mut program: Program) -> Result<Program, BpfmanErr
 ///
 /// This function is asynchronous and should be awaited in an
 /// asynchronous context.
-pub async fn remove_program(id: u32) -> Result<(), BpfmanError> {
-    let (config, root_db) = match setup().await {
+pub fn remove_program(id: u32) -> Result<(), BpfmanError> {
+    let (config, root_db) = match setup() {
         Ok((c, r)) => &(c, r),
         Err(e) => {
             error!("Error: Request to unload program with id {id} but unable to open db: {e}");
@@ -366,7 +363,7 @@ pub async fn remove_program(id: u32) -> Result<(), BpfmanError> {
     let name = prog.get_data().get_name().unwrap_or("not set".to_string());
     info!("Request to unload {kind} program named \"{name}\" with id {id}");
 
-    let result = remove_program_internal(id, config, root_db, prog).await;
+    let result = remove_program_internal(id, config, root_db, prog);
 
     match result {
         Ok(_) => info!("Success: unloaded {kind} program named \"{name}\" with id {id}"),
@@ -375,7 +372,7 @@ pub async fn remove_program(id: u32) -> Result<(), BpfmanError> {
     result
 }
 
-async fn remove_program_internal(
+fn remove_program_internal(
     id: u32,
     config: &Config,
     root_db: &Db,
@@ -408,8 +405,7 @@ async fn remove_program_internal(
                 direction,
                 nsid,
                 netns,
-            )
-            .await?
+            )?
         }
         Program::Tcx(_) => {
             let nsid = prog.nsid()?;
@@ -475,8 +471,7 @@ async fn remove_program_internal(
 /// use bpfman::{errors::BpfmanError, list_programs, types::ListFilter};
 /// use std::collections::HashMap;
 ///
-/// #[tokio::main]
-/// async fn main() -> Result<(), BpfmanError> {
+/// fn main() -> Result<(), BpfmanError> {
 ///     let program_type = None;
 ///     let metadata_selector = HashMap::new();
 ///     let bpfman_programs_only = true;
@@ -488,7 +483,7 @@ async fn remove_program_internal(
 ///     // program types.
 ///     let filter = ListFilter::new(program_type, metadata_selector, bpfman_programs_only);
 ///
-///     match list_programs(filter).await {
+///     match list_programs(filter) {
 ///         Ok(programs) => {
 ///             for program in programs {
 ///                 match program.get_data().get_id() {
@@ -510,8 +505,8 @@ async fn remove_program_internal(
 ///
 /// This function is asynchronous and should be awaited in an
 /// asynchronous context.
-pub async fn list_programs(filter: ListFilter) -> Result<Vec<Program>, BpfmanError> {
-    let (_, root_db) = &setup().await?;
+pub fn list_programs(filter: ListFilter) -> Result<Vec<Program>, BpfmanError> {
+    let (_, root_db) = &setup()?;
 
     debug!("BpfManager::list_programs()");
 
@@ -588,12 +583,9 @@ pub async fn list_programs(filter: ListFilter) -> Result<Vec<Program>, BpfmanErr
 /// ```rust,no_run
 /// use bpfman::get_program;
 ///
-/// #[tokio::main]
-/// async fn main() {
-///     match get_program(42).await {
-///         Ok(program) => println!("Program info: {:?}", program),
-///         Err(e) => eprintln!("Error fetching program: {:?}", e),
-///     }
+/// match get_program(42) {
+///     Ok(program) => println!("Program info: {:?}", program),
+///     Err(e) => eprintln!("Error fetching program: {:?}", e),
 /// }
 /// ```
 ///
@@ -601,8 +593,8 @@ pub async fn list_programs(filter: ListFilter) -> Result<Vec<Program>, BpfmanErr
 ///
 /// This function is asynchronous and should be awaited in an
 /// asynchronous context.
-pub async fn get_program(id: u32) -> Result<Program, BpfmanError> {
-    let (_, root_db) = &setup().await?;
+pub fn get_program(id: u32) -> Result<Program, BpfmanError> {
+    let (_, root_db) = &setup()?;
 
     debug!("Getting program with id: {id}");
     // If the program was loaded by bpfman, then use it.
@@ -671,21 +663,18 @@ pub async fn get_program(id: u32) -> Result<Program, BpfmanError> {
 /// use bpfman::pull_bytecode;
 /// use bpfman::types::{BytecodeImage, ImagePullPolicy};
 ///
-/// #[tokio::main]
-/// async fn main() {
-///     let image = BytecodeImage {
-///         image_url: "example.com/myrepository/myimage:latest".to_string(),
-///         image_pull_policy: ImagePullPolicy::IfNotPresent,
+/// let image = BytecodeImage {
+///     image_url: "example.com/myrepository/myimage:latest".to_string(),
+///     image_pull_policy: ImagePullPolicy::IfNotPresent,
 ///
-///         // Optional username/password for authentication.
-///         username: Some("username".to_string()),
-///         password: Some("password".to_string()),
-///     };
+///     // Optional username/password for authentication.
+///     username: Some("username".to_string()),
+///     password: Some("password".to_string()),
+/// };
 ///
-///     match pull_bytecode(image).await {
-///         Ok(_) => println!("Image pulled successfully."),
-///         Err(e) => eprintln!("Failed to pull image: {}", e),
-///     }
+/// match pull_bytecode(image) {
+///     Ok(_) => println!("Image pulled successfully."),
+///     Err(e) => eprintln!("Failed to pull image: {}", e),
 /// }
 /// ```
 ///
@@ -693,25 +682,21 @@ pub async fn get_program(id: u32) -> Result<Program, BpfmanError> {
 ///
 /// This function is asynchronous and should be awaited in an
 /// asynchronous context.
-pub async fn pull_bytecode(image: BytecodeImage) -> anyhow::Result<()> {
-    let (_, root_db) = &setup().await?;
-    let image_manager = &mut init_image_manager()
-        .await
-        .map_err(|e| anyhow!(format!("{e}")))?;
+pub fn pull_bytecode(image: BytecodeImage) -> anyhow::Result<()> {
+    let (_, root_db) = &setup()?;
+    let image_manager = &mut init_image_manager().map_err(|e| anyhow!(format!("{e}")))?;
 
-    image_manager
-        .get_image(
-            root_db,
-            &image.image_url,
-            image.image_pull_policy.clone(),
-            image.username.clone(),
-            image.password.clone(),
-        )
-        .await?;
+    image_manager.get_image(
+        root_db,
+        &image.image_url,
+        image.image_pull_policy.clone(),
+        image.username.clone(),
+        image.password.clone(),
+    )?;
     Ok(())
 }
 
-pub(crate) async fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanError> {
+pub(crate) fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanError> {
     let database_config = open_config_file().database().to_owned();
     for _ in 0..=database_config.max_retries {
         if let Ok(db) = sled_config.open() {
@@ -722,7 +707,7 @@ pub(crate) async fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanE
                 "Database lock is already held, retrying after {} milliseconds",
                 database_config.millisec_delay
             );
-            sleep(Duration::from_millis(database_config.millisec_delay)).await;
+            sleep(Duration::from_millis(database_config.millisec_delay));
         }
     }
     Err(BpfmanError::DatabaseLockError)
@@ -732,9 +717,9 @@ pub(crate) async fn init_database(sled_config: SledConfig) -> Result<Db, BpfmanE
 // an OCI based container registry. It should ONLY be used where needed, to
 // explicitly control when bpfman blocks for network calls to both sigstore's
 // cosign tuf registries and container registries.
-pub(crate) async fn init_image_manager() -> Result<ImageManager, BpfmanError> {
+pub(crate) fn init_image_manager() -> Result<ImageManager, BpfmanError> {
     let signing_config = open_config_file().signing().to_owned();
-    match ImageManager::new(signing_config.verify_enabled, signing_config.allow_unsigned).await {
+    match ImageManager::new(signing_config.verify_enabled, signing_config.allow_unsigned) {
         Ok(im) => Ok(im),
         Err(e) => {
             error!("Unable to initialize ImageManager: {e}");
@@ -1028,13 +1013,13 @@ fn get_programs_iter(root_db: &Db) -> impl Iterator<Item = (u32, Program)> + '_ 
         })
 }
 
-async fn setup() -> Result<(Config, Db), BpfmanError> {
+fn setup() -> Result<(Config, Db), BpfmanError> {
     initialize_bpfman()?;
 
-    Ok((open_config_file(), init_database(get_db_config()).await?))
+    Ok((open_config_file(), init_database(get_db_config())?))
 }
 
-async fn add_multi_attach_program(
+fn add_multi_attach_program(
     root_db: &Db,
     program: &mut Program,
     image_manager: &mut ImageManager,
@@ -1099,7 +1084,6 @@ async fn add_multi_attach_program(
         old_dispatcher,
         image_manager,
     )
-    .await
     .or_else(|e| {
         // If kernel ID was never set there's no pins to cleanup here so just continue
         if program.get_data().get_id().is_ok() {
@@ -1479,7 +1463,7 @@ pub(crate) fn add_single_attach_program(root_db: &Db, p: &mut Program) -> Result
 }
 
 #[allow(clippy::too_many_arguments)]
-async fn remove_multi_attach_program(
+fn remove_multi_attach_program(
     root_db: &Db,
     config: &Config,
     did: DispatcherId,
@@ -1491,7 +1475,7 @@ async fn remove_multi_attach_program(
     netns: Option<PathBuf>,
 ) -> Result<(), BpfmanError> {
     debug!("BpfManager::remove_multi_attach_program()");
-    let mut image_manager = init_image_manager().await?;
+    let mut image_manager = init_image_manager()?;
 
     let netns_deleted = if let Some(netns) = netns {
         !netns.exists()
@@ -1545,8 +1529,7 @@ async fn remove_multi_attach_program(
         next_revision,
         old_dispatcher,
         &mut image_manager,
-    )
-    .await?;
+    )?;
 
     Ok(())
 }
