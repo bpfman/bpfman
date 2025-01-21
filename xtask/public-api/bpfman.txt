@@ -1764,8 +1764,8 @@ pub const bpfman::utils::SOCK_MODE: u32
 pub fn bpfman::utils::create_bpffs(directory: &str) -> anyhow::Result<()>
 pub fn bpfman::utils::set_dir_permissions(directory: &str, mode: u32)
 pub fn bpfman::utils::set_file_permissions(path: &std::path::Path, mode: u32)
-pub async fn bpfman::add_program(program: bpfman::types::Program) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
-pub async fn bpfman::get_program(id: u32) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
-pub async fn bpfman::list_programs(filter: bpfman::types::ListFilter) -> core::result::Result<alloc::vec::Vec<bpfman::types::Program>, bpfman::errors::BpfmanError>
-pub async fn bpfman::pull_bytecode(image: bpfman::types::BytecodeImage) -> anyhow::Result<()>
-pub async fn bpfman::remove_program(id: u32) -> core::result::Result<(), bpfman::errors::BpfmanError>
+pub fn bpfman::add_program(program: bpfman::types::Program) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
+pub fn bpfman::get_program(id: u32) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
+pub fn bpfman::list_programs(filter: bpfman::types::ListFilter) -> core::result::Result<alloc::vec::Vec<bpfman::types::Program>, bpfman::errors::BpfmanError>
+pub fn bpfman::pull_bytecode(image: bpfman::types::BytecodeImage) -> anyhow::Result<()>
+pub fn bpfman::remove_program(id: u32) -> core::result::Result<(), bpfman::errors::BpfmanError>

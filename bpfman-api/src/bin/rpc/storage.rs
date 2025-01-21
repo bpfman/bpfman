@@ -146,7 +146,6 @@ impl Node for CsiNode {
 
                 // Find the Program with the specified *Program CRD name
                 let prog_data = list_programs(ListFilter::default())
-                    .await
                     .map_err(|e| Status::aborted(format!("failed list programs: {e}")))?
                     .into_iter()
                     .find(|p| {

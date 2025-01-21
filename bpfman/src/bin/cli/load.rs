@@ -18,15 +18,15 @@ use crate::{
 };
 
 impl LoadSubcommand {
-    pub(crate) async fn execute(&self) -> anyhow::Result<()> {
+    pub(crate) fn execute(&self) -> anyhow::Result<()> {
         match self {
-            LoadSubcommand::File(l) => execute_load_file(l).await,
-            LoadSubcommand::Image(l) => execute_load_image(l).await,
+            LoadSubcommand::File(l) => execute_load_file(l),
+            LoadSubcommand::Image(l) => execute_load_image(l),
         }
     }
 }
 
-pub(crate) async fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
+pub(crate) fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
     let bytecode_source = Location::File(args.path.clone());
 
     let data = ProgramData::new(
@@ -42,14 +42,14 @@ pub(crate) async fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()>
         args.map_owner_id,
     )?;
 
-    let program = add_program(args.command.get_program(data)?).await?;
+    let program = add_program(args.command.get_program(data)?)?;
 
     ProgTable::new_program(&program)?.print();
     ProgTable::new_kernel_info(&program)?.print();
     Ok(())
 }
 
-pub(crate) async fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
+pub(crate) fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
     let bytecode_source = Location::Image((&args.pull_args).try_into()?);
 
     let data = ProgramData::new(
@@ -65,7 +65,7 @@ pub(crate) async fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<(
         args.map_owner_id,
     )?;
 
-    let program = add_program(args.command.get_program(data)?).await?;
+    let program = add_program(args.command.get_program(data)?)?;
 
     ProgTable::new_program(&program)?.print();
     ProgTable::new_kernel_info(&program)?.print();

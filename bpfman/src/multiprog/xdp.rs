@@ -84,7 +84,7 @@ impl XdpDispatcher {
         }
     }
 
-    pub(crate) async fn load(
+    pub(crate) fn load(
         &mut self,
         root_db: &Db,
         programs: &mut [Program],
@@ -130,15 +130,13 @@ impl XdpDispatcher {
             None,
         );
 
-        let (path, bpf_program_names) = image_manager
-            .get_image(
-                root_db,
-                &image.image_url.clone(),
-                image.image_pull_policy.clone(),
-                image.username.clone(),
-                image.password.clone(),
-            )
-            .await?;
+        let (path, bpf_program_names) = image_manager.get_image(
+            root_db,
+            &image.image_url.clone(),
+            image.image_pull_policy.clone(),
+            image.username.clone(),
+            image.password.clone(),
+        )?;
 
         if !bpf_program_names.contains(&XDP_DISPATCHER_PROGRAM_NAME.to_string()) {
             return Err(BpfmanError::ProgramNotFoundInBytecode {

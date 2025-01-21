@@ -149,9 +149,7 @@ impl Bpfman for BpfmanLoader {
             ),
         };
 
-        let program = add_program(program)
-            .await
-            .map_err(|e| Status::aborted(format!("{e}")))?;
+        let program = add_program(program).map_err(|e| Status::aborted(format!("{e}")))?;
 
         let reply_entry =
             LoadResponse {
@@ -173,9 +171,7 @@ impl Bpfman for BpfmanLoader {
         let reply = UnloadResponse {};
         let request = request.into_inner();
 
-        remove_program(request.id)
-            .await
-            .map_err(|e| Status::aborted(format!("{e}")))?;
+        remove_program(request.id).map_err(|e| Status::aborted(format!("{e}")))?;
 
         Ok(Response::new(reply))
     }
@@ -184,9 +180,7 @@ impl Bpfman for BpfmanLoader {
         let request = request.into_inner();
         let id = request.id;
 
-        let program = get_program(id)
-            .await
-            .map_err(|e| Status::aborted(format!("{e}")))?;
+        let program = get_program(id).map_err(|e| Status::aborted(format!("{e}")))?;
 
         let reply_entry =
             GetResponse {
@@ -215,7 +209,6 @@ impl Bpfman for BpfmanLoader {
 
         // Await the response
         for r in list_programs(filter)
-            .await
             .map_err(|e| Status::aborted(format!("failed to list programs: {e}")))?
         {
             // Populate the response with the Program Info and the Kernel Info.
@@ -246,9 +239,7 @@ impl Bpfman for BpfmanLoader {
             None => return Err(Status::aborted("Empty pull_bytecode request received")),
         };
 
-        pull_bytecode(image)
-            .await
-            .map_err(|e| Status::aborted(format!("{e}")))?;
+        pull_bytecode(image).map_err(|e| Status::aborted(format!("{e}")))?;
 
         let reply = PullBytecodeResponse {};
         Ok(Response::new(reply))

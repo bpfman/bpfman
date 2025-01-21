@@ -24,7 +24,7 @@ use sled::Db;
 use tar::Archive;
 
 use crate::{
-    oci_utils::{cosign::CosignVerifier, ImageError},
+    oci_utils::{cosign::CosignVerifier, ImageError, RUNTIME},
     types::ImagePullPolicy,
     utils::{sled_get, sled_insert},
 };
@@ -67,9 +67,9 @@ pub struct ImageManager {
 }
 
 impl ImageManager {
-    pub async fn new(verify_enabled: bool, allow_unsigned: bool) -> Result<Self, anyhow::Error> {
+    pub fn new(verify_enabled: bool, allow_unsigned: bool) -> Result<Self, anyhow::Error> {
         let cosign_verifier = if verify_enabled {
-            Some(CosignVerifier::new(allow_unsigned).await?)
+            Some(CosignVerifier::new(allow_unsigned)?)
         } else {
             None
         };
@@ -84,7 +84,7 @@ impl ImageManager {
         })
     }
 
-    pub(crate) async fn get_image(
+    pub(crate) fn get_image(
         &mut self,
         root_db: &Db,
         image_url: &str,
@@ -98,9 +98,7 @@ impl ImageManager {
         let image: Reference = image_url.parse().map_err(ImageError::InvalidImageUrl)?;
 
         if let Some(cosign_verifier) = &mut self.cosign_verifier {
-            cosign_verifier
-                .verify(image_url, username.as_deref(), password.as_deref())
-                .await?;
+            cosign_verifier.verify(image_url, username.as_deref(), password.as_deref())?;
         } else {
             info!("Cosign verification is disabled, so skipping verification");
         }
@@ -115,15 +113,13 @@ impl ImageManager {
 
         let image_meta = match pull_policy {
             ImagePullPolicy::Always => {
-                self.pull_image(root_db, image, &image_content_key, username, password)
-                    .await?
+                self.pull_image(root_db, image, &image_content_key, username, password)?
             }
             ImagePullPolicy::IfNotPresent => {
                 if exists {
                     self.load_image_meta(root_db, &image_content_key)?
                 } else {
-                    self.pull_image(root_db, image, &image_content_key, username, password)
-                        .await?
+                    self.pull_image(root_db, image, &image_content_key, username, password)?
                 }
             }
             ImagePullPolicy::Never => {
@@ -153,7 +149,7 @@ impl ImageManager {
         }
     }
 
-    pub async fn pull_image(
+    pub fn pull_image(
         &mut self,
         root_db: &Db,
         image: Reference,
@@ -170,11 +166,23 @@ impl ImageManager {
 
         let auth = self.get_auth_for_registry(image.registry(), username, password);
 
-        let (image_manifest, _, config_contents) = self
-            .client
+        let image_labels =
+            RUNTIME.block(self.get_image_labels(&self.client, root_db, base_key, image, auth))?;
+        Ok(image_labels)
+    }
+
+    async fn get_image_labels(
+        &self,
+        client: &Client,
+        root_db: &Db,
+        base_key: &str,
+        image: Reference,
+        auth: RegistryAuth,
+    ) -> Result<ContainerImageMetadata, ImageError> {
+        let (image_manifest, _, config_contents) = client
             .pull_manifest_and_config(&image.clone(), &auth)
             .await
-            .map_err(ImageError::ImageManifestPullFailure)?;
+            .map_err(ImageError::BytecodeImagePullFailure)?;
 
         trace!("Raw container image manifest {}", image_manifest);
 
@@ -188,6 +196,25 @@ impl ImageManager {
             .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
 
         trace!("Raw container image config {}", image_config);
+
+        let image_content = client
+            .pull(
+                &image,
+                &auth,
+                vec![
+                    manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE,
+                    manifest::IMAGE_DOCKER_LAYER_GZIP_MEDIA_TYPE,
+                ],
+            )
+            .await
+            .map_err(ImageError::BytecodeImagePullFailure)?
+            .layers
+            .into_iter()
+            .next()
+            .map(|layer| layer.data)
+            .ok_or(ImageError::BytecodeImageExtractFailure(
+                "No data in bytecode image layer".to_string(),
+            ))?;
 
         let labels_map = image_config["config"]["Labels"].as_object().ok_or(
             ImageError::ByteCodeImageProcessFailure(anyhow!("Labels not found")),
@@ -220,26 +247,6 @@ impl ImageManager {
             }
         };
 
-        let image_content = self
-            .client
-            .pull(
-                &image,
-                &auth,
-                vec![
-                    manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE,
-                    manifest::IMAGE_DOCKER_LAYER_GZIP_MEDIA_TYPE,
-                ],
-            )
-            .await
-            .map_err(ImageError::BytecodeImagePullFailure)?
-            .layers
-            .into_iter()
-            .next()
-            .map(|layer| layer.data)
-            .ok_or(ImageError::BytecodeImageExtractFailure(
-                "No data in bytecode image layer".to_string(),
-            ))?;
-
         // Make sure endian target matches that of the system before storing
         let unzipped_content = get_bytecode_from_gzip(image_content.clone());
         let obj_endianness = object::read::File::parse(unzipped_content.as_slice())
@@ -249,8 +256,8 @@ impl ImageManager {
 
         if host_endianness != obj_endianness {
             return Err(ImageError::BytecodeImageExtractFailure(
-                format!("image bytecode endianness: {obj_endianness:?} does not match host {host_endianness:?}"),
-            ));
+                            format!("image bytecode endianness: {obj_endianness:?} does not match host {host_endianness:?}"),
+                        ));
         };
 
         // Update Database to save for later
@@ -470,16 +477,14 @@ mod tests {
     use super::*;
     use crate::{config::SigningConfig, get_db_config, init_database};
 
-    #[tokio::test]
-    async fn image_pull_and_bytecode_verify_legacy() {
-        let root_db = init_database(get_db_config())
-            .await
-            .expect("Unable to open root database for unit test");
+    #[test]
+    fn image_pull_and_bytecode_verify_legacy() {
+        let root_db =
+            init_database(get_db_config()).expect("Unable to open root database for unit test");
         let mut mgr = ImageManager::new(
             SigningConfig::default().verify_enabled,
             SigningConfig::default().allow_unsigned,
         )
-        .await
         .unwrap();
         let (image_content_key, _) = mgr
             .get_image(
@@ -489,7 +494,6 @@ mod tests {
                 None,
                 None,
             )
-            .await
             .expect("failed to pull bytecode");
 
         let program_bytes = mgr
@@ -499,16 +503,14 @@ mod tests {
         assert!(!program_bytes.is_empty())
     }
 
-    #[tokio::test]
-    async fn image_pull_and_bytecode_verify() {
-        let root_db = init_database(get_db_config())
-            .await
-            .expect("Unable to open root database for unit test");
+    #[test]
+    fn image_pull_and_bytecode_verify() {
+        let root_db =
+            init_database(get_db_config()).expect("Unable to open root database for unit test");
         let mut mgr = ImageManager::new(
             SigningConfig::default().verify_enabled,
             SigningConfig::default().allow_unsigned,
         )
-        .await
         .unwrap();
         let (image_content_key, _) = mgr
             .get_image(
@@ -518,7 +520,6 @@ mod tests {
                 None,
                 None,
             )
-            .await
             .expect("failed to pull bytecode");
 
         let program_bytes = mgr
@@ -528,43 +529,37 @@ mod tests {
         assert!(!program_bytes.is_empty())
     }
 
-    #[tokio::test]
-    async fn image_pull_policy_never_failure() {
+    #[test]
+    fn image_pull_policy_never_failure() {
         let mut mgr = ImageManager::new(
             SigningConfig::default().verify_enabled,
             SigningConfig::default().allow_unsigned,
         )
-        .await
         .unwrap();
-        let root_db = init_database(get_db_config())
-            .await
-            .expect("Unable to open root database for unit test");
+        let root_db =
+            init_database(get_db_config()).expect("Unable to open root database for unit test");
 
-        let result = mgr
-            .get_image(
-                &root_db,
-                "quay.io/bpfman-bytecode/xdp_pass:latest",
-                ImagePullPolicy::Never,
-                None,
-                None,
-            )
-            .await;
+        let result = mgr.get_image(
+            &root_db,
+            "quay.io/bpfman-bytecode/xdp_pass:latest",
+            ImagePullPolicy::Never,
+            None,
+            None,
+        );
 
         assert_matches!(result, Err(ImageError::ByteCodeImageNotfound(_)));
     }
 
-    #[tokio::test]
+    #[test]
     #[should_panic]
-    async fn private_image_pull_failure() {
+    fn private_image_pull_failure() {
         let mut mgr = ImageManager::new(
             SigningConfig::default().verify_enabled,
             SigningConfig::default().allow_unsigned,
         )
-        .await
         .unwrap();
-        let root_db = init_database(get_db_config())
-            .await
-            .expect("Unable to open root database for unit test");
+        let root_db =
+            init_database(get_db_config()).expect("Unable to open root database for unit test");
 
         mgr.get_image(
             &root_db,
@@ -573,21 +568,18 @@ mod tests {
             None,
             None,
         )
-        .await
         .expect("failed to pull bytecode");
     }
 
-    #[tokio::test]
-    async fn private_image_pull_and_bytecode_verify() {
+    #[test]
+    fn private_image_pull_and_bytecode_verify() {
         let mut mgr = ImageManager::new(
             SigningConfig::default().verify_enabled,
             SigningConfig::default().allow_unsigned,
         )
-        .await
         .unwrap();
-        let root_db = init_database(get_db_config())
-            .await
-            .expect("Unable to open root database for unit test");
+        let root_db =
+            init_database(get_db_config()).expect("Unable to open root database for unit test");
 
         let (image_content_key, _) = mgr
             .get_image(
@@ -597,7 +589,6 @@ mod tests {
                 Some("bpfman-bytecode+bpfmancreds".to_owned()),
                 Some("D49CKWI1MMOFGRCAT8SHW5A56FSVP30TGYX54BBWKY2J129XRI6Q5TVH2ZZGTJ1M".to_owned()),
             )
-            .await
             .expect("failed to pull bytecode");
 
         let program_bytes = mgr
@@ -607,27 +598,23 @@ mod tests {
         assert!(!program_bytes.is_empty())
     }
 
-    #[tokio::test]
-    async fn image_pull_failure() {
+    #[test]
+    fn image_pull_failure() {
         let mut mgr = ImageManager::new(
             SigningConfig::default().verify_enabled,
             SigningConfig::default().allow_unsigned,
         )
-        .await
         .unwrap();
-        let root_db = init_database(get_db_config())
-            .await
-            .expect("Unable to open root database for unit test");
+        let root_db =
+            init_database(get_db_config()).expect("Unable to open root database for unit test");
 
-        let result = mgr
-            .get_image(
-                &root_db,
-                "quay.io/bpfman-bytecode/xdp_pass:latest",
-                ImagePullPolicy::Never,
-                None,
-                None,
-            )
-            .await;
+        let result = mgr.get_image(
+            &root_db,
+            "quay.io/bpfman-bytecode/xdp_pass:latest",
+            ImagePullPolicy::Never,
+            None,
+            None,
+        );
 
         assert_matches!(result, Err(ImageError::ByteCodeImageNotfound(_)));
     }
