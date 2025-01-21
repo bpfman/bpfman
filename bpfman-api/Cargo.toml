@@ -53,7 +53,6 @@ oci-distribution = { workspace = true, default-features = false, features = [
 ] }
 prost = { workspace = true, features = ["prost-derive", "std"] }
 rand = { workspace = true }
-rtnetlink = { workspace = true, features = ["tokio_socket"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }

@@ -27,7 +27,7 @@ pub(crate) enum Dispatcher {
 }
 
 impl Dispatcher {
-    pub async fn new(
+    pub fn new(
         root_db: &Db,
         if_config: Option<&InterfaceConfig>,
         registry_config: &RegistryConfig,
@@ -61,17 +61,14 @@ impl Dispatcher {
                     revision,
                 )?;
 
-                if let Err(res) = x
-                    .load(
-                        root_db,
-                        programs,
-                        old_dispatcher,
-                        image_manager,
-                        registry_config,
-                        p.netns()?,
-                    )
-                    .await
-                {
+                if let Err(res) = x.load(
+                    root_db,
+                    programs,
+                    old_dispatcher,
+                    image_manager,
+                    registry_config,
+                    p.netns()?,
+                ) {
                     let _ = x.delete(root_db, true);
                     return Err(res);
                 }
@@ -87,17 +84,14 @@ impl Dispatcher {
                     revision,
                 )?;
 
-                if let Err(res) = t
-                    .load(
-                        root_db,
-                        programs,
-                        old_dispatcher,
-                        image_manager,
-                        registry_config,
-                        p.netns()?,
-                    )
-                    .await
-                {
+                if let Err(res) = t.load(
+                    root_db,
+                    programs,
+                    old_dispatcher,
+                    image_manager,
+                    registry_config,
+                    p.netns()?,
+                ) {
                     let _ = t.delete(root_db, true);
                     return Err(res);
                 }

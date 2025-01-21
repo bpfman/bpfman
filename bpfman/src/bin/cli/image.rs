@@ -24,11 +24,11 @@ use crate::args::{
 };
 
 impl ImageSubCommand {
-    pub(crate) async fn execute(&self) -> anyhow::Result<()> {
+    pub(crate) fn execute(&self) -> anyhow::Result<()> {
         match self {
-            ImageSubCommand::Pull(args) => execute_pull(args).await,
-            ImageSubCommand::Build(args) => execute_build(args).await,
-            ImageSubCommand::GenerateBuildArgs(args) => execute_build_args(args).await,
+            ImageSubCommand::Pull(args) => execute_pull(args),
+            ImageSubCommand::Build(args) => execute_build(args),
+            ImageSubCommand::GenerateBuildArgs(args) => execute_build_args(args),
         }
     }
 }
@@ -67,14 +67,14 @@ pub(crate) struct ImageBuilder {
     pub(crate) build_args: Vec<String>,
 }
 
-pub(crate) async fn execute_pull(args: &PullBytecodeArgs) -> anyhow::Result<()> {
+pub(crate) fn execute_pull(args: &PullBytecodeArgs) -> anyhow::Result<()> {
     let image: BytecodeImage = args.try_into()?;
-    pull_bytecode(image).await?;
+    pull_bytecode(image)?;
 
     Ok(())
 }
 
-pub(crate) async fn execute_build(args: &BuildBytecodeArgs) -> anyhow::Result<()> {
+pub(crate) fn execute_build(args: &BuildBytecodeArgs) -> anyhow::Result<()> {
     let container_tool = if let Some(runtime) = &args.runtime {
         match runtime.as_str() {
             "docker" => ContainerRuntime::Docker,
@@ -284,7 +284,7 @@ pub(crate) fn parse_bytecode_from_cilium_ebpf_project(
     })
 }
 
-pub(crate) async fn execute_build_args(args: &GenerateArgs) -> anyhow::Result<()> {
+pub(crate) fn execute_build_args(args: &GenerateArgs) -> anyhow::Result<()> {
     let build_context = if let Some(project_path) = &args.bytecode.cilium_ebpf_project {
         parse_bytecode_from_cilium_ebpf_project(project_path)?
     } else {

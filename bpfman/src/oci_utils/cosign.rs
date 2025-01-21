@@ -30,9 +30,12 @@ fn get_tuf_path() -> Option<PathBuf> {
 }
 
 impl CosignVerifier {
-    pub(crate) async fn new(allow_unsigned: bool) -> Result<Self, anyhow::Error> {
+    pub(crate) fn new(allow_unsigned: bool) -> Result<Self, anyhow::Error> {
         info!("Starting Cosign Verifier, downloading data from Sigstore TUF repository");
-
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| anyhow!("Error building tokio runtime: {}", e))?;
         let oci_config = ClientConfig {
             protocol: ClientProtocol::Https,
             ..Default::default()
@@ -41,7 +44,8 @@ impl CosignVerifier {
         // The cosign is a static ref which needs to live for the rest of the program's
         // lifecycle so therefore the repo ALSO needs to be static, requiring us
         // to leak it here.
-        let repo: &dyn sigstore::trust::TrustRoot = Box::leak(fetch_sigstore_tuf_data().await?);
+        let repo: &dyn sigstore::trust::TrustRoot =
+            Box::leak(rt.block_on(fetch_sigstore_tuf_data())?);
 
         let cosign_client = ClientBuilder::default()
             .with_oci_client_config(oci_config)
@@ -55,13 +59,17 @@ impl CosignVerifier {
         })
     }
 
-    pub(crate) async fn verify(
+    pub(crate) fn verify(
         &mut self,
         image: &str,
         username: Option<&str>,
         password: Option<&str>,
     ) -> Result<(), anyhow::Error> {
         debug!("CosignVerifier::verify()");
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| anyhow!("Error building tokio runtime: {}", e))?;
         let image = OciReference::from_str(image)?;
         let auth = if let (Some(username), Some(password)) = (username, password) {
             Auth::Basic(username.to_string(), password.to_string())
@@ -71,14 +79,14 @@ impl CosignVerifier {
 
         debug!("Triangulating image: {}", image);
         let (cosign_signature_image, source_image_digest) =
-            self.client.triangulate(&image, &auth).await?;
+            rt.block_on(self.client.triangulate(&image, &auth))?;
 
         debug!("Getting trusted layers");
-        match self
-            .client
-            .trusted_signature_layers(&auth, &source_image_digest, &cosign_signature_image)
-            .await
-        {
+        match rt.block_on(self.client.trusted_signature_layers(
+            &auth,
+            &source_image_digest,
+            &cosign_signature_image,
+        )) {
             Ok(trusted_layers) => {
                 debug!("Found trusted layers");
                 debug!("Verifying constraints");

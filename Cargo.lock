@@ -433,12 +433,13 @@ dependencies = [
  "hex",
  "lazy_static",
  "log",
+ "netlink-packet-core",
  "netlink-packet-route",
+ "netlink-sys",
  "nix 0.28.0",
  "object",
  "oci-distribution",
  "rand",
- "rtnetlink",
  "serde",
  "serde_json",
  "sha2",
@@ -482,7 +483,6 @@ dependencies = [
  "oci-distribution",
  "prost",
  "rand",
- "rtnetlink",
  "serde",
  "serde_json",
  "sha2",
@@ -2475,10 +2475,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "16c903aa70590cb93691bf97a767c8d1d6122d2cc9070433deb3bbf36ce8bd23"
 dependencies = [
  "bytes",
- "futures",
  "libc",
  "log",
- "tokio",
 ]
 
 [[package]]
@@ -3566,24 +3564,6 @@ dependencies = [
  "spki",
  "subtle",
  "zeroize",
-]
-
-[[package]]
-name = "rtnetlink"
-version = "0.14.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b684475344d8df1859ddb2d395dd3dac4f8f3422a1aa0725993cb375fc5caba5"
-dependencies = [
- "futures",
- "log",
- "netlink-packet-core",
- "netlink-packet-route",
- "netlink-packet-utils",
- "netlink-proto",
- "netlink-sys",
- "nix 0.27.1",
- "thiserror 1.0.69",
- "tokio",
 ]
 
 [[package]]
