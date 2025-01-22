@@ -1017,7 +1017,7 @@ fn get_programs_iter(root_db: &Db) -> impl Iterator<Item = (u32, Program)> + '_ 
         .filter_map(|p| {
             let id = bytes_to_string(&p)
                 .split('_')
-                .last()
+                .next_back()
                 .unwrap()
                 .parse::<u32>()
                 .unwrap();
