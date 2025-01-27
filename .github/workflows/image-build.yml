@@ -320,7 +320,7 @@ jobs:
 
       - name: Build and push
         id: build-push-image
-        uses: docker/build-push-action@b32b51a8eda65d6793cd0494a773d4f6bcef32dc # @v6
+        uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # @v6
         with:
           platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
           push: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
@@ -693,7 +693,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Install Golang
-        uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # @v5
+        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # @v5
         if: ${{ matrix.image.build_language == 'go' }}
         with:
           # prettier-ignore
@@ -784,7 +784,7 @@ jobs:
 
       - name: Build and push
         id: build-push-image
-        uses: docker/build-push-action@b32b51a8eda65d6793cd0494a773d4f6bcef32dc # @v6
+        uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991 # @v6
         with:
           platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
           push: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
