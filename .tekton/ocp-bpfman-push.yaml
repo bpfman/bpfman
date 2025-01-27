@@ -35,7 +35,7 @@ spec:
       - localhost
       - linux/arm64
       - linux/ppc64le
-      #- linux/s390x
+      - linux/s390x
   pipelineRef:
     name: build-pipeline
   taskRunTemplate: {}
