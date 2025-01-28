@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use bpfman::{errors::BpfmanError, get_program};
+use bpfman::{errors::BpfmanError, get_program, setup};
 use log::warn;
 
 use crate::{args::GetArgs, table::ProgTable};
 
 pub(crate) fn execute_get(args: &GetArgs) -> Result<(), BpfmanError> {
-    match get_program(args.program_id) {
+    let (_, root_db) = setup()?;
+    match get_program(&root_db, args.program_id) {
         Ok(program) => {
             if let Ok(p) = ProgTable::new_program(&program) {
                 p.print();

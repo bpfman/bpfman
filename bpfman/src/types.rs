@@ -20,7 +20,7 @@ use aya::{
 };
 use chrono::{prelude::DateTime, Local};
 use clap::ValueEnum;
-use log::{info, warn};
+use log::{debug, info, warn};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sled::Db;
@@ -2041,6 +2041,7 @@ impl Program {
                     if iface.is_some() {
                         Ok(Program::Tcx(TcxProgram { data }))
                     } else {
+                        debug!("Program is tc");
                         Ok(Program::Tc(TcProgram { data }))
                     }
                 }
@@ -2288,7 +2289,6 @@ pub enum ProgramType {
     Netfilter,
 }
 
-#[allow(clippy::unneeded_struct_pattern)]
 impl From<aya_obj::ProgramSection> for ProgramType {
     fn from(value: aya_obj::ProgramSection) -> Self {
         match value {
@@ -2320,7 +2320,7 @@ impl From<aya_obj::ProgramSection> for ProgramType {
             aya_obj::ProgramSection::Extension => ProgramType::Ext,
             aya_obj::ProgramSection::SkLookup => ProgramType::SkLookup,
             aya_obj::ProgramSection::CgroupSock { .. } => ProgramType::CgroupSock,
-            aya_obj::ProgramSection::CgroupDevice { .. } => ProgramType::CgroupDevice,
+            aya_obj::ProgramSection::CgroupDevice => ProgramType::CgroupDevice,
         }
     }
 }

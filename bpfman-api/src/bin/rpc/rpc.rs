@@ -3,7 +3,7 @@ use std::path::PathBuf;
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 use bpfman::{
-    add_program, get_program, list_programs, pull_bytecode, remove_program,
+    add_program, get_program, list_programs, pull_bytecode, remove_program, setup,
     types::{
         FentryProgram, FexitProgram, KprobeProgram, ListFilter, Location, Program, ProgramData,
         TcProceedOn, TcProgram, TcxProgram, TracepointProgram, UprobeProgram, XdpProceedOn,
@@ -31,6 +31,7 @@ impl BpfmanLoader {
 impl Bpfman for BpfmanLoader {
     async fn load(&self, request: Request<LoadRequest>) -> Result<Response<LoadResponse>, Status> {
         let request = request.into_inner();
+        let (config, root_db) = setup().map_err(|e| Status::aborted(format!("{e}")))?;
 
         let bytecode_source = match request
             .bytecode
@@ -149,7 +150,8 @@ impl Bpfman for BpfmanLoader {
             ),
         };
 
-        let program = add_program(program).map_err(|e| Status::aborted(format!("{e}")))?;
+        let program =
+            add_program(&config, &root_db, program).map_err(|e| Status::aborted(format!("{e}")))?;
 
         let reply_entry =
             LoadResponse {
@@ -170,8 +172,9 @@ impl Bpfman for BpfmanLoader {
     ) -> Result<Response<UnloadResponse>, Status> {
         let reply = UnloadResponse {};
         let request = request.into_inner();
-
-        remove_program(request.id).map_err(|e| Status::aborted(format!("{e}")))?;
+        let (config, root_db) = setup().map_err(|e| Status::aborted(format!("{e}")))?;
+        remove_program(&config, &root_db, request.id)
+            .map_err(|e| Status::aborted(format!("{e}")))?;
 
         Ok(Response::new(reply))
     }
@@ -179,8 +182,8 @@ impl Bpfman for BpfmanLoader {
     async fn get(&self, request: Request<GetRequest>) -> Result<Response<GetResponse>, Status> {
         let request = request.into_inner();
         let id = request.id;
-
-        let program = get_program(id).map_err(|e| Status::aborted(format!("{e}")))?;
+        let (_, root_db) = setup().map_err(|e| Status::aborted(format!("{e}")))?;
+        let program = get_program(&root_db, id).map_err(|e| Status::aborted(format!("{e}")))?;
 
         let reply_entry =
             GetResponse {
@@ -207,8 +210,10 @@ impl Bpfman for BpfmanLoader {
             request.get_ref().bpfman_programs_only(),
         );
 
+        let (_, root_db) = setup().map_err(|e| Status::aborted(format!("{e}")))?;
+
         // Await the response
-        for r in list_programs(filter)
+        for r in list_programs(&root_db, filter)
             .map_err(|e| Status::aborted(format!("failed to list programs: {e}")))?
         {
             // Populate the response with the Program Info and the Kernel Info.
@@ -238,8 +243,8 @@ impl Bpfman for BpfmanLoader {
             Some(i) => i.into(),
             None => return Err(Status::aborted("Empty pull_bytecode request received")),
         };
-
-        pull_bytecode(image).map_err(|e| Status::aborted(format!("{e}")))?;
+        let (_, root_db) = setup().map_err(|e| Status::aborted(format!("{e}")))?;
+        pull_bytecode(&root_db, image).map_err(|e| Status::aborted(format!("{e}")))?;
 
         let reply = PullBytecodeResponse {};
         Ok(Response::new(reply))

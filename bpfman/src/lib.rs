@@ -47,7 +47,7 @@ use crate::{
     },
 };
 
-mod config;
+pub mod config;
 mod dispatcher_config;
 pub mod errors;
 mod multiprog;
@@ -61,7 +61,7 @@ const MAPS_MODE: u32 = 0o0660;
 const MAP_PREFIX: &str = "map_";
 const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
 
-pub(crate) mod directories {
+pub mod directories {
     // The dispatcher images don't change very often and are pinned to a SHA,
     // but can be overwritten via the bpfman configuration file - config::Config's RegistryConfig
     pub(crate) const XDP_DISPATCHER_IMAGE: &str = "quay.io/bpfman/xdp-dispatcher@sha256:61c34aa2df86d3069aa3c53569134466203c6227c5333f2e45c906cd02e72920";
@@ -84,7 +84,7 @@ pub(crate) mod directories {
     pub(crate) const RTDIR_FS_TC_INGRESS: &str = "/run/bpfman/fs/tc-ingress";
     pub(crate) const RTDIR_FS_TC_EGRESS: &str = "/run/bpfman/fs/tc-egress";
     pub(crate) const RTDIR_FS_XDP: &str = "/run/bpfman/fs/xdp";
-    pub(crate) const RTDIR_FS_MAPS: &str = "/run/bpfman/fs/maps";
+    pub const RTDIR_FS_MAPS: &str = "/run/bpfman/fs/maps";
     pub(crate) const RTDIR_PROGRAMS: &str = "/run/bpfman/programs";
     // The TUF repository is used to store Rekor and Fulcio public keys.
     pub(crate) const RTDIR_TUF: &str = "/run/bpfman/tuf";
@@ -127,12 +127,15 @@ pub(crate) fn get_db_config() -> SledConfig {
 /// # Example
 ///
 /// ```rust,no_run
-/// use bpfman::add_program;
+/// use bpfman::{add_program, setup};
 /// use bpfman::errors::BpfmanError;
 /// use bpfman::types::{KprobeProgram, Location, Program, ProgramData};
 /// use std::collections::HashMap;
 ///
 /// fn main() -> Result<(), BpfmanError> {
+///     // Setup the bpfman environment.
+///     let (config, root_db) = setup().unwrap();
+///
 ///     // Define the location of the eBPF object file.
 ///     let location = Location::File(String::from("kprobe.o"));
 ///
@@ -171,7 +174,7 @@ pub(crate) fn get_db_config() -> SledConfig {
 ///     let kprobe_program = KprobeProgram::new(program_data, String::from("do_sys_open"), probe_offset, is_retprobe, container_pid)?;
 ///
 ///     // Add the kprobe program using the bpfman manager.
-///     let added_program = add_program(Program::Kprobe(kprobe_program))?;
+///     let added_program = add_program(&config, &root_db, Program::Kprobe(kprobe_program))?;
 ///
 ///     // Print a success message with the name of the added program.
 ///     println!("Program '{}' added successfully.", added_program.get_data().get_name()?);
@@ -191,12 +194,11 @@ pub(crate) fn get_db_config() -> SledConfig {
 ///
 /// In case of failure, any created directories or loaded programs
 /// will be cleaned up to maintain system integrity.
-///
-/// # Asynchronous Operation
-///
-/// This function is asynchronous and should be awaited in an
-/// asynchronous context.
-pub fn add_program(program: Program) -> Result<Program, BpfmanError> {
+pub fn add_program(
+    config: &Config,
+    root_db: &Db,
+    program: Program,
+) -> Result<Program, BpfmanError> {
     let kind = program
         .get_data()
         .get_kind()
@@ -208,7 +210,7 @@ pub fn add_program(program: Program) -> Result<Program, BpfmanError> {
         .unwrap_or("not set".to_string());
     info!("Request to load {kind} program named \"{name}\"");
 
-    let result = add_program_internal(program);
+    let result = add_program_internal(config, root_db, program);
 
     match result {
         Ok(ref p) => {
@@ -222,8 +224,11 @@ pub fn add_program(program: Program) -> Result<Program, BpfmanError> {
     result
 }
 
-fn add_program_internal(mut program: Program) -> Result<Program, BpfmanError> {
-    let (config, root_db) = &setup()?;
+fn add_program_internal(
+    config: &Config,
+    root_db: &Db,
+    mut program: Program,
+) -> Result<Program, BpfmanError> {
     let mut image_manager = init_image_manager()?;
     // This is only required in the add_program api
     program.get_data_mut().load(root_db)?;
@@ -323,27 +328,16 @@ fn add_program_internal(mut program: Program) -> Result<Program, BpfmanError> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use bpfman::remove_program;
+/// use bpfman::{remove_program,setup};
 ///
-/// match remove_program(42) {
+/// let (config, root_db) = setup().unwrap();
+///
+/// match remove_program(&config, &root_db, 42) {
 ///     Ok(()) => println!("Program successfully removed."),
 ///     Err(e) => eprintln!("Failed to remove program: {:?}", e),
 /// }
 /// ```
-///
-/// # Asynchronous Operation
-///
-/// This function is asynchronous and should be awaited in an
-/// asynchronous context.
-pub fn remove_program(id: u32) -> Result<(), BpfmanError> {
-    let (config, root_db) = match setup() {
-        Ok((c, r)) => &(c, r),
-        Err(e) => {
-            error!("Error: Request to unload program with id {id} but unable to open db: {e}");
-            return Err(e);
-        }
-    };
-
+pub fn remove_program(config: &Config, root_db: &Db, id: u32) -> Result<(), BpfmanError> {
     let prog = match get(root_db, &id) {
         Some(p) => p,
         None => {
@@ -468,10 +462,11 @@ fn remove_program_internal(
 /// # Example
 ///
 /// ```rust,no_run
-/// use bpfman::{errors::BpfmanError, list_programs, types::ListFilter};
+/// use bpfman::{errors::BpfmanError, list_programs, types::ListFilter, setup};
 /// use std::collections::HashMap;
 ///
 /// fn main() -> Result<(), BpfmanError> {
+///     let (_, root_db) = setup()?;
 ///     let program_type = None;
 ///     let metadata_selector = HashMap::new();
 ///     let bpfman_programs_only = true;
@@ -483,7 +478,7 @@ fn remove_program_internal(
 ///     // program types.
 ///     let filter = ListFilter::new(program_type, metadata_selector, bpfman_programs_only);
 ///
-///     match list_programs(filter) {
+///     match list_programs(&root_db, filter) {
 ///         Ok(programs) => {
 ///             for program in programs {
 ///                 match program.get_data().get_id() {
@@ -500,14 +495,7 @@ fn remove_program_internal(
 ///     Ok(())
 /// }
 /// ```
-///
-/// # Asynchronous Operation
-///
-/// This function is asynchronous and should be awaited in an
-/// asynchronous context.
-pub fn list_programs(filter: ListFilter) -> Result<Vec<Program>, BpfmanError> {
-    let (_, root_db) = &setup()?;
-
+pub fn list_programs(root_db: &Db, filter: ListFilter) -> Result<Vec<Program>, BpfmanError> {
     debug!("BpfManager::list_programs()");
 
     // Get an iterator for the bpfman load programs, a hash map indexed by program id.
@@ -581,21 +569,16 @@ pub fn list_programs(filter: ListFilter) -> Result<Vec<Program>, BpfmanError> {
 /// # Examples
 ///
 /// ```rust,no_run
-/// use bpfman::get_program;
+/// use bpfman::{get_program,setup};
 ///
-/// match get_program(42) {
+/// let (_, root_db) = setup().unwrap();
+///
+/// match get_program(&root_db, 42) {
 ///     Ok(program) => println!("Program info: {:?}", program),
 ///     Err(e) => eprintln!("Error fetching program: {:?}", e),
 /// }
 /// ```
-///
-/// # Asynchronous Operation
-///
-/// This function is asynchronous and should be awaited in an
-/// asynchronous context.
-pub fn get_program(id: u32) -> Result<Program, BpfmanError> {
-    let (_, root_db) = &setup()?;
-
+pub fn get_program(root_db: &Db, id: u32) -> Result<Program, BpfmanError> {
     debug!("Getting program with id: {id}");
     // If the program was loaded by bpfman, then use it.
     // Otherwise, call Aya to get ALL the loaded eBPF programs, and convert the data
@@ -660,8 +643,10 @@ pub fn get_program(id: u32) -> Result<Program, BpfmanError> {
 /// # Examples
 ///
 /// ```rust,no_run
-/// use bpfman::pull_bytecode;
+/// use bpfman::{pull_bytecode,setup};
 /// use bpfman::types::{BytecodeImage, ImagePullPolicy};
+///
+/// let (_, root_db) = setup().unwrap();
 ///
 /// let image = BytecodeImage {
 ///     image_url: "example.com/myrepository/myimage:latest".to_string(),
@@ -672,18 +657,12 @@ pub fn get_program(id: u32) -> Result<Program, BpfmanError> {
 ///     password: Some("password".to_string()),
 /// };
 ///
-/// match pull_bytecode(image) {
+/// match pull_bytecode(&root_db, image) {
 ///     Ok(_) => println!("Image pulled successfully."),
 ///     Err(e) => eprintln!("Failed to pull image: {}", e),
 /// }
 /// ```
-///
-/// # Asynchronous Operation
-///
-/// This function is asynchronous and should be awaited in an
-/// asynchronous context.
-pub fn pull_bytecode(image: BytecodeImage) -> anyhow::Result<()> {
-    let (_, root_db) = &setup()?;
+pub fn pull_bytecode(root_db: &Db, image: BytecodeImage) -> anyhow::Result<()> {
     let image_manager = &mut init_image_manager().map_err(|e| anyhow!(format!("{e}")))?;
 
     image_manager.get_image(
@@ -1013,7 +992,33 @@ fn get_programs_iter(root_db: &Db) -> impl Iterator<Item = (u32, Program)> + '_ 
         })
 }
 
-fn setup() -> Result<(Config, Db), BpfmanError> {
+/// Obtains a [`Config`] object by reading the configuration file in the
+/// default location(s). Obtains a [`Db`] object by opening the database
+/// file at the default location.
+///
+/// # Returns
+///
+/// Returns a tuple containing the [`Config`] and [`Db`] objects.
+///
+/// # Errors
+///
+/// This function can return the following errors:
+/// * `BpfmanError::ConfigError` - If there is an error reading the
+///   configuration file.
+/// * `BpfmanError::DatabaseError` - If there is an error opening the
+///   database file.
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use bpfman::setup;
+///
+/// match setup() {
+///    Ok((config, db)) => println!("Successfully set up bpfman."),
+///   Err(e) => eprintln!("Failed to set up bpfman: {:?}", e),
+/// }
+/// ```
+pub fn setup() -> Result<(Config, Db), BpfmanError> {
     initialize_bpfman()?;
 
     Ok((open_config_file(), init_database(get_db_config())?))
@@ -1381,8 +1386,10 @@ pub(crate) fn add_single_attach_program(root_db: &Db, p: &mut Program) -> Result
             Ok(id)
         }
         Program::Tcx(ref mut program) => {
+            debug!("Loading TCX program");
             let tcx: &mut SchedClassifier = raw_program.try_into()?;
 
+            debug!("Calling load on TCX program");
             tcx.load()?;
             program.get_data_mut().set_kernel_info(&tcx.info()?)?;
 

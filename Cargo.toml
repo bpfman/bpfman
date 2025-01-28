@@ -1,4 +1,15 @@
 [workspace]
+default-members = [
+    "bpf-log-exporter",
+    "bpf-metrics-exporter",
+    "bpfman",
+    "bpfman-api",
+    "bpfman-ns",
+    "csi",
+    # tests/integration-test is omitted from the default-members list since
+    # integration tests MUST be run using cargo xtask
+    "xtask",
+]
 members = [
     "bpf-log-exporter",
     "bpf-metrics-exporter",
@@ -7,7 +18,6 @@ members = [
     "bpfman-ns",
     "csi",
     "tests/integration-test",
-    "tests/integration-test-macros",
     "xtask",
 ]
 resolver = "2"
@@ -34,6 +44,7 @@ bpfman = { version = "0.5.6", path = "./bpfman" }
 bpfman-api = { version = "0.5.6", path = "./bpfman-api" }
 bpfman-csi = { version = "1.8.0", path = "./csi" }
 caps = { version = "0.5.4", default-features = false }
+cargo_metadata = { version = "0.19.1", default-features = false }
 chrono = { version = "0.4.39", default-features = false }
 clap = { version = "4", default-features = false }
 clap_complete = { version = "4.5.44", default-features = false }
