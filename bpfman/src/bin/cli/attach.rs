@@ -3,14 +3,20 @@
 
 use anyhow::bail;
 use bpfman::{
-    attach_program,
+    attach_program, setup,
     types::{AttachInfo, TcProceedOn, XdpProceedOn},
 };
 
 use crate::args::{AttachArgs, AttachCommands};
 
 pub(crate) fn execute_attach(args: &AttachArgs) -> anyhow::Result<()> {
-    attach_program(args.program_id, args.command.get_attach_info()?)?;
+    let (config, root_db) = setup()?;
+    attach_program(
+        &config,
+        &root_db,
+        args.program_id,
+        args.command.get_attach_info()?,
+    )?;
     Ok(())
 }
 

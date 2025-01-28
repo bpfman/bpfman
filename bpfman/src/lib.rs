@@ -198,10 +198,14 @@ pub fn get_db_config() -> SledConfig {
 ///
 /// In case of failure, any created directories or loaded programs
 /// will be cleaned up to maintain system integrity.
-pub fn add_programs(programs: Vec<Program>) -> Result<Vec<Program>, BpfmanError> {
+pub fn add_programs(
+    config: &Config,
+    root_db: &Db,
+    programs: Vec<Program>,
+) -> Result<Vec<Program>, BpfmanError> {
     info!("Request to load {} programs", programs.len());
 
-    let result = add_programs_internal(programs);
+    let result = add_programs_internal(config, root_db, programs);
 
     match result {
         Ok(ref p) => {
@@ -222,8 +226,11 @@ pub fn add_programs(programs: Vec<Program>) -> Result<Vec<Program>, BpfmanError>
     result
 }
 
-fn add_programs_internal(mut programs: Vec<Program>) -> Result<Vec<Program>, BpfmanError> {
-    let (config, root_db) = &setup()?;
+fn add_programs_internal(
+    config: &Config,
+    root_db: &Db,
+    mut programs: Vec<Program>,
+) -> Result<Vec<Program>, BpfmanError> {
     let mut image_manager = init_image_manager()?;
 
     // This is only required in the add_program api ????
@@ -266,7 +273,10 @@ fn add_programs_internal(mut programs: Vec<Program>) -> Result<Vec<Program>, Bpf
 
     let extensions: Vec<String> = programs
         .iter()
-        .filter(|p| p.kind() == BpfProgType::Xdp || p.kind() == BpfProgType::Tc)
+        .filter(|p| {
+            p.kind() == BpfProgType::Xdp
+                || (p.kind() == BpfProgType::Tc && !p.get_data().get_is_tcx())
+        })
         .map(|p| p.get_data().get_name().unwrap())
         .collect();
 
@@ -275,6 +285,7 @@ fn add_programs_internal(mut programs: Vec<Program>) -> Result<Vec<Program>, Bpf
     }
 
     // Load the bytecode
+    debug!("creating ebpf loader for bytecode");
     let mut ebpf = loader.load(&programs[0].get_data().get_program_bytes()?)?;
 
     let mut results = vec![];
@@ -363,15 +374,7 @@ fn add_programs_internal(mut programs: Vec<Program>) -> Result<Vec<Program>, Bpf
 /// }
 ///
 /// ```
-pub fn remove_program(id: u32) -> Result<(), BpfmanError> {
-    let (config, root_db) = match setup() {
-        Ok((c, r)) => &(c, r),
-        Err(e) => {
-            error!("Error: Request to unload program with id {id} but unable to open db: {e}");
-            return Err(e);
-        }
-    };
-
+pub fn remove_program(config: &Config, root_db: &Db, id: u32) -> Result<(), BpfmanError> {
     let prog = match get(root_db, &id) {
         Some(p) => p,
         None => {
@@ -420,15 +423,7 @@ fn remove_program_internal(
     Ok(())
 }
 
-pub fn detach(id: u32) -> Result<(), BpfmanError> {
-    debug!("BpfManager::detach_program({id})");
-    let (config, root_db) = match setup() {
-        Ok((c, r)) => &(c, r),
-        Err(e) => {
-            error!("Error: Request to detach program with link id {id} but unable to open db: {e}");
-            return Err(e);
-        }
-    };
+pub fn detach(config: &Config, root_db: &Db, id: u32) -> Result<(), BpfmanError> {
     let tree = root_db
         .open_tree(format!("{LINKS_LINK_PREFIX}{id}"))
         .expect("Unable to open program database tree");
@@ -437,16 +432,12 @@ pub fn detach(id: u32) -> Result<(), BpfmanError> {
     detach_program_internal(config, root_db, program, link)
 }
 
-pub fn attach_program(id: u32, attach_info: AttachInfo) -> Result<u32, BpfmanError> {
-    debug!("BpfManager::attach_program({id})");
-    let (config, root_db) = match setup() {
-        Ok((c, r)) => &(c, r),
-        Err(e) => {
-            error!("Error: Request to attach program with id {id} but unable to open db: {e}");
-            return Err(e);
-        }
-    };
-
+pub fn attach_program(
+    config: &Config,
+    root_db: &Db,
+    id: u32,
+    attach_info: AttachInfo,
+) -> Result<u32, BpfmanError> {
     let prog = match get(root_db, &id) {
         Some(p) => p,
         None => {
@@ -487,9 +478,6 @@ fn attach_program_internal(
     let mut link = program.add_link()?;
     link.attach(attach_info)?;
 
-    // write it to the database from the temp tree
-    link.finalize(root_db)?;
-
     if let Err(e) = match program {
         Program::Xdp(_) | Program::Tc(_) => {
             attach_multi_attach_program(root_db, program_type, &mut link, config)
@@ -505,6 +493,10 @@ fn attach_program_internal(
         link.delete(root_db)?;
         return Err(e);
     }
+
+    // write it to the database from the temp tree
+    link.finalize(root_db)?;
+
     link.get_id()
 }
 
@@ -631,9 +623,7 @@ fn detach_program_internal(
 ///     Ok(())
 /// }
 /// ```
-pub fn list_programs(filter: ListFilter) -> Result<Vec<Program>, BpfmanError> {
-    let (_, root_db) = &setup()?;
-
+pub fn list_programs(root_db: &Db, filter: ListFilter) -> Result<Vec<Program>, BpfmanError> {
     debug!("BpfManager::list_programs()");
 
     // Get an iterator for the bpfman load programs, a hash map indexed by program id.
@@ -718,9 +708,7 @@ pub fn list_programs(filter: ListFilter) -> Result<Vec<Program>, BpfmanError> {
 /// }
 ///
 /// ```
-pub fn get_program(id: u32) -> Result<Program, BpfmanError> {
-    let (_, root_db) = &setup()?;
-
+pub fn get_program(root_db: &Db, id: u32) -> Result<Program, BpfmanError> {
     debug!("Getting program with id: {id}");
     // If the program was loaded by bpfman, then use it.
     // Otherwise, call Aya to get ALL the loaded eBPF programs, and convert the data
@@ -805,8 +793,7 @@ pub fn get_program(id: u32) -> Result<Program, BpfmanError> {
 /// }
 ///
 /// ```
-pub fn pull_bytecode(image: BytecodeImage) -> anyhow::Result<()> {
-    let (_, root_db) = &setup()?;
+pub fn pull_bytecode(root_db: &Db, image: BytecodeImage) -> anyhow::Result<()> {
     let image_manager = &mut init_image_manager().map_err(|e| anyhow!(format!("{e}")))?;
 
     image_manager.get_image(
@@ -1085,6 +1072,7 @@ fn add_and_set_link_positions(
     let direction = link.direction().unwrap();
     let nsid = link.nsid().unwrap();
     let mut extensions = get_multi_attach_links(root_db, program_type, if_index, direction, nsid)?;
+    extensions.push(link);
     debug!("Found {} extensions", extensions.len());
     extensions.sort_by_key(|b| {
         (
@@ -1334,13 +1322,16 @@ pub(crate) fn load_program(
             Ok(id)
         }
         Program::Tcx(ref mut program) => {
+            debug!("Loading TCX program");
             let tcx: &mut SchedClassifier = raw_program.try_into()?;
 
+            debug!("Calling load on TCX program");
             tcx.load()?;
             program.get_data_mut().set_kernel_info(&tcx.info()?)?;
 
             let id = program.data.get_id()?;
 
+            debug!("Pinning TCX program");
             tcx.pin(format!("{RTDIR_FS}/prog_{id}"))
                 .map_err(BpfmanError::UnableToPinProgram)?;
 
@@ -1443,10 +1434,6 @@ pub(crate) fn attach_single_attach_program(root_db: &Db, l: &mut Link) -> Result
             let mut uprobe: UProbe = UProbe::from_pin(&program_pin_path, kind)?;
 
             let fn_name = link.get_fn_name()?;
-
-            uprobe
-                .pin(program_pin_path.clone())
-                .map_err(BpfmanError::UnableToPinProgram)?;
 
             match link.get_container_pid()? {
                 None => {
@@ -1567,6 +1554,8 @@ pub(crate) fn attach_single_attach_program(root_db: &Db, l: &mut Link) -> Result
             Ok(())
         }
         Link::Tcx(link) => {
+            debug!("Attaching TCX program");
+            debug!("Getting tcx program from pin: {RTDIR_FS}/prog_{prog_id}");
             let mut tcx: SchedClassifier =
                 SchedClassifier::from_pin(format!("{RTDIR_FS}/prog_{prog_id}"))?;
 
@@ -1578,6 +1567,7 @@ pub(crate) fn attach_single_attach_program(root_db: &Db, l: &mut Link) -> Result
                 Direction::Egress => TcAttachType::Egress,
             };
 
+            debug!("calling add_and_set_tcx_link_positions");
             let order = add_and_set_tcx_link_positions(root_db, link)?;
 
             let link_order: AyaLinkOrder = order.into();
@@ -1590,9 +1580,11 @@ pub(crate) fn attach_single_attach_program(root_db: &Db, l: &mut Link) -> Result
             let options = TcAttachOptions::TcxOrder(link_order);
 
             let link_id = if let Some(netns) = link.get_netns()? {
+                debug!("Attaching tcx program in netns: {}", netns.display());
                 let _netns_guard = enter_netns(netns)?;
                 tcx.attach_with_options(iface, aya_direction, options)?
             } else {
+                debug!("Attaching tcx program in host netns");
                 tcx.attach_with_options(iface, aya_direction, options)?
             };
 
@@ -1645,6 +1637,7 @@ pub(crate) fn attach_multi_attach_program(
     add_and_set_link_positions(root_db, program_type, l.clone())?;
 
     let mut programs = get_multi_attach_links(root_db, program_type, if_index, direction, nsid)?;
+    programs.push(l.clone());
     debug!("programs={programs:?}");
 
     let old_dispatcher = get_dispatcher(&did, root_db)?;

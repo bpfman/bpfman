@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use anyhow::bail;
 use bpfman::{
-    add_programs,
+    add_programs, setup,
     types::{
         FentryProgram, FexitProgram, KprobeProgram, Location, Program, ProgramData, TcProgram,
         TcxProgram, TracepointProgram, UprobeProgram, XdpProgram,
@@ -31,7 +31,13 @@ pub(crate) fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
 
     let mut progs = vec![];
     let prog_list = args.programs.clone();
-    for (prog_type, name) in prog_list {
+    for (prog_type, parts) in prog_list {
+        let name = parts
+            .first()
+            .ok_or_else(|| anyhow::anyhow!("Missing program name"))?;
+        if (prog_type == "fentry" || prog_type == "fexit") && parts.len() != 2 {
+            bail!("Missing function name for fentry/fexit program");
+        }
         let data = ProgramData::new(
             bytecode_source.clone(),
             name.clone(),
@@ -55,14 +61,20 @@ pub(crate) fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
             "kretprobe" => Program::Kprobe(KprobeProgram::new(data, true)?),
             "uprobe" => Program::Uprobe(UprobeProgram::new(data, false)?),
             "uretprobe" => Program::Uprobe(UprobeProgram::new(data, true)?),
-            "fentry" => Program::Fentry(FentryProgram::new(data, name)?),
-            "fexit" => Program::Fexit(FexitProgram::new(data, name)?),
+            "fentry" => {
+                let fn_name = parts.get(1).unwrap().clone();
+                Program::Fentry(FentryProgram::new(data, fn_name)?)
+            }
+            "fexit" => {
+                let fn_name = parts.get(1).unwrap().clone();
+                Program::Fexit(FexitProgram::new(data, fn_name)?)
+            }
             _ => bail!("Unknown program type: {prog_type}"),
         };
         progs.push(prog);
     }
-
-    let programs = add_programs(progs)?;
+    let (config, root_db) = setup()?;
+    let programs = add_programs(&config, &root_db, progs)?;
     for program in programs {
         ProgTable::new_program(&program)?.print();
         ProgTable::new_kernel_info(&program)?.print();
@@ -75,7 +87,13 @@ pub(crate) fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
     let mut progs = vec![];
     let prog_list = args.programs.clone();
 
-    for (prog_type, name) in prog_list {
+    for (prog_type, parts) in prog_list {
+        let name = parts
+            .first()
+            .ok_or_else(|| anyhow::anyhow!("Missing program name"))?;
+        if (prog_type == "fentry" || prog_type == "fexit") && parts.len() != 2 {
+            bail!("Missing function name for fentry/fexit program");
+        }
         let data = ProgramData::new(
             bytecode_source.clone(),
             name.clone(),
@@ -101,14 +119,20 @@ pub(crate) fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
             "kretprobe" => Program::Kprobe(KprobeProgram::new(data, true)?),
             "uprobe" => Program::Uprobe(UprobeProgram::new(data, false)?),
             "uretprobe" => Program::Uprobe(UprobeProgram::new(data, true)?),
-            "fentry" => Program::Fentry(FentryProgram::new(data, name)?),
-            "fexit" => Program::Fexit(FexitProgram::new(data, name)?),
+            "fentry" => {
+                let fn_name = parts.get(1).unwrap().clone();
+                Program::Fentry(FentryProgram::new(data, fn_name)?)
+            }
+            "fexit" => {
+                let fn_name = parts.get(1).unwrap().clone();
+                Program::Fexit(FexitProgram::new(data, fn_name)?)
+            }
             _ => bail!("Unknown program type: {prog_type}"),
         };
         progs.push(prog);
     }
-
-    let programs = add_programs(progs)?;
+    let (config, root_db) = setup()?;
+    let programs = add_programs(&config, &root_db, progs)?;
     for program in programs {
         ProgTable::new_program(&program)?.print();
         ProgTable::new_kernel_info(&program)?.print();

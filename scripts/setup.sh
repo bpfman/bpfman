@@ -108,6 +108,11 @@ case "$1" in
         uninstall
         user_cleanup
         ;;
+    "test-cleanup")
+        uninstall
+        user_cleanup
+        cleanup_integration_tests
+        ;;
     "help"|"--help"|"?")
         usage
         ;;

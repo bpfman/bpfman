@@ -20,7 +20,7 @@ use aya::{
 };
 use chrono::{prelude::DateTime, Local};
 use clap::ValueEnum;
-use log::{info, warn};
+use log::{debug, info, warn};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sled::Db;
@@ -31,8 +31,8 @@ use crate::{
     multiprog::{DispatcherId, DispatcherInfo},
     oci_utils::image_manager::ImageManager,
     utils::{
-        bytes_to_bool, bytes_to_i32, bytes_to_string, bytes_to_u32, bytes_to_u64, bytes_to_usize,
-        get_ifindex, nsid, sled_get, sled_get_option, sled_insert,
+        bool_to_bytes, bytes_to_bool, bytes_to_i32, bytes_to_string, bytes_to_u32, bytes_to_u64,
+        bytes_to_usize, get_ifindex, nsid, sled_get, sled_get_option, sled_insert,
     },
 };
 
@@ -72,6 +72,8 @@ pub(crate) const PROGRAM_PREFIX: &str = "program_";
 pub(crate) const PROGRAM_PRE_LOAD_PREFIX: &str = "pre_load_program_";
 const KIND: &str = "kind";
 const NAME: &str = "name";
+const IS_TCX: &str = "is_tcx";
+const IS_UPROBE: &str = "is_uprobe";
 const ID: &str = "id";
 const LOCATION_FILENAME: &str = "location_filename";
 const LOCATION_IMAGE_URL: &str = "location_image_url";
@@ -316,7 +318,7 @@ impl XdpLink {
     }
 
     pub(crate) fn set_attached(&mut self, attached: bool) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, XDP_ATTACHED, &(attached as i8).to_ne_bytes())
+        sled_insert(&self.0 .0, XDP_ATTACHED, &bool_to_bytes(attached))
     }
 
     pub fn get_attached(&self) -> Result<bool, BpfmanError> {
@@ -437,7 +439,7 @@ impl TcLink {
     }
 
     pub(crate) fn set_attached(&mut self, attached: bool) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TC_ATTACHED, &(attached as i8).to_ne_bytes())
+        sled_insert(&self.0 .0, TC_ATTACHED, &bool_to_bytes(attached))
     }
 
     pub fn get_attached(&self) -> Result<bool, BpfmanError> {
@@ -666,11 +668,7 @@ impl KprobeLink {
     }
 
     pub(crate) fn set_retprobe(&mut self, retprobe: bool) -> Result<(), BpfmanError> {
-        sled_insert(
-            &self.0 .0,
-            KPROBE_RETPROBE,
-            &(retprobe as i8 % 2).to_ne_bytes(),
-        )
+        sled_insert(&self.0 .0, KPROBE_RETPROBE, &bool_to_bytes(retprobe))
     }
 
     pub fn get_retprobe(&self) -> Result<bool, BpfmanError> {
@@ -734,11 +732,7 @@ impl UprobeLink {
     }
 
     pub(crate) fn set_retprobe(&mut self, retprobe: bool) -> Result<(), BpfmanError> {
-        sled_insert(
-            &self.0 .0,
-            UPROBE_RETPROBE,
-            &(retprobe as i8 % 2).to_ne_bytes(),
-        )
+        sled_insert(&self.0 .0, UPROBE_RETPROBE, &bool_to_bytes(retprobe))
     }
 
     pub fn get_retprobe(&self) -> Result<bool, BpfmanError> {
@@ -1593,6 +1587,26 @@ impl ProgramData {
         sled_insert(&self.0, KIND, &(Into::<u32>::into(kind)).to_ne_bytes())
     }
 
+    fn set_is_tcx(&mut self, v: bool) -> Result<(), BpfmanError> {
+        sled_insert(&self.0, IS_TCX, &bool_to_bytes(v))
+    }
+
+    pub(crate) fn get_is_tcx(&self) -> bool {
+        sled_get(&self.0, IS_TCX)
+            .map(bytes_to_bool)
+            .unwrap_or(false)
+    }
+
+    fn set_is_uprobe(&mut self, v: bool) -> Result<(), BpfmanError> {
+        sled_insert(&self.0, IS_UPROBE, &bool_to_bytes(v))
+    }
+
+    fn get_is_uprobe(&self) -> bool {
+        sled_get(&self.0, IS_UPROBE)
+            .map(bytes_to_bool)
+            .unwrap_or(false)
+    }
+
     /// Retrieves the kind of program, which is represented by the
     /// [`BpfProgType`] structure.
     ///
@@ -2105,7 +2119,7 @@ impl ProgramData {
         sled_insert(
             &self.0,
             KERNEL_GPL_COMPATIBLE,
-            &(gpl_compatible as i8 % 2).to_ne_bytes(),
+            &bool_to_bytes(gpl_compatible),
         )
     }
 
@@ -2204,7 +2218,7 @@ impl ProgramData {
     }
 
     pub(crate) fn set_kernel_jited(&mut self, jited: bool) -> Result<(), BpfmanError> {
-        sled_insert(&self.0, KERNEL_JITED, &(jited as i8 % 2).to_ne_bytes())
+        sled_insert(&self.0, KERNEL_JITED, &bool_to_bytes(jited))
     }
 
     /// Retrieves the JIT compiled bytes of the kernel program.
@@ -2375,6 +2389,7 @@ pub struct TcxProgram {
 impl TcxProgram {
     pub fn new(data: ProgramData) -> Result<Self, BpfmanError> {
         let mut tcx_prog = Self { data };
+        tcx_prog.get_data_mut().set_is_tcx(true)?;
         tcx_prog.get_data_mut().set_kind(BpfProgType::Tc)?;
 
         Ok(tcx_prog)
@@ -2425,11 +2440,7 @@ impl KprobeProgram {
     }
 
     pub(crate) fn set_retprobe(&mut self, retprobe: bool) -> Result<(), BpfmanError> {
-        sled_insert(
-            &self.data.0,
-            KPROBE_RETPROBE,
-            &(retprobe as i8 % 2).to_ne_bytes(),
-        )
+        sled_insert(&self.data.0, KPROBE_RETPROBE, &bool_to_bytes(retprobe))
     }
 
     pub fn get_retprobe(&self) -> Result<bool, BpfmanError> {
@@ -2455,17 +2466,14 @@ pub struct UprobeProgram {
 impl UprobeProgram {
     pub fn new(data: ProgramData, retprobe: bool) -> Result<Self, BpfmanError> {
         let mut uprobe_prog = Self { data };
+        uprobe_prog.get_data_mut().set_is_uprobe(true)?;
         uprobe_prog.get_data_mut().set_kind(BpfProgType::Probe)?;
         uprobe_prog.set_retprobe(retprobe)?;
         Ok(uprobe_prog)
     }
 
     pub(crate) fn set_retprobe(&mut self, retprobe: bool) -> Result<(), BpfmanError> {
-        sled_insert(
-            &self.data.0,
-            KPROBE_RETPROBE,
-            &(retprobe as i8 % 2).to_ne_bytes(),
-        )
+        sled_insert(&self.data.0, KPROBE_RETPROBE, &bool_to_bytes(retprobe))
     }
 
     pub fn get_retprobe(&self) -> Result<bool, BpfmanError> {
@@ -2563,7 +2571,7 @@ impl Program {
         let link_type = match self {
             Program::Xdp(_) => LinkType::Xdp,
             Program::Tc(_) => LinkType::Tc,
-            Program::Tcx(_) => LinkType::Tc,
+            Program::Tcx(_) => LinkType::Tcx,
             Program::Tracepoint(_) => LinkType::Tracepoint,
             Program::Kprobe(_) => LinkType::Kprobe,
             Program::Uprobe(_) => LinkType::Uprobe,
@@ -2635,28 +2643,18 @@ impl Program {
                 // result, we use the following hack to figure out which one it
                 // really is.
                 BpfProgType::Tc => {
-                    let iface = data.0.get(TCX_IFACE).map_err(|e| {
-                        BpfmanError::DatabaseError(
-                            "Failed to get TCX_IFACE".to_string(),
-                            e.to_string(),
-                        )
-                    })?;
-                    if iface.is_some() {
+                    if data.get_is_tcx() {
+                        debug!("Program is tcx");
                         Ok(Program::Tcx(TcxProgram { data }))
                     } else {
+                        debug!("Program is tc");
                         Ok(Program::Tc(TcProgram { data }))
                     }
                 }
                 BpfProgType::Tracepoint => Ok(Program::Tracepoint(TracepointProgram { data })),
                 // kernel does not distinguish between kprobe and uprobe program types
                 BpfProgType::Probe => {
-                    let offset = data.0.get(UPROBE_OFFSET).map_err(|e| {
-                        BpfmanError::DatabaseError(
-                            "Failed to get UPROBE_OFFSET".to_string(),
-                            e.to_string(),
-                        )
-                    })?;
-                    if offset.is_some() {
+                    if data.get_is_uprobe() {
                         Ok(Program::Uprobe(UprobeProgram { data }))
                     } else {
                         Ok(Program::Kprobe(KprobeProgram { data }))
