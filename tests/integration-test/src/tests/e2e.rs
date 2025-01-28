@@ -51,7 +51,7 @@ fn test_proceed_on_xdp() {
     let mut loaded_ids = vec![];
 
     debug!("Installing 1st xdp program");
-    let (prog_id, _) = add_xdp(
+    let prog_id = match add_xdp(
         DEFAULT_BPFMAN_IFACE,
         75, // priority
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
@@ -63,8 +63,14 @@ fn test_proceed_on_xdp() {
         None, // metadata
         None, // map_owner_id
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add xdp program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     debug!("wait for some traffic to generate logs...");
     sleep(Duration::from_secs(2));
@@ -82,7 +88,7 @@ fn test_proceed_on_xdp() {
     // "pass", which this program will return.  This should prevent the first
     // program from being executed.
     debug!("Installing 2nd xdp program");
-    let (prog_id, _) = add_xdp(
+    let prog_id = match add_xdp(
         DEFAULT_BPFMAN_IFACE,
         50, // priority
         Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
@@ -94,8 +100,14 @@ fn test_proceed_on_xdp() {
         None, // metadata
         None, // map_owner_id
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add xdp program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     debug!("Clear the trace_pipe_log");
     drop(trace_guard);
@@ -114,7 +126,7 @@ fn test_proceed_on_xdp() {
     // "pass", which this program will return.  We should see logs from the 2nd
     // and 3rd programs, but still not the first.
     debug!("Installing 3rd xdp program");
-    let (prog_id, _) = add_xdp(
+    let prog_id = match add_xdp(
         DEFAULT_BPFMAN_IFACE,
         25, // priority
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
@@ -126,8 +138,14 @@ fn test_proceed_on_xdp() {
         None, // metadata
         None, // map_owner_id
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add xdp program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     debug!("Clear the trace_pipe_log");
     drop(trace_guard);
@@ -165,7 +183,7 @@ fn test_unload_xdp() {
 
     // Install the first lowest priority program.
     debug!("Installing 1st xdp program");
-    let (prog_id, _) = add_xdp(
+    let prog_id = match add_xdp(
         DEFAULT_BPFMAN_IFACE,
         75, // priority
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
@@ -177,13 +195,19 @@ fn test_unload_xdp() {
         None, // metadata
         None, // map_owner_id
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add xdp program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     // Install a 2nd xdp program with a higher priority than the first that has
     // proceed on "pass", which this program will return.
     debug!("Installing 2nd xdp program");
-    let (prog_id, _) = add_xdp(
+    let prog_id = match add_xdp(
         DEFAULT_BPFMAN_IFACE,
         50, // priority
         Some([GLOBAL_2, "GLOBAL_u32=0A0B0C0D"].to_vec()),
@@ -195,13 +219,19 @@ fn test_unload_xdp() {
         None, // metadata
         None, // map_owner_id
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add xdp program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     // Install a 3rd xdp program with a higher priority than the second that has
     // proceed on "pass", which this program will return.
     debug!("Installing 3rd xdp program");
-    let (prog_id_high_pri, _) = add_xdp(
+    let prog_id_high_pri = match add_xdp(
         DEFAULT_BPFMAN_IFACE,
         25, // priority
         Some([GLOBAL_3, "GLOBAL_u32=0A0B0C0D"].to_vec()),
@@ -213,7 +243,13 @@ fn test_unload_xdp() {
         None, // metadata
         None, // map_owner_id
         None, // netns
-    );
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add xdp program: {:?}", e);
+            panic!("{e}");
+        }
+    };
 
     // Don't save this id because we're going to unload it explicitly below.
 
@@ -235,7 +271,7 @@ fn test_unload_xdp() {
     // Now delete the highest priority program and confirm that the other two
     // are still running.
 
-    let result = bpfman_del_program(prog_id_high_pri.unwrap().as_str());
+    let result = bpfman_del_program(prog_id_high_pri.as_str());
     assert!(result.is_ok());
 
     debug!("Clear the trace_pipe_log");
@@ -267,7 +303,7 @@ fn test_proceed_on_tc() {
     let mut loaded_ids = vec![];
 
     debug!("Installing 1st tc ingress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "ingress",
         DEFAULT_BPFMAN_IFACE,
         75,
@@ -278,11 +314,17 @@ fn test_proceed_on_tc() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     debug!("Installing 1st tc egress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "egress",
         DEFAULT_BPFMAN_IFACE,
         75,
@@ -293,8 +335,14 @@ fn test_proceed_on_tc() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     debug!("wait for some traffic to generate logs...");
     sleep(Duration::from_secs(2));
@@ -313,7 +361,7 @@ fn test_proceed_on_tc() {
     // doesn't proceed on "ok", which this program will return.  We should see
     // logs from the 2nd programs, but still not the first.
     debug!("Installing 2nd tc ingress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "ingress",
         DEFAULT_BPFMAN_IFACE,
         50,
@@ -324,11 +372,17 @@ fn test_proceed_on_tc() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     debug!("Installing 2nd tc egress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "egress",
         DEFAULT_BPFMAN_IFACE,
         50,
@@ -339,8 +393,14 @@ fn test_proceed_on_tc() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     debug!("Clear the trace_pipe_log");
     drop(trace_guard);
@@ -362,7 +422,7 @@ fn test_proceed_on_tc() {
     // proceeds on "ok", which this program will return.  We should see logs
     // from the 2nd and 3rd programs, but still not the first.
     debug!("Installing 3rd tc ingress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "ingress",
         DEFAULT_BPFMAN_IFACE,
         25,
@@ -373,11 +433,17 @@ fn test_proceed_on_tc() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     debug!("Installing 3rd tc egress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "egress",
         DEFAULT_BPFMAN_IFACE,
         25,
@@ -388,8 +454,14 @@ fn test_proceed_on_tc() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add xdp program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     debug!("Clear the trace_pipe_log");
     drop(trace_guard);
@@ -452,7 +524,7 @@ fn test_unload_tc() {
 
     // Install the first lowest priority programs.
     debug!("Installing 1st tc ingress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "ingress",
         DEFAULT_BPFMAN_IFACE,
         75,
@@ -463,11 +535,17 @@ fn test_unload_tc() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     debug!("Installing 1st tc egress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "egress",
         DEFAULT_BPFMAN_IFACE,
         75,
@@ -478,13 +556,19 @@ fn test_unload_tc() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add xdp program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     // Install a 2nd tc program in each direction with a higher priority than
     // the first that proceeds on "ok", which this program will return.
     debug!("Installing 2nd tc ingress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "ingress",
         DEFAULT_BPFMAN_IFACE,
         50,
@@ -495,11 +579,17 @@ fn test_unload_tc() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     debug!("Installing 2nd tc egress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "egress",
         DEFAULT_BPFMAN_IFACE,
         50,
@@ -510,13 +600,19 @@ fn test_unload_tc() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         None, // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add xdp program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     // Install a 3rd tc program in each direction with a higher priority than
     // the second that proceeds on "ok", which this program will return.
     debug!("Installing 3rd tc ingress program");
-    let (prog_id_ing_high_pri, _) = add_tc(
+    let prog_id_ing_high_pri = match add_tc(
         "ingress",
         DEFAULT_BPFMAN_IFACE,
         25,
@@ -527,10 +623,16 @@ fn test_unload_tc() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         None, // netns
-    );
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
 
     debug!("Installing 3rd tc egress program");
-    let (prog_id_eg_high_pri, _) = add_tc(
+    let prog_id_eg_high_pri = match add_tc(
         "egress",
         DEFAULT_BPFMAN_IFACE,
         25,
@@ -541,7 +643,13 @@ fn test_unload_tc() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         None, // netns
-    );
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
 
     // Don't save the 3rd prog ids because we will unload them explicitly below.
 
@@ -565,9 +673,9 @@ fn test_unload_tc() {
     debug!("All 3 tc egress logs found");
 
     // Unload the 3rd programs
-    let result = bpfman_del_program(prog_id_ing_high_pri.unwrap().as_str());
+    let result = bpfman_del_program(prog_id_ing_high_pri.as_str());
     assert!(result.is_ok());
-    let result = bpfman_del_program(prog_id_eg_high_pri.unwrap().as_str());
+    let result = bpfman_del_program(prog_id_eg_high_pri.as_str());
     assert!(result.is_ok());
 
     debug!("Clear the trace_pipe_log");
@@ -603,7 +711,7 @@ fn test_program_execution_with_global_variables() {
     let mut loaded_ids = vec![];
 
     debug!("Installing xdp program");
-    let (prog_id, _) = add_xdp(
+    let prog_id = match add_xdp(
         DEFAULT_BPFMAN_IFACE,
         75, // priority
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
@@ -615,14 +723,20 @@ fn test_program_execution_with_global_variables() {
         None, // metadata
         None, // map_owner_id
         None, // netns
-    );
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add xdp program: {:?}", e);
+            panic!("{e}");
+        }
+    };
 
-    loaded_ids.push(prog_id.unwrap());
+    loaded_ids.push(prog_id);
 
     assert!(bpffs_has_entries(RTDIR_FS_XDP));
 
     debug!("Installing tc ingress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "ingress",
         DEFAULT_BPFMAN_IFACE,
         50,
@@ -633,14 +747,20 @@ fn test_program_execution_with_global_variables() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         None, // netns
-    );
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
 
-    loaded_ids.push(prog_id.unwrap());
+    loaded_ids.push(prog_id);
 
     assert!(bpffs_has_entries(RTDIR_FS_TC_INGRESS));
 
     debug!("Installing tc egress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "egress",
         DEFAULT_BPFMAN_IFACE,
         50,
@@ -651,26 +771,38 @@ fn test_program_execution_with_global_variables() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         None, // netns
-    );
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
 
-    loaded_ids.push(prog_id.unwrap());
+    loaded_ids.push(prog_id);
 
     assert!(bpffs_has_entries(RTDIR_FS_TC_EGRESS));
 
     debug!("Installing tracepoint program");
-    let (prog_id, _) = add_tracepoint(
+    let prog_id = match add_tracepoint(
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         &LoadType::Image,
         &TRACEPOINT_IMAGE_LOC,
         TRACEPOINT_FILE_LOC,
         TRACEPOINT_TRACEPOINT_NAME,
         TRACEPOINT_NAME,
-    );
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tracepoint program: {:?}", e);
+            panic!("{e}");
+        }
+    };
 
-    loaded_ids.push(prog_id.unwrap());
+    loaded_ids.push(prog_id);
 
     debug!("Installing uprobe program");
-    let prog_id = add_uprobe(
+    let prog_id = match add_uprobe(
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         &LoadType::Image,
         &UPROBE_IMAGE_LOC,
@@ -678,44 +810,68 @@ fn test_program_execution_with_global_variables() {
         UPROBE_KERNEL_FUNCTION_NAME,
         UPROBE_TARGET,
         None, // container_pid
-    );
+    ) {
+        Ok(p) => p,
+        Err(e) => {
+            debug!("Fail to add uprobe program: {:?}", e);
+            panic!("{e}");
+        }
+    };
 
-    loaded_ids.push(prog_id.unwrap());
+    loaded_ids.push(prog_id);
 
     debug!("Installing uretprobe program");
-    let prog_id = add_uretprobe(
+    let prog_id = match add_uretprobe(
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         &LoadType::Image,
         &URETPROBE_IMAGE_LOC,
         URETPROBE_FILE_LOC,
         URETPROBE_FUNCTION_NAME,
         None, // target
-    );
+    ) {
+        Ok(p) => p,
+        Err(e) => {
+            debug!("Fail to add uretprobe program: {:?}", e);
+            panic!("{e}");
+        }
+    };
 
-    loaded_ids.push(prog_id.unwrap());
+    loaded_ids.push(prog_id);
 
     debug!("Installing kprobe program");
-    let prog_id = add_kprobe(
+    let prog_id = match add_kprobe(
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         &LoadType::Image,
         &KPROBE_IMAGE_LOC,
         KPROBE_FILE_LOC,
         KPROBE_KERNEL_FUNCTION_NAME,
         None, // container_pid
-    );
+    ) {
+        Ok(p) => p,
+        Err(e) => {
+            debug!("Fail to add kprobe program: {:?}", e);
+            panic!("{e}");
+        }
+    };
 
-    loaded_ids.push(prog_id.unwrap());
+    loaded_ids.push(prog_id);
 
     debug!("Installing kretprobe program");
-    let prog_id = add_kretprobe(
+    let prog_id = match add_kretprobe(
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         &LoadType::Image,
         &KRETPROBE_IMAGE_LOC,
         KRETPROBE_FILE_LOC,
         KRETPROBE_KERNEL_FUNCTION_NAME,
-    );
+    ) {
+        Ok(p) => p,
+        Err(e) => {
+            debug!("Fail to add kretprobe program: {:?}", e);
+            panic!("{e}");
+        }
+    };
 
-    loaded_ids.push(prog_id.unwrap());
+    loaded_ids.push(prog_id);
 
     debug!("wait for some traffic to generate logs...");
     sleep(Duration::from_secs(2));
@@ -761,7 +917,7 @@ fn test_load_unload_xdp_maps() {
     debug!("Installing xdp_counter program");
 
     // Install an xdp counter program
-    let (prog_id, stdout) = add_xdp(
+    let (prog_id, stdout) = match add_xdp(
         DEFAULT_BPFMAN_IFACE,
         100,  // priority
         None, // globals
@@ -773,8 +929,14 @@ fn test_load_unload_xdp_maps() {
         None, // metadata
         None, // map_owner_id
         None, // netns
-    );
-    let binding = stdout.unwrap();
+    ) {
+        (Ok(p), Ok(s)) => (p, s),
+        (Err(e), _) | (_, Err(e)) => {
+            debug!("Fail to add xdp program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    let binding = stdout;
 
     assert!(bpffs_has_entries(RTDIR_FS_XDP));
 
@@ -783,7 +945,7 @@ fn test_load_unload_xdp_maps() {
     let map_pin_path = bpfman_output_map_pin_path(&binding);
     assert!(PathBuf::from(map_pin_path).join("xdp_stats_map").exists());
 
-    verify_and_delete_programs(vec![prog_id.unwrap()]);
+    verify_and_delete_programs(vec![prog_id]);
 
     assert!(!bpffs_has_entries(RTDIR_FS_XDP));
 }
@@ -798,7 +960,7 @@ fn test_load_unload_tc_maps() {
     debug!("Installing tc_counter program");
 
     // Install an  counter program
-    let (prog_id, stdout) = add_tc(
+    let (prog_id, stdout) = match add_tc(
         "ingress",
         DEFAULT_BPFMAN_IFACE,
         100,
@@ -809,8 +971,14 @@ fn test_load_unload_tc_maps() {
         "",
         TC_COUNTER_NAME,
         None, // netns
-    );
-    let binding = stdout.unwrap();
+    ) {
+        (Ok(p), Ok(s)) => (p, s),
+        (Err(e), _) | (_, Err(e)) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    let binding = stdout;
 
     assert!(bpffs_has_entries(RTDIR_FS_TC_INGRESS));
 
@@ -819,7 +987,7 @@ fn test_load_unload_tc_maps() {
     let map_pin_path = bpfman_output_map_pin_path(&binding);
     assert!(PathBuf::from(map_pin_path).join("tc_stats_map").exists());
 
-    verify_and_delete_programs(vec![prog_id.unwrap()]);
+    verify_and_delete_programs(vec![prog_id]);
 
     assert!(!bpffs_has_entries(RTDIR_FS_TC_INGRESS));
 }
@@ -831,15 +999,21 @@ fn test_load_unload_tracepoint_maps() {
 
     debug!("Installing tracepoint_counter program");
 
-    let (prog_id, stdout) = add_tracepoint(
+    let (prog_id, stdout) = match add_tracepoint(
         None,
         &LoadType::Image,
         &TRACEPOINT_COUNTER_IMAGE_LOC,
         "",
         TRACEPOINT_TRACEPOINT_NAME,
         TRACEPOINT_COUNTER_NAME,
-    );
-    let binding = stdout.unwrap();
+    ) {
+        (Ok(p), Ok(s)) => (p, s),
+        (Err(e), _) | (_, Err(e)) => {
+            debug!("Fail to add tracepoint program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    let binding = stdout;
 
     debug!("Verify tracepoint_counter map pin directory was created, and maps were pinned");
 
@@ -848,7 +1022,7 @@ fn test_load_unload_tracepoint_maps() {
         .join("tracepoint_stats_map")
         .exists());
 
-    verify_and_delete_programs(vec![prog_id.unwrap()]);
+    verify_and_delete_programs(vec![prog_id]);
 }
 
 #[integration_test]
@@ -863,7 +1037,7 @@ fn test_uprobe_container() {
     let container_pid = container.container_pid().to_string();
 
     debug!("Installing uprobe program");
-    let prog_id = add_uprobe(
+    let prog_id = match add_uprobe(
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
         &LoadType::Image,
         &UPROBE_IMAGE_LOC,
@@ -871,9 +1045,14 @@ fn test_uprobe_container() {
         UPROBE_KERNEL_CONT_PID_FUNCTION_NAME,
         UPROBE_TARGET, // unused - local command path is used
         Some(&container_pid),
-    );
-
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        Ok(p) => p,
+        Err(e) => {
+            debug!("Fail to add uprobe program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     // generate some mallocs which should generate some logs
     for _ in 0..5 {
@@ -908,7 +1087,7 @@ fn test_tcx() {
     // Install a tcx pass program in each direction at priority 1000, which is
     // the lowest priority.  We should see logs from both programs.
     debug!("Installing 1st tcx ingress program");
-    let (prog_id_1, _) = add_tcx(
+    let prog_id_1 = match add_tcx(
         "ingress",
         DEFAULT_BPFMAN_IFACE,
         1000,
@@ -918,12 +1097,17 @@ fn test_tcx() {
         TCX_TEST_FILE_LOC,
         TCX_TEST_PASS_NAME,
         None, // netns
-    );
-    let prog_id_1 = prog_id_1.unwrap();
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tcx program: {:?}", e);
+            panic!("{e}");
+        }
+    };
     loaded_ids.push(prog_id_1.clone());
 
     debug!("Installing 1st tcx egress program");
-    let (prog_id_2, _) = add_tcx(
+    let prog_id_2 = match add_tcx(
         "egress",
         DEFAULT_BPFMAN_IFACE,
         1000,
@@ -933,8 +1117,13 @@ fn test_tcx() {
         TCX_TEST_FILE_LOC,
         TCX_TEST_PASS_NAME,
         None, // netns
-    );
-    let prog_id_2 = prog_id_2.unwrap();
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tcx program: {:?}", e);
+            panic!("{e}");
+        }
+    };
     loaded_ids.push(prog_id_2.clone());
 
     debug!("wait for some traffic to generate logs...");
@@ -955,7 +1144,7 @@ fn test_tcx() {
     // first programs that returns TCX_NEXT. We should see logs from both sets
     // of programs.
     debug!("Installing 2nd tcx ingress program");
-    let (prog_id_3, _) = add_tcx(
+    let prog_id_3 = match add_tcx(
         "ingress",
         DEFAULT_BPFMAN_IFACE,
         100,
@@ -965,12 +1154,17 @@ fn test_tcx() {
         TCX_TEST_FILE_LOC,
         TCX_TEST_NEXT_NAME,
         None, // netns
-    );
-    let prog_id_3 = prog_id_3.unwrap();
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tcx program: {:?}", e);
+            panic!("{e}");
+        }
+    };
     loaded_ids.push(prog_id_3.clone());
 
     debug!("Installing 2nd tcx egress program");
-    let (prog_id_4, _) = add_tcx(
+    let prog_id_4 = match add_tcx(
         "egress",
         DEFAULT_BPFMAN_IFACE,
         100,
@@ -980,8 +1174,13 @@ fn test_tcx() {
         TCX_TEST_FILE_LOC,
         TCX_TEST_NEXT_NAME,
         None, // netns
-    );
-    let prog_id_4 = prog_id_4.unwrap();
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tcx program: {:?}", e);
+            panic!("{e}");
+        }
+    };
     loaded_ids.push(prog_id_4.clone());
 
     debug!("Clear the trace_pipe_log");
@@ -1008,7 +1207,7 @@ fn test_tcx() {
     // from the ingress txc program #3 unless it is sending traffic for some
     // other reason.
     debug!("Installing 3rd tcx ingress program");
-    let (prog_id_5, _) = add_tcx(
+    let prog_id_5 = match add_tcx(
         "ingress",
         DEFAULT_BPFMAN_IFACE,
         50,
@@ -1018,11 +1217,17 @@ fn test_tcx() {
         TCX_TEST_FILE_LOC,
         TCX_TEST_DROP_NAME,
         None, // netns
-    );
-    loaded_ids.push(prog_id_5.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tcx program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id_5);
 
     debug!("Installing 3rd tcx egress program");
-    let (prog_id_6, _) = add_tcx(
+    let prog_id_6 = match add_tcx(
         "egress",
         DEFAULT_BPFMAN_IFACE,
         50,
@@ -1032,8 +1237,14 @@ fn test_tcx() {
         TCX_TEST_FILE_LOC,
         TCX_TEST_DROP_NAME,
         None, // netns
-    );
-    loaded_ids.push(prog_id_6.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tcx program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id_6);
 
     debug!("Clear the trace_pipe_log");
     drop(trace_guard);
@@ -1059,7 +1270,7 @@ fn test_tcx() {
     // highest priority. We should see logs from the 4th set of programs, but
     // not the others.
     debug!("Installing 4th tcx ingress program");
-    let (prog_id_7, _) = add_tcx(
+    let prog_id_7 = match add_tcx(
         "ingress",
         DEFAULT_BPFMAN_IFACE,
         1,
@@ -1069,11 +1280,17 @@ fn test_tcx() {
         TCX_TEST_FILE_LOC,
         TCX_TEST_PASS_NAME,
         None, // netns
-    );
-    loaded_ids.push(prog_id_7.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tcx program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id_7);
 
     debug!("Installing 4th tcx egress program");
-    let (prog_id_8, _) = add_tcx(
+    let prog_id_8 = match add_tcx(
         "egress",
         DEFAULT_BPFMAN_IFACE,
         1,
@@ -1083,8 +1300,14 @@ fn test_tcx() {
         TCX_TEST_FILE_LOC,
         TCX_TEST_PASS_NAME,
         None, // netns
-    );
-    loaded_ids.push(prog_id_8.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tcx program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id_8);
 
     debug!("Clear the trace_pipe_log");
     drop(trace_guard);
@@ -1130,7 +1353,7 @@ fn test_netns() {
     let mut loaded_ids = vec![];
 
     debug!("Installing xdp program");
-    let (prog_id, _) = add_xdp(
+    let prog_id = match add_xdp(
         NS_VETH,
         75, // priority
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
@@ -1142,11 +1365,17 @@ fn test_netns() {
         None,          // metadata
         None,          // map_owner_id
         Some(NS_PATH), // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add xdp program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     debug!("Installing tc ingress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "ingress",
         NS_VETH,
         75,
@@ -1157,11 +1386,17 @@ fn test_netns() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         Some(NS_PATH), // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     debug!("Installing tc egress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "egress",
         NS_VETH,
         75,
@@ -1172,14 +1407,20 @@ fn test_netns() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         Some(NS_PATH), // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     if do_tcx {
         // Install a tcx pass program in each direction at priority 1000, which is
         // the lowest priority.  We should see logs from both programs.
         debug!("Installing tcx ingress program");
-        let (prog_id, _) = add_tcx(
+        let prog_id = match add_tcx(
             "ingress",
             NS_VETH,
             1000,
@@ -1189,11 +1430,17 @@ fn test_netns() {
             TCX_TEST_FILE_LOC,
             TCX_TEST_PASS_NAME,
             Some(NS_PATH), // netns
-        );
-        loaded_ids.push(prog_id.unwrap());
+        ) {
+            (Ok(p), _) => p,
+            (Err(e), _) => {
+                debug!("Fail to add tcx program: {:?}", e);
+                panic!("{e}");
+            }
+        };
+        loaded_ids.push(prog_id);
 
         debug!("Installing tcx egress program");
-        let (prog_id, _) = add_tcx(
+        let prog_id = match add_tcx(
             "egress",
             NS_VETH,
             1000,
@@ -1203,8 +1450,14 @@ fn test_netns() {
             TCX_TEST_FILE_LOC,
             TCX_TEST_PASS_NAME,
             Some(NS_PATH), // netns
-        );
-        loaded_ids.push(prog_id.unwrap());
+        ) {
+            (Ok(p), _) => p,
+            (Err(e), _) => {
+                debug!("Fail to add tcx program: {:?}", e);
+                panic!("{e}");
+            }
+        };
+        loaded_ids.push(prog_id);
     }
 
     debug!("wait for some traffic to generate logs...");
@@ -1250,7 +1503,7 @@ fn test_netns_delete() {
     let mut loaded_ids = vec![];
 
     debug!("Installing xdp program");
-    let (prog_id, _) = add_xdp(
+    let prog_id = match add_xdp(
         NS_VETH,
         75, // priority
         Some([GLOBAL_1, "GLOBAL_u32=0A0B0C0D"].to_vec()),
@@ -1262,11 +1515,17 @@ fn test_netns_delete() {
         None,          // metadata
         None,          // map_owner_id
         Some(NS_PATH), // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add xdp program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     debug!("Installing tc ingress program");
-    let (prog_id, _) = add_tc(
+    let prog_id = match add_tc(
         "ingress",
         NS_VETH,
         75,
@@ -1277,14 +1536,20 @@ fn test_netns_delete() {
         TC_PASS_FILE_LOC,
         TC_PASS_NAME,
         Some(NS_PATH), // netns
-    );
-    loaded_ids.push(prog_id.unwrap());
+    ) {
+        (Ok(p), _) => p,
+        (Err(e), _) => {
+            debug!("Fail to add tc program: {:?}", e);
+            panic!("{e}");
+        }
+    };
+    loaded_ids.push(prog_id);
 
     if do_tcx {
         // Install a tcx pass program in each direction at priority 1000, which is
         // the lowest priority.  We should see logs from both programs.
         debug!("Installing tcx ingress program");
-        let (prog_id, _) = add_tcx(
+        let prog_id = match add_tcx(
             "ingress",
             NS_VETH,
             1000,
@@ -1294,8 +1559,14 @@ fn test_netns_delete() {
             TCX_TEST_FILE_LOC,
             TCX_TEST_PASS_NAME,
             Some(NS_PATH), // netns
-        );
-        loaded_ids.push(prog_id.unwrap());
+        ) {
+            (Ok(p), _) => p,
+            (Err(e), _) => {
+                debug!("Fail to add tcx program: {:?}", e);
+                panic!("{e}");
+            }
+        };
+        loaded_ids.push(prog_id);
     }
 
     drop(namespace_guard);

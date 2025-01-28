@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::anyhow;
 use flate2::read::GzDecoder;
-use log::{debug, info, trace};
+use log::{debug, error, info, trace};
 use object::{Endianness, Object};
 use oci_distribution::{
     client::{ClientConfig, ClientProtocol},
@@ -178,25 +178,15 @@ impl ImageManager {
 
         trace!("Raw container image manifest {}", image_manifest);
 
-        let image_manifest_key = base_key.to_string() + "manifest.json";
-
-        let image_manifest_json = serde_json::to_string(&image_manifest)
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
-
-        sled_insert(root_db, &image_manifest_key, image_manifest_json.as_bytes()).map_err(|e| {
-            ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
-        })?;
-
         let config_sha = &image_manifest
             .config
             .digest
             .split(':')
             .collect::<Vec<&str>>()[1];
 
-        let image_config_path = base_key.to_string() + config_sha;
-
         let image_config: Value = serde_json::from_str(&config_contents)
             .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
+
         trace!("Raw container image config {}", image_config);
 
         let labels_map = image_config["config"]["Labels"].as_object().ok_or(
@@ -210,14 +200,15 @@ impl ImageManager {
             labels_map.get(OCI_MAPS_LABEL),
             labels_map.get(OCI_PROGRAMS_LABEL),
         ) {
-            (Some(maps), Some(programs)) => ContainerImageMetadata {
-                _maps: serde_json::from_str::<HashMap<String, String>>(maps.as_str().unwrap())
-                    .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?,
-                programs: serde_json::from_str::<HashMap<String, String>>(
-                    programs.as_str().unwrap(),
-                )
-                .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?,
-            },
+            (Some(maps), Some(programs)) => {
+                let tmp_map = serde_label(maps, "map".to_string())?;
+                let tmp_program = serde_label(programs, "program".to_string())?;
+
+                ContainerImageMetadata {
+                    _maps: tmp_map,
+                    programs: tmp_program,
+                }
+            }
             _ => {
                 // Try to deserialize from older version of metadata
                 match serde_json::from_str::<ContainerImageMetadataV1>(
@@ -228,15 +219,6 @@ impl ImageManager {
                 }
             }
         };
-
-        root_db
-            .insert(image_config_path, config_contents.as_str())
-            .map_err(|e| {
-                ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
-            })?;
-        root_db.flush().map_err(|e| {
-            ImageError::DatabaseError("failed to flush db".to_string(), e.to_string())
-        })?;
 
         let image_content = self
             .client
@@ -271,6 +253,24 @@ impl ImageManager {
             ));
         };
 
+        // Update Database to save for later
+        let image_manifest_key = base_key.to_string() + "manifest.json";
+
+        let image_manifest_json = serde_json::to_string(&image_manifest)
+            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
+
+        sled_insert(root_db, &image_manifest_key, image_manifest_json.as_bytes()).map_err(|e| {
+            ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
+        })?;
+
+        let image_config_path = base_key.to_string() + config_sha;
+
+        root_db
+            .insert(image_config_path, config_contents.as_str())
+            .map_err(|e| {
+                ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
+            })?;
+
         let bytecode_sha = image_manifest.layers[0]
             .digest
             .split(':')
@@ -280,6 +280,10 @@ impl ImageManager {
 
         sled_insert(root_db, &bytecode_path, &image_content).map_err(|e| {
             ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
+        })?;
+
+        root_db.flush().map_err(|e| {
+            ImageError::DatabaseError("failed to flush db".to_string(), e.to_string())
         })?;
 
         Ok(image_labels)
@@ -400,6 +404,25 @@ impl ImageManager {
             },
         )
     }
+}
+
+fn serde_label(labels: &Value, label_type: String) -> Result<HashMap<String, String>, ImageError> {
+    debug!("found {} labels - {:?}", label_type, labels);
+    let val = match serde_json::from_str::<HashMap<String, String>>(
+        labels.as_str().unwrap_or_default(),
+    ) {
+        Ok(l) => l,
+        Err(e) => {
+            let err_str = format!("error pulling image, invalid image {label_type} label");
+            error!("{err_str}");
+            return Err(ImageError::BytecodeImageParseFailure(
+                err_str,
+                e.to_string(),
+            ));
+        }
+    };
+
+    Ok(val)
 }
 
 fn get_image_content_key(image: &Reference) -> String {

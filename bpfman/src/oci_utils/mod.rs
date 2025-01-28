@@ -22,4 +22,6 @@ pub enum ImageError {
     ByteCodeImageNotfound(String),
     #[error("{0}: {1}")]
     DatabaseError(String, String),
+    #[error("{0}: {1}")]
+    BytecodeImageParseFailure(String, String),
 }
