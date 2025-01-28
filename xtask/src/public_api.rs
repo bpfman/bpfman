@@ -82,14 +82,18 @@ pub fn public_api(options: Options, metadata: Metadata) -> Result<()> {
                         (!proc_macro).then_some(target)
                     });
 
-                    let diff = check_package_api(
+                    let diff = match check_package_api(
                         &name,
                         &toolchain,
                         arch.cloned(),
                         bless,
                         workspace_root.as_std_path(),
-                    )
-                    .with_context(|| format!("{name} failed to check public API"))?;
+                    ) {
+                        Ok(d) => d,
+                        Err(e) => {
+                            return Err(anyhow::anyhow!("{name} failed to check public API:\n{e}"));
+                        }
+                    };
                     if diff.is_empty() {
                         Ok(())
                     } else {
@@ -143,14 +147,15 @@ fn check_package_api(
         )
     })?;
 
-    let public_api = public_api::Builder::from_rustdoc_json(&rustdoc_json)
-        .build()
-        .with_context(|| {
-            format!(
-                "public_api::Builder::from_rustdoc_json({})::build()",
+    let public_api = match public_api::Builder::from_rustdoc_json(&rustdoc_json).build() {
+        Ok(pa) => pa,
+        Err(e) => {
+            return Err(anyhow::anyhow!(
+                "public_api::Builder::from_rustdoc_json({})::build():\n{e}",
                 rustdoc_json.display()
-            )
-        })?;
+            ));
+        }
+    };
 
     if bless {
         let mut output =
