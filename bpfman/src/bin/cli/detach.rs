@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use bpfman::detach;
+use bpfman::{detach, setup};
 
 use crate::args::DetachArgs;
 
 pub(crate) fn execute_detach(args: &DetachArgs) -> Result<(), anyhow::Error> {
-    detach(args.link_id)?;
+    let (config, root_db) = setup()?;
+    detach(&config, &root_db, args.link_id)?;
     Ok(())
 }

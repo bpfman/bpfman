@@ -127,6 +127,10 @@ pub(crate) fn bytes_to_string(bytes: &[u8]) -> String {
     String::from_utf8(bytes.to_vec()).expect("failed to convert &[u8] to string")
 }
 
+pub(crate) fn bool_to_bytes(b: bool) -> Vec<u8> {
+    i8::to_ne_bytes(b as i8).to_vec()
+}
+
 pub(crate) fn bytes_to_bool(bytes: Vec<u8>) -> bool {
     i8::from_ne_bytes(
         bytes

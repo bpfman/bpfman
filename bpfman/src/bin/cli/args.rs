@@ -67,7 +67,7 @@ pub(crate) struct LoadFileArgs {
     /// Required: The program type and function name that is the entry point
     /// for the eBPF program(s). Should be in the format <TYPE>:<NAME>.
     #[clap(long, verbatim_doc_comment, num_args(1..), value_parser=parse_program_type)]
-    pub(crate) programs: Vec<(String, String)>,
+    pub(crate) programs: Vec<(String, Vec<String>)>,
 
     /// Optional: Global variables to be set when program is loaded.
     /// Format: <NAME>=<Hex Value>
@@ -104,7 +104,7 @@ pub(crate) struct LoadImageArgs {
     /// Required: The program type and function name that is the entry point
     /// for the eBPF program(s). Should be in the format <TYPE>:<NAME>.
     #[clap(long, verbatim_doc_comment, num_args(1..), value_parser=parse_program_type)]
-    pub(crate) programs: Vec<(String, String)>,
+    pub(crate) programs: Vec<(String, Vec<String>)>,
 
     /// Optional: Global variables to be set when program is loaded.
     /// Format: <NAME>=<Hex Value>
@@ -755,11 +755,61 @@ pub(crate) fn parse_global_arg(global_arg: &str) -> Result<GlobalArg, std::io::E
     })
 }
 
-pub(crate) fn parse_program_type(program_type: &str) -> Result<(String, String), std::io::Error> {
-    let mut parts = program_type.split(':');
-
+pub(crate) fn parse_program_type(
+    program_type: &str,
+) -> Result<(String, Vec<String>), std::io::Error> {
+    let mut parts = program_type.split(':').peekable();
     let type_str = parts.next().ok_or(std::io::ErrorKind::InvalidInput)?;
-    let name_str = parts.next().ok_or(std::io::ErrorKind::InvalidInput)?;
+    parts.peek().ok_or(std::io::ErrorKind::InvalidInput)?;
+    let rest = parts.map(|x| x.to_string()).collect::<Vec<String>>();
+    Ok((type_str.to_string(), rest))
+}
 
-    Ok((type_str.to_string(), name_str.to_string()))
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_parse_program_type() {
+        let result = parse_program_type("xdp:foo").unwrap();
+        assert_eq!(result, ("xdp".to_string(), vec!["foo".to_string()]));
+
+        let result = parse_program_type("fentry:foo:bar").unwrap();
+        assert_eq!(
+            result,
+            (
+                "fentry".to_string(),
+                vec!["foo".to_string(), "bar".to_string()]
+            )
+        );
+
+        let result = parse_program_type("xdp").unwrap_err();
+        assert_eq!(result.kind(), std::io::ErrorKind::InvalidInput);
+    }
+
+    #[test]
+    fn test_parse_global_arg() {
+        let result = parse_global_arg("foo=1234").unwrap();
+        assert_eq!(result.name, "foo");
+        assert_eq!(result.value, vec![0x12, 0x34]);
+
+        // This is an error case also, but perhaps it should be allowed?
+        let result = parse_global_arg("foo=0x1234").unwrap_err();
+        assert_eq!(result.kind(), std::io::ErrorKind::InvalidInput);
+
+        let result = parse_global_arg("foo=bar").unwrap_err();
+        assert_eq!(result.kind(), std::io::ErrorKind::InvalidInput);
+
+        let result = parse_global_arg("foo").unwrap_err();
+        assert_eq!(result.kind(), std::io::ErrorKind::InvalidInput);
+    }
+
+    #[test]
+    fn test_parse_key_val() {
+        let result = parse_key_val("foo=bar").unwrap();
+        assert_eq!(result, ("foo".to_string(), "bar".to_string()));
+
+        let result = parse_key_val("foo").unwrap_err();
+        assert_eq!(result.kind(), std::io::ErrorKind::InvalidInput);
+    }
 }

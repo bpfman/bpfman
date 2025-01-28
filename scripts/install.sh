@@ -189,6 +189,32 @@ uninstall() {
     delete_all_bpfman_qdiscs
 }
 
+del_bpfman_dirs() {
+    if [ -d /var/run/bpfman/fs ]; then
+        umount /var/run/bpfman/fs &>/dev/null
+    fi
+    if [ -d /var/run/bpfman ]; then
+        echo "  Removing \"/var/run/bpfman\""
+        rm -rf /var/run/bpfman
+    fi
+    if [ -d /var/lib/bpfman ]; then
+        echo "  Removing \"/var/lib/bpfman\""
+        rm -rf /var/lib/bpfman
+    fi
+}
+
+cleanup_integration_tests() {
+    if docker ps -a | grep -q mynginx1; then
+        echo "Stopping and removing mynginx1 container"
+        docker stop mynginx1
+        docker rm mynginx1
+    fi
+    if ip netns list | grep -q bpfman-int-test; then
+        echo "Deleting bpfman-int-test network namespace"
+        sudo ip netns del bpfman-int-test
+    fi
+}
+
 # TO BE REMOVED!
 # Left around to cleanup deprecated kubectl plugins
 del_kubectl_plugin() {

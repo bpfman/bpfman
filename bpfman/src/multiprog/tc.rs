@@ -67,8 +67,8 @@ impl TcDispatcher {
         config: &RegistryConfig,
         image_manager: &mut ImageManager,
     ) -> Result<SchedClassifier, BpfmanError> {
-        if Path::new(RTDIR_FS_TEST_XDP_DISPATCHER).exists() {
-            return SchedClassifier::from_pin(RTDIR_FS_TEST_XDP_DISPATCHER)
+        if Path::new(RTDIR_FS_TEST_TC_DISPATCHER).exists() {
+            return SchedClassifier::from_pin(RTDIR_FS_TEST_TC_DISPATCHER)
                 .map_err(BpfmanError::BpfProgramError);
         }
 
