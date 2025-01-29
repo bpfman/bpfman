@@ -660,6 +660,22 @@ jobs:
           - registry: quay.io
             build_language: rust
             bpf_build_wrapper: rust
+            repository: bpfman-bytecode
+            image: app-test
+            context: .
+            dockerfile: ./Containerfile.bytecode.multi.arch
+            bytecode_dir: ./tests/integration-test/bpf/.output/app-test.bpf
+            tags: |
+              type=ref,event=branch
+              type=ref,event=tag
+              type=ref,event=pr
+              type=sha,format=long
+              # set latest tag for default branch
+              type=raw,value=latest,enable={{is_default_branch}}
+
+          - registry: quay.io
+            build_language: rust
+            bpf_build_wrapper: rust
             repository: bpfman
             image: xdp-dispatcher
             context: .
