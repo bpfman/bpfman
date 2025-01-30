@@ -424,6 +424,13 @@ jobs:
   build-docs:
     runs-on: ubuntu-24.04
     steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy \
+            libxml2-dev \
+            libxslt-dev \
+
       - name: Checkout bpfman
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
