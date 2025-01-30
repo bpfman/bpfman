@@ -15,10 +15,10 @@ jobs:
         with:
           ref: gh-pages
       - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
-      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # @v5
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # @v5
         with:
           python-version: 3.8
-      - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # @v5
+      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # @v5
         with:
           # prettier-ignore
           go-version: '1.21' # yamllint disable-line rule:quoted-strings
