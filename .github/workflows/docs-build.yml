@@ -24,6 +24,10 @@ jobs:
           go-version: '1.21' # yamllint disable-line rule:quoted-strings
       - name: Install dependencies
         run: |
+          sudo apt-get update
+          sudo apt-get install -qy \
+            libxml2-dev \
+            libxslt-dev \
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
