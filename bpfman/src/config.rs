@@ -50,7 +50,8 @@ impl Default for SigningConfig {
             // Whether to allow unsigned programs by default
             allow_unsigned: true,
             // Whether the signing of programs should be verified by default
-            verify_enabled: true,
+            // DISABLED until https://github.com/bpfman/bpfman/issues/1399 is resolved.
+            verify_enabled: false,
         }
     }
 }
