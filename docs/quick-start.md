@@ -80,7 +80,7 @@ sudo systemctl start bpfman.socket
 Finally you can run one of the sample applications:
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfd-bytecode/tracepoint:latest tracepoint --tracepoint sched/sched_switch
+sudo bpfman load image --image-url quay.io/bpfman-bytecode/tracepoint:latest --name "enter_openat" tracepoint --tracepoint syscalls/sys_enter_openat
 
 sudo bpfman list
  Program ID  Name          Type        Load Time                
