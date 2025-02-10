@@ -639,8 +639,8 @@ pub async fn get_program(id: u32) -> Result<Program, BpfmanError> {
 /// # Arguments
 ///
 /// * `image` - A `BytecodeImage` struct that contains information
-///             about the bytecode image to be pulled, including its
-///             URL, pull policy, username, and password.
+///   about the bytecode image to be pulled, including its URL, pull
+///   policy, username, and password.
 ///
 /// # Returns
 ///
@@ -653,18 +653,15 @@ pub async fn get_program(id: u32) -> Result<Program, BpfmanError> {
 /// This function can return the following errors:
 ///
 /// * `SetupError` - If the `setup()` function fails to initialise
-///                  correctly.
+///   correctly.
 /// * `ImageManagerInitializationError` - If there is an error
-///                                        initialising the image
-///                                        manager with `init_image_manager()`.
+///   initialising the image manager with `init_image_manager()`.
 /// * `RegistryAuthenticationError` - If there is an authentication
-///                                    failure while accessing the
-///                                    container registry.
+///   failure while accessing the container registry.
 /// * `NetworkError` - If there are network issues while pulling the
-///                    image from the container registry.
+///   image from the container registry.
 /// * `ImagePullError` - If there is a problem pulling the image due
-///                      to invalid image URL, unsupported image
-///                      format, or other image-specific issues.
+///   to invalid image URL, unsupported image format, or other image-specific issues.
 ///
 /// # Examples
 ///

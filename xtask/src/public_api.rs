@@ -104,10 +104,7 @@ pub fn public_api(options: Options, metadata: Metadata) -> Result<()> {
                 }
             },
         )
-        .filter_map(|result| match result {
-            Ok(()) => None,
-            Err(err) => Some(err),
-        })
+        .filter_map(|result| result.err())
         .collect();
 
     if errors.is_empty() {
