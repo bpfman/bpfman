@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use std::{fs, mem, path::PathBuf};
+use std::{ffi::OsStr, fs, mem, os::unix::ffi::OsStrExt, path::PathBuf};
 
 use aya::{
     programs::{
@@ -32,8 +32,8 @@ use crate::{
     },
     utils::{
         bytes_to_string, bytes_to_u16, bytes_to_u32, bytes_to_u64, bytes_to_usize, enter_netns,
-        nsid, should_map_be_pinned, sled_get, sled_get_option, sled_insert,
-        tc_dispatcher_db_tree_name, tc_dispatcher_link_id_path, tc_dispatcher_rev_path,
+        should_map_be_pinned, sled_get, sled_get_option, sled_insert, tc_dispatcher_db_tree_name,
+        tc_dispatcher_link_id_path, tc_dispatcher_rev_path,
     },
 };
 
@@ -51,6 +51,7 @@ const NUM_EXTENSIONS: &str = "num_extension";
 const PROGRAM_NAME: &str = "program_name";
 const HANDLE: &str = "handle";
 const NSID: &str = "nsid";
+const NETNS: &str = "netns";
 
 #[derive(Debug)]
 pub struct TcDispatcher {
@@ -65,6 +66,7 @@ impl TcDispatcher {
         if_index: u32,
         if_name: String,
         nsid: u64,
+        netns: Option<PathBuf>,
         revision: u32,
     ) -> Result<Self, BpfmanError> {
         let db_tree = root_db
@@ -84,6 +86,9 @@ impl TcDispatcher {
         dp.set_revision(revision)?;
         dp.set_priority(TC_DISPATCHER_PRIORITY)?;
         dp.set_nsid(nsid)?;
+        if let Some(netns) = netns {
+            dp.set_netns(netns)?;
+        }
         Ok(dp)
     }
 
@@ -169,7 +174,7 @@ impl TcDispatcher {
             ));
         }
 
-        let path = tc_dispatcher_rev_path(direction, nsid(netns.clone())?, if_index, revision)?;
+        let path = tc_dispatcher_rev_path(direction, self.get_nsid()?, if_index, revision)?;
         fs::create_dir_all(path).unwrap();
 
         self.loader = Some(loader);
@@ -401,6 +406,7 @@ impl TcDispatcher {
         let handle = self.get_handle()?;
         let priority = self.get_priority()?;
         let nsid = self.get_nsid()?;
+        let netns = self.get_netns()?;
 
         debug!(
             "TcDispatcher::delete() for if_index {}, revision {}",
@@ -428,24 +434,48 @@ impl TcDispatcher {
                     Direction::Ingress => TcAttachType::Ingress,
                     Direction::Egress => TcAttachType::Egress,
                 };
-                if let Ok(old_link) =
-                    SchedClassifierLink::attached(&if_name, attach_type, priority, old_handle)
-                {
-                    let detach_result = old_link.detach();
-                    match detach_result {
-                        Ok(_) => debug!(
-                            "TC dispatcher {}, {}, {}, {} successfully detached",
-                            if_name, direction, priority, old_handle
-                        ),
-                        Err(_) => debug!(
-                            "TC dispatcher {}, {}, {}, {} not attached when detach attempted",
-                            if_name, direction, priority, old_handle
-                        ),
-                    }
-                }
+                if let Some(netns) = netns {
+                    if let Ok(_netns_guard) = enter_netns(netns) {
+                        self.detach_dispatcher(
+                            &if_name,
+                            attach_type,
+                            priority,
+                            old_handle,
+                            direction,
+                        );
+                    } else {
+                        debug!("enter_netns failed.  The netns may have been deleted.");
+                    };
+                } else {
+                    self.detach_dispatcher(&if_name, attach_type, priority, old_handle, direction);
+                };
             };
         }
         Ok(())
+    }
+
+    fn detach_dispatcher(
+        &mut self,
+        if_name: &str,
+        attach_type: TcAttachType,
+        priority: u16,
+        handle: u32,
+        direction: Direction,
+    ) {
+        if let Ok(old_link) = SchedClassifierLink::attached(if_name, attach_type, priority, handle)
+        {
+            let detach_result = old_link.detach();
+            match detach_result {
+                Ok(_) => debug!(
+                    "TC dispatcher {}, {}, {}, {} successfully detached",
+                    if_name, direction, priority, handle
+                ),
+                Err(_) => debug!(
+                    "TC dispatcher {}, {}, {}, {} not attached when detach attempted",
+                    if_name, direction, priority, handle
+                ),
+            }
+        }
     }
 
     pub(crate) fn set_revision(&mut self, revision: u32) -> Result<(), BpfmanError> {
@@ -520,5 +550,13 @@ impl TcDispatcher {
 
     pub fn get_nsid(&self) -> Result<u64, BpfmanError> {
         sled_get(&self.db_tree, NSID).map(bytes_to_u64)
+    }
+
+    pub(crate) fn set_netns(&mut self, netns: PathBuf) -> Result<(), BpfmanError> {
+        sled_insert(&self.db_tree, NETNS, netns.as_os_str().as_bytes())
+    }
+
+    pub fn get_netns(&self) -> Result<Option<PathBuf>, BpfmanError> {
+        Ok(sled_get_option(&self.db_tree, NETNS)?.map(|v| PathBuf::from(OsStr::from_bytes(&v))))
     }
 }

@@ -50,6 +50,7 @@ impl Dispatcher {
         } else {
             &XdpMode::Drv
         };
+
         let d = match p.kind() {
             ProgramType::Xdp => {
                 let mut x = XdpDispatcher::new(
@@ -84,6 +85,7 @@ impl Dispatcher {
                     if_index,
                     if_name.to_string(),
                     p.nsid()?,
+                    p.netns()?,
                     revision,
                 )?;
 
