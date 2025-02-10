@@ -356,7 +356,7 @@ pub(crate) enum ImageSubCommand {
     /// * --bytecode: for a single bytecode built for the host architecture.
     ///
     /// * --cilium-ebpf-project: for a cilium/ebpf project directory which contains
-    ///     multiple object files for different architectures.
+    ///   multiple object files for different architectures.
     ///
     /// * --bc-386-el .. --bc-s390x-eb: to add one or more architecture specific bytecode files.
     ///
