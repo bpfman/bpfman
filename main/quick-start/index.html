@@ -1796,7 +1796,7 @@ to be installed:</p>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">sudo systemctl start bpfman.socket</span>
 </code></pre></div>
 <p>Finally you can run one of the sample applications:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfd-bytecode/tracepoint:latest tracepoint --tracepoint sched/sched_switch</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/tracepoint:latest --name &quot;enter_openat&quot; tracepoint --tracepoint syscalls/sys_enter_openat</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="go">sudo bpfman list</span>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="go"> Program ID  Name          Type        Load Time                </span>
