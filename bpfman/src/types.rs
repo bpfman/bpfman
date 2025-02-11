@@ -2290,6 +2290,7 @@ pub enum ProgramType {
     Netfilter,
 }
 
+#[allow(clippy::unneeded_struct_pattern)]
 impl From<aya_obj::ProgramSection> for ProgramType {
     fn from(value: aya_obj::ProgramSection) -> Self {
         match value {

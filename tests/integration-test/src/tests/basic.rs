@@ -121,10 +121,7 @@ fn test_map_sharing_load_unload_xdp() {
 
     // Load second program, which will share the map with the first program.
     debug!("Installing xdp_counter map sharing program 2");
-    let map_owner_id_u32 = match map_owner_id.as_ref().unwrap().parse() {
-        Ok(v) => Some(v),
-        Err(_) => None,
-    };
+    let map_owner_id_u32 = map_owner_id.as_ref().unwrap().parse().ok();
     let (shared_owner_id, stdout_2) = add_xdp(
         DEFAULT_BPFMAN_IFACE,
         50,   // priority
