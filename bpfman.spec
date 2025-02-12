@@ -32,6 +32,7 @@ BuildRequires:  systemd-rpm-macros
 BuildRequires:  openssl-devel
 BuildRequires:  pkgconfig(zlib)
 BuildRequires:  gcc
+BuildRequires:  cmake
 
 # TODO: Generate Provides for all of the vendored dependencies
 
