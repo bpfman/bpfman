@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5-1739377040 AS bpfman-build
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.5-1739420147 AS bpfman-build
 ARG DNF_CMD="microdnf"
 
 WORKDIR /usr/src/bpfman
