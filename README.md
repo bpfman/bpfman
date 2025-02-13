@@ -10,6 +10,7 @@
 [![Netlify Status][netlify-badge]][netlify-url]
 [![Copr build status][copr-badge]][copr-url]
 [![OpenSSF Scorecard][openssf-badge]][openssf-url]
+[![FOSSA Status][fossa-badge]][fossa-url]
 
 [apache2-badge]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 [apache2-url]: https://opensource.org/licenses/Apache-2.0
@@ -26,6 +27,8 @@
 [netlify-url]: https://app.netlify.com/sites/bpfman/deploys
 [openssf-badge]: https://api.scorecard.dev/projects/github.com/bpfman/bpfman/badge
 [openssf-url]: https://scorecard.dev/viewer/?uri=github.com/bpfman/bpfman
+[fossa-badge]: https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbpfman%2Fbpfman.svg?type=shield
+[fossa-url]: https://app.fossa.com/projects/git%2Bgithub.com%2Fbpfman%2Fbpfman?ref=badge_shield
 
 _Formerly know as `bpfd`_
 
@@ -72,6 +75,8 @@ Here are some links to help in your bpfman journey (all links are from the bpfma
 
 With the exception of eBPF code, everything is distributed under the terms of
 the [Apache License] (version 2.0).
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbpfman%2Fbpfman.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fbpfman%2Fbpfman?ref=badge_large)
 
 ### eBPF
 
