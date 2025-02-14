@@ -7,7 +7,7 @@ use aya::{
     maps::{loaded_maps, MapType as AyaMapType},
     programs::{loaded_links, loaded_programs, ProgramType as AyaProgramType},
 };
-use bpfman::types::{MapType, ProgramType};
+use bpfman::types::{BpfProgType, MapType};
 use chrono::{prelude::DateTime, Utc};
 use clap::Parser;
 use opentelemetry::{
@@ -137,7 +137,7 @@ async fn main() -> anyhow::Result<()> {
                 for program in loaded_programs().flatten() {
                     let id = program.id();
                     let name = program.name_as_str().unwrap_or_default().to_string();
-                    let ty: ProgramType = ProgramType::from(
+                    let ty: BpfProgType = BpfProgType::from(
                         program
                             .program_type()
                             .unwrap_or(AyaProgramType::Unspecified),

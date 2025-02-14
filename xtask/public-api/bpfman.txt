@@ -1,4 +1,242 @@
 pub mod bpfman
+pub mod bpfman::config
+pub struct bpfman::config::Config
+impl core::clone::Clone for bpfman::config::Config
+pub fn bpfman::config::Config::clone(&self) -> bpfman::config::Config
+impl core::default::Default for bpfman::config::Config
+pub fn bpfman::config::Config::default() -> bpfman::config::Config
+impl core::fmt::Debug for bpfman::config::Config
+pub fn bpfman::config::Config::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::str::traits::FromStr for bpfman::config::Config
+pub type bpfman::config::Config::Err = bpfman::errors::ParseError
+pub fn bpfman::config::Config::from_str(s: &str) -> core::result::Result<Self, Self::Err>
+impl<'de> serde::de::Deserialize<'de> for bpfman::config::Config
+pub fn bpfman::config::Config::deserialize<__D>(__deserializer: __D) -> core::result::Result<Self, <__D as serde::de::Deserializer>::Error> where __D: serde::de::Deserializer<'de>
+impl core::marker::Freeze for bpfman::config::Config
+impl core::marker::Send for bpfman::config::Config
+impl core::marker::Sync for bpfman::config::Config
+impl core::marker::Unpin for bpfman::config::Config
+impl core::panic::unwind_safe::RefUnwindSafe for bpfman::config::Config
+impl core::panic::unwind_safe::UnwindSafe for bpfman::config::Config
+impl<T, U> core::convert::Into<U> for bpfman::config::Config where U: core::convert::From<T>
+pub fn bpfman::config::Config::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::config::Config where U: core::convert::Into<T>
+pub type bpfman::config::Config::Error = core::convert::Infallible
+pub fn bpfman::config::Config::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::config::Config where U: core::convert::TryFrom<T>
+pub type bpfman::config::Config::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::config::Config::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::config::Config where T: core::clone::Clone
+pub type bpfman::config::Config::Owned = T
+pub fn bpfman::config::Config::clone_into(&self, target: &mut T)
+pub fn bpfman::config::Config::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::config::Config where T: 'static + ?core::marker::Sized
+pub fn bpfman::config::Config::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::config::Config where T: ?core::marker::Sized
+pub fn bpfman::config::Config::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::config::Config where T: ?core::marker::Sized
+pub fn bpfman::config::Config::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::config::Config where T: core::clone::Clone
+pub unsafe fn bpfman::config::Config::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::config::Config
+pub fn bpfman::config::Config::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::config::Config
+pub type bpfman::config::Config::Init = T
+pub const bpfman::config::Config::ALIGN: usize
+pub unsafe fn bpfman::config::Config::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::config::Config::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::config::Config::drop(ptr: usize)
+pub unsafe fn bpfman::config::Config::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::config::Config where T: core::clone::Clone
+pub fn bpfman::config::Config::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::config::Config
+impl<T> jwt::FromBase64 for bpfman::config::Config where T: for<'de> serde::de::Deserialize<'de>
+pub fn bpfman::config::Config::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
+impl<T> serde::de::DeserializeOwned for bpfman::config::Config where T: for<'de> serde::de::Deserialize<'de>
+impl<T> tracing::instrument::Instrument for bpfman::config::Config
+impl<T> tracing::instrument::WithSubscriber for bpfman::config::Config
+impl<T> typenum::type_operators::Same for bpfman::config::Config
+pub type bpfman::config::Config::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::config::Config where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::config::Config where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::config::Config::vzip(self) -> V
+pub struct bpfman::config::DatabaseConfig
+pub bpfman::config::DatabaseConfig::max_retries: u32
+pub bpfman::config::DatabaseConfig::millisec_delay: u64
+impl core::clone::Clone for bpfman::config::DatabaseConfig
+pub fn bpfman::config::DatabaseConfig::clone(&self) -> bpfman::config::DatabaseConfig
+impl core::default::Default for bpfman::config::DatabaseConfig
+pub fn bpfman::config::DatabaseConfig::default() -> Self
+impl core::fmt::Debug for bpfman::config::DatabaseConfig
+pub fn bpfman::config::DatabaseConfig::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'de> serde::de::Deserialize<'de> for bpfman::config::DatabaseConfig where bpfman::config::DatabaseConfig: core::default::Default
+pub fn bpfman::config::DatabaseConfig::deserialize<__D>(__deserializer: __D) -> core::result::Result<Self, <__D as serde::de::Deserializer>::Error> where __D: serde::de::Deserializer<'de>
+impl core::marker::Freeze for bpfman::config::DatabaseConfig
+impl core::marker::Send for bpfman::config::DatabaseConfig
+impl core::marker::Sync for bpfman::config::DatabaseConfig
+impl core::marker::Unpin for bpfman::config::DatabaseConfig
+impl core::panic::unwind_safe::RefUnwindSafe for bpfman::config::DatabaseConfig
+impl core::panic::unwind_safe::UnwindSafe for bpfman::config::DatabaseConfig
+impl<T, U> core::convert::Into<U> for bpfman::config::DatabaseConfig where U: core::convert::From<T>
+pub fn bpfman::config::DatabaseConfig::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::config::DatabaseConfig where U: core::convert::Into<T>
+pub type bpfman::config::DatabaseConfig::Error = core::convert::Infallible
+pub fn bpfman::config::DatabaseConfig::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::config::DatabaseConfig where U: core::convert::TryFrom<T>
+pub type bpfman::config::DatabaseConfig::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::config::DatabaseConfig::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::config::DatabaseConfig where T: core::clone::Clone
+pub type bpfman::config::DatabaseConfig::Owned = T
+pub fn bpfman::config::DatabaseConfig::clone_into(&self, target: &mut T)
+pub fn bpfman::config::DatabaseConfig::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::config::DatabaseConfig where T: 'static + ?core::marker::Sized
+pub fn bpfman::config::DatabaseConfig::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::config::DatabaseConfig where T: ?core::marker::Sized
+pub fn bpfman::config::DatabaseConfig::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::config::DatabaseConfig where T: ?core::marker::Sized
+pub fn bpfman::config::DatabaseConfig::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::config::DatabaseConfig where T: core::clone::Clone
+pub unsafe fn bpfman::config::DatabaseConfig::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::config::DatabaseConfig
+pub fn bpfman::config::DatabaseConfig::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::config::DatabaseConfig
+pub type bpfman::config::DatabaseConfig::Init = T
+pub const bpfman::config::DatabaseConfig::ALIGN: usize
+pub unsafe fn bpfman::config::DatabaseConfig::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::config::DatabaseConfig::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::config::DatabaseConfig::drop(ptr: usize)
+pub unsafe fn bpfman::config::DatabaseConfig::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::config::DatabaseConfig where T: core::clone::Clone
+pub fn bpfman::config::DatabaseConfig::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::config::DatabaseConfig
+impl<T> jwt::FromBase64 for bpfman::config::DatabaseConfig where T: for<'de> serde::de::Deserialize<'de>
+pub fn bpfman::config::DatabaseConfig::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
+impl<T> serde::de::DeserializeOwned for bpfman::config::DatabaseConfig where T: for<'de> serde::de::Deserialize<'de>
+impl<T> tracing::instrument::Instrument for bpfman::config::DatabaseConfig
+impl<T> tracing::instrument::WithSubscriber for bpfman::config::DatabaseConfig
+impl<T> typenum::type_operators::Same for bpfman::config::DatabaseConfig
+pub type bpfman::config::DatabaseConfig::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::config::DatabaseConfig where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::config::DatabaseConfig where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::config::DatabaseConfig::vzip(self) -> V
+pub struct bpfman::config::RegistryConfig
+pub bpfman::config::RegistryConfig::tc_dispatcher_image: alloc::string::String
+pub bpfman::config::RegistryConfig::xdp_dispatcher_image: alloc::string::String
+impl core::clone::Clone for bpfman::config::RegistryConfig
+pub fn bpfman::config::RegistryConfig::clone(&self) -> bpfman::config::RegistryConfig
+impl core::default::Default for bpfman::config::RegistryConfig
+pub fn bpfman::config::RegistryConfig::default() -> Self
+impl core::fmt::Debug for bpfman::config::RegistryConfig
+pub fn bpfman::config::RegistryConfig::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'de> serde::de::Deserialize<'de> for bpfman::config::RegistryConfig where bpfman::config::RegistryConfig: core::default::Default
+pub fn bpfman::config::RegistryConfig::deserialize<__D>(__deserializer: __D) -> core::result::Result<Self, <__D as serde::de::Deserializer>::Error> where __D: serde::de::Deserializer<'de>
+impl core::marker::Freeze for bpfman::config::RegistryConfig
+impl core::marker::Send for bpfman::config::RegistryConfig
+impl core::marker::Sync for bpfman::config::RegistryConfig
+impl core::marker::Unpin for bpfman::config::RegistryConfig
+impl core::panic::unwind_safe::RefUnwindSafe for bpfman::config::RegistryConfig
+impl core::panic::unwind_safe::UnwindSafe for bpfman::config::RegistryConfig
+impl<T, U> core::convert::Into<U> for bpfman::config::RegistryConfig where U: core::convert::From<T>
+pub fn bpfman::config::RegistryConfig::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::config::RegistryConfig where U: core::convert::Into<T>
+pub type bpfman::config::RegistryConfig::Error = core::convert::Infallible
+pub fn bpfman::config::RegistryConfig::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::config::RegistryConfig where U: core::convert::TryFrom<T>
+pub type bpfman::config::RegistryConfig::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::config::RegistryConfig::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::config::RegistryConfig where T: core::clone::Clone
+pub type bpfman::config::RegistryConfig::Owned = T
+pub fn bpfman::config::RegistryConfig::clone_into(&self, target: &mut T)
+pub fn bpfman::config::RegistryConfig::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::config::RegistryConfig where T: 'static + ?core::marker::Sized
+pub fn bpfman::config::RegistryConfig::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::config::RegistryConfig where T: ?core::marker::Sized
+pub fn bpfman::config::RegistryConfig::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::config::RegistryConfig where T: ?core::marker::Sized
+pub fn bpfman::config::RegistryConfig::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::config::RegistryConfig where T: core::clone::Clone
+pub unsafe fn bpfman::config::RegistryConfig::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::config::RegistryConfig
+pub fn bpfman::config::RegistryConfig::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::config::RegistryConfig
+pub type bpfman::config::RegistryConfig::Init = T
+pub const bpfman::config::RegistryConfig::ALIGN: usize
+pub unsafe fn bpfman::config::RegistryConfig::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::config::RegistryConfig::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::config::RegistryConfig::drop(ptr: usize)
+pub unsafe fn bpfman::config::RegistryConfig::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::config::RegistryConfig where T: core::clone::Clone
+pub fn bpfman::config::RegistryConfig::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::config::RegistryConfig
+impl<T> jwt::FromBase64 for bpfman::config::RegistryConfig where T: for<'de> serde::de::Deserialize<'de>
+pub fn bpfman::config::RegistryConfig::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
+impl<T> serde::de::DeserializeOwned for bpfman::config::RegistryConfig where T: for<'de> serde::de::Deserialize<'de>
+impl<T> tracing::instrument::Instrument for bpfman::config::RegistryConfig
+impl<T> tracing::instrument::WithSubscriber for bpfman::config::RegistryConfig
+impl<T> typenum::type_operators::Same for bpfman::config::RegistryConfig
+pub type bpfman::config::RegistryConfig::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::config::RegistryConfig where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::config::RegistryConfig where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::config::RegistryConfig::vzip(self) -> V
+pub struct bpfman::config::SigningConfig
+pub bpfman::config::SigningConfig::allow_unsigned: bool
+pub bpfman::config::SigningConfig::verify_enabled: bool
+impl core::clone::Clone for bpfman::config::SigningConfig
+pub fn bpfman::config::SigningConfig::clone(&self) -> bpfman::config::SigningConfig
+impl core::default::Default for bpfman::config::SigningConfig
+pub fn bpfman::config::SigningConfig::default() -> Self
+impl core::fmt::Debug for bpfman::config::SigningConfig
+pub fn bpfman::config::SigningConfig::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl<'de> serde::de::Deserialize<'de> for bpfman::config::SigningConfig where bpfman::config::SigningConfig: core::default::Default
+pub fn bpfman::config::SigningConfig::deserialize<__D>(__deserializer: __D) -> core::result::Result<Self, <__D as serde::de::Deserializer>::Error> where __D: serde::de::Deserializer<'de>
+impl core::marker::Freeze for bpfman::config::SigningConfig
+impl core::marker::Send for bpfman::config::SigningConfig
+impl core::marker::Sync for bpfman::config::SigningConfig
+impl core::marker::Unpin for bpfman::config::SigningConfig
+impl core::panic::unwind_safe::RefUnwindSafe for bpfman::config::SigningConfig
+impl core::panic::unwind_safe::UnwindSafe for bpfman::config::SigningConfig
+impl<T, U> core::convert::Into<U> for bpfman::config::SigningConfig where U: core::convert::From<T>
+pub fn bpfman::config::SigningConfig::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::config::SigningConfig where U: core::convert::Into<T>
+pub type bpfman::config::SigningConfig::Error = core::convert::Infallible
+pub fn bpfman::config::SigningConfig::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::config::SigningConfig where U: core::convert::TryFrom<T>
+pub type bpfman::config::SigningConfig::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::config::SigningConfig::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::config::SigningConfig where T: core::clone::Clone
+pub type bpfman::config::SigningConfig::Owned = T
+pub fn bpfman::config::SigningConfig::clone_into(&self, target: &mut T)
+pub fn bpfman::config::SigningConfig::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::config::SigningConfig where T: 'static + ?core::marker::Sized
+pub fn bpfman::config::SigningConfig::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::config::SigningConfig where T: ?core::marker::Sized
+pub fn bpfman::config::SigningConfig::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::config::SigningConfig where T: ?core::marker::Sized
+pub fn bpfman::config::SigningConfig::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::config::SigningConfig where T: core::clone::Clone
+pub unsafe fn bpfman::config::SigningConfig::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::config::SigningConfig
+pub fn bpfman::config::SigningConfig::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::config::SigningConfig
+pub type bpfman::config::SigningConfig::Init = T
+pub const bpfman::config::SigningConfig::ALIGN: usize
+pub unsafe fn bpfman::config::SigningConfig::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::config::SigningConfig::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::config::SigningConfig::drop(ptr: usize)
+pub unsafe fn bpfman::config::SigningConfig::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::config::SigningConfig where T: core::clone::Clone
+pub fn bpfman::config::SigningConfig::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::config::SigningConfig
+impl<T> jwt::FromBase64 for bpfman::config::SigningConfig where T: for<'de> serde::de::Deserialize<'de>
+pub fn bpfman::config::SigningConfig::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
+impl<T> serde::de::DeserializeOwned for bpfman::config::SigningConfig where T: for<'de> serde::de::Deserialize<'de>
+impl<T> tracing::instrument::Instrument for bpfman::config::SigningConfig
+impl<T> tracing::instrument::WithSubscriber for bpfman::config::SigningConfig
+impl<T> typenum::type_operators::Same for bpfman::config::SigningConfig
+pub type bpfman::config::SigningConfig::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::config::SigningConfig where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::config::SigningConfig where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::config::SigningConfig::vzip(self) -> V
 pub mod bpfman::errors
 pub enum bpfman::errors::BpfmanError
 pub bpfman::errors::BpfmanError::BpfBytecodeError(bpfman::oci_utils::ImageError)
@@ -32,6 +270,7 @@ pub bpfman::errors::BpfmanError::ProgramNotFoundInBytecode
 pub bpfman::errors::BpfmanError::ProgramNotFoundInBytecode::bytecode_image: alloc::string::String
 pub bpfman::errors::BpfmanError::ProgramNotFoundInBytecode::expected_prog_name: alloc::string::String
 pub bpfman::errors::BpfmanError::ProgramNotFoundInBytecode::program_names: alloc::vec::Vec<alloc::string::String>
+pub bpfman::errors::BpfmanError::ProgramsLoadFailure(alloc::vec::Vec<bpfman::errors::BpfmanError>)
 pub bpfman::errors::BpfmanError::RpcRecvError(tokio::sync::oneshot::error::RecvError)
 pub bpfman::errors::BpfmanError::RpcSendError(anyhow::Error)
 pub bpfman::errors::BpfmanError::TooManyPrograms
@@ -104,6 +343,8 @@ pub fn bpfman::errors::BpfmanError::vzip(self) -> V
 pub enum bpfman::errors::ParseError
 pub bpfman::errors::ParseError::BytecodeLocationParseFailure(url::parser::ParseError)
 pub bpfman::errors::ParseError::ConfigParseError(toml::de::Error)
+pub bpfman::errors::ParseError::InvalidAttachType
+pub bpfman::errors::ParseError::InvalidAttachType::link_type: alloc::string::String
 pub bpfman::errors::ParseError::InvalidBytecodeImagePullPolicy
 pub bpfman::errors::ParseError::InvalidBytecodeImagePullPolicy::pull_policy: alloc::string::String
 pub bpfman::errors::ParseError::InvalidBytecodeLocation
@@ -174,6 +415,96 @@ impl<T> yoke::erased::ErasedDestructor for bpfman::errors::ParseError where T: '
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::errors::ParseError where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::errors::ParseError::vzip(self) -> V
 pub mod bpfman::types
+pub enum bpfman::types::AttachInfo
+pub bpfman::types::AttachInfo::Fentry
+pub bpfman::types::AttachInfo::Fentry::metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>
+pub bpfman::types::AttachInfo::Fexit
+pub bpfman::types::AttachInfo::Fexit::metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>
+pub bpfman::types::AttachInfo::Kprobe
+pub bpfman::types::AttachInfo::Kprobe::container_pid: core::option::Option<i32>
+pub bpfman::types::AttachInfo::Kprobe::fn_name: alloc::string::String
+pub bpfman::types::AttachInfo::Kprobe::metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>
+pub bpfman::types::AttachInfo::Kprobe::offset: u64
+pub bpfman::types::AttachInfo::Kprobe::retprobe: bool
+pub bpfman::types::AttachInfo::Tc
+pub bpfman::types::AttachInfo::Tc::direction: alloc::string::String
+pub bpfman::types::AttachInfo::Tc::iface: alloc::string::String
+pub bpfman::types::AttachInfo::Tc::metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>
+pub bpfman::types::AttachInfo::Tc::netns: core::option::Option<std::path::PathBuf>
+pub bpfman::types::AttachInfo::Tc::priority: i32
+pub bpfman::types::AttachInfo::Tc::proceed_on: bpfman::types::TcProceedOn
+pub bpfman::types::AttachInfo::Tcx
+pub bpfman::types::AttachInfo::Tcx::direction: alloc::string::String
+pub bpfman::types::AttachInfo::Tcx::iface: alloc::string::String
+pub bpfman::types::AttachInfo::Tcx::metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>
+pub bpfman::types::AttachInfo::Tcx::netns: core::option::Option<std::path::PathBuf>
+pub bpfman::types::AttachInfo::Tcx::priority: i32
+pub bpfman::types::AttachInfo::Tracepoint
+pub bpfman::types::AttachInfo::Tracepoint::metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>
+pub bpfman::types::AttachInfo::Tracepoint::tracepoint: alloc::string::String
+pub bpfman::types::AttachInfo::Uprobe
+pub bpfman::types::AttachInfo::Uprobe::container_pid: core::option::Option<i32>
+pub bpfman::types::AttachInfo::Uprobe::fn_name: core::option::Option<alloc::string::String>
+pub bpfman::types::AttachInfo::Uprobe::metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>
+pub bpfman::types::AttachInfo::Uprobe::offset: u64
+pub bpfman::types::AttachInfo::Uprobe::pid: core::option::Option<i32>
+pub bpfman::types::AttachInfo::Uprobe::retprobe: bool
+pub bpfman::types::AttachInfo::Uprobe::target: alloc::string::String
+pub bpfman::types::AttachInfo::Xdp
+pub bpfman::types::AttachInfo::Xdp::iface: alloc::string::String
+pub bpfman::types::AttachInfo::Xdp::metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>
+pub bpfman::types::AttachInfo::Xdp::netns: core::option::Option<std::path::PathBuf>
+pub bpfman::types::AttachInfo::Xdp::priority: i32
+pub bpfman::types::AttachInfo::Xdp::proceed_on: bpfman::types::XdpProceedOn
+impl core::clone::Clone for bpfman::types::AttachInfo
+pub fn bpfman::types::AttachInfo::clone(&self) -> bpfman::types::AttachInfo
+impl core::fmt::Debug for bpfman::types::AttachInfo
+pub fn bpfman::types::AttachInfo::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::AttachInfo
+impl core::marker::Send for bpfman::types::AttachInfo
+impl core::marker::Sync for bpfman::types::AttachInfo
+impl core::marker::Unpin for bpfman::types::AttachInfo
+impl core::panic::unwind_safe::RefUnwindSafe for bpfman::types::AttachInfo
+impl core::panic::unwind_safe::UnwindSafe for bpfman::types::AttachInfo
+impl<T, U> core::convert::Into<U> for bpfman::types::AttachInfo where U: core::convert::From<T>
+pub fn bpfman::types::AttachInfo::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::AttachInfo where U: core::convert::Into<T>
+pub type bpfman::types::AttachInfo::Error = core::convert::Infallible
+pub fn bpfman::types::AttachInfo::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::AttachInfo where U: core::convert::TryFrom<T>
+pub type bpfman::types::AttachInfo::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::AttachInfo::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::AttachInfo where T: core::clone::Clone
+pub type bpfman::types::AttachInfo::Owned = T
+pub fn bpfman::types::AttachInfo::clone_into(&self, target: &mut T)
+pub fn bpfman::types::AttachInfo::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::types::AttachInfo where T: 'static + ?core::marker::Sized
+pub fn bpfman::types::AttachInfo::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::AttachInfo where T: ?core::marker::Sized
+pub fn bpfman::types::AttachInfo::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::AttachInfo where T: ?core::marker::Sized
+pub fn bpfman::types::AttachInfo::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::AttachInfo where T: core::clone::Clone
+pub unsafe fn bpfman::types::AttachInfo::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::types::AttachInfo
+pub fn bpfman::types::AttachInfo::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::AttachInfo
+pub type bpfman::types::AttachInfo::Init = T
+pub const bpfman::types::AttachInfo::ALIGN: usize
+pub unsafe fn bpfman::types::AttachInfo::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::AttachInfo::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::AttachInfo::drop(ptr: usize)
+pub unsafe fn bpfman::types::AttachInfo::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::AttachInfo where T: core::clone::Clone
+pub fn bpfman::types::AttachInfo::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::types::AttachInfo
+impl<T> tracing::instrument::Instrument for bpfman::types::AttachInfo
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::AttachInfo
+impl<T> typenum::type_operators::Same for bpfman::types::AttachInfo
+pub type bpfman::types::AttachInfo::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::types::AttachInfo where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::AttachInfo where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::AttachInfo::vzip(self) -> V
 pub enum bpfman::types::AttachOrder
 pub bpfman::types::AttachOrder::After(u32)
 pub bpfman::types::AttachOrder::Before(u32)
@@ -220,6 +551,263 @@ pub type bpfman::types::AttachOrder::Output = T
 impl<T> yoke::erased::ErasedDestructor for bpfman::types::AttachOrder where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::AttachOrder where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::AttachOrder::vzip(self) -> V
+pub enum bpfman::types::BpfAttachType
+pub bpfman::types::BpfAttachType::CgroupDevice
+pub bpfman::types::BpfAttachType::CgroupGetsockopt
+pub bpfman::types::BpfAttachType::CgroupInet4Bind
+pub bpfman::types::BpfAttachType::CgroupInet4Connect
+pub bpfman::types::BpfAttachType::CgroupInet4Getpeername
+pub bpfman::types::BpfAttachType::CgroupInet4Getsockname
+pub bpfman::types::BpfAttachType::CgroupInet4PostBind
+pub bpfman::types::BpfAttachType::CgroupInet6Bind
+pub bpfman::types::BpfAttachType::CgroupInet6Connect
+pub bpfman::types::BpfAttachType::CgroupInet6Getpeername
+pub bpfman::types::BpfAttachType::CgroupInet6Getsockname
+pub bpfman::types::BpfAttachType::CgroupInet6PostBind
+pub bpfman::types::BpfAttachType::CgroupInetEgress
+pub bpfman::types::BpfAttachType::CgroupInetIngress
+pub bpfman::types::BpfAttachType::CgroupInetSockCreate
+pub bpfman::types::BpfAttachType::CgroupInetSockRelease
+pub bpfman::types::BpfAttachType::CgroupSetsockopt
+pub bpfman::types::BpfAttachType::CgroupSockOps
+pub bpfman::types::BpfAttachType::CgroupSysctl
+pub bpfman::types::BpfAttachType::CgroupUdp4Recvmsg
+pub bpfman::types::BpfAttachType::CgroupUdp4Sendmsg
+pub bpfman::types::BpfAttachType::CgroupUdp6Recvmsg
+pub bpfman::types::BpfAttachType::CgroupUdp6Sendmsg
+pub bpfman::types::BpfAttachType::CgroupUnixConnect
+pub bpfman::types::BpfAttachType::CgroupUnixGetpeername
+pub bpfman::types::BpfAttachType::CgroupUnixGetsockname
+pub bpfman::types::BpfAttachType::CgroupUnixRecvmsg
+pub bpfman::types::BpfAttachType::CgroupUnixSendmsg
+pub bpfman::types::BpfAttachType::FlowDissector
+pub bpfman::types::BpfAttachType::LircMode2
+pub bpfman::types::BpfAttachType::LsmCgroup
+pub bpfman::types::BpfAttachType::LsmMac
+pub bpfman::types::BpfAttachType::ModifyReturn
+pub bpfman::types::BpfAttachType::Netfilter
+pub bpfman::types::BpfAttachType::NetkitPeer
+pub bpfman::types::BpfAttachType::NetkitPrimary
+pub bpfman::types::BpfAttachType::PerfEvent
+pub bpfman::types::BpfAttachType::SkLookup
+pub bpfman::types::BpfAttachType::SkMsgVerdict
+pub bpfman::types::BpfAttachType::SkReuseportSelect
+pub bpfman::types::BpfAttachType::SkReuseportSelectOrMigrate
+pub bpfman::types::BpfAttachType::SkSkbStreamParser
+pub bpfman::types::BpfAttachType::SkSkbStreamVerdict
+pub bpfman::types::BpfAttachType::SkSkbVerdict
+pub bpfman::types::BpfAttachType::StructOps
+pub bpfman::types::BpfAttachType::TcxEgress
+pub bpfman::types::BpfAttachType::TcxIngress
+pub bpfman::types::BpfAttachType::TraceFentry
+pub bpfman::types::BpfAttachType::TraceFexit
+pub bpfman::types::BpfAttachType::TraceIter
+pub bpfman::types::BpfAttachType::TraceKprobeMulti
+pub bpfman::types::BpfAttachType::TraceKprobeSession
+pub bpfman::types::BpfAttachType::TraceRawTp
+pub bpfman::types::BpfAttachType::TraceUprobeMulti
+pub bpfman::types::BpfAttachType::Xdp
+pub bpfman::types::BpfAttachType::XdpCpumap
+pub bpfman::types::BpfAttachType::XdpDevmap
+impl clap_builder::derive::ValueEnum for bpfman::types::BpfAttachType
+pub fn bpfman::types::BpfAttachType::to_possible_value<'a>(&self) -> core::option::Option<clap_builder::builder::possible_value::PossibleValue>
+pub fn bpfman::types::BpfAttachType::value_variants<'a>() -> &'a [Self]
+impl core::clone::Clone for bpfman::types::BpfAttachType
+pub fn bpfman::types::BpfAttachType::clone(&self) -> bpfman::types::BpfAttachType
+impl core::cmp::Eq for bpfman::types::BpfAttachType
+impl core::cmp::PartialEq for bpfman::types::BpfAttachType
+pub fn bpfman::types::BpfAttachType::eq(&self, other: &bpfman::types::BpfAttachType) -> bool
+impl core::convert::From<bpfman::types::BpfAttachType> for u32
+pub fn u32::from(val: bpfman::types::BpfAttachType) -> Self
+impl core::convert::TryFrom<u32> for bpfman::types::BpfAttachType
+pub type bpfman::types::BpfAttachType::Error = bpfman::errors::ParseError
+pub fn bpfman::types::BpfAttachType::try_from(value: u32) -> core::result::Result<Self, Self::Error>
+impl core::fmt::Debug for bpfman::types::BpfAttachType
+pub fn bpfman::types::BpfAttachType::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for bpfman::types::BpfAttachType
+impl core::marker::StructuralPartialEq for bpfman::types::BpfAttachType
+impl serde::ser::Serialize for bpfman::types::BpfAttachType
+pub fn bpfman::types::BpfAttachType::serialize<__S>(&self, __serializer: __S) -> core::result::Result<<__S as serde::ser::Serializer>::Ok, <__S as serde::ser::Serializer>::Error> where __S: serde::ser::Serializer
+impl<'de> serde::de::Deserialize<'de> for bpfman::types::BpfAttachType
+pub fn bpfman::types::BpfAttachType::deserialize<__D>(__deserializer: __D) -> core::result::Result<Self, <__D as serde::de::Deserializer>::Error> where __D: serde::de::Deserializer<'de>
+impl core::marker::Freeze for bpfman::types::BpfAttachType
+impl core::marker::Send for bpfman::types::BpfAttachType
+impl core::marker::Sync for bpfman::types::BpfAttachType
+impl core::marker::Unpin for bpfman::types::BpfAttachType
+impl core::panic::unwind_safe::RefUnwindSafe for bpfman::types::BpfAttachType
+impl core::panic::unwind_safe::UnwindSafe for bpfman::types::BpfAttachType
+impl<C> jwt::token::signed::SignWithKey<alloc::string::String> for bpfman::types::BpfAttachType where C: jwt::ToBase64
+pub fn bpfman::types::BpfAttachType::sign_with_key(self, key: &impl jwt::algorithm::SigningAlgorithm) -> core::result::Result<alloc::string::String, jwt::error::Error>
+impl<Q, K> equivalent::Equivalent<K> for bpfman::types::BpfAttachType where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
+pub fn bpfman::types::BpfAttachType::equivalent(&self, key: &K) -> bool
+impl<Q, K> hashbrown::Equivalent<K> for bpfman::types::BpfAttachType where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
+pub fn bpfman::types::BpfAttachType::equivalent(&self, key: &K) -> bool
+impl<T, U> core::convert::Into<U> for bpfman::types::BpfAttachType where U: core::convert::From<T>
+pub fn bpfman::types::BpfAttachType::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::BpfAttachType where U: core::convert::Into<T>
+pub type bpfman::types::BpfAttachType::Error = core::convert::Infallible
+pub fn bpfman::types::BpfAttachType::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::BpfAttachType where U: core::convert::TryFrom<T>
+pub type bpfman::types::BpfAttachType::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::BpfAttachType::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::BpfAttachType where T: core::clone::Clone
+pub type bpfman::types::BpfAttachType::Owned = T
+pub fn bpfman::types::BpfAttachType::clone_into(&self, target: &mut T)
+pub fn bpfman::types::BpfAttachType::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::types::BpfAttachType where T: 'static + ?core::marker::Sized
+pub fn bpfman::types::BpfAttachType::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::BpfAttachType where T: ?core::marker::Sized
+pub fn bpfman::types::BpfAttachType::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::BpfAttachType where T: ?core::marker::Sized
+pub fn bpfman::types::BpfAttachType::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::BpfAttachType where T: core::clone::Clone
+pub unsafe fn bpfman::types::BpfAttachType::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::types::BpfAttachType
+pub fn bpfman::types::BpfAttachType::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::BpfAttachType
+pub type bpfman::types::BpfAttachType::Init = T
+pub const bpfman::types::BpfAttachType::ALIGN: usize
+pub unsafe fn bpfman::types::BpfAttachType::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::BpfAttachType::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::BpfAttachType::drop(ptr: usize)
+pub unsafe fn bpfman::types::BpfAttachType::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::BpfAttachType where T: core::clone::Clone
+pub fn bpfman::types::BpfAttachType::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::types::BpfAttachType
+impl<T> jwt::FromBase64 for bpfman::types::BpfAttachType where T: for<'de> serde::de::Deserialize<'de>
+pub fn bpfman::types::BpfAttachType::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
+impl<T> jwt::ToBase64 for bpfman::types::BpfAttachType where T: serde::ser::Serialize
+pub fn bpfman::types::BpfAttachType::to_base64(&self) -> core::result::Result<alloc::borrow::Cow<'_, str>, jwt::error::Error>
+impl<T> serde::de::DeserializeOwned for bpfman::types::BpfAttachType where T: for<'de> serde::de::Deserialize<'de>
+impl<T> tracing::instrument::Instrument for bpfman::types::BpfAttachType
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::BpfAttachType
+impl<T> typenum::type_operators::Same for bpfman::types::BpfAttachType
+pub type bpfman::types::BpfAttachType::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::types::BpfAttachType where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::BpfAttachType where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::BpfAttachType::vzip(self) -> V
+pub enum bpfman::types::BpfProgType
+pub bpfman::types::BpfProgType::CgroupDevice
+pub bpfman::types::BpfProgType::CgroupSkb
+pub bpfman::types::BpfProgType::CgroupSock
+pub bpfman::types::BpfProgType::CgroupSockAddr
+pub bpfman::types::BpfProgType::CgroupSockopt
+pub bpfman::types::BpfProgType::CgroupSysctl
+pub bpfman::types::BpfProgType::Ext
+pub bpfman::types::BpfProgType::FlowDissector
+pub bpfman::types::BpfProgType::LircMode2
+pub bpfman::types::BpfProgType::Lsm
+pub bpfman::types::BpfProgType::LwtIn
+pub bpfman::types::BpfProgType::LwtOut
+pub bpfman::types::BpfProgType::LwtSeg6Local
+pub bpfman::types::BpfProgType::LwtXmit
+pub bpfman::types::BpfProgType::Netfilter
+pub bpfman::types::BpfProgType::PerfEvent
+pub bpfman::types::BpfProgType::Probe
+pub bpfman::types::BpfProgType::RawTracepoint
+pub bpfman::types::BpfProgType::RawTracepointWritable
+pub bpfman::types::BpfProgType::SchedAct
+pub bpfman::types::BpfProgType::SkLookup
+pub bpfman::types::BpfProgType::SkMsg
+pub bpfman::types::BpfProgType::SkReuseport
+pub bpfman::types::BpfProgType::SkSkb
+pub bpfman::types::BpfProgType::SockOps
+pub bpfman::types::BpfProgType::SocketFilter
+pub bpfman::types::BpfProgType::StructOps
+pub bpfman::types::BpfProgType::Syscall
+pub bpfman::types::BpfProgType::Tc
+pub bpfman::types::BpfProgType::Tracepoint
+pub bpfman::types::BpfProgType::Tracing
+pub bpfman::types::BpfProgType::Unspec
+pub bpfman::types::BpfProgType::Xdp
+impl clap_builder::derive::ValueEnum for bpfman::types::BpfProgType
+pub fn bpfman::types::BpfProgType::to_possible_value<'a>(&self) -> core::option::Option<clap_builder::builder::possible_value::PossibleValue>
+pub fn bpfman::types::BpfProgType::value_variants<'a>() -> &'a [Self]
+impl core::clone::Clone for bpfman::types::BpfProgType
+pub fn bpfman::types::BpfProgType::clone(&self) -> bpfman::types::BpfProgType
+impl core::cmp::Eq for bpfman::types::BpfProgType
+impl core::cmp::PartialEq for bpfman::types::BpfProgType
+pub fn bpfman::types::BpfProgType::eq(&self, other: &bpfman::types::BpfProgType) -> bool
+impl core::convert::From<aya::programs::info::ProgramType> for bpfman::types::BpfProgType
+pub fn bpfman::types::BpfProgType::from(val: aya::programs::info::ProgramType) -> Self
+impl core::convert::From<aya_obj::obj::ProgramSection> for bpfman::types::BpfProgType
+pub fn bpfman::types::BpfProgType::from(value: aya_obj::obj::ProgramSection) -> Self
+impl core::convert::From<bpfman::types::BpfProgType> for u32
+pub fn u32::from(val: bpfman::types::BpfProgType) -> Self
+impl core::convert::TryFrom<alloc::string::String> for bpfman::types::BpfProgType
+pub type bpfman::types::BpfProgType::Error = bpfman::errors::ParseError
+pub fn bpfman::types::BpfProgType::try_from(value: alloc::string::String) -> core::result::Result<Self, Self::Error>
+impl core::convert::TryFrom<u32> for bpfman::types::BpfProgType
+pub type bpfman::types::BpfProgType::Error = bpfman::errors::ParseError
+pub fn bpfman::types::BpfProgType::try_from(value: u32) -> core::result::Result<Self, Self::Error>
+impl core::fmt::Debug for bpfman::types::BpfProgType
+pub fn bpfman::types::BpfProgType::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::fmt::Display for bpfman::types::BpfProgType
+pub fn bpfman::types::BpfProgType::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Copy for bpfman::types::BpfProgType
+impl core::marker::StructuralPartialEq for bpfman::types::BpfProgType
+impl serde::ser::Serialize for bpfman::types::BpfProgType
+pub fn bpfman::types::BpfProgType::serialize<__S>(&self, __serializer: __S) -> core::result::Result<<__S as serde::ser::Serializer>::Ok, <__S as serde::ser::Serializer>::Error> where __S: serde::ser::Serializer
+impl<'de> serde::de::Deserialize<'de> for bpfman::types::BpfProgType
+pub fn bpfman::types::BpfProgType::deserialize<__D>(__deserializer: __D) -> core::result::Result<Self, <__D as serde::de::Deserializer>::Error> where __D: serde::de::Deserializer<'de>
+impl core::marker::Freeze for bpfman::types::BpfProgType
+impl core::marker::Send for bpfman::types::BpfProgType
+impl core::marker::Sync for bpfman::types::BpfProgType
+impl core::marker::Unpin for bpfman::types::BpfProgType
+impl core::panic::unwind_safe::RefUnwindSafe for bpfman::types::BpfProgType
+impl core::panic::unwind_safe::UnwindSafe for bpfman::types::BpfProgType
+impl<C> jwt::token::signed::SignWithKey<alloc::string::String> for bpfman::types::BpfProgType where C: jwt::ToBase64
+pub fn bpfman::types::BpfProgType::sign_with_key(self, key: &impl jwt::algorithm::SigningAlgorithm) -> core::result::Result<alloc::string::String, jwt::error::Error>
+impl<Q, K> equivalent::Equivalent<K> for bpfman::types::BpfProgType where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
+pub fn bpfman::types::BpfProgType::equivalent(&self, key: &K) -> bool
+impl<Q, K> hashbrown::Equivalent<K> for bpfman::types::BpfProgType where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
+pub fn bpfman::types::BpfProgType::equivalent(&self, key: &K) -> bool
+impl<T, U> core::convert::Into<U> for bpfman::types::BpfProgType where U: core::convert::From<T>
+pub fn bpfman::types::BpfProgType::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::BpfProgType where U: core::convert::Into<T>
+pub type bpfman::types::BpfProgType::Error = core::convert::Infallible
+pub fn bpfman::types::BpfProgType::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::BpfProgType where U: core::convert::TryFrom<T>
+pub type bpfman::types::BpfProgType::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::BpfProgType::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::BpfProgType where T: core::clone::Clone
+pub type bpfman::types::BpfProgType::Owned = T
+pub fn bpfman::types::BpfProgType::clone_into(&self, target: &mut T)
+pub fn bpfman::types::BpfProgType::to_owned(&self) -> T
+impl<T> alloc::string::ToString for bpfman::types::BpfProgType where T: core::fmt::Display + ?core::marker::Sized
+pub fn bpfman::types::BpfProgType::to_string(&self) -> alloc::string::String
+impl<T> core::any::Any for bpfman::types::BpfProgType where T: 'static + ?core::marker::Sized
+pub fn bpfman::types::BpfProgType::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::BpfProgType where T: ?core::marker::Sized
+pub fn bpfman::types::BpfProgType::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::BpfProgType where T: ?core::marker::Sized
+pub fn bpfman::types::BpfProgType::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::BpfProgType where T: core::clone::Clone
+pub unsafe fn bpfman::types::BpfProgType::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::types::BpfProgType
+pub fn bpfman::types::BpfProgType::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::BpfProgType
+pub type bpfman::types::BpfProgType::Init = T
+pub const bpfman::types::BpfProgType::ALIGN: usize
+pub unsafe fn bpfman::types::BpfProgType::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::BpfProgType::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::BpfProgType::drop(ptr: usize)
+pub unsafe fn bpfman::types::BpfProgType::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::BpfProgType where T: core::clone::Clone
+pub fn bpfman::types::BpfProgType::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::types::BpfProgType
+impl<T> jwt::FromBase64 for bpfman::types::BpfProgType where T: for<'de> serde::de::Deserialize<'de>
+pub fn bpfman::types::BpfProgType::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
+impl<T> jwt::ToBase64 for bpfman::types::BpfProgType where T: serde::ser::Serialize
+pub fn bpfman::types::BpfProgType::to_base64(&self) -> core::result::Result<alloc::borrow::Cow<'_, str>, jwt::error::Error>
+impl<T> serde::de::DeserializeOwned for bpfman::types::BpfProgType where T: for<'de> serde::de::Deserialize<'de>
+impl<T> tracing::instrument::Instrument for bpfman::types::BpfProgType
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::BpfProgType
+impl<T> typenum::type_operators::Same for bpfman::types::BpfProgType
+pub type bpfman::types::BpfProgType::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::types::BpfProgType where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::BpfProgType where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::BpfProgType::vzip(self) -> V
 pub enum bpfman::types::Direction
 pub bpfman::types::Direction::Egress = 2
 pub bpfman::types::Direction::Ingress = 1
@@ -380,6 +968,132 @@ pub type bpfman::types::ImagePullPolicy::Output = T
 impl<T> yoke::erased::ErasedDestructor for bpfman::types::ImagePullPolicy where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::ImagePullPolicy where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::ImagePullPolicy::vzip(self) -> V
+pub enum bpfman::types::Link
+pub bpfman::types::Link::Fentry(bpfman::types::FentryLink)
+pub bpfman::types::Link::Fexit(bpfman::types::FexitLink)
+pub bpfman::types::Link::Kprobe(bpfman::types::KprobeLink)
+pub bpfman::types::Link::Tc(bpfman::types::TcLink)
+pub bpfman::types::Link::Tcx(bpfman::types::TcxLink)
+pub bpfman::types::Link::Tracepoint(bpfman::types::TracepointLink)
+pub bpfman::types::Link::Uprobe(bpfman::types::UprobeLink)
+pub bpfman::types::Link::Xdp(bpfman::types::XdpLink)
+impl bpfman::types::Link
+pub fn bpfman::types::Link::get_current_position(&self) -> core::result::Result<core::option::Option<usize>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::Link::get_id(&self) -> core::result::Result<u32, bpfman::errors::BpfmanError>
+pub fn bpfman::types::Link::get_program(&self, root_db: &sled::db::Db) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
+pub fn bpfman::types::Link::get_program_id(&self) -> core::result::Result<u32, bpfman::errors::BpfmanError>
+pub fn bpfman::types::Link::get_program_name(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
+pub fn bpfman::types::Link::set_current_position(&mut self, pos: usize) -> core::result::Result<(), bpfman::errors::BpfmanError>
+impl core::clone::Clone for bpfman::types::Link
+pub fn bpfman::types::Link::clone(&self) -> bpfman::types::Link
+impl core::fmt::Debug for bpfman::types::Link
+pub fn bpfman::types::Link::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::Link
+impl core::marker::Send for bpfman::types::Link
+impl core::marker::Sync for bpfman::types::Link
+impl core::marker::Unpin for bpfman::types::Link
+impl !core::panic::unwind_safe::RefUnwindSafe for bpfman::types::Link
+impl !core::panic::unwind_safe::UnwindSafe for bpfman::types::Link
+impl<T, U> core::convert::Into<U> for bpfman::types::Link where U: core::convert::From<T>
+pub fn bpfman::types::Link::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::Link where U: core::convert::Into<T>
+pub type bpfman::types::Link::Error = core::convert::Infallible
+pub fn bpfman::types::Link::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::Link where U: core::convert::TryFrom<T>
+pub type bpfman::types::Link::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::Link::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::Link where T: core::clone::Clone
+pub type bpfman::types::Link::Owned = T
+pub fn bpfman::types::Link::clone_into(&self, target: &mut T)
+pub fn bpfman::types::Link::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::types::Link where T: 'static + ?core::marker::Sized
+pub fn bpfman::types::Link::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::Link where T: ?core::marker::Sized
+pub fn bpfman::types::Link::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::Link where T: ?core::marker::Sized
+pub fn bpfman::types::Link::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::Link where T: core::clone::Clone
+pub unsafe fn bpfman::types::Link::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::types::Link
+pub fn bpfman::types::Link::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::Link
+pub type bpfman::types::Link::Init = T
+pub const bpfman::types::Link::ALIGN: usize
+pub unsafe fn bpfman::types::Link::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::Link::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::Link::drop(ptr: usize)
+pub unsafe fn bpfman::types::Link::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::Link where T: core::clone::Clone
+pub fn bpfman::types::Link::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::types::Link
+impl<T> tracing::instrument::Instrument for bpfman::types::Link
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::Link
+impl<T> typenum::type_operators::Same for bpfman::types::Link
+pub type bpfman::types::Link::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::types::Link where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::Link where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::Link::vzip(self) -> V
+#[repr(u32)] pub enum bpfman::types::LinkType
+pub bpfman::types::LinkType::Fentry = 6
+pub bpfman::types::LinkType::Fexit = 7
+pub bpfman::types::LinkType::Kprobe = 4
+pub bpfman::types::LinkType::Tc = 1
+pub bpfman::types::LinkType::Tcx = 2
+pub bpfman::types::LinkType::Tracepoint = 3
+pub bpfman::types::LinkType::Uprobe = 5
+pub bpfman::types::LinkType::Xdp = 0
+impl core::clone::Clone for bpfman::types::LinkType
+pub fn bpfman::types::LinkType::clone(&self) -> bpfman::types::LinkType
+impl core::convert::TryFrom<u32> for bpfman::types::LinkType
+pub type bpfman::types::LinkType::Error = bpfman::errors::BpfmanError
+pub fn bpfman::types::LinkType::try_from(value: u32) -> core::result::Result<Self, Self::Error>
+impl core::fmt::Debug for bpfman::types::LinkType
+pub fn bpfman::types::LinkType::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::LinkType
+impl core::marker::Send for bpfman::types::LinkType
+impl core::marker::Sync for bpfman::types::LinkType
+impl core::marker::Unpin for bpfman::types::LinkType
+impl core::panic::unwind_safe::RefUnwindSafe for bpfman::types::LinkType
+impl core::panic::unwind_safe::UnwindSafe for bpfman::types::LinkType
+impl<T, U> core::convert::Into<U> for bpfman::types::LinkType where U: core::convert::From<T>
+pub fn bpfman::types::LinkType::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::LinkType where U: core::convert::Into<T>
+pub type bpfman::types::LinkType::Error = core::convert::Infallible
+pub fn bpfman::types::LinkType::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::LinkType where U: core::convert::TryFrom<T>
+pub type bpfman::types::LinkType::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::LinkType::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::LinkType where T: core::clone::Clone
+pub type bpfman::types::LinkType::Owned = T
+pub fn bpfman::types::LinkType::clone_into(&self, target: &mut T)
+pub fn bpfman::types::LinkType::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::types::LinkType where T: 'static + ?core::marker::Sized
+pub fn bpfman::types::LinkType::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::LinkType where T: ?core::marker::Sized
+pub fn bpfman::types::LinkType::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::LinkType where T: ?core::marker::Sized
+pub fn bpfman::types::LinkType::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::LinkType where T: core::clone::Clone
+pub unsafe fn bpfman::types::LinkType::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::types::LinkType
+pub fn bpfman::types::LinkType::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::LinkType
+pub type bpfman::types::LinkType::Init = T
+pub const bpfman::types::LinkType::ALIGN: usize
+pub unsafe fn bpfman::types::LinkType::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::LinkType::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::LinkType::drop(ptr: usize)
+pub unsafe fn bpfman::types::LinkType::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::LinkType where T: core::clone::Clone
+pub fn bpfman::types::LinkType::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::types::LinkType
+impl<T> tracing::instrument::Instrument for bpfman::types::LinkType
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::LinkType
+impl<T> typenum::type_operators::Same for bpfman::types::LinkType
+pub type bpfman::types::LinkType::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::types::LinkType where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::LinkType where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::LinkType::vzip(self) -> V
 pub enum bpfman::types::Location
 pub bpfman::types::Location::File(alloc::string::String)
 pub bpfman::types::Location::Image(bpfman::types::BytecodeImage)
@@ -623,8 +1337,10 @@ pub bpfman::types::Program::Unsupported(bpfman::types::ProgramData)
 pub bpfman::types::Program::Uprobe(bpfman::types::UprobeProgram)
 pub bpfman::types::Program::Xdp(bpfman::types::XdpProgram)
 impl bpfman::types::Program
+pub fn bpfman::types::Program::add_link(&mut self) -> core::result::Result<bpfman::types::Link, bpfman::errors::BpfmanError>
 pub fn bpfman::types::Program::get_data(&self) -> &bpfman::types::ProgramData
-pub fn bpfman::types::Program::kind(&self) -> bpfman::types::ProgramType
+pub fn bpfman::types::Program::kind(&self) -> bpfman::types::BpfProgType
+pub fn bpfman::types::Program::remove_link(&self, root_db: &sled::db::Db, link: bpfman::types::Link) -> core::result::Result<(), bpfman::errors::BpfmanError>
 impl core::clone::Clone for bpfman::types::Program
 pub fn bpfman::types::Program::clone(&self) -> bpfman::types::Program
 impl core::fmt::Debug for bpfman::types::Program
@@ -674,128 +1390,6 @@ pub type bpfman::types::Program::Output = T
 impl<T> yoke::erased::ErasedDestructor for bpfman::types::Program where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::Program where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::Program::vzip(self) -> V
-pub enum bpfman::types::ProgramType
-pub bpfman::types::ProgramType::CgroupDevice
-pub bpfman::types::ProgramType::CgroupSkb
-pub bpfman::types::ProgramType::CgroupSock
-pub bpfman::types::ProgramType::CgroupSockAddr
-pub bpfman::types::ProgramType::CgroupSockopt
-pub bpfman::types::ProgramType::CgroupSysctl
-pub bpfman::types::ProgramType::Ext
-pub bpfman::types::ProgramType::FlowDissector
-pub bpfman::types::ProgramType::LircMode2
-pub bpfman::types::ProgramType::Lsm
-pub bpfman::types::ProgramType::LwtIn
-pub bpfman::types::ProgramType::LwtOut
-pub bpfman::types::ProgramType::LwtSeg6Local
-pub bpfman::types::ProgramType::LwtXmit
-pub bpfman::types::ProgramType::Netfilter
-pub bpfman::types::ProgramType::PerfEvent
-pub bpfman::types::ProgramType::Probe
-pub bpfman::types::ProgramType::RawTracepoint
-pub bpfman::types::ProgramType::RawTracepointWritable
-pub bpfman::types::ProgramType::SchedAct
-pub bpfman::types::ProgramType::SkLookup
-pub bpfman::types::ProgramType::SkMsg
-pub bpfman::types::ProgramType::SkReuseport
-pub bpfman::types::ProgramType::SkSkb
-pub bpfman::types::ProgramType::SockOps
-pub bpfman::types::ProgramType::SocketFilter
-pub bpfman::types::ProgramType::StructOps
-pub bpfman::types::ProgramType::Syscall
-pub bpfman::types::ProgramType::Tc
-pub bpfman::types::ProgramType::Tracepoint
-pub bpfman::types::ProgramType::Tracing
-pub bpfman::types::ProgramType::Unspec
-pub bpfman::types::ProgramType::Xdp
-impl clap_builder::derive::ValueEnum for bpfman::types::ProgramType
-pub fn bpfman::types::ProgramType::to_possible_value<'a>(&self) -> core::option::Option<clap_builder::builder::possible_value::PossibleValue>
-pub fn bpfman::types::ProgramType::value_variants<'a>() -> &'a [Self]
-impl core::clone::Clone for bpfman::types::ProgramType
-pub fn bpfman::types::ProgramType::clone(&self) -> bpfman::types::ProgramType
-impl core::cmp::Eq for bpfman::types::ProgramType
-impl core::cmp::PartialEq for bpfman::types::ProgramType
-pub fn bpfman::types::ProgramType::eq(&self, other: &bpfman::types::ProgramType) -> bool
-impl core::convert::From<aya::programs::info::ProgramType> for bpfman::types::ProgramType
-pub fn bpfman::types::ProgramType::from(val: aya::programs::info::ProgramType) -> Self
-impl core::convert::From<aya_obj::obj::ProgramSection> for bpfman::types::ProgramType
-pub fn bpfman::types::ProgramType::from(value: aya_obj::obj::ProgramSection) -> Self
-impl core::convert::From<bpfman::types::ProgramType> for u32
-pub fn u32::from(val: bpfman::types::ProgramType) -> Self
-impl core::convert::TryFrom<alloc::string::String> for bpfman::types::ProgramType
-pub type bpfman::types::ProgramType::Error = bpfman::errors::ParseError
-pub fn bpfman::types::ProgramType::try_from(value: alloc::string::String) -> core::result::Result<Self, Self::Error>
-impl core::convert::TryFrom<u32> for bpfman::types::ProgramType
-pub type bpfman::types::ProgramType::Error = bpfman::errors::ParseError
-pub fn bpfman::types::ProgramType::try_from(value: u32) -> core::result::Result<Self, Self::Error>
-impl core::fmt::Debug for bpfman::types::ProgramType
-pub fn bpfman::types::ProgramType::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::fmt::Display for bpfman::types::ProgramType
-pub fn bpfman::types::ProgramType::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
-impl core::marker::Copy for bpfman::types::ProgramType
-impl core::marker::StructuralPartialEq for bpfman::types::ProgramType
-impl serde::ser::Serialize for bpfman::types::ProgramType
-pub fn bpfman::types::ProgramType::serialize<__S>(&self, __serializer: __S) -> core::result::Result<<__S as serde::ser::Serializer>::Ok, <__S as serde::ser::Serializer>::Error> where __S: serde::ser::Serializer
-impl<'de> serde::de::Deserialize<'de> for bpfman::types::ProgramType
-pub fn bpfman::types::ProgramType::deserialize<__D>(__deserializer: __D) -> core::result::Result<Self, <__D as serde::de::Deserializer>::Error> where __D: serde::de::Deserializer<'de>
-impl core::marker::Freeze for bpfman::types::ProgramType
-impl core::marker::Send for bpfman::types::ProgramType
-impl core::marker::Sync for bpfman::types::ProgramType
-impl core::marker::Unpin for bpfman::types::ProgramType
-impl core::panic::unwind_safe::RefUnwindSafe for bpfman::types::ProgramType
-impl core::panic::unwind_safe::UnwindSafe for bpfman::types::ProgramType
-impl<C> jwt::token::signed::SignWithKey<alloc::string::String> for bpfman::types::ProgramType where C: jwt::ToBase64
-pub fn bpfman::types::ProgramType::sign_with_key(self, key: &impl jwt::algorithm::SigningAlgorithm) -> core::result::Result<alloc::string::String, jwt::error::Error>
-impl<Q, K> equivalent::Equivalent<K> for bpfman::types::ProgramType where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
-pub fn bpfman::types::ProgramType::equivalent(&self, key: &K) -> bool
-impl<Q, K> hashbrown::Equivalent<K> for bpfman::types::ProgramType where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
-pub fn bpfman::types::ProgramType::equivalent(&self, key: &K) -> bool
-impl<T, U> core::convert::Into<U> for bpfman::types::ProgramType where U: core::convert::From<T>
-pub fn bpfman::types::ProgramType::into(self) -> U
-impl<T, U> core::convert::TryFrom<U> for bpfman::types::ProgramType where U: core::convert::Into<T>
-pub type bpfman::types::ProgramType::Error = core::convert::Infallible
-pub fn bpfman::types::ProgramType::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
-impl<T, U> core::convert::TryInto<U> for bpfman::types::ProgramType where U: core::convert::TryFrom<T>
-pub type bpfman::types::ProgramType::Error = <U as core::convert::TryFrom<T>>::Error
-pub fn bpfman::types::ProgramType::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
-impl<T> alloc::borrow::ToOwned for bpfman::types::ProgramType where T: core::clone::Clone
-pub type bpfman::types::ProgramType::Owned = T
-pub fn bpfman::types::ProgramType::clone_into(&self, target: &mut T)
-pub fn bpfman::types::ProgramType::to_owned(&self) -> T
-impl<T> alloc::string::ToString for bpfman::types::ProgramType where T: core::fmt::Display + ?core::marker::Sized
-pub fn bpfman::types::ProgramType::to_string(&self) -> alloc::string::String
-impl<T> core::any::Any for bpfman::types::ProgramType where T: 'static + ?core::marker::Sized
-pub fn bpfman::types::ProgramType::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::ProgramType where T: ?core::marker::Sized
-pub fn bpfman::types::ProgramType::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::ProgramType where T: ?core::marker::Sized
-pub fn bpfman::types::ProgramType::borrow_mut(&mut self) -> &mut T
-impl<T> core::clone::CloneToUninit for bpfman::types::ProgramType where T: core::clone::Clone
-pub unsafe fn bpfman::types::ProgramType::clone_to_uninit(&self, dst: *mut u8)
-impl<T> core::convert::From<T> for bpfman::types::ProgramType
-pub fn bpfman::types::ProgramType::from(t: T) -> T
-impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::ProgramType
-pub type bpfman::types::ProgramType::Init = T
-pub const bpfman::types::ProgramType::ALIGN: usize
-pub unsafe fn bpfman::types::ProgramType::deref<'a>(ptr: usize) -> &'a T
-pub unsafe fn bpfman::types::ProgramType::deref_mut<'a>(ptr: usize) -> &'a mut T
-pub unsafe fn bpfman::types::ProgramType::drop(ptr: usize)
-pub unsafe fn bpfman::types::ProgramType::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
-impl<T> dyn_clone::DynClone for bpfman::types::ProgramType where T: core::clone::Clone
-pub fn bpfman::types::ProgramType::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
-impl<T> icu_provider::any::MaybeSendSync for bpfman::types::ProgramType
-impl<T> jwt::FromBase64 for bpfman::types::ProgramType where T: for<'de> serde::de::Deserialize<'de>
-pub fn bpfman::types::ProgramType::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
-impl<T> jwt::ToBase64 for bpfman::types::ProgramType where T: serde::ser::Serialize
-pub fn bpfman::types::ProgramType::to_base64(&self) -> core::result::Result<alloc::borrow::Cow<'_, str>, jwt::error::Error>
-impl<T> serde::de::DeserializeOwned for bpfman::types::ProgramType where T: for<'de> serde::de::Deserialize<'de>
-impl<T> tracing::instrument::Instrument for bpfman::types::ProgramType
-impl<T> tracing::instrument::WithSubscriber for bpfman::types::ProgramType
-impl<T> typenum::type_operators::Same for bpfman::types::ProgramType
-pub type bpfman::types::ProgramType::Output = T
-impl<T> yoke::erased::ErasedDestructor for bpfman::types::ProgramType where T: 'static
-impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::ProgramType where V: ppv_lite86::types::MultiLane<T>
-pub fn bpfman::types::ProgramType::vzip(self) -> V
 pub enum bpfman::types::TcProceedOnEntry
 pub bpfman::types::TcProceedOnEntry::DispatcherReturn = 30
 pub bpfman::types::TcProceedOnEntry::Ok = 0
@@ -1030,6 +1624,61 @@ pub type bpfman::types::BytecodeImage::Output = T
 impl<T> yoke::erased::ErasedDestructor for bpfman::types::BytecodeImage where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::BytecodeImage where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::BytecodeImage::vzip(self) -> V
+pub struct bpfman::types::FentryLink(_)
+impl bpfman::types::FentryLink
+pub fn bpfman::types::FentryLink::attach(&mut self, info: bpfman::types::AttachInfo) -> core::result::Result<(), bpfman::errors::BpfmanError>
+impl bpfman::types::FentryLink
+pub fn bpfman::types::FentryLink::get_metadata(&self) -> core::result::Result<std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::FentryLink::set_metadata(&mut self, metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>) -> core::result::Result<(), bpfman::errors::BpfmanError>
+impl core::clone::Clone for bpfman::types::FentryLink
+pub fn bpfman::types::FentryLink::clone(&self) -> bpfman::types::FentryLink
+impl core::fmt::Debug for bpfman::types::FentryLink
+pub fn bpfman::types::FentryLink::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::FentryLink
+impl core::marker::Send for bpfman::types::FentryLink
+impl core::marker::Sync for bpfman::types::FentryLink
+impl core::marker::Unpin for bpfman::types::FentryLink
+impl !core::panic::unwind_safe::RefUnwindSafe for bpfman::types::FentryLink
+impl !core::panic::unwind_safe::UnwindSafe for bpfman::types::FentryLink
+impl<T, U> core::convert::Into<U> for bpfman::types::FentryLink where U: core::convert::From<T>
+pub fn bpfman::types::FentryLink::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::FentryLink where U: core::convert::Into<T>
+pub type bpfman::types::FentryLink::Error = core::convert::Infallible
+pub fn bpfman::types::FentryLink::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::FentryLink where U: core::convert::TryFrom<T>
+pub type bpfman::types::FentryLink::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::FentryLink::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::FentryLink where T: core::clone::Clone
+pub type bpfman::types::FentryLink::Owned = T
+pub fn bpfman::types::FentryLink::clone_into(&self, target: &mut T)
+pub fn bpfman::types::FentryLink::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::types::FentryLink where T: 'static + ?core::marker::Sized
+pub fn bpfman::types::FentryLink::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::FentryLink where T: ?core::marker::Sized
+pub fn bpfman::types::FentryLink::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::FentryLink where T: ?core::marker::Sized
+pub fn bpfman::types::FentryLink::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::FentryLink where T: core::clone::Clone
+pub unsafe fn bpfman::types::FentryLink::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::types::FentryLink
+pub fn bpfman::types::FentryLink::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::FentryLink
+pub type bpfman::types::FentryLink::Init = T
+pub const bpfman::types::FentryLink::ALIGN: usize
+pub unsafe fn bpfman::types::FentryLink::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::FentryLink::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::FentryLink::drop(ptr: usize)
+pub unsafe fn bpfman::types::FentryLink::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::FentryLink where T: core::clone::Clone
+pub fn bpfman::types::FentryLink::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::types::FentryLink
+impl<T> tracing::instrument::Instrument for bpfman::types::FentryLink
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::FentryLink
+impl<T> typenum::type_operators::Same for bpfman::types::FentryLink
+pub type bpfman::types::FentryLink::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::types::FentryLink where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::FentryLink where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::FentryLink::vzip(self) -> V
 pub struct bpfman::types::FentryProgram
 impl bpfman::types::FentryProgram
 pub fn bpfman::types::FentryProgram::get_fn_name(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
@@ -1083,6 +1732,61 @@ pub type bpfman::types::FentryProgram::Output = T
 impl<T> yoke::erased::ErasedDestructor for bpfman::types::FentryProgram where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::FentryProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::FentryProgram::vzip(self) -> V
+pub struct bpfman::types::FexitLink(_)
+impl bpfman::types::FexitLink
+pub fn bpfman::types::FexitLink::attach(&mut self, info: bpfman::types::AttachInfo) -> core::result::Result<(), bpfman::errors::BpfmanError>
+impl bpfman::types::FexitLink
+pub fn bpfman::types::FexitLink::get_metadata(&self) -> core::result::Result<std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::FexitLink::set_metadata(&mut self, metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>) -> core::result::Result<(), bpfman::errors::BpfmanError>
+impl core::clone::Clone for bpfman::types::FexitLink
+pub fn bpfman::types::FexitLink::clone(&self) -> bpfman::types::FexitLink
+impl core::fmt::Debug for bpfman::types::FexitLink
+pub fn bpfman::types::FexitLink::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::FexitLink
+impl core::marker::Send for bpfman::types::FexitLink
+impl core::marker::Sync for bpfman::types::FexitLink
+impl core::marker::Unpin for bpfman::types::FexitLink
+impl !core::panic::unwind_safe::RefUnwindSafe for bpfman::types::FexitLink
+impl !core::panic::unwind_safe::UnwindSafe for bpfman::types::FexitLink
+impl<T, U> core::convert::Into<U> for bpfman::types::FexitLink where U: core::convert::From<T>
+pub fn bpfman::types::FexitLink::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::FexitLink where U: core::convert::Into<T>
+pub type bpfman::types::FexitLink::Error = core::convert::Infallible
+pub fn bpfman::types::FexitLink::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::FexitLink where U: core::convert::TryFrom<T>
+pub type bpfman::types::FexitLink::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::FexitLink::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::FexitLink where T: core::clone::Clone
+pub type bpfman::types::FexitLink::Owned = T
+pub fn bpfman::types::FexitLink::clone_into(&self, target: &mut T)
+pub fn bpfman::types::FexitLink::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::types::FexitLink where T: 'static + ?core::marker::Sized
+pub fn bpfman::types::FexitLink::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::FexitLink where T: ?core::marker::Sized
+pub fn bpfman::types::FexitLink::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::FexitLink where T: ?core::marker::Sized
+pub fn bpfman::types::FexitLink::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::FexitLink where T: core::clone::Clone
+pub unsafe fn bpfman::types::FexitLink::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::types::FexitLink
+pub fn bpfman::types::FexitLink::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::FexitLink
+pub type bpfman::types::FexitLink::Init = T
+pub const bpfman::types::FexitLink::ALIGN: usize
+pub unsafe fn bpfman::types::FexitLink::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::FexitLink::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::FexitLink::drop(ptr: usize)
+pub unsafe fn bpfman::types::FexitLink::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::FexitLink where T: core::clone::Clone
+pub fn bpfman::types::FexitLink::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::types::FexitLink
+impl<T> tracing::instrument::Instrument for bpfman::types::FexitLink
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::FexitLink
+impl<T> typenum::type_operators::Same for bpfman::types::FexitLink
+pub type bpfman::types::FexitLink::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::types::FexitLink where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::FexitLink where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::FexitLink::vzip(self) -> V
 pub struct bpfman::types::FexitProgram
 impl bpfman::types::FexitProgram
 pub fn bpfman::types::FexitProgram::get_fn_name(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
@@ -1136,13 +1840,69 @@ pub type bpfman::types::FexitProgram::Output = T
 impl<T> yoke::erased::ErasedDestructor for bpfman::types::FexitProgram where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::FexitProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::FexitProgram::vzip(self) -> V
+pub struct bpfman::types::KprobeLink(_)
+impl bpfman::types::KprobeLink
+pub fn bpfman::types::KprobeLink::attach(&mut self, info: bpfman::types::AttachInfo) -> core::result::Result<(), bpfman::errors::BpfmanError>
+pub fn bpfman::types::KprobeLink::get_container_pid(&self) -> core::result::Result<core::option::Option<i32>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::KprobeLink::get_fn_name(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
+pub fn bpfman::types::KprobeLink::get_offset(&self) -> core::result::Result<u64, bpfman::errors::BpfmanError>
+pub fn bpfman::types::KprobeLink::get_retprobe(&self) -> core::result::Result<bool, bpfman::errors::BpfmanError>
+impl bpfman::types::KprobeLink
+pub fn bpfman::types::KprobeLink::get_metadata(&self) -> core::result::Result<std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::KprobeLink::set_metadata(&mut self, metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>) -> core::result::Result<(), bpfman::errors::BpfmanError>
+impl core::clone::Clone for bpfman::types::KprobeLink
+pub fn bpfman::types::KprobeLink::clone(&self) -> bpfman::types::KprobeLink
+impl core::fmt::Debug for bpfman::types::KprobeLink
+pub fn bpfman::types::KprobeLink::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::KprobeLink
+impl core::marker::Send for bpfman::types::KprobeLink
+impl core::marker::Sync for bpfman::types::KprobeLink
+impl core::marker::Unpin for bpfman::types::KprobeLink
+impl !core::panic::unwind_safe::RefUnwindSafe for bpfman::types::KprobeLink
+impl !core::panic::unwind_safe::UnwindSafe for bpfman::types::KprobeLink
+impl<T, U> core::convert::Into<U> for bpfman::types::KprobeLink where U: core::convert::From<T>
+pub fn bpfman::types::KprobeLink::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::KprobeLink where U: core::convert::Into<T>
+pub type bpfman::types::KprobeLink::Error = core::convert::Infallible
+pub fn bpfman::types::KprobeLink::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::KprobeLink where U: core::convert::TryFrom<T>
+pub type bpfman::types::KprobeLink::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::KprobeLink::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::KprobeLink where T: core::clone::Clone
+pub type bpfman::types::KprobeLink::Owned = T
+pub fn bpfman::types::KprobeLink::clone_into(&self, target: &mut T)
+pub fn bpfman::types::KprobeLink::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::types::KprobeLink where T: 'static + ?core::marker::Sized
+pub fn bpfman::types::KprobeLink::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::KprobeLink where T: ?core::marker::Sized
+pub fn bpfman::types::KprobeLink::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::KprobeLink where T: ?core::marker::Sized
+pub fn bpfman::types::KprobeLink::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::KprobeLink where T: core::clone::Clone
+pub unsafe fn bpfman::types::KprobeLink::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::types::KprobeLink
+pub fn bpfman::types::KprobeLink::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::KprobeLink
+pub type bpfman::types::KprobeLink::Init = T
+pub const bpfman::types::KprobeLink::ALIGN: usize
+pub unsafe fn bpfman::types::KprobeLink::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::KprobeLink::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::KprobeLink::drop(ptr: usize)
+pub unsafe fn bpfman::types::KprobeLink::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::KprobeLink where T: core::clone::Clone
+pub fn bpfman::types::KprobeLink::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::types::KprobeLink
+impl<T> tracing::instrument::Instrument for bpfman::types::KprobeLink
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::KprobeLink
+impl<T> typenum::type_operators::Same for bpfman::types::KprobeLink
+pub type bpfman::types::KprobeLink::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::types::KprobeLink where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::KprobeLink where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::KprobeLink::vzip(self) -> V
 pub struct bpfman::types::KprobeProgram
 impl bpfman::types::KprobeProgram
-pub fn bpfman::types::KprobeProgram::get_container_pid(&self) -> core::result::Result<core::option::Option<i32>, bpfman::errors::BpfmanError>
-pub fn bpfman::types::KprobeProgram::get_fn_name(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
-pub fn bpfman::types::KprobeProgram::get_offset(&self) -> core::result::Result<u64, bpfman::errors::BpfmanError>
 pub fn bpfman::types::KprobeProgram::get_retprobe(&self) -> core::result::Result<bool, bpfman::errors::BpfmanError>
-pub fn bpfman::types::KprobeProgram::new(data: bpfman::types::ProgramData, fn_name: alloc::string::String, offset: u64, retprobe: bool, container_pid: core::option::Option<i32>) -> core::result::Result<Self, bpfman::errors::BpfmanError>
+pub fn bpfman::types::KprobeProgram::new(data: bpfman::types::ProgramData, retprobe: bool) -> core::result::Result<Self, bpfman::errors::BpfmanError>
 impl core::clone::Clone for bpfman::types::KprobeProgram
 pub fn bpfman::types::KprobeProgram::clone(&self) -> bpfman::types::KprobeProgram
 impl core::fmt::Debug for bpfman::types::KprobeProgram
@@ -1192,6 +1952,63 @@ pub type bpfman::types::KprobeProgram::Output = T
 impl<T> yoke::erased::ErasedDestructor for bpfman::types::KprobeProgram where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::KprobeProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::KprobeProgram::vzip(self) -> V
+pub struct bpfman::types::LinkData(_)
+impl bpfman::types::LinkData
+pub fn bpfman::types::LinkData::get_id(&self) -> core::result::Result<u32, bpfman::errors::BpfmanError>
+pub fn bpfman::types::LinkData::get_link_type(&self) -> core::result::Result<core::option::Option<bpfman::types::LinkType>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::LinkData::get_metadata(&self) -> core::result::Result<std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::LinkData::get_program_id(&self) -> core::result::Result<u32, bpfman::errors::BpfmanError>
+pub fn bpfman::types::LinkData::get_program_name(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
+pub fn bpfman::types::LinkData::set_program_name(&mut self, prog_name: alloc::string::String) -> core::result::Result<(), bpfman::errors::BpfmanError>
+impl core::clone::Clone for bpfman::types::LinkData
+pub fn bpfman::types::LinkData::clone(&self) -> bpfman::types::LinkData
+impl core::fmt::Debug for bpfman::types::LinkData
+pub fn bpfman::types::LinkData::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::LinkData
+impl core::marker::Send for bpfman::types::LinkData
+impl core::marker::Sync for bpfman::types::LinkData
+impl core::marker::Unpin for bpfman::types::LinkData
+impl !core::panic::unwind_safe::RefUnwindSafe for bpfman::types::LinkData
+impl !core::panic::unwind_safe::UnwindSafe for bpfman::types::LinkData
+impl<T, U> core::convert::Into<U> for bpfman::types::LinkData where U: core::convert::From<T>
+pub fn bpfman::types::LinkData::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::LinkData where U: core::convert::Into<T>
+pub type bpfman::types::LinkData::Error = core::convert::Infallible
+pub fn bpfman::types::LinkData::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::LinkData where U: core::convert::TryFrom<T>
+pub type bpfman::types::LinkData::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::LinkData::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::LinkData where T: core::clone::Clone
+pub type bpfman::types::LinkData::Owned = T
+pub fn bpfman::types::LinkData::clone_into(&self, target: &mut T)
+pub fn bpfman::types::LinkData::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::types::LinkData where T: 'static + ?core::marker::Sized
+pub fn bpfman::types::LinkData::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::LinkData where T: ?core::marker::Sized
+pub fn bpfman::types::LinkData::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::LinkData where T: ?core::marker::Sized
+pub fn bpfman::types::LinkData::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::LinkData where T: core::clone::Clone
+pub unsafe fn bpfman::types::LinkData::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::types::LinkData
+pub fn bpfman::types::LinkData::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::LinkData
+pub type bpfman::types::LinkData::Init = T
+pub const bpfman::types::LinkData::ALIGN: usize
+pub unsafe fn bpfman::types::LinkData::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::LinkData::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::LinkData::drop(ptr: usize)
+pub unsafe fn bpfman::types::LinkData::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::LinkData where T: core::clone::Clone
+pub fn bpfman::types::LinkData::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::types::LinkData
+impl<T> tracing::instrument::Instrument for bpfman::types::LinkData
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::LinkData
+impl<T> typenum::type_operators::Same for bpfman::types::LinkData
+pub type bpfman::types::LinkData::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::types::LinkData where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::LinkData where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::LinkData::vzip(self) -> V
 pub struct bpfman::types::ListFilter
 impl bpfman::types::ListFilter
 pub fn bpfman::types::ListFilter::new(program_type: core::option::Option<u32>, metadata_selector: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, bpfman_programs_only: bool) -> Self
@@ -1246,8 +2063,9 @@ pub type bpfman::types::ListFilter::Output = T
 impl<T> yoke::erased::ErasedDestructor for bpfman::types::ListFilter where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::ListFilter where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::ListFilter::vzip(self) -> V
-pub struct bpfman::types::ProgramData
+pub struct bpfman::types::ProgramData(pub sled::tree::Tree)
 impl bpfman::types::ProgramData
+pub fn bpfman::types::ProgramData::add_link(&self, link: bpfman::types::Link) -> core::result::Result<(), bpfman::errors::BpfmanError>
 pub fn bpfman::types::ProgramData::get_global_data(&self) -> core::result::Result<std::collections::hash::map::HashMap<alloc::string::String, alloc::vec::Vec<u8>>, bpfman::errors::BpfmanError>
 pub fn bpfman::types::ProgramData::get_id(&self) -> core::result::Result<u32, bpfman::errors::BpfmanError>
 pub fn bpfman::types::ProgramData::get_kernel_btf_id(&self) -> core::result::Result<u32, bpfman::errors::BpfmanError>
@@ -1262,7 +2080,8 @@ pub fn bpfman::types::ProgramData::get_kernel_name(&self) -> core::result::Resul
 pub fn bpfman::types::ProgramData::get_kernel_program_type(&self) -> core::result::Result<u32, bpfman::errors::BpfmanError>
 pub fn bpfman::types::ProgramData::get_kernel_tag(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
 pub fn bpfman::types::ProgramData::get_kernel_verified_insns(&self) -> core::result::Result<u32, bpfman::errors::BpfmanError>
-pub fn bpfman::types::ProgramData::get_kind(&self) -> core::result::Result<core::option::Option<bpfman::types::ProgramType>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::ProgramData::get_kind(&self) -> core::result::Result<core::option::Option<bpfman::types::BpfProgType>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::ProgramData::get_link_ids(&self) -> core::result::Result<alloc::vec::Vec<u32>, bpfman::errors::BpfmanError>
 pub fn bpfman::types::ProgramData::get_location(&self) -> core::result::Result<bpfman::types::Location, bpfman::errors::BpfmanError>
 pub fn bpfman::types::ProgramData::get_map_owner_id(&self) -> core::result::Result<core::option::Option<u32>, bpfman::errors::BpfmanError>
 pub fn bpfman::types::ProgramData::get_map_pin_path(&self) -> core::result::Result<core::option::Option<std::path::PathBuf>, bpfman::errors::BpfmanError>
@@ -1270,6 +2089,7 @@ pub fn bpfman::types::ProgramData::get_maps_used_by(&self) -> core::result::Resu
 pub fn bpfman::types::ProgramData::get_metadata(&self) -> core::result::Result<std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, bpfman::errors::BpfmanError>
 pub fn bpfman::types::ProgramData::get_name(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
 pub fn bpfman::types::ProgramData::new(location: bpfman::types::Location, name: alloc::string::String, metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, global_data: std::collections::hash::map::HashMap<alloc::string::String, alloc::vec::Vec<u8>>, map_owner_id: core::option::Option<u32>) -> core::result::Result<Self, bpfman::errors::BpfmanError>
+pub fn bpfman::types::ProgramData::remove_link(&self, root_db: &sled::db::Db, link: bpfman::types::Link) -> core::result::Result<(), bpfman::errors::BpfmanError>
 impl core::clone::Clone for bpfman::types::ProgramData
 pub fn bpfman::types::ProgramData::clone(&self) -> bpfman::types::ProgramData
 impl core::fmt::Debug for bpfman::types::ProgramData
@@ -1319,6 +2139,70 @@ pub type bpfman::types::ProgramData::Output = T
 impl<T> yoke::erased::ErasedDestructor for bpfman::types::ProgramData where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::ProgramData where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::ProgramData::vzip(self) -> V
+pub struct bpfman::types::TcLink(_)
+impl bpfman::types::TcLink
+pub fn bpfman::types::TcLink::attach(&mut self, info: bpfman::types::AttachInfo) -> core::result::Result<(), bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcLink::get_attached(&self) -> core::result::Result<bool, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcLink::get_current_position(&self) -> core::result::Result<core::option::Option<usize>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcLink::get_direction(&self) -> core::result::Result<bpfman::types::Direction, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcLink::get_iface(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcLink::get_ifindex(&self) -> core::result::Result<core::option::Option<u32>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcLink::get_netns(&self) -> core::result::Result<core::option::Option<std::path::PathBuf>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcLink::get_nsid(&self) -> core::result::Result<u64, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcLink::get_priority(&self) -> core::result::Result<i32, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcLink::get_proceed_on(&self) -> core::result::Result<bpfman::types::TcProceedOn, bpfman::errors::BpfmanError>
+impl bpfman::types::TcLink
+pub fn bpfman::types::TcLink::get_metadata(&self) -> core::result::Result<std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcLink::set_metadata(&mut self, metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>) -> core::result::Result<(), bpfman::errors::BpfmanError>
+impl core::clone::Clone for bpfman::types::TcLink
+pub fn bpfman::types::TcLink::clone(&self) -> bpfman::types::TcLink
+impl core::fmt::Debug for bpfman::types::TcLink
+pub fn bpfman::types::TcLink::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::TcLink
+impl core::marker::Send for bpfman::types::TcLink
+impl core::marker::Sync for bpfman::types::TcLink
+impl core::marker::Unpin for bpfman::types::TcLink
+impl !core::panic::unwind_safe::RefUnwindSafe for bpfman::types::TcLink
+impl !core::panic::unwind_safe::UnwindSafe for bpfman::types::TcLink
+impl<T, U> core::convert::Into<U> for bpfman::types::TcLink where U: core::convert::From<T>
+pub fn bpfman::types::TcLink::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::TcLink where U: core::convert::Into<T>
+pub type bpfman::types::TcLink::Error = core::convert::Infallible
+pub fn bpfman::types::TcLink::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::TcLink where U: core::convert::TryFrom<T>
+pub type bpfman::types::TcLink::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::TcLink::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::TcLink where T: core::clone::Clone
+pub type bpfman::types::TcLink::Owned = T
+pub fn bpfman::types::TcLink::clone_into(&self, target: &mut T)
+pub fn bpfman::types::TcLink::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::types::TcLink where T: 'static + ?core::marker::Sized
+pub fn bpfman::types::TcLink::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::TcLink where T: ?core::marker::Sized
+pub fn bpfman::types::TcLink::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::TcLink where T: ?core::marker::Sized
+pub fn bpfman::types::TcLink::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::TcLink where T: core::clone::Clone
+pub unsafe fn bpfman::types::TcLink::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::types::TcLink
+pub fn bpfman::types::TcLink::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::TcLink
+pub type bpfman::types::TcLink::Init = T
+pub const bpfman::types::TcLink::ALIGN: usize
+pub unsafe fn bpfman::types::TcLink::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::TcLink::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::TcLink::drop(ptr: usize)
+pub unsafe fn bpfman::types::TcLink::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::TcLink where T: core::clone::Clone
+pub fn bpfman::types::TcLink::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::types::TcLink
+impl<T> tracing::instrument::Instrument for bpfman::types::TcLink
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::TcLink
+impl<T> typenum::type_operators::Same for bpfman::types::TcLink
+pub type bpfman::types::TcLink::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::types::TcLink where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::TcLink where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::TcLink::vzip(self) -> V
 pub struct bpfman::types::TcProceedOn(_)
 impl bpfman::types::TcProceedOn
 pub fn bpfman::types::TcProceedOn::as_action_vec(&self) -> alloc::vec::Vec<i32>
@@ -1396,16 +2280,7 @@ impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::TcProceedOn where V: pp
 pub fn bpfman::types::TcProceedOn::vzip(self) -> V
 pub struct bpfman::types::TcProgram
 impl bpfman::types::TcProgram
-pub fn bpfman::types::TcProgram::get_attached(&self) -> core::result::Result<bool, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcProgram::get_current_position(&self) -> core::result::Result<core::option::Option<usize>, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcProgram::get_direction(&self) -> core::result::Result<bpfman::types::Direction, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcProgram::get_if_index(&self) -> core::result::Result<core::option::Option<u32>, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcProgram::get_iface(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcProgram::get_netns(&self) -> core::result::Result<core::option::Option<std::path::PathBuf>, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcProgram::get_nsid(&self) -> core::result::Result<u64, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcProgram::get_priority(&self) -> core::result::Result<i32, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcProgram::get_proceed_on(&self) -> core::result::Result<bpfman::types::TcProceedOn, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcProgram::new(data: bpfman::types::ProgramData, priority: i32, iface: alloc::string::String, proceed_on: bpfman::types::TcProceedOn, direction: bpfman::types::Direction, netns: core::option::Option<std::path::PathBuf>) -> core::result::Result<Self, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcProgram::new(data: bpfman::types::ProgramData) -> core::result::Result<Self, bpfman::errors::BpfmanError>
 impl core::clone::Clone for bpfman::types::TcProgram
 pub fn bpfman::types::TcProgram::clone(&self) -> bpfman::types::TcProgram
 impl core::fmt::Debug for bpfman::types::TcProgram
@@ -1455,16 +2330,71 @@ pub type bpfman::types::TcProgram::Output = T
 impl<T> yoke::erased::ErasedDestructor for bpfman::types::TcProgram where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::TcProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::TcProgram::vzip(self) -> V
+pub struct bpfman::types::TcxLink(_)
+impl bpfman::types::TcxLink
+pub fn bpfman::types::TcxLink::attach(&mut self, info: bpfman::types::AttachInfo) -> core::result::Result<(), bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxLink::get_current_position(&self) -> core::result::Result<core::option::Option<usize>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxLink::get_direction(&self) -> core::result::Result<bpfman::types::Direction, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxLink::get_iface(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxLink::get_ifindex(&self) -> core::result::Result<core::option::Option<u32>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxLink::get_netns(&self) -> core::result::Result<core::option::Option<std::path::PathBuf>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxLink::get_nsid(&self) -> core::result::Result<u64, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxLink::get_priority(&self) -> core::result::Result<i32, bpfman::errors::BpfmanError>
+impl bpfman::types::TcxLink
+pub fn bpfman::types::TcxLink::get_metadata(&self) -> core::result::Result<std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxLink::set_metadata(&mut self, metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>) -> core::result::Result<(), bpfman::errors::BpfmanError>
+impl core::clone::Clone for bpfman::types::TcxLink
+pub fn bpfman::types::TcxLink::clone(&self) -> bpfman::types::TcxLink
+impl core::fmt::Debug for bpfman::types::TcxLink
+pub fn bpfman::types::TcxLink::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::TcxLink
+impl core::marker::Send for bpfman::types::TcxLink
+impl core::marker::Sync for bpfman::types::TcxLink
+impl core::marker::Unpin for bpfman::types::TcxLink
+impl !core::panic::unwind_safe::RefUnwindSafe for bpfman::types::TcxLink
+impl !core::panic::unwind_safe::UnwindSafe for bpfman::types::TcxLink
+impl<T, U> core::convert::Into<U> for bpfman::types::TcxLink where U: core::convert::From<T>
+pub fn bpfman::types::TcxLink::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::TcxLink where U: core::convert::Into<T>
+pub type bpfman::types::TcxLink::Error = core::convert::Infallible
+pub fn bpfman::types::TcxLink::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::TcxLink where U: core::convert::TryFrom<T>
+pub type bpfman::types::TcxLink::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::TcxLink::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::TcxLink where T: core::clone::Clone
+pub type bpfman::types::TcxLink::Owned = T
+pub fn bpfman::types::TcxLink::clone_into(&self, target: &mut T)
+pub fn bpfman::types::TcxLink::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::types::TcxLink where T: 'static + ?core::marker::Sized
+pub fn bpfman::types::TcxLink::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::TcxLink where T: ?core::marker::Sized
+pub fn bpfman::types::TcxLink::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::TcxLink where T: ?core::marker::Sized
+pub fn bpfman::types::TcxLink::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::TcxLink where T: core::clone::Clone
+pub unsafe fn bpfman::types::TcxLink::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::types::TcxLink
+pub fn bpfman::types::TcxLink::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::TcxLink
+pub type bpfman::types::TcxLink::Init = T
+pub const bpfman::types::TcxLink::ALIGN: usize
+pub unsafe fn bpfman::types::TcxLink::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::TcxLink::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::TcxLink::drop(ptr: usize)
+pub unsafe fn bpfman::types::TcxLink::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::TcxLink where T: core::clone::Clone
+pub fn bpfman::types::TcxLink::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::types::TcxLink
+impl<T> tracing::instrument::Instrument for bpfman::types::TcxLink
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::TcxLink
+impl<T> typenum::type_operators::Same for bpfman::types::TcxLink
+pub type bpfman::types::TcxLink::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::types::TcxLink where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::TcxLink where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::TcxLink::vzip(self) -> V
 pub struct bpfman::types::TcxProgram
 impl bpfman::types::TcxProgram
-pub fn bpfman::types::TcxProgram::get_current_position(&self) -> core::result::Result<core::option::Option<usize>, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcxProgram::get_direction(&self) -> core::result::Result<bpfman::types::Direction, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcxProgram::get_if_index(&self) -> core::result::Result<core::option::Option<u32>, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcxProgram::get_iface(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcxProgram::get_netns(&self) -> core::result::Result<core::option::Option<std::path::PathBuf>, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcxProgram::get_nsid(&self) -> core::result::Result<u64, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcxProgram::get_priority(&self) -> core::result::Result<i32, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TcxProgram::new(data: bpfman::types::ProgramData, priority: i32, iface: alloc::string::String, direction: bpfman::types::Direction, netns: core::option::Option<std::path::PathBuf>) -> core::result::Result<Self, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TcxProgram::new(data: bpfman::types::ProgramData) -> core::result::Result<Self, bpfman::errors::BpfmanError>
 impl core::clone::Clone for bpfman::types::TcxProgram
 pub fn bpfman::types::TcxProgram::clone(&self) -> bpfman::types::TcxProgram
 impl core::fmt::Debug for bpfman::types::TcxProgram
@@ -1514,10 +2444,65 @@ pub type bpfman::types::TcxProgram::Output = T
 impl<T> yoke::erased::ErasedDestructor for bpfman::types::TcxProgram where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::TcxProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::TcxProgram::vzip(self) -> V
+pub struct bpfman::types::TracepointLink(_)
+impl bpfman::types::TracepointLink
+pub fn bpfman::types::TracepointLink::attach(&mut self, info: bpfman::types::AttachInfo) -> core::result::Result<(), bpfman::errors::BpfmanError>
+pub fn bpfman::types::TracepointLink::get_tracepoint(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
+impl bpfman::types::TracepointLink
+pub fn bpfman::types::TracepointLink::get_metadata(&self) -> core::result::Result<std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TracepointLink::set_metadata(&mut self, metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>) -> core::result::Result<(), bpfman::errors::BpfmanError>
+impl core::clone::Clone for bpfman::types::TracepointLink
+pub fn bpfman::types::TracepointLink::clone(&self) -> bpfman::types::TracepointLink
+impl core::fmt::Debug for bpfman::types::TracepointLink
+pub fn bpfman::types::TracepointLink::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::TracepointLink
+impl core::marker::Send for bpfman::types::TracepointLink
+impl core::marker::Sync for bpfman::types::TracepointLink
+impl core::marker::Unpin for bpfman::types::TracepointLink
+impl !core::panic::unwind_safe::RefUnwindSafe for bpfman::types::TracepointLink
+impl !core::panic::unwind_safe::UnwindSafe for bpfman::types::TracepointLink
+impl<T, U> core::convert::Into<U> for bpfman::types::TracepointLink where U: core::convert::From<T>
+pub fn bpfman::types::TracepointLink::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::TracepointLink where U: core::convert::Into<T>
+pub type bpfman::types::TracepointLink::Error = core::convert::Infallible
+pub fn bpfman::types::TracepointLink::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::TracepointLink where U: core::convert::TryFrom<T>
+pub type bpfman::types::TracepointLink::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::TracepointLink::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::TracepointLink where T: core::clone::Clone
+pub type bpfman::types::TracepointLink::Owned = T
+pub fn bpfman::types::TracepointLink::clone_into(&self, target: &mut T)
+pub fn bpfman::types::TracepointLink::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::types::TracepointLink where T: 'static + ?core::marker::Sized
+pub fn bpfman::types::TracepointLink::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::TracepointLink where T: ?core::marker::Sized
+pub fn bpfman::types::TracepointLink::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::TracepointLink where T: ?core::marker::Sized
+pub fn bpfman::types::TracepointLink::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::TracepointLink where T: core::clone::Clone
+pub unsafe fn bpfman::types::TracepointLink::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::types::TracepointLink
+pub fn bpfman::types::TracepointLink::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::TracepointLink
+pub type bpfman::types::TracepointLink::Init = T
+pub const bpfman::types::TracepointLink::ALIGN: usize
+pub unsafe fn bpfman::types::TracepointLink::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::TracepointLink::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::TracepointLink::drop(ptr: usize)
+pub unsafe fn bpfman::types::TracepointLink::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::TracepointLink where T: core::clone::Clone
+pub fn bpfman::types::TracepointLink::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::types::TracepointLink
+impl<T> tracing::instrument::Instrument for bpfman::types::TracepointLink
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::TracepointLink
+impl<T> typenum::type_operators::Same for bpfman::types::TracepointLink
+pub type bpfman::types::TracepointLink::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::types::TracepointLink where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::TracepointLink where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::TracepointLink::vzip(self) -> V
 pub struct bpfman::types::TracepointProgram
 impl bpfman::types::TracepointProgram
-pub fn bpfman::types::TracepointProgram::get_tracepoint(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
-pub fn bpfman::types::TracepointProgram::new(data: bpfman::types::ProgramData, tracepoint: alloc::string::String) -> core::result::Result<Self, bpfman::errors::BpfmanError>
+pub fn bpfman::types::TracepointProgram::new(data: bpfman::types::ProgramData) -> core::result::Result<Self, bpfman::errors::BpfmanError>
 impl core::clone::Clone for bpfman::types::TracepointProgram
 pub fn bpfman::types::TracepointProgram::clone(&self) -> bpfman::types::TracepointProgram
 impl core::fmt::Debug for bpfman::types::TracepointProgram
@@ -1567,15 +2552,71 @@ pub type bpfman::types::TracepointProgram::Output = T
 impl<T> yoke::erased::ErasedDestructor for bpfman::types::TracepointProgram where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::TracepointProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::TracepointProgram::vzip(self) -> V
+pub struct bpfman::types::UprobeLink(_)
+impl bpfman::types::UprobeLink
+pub fn bpfman::types::UprobeLink::attach(&mut self, info: bpfman::types::AttachInfo) -> core::result::Result<(), bpfman::errors::BpfmanError>
+pub fn bpfman::types::UprobeLink::get_container_pid(&self) -> core::result::Result<core::option::Option<i32>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::UprobeLink::get_fn_name(&self) -> core::result::Result<core::option::Option<alloc::string::String>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::UprobeLink::get_offset(&self) -> core::result::Result<u64, bpfman::errors::BpfmanError>
+pub fn bpfman::types::UprobeLink::get_pid(&self) -> core::result::Result<core::option::Option<i32>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::UprobeLink::get_retprobe(&self) -> core::result::Result<bool, bpfman::errors::BpfmanError>
+pub fn bpfman::types::UprobeLink::get_target(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
+impl bpfman::types::UprobeLink
+pub fn bpfman::types::UprobeLink::get_metadata(&self) -> core::result::Result<std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::UprobeLink::set_metadata(&mut self, metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>) -> core::result::Result<(), bpfman::errors::BpfmanError>
+impl core::clone::Clone for bpfman::types::UprobeLink
+pub fn bpfman::types::UprobeLink::clone(&self) -> bpfman::types::UprobeLink
+impl core::fmt::Debug for bpfman::types::UprobeLink
+pub fn bpfman::types::UprobeLink::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::UprobeLink
+impl core::marker::Send for bpfman::types::UprobeLink
+impl core::marker::Sync for bpfman::types::UprobeLink
+impl core::marker::Unpin for bpfman::types::UprobeLink
+impl !core::panic::unwind_safe::RefUnwindSafe for bpfman::types::UprobeLink
+impl !core::panic::unwind_safe::UnwindSafe for bpfman::types::UprobeLink
+impl<T, U> core::convert::Into<U> for bpfman::types::UprobeLink where U: core::convert::From<T>
+pub fn bpfman::types::UprobeLink::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::UprobeLink where U: core::convert::Into<T>
+pub type bpfman::types::UprobeLink::Error = core::convert::Infallible
+pub fn bpfman::types::UprobeLink::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::UprobeLink where U: core::convert::TryFrom<T>
+pub type bpfman::types::UprobeLink::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::UprobeLink::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::UprobeLink where T: core::clone::Clone
+pub type bpfman::types::UprobeLink::Owned = T
+pub fn bpfman::types::UprobeLink::clone_into(&self, target: &mut T)
+pub fn bpfman::types::UprobeLink::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::types::UprobeLink where T: 'static + ?core::marker::Sized
+pub fn bpfman::types::UprobeLink::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::UprobeLink where T: ?core::marker::Sized
+pub fn bpfman::types::UprobeLink::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::UprobeLink where T: ?core::marker::Sized
+pub fn bpfman::types::UprobeLink::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::UprobeLink where T: core::clone::Clone
+pub unsafe fn bpfman::types::UprobeLink::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::types::UprobeLink
+pub fn bpfman::types::UprobeLink::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::UprobeLink
+pub type bpfman::types::UprobeLink::Init = T
+pub const bpfman::types::UprobeLink::ALIGN: usize
+pub unsafe fn bpfman::types::UprobeLink::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::UprobeLink::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::UprobeLink::drop(ptr: usize)
+pub unsafe fn bpfman::types::UprobeLink::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::UprobeLink where T: core::clone::Clone
+pub fn bpfman::types::UprobeLink::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::types::UprobeLink
+impl<T> tracing::instrument::Instrument for bpfman::types::UprobeLink
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::UprobeLink
+impl<T> typenum::type_operators::Same for bpfman::types::UprobeLink
+pub type bpfman::types::UprobeLink::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::types::UprobeLink where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::UprobeLink where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::UprobeLink::vzip(self) -> V
 pub struct bpfman::types::UprobeProgram
 impl bpfman::types::UprobeProgram
-pub fn bpfman::types::UprobeProgram::get_container_pid(&self) -> core::result::Result<core::option::Option<i32>, bpfman::errors::BpfmanError>
-pub fn bpfman::types::UprobeProgram::get_fn_name(&self) -> core::result::Result<core::option::Option<alloc::string::String>, bpfman::errors::BpfmanError>
-pub fn bpfman::types::UprobeProgram::get_offset(&self) -> core::result::Result<u64, bpfman::errors::BpfmanError>
-pub fn bpfman::types::UprobeProgram::get_pid(&self) -> core::result::Result<core::option::Option<i32>, bpfman::errors::BpfmanError>
 pub fn bpfman::types::UprobeProgram::get_retprobe(&self) -> core::result::Result<bool, bpfman::errors::BpfmanError>
-pub fn bpfman::types::UprobeProgram::get_target(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
-pub fn bpfman::types::UprobeProgram::new(data: bpfman::types::ProgramData, fn_name: core::option::Option<alloc::string::String>, offset: u64, target: alloc::string::String, retprobe: bool, pid: core::option::Option<i32>, container_pid: core::option::Option<i32>) -> core::result::Result<Self, bpfman::errors::BpfmanError>
+pub fn bpfman::types::UprobeProgram::new(data: bpfman::types::ProgramData, retprobe: bool) -> core::result::Result<Self, bpfman::errors::BpfmanError>
 impl core::clone::Clone for bpfman::types::UprobeProgram
 pub fn bpfman::types::UprobeProgram::clone(&self) -> bpfman::types::UprobeProgram
 impl core::fmt::Debug for bpfman::types::UprobeProgram
@@ -1625,6 +2666,69 @@ pub type bpfman::types::UprobeProgram::Output = T
 impl<T> yoke::erased::ErasedDestructor for bpfman::types::UprobeProgram where T: 'static
 impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::UprobeProgram where V: ppv_lite86::types::MultiLane<T>
 pub fn bpfman::types::UprobeProgram::vzip(self) -> V
+pub struct bpfman::types::XdpLink(_)
+impl bpfman::types::XdpLink
+pub fn bpfman::types::XdpLink::attach(&mut self, info: bpfman::types::AttachInfo) -> core::result::Result<(), bpfman::errors::BpfmanError>
+pub fn bpfman::types::XdpLink::get_attached(&self) -> core::result::Result<bool, bpfman::errors::BpfmanError>
+pub fn bpfman::types::XdpLink::get_current_position(&self) -> core::result::Result<core::option::Option<usize>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::XdpLink::get_iface(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
+pub fn bpfman::types::XdpLink::get_ifindex(&self) -> core::result::Result<core::option::Option<u32>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::XdpLink::get_netns(&self) -> core::result::Result<core::option::Option<std::path::PathBuf>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::XdpLink::get_nsid(&self) -> core::result::Result<u64, bpfman::errors::BpfmanError>
+pub fn bpfman::types::XdpLink::get_priority(&self) -> core::result::Result<i32, bpfman::errors::BpfmanError>
+pub fn bpfman::types::XdpLink::get_proceed_on(&self) -> core::result::Result<bpfman::types::XdpProceedOn, bpfman::errors::BpfmanError>
+impl bpfman::types::XdpLink
+pub fn bpfman::types::XdpLink::get_metadata(&self) -> core::result::Result<std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>, bpfman::errors::BpfmanError>
+pub fn bpfman::types::XdpLink::set_metadata(&mut self, metadata: std::collections::hash::map::HashMap<alloc::string::String, alloc::string::String>) -> core::result::Result<(), bpfman::errors::BpfmanError>
+impl core::clone::Clone for bpfman::types::XdpLink
+pub fn bpfman::types::XdpLink::clone(&self) -> bpfman::types::XdpLink
+impl core::fmt::Debug for bpfman::types::XdpLink
+pub fn bpfman::types::XdpLink::fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result
+impl core::marker::Freeze for bpfman::types::XdpLink
+impl core::marker::Send for bpfman::types::XdpLink
+impl core::marker::Sync for bpfman::types::XdpLink
+impl core::marker::Unpin for bpfman::types::XdpLink
+impl !core::panic::unwind_safe::RefUnwindSafe for bpfman::types::XdpLink
+impl !core::panic::unwind_safe::UnwindSafe for bpfman::types::XdpLink
+impl<T, U> core::convert::Into<U> for bpfman::types::XdpLink where U: core::convert::From<T>
+pub fn bpfman::types::XdpLink::into(self) -> U
+impl<T, U> core::convert::TryFrom<U> for bpfman::types::XdpLink where U: core::convert::Into<T>
+pub type bpfman::types::XdpLink::Error = core::convert::Infallible
+pub fn bpfman::types::XdpLink::try_from(value: U) -> core::result::Result<T, <T as core::convert::TryFrom<U>>::Error>
+impl<T, U> core::convert::TryInto<U> for bpfman::types::XdpLink where U: core::convert::TryFrom<T>
+pub type bpfman::types::XdpLink::Error = <U as core::convert::TryFrom<T>>::Error
+pub fn bpfman::types::XdpLink::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
+impl<T> alloc::borrow::ToOwned for bpfman::types::XdpLink where T: core::clone::Clone
+pub type bpfman::types::XdpLink::Owned = T
+pub fn bpfman::types::XdpLink::clone_into(&self, target: &mut T)
+pub fn bpfman::types::XdpLink::to_owned(&self) -> T
+impl<T> core::any::Any for bpfman::types::XdpLink where T: 'static + ?core::marker::Sized
+pub fn bpfman::types::XdpLink::type_id(&self) -> core::any::TypeId
+impl<T> core::borrow::Borrow<T> for bpfman::types::XdpLink where T: ?core::marker::Sized
+pub fn bpfman::types::XdpLink::borrow(&self) -> &T
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::XdpLink where T: ?core::marker::Sized
+pub fn bpfman::types::XdpLink::borrow_mut(&mut self) -> &mut T
+impl<T> core::clone::CloneToUninit for bpfman::types::XdpLink where T: core::clone::Clone
+pub unsafe fn bpfman::types::XdpLink::clone_to_uninit(&self, dst: *mut u8)
+impl<T> core::convert::From<T> for bpfman::types::XdpLink
+pub fn bpfman::types::XdpLink::from(t: T) -> T
+impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::XdpLink
+pub type bpfman::types::XdpLink::Init = T
+pub const bpfman::types::XdpLink::ALIGN: usize
+pub unsafe fn bpfman::types::XdpLink::deref<'a>(ptr: usize) -> &'a T
+pub unsafe fn bpfman::types::XdpLink::deref_mut<'a>(ptr: usize) -> &'a mut T
+pub unsafe fn bpfman::types::XdpLink::drop(ptr: usize)
+pub unsafe fn bpfman::types::XdpLink::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
+impl<T> dyn_clone::DynClone for bpfman::types::XdpLink where T: core::clone::Clone
+pub fn bpfman::types::XdpLink::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
+impl<T> icu_provider::any::MaybeSendSync for bpfman::types::XdpLink
+impl<T> tracing::instrument::Instrument for bpfman::types::XdpLink
+impl<T> tracing::instrument::WithSubscriber for bpfman::types::XdpLink
+impl<T> typenum::type_operators::Same for bpfman::types::XdpLink
+pub type bpfman::types::XdpLink::Output = T
+impl<T> yoke::erased::ErasedDestructor for bpfman::types::XdpLink where T: 'static
+impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::XdpLink where V: ppv_lite86::types::MultiLane<T>
+pub fn bpfman::types::XdpLink::vzip(self) -> V
 pub struct bpfman::types::XdpProceedOn(_)
 impl bpfman::types::XdpProceedOn
 pub fn bpfman::types::XdpProceedOn::as_action_vec(&self) -> alloc::vec::Vec<i32>
@@ -1701,15 +2805,7 @@ impl<V, T> ppv_lite86::types::VZip<V> for bpfman::types::XdpProceedOn where V: p
 pub fn bpfman::types::XdpProceedOn::vzip(self) -> V
 pub struct bpfman::types::XdpProgram
 impl bpfman::types::XdpProgram
-pub fn bpfman::types::XdpProgram::get_attached(&self) -> core::result::Result<bool, bpfman::errors::BpfmanError>
-pub fn bpfman::types::XdpProgram::get_current_position(&self) -> core::result::Result<core::option::Option<usize>, bpfman::errors::BpfmanError>
-pub fn bpfman::types::XdpProgram::get_if_index(&self) -> core::result::Result<core::option::Option<u32>, bpfman::errors::BpfmanError>
-pub fn bpfman::types::XdpProgram::get_iface(&self) -> core::result::Result<alloc::string::String, bpfman::errors::BpfmanError>
-pub fn bpfman::types::XdpProgram::get_netns(&self) -> core::result::Result<core::option::Option<std::path::PathBuf>, bpfman::errors::BpfmanError>
-pub fn bpfman::types::XdpProgram::get_nsid(&self) -> core::result::Result<u64, bpfman::errors::BpfmanError>
-pub fn bpfman::types::XdpProgram::get_priority(&self) -> core::result::Result<i32, bpfman::errors::BpfmanError>
-pub fn bpfman::types::XdpProgram::get_proceed_on(&self) -> core::result::Result<bpfman::types::XdpProceedOn, bpfman::errors::BpfmanError>
-pub fn bpfman::types::XdpProgram::new(data: bpfman::types::ProgramData, priority: i32, iface: alloc::string::String, proceed_on: bpfman::types::XdpProceedOn, netns: core::option::Option<std::path::PathBuf>) -> core::result::Result<Self, bpfman::errors::BpfmanError>
+pub fn bpfman::types::XdpProgram::new(data: bpfman::types::ProgramData) -> core::result::Result<Self, bpfman::errors::BpfmanError>
 impl core::clone::Clone for bpfman::types::XdpProgram
 pub fn bpfman::types::XdpProgram::clone(&self) -> bpfman::types::XdpProgram
 impl core::fmt::Debug for bpfman::types::XdpProgram
@@ -1764,8 +2860,13 @@ pub const bpfman::utils::SOCK_MODE: u32
 pub fn bpfman::utils::create_bpffs(directory: &str) -> anyhow::Result<()>
 pub fn bpfman::utils::set_dir_permissions(directory: &str, mode: u32)
 pub fn bpfman::utils::set_file_permissions(path: &std::path::Path, mode: u32)
-pub async fn bpfman::add_program(program: bpfman::types::Program) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
-pub async fn bpfman::get_program(id: u32) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
-pub async fn bpfman::list_programs(filter: bpfman::types::ListFilter) -> core::result::Result<alloc::vec::Vec<bpfman::types::Program>, bpfman::errors::BpfmanError>
-pub async fn bpfman::pull_bytecode(image: bpfman::types::BytecodeImage) -> anyhow::Result<()>
-pub async fn bpfman::remove_program(id: u32) -> core::result::Result<(), bpfman::errors::BpfmanError>
+pub fn bpfman::add_programs(config: &bpfman::config::Config, root_db: &sled::db::Db, programs: alloc::vec::Vec<bpfman::types::Program>) -> core::result::Result<alloc::vec::Vec<bpfman::types::Program>, bpfman::errors::BpfmanError>
+pub fn bpfman::attach_program(config: &bpfman::config::Config, root_db: &sled::db::Db, id: u32, attach_info: bpfman::types::AttachInfo) -> core::result::Result<u32, bpfman::errors::BpfmanError>
+pub fn bpfman::detach(config: &bpfman::config::Config, root_db: &sled::db::Db, id: u32) -> core::result::Result<(), bpfman::errors::BpfmanError>
+pub fn bpfman::get_db_config() -> sled::config::Config
+pub fn bpfman::get_program(root_db: &sled::db::Db, id: u32) -> core::result::Result<bpfman::types::Program, bpfman::errors::BpfmanError>
+pub fn bpfman::init_database(sled_config: sled::config::Config) -> core::result::Result<sled::db::Db, bpfman::errors::BpfmanError>
+pub fn bpfman::list_programs(root_db: &sled::db::Db, filter: bpfman::types::ListFilter) -> core::result::Result<alloc::vec::Vec<bpfman::types::Program>, bpfman::errors::BpfmanError>
+pub fn bpfman::pull_bytecode(root_db: &sled::db::Db, image: bpfman::types::BytecodeImage) -> anyhow::Result<()>
+pub fn bpfman::remove_program(config: &bpfman::config::Config, root_db: &sled::db::Db, id: u32) -> core::result::Result<(), bpfman::errors::BpfmanError>
+pub fn bpfman::setup() -> core::result::Result<(bpfman::config::Config, sled::db::Db), bpfman::errors::BpfmanError>

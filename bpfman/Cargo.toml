@@ -41,7 +41,9 @@ futures = { workspace = true }
 hex = { workspace = true, features = ["std"] }
 lazy_static = { workspace = true }
 log = { workspace = true }
+netlink-packet-core = { workspace = true }
 netlink-packet-route = { workspace = true }
+netlink-sys = { workspace = true }
 nix = { workspace = true, features = [
     "fs",
     "mount",
@@ -57,7 +59,6 @@ oci-distribution = { workspace = true, default-features = false, features = [
     "trust-dns",
 ] }
 rand = { workspace = true }
-rtnetlink = { workspace = true, features = ["tokio_socket"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }
