@@ -393,6 +393,7 @@ async fn remove_program_internal(
             let if_name = prog.if_name().unwrap();
             let direction = prog.direction()?;
             let nsid = prog.nsid()?;
+            let netns = prog.netns()?;
 
             prog.delete(root_db)
                 .map_err(BpfmanError::BpfmanProgramDeleteError)?;
@@ -406,6 +407,7 @@ async fn remove_program_internal(
                 if_name,
                 direction,
                 nsid,
+                netns,
             )
             .await?
         }
@@ -639,8 +641,8 @@ pub async fn get_program(id: u32) -> Result<Program, BpfmanError> {
 /// # Arguments
 ///
 /// * `image` - A `BytecodeImage` struct that contains information
-///             about the bytecode image to be pulled, including its
-///             URL, pull policy, username, and password.
+///   about the bytecode image to be pulled, including its URL, pull
+///   policy, username, and password.
 ///
 /// # Returns
 ///
@@ -653,18 +655,15 @@ pub async fn get_program(id: u32) -> Result<Program, BpfmanError> {
 /// This function can return the following errors:
 ///
 /// * `SetupError` - If the `setup()` function fails to initialise
-///                  correctly.
+///   correctly.
 /// * `ImageManagerInitializationError` - If there is an error
-///                                        initialising the image
-///                                        manager with `init_image_manager()`.
+///   initialising the image manager with `init_image_manager()`.
 /// * `RegistryAuthenticationError` - If there is an authentication
-///                                    failure while accessing the
-///                                    container registry.
+///   failure while accessing the container registry.
 /// * `NetworkError` - If there are network issues while pulling the
-///                    image from the container registry.
+///   image from the container registry.
 /// * `ImagePullError` - If there is a problem pulling the image due
-///                      to invalid image URL, unsupported image
-///                      format, or other image-specific issues.
+///   to invalid image URL, unsupported image format, or other image-specific issues.
 ///
 /// # Examples
 ///
@@ -1017,7 +1016,7 @@ fn get_programs_iter(root_db: &Db) -> impl Iterator<Item = (u32, Program)> + '_ 
         .filter_map(|p| {
             let id = bytes_to_string(&p)
                 .split('_')
-                .last()
+                .next_back()
                 .unwrap()
                 .parse::<u32>()
                 .unwrap();
@@ -1489,11 +1488,23 @@ async fn remove_multi_attach_program(
     if_name: String,
     direction: Option<Direction>,
     nsid: u64,
+    netns: Option<PathBuf>,
 ) -> Result<(), BpfmanError> {
     debug!("BpfManager::remove_multi_attach_program()");
     let mut image_manager = init_image_manager().await?;
 
-    let next_available_id = num_attached_programs(&did, root_db)? - 1;
+    let netns_deleted = if let Some(netns) = netns {
+        !netns.exists()
+    } else {
+        false
+    };
+    debug!("netns_deleted = {netns_deleted}");
+
+    let next_available_id = if netns_deleted {
+        0
+    } else {
+        num_attached_programs(&did, root_db)? - 1
+    };
     debug!("next_available_id = {next_available_id}");
 
     let mut old_dispatcher = get_dispatcher(&did, root_db)?;
@@ -1503,6 +1514,10 @@ async fn remove_multi_attach_program(
             // Delete the dispatcher
             return old.delete(root_db, true);
         }
+    }
+
+    if netns_deleted {
+        return Ok(());
     }
 
     set_program_positions(root_db, program_type, if_index.unwrap(), direction, nsid)?;

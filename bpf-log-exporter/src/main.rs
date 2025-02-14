@@ -206,7 +206,7 @@ fn parse_field<'a>(
 
     if let Some(tmp) = tmp {
         let value = if last {
-            tmp.split(delimiter).last()
+            tmp.split(delimiter).next_back()
         } else {
             tmp.split(delimiter).next()
         };
