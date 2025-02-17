@@ -109,12 +109,7 @@ impl CosignVerifier {
 async fn fetch_sigstore_tuf_data() -> anyhow::Result<Box<dyn sigstore::trust::TrustRoot>> {
     let tuf = sigstore::trust::sigstore::SigstoreTrustRoot::new(get_tuf_path().as_deref())
         .await
-        .map_err(|e| {
-            anyhow!(
-                "Error spawning blocking task to build sigstore repo inside of tokio: {}",
-                e
-            )
-        })?;
+        .map_err(|e| anyhow!("Error constructing Sigstore trust root: {}", e))?;
 
     Ok(Box::new(tuf))
 }

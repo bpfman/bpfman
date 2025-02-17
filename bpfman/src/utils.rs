@@ -206,7 +206,7 @@ pub(crate) fn sled_insert(db_tree: &Tree, key: &str, value: &[u8]) -> Result<(),
 pub(crate) fn id_from_tree_name(name: &IVec) -> Result<u32, BpfmanError> {
     let id = bytes_to_string(name)
         .split('_')
-        .last()
+        .next_back()
         .ok_or_else(|| BpfmanError::InvalidTreeName(bytes_to_string(name)))?
         .parse::<u32>()
         .map_err(|_| BpfmanError::InvalidTreeName(bytes_to_string(name)))?;

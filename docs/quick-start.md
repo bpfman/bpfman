@@ -80,7 +80,7 @@ sudo systemctl start bpfman.socket
 Finally you can run one of the sample applications:
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfd-bytecode/tracepoint:latest tracepoint --tracepoint sched/sched_switch
+sudo bpfman load image --image-url quay.io/bpfman-bytecode/tracepoint:latest --name "enter_openat" tracepoint --tracepoint syscalls/sys_enter_openat
 
 sudo bpfman list
  Program ID  Name          Type        Load Time                
@@ -128,7 +128,7 @@ kind create cluster --name=test-bpfman
 Next, deploy the bpfman CRDs:
 
 ```console
-export BPFMAN_REL=0.5.5
+export BPFMAN_REL=0.5.6
 kubectl apply -f  https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml
 ```
 

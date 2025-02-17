@@ -1,7 +1,7 @@
 pub mod bpfman
 pub mod bpfman::errors
 pub enum bpfman::errors::BpfmanError
-pub bpfman::errors::BpfmanError::BpfBytecodeError(crate::oci_utils::ImageError)
+pub bpfman::errors::BpfmanError::BpfBytecodeError(bpfman::oci_utils::ImageError)
 pub bpfman::errors::BpfmanError::BpfFunctionNameNotValid(alloc::string::String)
 pub bpfman::errors::BpfmanError::BpfIOError(std::io::error::Error)
 pub bpfman::errors::BpfmanError::BpfLinkError(aya::programs::links::LinkError)
@@ -74,13 +74,13 @@ pub fn bpfman::errors::BpfmanError::try_from(value: U) -> core::result::Result<T
 impl<T, U> core::convert::TryInto<U> for bpfman::errors::BpfmanError where U: core::convert::TryFrom<T>
 pub type bpfman::errors::BpfmanError::Error = <U as core::convert::TryFrom<T>>::Error
 pub fn bpfman::errors::BpfmanError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
-impl<T> alloc::string::ToString for bpfman::errors::BpfmanError where T: core::fmt::Display + core::marker::Sized
+impl<T> alloc::string::ToString for bpfman::errors::BpfmanError where T: core::fmt::Display + ?core::marker::Sized
 pub fn bpfman::errors::BpfmanError::to_string(&self) -> alloc::string::String
-impl<T> core::any::Any for bpfman::errors::BpfmanError where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::errors::BpfmanError where T: 'static + ?core::marker::Sized
 pub fn bpfman::errors::BpfmanError::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::errors::BpfmanError where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::errors::BpfmanError where T: ?core::marker::Sized
 pub fn bpfman::errors::BpfmanError::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::errors::BpfmanError where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::errors::BpfmanError where T: ?core::marker::Sized
 pub fn bpfman::errors::BpfmanError::borrow_mut(&mut self) -> &mut T
 impl<T> core::convert::From<T> for bpfman::errors::BpfmanError
 pub fn bpfman::errors::BpfmanError::from(t: T) -> T
@@ -146,13 +146,13 @@ pub fn bpfman::errors::ParseError::try_from(value: U) -> core::result::Result<T,
 impl<T, U> core::convert::TryInto<U> for bpfman::errors::ParseError where U: core::convert::TryFrom<T>
 pub type bpfman::errors::ParseError::Error = <U as core::convert::TryFrom<T>>::Error
 pub fn bpfman::errors::ParseError::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
-impl<T> alloc::string::ToString for bpfman::errors::ParseError where T: core::fmt::Display + core::marker::Sized
+impl<T> alloc::string::ToString for bpfman::errors::ParseError where T: core::fmt::Display + ?core::marker::Sized
 pub fn bpfman::errors::ParseError::to_string(&self) -> alloc::string::String
-impl<T> core::any::Any for bpfman::errors::ParseError where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::errors::ParseError where T: 'static + ?core::marker::Sized
 pub fn bpfman::errors::ParseError::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::errors::ParseError where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::errors::ParseError where T: ?core::marker::Sized
 pub fn bpfman::errors::ParseError::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::errors::ParseError where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::errors::ParseError where T: ?core::marker::Sized
 pub fn bpfman::errors::ParseError::borrow_mut(&mut self) -> &mut T
 impl<T> core::convert::From<T> for bpfman::errors::ParseError
 pub fn bpfman::errors::ParseError::from(t: T) -> T
@@ -197,11 +197,11 @@ pub fn bpfman::types::AttachOrder::try_from(value: U) -> core::result::Result<T,
 impl<T, U> core::convert::TryInto<U> for bpfman::types::AttachOrder where U: core::convert::TryFrom<T>
 pub type bpfman::types::AttachOrder::Error = <U as core::convert::TryFrom<T>>::Error
 pub fn bpfman::types::AttachOrder::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
-impl<T> core::any::Any for bpfman::types::AttachOrder where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::AttachOrder where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::AttachOrder::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::AttachOrder where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::AttachOrder where T: ?core::marker::Sized
 pub fn bpfman::types::AttachOrder::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::AttachOrder where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::AttachOrder where T: ?core::marker::Sized
 pub fn bpfman::types::AttachOrder::borrow_mut(&mut self) -> &mut T
 impl<T> core::convert::From<T> for bpfman::types::AttachOrder
 pub fn bpfman::types::AttachOrder::from(t: T) -> T
@@ -254,9 +254,9 @@ impl core::panic::unwind_safe::RefUnwindSafe for bpfman::types::Direction
 impl core::panic::unwind_safe::UnwindSafe for bpfman::types::Direction
 impl<C> jwt::token::signed::SignWithKey<alloc::string::String> for bpfman::types::Direction where C: jwt::ToBase64
 pub fn bpfman::types::Direction::sign_with_key(self, key: &impl jwt::algorithm::SigningAlgorithm) -> core::result::Result<alloc::string::String, jwt::error::Error>
-impl<Q, K> equivalent::Equivalent<K> for bpfman::types::Direction where Q: core::cmp::Eq + core::marker::Sized, K: core::borrow::Borrow<Q> + core::marker::Sized
+impl<Q, K> equivalent::Equivalent<K> for bpfman::types::Direction where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
 pub fn bpfman::types::Direction::equivalent(&self, key: &K) -> bool
-impl<Q, K> hashbrown::Equivalent<K> for bpfman::types::Direction where Q: core::cmp::Eq + core::marker::Sized, K: core::borrow::Borrow<Q> + core::marker::Sized
+impl<Q, K> hashbrown::Equivalent<K> for bpfman::types::Direction where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
 pub fn bpfman::types::Direction::equivalent(&self, key: &K) -> bool
 impl<T, U> core::convert::Into<U> for bpfman::types::Direction where U: core::convert::From<T>
 pub fn bpfman::types::Direction::into(self) -> U
@@ -270,16 +270,16 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::Direction where T: core::clone
 pub type bpfman::types::Direction::Owned = T
 pub fn bpfman::types::Direction::clone_into(&self, target: &mut T)
 pub fn bpfman::types::Direction::to_owned(&self) -> T
-impl<T> alloc::string::ToString for bpfman::types::Direction where T: core::fmt::Display + core::marker::Sized
+impl<T> alloc::string::ToString for bpfman::types::Direction where T: core::fmt::Display + ?core::marker::Sized
 pub fn bpfman::types::Direction::to_string(&self) -> alloc::string::String
-impl<T> core::any::Any for bpfman::types::Direction where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::Direction where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::Direction::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::Direction where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::Direction where T: ?core::marker::Sized
 pub fn bpfman::types::Direction::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::Direction where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::Direction where T: ?core::marker::Sized
 pub fn bpfman::types::Direction::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::Direction where T: core::clone::Clone
-pub unsafe fn bpfman::types::Direction::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::Direction::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::Direction
 pub fn bpfman::types::Direction::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::Direction
@@ -290,10 +290,10 @@ pub unsafe fn bpfman::types::Direction::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn bpfman::types::Direction::drop(ptr: usize)
 pub unsafe fn bpfman::types::Direction::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::Direction where T: core::clone::Clone
-pub fn bpfman::types::Direction::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::Direction::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::Direction
 impl<T> jwt::FromBase64 for bpfman::types::Direction where T: for<'de> serde::de::Deserialize<'de>
-pub fn bpfman::types::Direction::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
+pub fn bpfman::types::Direction::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::Direction where T: serde::ser::Serialize
 pub fn bpfman::types::Direction::to_base64(&self) -> core::result::Result<alloc::borrow::Cow<'_, str>, jwt::error::Error>
 impl<T> serde::de::DeserializeOwned for bpfman::types::Direction where T: for<'de> serde::de::Deserialize<'de>
@@ -346,16 +346,16 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::ImagePullPolicy where T: core:
 pub type bpfman::types::ImagePullPolicy::Owned = T
 pub fn bpfman::types::ImagePullPolicy::clone_into(&self, target: &mut T)
 pub fn bpfman::types::ImagePullPolicy::to_owned(&self) -> T
-impl<T> alloc::string::ToString for bpfman::types::ImagePullPolicy where T: core::fmt::Display + core::marker::Sized
+impl<T> alloc::string::ToString for bpfman::types::ImagePullPolicy where T: core::fmt::Display + ?core::marker::Sized
 pub fn bpfman::types::ImagePullPolicy::to_string(&self) -> alloc::string::String
-impl<T> core::any::Any for bpfman::types::ImagePullPolicy where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::ImagePullPolicy where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::ImagePullPolicy::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::ImagePullPolicy where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::ImagePullPolicy where T: ?core::marker::Sized
 pub fn bpfman::types::ImagePullPolicy::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::ImagePullPolicy where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::ImagePullPolicy where T: ?core::marker::Sized
 pub fn bpfman::types::ImagePullPolicy::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::ImagePullPolicy where T: core::clone::Clone
-pub unsafe fn bpfman::types::ImagePullPolicy::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::ImagePullPolicy::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::ImagePullPolicy
 pub fn bpfman::types::ImagePullPolicy::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::ImagePullPolicy
@@ -366,10 +366,10 @@ pub unsafe fn bpfman::types::ImagePullPolicy::deref_mut<'a>(ptr: usize) -> &'a m
 pub unsafe fn bpfman::types::ImagePullPolicy::drop(ptr: usize)
 pub unsafe fn bpfman::types::ImagePullPolicy::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::ImagePullPolicy where T: core::clone::Clone
-pub fn bpfman::types::ImagePullPolicy::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::ImagePullPolicy::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::ImagePullPolicy
 impl<T> jwt::FromBase64 for bpfman::types::ImagePullPolicy where T: for<'de> serde::de::Deserialize<'de>
-pub fn bpfman::types::ImagePullPolicy::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
+pub fn bpfman::types::ImagePullPolicy::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::ImagePullPolicy where T: serde::ser::Serialize
 pub fn bpfman::types::ImagePullPolicy::to_base64(&self) -> core::result::Result<alloc::borrow::Cow<'_, str>, jwt::error::Error>
 impl<T> serde::de::DeserializeOwned for bpfman::types::ImagePullPolicy where T: for<'de> serde::de::Deserialize<'de>
@@ -413,16 +413,16 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::Location where T: core::clone:
 pub type bpfman::types::Location::Owned = T
 pub fn bpfman::types::Location::clone_into(&self, target: &mut T)
 pub fn bpfman::types::Location::to_owned(&self) -> T
-impl<T> alloc::string::ToString for bpfman::types::Location where T: core::fmt::Display + core::marker::Sized
+impl<T> alloc::string::ToString for bpfman::types::Location where T: core::fmt::Display + ?core::marker::Sized
 pub fn bpfman::types::Location::to_string(&self) -> alloc::string::String
-impl<T> core::any::Any for bpfman::types::Location where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::Location where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::Location::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::Location where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::Location where T: ?core::marker::Sized
 pub fn bpfman::types::Location::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::Location where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::Location where T: ?core::marker::Sized
 pub fn bpfman::types::Location::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::Location where T: core::clone::Clone
-pub unsafe fn bpfman::types::Location::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::Location::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::Location
 pub fn bpfman::types::Location::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::Location
@@ -433,10 +433,10 @@ pub unsafe fn bpfman::types::Location::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn bpfman::types::Location::drop(ptr: usize)
 pub unsafe fn bpfman::types::Location::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::Location where T: core::clone::Clone
-pub fn bpfman::types::Location::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::Location::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::Location
 impl<T> jwt::FromBase64 for bpfman::types::Location where T: for<'de> serde::de::Deserialize<'de>
-pub fn bpfman::types::Location::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
+pub fn bpfman::types::Location::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::Location where T: serde::ser::Serialize
 pub fn bpfman::types::Location::to_base64(&self) -> core::result::Result<alloc::borrow::Cow<'_, str>, jwt::error::Error>
 impl<T> serde::de::DeserializeOwned for bpfman::types::Location where T: for<'de> serde::de::Deserialize<'de>
@@ -504,13 +504,13 @@ pub fn bpfman::types::MapType::try_from(value: U) -> core::result::Result<T, <T 
 impl<T, U> core::convert::TryInto<U> for bpfman::types::MapType where U: core::convert::TryFrom<T>
 pub type bpfman::types::MapType::Error = <U as core::convert::TryFrom<T>>::Error
 pub fn bpfman::types::MapType::try_into(self) -> core::result::Result<U, <U as core::convert::TryFrom<T>>::Error>
-impl<T> alloc::string::ToString for bpfman::types::MapType where T: core::fmt::Display + core::marker::Sized
+impl<T> alloc::string::ToString for bpfman::types::MapType where T: core::fmt::Display + ?core::marker::Sized
 pub fn bpfman::types::MapType::to_string(&self) -> alloc::string::String
-impl<T> core::any::Any for bpfman::types::MapType where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::MapType where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::MapType::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::MapType where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::MapType where T: ?core::marker::Sized
 pub fn bpfman::types::MapType::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::MapType where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::MapType where T: ?core::marker::Sized
 pub fn bpfman::types::MapType::borrow_mut(&mut self) -> &mut T
 impl<T> core::convert::From<T> for bpfman::types::MapType
 pub fn bpfman::types::MapType::from(t: T) -> T
@@ -562,9 +562,9 @@ impl core::panic::unwind_safe::RefUnwindSafe for bpfman::types::ProbeType
 impl core::panic::unwind_safe::UnwindSafe for bpfman::types::ProbeType
 impl<C> jwt::token::signed::SignWithKey<alloc::string::String> for bpfman::types::ProbeType where C: jwt::ToBase64
 pub fn bpfman::types::ProbeType::sign_with_key(self, key: &impl jwt::algorithm::SigningAlgorithm) -> core::result::Result<alloc::string::String, jwt::error::Error>
-impl<Q, K> equivalent::Equivalent<K> for bpfman::types::ProbeType where Q: core::cmp::Eq + core::marker::Sized, K: core::borrow::Borrow<Q> + core::marker::Sized
+impl<Q, K> equivalent::Equivalent<K> for bpfman::types::ProbeType where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
 pub fn bpfman::types::ProbeType::equivalent(&self, key: &K) -> bool
-impl<Q, K> hashbrown::Equivalent<K> for bpfman::types::ProbeType where Q: core::cmp::Eq + core::marker::Sized, K: core::borrow::Borrow<Q> + core::marker::Sized
+impl<Q, K> hashbrown::Equivalent<K> for bpfman::types::ProbeType where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
 pub fn bpfman::types::ProbeType::equivalent(&self, key: &K) -> bool
 impl<T, U> core::convert::Into<U> for bpfman::types::ProbeType where U: core::convert::From<T>
 pub fn bpfman::types::ProbeType::into(self) -> U
@@ -578,16 +578,16 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::ProbeType where T: core::clone
 pub type bpfman::types::ProbeType::Owned = T
 pub fn bpfman::types::ProbeType::clone_into(&self, target: &mut T)
 pub fn bpfman::types::ProbeType::to_owned(&self) -> T
-impl<T> alloc::string::ToString for bpfman::types::ProbeType where T: core::fmt::Display + core::marker::Sized
+impl<T> alloc::string::ToString for bpfman::types::ProbeType where T: core::fmt::Display + ?core::marker::Sized
 pub fn bpfman::types::ProbeType::to_string(&self) -> alloc::string::String
-impl<T> core::any::Any for bpfman::types::ProbeType where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::ProbeType where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::ProbeType::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::ProbeType where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::ProbeType where T: ?core::marker::Sized
 pub fn bpfman::types::ProbeType::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::ProbeType where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::ProbeType where T: ?core::marker::Sized
 pub fn bpfman::types::ProbeType::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::ProbeType where T: core::clone::Clone
-pub unsafe fn bpfman::types::ProbeType::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::ProbeType::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::ProbeType
 pub fn bpfman::types::ProbeType::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::ProbeType
@@ -598,10 +598,10 @@ pub unsafe fn bpfman::types::ProbeType::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn bpfman::types::ProbeType::drop(ptr: usize)
 pub unsafe fn bpfman::types::ProbeType::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::ProbeType where T: core::clone::Clone
-pub fn bpfman::types::ProbeType::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::ProbeType::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::ProbeType
 impl<T> jwt::FromBase64 for bpfman::types::ProbeType where T: for<'de> serde::de::Deserialize<'de>
-pub fn bpfman::types::ProbeType::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
+pub fn bpfman::types::ProbeType::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::ProbeType where T: serde::ser::Serialize
 pub fn bpfman::types::ProbeType::to_base64(&self) -> core::result::Result<alloc::borrow::Cow<'_, str>, jwt::error::Error>
 impl<T> serde::de::DeserializeOwned for bpfman::types::ProbeType where T: for<'de> serde::de::Deserialize<'de>
@@ -647,14 +647,14 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::Program where T: core::clone::
 pub type bpfman::types::Program::Owned = T
 pub fn bpfman::types::Program::clone_into(&self, target: &mut T)
 pub fn bpfman::types::Program::to_owned(&self) -> T
-impl<T> core::any::Any for bpfman::types::Program where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::Program where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::Program::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::Program where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::Program where T: ?core::marker::Sized
 pub fn bpfman::types::Program::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::Program where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::Program where T: ?core::marker::Sized
 pub fn bpfman::types::Program::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::Program where T: core::clone::Clone
-pub unsafe fn bpfman::types::Program::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::Program::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::Program
 pub fn bpfman::types::Program::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::Program
@@ -665,7 +665,7 @@ pub unsafe fn bpfman::types::Program::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn bpfman::types::Program::drop(ptr: usize)
 pub unsafe fn bpfman::types::Program::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::Program where T: core::clone::Clone
-pub fn bpfman::types::Program::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::Program::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::Program
 impl<T> tracing::instrument::Instrument for bpfman::types::Program
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::Program
@@ -746,9 +746,9 @@ impl core::panic::unwind_safe::RefUnwindSafe for bpfman::types::ProgramType
 impl core::panic::unwind_safe::UnwindSafe for bpfman::types::ProgramType
 impl<C> jwt::token::signed::SignWithKey<alloc::string::String> for bpfman::types::ProgramType where C: jwt::ToBase64
 pub fn bpfman::types::ProgramType::sign_with_key(self, key: &impl jwt::algorithm::SigningAlgorithm) -> core::result::Result<alloc::string::String, jwt::error::Error>
-impl<Q, K> equivalent::Equivalent<K> for bpfman::types::ProgramType where Q: core::cmp::Eq + core::marker::Sized, K: core::borrow::Borrow<Q> + core::marker::Sized
+impl<Q, K> equivalent::Equivalent<K> for bpfman::types::ProgramType where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
 pub fn bpfman::types::ProgramType::equivalent(&self, key: &K) -> bool
-impl<Q, K> hashbrown::Equivalent<K> for bpfman::types::ProgramType where Q: core::cmp::Eq + core::marker::Sized, K: core::borrow::Borrow<Q> + core::marker::Sized
+impl<Q, K> hashbrown::Equivalent<K> for bpfman::types::ProgramType where Q: core::cmp::Eq + ?core::marker::Sized, K: core::borrow::Borrow<Q> + ?core::marker::Sized
 pub fn bpfman::types::ProgramType::equivalent(&self, key: &K) -> bool
 impl<T, U> core::convert::Into<U> for bpfman::types::ProgramType where U: core::convert::From<T>
 pub fn bpfman::types::ProgramType::into(self) -> U
@@ -762,16 +762,16 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::ProgramType where T: core::clo
 pub type bpfman::types::ProgramType::Owned = T
 pub fn bpfman::types::ProgramType::clone_into(&self, target: &mut T)
 pub fn bpfman::types::ProgramType::to_owned(&self) -> T
-impl<T> alloc::string::ToString for bpfman::types::ProgramType where T: core::fmt::Display + core::marker::Sized
+impl<T> alloc::string::ToString for bpfman::types::ProgramType where T: core::fmt::Display + ?core::marker::Sized
 pub fn bpfman::types::ProgramType::to_string(&self) -> alloc::string::String
-impl<T> core::any::Any for bpfman::types::ProgramType where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::ProgramType where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::ProgramType::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::ProgramType where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::ProgramType where T: ?core::marker::Sized
 pub fn bpfman::types::ProgramType::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::ProgramType where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::ProgramType where T: ?core::marker::Sized
 pub fn bpfman::types::ProgramType::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::ProgramType where T: core::clone::Clone
-pub unsafe fn bpfman::types::ProgramType::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::ProgramType::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::ProgramType
 pub fn bpfman::types::ProgramType::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::ProgramType
@@ -782,10 +782,10 @@ pub unsafe fn bpfman::types::ProgramType::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn bpfman::types::ProgramType::drop(ptr: usize)
 pub unsafe fn bpfman::types::ProgramType::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::ProgramType where T: core::clone::Clone
-pub fn bpfman::types::ProgramType::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::ProgramType::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::ProgramType
 impl<T> jwt::FromBase64 for bpfman::types::ProgramType where T: for<'de> serde::de::Deserialize<'de>
-pub fn bpfman::types::ProgramType::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
+pub fn bpfman::types::ProgramType::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::ProgramType where T: serde::ser::Serialize
 pub fn bpfman::types::ProgramType::to_base64(&self) -> core::result::Result<alloc::borrow::Cow<'_, str>, jwt::error::Error>
 impl<T> serde::de::DeserializeOwned for bpfman::types::ProgramType where T: for<'de> serde::de::Deserialize<'de>
@@ -847,16 +847,16 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::TcProceedOnEntry where T: core
 pub type bpfman::types::TcProceedOnEntry::Owned = T
 pub fn bpfman::types::TcProceedOnEntry::clone_into(&self, target: &mut T)
 pub fn bpfman::types::TcProceedOnEntry::to_owned(&self) -> T
-impl<T> alloc::string::ToString for bpfman::types::TcProceedOnEntry where T: core::fmt::Display + core::marker::Sized
+impl<T> alloc::string::ToString for bpfman::types::TcProceedOnEntry where T: core::fmt::Display + ?core::marker::Sized
 pub fn bpfman::types::TcProceedOnEntry::to_string(&self) -> alloc::string::String
-impl<T> core::any::Any for bpfman::types::TcProceedOnEntry where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::TcProceedOnEntry where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::TcProceedOnEntry::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::TcProceedOnEntry where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::TcProceedOnEntry where T: ?core::marker::Sized
 pub fn bpfman::types::TcProceedOnEntry::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::TcProceedOnEntry where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::TcProceedOnEntry where T: ?core::marker::Sized
 pub fn bpfman::types::TcProceedOnEntry::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::TcProceedOnEntry where T: core::clone::Clone
-pub unsafe fn bpfman::types::TcProceedOnEntry::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::TcProceedOnEntry::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::TcProceedOnEntry
 pub fn bpfman::types::TcProceedOnEntry::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::TcProceedOnEntry
@@ -867,10 +867,10 @@ pub unsafe fn bpfman::types::TcProceedOnEntry::deref_mut<'a>(ptr: usize) -> &'a 
 pub unsafe fn bpfman::types::TcProceedOnEntry::drop(ptr: usize)
 pub unsafe fn bpfman::types::TcProceedOnEntry::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::TcProceedOnEntry where T: core::clone::Clone
-pub fn bpfman::types::TcProceedOnEntry::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::TcProceedOnEntry::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::TcProceedOnEntry
 impl<T> jwt::FromBase64 for bpfman::types::TcProceedOnEntry where T: for<'de> serde::de::Deserialize<'de>
-pub fn bpfman::types::TcProceedOnEntry::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
+pub fn bpfman::types::TcProceedOnEntry::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::TcProceedOnEntry where T: serde::ser::Serialize
 pub fn bpfman::types::TcProceedOnEntry::to_base64(&self) -> core::result::Result<alloc::borrow::Cow<'_, str>, jwt::error::Error>
 impl<T> serde::de::DeserializeOwned for bpfman::types::TcProceedOnEntry where T: for<'de> serde::de::Deserialize<'de>
@@ -927,16 +927,16 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::XdpProceedOnEntry where T: cor
 pub type bpfman::types::XdpProceedOnEntry::Owned = T
 pub fn bpfman::types::XdpProceedOnEntry::clone_into(&self, target: &mut T)
 pub fn bpfman::types::XdpProceedOnEntry::to_owned(&self) -> T
-impl<T> alloc::string::ToString for bpfman::types::XdpProceedOnEntry where T: core::fmt::Display + core::marker::Sized
+impl<T> alloc::string::ToString for bpfman::types::XdpProceedOnEntry where T: core::fmt::Display + ?core::marker::Sized
 pub fn bpfman::types::XdpProceedOnEntry::to_string(&self) -> alloc::string::String
-impl<T> core::any::Any for bpfman::types::XdpProceedOnEntry where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::XdpProceedOnEntry where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::XdpProceedOnEntry::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::XdpProceedOnEntry where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::XdpProceedOnEntry where T: ?core::marker::Sized
 pub fn bpfman::types::XdpProceedOnEntry::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::XdpProceedOnEntry where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::XdpProceedOnEntry where T: ?core::marker::Sized
 pub fn bpfman::types::XdpProceedOnEntry::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::XdpProceedOnEntry where T: core::clone::Clone
-pub unsafe fn bpfman::types::XdpProceedOnEntry::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::XdpProceedOnEntry::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::XdpProceedOnEntry
 pub fn bpfman::types::XdpProceedOnEntry::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::XdpProceedOnEntry
@@ -947,10 +947,10 @@ pub unsafe fn bpfman::types::XdpProceedOnEntry::deref_mut<'a>(ptr: usize) -> &'a
 pub unsafe fn bpfman::types::XdpProceedOnEntry::drop(ptr: usize)
 pub unsafe fn bpfman::types::XdpProceedOnEntry::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::XdpProceedOnEntry where T: core::clone::Clone
-pub fn bpfman::types::XdpProceedOnEntry::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::XdpProceedOnEntry::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::XdpProceedOnEntry
 impl<T> jwt::FromBase64 for bpfman::types::XdpProceedOnEntry where T: for<'de> serde::de::Deserialize<'de>
-pub fn bpfman::types::XdpProceedOnEntry::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
+pub fn bpfman::types::XdpProceedOnEntry::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::XdpProceedOnEntry where T: serde::ser::Serialize
 pub fn bpfman::types::XdpProceedOnEntry::to_base64(&self) -> core::result::Result<alloc::borrow::Cow<'_, str>, jwt::error::Error>
 impl<T> serde::de::DeserializeOwned for bpfman::types::XdpProceedOnEntry where T: for<'de> serde::de::Deserialize<'de>
@@ -998,14 +998,14 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::BytecodeImage where T: core::c
 pub type bpfman::types::BytecodeImage::Owned = T
 pub fn bpfman::types::BytecodeImage::clone_into(&self, target: &mut T)
 pub fn bpfman::types::BytecodeImage::to_owned(&self) -> T
-impl<T> core::any::Any for bpfman::types::BytecodeImage where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::BytecodeImage where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::BytecodeImage::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::BytecodeImage where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::BytecodeImage where T: ?core::marker::Sized
 pub fn bpfman::types::BytecodeImage::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::BytecodeImage where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::BytecodeImage where T: ?core::marker::Sized
 pub fn bpfman::types::BytecodeImage::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::BytecodeImage where T: core::clone::Clone
-pub unsafe fn bpfman::types::BytecodeImage::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::BytecodeImage::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::BytecodeImage
 pub fn bpfman::types::BytecodeImage::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::BytecodeImage
@@ -1016,10 +1016,10 @@ pub unsafe fn bpfman::types::BytecodeImage::deref_mut<'a>(ptr: usize) -> &'a mut
 pub unsafe fn bpfman::types::BytecodeImage::drop(ptr: usize)
 pub unsafe fn bpfman::types::BytecodeImage::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::BytecodeImage where T: core::clone::Clone
-pub fn bpfman::types::BytecodeImage::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::BytecodeImage::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::BytecodeImage
 impl<T> jwt::FromBase64 for bpfman::types::BytecodeImage where T: for<'de> serde::de::Deserialize<'de>
-pub fn bpfman::types::BytecodeImage::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
+pub fn bpfman::types::BytecodeImage::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::BytecodeImage where T: serde::ser::Serialize
 pub fn bpfman::types::BytecodeImage::to_base64(&self) -> core::result::Result<alloc::borrow::Cow<'_, str>, jwt::error::Error>
 impl<T> serde::de::DeserializeOwned for bpfman::types::BytecodeImage where T: for<'de> serde::de::Deserialize<'de>
@@ -1056,14 +1056,14 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::FentryProgram where T: core::c
 pub type bpfman::types::FentryProgram::Owned = T
 pub fn bpfman::types::FentryProgram::clone_into(&self, target: &mut T)
 pub fn bpfman::types::FentryProgram::to_owned(&self) -> T
-impl<T> core::any::Any for bpfman::types::FentryProgram where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::FentryProgram where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::FentryProgram::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::FentryProgram where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::FentryProgram where T: ?core::marker::Sized
 pub fn bpfman::types::FentryProgram::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::FentryProgram where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::FentryProgram where T: ?core::marker::Sized
 pub fn bpfman::types::FentryProgram::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::FentryProgram where T: core::clone::Clone
-pub unsafe fn bpfman::types::FentryProgram::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::FentryProgram::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::FentryProgram
 pub fn bpfman::types::FentryProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::FentryProgram
@@ -1074,7 +1074,7 @@ pub unsafe fn bpfman::types::FentryProgram::deref_mut<'a>(ptr: usize) -> &'a mut
 pub unsafe fn bpfman::types::FentryProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::FentryProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::FentryProgram where T: core::clone::Clone
-pub fn bpfman::types::FentryProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::FentryProgram::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::FentryProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::FentryProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::FentryProgram
@@ -1109,14 +1109,14 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::FexitProgram where T: core::cl
 pub type bpfman::types::FexitProgram::Owned = T
 pub fn bpfman::types::FexitProgram::clone_into(&self, target: &mut T)
 pub fn bpfman::types::FexitProgram::to_owned(&self) -> T
-impl<T> core::any::Any for bpfman::types::FexitProgram where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::FexitProgram where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::FexitProgram::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::FexitProgram where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::FexitProgram where T: ?core::marker::Sized
 pub fn bpfman::types::FexitProgram::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::FexitProgram where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::FexitProgram where T: ?core::marker::Sized
 pub fn bpfman::types::FexitProgram::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::FexitProgram where T: core::clone::Clone
-pub unsafe fn bpfman::types::FexitProgram::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::FexitProgram::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::FexitProgram
 pub fn bpfman::types::FexitProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::FexitProgram
@@ -1127,7 +1127,7 @@ pub unsafe fn bpfman::types::FexitProgram::deref_mut<'a>(ptr: usize) -> &'a mut 
 pub unsafe fn bpfman::types::FexitProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::FexitProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::FexitProgram where T: core::clone::Clone
-pub fn bpfman::types::FexitProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::FexitProgram::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::FexitProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::FexitProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::FexitProgram
@@ -1165,14 +1165,14 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::KprobeProgram where T: core::c
 pub type bpfman::types::KprobeProgram::Owned = T
 pub fn bpfman::types::KprobeProgram::clone_into(&self, target: &mut T)
 pub fn bpfman::types::KprobeProgram::to_owned(&self) -> T
-impl<T> core::any::Any for bpfman::types::KprobeProgram where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::KprobeProgram where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::KprobeProgram::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::KprobeProgram where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::KprobeProgram where T: ?core::marker::Sized
 pub fn bpfman::types::KprobeProgram::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::KprobeProgram where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::KprobeProgram where T: ?core::marker::Sized
 pub fn bpfman::types::KprobeProgram::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::KprobeProgram where T: core::clone::Clone
-pub unsafe fn bpfman::types::KprobeProgram::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::KprobeProgram::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::KprobeProgram
 pub fn bpfman::types::KprobeProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::KprobeProgram
@@ -1183,7 +1183,7 @@ pub unsafe fn bpfman::types::KprobeProgram::deref_mut<'a>(ptr: usize) -> &'a mut
 pub unsafe fn bpfman::types::KprobeProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::KprobeProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::KprobeProgram where T: core::clone::Clone
-pub fn bpfman::types::KprobeProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::KprobeProgram::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::KprobeProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::KprobeProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::KprobeProgram
@@ -1219,14 +1219,14 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::ListFilter where T: core::clon
 pub type bpfman::types::ListFilter::Owned = T
 pub fn bpfman::types::ListFilter::clone_into(&self, target: &mut T)
 pub fn bpfman::types::ListFilter::to_owned(&self) -> T
-impl<T> core::any::Any for bpfman::types::ListFilter where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::ListFilter where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::ListFilter::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::ListFilter where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::ListFilter where T: ?core::marker::Sized
 pub fn bpfman::types::ListFilter::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::ListFilter where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::ListFilter where T: ?core::marker::Sized
 pub fn bpfman::types::ListFilter::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::ListFilter where T: core::clone::Clone
-pub unsafe fn bpfman::types::ListFilter::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::ListFilter::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::ListFilter
 pub fn bpfman::types::ListFilter::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::ListFilter
@@ -1237,7 +1237,7 @@ pub unsafe fn bpfman::types::ListFilter::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn bpfman::types::ListFilter::drop(ptr: usize)
 pub unsafe fn bpfman::types::ListFilter::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::ListFilter where T: core::clone::Clone
-pub fn bpfman::types::ListFilter::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::ListFilter::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::ListFilter
 impl<T> tracing::instrument::Instrument for bpfman::types::ListFilter
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::ListFilter
@@ -1292,14 +1292,14 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::ProgramData where T: core::clo
 pub type bpfman::types::ProgramData::Owned = T
 pub fn bpfman::types::ProgramData::clone_into(&self, target: &mut T)
 pub fn bpfman::types::ProgramData::to_owned(&self) -> T
-impl<T> core::any::Any for bpfman::types::ProgramData where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::ProgramData where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::ProgramData::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::ProgramData where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::ProgramData where T: ?core::marker::Sized
 pub fn bpfman::types::ProgramData::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::ProgramData where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::ProgramData where T: ?core::marker::Sized
 pub fn bpfman::types::ProgramData::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::ProgramData where T: core::clone::Clone
-pub unsafe fn bpfman::types::ProgramData::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::ProgramData::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::ProgramData
 pub fn bpfman::types::ProgramData::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::ProgramData
@@ -1310,7 +1310,7 @@ pub unsafe fn bpfman::types::ProgramData::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn bpfman::types::ProgramData::drop(ptr: usize)
 pub unsafe fn bpfman::types::ProgramData::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::ProgramData where T: core::clone::Clone
-pub fn bpfman::types::ProgramData::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::ProgramData::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::ProgramData
 impl<T> tracing::instrument::Instrument for bpfman::types::ProgramData
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::ProgramData
@@ -1360,16 +1360,16 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::TcProceedOn where T: core::clo
 pub type bpfman::types::TcProceedOn::Owned = T
 pub fn bpfman::types::TcProceedOn::clone_into(&self, target: &mut T)
 pub fn bpfman::types::TcProceedOn::to_owned(&self) -> T
-impl<T> alloc::string::ToString for bpfman::types::TcProceedOn where T: core::fmt::Display + core::marker::Sized
+impl<T> alloc::string::ToString for bpfman::types::TcProceedOn where T: core::fmt::Display + ?core::marker::Sized
 pub fn bpfman::types::TcProceedOn::to_string(&self) -> alloc::string::String
-impl<T> core::any::Any for bpfman::types::TcProceedOn where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::TcProceedOn where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::TcProceedOn::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::TcProceedOn where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::TcProceedOn where T: ?core::marker::Sized
 pub fn bpfman::types::TcProceedOn::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::TcProceedOn where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::TcProceedOn where T: ?core::marker::Sized
 pub fn bpfman::types::TcProceedOn::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::TcProceedOn where T: core::clone::Clone
-pub unsafe fn bpfman::types::TcProceedOn::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::TcProceedOn::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::TcProceedOn
 pub fn bpfman::types::TcProceedOn::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::TcProceedOn
@@ -1380,10 +1380,10 @@ pub unsafe fn bpfman::types::TcProceedOn::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn bpfman::types::TcProceedOn::drop(ptr: usize)
 pub unsafe fn bpfman::types::TcProceedOn::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::TcProceedOn where T: core::clone::Clone
-pub fn bpfman::types::TcProceedOn::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::TcProceedOn::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::TcProceedOn
 impl<T> jwt::FromBase64 for bpfman::types::TcProceedOn where T: for<'de> serde::de::Deserialize<'de>
-pub fn bpfman::types::TcProceedOn::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
+pub fn bpfman::types::TcProceedOn::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::TcProceedOn where T: serde::ser::Serialize
 pub fn bpfman::types::TcProceedOn::to_base64(&self) -> core::result::Result<alloc::borrow::Cow<'_, str>, jwt::error::Error>
 impl<T> serde::de::DeserializeOwned for bpfman::types::TcProceedOn where T: for<'de> serde::de::Deserialize<'de>
@@ -1428,14 +1428,14 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::TcProgram where T: core::clone
 pub type bpfman::types::TcProgram::Owned = T
 pub fn bpfman::types::TcProgram::clone_into(&self, target: &mut T)
 pub fn bpfman::types::TcProgram::to_owned(&self) -> T
-impl<T> core::any::Any for bpfman::types::TcProgram where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::TcProgram where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::TcProgram::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::TcProgram where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::TcProgram where T: ?core::marker::Sized
 pub fn bpfman::types::TcProgram::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::TcProgram where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::TcProgram where T: ?core::marker::Sized
 pub fn bpfman::types::TcProgram::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::TcProgram where T: core::clone::Clone
-pub unsafe fn bpfman::types::TcProgram::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::TcProgram::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::TcProgram
 pub fn bpfman::types::TcProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::TcProgram
@@ -1446,7 +1446,7 @@ pub unsafe fn bpfman::types::TcProgram::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn bpfman::types::TcProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::TcProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::TcProgram where T: core::clone::Clone
-pub fn bpfman::types::TcProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::TcProgram::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::TcProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::TcProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::TcProgram
@@ -1487,14 +1487,14 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::TcxProgram where T: core::clon
 pub type bpfman::types::TcxProgram::Owned = T
 pub fn bpfman::types::TcxProgram::clone_into(&self, target: &mut T)
 pub fn bpfman::types::TcxProgram::to_owned(&self) -> T
-impl<T> core::any::Any for bpfman::types::TcxProgram where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::TcxProgram where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::TcxProgram::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::TcxProgram where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::TcxProgram where T: ?core::marker::Sized
 pub fn bpfman::types::TcxProgram::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::TcxProgram where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::TcxProgram where T: ?core::marker::Sized
 pub fn bpfman::types::TcxProgram::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::TcxProgram where T: core::clone::Clone
-pub unsafe fn bpfman::types::TcxProgram::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::TcxProgram::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::TcxProgram
 pub fn bpfman::types::TcxProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::TcxProgram
@@ -1505,7 +1505,7 @@ pub unsafe fn bpfman::types::TcxProgram::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn bpfman::types::TcxProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::TcxProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::TcxProgram where T: core::clone::Clone
-pub fn bpfman::types::TcxProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::TcxProgram::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::TcxProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::TcxProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::TcxProgram
@@ -1540,14 +1540,14 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::TracepointProgram where T: cor
 pub type bpfman::types::TracepointProgram::Owned = T
 pub fn bpfman::types::TracepointProgram::clone_into(&self, target: &mut T)
 pub fn bpfman::types::TracepointProgram::to_owned(&self) -> T
-impl<T> core::any::Any for bpfman::types::TracepointProgram where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::TracepointProgram where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::TracepointProgram::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::TracepointProgram where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::TracepointProgram where T: ?core::marker::Sized
 pub fn bpfman::types::TracepointProgram::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::TracepointProgram where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::TracepointProgram where T: ?core::marker::Sized
 pub fn bpfman::types::TracepointProgram::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::TracepointProgram where T: core::clone::Clone
-pub unsafe fn bpfman::types::TracepointProgram::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::TracepointProgram::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::TracepointProgram
 pub fn bpfman::types::TracepointProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::TracepointProgram
@@ -1558,7 +1558,7 @@ pub unsafe fn bpfman::types::TracepointProgram::deref_mut<'a>(ptr: usize) -> &'a
 pub unsafe fn bpfman::types::TracepointProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::TracepointProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::TracepointProgram where T: core::clone::Clone
-pub fn bpfman::types::TracepointProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::TracepointProgram::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::TracepointProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::TracepointProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::TracepointProgram
@@ -1598,14 +1598,14 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::UprobeProgram where T: core::c
 pub type bpfman::types::UprobeProgram::Owned = T
 pub fn bpfman::types::UprobeProgram::clone_into(&self, target: &mut T)
 pub fn bpfman::types::UprobeProgram::to_owned(&self) -> T
-impl<T> core::any::Any for bpfman::types::UprobeProgram where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::UprobeProgram where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::UprobeProgram::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::UprobeProgram where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::UprobeProgram where T: ?core::marker::Sized
 pub fn bpfman::types::UprobeProgram::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::UprobeProgram where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::UprobeProgram where T: ?core::marker::Sized
 pub fn bpfman::types::UprobeProgram::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::UprobeProgram where T: core::clone::Clone
-pub unsafe fn bpfman::types::UprobeProgram::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::UprobeProgram::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::UprobeProgram
 pub fn bpfman::types::UprobeProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::UprobeProgram
@@ -1616,7 +1616,7 @@ pub unsafe fn bpfman::types::UprobeProgram::deref_mut<'a>(ptr: usize) -> &'a mut
 pub unsafe fn bpfman::types::UprobeProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::UprobeProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::UprobeProgram where T: core::clone::Clone
-pub fn bpfman::types::UprobeProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::UprobeProgram::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::UprobeProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::UprobeProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::UprobeProgram
@@ -1665,16 +1665,16 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::XdpProceedOn where T: core::cl
 pub type bpfman::types::XdpProceedOn::Owned = T
 pub fn bpfman::types::XdpProceedOn::clone_into(&self, target: &mut T)
 pub fn bpfman::types::XdpProceedOn::to_owned(&self) -> T
-impl<T> alloc::string::ToString for bpfman::types::XdpProceedOn where T: core::fmt::Display + core::marker::Sized
+impl<T> alloc::string::ToString for bpfman::types::XdpProceedOn where T: core::fmt::Display + ?core::marker::Sized
 pub fn bpfman::types::XdpProceedOn::to_string(&self) -> alloc::string::String
-impl<T> core::any::Any for bpfman::types::XdpProceedOn where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::XdpProceedOn where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::XdpProceedOn::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::XdpProceedOn where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::XdpProceedOn where T: ?core::marker::Sized
 pub fn bpfman::types::XdpProceedOn::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::XdpProceedOn where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::XdpProceedOn where T: ?core::marker::Sized
 pub fn bpfman::types::XdpProceedOn::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::XdpProceedOn where T: core::clone::Clone
-pub unsafe fn bpfman::types::XdpProceedOn::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::XdpProceedOn::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::XdpProceedOn
 pub fn bpfman::types::XdpProceedOn::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::XdpProceedOn
@@ -1685,10 +1685,10 @@ pub unsafe fn bpfman::types::XdpProceedOn::deref_mut<'a>(ptr: usize) -> &'a mut 
 pub unsafe fn bpfman::types::XdpProceedOn::drop(ptr: usize)
 pub unsafe fn bpfman::types::XdpProceedOn::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::XdpProceedOn where T: core::clone::Clone
-pub fn bpfman::types::XdpProceedOn::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::XdpProceedOn::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::XdpProceedOn
 impl<T> jwt::FromBase64 for bpfman::types::XdpProceedOn where T: for<'de> serde::de::Deserialize<'de>
-pub fn bpfman::types::XdpProceedOn::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + core::marker::Sized
+pub fn bpfman::types::XdpProceedOn::from_base64<Input>(raw: &Input) -> core::result::Result<T, jwt::error::Error> where Input: core::convert::AsRef<[u8]> + ?core::marker::Sized
 impl<T> jwt::ToBase64 for bpfman::types::XdpProceedOn where T: serde::ser::Serialize
 pub fn bpfman::types::XdpProceedOn::to_base64(&self) -> core::result::Result<alloc::borrow::Cow<'_, str>, jwt::error::Error>
 impl<T> serde::de::DeserializeOwned for bpfman::types::XdpProceedOn where T: for<'de> serde::de::Deserialize<'de>
@@ -1732,14 +1732,14 @@ impl<T> alloc::borrow::ToOwned for bpfman::types::XdpProgram where T: core::clon
 pub type bpfman::types::XdpProgram::Owned = T
 pub fn bpfman::types::XdpProgram::clone_into(&self, target: &mut T)
 pub fn bpfman::types::XdpProgram::to_owned(&self) -> T
-impl<T> core::any::Any for bpfman::types::XdpProgram where T: 'static + core::marker::Sized
+impl<T> core::any::Any for bpfman::types::XdpProgram where T: 'static + ?core::marker::Sized
 pub fn bpfman::types::XdpProgram::type_id(&self) -> core::any::TypeId
-impl<T> core::borrow::Borrow<T> for bpfman::types::XdpProgram where T: core::marker::Sized
+impl<T> core::borrow::Borrow<T> for bpfman::types::XdpProgram where T: ?core::marker::Sized
 pub fn bpfman::types::XdpProgram::borrow(&self) -> &T
-impl<T> core::borrow::BorrowMut<T> for bpfman::types::XdpProgram where T: core::marker::Sized
+impl<T> core::borrow::BorrowMut<T> for bpfman::types::XdpProgram where T: ?core::marker::Sized
 pub fn bpfman::types::XdpProgram::borrow_mut(&mut self) -> &mut T
 impl<T> core::clone::CloneToUninit for bpfman::types::XdpProgram where T: core::clone::Clone
-pub unsafe fn bpfman::types::XdpProgram::clone_to_uninit(&self, dst: *mut T)
+pub unsafe fn bpfman::types::XdpProgram::clone_to_uninit(&self, dst: *mut u8)
 impl<T> core::convert::From<T> for bpfman::types::XdpProgram
 pub fn bpfman::types::XdpProgram::from(t: T) -> T
 impl<T> crossbeam_epoch::atomic::Pointable for bpfman::types::XdpProgram
@@ -1750,7 +1750,7 @@ pub unsafe fn bpfman::types::XdpProgram::deref_mut<'a>(ptr: usize) -> &'a mut T
 pub unsafe fn bpfman::types::XdpProgram::drop(ptr: usize)
 pub unsafe fn bpfman::types::XdpProgram::init(init: <T as crossbeam_epoch::atomic::Pointable>::Init) -> usize
 impl<T> dyn_clone::DynClone for bpfman::types::XdpProgram where T: core::clone::Clone
-pub fn bpfman::types::XdpProgram::__clone_box(&self, dyn_clone::sealed::Private) -> *mut ()
+pub fn bpfman::types::XdpProgram::__clone_box(&self, _: dyn_clone::sealed::Private) -> *mut ()
 impl<T> icu_provider::any::MaybeSendSync for bpfman::types::XdpProgram
 impl<T> tracing::instrument::Instrument for bpfman::types::XdpProgram
 impl<T> tracing::instrument::WithSubscriber for bpfman::types::XdpProgram

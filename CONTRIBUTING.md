@@ -176,16 +176,60 @@ When you submit your pull request, or you push new commits to it, our automated
 systems will run some checks on your new code. We require that your pull request
 passes these checks, but we also have more criteria than just that before we can
 accept and merge it. We recommend that you check the following things locally
-before you submit your code:
+before you submit your code.
+
+### bpfman Pinned Rust Toolchain
+
+bpfman is coded in Rust and uses the latest `nightly` Rust toolchain for some of
+the tools.
+There are periods where the Rust toolchain may be pinned to a fixed version due to
+tool issues.
+Examine
+[bpfman/.github/workflows/build.yml](https://github.com/bpfman/bpfman/blob/main/.github/workflows/build.yml)
+and find `NIGHTLY_VERSION` to determine if the nightly toolchain is currently pinned.
+
+* Example of using latest toolchain: `NIGHTLY_VERSION: nightly`
+* Example of using pinned toolchain: `NIGHTLY_VERSION: nightly-2024-09-24`
+
+If the toolchain is pinned, use the following to install a pinned toolchain then show all the
+installed toolchains:
+
+```console
+rustup toolchain install nightly-2024-09-24
+
+rustup show -v
+```
+
+Then replace `+nightly` in the commands below with the pinned toolchain
+`+nightly-2024-09-24`.
+
+### bpfman Checklist
+
+Before submitting a pull request to the bpfman repository, verify the following:
 
 * Verify that Rust code has been formatted and that all clippy lints have been fixed:
-* Verify that Go code has been formatted and linted
-* Verify that Yaml files have been formatted (see
-  [Install Yaml Formatter](https://bpfman.io/main/getting-started/building-bpfman/#install-yaml-formatter))
-* Verify that Bash scripts have been linted using `shellcheck`
 
     ```console
     cd bpfman/
+    cargo +nightly clippy --all -- --deny warnings
+    ```
+
+* Verify that the code has been formatted and linted:
+
+    ```console
+    cargo +nightly fmt --all -- --check
+    ```
+
+* Verify that Yaml files have been formatted (see
+  [Install Yaml Formatter](https://bpfman.io/main/getting-started/building-bpfman/#install-yaml-formatter))
+
+    ```console
+    prettier -l "*.yaml"
+    ```
+
+* Verify that Bash scripts have been linted using `shellcheck`
+
+    ```console
     cargo xtask lint
     ```
 
@@ -193,7 +237,6 @@ before you submit your code:
   [Unit Testing](https://bpfman.io/main/developer-guide/testing/#unit-testing)):
 
     ```console
-    cd bpfman/
     cargo xtask unit-test
     ```
 
@@ -205,7 +248,6 @@ before you submit your code:
   are verified against latest.
 
     ```console
-    cd bpfman/
     rustup update nightly
     cargo +nightly xtask public-api --bless
     ```
@@ -214,9 +256,10 @@ before you submit your code:
   [Basic Integration Tests](https://bpfman.io/main/developer-guide/testing/#basic-integration-tests)):
 
     ```console
-    cd bpfman/
     cargo xtask integration-test
     ```
+
+### bpfman-operator Checklist
 
 * If developing the bpfman-operator, verify that bpfman-operator unit and integration tests
   are passing locally:
