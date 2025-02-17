@@ -1,0 +1,2798 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../../governance/REVIEWING/">
+      
+      
+        <link rel="next" href="../api-spec/">
+      
+      
+      <link rel="icon" href="../../img/icon/color/bpfman-icon-color.svg">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.11">
+    
+    
+      
+        <title>Developing the bpfman-operator - bpfman</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.fad675c6.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.356b1318.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="indigo">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#developing-the-bpfman-operator" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="bpfman" class="md-header__button md-logo" aria-label="bpfman" data-md-component="logo">
+      
+  <img src="../../img/icon/color/bpfman-icon-color.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            bpfman
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Developing the bpfman-operator
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3 3.19.09m3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95 2.06.05m-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5c-.84 0-1.65.15-2.39.42L12 2M3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29L3.34 7m.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14L3.36 17M20.65 7l-1.77 3.79a7.023 7.023 0 0 0-2.38-4.15l4.15.36m-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29L20.64 17M12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44L12 22Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bpfman/bpfman" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+    
+  
+  Introduction
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../quick-start/" class="md-tabs__link">
+        
+  
+    
+  
+  Quick Start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/overview/" class="md-tabs__link">
+          
+  
+    
+  
+  User Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../governance/CONTRIBUTING/" class="md-tabs__link">
+          
+  
+    
+  
+  Developer Documentation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../design/daemonless/" class="md-tabs__link">
+          
+  
+    
+  
+  Design
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../blog/" class="md-tabs__link">
+          
+  
+    
+  
+  Blog
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../governance/MEETINGS/" class="md-tabs__link">
+          
+  
+    
+  
+  Community
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="bpfman" class="md-nav__button md-logo" aria-label="bpfman" data-md-component="logo">
+      
+  <img src="../../img/icon/color/bpfman-icon-color.svg" alt="logo">
+
+    </a>
+    bpfman
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bpfman/bpfman" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quick-start/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Quick Start
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    User Documentation
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            User Documentation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/building-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Setup and Building
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/launching-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Launching bpfman
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/example-bpf-local/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying Example eBPF Programs On Local Host
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/operator-quick-start/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying the bpfman-operator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/example-bpf-k8s/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying Example eBPF Programs On Kubernetes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/running-release/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Run bpfman From Release Image
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/running-rpm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Run bpfman From RPM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/cli-guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CLI Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/example-bpf/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Example eBPF Programs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/troubleshooting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Troubleshooting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Developer Documentation
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Developer Documentation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/CONTRIBUTING/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Contributing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/REVIEWING/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Reviewing Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Developing the bpfman-operator
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Developing the bpfman-operator
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#high-level-design-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      High level design overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-and-deploying" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building and Deploying
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building and Deploying">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#project-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      Project Layout
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rpc-protobuf-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      RPC Protobuf Generation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generated-files-and-adding-new-program-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      Generated Files and Adding New Program Type
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-locally-in-kind" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running Locally in KIND
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing Locally
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploy-to-existing-cluster" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deploy To Existing Cluster
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Deploy To Existing Cluster">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#operatorhub" class="md-nav__link">
+    <span class="md-ellipsis">
+      OperatorHub
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="OperatorHub">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#operatorhubio" class="md-nav__link">
+    <span class="md-ellipsis">
+      OperatorHub.io
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#operatorhub-via-openshift-console" class="md-nav__link">
+    <span class="md-ellipsis">
+      OperatorHub via OpenShift Console
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-openshift-console-operatorhub-bundle" class="md-nav__link">
+    <span class="md-ellipsis">
+      Custom OpenShift Console OperatorHub Bundle
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manually-with-kustomize" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manually with Kustomize
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manually-with-olm-bundle" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manually with OLM Bundle
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verify-the-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Verify the Installation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bpfman-agent-profiling" class="md-nav__link">
+    <span class="md-ellipsis">
+      bpfman-agent Profiling
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metricshealth-port-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Metrics/Health port issues
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-spec/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Kubernetes CRD API-Reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../shipping-bytecode/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    eBPF Bytecode Image Specifications
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../image-build/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman Container Images
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../documentation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Documentation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../linux-capabilities/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Linux Capabilities
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../observability/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Observability
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Logging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Testing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../debugging/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Debugging
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../release/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Releasing
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../xdp-overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    XDP Tutorial
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../k8s-selinux-distros/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Running the Examples as Non-Root on SELinux Distributions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Design
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            Design
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/daemonless/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Daemonless
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../design/clusterVsNamespaceScoped/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman CRDs - Cluster vs Namespace Scoped
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../blog/" class="md-nav__link ">
+              
+  
+  <span class="md-ellipsis">
+    Blog
+  </span>
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            Blog
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Archive
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            Archive
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/archive/2024/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2024
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/archive/2023/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2023
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Categories
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            Categories
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/category/community-meeting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Community Meeting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../blog/category/2024/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    2024
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    Community
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            Community
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/MEETINGS/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Meetings
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/GOVERNANCE/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Governance
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/CODE_OF_CONDUCT/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Code of Conduct
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/MAINTAINERS/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Maintainers
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/SECURITY/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Security
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#high-level-design-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      High level design overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-and-deploying" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building and Deploying
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building and Deploying">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#project-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      Project Layout
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rpc-protobuf-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      RPC Protobuf Generation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generated-files-and-adding-new-program-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      Generated Files and Adding New Program Type
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building" class="md-nav__link">
+    <span class="md-ellipsis">
+      Building
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-locally-in-kind" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running Locally in KIND
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#testing-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      Testing Locally
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploy-to-existing-cluster" class="md-nav__link">
+    <span class="md-ellipsis">
+      Deploy To Existing Cluster
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Deploy To Existing Cluster">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#operatorhub" class="md-nav__link">
+    <span class="md-ellipsis">
+      OperatorHub
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="OperatorHub">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#operatorhubio" class="md-nav__link">
+    <span class="md-ellipsis">
+      OperatorHub.io
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#operatorhub-via-openshift-console" class="md-nav__link">
+    <span class="md-ellipsis">
+      OperatorHub via OpenShift Console
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-openshift-console-operatorhub-bundle" class="md-nav__link">
+    <span class="md-ellipsis">
+      Custom OpenShift Console OperatorHub Bundle
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manually-with-kustomize" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manually with Kustomize
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manually-with-olm-bundle" class="md-nav__link">
+    <span class="md-ellipsis">
+      Manually with OLM Bundle
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verify-the-installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Verify the Installation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bpfman-agent-profiling" class="md-nav__link">
+    <span class="md-ellipsis">
+      bpfman-agent Profiling
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metricshealth-port-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      Metrics/Health port issues
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+<h1 id="developing-the-bpfman-operator">Developing the bpfman-operator</h1>
+<p>This section is intended to give developer level details regarding the layout and design of the bpfman-operator.
+At its core the operator was implemented using the <a href="https://sdk.operatorframework.io/">operator-sdk framework</a>,
+which make those docs another good resource if anything is missed here.</p>
+<h2 id="high-level-design-overview">High level design overview</h2>
+<p>This repository houses two main processes, the <code>bpfman-agent</code> and the <code>bpfman-operator</code>, along with CRD api definitions
+for <code>BpfProgram</code> and <code>*Program</code> Objects.
+The following diagram depicts how all these components work together to create a functioning operator.</p>
+<p><img alt="bpfman on K8s" src="../../img/bpfman-on-k8s.png" /></p>
+<p>The <code>bpfman-operator</code> is running as a Deployment with a ReplicaSet of one.
+It runs on the control plane and is composed of the containers <code>bpfman-operator</code> and
+<code>kube-rbac-proxy</code>.
+The operator is responsible for launching the bpfman Daemonset, which runs on every node.
+The bpfman Daemonset is composed of the containers <code>bpfman</code>, <code>bpfman-agent</code>, and <code>node-driver-registrar</code>.</p>
+<h2 id="building-and-deploying">Building and Deploying</h2>
+<p>For building and deploying the bpfman-operator, simply see the attached <code>make help</code>
+output.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>$<span class="w"> </span>make<span class="w"> </span><span class="nb">help</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>Usage:
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span>make<span class="w"> </span>&lt;target&gt;
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>General
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="nb">help</span><span class="w">             </span>Display<span class="w"> </span>this<span class="w"> </span>help.
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>Local<span class="w"> </span>Dependencies
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span>kustomize<span class="w">        </span>Download<span class="w"> </span>kustomize<span class="w"> </span>locally<span class="w"> </span><span class="k">if</span><span class="w"> </span>necessary.
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">  </span>controller-gen<span class="w">   </span>Download<span class="w"> </span>controller-gen<span class="w"> </span>locally<span class="w"> </span><span class="k">if</span><span class="w"> </span>necessary.
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span>register-gen<span class="w">     </span>Download<span class="w"> </span>register-gen<span class="w"> </span>locally<span class="w"> </span><span class="k">if</span><span class="w"> </span>necessary.
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span>informer-gen<span class="w">     </span>Download<span class="w"> </span>informer-gen<span class="w"> </span>locally<span class="w"> </span><span class="k">if</span><span class="w"> </span>necessary.
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="w">  </span>lister-gen<span class="w">       </span>Download<span class="w"> </span>lister-gen<span class="w"> </span>locally<span class="w"> </span><span class="k">if</span><span class="w"> </span>necessary.
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span>client-gen<span class="w">       </span>Download<span class="w"> </span>client-gen<span class="w"> </span>locally<span class="w"> </span><span class="k">if</span><span class="w"> </span>necessary.
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="w">  </span>envtest<span class="w">          </span>Download<span class="w"> </span>envtest-setup<span class="w"> </span>locally<span class="w"> </span><span class="k">if</span><span class="w"> </span>necessary.
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="w">  </span>opm<span class="w">              </span>Download<span class="w"> </span>opm<span class="w"> </span>locally<span class="w"> </span><span class="k">if</span><span class="w"> </span>necessary.
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>Development
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="w">  </span>manifests<span class="w">        </span>Generate<span class="w"> </span>WebhookConfiguration,<span class="w"> </span>ClusterRole<span class="w"> </span>and<span class="w"> </span>CustomResourceDefinition<span class="w"> </span>objects.
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="w">  </span>generate<span class="w">         </span>Generate<span class="w"> </span>ALL<span class="w"> </span>auto-generated<span class="w"> </span>code.
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="w">  </span>generate-register<span class="w">  </span>Generate<span class="w"> </span>register<span class="w"> </span>code<span class="w"> </span>see<span class="w"> </span>all<span class="w"> </span><span class="sb">`</span>zz_generated.register.go<span class="sb">`</span><span class="w"> </span>files.
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="w">  </span>generate-deepcopy<span class="w">  </span>Generate<span class="w"> </span>code<span class="w"> </span>containing<span class="w"> </span>DeepCopy,<span class="w"> </span>DeepCopyInto,<span class="w"> </span>and<span class="w"> </span>DeepCopyObject<span class="w"> </span>method<span class="w"> </span>implementations<span class="w"> </span>see<span class="w"> </span>all<span class="w"> </span><span class="sb">`</span>zz_generated.register.go<span class="sb">`</span><span class="w"> </span>files.
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="w">  </span>generate-typed-clients<span class="w">  </span>Generate<span class="w"> </span>typed<span class="w"> </span>client<span class="w"> </span>code
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="w">  </span>generate-typed-listers<span class="w">  </span>Generate<span class="w"> </span>typed<span class="w"> </span>listers<span class="w"> </span>code
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="w">  </span>generate-typed-informers<span class="w">  </span>Generate<span class="w"> </span>typed<span class="w"> </span>informers<span class="w"> </span>code
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="w">  </span>vendors<span class="w">          </span>Refresh<span class="w"> </span>vendors<span class="w"> </span>directory.
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="w">  </span>fmt<span class="w">              </span>Run<span class="w"> </span>go<span class="w"> </span>fmt<span class="w"> </span>against<span class="w"> </span>code.
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="w">  </span>verify<span class="w">           </span>Verify<span class="w"> </span>all<span class="w"> </span>the<span class="w"> </span>autogenerated<span class="w"> </span>code
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="w">  </span>lint<span class="w">             </span>Run<span class="w"> </span>linter<span class="w"> </span><span class="o">(</span>golangci-lint<span class="o">)</span>.
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="w">  </span><span class="nb">test</span><span class="w">             </span>Run<span class="w"> </span>Unit<span class="w"> </span>tests.
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="w">  </span>test-integration<span class="w">  </span>Run<span class="w"> </span>Integration<span class="w"> </span>tests.
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a><span class="w">  </span>bundle<span class="w">           </span>Generate<span class="w"> </span>bundle<span class="w"> </span>manifests<span class="w"> </span>and<span class="w"> </span>metadata,<span class="w"> </span><span class="k">then</span><span class="w"> </span>validate<span class="w"> </span>generated<span class="w"> </span>files.
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a><span class="w">  </span>build-release-yamls<span class="w">  </span>Generate<span class="w"> </span>the<span class="w"> </span>crd<span class="w"> </span>install<span class="w"> </span>bundle<span class="w"> </span><span class="k">for</span><span class="w"> </span>a<span class="w"> </span>specific<span class="w"> </span>release<span class="w"> </span>version.
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>Build
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a><span class="w">  </span>build<span class="w">            </span>Build<span class="w"> </span>bpfman-operator<span class="w"> </span>and<span class="w"> </span>bpfman-agent<span class="w"> </span>binaries.
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="w">  </span>build-images<span class="w">     </span>Build<span class="w"> </span>bpfman-agent<span class="w"> </span>and<span class="w"> </span>bpfman-operator<span class="w"> </span>images.
+<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a><span class="w">  </span>build-operator-image<span class="w">  </span>Build<span class="w"> </span>bpfman-operator<span class="w"> </span>image.
+<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a><span class="w">  </span>build-agent-image<span class="w">  </span>Build<span class="w"> </span>bpfman-agent<span class="w"> </span>image.
+<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a><span class="w">  </span>push-images<span class="w">      </span>Push<span class="w"> </span>bpfman-agent<span class="w"> </span>and<span class="w"> </span>bpfman-operator<span class="w"> </span>images.
+<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a><span class="w">  </span>load-images-kind<span class="w">  </span>Load<span class="w"> </span>bpfman-agent,<span class="w"> </span>and<span class="w"> </span>bpfman-operator<span class="w"> </span>images<span class="w"> </span>into<span class="w"> </span>the<span class="w"> </span>running<span class="w"> </span><span class="nb">local</span><span class="w"> </span>kind<span class="w"> </span>devel<span class="w"> </span>cluster.
+<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a><span class="w">  </span>bundle-build<span class="w">     </span>Build<span class="w"> </span>the<span class="w"> </span>bundle<span class="w"> </span>image.
+<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a><span class="w">  </span>bundle-push<span class="w">      </span>Push<span class="w"> </span>the<span class="w"> </span>bundle<span class="w"> </span>image.
+<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a><span class="w">  </span>catalog-build<span class="w">    </span>Build<span class="w"> </span>a<span class="w"> </span>catalog<span class="w"> </span>image.
+<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a><span class="w">  </span>catalog-push<span class="w">     </span>Push<span class="w"> </span>a<span class="w"> </span>catalog<span class="w"> </span>image.
+<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>
+<a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>CRD<span class="w"> </span>Deployment
+<a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a><span class="w">  </span>install<span class="w">          </span>Install<span class="w"> </span>CRDs<span class="w"> </span>into<span class="w"> </span>the<span class="w"> </span>K8s<span class="w"> </span>cluster<span class="w"> </span>specified<span class="w"> </span><span class="k">in</span><span class="w"> </span>~/.kube/config.
+<a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a><span class="w">  </span>uninstall<span class="w">        </span>Uninstall<span class="w"> </span>CRDs<span class="w"> </span>from<span class="w"> </span>the<span class="w"> </span>K8s<span class="w"> </span>cluster<span class="w"> </span>specified<span class="w"> </span><span class="k">in</span><span class="w"> </span>~/.kube/config.<span class="w"> </span>Call<span class="w"> </span>with<span class="w"> </span>ignore-not-found<span class="o">=</span><span class="nb">true</span><span class="w"> </span>to<span class="w"> </span>ignore<span class="w"> </span>resource<span class="w"> </span>not<span class="w"> </span>found<span class="w"> </span>errors<span class="w"> </span>during<span class="w"> </span>deletion.
+<a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a>
+<a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a>Vanilla<span class="w"> </span>K8s<span class="w"> </span>Deployment
+<a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a><span class="w">  </span>setup-kind<span class="w">       </span>Setup<span class="w"> </span>Kind<span class="w"> </span>cluster
+<a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a><span class="w">  </span>destroy-kind<span class="w">     </span>Destroy<span class="w"> </span>Kind<span class="w"> </span>cluster
+<a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a><span class="w">  </span>deploy<span class="w">           </span>Deploy<span class="w"> </span>bpfman-operator<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>K8s<span class="w"> </span>cluster<span class="w"> </span>specified<span class="w"> </span><span class="k">in</span><span class="w"> </span>~/.kube/config<span class="w"> </span>with<span class="w"> </span>the<span class="w"> </span>csi<span class="w"> </span>driver<span class="w"> </span>initialized.
+<a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a><span class="w">  </span>undeploy<span class="w">         </span>Undeploy<span class="w"> </span>bpfman-operator<span class="w"> </span>from<span class="w"> </span>the<span class="w"> </span>K8s<span class="w"> </span>cluster<span class="w"> </span>specified<span class="w"> </span><span class="k">in</span><span class="w"> </span>~/.kube/config.<span class="w"> </span>Call<span class="w"> </span>with<span class="w"> </span>ignore-not-found<span class="o">=</span><span class="nb">true</span><span class="w"> </span>to<span class="w"> </span>ignore<span class="w"> </span>resource<span class="w"> </span>not<span class="w"> </span>found<span class="w"> </span>errors<span class="w"> </span>during<span class="w"> </span>deletion.
+<a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a><span class="w">  </span>kind-reload-images<span class="w">  </span>Reload<span class="w"> </span>locally<span class="w"> </span>build<span class="w"> </span>images<span class="w"> </span>into<span class="w"> </span>a<span class="w"> </span>kind<span class="w"> </span>cluster<span class="w"> </span>and<span class="w"> </span>restart<span class="w"> </span>the<span class="w"> </span>ds<span class="w"> </span>and<span class="w"> </span>deployment<span class="w"> </span>so<span class="w"> </span>they<span class="err">&#39;</span>re<span class="w"> </span>picked<span class="w"> </span>up.
+<a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a><span class="w">  </span>run-on-kind<span class="w">      </span>Kind<span class="w"> </span>Deploy<span class="w"> </span>runs<span class="w"> </span>the<span class="w"> </span>bpfman-operator<span class="w"> </span>on<span class="w"> </span>a<span class="w"> </span><span class="nb">local</span><span class="w"> </span>kind<span class="w"> </span>cluster<span class="w"> </span>using<span class="w"> </span><span class="nb">local</span><span class="w"> </span>builds<span class="w"> </span>of<span class="w"> </span>bpfman,<span class="w"> </span>bpfman-agent,<span class="w"> </span>and<span class="w"> </span>bpfman-operator
+<a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a>
+<a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a>Openshift<span class="w"> </span>Deployment
+<a id="__codelineno-0-61" name="__codelineno-0-61" href="#__codelineno-0-61"></a><span class="w">  </span>deploy-openshift<span class="w">  </span>Deploy<span class="w"> </span>bpfman-operator<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>Openshift<span class="w"> </span>cluster<span class="w"> </span>specified<span class="w"> </span><span class="k">in</span><span class="w"> </span>~/.kube/config.
+<a id="__codelineno-0-62" name="__codelineno-0-62" href="#__codelineno-0-62"></a><span class="w">  </span>undeploy-openshift<span class="w">  </span>Undeploy<span class="w"> </span>bpfman-operator<span class="w"> </span>from<span class="w"> </span>the<span class="w"> </span>Openshift<span class="w"> </span>cluster<span class="w"> </span>specified<span class="w"> </span><span class="k">in</span><span class="w"> </span>~/.kube/config.<span class="w"> </span>Call<span class="w"> </span>with<span class="w"> </span>ignore-not-found<span class="o">=</span><span class="nb">true</span><span class="w"> </span>to<span class="w"> </span>ignore<span class="w"> </span>resource<span class="w"> </span>not<span class="w"> </span>found<span class="w"> </span>errors<span class="w"> </span>during<span class="w"> </span>deletion.
+<a id="__codelineno-0-63" name="__codelineno-0-63" href="#__codelineno-0-63"></a><span class="w">  </span>catalog-deploy<span class="w">   </span>Deploy<span class="w"> </span>a<span class="w"> </span>catalog<span class="w"> </span>image.
+<a id="__codelineno-0-64" name="__codelineno-0-64" href="#__codelineno-0-64"></a><span class="w">  </span>catalog-undeploy<span class="w">  </span>Undeploy<span class="w"> </span>a<span class="w"> </span>catalog<span class="w"> </span>image.
+</code></pre></div>
+<h3 id="project-layout">Project Layout</h3>
+<p>The bpfman-operator project layout is guided by the recommendations from both the
+<a href="https://sdk.operatorframework.io/docs/building-operators/golang/tutorial/#project-layout">operator-sdk framework</a>
+and the <a href="https://github.com/golang-standards/project-layout">standard golang project-layout</a>.
+The following is a brief description of the main directories under <code>bpfman-operator/</code> and their contents.</p>
+<p><strong>NOTE: Bolded directories contain auto-generated code</strong></p>
+<ul>
+<li><code>apis/v1alpha1/*_types.go</code>: Contains the K8s CRD api definitions (<code>*_types.go</code>) for each program type.</li>
+<li><strong>apis/v1alpha1/zz_generated.*.go</strong>: Contains the auto-generated register (<code>zz_generate.register.go</code>)
+  and deep copy (<code>zz_generated.deepcopy.go</code>) methods.</li>
+<li><strong>bundle/</strong>: Contains the bundle manifests and metadata for the operator.
+  More details can be found in the operator-sdk documentation.</li>
+<li><code>cmd/</code>: Contains the main entry-points for the bpfman-operator and bpfman-agent processes.</li>
+<li><code>config/</code>: Contains the configuration files for launching the bpfman-operator on a cluster.<ul>
+<li><code>bpfman-deployment/</code>: Contains static deployment yamls for the bpfman-daemon.
+  This includes two containers, one for <code>bpfman</code> and the other for the <code>bpfman-agent</code>.
+  This DaemonSet yaml is NOT deployed statically by kustomize, instead it's statically copied into the operator
+  image which is then responsible for deploying and configuring the bpfman-daemon DaemonSet.
+  Lastly, this directory also contains the default config used to configure the bpfman-daemon, along with the
+  cert-manager certificates used to encrypt communication between the bpfman-agent and bpfman.</li>
+<li><code>bpfman-operator-deployment/</code>: Contains the static deployment yaml for the bpfman-operator.
+  This is deployed statically by kustomize.</li>
+<li><code>crd/</code>: Contains the CRD manifests for all of the bpfman-operator APIs.<ul>
+<li><strong>bases/</strong>: This is where the actual CRD definitions are stored.
+  These definitions are auto-generated by <a href="https://book.kubebuilder.io/reference/controller-gen.html">controller-gen</a>.</li>
+<li><code>patches/</code>: Contains kustomize patch files for each Program Type, which enables a conversion webhook for
+   the CRD and adds a directive for certmanager to inject CA into the CRD.</li>
+</ul>
+</li>
+<li><code>default/</code>: Contains the default deployment configuration for the bpfman-operator.</li>
+<li><code>manifests/</code>: Contains the bases for generating OLM manifests.</li>
+<li><code>openshift/</code>: Contains the Openshift specific deployment configuration for the bpfman-operator.</li>
+<li><code>prometheus/</code>: Contains the prometheus manifests used to deploy Prometheus to a cluster.
+  At the time of writing this the bpfman-operator is NOT exposing any metrics to prometheus, but this is a future goal.</li>
+<li><strong>rbac/</strong>: Contains RBAC yamls for getting bpfman and the bpfman-operator up and running on Kubernetes.<ul>
+<li><strong>bpfman-agent/</strong>: Contains the RBAC yamls for the bpfman-agent.
+They are automatically generated by kubebuilder via build tags in the bpfman-agent controller code.</li>
+<li><strong>bpfman-operator/</strong>: Contains the RBAC yamls for the bpfman-operator.
+They are automatically generated by kubebuilder via build tags in the bpfman-operator controller code.</li>
+</ul>
+</li>
+<li><code>samples/</code>: Contains CRD samples that can be deployed by users for each of our supported APIs.</li>
+<li><code>scorecard/</code>: Contains the scorecard manifests used to deploy scorecard to a cluster. At the time of writing
+  this the bpfman-operator is NOT running any scorecard tests.</li>
+<li><code>test/</code>: Contains the test manifests used to deploy the bpfman-operator to a kind cluster for integration testing.</li>
+</ul>
+</li>
+<li><code>controllers/</code>: Contains the controller implementations for all of the bpfman-operator APIs.
+  Each controller is responsible for reconciling the state of the cluster with the desired state defined by the user.
+  This is where the source of truth for the auto-generated RBAC can be found, keep an eye out for
+  <code>//+kubebuilder:rbac:groups=bpfman.io</code> comment tags.<ul>
+<li><code>bpfmanagent/</code>: Contains the controller implementations which reconcile user created <code>*Program</code> types to multiple
+  <code>BpfProgram</code> objects.</li>
+<li><code>bpfmanoperator/</code>: Contains the controller implementations which reconcile global <code>BpfProgram</code> object state back to
+  the user by ensuring the user created <code>*Program</code> objects are reporting the correct status.</li>
+</ul>
+</li>
+<li><code>hack/</code>: Contains any scripts+static files used by the bpfman-operator to facilitate development.</li>
+<li><code>internal/</code>: Contains all private library code and is used by the bpfman-operator and bpfman-agent controllers.</li>
+<li><code>pkg/</code>: Contains all public library code this is consumed externally and internally.<ul>
+<li><strong>client/</strong>: Contains the autogenerated clientset, informers and listers for all of the bpfman-operator APIs.
+  These are autogenerated by the <a href="https://github.com/kubernetes/code-generator">k8s.io/code-generator project</a>,
+  and can be consumed by users wishing to programmatically interact with bpfman specific APIs.</li>
+<li><code>helpers/</code>: Contains helper functions which can be consumed by users wishing to programmatically interact with
+  bpfman specific APIs.</li>
+</ul>
+</li>
+<li><code>test/integration/</code>: Contains integration tests for the bpfman-operator.
+  These tests are run against a kind cluster and are responsible for testing the bpfman-operator in a real cluster
+  environment.
+  It uses the <a href="https://github.com/Kong/kubernetes-testing-framework">kubernetes-testing-framework project</a> to
+  programmatically spin-up all of the required infrastructure for our unit tests.</li>
+<li><code>Makefile</code>: Contains all of the make targets used to build, test, and generate code used by the bpfman-operator.</li>
+</ul>
+<h3 id="rpc-protobuf-generation">RPC Protobuf Generation</h3>
+<p>Technically part of the <code>bpfman</code> API, the RPC Protobufs are usually not coded until a bpfman feature is
+integrated into the <code>bpfman-operator</code> and <code>bpfman-agent</code> code.
+To modify the RPC Protobuf definition, edit
+<a href="https://github.com/bpfman/bpfman/blob/main/proto/bpfman.proto">proto/bpfman.proto</a>.
+Then to generate the protobufs from the updated RPC Protobuf definitions:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman/
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cargo<span class="w"> </span>xtask<span class="w"> </span>build-proto
+</code></pre></div>
+<p>This will generate:</p>
+<ul>
+<li><strong>bpfman-api/src/bpfman.v1.rs</strong>: Generated Rust Protobuf source code.</li>
+<li><strong>clients/gobpfman/v1/</strong>: Directory that contains the generated Go Client code for interacting
+  with bpfman over RPC from a Go application.</li>
+</ul>
+<p>When editing 
+<a href="https://github.com/bpfman/bpfman/blob/main/proto/bpfman.proto">proto/bpfman.proto</a>,
+follow best practices describe in
+<a href="https://protobuf.dev/programming-guides/dos-donts/">Proto Best Practices</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>cargo xtask build-proto</code> also pulls in 
+<a href="https://github.com/bpfman/bpfman/blob/main/proto/csi.proto">proto/csi.proto</a> (which is in the
+same directory as
+<a href="https://github.com/bpfman/bpfman/blob/main/proto/bpfman.proto">proto/bpfman.proto</a>).
+<a href="https://github.com/bpfman/bpfman/blob/main/proto/csi.proto">proto/csi.proto</a> is taken from
+<a href="https://github.com/container-storage-interface/spec/blob/master/csi.proto">container-storage-interface/spec/csi.proto</a>.
+See <a href="https://github.com/container-storage-interface/spec/blob/master/spec.md">container-storage-interface/spec/spec.md</a>
+for more details.</p>
+</div>
+<h3 id="generated-files-and-adding-new-program-type">Generated Files and Adding New Program Type</h3>
+<p>The <a href="https://sdk.operatorframework.io/docs/building-operators/golang/tutorial/#project-layout">operator-sdk framework</a>
+will generate multiple categories of files (Custom Resource Definitions (CRD), RBAC Role and ClusterRole, Webhook Configuration,
+typed client, listeners and informers code, etc).
+When adding a new Program Type or if any of these files are modified, then the auto-generated files must be regenerated:</p>
+<ul>
+<li><a href="https://github.com/bpfman/bpfman-operator/tree/main/apis/v1alpha1">bpfman-operator/apis/v1alpha1/*_types.go</a>:
+  Contains the K8s CRD api definitions (<code>*_types.go</code>) for each program type.
+  When adding a new Program Type, add a file here for the new type.</li>
+<li><a href="https://github.com/bpfman/bpfman-operator/blob/main/config/crd/kustomization.yaml">bpfman-operator/config/crd/kustomization.yaml</a>:
+  This file specifies the output location for the generated yaml files that define the Custom Resource
+  Definitions (CRDs).
+  This file must be updated when a new CRD needs to be generated.</li>
+<li><a href="https://github.com/bpfman/bpfman-operator/tree/main/config/crd/patches">bpfman-operator/config/crd/patches/</a>:
+  There is a <code>cainjection_in_*programs.yaml</code> and <code>webhook_in_*programs.yaml</code> file for each Program Type
+  in this directory.
+  When adding a new Program Type, add files here for the new type.</li>
+<li><a href="https://github.com/bpfman/bpfman-operator/blob/main/config/manifests/bases/bpfman-operator.clusterserviceversion.yaml">bpfman-operator/config/manifests/bases/bpfman-operator.clusterserviceversion.yaml</a>:
+  This file has a list of bpfman Custom Resource Definitions.
+  When adding a new Program Type, an entry for the new type must be added to this file.</li>
+<li><a href="https://github.com/bpfman/bpfman-operator/blob/main/config/manifests/bases/bpfman-operator.clusterserviceversion.yaml">bpfman-operator/config/samples/bpfman.io_v1alpha1_*_*program.yaml</a>:
+  Contains a sample of how to deploy each Program Type.
+  When adding a new Program Type, add a file here for the new type.</li>
+<li><a href="https://github.com/bpfman/bpfman-operator/tree/main/controllers/bpfman-agent">bpfman-operator/controllers/bpfman-agent/*_program.go</a>:
+  Contains the Program Type specific reconciler for the bpfman-agent.
+  If the <code>//+kubebuilder:rbac</code> directives are added or changed, the associated <code>role.yaml</code> must be regenerated.
+  When adding a new Program Type, add a file here for the new type.</li>
+<li><a href="https://github.com/bpfman/bpfman-operator/blob/main/controllers/bpfman-agent/common.go">bpfman-operator/controllers/bpfman-agent/common.go</a>:
+  Contains the common reconciler code for the bpfman-agent.
+  If the <code>//+kubebuilder:rbac</code> directives are added or changed, the associated <code>role.yaml</code> must be regenerated.
+  When adding a new Program Type, <code>//+kubebuilder:rbac</code> directives need to be added for the new type.</li>
+<li><a href="https://github.com/bpfman/bpfman-operator/tree/main/controllers/bpfman-operator">bpfman-operator/controllers/bpfman-operator/*_program.go</a>:
+  Contains the Program Type specific reconciler for the bpfman-operator.
+  If the <code>//+kubebuilder:rbac</code> directives are added or changed, the associated <code>role.yaml</code> must be regenerated.
+  When adding a new Program Type, add a file here for the new type.</li>
+<li><a href="https://github.com/bpfman/bpfman-operator/blob/main/controllers/bpfman-operator/common.go">bpfman-operator/controllers/bpfman-operator/common.go</a>:
+  Contains the common reconciler code for the bpfman-operator.
+  If the <code>//+kubebuilder:rbac</code> directives are added or changed, the associated <code>role.yaml</code> must be regenerated.
+  When adding a new Program Type, <code>//+kubebuilder:rbac</code> directives need to be added for the new type.</li>
+</ul>
+<p>Then regenerate the generated files using:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>make<span class="w"> </span>generate
+</code></pre></div>
+<p>There are commands to generate each sub-category if needed.
+See <code>make help</code> to list all the generate commands.</p>
+<p>This command will generate the following files:</p>
+<ul>
+<li><a href="https://github.com/bpfman/bpfman-operator/tree/main/apis/v1alpha1">bpfman-operator/apis/v1alpha1/zz_generate.register.go</a>:
+  Contains the auto-generated register methods for all the Program Types.</li>
+<li><a href="https://github.com/bpfman/bpfman-operator/tree/main/apis/v1alpha1">bpfman-operator/apis/v1alpha1/zz_generated.deepcopy.go</a>:
+  Contains the deep copy methods for all the Program Types.</li>
+<li><a href="https://github.com/bpfman/bpfman-operator/tree/main/config/crd/bases">bpfman-operator/config/crd/bases/bpfman.io_*programs.yaml</a>:
+  Contains the yaml files that the define the Custom Resource Definitions (CRDs).</li>
+<li><a href="https://github.com/bpfman/bpfman-operator/blob/main/config/rbac/bpfman-agent/role.yaml">bpfman-operator/config/rbac/bpfman-agent/role.yaml</a>:
+  Contains the <code>Role</code> and <code>ClusterRole</code> definitions for bpfman-agent.
+  Controls the bpfman-agent access rights to each of the Program Type CRDs.
+  Generated from the <code>//+kubebuilder:rbac</code> directives in source code.</li>
+<li><a href="https://github.com/bpfman/bpfman-operator/blob/main/config/rbac/bpfman-operator/role.yaml">bpfman-operator/config/rbac/bpfman-operator/role.yaml</a>:
+  Contains the <code>Role</code> and <code>ClusterRole</code> definitions for bpfman-operator.
+  Controls the bpfman-operator access rights to each of the Program Type CRDs.
+  Generated from the <code>//+kubebuilder:rbac</code> directives in source code.</li>
+<li><a href="https://github.com/bpfman/bpfman-operator/tree/main/pkg/client">bpfman-operator/pkg/client/*</a>:
+  Everything under this directory is generated.
+  Contains client Golang code to enable applications to easily integrate with bpfman.</li>
+</ul>
+<p>Then regenerate the generated bundle files using (Note: <code>make bundle</code> calls <code>make generate</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>make<span class="w"> </span>bundle
+</code></pre></div>
+<p>This command will generate the following files:</p>
+<ul>
+<li><a href="https://github.com/bpfman/bpfman-operator/tree/main/bundle">bpfman-operator/bundle/*</a>:
+  Contains the bundle manifests and metadata for the operator.
+  This bundle is used to deploy the CRDs in a cluster.
+  More details can be found in the operator-sdk documentation. </li>
+</ul>
+<h3 id="building">Building</h3>
+<p>To run in Kubernetes, bpfman components need to be containerized.
+However, building container images can take longer than just building the code.
+During development, it may be quicker to find and fix build errors by just building the code.
+To build the code:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>make<span class="w"> </span>build
+</code></pre></div>
+<p>To build the container images, run the following command:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>make<span class="w"> </span>build-images
+</code></pre></div>
+<p>If the <code>make build</code> command is skipped above, the code will be built in the build-images command.
+If the <code>make build</code> command is run, the built code will be leveraged in this step.
+This command generates the following local images:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>docker<span class="w"> </span>images
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>REPOSITORY<span class="w">                       </span>TAG<span class="w">      </span>IMAGE<span class="w"> </span>ID<span class="w">       </span>CREATED<span class="w">          </span>SIZE
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>quay.io/bpfman/bpfman<span class="w">            </span>latest<span class="w">   </span>69df038ccea3<span class="w">   </span><span class="m">43</span><span class="w"> </span>seconds<span class="w"> </span>ago<span class="w">   </span>515MB
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>quay.io/bpfman/bpfman-agent<span class="w">      </span>latest<span class="w">   </span>f6af33c5925b<span class="w">   </span><span class="m">2</span><span class="w"> </span>minutes<span class="w"> </span>ago<span class="w">    </span>464MB
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>quay.io/bpfman/bpfman-operator<span class="w">   </span>latest<span class="w">   </span>4fe444b7abf1<span class="w">   </span><span class="m">2</span><span class="w"> </span>minutes<span class="w"> </span>ago<span class="w">    </span>141MB
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>:
+</code></pre></div>
+<p>When running in KIND (see below), the local images will be loaded into the KIND
+environment.
+There may be times when the image need to be built and pushed to a remote repository
+like quay.io so they can be shared or loaded in a remote cluster.
+The <code>Makefile</code> uses the following variables to manage the location of the built images:</p>
+<ul>
+<li><strong>BPFMAN_IMG:</strong> The bpfman image is not built from the bpfman operator repository, but the
+  bpfman operator yaml files control which image is loaded in the cluster.
+  Use this variable to manage the bpfman image loaded by the bpfman-operator.
+  If not specified, defaults to <code>quay.io/bpfman/bpfman:latest</code>.</li>
+<li><strong>BPFMAN_AGENT_IMG:</strong> The bpfman agent image.
+  If not specified, defaults to <code>quay.io/bpfman/bpfman-agent:latest</code>.</li>
+<li><strong>BPFMAN_OPERATOR_IMG:</strong> The bpfman operator image.
+  If not specified, defaults to <code>quay.io/bpfman/bpfman-operatorman:latest</code>.</li>
+</ul>
+<p>To build the bpfman operator images with custom image locations, use something similar to:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-agent:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-operator:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>make<span class="w"> </span>build-images
+</code></pre></div>
+<h2 id="running-locally-in-kind">Running Locally in KIND</h2>
+<p><a href="../../getting-started/operator-quick-start/">Deploying the bpfman-operator</a> goes into more detail on ways to
+launch bpfman in a Kubernetes cluster.
+To run locally in a Kind cluster with an up to date build simply run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>make<span class="w"> </span>run-on-kind
+</code></pre></div>
+<blockquote>
+<p><strong>NOTE:</strong> By default, bpfman-operator deploys bpfman with CSI enabled.
+CSI requires Kubernetes v1.26 due to a PR
+(<a href="https://github.com/kubernetes/kubernetes/pull/112597">kubernetes/kubernetes#112597</a>)
+that addresses a gRPC Protocol Error that was seen in the CSI client code and it doesn't appear to have
+been backported.
+It is recommended to install kind v0.20.0 or later.</p>
+</blockquote>
+<p>The <code>make run-on-kind</code> will run the <code>make build-images</code> if the images do not exist or need updating.</p>
+<p>Then rebuild and load a fresh build run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>make<span class="w"> </span>build-images
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>make<span class="w"> </span>kind-reload-images
+</code></pre></div>
+<p>Which will rebuild the bpfman-operator and bpfman-agent images, and load them into the kind cluster.</p>
+<p>By default, the <code>make run-on-kind</code> uses the local images described above.
+The container images used for <code>bpfman</code>, <code>bpfman-agent</code>, and <code>bpfman-operator</code> can also be manually configured:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nv">BPFMAN_IMG</span><span class="o">=</span>&lt;your/image/url&gt;<span class="w"> </span><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>&lt;your/image/url&gt;<span class="w"> </span><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>&lt;your/image/url&gt;<span class="w"> </span>make<span class="w"> </span>run-on-kind
+</code></pre></div>
+<h2 id="testing-locally">Testing Locally</h2>
+<p>See <a href="https://bpfman.io/main/developer-guide/testing/#kubernetes-operator-tests">Kubernetes Operator Tests</a>. </p>
+<h2 id="deploy-to-existing-cluster">Deploy To Existing Cluster</h2>
+<p>There are several ways to deploy bpfman to an existing Kubernetes cluster.
+The cluster needs to be up and running and specified in ~/.kube/config file.</p>
+<ul>
+<li>
+<p><strong>OperatorHub:</strong> bpfman can be installed in a cluster from either the community OperatorHub
+  (<a href="https://operatorhub.io/">OperatorHub.io</a>) or to an OpenShift Cluster via the OpenShift
+  Console and the builtin Console OperatorHub.
+  This is the recommended method for installing the latest release of bpfman/bpfman-operator.</p>
+</li>
+<li>
+<p><strong>Custom OpenShift Console OperatorHub Bundle:</strong> Custom bpfman/bpfman-operator image can be
+  installed in via OpenShift Console OperatorHub.
+  This is the recommended method when developing in bpfman/bpfman-operator, building custom images,
+  and needing to test from OpenShift Console OperatorHub.</p>
+</li>
+<li>
+<p><strong>Manually with Kustomize:</strong> bpfman can be manually installed to an OpenShift cluster with
+  Kustomize and raw manifests.
+  This is the recommended method when developing in bpfman/bpfman-operator, building custom images,
+  and wanting to test in an OpenShift cluster.</p>
+</li>
+<li>
+<p><strong>Manually with OLM Bundle:</strong> The other option for installing the bpfman-operator is to install
+  it using <a href="https://www.redhat.com/en/blog/deploying-operators-olm-bundles">OLM bundle</a>.</p>
+</li>
+</ul>
+<h3 id="operatorhub">OperatorHub</h3>
+<p>When installing the latest release of bpfman/bpfman-operator, bpfman can be installed in a
+cluster from either the community OperatorHub (<a href="https://operatorhub.io/">OperatorHub.io</a>)
+or to an OpenShift Cluster via the OpenShift Console and the builtin Console OperatorHub.</p>
+<h4 id="operatorhubio">OperatorHub.io</h4>
+<p>To install from the community OperatorHub, go to (<a href="https://operatorhub.io/">OperatorHub.io</a>) and
+search for bpfman:</p>
+<p><img alt="Community OperatorHub.io" src="../../img/operatorhub/OperatorHub_Community_bpfman.png" /></p>
+<p>Click on the bpfman Operator, which will take you to the installation screen:</p>
+<p><img alt="Install" src="../../img/operatorhub/OperatorHub_Community_bpfman_install.png" /></p>
+<p>Click on the <code>Install</code> button, which will take you to the installation instructions, which are a set
+of commands to run to install the bpfman Operator:</p>
+<p><img alt="Commands" src="../../img/operatorhub/OperatorHub_Community_bpfman_commands.png" /></p>
+<h4 id="operatorhub-via-openshift-console">OperatorHub via OpenShift Console</h4>
+<p>To install from the OpenShift Console, from within the OpenShift Console, find <code>OperatorHub</code>, which
+is under <code>Operators</code> on the left hand side of the page.
+Then search for bpfman:</p>
+<p><img alt="OCP Console Search" src="../../img/operatorhub/OperatorHub_RedHat_bpfman.png" /></p>
+<p>There should be two options, <code>Community</code> and <code>Red Hat</code>.
+The <code>Community</code> based Operator tracks the releases from this repository.
+The <code>Red Hat</code> based Operator is the downstream version from this repository and releases
+with each OpenShift release.
+Click on the operator to be installed:</p>
+<p><img alt="OCP Console Install" src="../../img/operatorhub/OperatorHub_RedHat_bpfman_install.png" /></p>
+<p>This provides the details on the operator.
+Select the desired Version and click the <code>Install</code> button.</p>
+<p><img alt="OCP Console Details" src="../../img/operatorhub/OperatorHub_RedHat_bpfman_details.png" /></p>
+<p>This provides similar details on the operator in a popup window.
+Select the desired Version and click the <code>Install</code> button.
+This will install the bpfman Operator on the cluster.</p>
+<h3 id="custom-openshift-console-operatorhub-bundle">Custom OpenShift Console OperatorHub Bundle</h3>
+<p>If developing in bpfman/bpfman-operator and a custom image needs to be loaded
+from OpenShift Console OperatorHub, then make the changes to bpfman/bpfman-operator.
+Once the changes compile and are ready to be tested, build and push the container
+images:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-agent:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-operator:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>make<span class="w"> </span>build-images
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-agent:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-operator:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>make<span class="w"> </span>push-images
+</code></pre></div>
+<p>Next, a bundle and catalog needs to be built and pushed:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-agent:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-operator:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nv">BUNDLE_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-operator-bundle:development<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>make<span class="w"> </span>bundle<span class="w"> </span>bundle-build<span class="w"> </span>bundle-push
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="nv">CATALOG_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-operator-catalog:development<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>make<span class="w"> </span>catalog-build<span class="w"> </span>catalog-push
+</code></pre></div>
+<p>Once the bundle and catalog are built, make sure the cluster is up and 
+running and specified in ~/.kube/config file.
+Then deploy the catalog:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nv">CATALOG_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-operator-catalog:development<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>make<span class="w"> </span>catalog-deploy
+</code></pre></div>
+<p>Now the new catalog should show up in the OperatorHub (may have to refresh or restart the search
+if OperatorHub was already up).
+An additional option should be presented, <code>Bpfman Operator development</code>.
+This can be now be installed as described above.</p>
+<p><img alt="OCP Console Devel" src="../../img/operatorhub/OperatorHub_RedHat_bpfman_devel.png" /></p>
+<p>To clean up at a later time, execute:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>make<span class="w"> </span>catalog-undeploy
+</code></pre></div>
+<h3 id="manually-with-kustomize">Manually with Kustomize</h3>
+<p>To manually install with Kustomize and raw manifests, execute the following commands. The Openshift cluster needs to be up and running and specified in ~/.kube/config file.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>make<span class="w"> </span>deploy-openshift
+</code></pre></div>
+<p>To clean up at a later time, run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>make<span class="w"> </span>undeploy-openshift
+</code></pre></div>
+<h3 id="manually-with-olm-bundle">Manually with OLM Bundle</h3>
+<p>The other option for installing the bpfman-operator is to install it using
+<a href="https://www.redhat.com/en/blog/deploying-operators-olm-bundles">OLM bundle</a>.</p>
+<p>First setup the namespace and certificates for the operator with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>./hack/ocp-scc-hacks.yaml
+</code></pre></div>
+<p>Then use <code>operator-sdk</code> to install the bundle like so:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>./bin/operator-sdk<span class="w"> </span>run<span class="w"> </span>bundle<span class="w"> </span>quay.io/bpfman/bpfman-operator-bundle:latest<span class="w"> </span>--namespace<span class="w"> </span>openshift-bpfman
+</code></pre></div>
+<p>To clean up at a later time, run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>./bin/operator-sdk<span class="w"> </span>cleanup<span class="w"> </span>bpfman-operator
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>kubectl<span class="w"> </span>delete<span class="w"> </span>-f<span class="w"> </span>./hack/ocp-scc-hacks.yaml
+</code></pre></div>
+<h2 id="verify-the-installation">Verify the Installation</h2>
+<p>Regardless of the deployment method, if the <code>bpfman-operator</code> was deployed successfully,
+you will see the <code>bpfman-daemon</code> and <code>bpfman-operator</code> pods running without errors:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>bpfman
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>NAME<span class="w">                             </span>READY<span class="w">   </span>STATUS<span class="w">    </span>RESTARTS<span class="w">   </span>AGE
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>bpfman-daemon-w24pr<span class="w">                </span><span class="m">3</span>/3<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>130m
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>bpfman-operator-78cf9c44c6-rv7f2<span class="w">   </span><span class="m">2</span>/2<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>132m
+</code></pre></div>
+<p>For further verification, load a sample eBPF Program onto the cluster using
+<a href="../../getting-started/operator-quick-start/#deploy-an-ebpf-program-to-the-cluster">Deploy an eBPF Program to the cluster</a>.</p>
+<h2 id="bpfman-agent-profiling">bpfman-agent Profiling</h2>
+<p>bpfman-agent process use port <code>6060</code> for Golang profiling to be able to get the different profiles.</p>
+<ol>
+<li>
+<p>Set port-forward rule in a different terminal:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>bpfman
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>NAME<span class="w">                               </span>READY<span class="w">   </span>STATUS<span class="w">    </span>RESTARTS<span class="w">   </span>AGE
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>bpfman-daemon-76v57<span class="w">                </span><span class="m">3</span>/3<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>14m
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>bpfman-operator-7f67bc7c57-ww52z<span class="w">   </span><span class="m">2</span>/2<span class="w">     </span>Running<span class="w">   </span><span class="m">0</span><span class="w">          </span>14m
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>kubectl<span class="w"> </span>-n<span class="w"> </span>bpfman<span class="w"> </span>port-forward<span class="w"> </span>bpfman-daemon-76v57<span class="w"> </span><span class="m">6060</span>
+</code></pre></div>
+</li>
+<li>
+<p>Download the required profiles:</p>
+<p><code>curl -o &lt;profile&gt; http://localhost:6060/debug/pprof/&lt;profile&gt;</code></p>
+<p>Where <profile> can be:</p>
+<table>
+<thead>
+<tr>
+<th>profile</th>
+<th>description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>allocs</td>
+<td>A sampling of all memory allocations</td>
+</tr>
+<tr>
+<td>block</td>
+<td>Stack traces that led to blocking on synchronization primitives</td>
+</tr>
+<tr>
+<td>cmdline</td>
+<td>The command line invocation of the current program</td>
+</tr>
+<tr>
+<td>goroutine</td>
+<td>Stack traces of all current goroutines</td>
+</tr>
+<tr>
+<td>heap</td>
+<td>A sampling of memory allocations of live objects.</td>
+</tr>
+<tr>
+<td></td>
+<td>You can specify the gc GET parameter to run GC before taking the heap sample.</td>
+</tr>
+<tr>
+<td>mutex</td>
+<td>Stack traces of holders of contended mutexes</td>
+</tr>
+<tr>
+<td>profile</td>
+<td>CPU profile.</td>
+</tr>
+<tr>
+<td></td>
+<td>You can specify the duration in the seconds GET parameter.</td>
+</tr>
+<tr>
+<td>threadcreate</td>
+<td>Stack traces that led to the creation of new OS threads</td>
+</tr>
+<tr>
+<td>trace</td>
+<td>A trace of execution of the current program.</td>
+</tr>
+<tr>
+<td></td>
+<td>You can specify the duration in the seconds GET parameter.</td>
+</tr>
+</tbody>
+</table>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>curl<span class="w"> </span><span class="s2">&quot;http://localhost:6060/debug/pprof/trace?seconds=20&quot;</span><span class="w"> </span>-o<span class="w"> </span>trace
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>curl<span class="w"> </span><span class="s2">&quot;http://localhost:6060/debug/pprof/profile?duration=20&quot;</span><span class="w"> </span>-o<span class="w"> </span>cpu
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>curl<span class="w"> </span><span class="s2">&quot;http://localhost:6060/debug/pprof/heap?gc&quot;</span><span class="w"> </span>-o<span class="w"> </span>heap
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>curl<span class="w"> </span><span class="s2">&quot;http://localhost:6060/debug/pprof/allocs&quot;</span><span class="w"> </span>-o<span class="w"> </span>allocs
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>curl<span class="w"> </span><span class="s2">&quot;http://localhost:6060/debug/pprof/goroutine&quot;</span><span class="w"> </span>-o<span class="w"> </span>goroutine
+</code></pre></div>
+</li>
+<li>
+<p>Use <a href="https://go.dev/blog/pprof">go tool pprof</a> to dig into the profiles (go tool trace
+   for the trace profile) or use  web interface.
+   For example:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>go<span class="w"> </span>tool<span class="w"> </span>pprof<span class="w"> </span>-http<span class="o">=</span>:8080<span class="w"> </span>cpu
+</code></pre></div>
+</li>
+</ol>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="metricshealth-port-issues">Metrics/Health port issues</h3>
+<p>In some scenarios, the health and metric ports may are already in use by other services on the system.
+When this happens the bpfman-agent container fails to deploy.
+The ports currently default to 8175 and 8174.</p>
+<p>The ports are passed in through the <a href="https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/bpfman-deployment/daemonset.yaml">daemonset.yaml</a> for the <code>bpfman-daemon</code> and <a href="https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/bpfman-operator-deployment/deployment.yaml">deployment.yaml</a> and
+<a href="https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/default/manager_auth_proxy_patch.yaml">manager_auth_proxy_patch.yaml</a> for the <code>bpfman-operator</code>.
+The easiest way to change which ports are used is to update these yaml files and rebuild the container images.
+The container images need to be rebuilt because the <code>bpfman-daemon</code> is deployed from the <code>bpfman-operator</code>
+and the associated yaml files are copied into the <code>bpfman-operator</code> image.</p>
+<p>If rebuild the container images is not desirable, then the ports can be changed on the fly.
+For the <code>bpfman-operator</code>, the ports can be updated by editing the <code>bpfman-operator</code> Deployment.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="go">kubectl edit deployment -n bpfman bpfman-operator</span>
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="go">apiVersion: apps/v1</span>
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="go">kind: Deployment</span>
+<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="go">:</span>
+<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="go">spec:</span>
+<a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="go">  template:</span>
+<a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="go">  :</span>
+<a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="go">  spec:</span>
+<a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a><span class="go">    containers:</span>
+<a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="go">    -args:</span>
+<a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a><span class="go">      - --secure-listen-address=0.0.0.0:8443</span>
+<a id="__codelineno-24-13" name="__codelineno-24-13" href="#__codelineno-24-13"></a><span class="go">      - --upstream=http://127.0.0.1:8174/        &lt;-- UPDATE</span>
+<a id="__codelineno-24-14" name="__codelineno-24-14" href="#__codelineno-24-14"></a><span class="go">      - --logtostderr=true</span>
+<a id="__codelineno-24-15" name="__codelineno-24-15" href="#__codelineno-24-15"></a><span class="go">      - --v=0</span>
+<a id="__codelineno-24-16" name="__codelineno-24-16" href="#__codelineno-24-16"></a><span class="go">      name: kube-rbac-proxy</span>
+<a id="__codelineno-24-17" name="__codelineno-24-17" href="#__codelineno-24-17"></a><span class="go">      :</span>
+<a id="__codelineno-24-18" name="__codelineno-24-18" href="#__codelineno-24-18"></a><span class="go">    - args:</span>
+<a id="__codelineno-24-19" name="__codelineno-24-19" href="#__codelineno-24-19"></a><span class="go">      - --health-probe-bind-address=:8175        &lt;-- UPDATE</span>
+<a id="__codelineno-24-20" name="__codelineno-24-20" href="#__codelineno-24-20"></a><span class="go">      - --metrics-bind-address=127.0.0.1:8174    &lt;-- UPDATE</span>
+<a id="__codelineno-24-21" name="__codelineno-24-21" href="#__codelineno-24-21"></a><span class="go">      - --leader-elect</span>
+<a id="__codelineno-24-22" name="__codelineno-24-22" href="#__codelineno-24-22"></a><span class="go">      :</span>
+<a id="__codelineno-24-23" name="__codelineno-24-23" href="#__codelineno-24-23"></a><span class="go">      livenessProbe:</span>
+<a id="__codelineno-24-24" name="__codelineno-24-24" href="#__codelineno-24-24"></a><span class="go">          failureThreshold: 3</span>
+<a id="__codelineno-24-25" name="__codelineno-24-25" href="#__codelineno-24-25"></a><span class="go">          httpGet:</span>
+<a id="__codelineno-24-26" name="__codelineno-24-26" href="#__codelineno-24-26"></a><span class="go">            path: /healthz</span>
+<a id="__codelineno-24-27" name="__codelineno-24-27" href="#__codelineno-24-27"></a><span class="go">            port: 8175                           &lt;-- UPDATE</span>
+<a id="__codelineno-24-28" name="__codelineno-24-28" href="#__codelineno-24-28"></a><span class="go">            scheme: HTTP</span>
+<a id="__codelineno-24-29" name="__codelineno-24-29" href="#__codelineno-24-29"></a><span class="go">            :</span>
+<a id="__codelineno-24-30" name="__codelineno-24-30" href="#__codelineno-24-30"></a><span class="go">      name: bpfman-operator</span>
+<a id="__codelineno-24-31" name="__codelineno-24-31" href="#__codelineno-24-31"></a><span class="go">      readinessProbe:</span>
+<a id="__codelineno-24-32" name="__codelineno-24-32" href="#__codelineno-24-32"></a><span class="go">          failureThreshold: 3</span>
+<a id="__codelineno-24-33" name="__codelineno-24-33" href="#__codelineno-24-33"></a><span class="go">          httpGet:</span>
+<a id="__codelineno-24-34" name="__codelineno-24-34" href="#__codelineno-24-34"></a><span class="go">            path: /readyz</span>
+<a id="__codelineno-24-35" name="__codelineno-24-35" href="#__codelineno-24-35"></a><span class="go">            port: 8175                           &lt;-- UPDATE</span>
+<a id="__codelineno-24-36" name="__codelineno-24-36" href="#__codelineno-24-36"></a><span class="go">            scheme: HTTP</span>
+<a id="__codelineno-24-37" name="__codelineno-24-37" href="#__codelineno-24-37"></a><span class="go">      :</span>
+</code></pre></div>
+<p>For the <code>bpfman-daemon</code>, the ports could be updated by editing the <code>bpfman-daemon</code> DaemonSet.
+However, if <code>bpfman-daemon</code> is restarted for any reason by the <code>bpfman-operator</code>, the changes
+will be lost. So it is recommended to update the ports for the <code>bpfman-daemon</code> via the bpfman
+<code>bpfman-config</code> ConfigMap.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="go">kubectl edit configmap -n bpfman bpfman-config</span>
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="go">apiVersion: v1</span>
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="go">data:</span>
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="go">  bpfman.agent.healthprobe.addr: :8175                    &lt;-- UPDATE</span>
+<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="go">  bpfman.agent.image: quay.io/bpfman/bpfman-agent:latest</span>
+<a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="go">  bpfman.agent.log.level: info</span>
+<a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a><span class="go">  bpfman.agent.metric.addr: 127.0.0.1:8174                &lt;-- UPDATE</span>
+<a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="go">  bpfman.image: quay.io/bpfman/bpfman:latest</span>
+<a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a><span class="go">  bpfman.log.level: debug</span>
+<a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a><span class="go">kind: ConfigMap</span>
+<a id="__codelineno-25-12" name="__codelineno-25-12" href="#__codelineno-25-12"></a><span class="go">:</span>
+</code></pre></div>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <!--
+  Copyright (c) 2016-2024 Martin Donath <martin.donath@squidfunk.com>
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to
+  deal in the Software without restriction, including without limitation the
+  rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+  sell copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in
+  all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+  IN THE SOFTWARE.
+-->
+
+<!-- Copyright and theme information -->
+<div class="md-copyright">
+    
+      <div class="md-copyright__highlight">
+        Copyright &copy; 2021-2024 The bpfman contributors.<br>The Linux Foundation® (TLF) has registered trademarks and uses trademarks. For a list of TLF trademarks, see <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage</a>.
+      </div>
+    
+    
+      Made with
+      <a
+        href="https://squidfunk.github.io/mkdocs-material/"
+        target="_blank" rel="noopener"
+      >
+        Material for MkDocs
+      </a>
+    
+  </div>
+  <div class="md-copyright__netlify">
+    <a href="https://www.netlify.com"> <img src="https://www.netlify.com/v3/img/components/netlify-color-accent.svg" alt="Deploys by Netlify" /> </a>
+  </div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.6c14ae12.min.js"></script>
+      
+    
+  </body>
+</html>
