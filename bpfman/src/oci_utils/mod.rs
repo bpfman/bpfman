@@ -9,11 +9,11 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum ImageError {
     #[error("Failed to Parse bytecode Image URL: {0}")]
-    InvalidImageUrl(#[source] oci_distribution::ParseError),
+    InvalidImageUrl(#[source] oci_client::ParseError),
     #[error("Failed to pull bytecode Image manifest: {0}")]
-    ImageManifestPullFailure(#[source] oci_distribution::errors::OciDistributionError),
+    ImageManifestPullFailure(#[source] oci_client::errors::OciDistributionError),
     #[error("Failed to pull bytecode Image: {0}")]
-    BytecodeImagePullFailure(#[source] oci_distribution::errors::OciDistributionError),
+    BytecodeImagePullFailure(#[source] oci_client::errors::OciDistributionError),
     #[error("Failed to extract bytecode from Image: {0}")]
     BytecodeImageExtractFailure(String),
     #[error(transparent)]

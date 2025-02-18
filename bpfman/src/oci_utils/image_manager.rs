@@ -10,7 +10,7 @@ use anyhow::anyhow;
 use flate2::read::GzDecoder;
 use log::{debug, error, info, trace};
 use object::{Endianness, Object};
-use oci_distribution::{
+use oci_client::{
     client::{ClientConfig, ClientProtocol},
     manifest,
     manifest::OciImageManifest,
@@ -92,9 +92,9 @@ impl ImageManager {
         username: Option<String>,
         password: Option<String>,
     ) -> Result<(String, Vec<String>), ImageError> {
-        // The reference created here is created using the krustlet oci-distribution
+        // The reference created here is created using the krustlet oci-client
         // crate. It currently contains many defaults more of which can be seen
-        // here: https://github.com/krustlet/oci-distribution/blob/main/src/reference.rs#L58
+        // here: https://github.com/oras-project/oci-client/blob/main/src/reference.rs#L58
         let image: Reference = image_url.parse().map_err(ImageError::InvalidImageUrl)?;
 
         if let Some(cosign_verifier) = &mut self.cosign_verifier {

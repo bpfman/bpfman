@@ -16,7 +16,6 @@ path = "src/bin/rpc/main.rs"
 [dependencies]
 anyhow = { workspace = true, features = ["std"] }
 async-trait = { workspace = true }
-aws-lc-rs = { workspace = true, features = ["bindgen"] }
 aya = { workspace = true }
 base16ct = { workspace = true, features = ["alloc"] }
 base64 = { workspace = true }
@@ -48,9 +47,8 @@ nix = { workspace = true, features = [
     "socket",
     "user",
 ] }
-oci-distribution = { workspace = true, default-features = false, features = [
-    "rustls-tls",
-    "trust-dns",
+oci-client = { workspace = true, default-features = false, features = [
+    "native-tls",
 ] }
 prost = { workspace = true, features = ["prost-derive", "std"] }
 rand = { workspace = true }
@@ -58,11 +56,10 @@ rtnetlink = { workspace = true, features = ["tokio_socket"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }
-sigstore = { workspace = true, features = [
+sigstore = { workspace = true, default-features = false, features = [
     "cached-client",
-    "full-native-tls",
-    "sign",
-    "sigstore-trust-root",
+    "cosign-native-tls",
+    "sigstore-trust-root-native-tls",
 ] }
 sled = { workspace = true }
 systemd-journal-logger = { workspace = true }
