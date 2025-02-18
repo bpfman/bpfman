@@ -1,24 +1,32 @@
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.4-1227.1725849298 AS bpfman-build
 ARG DNF_CMD="microdnf"
+ARG VERSION="0.5.1"
 
 WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
 
 RUN ${DNF_CMD} update -y \
-    && ${DNF_CMD} install -y gcc openssl-devel \
+    && ${DNF_CMD} install -y clang openssl-devel clang-libs cmake \
     && ${DNF_CMD} clean all
+# Rust toolset on RHEL-9 isn't at 1.81 (our MSRV).
+# Install from rustup to get the latest stable version.
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Compile bpfman cli, bpfman-ns, and bpfman-rpc binaries
 RUN mkdir -p bin/
 RUN cargo build --release
+RUN mkdir -p .output/{completions,manpage}
+RUN ./target/release/bpfman man .output/manpage
+RUN ./target/release/bpfman completions .output/completions
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.4-1227.1725849298
 
 COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman .
 COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman-ns .
 COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman-rpc .
+COPY --from=bpfman-build  /usr/src/bpfman/.output/completions/ /usr/share/bash-completion/completions/
+COPY --from=bpfman-build  /usr/src/bpfman/.output/manpage /usr/share/man/man1
 
 LABEL name="bpfman/bpfman" \
       com.redhat.component="bpfman" \
@@ -27,7 +35,7 @@ LABEL name="bpfman/bpfman" \
       description="Bpfman operates as an eBPF programs manager, focusing on simplifying the deployment and administration of eBPF programs." \
       io.k8s.description="Bpfman operates as an eBPF programs manager, focusing on simplifying the deployment and administration of eBPF programs." \
       io.openshift.tags="bpfman" \
-      version="0.5.1" \
+      version="$VERSION" \
       vendor="Red Hat, Inc."
 
 ENTRYPOINT ["./bpfman-rpc", "--timeout=0"]
