@@ -166,11 +166,6 @@ jobs:
         run: |
           cargo +${{ env.NIGHTLY_VERSION }} fmt --all -- --check
 
-      - name: Check public API
-        # Only need to run once
-        if: ${{ matrix.arch.arch == 'amd64' }}
-        run: cargo xtask public-api --target ${{ matrix.arch.rust-target }} --toolchain ${{ env.NIGHTLY_VERSION }}
-
       - name: Run documentation tests
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}

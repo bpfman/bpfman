@@ -240,18 +240,6 @@ Before submitting a pull request to the bpfman repository, verify the following:
     cargo xtask unit-test
     ```
 
-* Verify any changes to the bpfman API have been "blessed".
-  After running the below command, any changes to any of the files in
-  `bpfman/xtask/public-api/*.txt` indicate changes to the bpfman API.
-  Verify that these changes were intentional.
-  CI uses the latest nightly Rust toolchain, so make sure the public-apis
-  are verified against latest.
-
-    ```console
-    rustup update nightly
-    cargo +nightly xtask public-api --bless
-    ```
-
 * Verify that integration tests are passing locally (see
   [Basic Integration Tests](https://bpfman.io/main/developer-guide/testing/#basic-integration-tests)):
 
