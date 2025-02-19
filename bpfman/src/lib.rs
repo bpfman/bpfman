@@ -25,6 +25,8 @@ use aya::{
     },
     Btf, Ebpf, EbpfLoader,
 };
+use diesel::{prelude::*, sqlite::SqliteConnection};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use log::{debug, error, info, warn};
 use multiprog::{TcDispatcher, XdpDispatcher};
 use sled::{Config as SledConfig, Db};
@@ -50,11 +52,14 @@ use crate::{
 pub mod config;
 mod dispatcher_config;
 pub mod errors;
+pub mod models;
 mod multiprog;
 mod netlink;
 mod oci_utils;
+pub mod schema;
 mod static_program;
 pub mod types;
+pub mod u64blob;
 pub mod utils;
 
 const MAPS_MODE: u32 = 0o0660;
@@ -1993,4 +1998,57 @@ fn get_map(id: u32, root_db: &Db) -> Option<sled::Tree> {
         .into_iter()
         .find(|n| bytes_to_string(n) == format!("{}{}", MAP_PREFIX, id))
         .map(|n| root_db.open_tree(n).expect("unable to open map tree"))
+}
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+
+#[derive(Debug)]
+pub enum ConnectionError {
+    Connection(diesel::ConnectionError),
+    Migration(Box<dyn std::error::Error + Send + Sync>),
+}
+
+impl std::fmt::Display for ConnectionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConnectionError::Connection(e) => write!(f, "Database connection error: {}", e),
+            ConnectionError::Migration(e) => write!(f, "Migration error: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for ConnectionError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            ConnectionError::Connection(e) => Some(e),
+            ConnectionError::Migration(e) => Some(e.as_ref()),
+        }
+    }
+}
+
+impl From<diesel::ConnectionError> for ConnectionError {
+    fn from(err: diesel::ConnectionError) -> Self {
+        ConnectionError::Connection(err)
+    }
+}
+
+pub fn establish_sqlite_connection(
+    database_url: &str,
+) -> Result<SqliteConnection, ConnectionError> {
+    let mut connection = SqliteConnection::establish(database_url)?;
+
+    let applied_migrations = connection
+        .run_pending_migrations(MIGRATIONS)
+        .map_err(ConnectionError::Migration)?;
+
+    if applied_migrations.is_empty() {
+        eprintln!("No new migrations were applied.");
+    } else {
+        eprintln!("Applied migrations:");
+        for migration in applied_migrations {
+            eprintln!("- {}", migration);
+        }
+    }
+
+    Ok(connection)
 }
