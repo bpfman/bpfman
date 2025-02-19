@@ -10,8 +10,6 @@ version.workspace = true
 
 [dependencies]
 anyhow = { workspace = true, features = ["std"] }
-bpfman = { workspace = true }
-bpfman-api = { workspace = true }
 clap = { workspace = true, features = [
     "derive",
     "help",
@@ -19,8 +17,6 @@ clap = { workspace = true, features = [
     "suggestions",
     "usage",
 ] }
-clap_complete = { workspace = true }
-clap_mangen = { workspace = true }
 dialoguer = { workspace = true }
 diff = { workspace = true }
 hex = { workspace = true, features = ["std"] }

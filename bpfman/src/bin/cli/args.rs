@@ -36,6 +36,12 @@ pub(crate) enum Commands {
     /// eBPF Bytecode Image related commands.
     #[command(subcommand)]
     Image(ImageSubCommand),
+    /// Generate man pages for bpfman.
+    #[clap(hide = true)]
+    Man(crate::manpage::Args),
+    /// Generate shell completions for bpfman.
+    #[clap(hide = true)]
+    Completions(crate::completions::Args),
 }
 
 #[derive(Subcommand, Debug)]

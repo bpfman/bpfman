@@ -74,23 +74,15 @@ del_svc() {
 }
 
 copy_cli_tab_completion() {
-    if [ -d ${SRC_CLI_TAB_COMPLETE_PATH} ] && [ "$(ls -A ${SRC_CLI_TAB_COMPLETE_PATH})" ]; then
-    #if [ -d ${SRC_CLI_TAB_COMPLETE_PATH} ] && [ "$(find ${SRC_CLI_TAB_COMPLETE_PATH} -mindepth 1 -maxdepth 1)" ]; then
-        case $SHELL in
+    del_cli_tab_completion
+    case $SHELL in
         "/bin/bash")
-            echo "  Copying \"${SRC_CLI_TAB_COMPLETE_PATH}/bpfman.bash\" to \"${DST_CLI_TAB_COMPLETE_PATH}/.\""
-            cp ${SRC_CLI_TAB_COMPLETE_PATH}/bpfman.bash ${DST_CLI_TAB_COMPLETE_PATH}/.
+            ${BIN_BPFMAN} completions --shell bash ${DST_CLI_TAB_COMPLETE_PATH}
             ;;
-
         *)
             echo "Currently only bash is supported by this script. For other shells, manually install."
             ;;
-        esac
-
-
-    else
-        echo "  CLI TAB Completion files not generated yet. Use \"cargo xtask build-completion\" to generate."
-    fi
+    esac
 }
 
 del_cli_tab_completion() {
@@ -101,14 +93,8 @@ del_cli_tab_completion() {
 }
 
 copy_manpages() {
-    if [ -d ${SRC_MANPAGE_PATH} ] && [ "$(ls -A ${SRC_MANPAGE_PATH})" ]; then
-    #if [ -d ${SRC_MANPAGE_PATH} ] && [ -z "$(find ${SRC_MANPAGE_PATH} -mindepth 1 -maxdepth 1)" ]; then
-        echo "  Copying \"${SRC_MANPAGE_PATH}/*\" to \"${DST_MANPAGE_PATH}/.\""
-        rm ${DST_MANPAGE_PATH}/bpfman*.1  &>/dev/null
-        cp ${SRC_MANPAGE_PATH}/bpfman*.1 ${DST_MANPAGE_PATH}/.
-    else
-        echo "  CLI Manpage files not generated yet. Use \"cargo xtask build-man-page\" to generate."
-    fi
+    del_manpages
+    ${BIN_BPFMAN} man ${DST_MANPAGE_PATH}
 }
 
 del_manpages() {
@@ -132,12 +118,6 @@ install() {
         release=false
     fi
 
-    echo "Copy CLI TAB Completion files:"
-    copy_cli_tab_completion
-
-    echo "Copy Manpage files:"
-    copy_manpages
-
     echo "Copy binaries:"
 
     if [ "${reinstall}" == true ]; then
@@ -154,6 +134,12 @@ install() {
     copy_bin "${BIN_BPFMAN_NS}" ${release}
     copy_bin "${BIN_BPF_LOG_EXPORTER}" ${release}
     copy_bin "${BIN_BPF_METRICS_EXPORTER}" ${release}
+
+    echo "Copy CLI TAB Completion files:"
+    copy_cli_tab_completion
+
+    echo "Copy Manpage files:"
+    copy_manpages
 
     if [ "${reinstall}" == false ]; then
         echo "Copy service files:"

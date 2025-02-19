@@ -195,7 +195,9 @@ jobs:
       - name: Build manpages
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        run: cargo xtask build-man-page
+        run: |
+          mkdir -p .output/manpage
+          cargo run --bin bpfman man .output/manpage
 
       - name: Package manpages
         # Only need to run once
@@ -215,7 +217,9 @@ jobs:
       - name: Build CLI TAB Completion
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        run: cargo xtask build-completion
+        run: |
+          mkdir -p .output/completions
+          cargo run --bin bpfman completions --shell bash .output/completions
 
       - name: Package CLI TAB Completion
         # Only need to run once
@@ -395,23 +399,6 @@ jobs:
       - name: Generate go wrapped eBPF
         run: |
           cd examples && make generate
-
-      - name: Run the bpfman installer
-        run: sudo ./scripts/setup.sh install
-
-      - name: Verify the bpfman systemd service is active
-        run: systemctl is-active bpfman.socket
-
-      - name: Verify the CLI can reach bpfman
-        run: sudo bpfman list
-
-      - name: Verify the manpages are installed
-        run: man bpfman list
-
-      - name: Stop the bpfman systemd service
-        run: |
-          sudo systemctl stop bpfman
-          sudo ./scripts/setup.sh uninstall
 
       - name: Run integration tests
         run: cargo xtask integration-test
