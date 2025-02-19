@@ -2200,20 +2200,9 @@ installed toolchains:</p>
 </code></pre></div>
 </li>
 <li>
-<p>Verify any changes to the bpfman API have been "blessed".
-  After running the below command, any changes to any of the files in
-  <code>bpfman/xtask/public-api/*.txt</code> indicate changes to the bpfman API.
-  Verify that these changes were intentional.
-  CI uses the latest nightly Rust toolchain, so make sure the public-apis
-  are verified against latest.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">rustup update nightly</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">cargo +nightly xtask public-api --bless</span>
-</code></pre></div>
-</li>
-<li>
 <p>Verify that integration tests are passing locally (see
   <a href="https://bpfman.io/main/developer-guide/testing/#basic-integration-tests">Basic Integration Tests</a>):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">cargo xtask integration-test</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">cargo xtask integration-test</span>
 </code></pre></div>
 </li>
 </ul>
