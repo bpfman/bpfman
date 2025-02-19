@@ -7,7 +7,7 @@ use clap::{Args, Parser};
 use log::debug;
 use systemd_journal_logger::{connected_to_journal, JournalLog};
 
-use crate::serve::serve;
+use crate::{build::CLAP_LONG_VERSION, serve::serve};
 
 mod rpc;
 mod serve;
@@ -20,7 +20,10 @@ const RTDIR_SOCK: &str = "/run/bpfman-sock";
 // K8s volume mount for it.
 const RTDIR_BPFMAN_CSI: &str = "/run/bpfman/csi";
 
+shadow_rs::shadow!(build);
+
 #[derive(Parser, Debug)]
+#[command(version=CLAP_LONG_VERSION)]
 #[command(long_about = "A rpc server proxy for the bpfman library")]
 #[command(name = "bpfman-rpc")]
 pub(crate) struct Rpc {

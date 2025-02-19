@@ -9,8 +9,10 @@ use clap::{Args, Parser, Subcommand};
 use log::debug;
 use nix::sched::{setns, CloneFlags};
 
+shadow_rs::shadow!(build);
+use crate::build::CLAP_LONG_VERSION;
 #[derive(Debug, Parser)]
-#[clap(author, version, about, long_about = None)]
+#[clap(author, version=CLAP_LONG_VERSION, about, long_about = None)]
 struct Cli {
     #[clap(subcommand)]
     command: Commands,

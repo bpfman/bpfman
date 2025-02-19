@@ -63,6 +63,7 @@ rtnetlink = { workspace = true, features = ["tokio_socket"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }
+shadow-rs = { workspace = true }
 sigstore = { workspace = true, features = [
     "cached-client",
     "cosign-native-tls",
@@ -82,6 +83,9 @@ url = { workspace = true }
 
 [dev-dependencies]
 assert_matches = { workspace = true }
+
+[build-dependencies]
+shadow-rs = { workspace = true }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(test)'] }

@@ -27,3 +27,7 @@ clap = { workspace = true, features = [
 env_logger = { workspace = true }
 log = { workspace = true }
 nix = { workspace = true, features = ["sched"] }
+shadow-rs = { workspace = true }
+
+[build-dependencies]
+shadow-rs = { workspace = true }

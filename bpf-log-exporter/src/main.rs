@@ -4,14 +4,25 @@
 use std::{cell::RefCell, num::NonZeroI32, str::from_utf8};
 
 use anyhow::{anyhow, Context};
+use clap::Parser;
 use log::{debug, info};
 use netlink_packet_audit::AuditMessage;
 use netlink_packet_core::{NetlinkMessage, NetlinkPayload};
 use netlink_sys::{protocols::NETLINK_AUDIT, Socket, SocketAddr};
 use regex::Regex;
 
+shadow_rs::shadow!(build);
+use crate::build::CLAP_LONG_VERSION;
+
+#[derive(Parser)]
+#[clap(author, version=CLAP_LONG_VERSION, about, long_about = None)]
+struct Cli {}
+
 fn main() -> anyhow::Result<()> {
     env_logger::init();
+
+    let _cli = Cli::parse();
+
     let audit = NetlinkAudit::new()?;
     audit
         .receive_loop()

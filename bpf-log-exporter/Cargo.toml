@@ -11,6 +11,14 @@ version.workspace = true
 
 [dependencies]
 anyhow = { workspace = true }
+clap = { workspace = true, features = [
+    "color",
+    "derive",
+    "help",
+    "std",
+    "suggestions",
+    "usage",
+] }
 env_logger = { workspace = true }
 futures = { workspace = true }
 hex = { workspace = true, features = ["alloc"] }
@@ -19,3 +27,7 @@ netlink-packet-audit = { workspace = true }
 netlink-packet-core = { workspace = true }
 netlink-sys = { workspace = true }
 regex = { workspace = true }
+shadow-rs = { workspace = true }
+
+[build-dependencies]
+shadow-rs = { workspace = true }

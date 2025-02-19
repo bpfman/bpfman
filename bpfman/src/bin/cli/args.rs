@@ -11,12 +11,14 @@ use bpfman::types::ProgramType;
 use clap::{ArgGroup, Args, Parser, Subcommand};
 use hex::FromHex;
 
+use crate::build::CLAP_LONG_VERSION;
+
 #[derive(Parser, Debug)]
 #[command(
+    version=CLAP_LONG_VERSION,
     long_about = "An eBPF manager focusing on simplifying the deployment and administration of eBPF programs."
 )]
 #[command(name = "bpfman")]
-#[command(disable_version_flag = true)]
 pub(crate) struct Cli {
     #[command(subcommand)]
     pub(crate) command: Commands,
