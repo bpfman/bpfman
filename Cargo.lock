@@ -1666,12 +1666,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hashbag"
-version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98f494b2060b2a8f5e63379e1e487258e014cee1b1725a735816c0107a2e9d93"
-
-[[package]]
 name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3588,19 +3582,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "public-api"
-version = "0.43.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31529be2a00213a5eeca25ed983569db17036d90de2abe40c55aceaa0915795b"
-dependencies = [
- "hashbag",
- "rustdoc-types",
- "serde",
- "serde_json",
- "thiserror 2.0.11",
-]
-
-[[package]]
 name = "quinn"
 version = "0.11.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3895,15 +3876,6 @@ dependencies = [
  "serde",
  "thiserror 1.0.69",
  "toml",
-]
-
-[[package]]
-name = "rustdoc-types"
-version = "0.35.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf583db9958b3161d7980a56a8ee3c25e1a40708b81259be72584b7e0ea07c95"
-dependencies = [
- "serde",
 ]
 
 [[package]]
@@ -5565,7 +5537,6 @@ dependencies = [
  "anyhow",
  "bpfman",
  "bpfman-api",
- "cargo_metadata",
  "clap",
  "clap_complete",
  "clap_mangen",
@@ -5574,7 +5545,6 @@ dependencies = [
  "hex",
  "lazy_static",
  "log",
- "public-api",
  "rustdoc-json",
  "rustup-toolchain",
  "serde_json",
