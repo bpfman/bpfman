@@ -10,10 +10,12 @@ use log::debug;
 use unload::execute_unload;
 
 mod args;
+mod completions;
 mod get;
 mod image;
 mod list;
 mod load;
+mod manpage;
 mod table;
 mod unload;
 
@@ -37,6 +39,8 @@ impl Commands {
                 .await
                 .map_err(|e| anyhow!("get error: {e}")),
             Commands::Image(i) => i.execute().await,
+            Commands::Man(args) => manpage::generate(args),
+            Commands::Completions(args) => completions::generate(args),
         }?;
 
         Ok(())

@@ -1,6 +1,4 @@
-mod build_completion;
 mod build_ebpf;
-mod build_manpage;
 mod copy;
 mod integration_test;
 mod lint;
@@ -32,10 +30,6 @@ enum Command {
     Run(run::Options),
     /// Run the integration tests for bpfman.
     IntegrationTest(integration_test::Options),
-    /// Build the man pages for bpfman.
-    BuildManPage(build_manpage::Options),
-    /// Build the completion scripts for bpfman.
-    BuildCompletion(build_completion::Options),
     /// Run lint.
     Lint(lint::Options),
     /// Run unit tests.
@@ -52,8 +46,6 @@ fn main() {
         Copy(opts) => copy::copy(opts),
         Run(opts) => run::run(opts),
         IntegrationTest(opts) => integration_test::test(opts),
-        BuildManPage(opts) => build_manpage::build_manpage(opts),
-        BuildCompletion(opts) => build_completion::build_completion(opts),
         Lint(_) => lint::lint(),
         UnitTest(opts) => unit_test::unit_test(opts),
     };

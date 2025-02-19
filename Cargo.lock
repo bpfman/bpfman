@@ -492,6 +492,8 @@ dependencies = [
  "caps",
  "chrono",
  "clap",
+ "clap_complete",
+ "clap_mangen",
  "comfy-table",
  "env_logger",
  "flate2",
@@ -5535,11 +5537,7 @@ name = "xtask"
 version = "0.5.6"
 dependencies = [
  "anyhow",
- "bpfman",
- "bpfman-api",
  "clap",
- "clap_complete",
- "clap_mangen",
  "dialoguer",
  "diff",
  "hex",

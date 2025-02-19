@@ -34,6 +34,8 @@ clap = { workspace = true, features = [
     "suggestions",
     "usage",
 ] }
+clap_complete = { workspace = true }
+clap_mangen = { workspace = true }
 comfy-table = { workspace = true, features = ["tty"] }
 env_logger = { workspace = true }
 flate2 = { workspace = true, features = ["zlib"] }
