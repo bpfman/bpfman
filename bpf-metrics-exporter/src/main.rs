@@ -18,6 +18,9 @@ use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{metrics::SdkMeterProvider, runtime, Resource};
 use tokio::signal::ctrl_c;
 
+shadow_rs::shadow!(build);
+use crate::build::CLAP_LONG_VERSION;
+
 fn init_meter_provider(grpc_endpoint: &str) -> SdkMeterProvider {
     opentelemetry_otlp::new_pipeline()
         .metrics(runtime::Tokio)
@@ -36,6 +39,7 @@ fn init_meter_provider(grpc_endpoint: &str) -> SdkMeterProvider {
 }
 
 #[derive(Parser)]
+#[clap(author, version=CLAP_LONG_VERSION, about, long_about = None)]
 struct Cli {
     #[clap(long, default_value = "http://localhost:4317")]
     otel_grpc: String,

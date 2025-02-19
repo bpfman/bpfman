@@ -19,6 +19,8 @@ mod manpage;
 mod table;
 mod unload;
 
+shadow_rs::shadow!(build);
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::try_init()?;

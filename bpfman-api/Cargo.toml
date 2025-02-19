@@ -58,6 +58,7 @@ rtnetlink = { workspace = true, features = ["tokio_socket"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }
+shadow-rs = { workspace = true }
 sigstore = { workspace = true, features = [
     "cached-client",
     "full-native-tls",
@@ -75,3 +76,6 @@ toml = { workspace = true, features = ["parse"] }
 tonic = { workspace = true, features = ["codegen", "prost", "transport"] }
 tower = { workspace = true }
 url = { workspace = true }
+
+[build-dependencies]
+shadow-rs = { workspace = true }
