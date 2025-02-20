@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::{errors::ParseError, TC_DISPATCHER_IMAGE, XDP_DISPATCHER_IMAGE};
 
 #[derive(Debug, Default, Deserialize, Clone)]
-pub(crate) struct Config {
+pub struct Config {
     interfaces: Option<HashMap<String, InterfaceConfig>>,
     #[serde(default)]
     signing: SigningConfig,

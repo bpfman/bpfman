@@ -665,3 +665,34 @@ pub(crate) fn parse_global_arg(global_arg: &str) -> Result<GlobalArg, std::io::E
         value,
     })
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_parse_global_arg() {
+        let result = parse_global_arg("foo=1234").unwrap();
+        assert_eq!(result.name, "foo");
+        assert_eq!(result.value, vec![0x12, 0x34]);
+
+        // This is an error case also, but perhaps it should be allowed?
+        let result = parse_global_arg("foo=0x1234").unwrap_err();
+        assert_eq!(result.kind(), std::io::ErrorKind::InvalidInput);
+
+        let result = parse_global_arg("foo=bar").unwrap_err();
+        assert_eq!(result.kind(), std::io::ErrorKind::InvalidInput);
+
+        let result = parse_global_arg("foo").unwrap_err();
+        assert_eq!(result.kind(), std::io::ErrorKind::InvalidInput);
+    }
+
+    #[test]
+    fn test_parse_key_val() {
+        let result = parse_key_val("foo=bar").unwrap();
+        assert_eq!(result, ("foo".to_string(), "bar".to_string()));
+
+        let result = parse_key_val("foo").unwrap_err();
+        assert_eq!(result.kind(), std::io::ErrorKind::InvalidInput);
+    }
+}

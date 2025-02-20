@@ -14,7 +14,7 @@ use aya::Endianness;
 use aya_obj::Object;
 use base64::{engine::general_purpose, Engine};
 use bpfman::{
-    pull_bytecode,
+    pull_bytecode, setup,
     types::{BytecodeImage, ImagePullPolicy, MapType, ProgramType},
 };
 use log::{debug, warn};
@@ -69,7 +69,8 @@ pub(crate) struct ImageBuilder {
 
 pub(crate) fn execute_pull(args: &PullBytecodeArgs) -> anyhow::Result<()> {
     let image: BytecodeImage = args.try_into()?;
-    pull_bytecode(image)?;
+    let (_, root_db) = setup()?;
+    pull_bytecode(&root_db, image)?;
 
     Ok(())
 }

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use anyhow::bail;
 use bpfman::{
-    add_program,
+    add_program, setup,
     types::{
         FentryProgram, FexitProgram, KprobeProgram, Location, Program, ProgramData, TcProceedOn,
         TcProgram, TcxProgram, TracepointProgram, UprobeProgram, XdpProceedOn, XdpProgram,
@@ -27,6 +27,7 @@ impl LoadSubcommand {
 }
 
 pub(crate) fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
+    let (config, root_db) = setup()?;
     let bytecode_source = Location::File(args.path.clone());
 
     let data = ProgramData::new(
@@ -42,7 +43,7 @@ pub(crate) fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
         args.map_owner_id,
     )?;
 
-    let program = add_program(args.command.get_program(data)?)?;
+    let program = add_program(&config, &root_db, args.command.get_program(data)?)?;
 
     ProgTable::new_program(&program)?.print();
     ProgTable::new_kernel_info(&program)?.print();
@@ -50,6 +51,7 @@ pub(crate) fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
 }
 
 pub(crate) fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
+    let (config, root_db) = setup()?;
     let bytecode_source = Location::Image((&args.pull_args).try_into()?);
 
     let data = ProgramData::new(
@@ -65,7 +67,7 @@ pub(crate) fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
         args.map_owner_id,
     )?;
 
-    let program = add_program(args.command.get_program(data)?)?;
+    let program = add_program(&config, &root_db, args.command.get_program(data)?)?;
 
     ProgTable::new_program(&program)?.print();
     ProgTable::new_kernel_info(&program)?.print();

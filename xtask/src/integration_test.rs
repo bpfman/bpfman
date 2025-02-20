@@ -1,6 +1,11 @@
-use std::{os::unix::process::CommandExt, process::Command};
+use std::{
+    io::BufReader,
+    path::PathBuf,
+    process::{Child, Command, Stdio},
+};
 
-use anyhow::Context as _;
+use anyhow::{bail, Context as _};
+use cargo_metadata::{Artifact, CompilerMessage, Message, Target};
 use clap::Parser;
 
 #[derive(Debug, Parser)]
@@ -23,94 +28,139 @@ pub struct Options {
 }
 
 /// Build the project
-fn build(opts: &Options) -> Result<(), anyhow::Error> {
-    let mut args = vec!["build"];
+fn build(opts: &Options) -> Result<Vec<(String, PathBuf)>, anyhow::Error> {
+    let mut cmd = Command::new("cargo");
+    let mut args = vec!["test", "--message-format=json", "--no-run"];
     if opts.release {
         args.push("--release")
     }
-    args.push("-p");
+    args.push("--package");
     args.push("integration-test");
-    let status = Command::new("cargo")
-        .args(&args)
-        .status()
-        .expect("failed to build userspace");
-    assert!(status.success());
-    Ok(())
+    cmd.args(&args);
+
+    let mut child = cmd
+        .stdout(Stdio::piped())
+        .spawn()
+        .with_context(|| format!("failed to spawn {cmd:?}"))?;
+    let Child { stdout, .. } = &mut child;
+
+    let stdout = stdout.take().unwrap();
+    let stdout = BufReader::new(stdout);
+    let mut executables = Vec::new();
+    for message in Message::parse_stream(stdout) {
+        #[allow(clippy::collapsible_match)]
+        match message.context("valid JSON")? {
+            Message::CompilerArtifact(Artifact {
+                executable,
+                target: Target { name, .. },
+                ..
+            }) => {
+                if let Some(executable) = executable {
+                    executables.push((name, executable.into()));
+                }
+            }
+            Message::CompilerMessage(CompilerMessage { message, .. }) => {
+                for line in message.rendered.unwrap_or_default().split('\n') {
+                    println!("cargo:warning={line}");
+                }
+            }
+            Message::TextLine(line) => {
+                println!("{line}");
+            }
+            _ => {}
+        }
+    }
+
+    let status = child
+        .wait()
+        .with_context(|| format!("failed to wait for {cmd:?}"))?;
+    if status.code() != Some(0) {
+        bail!("{cmd:?} failed: {status:?}")
+    }
+    Ok(executables)
 }
 
 /// Build and run the project
 pub fn test(opts: Options) -> Result<(), anyhow::Error> {
-    build(&opts).context("Error while building userspace application")?;
-    // profile we are building (release or debug)
-    let profile = if opts.release { "release" } else { "debug" };
-    let bin_path = format!("target/{profile}/integration-test");
+    let executables = build(&opts).context("Error while building userspace application")?;
+    for (name, path) in executables.into_iter() {
+        println!("Running test: {}", name);
+        // arguments to pass to the application
+        let mut run_args: Vec<_> = opts.run_args.iter().map(String::as_str).collect();
 
-    // arguments to pass to the application
-    let mut run_args: Vec<_> = opts.run_args.iter().map(String::as_str).collect();
+        // configure args
+        let mut args: Vec<_> = opts.runner.trim().split_terminator(' ').collect();
+        args.push(path.to_str().expect("Invalid path"));
+        args.append(&mut run_args);
+        args.push("--test-threads=1");
 
-    // configure args
-    let mut args: Vec<_> = opts.runner.trim().split_terminator(' ').collect();
-    args.push(bin_path.as_str());
-    args.append(&mut run_args);
+        let tag = opts.bytecode_image_tag.clone();
+        let bytecode_images: Vec<(String, String)> = vec![
+            (
+                "XDP_PASS_IMAGE_LOC".to_string(),
+                format!("quay.io/bpfman-bytecode/xdp_pass:{tag}"),
+            ),
+            (
+                "TC_PASS_IMAGE_LOC".to_string(),
+                format!("quay.io/bpfman-bytecode/tc_pass:{tag}"),
+            ),
+            (
+                "TRACEPOINT_IMAGE_LOC".to_string(),
+                format!("quay.io/bpfman-bytecode/tracepoint:{}", tag),
+            ),
+            (
+                "UPROBE_IMAGE_LOC".to_string(),
+                format!("quay.io/bpfman-bytecode/uprobe:{}", tag),
+            ),
+            (
+                "URETPROBE_IMAGE_LOC".to_string(),
+                format!("quay.io/bpfman-bytecode/uretprobe:{}", tag),
+            ),
+            (
+                "KPROBE_IMAGE_LOC".to_string(),
+                format!("quay.io/bpfman-bytecode/kprobe:{}", tag),
+            ),
+            (
+                "KRETPROBE_IMAGE_LOC".to_string(),
+                format!("quay.io/bpfman-bytecode/kretprobe:{}", tag),
+            ),
+            (
+                "XDP_COUNTER_IMAGE_LOC".to_string(),
+                format!("quay.io/bpfman-bytecode/go-xdp-counter:{}", tag),
+            ),
+            (
+                "TC_COUNTER_IMAGE_LOC".to_string(),
+                format!("quay.io/bpfman-bytecode/go-tc-counter:{}", tag),
+            ),
+            (
+                "TRACEPOINT_COUNTER_IMAGE_LOC".to_string(),
+                format!("quay.io/bpfman-bytecode/go-tracepoint-counter:{tag}"),
+            ),
+            (
+                "FENTRY_IMAGE_LOC".to_string(),
+                format!("quay.io/bpfman-bytecode/fentry:{tag}"),
+            ),
+            (
+                "FEXIT_IMAGE_LOC".to_string(),
+                format!("quay.io/bpfman-bytecode/fexit:{tag}"),
+            ),
+        ];
 
-    let tag = opts.bytecode_image_tag;
-    let bytecode_images: Vec<(String, String)> = vec![
-        (
-            "XDP_PASS_IMAGE_LOC".to_string(),
-            format!("quay.io/bpfman-bytecode/xdp_pass:{tag}"),
-        ),
-        (
-            "TC_PASS_IMAGE_LOC".to_string(),
-            format!("quay.io/bpfman-bytecode/tc_pass:{tag}"),
-        ),
-        (
-            "TRACEPOINT_IMAGE_LOC".to_string(),
-            format!("quay.io/bpfman-bytecode/tracepoint:{}", tag),
-        ),
-        (
-            "UPROBE_IMAGE_LOC".to_string(),
-            format!("quay.io/bpfman-bytecode/uprobe:{}", tag),
-        ),
-        (
-            "URETPROBE_IMAGE_LOC".to_string(),
-            format!("quay.io/bpfman-bytecode/uretprobe:{}", tag),
-        ),
-        (
-            "KPROBE_IMAGE_LOC".to_string(),
-            format!("quay.io/bpfman-bytecode/kprobe:{}", tag),
-        ),
-        (
-            "KRETPROBE_IMAGE_LOC".to_string(),
-            format!("quay.io/bpfman-bytecode/kretprobe:{}", tag),
-        ),
-        (
-            "XDP_COUNTER_IMAGE_LOC".to_string(),
-            format!("quay.io/bpfman-bytecode/go-xdp-counter:{}", tag),
-        ),
-        (
-            "TC_COUNTER_IMAGE_LOC".to_string(),
-            format!("quay.io/bpfman-bytecode/go-tc-counter:{}", tag),
-        ),
-        (
-            "TRACEPOINT_COUNTER_IMAGE_LOC".to_string(),
-            format!("quay.io/bpfman-bytecode/go-tracepoint-counter:{tag}"),
-        ),
-        (
-            "FENTRY_IMAGE_LOC".to_string(),
-            format!("quay.io/bpfman-bytecode/fentry:{tag}"),
-        ),
-        (
-            "FEXIT_IMAGE_LOC".to_string(),
-            format!("quay.io/bpfman-bytecode/fexit:{tag}"),
-        ),
-    ];
+        // spawn the command
+        let mut cmd = Command::new(args.first().expect("No first argument"))
+            .args(args.iter().skip(1))
+            .envs(bytecode_images)
+            .stdout(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .spawn()
+            .with_context(|| "failed to spawn test".to_string())?;
 
-    // spawn the command
-    let err = Command::new(args.first().expect("No first argument"))
-        .args(args.iter().skip(1))
-        .envs(bytecode_images)
-        .exec();
-
-    // we shouldn't get here unless the command failed to spawn
-    Err(anyhow::Error::from(err).context(format!("Failed to run `{}`", args.join(" "))))
+        let status = cmd
+            .wait()
+            .with_context(|| format!("failed to wait for {cmd:?}"))?;
+        if status.code() != Some(0) {
+            bail!("{cmd:?} failed: {status:?}")
+        }
+    }
+    Ok(())
 }
