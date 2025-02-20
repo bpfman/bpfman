@@ -1832,8 +1832,8 @@ instructions for running them locally when doing development.</p>
 <h2 id="unit-testing">Unit Testing</h2>
 <p>Unit testing is executed as part of the <code>build</code> job by running the following
 command in the top-level bpfman directory.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>cd bpfman/
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cargo test
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>cargo<span class="w"> </span><span class="nb">test</span>
 </code></pre></div>
 <h2 id="go-example-tests">Go Example Tests</h2>
 <p>Tests are run for each of the example programs found in directory <code>examples</code></p>
@@ -1845,9 +1845,11 @@ command in the top-level bpfman directory.</p>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>cargo<span class="w"> </span>xtask<span class="w"> </span>integration-test
 </code></pre></div>
 <p>Optionally, a subset of the integration tests can be run by adding the "--" and
-a list of one or more names at the end of the command as shown below.</p>
+a test filter string.  For example, to run only the tests that load and unload
+XDP programs, run the following command:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>cargo<span class="w"> </span>xtask<span class="w"> </span>integration-test<span class="w"> </span>--<span class="w"> </span>test_load_unload_xdp<span class="w"> </span>test_proceed_on_xdp
 </code></pre></div>
+<p>Test filter strings are documented <a href="https://doc.rust-lang.org/book/ch11-02-running-tests.html#running-a-subset-of-tests-by-name">here</a></p>
 <p>The integration tests start a <code>bpfman</code> daemon process, and issue CLI commands
 to verify a range of functionality.  For XDP and TC programs that are installed
 on network interfaces, the integration test code creates a test network
@@ -1858,13 +1860,6 @@ by setting the <code>BPFMAN_IP_PREFIX</code> environment variable to one that is
 shown below.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">BPFMAN_IP_PREFIX</span><span class="o">=</span><span class="s2">&quot;192.168.50&quot;</span>
 </code></pre></div>
-<p>If bpfman logs are needed to help debug an integration test, set <code>RUST_LOG</code> either
-globally or for a given test.</p>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">RUST_LOG</span><span class="o">=</span>info
-</code></pre></div>
-OR
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">RUST_LOG</span><span class="o">=</span>info<span class="w"> </span>cargo<span class="w"> </span>xtask<span class="w"> </span>integration-test<span class="w"> </span>--<span class="w"> </span>test_load_unload_xdp<span class="w"> </span>test_proceed_on_xdp
-</code></pre></div></p>
 <p>There are two categories of integration tests: basic and e2e.  The basic tests
 verify basic CLI functionality such as loading, listing, and unloading
 programs.  The e2e tests verify more advanced functionality such as the setting
@@ -1881,16 +1876,16 @@ directory.  These programs are compiled by executing <code>cargo xtask build-ebp
 <h3 id="kubernetes-operator-unit-tests">Kubernetes Operator Unit Tests</h3>
 <p>To run all of the unit tests defined in the bpfman-operator controller code run
 <code>make test</code> in the bpfman-operator directory.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>make<span class="w"> </span><span class="nb">test</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>make<span class="w"> </span><span class="nb">test</span>
 </code></pre></div>
 <h3 id="kubernetes-operator-integration-tests">Kubernetes Operator Integration Tests</h3>
 <p>To run the Kubernetes Operator integration tests locally:</p>
 <ol>
 <li>
 <p>Build the example test code userspace images locally.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman/examples/
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>make<span class="w"> </span>build-us-images
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman/examples/
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>make<span class="w"> </span>build-us-images
 </code></pre></div>
 </li>
 <li>
@@ -1901,14 +1896,14 @@ they will be built and generate by github actions with the tag
 </li>
 <li>
 <p>Build the bpfman images locally with a unique tag, for example: <code>int-test</code></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-agent:int-test<span class="w"> </span><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-operator:int-test<span class="w"> </span>make<span class="w"> </span>build-images
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-agent:int-test<span class="w"> </span><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-operator:int-test<span class="w"> </span>make<span class="w"> </span>build-images
 </code></pre></div>
 </li>
 <li>
 <p>Run the integration test suite with the images from the previous step:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-agent:int-test<span class="w"> </span><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-operator:int-test<span class="w"> </span>make<span class="w"> </span>test-integration
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-agent:int-test<span class="w"> </span><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/bpfman/bpfman-operator:int-test<span class="w"> </span>make<span class="w"> </span>test-integration
 </code></pre></div>
 <p>If an update <code>bpfman</code> image is required, build it separately and pass to <code>make test-integration</code> using <code>BPFMAN_IMG</code>.
 See <a href="../image-build/#locally-build-bpfman-container-image">Locally Build bpfman Container Image</a>.</p>
