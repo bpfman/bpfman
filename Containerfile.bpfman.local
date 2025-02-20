@@ -14,7 +14,9 @@ RUN apt-get update && apt-get install -y\
 
 RUN apt-get update && apt-get install -y\
     gcc-multilib\
-    libssl-dev
+    libssl-dev\
+    cmake\
+    libclang-16-dev
 
 # Get Rust for Ubuntu base build
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y

@@ -9,7 +9,7 @@ instructions for running them locally when doing development.
 Unit testing is executed as part of the `build` job by running the following
 command in the top-level bpfman directory.
 
-```
+```bash
 cd bpfman/
 cargo test
 ```
@@ -31,11 +31,14 @@ cargo xtask integration-test
 ```
 
 Optionally, a subset of the integration tests can be run by adding the "--" and
-a list of one or more names at the end of the command as shown below.
+a test filter string.  For example, to run only the tests that load and unload
+XDP programs, run the following command:
 
 ```bash
 cargo xtask integration-test -- test_load_unload_xdp test_proceed_on_xdp
 ```
+
+Test filter strings are documented [here](https://doc.rust-lang.org/book/ch11-02-running-tests.html#running-a-subset-of-tests-by-name)
 
 The integration tests start a `bpfman` daemon process, and issue CLI commands
 to verify a range of functionality.  For XDP and TC programs that are installed
@@ -48,17 +51,6 @@ shown below.
 
 ```bash
 export BPFMAN_IP_PREFIX="192.168.50"
-```
-
-If bpfman logs are needed to help debug an integration test, set `RUST_LOG` either
-globally or for a given test.
-
-```bash
-export RUST_LOG=info
-```
-OR
-```bash
-RUST_LOG=info cargo xtask integration-test -- test_load_unload_xdp test_proceed_on_xdp
 ```
 
 There are two categories of integration tests: basic and e2e.  The basic tests

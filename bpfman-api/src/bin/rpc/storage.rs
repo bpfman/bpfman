@@ -12,7 +12,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use aya::maps::MapData;
 use bpfman::{
-    list_programs,
+    list_programs, setup,
     types::ListFilter,
     utils::{create_bpffs, set_dir_permissions, set_file_permissions, SOCK_MODE},
 };
@@ -137,6 +137,8 @@ impl Node for CsiNode {
                 fs_group: {fs_group:?}"
         );
 
+        let (_, root_db) = setup().map_err(|e| Status::aborted(format!("{e}")))?;
+
         match (
             volume_context.get(MAPS_KEY),
             volume_context.get(PROGRAM_KEY),
@@ -145,7 +147,7 @@ impl Node for CsiNode {
                 let maps: Vec<&str> = m.split(',').collect();
 
                 // Find the Program with the specified *Program CRD name
-                let prog_data = list_programs(ListFilter::default())
+                let prog_data = list_programs(&root_db, ListFilter::default())
                     .map_err(|e| Status::aborted(format!("failed list programs: {e}")))?
                     .into_iter()
                     .find(|p| {

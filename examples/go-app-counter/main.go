@@ -125,6 +125,12 @@ func loadBpfProgram(loadRequest *gobpfman.LoadRequest) (*gobpfman.LoadResponse, 
 	return c.Load(ctx, loadRequest)
 }
 
+func attachBpfProgram(attachRequest *gobpfman.AttachRequest) (*gobpfman.AttachResponse, error) {
+	appMutex.Lock()
+	defer appMutex.Unlock()
+	return c.Attach(ctx, attachRequest)
+}
+
 func unloadBpfProgram(id uint) (*gobpfman.UnloadResponse, error) {
 	appMutex.Lock()
 	defer appMutex.Unlock()
