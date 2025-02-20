@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
+use anyhow::Error;
+
 // XXX Can be removed in the future.
-fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<(), Error> {
     // Temporary check to confirm whether SQLite is linked statically
     // or dynamically. Verify linkage using: `ldd
     // ./target/debug/bpfman`
