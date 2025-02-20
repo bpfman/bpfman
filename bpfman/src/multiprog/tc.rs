@@ -11,9 +11,7 @@ use aya::{
     },
     Ebpf, EbpfLoader,
 };
-use futures::stream::TryStreamExt;
 use log::debug;
-use netlink_packet_route::tc::TcAttribute;
 use sled::Db;
 
 use crate::{
@@ -24,6 +22,7 @@ use crate::{
     dispatcher_config::TcDispatcherConfig,
     errors::BpfmanError,
     multiprog::Dispatcher,
+    netlink::NetlinkManager,
     oci_utils::image_manager::ImageManager,
     types::{
         BytecodeImage,
@@ -100,7 +99,7 @@ impl TcDispatcher {
         }
     }
 
-    pub(crate) async fn load(
+    pub(crate) fn load(
         &mut self,
         root_db: &Db,
         programs: &mut [Program],
@@ -140,15 +139,13 @@ impl TcDispatcher {
             None,
         );
 
-        let (path, bpf_program_names) = image_manager
-            .get_image(
-                root_db,
-                &image.image_url,
-                image.image_pull_policy.clone(),
-                image.username.clone(),
-                image.password.clone(),
-            )
-            .await?;
+        let (path, bpf_program_names) = image_manager.get_image(
+            root_db,
+            &image.image_url,
+            image.image_pull_policy.clone(),
+            image.username.clone(),
+            image.password.clone(),
+        )?;
 
         if !bpf_program_names.contains(&TC_DISPATCHER_PROGRAM_NAME.to_string()) {
             return Err(BpfmanError::ProgramNotFoundInBytecode {
@@ -185,34 +182,21 @@ impl TcDispatcher {
 
         if let Some(netns) = netns {
             let _netns_guard = enter_netns(netns)?;
-            self.attach(root_db, old_dispatcher).await?;
+            self.attach(root_db, old_dispatcher)?;
         } else {
-            self.attach(root_db, old_dispatcher).await?;
+            self.attach(root_db, old_dispatcher)?;
         };
 
         Ok(())
     }
 
     /// has_qdisc returns true if the qdisc_name is found on the if_index.
-    async fn has_qdisc(qdisc_name: String, if_index: i32) -> Result<bool, anyhow::Error> {
-        let (connection, handle, _) = rtnetlink::new_connection().unwrap();
-        tokio::spawn(connection);
-
-        let mut qdiscs = handle.qdisc().get().execute();
-        while let Some(qdisc_message) = qdiscs.try_next().await? {
-            if qdisc_message.header.index == if_index
-                && qdisc_message
-                    .attributes
-                    .contains(&TcAttribute::Kind(qdisc_name.clone()))
-            {
-                return Ok(true);
-            }
-        }
-
-        Ok(false)
+    fn has_qdisc(qdisc_name: String, if_index: i32) -> Result<bool, anyhow::Error> {
+        let nl = NetlinkManager::new();
+        nl.has_qdisc(qdisc_name, if_index)
     }
 
-    async fn attach(
+    fn attach(
         &mut self,
         root_db: &Db,
         old_dispatcher: Option<Dispatcher>,
@@ -234,14 +218,14 @@ impl TcDispatcher {
         // qdisc, we return an error. If the qdisc is a clsact qdisc, we do nothing. Otherwise, we add a clsact qdisc.
 
         // no need to add a new clsact qdisc if one already exists.
-        if TcDispatcher::has_qdisc("clsact".to_string(), if_index as i32).await? {
+        if TcDispatcher::has_qdisc("clsact".to_string(), if_index as i32)? {
             debug!(
                 "clsact qdisc found for if_index {}, no need to add a new clsact qdisc",
                 if_index
             );
 
         // if ingress qdisc exists, return error.
-        } else if TcDispatcher::has_qdisc("ingress".to_string(), if_index as i32).await? {
+        } else if TcDispatcher::has_qdisc("ingress".to_string(), if_index as i32)? {
             debug!("ingress qdisc found for if_index {}", if_index);
             return Err(BpfmanError::InvalidAttach(format!(
                 "Ingress qdisc found for if_index {}",

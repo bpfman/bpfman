@@ -6,7 +6,7 @@ use bpfman::{list_programs, types::ListFilter};
 
 use crate::{args::ListArgs, table::ProgTable};
 
-pub(crate) async fn execute_list(args: &ListArgs) -> anyhow::Result<()> {
+pub(crate) fn execute_list(args: &ListArgs) -> anyhow::Result<()> {
     let prog_type_filter = args.program_type.map(|p| p as u32);
 
     let filter = ListFilter::new(
@@ -22,7 +22,7 @@ pub(crate) async fn execute_list(args: &ListArgs) -> anyhow::Result<()> {
 
     let mut table = ProgTable::new_list();
 
-    for r in list_programs(filter).await? {
+    for r in list_programs(filter)? {
         if let Err(e) = table.add_response_prog(r) {
             bail!(e)
         }

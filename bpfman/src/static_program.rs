@@ -97,16 +97,16 @@
 // }
 
 // impl StaticProgramManager {
-//     async fn programs_from_directory(mut self) -> Result<(), anyhow::Error> {
-//         if let Ok(mut entries) = fs::read_dir(self.path).await {
-//             while let Some(file) = entries.next_entry().await? {
+//     fn programs_from_directory(mut self) -> Result<(), anyhow::Error> {
+//         if let Ok(mut entries) = fs::read_dir(self.path) {
+//             while let Some(file) = entries.next_entry()? {
 //                 let path = &file.path();
 //                 // ignore directories
 //                 if path.is_dir() {
 //                     continue;
 //                 }
 
-//                 if let Ok(contents) = read_to_string(path).await {
+//                 if let Ok(contents) = read_to_string(path) {
 //                     let program = toml::from_str(&contents)?;
 
 //                     self.programs.push(program);
@@ -120,7 +120,7 @@
 //     }
 // }
 
-// pub(crate) async fn get_static_programs<P: AsRef<Path>>(
+// pub(crate) fn get_static_programs<P: AsRef<Path>>(
 //     path: P,
 // ) -> Result<Vec<Program>, anyhow::Error> {
 //     let static_program_manager = StaticProgramManager {
@@ -131,7 +131,7 @@
 //     static_program_manager
 //         .clone()
 //         .programs_from_directory()
-//         .await?;
+//         ?;
 
 //     let mut programs: Vec<Program> = Vec::new();
 
@@ -199,7 +199,7 @@
 //     use super::*;
 
 //     #[tokio::test]
-//     async fn test_parse_program_from_invalid_path() {
+//     fn test_parse_program_from_invalid_path() {
 //         let static_program_manager = StaticProgramManager {
 //             path: "/tmp/file.toml".into(),
 //             programs: Vec::new(),
@@ -208,7 +208,7 @@
 //         static_program_manager
 //             .clone()
 //             .programs_from_directory()
-//             .await
+//
 //             .unwrap();
 //         assert!(static_program_manager.programs.is_empty())
 //     }
