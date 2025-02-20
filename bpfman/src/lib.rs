@@ -2006,34 +2006,13 @@ fn get_map(id: u32, root_db: &Db) -> Option<sled::Tree> {
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum ConnectionError {
-    Connection(diesel::ConnectionError),
-    Migration(Box<dyn std::error::Error + Send + Sync>),
-}
+    #[error("Database connection error: {0}")]
+    Connection(#[from] diesel::ConnectionError),
 
-impl std::fmt::Display for ConnectionError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ConnectionError::Connection(e) => write!(f, "Database connection error: {}", e),
-            ConnectionError::Migration(e) => write!(f, "Migration error: {}", e),
-        }
-    }
-}
-
-impl std::error::Error for ConnectionError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            ConnectionError::Connection(e) => Some(e),
-            ConnectionError::Migration(e) => Some(e.as_ref()),
-        }
-    }
-}
-
-impl From<diesel::ConnectionError> for ConnectionError {
-    fn from(err: diesel::ConnectionError) -> Self {
-        ConnectionError::Connection(err)
-    }
+    #[error("Migration error: {0}")]
+    Migration(#[from] Box<dyn std::error::Error + Send + Sync>),
 }
 
 pub fn establish_sqlite_connection(

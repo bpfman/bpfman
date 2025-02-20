@@ -164,8 +164,8 @@ pub struct BpfProgramMap {
 ///
 /// These functions do not manage database transactions. Transaction
 /// control should be handled at a higher level where operation
-/// grouping and rollback behavior can be determined by business
-/// logic.
+/// grouping and rollback behavior can only be determined by the
+/// caller.
 ///
 /// # Error Handling
 ///
@@ -366,15 +366,17 @@ mod tests {
         let mut db_conn = setup_test_db();
 
         // Setup test program with minimal required fields.
-        let mut prog = BpfProgram::default();
-        prog.id = 100;
-        prog.name = "xdp_test_program".to_string();
-        prog.kind = "xdp".to_string();
-        prog.state = "pre_load".to_string();
-        prog.location_type = "file".to_string();
-        prog.file_path = Some("/path/to/test_program.o".to_string());
-        prog.map_pin_path = "/sys/fs/bpf/test_program".to_string();
-        prog.program_bytes = vec![0xAA, 0xBB, 0xCC];
+        let mut prog = BpfProgram {
+            id: 100,
+            name: "xdp_test_program".to_string(),
+            kind: "xdp".to_string(),
+            state: "pre_load".to_string(),
+            location_type: "file".to_string(),
+            file_path: Some("/path/to/test_program.o".to_string()),
+            map_pin_path: "/sys/fs/bpf/test_program".to_string(),
+            program_bytes: vec![0xAA, 0xBB, 0xCC],
+            ..Default::default()
+        };
 
         // Verify default timestamps are epoch.
         let epoch: NaiveDateTime = Default::default();
@@ -425,72 +427,72 @@ mod tests {
     }
 
     #[test]
-    /// This test verifies the serialization, deserialization, and
-    /// database persistence of BpfProgram structs. It performs two
-    /// round-trip tests:
+    /// This test verifies the serialisation, deserialisation, and
+    /// database persistence of BpfProgram structs. It ensures that:
     ///
-    /// 1. JSON round-trip:
-    ///    - Creates a BpfProgram with all fields populated
-    ///    - Serializes it to JSON
-    ///    - Deserializes back to a BpfProgram
-    ///    - Verifies all fields match the original
-    //
-    ///    This ensures the Serde derive macros work correctly for all
-    ///    field types (i64, String, Option<String>, Vec<u8>, etc.)
-    ///    and that no data is lost in the JSON conversion.
+    /// - The Serde derive macros work correctly for all field types
+    ///   (i64, String, Option<String>, Vec<u8>, etc.).
+    /// - No data is lost in the JSON conversion.
+    /// - Diesel's type mappings are correct for all fields.
+    /// - The database schema matches the struct.
+    /// - No data is lost or corrupted during database operations.
+    /// - Timestamps are handled correctly.
+    /// - Optional fields are preserved.
+    /// - Binary data is stored and retrieved accurately.
+    /// - JSON string fields (metadata, global_data, kernel_map_ids)
+    ///   maintain their format.
     ///
-    /// 2. Database round-trip:
-    ///    - Takes the same BpfProgram
-    ///    - Inserts it into SQLite
-    ///    - Retrieves it
-    ///    - Serializes to JSON
-    ///    - Deserializes back to a BpfProgram
-    ///    - Verifies all fields match
-    //
-    ///    This ensures:
-    ///    - Diesel's type mappings work correctly for all fields.
-    ///    - The database schema matches the struct.
-    ///    - No data is lost or corrupted during database operations.
-    ///    - Timestamps are handled correctly.
-    ///    - Optional fields are preserved.
-    ///    - Binary data is stored and retrieved accurately.
-    ///    - JSON string fields (metadata, global_data,
-    ///      kernel_map_ids) maintain their format.
+    /// It performs two round-trip tests:
+    ///
+    /// 1. **JSON round-trip:**
+    ///    - Creates a BpfProgram with all fields populated.
+    ///    - Serialises it to JSON.
+    ///    - Deserialises back to a BpfProgram.
+    ///    - Verifies all fields match the original.
+    ///
+    /// 2. **Database round-trip:**
+    ///    - Takes the same BpfProgram.
+    ///    - Inserts it into SQLite.
+    ///    - Retrieves it.
+    ///    - Serialises to JSON.
+    ///    - Deserialises back to a BpfProgram.
+    ///    - Verifies all fields match.
     fn test_bpf_program_serde_roundtrip() {
-        // Create program with all fields populated.
-        let mut prog = BpfProgram::default();
-        prog.id = 100;
-        prog.name = "xdp_test_program".to_string();
-        prog.description = Some("Test program description".to_string());
-        prog.kind = "xdp".to_string();
-        prog.state = "pre_load".to_string();
-        prog.location_type = "file".to_string();
-        prog.file_path = Some("/path/to/test_program.o".to_string());
-        prog.image_url = Some("registry.example.com/image:tag".to_string());
-        prog.image_pull_policy = Some("Always".to_string());
-        prog.username = Some("testuser".to_string());
-        prog.password = Some("testpass".to_string());
-        prog.map_pin_path = "/sys/fs/bpf/test_program".to_string();
-        prog.map_owner_id = Some(1234);
-        prog.program_bytes = vec![0xAA, 0xBB, 0xCC];
-        prog.metadata = "{}".to_string();
-        prog.global_data = "{}".to_string();
-        prog.retprobe = Some(true);
-        prog.fn_name = Some("test_function".to_string());
-        prog.kernel_name = Some("test_kernel_prog".to_string());
-        prog.kernel_program_type = Some(123);
-        prog.kernel_loaded_at = Some("2024-02-18T12:00:00Z".to_string());
-        prog.kernel_tag = Some("abcdef123456".to_string());
-        prog.kernel_gpl_compatible = Some(true);
-        prog.kernel_btf_id = Some(456);
-        prog.kernel_bytes_xlated = Some(1024);
-        prog.kernel_jited = Some(true);
-        prog.kernel_bytes_jited = Some(2048);
-        prog.kernel_verified_insns = Some(100);
-        prog.kernel_map_ids = "[]".to_string();
-        prog.kernel_bytes_memlock = Some(4096);
+        let mut prog = BpfProgram {
+            id: 100,
+            name: "xdp_test_program".to_string(),
+            description: Some("Test program description".to_string()),
+            kind: "xdp".to_string(),
+            state: "pre_load".to_string(),
+            location_type: "file".to_string(),
+            file_path: Some("/path/to/test_program.o".to_string()),
+            image_url: Some("registry.example.com/image:tag".to_string()),
+            image_pull_policy: Some("Always".to_string()),
+            username: Some("testuser".to_string()),
+            password: Some("testpass".to_string()),
+            map_pin_path: "/sys/fs/bpf/test_program".to_string(),
+            map_owner_id: Some(1234),
+            program_bytes: vec![0xAA, 0xBB, 0xCC],
+            metadata: "{}".to_string(),
+            global_data: "{}".to_string(),
+            retprobe: Some(true),
+            fn_name: Some("test_function".to_string()),
+            kernel_name: Some("test_kernel_prog".to_string()),
+            kernel_program_type: Some(123),
+            kernel_loaded_at: Some("2024-02-18T12:00:00Z".to_string()),
+            kernel_tag: Some("abcdef123456".to_string()),
+            kernel_gpl_compatible: Some(true),
+            kernel_btf_id: Some(456),
+            kernel_bytes_xlated: Some(1024),
+            kernel_jited: Some(true),
+            kernel_bytes_jited: Some(2048),
+            kernel_verified_insns: Some(100),
+            kernel_map_ids: "[]".to_string(),
+            kernel_bytes_memlock: Some(4096),
+            ..Default::default()
+        };
 
-        // Test JSON serialization round-trip.
+        // Test JSON serialisation round-trip.
         {
             let json = serde_json::to_string(&prog).expect("Failed to serialize to JSON");
 
