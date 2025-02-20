@@ -11,5 +11,6 @@ rules:
 ignore:
   - libbpf/*
   - vendor/*
+  - target/*
   - examples/config/default/*/kustomization.yaml
   - examples/config/selinux/*/kustomization.yaml
