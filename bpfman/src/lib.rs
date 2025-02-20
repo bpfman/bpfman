@@ -23,8 +23,11 @@ use aya::{
     },
     Btf, EbpfLoader,
 };
+use diesel::{prelude::*, sqlite::SqliteConnection};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use log::{debug, error, info, warn};
 use sled::{Config as SledConfig, Db};
+use thiserror::Error;
 use tokio::time::{sleep, Duration};
 use types::AttachOrder;
 use utils::{id_from_tree_name, initialize_bpfman, tc_dispatcher_id, xdp_dispatcher_id};
@@ -49,10 +52,13 @@ use crate::{
 mod config;
 mod dispatcher_config;
 pub mod errors;
+pub mod models;
 mod multiprog;
 mod oci_utils;
+pub mod schema;
 mod static_program;
 pub mod types;
+pub mod u64blob;
 pub mod utils;
 
 const MAPS_MODE: u32 = 0o0660;
@@ -1760,4 +1766,36 @@ fn get_map(id: u32, root_db: &Db) -> Option<sled::Tree> {
         .into_iter()
         .find(|n| bytes_to_string(n) == format!("{}{}", MAP_PREFIX, id))
         .map(|n| root_db.open_tree(n).expect("unable to open map tree"))
+}
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+
+#[derive(Debug, Error)]
+pub enum ConnectionError {
+    #[error("Database connection error: {0}")]
+    Connection(#[from] diesel::ConnectionError),
+
+    #[error("Migration error: {0}")]
+    Migration(#[from] Box<dyn std::error::Error + Send + Sync>),
+}
+
+pub fn establish_sqlite_connection(
+    database_url: &str,
+) -> Result<SqliteConnection, ConnectionError> {
+    let mut connection = SqliteConnection::establish(database_url)?;
+
+    let applied_migrations = connection
+        .run_pending_migrations(MIGRATIONS)
+        .map_err(ConnectionError::Migration)?;
+
+    if applied_migrations.is_empty() {
+        eprintln!("No new migrations were applied.");
+    } else {
+        eprintln!("Applied migrations:");
+        for migration in applied_migrations {
+            eprintln!("- {}", migration);
+        }
+    }
+
+    Ok(connection)
 }
