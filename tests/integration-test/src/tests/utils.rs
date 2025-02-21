@@ -11,13 +11,12 @@ use std::{
 
 use anyhow::{bail, Result};
 use bpfman::{
-    add_program,
+    add_programs, attach_program,
     config::Config,
     list_programs, remove_program,
     types::{
-        Direction, FentryProgram, FexitProgram, KprobeProgram, ListFilter, Location, Program,
-        ProgramData, TcProceedOn, TcProgram, TcxProgram, TracepointProgram, UprobeProgram,
-        XdpProceedOn, XdpProgram,
+        AttachInfo, FentryProgram, FexitProgram, KprobeProgram, ListFilter, Location, Program,
+        ProgramData, TcProgram, TcxProgram, TracepointProgram, UprobeProgram, XdpProgram,
     },
 };
 use lazy_static::lazy_static;
@@ -462,11 +461,35 @@ pub fn bpffs_has_entries(path: &str) -> bool {
 }
 
 macro_rules! add_program_inner {
-    ($prog_inner_ty:expr,
-        $prog_ty:expr, $config:ident, $root_db:ident, $name:ident, $location:ident, $globals:ident, $metadata:ident, $map_owner:ident, $($rest:expr),+) => {{
+    ($prog_inner_ty:expr, $prog_ty:expr, $config:ident, $root_db:ident, $name:ident, $location:ident, $globals:ident, $metadata:ident, $map_owner:ident, $attach_info:ident) => {{
         let data = ProgramData::new($location, $name, $metadata, $globals, $map_owner).unwrap();
-        let prog = $prog_inner_ty(data, $($rest),+).unwrap();
-        add_program($config, $root_db, $prog_ty(prog)).unwrap()
+        let prog = $prog_inner_ty(data).unwrap();
+        let res = add_programs($config, $root_db, vec![$prog_ty(prog)]).unwrap();
+
+        let installed_prog = res.into_iter().next().unwrap();
+
+        let id = installed_prog
+            .get_data()
+            .get_id()
+            .expect("Failed to get program id");
+
+        let _ = attach_program($config, $root_db, id, $attach_info).unwrap();
+        installed_prog
+    }};
+    ($prog_inner_ty:expr, $prog_ty:expr, $config:ident, $root_db:ident, $name:ident, $fn_name:ident, $location:ident, $globals:ident, $metadata:ident, $map_owner:ident, $attach_info:ident) => {{
+        let data = ProgramData::new($location, $name, $metadata, $globals, $map_owner).unwrap();
+        let prog = $prog_inner_ty(data, $fn_name).unwrap();
+        let res = add_programs($config, $root_db, vec![$prog_ty(prog)]).unwrap();
+
+        let installed_prog = res.into_iter().next().unwrap();
+
+        let id = installed_prog
+            .get_data()
+            .get_id()
+            .expect("Failed to get program id");
+
+        let _ = attach_program($config, $root_db, id, $attach_info).unwrap();
+        installed_prog
     }};
 }
 
@@ -480,10 +503,7 @@ pub(crate) fn add_xdp(
     globals: HashMap<String, Vec<u8>>,
     metadata: HashMap<String, String>,
     map_owner: Option<u32>,
-    priority: i32,
-    iface: String,
-    proceed_on: XdpProceedOn,
-    netns: Option<PathBuf>,
+    attach_info: AttachInfo,
 ) -> Program {
     add_program_inner!(
         XdpProgram::new,
@@ -495,10 +515,7 @@ pub(crate) fn add_xdp(
         globals,
         metadata,
         map_owner,
-        priority,
-        iface,
-        proceed_on,
-        netns
+        attach_info
     )
 }
 
@@ -512,11 +529,7 @@ pub(crate) fn add_tc(
     globals: HashMap<String, Vec<u8>>,
     metadata: HashMap<String, String>,
     map_owner: Option<u32>,
-    priority: i32,
-    iface: String,
-    proceed_on: TcProceedOn,
-    direction: Direction,
-    netns: Option<PathBuf>,
+    attach_info: AttachInfo,
 ) -> Program {
     add_program_inner!(
         TcProgram::new,
@@ -528,11 +541,7 @@ pub(crate) fn add_tc(
         globals,
         metadata,
         map_owner,
-        priority,
-        iface,
-        proceed_on,
-        direction,
-        netns
+        attach_info
     )
 }
 
@@ -546,10 +555,7 @@ pub(crate) fn add_tcx(
     globals: HashMap<String, Vec<u8>>,
     metadata: HashMap<String, String>,
     map_owner: Option<u32>,
-    priority: i32,
-    iface: String,
-    direction: Direction,
-    netns: Option<PathBuf>,
+    attach_info: AttachInfo,
 ) -> Program {
     add_program_inner!(
         TcxProgram::new,
@@ -561,10 +567,7 @@ pub(crate) fn add_tcx(
         globals,
         metadata,
         map_owner,
-        priority,
-        iface,
-        direction,
-        netns
+        attach_info
     )
 }
 
@@ -578,7 +581,7 @@ pub(crate) fn add_tracepoint(
     globals: HashMap<String, Vec<u8>>,
     metadata: HashMap<String, String>,
     map_owner: Option<u32>,
-    tracepoint: String,
+    attach_info: AttachInfo,
 ) -> Program {
     add_program_inner!(
         TracepointProgram::new,
@@ -590,7 +593,7 @@ pub(crate) fn add_tracepoint(
         globals,
         metadata,
         map_owner,
-        tracepoint
+        attach_info
     )
 }
 
@@ -604,10 +607,7 @@ pub(crate) fn add_kprobe(
     globals: HashMap<String, Vec<u8>>,
     metadata: HashMap<String, String>,
     map_owner: Option<u32>,
-    fn_name: String,
-    offset: u64,
-    retprobe: bool,
-    container_pid: Option<i32>,
+    attach_info: AttachInfo,
 ) -> Program {
     add_program_inner!(
         KprobeProgram::new,
@@ -619,10 +619,7 @@ pub(crate) fn add_kprobe(
         globals,
         metadata,
         map_owner,
-        fn_name,
-        offset,
-        retprobe,
-        container_pid
+        attach_info
     )
 }
 
@@ -636,12 +633,7 @@ pub(crate) fn add_uprobe(
     globals: HashMap<String, Vec<u8>>,
     metadata: HashMap<String, String>,
     map_owner: Option<u32>,
-    fn_name: Option<String>,
-    offset: u64,
-    target: String,
-    retprobe: bool,
-    pid: Option<i32>,
-    container_pid: Option<i32>,
+    attach_info: AttachInfo,
 ) -> Program {
     add_program_inner!(
         UprobeProgram::new,
@@ -653,12 +645,7 @@ pub(crate) fn add_uprobe(
         globals,
         metadata,
         map_owner,
-        fn_name,
-        offset,
-        target,
-        retprobe,
-        pid,
-        container_pid
+        attach_info
     )
 }
 
@@ -668,11 +655,12 @@ pub(crate) fn add_fentry(
     config: &Config,
     root_db: &Db,
     name: String,
+    fn_name: String,
     location: Location,
     globals: HashMap<String, Vec<u8>>,
     metadata: HashMap<String, String>,
     map_owner: Option<u32>,
-    fn_name: String,
+    attach_info: AttachInfo,
 ) -> Program {
     add_program_inner!(
         FentryProgram::new,
@@ -680,11 +668,12 @@ pub(crate) fn add_fentry(
         config,
         root_db,
         name,
+        fn_name,
         location,
         globals,
         metadata,
         map_owner,
-        fn_name
+        attach_info
     )
 }
 
@@ -694,11 +683,12 @@ pub(crate) fn add_fexit(
     config: &Config,
     root_db: &Db,
     name: String,
+    fn_name: String,
     location: Location,
     globals: HashMap<String, Vec<u8>>,
     metadata: HashMap<String, String>,
     map_owner: Option<u32>,
-    fn_name: String,
+    attach_info: AttachInfo,
 ) -> Program {
     add_program_inner!(
         FexitProgram::new,
@@ -706,11 +696,12 @@ pub(crate) fn add_fexit(
         config,
         root_db,
         name,
+        fn_name,
         location,
         globals,
         metadata,
         map_owner,
-        fn_name
+        attach_info
     )
 }
 

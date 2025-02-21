@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::PathBuf, thread::sleep, time::Duration};
 
 use bpfman::{
     remove_program, setup,
-    types::{BytecodeImage, Direction, Location, TcProceedOn, XdpProceedOn},
+    types::{AttachInfo, BytecodeImage, Location, TcProceedOn, XdpProceedOn},
 };
 use procfs::sys::kernel::Version;
 
@@ -70,10 +70,13 @@ fn test_proceed_on_xdp() {
         ]),
         HashMap::new(),
         None,
-        75,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        XdpProceedOn::default(),
-        None,
+        AttachInfo::Xdp {
+            priority: 75,
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            proceed_on: XdpProceedOn::default(),
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
     progs.push(prog1);
 
@@ -107,11 +110,17 @@ fn test_proceed_on_xdp() {
         ]),
         HashMap::new(),
         None,
-        50,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        XdpProceedOn::from_strings(vec!["drop".to_string(), "dispatcher_return".to_string()])
+        AttachInfo::Xdp {
+            priority: 50,
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            proceed_on: XdpProceedOn::from_strings(vec![
+                "drop".to_string(),
+                "dispatcher_return".to_string(),
+            ])
             .unwrap(),
-        None,
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
     progs.push(prog2);
 
@@ -143,11 +152,17 @@ fn test_proceed_on_xdp() {
         ]),
         HashMap::new(),
         None,
-        25,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        XdpProceedOn::from_strings(vec!["pass".to_string(), "dispatcher_return".to_string()])
+        AttachInfo::Xdp {
+            priority: 25,
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            proceed_on: XdpProceedOn::from_strings(vec![
+                "pass".to_string(),
+                "dispatcher_return".to_string(),
+            ])
             .unwrap(),
-        None,
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
     progs.push(prog3);
 
@@ -199,10 +214,13 @@ fn test_unload_xdp() {
         ]),
         HashMap::new(),
         None,
-        75,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        XdpProceedOn::default(),
-        None,
+        AttachInfo::Xdp {
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 75,
+            proceed_on: XdpProceedOn::default(),
+            metadata: HashMap::new(),
+            netns: None,
+        },
     );
     progs.push(prog1);
 
@@ -221,11 +239,17 @@ fn test_unload_xdp() {
         ]),
         HashMap::new(),
         None,
-        50,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        XdpProceedOn::from_strings(vec!["pass".to_string(), "dispatcher_return".to_string()])
+        AttachInfo::Xdp {
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 50,
+            proceed_on: XdpProceedOn::from_strings(vec![
+                "pass".to_string(),
+                "dispatcher_return".to_string(),
+            ])
             .unwrap(),
-        None,
+            metadata: HashMap::new(),
+            netns: None,
+        },
     );
     progs.push(prog2);
 
@@ -243,11 +267,17 @@ fn test_unload_xdp() {
         ]),
         HashMap::new(),
         None,
-        25,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        XdpProceedOn::from_strings(vec!["pass".to_string(), "dispatcher_return".to_string()])
+        AttachInfo::Xdp {
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 25,
+            proceed_on: XdpProceedOn::from_strings(vec![
+                "pass".to_string(),
+                "dispatcher_return".to_string(),
+            ])
             .unwrap(),
-        None,
+            metadata: HashMap::new(),
+            netns: None,
+        },
     );
 
     // Don't save this id because we're going to unload it explicitly below.
@@ -315,11 +345,14 @@ fn test_proceed_on_tc() {
         ]),
         HashMap::new(),
         None,
-        75,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::default(),
-        Direction::Ingress,
-        None,
+        AttachInfo::Tc {
+            direction: "ingress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 75,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::default(),
+        },
     );
     progs.push(res);
 
@@ -335,11 +368,14 @@ fn test_proceed_on_tc() {
         ]),
         HashMap::new(),
         None,
-        75,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::default(),
-        Direction::Egress,
-        None,
+        AttachInfo::Tc {
+            direction: "egress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 75,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::default(),
+        },
     );
     progs.push(res);
 
@@ -371,12 +407,18 @@ fn test_proceed_on_tc() {
         ]),
         HashMap::new(),
         None,
-        50,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::from_strings(vec!["shot".to_string(), "dispatcher_return".to_string()])
+        AttachInfo::Tc {
+            direction: "ingress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 50,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::from_strings(vec![
+                "shot".to_string(),
+                "dispatcher_return".to_string(),
+            ])
             .unwrap(),
-        Direction::Ingress,
-        None,
+        },
     );
     progs.push(res);
 
@@ -392,12 +434,18 @@ fn test_proceed_on_tc() {
         ]),
         HashMap::new(),
         None,
-        50,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::from_strings(vec!["shot".to_string(), "dispatcher_return".to_string()])
+        AttachInfo::Tc {
+            direction: "egress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 50,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::from_strings(vec![
+                "shot".to_string(),
+                "dispatcher_return".to_string(),
+            ])
             .unwrap(),
-        Direction::Egress,
-        None,
+        },
     );
     progs.push(res);
 
@@ -432,11 +480,18 @@ fn test_proceed_on_tc() {
         ]),
         HashMap::new(),
         None,
-        25,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::from_strings(vec!["ok".to_string(), "dispatcher_return".to_string()]).unwrap(),
-        Direction::Ingress,
-        None,
+        AttachInfo::Tc {
+            direction: "ingress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 25,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::from_strings(vec![
+                "ok".to_string(),
+                "dispatcher_return".to_string(),
+            ])
+            .unwrap(),
+        },
     );
     progs.push(res);
 
@@ -452,11 +507,18 @@ fn test_proceed_on_tc() {
         ]),
         HashMap::new(),
         None,
-        25,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::from_strings(vec!["ok".to_string(), "dispatcher_return".to_string()]).unwrap(),
-        Direction::Egress,
-        None,
+        AttachInfo::Tc {
+            direction: "egress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 25,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::from_strings(vec![
+                "ok".to_string(),
+                "dispatcher_return".to_string(),
+            ])
+            .unwrap(),
+        },
     );
     progs.push(res);
 
@@ -533,11 +595,14 @@ fn test_unload_tc() {
         ]),
         HashMap::new(),
         None,
-        75,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::default(),
-        Direction::Ingress,
-        None,
+        AttachInfo::Tc {
+            direction: "ingress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 75,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::default(),
+        },
     );
     progs.push(res);
 
@@ -553,11 +618,14 @@ fn test_unload_tc() {
         ]),
         HashMap::new(),
         None,
-        75,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::default(),
-        Direction::Egress,
-        None,
+        AttachInfo::Tc {
+            direction: "egress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 75,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::default(),
+        },
     );
     progs.push(res);
 
@@ -575,11 +643,18 @@ fn test_unload_tc() {
         ]),
         HashMap::new(),
         None,
-        50,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::from_strings(vec!["ok".to_string(), "dispatcher_return".to_string()]).unwrap(),
-        Direction::Ingress,
-        None,
+        AttachInfo::Tc {
+            direction: "ingress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 50,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::from_strings(vec![
+                "ok".to_string(),
+                "dispatcher_return".to_string(),
+            ])
+            .unwrap(),
+        },
     );
     progs.push(res);
 
@@ -595,11 +670,18 @@ fn test_unload_tc() {
         ]),
         HashMap::new(),
         None,
-        50,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::from_strings(vec!["ok".to_string(), "dispatcher_return".to_string()]).unwrap(),
-        Direction::Egress,
-        None,
+        AttachInfo::Tc {
+            direction: "egress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 50,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::from_strings(vec![
+                "ok".to_string(),
+                "dispatcher_return".to_string(),
+            ])
+            .unwrap(),
+        },
     );
     progs.push(res);
 
@@ -617,11 +699,18 @@ fn test_unload_tc() {
         ]),
         HashMap::new(),
         None,
-        25,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::from_strings(vec!["ok".to_string(), "dispatcher_return".to_string()]).unwrap(),
-        Direction::Ingress,
-        None,
+        AttachInfo::Tc {
+            direction: "ingress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 25,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::from_strings(vec![
+                "ok".to_string(),
+                "dispatcher_return".to_string(),
+            ])
+            .unwrap(),
+        },
     );
 
     println!("Installing 3rd tc egress program");
@@ -636,11 +725,18 @@ fn test_unload_tc() {
         ]),
         HashMap::new(),
         None,
-        25,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::from_strings(vec!["ok".to_string(), "dispatcher_return".to_string()]).unwrap(),
-        Direction::Egress,
-        None,
+        AttachInfo::Tc {
+            direction: "egress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 25,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::from_strings(vec![
+                "ok".to_string(),
+                "dispatcher_return".to_string(),
+            ])
+            .unwrap(),
+        },
     );
 
     println!("Clear the trace_pipe_log");
@@ -722,10 +818,13 @@ fn test_program_execution_with_global_variables() {
         ]),
         HashMap::new(),
         None,
-        75,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        XdpProceedOn::default(),
-        None,
+        AttachInfo::Xdp {
+            priority: 75,
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            proceed_on: XdpProceedOn::default(),
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -743,11 +842,14 @@ fn test_program_execution_with_global_variables() {
         ]),
         HashMap::new(),
         None,
-        50,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::default(),
-        Direction::Ingress,
-        None,
+        AttachInfo::Tc {
+            direction: "ingress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 50,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::default(),
+        },
     );
     progs.push(res);
 
@@ -765,11 +867,14 @@ fn test_program_execution_with_global_variables() {
         ]),
         HashMap::new(),
         None,
-        50,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::default(),
-        Direction::Egress,
-        None,
+        AttachInfo::Tc {
+            direction: "egress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 50,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::default(),
+        },
     );
     progs.push(res);
     assert!(bpffs_has_entries(RTDIR_FS_TC_EGRESS));
@@ -786,7 +891,10 @@ fn test_program_execution_with_global_variables() {
         ]),
         HashMap::new(),
         None,
-        TRACEPOINT_TRACEPOINT_NAME.to_string(),
+        AttachInfo::Tracepoint {
+            tracepoint: TRACEPOINT_TRACEPOINT_NAME.to_string(),
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -802,12 +910,15 @@ fn test_program_execution_with_global_variables() {
         ]),
         HashMap::new(),
         None,
-        Some(UPROBE_FUNCTION_NAME.to_string()),
-        0,
-        UPROBE_TARGET.to_string(),
-        false,
-        None,
-        None,
+        AttachInfo::Uprobe {
+            fn_name: Some(UPROBE_FUNCTION_NAME.to_string()),
+            offset: 0,
+            target: UPROBE_TARGET.to_string(),
+            retprobe: false,
+            pid: None,
+            container_pid: None,
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -823,12 +934,15 @@ fn test_program_execution_with_global_variables() {
         ]),
         HashMap::new(),
         None,
-        Some(URETPROBE_FUNCTION_NAME.to_string()),
-        0,
-        URETPROBE_TARGET.to_string(),
-        true,
-        None,
-        None,
+        AttachInfo::Uprobe {
+            fn_name: Some(URETPROBE_FUNCTION_NAME.to_string()),
+            offset: 0,
+            target: URETPROBE_TARGET.to_string(),
+            retprobe: true,
+            pid: None,
+            container_pid: None,
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -844,10 +958,13 @@ fn test_program_execution_with_global_variables() {
         ]),
         HashMap::new(),
         None,
-        KPROBE_KERNEL_FUNCTION_NAME.to_string(),
-        0,
-        false,
-        None,
+        AttachInfo::Kprobe {
+            fn_name: KPROBE_KERNEL_FUNCTION_NAME.to_string(),
+            metadata: HashMap::new(),
+            container_pid: None,
+            offset: 0,
+            retprobe: false,
+        },
     );
     progs.push(res);
 
@@ -863,10 +980,13 @@ fn test_program_execution_with_global_variables() {
         ]),
         HashMap::new(),
         None,
-        KRETPROBE_KERNEL_FUNCTION_NAME.to_string(),
-        0,
-        true,
-        None,
+        AttachInfo::Kprobe {
+            fn_name: KRETPROBE_KERNEL_FUNCTION_NAME.to_string(),
+            metadata: HashMap::new(),
+            container_pid: None,
+            offset: 0,
+            retprobe: true,
+        },
     );
     progs.push(res);
 
@@ -930,10 +1050,13 @@ fn test_load_unload_xdp_maps() {
         HashMap::new(),
         HashMap::new(),
         None,
-        100,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        XdpProceedOn::default(),
-        None,
+        AttachInfo::Xdp {
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 100,
+            proceed_on: XdpProceedOn::default(),
+            metadata: HashMap::new(),
+            netns: None,
+        },
     );
     assert!(bpffs_has_entries(RTDIR_FS_XDP));
 
@@ -971,11 +1094,14 @@ fn test_load_unload_tc_maps() {
         HashMap::new(),
         HashMap::new(),
         None,
-        100,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        TcProceedOn::default(),
-        Direction::Ingress,
-        None,
+        AttachInfo::Tc {
+            direction: "ingress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 100,
+            netns: None,
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::default(),
+        },
     );
 
     assert!(bpffs_has_entries(RTDIR_FS_TC_INGRESS));
@@ -1012,7 +1138,10 @@ fn test_load_unload_tracepoint_maps() {
         HashMap::new(),
         HashMap::new(),
         None,
-        TRACEPOINT_TRACEPOINT_NAME.to_string(),
+        AttachInfo::Tracepoint {
+            tracepoint: TRACEPOINT_TRACEPOINT_NAME.to_string(),
+            metadata: HashMap::new(),
+        },
     );
 
     println!("Verify tracepoint_counter map pin directory was created, and maps were pinned");
@@ -1047,12 +1176,15 @@ fn test_uprobe_container() {
         ]),
         HashMap::new(),
         None,
-        Some(UPROBE_CONTAINER_FUNCTION_NAME.to_string()),
-        0,
-        UPROBE_CONTAINER_TARGET.to_string(),
-        false,
-        None,
-        Some(container_pid),
+        AttachInfo::Uprobe {
+            fn_name: Some(UPROBE_CONTAINER_FUNCTION_NAME.to_string()),
+            offset: 0,
+            target: UPROBE_CONTAINER_TARGET.to_string(),
+            retprobe: false,
+            pid: None,
+            container_pid: Some(container_pid),
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -1101,10 +1233,13 @@ fn test_tcx() {
         ]),
         HashMap::new(),
         None,
-        1000,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        Direction::Ingress,
-        None,
+        AttachInfo::Tcx {
+            direction: "ingress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 1000,
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -1120,10 +1255,13 @@ fn test_tcx() {
         ]),
         HashMap::new(),
         None,
-        1000,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        Direction::Egress,
-        None,
+        AttachInfo::Tcx {
+            direction: "egress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 1000,
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -1156,10 +1294,13 @@ fn test_tcx() {
         ]),
         HashMap::new(),
         None,
-        100,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        Direction::Ingress,
-        None,
+        AttachInfo::Tcx {
+            direction: "ingress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 100,
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -1175,10 +1316,13 @@ fn test_tcx() {
         ]),
         HashMap::new(),
         None,
-        100,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        Direction::Egress,
-        None,
+        AttachInfo::Tcx {
+            direction: "egress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 100,
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -1217,10 +1361,13 @@ fn test_tcx() {
         ]),
         HashMap::new(),
         None,
-        50,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        Direction::Ingress,
-        None,
+        AttachInfo::Tcx {
+            direction: "ingress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 50,
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -1236,10 +1383,13 @@ fn test_tcx() {
         ]),
         HashMap::new(),
         None,
-        50,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        Direction::Egress,
-        None,
+        AttachInfo::Tcx {
+            direction: "egress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 50,
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -1278,10 +1428,13 @@ fn test_tcx() {
         ]),
         HashMap::new(),
         None,
-        1,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        Direction::Ingress,
-        None,
+        AttachInfo::Tcx {
+            direction: "ingress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 1,
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -1297,10 +1450,13 @@ fn test_tcx() {
         ]),
         HashMap::new(),
         None,
-        1,
-        DEFAULT_BPFMAN_IFACE.to_string(),
-        Direction::Egress,
-        None,
+        AttachInfo::Tcx {
+            direction: "egress".to_string(),
+            iface: DEFAULT_BPFMAN_IFACE.to_string(),
+            priority: 1,
+            netns: None,
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -1360,10 +1516,13 @@ fn test_netns() {
         ]),
         HashMap::new(),
         None,
-        75,
-        NS_VETH.to_string(),
-        XdpProceedOn::default(),
-        Some(PathBuf::from(NS_PATH)),
+        AttachInfo::Xdp {
+            priority: 75,
+            iface: NS_VETH.to_string(),
+            proceed_on: XdpProceedOn::default(),
+            netns: Some(PathBuf::from(NS_PATH)),
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -1379,11 +1538,14 @@ fn test_netns() {
         ]),
         HashMap::new(),
         None,
-        75,
-        NS_VETH.to_string(),
-        TcProceedOn::default(),
-        Direction::Ingress,
-        Some(PathBuf::from(NS_PATH)),
+        AttachInfo::Tc {
+            direction: "ingress".to_string(),
+            iface: NS_VETH.to_string(),
+            priority: 75,
+            netns: Some(PathBuf::from(NS_PATH)),
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::default(),
+        },
     );
     progs.push(res);
 
@@ -1399,11 +1561,14 @@ fn test_netns() {
         ]),
         HashMap::new(),
         None,
-        75,
-        NS_VETH.to_string(),
-        TcProceedOn::default(),
-        Direction::Egress,
-        Some(PathBuf::from(NS_PATH)),
+        AttachInfo::Tc {
+            direction: "egress".to_string(),
+            iface: NS_VETH.to_string(),
+            priority: 75,
+            netns: Some(PathBuf::from(NS_PATH)),
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::default(),
+        },
     );
     progs.push(res);
 
@@ -1422,10 +1587,13 @@ fn test_netns() {
             ]),
             HashMap::new(),
             None,
-            1000,
-            NS_VETH.to_string(),
-            Direction::Ingress,
-            Some(PathBuf::from(NS_PATH)),
+            AttachInfo::Tcx {
+                direction: "ingress".to_string(),
+                iface: NS_VETH.to_string(),
+                priority: 1000,
+                netns: Some(PathBuf::from(NS_PATH)),
+                metadata: HashMap::new(),
+            },
         );
         progs.push(res);
 
@@ -1441,10 +1609,13 @@ fn test_netns() {
             ]),
             HashMap::new(),
             None,
-            1000,
-            NS_VETH.to_string(),
-            Direction::Egress,
-            Some(PathBuf::from(NS_PATH)),
+            AttachInfo::Tcx {
+                direction: "egress".to_string(),
+                iface: NS_VETH.to_string(),
+                priority: 1000,
+                netns: Some(PathBuf::from(NS_PATH)),
+                metadata: HashMap::new(),
+            },
         );
         progs.push(res);
     }
@@ -1505,10 +1676,13 @@ fn test_netns_delete() {
         ]),
         HashMap::new(),
         None,
-        75,
-        NS_VETH.to_string(),
-        XdpProceedOn::default(),
-        Some(PathBuf::from(NS_PATH)),
+        AttachInfo::Xdp {
+            priority: 75,
+            iface: NS_VETH.to_string(),
+            proceed_on: XdpProceedOn::default(),
+            netns: Some(PathBuf::from(NS_PATH)),
+            metadata: HashMap::new(),
+        },
     );
     progs.push(res);
 
@@ -1524,11 +1698,14 @@ fn test_netns_delete() {
         ]),
         HashMap::new(),
         None,
-        75,
-        NS_VETH.to_string(),
-        TcProceedOn::default(),
-        Direction::Ingress,
-        Some(PathBuf::from(NS_PATH)),
+        AttachInfo::Tc {
+            direction: "ingress".to_string(),
+            iface: NS_VETH.to_string(),
+            priority: 75,
+            netns: Some(PathBuf::from(NS_PATH)),
+            metadata: HashMap::new(),
+            proceed_on: TcProceedOn::default(),
+        },
     );
     progs.push(res);
 
@@ -1547,10 +1724,13 @@ fn test_netns_delete() {
             ]),
             HashMap::new(),
             None,
-            1000,
-            NS_VETH.to_string(),
-            Direction::Ingress,
-            Some(PathBuf::from(NS_PATH)),
+            AttachInfo::Tcx {
+                direction: "ingress".to_string(),
+                iface: NS_VETH.to_string(),
+                priority: 1000,
+                netns: Some(PathBuf::from(NS_PATH)),
+                metadata: HashMap::new(),
+            },
         );
         progs.push(res);
     }
