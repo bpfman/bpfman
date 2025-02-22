@@ -6,13 +6,13 @@ use std::{
     fs::{create_dir_all, remove_dir_all, remove_file},
     os::unix::fs::chown,
     path::Path,
+    sync::Arc,
 };
 
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use aya::maps::MapData;
 use bpfman::{
-    list_programs, setup,
     types::ListFilter,
     utils::{create_bpffs, set_dir_permissions, set_file_permissions, SOCK_MODE},
 };
@@ -30,9 +30,14 @@ use bpfman_csi::v1::{
 };
 use log::{debug, error, info, warn};
 use nix::mount::{mount, umount, MsFlags};
-use tokio::{net::UnixListener, sync::broadcast};
+use tokio::{
+    net::UnixListener,
+    sync::{broadcast, Mutex},
+};
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::{transport::Server, Request, Response, Status};
+
+use crate::AsyncBpfman;
 
 const DRIVER_NAME: &str = "csi.bpfman.io";
 const MAPS_KEY: &str = "csi.bpfman.io/maps";
@@ -56,6 +61,7 @@ struct CsiIdentity {
 
 struct CsiNode {
     node_id: String,
+    db_lock: Arc<Mutex<AsyncBpfman>>,
 }
 
 #[async_trait]
@@ -137,8 +143,7 @@ impl Node for CsiNode {
                 fs_group: {fs_group:?}"
         );
 
-        let (_, root_db) = setup().map_err(|e| Status::aborted(format!("{e}")))?;
-
+        let bpfman_lock = self.db_lock.lock().await;
         match (
             volume_context.get(MAPS_KEY),
             volume_context.get(PROGRAM_KEY),
@@ -147,7 +152,9 @@ impl Node for CsiNode {
                 let maps: Vec<&str> = m.split(',').collect();
 
                 // Find the Program with the specified *Program CRD name
-                let prog_data = list_programs(&root_db, ListFilter::default())
+                let prog_data = bpfman_lock
+                    .list_programs(ListFilter::default())
+                    .await
                     .map_err(|e| Status::aborted(format!("failed list programs: {e}")))?
                     .into_iter()
                     .find(|p| {
@@ -349,14 +356,8 @@ impl Node for CsiNode {
     }
 }
 
-impl Default for StorageManager {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl StorageManager {
-    pub fn new() -> Self {
+    pub fn new(db_lock: Arc<Mutex<AsyncBpfman>>) -> Self {
         const VERSION: &str = env!("CARGO_PKG_VERSION");
         let node_id = std::env::var("KUBE_NODE_NAME")
             .expect("cannot start bpfman csi driver if KUBE_NODE_NAME not set");
@@ -366,7 +367,7 @@ impl StorageManager {
             version: VERSION.to_string(),
         };
 
-        let csi_node = CsiNode { node_id };
+        let csi_node = CsiNode { node_id, db_lock };
 
         Self {
             csi_node,

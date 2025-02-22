@@ -5,6 +5,7 @@ use std::{
     fs::remove_file,
     os::unix::prelude::{FromRawFd, IntoRawFd},
     path::Path,
+    sync::Arc,
 };
 
 use anyhow::anyhow;
@@ -16,20 +17,25 @@ use tokio::{
     join,
     net::UnixListener,
     signal::unix::{signal, SignalKind},
-    sync::broadcast,
+    sync::{broadcast, Mutex},
     task::{JoinHandle, JoinSet},
 };
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::Server;
 
-use crate::{rpc::BpfmanLoader, storage::StorageManager};
+use crate::{rpc::BpfmanLoader, storage::StorageManager, AsyncBpfman};
 
-pub async fn serve(csi_support: bool, timeout: u64, socket_path: &Path) -> anyhow::Result<()> {
+pub async fn serve(
+    db_lock: Arc<Mutex<AsyncBpfman>>,
+    csi_support: bool,
+    timeout: u64,
+    socket_path: &Path,
+) -> anyhow::Result<()> {
     let (shutdown_tx, shutdown_rx1) = broadcast::channel(32);
     let shutdown_rx3 = shutdown_tx.subscribe();
     let shutdown_handle = tokio::spawn(shutdown_handler(timeout, shutdown_tx));
 
-    let loader = BpfmanLoader::new();
+    let loader = BpfmanLoader::new(db_lock.clone());
     let service = BpfmanServer::new(loader);
 
     let mut listeners: Vec<_> = Vec::new();
@@ -38,7 +44,7 @@ pub async fn serve(csi_support: bool, timeout: u64, socket_path: &Path) -> anyho
     listeners.push(handle);
 
     if csi_support {
-        let storage_manager = StorageManager::new();
+        let storage_manager = StorageManager::new(db_lock.clone());
         let storage_manager_handle =
             tokio::spawn(async move { storage_manager.run(shutdown_rx3).await });
         let (_, res_storage, _) = join!(

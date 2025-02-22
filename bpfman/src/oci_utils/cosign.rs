@@ -15,7 +15,7 @@ use sigstore::{
     trust::{sigstore::SigstoreTrustRoot, ManualTrustRoot, TrustRoot as _},
 };
 
-use crate::oci_utils::RUNTIME;
+use crate::oci_utils::rt;
 
 pub struct CosignVerifier {
     repo: Arc<ManualTrustRoot<'static>>,
@@ -33,10 +33,11 @@ fn get_tuf_path() -> Option<PathBuf> {
 }
 
 impl CosignVerifier {
-    pub(crate) fn new(allow_unsigned: bool) -> Result<Self, anyhow::Error> {
+    pub(crate) fn new(
+        repo: Arc<ManualTrustRoot<'static>>,
+        allow_unsigned: bool,
+    ) -> Result<Self, anyhow::Error> {
         info!("Starting Cosign Verifier, downloading data from Sigstore TUF repository");
-
-        let repo = RUNTIME.block(fetch_sigstore_tuf_data())?;
 
         Ok(Self {
             repo,
@@ -75,10 +76,11 @@ impl CosignVerifier {
 
         debug!("Triangulating image: {}", image);
 
-        RUNTIME.block(get_image_and_digest(
-            &mut self.client()?,
-            &image,
-            &auth,
+        let client = self.client()?;
+        rt()?.block_on(get_image_and_digest(
+            client,
+            image,
+            auth,
             self.allow_unsigned,
         ))?;
 
@@ -87,17 +89,17 @@ impl CosignVerifier {
 }
 
 async fn get_image_and_digest(
-    client: &mut sigstore::cosign::Client,
-    image: &OciReference,
-    auth: &Auth,
+    mut client: sigstore::cosign::Client,
+    image: OciReference,
+    auth: Auth,
     allow_unsigned: bool,
 ) -> Result<(OciReference, String), anyhow::Error> {
-    let (cosign_signature_image, source_image_digest) = client.triangulate(image, auth).await?;
+    let (cosign_signature_image, source_image_digest) = client.triangulate(&image, &auth).await?;
 
     debug!("Getting trusted layers");
 
     match client
-        .trusted_signature_layers(auth, &source_image_digest, &cosign_signature_image)
+        .trusted_signature_layers(&auth, &source_image_digest, &cosign_signature_image)
         .await
     {
         Ok(trusted_layers) => {
@@ -126,9 +128,11 @@ async fn get_image_and_digest(
     }
 }
 
-async fn fetch_sigstore_tuf_data() -> anyhow::Result<Arc<ManualTrustRoot<'static>>> {
+pub(crate) async fn fetch_sigstore_tuf_data() -> anyhow::Result<Arc<ManualTrustRoot<'static>>> {
+    info!("Fetching Sigstore TUF data");
     let repo = SigstoreTrustRoot::new(get_tuf_path().as_deref()).await?;
 
+    info!("fetching fulcio_certs");
     let fulcio_certs = repo
         .fulcio_certs()
         .expect("Cannot fetch Fulcio certificates from TUF repository")
@@ -136,6 +140,7 @@ async fn fetch_sigstore_tuf_data() -> anyhow::Result<Arc<ManualTrustRoot<'static
         .map(|c| c.into_owned())
         .collect();
 
+    info!("Creating ManualTrustRoot");
     let manual_root = ManualTrustRoot {
         fulcio_certs,
         rekor_keys: repo

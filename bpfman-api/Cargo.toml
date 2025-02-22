@@ -47,8 +47,8 @@ nix = { workspace = true, features = [
     "socket",
     "user",
 ] }
-oci-distribution = { workspace = true, default-features = false, features = [
-    "rustls-tls",
+oci-client = { workspace = true, default-features = false, features = [
+    "native-tls",
     "trust-dns",
 ] }
 prost = { workspace = true, features = ["prost-derive", "std"] }
