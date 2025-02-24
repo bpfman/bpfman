@@ -129,14 +129,14 @@ Next, deploy the bpfman CRDs:
 
 ```console
 export BPFMAN_REL=0.5.6
-kubectl apply -f  https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml
+kubectl apply -f https://github.com/bpfman/bpfman-operator/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml
 ```
 
 Next, deploy the `bpfman-operator`, which will also deploy the `bpfman-daemon`, which contains
 `bpfman-rpc`, `bpfman` Library and `bpfman-agent`:
 
 ```console
-kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-operator-install.yaml
+kubectl apply -f https://github.com/bpfman/bpfman-operator/releases/download/v${BPFMAN_REL}/bpfman-operator-install.yaml
 ```
 
 Finally, deploy an example eBPF program:
