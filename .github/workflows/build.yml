@@ -154,7 +154,7 @@ jobs:
       - name: Archive Integration Test eBPF
         # Only need to build eBPF once and used by integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # @v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # @v4
         with:
           name: bpfman-integration-test
           path: |
@@ -186,7 +186,7 @@ jobs:
       - name: Archive bpfman Binaries
         # Tar and archive the build for basic-integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # @v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # @v4
         with:
           name: bpfman-debug-${{ matrix.arch.filename }}
           path: |
@@ -208,7 +208,7 @@ jobs:
       - name: Archive manpages
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # @v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # @v4
         with:
           name: bpfman-manpages
           path: |
@@ -230,7 +230,7 @@ jobs:
       - name: Archive CLI TAB Completion
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # @v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # @v4
         with:
           name: bpfman-cli-tab-completion
           path: |
@@ -250,7 +250,7 @@ jobs:
 
       - name: Archive bpfman Release Binaries
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # @v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # @v4
         with:
           name: bpfman-release-${{ matrix.arch.filename }}
           path: ./target/${{ matrix.arch.rust-target }}/release/bpfman-${{ matrix.arch.filename }}.tar.gz
@@ -265,7 +265,7 @@ jobs:
       - name: Archive Rust code coverage results
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # @v4
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # @v4
         with:
           name: coverage-rust
           path: lcov.info
