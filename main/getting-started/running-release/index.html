@@ -1801,11 +1801,11 @@ Kubernetes KIND Cluster:</p>
 </code></pre></div>
 <p>Next, deploy the bpfman CRDs:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">export BPFMAN_REL=0.5.6</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">kubectl apply -f  https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">kubectl apply -f  https://github.com/bpfman/bpfman-operator/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml</span>
 </code></pre></div>
 <p>Next, deploy the <code>bpfman-operator</code>, which will also deploy the <code>bpfman-daemon</code>, which contains
 <code>bpfman-rpc</code>, <code>bpfman</code> Library and <code>bpfman-agent</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-operator-install-v${BPFMAN_REL}.yaml</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">kubectl apply -f https://github.com/bpfman/bpfman-operator/releases/download/v${BPFMAN_REL}/bpfman-operator-install-v${BPFMAN_REL}.yaml</span>
 </code></pre></div>
 <p>Finally, deploy an example eBPF program.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/go-xdp-counter-install-v${BPFMAN_REL}.yaml</span>
