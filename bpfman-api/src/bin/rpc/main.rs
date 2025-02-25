@@ -1,11 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
-use std::{env, fs::create_dir_all, path::PathBuf, str::FromStr};
+use std::{env, fs::create_dir_all, path::PathBuf, str::FromStr, sync::Arc};
 
 use anyhow::Context;
+use bpfman::{
+    add_program,
+    config::Config,
+    errors::BpfmanError,
+    get_program, list_programs, pull_bytecode, remove_program, setup,
+    types::{BytecodeImage, ListFilter, Program},
+};
 use clap::{Args, Parser};
 use log::debug;
 use systemd_journal_logger::{connected_to_journal, JournalLog};
+use tokio::{sync::Mutex, task::spawn_blocking};
 
 use crate::serve::serve;
 
@@ -83,12 +91,72 @@ fn initialize_rpc(csi_support: bool) -> anyhow::Result<()> {
     Ok(())
 }
 
+pub struct AsyncBpfman {}
+impl AsyncBpfman {
+    pub(crate) fn new() -> Self {
+        Self {}
+    }
+
+    fn setup(&self) -> anyhow::Result<(Config, sled::Db)> {
+        setup().map_err(|e| e.into())
+    }
+
+    pub(crate) async fn add_program(&self, program: Program) -> anyhow::Result<Program> {
+        let (config, root_db) = self.setup()?;
+        match spawn_blocking(move || add_program(&config, &root_db, program)).await {
+            Ok(result) => result.map_err(|e| e.into()),
+            Err(e) => Err(BpfmanError::InternalError(e.to_string()).into()),
+        }
+    }
+
+    pub(crate) async fn get_program(&self, id: u32) -> anyhow::Result<Program> {
+        let (_, root_db) = self.setup()?;
+        match spawn_blocking(move || get_program(&root_db, id)).await {
+            Ok(result) => result.map_err(|e| e.into()),
+            Err(e) => Err(BpfmanError::InternalError(e.to_string()).into()),
+        }
+    }
+
+    pub(crate) async fn list_programs(&self, filter: ListFilter) -> anyhow::Result<Vec<Program>> {
+        let (_, root_db) = self.setup()?;
+        match spawn_blocking(move || list_programs(&root_db, filter)).await {
+            Ok(result) => result.map_err(|e| e.into()),
+            Err(e) => Err(BpfmanError::InternalError(e.to_string()).into()),
+        }
+    }
+
+    pub(crate) async fn remove_program(&self, id: u32) -> anyhow::Result<()> {
+        let (config, root_db) = self.setup()?;
+        match spawn_blocking(move || remove_program(&config, &root_db, id)).await {
+            Ok(result) => result.map_err(|e| e.into()),
+            Err(e) => Err(BpfmanError::InternalError(e.to_string()).into()),
+        }
+    }
+
+    pub(crate) async fn pull_bytecode(&self, image: BytecodeImage) -> anyhow::Result<()> {
+        let (_, root_db) = self.setup()?;
+        match spawn_blocking(move || pull_bytecode(&root_db, image)).await {
+            Ok(result) => result,
+            Err(e) => Err(BpfmanError::InternalError(e.to_string()).into()),
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Rpc::parse();
+    let async_bpfman = AsyncBpfman::new();
+    let bpfman_lock: Arc<Mutex<_>> = Arc::new(Mutex::new(async_bpfman));
+
     initialize_rpc(args.csi_support)?;
     //TODO https://github.com/bpfman/bpfman/issues/881
-    serve(args.csi_support, args.timeout, &args.socket_path).await?;
+    serve(
+        bpfman_lock,
+        args.csi_support,
+        args.timeout,
+        &args.socket_path,
+    )
+    .await?;
 
     Ok(())
 }

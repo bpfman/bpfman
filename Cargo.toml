@@ -66,7 +66,7 @@ netlink-packet-route = { version = "^0.19", default-features = false }
 netlink-sys = { version = "^0.8", default-features = false }
 nix = { version = "0.28", default-features = false }
 object = { version = "0.36.7", default-features = false }
-oci-distribution = { version = "0.11", default-features = false }
+oci-client = { version = "0.14", default-features = false }
 opentelemetry = { version = "0.22.0", default-features = false }
 opentelemetry-otlp = { version = "0.15.0", default-features = false }
 opentelemetry-semantic-conventions = { version = "0.14.0" }

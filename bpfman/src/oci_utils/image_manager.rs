@@ -10,7 +10,7 @@ use anyhow::anyhow;
 use flate2::read::GzDecoder;
 use log::{debug, error, info, trace};
 use object::{Endianness, Object};
-use oci_distribution::{
+use oci_client::{
     client::{ClientConfig, ClientProtocol},
     manifest,
     manifest::OciImageManifest,
@@ -24,7 +24,10 @@ use sled::Db;
 use tar::Archive;
 
 use crate::{
-    oci_utils::{cosign::CosignVerifier, ImageError, RUNTIME},
+    oci_utils::{
+        cosign::{fetch_sigstore_tuf_data, CosignVerifier},
+        rt, ImageError,
+    },
     types::ImagePullPolicy,
     utils::{sled_get, sled_insert},
 };
@@ -69,7 +72,8 @@ pub struct ImageManager {
 impl ImageManager {
     pub fn new(verify_enabled: bool, allow_unsigned: bool) -> Result<Self, anyhow::Error> {
         let cosign_verifier = if verify_enabled {
-            Some(CosignVerifier::new(allow_unsigned)?)
+            let repo = rt()?.block_on(fetch_sigstore_tuf_data())?;
+            Some(CosignVerifier::new(repo, allow_unsigned)?)
         } else {
             None
         };
@@ -165,134 +169,15 @@ impl ImageManager {
         );
 
         let auth = self.get_auth_for_registry(image.registry(), username, password);
+        let client = self.client.clone();
 
-        let image_labels =
-            RUNTIME.block(self.get_image_labels(&self.client, root_db, base_key, image, auth))?;
-        Ok(image_labels)
-    }
-
-    async fn get_image_labels(
-        &self,
-        client: &Client,
-        root_db: &Db,
-        base_key: &str,
-        image: Reference,
-        auth: RegistryAuth,
-    ) -> Result<ContainerImageMetadata, ImageError> {
-        let (image_manifest, _, config_contents) = client
-            .pull_manifest_and_config(&image.clone(), &auth)
-            .await
-            .map_err(ImageError::BytecodeImagePullFailure)?;
-
-        trace!("Raw container image manifest {}", image_manifest);
-
-        let config_sha = &image_manifest
-            .config
-            .digest
-            .split(':')
-            .collect::<Vec<&str>>()[1];
-
-        let image_config: Value = serde_json::from_str(&config_contents)
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
-
-        trace!("Raw container image config {}", image_config);
-
-        let image_content = client
-            .pull(
-                &image,
-                &auth,
-                vec![
-                    manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE,
-                    manifest::IMAGE_DOCKER_LAYER_GZIP_MEDIA_TYPE,
-                ],
-            )
-            .await
-            .map_err(ImageError::BytecodeImagePullFailure)?
-            .layers
-            .into_iter()
-            .next()
-            .map(|layer| layer.data)
-            .ok_or(ImageError::BytecodeImageExtractFailure(
-                "No data in bytecode image layer".to_string(),
-            ))?;
-
-        let labels_map = image_config["config"]["Labels"].as_object().ok_or(
-            ImageError::ByteCodeImageProcessFailure(anyhow!("Labels not found")),
-        )?;
-
-        // The values of the Labels `io.ebpf.maps` and `io.ebpf.programs` are in JSON format try and
-        // parse those, if that fails fallback to the V1 version of the metadata spec,
-        // if that fails error out.
-        let image_labels = match (
-            labels_map.get(OCI_MAPS_LABEL),
-            labels_map.get(OCI_PROGRAMS_LABEL),
-        ) {
-            (Some(maps), Some(programs)) => {
-                let tmp_map = serde_label(maps, "map".to_string())?;
-                let tmp_program = serde_label(programs, "program".to_string())?;
-
-                ContainerImageMetadata {
-                    _maps: tmp_map,
-                    programs: tmp_program,
-                }
-            }
-            _ => {
-                // Try to deserialize from older version of metadata
-                match serde_json::from_str::<ContainerImageMetadataV1>(
-                    &image_config["config"]["Labels"].to_string(),
-                ) {
-                    Ok(labels) => labels.into(),
-                    Err(e) => return Err(ImageError::ByteCodeImageProcessFailure(e.into())),
-                }
-            }
-        };
-
-        // Make sure endian target matches that of the system before storing
-        let unzipped_content = get_bytecode_from_gzip(image_content.clone());
-        let obj_endianness = object::read::File::parse(unzipped_content.as_slice())
-            .map_err(|e| ImageError::BytecodeImageExtractFailure(e.to_string()))?
-            .endianness();
-        let host_endianness = Endianness::default();
-
-        if host_endianness != obj_endianness {
-            return Err(ImageError::BytecodeImageExtractFailure(
-                            format!("image bytecode endianness: {obj_endianness:?} does not match host {host_endianness:?}"),
-                        ));
-        };
-
-        // Update Database to save for later
-        let image_manifest_key = base_key.to_string() + "manifest.json";
-
-        let image_manifest_json = serde_json::to_string(&image_manifest)
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
-
-        sled_insert(root_db, &image_manifest_key, image_manifest_json.as_bytes()).map_err(|e| {
-            ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
-        })?;
-
-        let image_config_path = base_key.to_string() + config_sha;
-
-        root_db
-            .insert(image_config_path, config_contents.as_str())
-            .map_err(|e| {
-                ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
-            })?;
-
-        let bytecode_sha = image_manifest.layers[0]
-            .digest
-            .split(':')
-            .collect::<Vec<&str>>()[1];
-
-        let bytecode_path = base_key.to_string() + bytecode_sha;
-
-        sled_insert(root_db, &bytecode_path, &image_content).map_err(|e| {
-            ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
-        })?;
-
-        root_db.flush().map_err(|e| {
-            ImageError::DatabaseError("failed to flush db".to_string(), e.to_string())
-        })?;
-
+        let image_labels = rt().unwrap().block_on(get_image_labels(
+            client,
+            root_db.clone(),
+            base_key.to_string(),
+            image.clone(),
+            auth,
+        ))?;
         Ok(image_labels)
     }
 
@@ -449,6 +334,133 @@ fn get_image_content_key(image: &Reference) -> String {
         image.repository().replace('/', "_"),
         tag
     )
+}
+
+async fn get_image_labels(
+    client: Client,
+    root_db: Db,
+    base_key: String,
+    image: Reference,
+    auth: RegistryAuth,
+) -> Result<ContainerImageMetadata, ImageError> {
+    let (image_manifest, _, config_contents) = client
+        .pull_manifest_and_config(&image.clone(), &auth)
+        .await
+        .map_err(ImageError::BytecodeImagePullFailure)?;
+
+    trace!("Raw container image manifest {}", image_manifest);
+
+    let config_sha = &image_manifest
+        .config
+        .digest
+        .split(':')
+        .collect::<Vec<&str>>()[1];
+
+    let image_config: Value = serde_json::from_str(&config_contents)
+        .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
+
+    trace!("Raw container image config {}", image_config);
+
+    let image_content = client
+        .pull(
+            &image,
+            &auth,
+            vec![
+                manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE,
+                manifest::IMAGE_DOCKER_LAYER_GZIP_MEDIA_TYPE,
+            ],
+        )
+        .await
+        .map_err(ImageError::BytecodeImagePullFailure)?
+        .layers
+        .into_iter()
+        .next()
+        .map(|layer| layer.data)
+        .ok_or(ImageError::BytecodeImageExtractFailure(
+            "No data in bytecode image layer".to_string(),
+        ))?;
+
+    let labels_map = image_config["config"]["Labels"].as_object().ok_or(
+        ImageError::ByteCodeImageProcessFailure(anyhow!("Labels not found")),
+    )?;
+
+    // The values of the Labels `io.ebpf.maps` and `io.ebpf.programs` are in JSON format try and
+    // parse those, if that fails fallback to the V1 version of the metadata spec,
+    // if that fails error out.
+    let image_labels = match (
+        labels_map.get(OCI_MAPS_LABEL),
+        labels_map.get(OCI_PROGRAMS_LABEL),
+    ) {
+        (Some(maps), Some(programs)) => {
+            let tmp_map = serde_label(maps, "map".to_string())?;
+            let tmp_program = serde_label(programs, "program".to_string())?;
+
+            ContainerImageMetadata {
+                _maps: tmp_map,
+                programs: tmp_program,
+            }
+        }
+        _ => {
+            // Try to deserialize from older version of metadata
+            match serde_json::from_str::<ContainerImageMetadataV1>(
+                &image_config["config"]["Labels"].to_string(),
+            ) {
+                Ok(labels) => labels.into(),
+                Err(e) => return Err(ImageError::ByteCodeImageProcessFailure(e.into())),
+            }
+        }
+    };
+
+    // Make sure endian target matches that of the system before storing
+    let unzipped_content = get_bytecode_from_gzip(image_content.clone());
+    let obj_endianness = object::read::File::parse(unzipped_content.as_slice())
+        .map_err(|e| ImageError::BytecodeImageExtractFailure(e.to_string()))?
+        .endianness();
+    let host_endianness = Endianness::default();
+
+    if host_endianness != obj_endianness {
+        return Err(ImageError::BytecodeImageExtractFailure(format!(
+            "image bytecode endianness: {obj_endianness:?} does not match host {host_endianness:?}"
+        )));
+    };
+
+    // Update Database to save for later
+    let image_manifest_key = base_key.to_string() + "manifest.json";
+
+    let image_manifest_json = serde_json::to_string(&image_manifest)
+        .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
+
+    sled_insert(
+        &root_db,
+        &image_manifest_key,
+        image_manifest_json.as_bytes(),
+    )
+    .map_err(|e| ImageError::DatabaseError("failed to write to db".to_string(), e.to_string()))?;
+
+    let image_config_path = base_key.to_string() + config_sha;
+
+    root_db
+        .insert(image_config_path, config_contents.as_str())
+        .map_err(|e| {
+            ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
+        })?;
+
+    let bytecode_sha = image_manifest.layers[0]
+        .digest
+        .split(':')
+        .collect::<Vec<&str>>()[1];
+
+    let bytecode_path = base_key.to_string() + bytecode_sha;
+
+    sled_insert(&root_db, &bytecode_path, &image_content).map_err(|e| {
+        ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
+    })?;
+
+    root_db
+        .flush()
+        .map_err(|e| ImageError::DatabaseError("failed to flush db".to_string(), e.to_string()))?;
+
+    Ok(image_labels)
 }
 
 fn get_bytecode_from_gzip(bytes: Vec<u8>) -> Vec<u8> {
