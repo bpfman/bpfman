@@ -428,13 +428,15 @@ pub fn detach(config: &Config, root_db: &Db, id: u32) -> Result<(), BpfmanError>
     detach_program_internal(config, root_db, program, link)
 }
 
+/// Attaches an eBPF program, identified by its ID, to a specific
+/// attachment point which is specified by the `AttachInfo` struct.
 pub fn attach_program(
     config: &Config,
     root_db: &Db,
     id: u32,
     attach_info: AttachInfo,
 ) -> Result<u32, BpfmanError> {
-    let prog = match get(root_db, &id) {
+    let mut prog = match get(root_db, &id) {
         Some(p) => p,
         None => {
             error!("Error: Request to attach program with id {id} but id does not exist or was not created by bpfman");
@@ -454,25 +456,33 @@ pub fn attach_program(
     let name = prog.get_data().get_name().unwrap_or("not set".to_string());
     info!("Request to attach {kind} program named \"{name}\" with id {id}");
 
-    let result = attach_program_internal(config, root_db, prog, attach_info);
+    // Write attach info into the database
+    let mut link = prog.add_link()?;
+    link.attach(attach_info)?;
+
+    let result = attach_program_internal(config, root_db, &prog, link.clone());
 
     match result {
         Ok(_) => info!("Success: attached {kind} program named \"{name}\" with id {id}"),
-        Err(ref e) => error!("Error: failed to attach {kind} program named \"{name}\": {e}"),
+        Err(ref e) => {
+            error!("Error: failed to attach {kind} program named \"{name}\": {e}");
+            if let Err(e) = prog.remove_link(root_db, link.clone()) {
+                warn!("Error: failed to remove link: {e}");
+            }
+            link.delete(root_db)?;
+        }
     };
+
     result
 }
 
 fn attach_program_internal(
     config: &Config,
     root_db: &Db,
-    mut program: Program,
-    attach_info: AttachInfo,
+    program: &Program,
+    mut link: Link,
 ) -> Result<u32, BpfmanError> {
     let program_type = program.kind();
-    // Write attach info into the database
-    let mut link = program.add_link()?;
-    link.attach(attach_info)?;
 
     if let Err(e) = match program {
         Program::Xdp(_) | Program::Tc(_) => {
