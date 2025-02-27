@@ -110,9 +110,8 @@ func main() {
 				Attach: &gobpfman.AttachInfo{
 					Info: &gobpfman.AttachInfo_UprobeAttachInfo{
 						UprobeAttachInfo: &gobpfman.UprobeAttachInfo{
-							FnName:   &fnName,
-							Target:   "libc",
-							Retprobe: true,
+							FnName: &fnName,
+							Target: "libc",
 						},
 					},
 				},

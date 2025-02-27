@@ -155,11 +155,9 @@ pub struct KprobeAttachInfo {
     pub fn_name: ::prost::alloc::string::String,
     #[prost(uint64, tag = "2")]
     pub offset: u64,
-    #[prost(bool, tag = "3")]
-    pub retprobe: bool,
-    #[prost(int32, optional, tag = "4")]
+    #[prost(int32, optional, tag = "3")]
     pub container_pid: ::core::option::Option<i32>,
-    #[prost(map = "string, string", tag = "5")]
+    #[prost(map = "string, string", tag = "4")]
     pub metadata:
         ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
 }
@@ -172,13 +170,11 @@ pub struct UprobeAttachInfo {
     pub offset: u64,
     #[prost(string, tag = "3")]
     pub target: ::prost::alloc::string::String,
-    #[prost(bool, tag = "4")]
-    pub retprobe: bool,
-    #[prost(int32, optional, tag = "5")]
+    #[prost(int32, optional, tag = "4")]
     pub pid: ::core::option::Option<i32>,
-    #[prost(int32, optional, tag = "6")]
+    #[prost(int32, optional, tag = "5")]
     pub container_pid: ::core::option::Option<i32>,
-    #[prost(map = "string, string", tag = "7")]
+    #[prost(map = "string, string", tag = "6")]
     pub metadata:
         ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
 }

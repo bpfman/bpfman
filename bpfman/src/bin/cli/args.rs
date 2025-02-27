@@ -282,12 +282,6 @@ pub(crate) enum AttachCommands {
         #[clap(short, long, verbatim_doc_comment)]
         offset: Option<u64>,
 
-        /// Optional: Whether the program is a kretprobe.
-        ///
-        /// [default: false]
-        #[clap(short, long, verbatim_doc_comment)]
-        retprobe: bool,
-
         /// Optional: Host PID of container to attach the kprobe in.
         /// (NOT CURRENTLY SUPPORTED)
         #[clap(short, long)]
@@ -321,12 +315,6 @@ pub(crate) enum AttachCommands {
         /// Example: --target "libc".
         #[clap(short, long, verbatim_doc_comment)]
         target: String,
-
-        /// Optional: Whether the program is a uretprobe.
-        ///
-        /// [default: false]
-        #[clap(short, long, verbatim_doc_comment)]
-        retprobe: bool,
 
         /// Optional: Only execute uprobe for given process identification number (PID).
         /// If PID is not provided, uprobe executes for all PIDs.

@@ -133,7 +133,6 @@ impl TryFrom<&Link> for AttachInfo {
                 info: Some(Info::KprobeAttachInfo(KprobeAttachInfo {
                     fn_name: p.get_fn_name()?.to_string(),
                     offset: p.get_offset()?,
-                    retprobe: p.get_retprobe()?,
                     container_pid: p.get_container_pid()?,
                     metadata: p.get_metadata()?,
                 })),
@@ -143,7 +142,6 @@ impl TryFrom<&Link> for AttachInfo {
                     fn_name: p.get_fn_name()?.map(|v| v.to_string()),
                     offset: p.get_offset()?,
                     target: p.get_target()?.to_string(),
-                    retprobe: p.get_retprobe()?,
                     pid: p.get_pid()?,
                     container_pid: p.get_container_pid()?,
                     metadata: p.get_metadata()?,

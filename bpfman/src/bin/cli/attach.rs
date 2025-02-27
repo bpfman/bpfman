@@ -116,7 +116,6 @@ impl AttachCommands {
             AttachCommands::Kprobe {
                 fn_name,
                 offset,
-                retprobe,
                 container_pid,
                 metadata,
             } => {
@@ -127,7 +126,6 @@ impl AttachCommands {
                 Ok(AttachInfo::Kprobe {
                     fn_name: fn_name.to_string(),
                     offset,
-                    retprobe: *retprobe,
                     container_pid: *container_pid,
                     metadata: metadata
                         .clone()
@@ -141,7 +139,6 @@ impl AttachCommands {
                 fn_name,
                 offset,
                 target,
-                retprobe,
                 pid,
                 container_pid,
                 metadata,
@@ -151,7 +148,6 @@ impl AttachCommands {
                     fn_name: fn_name.clone(),
                     offset,
                     target: target.to_string(),
-                    retprobe: *retprobe,
                     pid: *pid,
                     container_pid: *container_pid,
                     metadata: metadata

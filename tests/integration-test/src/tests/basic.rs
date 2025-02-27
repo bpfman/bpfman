@@ -355,7 +355,6 @@ fn test_load_unload_uprobe() {
                 offset: 0,
                 target: UPROBE_TARGET.to_string(),
                 metadata: HashMap::new(),
-                retprobe: false,
                 container_pid: None,
                 pid: None,
             },
@@ -406,7 +405,6 @@ fn test_load_unload_uretprobe() {
                 offset: 0,
                 target: URETPROBE_TARGET.to_string(),
                 metadata: HashMap::new(),
-                retprobe: true,
                 container_pid: None,
                 pid: None,
             },
@@ -451,7 +449,6 @@ fn test_load_unload_kprobe() {
                 fn_name: KPROBE_KERNEL_FUNCTION_NAME.to_string(),
                 offset: 0,
                 metadata: HashMap::new(),
-                retprobe: false,
                 container_pid: None,
             },
         );
@@ -495,7 +492,6 @@ fn test_load_unload_kretprobe() {
                 fn_name: KRETPROBE_KERNEL_FUNCTION_NAME.to_string(),
                 offset: 0,
                 metadata: HashMap::new(),
-                retprobe: true,
                 container_pid: None,
             },
         );
@@ -732,7 +728,6 @@ fn test_load_unload_cosign_disabled() {
                 fn_name: KPROBE_KERNEL_FUNCTION_NAME.to_string(),
                 offset: 0,
                 metadata: HashMap::new(),
-                retprobe: false,
                 container_pid: None,
             },
         );

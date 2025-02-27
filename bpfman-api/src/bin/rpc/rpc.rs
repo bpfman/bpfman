@@ -224,7 +224,6 @@ impl BpfmanLoader {
                 Some(Info::KprobeAttachInfo(i)) => AttachInfo::Kprobe {
                     fn_name: i.fn_name,
                     offset: i.offset,
-                    retprobe: i.retprobe,
                     container_pid: i.container_pid,
                     metadata: i.metadata,
                 },
@@ -232,7 +231,6 @@ impl BpfmanLoader {
                     fn_name: i.fn_name,
                     offset: i.offset,
                     target: i.target,
-                    retprobe: i.retprobe,
                     pid: i.pid,
                     container_pid: i.container_pid,
                     metadata: i.metadata,

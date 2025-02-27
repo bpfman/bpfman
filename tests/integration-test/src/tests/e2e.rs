@@ -914,7 +914,6 @@ fn test_program_execution_with_global_variables() {
             fn_name: Some(UPROBE_FUNCTION_NAME.to_string()),
             offset: 0,
             target: UPROBE_TARGET.to_string(),
-            retprobe: false,
             pid: None,
             container_pid: None,
             metadata: HashMap::new(),
@@ -938,7 +937,6 @@ fn test_program_execution_with_global_variables() {
             fn_name: Some(URETPROBE_FUNCTION_NAME.to_string()),
             offset: 0,
             target: URETPROBE_TARGET.to_string(),
-            retprobe: true,
             pid: None,
             container_pid: None,
             metadata: HashMap::new(),
@@ -963,7 +961,6 @@ fn test_program_execution_with_global_variables() {
             metadata: HashMap::new(),
             container_pid: None,
             offset: 0,
-            retprobe: false,
         },
     );
     progs.push(res);
@@ -985,7 +982,6 @@ fn test_program_execution_with_global_variables() {
             metadata: HashMap::new(),
             container_pid: None,
             offset: 0,
-            retprobe: true,
         },
     );
     progs.push(res);
@@ -1180,7 +1176,6 @@ fn test_uprobe_container() {
             fn_name: Some(UPROBE_CONTAINER_FUNCTION_NAME.to_string()),
             offset: 0,
             target: UPROBE_CONTAINER_TARGET.to_string(),
-            retprobe: false,
             pid: None,
             container_pid: Some(container_pid),
             metadata: HashMap::new(),

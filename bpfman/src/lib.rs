@@ -1394,21 +1394,17 @@ pub(crate) fn attach_single_attach_program(root_db: &Db, l: &mut Link) -> Result
             Ok(())
         }
         Link::Kprobe(link) => {
-            let kind = match link.get_retprobe()? {
+            let retprobe = if let Program::Kprobe(prog) = get_program(root_db, prog_id)? {
+                Ok(prog.get_retprobe()?)
+            } else {
+                Err(BpfmanError::InvalidAttach(
+                    "program is not a kprobe program".to_string(),
+                ))
+            }?;
+            let kind = match retprobe {
                 true => ProbeKind::KRetProbe,
                 false => ProbeKind::KProbe,
             };
-            if let Program::Kprobe(prog) = get_program(root_db, prog_id)? {
-                if prog.get_retprobe()? != link.get_retprobe()? {
-                    return Err(BpfmanError::InvalidAttach(
-                        "incompatible attachments".to_string(),
-                    ));
-                }
-            } else {
-                return Err(BpfmanError::InvalidAttach(
-                    "program is not a kprobe program".to_string(),
-                ));
-            }
 
             let mut kprobe: KProbe = KProbe::from_pin(format!("{RTDIR_FS}/prog_{prog_id}"), kind)?;
 
@@ -1425,21 +1421,18 @@ pub(crate) fn attach_single_attach_program(root_db: &Db, l: &mut Link) -> Result
             Ok(())
         }
         Link::Uprobe(link) => {
-            let kind = match link.get_retprobe()? {
+            let retprobe = if let Program::Uprobe(prog) = get_program(root_db, prog_id)? {
+                Ok(prog.get_retprobe()?)
+            } else {
+                Err(BpfmanError::InvalidAttach(
+                    "program is not a uprobe program".to_string(),
+                ))
+            }?;
+            let kind = match retprobe {
                 true => ProbeKind::URetProbe,
                 false => ProbeKind::UProbe,
             };
-            if let Program::Uprobe(prog) = get_program(root_db, prog_id)? {
-                if prog.get_retprobe()? != link.get_retprobe()? {
-                    return Err(BpfmanError::InvalidAttach(
-                        "cannot attach probe to retprobe or vice versa".to_string(),
-                    ));
-                }
-            } else {
-                return Err(BpfmanError::InvalidAttach(
-                    "program is not a uprobe program".to_string(),
-                ));
-            }
+
             let program_pin_path = format!("{RTDIR_FS}/prog_{prog_id}");
 
             let mut uprobe: UProbe = UProbe::from_pin(&program_pin_path, kind)?;
@@ -1485,7 +1478,7 @@ pub(crate) fn attach_single_attach_program(root_db: &Db, l: &mut Link) -> Result
                         prog_args.extend(["--fn-name".to_string(), fn_name.to_string()])
                     }
 
-                    if link.get_retprobe()? {
+                    if let ProbeKind::URetProbe = kind {
                         prog_args.push("--retprobe".to_string());
                     }
 

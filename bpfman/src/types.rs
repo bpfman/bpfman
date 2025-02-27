@@ -667,16 +667,6 @@ impl KprobeLink {
         sled_get(&self.0 .0, KPROBE_OFFSET).map(bytes_to_u64)
     }
 
-    pub(crate) fn set_retprobe(&mut self, retprobe: bool) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, KPROBE_RETPROBE, &bool_to_bytes(retprobe))
-    }
-
-    pub fn get_retprobe(&self) -> Result<bool, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, KPROBE_RETPROBE)?
-            .map(bytes_to_bool)
-            .unwrap_or(false))
-    }
-
     pub(crate) fn set_container_pid(&mut self, container_pid: i32) -> Result<(), BpfmanError> {
         sled_insert(
             &self.0 .0,
@@ -694,13 +684,11 @@ impl KprobeLink {
             AttachInfo::Kprobe {
                 fn_name,
                 offset,
-                retprobe,
                 container_pid,
                 metadata,
             } => {
                 self.set_fn_name(fn_name.clone())?;
                 self.set_offset(offset)?;
-                self.set_retprobe(retprobe)?;
                 if let Some(container_pid) = container_pid {
                     self.set_container_pid(container_pid)?;
                 }
@@ -729,16 +717,6 @@ impl UprobeLink {
 
     pub fn get_offset(&self) -> Result<u64, BpfmanError> {
         sled_get(&self.0 .0, UPROBE_OFFSET).map(bytes_to_u64)
-    }
-
-    pub(crate) fn set_retprobe(&mut self, retprobe: bool) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, UPROBE_RETPROBE, &bool_to_bytes(retprobe))
-    }
-
-    pub fn get_retprobe(&self) -> Result<bool, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, UPROBE_RETPROBE)?
-            .map(bytes_to_bool)
-            .unwrap_or(false))
     }
 
     pub(crate) fn set_container_pid(&mut self, container_pid: i32) -> Result<(), BpfmanError> {
@@ -775,7 +753,6 @@ impl UprobeLink {
                 fn_name,
                 offset,
                 target,
-                retprobe,
                 pid,
                 container_pid,
                 metadata,
@@ -784,7 +761,6 @@ impl UprobeLink {
                     self.set_fn_name(fn_name.clone())?;
                 }
                 self.set_offset(offset)?;
-                self.set_retprobe(retprobe)?;
                 self.set_target(target.clone())?;
                 if let Some(pid) = pid {
                     self.set_pid(pid)?;
@@ -1344,7 +1320,6 @@ pub enum AttachInfo {
     Kprobe {
         fn_name: String,
         offset: u64,
-        retprobe: bool,
         container_pid: Option<i32>,
         metadata: HashMap<String, String>,
     },
@@ -1352,7 +1327,6 @@ pub enum AttachInfo {
         fn_name: Option<String>,
         offset: u64,
         target: String,
-        retprobe: bool,
         pid: Option<i32>,
         container_pid: Option<i32>,
         metadata: HashMap<String, String>,
@@ -2471,11 +2445,11 @@ impl UprobeProgram {
     }
 
     pub(crate) fn set_retprobe(&mut self, retprobe: bool) -> Result<(), BpfmanError> {
-        sled_insert(&self.data.0, KPROBE_RETPROBE, &bool_to_bytes(retprobe))
+        sled_insert(&self.data.0, UPROBE_RETPROBE, &bool_to_bytes(retprobe))
     }
 
     pub fn get_retprobe(&self) -> Result<bool, BpfmanError> {
-        Ok(sled_get_option(&self.data.0, KPROBE_RETPROBE)?
+        Ok(sled_get_option(&self.data.0, UPROBE_RETPROBE)?
             .map(bytes_to_bool)
             .unwrap_or(false))
     }
