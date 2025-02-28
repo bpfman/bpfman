@@ -29,6 +29,10 @@ struct UprobeArgs {
     #[clap(short, long, verbatim_doc_comment)]
     program_pin_path: String,
 
+    /// Required: path to pin link on a bpffs.
+    #[clap(short, long, verbatim_doc_comment)]
+    link_pin_path: String,
+
     /// Optional: Function to attach the uprobe to.
     #[clap(short, long)]
     fn_name: Option<String>,
@@ -136,7 +140,7 @@ fn execute_uprobe_attach(args: UprobeArgs, bpfman_pid: u32) -> anyhow::Result<()
         .try_into()
         .expect("unable to get owned uprobe attach link");
 
-    fd_link.pin(format!("{}_link", args.program_pin_path))?;
+    fd_link.pin(args.link_pin_path)?;
 
     Ok(())
 }

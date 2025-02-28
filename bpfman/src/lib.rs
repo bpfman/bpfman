@@ -1466,6 +1466,8 @@ pub(crate) fn attach_single_attach_program(root_db: &Db, l: &mut Link) -> Result
                         "uprobe".to_string(),
                         "--program-pin-path".to_string(),
                         program_pin_path,
+                        "--link-pin-path".to_string(),
+                        format!("{RTDIR_FS_LINKS}/{id}"),
                         "--offset".to_string(),
                         offset,
                         "--target".to_string(),
