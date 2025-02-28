@@ -15,7 +15,7 @@ use aya_obj::Object;
 use base64::{engine::general_purpose, Engine};
 use bpfman::{
     pull_bytecode, setup,
-    types::{BytecodeImage, ImagePullPolicy, MapType, ProgramType},
+    types::{BpfProgType, BytecodeImage, ImagePullPolicy, MapType},
 };
 use log::{debug, warn};
 
@@ -525,7 +525,7 @@ fn build_bpf_info_image_labels(
         .programs
         .into_iter()
         .map(|(k, v)| {
-            let prog_type = ProgramType::from(v.section);
+            let prog_type = BpfProgType::from(v.section);
             (k, prog_type.to_string())
         })
         .collect();
