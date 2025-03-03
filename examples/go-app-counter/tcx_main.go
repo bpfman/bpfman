@@ -48,62 +48,71 @@ func processTcx(cancelCtx context.Context, paramData *configMgmt.ParameterData) 
 		// Set up a connection to the server.
 		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcProgId {
-			var loadRequest *gobpfman.LoadRequest
+			loadRequest := &gobpfman.LoadRequest{
+				Bytecode: paramData.BytecodeSource,
+				Info: []*gobpfman.LoadInfo{
+					{
+						Name:        "tcx_stats",
+						ProgramType: gobpfman.BpfmanProgramType_TCX,
+					},
+				},
+			}
 			if paramData.MapOwnerId != 0 {
 				mapOwnerId := uint32(paramData.MapOwnerId)
-				loadRequest = &gobpfman.LoadRequest{
-					Bytecode:    paramData.BytecodeSource,
-					Name:        "tcx_stats",
-					ProgramType: *bpfmanHelpers.Tc.Uint32(),
-					Attach: &gobpfman.AttachInfo{
-						Info: &gobpfman.AttachInfo_TcxAttachInfo{
-							TcxAttachInfo: &gobpfman.TCXAttachInfo{
-								Priority:  int32(paramData.Priority),
-								Iface:     paramData.Iface,
-								Direction: direction.String(),
-							},
-						},
-					},
-					MapOwnerId: &mapOwnerId,
-				}
-			} else {
-				loadRequest = &gobpfman.LoadRequest{
-					Bytecode:    paramData.BytecodeSource,
-					Name:        "tcx_stats",
-					ProgramType: *bpfmanHelpers.Tc.Uint32(),
-					Attach: &gobpfman.AttachInfo{
-						Info: &gobpfman.AttachInfo_TcxAttachInfo{
-							TcxAttachInfo: &gobpfman.TCXAttachInfo{
-								Priority:  int32(paramData.Priority),
-								Iface:     paramData.Iface,
-								Direction: direction.String(),
-							},
-						},
-					},
-				}
+				loadRequest.MapOwnerId = &mapOwnerId
 			}
 
 			// 1. Load Program using bpfman
-			var res *gobpfman.LoadResponse
+			var loadRes *gobpfman.LoadResponse
 			var err error
-			res, err = loadBpfProgram(loadRequest)
+			loadRes, err = loadBpfProgram(loadRequest)
 			if err != nil {
 				log.Print(err)
 				return
 			}
 
-			kernelInfo := res.GetKernelInfo()
+			if len(loadRes.Programs) != 1 {
+				log.Printf("Expected 1 program, got %d\n", len(loadRes.Programs))
+				return
+			}
+
+			prog := loadRes.Programs[0]
+
+			kernelInfo := prog.GetKernelInfo()
 			if kernelInfo != nil {
 				paramData.ProgId = uint(kernelInfo.GetId())
 			} else {
 				log.Printf("kernelInfo not returned in LoadResponse")
 				return
 			}
-			log.Printf("TcxProgram registered with id %d\n", paramData.ProgId)
+			log.Printf("Program registered with id %d\n", paramData.ProgId)
 
-			// 2. Set up defer to unload program when this is closed
+			// 2. Attach the program
+			attachRequest := &gobpfman.AttachRequest{
+				Id: uint32(paramData.ProgId),
+				Attach: &gobpfman.AttachInfo{
+					Info: &gobpfman.AttachInfo_TcxAttachInfo{
+						TcxAttachInfo: &gobpfman.TCXAttachInfo{
+							Priority:  int32(paramData.Priority),
+							Iface:     paramData.Iface,
+							Direction: direction.String(),
+						},
+					},
+				},
+			}
+
+			var attachRes *gobpfman.AttachResponse
+			attachRes, err = attachBpfProgram(attachRequest)
+			if err != nil {
+				log.Print(err)
+				return
+			}
+
+			paramData.LinkId = uint(attachRes.LinkId)
+
+			// 3. Set up defer to unload program when this is closed
 			defer func(id uint) {
-				log.Printf("Unloading Tcx Program: %d\n", id)
+				log.Printf("unloading program: %d\n", id)
 				_, err = unloadBpfProgram(id)
 				if err != nil {
 					log.Print(err)
@@ -111,14 +120,14 @@ func processTcx(cancelCtx context.Context, paramData *configMgmt.ParameterData) 
 				}
 			}(paramData.ProgId)
 
-			// 3. Get access to our map
-			mapPath, err = configMgmt.CalcMapPinPath(res.GetInfo(), "tcx_stats_map")
+			// 4. Get access to our map
+			mapPath, err = configMgmt.CalcMapPinPath(prog.GetInfo(), "tcx_stats_map")
 			if err != nil {
 				log.Print(err)
 				return
 			}
 		} else {
-			// 3. Get access to our map
+			// 4. Get access to our map
 			var err error
 			mapPath, err = getMapPinPath(paramData.ProgId, "tcx_stats_map")
 			if err != nil {

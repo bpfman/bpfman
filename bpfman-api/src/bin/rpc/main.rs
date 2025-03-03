@@ -4,11 +4,12 @@ use std::{env, fs::create_dir_all, path::PathBuf, str::FromStr, sync::Arc};
 
 use anyhow::Context;
 use bpfman::{
-    add_program,
+    add_programs, attach_program,
     config::Config,
+    detach,
     errors::BpfmanError,
     get_program, list_programs, pull_bytecode, remove_program, setup,
-    types::{BytecodeImage, ListFilter, Program},
+    types::{AttachInfo, BytecodeImage, ListFilter, Program},
 };
 use clap::{Args, Parser};
 use log::debug;
@@ -101,9 +102,28 @@ impl AsyncBpfman {
         setup().map_err(|e| e.into())
     }
 
-    pub(crate) async fn add_program(&self, program: Program) -> anyhow::Result<Program> {
+    pub(crate) async fn add_programs(
+        &self,
+        programs: Vec<Program>,
+    ) -> anyhow::Result<Vec<Program>> {
         let (config, root_db) = self.setup()?;
-        match spawn_blocking(move || add_program(&config, &root_db, program)).await {
+        match spawn_blocking(move || add_programs(&config, &root_db, programs)).await {
+            Ok(result) => result.map_err(|e| e.into()),
+            Err(e) => Err(BpfmanError::InternalError(e.to_string()).into()),
+        }
+    }
+
+    pub(crate) async fn attach(&self, id: u32, attach_info: AttachInfo) -> anyhow::Result<u32> {
+        let (config, root_db) = self.setup()?;
+        match spawn_blocking(move || attach_program(&config, &root_db, id, attach_info)).await {
+            Ok(result) => result.map_err(|e| e.into()),
+            Err(e) => Err(BpfmanError::InternalError(e.to_string()).into()),
+        }
+    }
+
+    pub(crate) async fn detach(&self, link_id: u32) -> anyhow::Result<()> {
+        let (config, root_db) = self.setup()?;
+        match spawn_blocking(move || detach(&config, &root_db, link_id)).await {
             Ok(result) => result.map_err(|e| e.into()),
             Err(e) => Err(BpfmanError::InternalError(e.to_string()).into()),
         }
