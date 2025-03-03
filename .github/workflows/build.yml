@@ -343,7 +343,7 @@ jobs:
           echo "FEXIT_IMAGE_LOC=quay.io/bpfman-bytecode/fexit:${GITHUB_REF_NAME}" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f7ce87c1d6bead3e36075b2ce75da1f6cc28aaca # @v3
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # @v3
         with:
           driver-opts: network=host
 
@@ -351,7 +351,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Download bpfman x86_64 build
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # @v4
         with:
           name: bpfman-debug-linux-x86_64
           merge-multiple: true
@@ -362,7 +362,7 @@ jobs:
           tar -C target/debug -xzvf bpfman-debug-linux-x86_64.tar.gz
 
       - name: Download Integration Test eBPF
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # @v4
         with:
           name: bpfman-integration-test
           merge-multiple: true
@@ -372,7 +372,7 @@ jobs:
           tar -xzvf integration-test.tar.gz
 
       - name: Download manpages
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # @v4
         with:
           name: bpfman-manpages
           merge-multiple: true
@@ -382,7 +382,7 @@ jobs:
           tar -xzvf manpages.tar.gz
 
       - name: Download CLI TAB Completion
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # @v4
         with:
           name: bpfman-cli-tab-completion
           merge-multiple: true
@@ -432,12 +432,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Download rust coverage artifacts
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # @v4
         with:
           name: coverage-rust
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3 # @v4
+        uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574 # @v4
         with:
           files: ./lcov.info
           verbose: true
@@ -464,7 +464,7 @@ jobs:
           fi
 
       - name: Download bpfman Release Binaries
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # @v4
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # @v4
         with:
           pattern: bpfman-release-*
           merge-multiple: true
