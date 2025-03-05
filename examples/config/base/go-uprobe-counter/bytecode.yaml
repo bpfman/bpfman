@@ -1,23 +1,26 @@
 ---
 apiVersion: bpfman.io/v1alpha1
-kind: UprobeProgram
+kind: ClusterBpfApplication
 metadata:
   labels:
     app.kubernetes.io/name: uprobeprogram
   name: go-uprobe-counter-example
 spec:
-  bpffunctionname: uprobe_counter
   # Select all nodes
-  nodeselector: {}
-  func_name: main.getCount
-  target: /go-target
-  retprobe: false
-  bytecode:
+  nodeSelector: {}
+  byteCode:
     image:
       url: quay.io/bpfman-bytecode/go-uprobe-counter:latest
-      imagepullpolicy: IfNotPresent
-  containers:
-    namespace: go-target
-    pods: {}
-    containernames:
-      - go-target
+      imagePullPolicy: IfNotPresent
+  programs:
+    - name: uprobe_counter
+      type: uprobe
+      uprobeInfo:
+        links:
+          - function: main.getCount
+            target: /go-target
+            containers:
+              namespace: go-target
+              pods: {}
+              containerNames:
+                - go-target
