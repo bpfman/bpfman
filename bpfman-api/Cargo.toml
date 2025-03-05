@@ -39,6 +39,7 @@ lazy_static = { workspace = true }
 libsystemd = { workspace = true }
 log = { workspace = true }
 netlink-packet-route = { workspace = true }
+netlink-sys = { workspace = true }
 nix = { workspace = true, features = [
     "fs",
     "mount",

@@ -81,6 +81,8 @@ pub enum BpfmanError {
     BpfLinkError(#[from] aya::programs::links::LinkError),
     #[error(transparent)]
     BpfParseError(#[from] ParseError),
+    #[error("one or more programs failed to load: {0:?}")]
+    ProgramsLoadFailure(Vec<BpfmanError>),
 }
 
 #[derive(Error, Debug)]
@@ -107,4 +109,6 @@ pub enum ParseError {
     ConfigParseError(#[from] toml::de::Error),
     #[error("not a valid link action: {action}")]
     InvalidLinkAction { action: String },
+    #[error("not a valid attach type: {link_type}")]
+    InvalidAttachType { link_type: String },
 }

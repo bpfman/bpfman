@@ -5,15 +5,15 @@ use std::collections::HashMap;
 
 use anyhow::bail;
 use bpfman::{
-    add_program, setup,
+    add_programs, setup,
     types::{
-        FentryProgram, FexitProgram, KprobeProgram, Location, Program, ProgramData, TcProceedOn,
-        TcProgram, TcxProgram, TracepointProgram, UprobeProgram, XdpProceedOn, XdpProgram,
+        FentryProgram, FexitProgram, KprobeProgram, Location, Program, ProgramData, TcProgram,
+        TcxProgram, TracepointProgram, UprobeProgram, XdpProgram,
     },
 };
 
 use crate::{
-    args::{GlobalArg, LoadCommands, LoadFileArgs, LoadImageArgs, LoadSubcommand},
+    args::{GlobalArg, LoadFileArgs, LoadImageArgs, LoadSubcommand},
     table::ProgTable,
 };
 
@@ -30,163 +30,111 @@ pub(crate) fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
     let (config, root_db) = setup()?;
     let bytecode_source = Location::File(args.path.clone());
 
-    let data = ProgramData::new(
-        bytecode_source,
-        args.name.clone(),
-        args.metadata
-            .clone()
-            .unwrap_or_default()
-            .iter()
-            .map(|(k, v)| (k.to_owned(), v.to_owned()))
-            .collect(),
-        parse_global(&args.global),
-        args.map_owner_id,
-    )?;
-
-    let program = add_program(&config, &root_db, args.command.get_program(data)?)?;
-
-    ProgTable::new_program(&program)?.print();
-    ProgTable::new_kernel_info(&program)?.print();
+    let mut progs = vec![];
+    let prog_list = args.programs.clone();
+    for (prog_type, parts) in prog_list {
+        let name = parts
+            .first()
+            .ok_or_else(|| anyhow::anyhow!("Missing program name"))?;
+        if (prog_type == "fentry" || prog_type == "fexit") && parts.len() != 2 {
+            bail!("Missing function name for fentry/fexit program");
+        }
+        let data = ProgramData::new(
+            bytecode_source.clone(),
+            name.clone(),
+            args.metadata
+                .clone()
+                .unwrap_or_default()
+                .iter()
+                .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                .collect(),
+            parse_global(&args.global),
+            args.map_owner_id,
+        )?;
+        // Need to determin the program type here (XDP, TC, etc)
+        // This would not be required if we had a generic "load" function
+        let prog = match prog_type.as_str() {
+            "xdp" => Program::Xdp(XdpProgram::new(data)?),
+            "tc" => Program::Tc(TcProgram::new(data)?),
+            "tcx" => Program::Tcx(TcxProgram::new(data)?),
+            "tracepoint" => Program::Tracepoint(TracepointProgram::new(data)?),
+            "kprobe" | "kretprobe" => Program::Kprobe(KprobeProgram::new(data)?),
+            "uprobe" | "uretprobe" => Program::Uprobe(UprobeProgram::new(data)?),
+            "fentry" => {
+                let fn_name = parts.get(1).unwrap().clone();
+                Program::Fentry(FentryProgram::new(data, fn_name)?)
+            }
+            "fexit" => {
+                let fn_name = parts.get(1).unwrap().clone();
+                Program::Fexit(FexitProgram::new(data, fn_name)?)
+            }
+            _ => bail!("Unknown program type: {prog_type}"),
+        };
+        progs.push(prog);
+    }
+    let programs = add_programs(&config, &root_db, progs)?;
+    for program in programs {
+        ProgTable::new_program(&program)?.print();
+        ProgTable::new_kernel_info(&program)?.print();
+    }
     Ok(())
 }
 
 pub(crate) fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
     let (config, root_db) = setup()?;
     let bytecode_source = Location::Image((&args.pull_args).try_into()?);
+    let mut progs = vec![];
+    let prog_list = args.programs.clone();
 
-    let data = ProgramData::new(
-        bytecode_source,
-        args.name.clone(),
-        args.metadata
-            .clone()
-            .unwrap_or_default()
-            .iter()
-            .map(|(k, v)| (k.to_owned(), v.to_owned()))
-            .collect(),
-        parse_global(&args.global),
-        args.map_owner_id,
-    )?;
-
-    let program = add_program(&config, &root_db, args.command.get_program(data)?)?;
-
-    ProgTable::new_program(&program)?.print();
-    ProgTable::new_kernel_info(&program)?.print();
-    Ok(())
-}
-
-impl LoadCommands {
-    pub(crate) fn get_program(&self, data: ProgramData) -> Result<Program, anyhow::Error> {
-        match self {
-            LoadCommands::Xdp {
-                iface,
-                priority,
-                proceed_on,
-                netns,
-            } => {
-                let proc_on = match XdpProceedOn::from_strings(proceed_on) {
-                    Ok(p) => p,
-                    Err(e) => bail!("error parsing proceed_on {e}"),
-                };
-                Ok(Program::Xdp(XdpProgram::new(
-                    data,
-                    *priority,
-                    iface.to_string(),
-                    XdpProceedOn::from_int32s(proc_on.as_action_vec())?,
-                    netns.clone(),
-                )?))
-            }
-            LoadCommands::Tc {
-                direction,
-                iface,
-                priority,
-                proceed_on,
-                netns,
-            } => {
-                match direction.as_str() {
-                    "ingress" | "egress" => (),
-                    other => bail!("{} is not a valid direction", other),
-                };
-                let proc_on = match TcProceedOn::from_strings(proceed_on) {
-                    Ok(p) => p,
-                    Err(e) => bail!("error parsing proceed_on {e}"),
-                };
-                Ok(Program::Tc(TcProgram::new(
-                    data,
-                    *priority,
-                    iface.to_string(),
-                    proc_on,
-                    direction.to_string().try_into()?,
-                    netns.clone(),
-                )?))
-            }
-            LoadCommands::Tcx {
-                direction,
-                iface,
-                priority,
-                netns,
-            } => {
-                match direction.as_str() {
-                    "ingress" | "egress" => (),
-                    other => bail!("{} is not a valid direction", other),
-                };
-                Ok(Program::Tcx(TcxProgram::new(
-                    data,
-                    *priority,
-                    iface.to_string(),
-                    direction.to_string().try_into()?,
-                    netns.clone(),
-                )?))
-            }
-            LoadCommands::Tracepoint { tracepoint } => Ok(Program::Tracepoint(
-                TracepointProgram::new(data, tracepoint.to_string())?,
-            )),
-            LoadCommands::Kprobe {
-                fn_name,
-                offset,
-                retprobe,
-                container_pid,
-            } => {
-                if container_pid.is_some() {
-                    bail!("kprobe container option not supported yet");
-                }
-                let offset = offset.unwrap_or(0);
-                Ok(Program::Kprobe(KprobeProgram::new(
-                    data,
-                    fn_name.to_string(),
-                    offset,
-                    *retprobe,
-                    None,
-                )?))
-            }
-            LoadCommands::Uprobe {
-                fn_name,
-                offset,
-                target,
-                retprobe,
-                pid,
-                container_pid,
-            } => {
-                let offset = offset.unwrap_or(0);
-                Ok(Program::Uprobe(UprobeProgram::new(
-                    data,
-                    fn_name.clone(),
-                    offset,
-                    target.to_string(),
-                    *retprobe,
-                    *pid,
-                    *container_pid,
-                )?))
-            }
-            LoadCommands::Fentry { fn_name } => Ok(Program::Fentry(FentryProgram::new(
-                data,
-                fn_name.to_string(),
-            )?)),
-            LoadCommands::Fexit { fn_name } => Ok(Program::Fexit(FexitProgram::new(
-                data,
-                fn_name.to_string(),
-            )?)),
+    for (prog_type, parts) in prog_list {
+        let name = parts
+            .first()
+            .ok_or_else(|| anyhow::anyhow!("Missing program name"))?;
+        if (prog_type == "fentry" || prog_type == "fexit") && parts.len() != 2 {
+            bail!("Missing function name for fentry/fexit program");
         }
+        let data = ProgramData::new(
+            bytecode_source.clone(),
+            name.clone(),
+            args.metadata
+                .clone()
+                .unwrap_or_default()
+                .iter()
+                .map(|(k, v)| (k.to_owned(), v.to_owned()))
+                .collect(),
+            parse_global(&args.global),
+            args.map_owner_id,
+        )?;
+
+        // Need to determine the program type here (XDP, TC, etc)
+        // This would not be required if we had a generic "load" function in
+
+        let prog = match prog_type.as_str() {
+            "xdp" => Program::Xdp(XdpProgram::new(data)?),
+            "tc" => Program::Tc(TcProgram::new(data)?),
+            "tcx" => Program::Tcx(TcxProgram::new(data)?),
+            "tracepoint" => Program::Tracepoint(TracepointProgram::new(data)?),
+            "kprobe" | "kretprobe" => Program::Kprobe(KprobeProgram::new(data)?),
+            "uprobe" | "uretprobe" => Program::Uprobe(UprobeProgram::new(data)?),
+            "fentry" => {
+                let fn_name = parts.get(1).unwrap().clone();
+                Program::Fentry(FentryProgram::new(data, fn_name)?)
+            }
+            "fexit" => {
+                let fn_name = parts.get(1).unwrap().clone();
+                Program::Fexit(FexitProgram::new(data, fn_name)?)
+            }
+            _ => bail!("Unknown program type: {prog_type}"),
+        };
+        progs.push(prog);
     }
+    let programs = add_programs(&config, &root_db, progs)?;
+    for program in programs {
+        ProgTable::new_program(&program)?.print();
+        ProgTable::new_kernel_info(&program)?.print();
+    }
+
+    Ok(())
 }
 
 fn parse_global(global: &Option<Vec<GlobalArg>>) -> HashMap<String, Vec<u8>> {
