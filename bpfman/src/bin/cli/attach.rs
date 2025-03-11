@@ -3,11 +3,15 @@
 
 use anyhow::bail;
 use bpfman::{
-    attach_program, setup,
+    attach_program, get_program, setup,
     types::{AttachInfo, TcProceedOn, XdpProceedOn},
 };
+use log::warn;
 
-use crate::args::{AttachArgs, AttachCommands};
+use crate::{
+    args::{AttachArgs, AttachCommands},
+    table::ProgTable,
+};
 
 pub(crate) fn execute_attach(args: &AttachArgs) -> anyhow::Result<()> {
     let (config, root_db) = setup()?;
@@ -17,6 +21,19 @@ pub(crate) fn execute_attach(args: &AttachArgs) -> anyhow::Result<()> {
         args.program_id,
         args.command.get_attach_info()?,
     )?;
+
+    match get_program(&root_db, args.program_id) {
+        Ok(program) => {
+            if let Ok(p) = ProgTable::new_program(&program) {
+                p.print();
+            }
+            ProgTable::new_kernel_info(&program)?.print();
+        }
+        Err(e) => {
+            warn!("BPFMAN get error: {}", e);
+            bail!(e)
+        }
+    }
     Ok(())
 }
 
