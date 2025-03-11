@@ -51,7 +51,7 @@ pub(crate) fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
             parse_global(&args.global),
             args.map_owner_id,
         )?;
-        // Need to determin the program type here (XDP, TC, etc)
+        // Need to determine the program type here (XDP, TC, etc)
         // This would not be required if we had a generic "load" function
         let prog = match prog_type.as_str() {
             "xdp" => Program::Xdp(XdpProgram::new(data)?),
@@ -73,9 +73,18 @@ pub(crate) fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
         progs.push(prog);
     }
     let programs = add_programs(&config, &root_db, progs)?;
-    for program in programs {
-        ProgTable::new_program(&program)?.print();
-        ProgTable::new_kernel_info(&program)?.print();
+
+    if programs.len() == 1 {
+        ProgTable::new_program(&programs[0])?.print();
+        ProgTable::new_kernel_info(&programs[0])?.print();
+    } else {
+        let mut table = ProgTable::new_list();
+        for program in programs {
+            if let Err(e) = table.add_response_prog(program) {
+                bail!(e)
+            }
+        }
+        table.print();
     }
     Ok(())
 }
@@ -129,11 +138,19 @@ pub(crate) fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
         progs.push(prog);
     }
     let programs = add_programs(&config, &root_db, progs)?;
-    for program in programs {
-        ProgTable::new_program(&program)?.print();
-        ProgTable::new_kernel_info(&program)?.print();
-    }
 
+    if programs.len() == 1 {
+        ProgTable::new_program(&programs[0])?.print();
+        ProgTable::new_kernel_info(&programs[0])?.print();
+    } else {
+        let mut table = ProgTable::new_list();
+        for program in programs {
+            if let Err(e) = table.add_response_prog(program) {
+                bail!(e)
+            }
+        }
+        table.print();
+    }
     Ok(())
 }
 
