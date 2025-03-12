@@ -55,7 +55,7 @@ pub mod errors;
 pub mod models;
 mod multiprog;
 mod netlink;
-mod oci_utils;
+pub mod oci_utils;
 pub mod schema;
 mod static_program;
 pub mod types;
@@ -1178,6 +1178,16 @@ pub fn setup() -> Result<(Config, Db), BpfmanError> {
     Ok((open_config_file(), init_database(get_db_config())?))
 }
 
+/// XXX(frobware) - eventually replace^^ setup().
+pub fn setup_with_sqlite() -> Result<(Config, SqliteConnection), BpfmanError> {
+    initialize_bpfman()?;
+    debug!("BpfManager::setup()");
+    Ok((
+        open_config_file(),
+        establish_sqlite_connection("/tmp/foo.db")?, // XXX(frobware) - choose a path
+    ))
+}
+
 pub(crate) fn load_program(
     root_db: &Db,
     config: &Config,
@@ -2006,24 +2016,37 @@ fn get_map(id: u32, root_db: &Db) -> Option<sled::Tree> {
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
-#[derive(Debug, thiserror::Error)]
-pub enum ConnectionError {
-    #[error("Database connection error: {0}")]
-    Connection(#[from] diesel::ConnectionError),
+pub fn establish_sqlite_connection(database_url: &str) -> anyhow::Result<SqliteConnection> {
+    let mut conn = SqliteConnection::establish(database_url).map_err(|e| {
+        anyhow::anyhow!("Failed to establish connection to {}: {}", database_url, e)
+    })?;
 
-    #[error("Migration error: {0}")]
-    Migration(#[from] Box<dyn std::error::Error + Send + Sync>),
-}
+    diesel::sql_query("PRAGMA journal_mode = WAL")
+        .execute(&mut conn)
+        .map_err(|e| {
+            anyhow::anyhow!(
+                "SQLite: Failed to set WAL journal mode for {}: {}",
+                database_url,
+                e
+            )
+        })?;
 
-pub fn establish_sqlite_connection(
-    database_url: &str,
-) -> Result<SqliteConnection, ConnectionError> {
-    let mut connection = SqliteConnection::establish(database_url)?;
+    diesel::sql_query("PRAGMA busy_timeout = 5000")
+        .execute(&mut conn)
+        .map_err(|e| {
+            anyhow::anyhow!(
+                "SQLite: Failed to set busy timeout for {}: {}",
+                database_url,
+                e
+            )
+        })?;
 
-    let applied_migrations = connection
+    eprintln!("Checking for pending migrations...");
+    let applied_migrations = conn
         .run_pending_migrations(MIGRATIONS)
-        .map_err(ConnectionError::Migration)?;
+        .map_err(|e| anyhow::anyhow!("SQLite: Migration failed for {}: {}", database_url, e))?;
 
+    // Log results
     if applied_migrations.is_empty() {
         eprintln!("No new migrations were applied.");
     } else {
@@ -2033,5 +2056,186 @@ pub fn establish_sqlite_connection(
         }
     }
 
-    Ok(connection)
+    Ok(conn)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ProgType {
+    Xdp,
+    Tc,
+    Tcx,
+    Tracepoint,
+    Kprobe,
+    Kretprobe,
+    Uprobe,
+    Uretprobe,
+    Fentry(String), // function name
+    Fexit(String),  // function name
+}
+
+impl ProgType {
+    pub fn from_str(prog_type: &str, fn_name: Option<&str>) -> anyhow::Result<Self> {
+        match (prog_type, fn_name) {
+            ("xdp", None) => Ok(Self::Xdp),
+            ("tc", None) => Ok(Self::Tc),
+            ("tcx", None) => Ok(Self::Tcx),
+            ("tracepoint", None) => Ok(Self::Tracepoint),
+            ("kprobe", None) => Ok(Self::Kprobe),
+            ("kretprobe", None) => Ok(Self::Kretprobe),
+            ("uprobe", None) => Ok(Self::Uprobe),
+            ("uretprobe", None) => Ok(Self::Uretprobe),
+            ("fentry", Some(name)) => Ok(Self::Fentry(name.to_owned())),
+            ("fexit", Some(name)) => Ok(Self::Fexit(name.to_owned())),
+            ("fentry" | "fexit", None) => {
+                Err(anyhow::anyhow!("Missing function name for '{}'", prog_type))
+            }
+            _ => Err(anyhow::anyhow!(
+                "Unknown or unsupported BPF program type '{}'",
+                prog_type
+            )),
+        }
+    }
+}
+
+impl std::fmt::Display for ProgType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Xdp => write!(f, "xdp"),
+            Self::Tc => write!(f, "tc"),
+            Self::Tcx => write!(f, "tcx"),
+            Self::Tracepoint => write!(f, "tracepoint"),
+            Self::Kprobe => write!(f, "kprobe"),
+            Self::Kretprobe => write!(f, "kretprobe"),
+            Self::Uprobe => write!(f, "uprobe"),
+            Self::Uretprobe => write!(f, "uretprobe"),
+            Self::Fentry(_) => write!(f, "fentry"),
+            Self::Fexit(_) => write!(f, "fexit"),
+        }
+    }
+}
+
+// XXX(frobware) - as we move away from SLED to SQLite I don't want to
+// change the existing Program enum, at least not initially. Once
+// we're further along we may be able to drop this and use the
+// existing Program enum, but without each variant carrying any data.
+// TBD.
+impl ProgType {
+    pub fn aya_type(&self) -> &'static str {
+        match self {
+            Self::Xdp => "Xdp",
+            Self::Tc => "SchedClassifier",
+            Self::Tcx => "SchedClassifier",
+            Self::Tracepoint => "TracePoint",
+            Self::Kprobe | Self::Kretprobe => "KProbe",
+            Self::Uprobe | Self::Uretprobe => "UProbe",
+            Self::Fentry(_) => "FEntry",
+            Self::Fexit(_) => "FExit",
+        }
+    }
+
+    pub fn is_retprobe(&self) -> Option<bool> {
+        match self {
+            Self::Kretprobe | Self::Uretprobe => Some(true),
+            Self::Kprobe | Self::Uprobe => Some(false),
+            _ => None,
+        }
+    }
+
+    pub fn fn_name(&self) -> Option<&str> {
+        match self {
+            Self::Fentry(name) | Self::Fexit(name) => Some(name),
+            _ => None,
+        }
+    }
+}
+
+// A struct to hold the loaded program and its related info.
+pub struct LoadedProgram {
+    pub prog_type: ProgType,
+    pub name: String,
+    pub retprobe: Option<bool>,  // XXX(frobware) revisit
+    pub fn_name: Option<String>, // XXX(frobware) revisit
+    pub map_pin_path: String,    // XXX(frobware) revisit
+    pub program_info: aya::programs::ProgramInfo,
+}
+
+pub fn load_ebpf_program(
+    prog_type: ProgType,
+    name: &str,
+    loader: &mut aya::Ebpf,
+) -> anyhow::Result<LoadedProgram> {
+    let raw_program = loader
+        .program_mut(name)
+        .ok_or_else(|| anyhow!("Program '{}' not found", name))?;
+
+    match prog_type {
+        ProgType::Xdp => {
+            let prog: &mut aya::programs::Xdp = raw_program.try_into()?;
+            prog.load()?;
+        }
+        ProgType::Tc | ProgType::Tcx => {
+            let prog: &mut aya::programs::SchedClassifier = raw_program.try_into()?;
+            prog.load()?;
+        }
+        ProgType::Tracepoint => {
+            let prog: &mut aya::programs::TracePoint = raw_program.try_into()?;
+            prog.load()?;
+        }
+        ProgType::Kprobe | ProgType::Kretprobe => {
+            let prog: &mut aya::programs::KProbe = raw_program.try_into()?;
+            prog.load()?;
+        }
+        ProgType::Uprobe | ProgType::Uretprobe => {
+            let prog: &mut aya::programs::UProbe = raw_program.try_into()?;
+            prog.load()?;
+        }
+        ProgType::Fentry(ref fn_name) => {
+            let btf = aya::Btf::from_sys_fs()?;
+            let prog: &mut aya::programs::FEntry = raw_program.try_into()?;
+            prog.load(fn_name, &btf)?;
+        }
+        ProgType::Fexit(ref fn_name) => {
+            let btf = aya::Btf::from_sys_fs()?;
+            let prog: &mut aya::programs::FExit = raw_program.try_into()?;
+            prog.load(fn_name, &btf)?;
+        }
+    };
+
+    let prog_info = raw_program.info()?;
+    let id = prog_info.id();
+
+    let program_pin_path = format!("{RTDIR_FS}/prog_{id}");
+    raw_program.pin(&program_pin_path).map_err(|e| {
+        anyhow!(
+            "Unable to pin eBPF program '{}' at '{}': {}",
+            name,
+            program_pin_path,
+            e
+        )
+    })?;
+
+    let map_pin_path = calc_map_pin_path(id);
+    create_map_pin_path(&map_pin_path)?;
+
+    for (map_name, map) in loader.maps_mut() {
+        if !should_map_be_pinned(map_name) {
+            continue;
+        }
+        debug!(
+            "Pinning map '{}' to path '{}'",
+            map_name,
+            map_pin_path.join(map_name).display()
+        );
+        map.pin(map_pin_path.join(map_name))
+            .map_err(|e| anyhow!("Unable to pin map '{}': {}", map_name, e))?;
+    }
+
+    Ok(LoadedProgram {
+        prog_type: prog_type.clone(),
+        name: name.to_string(),
+        retprobe: prog_type.is_retprobe(),
+        fn_name: prog_type.fn_name().map(String::from),
+        map_pin_path: map_pin_path.to_string_lossy().to_string(),
+        program_info: prog_info,
+    })
 }
