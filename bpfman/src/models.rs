@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
+use anyhow::{anyhow, bail, Context};
 use chrono::{NaiveDateTime, Utc};
 use diesel::prelude::*;
+use log::info;
+
+use crate::{oci_utils::image_manager::ImageManager, setup, types::Location};
 
 #[derive(
+    Clone,
     Debug,
-    PartialEq,
     Eq,
+    PartialEq,
     serde::Serialize,
     serde::Deserialize,
     AsChangeset,
@@ -61,6 +66,7 @@ pub struct BpfProgram {
 
     /// The program binary; NOT NULL.
     #[diesel(sql_type = diesel::sql_types::Binary)]
+    #[serde(skip)]
     pub program_bytes: Vec<u8>,
 
     /// Arbitrary metadata as a JSON string, defaults to {}.
@@ -164,7 +170,7 @@ pub struct BpfProgramMap {
 ///
 /// These functions do not manage database transactions. Transaction
 /// control should be handled at a higher level where operation
-/// grouping and rollback behavior can only be determined by the
+/// grouping and rollback behaviour can only be determined by the
 /// caller.
 ///
 /// # Error Handling
@@ -172,21 +178,20 @@ pub struct BpfProgramMap {
 /// All functions return `QueryResult<T>`, propagating any database
 /// errors to the caller for handling.
 impl BpfProgram {
-    /// Creates a new BPF program record in the database.
+    /// Inserts a new record in the database.
     ///
-    /// Updates created_at and updated_at timestamps before insertion.
-    pub fn create_record(
+    /// Sets created_at and updated_at timestamps before insertion.
+    pub fn insert_record(
         conn: &mut SqliteConnection,
-        program: &mut BpfProgram,
+        mut program: BpfProgram,
     ) -> QueryResult<BpfProgram> {
-        use crate::schema::bpf_programs::dsl::*;
-
-        program.created_at = Utc::now().naive_utc();
-        program.updated_at = program.created_at;
+        let now = Utc::now().naive_utc();
+        program.created_at = now;
+        program.updated_at = now;
 
         diesel::insert_into(crate::schema::bpf_programs::table)
-            .values(&*program)
-            .returning(bpf_programs::all_columns())
+            .values(&program)
+            .returning(crate::schema::bpf_programs::all_columns)
             .get_result(conn)
     }
 
@@ -202,17 +207,16 @@ impl BpfProgram {
         bpf_programs.filter(id.eq(search_id)).first(conn)
     }
 
-    /// Updates an existing BPF program record. Updates the updated_at
-    /// timestamp. Returns the updated record if successful.
-    pub fn update_record(&mut self, conn: &mut SqliteConnection) -> QueryResult<BpfProgram> {
+    /// Updates an existing BPF program record.
+    pub fn update_record(&mut self, conn: &mut SqliteConnection) -> QueryResult<()> {
         use crate::schema::bpf_programs::dsl::*;
 
-        // XXX Rely on SQLite trigger?
-        self.updated_at = Utc::now().naive_utc();
-
-        diesel::update(bpf_programs.filter(id.eq(self.id)))
+        let updated: BpfProgram = diesel::update(bpf_programs.filter(id.eq(self.id)))
             .set(&*self)
-            .get_result(conn)
+            .get_result(conn)?;
+
+        *self = updated;
+        Ok(())
     }
 
     /// Deletes a BPF program by its ID. Returns true if a record was
@@ -227,7 +231,7 @@ impl BpfProgram {
 }
 
 impl BpfMap {
-    pub fn insert(conn: &mut SqliteConnection, mut map: BpfMap) -> QueryResult<BpfMap> {
+    pub fn insert_record(conn: &mut SqliteConnection, mut map: BpfMap) -> QueryResult<BpfMap> {
         use crate::schema::bpf_maps::dsl::*;
 
         map.created_at = Utc::now().naive_utc();
@@ -241,14 +245,14 @@ impl BpfMap {
 }
 
 impl BpfLink {
-    pub fn link_insert(conn: &mut SqliteConnection, link: &mut BpfLink) -> QueryResult<BpfLink> {
+    pub fn insert_record(conn: &mut SqliteConnection, mut link: BpfLink) -> QueryResult<BpfLink> {
         use crate::schema::bpf_links::dsl::*;
 
         link.created_at = Utc::now().naive_utc();
         link.updated_at = link.created_at;
 
         diesel::insert_into(crate::schema::bpf_links::table)
-            .values(&*link)
+            .values(&link)
             .returning(bpf_links::all_columns())
             .get_result(conn)
     }
@@ -322,6 +326,46 @@ impl Default for BpfMap {
     }
 }
 
+pub fn get_program_bytes_and_validate(
+    location: &Location,
+    image_manager: &mut ImageManager,
+    requested_programs: &[(String, Vec<String>)],
+) -> anyhow::Result<(Vec<u8>, Vec<String>)> {
+    // XXX(frobware) - We need to refactor get_program_bytes() to not
+    // require a SLED db. For the moment just continue use a SLED DB.
+    let (_config, root_db) = setup()?;
+
+    let (program_bytes, function_names) = location
+        .get_program_bytes(&root_db, image_manager)
+        .context("Failed to retrieve eBPF program bytes")?;
+
+    if let Location::Image(image) = location {
+        info!(
+            "Loading program bytecode from container image: {}",
+            image.get_url()
+        );
+
+        for (prog_type, parts) in requested_programs {
+            let name = parts
+                .first()
+                .ok_or_else(|| anyhow!("Missing program name for type '{}'", prog_type))?;
+
+            if !function_names.contains(name) {
+                bail!(
+                    "Function '{}' not found in eBPF Image '{}'. Available: {:?}",
+                    name,
+                    image.get_url(),
+                    function_names
+                );
+            }
+        }
+    } else if let Location::File(path) = location {
+        info!("Loading program bytecode from file: {}", path);
+    }
+
+    Ok((program_bytes, function_names))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -366,7 +410,8 @@ mod tests {
         let mut db_conn = setup_test_db();
 
         // Setup test program with minimal required fields.
-        let mut prog = BpfProgram {
+        // Ensure BpfProgram derives Clone (if not, add #[derive(Clone)] to its definition).
+        let prog = BpfProgram {
             id: 100,
             name: "xdp_test_program".to_string(),
             kind: "xdp".to_string(),
@@ -383,11 +428,15 @@ mod tests {
         assert_eq!(prog.created_at, epoch, "Default created_at should be epoch");
         assert_eq!(prog.updated_at, epoch, "Default updated_at should be epoch");
 
-        // Insert program and verify.
-        let inserted_program =
-            BpfProgram::create_record(&mut db_conn, &mut prog).expect("Insert failed");
+        // Clone prog so we have a copy to compare later.
+        let mut prog_for_assert = prog.clone();
 
-        // Verify timestamps are no longer epoch
+        // Insert program.
+        // Note: insert_record now takes ownership of `prog`.
+        let inserted_program =
+            BpfProgram::insert_record(&mut db_conn, prog).expect("Insert failed");
+
+        // Verify timestamps are no longer epoch.
         assert_ne!(
             inserted_program.created_at, epoch,
             "created_at should not be epoch after insert"
@@ -398,10 +447,11 @@ mod tests {
         );
 
         // Sync timestamps to enable Eq comparisons.
-        prog.created_at = inserted_program.created_at;
-        prog.updated_at = inserted_program.updated_at;
+        prog_for_assert.created_at = inserted_program.created_at;
+        prog_for_assert.updated_at = inserted_program.updated_at;
 
-        assert_eq!(prog, inserted_program);
+        // Assert that the modified copy equals the inserted record.
+        assert_eq!(prog_for_assert, inserted_program);
 
         // Verify JSON field defaults and validity.
         {
@@ -420,8 +470,8 @@ mod tests {
 
         // Verify record retrieval using full Eq comparison.
         {
-            let found_program =
-                BpfProgram::find_record(&mut db_conn, prog.id).expect("Failed to find program");
+            let found_program = BpfProgram::find_record(&mut db_conn, prog_for_assert.id)
+                .expect("Failed to find program");
             assert_eq!(found_program, inserted_program);
         }
     }
@@ -458,7 +508,7 @@ mod tests {
     ///    - Deserialises back to a BpfProgram.
     ///    - Verifies all fields match.
     fn test_bpf_program_serde_roundtrip() {
-        let mut prog = BpfProgram {
+        let prog = BpfProgram {
             id: 100,
             name: "xdp_test_program".to_string(),
             description: Some("Test program description".to_string()),
@@ -506,8 +556,7 @@ mod tests {
         {
             let mut db_conn = setup_test_db();
 
-            let inserted =
-                BpfProgram::create_record(&mut db_conn, &mut prog).expect("Failed to insert");
+            let inserted = BpfProgram::insert_record(&mut db_conn, prog).expect("Failed to insert");
 
             let json_after_db =
                 serde_json::to_string(&inserted).expect("Failed to serialize after DB");

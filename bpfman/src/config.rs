@@ -24,7 +24,7 @@ impl Config {
         &self.interfaces
     }
 
-    pub(crate) fn signing(&self) -> &SigningConfig {
+    pub fn signing(&self) -> &SigningConfig {
         &self.signing
     }
 
