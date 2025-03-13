@@ -17,7 +17,7 @@ updates:
       grpc-dependencies:
         patterns:
           - tonic
-          - prost
+          - prost*
   - package-ecosystem: github-actions
     directory: /
     schedule:
