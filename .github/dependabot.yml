@@ -12,6 +12,10 @@ updates:
         dependency-type: production
       development-dependencies:
         dependency-type: development
+      grpc-dependencies:
+        patterns:
+          - tonic
+          - prost
   - package-ecosystem: github-actions
     directory: /
     schedule:
