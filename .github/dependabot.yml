@@ -13,7 +13,7 @@ updates:
           - "*"
         exclude-patterns:
           - tonic
-          - prost
+          - prost*
       grpc-dependencies:
         patterns:
           - tonic
