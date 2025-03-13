@@ -13,10 +13,10 @@ spec:
       url: quay.io/bpfman-bytecode/go-tcx-counter:latest
   programs:
     - name: tcx_stats
-      type: tcx
-      tcxInfo:
+      type: TCX
+      tcx:
         links:
           - interfaceSelector:
               primaryNodeInterface: true
             priority: 55
-            direction: ingress
+            direction: Ingress

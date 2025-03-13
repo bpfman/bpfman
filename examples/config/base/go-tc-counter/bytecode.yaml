@@ -13,10 +13,10 @@ spec:
       url: quay.io/bpfman-bytecode/go-tc-counter:latest
   programs:
     - name: stats
-      type: tc
-      tcInfo:
+      type: TC
+      tc:
         links:
           - interfaceSelector:
               primaryNodeInterface: true
             priority: 55
-            direction: ingress
+            direction: Ingress

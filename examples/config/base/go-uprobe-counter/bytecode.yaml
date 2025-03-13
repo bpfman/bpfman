@@ -14,8 +14,8 @@ spec:
       imagePullPolicy: IfNotPresent
   programs:
     - name: uprobe_counter
-      type: uprobe
-      uprobeInfo:
+      type: UProbe
+      uprobe:
         links:
           - function: main.getCount
             target: /go-target

@@ -14,7 +14,7 @@ spec:
       imagePullPolicy: IfNotPresent
   programs:
     - name: tracepoint_kill_recorder
-      type: tracepoint
-      tracepointInfo:
+      type: TracePoint
+      tracepoint:
         links:
           - name: syscalls/sys_enter_kill
