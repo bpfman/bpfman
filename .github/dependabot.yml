@@ -9,9 +9,11 @@ updates:
       interval: weekly
     groups:
       production-dependencies:
-        dependency-type: production
-      development-dependencies:
-        dependency-type: development
+        patterns:
+          - "*"
+        exclude-patterns:
+          - tonic
+          - prost
       grpc-dependencies:
         patterns:
           - tonic
