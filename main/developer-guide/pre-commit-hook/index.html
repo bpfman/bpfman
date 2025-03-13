@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../building-bpfman/">
+        <link rel="prev" href="../testing/">
       
       
-        <link rel="next" href="../example-bpf-local/">
+        <link rel="next" href="../debugging/">
       
       
       <link rel="icon" href="../../img/icon/color/bpfman-icon-color.svg">
@@ -20,7 +20,7 @@
     
     
       
-        <title>Launching bpfman - bpfman</title>
+        <title>Pre-Commit Hooks - bpfman</title>
       
     
     
@@ -77,7 +77,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#launching-bpfman" class="md-skip">
+        <a href="#pre-commit-configuration" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Launching bpfman
+              Pre-Commit Hooks
             
           </span>
         </div>
@@ -246,13 +246,11 @@
         
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../overview/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../getting-started/overview/" class="md-tabs__link">
           
   
     
@@ -268,10 +266,12 @@
         
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../../governance/CONTRIBUTING/" class="md-tabs__link">
           
   
@@ -437,395 +437,9 @@
       
   
   
-    
-  
   
     
     
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-    
-      
-      
-    
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
-      
-        
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
-        
-          
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
-            
-  
-  <span class="md-ellipsis">
-    User Documentation
-  </span>
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_3">
-            <span class="md-nav__icon md-icon"></span>
-            User Documentation
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../overview/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    bpfman Overview
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../building-bpfman/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Setup and Building
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-    
-  
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Launching bpfman
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
-  
-  <span class="md-ellipsis">
-    Launching bpfman
-  </span>
-  
-
-      </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#build-bpfman" class="md-nav__link">
-    <span class="md-ellipsis">
-      Build bpfman
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#install-and-start-bpfman" class="md-nav__link">
-    <span class="md-ellipsis">
-      Install and Start bpfman
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Install and Start bpfman">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#additional-notes" class="md-nav__link">
-    <span class="md-ellipsis">
-      Additional Notes
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#preferred-method-to-start-bpfman" class="md-nav__link">
-    <span class="md-ellipsis">
-      Preferred Method to Start bpfman
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../example-bpf-local/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Deploying Example eBPF Programs On Local Host
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../operator-quick-start/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Deploying the bpfman-operator
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../example-bpf-k8s/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Deploying Example eBPF Programs On Kubernetes
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../running-release/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Run bpfman From Release Image
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../running-rpm/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Run bpfman From RPM
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../cli-guide/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    CLI Guide
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../example-bpf/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Example eBPF Programs
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../troubleshooting/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Troubleshooting
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
       
         
       
@@ -861,7 +475,311 @@
         
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  <span class="md-ellipsis">
+    User Documentation
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            User Documentation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    bpfman Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/building-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Setup and Building
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/launching-bpfman/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Launching bpfman
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/example-bpf-local/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying Example eBPF Programs On Local Host
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/operator-quick-start/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying the bpfman-operator
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/example-bpf-k8s/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Deploying Example eBPF Programs On Kubernetes
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/running-release/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Run bpfman From Release Image
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/running-rpm/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Run bpfman From RPM
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/cli-guide/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CLI Guide
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/example-bpf/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Example eBPF Programs
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/troubleshooting/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Troubleshooting
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+      
+      
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
           <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
@@ -875,7 +793,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             Developer Documentation
@@ -928,7 +846,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/develop-operator/" class="md-nav__link">
+      <a href="../develop-operator/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -948,7 +866,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/api-spec/" class="md-nav__link">
+      <a href="../api-spec/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -968,7 +886,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/shipping-bytecode/" class="md-nav__link">
+      <a href="../shipping-bytecode/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -988,7 +906,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/image-build/" class="md-nav__link">
+      <a href="../image-build/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1008,7 +926,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/documentation/" class="md-nav__link">
+      <a href="../documentation/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1028,7 +946,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/linux-capabilities/" class="md-nav__link">
+      <a href="../linux-capabilities/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1048,7 +966,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/observability/" class="md-nav__link">
+      <a href="../observability/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1068,7 +986,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/logging/" class="md-nav__link">
+      <a href="../logging/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1088,7 +1006,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/configuration/" class="md-nav__link">
+      <a href="../configuration/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1108,7 +1026,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/testing/" class="md-nav__link">
+      <a href="../testing/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1126,9 +1044,29 @@
                 
   
   
+    
   
-    <li class="md-nav__item">
-      <a href="../../developer-guide/pre-commit-hook/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Pre-Commit Hooks
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -1137,6 +1075,113 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Prerequisites
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      Setup
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hooks-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Hooks Overview
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Hooks Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#yaml-linting" class="md-nav__link">
+    <span class="md-ellipsis">
+      YAML Linting
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rust-clippy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Rust Clippy
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rust-formatting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Rust Formatting
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#xtask-public-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      Xtask Public API
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#customizing-the-toolchain" class="md-nav__link">
+    <span class="md-ellipsis">
+      Customizing the Toolchain
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1148,7 +1193,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/debugging/" class="md-nav__link">
+      <a href="../debugging/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1168,7 +1213,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/release/" class="md-nav__link">
+      <a href="../release/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1188,7 +1233,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/xdp-overview/" class="md-nav__link">
+      <a href="../xdp-overview/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1208,7 +1253,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../developer-guide/k8s-selinux-distros/" class="md-nav__link">
+      <a href="../k8s-selinux-distros/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -1752,37 +1797,64 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#build-bpfman" class="md-nav__link">
+  <a href="#prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
-      Build bpfman
+      Prerequisites
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-and-start-bpfman" class="md-nav__link">
+  <a href="#setup" class="md-nav__link">
     <span class="md-ellipsis">
-      Install and Start bpfman
+      Setup
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Install and Start bpfman">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hooks-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Hooks Overview
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Hooks Overview">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#additional-notes" class="md-nav__link">
+  <a href="#yaml-linting" class="md-nav__link">
     <span class="md-ellipsis">
-      Additional Notes
+      YAML Linting
     </span>
   </a>
   
 </li>
         
           <li class="md-nav__item">
-  <a href="#preferred-method-to-start-bpfman" class="md-nav__link">
+  <a href="#rust-clippy" class="md-nav__link">
     <span class="md-ellipsis">
-      Preferred Method to Start bpfman
+      Rust Clippy
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rust-formatting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Rust Formatting
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#xtask-public-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      Xtask Public API
     </span>
   </a>
   
@@ -1790,6 +1862,24 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#customizing-the-toolchain" class="md-nav__link">
+    <span class="md-ellipsis">
+      Customizing the Toolchain
+    </span>
+  </a>
   
 </li>
       
@@ -1811,99 +1901,79 @@
   
 
 
-<h1 id="launching-bpfman">Launching bpfman</h1>
-<p>The most basic way to deploy bpfman is to run it directly on a host system.
-First <code>bpfman</code> needs to be built and then started.</p>
-<h2 id="build-bpfman">Build bpfman</h2>
-<p>Perform the following steps to build <code>bpfman</code>.
-If this is your first time using bpfman, follow the instructions in
-<a href="../building-bpfman/">Setup and Building bpfman</a> to setup the prerequisites for building.
-To avoid installing the dependencies and having to build bpfman, consider running bpfman
-from a packaged release (see <a href="../running-release/">Run bpfman From Release Image</a>) or
-installing the bpfman RPM (see <a href="../running-rpm/">Run bpfman From RPM</a>).</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">cd bpfman/</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">cargo build</span>
+<h1 id="pre-commit-configuration">Pre-Commit Configuration</h1>
+<p>This repository uses <a href="https://pre-commit.com/">pre-commit</a> to automate code
+quality checks and formatting for YAML and Rust files. The following hooks are
+configured to ensure code consistency and quality.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li>Ensure you have Python and <code>pip</code> installed.</li>
+<li>Install <code>pre-commit</code> by running:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>pre-commit
 </code></pre></div>
-<h2 id="install-and-start-bpfman">Install and Start bpfman</h2>
-<p>Run the following command to copy the <code>bpfman</code> CLI and <code>bpfman-rpc</code> binaries to <code>/usr/sbin/</code> and
-copy <code>bpfman.socket</code> and <code>bpfman.service</code> files to <code>/usr/lib/systemd/system/</code>.
-This option will also enable and start the systemd services:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">cd bpfman/</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">sudo ./scripts/setup.sh install</span>
+<ul>
+<li>Make sure you have Rust and Cargo installed. You can install them from
+  <a href="https://www.rust-lang.org/">rust-lang.org</a>.</li>
+</ul>
+<h2 id="setup">Setup</h2>
+<p>To set up the pre-commit hooks in your repository, run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>pre-commit<span class="w"> </span>install
 </code></pre></div>
-<p><code>bpfman</code> CLI is now in $PATH and can be used to load, view and unload eBPF programs.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass xdp --iface eno3 --priority 100</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="go">sudo bpfman list</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="go"> Program ID  Name  Type  Load Time                </span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="go"> 53885       pass  xdp   2024-08-26T17:41:36-0400 </span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="go">sudo bpfman unload 53885</span>
+<p>This will install the hooks defined in <code>.pre-commit-config.yaml</code>.</p>
+<h2 id="hooks-overview">Hooks Overview</h2>
+<h3 id="yaml-linting">YAML Linting</h3>
+<ul>
+<li><strong>Hook ID</strong>: <code>yamllint</code></li>
+<li><strong>Description</strong>: This hook checks YAML files for syntax errors and best
+  practices.</li>
+<li><strong>Command</strong>:
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>yamllint<span class="w"> </span>-c<span class="w"> </span>.yamllint.yaml<span class="w"> </span>--strict
+</code></pre></div></li>
+</ul>
+<h3 id="rust-clippy">Rust Clippy</h3>
+<ul>
+<li><strong>Hook ID</strong>: <code>clippy</code></li>
+<li><strong>Description</strong>: This hook runs Clippy, a linting tool for Rust, to catch
+  common mistakes and improve your code.</li>
+<li><strong>Command</strong>:
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>bash<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;export NIGHTLY_VERSION=nightly-2024-09-24 &amp;&amp; cargo +${NIGHTLY_VERSION}</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="s1">clippy --all -- --deny warnings&#39;</span>
+</code></pre></div></li>
+</ul>
+<h3 id="rust-formatting">Rust Formatting</h3>
+<ul>
+<li><strong>Hook ID</strong>: <code>fmt</code></li>
+<li><strong>Description</strong>: This hook formats Rust code according to the standard Rust
+  style.</li>
+<li><strong>Command</strong>:
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>bash<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;export NIGHTLY_VERSION=nightly-2024-09-24 &amp;&amp; cargo +${NIGHTLY_VERSION}</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="s1">fmt --all -- --check&#39;</span>
+</code></pre></div></li>
+</ul>
+<h3 id="xtask-public-api">Xtask Public API</h3>
+<ul>
+<li><strong>Hook ID</strong>: <code>xtask-public-api</code></li>
+<li><strong>Description</strong>: This hook runs a custom command defined in <code>xtask</code> to
+  check the public API of the Rust project.</li>
+<li><strong>Command</strong>:
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>bash<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;export NIGHTLY_VERSION=nightly-2024-09-24 &amp;&amp; cargo xtask public-api</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="s1">--toolchain ${NIGHTLY_VERSION}&#39;</span>
+</code></pre></div></li>
+</ul>
+<h2 id="usage">Usage</h2>
+<p>To manually run all configured hooks, execute:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
 </code></pre></div>
-<p><code>bpfman</code> CLI is a Rust program that calls the <code>bpfman</code> library directly.
-To view logs while running <code>bpfman</code> CLI commands, prepend <code>RUST_LOG=info</code> to each command
-(see <a href="../../developer-guide/logging/">Logging</a> for more details):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">sudo RUST_LOG=info bpfman list</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">[INFO  bpfman::utils] Has CAP_BPF: true</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="go">[INFO  bpfman::utils] Has CAP_SYS_ADMIN: true</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="go"> Program ID  Name  Type  Load Time </span>
+<p>You can also run a specific hook by specifying its ID. For example, to run
+Clippy, use:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>pre-commit<span class="w"> </span>run<span class="w"> </span>clippy<span class="w"> </span>--all-files
 </code></pre></div>
-<p>The examples (see <a href="../example-bpf-local/">Deploying Example eBPF Programs On Local Host</a>)
-are Go based programs, so they are building and sending RPC messages to the rust based binary
-<code>bpfman-rpc</code>, which in turn calls the <code>bpfman</code> library.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">cd bpfman/examples/go-xdp-counter/</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">go run -exec sudo . -iface eno3</span>
-</code></pre></div>
-<p>To view bpfman logs for RPC based applications, including all the provided examples, use <code>journalctl</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">sudo journalctl -f -u bpfman.service -u bpfman.socket</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go">:</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">  &lt;RUN &quot;go run -exec sudo . -iface eno3&quot;&gt;</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go">Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Using a Unix socket from systemd</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go">Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Using inactivity timer of 15 seconds</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go">Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Listening on /run/bpfman-sock/bpfman.sock</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="go">Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Has CAP_BPF: true</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="go">Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Has CAP_SYS_ADMIN: true</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="go">Aug 26 18:03:54 server-calvin bpfman-rpc[2401725]: Starting Cosign Verifier, downloading data from Sigstore TUF repository</span>
-<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="go">Aug 26 18:03:55 server-calvin bpfman-rpc[2401725]: Loading program bytecode from file: /home/$USER/src/bpfman/bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o</span>
-<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="go">Aug 26 18:03:57 server-calvin bpfman-rpc[2401725]: The bytecode image: quay.io/bpfman/xdp-dispatcher:latest is signed</span>
-<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="go">Aug 26 18:03:57 server-calvin bpfman-rpc[2401725]: Added xdp program with name: xdp_stats and id: 53919</span>
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="go">Aug 26 18:04:09 server-calvin bpfman-rpc[2401725]: Shutdown Unix Handler /run/bpfman-sock/bpfman.sock```</span>
-</code></pre></div>
-<h3 id="additional-notes">Additional Notes</h3>
-<p>To update the configuration settings associated with running <code>bpfman</code> as a service, edit the
-service configuration files:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">sudo vi /usr/lib/systemd/system/bpfman.socket</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="go">sudo vi /usr/lib/systemd/system/bpfman.service</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="go">sudo systemctl daemon-reload</span>
-</code></pre></div>
-<p>If <code>bpfman</code> CLI or <code>bpfman-rpc</code> is rebuilt, the following command can be run to install the update
-binaries without tearing down <code>bpfman</code>.
-The services are automatically restarted.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">sudo ./scripts/setup.sh reinstall</span>
-</code></pre></div>
-<p>To unwind all the changes, stop <code>bpfman</code> and remove all related files from the system, run the
-following script:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">sudo ./scripts/setup.sh uninstall</span>
-</code></pre></div>
-<h3 id="preferred-method-to-start-bpfman">Preferred Method to Start bpfman</h3>
-<p>In order to call into the <code>bpfman</code> Library, the calling process must be privileged.
-In order to load and unload eBPF, the kernel requires a set of powerful capabilities.
-Long lived privileged processes are more vulnerable to attack than short lived processes.
-When <code>bpfman-rpc</code> is run as a systemd service, it is leveraging
-<a href="https://man7.org/linux/man-pages/man1/systemd-socket-activate.1.html">socket activation</a>.
-This means that it loads a <code>bpfman.socket</code> and <code>bpfman.service</code> file.
-The socket service is the long lived process, which doesn't have any special permissions.
-The service that runs <code>bpfman-rpc</code> is only started when there is a request on the socket,
-and then <code>bpfman-rpc</code> stops itself after an inactivity timeout.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>For security reasons, it is recommended to run <code>bpfman-rpc</code> as a systemd service when running
-on a local host.
-For local development, some may find it useful to run <code>bpfman-rpc</code> as a long lived process.</p>
-</div>
-<p>When run as a systemd service, the set of linux capabilities are limited to only the required set.
-If permission errors are encountered, see <a href="../../developer-guide/linux-capabilities/">Linux Capabilities</a>
-for help debugging.</p>
+<h2 id="customizing-the-toolchain">Customizing the Toolchain</h2>
+<p>The hooks are configured to use a specific nightly version of Rust
+(<code>nightly-2024-09-24</code>). If you want to change the nightly version, simply
+update the <code>NIGHTLY_VERSION</code> variable in the respective hook commands in
+<code>.pre-commit-config.yaml</code>.</p>
 
 
 
