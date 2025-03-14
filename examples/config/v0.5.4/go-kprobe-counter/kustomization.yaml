@@ -17,4 +17,4 @@ images:
   - name: quay.io/bpfman-userspace/go-kprobe-counter
     newName: quay.io/bpfman-userspace/go-kprobe-counter
     newTag: v0.5.4
-resources: [../../base/go-kprobe-counter]
+resources: [../../archive_056/base/go-kprobe-counter]

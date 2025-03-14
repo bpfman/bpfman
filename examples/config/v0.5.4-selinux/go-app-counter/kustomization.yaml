@@ -17,4 +17,4 @@ images:
   - name: quay.io/bpfman-userspace/go-app-counter
     newName: quay.io/bpfman-userspace/go-app-counter
     newTag: v0.5.4
-resources: [../../selinux/go-app-counter]
+resources: [../../archive_056/selinux/go-app-counter]

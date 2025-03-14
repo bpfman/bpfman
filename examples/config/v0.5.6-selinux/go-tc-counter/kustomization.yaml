@@ -17,4 +17,4 @@ images:
   - name: quay.io/bpfman-userspace/go-tc-counter
     newName: quay.io/bpfman-userspace/go-tc-counter
     newTag: v0.5.6
-resources: [../../selinux/go-tc-counter]
+resources: [../../archive_056/selinux/go-tc-counter]

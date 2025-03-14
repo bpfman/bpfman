@@ -17,4 +17,4 @@ images:
   - name: quay.io/bpfman-userspace/go-uretprobe-counter
     newName: quay.io/bpfman-userspace/go-uretprobe-counter
     newTag: v0.5.5
-resources: [../../selinux/go-uretprobe-counter]
+resources: [../../archive_056/selinux/go-uretprobe-counter]
