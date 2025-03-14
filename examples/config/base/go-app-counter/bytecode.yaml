@@ -14,35 +14,35 @@ spec:
       imagePullPolicy: Always
   programs:
     - name: kprobe_counter
-      type: kprobe
-      kprobeInfo:
+      type: KProbe
+      kprobe:
         links:
           - function: try_to_wake_up
             offset: 0
     - name: tracepoint_kill_recorder
-      type: tracepoint
-      tracepointInfo:
+      type: TracePoint
+      tracepoint:
         links:
           - name: syscalls/sys_enter_kill
     - name: stats
-      type: tc
-      tcInfo:
+      type: TC
+      tc:
         links:
           - interfaceSelector:
               primaryNodeInterface: true
             priority: 55
-            direction: ingress
+            direction: Ingress
     - name: tcx_stats
-      type: tcx
-      tcxInfo:
+      type: TCX
+      tcx:
         links:
           - interfaceSelector:
               primaryNodeInterface: true
             priority: 500
-            direction: ingress
+            direction: Ingress
     - name: uprobe_counter
-      type: uprobe
-      uprobeInfo:
+      type: UProbe
+      uprobe:
         links:
           - function: main.getCount
             target: /go-target
@@ -52,8 +52,8 @@ spec:
               containerNames:
                 - go-target
     - name: xdp_stats
-      type: xdp
-      xdpInfo:
+      type: XDP
+      xdp:
         links:
           - interfaceSelector:
               primaryNodeInterface: true

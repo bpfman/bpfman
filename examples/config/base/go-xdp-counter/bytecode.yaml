@@ -13,8 +13,8 @@ spec:
       url: quay.io/bpfman-bytecode/go-xdp-counter:latest
   programs:
     - name: xdp_stats
-      type: xdp
-      xdpInfo:
+      type: XDP
+      xdp:
         links:
           - interfaceSelector:
               primaryNodeInterface: true
