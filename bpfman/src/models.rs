@@ -66,7 +66,6 @@ pub struct BpfProgram {
 
     /// The program binary; NOT NULL.
     #[diesel(sql_type = diesel::sql_types::Binary)]
-    #[serde(skip)]
     pub program_bytes: Vec<u8>,
 
     /// Arbitrary metadata as a JSON string, defaults to {}.
@@ -91,7 +90,7 @@ pub struct BpfProgram {
     pub kernel_loaded_at: Option<String>,
 
     /// Kernel tag.
-    pub kernel_tag: Option<String>,
+    pub kernel_tag: Option<String>, // XXX u64
 
     /// Whether the kernel program is GPL compatible.
     pub kernel_gpl_compatible: Option<bool>,
@@ -133,11 +132,20 @@ pub struct BpfLink {
     pub link_type: Option<String>,
     pub target: Option<String>,
     pub state: String,
-    created_at: NaiveDateTime,
-    updated_at: NaiveDateTime,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
 
-#[derive(Debug, AsChangeset, Insertable, Identifiable, Selectable, Queryable)]
+#[derive(
+    Debug,
+    AsChangeset,
+    Insertable,
+    Identifiable,
+    Selectable,
+    Queryable,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 #[diesel(table_name = crate::schema::bpf_maps)]
 pub struct BpfMap {
     pub id: i64, // PRIMARY KEY for Identifiable
@@ -146,8 +154,8 @@ pub struct BpfMap {
     pub key_size: Option<i32>,
     pub value_size: Option<i32>,
     pub max_entries: Option<i32>,
-    created_at: NaiveDateTime,
-    updated_at: NaiveDateTime,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
 }
 
 #[derive(Debug, Queryable, Selectable, Associations)]
@@ -183,14 +191,14 @@ impl BpfProgram {
     /// Sets created_at and updated_at timestamps before insertion.
     pub fn insert_record(
         conn: &mut SqliteConnection,
-        mut program: BpfProgram,
+        program: &BpfProgram,
     ) -> QueryResult<BpfProgram> {
-        let now = Utc::now().naive_utc();
-        program.created_at = now;
-        program.updated_at = now;
+        // let now = Utc::now().naive_utc();
+        // program.created_at = now;
+        // program.updated_at = now;
 
         diesel::insert_into(crate::schema::bpf_programs::table)
-            .values(&program)
+            .values(program)
             .returning(crate::schema::bpf_programs::all_columns)
             .get_result(conn)
     }
@@ -231,16 +239,32 @@ impl BpfProgram {
 }
 
 impl BpfMap {
-    pub fn insert_record(conn: &mut SqliteConnection, mut map: BpfMap) -> QueryResult<BpfMap> {
-        use crate::schema::bpf_maps::dsl::*;
-
-        map.created_at = Utc::now().naive_utc();
-        map.updated_at = map.created_at;
-
+    /// Inserts a map record into the database, ignoring conflicts if
+    /// the record already exists.
+    ///
+    /// This method is particularly useful when dealing with shared
+    /// maps between multiple programs. If a map with the same ID
+    /// already exists in the database, the insertion is silently
+    /// skipped without raising an error.
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - A mutable reference to an active SQLite connection
+    /// * `map` - The BpfMap record to insert
+    ///
+    /// # Returns
+    ///
+    /// * `QueryResult<usize>` - On success, returns the number of rows affected (1 if inserted, 0 if skipped).
+    /// * On failure, returns a Diesel error (e.g., for connection
+    ///   issues or constraint violations).
+    pub fn insert_record_on_conflict_do_nothing(
+        conn: &mut SqliteConnection,
+        map: &BpfMap,
+    ) -> QueryResult<usize> {
         diesel::insert_into(crate::schema::bpf_maps::table)
-            .values(&map)
-            .returning(bpf_maps::all_columns())
-            .get_result(conn)
+            .values(map)
+            .on_conflict_do_nothing()
+            .execute(conn)
     }
 }
 
@@ -311,20 +335,20 @@ impl Default for BpfLink {
     }
 }
 
-impl Default for BpfMap {
-    fn default() -> Self {
-        Self {
-            id: 0, // Indicates an unsaved record
-            name: "".to_string(),
-            map_type: None,
-            key_size: None,
-            value_size: None,
-            max_entries: None,
-            created_at: Default::default(),
-            updated_at: Default::default(),
-        }
-    }
-}
+// impl Default for BpfMap {
+//     fn default() -> Self {
+//         Self {
+//             id: 0, // Indicates an unsaved record
+//             name: "".to_string(),
+//             map_type: None,
+//             key_size: None,
+//             value_size: None,
+//             max_entries: None,
+//             created_at: Default::default(),
+//             updated_at: Default::default(),
+//         }
+//     }
+// }
 
 pub fn get_program_bytes_and_validate(
     location: &Location,
@@ -434,17 +458,7 @@ mod tests {
         // Insert program.
         // Note: insert_record now takes ownership of `prog`.
         let inserted_program =
-            BpfProgram::insert_record(&mut db_conn, prog).expect("Insert failed");
-
-        // Verify timestamps are no longer epoch.
-        assert_ne!(
-            inserted_program.created_at, epoch,
-            "created_at should not be epoch after insert"
-        );
-        assert_ne!(
-            inserted_program.updated_at, epoch,
-            "updated_at should not be epoch after insert"
-        );
+            BpfProgram::insert_record(&mut db_conn, &prog).expect("Insert failed");
 
         // Sync timestamps to enable Eq comparisons.
         prog_for_assert.created_at = inserted_program.created_at;
@@ -556,7 +570,8 @@ mod tests {
         {
             let mut db_conn = setup_test_db();
 
-            let inserted = BpfProgram::insert_record(&mut db_conn, prog).expect("Failed to insert");
+            let inserted =
+                BpfProgram::insert_record(&mut db_conn, &prog).expect("Failed to insert");
 
             let json_after_db =
                 serde_json::to_string(&inserted).expect("Failed to serialize after DB");
