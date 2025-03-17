@@ -19,3 +19,9 @@ sqlite3 "$db" <<EOF
 .mode column
 SELECT id, name, kind, map_pin_path, kernel_loaded_at FROM bpf_programs ORDER BY created_at;
 EOF
+
+sqlite3 "$db" <<EOF
+.headers on
+.mode column
+SELECT * FROM bpf_maps ORDER BY created_at;
+EOF

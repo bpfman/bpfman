@@ -83,6 +83,8 @@ pub enum BpfmanError {
     BpfParseError(#[from] ParseError),
     #[error("one or more programs failed to load: {0:?}")]
     ProgramsLoadFailure(Vec<BpfmanError>),
+    #[error("Failed to retrieve map info: {0}")]
+    BpfMapInfoError(#[source] aya::maps::MapError),
 }
 
 #[derive(Error, Debug)]

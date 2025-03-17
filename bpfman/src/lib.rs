@@ -29,6 +29,8 @@ use diesel::{prelude::*, sqlite::SqliteConnection};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use log::{debug, error, info, warn};
 use multiprog::{TcDispatcher, XdpDispatcher};
+use program_loader::{EbpfLoadResult, LoadSpec};
+use serde::Serialize;
 use sled::{Config as SledConfig, Db};
 use types::{AttachInfo, AttachOrder, Link, TcxLink};
 use utils::{initialize_bpfman, tc_dispatcher_id, xdp_dispatcher_id};
@@ -56,6 +58,7 @@ pub mod models;
 mod multiprog;
 mod netlink;
 pub mod oci_utils;
+pub mod program_loader;
 pub mod schema;
 mod static_program;
 pub mod types;
@@ -101,6 +104,7 @@ pub mod directories {
     pub(crate) const STDIR: &str = "/var/lib/bpfman";
     #[cfg(not(test))]
     pub(crate) const STDIR_DB: &str = "/var/lib/bpfman/db";
+    pub(crate) const STDIR_SQLITE_DB: &str = "/var/lib/bpfman/bpfman.sqlite";
 }
 
 #[cfg(not(test))]
@@ -1180,7 +1184,7 @@ pub fn setup_with_sqlite() -> Result<(Config, SqliteConnection), BpfmanError> {
     debug!("BpfManager::setup()");
     Ok((
         open_config_file(),
-        establish_sqlite_connection("/tmp/foo.db")?, // XXX(frobware) - choose a path
+        establish_sqlite_connection(STDIR_SQLITE_DB)?,
     ))
 }
 
@@ -2055,8 +2059,12 @@ pub fn establish_sqlite_connection(database_url: &str) -> anyhow::Result<SqliteC
     Ok(conn)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ProgType {
+// XXX(frobware) - as we move away from SLED to SQLite I don't want to
+// change the existing Program enum, at least not initially. Once
+// we're further along we may be able to drop this and use the
+// existing Program enum.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub enum ProgramType {
     Xdp,
     Tc,
     Tcx,
@@ -2069,7 +2077,7 @@ pub enum ProgType {
     Fexit(String),  // function name
 }
 
-impl ProgType {
+impl ProgramType {
     pub fn from_str(prog_type: &str, fn_name: Option<&str>) -> anyhow::Result<Self> {
         match (prog_type, fn_name) {
             ("xdp", None) => Ok(Self::Xdp),
@@ -2093,7 +2101,7 @@ impl ProgType {
     }
 }
 
-impl std::fmt::Display for ProgType {
+impl std::fmt::Display for ProgramType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Xdp => write!(f, "xdp"),
@@ -2110,13 +2118,9 @@ impl std::fmt::Display for ProgType {
     }
 }
 
-// XXX(frobware) - as we move away from SLED to SQLite I don't want to
-// change the existing Program enum, at least not initially. Once
-// we're further along we may be able to drop this and use the
-// existing Program enum, but without each variant carrying any data.
-// TBD.
-impl ProgType {
+impl ProgramType {
     pub fn aya_type(&self) -> &'static str {
+        // XXX(frobware) currently unused
         match self {
             Self::Xdp => "Xdp",
             Self::Tc => "SchedClassifier",
@@ -2145,93 +2149,33 @@ impl ProgType {
     }
 }
 
-// A struct to hold the loaded program and its related info.
-pub struct LoadedProgram {
-    pub prog_type: ProgType,
-    pub name: String,
-    pub retprobe: Option<bool>,  // XXX(frobware) revisit
-    pub fn_name: Option<String>, // XXX(frobware) revisit
-    pub map_pin_path: String,    // XXX(frobware) revisit
-    pub program_info: aya::programs::ProgramInfo,
-}
-
-pub fn load_ebpf_program(
-    prog_type: ProgType,
-    name: &str,
-    loader: &mut aya::Ebpf,
-) -> anyhow::Result<LoadedProgram> {
-    let raw_program = loader
-        .program_mut(name)
-        .ok_or_else(|| anyhow!("Program '{}' not found", name))?;
-
-    match prog_type {
-        ProgType::Xdp => {
-            let prog: &mut aya::programs::Xdp = raw_program.try_into()?;
-            prog.load()?;
-        }
-        ProgType::Tc | ProgType::Tcx => {
-            let prog: &mut aya::programs::SchedClassifier = raw_program.try_into()?;
-            prog.load()?;
-        }
-        ProgType::Tracepoint => {
-            let prog: &mut aya::programs::TracePoint = raw_program.try_into()?;
-            prog.load()?;
-        }
-        ProgType::Kprobe | ProgType::Kretprobe => {
-            let prog: &mut aya::programs::KProbe = raw_program.try_into()?;
-            prog.load()?;
-        }
-        ProgType::Uprobe | ProgType::Uretprobe => {
-            let prog: &mut aya::programs::UProbe = raw_program.try_into()?;
-            prog.load()?;
-        }
-        ProgType::Fentry(ref fn_name) => {
-            let btf = aya::Btf::from_sys_fs()?;
-            let prog: &mut aya::programs::FEntry = raw_program.try_into()?;
-            prog.load(fn_name, &btf)?;
-        }
-        ProgType::Fexit(ref fn_name) => {
-            let btf = aya::Btf::from_sys_fs()?;
-            let prog: &mut aya::programs::FExit = raw_program.try_into()?;
-            prog.load(fn_name, &btf)?;
-        }
-    };
-
-    let prog_info = raw_program.info()?;
-    let id = prog_info.id();
-
-    let program_pin_path = format!("{RTDIR_FS}/prog_{id}");
-    raw_program.pin(&program_pin_path).map_err(|e| {
-        anyhow!(
-            "Unable to pin eBPF program '{}' at '{}': {}",
-            name,
-            program_pin_path,
-            e
-        )
-    })?;
-
-    let map_pin_path = calc_map_pin_path(id);
-    create_map_pin_path(&map_pin_path)?;
-
-    for (map_name, map) in loader.maps_mut() {
-        if !should_map_be_pinned(map_name) {
-            continue;
-        }
-        debug!(
-            "Pinning map '{}' to path '{}'",
-            map_name,
-            map_pin_path.join(map_name).display()
-        );
-        map.pin(map_pin_path.join(map_name))
-            .map_err(|e| anyhow!("Unable to pin map '{}': {}", map_name, e))?;
-    }
-
-    Ok(LoadedProgram {
-        prog_type: prog_type.clone(),
-        name: name.to_string(),
-        retprobe: prog_type.is_retprobe(),
-        fn_name: prog_type.fn_name().map(String::from),
-        map_pin_path: map_pin_path.to_string_lossy().to_string(),
-        program_info: prog_info,
-    })
+/// Public API for loading eBPF programs.
+///
+/// This function serves as the public entry point for loading eBPF
+/// programs, wrapping the internal `program_loader::load_from_spec`.
+/// It abstracts the lower-level details and ensures a stable API.
+/// users.
+///
+/// # Arguments
+///
+/// - `params`: A `LoadSpec` containing eBPF program definitions, bytecode, and metadata.
+///
+/// # Returns
+///
+/// - `Ok(Vec<EbpfLoadResult>)` - A list of successfully loaded eBPF programs.
+/// - `Err(BpfmanError)` - If loading the bytecode, parsing programs, or kernel loading fails.
+///
+/// # Errors
+///
+/// This function may return an error in the following cases:
+/// - The bytecode fails to load (e.g., invalid format, missing sections).
+/// - A program definition is invalid (e.g., missing function name).
+/// - An attempt to load a program into the kernel fails.
+///
+/// # See Also
+///
+/// - [`LoadSpec`] for defining eBPF program configurations.
+/// - [`program_loader::load_from_spec`] for the internal implementation.
+pub fn load_ebpf_programs(params: &LoadSpec) -> Result<Vec<EbpfLoadResult>, BpfmanError> {
+    program_loader::load_from_spec(params)
 }

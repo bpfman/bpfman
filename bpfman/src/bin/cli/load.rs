@@ -3,19 +3,19 @@
 
 use std::collections::HashMap;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Result};
 use bpfman::{
     add_programs,
-    config::SigningConfig,
-    load_ebpf_program,
-    models::{get_program_bytes_and_validate, BpfProgram},
+    errors::BpfmanError,
+    load_ebpf_programs,
+    models::{get_program_bytes_and_validate, BpfMap, BpfProgram},
     oci_utils::image_manager::ImageManager,
+    program_loader::{EbpfLoadResult, LoadSpec},
     setup, setup_with_sqlite,
     types::{
         FentryProgram, FexitProgram, KprobeProgram, Location, Program, ProgramData, TcProgram,
         TcxProgram, TracepointProgram, UprobeProgram, XdpProgram,
     },
-    LoadedProgram, ProgType,
 };
 use diesel::SqliteConnection;
 
@@ -171,100 +171,18 @@ fn parse_global(global: &Option<Vec<GlobalArg>>) -> HashMap<String, Vec<u8>> {
     global_data
 }
 
-pub struct LoadParams<'a> {
-    pub bytecode_source: Location,
-    pub program_bytes: &'a [u8],
-    pub programs: &'a [(String, Vec<String>)],
-    pub global_data: &'a Option<Vec<GlobalArg>>,
-    pub metadata: &'a Option<Vec<(String, String)>>,
-    pub map_owner_id: Option<u32>,
-    pub function_names: &'a [String],
-}
-
-impl LoadParams<'_> {
-    /// Returns the `global_data` as a `HashMap<String, Vec<u8>>`.
-    pub fn global_data_map(&self) -> HashMap<String, Vec<u8>> {
-        parse_global(self.global_data)
-    }
-}
-
-pub fn execute_load_programs(
-    mut conn: SqliteConnection,
-    load_params: &LoadParams,
-) -> anyhow::Result<()> {
-    // Compute JSON early to fail fast if serialisation fails.
-    let global_data_json = serde_json::to_string(&load_params.global_data_map())
-        .context("Failed to serialise global data")?;
-
-    let metadata_json =
-        serde_json::to_string(load_params.metadata).context("Failed to serialise metadata")?;
-
-    let mut parsed_programs = Vec::new();
-
-    for (prog_type_str, parts) in load_params.programs {
-        let name = parts
-            .first()
-            .ok_or_else(|| anyhow!("Missing program name for type '{}'", prog_type_str))?;
-
-        if !load_params.function_names.is_empty() && !load_params.function_names.contains(name) {
-            bail!("Function '{}' not found in eBPF Image", name);
-        }
-
-        let fn_name = if prog_type_str == "fentry" || prog_type_str == "fexit" {
-            parts.get(1).map(|s| s.as_str())
-        } else {
-            None
-        };
-
-        let prog_type = ProgType::from_str(prog_type_str, fn_name)?;
-        parsed_programs.push((prog_type, name.to_owned()));
-    }
-
-    // First phase: Load programs into the kernel via Aya.
-    let loaded_programs = load_programs_into_kernel(load_params)?;
-
-    // If transaction fails, ensure we unload loaded programs.
-    match conn.immediate_transaction(|conn| {
-        persist_programs(
-            conn,
-            &loaded_programs,
-            load_params,
-            &global_data_json,
-            &metadata_json,
-        )
-    }) {
-        Ok(inserted_programs) => {
-            println!(
-                "Successfully loaded {} program(s):",
-                inserted_programs.len()
-            );
-            println!(
-                "{}",
-                serde_json::to_string_pretty(&inserted_programs)
-                    .unwrap_or_else(|_| "Failed to serialise inserted programs".to_string())
-            );
-            Ok(())
-        }
-        Err(err) => {
-            // Transaction failed, unload the loaded programs
-            // unload_programs(&loaded_programs);
-            eprintln!("Database transaction failed. XXX(frobware) Programs to be unloaded:");
-            for program in &loaded_programs {
-                eprintln!(
-                    "- ID: {}, Name: {}, Type: {}",
-                    program.program_info.id(),
-                    program.name,
-                    program.prog_type
-                );
-            }
-            Err(err.context("Database transaction failed while inserting eBPF programs"))
-        }
-    }
+/// Converts GlobalArg to the tuple format (String, Vec<u8>) needed by
+/// LoadSpec.
+fn convert_globals_to_tuples(globals: &Option<Vec<GlobalArg>>) -> Option<Vec<(String, Vec<u8>)>> {
+    globals.as_ref().map(|args| {
+        args.iter()
+            .map(|arg| (arg.name.clone(), arg.value.clone()))
+            .collect::<Vec<_>>()
+    })
 }
 
 fn sqlite_execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
-    let (config, conn) = setup_with_sqlite()?;
-
+    let (config, mut conn) = setup_with_sqlite()?;
     let bytecode_source = Location::File(args.path.clone());
 
     let mut image_manager = ImageManager::new(
@@ -275,148 +193,113 @@ fn sqlite_execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
     let (program_bytes, function_names) =
         get_program_bytes_and_validate(&bytecode_source, &mut image_manager, &args.programs)?;
 
-    execute_load_programs(
-        conn,
-        &LoadParams {
-            bytecode_source,
-            program_bytes: &program_bytes,
-            programs: &args.programs,
-            global_data: &args.global,
-            metadata: &args.metadata,
-            map_owner_id: args.map_owner_id,
-            function_names: &function_names,
-        },
-    )
+    let global_data_tuples = convert_globals_to_tuples(&args.global);
+
+    let load_spec = LoadSpec::new(
+        bytecode_source,
+        &function_names,
+        &global_data_tuples,
+        args.map_owner_id,
+        &args.metadata,
+        &program_bytes,
+        &args.programs,
+    )?;
+
+    save_and_report_programs(&mut conn, &load_ebpf_programs(&load_spec)?)
 }
 
 fn sqlite_execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
-    let (_config, conn) = setup_with_sqlite()?;
+    let (config, mut conn) = setup_with_sqlite()?;
     let bytecode_source = Location::Image((&args.pull_args).try_into()?);
 
     let mut image_manager = ImageManager::new(
-        SigningConfig::default().verify_enabled,
-        SigningConfig::default().allow_unsigned,
+        config.signing().verify_enabled,
+        config.signing().allow_unsigned,
     )?;
 
     let (program_bytes, function_names) =
         get_program_bytes_and_validate(&bytecode_source, &mut image_manager, &args.programs)?;
 
-    execute_load_programs(
-        conn,
-        &LoadParams {
-            bytecode_source,
-            program_bytes: &program_bytes,
-            programs: &args.programs,
-            global_data: &args.global,
-            metadata: &args.metadata,
-            map_owner_id: args.map_owner_id,
-            function_names: &function_names,
-        },
-    )
+    let global_data_tuples = convert_globals_to_tuples(&args.global);
+
+    let load_spec = LoadSpec::new(
+        bytecode_source,
+        &function_names,
+        &global_data_tuples,
+        args.map_owner_id,
+        &args.metadata,
+        &program_bytes,
+        &args.programs,
+    )?;
+
+    save_and_report_programs(&mut conn, &load_ebpf_programs(&load_spec)?)
 }
 
-fn load_programs_into_kernel(params: &LoadParams) -> anyhow::Result<Vec<LoadedProgram>> {
-    let mut parsed_programs = Vec::new();
-
-    for (prog_type_str, parts) in params.programs {
-        let name = parts
-            .first()
-            .ok_or_else(|| anyhow!("Missing program name for type '{}'", prog_type_str))?;
-        let fn_name = if prog_type_str == "fentry" || prog_type_str == "fexit" {
-            parts.get(1).map(|s| s.as_str())
-        } else {
-            None
-        };
-
-        let prog_type = ProgType::from_str(prog_type_str, fn_name)?;
-        parsed_programs.push((prog_type, name.to_owned()));
-    }
-
-    let mut loader = aya::EbpfLoader::new();
-    loader.allow_unsupported_maps();
-
-    let global_data_map = params.global_data_map();
-    for (key, value) in global_data_map.iter() {
-        loader.set_global(key, value.as_slice(), true);
-    }
-
-    let mut ebpf_loader = loader.load(params.program_bytes)?;
-    let mut loaded_programs = Vec::new();
-
-    for (prog_type, name) in parsed_programs {
-        loaded_programs.push(load_ebpf_program(prog_type, &name, &mut ebpf_loader)?);
-    }
-
-    Ok(loaded_programs)
-}
-
-fn persist_programs(
+pub fn save_ebpf_load_result(
     conn: &mut SqliteConnection,
-    loaded_programs: &[LoadedProgram],
-    params: &LoadParams,
-    global_data_json: &str,
-    metadata_json: &str,
-) -> anyhow::Result<Vec<BpfProgram>> {
-    let (location_type, file_path, image_url) = match &params.bytecode_source {
-        Location::File(path) => ("file", Some(path.clone()), None),
-        Location::Image(image) => ("image", None, Some(image.image_url.clone())),
-    };
+    loaded_programs: &[EbpfLoadResult],
+) -> Result<(), BpfmanError> {
+    conn.immediate_transaction::<_, diesel::result::Error, _>(|conn| {
+        for loaded in loaded_programs {
+            BpfProgram::insert_record(conn, &loaded.program)?;
+            for map in &loaded.maps {
+                BpfMap::insert_record_on_conflict_do_nothing(conn, map)?;
+            }
+        }
+        Ok(())
+    })
+    .map_err(|e| BpfmanError::DatabaseError("Transaction failed".into(), e.to_string()))
+}
 
-    let mut inserted_programs = Vec::new();
+/// Saves eBPF load results to the database and handles error
+/// reporting.
+///
+/// This function attempts to save the loaded programs to the
+/// database. On success, it prints information about the loaded
+/// programs. On failure, it logs which programs need to be unloaded
+/// and returns an appropriate error.
+///
+/// # Arguments
+///
+/// * `conn` - A mutable reference to the SQLite connection
+/// * `loaded_programs` - A slice of EbpfLoadResult to save
+///
+/// # Returns
+///
+/// * `Ok(())` on success
+/// * `Err(anyhow::Error)` with context on failure
+fn save_and_report_programs(
+    conn: &mut SqliteConnection,
+    loaded_programs: &[EbpfLoadResult],
+) -> anyhow::Result<()> {
+    if let Err(err) = save_ebpf_load_result(conn, loaded_programs) {
+        eprintln!("Database transaction failed. Programs that need to be unloaded:");
+        for program in loaded_programs {
+            eprintln!(
+                "- ID: {}, Name: {}, Type: {}, Kernel Tag: {}",
+                program.program.id,
+                program.program.name,
+                program.kind,
+                program.program.kernel_tag.as_deref().unwrap_or("unknown")
+            );
+        }
 
-    for program in loaded_programs {
-        let program_info = &program.program_info;
+        let error_msg = format!(
+            "Database transaction failed while inserting eBPF programs: {}. \
+             This likely means one of the {} program(s) couldn't be properly inserted. \
+             Check database constraints and ensure all required fields are populated.",
+            err,
+            loaded_programs.len()
+        );
 
-        let bpf_prog = BpfProgram {
-            id: program_info.id() as i64,
-            name: program.name.clone(),
-            kind: program.prog_type.to_string(),
-            state: "loaded".to_string(),
-            location_type: location_type.to_string(),
-            file_path: file_path.clone(),
-            image_url: image_url.clone(),
-            map_pin_path: program.map_pin_path.clone(),
-            map_owner_id: params.map_owner_id.map(|id| id as i32), // XXX(frobware) - generalise uint64blob
-            program_bytes: params.program_bytes.to_vec(),
-            metadata: metadata_json.to_string(),
-            global_data: global_data_json.to_string(),
-            retprobe: program.retprobe,
-            fn_name: program.fn_name.clone(),
-
-            kernel_name: match program_info.name_as_str() {
-                Some(name) => Some(name.to_string()),
-                None => Some(format!("program_{}", program_info.id())),
-            },
-
-            kernel_program_type: program_info.program_type().ok().map(|pt| pt as i32),
-
-            kernel_loaded_at: program_info
-                .loaded_at()
-                .map(|time| chrono::DateTime::<chrono::Utc>::from(time).to_rfc3339()),
-
-            kernel_tag: Some(format!("{:016x}", program_info.tag())),
-            kernel_gpl_compatible: program_info.gpl_compatible(),
-            kernel_btf_id: program_info.btf_id().map(|id| id as i32),
-            kernel_bytes_xlated: program_info.size_translated().map(|size| size as i32),
-            kernel_jited: Some(program_info.size_jitted() > 0),
-            kernel_bytes_jited: Some(program_info.size_jitted() as i32),
-            kernel_verified_insns: program_info
-                .verified_instruction_count()
-                .map(|count| count as i32),
-            kernel_map_ids: program_info
-                .map_ids()
-                .map(|opt| opt.unwrap_or_default()) // Handle `None` case
-                .map(|ids| serde_json::to_string(&ids).unwrap_or_else(|_| "[]".to_string()))
-                .unwrap_or_else(|e| {
-                    log::warn!("Failed to retrieve map IDs: {}", e);
-                    "[]".to_string()
-                }),
-            kernel_bytes_memlock: program_info.memory_locked().ok().map(|size| size as i32),
-            ..Default::default()
-        };
-
-        inserted_programs.push(BpfProgram::insert_record(conn, bpf_prog)?);
+        return Err(anyhow::anyhow!(error_msg));
     }
 
-    Ok(inserted_programs)
+    println!("Successfully loaded {} program(s):", loaded_programs.len());
+    println!(
+        "{}",
+        serde_json::to_string_pretty(loaded_programs)
+            .unwrap_or_else(|_| "Failed to serialize loaded programs".to_string())
+    );
+    Ok(())
 }
