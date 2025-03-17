@@ -34,6 +34,7 @@ BuildRequires:  pkgconfig(zlib)
 BuildRequires:  gcc
 BuildRequires:  cmake
 BuildRequires:  clang-devel
+BuildRequires:  bindgen-cli
 
 # TODO: Generate Provides for all of the vendored dependencies
 

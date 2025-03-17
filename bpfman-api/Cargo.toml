@@ -16,7 +16,6 @@ path = "src/bin/rpc/main.rs"
 [dependencies]
 anyhow = { workspace = true, features = ["std"] }
 async-trait = { workspace = true }
-aws-lc-rs = { workspace = true, features = ["bindgen"] }
 aya = { workspace = true }
 base16ct = { workspace = true, features = ["alloc"] }
 base64 = { workspace = true }
