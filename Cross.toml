@@ -1,6 +1,10 @@
 [build]
 default-target = "x86_64-unknown-linux-gnu" # use this target if none is explicitly provided
 pre-build = [                               # additional commands to run prior to building the package
+    "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable",
+    ". $HOME/.cargo/env",
+    "cargo install --force --locked bindgen-cli && mv $HOME/.cargo/bin/bindgen /usr/bin",
+    "rm -rf $HOME/.cargo",
     "dpkg --add-architecture $CROSS_DEB_ARCH",
     "apt-get update && apt-get --assume-yes install libssl-dev:$CROSS_DEB_ARCH",
 ]

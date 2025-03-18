@@ -22,6 +22,11 @@ RUN apt-get update && apt-get install -y\
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH=/root/.cargo/bin:$PATH
 
+# Install bindgen-cli (required for aws-lc-sys on some architectures)
+RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
+    --mount=type=cache,target=/usr/local/cargo/registry \
+    cargo install bindgen-cli
+
 WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
 
