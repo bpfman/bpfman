@@ -62,7 +62,6 @@ diesel::table! {
         kernel_jited -> Nullable<Bool>,
         kernel_bytes_jited -> Nullable<Integer>,
         kernel_verified_insns -> Nullable<Integer>,
-        kernel_map_ids -> Text,
         kernel_bytes_memlock -> Nullable<Integer>,
         created_at -> Timestamp,
         updated_at -> Timestamp,

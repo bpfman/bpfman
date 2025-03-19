@@ -110,9 +110,6 @@ pub struct BpfProgram {
     /// Number of verified instructions.
     pub kernel_verified_insns: Option<i32>,
 
-    /// Kernel map IDs as a JSON array string, defaults to [].
-    pub kernel_map_ids: String,
-
     /// Kernel allocated memory (in bytes).
     pub kernel_bytes_memlock: Option<i32>,
 
@@ -313,7 +310,6 @@ impl Default for BpfProgram {
             kernel_jited: None,
             kernel_bytes_jited: None,
             kernel_verified_insns: None,
-            kernel_map_ids: "[]".to_string(),
             kernel_bytes_memlock: None,
             created_at: Default::default(),
             updated_at: Default::default(),
@@ -420,7 +416,6 @@ mod tests {
     /// 3. Default Values and JSON Validity:
     ///    - Confirms metadata defaults to "{}"
     ///    - Confirms global_data defaults to "{}"
-    ///    - Confirms kernel_map_ids defaults to "[]"
     ///    - Verifies all are valid JSON structures
     ///
     /// 4. Record Retrieval:
@@ -471,15 +466,11 @@ mod tests {
         {
             assert_eq!(inserted_program.metadata, "{}");
             assert_eq!(inserted_program.global_data, "{}");
-            assert_eq!(inserted_program.kernel_map_ids, "[]");
 
             serde_json::from_str::<serde_json::Value>(&inserted_program.metadata)
                 .expect("metadata should be valid JSON");
             serde_json::from_str::<serde_json::Value>(&inserted_program.global_data)
                 .expect("global_data should be valid JSON");
-            let map_ids = serde_json::from_str::<Vec<i64>>(&inserted_program.kernel_map_ids)
-                .expect("kernel_map_ids should be a valid JSON array of integers");
-            assert!(map_ids.is_empty());
         }
 
         // Verify record retrieval using full Eq comparison.
@@ -551,7 +542,6 @@ mod tests {
             kernel_jited: Some(true),
             kernel_bytes_jited: Some(2048),
             kernel_verified_insns: Some(100),
-            kernel_map_ids: "[]".to_string(),
             kernel_bytes_memlock: Some(4096),
             ..Default::default()
         };
