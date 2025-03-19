@@ -23,7 +23,7 @@ pub struct EbpfLoadResult {
 
 pub struct LoadSpec<'a> {
     bytecode_source: Location,
-    #[allow(dead_code)]         // XXX(frobware) TODO
+    #[allow(dead_code)] // XXX(frobware) TODO
     function_names: &'a [String],
     global_data_json: String,
     map_owner_id: Option<u32>,
@@ -259,7 +259,6 @@ fn build_bpfprogram_from_aya_program(
         kernel_jited: Some(prog_info.size_jitted() > 0),
         kernel_bytes_jited: Some(prog_info.size_jitted() as i32),
         kernel_verified_insns: prog_info.verified_instruction_count().map(|c| c as i32),
-        kernel_map_ids: "[]".to_string(), // Placeholder; map IDs should be populated later
         kernel_bytes_memlock: prog_info.memory_locked().ok().map(|m| m as i32),
         created_at: Utc::now().naive_utc(),
         updated_at: Utc::now().naive_utc(),

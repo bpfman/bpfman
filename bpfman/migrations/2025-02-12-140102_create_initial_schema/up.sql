@@ -58,7 +58,6 @@ CREATE TABLE bpf_programs (
     kernel_jited BOOLEAN,
     kernel_bytes_jited INTEGER,
     kernel_verified_insns INTEGER,
-    kernel_map_ids TEXT NOT NULL DEFAULT '[]',  -- JSON array of integers
     kernel_bytes_memlock INTEGER,
 
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
