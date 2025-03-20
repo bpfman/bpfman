@@ -35,12 +35,16 @@ pub enum BpfmanError {
     DispatcherNotRequired,
     #[error(transparent)]
     BpfBytecodeError(#[from] ImageError),
-    #[error("Bytecode image bpf function name: {image_prog_name} isn't equal to the provided bpf function name {provided_prog_name}")]
+    #[error(
+        "Bytecode image bpf function name: {image_prog_name} isn't equal to the provided bpf function name {provided_prog_name}"
+    )]
     BytecodeMetaDataMismatch {
         image_prog_name: String,
         provided_prog_name: String,
     },
-    #[error("Program {expected_prog_name} not found in bytecode image {bytecode_image} with program names {program_names:?}")]
+    #[error(
+        "Program {expected_prog_name} not found in bytecode image {bytecode_image} with program names {program_names:?}"
+    )]
     ProgramNotFoundInBytecode {
         bytecode_image: String,
         expected_prog_name: String,

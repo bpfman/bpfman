@@ -10,9 +10,9 @@ use bpfman::{
 use rand::Rng;
 
 use crate::tests::{
-    e2e::{GLOBAL_U32, GLOBAL_U8},
-    utils::*,
     RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP,
+    e2e::{GLOBAL_U8, GLOBAL_U32},
+    utils::*,
 };
 
 #[test]
@@ -41,7 +41,7 @@ fn test_load_unload_xdp() {
     ])
     .unwrap();
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     // Install a few xdp programs
     let image = Location::Image(BytecodeImage {
@@ -64,7 +64,7 @@ fn test_load_unload_xdp() {
             None,
             AttachInfo::Xdp {
                 iface: DEFAULT_BPFMAN_IFACE.to_string(),
-                priority: rng.gen_range(1..255),
+                priority: rng.random_range(1..255),
                 proceed_on: proceed_on.clone(),
                 netns: None,
                 metadata: HashMap::new(),
@@ -157,16 +157,20 @@ fn test_map_sharing_load_unload_xdp() {
     // Order of programs is not guarenteed.
     let prog_2_id = prog_2.get_data().get_id().unwrap();
 
-    assert!(prog_2
-        .get_data()
-        .get_maps_used_by()
-        .unwrap()
-        .contains(&prog_1_id));
-    assert!(prog_2
-        .get_data()
-        .get_maps_used_by()
-        .unwrap()
-        .contains(&prog_2_id));
+    assert!(
+        prog_2
+            .get_data()
+            .get_maps_used_by()
+            .unwrap()
+            .contains(&prog_1_id)
+    );
+    assert!(
+        prog_2
+            .get_data()
+            .get_maps_used_by()
+            .unwrap()
+            .contains(&prog_2_id)
+    );
 
     // Verify the "Map Owner Id:" is set to the first program.
     assert_eq!(
@@ -230,7 +234,7 @@ fn test_load_unload_tc() {
     ])
     .expect("Failed to create TcProceedOn");
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     let file = Location::File(TC_PASS_FILE_LOC.to_string());
     let image = Location::Image(BytecodeImage {
@@ -252,7 +256,7 @@ fn test_load_unload_tc() {
             None,
             AttachInfo::Tc {
                 iface: DEFAULT_BPFMAN_IFACE.to_string(),
-                priority: rng.gen_range(1..255),
+                priority: rng.random_range(1..255),
                 direction: "ingress".to_string(),
                 proceed_on: proceed_on.clone(),
                 netns: None,
@@ -544,7 +548,7 @@ fn test_list_with_metadata() {
     ])
     .unwrap();
 
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     // Install a few xdp programs
     let image = Location::Image(BytecodeImage {
@@ -568,7 +572,7 @@ fn test_list_with_metadata() {
             None,
             AttachInfo::Xdp {
                 iface: DEFAULT_BPFMAN_IFACE.to_string(),
-                priority: rng.gen_range(1..255),
+                priority: rng.random_range(1..255),
                 proceed_on: proceed_on.clone(),
                 netns: None,
                 metadata: HashMap::new(),
@@ -591,7 +595,7 @@ fn test_list_with_metadata() {
         None,
         AttachInfo::Xdp {
             iface: DEFAULT_BPFMAN_IFACE.to_string(),
-            priority: rng.gen_range(1..255),
+            priority: rng.random_range(1..255),
             proceed_on: proceed_on.clone(),
             netns: None,
             metadata: HashMap::new(),
@@ -737,7 +741,7 @@ fn test_load_unload_cosign_disabled() {
     verify_and_delete_programs(&config, &root_db, progs);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[inline(never)]
 pub extern "C" fn trigger_bpf_program() {
     core::hint::black_box(trigger_bpf_program);

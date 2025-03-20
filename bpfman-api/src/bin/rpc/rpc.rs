@@ -10,11 +10,11 @@ use bpfman::types::{
     XdpProceedOn, XdpProgram,
 };
 use bpfman_api::v1::{
+    AttachRequest, AttachResponse, BpfmanProgramType, DetachRequest, DetachResponse, GetRequest,
+    GetResponse, ListRequest, ListResponse, LoadRequest, LoadResponse, LoadResponseInfo,
+    ProgSpecificInfo, PullBytecodeRequest, PullBytecodeResponse, UnloadRequest, UnloadResponse,
     attach_info::Info, bpfman_server::Bpfman, bytecode_location::Location as RpcLocation,
-    list_response::ListResult, AttachRequest, AttachResponse, BpfmanProgramType, DetachRequest,
-    DetachResponse, GetRequest, GetResponse, ListRequest, ListResponse, LoadRequest, LoadResponse,
-    LoadResponseInfo, ProgSpecificInfo, PullBytecodeRequest, PullBytecodeResponse, UnloadRequest,
-    UnloadResponse,
+    list_response::ListResult,
 };
 use log::error;
 use tokio::sync::Mutex;

@@ -7,7 +7,7 @@ use bpfman::{
 use procfs::sys::kernel::Version;
 
 use crate::tests::{
-    basic::trigger_bpf_program, utils::*, RTDIR_FS_TC_EGRESS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP,
+    RTDIR_FS_TC_EGRESS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP, basic::trigger_bpf_program, utils::*,
 };
 
 pub(crate) const GLOBAL_U8: &str = "GLOBAL_u8";

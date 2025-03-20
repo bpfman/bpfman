@@ -7,11 +7,11 @@ use std::{
 };
 
 use aya::{
-    programs::{
-        links::{FdLink, PinnedLink},
-        Extension, Xdp,
-    },
     Ebpf, EbpfLoader,
+    programs::{
+        Extension, Xdp,
+        links::{FdLink, PinnedLink},
+    },
 };
 use aya_obj::programs::XdpAttachType;
 use log::{debug, info};
@@ -273,7 +273,10 @@ impl XdpDispatcher {
             let mut link = dispatcher.attach(&iface, flags);
             if let Err(e) = link {
                 if mode != XdpMode::Skb {
-                    info!("Unable to attach on interface {} mode {}, falling back to Skb and retrying.", iface, mode);
+                    info!(
+                        "Unable to attach on interface {} mode {}, falling back to Skb and retrying.",
+                        iface, mode
+                    );
                     flags = XdpMode::Skb.as_flags();
                     link = dispatcher.attach(&iface, flags);
                     if let Err(e) = link {

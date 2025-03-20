@@ -4,7 +4,7 @@ use std::{
     process::{Child, Command, Stdio},
 };
 
-use anyhow::{bail, Context as _};
+use anyhow::{Context as _, bail};
 use cargo_metadata::{Artifact, CompilerMessage, Message, Target};
 use clap::Parser;
 

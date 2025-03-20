@@ -18,7 +18,7 @@ use aya::{
         ProgramType as AyaProgramType,
     },
 };
-use chrono::{prelude::DateTime, Local};
+use chrono::{Local, prelude::DateTime};
 use clap::ValueEnum;
 use log::{debug, info, warn};
 use rand::Rng;
@@ -169,8 +169,8 @@ impl LinkData {
             .open()
             .expect("unable to open temporary database");
 
-        let mut rng = rand::thread_rng();
-        let id_rand = rng.gen::<u32>();
+        let mut rng = rand::rng();
+        let id_rand = rng.random::<u32>();
 
         let db_tree = db
             .open_tree(LINKS_PRE_ATTACH_LINK_PREFIX.to_string() + &id_rand.to_string())
@@ -286,43 +286,43 @@ pub struct XdpLink(pub(crate) LinkData);
 
 impl XdpLink {
     pub(crate) fn set_priority(&mut self, priority: i32) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, XDP_PRIORITY, &priority.to_ne_bytes())
+        sled_insert(&self.0.0, XDP_PRIORITY, &priority.to_ne_bytes())
     }
 
     pub fn get_priority(&self) -> Result<i32, BpfmanError> {
-        sled_get(&self.0 .0, XDP_PRIORITY).map(bytes_to_i32)
+        sled_get(&self.0.0, XDP_PRIORITY).map(bytes_to_i32)
     }
 
     pub(crate) fn set_iface(&mut self, iface: String) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, XDP_IFACE, iface.as_bytes())
+        sled_insert(&self.0.0, XDP_IFACE, iface.as_bytes())
     }
 
     pub fn get_iface(&self) -> Result<String, BpfmanError> {
-        sled_get(&self.0 .0, XDP_IFACE).map(|v| bytes_to_string(&v))
+        sled_get(&self.0.0, XDP_IFACE).map(|v| bytes_to_string(&v))
     }
 
     pub(crate) fn set_current_position(&mut self, pos: usize) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, XDP_CURRENT_POSITION, &pos.to_ne_bytes())
+        sled_insert(&self.0.0, XDP_CURRENT_POSITION, &pos.to_ne_bytes())
     }
 
     pub fn get_current_position(&self) -> Result<Option<usize>, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, XDP_CURRENT_POSITION)?.map(bytes_to_usize))
+        Ok(sled_get_option(&self.0.0, XDP_CURRENT_POSITION)?.map(bytes_to_usize))
     }
 
     pub(crate) fn set_ifindex(&mut self, ifindex: u32) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, XDP_IF_INDEX, &ifindex.to_ne_bytes())
+        sled_insert(&self.0.0, XDP_IF_INDEX, &ifindex.to_ne_bytes())
     }
 
     pub fn get_ifindex(&self) -> Result<Option<u32>, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, XDP_IF_INDEX)?.map(bytes_to_u32))
+        Ok(sled_get_option(&self.0.0, XDP_IF_INDEX)?.map(bytes_to_u32))
     }
 
     pub(crate) fn set_attached(&mut self, attached: bool) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, XDP_ATTACHED, &bool_to_bytes(attached))
+        sled_insert(&self.0.0, XDP_ATTACHED, &bool_to_bytes(attached))
     }
 
     pub fn get_attached(&self) -> Result<bool, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, XDP_ATTACHED)?
+        Ok(sled_get_option(&self.0.0, XDP_ATTACHED)?
             .map(bytes_to_bool)
             .unwrap_or(false))
     }
@@ -334,7 +334,7 @@ impl XdpLink {
             .enumerate()
             .try_for_each(|(i, v)| {
                 sled_insert(
-                    &self.0 .0,
+                    &self.0.0,
                     format!("{PREFIX_XDP_PROCEED_ON}{i}").as_str(),
                     &v.to_ne_bytes(),
                 )
@@ -343,7 +343,7 @@ impl XdpLink {
 
     pub fn get_proceed_on(&self) -> Result<XdpProceedOn, BpfmanError> {
         self.0
-             .0
+            .0
             .scan_prefix(PREFIX_XDP_PROCEED_ON)
             .map(|n| {
                 n.map(|(_, v)| XdpProceedOnEntry::try_from(bytes_to_i32(v.to_vec())))
@@ -361,19 +361,19 @@ impl XdpLink {
     }
 
     pub(crate) fn set_netns(&mut self, netns: PathBuf) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, XDP_NETNS, netns.as_os_str().as_bytes())
+        sled_insert(&self.0.0, XDP_NETNS, netns.as_os_str().as_bytes())
     }
 
     pub fn get_netns(&self) -> Result<Option<PathBuf>, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, XDP_NETNS)?.map(|v| PathBuf::from(OsStr::from_bytes(&v))))
+        Ok(sled_get_option(&self.0.0, XDP_NETNS)?.map(|v| PathBuf::from(OsStr::from_bytes(&v))))
     }
 
     pub(crate) fn set_nsid(&mut self, offset: u64) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, XDP_NSID, &offset.to_ne_bytes())
+        sled_insert(&self.0.0, XDP_NSID, &offset.to_ne_bytes())
     }
 
     pub fn get_nsid(&self) -> Result<u64, BpfmanError> {
-        sled_get(&self.0 .0, XDP_NSID).map(bytes_to_u64)
+        sled_get(&self.0.0, XDP_NSID).map(bytes_to_u64)
     }
 
     pub fn attach(&mut self, info: AttachInfo) -> Result<(), BpfmanError> {
@@ -407,53 +407,53 @@ pub struct TcLink(pub(crate) LinkData);
 
 impl TcLink {
     pub(crate) fn set_priority(&mut self, priority: i32) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TC_PRIORITY, &priority.to_ne_bytes())
+        sled_insert(&self.0.0, TC_PRIORITY, &priority.to_ne_bytes())
     }
 
     pub fn get_priority(&self) -> Result<i32, BpfmanError> {
-        sled_get(&self.0 .0, TC_PRIORITY).map(bytes_to_i32)
+        sled_get(&self.0.0, TC_PRIORITY).map(bytes_to_i32)
     }
 
     pub(crate) fn set_iface(&mut self, iface: String) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TC_IFACE, iface.as_bytes())
+        sled_insert(&self.0.0, TC_IFACE, iface.as_bytes())
     }
 
     pub fn get_iface(&self) -> Result<String, BpfmanError> {
-        sled_get(&self.0 .0, TC_IFACE).map(|v| bytes_to_string(&v))
+        sled_get(&self.0.0, TC_IFACE).map(|v| bytes_to_string(&v))
     }
 
     pub(crate) fn set_current_position(&mut self, pos: usize) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TC_CURRENT_POSITION, &pos.to_ne_bytes())
+        sled_insert(&self.0.0, TC_CURRENT_POSITION, &pos.to_ne_bytes())
     }
 
     pub fn get_current_position(&self) -> Result<Option<usize>, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, TC_CURRENT_POSITION)?.map(bytes_to_usize))
+        Ok(sled_get_option(&self.0.0, TC_CURRENT_POSITION)?.map(bytes_to_usize))
     }
 
     pub(crate) fn set_ifindex(&mut self, ifindex: u32) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TC_IF_INDEX, &ifindex.to_ne_bytes())
+        sled_insert(&self.0.0, TC_IF_INDEX, &ifindex.to_ne_bytes())
     }
 
     pub fn get_ifindex(&self) -> Result<Option<u32>, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, TC_IF_INDEX)?.map(bytes_to_u32))
+        Ok(sled_get_option(&self.0.0, TC_IF_INDEX)?.map(bytes_to_u32))
     }
 
     pub(crate) fn set_attached(&mut self, attached: bool) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TC_ATTACHED, &bool_to_bytes(attached))
+        sled_insert(&self.0.0, TC_ATTACHED, &bool_to_bytes(attached))
     }
 
     pub fn get_attached(&self) -> Result<bool, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, TC_ATTACHED)?
+        Ok(sled_get_option(&self.0.0, TC_ATTACHED)?
             .map(bytes_to_bool)
             .unwrap_or(false))
     }
 
     pub(crate) fn set_direction(&mut self, direction: Direction) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TC_DIRECTION, direction.to_string().as_bytes())
+        sled_insert(&self.0.0, TC_DIRECTION, direction.to_string().as_bytes())
     }
 
     pub fn get_direction(&self) -> Result<Direction, BpfmanError> {
-        sled_get(&self.0 .0, TC_DIRECTION)
+        sled_get(&self.0.0, TC_DIRECTION)
             .map(|v| bytes_to_string(&v).to_string().try_into().unwrap())
     }
 
@@ -464,7 +464,7 @@ impl TcLink {
             .enumerate()
             .try_for_each(|(i, v)| {
                 sled_insert(
-                    &self.0 .0,
+                    &self.0.0,
                     format!("{PREFIX_TC_PROCEED_ON}{i}").as_str(),
                     &v.to_ne_bytes(),
                 )
@@ -473,7 +473,7 @@ impl TcLink {
 
     pub fn get_proceed_on(&self) -> Result<TcProceedOn, BpfmanError> {
         self.0
-             .0
+            .0
             .scan_prefix(PREFIX_TC_PROCEED_ON)
             .map(|n| n.map(|(_, v)| TcProceedOnEntry::try_from(bytes_to_i32(v.to_vec())).unwrap()))
             .map(|n| {
@@ -488,19 +488,19 @@ impl TcLink {
     }
 
     pub(crate) fn set_netns(&mut self, netns: PathBuf) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TC_NETNS, netns.as_os_str().as_bytes())
+        sled_insert(&self.0.0, TC_NETNS, netns.as_os_str().as_bytes())
     }
 
     pub fn get_netns(&self) -> Result<Option<PathBuf>, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, TC_NETNS)?.map(|v| PathBuf::from(OsStr::from_bytes(&v))))
+        Ok(sled_get_option(&self.0.0, TC_NETNS)?.map(|v| PathBuf::from(OsStr::from_bytes(&v))))
     }
 
     pub(crate) fn set_nsid(&mut self, offset: u64) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TC_NSID, &offset.to_ne_bytes())
+        sled_insert(&self.0.0, TC_NSID, &offset.to_ne_bytes())
     }
 
     pub fn get_nsid(&self) -> Result<u64, BpfmanError> {
-        sled_get(&self.0 .0, TC_NSID).map(bytes_to_u64)
+        sled_get(&self.0.0, TC_NSID).map(bytes_to_u64)
     }
 
     pub fn attach(&mut self, info: AttachInfo) -> Result<(), BpfmanError> {
@@ -535,43 +535,43 @@ pub struct TcxLink(pub(crate) LinkData);
 
 impl TcxLink {
     pub(crate) fn set_priority(&mut self, priority: i32) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TCX_PRIORITY, &priority.to_ne_bytes())
+        sled_insert(&self.0.0, TCX_PRIORITY, &priority.to_ne_bytes())
     }
 
     pub fn get_priority(&self) -> Result<i32, BpfmanError> {
-        sled_get(&self.0 .0, TCX_PRIORITY).map(bytes_to_i32)
+        sled_get(&self.0.0, TCX_PRIORITY).map(bytes_to_i32)
     }
 
     pub(crate) fn set_current_position(&mut self, pos: usize) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TCX_CURRENT_POSITION, &pos.to_ne_bytes())
+        sled_insert(&self.0.0, TCX_CURRENT_POSITION, &pos.to_ne_bytes())
     }
 
     pub fn get_current_position(&self) -> Result<Option<usize>, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, TCX_CURRENT_POSITION)?.map(bytes_to_usize))
+        Ok(sled_get_option(&self.0.0, TCX_CURRENT_POSITION)?.map(bytes_to_usize))
     }
 
     pub(crate) fn set_iface(&mut self, iface: String) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TCX_IFACE, iface.as_bytes())
+        sled_insert(&self.0.0, TCX_IFACE, iface.as_bytes())
     }
 
     pub fn get_iface(&self) -> Result<String, BpfmanError> {
-        sled_get(&self.0 .0, TCX_IFACE).map(|v| bytes_to_string(&v))
+        sled_get(&self.0.0, TCX_IFACE).map(|v| bytes_to_string(&v))
     }
 
     pub(crate) fn set_ifindex(&mut self, ifindex: u32) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TCX_IF_INDEX, &ifindex.to_ne_bytes())
+        sled_insert(&self.0.0, TCX_IF_INDEX, &ifindex.to_ne_bytes())
     }
 
     pub fn get_ifindex(&self) -> Result<Option<u32>, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, TCX_IF_INDEX)?.map(bytes_to_u32))
+        Ok(sled_get_option(&self.0.0, TCX_IF_INDEX)?.map(bytes_to_u32))
     }
 
     pub(crate) fn set_direction(&mut self, direction: Direction) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TCX_DIRECTION, direction.to_string().as_bytes())
+        sled_insert(&self.0.0, TCX_DIRECTION, direction.to_string().as_bytes())
     }
 
     pub fn get_direction(&self) -> Result<Direction, BpfmanError> {
-        sled_get(&self.0 .0, TCX_DIRECTION).and_then(|v| {
+        sled_get(&self.0.0, TCX_DIRECTION).and_then(|v| {
             bytes_to_string(&v)
                 .to_string()
                 .try_into()
@@ -580,19 +580,19 @@ impl TcxLink {
     }
 
     pub(crate) fn set_netns(&mut self, netns: PathBuf) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TCX_NETNS, netns.as_os_str().as_bytes())
+        sled_insert(&self.0.0, TCX_NETNS, netns.as_os_str().as_bytes())
     }
 
     pub fn get_netns(&self) -> Result<Option<PathBuf>, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, TCX_NETNS)?.map(|v| PathBuf::from(OsStr::from_bytes(&v))))
+        Ok(sled_get_option(&self.0.0, TCX_NETNS)?.map(|v| PathBuf::from(OsStr::from_bytes(&v))))
     }
 
     pub(crate) fn set_nsid(&mut self, offset: u64) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TCX_NSID, &offset.to_ne_bytes())
+        sled_insert(&self.0.0, TCX_NSID, &offset.to_ne_bytes())
     }
 
     pub fn get_nsid(&self) -> Result<u64, BpfmanError> {
-        sled_get(&self.0 .0, TCX_NSID).map(bytes_to_u64)
+        sled_get(&self.0.0, TCX_NSID).map(bytes_to_u64)
     }
 
     pub fn attach(&mut self, info: AttachInfo) -> Result<(), BpfmanError> {
@@ -639,11 +639,11 @@ impl TracepointLink {
     }
 
     pub(crate) fn set_tracepoint(&mut self, tracepoint: String) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, TRACEPOINT_NAME, tracepoint.as_bytes())
+        sled_insert(&self.0.0, TRACEPOINT_NAME, tracepoint.as_bytes())
     }
 
     pub fn get_tracepoint(&self) -> Result<String, BpfmanError> {
-        sled_get(&self.0 .0, TRACEPOINT_NAME).map(|v| bytes_to_string(&v))
+        sled_get(&self.0.0, TRACEPOINT_NAME).map(|v| bytes_to_string(&v))
     }
 }
 
@@ -652,31 +652,31 @@ pub struct KprobeLink(pub(crate) LinkData);
 
 impl KprobeLink {
     pub(crate) fn set_fn_name(&mut self, fn_name: String) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, KPROBE_FN_NAME, fn_name.as_bytes())
+        sled_insert(&self.0.0, KPROBE_FN_NAME, fn_name.as_bytes())
     }
 
     pub fn get_fn_name(&self) -> Result<String, BpfmanError> {
-        sled_get(&self.0 .0, KPROBE_FN_NAME).map(|v| bytes_to_string(&v))
+        sled_get(&self.0.0, KPROBE_FN_NAME).map(|v| bytes_to_string(&v))
     }
 
     pub(crate) fn set_offset(&mut self, offset: u64) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, KPROBE_OFFSET, &offset.to_ne_bytes())
+        sled_insert(&self.0.0, KPROBE_OFFSET, &offset.to_ne_bytes())
     }
 
     pub fn get_offset(&self) -> Result<u64, BpfmanError> {
-        sled_get(&self.0 .0, KPROBE_OFFSET).map(bytes_to_u64)
+        sled_get(&self.0.0, KPROBE_OFFSET).map(bytes_to_u64)
     }
 
     pub(crate) fn set_container_pid(&mut self, container_pid: i32) -> Result<(), BpfmanError> {
         sled_insert(
-            &self.0 .0,
+            &self.0.0,
             KPROBE_CONTAINER_PID,
             &container_pid.to_ne_bytes(),
         )
     }
 
     pub fn get_container_pid(&self) -> Result<Option<i32>, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, KPROBE_CONTAINER_PID)?.map(bytes_to_i32))
+        Ok(sled_get_option(&self.0.0, KPROBE_CONTAINER_PID)?.map(bytes_to_i32))
     }
 
     pub fn attach(&mut self, info: AttachInfo) -> Result<(), BpfmanError> {
@@ -704,47 +704,47 @@ pub struct UprobeLink(pub(crate) LinkData);
 
 impl UprobeLink {
     pub(crate) fn set_fn_name(&mut self, fn_name: String) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, UPROBE_FN_NAME, fn_name.as_bytes())
+        sled_insert(&self.0.0, UPROBE_FN_NAME, fn_name.as_bytes())
     }
 
     pub fn get_fn_name(&self) -> Result<Option<String>, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, UPROBE_FN_NAME)?.map(|v| bytes_to_string(&v)))
+        Ok(sled_get_option(&self.0.0, UPROBE_FN_NAME)?.map(|v| bytes_to_string(&v)))
     }
 
     pub(crate) fn set_offset(&mut self, offset: u64) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, UPROBE_OFFSET, &offset.to_ne_bytes())
+        sled_insert(&self.0.0, UPROBE_OFFSET, &offset.to_ne_bytes())
     }
 
     pub fn get_offset(&self) -> Result<u64, BpfmanError> {
-        sled_get(&self.0 .0, UPROBE_OFFSET).map(bytes_to_u64)
+        sled_get(&self.0.0, UPROBE_OFFSET).map(bytes_to_u64)
     }
 
     pub(crate) fn set_container_pid(&mut self, container_pid: i32) -> Result<(), BpfmanError> {
         sled_insert(
-            &self.0 .0,
+            &self.0.0,
             UPROBE_CONTAINER_PID,
             &container_pid.to_ne_bytes(),
         )
     }
 
     pub fn get_container_pid(&self) -> Result<Option<i32>, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, UPROBE_CONTAINER_PID)?.map(bytes_to_i32))
+        Ok(sled_get_option(&self.0.0, UPROBE_CONTAINER_PID)?.map(bytes_to_i32))
     }
 
     pub(crate) fn set_pid(&mut self, pid: i32) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, UPROBE_PID, &pid.to_ne_bytes())
+        sled_insert(&self.0.0, UPROBE_PID, &pid.to_ne_bytes())
     }
 
     pub fn get_pid(&self) -> Result<Option<i32>, BpfmanError> {
-        Ok(sled_get_option(&self.0 .0, UPROBE_PID)?.map(bytes_to_i32))
+        Ok(sled_get_option(&self.0.0, UPROBE_PID)?.map(bytes_to_i32))
     }
 
     pub(crate) fn set_target(&mut self, target: String) -> Result<(), BpfmanError> {
-        sled_insert(&self.0 .0, UPROBE_TARGET, target.as_bytes())
+        sled_insert(&self.0.0, UPROBE_TARGET, target.as_bytes())
     }
 
     pub fn get_target(&self) -> Result<String, BpfmanError> {
-        sled_get(&self.0 .0, UPROBE_TARGET).map(|v| bytes_to_string(&v))
+        sled_get(&self.0.0, UPROBE_TARGET).map(|v| bytes_to_string(&v))
     }
 
     pub fn attach(&mut self, info: AttachInfo) -> Result<(), BpfmanError> {
@@ -1474,8 +1474,8 @@ impl ProgramData {
             .open()
             .expect("unable to open temporary database");
 
-        let mut rng = rand::thread_rng();
-        let id_rand = rng.gen::<u32>();
+        let mut rng = rand::rng();
+        let id_rand = rng.random::<u32>();
 
         let db_tree = db
             .open_tree(PROGRAM_PRE_LOAD_PREFIX.to_string() + &id_rand.to_string())
@@ -2550,7 +2550,7 @@ impl Program {
             Program::Fentry(_) => LinkType::Fentry,
             Program::Fexit(_) => LinkType::Fexit,
             Program::Unsupported(_) => {
-                return Err(BpfmanError::Error("Unsupported program type".to_string()))
+                return Err(BpfmanError::Error("Unsupported program type".to_string()));
             }
         };
 
@@ -2954,7 +2954,7 @@ impl TryFrom<String> for BpfProgType {
             other => {
                 return Err(ParseError::InvalidProgramType {
                     program: other.to_string(),
-                })
+                });
             }
         })
     }
@@ -3001,7 +3001,7 @@ impl TryFrom<u32> for BpfProgType {
             other => {
                 return Err(ParseError::InvalidProgramType {
                     program: other.to_string(),
-                })
+                });
             }
         })
     }
@@ -3150,7 +3150,7 @@ impl TryFrom<i32> for ProbeType {
             other => {
                 return Err(ParseError::InvalidProbeType {
                     probe: other.to_string(),
-                })
+                });
             }
         })
     }
@@ -3221,7 +3221,7 @@ impl TryFrom<String> for XdpProceedOnEntry {
             proceedon => {
                 return Err(ParseError::InvalidProceedOn {
                     proceedon: proceedon.to_string(),
-                })
+                });
             }
         })
     }
@@ -3240,7 +3240,7 @@ impl TryFrom<i32> for XdpProceedOnEntry {
             proceedon => {
                 return Err(ParseError::InvalidProceedOn {
                     proceedon: proceedon.to_string(),
-                })
+                });
             }
         })
     }
@@ -3350,7 +3350,7 @@ impl TryFrom<String> for TcProceedOnEntry {
             proceedon => {
                 return Err(ParseError::InvalidProceedOn {
                     proceedon: proceedon.to_string(),
-                })
+                });
             }
         })
     }
@@ -3374,7 +3374,7 @@ impl TryFrom<i32> for TcProceedOnEntry {
             proceedon => {
                 return Err(ParseError::InvalidProceedOn {
                     proceedon: proceedon.to_string(),
-                })
+                });
             }
         })
     }
@@ -3510,7 +3510,7 @@ impl TryFrom<i32> for ImagePullPolicy {
             policy => {
                 return Err(ParseError::InvalidBytecodeImagePullPolicy {
                     pull_policy: policy.to_string(),
-                })
+                });
             }
         })
     }
@@ -3526,7 +3526,7 @@ impl TryFrom<&str> for ImagePullPolicy {
             policy => {
                 return Err(ParseError::InvalidBytecodeImagePullPolicy {
                     pull_policy: policy.to_string(),
-                })
+                });
             }
         })
     }
@@ -3685,7 +3685,7 @@ impl TryFrom<u32> for BpfAttachType {
             other => {
                 return Err(ParseError::InvalidAttachType {
                     link_type: other.to_string(),
-                })
+                });
             }
         })
     }

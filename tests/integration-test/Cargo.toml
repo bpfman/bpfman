@@ -1,11 +1,13 @@
 [package]
+name = "integration-test"
+publish = false
+
 documentation.workspace = true
 edition.workspace = true
 homepage.workspace = true
 license.workspace = true
-name = "integration-test"
-publish = false
 repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
 
 [dependencies]

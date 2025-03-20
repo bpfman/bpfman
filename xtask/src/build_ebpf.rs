@@ -5,7 +5,7 @@ use std::{
     process::Command,
 };
 
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use clap::Parser;
 
 use crate::workspace::WORKSPACE_ROOT;

@@ -2,13 +2,13 @@
 // Copyright Authors of bpfman
 
 use std::{
-    fs::{create_dir_all, File},
+    fs::{File, create_dir_all},
     io::Write as _,
     path::{Path, PathBuf},
 };
 
 use clap::{CommandFactory, Parser};
-use flate2::{write::GzEncoder, Compression};
+use flate2::{Compression, write::GzEncoder};
 
 use crate::args::Cli;
 

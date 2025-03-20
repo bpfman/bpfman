@@ -1,11 +1,13 @@
 [package]
 description = "An eBPF Program Manager"
+name = "bpfman"
+
 documentation.workspace = true
 edition.workspace = true
 homepage.workspace = true
 license.workspace = true
-name = "bpfman"
 repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
 
 [lib]
@@ -59,7 +61,7 @@ oci-client = { workspace = true, default-features = false, features = [
     "native-tls",
     "trust-dns",
 ] }
-rand = { workspace = true }
+rand = { workspace = true, features = ["thread_rng"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }

@@ -8,15 +8,15 @@ use std::{
 };
 
 use anyhow::{anyhow, bail};
-use netlink_packet_core::{NetlinkMessage, NetlinkPayload, NLM_F_DUMP, NLM_F_REQUEST};
+use netlink_packet_core::{NLM_F_DUMP, NLM_F_REQUEST, NetlinkMessage, NetlinkPayload};
 use netlink_packet_route::{
-    tc::{TcAttribute, TcMessage},
     RouteNetlinkMessage,
+    tc::{TcAttribute, TcMessage},
 };
-use netlink_sys::{constants::NETLINK_ROUTE, Socket, SocketAddr};
+use netlink_sys::{Socket, SocketAddr, constants::NETLINK_ROUTE};
 use nix::{
     fcntl::{self, OFlag},
-    sched::{setns, CloneFlags},
+    sched::{CloneFlags, setns},
     sys::stat::Mode,
 };
 

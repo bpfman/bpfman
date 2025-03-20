@@ -1,13 +1,14 @@
 [package]
 description = "Binary for exporting eBPF events via logs"
+name = "bpf-log-exporter"
+
 documentation.workspace = true
 edition.workspace = true
 homepage.workspace = true
 license.workspace = true
-name = "bpf-log-exporter"
 repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
-
 
 [dependencies]
 anyhow = { workspace = true }

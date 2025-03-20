@@ -505,7 +505,10 @@ impl FromStr for GoArch {
             "ppc64le" => Ok(GoArch::Ppc64le),
             "riscv64" => Ok(GoArch::Riscv64),
             "s390x" => Ok(GoArch::S390x),
-            _ => Err(std::io::Error::new(ErrorKind::InvalidInput, "not a valid bytecode arch, please refer to https://go.dev/doc/install/source#environment for valid GOARCHes when GOOS=linux.")),
+            _ => Err(std::io::Error::new(
+                ErrorKind::InvalidInput,
+                "not a valid bytecode arch, please refer to https://go.dev/doc/install/source#environment for valid GOARCHes when GOOS=linux.",
+            )),
         }
     }
 }
@@ -572,7 +575,10 @@ impl GoArch {
         } else if s.contains("s390") && s.contains("bpfeb") && s.contains(".o") {
             Ok(GoArch::S390x)
         } else {
-            Err(std::io::Error::new(ErrorKind::InvalidInput, "not a valid cilium/ebpf bytecode filename, please refer to https://github.com/cilium/ebpf/blob/main/cmd/bpf2go/gen/target.go#L14"))
+            Err(std::io::Error::new(
+                ErrorKind::InvalidInput,
+                "not a valid cilium/ebpf bytecode filename, please refer to https://github.com/cilium/ebpf/blob/main/cmd/bpf2go/gen/target.go#L14",
+            ))
         }
     }
 }
