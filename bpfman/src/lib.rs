@@ -63,6 +63,7 @@ pub mod schema;
 mod static_program;
 pub mod types;
 pub mod u64blob;
+pub mod uintblob;
 pub mod utils;
 
 const MAPS_MODE: u32 = 0o0660;
