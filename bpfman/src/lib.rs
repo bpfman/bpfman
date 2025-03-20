@@ -62,7 +62,6 @@ pub mod program_loader;
 pub mod schema;
 mod static_program;
 pub mod types;
-pub mod u64blob;
 pub mod uintblob;
 pub mod utils;
 
