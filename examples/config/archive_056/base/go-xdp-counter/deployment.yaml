@@ -1,0 +1,69 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: go-xdp-counter
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bpfman-app-go-xdp-counter
+  namespace: go-xdp-counter
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: go-xdp-counter-ds
+  namespace: go-xdp-counter
+  labels:
+    k8s-app: go-xdp-counter
+spec:
+  selector:
+    matchLabels:
+      name: go-xdp-counter
+  template:
+    metadata:
+      labels:
+        name: go-xdp-counter
+    spec:
+      nodeSelector: {}
+      dnsPolicy: ClusterFirstWithHostNet
+      serviceAccountName: bpfman-app-go-xdp-counter
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 65534
+      tolerations:
+        # these tolerations are to have the daemonset runnable on control plane nodes
+        # remove them if your control plane nodes should not run pods
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: go-xdp-counter
+          image: quay.io/bpfman-userspace/go-xdp-counter:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            runAsUser: 65534
+            runAsGroup: 65534
+          env:
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: go-xdp-counter-maps
+              mountPath: /run/xdp/maps
+              readOnly: true
+      volumes:
+        - name: go-xdp-counter-maps
+          csi:
+            driver: csi.bpfman.io
+            volumeAttributes:
+              csi.bpfman.io/program: go-xdp-counter-example
+              csi.bpfman.io/maps: xdp_stats_map

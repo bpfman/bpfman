@@ -13,7 +13,7 @@ images:
 patches:
 - path: patch.yaml
   target:
-    kind: XdpProgram
+    kind: ClusterBpfApplication
     name: go-xdp-counter-example
 resources:
 - ../../base/go-xdp-counter
