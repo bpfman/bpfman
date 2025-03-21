@@ -10,7 +10,7 @@ spec:
   nodeSelector: {}
   byteCode:
     image:
-      url: quay.io/bpfman-bytecode/go-xdp-counter:latest
+      url: https://quay.io/bpfman-bytecode/go-xdp-counter:latest
   programs:
     - name: xdp_stats
       type: XDP

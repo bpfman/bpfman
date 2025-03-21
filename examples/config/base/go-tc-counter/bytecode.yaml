@@ -10,7 +10,7 @@ spec:
   nodeSelector: {}
   byteCode:
     image:
-      url: quay.io/bpfman-bytecode/go-tc-counter:latest
+      url: https://quay.io/bpfman-bytecode/go-tc-counter:latest
   programs:
     - name: stats
       type: TC

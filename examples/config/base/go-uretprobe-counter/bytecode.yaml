@@ -10,7 +10,7 @@ spec:
   nodeSelector: {}
   byteCode:
     image:
-      url: quay.io/bpfman-bytecode/go-uretprobe-counter:latest
+      url: https://quay.io/bpfman-bytecode/go-uretprobe-counter:latest
       imagePullPolicy: IfNotPresent
   programs:
     - name: uretprobe_counter

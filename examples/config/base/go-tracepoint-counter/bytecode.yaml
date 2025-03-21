@@ -10,7 +10,7 @@ spec:
   nodeSelector: {}
   byteCode:
     image:
-      url: quay.io/bpfman-bytecode/go-tracepoint-counter:latest
+      url: https://quay.io/bpfman-bytecode/go-tracepoint-counter:latest
       imagePullPolicy: IfNotPresent
   programs:
     - name: tracepoint_kill_recorder
