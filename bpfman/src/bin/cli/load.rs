@@ -3,14 +3,21 @@
 
 use std::collections::HashMap;
 
-use anyhow::bail;
+use anyhow::{bail, Result};
 use bpfman::{
-    add_programs, setup,
+    add_programs,
+    errors::BpfmanError,
+    load_ebpf_programs,
+    models::{get_program_bytes_and_validate, BpfMap, BpfProgram},
+    oci_utils::image_manager::ImageManager,
+    program_loader::{EbpfLoadResult, LoadSpec},
+    setup, setup_with_sqlite,
     types::{
         FentryProgram, FexitProgram, KprobeProgram, Location, Program, ProgramData, TcProgram,
         TcxProgram, TracepointProgram, UprobeProgram, XdpProgram,
     },
 };
+use diesel::SqliteConnection;
 
 use crate::{
     args::{GlobalArg, LoadFileArgs, LoadImageArgs, LoadSubcommand},
@@ -19,9 +26,25 @@ use crate::{
 
 impl LoadSubcommand {
     pub(crate) fn execute(&self) -> anyhow::Result<()> {
+        let use_sqlite = std::env::var("USE_SQLITE")
+            .map(|val| val == "1" || val.to_lowercase() == "true")
+            .unwrap_or(false);
+
         match self {
-            LoadSubcommand::File(l) => execute_load_file(l),
-            LoadSubcommand::Image(l) => execute_load_image(l),
+            LoadSubcommand::File(l) => {
+                if use_sqlite {
+                    sqlite_execute_load_file(l)
+                } else {
+                    execute_load_file(l)
+                }
+            }
+            LoadSubcommand::Image(l) => {
+                if use_sqlite {
+                    sqlite_execute_load_image(l)
+                } else {
+                    execute_load_image(l)
+                }
+            }
         }
     }
 }
@@ -146,4 +169,137 @@ fn parse_global(global: &Option<Vec<GlobalArg>>) -> HashMap<String, Vec<u8>> {
         }
     }
     global_data
+}
+
+/// Converts GlobalArg to the tuple format (String, Vec<u8>) needed by
+/// LoadSpec.
+fn convert_globals_to_tuples(globals: &Option<Vec<GlobalArg>>) -> Option<Vec<(String, Vec<u8>)>> {
+    globals.as_ref().map(|args| {
+        args.iter()
+            .map(|arg| (arg.name.clone(), arg.value.clone()))
+            .collect::<Vec<_>>()
+    })
+}
+
+fn sqlite_execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
+    let (config, mut conn) = setup_with_sqlite()?;
+    let bytecode_source = Location::File(args.path.clone());
+
+    let mut image_manager = ImageManager::new(
+        config.signing().verify_enabled,
+        config.signing().allow_unsigned,
+    )?;
+
+    let (program_bytes, function_names) =
+        get_program_bytes_and_validate(&bytecode_source, &mut image_manager, &args.programs)?;
+
+    let global_data_tuples = convert_globals_to_tuples(&args.global);
+
+    let load_spec = LoadSpec::new(
+        bytecode_source,
+        &function_names,
+        &global_data_tuples,
+        args.map_owner_id,
+        &args.metadata,
+        &program_bytes,
+        &args.programs,
+    )?;
+
+    save_and_report_programs(&mut conn, &load_ebpf_programs(&load_spec)?)
+}
+
+fn sqlite_execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
+    let (config, mut conn) = setup_with_sqlite()?;
+    let bytecode_source = Location::Image((&args.pull_args).try_into()?);
+
+    let mut image_manager = ImageManager::new(
+        config.signing().verify_enabled,
+        config.signing().allow_unsigned,
+    )?;
+
+    let (program_bytes, function_names) =
+        get_program_bytes_and_validate(&bytecode_source, &mut image_manager, &args.programs)?;
+
+    let global_data_tuples = convert_globals_to_tuples(&args.global);
+
+    let load_spec = LoadSpec::new(
+        bytecode_source,
+        &function_names,
+        &global_data_tuples,
+        args.map_owner_id,
+        &args.metadata,
+        &program_bytes,
+        &args.programs,
+    )?;
+
+    save_and_report_programs(&mut conn, &load_ebpf_programs(&load_spec)?)
+}
+
+pub fn save_ebpf_load_result(
+    conn: &mut SqliteConnection,
+    loaded_programs: &[EbpfLoadResult],
+) -> Result<(), BpfmanError> {
+    conn.immediate_transaction::<_, diesel::result::Error, _>(|conn| {
+        for loaded in loaded_programs {
+            BpfProgram::insert_record(conn, &loaded.program)?;
+            for map in &loaded.maps {
+                BpfMap::insert_record_on_conflict_do_nothing(conn, map)?;
+            }
+        }
+        Ok(())
+    })
+    .map_err(|e| BpfmanError::DatabaseError("Transaction failed".into(), e.to_string()))
+}
+
+/// Saves eBPF load results to the database and handles error
+/// reporting.
+///
+/// This function attempts to save the loaded programs to the
+/// database. On success, it prints information about the loaded
+/// programs. On failure, it logs which programs need to be unloaded
+/// and returns an appropriate error.
+///
+/// # Arguments
+///
+/// * `conn` - A mutable reference to the SQLite connection
+/// * `loaded_programs` - A slice of EbpfLoadResult to save
+///
+/// # Returns
+///
+/// * `Ok(())` on success
+/// * `Err(anyhow::Error)` with context on failure
+fn save_and_report_programs(
+    conn: &mut SqliteConnection,
+    loaded_programs: &[EbpfLoadResult],
+) -> anyhow::Result<()> {
+    if let Err(err) = save_ebpf_load_result(conn, loaded_programs) {
+        eprintln!("Database transaction failed. Programs that need to be unloaded:");
+        for program in loaded_programs {
+            eprintln!(
+                "- ID: {}, Name: {}, Type: {}, Kernel Tag: {}",
+                program.program.id,
+                program.program.name,
+                program.kind,
+                program.program.kernel_tag.as_deref().unwrap_or("unknown")
+            );
+        }
+
+        let error_msg = format!(
+            "Database transaction failed while inserting eBPF programs: {}. \
+             This likely means one of the {} program(s) couldn't be properly inserted. \
+             Check database constraints and ensure all required fields are populated.",
+            err,
+            loaded_programs.len()
+        );
+
+        return Err(anyhow::anyhow!(error_msg));
+    }
+
+    println!("Successfully loaded {} program(s):", loaded_programs.len());
+    println!(
+        "{}",
+        serde_json::to_string_pretty(loaded_programs)
+            .unwrap_or_else(|_| "Failed to serialize loaded programs".to_string())
+    );
+    Ok(())
 }

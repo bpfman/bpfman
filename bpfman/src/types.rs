@@ -1346,7 +1346,7 @@ pub enum Location {
 }
 
 impl Location {
-    fn get_program_bytes(
+    pub fn get_program_bytes(
         &self,
         root_db: &Db,
         image_manager: &mut ImageManager,
