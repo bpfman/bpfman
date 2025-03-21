@@ -239,9 +239,11 @@ After these steps are completed, the following should occur:
 
 After the release is complete do the following:
 
-- Run `make build-release-yamls` from the `bpfman/examples` directory, and then
-  add the yaml files generated to the release as assets from the GitHub release
-  page.
+- Run `make build-release-yamls` from the `bpfman/examples` directory.
+  Next, on the GitHub `Releases` webpage, find the newly generated release notes
+  and click on the edit icon (a pencil icon).
+  Then copy (drag and drop) the generated yaml files to the release as `Assets`
+  on the webpage and click `Update release` button.
     - The yaml files generated include:
         - `go-app-counter-install-selinux.yaml`
         - `go-app-counter-install.yaml`
@@ -272,15 +274,16 @@ After the release is complete do the following:
     - Update the bpfman version in go.mod
     - Run the following commands from the bpfman-operator directory:
       ```
-      go mod vendor
       go mod tidy
+      go mod vendor
       ```
     - Update the bpfman-operator version in the [Makefile][Makefile]:
         - `VERSION ?= x.y.z`
     - Run `make bundle` from the bpfman-operator directory to update the bundle
       version.
-    - Update the version in the links in README.md
     - Update the version in the OpenShift Containerfiles.
+    - Search the bpfman-operator directory and make sure there are no remaining `x.y.z`
+      strings that need to be replaced.
 - Commit the changes, push them to your repo, and open a PR against the
   `bpfman-operator` repo.
 - After the PR is reviewed, merged, and all GitHub actions have completed
@@ -304,8 +307,10 @@ After these steps are completed, the following should occur:
 After the release is complete do the following:
 
 - Run `make build-release-yamls` from the `bpfman-operator/` directory, and then
-  add the yaml files generated to the release as assets from the GitHub release
-  page.
+  Next, on the GitHub `Releases` webpage, find the newly generated release notes
+  and click on the edit icon (a pencil icon).
+  Then copy (drag and drop) the generated yaml files to the release as `Assets`
+  on the webpage and click `Update release` button.
     - The yaml files generated include:
         - `bpfman-crds-install.yaml`
         - `bpfman-operator-install.yaml`
@@ -314,32 +319,44 @@ After the release is complete do the following:
   latest bundle manifests.
     - Run `IMAGE_TAG=vx.y.z make bundle` from `bpfman-operator`.
     - Manually update the following tags in
-      bundle/manifests/bpfman-operator.clusterserviceversion.yaml (TODO: automate
+      `bpfman-operator/bundle/manifests/bpfman-operator.clusterserviceversion.yaml` (TODO: automate
       this step).
-        - Change :latest to :vx.y.z on for the example image URLs.
-        - Change "containerImage: quay.io/bpfman/bpfman-operator:latest" to
-          "containerImage: quay.io/bpfman/bpfman-operator:vx.y.z".
+        - Change `:latest` to `:vx.y.z` in all the example image URLs:
+        ```yaml
+        "url": "quay.io/bpfman-bytecode/<example>>:latest"
+        ```
+        to
+        ```yaml
+        "url": "quay.io/bpfman-bytecode/<example>:v0.5.6"
+        ```
+        - Change `:latest` to `:vx.y.z` in the bpfman-operator container image reference:
+        ```yaml
+        containerImage: quay.io/bpfman/bpfman-operator:latest
+        ```
+        to
+        ```yaml
+        containerImage: quay.io/bpfman/bpfman-operator:vx.y.z
+        ```
     - Open a PR in the [community-operator][community-operator] repository with the following:
         - Create a new release directory under `operator/bpfman-operator/` named `x.y.z`:
           ```bash
           cd $SRC_DIR/community-operators/operators/bpfman-operator/
           mkdir x.y.z
           ```
-        - Copy `bpfman-operator/bundle/{manifests, metadata, tests}` to the new release
-          directory and copy`bpfman-operator/Containerfile.bundle.openshift` to the new
-          release directory and rename it `bundle.Dockerfile`.
+        - Copy the directories `bpfman-operator/bundle/{manifests, metadata, tests}` and the file
+          `bpfman-operator/bundle.Dockerfile` to the new release directory.
           ```bash
           cd x.y.z
           cp -r $SRC_DIR/bpfman-operator/bundle/manifests/ .
           cp -r $SRC_DIR/bpfman-operator/bundle/metadata/ .
           cp -r $SRC_DIR/bpfman-operator/bundle/tests/ .
-          cp $SRC_DIR/bpfman-operator/Containerfile.bundle.openshift bundle.Dockerfile
+          cp $SRC_DIR/bpfman-operator/bundle.Dockerfile .
           ```
-        - Push the PR as a draft PR to allow for review (see Note).
+        - Push the PR as a **draft** PR to allow for review (**see Note**).
           Once the PR is reviewed and all checks pass, mark it as ready for review.
           Once it merges, move to the next repository.
     - Open a PR in the [community-operators-prod][community-operators-prod] repository.
-      Repeat the previous steps, but don't push PR as draft.
+      Repeat the previous steps, **but don't push PR as draft**.
     - **NOTE:** Lessons learned about updating the community operators: 
         - These PRs usually auto-merge as soon as all checks pass, and once a
           bundle for a release is merged, it cannot be modified. If any errors
