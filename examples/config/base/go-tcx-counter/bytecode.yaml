@@ -10,7 +10,7 @@ spec:
   nodeSelector: {}
   byteCode:
     image:
-      url: quay.io/bpfman-bytecode/go-tcx-counter:latest
+      url: https://quay.io/bpfman-bytecode/go-tcx-counter:latest
   programs:
     - name: tcx_stats
       type: TCX

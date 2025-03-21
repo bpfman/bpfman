@@ -14,7 +14,7 @@ spec:
   priority: 55
   bytecode:
     image:
-      url: quay.io/bpfman-bytecode/go-xdp-counter:latest
+      url: https://quay.io/bpfman-bytecode/go-xdp-counter:latest
   mapownerselector:
     matchLabels:
       bpfman.io/ownedByProgram: go-xdp-counter-example

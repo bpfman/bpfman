@@ -99,7 +99,8 @@ impl ImageManager {
         // The reference created here is created using the krustlet oci-distribution
         // crate. It currently contains many defaults more of which can be seen
         // here: https://github.com/krustlet/oci-distribution/blob/main/src/reference.rs#L58
-        let image: Reference = image_url.parse().map_err(ImageError::InvalidImageUrl)?;
+        let url = image_url.strip_prefix("https://").unwrap_or(image_url);
+        let image: Reference = url.parse().map_err(ImageError::InvalidImageUrl)?;
 
         if let Some(cosign_verifier) = &mut self.cosign_verifier {
             cosign_verifier.verify(image_url, username.as_deref(), password.as_deref())?;

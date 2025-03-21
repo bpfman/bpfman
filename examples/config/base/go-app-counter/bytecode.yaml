@@ -10,7 +10,7 @@ spec:
   nodeSelector: {}
   byteCode:
     image:
-      url: quay.io/bpfman-bytecode/go-app-counter:latest
+      url: https://quay.io/bpfman-bytecode/go-app-counter:latest
       imagePullPolicy: Always
   programs:
     - name: kprobe_counter
