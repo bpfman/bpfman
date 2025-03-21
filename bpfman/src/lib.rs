@@ -11,7 +11,10 @@ use std::{
 
 use anyhow::anyhow;
 use aya::{
+    Btf, Ebpf, EbpfLoader,
     programs::{
+        Extension, FEntry, FExit, KProbe, LinkOrder as AyaLinkOrder, ProbeKind, SchedClassifier,
+        TcAttachType, TracePoint, UProbe,
         fentry::FEntryLink,
         fexit::FExitLink,
         kprobe::KProbeLink,
@@ -20,10 +23,7 @@ use aya::{
         tc::{SchedClassifierLink, TcAttachOptions},
         trace_point::TracePointLink,
         uprobe::UProbeLink,
-        Extension, FEntry, FExit, KProbe, LinkOrder as AyaLinkOrder, ProbeKind, SchedClassifier,
-        TcAttachType, TracePoint, UProbe,
     },
-    Btf, Ebpf, EbpfLoader,
 };
 use log::{debug, error, info, warn};
 use multiprog::{TcDispatcher, XdpDispatcher};
@@ -38,8 +38,8 @@ use crate::{
     multiprog::{Dispatcher, DispatcherId, DispatcherInfo},
     oci_utils::image_manager::ImageManager,
     types::{
-        BpfProgType, BytecodeImage, Direction, ListFilter, Program, ProgramData, LINKS_LINK_PREFIX,
-        PROGRAM_PREFIX,
+        BpfProgType, BytecodeImage, Direction, LINKS_LINK_PREFIX, ListFilter, PROGRAM_PREFIX,
+        Program, ProgramData,
     },
     utils::{
         bytes_to_string, bytes_to_u32, enter_netns, get_error_msg_from_stderr, open_config_file,
@@ -374,7 +374,9 @@ pub fn remove_program(config: &Config, root_db: &Db, id: u32) -> Result<(), Bpfm
     let prog = match get(root_db, &id) {
         Some(p) => p,
         None => {
-            error!("Error: Request to unload program with id {id} but id does not exist or was not created by bpfman");
+            error!(
+                "Error: Request to unload program with id {id} but id does not exist or was not created by bpfman"
+            );
             return Err(BpfmanError::Error(format!(
                 "Program {0} does not exist or was not created by bpfman",
                 id,
@@ -439,7 +441,9 @@ pub fn attach_program(
     let mut prog = match get(root_db, &id) {
         Some(p) => p,
         None => {
-            error!("Error: Request to attach program with id {id} but id does not exist or was not created by bpfman");
+            error!(
+                "Error: Request to attach program with id {id} but id does not exist or was not created by bpfman"
+            );
             return Err(BpfmanError::Error(format!(
                 "Program {0} does not exist or was not created by bpfman",
                 id,
@@ -1688,7 +1692,7 @@ pub(crate) fn attach_multi_attach_program(
 
     let old_dispatcher = get_dispatcher(&did, root_db)?;
 
-    let if_config = if let Some(ref i) = config.interfaces() {
+    let if_config = if let Some(i) = config.interfaces() {
         i.get(&if_name)
     } else {
         None
@@ -1759,7 +1763,7 @@ fn detach_multi_attach_program(
     // Intentionally don't add filter program here
     let mut programs = get_multi_attach_links(root_db, program_type, if_index, direction, nsid)?;
 
-    let if_config = if let Some(ref i) = config.interfaces() {
+    let if_config = if let Some(i) = config.interfaces() {
         i.get(&if_name)
     } else {
         None

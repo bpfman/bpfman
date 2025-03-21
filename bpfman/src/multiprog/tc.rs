@@ -9,12 +9,12 @@ use std::{
 };
 
 use aya::{
+    Ebpf, EbpfLoader,
     programs::{
+        Extension, Link as _, SchedClassifier, TcAttachType,
         links::FdLink,
         tc::{self, NlOptions, SchedClassifierLink, TcAttachOptions},
-        Extension, Link as _, SchedClassifier, TcAttachType,
     },
-    Ebpf, EbpfLoader,
 };
 use log::debug;
 use sled::Db;

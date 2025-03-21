@@ -3,11 +3,11 @@
 
 use std::{fs::File, process};
 
-use anyhow::{bail, Context};
-use aya::programs::{links::FdLink, uprobe::UProbeLink, ProbeKind, UProbe};
+use anyhow::{Context, bail};
+use aya::programs::{ProbeKind, UProbe, links::FdLink, uprobe::UProbeLink};
 use clap::{Args, Parser, Subcommand};
 use log::debug;
-use nix::sched::{setns, CloneFlags};
+use nix::sched::{CloneFlags, setns};
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]

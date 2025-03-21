@@ -3,7 +3,7 @@
 
 use std::{
     collections::HashMap,
-    io::{copy, Read},
+    io::{Read, copy},
 };
 
 use anyhow::anyhow;
@@ -11,11 +11,11 @@ use flate2::read::GzDecoder;
 use log::{debug, error, info, trace};
 use object::{Endianness, Object};
 use oci_client::{
+    Client, Reference,
     client::{ClientConfig, ClientProtocol},
     manifest,
     manifest::OciImageManifest,
     secrets::RegistryAuth,
-    Client, Reference,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -25,8 +25,9 @@ use tar::Archive;
 
 use crate::{
     oci_utils::{
-        cosign::{fetch_sigstore_tuf_data, CosignVerifier},
-        rt, ImageError,
+        ImageError,
+        cosign::{CosignVerifier, fetch_sigstore_tuf_data},
+        rt,
     },
     types::ImagePullPolicy,
     utils::{sled_get, sled_insert},
@@ -638,15 +639,30 @@ mod tests {
             output: &'static str,
         }
         let tt = vec![
-            Case{input: "busybox", output: "docker.io_library_busybox_latest"},
-            Case{input:"quay.io/busybox", output: "quay.io_busybox_latest"},
-            Case{input:"docker.io/test:tag", output: "docker.io_library_test_tag"},
-            Case{input:"quay.io/test:5000", output: "quay.io_test_5000"},
-            Case{input:"test.com/repo:tag", output: "test.com_repo_tag"},
-            Case{
-                input:"test.com/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            Case {
+                input: "busybox",
+                output: "docker.io_library_busybox_latest",
+            },
+            Case {
+                input: "quay.io/busybox",
+                output: "quay.io_busybox_latest",
+            },
+            Case {
+                input: "docker.io/test:tag",
+                output: "docker.io_library_test_tag",
+            },
+            Case {
+                input: "quay.io/test:5000",
+                output: "quay.io_test_5000",
+            },
+            Case {
+                input: "test.com/repo:tag",
+                output: "test.com_repo_tag",
+            },
+            Case {
+                input: "test.com/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
                 output: "test.com_repo_sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            }
+            },
         ];
 
         for t in tt {

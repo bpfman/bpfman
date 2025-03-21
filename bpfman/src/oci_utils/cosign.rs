@@ -7,12 +7,12 @@ use anyhow::{anyhow, bail};
 use log::{debug, info, warn};
 use sigstore::{
     cosign::{
-        verification_constraint::VerificationConstraintVec, verify_constraints, ClientBuilder,
-        CosignCapabilities,
+        ClientBuilder, CosignCapabilities, verification_constraint::VerificationConstraintVec,
+        verify_constraints,
     },
     errors::SigstoreError::RegistryPullManifestError,
     registry::{Auth, ClientConfig, ClientProtocol, OciReference},
-    trust::{sigstore::SigstoreTrustRoot, ManualTrustRoot, TrustRoot as _},
+    trust::{ManualTrustRoot, TrustRoot as _, sigstore::SigstoreTrustRoot},
 };
 
 use crate::oci_utils::rt;

@@ -11,10 +11,12 @@ impl ProgTable {
         let mut table = Table::new();
 
         table.load_preset(comfy_table::presets::NOTHING);
-        table.set_header(vec![Cell::new("Bpfman State")
-            .add_attribute(comfy_table::Attribute::Bold)
-            .add_attribute(comfy_table::Attribute::Underlined)
-            .fg(Color::Green)]);
+        table.set_header(vec![
+            Cell::new("Bpfman State")
+                .add_attribute(comfy_table::Attribute::Bold)
+                .add_attribute(comfy_table::Attribute::Underlined)
+                .fg(Color::Green),
+        ]);
 
         let data = program.get_data();
 
@@ -122,10 +124,12 @@ impl ProgTable {
         let mut table = Table::new();
 
         table.load_preset(comfy_table::presets::NOTHING);
-        table.set_header(vec![Cell::new("Kernel State")
-            .add_attribute(comfy_table::Attribute::Bold)
-            .add_attribute(comfy_table::Attribute::Underlined)
-            .fg(Color::Green)]);
+        table.set_header(vec![
+            Cell::new("Kernel State")
+                .add_attribute(comfy_table::Attribute::Bold)
+                .add_attribute(comfy_table::Attribute::Underlined)
+                .fg(Color::Green),
+        ]);
 
         let p = r.get_data();
         let name = p.get_kernel_name()?;

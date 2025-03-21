@@ -8,10 +8,10 @@ use bpfman::{
 use v1::FentryAttachInfo;
 
 use crate::v1::{
-    attach_info::Info, bytecode_location::Location as V1Location, AttachInfo,
-    BytecodeImage as V1BytecodeImage, BytecodeLocation, KernelProgramInfo as V1KernelProgramInfo,
-    KprobeAttachInfo, ProgramInfo, ProgramInfo as V1ProgramInfo, TcAttachInfo, TcxAttachInfo,
-    TracepointAttachInfo, UprobeAttachInfo, XdpAttachInfo,
+    AttachInfo, BytecodeImage as V1BytecodeImage, BytecodeLocation,
+    KernelProgramInfo as V1KernelProgramInfo, KprobeAttachInfo, ProgramInfo,
+    ProgramInfo as V1ProgramInfo, TcAttachInfo, TcxAttachInfo, TracepointAttachInfo,
+    UprobeAttachInfo, XdpAttachInfo, attach_info::Info, bytecode_location::Location as V1Location,
 };
 
 #[path = "bpfman.v1.rs"]

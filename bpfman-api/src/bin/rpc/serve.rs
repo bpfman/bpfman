@@ -9,21 +9,21 @@ use std::{
 };
 
 use anyhow::anyhow;
-use bpfman::utils::{set_file_permissions, SOCK_MODE};
+use bpfman::utils::{SOCK_MODE, set_file_permissions};
 use bpfman_api::v1::bpfman_server::BpfmanServer;
 use libsystemd::activation::IsType;
 use log::{debug, error, info};
 use tokio::{
     join,
     net::UnixListener,
-    signal::unix::{signal, SignalKind},
-    sync::{broadcast, Mutex},
+    signal::unix::{SignalKind, signal},
+    sync::{Mutex, broadcast},
     task::{JoinHandle, JoinSet},
 };
 use tokio_stream::wrappers::UnixListenerStream;
 use tonic::transport::Server;
 
-use crate::{rpc::BpfmanLoader, storage::StorageManager, AsyncBpfman};
+use crate::{AsyncBpfman, rpc::BpfmanLoader, storage::StorageManager};
 
 pub async fn serve(
     db_lock: Arc<Mutex<AsyncBpfman>>,

@@ -1,11 +1,13 @@
 [package]
 description = "An executable to attach an eBPF program inside a container"
+name = "bpfman-ns"
+
 documentation.workspace = true
 edition.workspace = true
 homepage.workspace = true
 license.workspace = true
-name = "bpfman-ns"
 repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
 
 [[bin]]

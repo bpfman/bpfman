@@ -3,7 +3,7 @@ use std::{os::unix::process::CommandExt, path::PathBuf, process::Command};
 use anyhow::Context as _;
 use clap::Parser;
 
-use crate::build_ebpf::{build_ebpf, Options as BuildOptions};
+use crate::build_ebpf::{Options as BuildOptions, build_ebpf};
 
 #[derive(Debug, Parser)]
 pub struct Options {

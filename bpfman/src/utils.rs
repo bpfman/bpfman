@@ -3,7 +3,7 @@
 
 use std::{
     fs,
-    fs::{create_dir_all, set_permissions, File, OpenOptions},
+    fs::{File, OpenOptions, create_dir_all, set_permissions},
     io::{BufRead, BufReader, Read},
     option::Option,
     os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt},
@@ -11,14 +11,14 @@ use std::{
     process,
 };
 
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use log::{debug, info, warn};
 use nix::{
     libc::RLIM_INFINITY,
-    mount::{mount, MsFlags},
+    mount::{MsFlags, mount},
     net::if_::if_nametoindex,
-    sched::{setns, CloneFlags},
-    sys::resource::{setrlimit, Resource},
+    sched::{CloneFlags, setns},
+    sys::resource::{Resource, setrlimit},
 };
 use sled::Tree;
 

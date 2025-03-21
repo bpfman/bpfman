@@ -13,7 +13,7 @@ use bpfman::{
 };
 use clap::{Args, Parser};
 use log::debug;
-use systemd_journal_logger::{connected_to_journal, JournalLog};
+use systemd_journal_logger::{JournalLog, connected_to_journal};
 use tokio::{sync::Mutex, task::spawn_blocking};
 
 use crate::serve::serve;

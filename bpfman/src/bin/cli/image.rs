@@ -9,10 +9,10 @@ use std::{
     process::{Command, Stdio},
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use aya::Endianness;
 use aya_obj::Object;
-use base64::{engine::general_purpose, Engine};
+use base64::{Engine, engine::general_purpose};
 use bpfman::{
     pull_bytecode, setup,
     types::{BpfProgType, BytecodeImage, ImagePullPolicy, MapType},
@@ -313,7 +313,7 @@ pub(crate) fn execute_build_args(args: &GenerateArgs) -> anyhow::Result<()> {
         None => {
             return Err(anyhow!(
                 "An S390 bytecode file cannot be used to generate build args"
-            ))
+            ));
         }
     };
 

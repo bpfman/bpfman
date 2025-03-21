@@ -14,28 +14,29 @@ use async_trait::async_trait;
 use aya::maps::MapData;
 use bpfman::{
     types::ListFilter,
-    utils::{create_bpffs, set_dir_permissions, set_file_permissions, SOCK_MODE},
+    utils::{SOCK_MODE, create_bpffs, set_dir_permissions, set_file_permissions},
 };
 use bpfman_csi::v1::{
+    GetPluginCapabilitiesRequest, GetPluginCapabilitiesResponse, GetPluginInfoRequest,
+    GetPluginInfoResponse, NodeExpandVolumeRequest, NodeExpandVolumeResponse,
+    NodeGetCapabilitiesRequest, NodeGetCapabilitiesResponse, NodeGetInfoRequest,
+    NodeGetInfoResponse, NodeGetVolumeStatsRequest, NodeGetVolumeStatsResponse,
+    NodePublishVolumeRequest, NodePublishVolumeResponse, NodeServiceCapability,
+    NodeStageVolumeRequest, NodeStageVolumeResponse, NodeUnpublishVolumeRequest,
+    NodeUnpublishVolumeResponse, NodeUnstageVolumeRequest, NodeUnstageVolumeResponse, ProbeRequest,
+    ProbeResponse,
     identity_server::{Identity, IdentityServer},
     node_server::{Node, NodeServer},
-    node_service_capability, volume_capability, GetPluginCapabilitiesRequest,
-    GetPluginCapabilitiesResponse, GetPluginInfoRequest, GetPluginInfoResponse,
-    NodeExpandVolumeRequest, NodeExpandVolumeResponse, NodeGetCapabilitiesRequest,
-    NodeGetCapabilitiesResponse, NodeGetInfoRequest, NodeGetInfoResponse,
-    NodeGetVolumeStatsRequest, NodeGetVolumeStatsResponse, NodePublishVolumeRequest,
-    NodePublishVolumeResponse, NodeServiceCapability, NodeStageVolumeRequest,
-    NodeStageVolumeResponse, NodeUnpublishVolumeRequest, NodeUnpublishVolumeResponse,
-    NodeUnstageVolumeRequest, NodeUnstageVolumeResponse, ProbeRequest, ProbeResponse,
+    node_service_capability, volume_capability,
 };
 use log::{debug, error, info, warn};
-use nix::mount::{mount, umount, MsFlags};
+use nix::mount::{MsFlags, mount, umount};
 use tokio::{
     net::UnixListener,
-    sync::{broadcast, Mutex},
+    sync::{Mutex, broadcast},
 };
 use tokio_stream::wrappers::UnixListenerStream;
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::{Request, Response, Status, transport::Server};
 
 use crate::AsyncBpfman;
 
