@@ -313,7 +313,7 @@ fn load_program(
                 .map_err(BpfmanError::BpfProgramError)?;
             prog.load().map_err(BpfmanError::BpfProgramError)?;
         }
-        ProgramType::Fentry(ref fn_name) => {
+        ProgramType::Fentry(fn_name) => {
             let btf = aya::Btf::from_sys_fs().map_err(BpfmanError::BtfError)?;
             let prog: &mut aya::programs::FEntry = ebpf_program
                 .try_into()
@@ -321,7 +321,7 @@ fn load_program(
             prog.load(fn_name, &btf)
                 .map_err(BpfmanError::BpfProgramError)?;
         }
-        ProgramType::Fexit(ref fn_name) => {
+        ProgramType::Fexit(fn_name) => {
             let btf = aya::Btf::from_sys_fs().map_err(BpfmanError::BtfError)?;
             let prog: &mut aya::programs::FExit = ebpf_program
                 .try_into()
