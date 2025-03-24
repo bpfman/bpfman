@@ -1530,6 +1530,9 @@ pub(crate) fn attach_single_attach_program(root_db: &Db, l: &mut Link) -> Result
                         }
                         Err(e) => {
                             info!("bpfman-ns returned error: {:?}", e);
+                            if let std::io::ErrorKind::NotFound = e.kind() {
+                                info!("bpfman-ns binary was not found. Please check your PATH.");
+                            }
                             Err(BpfmanError::ContainerAttachError {
                                 program_type: "uprobe".to_string(),
                                 container_pid: link.get_container_pid()?.unwrap(),

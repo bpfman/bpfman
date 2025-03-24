@@ -54,6 +54,6 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/\* /tmp/\* /var/tmp/*
 
-COPY --from=bpfman-build  ./usr/src/bpfman/bpfman .
+COPY --from=bpfman-build  ./usr/src/bpfman/bpfman /usr/local/sbin/
 
-ENTRYPOINT ["./bpfman-rpc", "--timeout=0"]
+ENTRYPOINT ["bpfman-rpc", "--timeout=0"]
