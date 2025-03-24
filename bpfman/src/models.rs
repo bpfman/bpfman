@@ -30,9 +30,6 @@ pub struct BpfProgram {
     /// Program name (NOT NULL).
     pub name: String,
 
-    /// Optional program description.
-    pub description: Option<String>,
-
     /// Program type discriminator in lowercase.
     /// Allowed values: "xdp", "tc", "tcx", "tracepoint", "kprobe", "uprobe", "fentry", "fexit".
     pub kind: String,
@@ -66,6 +63,7 @@ pub struct BpfProgram {
 
     /// The program binary; NOT NULL.
     #[diesel(sql_type = diesel::sql_types::Binary)]
+    #[serde(skip)]
     pub program_bytes: Vec<u8>,
 
     /// Arbitrary metadata as a JSON string, defaults to {}.
@@ -124,7 +122,7 @@ pub struct BpfProgram {
 #[diesel(belongs_to(BpfProgram, foreign_key = program_id))]
 #[diesel(table_name = crate::schema::bpf_links)]
 pub struct BpfLink {
-    pub id: i64, // PRIMARY KEY
+    pub id: i64,
     pub program_id: i64,
     pub link_type: Option<String>,
     pub target: Option<String>,
@@ -145,12 +143,12 @@ pub struct BpfLink {
 )]
 #[diesel(table_name = crate::schema::bpf_maps)]
 pub struct BpfMap {
-    pub id: i64, // PRIMARY KEY for Identifiable
+    pub id: i64,
     pub name: String,
     pub map_type: Option<String>,
-    pub key_size: Option<i32>,
-    pub value_size: Option<i32>,
-    pub max_entries: Option<i32>,
+    pub key_size: i64,
+    pub value_size: i64,
+    pub max_entries: i64,
     pub created_at: NaiveDateTime,
     pub updated_at: NaiveDateTime,
 }
@@ -284,7 +282,6 @@ impl Default for BpfProgram {
         Self {
             id: 0,
             name: "".to_string(),
-            description: None,
             kind: "".to_string(),
             state: "".to_string(),
             location_type: "".to_string(),
@@ -516,7 +513,6 @@ mod tests {
         let prog = BpfProgram {
             id: 100,
             name: "xdp_test_program".to_string(),
-            description: Some("Test program description".to_string()),
             kind: "xdp".to_string(),
             state: "pre_load".to_string(),
             location_type: "file".to_string(),
@@ -550,8 +546,11 @@ mod tests {
         {
             let json = serde_json::to_string(&prog).expect("Failed to serialize to JSON");
 
-            let deserialized: BpfProgram =
+            let mut deserialized: BpfProgram =
                 serde_json::from_str(&json).expect("Failed to deserialize from JSON");
+
+            // Manually restore the skipped field for comparison.
+            deserialized.program_bytes = prog.program_bytes.clone();
 
             assert_eq!(prog, deserialized);
         }
@@ -566,8 +565,11 @@ mod tests {
             let json_after_db =
                 serde_json::to_string(&inserted).expect("Failed to serialize after DB");
 
-            let deserialized_after_db: BpfProgram =
+            let mut deserialized_after_db: BpfProgram =
                 serde_json::from_str(&json_after_db).expect("Failed to deserialize after DB");
+
+            // Manually restore the skipped field for comparison.
+            deserialized_after_db.program_bytes = prog.program_bytes.clone();
 
             assert_eq!(inserted, deserialized_after_db);
         }

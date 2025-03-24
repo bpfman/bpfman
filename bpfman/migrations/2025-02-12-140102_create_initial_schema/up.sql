@@ -11,7 +11,6 @@
 CREATE TABLE bpf_programs (
     id INTEGER PRIMARY KEY NOT NULL,
     name TEXT NOT NULL,
-    description TEXT,
 
     -- Program type discriminator (lowercase).
     kind TEXT NOT NULL
@@ -113,10 +112,10 @@ CREATE TABLE bpf_links (
 CREATE TABLE bpf_maps (
     id INTEGER PRIMARY KEY NOT NULL,  -- Kernel's BPF map ID (u32)
     name TEXT NOT NULL,
-    map_type TEXT,
-    key_size INTEGER,
-    value_size INTEGER,
-    max_entries INTEGER,
+    map_type TEXT NOT NULL,
+    key_size BIGINT NOT NULL,
+    value_size BIGINT NOT NULL,
+    max_entries BIGINT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

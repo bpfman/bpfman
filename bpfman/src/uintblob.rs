@@ -78,7 +78,6 @@ use diesel::{
     backend::Backend,
     deserialize::{self, FromSql, FromSqlRow},
     expression::AsExpression,
-    row::Row,
     serialize::{self, IsNull, Output, ToSql},
     sql_types::Binary,
     sqlite::Sqlite,
@@ -127,7 +126,8 @@ impl ByteSizedUnsigned for u128 {
 /// big-endian, fixed-size serialisation.
 ///
 /// For more details, see this module’s top-level documentation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, AsExpression, FromSqlRow)]
+#[diesel(sql_type = Binary)]
 pub struct UIntBlob<T>(pub T);
 
 /// A convenience alias for `UIntBlob<u8>`, storing a one-byte
@@ -309,76 +309,76 @@ where
     }
 }
 
-/// Allows an owned `UIntBlob<T>` to be used as a Diesel expression of
-/// type `Binary`. This makes it possible to write queries like:
-///
-/// ```rust,ignore
-/// use diesel::prelude::*;
-/// use my_crate::uintblob::UIntBlob;
-///
-/// // Suppose `table::col` is a BLOB column
-/// table.filter(table::col.eq(UIntBlob::from(123u64)))
-///      .load::<MyRow>(&mut conn)?;
-/// ```
-///
-/// Internally, the `UIntBlob<T>` is converted to a `Vec<u8>` in
-/// big-endian form, preserving both numeric order and minimal size.
-impl<T> AsExpression<Binary> for UIntBlob<T>
-where
-    T: ByteSizedUnsigned + std::fmt::Debug,
-{
-    type Expression = <Vec<u8> as AsExpression<Binary>>::Expression;
+// /// Allows an owned `UIntBlob<T>` to be used as a Diesel expression of
+// /// type `Binary`. This makes it possible to write queries like:
+// ///
+// /// ```rust,ignore
+// /// use diesel::prelude::*;
+// /// use my_crate::uintblob::UIntBlob;
+// ///
+// /// // Suppose `table::col` is a BLOB column
+// /// table.filter(table::col.eq(UIntBlob::from(123u64)))
+// ///      .load::<MyRow>(&mut conn)?;
+// /// ```
+// ///
+// /// Internally, the `UIntBlob<T>` is converted to a `Vec<u8>` in
+// /// big-endian form, preserving both numeric order and minimal size.
+// impl<T> AsExpression<Binary> for UIntBlob<T>
+// where
+//     T: ByteSizedUnsigned + std::fmt::Debug,
+// {
+//     type Expression = <Vec<u8> as AsExpression<Binary>>::Expression;
 
-    fn as_expression(self) -> Self::Expression {
-        <Vec<u8> as AsExpression<Binary>>::as_expression(self.to_bytes())
-    }
-}
+//     fn as_expression(self) -> Self::Expression {
+//         <Vec<u8> as AsExpression<Binary>>::as_expression(self.to_bytes())
+//     }
+// }
 
-/// Allows a reference to `UIntBlob<T>` (`&UIntBlob<T>`) to be used as
-/// a Diesel expression of type `Binary`. This is particularly helpful
-/// when you want to avoid consuming the `UIntBlob<T>` and you already
-/// have a reference to it:
-///
-/// ```rust,ignore
-/// let blob_value = UIntBlob::from(123u64);
-/// // We can pass a reference into the query:
-/// table.filter(table::col.eq(&blob_value))
-///      .load::<MyRow>(&mut conn)?;
-/// ```
-///
-/// Diesel treats this the same as owned `UIntBlob<T>` in queries,
-/// converting it into a byte vector before binding.
-impl<T> AsExpression<Binary> for &UIntBlob<T>
-where
-    T: ByteSizedUnsigned + std::fmt::Debug,
-{
-    type Expression = <Vec<u8> as AsExpression<Binary>>::Expression;
+// /// Allows a reference to `UIntBlob<T>` (`&UIntBlob<T>`) to be used as
+// /// a Diesel expression of type `Binary`. This is particularly helpful
+// /// when you want to avoid consuming the `UIntBlob<T>` and you already
+// /// have a reference to it:
+// ///
+// /// ```rust,ignore
+// /// let blob_value = UIntBlob::from(123u64);
+// /// // We can pass a reference into the query:
+// /// table.filter(table::col.eq(&blob_value))
+// ///      .load::<MyRow>(&mut conn)?;
+// /// ```
+// ///
+// /// Diesel treats this the same as owned `UIntBlob<T>` in queries,
+// /// converting it into a byte vector before binding.
+// impl<T> AsExpression<Binary> for &UIntBlob<T>
+// where
+//     T: ByteSizedUnsigned + std::fmt::Debug,
+// {
+//     type Expression = <Vec<u8> as AsExpression<Binary>>::Expression;
 
-    fn as_expression(self) -> Self::Expression {
-        self.to_owned().as_expression()
-    }
-}
+//     fn as_expression(self) -> Self::Expression {
+//         self.to_owned().as_expression()
+//     }
+// }
 
-/// Implements `FromSqlRow<Binary, Sqlite>` so Diesel can
-/// automatically retrieve a `UIntBlob<T>` from the database without
-/// needing low-level byte handling in user code. If this trait were
-/// missing, you would have to query for `Vec<u8>` yourself and then
-/// manually call [`UIntBlob::from_bytes`] on that `Vec<u8>`.
-///
-/// Under the hood, Diesel first gets the raw bytes as a `Vec<u8>`
-/// from the BLOB column, then calls our
-/// [`from_bytes`](UIntBlob::from_bytes) function. If the size doesn’t
-/// match `T::NUM_BYTES`, or if `T::try_from(u128)` fails, the result
-/// is an error rather than silently returning invalid data.
-impl<T> FromSqlRow<Binary, Sqlite> for UIntBlob<T>
-where
-    T: ByteSizedUnsigned + Copy,
-{
-    fn build_from_row<'a>(row: &impl Row<'a, Sqlite>) -> deserialize::Result<Self> {
-        let v: Vec<u8> = <Vec<u8> as FromSqlRow<Binary, Sqlite>>::build_from_row(row)?;
-        Self::from_bytes(&v)
-    }
-}
+// /// Implements `FromSqlRow<Binary, Sqlite>` so Diesel can
+// /// automatically retrieve a `UIntBlob<T>` from the database without
+// /// needing low-level byte handling in user code. If this trait were
+// /// missing, you would have to query for `Vec<u8>` yourself and then
+// /// manually call [`UIntBlob::from_bytes`] on that `Vec<u8>`.
+// ///
+// /// Under the hood, Diesel first gets the raw bytes as a `Vec<u8>`
+// /// from the BLOB column, then calls our
+// /// [`from_bytes`](UIntBlob::from_bytes) function. If the size doesn’t
+// /// match `T::NUM_BYTES`, or if `T::try_from(u128)` fails, the result
+// /// is an error rather than silently returning invalid data.
+// impl<T> FromSqlRow<Binary, Sqlite> for UIntBlob<T>
+// where
+//     T: ByteSizedUnsigned + Copy,
+// {
+//     fn build_from_row<'a>(row: &impl Row<'a, Sqlite>) -> deserialize::Result<Self> {
+//         let v: Vec<u8> = <Vec<u8> as FromSqlRow<Binary, Sqlite>>::build_from_row(row)?;
+//         Self::from_bytes(&v)
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -1411,5 +1411,1121 @@ mod tests {
             count_filtered.count, expected_count,
             "COUNT with WHERE clause returned incorrect result"
         );
+    }
+
+    #[test]
+    fn test_selectable() {
+        table! {
+            selectable_test (id) {
+                id -> Integer,
+                name -> Text,
+                value_u8 -> Binary,   // For UIntBlob<u8>
+                value_u16 -> Binary,  // For UIntBlob<u16>
+                value_u32 -> Binary,  // For UIntBlob<u32>
+                value_u64 -> Binary,  // For UIntBlob<u64>
+                value_u128 -> Binary, // For UIntBlob<u128>
+            }
+        }
+
+        // Define a struct for both querying and inserting
+        #[derive(Debug, PartialEq, Queryable, Selectable, Insertable)]
+        #[diesel(table_name = selectable_test)]
+        #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+        struct SelectableTest {
+            id: i32,
+            name: String,
+            value_u8: UIntBlob<u8>,
+            value_u16: UIntBlob<u16>,
+            value_u32: UIntBlob<u32>,
+            value_u64: UIntBlob<u64>,
+            value_u128: UIntBlob<u128>,
+        }
+
+        // Create the test database
+        let mut conn = SqliteConnection::establish(":memory:").unwrap();
+        diesel::sql_query(
+            "CREATE TABLE selectable_test (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            value_u8 BLOB NOT NULL,
+            value_u16 BLOB NOT NULL,
+            value_u32 BLOB NOT NULL,
+            value_u64 BLOB NOT NULL,
+            value_u128 BLOB NOT NULL
+        )",
+        )
+        .execute(&mut conn)
+        .unwrap();
+
+        // Create test data
+        let test_data = vec![
+            SelectableTest {
+                id: 1,
+                name: String::from("First"),
+                value_u8: UIntBlob(100u8),
+                value_u16: UIntBlob(1000u16),
+                value_u32: UIntBlob(10000u32),
+                value_u64: UIntBlob(100000u64),
+                value_u128: UIntBlob(1000000u128),
+            },
+            SelectableTest {
+                id: 2,
+                name: String::from("Second"),
+                value_u8: UIntBlob(200u8),
+                value_u16: UIntBlob(2000u16),
+                value_u32: UIntBlob(20000u32),
+                value_u64: UIntBlob(200000u64),
+                value_u128: UIntBlob(2000000u128),
+            },
+            SelectableTest {
+                id: 3,
+                name: String::from("Max Values"),
+                value_u8: UIntBlob(u8::MAX),
+                value_u16: UIntBlob(u16::MAX),
+                value_u32: UIntBlob(u32::MAX),
+                value_u64: UIntBlob(u64::MAX),
+                value_u128: UIntBlob(u128::MAX),
+            },
+        ];
+
+        // Insert test data
+        for item in &test_data {
+            diesel::insert_into(selectable_test::table)
+                .values(item)
+                .execute(&mut conn)
+                .expect("Error inserting test data");
+        }
+
+        // Test 1: Basic selectable - select all rows
+        let results = selectable_test::table
+            .select(SelectableTest::as_select())
+            .order(selectable_test::id.asc())
+            .load(&mut conn)
+            .expect("Error loading data with as_select()");
+
+        assert_eq!(results.len(), 3);
+        assert_eq!(results[0].value_u8.get(), 100u8);
+        assert_eq!(results[1].value_u16.get(), 2000u16);
+        assert_eq!(results[2].value_u128.get(), u128::MAX);
+
+        // Test 2: Filter on UIntBlob<u8>
+        let filtered_u8 = selectable_test::table
+            .select(SelectableTest::as_select())
+            .filter(selectable_test::value_u8.gt(UIntBlob(150u8)))
+            .load(&mut conn)
+            .expect("Error loading filtered data by u8");
+
+        assert_eq!(filtered_u8.len(), 2);
+        assert_eq!(filtered_u8[0].value_u8.get(), 200u8);
+        assert_eq!(filtered_u8[1].value_u8.get(), u8::MAX);
+
+        // Test 3: Filter on UIntBlob<u64>
+        let filtered_u64 = selectable_test::table
+            .select(SelectableTest::as_select())
+            .filter(selectable_test::value_u64.lt(UIntBlob(1000000u64)))
+            .load(&mut conn)
+            .expect("Error loading filtered data by u64");
+
+        assert_eq!(filtered_u64.len(), 2);
+        assert_eq!(filtered_u64[0].value_u64.get(), 100000u64);
+        assert_eq!(filtered_u64[1].value_u64.get(), 200000u64);
+
+        // Test 4: Order by UIntBlob<u32>
+        let ordered_u32 = selectable_test::table
+            .select(SelectableTest::as_select())
+            .order(selectable_test::value_u32.desc())
+            .load(&mut conn)
+            .expect("Error loading ordered data by u32");
+
+        assert_eq!(ordered_u32.len(), 3);
+        assert_eq!(ordered_u32[0].value_u32.get(), u32::MAX);
+        assert_eq!(ordered_u32[1].value_u32.get(), 20000u32);
+        assert_eq!(ordered_u32[2].value_u32.get(), 10000u32);
+
+        // Test 5: Multiple filters with different UIntBlob types
+        let multi_filtered = selectable_test::table
+            .select(SelectableTest::as_select())
+            .filter(selectable_test::value_u16.gt(UIntBlob(500u16)))
+            .filter(selectable_test::value_u128.lt(UIntBlob(3000000u128)))
+            .load(&mut conn)
+            .expect("Error loading multi-filtered data");
+
+        assert_eq!(multi_filtered.len(), 2);
+        assert_eq!(multi_filtered[0].value_u16.get(), 1000u16);
+        assert_eq!(multi_filtered[0].value_u128.get(), 1000000u128);
+        assert_eq!(multi_filtered[1].value_u16.get(), 2000u16);
+        assert_eq!(multi_filtered[1].value_u128.get(), 2000000u128);
+    }
+
+    #[test]
+    fn test_uintblob_crud_operations() {
+        // Define a table with columns for all UIntBlob sizes
+        table! {
+            blob_crud (id) {
+                id -> Integer,
+                name -> Text,
+                value_u8 -> Binary,
+                value_u16 -> Binary,
+                value_u32 -> Binary,
+                value_u64 -> Binary,
+                value_u128 -> Binary,
+            }
+        }
+
+        // Define a struct for CRUD operations
+        #[derive(Debug, PartialEq, Queryable, Insertable)]
+        #[diesel(table_name = blob_crud)]
+        struct BlobEntry {
+            id: i32,
+            name: String,
+            value_u8: UIntBlob<u8>,
+            value_u16: UIntBlob<u16>,
+            value_u32: UIntBlob<u32>,
+            value_u64: UIntBlob<u64>,
+            value_u128: UIntBlob<u128>,
+        }
+
+        // Setup: Create an in-memory database
+        let mut conn = SqliteConnection::establish(":memory:").unwrap();
+
+        // Create the table
+        diesel::sql_query(
+            "CREATE TABLE blob_crud (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            value_u8 BLOB NOT NULL,
+            value_u16 BLOB NOT NULL,
+            value_u32 BLOB NOT NULL,
+            value_u64 BLOB NOT NULL,
+            value_u128 BLOB NOT NULL
+        )",
+        )
+        .execute(&mut conn)
+        .unwrap();
+
+        // === CREATE ===
+
+        // Test inserting entries with different UIntBlob values
+        let entries = vec![
+            BlobEntry {
+                id: 1,
+                name: "Small Values".to_string(),
+                value_u8: UIntBlob(10u8),
+                value_u16: UIntBlob(1000u16),
+                value_u32: UIntBlob(100000u32),
+                value_u64: UIntBlob(10000000u64),
+                value_u128: UIntBlob(1000000000u128),
+            },
+            BlobEntry {
+                id: 2,
+                name: "Medium Values".to_string(),
+                value_u8: UIntBlob(127u8),
+                value_u16: UIntBlob(32000u16),
+                value_u32: UIntBlob(2000000000u32),
+                value_u64: UIntBlob(9000000000000000000u64),
+                value_u128: UIntBlob(170141183460469231731687303715884105727u128), // 2^127 - 1
+            },
+            BlobEntry {
+                id: 3,
+                name: "Maximum Values".to_string(),
+                value_u8: UIntBlob(u8::MAX),
+                value_u16: UIntBlob(u16::MAX),
+                value_u32: UIntBlob(u32::MAX),
+                value_u64: UIntBlob(u64::MAX),
+                value_u128: UIntBlob(u128::MAX),
+            },
+        ];
+
+        // Insert entries one at a time to test insertion
+        for entry in &entries {
+            let inserted_rows = diesel::insert_into(blob_crud::table)
+                .values(entry)
+                .execute(&mut conn)
+                .expect("Error inserting entry");
+
+            assert_eq!(inserted_rows, 1, "Expected to insert 1 row");
+        }
+
+        // === READ ===
+
+        // Test reading a single entry with find()
+        let entry_1: BlobEntry = blob_crud::table
+            .find(1)
+            .first(&mut conn)
+            .expect("Error finding entry 1");
+
+        assert_eq!(entry_1.id, 1);
+        assert_eq!(entry_1.name, "Small Values");
+        assert_eq!(entry_1.value_u8.get(), 10u8);
+        assert_eq!(entry_1.value_u16.get(), 1000u16);
+        assert_eq!(entry_1.value_u32.get(), 100000u32);
+        assert_eq!(entry_1.value_u64.get(), 10000000u64);
+        assert_eq!(entry_1.value_u128.get(), 1000000000u128);
+
+        // Test reading entries with filter on UIntBlob
+        let medium_values: Vec<BlobEntry> = blob_crud::table
+            .filter(blob_crud::value_u8.eq(UIntBlob(127u8)))
+            .load(&mut conn)
+            .expect("Error loading filtered entries");
+
+        assert_eq!(medium_values.len(), 1);
+        assert_eq!(medium_values[0].id, 2);
+        assert_eq!(medium_values[0].name, "Medium Values");
+
+        // Test reading all entries with order by UIntBlob
+        let all_entries: Vec<BlobEntry> = blob_crud::table
+            .order(blob_crud::value_u64.asc())
+            .load(&mut conn)
+            .expect("Error loading all entries");
+
+        assert_eq!(all_entries.len(), 3);
+        assert_eq!(all_entries[0].value_u64.get(), 10000000u64);
+        assert_eq!(all_entries[1].value_u64.get(), 9000000000000000000u64);
+        assert_eq!(all_entries[2].value_u64.get(), u64::MAX);
+
+        // === UPDATE ===
+
+        // Test updating a single UIntBlob field
+        let updated_rows = diesel::update(blob_crud::table.find(1))
+            .set(blob_crud::value_u8.eq(UIntBlob(50u8)))
+            .execute(&mut conn)
+            .expect("Error updating entry");
+
+        assert_eq!(updated_rows, 1, "Expected to update 1 row");
+
+        // Verify the update
+        let updated_entry: BlobEntry = blob_crud::table
+            .find(1)
+            .first(&mut conn)
+            .expect("Error finding updated entry");
+
+        assert_eq!(
+            updated_entry.value_u8.get(),
+            50u8,
+            "u8 value should be updated"
+        );
+        assert_eq!(
+            updated_entry.value_u16.get(),
+            1000u16,
+            "Other values should remain unchanged"
+        );
+
+        // Test updating multiple UIntBlob fields
+        let multi_updated_rows = diesel::update(blob_crud::table.find(2))
+            .set((
+                blob_crud::value_u16.eq(UIntBlob(20000u16)),
+                blob_crud::value_u32.eq(UIntBlob(3000000u32)),
+            ))
+            .execute(&mut conn)
+            .expect("Error updating multiple fields");
+
+        assert_eq!(multi_updated_rows, 1, "Expected to update 1 row");
+
+        // Verify multiple field update
+        let multi_updated_entry: BlobEntry = blob_crud::table
+            .find(2)
+            .first(&mut conn)
+            .expect("Error finding multi-updated entry");
+
+        assert_eq!(multi_updated_entry.value_u16.get(), 20000u16);
+        assert_eq!(multi_updated_entry.value_u32.get(), 3000000u32);
+        assert_eq!(
+            multi_updated_entry.value_u8.get(),
+            127u8,
+            "Unmodified fields should remain unchanged"
+        );
+
+        // === DELETE ===
+
+        // Test deleting an entry by UIntBlob value
+        let deleted_rows =
+            diesel::delete(blob_crud::table.filter(blob_crud::value_u8.eq(UIntBlob(u8::MAX))))
+                .execute(&mut conn)
+                .expect("Error deleting entry");
+
+        assert_eq!(deleted_rows, 1, "Expected to delete 1 row");
+
+        // Verify deletion
+        let remaining_entries: Vec<BlobEntry> = blob_crud::table
+            .load(&mut conn)
+            .expect("Error loading remaining entries");
+
+        assert_eq!(
+            remaining_entries.len(),
+            2,
+            "Should have 2 entries remaining"
+        );
+        assert!(
+            remaining_entries.iter().all(|e| e.id != 3),
+            "Entry with id=3 should be deleted"
+        );
+
+        // Test deleting multiple entries with a condition on UIntBlob
+        let multi_deleted_rows =
+            diesel::delete(blob_crud::table.filter(blob_crud::value_u16.lt(UIntBlob(30000u16))))
+                .execute(&mut conn)
+                .expect("Error deleting multiple entries");
+
+        assert_eq!(multi_deleted_rows, 2, "Expected to delete 2 rows");
+
+        // Verify all entries deleted
+        let final_count: i64 = blob_crud::table
+            .count()
+            .get_result(&mut conn)
+            .expect("Error counting remaining entries");
+
+        assert_eq!(final_count, 0, "All entries should be deleted");
+    }
+
+    #[test]
+    fn test_uintblob_query_operations() {
+        use std::collections::HashMap;
+
+        use diesel::{
+            prelude::*,
+            sql_types::{BigInt, Text},
+        };
+
+        table! {
+            blob_query (id) {
+                id -> Integer,
+                category -> Text,
+                value_u8 -> Binary,
+                value_u16 -> Binary,
+                value_u32 -> Binary,
+                value_u64 -> Binary,
+            }
+        }
+
+        #[derive(Debug, PartialEq, Queryable, Insertable)]
+        #[diesel(table_name = blob_query)]
+        struct BlobQueryEntry {
+            id: i32,
+            category: String,
+            value_u8: UIntBlob<u8>,
+            value_u16: UIntBlob<u16>,
+            value_u32: UIntBlob<u32>,
+            value_u64: UIntBlob<u64>,
+        }
+
+        #[derive(QueryableByName, Debug)]
+        struct CategoryCount {
+            #[diesel(sql_type = Text)]
+            category: String,
+            #[diesel(sql_type = BigInt)]
+            count: i64,
+        }
+
+        let mut conn = SqliteConnection::establish(":memory:").unwrap();
+        diesel::sql_query(
+            "CREATE TABLE blob_query (
+            id INTEGER PRIMARY KEY,
+            category TEXT NOT NULL,
+            value_u8 BLOB NOT NULL,
+            value_u16 BLOB NOT NULL,
+            value_u32 BLOB NOT NULL,
+            value_u64 BLOB NOT NULL
+        )",
+        )
+        .execute(&mut conn)
+        .unwrap();
+
+        let entries = vec![
+            BlobQueryEntry {
+                id: 1,
+                category: "A".into(),
+                value_u8: 10.into(),
+                value_u16: 1000.into(),
+                value_u32: 100000.into(),
+                value_u64: 10_000_000_000.into(),
+            },
+            BlobQueryEntry {
+                id: 2,
+                category: "A".into(),
+                value_u8: 20.into(),
+                value_u16: 2000.into(),
+                value_u32: 200000.into(),
+                value_u64: 20_000_000_000.into(),
+            },
+            BlobQueryEntry {
+                id: 3,
+                category: "A".into(),
+                value_u8: 30.into(),
+                value_u16: 3000.into(),
+                value_u32: 300000.into(),
+                value_u64: 30_000_000_000.into(),
+            },
+            BlobQueryEntry {
+                id: 4,
+                category: "B".into(),
+                value_u8: 100.into(),
+                value_u16: 10000.into(),
+                value_u32: 1000000.into(),
+                value_u64: 40_000_000_000.into(),
+            },
+            BlobQueryEntry {
+                id: 5,
+                category: "B".into(),
+                value_u8: 150.into(),
+                value_u16: 15000.into(),
+                value_u32: 1500000.into(),
+                value_u64: 50_000_000_000.into(),
+            },
+            BlobQueryEntry {
+                id: 6,
+                category: "C".into(),
+                value_u8: 0.into(),
+                value_u16: 0.into(),
+                value_u32: 0.into(),
+                value_u64: 0.into(),
+            },
+            BlobQueryEntry {
+                id: 7,
+                category: "C".into(),
+                value_u8: 255.into(),
+                value_u16: u16::MAX.into(),
+                value_u32: u32::MAX.into(),
+                value_u64: (i64::MAX as u64).into(),
+            },
+            BlobQueryEntry {
+                id: 8,
+                category: "D".into(),
+                value_u8: 50.into(),
+                value_u16: 5000.into(),
+                value_u32: 500000.into(),
+                value_u64: 5_000_000_000.into(),
+            },
+            BlobQueryEntry {
+                id: 9,
+                category: "D".into(),
+                value_u8: 50.into(),
+                value_u16: 5000.into(),
+                value_u32: 600000.into(),
+                value_u64: 6_000_000_000.into(),
+            },
+            BlobQueryEntry {
+                id: 10,
+                category: "D".into(),
+                value_u8: 50.into(),
+                value_u16: 6000.into(),
+                value_u32: 700000.into(),
+                value_u64: 7_000_000_000.into(),
+            },
+        ];
+
+        for entry in &entries {
+            diesel::insert_into(blob_query::table)
+                .values(entry)
+                .execute(&mut conn)
+                .unwrap();
+        }
+
+        // === VERIFY INSERTION ===
+        let all_rows: Vec<BlobQueryEntry> = blob_query::table.load(&mut conn).unwrap();
+        let mut counts = HashMap::new();
+        for row in &all_rows {
+            *counts.entry(row.category.as_str()).or_insert(0) += 1;
+        }
+        assert_eq!(
+            counts.len(),
+            4,
+            "Expected 4 distinct categories after insertion"
+        );
+        assert_eq!(counts["A"], 3);
+        assert_eq!(counts["B"], 2);
+        assert_eq!(counts["C"], 2);
+        assert_eq!(counts["D"], 3);
+
+        // --- Filtering Operations ---
+
+        // Test 1: Basic equality filter on u8.
+        let equal_entries: Vec<BlobQueryEntry> = blob_query::table
+            .filter(blob_query::value_u8.eq(UIntBlob::from(50u8)))
+            .load(&mut conn)
+            .expect("Error filtering by equality");
+        assert_eq!(equal_entries.len(), 3);
+
+        // Test 2: Range filtering on u16.
+        let range_entries: Vec<BlobQueryEntry> = blob_query::table
+            .filter(blob_query::value_u16.ge(UIntBlob::from(2000u16)))
+            .filter(blob_query::value_u16.lt(UIntBlob::from(10000u16)))
+            .load(&mut conn)
+            .expect("Error filtering by range");
+        assert_eq!(range_entries.len(), 5);
+
+        // Test 3: Multiple field filtering.
+        let multi_field_entries: Vec<BlobQueryEntry> = blob_query::table
+            .filter(blob_query::value_u8.le(UIntBlob::from(30u8)))
+            .filter(blob_query::value_u32.ge(UIntBlob::from(100000u32)))
+            .load(&mut conn)
+            .expect("Error with multi-field filtering");
+        assert_eq!(multi_field_entries.len(), 3);
+
+        // Test 4: OR conditions.
+        let or_condition_entries: Vec<BlobQueryEntry> = blob_query::table
+            .filter(
+                blob_query::value_u8
+                    .eq(UIntBlob::from(0u8))
+                    .or(blob_query::value_u8.eq(UIntBlob::from(255u8))),
+            )
+            .load(&mut conn)
+            .expect("Error with OR condition");
+        assert_eq!(or_condition_entries.len(), 2);
+
+        // --- Ordering Operations ---
+
+        // Test 5: Ascending order on u16.
+        let asc_entries: Vec<BlobQueryEntry> = blob_query::table
+            .filter(blob_query::category.eq("A"))
+            .order(blob_query::value_u16.asc())
+            .load(&mut conn)
+            .expect("Error with ascending order");
+        assert_eq!(asc_entries.len(), 3);
+        assert_eq!(asc_entries[0].value_u16.get(), 1000u16);
+        assert_eq!(asc_entries[1].value_u16.get(), 2000u16);
+        assert_eq!(asc_entries[2].value_u16.get(), 3000u16);
+
+        // Test 6: Descending order on u64.
+        let desc_entries: Vec<BlobQueryEntry> = blob_query::table
+            .order(blob_query::value_u64.desc())
+            .limit(3)
+            .load(&mut conn)
+            .expect("Error with descending order");
+        assert_eq!(desc_entries.len(), 3);
+        // The highest u64 value should come from category C.
+        assert_eq!(
+            desc_entries[0].value_u64.get(),
+            9_223_372_036_854_775_807u64
+        );
+
+        // Test 7: Multi-field ordering.
+        let multi_order_entries: Vec<BlobQueryEntry> = blob_query::table
+            .filter(blob_query::category.eq("D"))
+            .order((blob_query::value_u8.asc(), blob_query::value_u16.desc()))
+            .load(&mut conn)
+            .expect("Error with multi-field ordering");
+        assert_eq!(multi_order_entries.len(), 3);
+        // All rows have value_u8 of 50, so value_u16 should be in descending order.
+        assert_eq!(multi_order_entries[0].value_u16.get(), 6000u16);
+        assert_eq!(multi_order_entries[1].value_u16.get(), 5000u16);
+        assert_eq!(multi_order_entries[2].value_u16.get(), 5000u16);
+
+        // --- MIN/MAX via Ordering (Test 8) ---
+
+        // Instead of using aggregate functions, we retrieve the minimum and maximum
+        // by ordering the rows.
+        let min_entry: BlobQueryEntry = blob_query::table
+            .order(blob_query::value_u16.asc())
+            .first(&mut conn)
+            .expect("Error retrieving minimum value for u16");
+        let max_entry: BlobQueryEntry = blob_query::table
+            .order(blob_query::value_u16.desc())
+            .first(&mut conn)
+            .expect("Error retrieving maximum value for u16");
+        // Because our UIntBlob stores the number in big‑endian form,
+        // the lexicographical ordering matches numeric ordering.
+        assert_eq!(min_entry.value_u16.get(), 0u16, "Minimum u16 should be 0");
+        assert_eq!(
+            max_entry.value_u16.get(),
+            u16::MAX,
+            "Maximum u16 should be u16::MAX"
+        );
+
+        // --- COUNT Operation (Test 9) ---
+
+        // Count rows where value_u8 > 50:
+        //   Category A: values 10, 20, 30 → none > 50
+        //   Category B: values 100, 150 → both > 50 (2)
+        //   Category C: values 0, 255   → only 255 > 50 (1)
+        //   Category D: values 50, 50, 50 → none > 50 (50 == 50)
+        // Total expected count = 3
+        let count: i64 = blob_query::table
+            .filter(blob_query::value_u8.gt(UIntBlob::from(50u8)))
+            .count()
+            .get_result(&mut conn)
+            .expect("Error with COUNT and filtering");
+        assert_eq!(count, 3);
+
+        // --- GROUP BY using Raw SQL (Test 10) ---
+        let category_counts: Vec<CategoryCount> = diesel::sql_query(
+        "SELECT category, COUNT(*) as count FROM blob_query GROUP BY category ORDER BY category ASC"
+    )
+    .load(&mut conn)
+    .expect("Error with GROUP BY on category");
+        assert_eq!(category_counts.len(), 4);
+        assert_eq!(category_counts[0].category, "A");
+        assert_eq!(category_counts[0].count, 3);
+        assert_eq!(category_counts[3].category, "D");
+        assert_eq!(category_counts[3].count, 3);
+
+        // --- Subquery and Complex Filtering ---
+
+        // Test 11: Subquery with u8 – simplified approach.
+        let distinct_d_values: Vec<UIntBlob<u8>> = blob_query::table
+            .select(blob_query::value_u8)
+            .filter(blob_query::category.eq("D"))
+            .distinct()
+            .load(&mut conn)
+            .expect("Error loading distinct values");
+        assert_eq!(distinct_d_values.len(), 1);
+        assert_eq!(distinct_d_values[0].get(), 50u8);
+        let matching_entries: Vec<BlobQueryEntry> = blob_query::table
+            .filter(blob_query::value_u8.eq(distinct_d_values[0]))
+            .filter(blob_query::category.ne("D"))
+            .load(&mut conn)
+            .expect("Error with simplified subquery approach");
+        assert_eq!(matching_entries.len(), 0);
+
+        // Test 12: Complex filtering with mixed conditions.
+        let complex_entries: Vec<BlobQueryEntry> = blob_query::table
+            .filter(
+                blob_query::category
+                    .eq("A")
+                    .and(blob_query::value_u16.lt(UIntBlob::from(3000u16)))
+                    .or(blob_query::category
+                        .eq("B")
+                        .and(blob_query::value_u8.gt(UIntBlob::from(100u8)))),
+            )
+            .order(blob_query::id.asc())
+            .load(&mut conn)
+            .expect("Error with complex filtering");
+        assert_eq!(complex_entries.len(), 3);
+        assert_eq!(complex_entries[0].id, 1);
+        assert_eq!(complex_entries[1].id, 2);
+        assert_eq!(complex_entries[2].id, 5);
+    }
+
+    #[test]
+    fn test_uintblob_edge_cases() {
+        // Define a single table for all size tests
+        table! {
+            size_test (id) {
+                id -> Integer,
+                value -> Binary,
+            }
+        }
+
+        // Define a generic struct for different UIntBlob sizes
+        #[derive(Debug, Insertable, Queryable)]
+        #[diesel(table_name = size_test)]
+        struct SizeTest<T> {
+            id: i32,
+            value: UIntBlob<T>,
+        }
+
+        let mut conn = SqliteConnection::establish(":memory:").unwrap();
+
+        // Create table
+        diesel::sql_query("CREATE TABLE size_test (id INTEGER PRIMARY KEY, value BLOB NOT NULL)")
+            .execute(&mut conn)
+            .unwrap();
+
+        // Test 1: Size mismatches
+
+        // Insert with u16
+        let u16_entry = SizeTest {
+            id: 1,
+            value: UIntBlob::from(12345u16),
+        };
+
+        diesel::insert_into(size_test::table)
+            .values(&u16_entry)
+            .execute(&mut conn)
+            .expect("Failed to insert u16 entry");
+
+        // Try to read as u32 (wrong size)
+        let u32_result = size_test::table.find(1).first::<SizeTest<u32>>(&mut conn);
+
+        assert!(
+            u32_result.is_err(),
+            "Expected error when reading u16 as u32"
+        );
+        if let Err(err) = u32_result {
+            println!("Got expected deserialization error: {}", err);
+            assert!(
+                err.to_string().contains("Invalid input size"),
+                "Error should mention invalid input size"
+            );
+        }
+
+        // Insert with u64
+        let u64_entry = SizeTest {
+            id: 2,
+            value: UIntBlob::from(1234567890123456789u64),
+        };
+
+        diesel::insert_into(size_test::table)
+            .values(&u64_entry)
+            .execute(&mut conn)
+            .expect("Failed to insert u64 entry");
+
+        // Try to read as u16 (wrong size)
+        let u16_result = size_test::table.find(2).first::<SizeTest<u16>>(&mut conn);
+
+        assert!(
+            u16_result.is_err(),
+            "Expected error when reading u64 as u16"
+        );
+        if let Err(err) = u16_result {
+            println!("Got expected deserialization error: {}", err);
+            assert!(
+                err.to_string().contains("Invalid input size"),
+                "Error should mention invalid input size"
+            );
+        }
+
+        // Test 2: Empty and undersized BLOBs
+
+        // Define a table for BLOB size tests
+        table! {
+            blob_size_test (id) {
+                id -> Integer,
+                size_type -> Text,
+                value -> Binary,
+            }
+        }
+
+        // Define a query struct
+        #[derive(Debug, Queryable)]
+        #[allow(dead_code)]
+        struct BlobSizeTest<T> {
+            id: i32,
+            size_type: String,
+            value: UIntBlob<T>,
+        }
+
+        // Create table for empty/undersized tests
+        diesel::sql_query(
+            "CREATE TABLE blob_size_test (id INTEGER PRIMARY KEY, size_type TEXT, value BLOB)",
+        )
+        .execute(&mut conn)
+        .unwrap();
+
+        // Insert an empty BLOB
+        diesel::sql_query(
+            "INSERT INTO blob_size_test (id, size_type, value) VALUES (1, 'empty', X'')",
+        )
+        .execute(&mut conn)
+        .expect("Failed to insert empty BLOB");
+
+        // Insert a 1-byte BLOB
+        diesel::sql_query(
+            "INSERT INTO blob_size_test (id, size_type, value) VALUES (2, 'undersized', X'2A')",
+        )
+        .execute(&mut conn)
+        .expect("Failed to insert undersized BLOB");
+
+        // Try to read the empty BLOB as UIntBlob<u8>
+        let empty_result = blob_size_test::table
+            .filter(blob_size_test::size_type.eq("empty"))
+            .first::<BlobSizeTest<u8>>(&mut conn);
+
+        assert!(
+            empty_result.is_err(),
+            "Expected error when reading empty BLOB"
+        );
+        if let Err(err) = empty_result {
+            println!("Got expected deserialization error for empty BLOB: {}", err);
+            assert!(
+                err.to_string().contains("Invalid input size"),
+                "Error should mention invalid input size"
+            );
+        }
+
+        // Try to read the 1-byte BLOB as UIntBlob<u16> (should fail)
+        let undersized_result = blob_size_test::table
+            .filter(blob_size_test::size_type.eq("undersized"))
+            .first::<BlobSizeTest<u16>>(&mut conn);
+
+        assert!(
+            undersized_result.is_err(),
+            "Expected error for undersized BLOB"
+        );
+        if let Err(err) = undersized_result {
+            println!(
+                "Got expected deserialization error for undersized BLOB: {}",
+                err
+            );
+            assert!(
+                err.to_string().contains("Invalid input size"),
+                "Error should mention invalid input size"
+            );
+        }
+
+        // Test 3: Boundary values (min and max)
+
+        // Define a table for boundary tests
+        table! {
+            boundary_test (id) {
+                id -> Integer,
+                value_type -> Text,
+                value -> Binary,
+            }
+        }
+
+        // Create table for boundary tests
+        diesel::sql_query("CREATE TABLE boundary_test (id INTEGER PRIMARY KEY, value_type TEXT, value BLOB NOT NULL)")
+        .execute(&mut conn)
+        .unwrap();
+
+        // Insert boundary values
+
+        // u8 boundaries
+        diesel::insert_into(boundary_test::table)
+            .values((
+                boundary_test::id.eq(1),
+                boundary_test::value_type.eq("u8_min"),
+                boundary_test::value.eq(UIntBlob::from(0u8)),
+            ))
+            .execute(&mut conn)
+            .expect("Failed to insert u8 min");
+
+        diesel::insert_into(boundary_test::table)
+            .values((
+                boundary_test::id.eq(2),
+                boundary_test::value_type.eq("u8_max"),
+                boundary_test::value.eq(UIntBlob::from(u8::MAX)),
+            ))
+            .execute(&mut conn)
+            .expect("Failed to insert u8 max");
+
+        // u16 boundaries
+        diesel::insert_into(boundary_test::table)
+            .values((
+                boundary_test::id.eq(3),
+                boundary_test::value_type.eq("u16_min"),
+                boundary_test::value.eq(UIntBlob(0u16)),
+            ))
+            .execute(&mut conn)
+            .expect("Failed to insert u16 min");
+
+        diesel::insert_into(boundary_test::table)
+            .values((
+                boundary_test::id.eq(4),
+                boundary_test::value_type.eq("u16_max"),
+                boundary_test::value.eq(UIntBlob(u16::MAX)),
+            ))
+            .execute(&mut conn)
+            .expect("Failed to insert u16 max");
+
+        // u32 boundaries
+        diesel::insert_into(boundary_test::table)
+            .values((
+                boundary_test::id.eq(5),
+                boundary_test::value_type.eq("u32_min"),
+                boundary_test::value.eq(UIntBlob(0u32)),
+            ))
+            .execute(&mut conn)
+            .expect("Failed to insert u32 min");
+
+        diesel::insert_into(boundary_test::table)
+            .values((
+                boundary_test::id.eq(6),
+                boundary_test::value_type.eq("u32_max"),
+                boundary_test::value.eq(UIntBlob(u32::MAX)),
+            ))
+            .execute(&mut conn)
+            .expect("Failed to insert u32 max");
+
+        // u64 boundaries
+        diesel::insert_into(boundary_test::table)
+            .values((
+                boundary_test::id.eq(7),
+                boundary_test::value_type.eq("u64_min"),
+                boundary_test::value.eq(UIntBlob(0u64)),
+            ))
+            .execute(&mut conn)
+            .expect("Failed to insert u64 min");
+
+        diesel::insert_into(boundary_test::table)
+            .values((
+                boundary_test::id.eq(8),
+                boundary_test::value_type.eq("u64_max"),
+                boundary_test::value.eq(UIntBlob(u64::MAX)),
+            ))
+            .execute(&mut conn)
+            .expect("Failed to insert u64 max");
+
+        // u128 boundaries
+        diesel::insert_into(boundary_test::table)
+            .values((
+                boundary_test::id.eq(9),
+                boundary_test::value_type.eq("u128_min"),
+                boundary_test::value.eq(UIntBlob(0u128)),
+            ))
+            .execute(&mut conn)
+            .expect("Failed to insert u128 min");
+
+        diesel::insert_into(boundary_test::table)
+            .values((
+                boundary_test::id.eq(10),
+                boundary_test::value_type.eq("u128_max"),
+                boundary_test::value.eq(UIntBlob(u128::MAX)),
+            ))
+            .execute(&mut conn)
+            .expect("Failed to insert u128 max");
+
+        // Define a generic struct for retrieving boundary values
+        #[derive(Debug, Queryable)]
+        #[allow(dead_code)]
+        struct BoundaryTest<T> {
+            id: i32,
+            value_type: String,
+            value: UIntBlob<T>,
+        }
+
+        // Test retrieving boundary values
+
+        // u8 boundaries
+        let u8_min = boundary_test::table
+            .find(1)
+            .first::<BoundaryTest<u8>>(&mut conn)
+            .expect("Failed to get u8 min");
+
+        let u8_max = boundary_test::table
+            .find(2)
+            .first::<BoundaryTest<u8>>(&mut conn)
+            .expect("Failed to get u8 max");
+
+        assert_eq!(u8_min.value.get(), 0u8);
+        assert_eq!(u8_max.value.get(), u8::MAX);
+
+        // u16 boundaries
+        let u16_min = boundary_test::table
+            .find(3)
+            .first::<BoundaryTest<u16>>(&mut conn)
+            .expect("Failed to get u16 min");
+
+        let u16_max = boundary_test::table
+            .find(4)
+            .first::<BoundaryTest<u16>>(&mut conn)
+            .expect("Failed to get u16 max");
+
+        assert_eq!(u16_min.value.get(), 0u16);
+        assert_eq!(u16_max.value.get(), u16::MAX);
+
+        // u32 boundaries
+        let u32_min = boundary_test::table
+            .find(5)
+            .first::<BoundaryTest<u32>>(&mut conn)
+            .expect("Failed to get u32 min");
+
+        let u32_max = boundary_test::table
+            .find(6)
+            .first::<BoundaryTest<u32>>(&mut conn)
+            .expect("Failed to get u32 max");
+
+        assert_eq!(u32_min.value.get(), 0u32);
+        assert_eq!(u32_max.value.get(), u32::MAX);
+
+        // u64 boundaries
+        let u64_min = boundary_test::table
+            .find(7)
+            .first::<BoundaryTest<u64>>(&mut conn)
+            .expect("Failed to get u64 min");
+
+        let u64_max = boundary_test::table
+            .find(8)
+            .first::<BoundaryTest<u64>>(&mut conn)
+            .expect("Failed to get u64 max");
+
+        assert_eq!(u64_min.value.get(), 0u64);
+        assert_eq!(u64_max.value.get(), u64::MAX);
+
+        // u128 boundaries
+        let u128_min = boundary_test::table
+            .find(9)
+            .first::<BoundaryTest<u128>>(&mut conn)
+            .expect("Failed to get u128 min");
+
+        let u128_max = boundary_test::table
+            .find(10)
+            .first::<BoundaryTest<u128>>(&mut conn)
+            .expect("Failed to get u128 max");
+
+        assert_eq!(u128_min.value.get(), 0u128);
+        assert_eq!(u128_max.value.get(), u128::MAX);
+
+        // Test 4: Update with wrong size
+
+        // Define a table for update tests
+        table! {
+            update_test (id) {
+                id -> Integer,
+                value -> Binary,
+            }
+        }
+
+        // Define a struct for update tests
+        #[derive(Debug, Insertable, Queryable, Identifiable, AsChangeset)]
+        #[diesel(table_name = update_test)]
+        struct UpdateTest<T> {
+            id: i32,
+            value: UIntBlob<T>,
+        }
+
+        // Create table for update tests
+        diesel::sql_query("CREATE TABLE update_test (id INTEGER PRIMARY KEY, value BLOB NOT NULL)")
+            .execute(&mut conn)
+            .unwrap();
+
+        // Insert initial value (u16)
+        let initial = UpdateTest {
+            id: 1,
+            value: UIntBlob::from(42u16),
+        };
+
+        diesel::insert_into(update_test::table)
+            .values(&initial)
+            .execute(&mut conn)
+            .expect("Failed to insert initial update value");
+
+        // Verify initial insert
+        let retrieved = update_test::table
+            .find(1)
+            .first::<UpdateTest<u16>>(&mut conn)
+            .expect("Failed to retrieve initial value");
+
+        assert_eq!(retrieved.value.get(), 42u16);
+
+        // Update with wrong size (u32 instead of u16)
+        let update_result = diesel::update(update_test::table.find(1))
+            .set(update_test::value.eq(UIntBlob::from(43u32)))
+            .execute(&mut conn);
+
+        // SQLite should allow this update at the DB level
+        assert!(update_result.is_ok(), "Update should succeed at DB level");
+
+        // Attempt to retrieve after wrong-size update
+        let wrong_size_result = update_test::table
+            .find(1)
+            .first::<UpdateTest<u16>>(&mut conn);
+
+        // This should fail with a deserialization error
+        assert!(
+            wrong_size_result.is_err(),
+            "Expected error retrieving wrong size"
+        );
+        if let Err(err) = wrong_size_result {
+            println!("Got expected error after update: {}", err);
+            assert!(
+                err.to_string().contains("Invalid input size"),
+                "Error should mention invalid input size"
+            );
+        }
+
+        // Fix the row with correct type
+        diesel::update(update_test::table.find(1))
+            .set(update_test::value.eq(UIntBlob::from(44u16)))
+            .execute(&mut conn)
+            .expect("Failed to update with correct type");
+
+        // Verify fixed update
+        let fixed = update_test::table
+            .find(1)
+            .first::<UpdateTest<u16>>(&mut conn)
+            .expect("Failed to retrieve after fix");
+
+        assert_eq!(fixed.value.get(), 44u16);
     }
 }

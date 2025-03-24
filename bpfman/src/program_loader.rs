@@ -37,7 +37,7 @@ impl<'a> LoadSpec<'a> {
     ///
     /// This helper method converts the internal tuple representation
     /// of global data (name, value pairs) into a HashMap for easier
-    /// access and serialization.
+    /// access and serialisation.
     ///
     /// # Arguments
     ///
@@ -90,7 +90,7 @@ impl<'a> LoadSpec<'a> {
     /// - **Each program type must have a valid function name.**
     ///   - `fentry` and `fexit` programs **must** include an associated function name.
     ///   - All other programs **must** specify at least one function.
-    /// - **Global data and metadata are pre-validated and serialized to JSON.**
+    /// - **Global data and metadata are pre-validated and serialised to JSON.**
     pub fn new(
         bytecode_source: Location,
         function_names: &'a [String],
@@ -187,12 +187,12 @@ fn build_bpfmap_from_aya_map(
     };
 
     Ok(BpfMap {
-        id: map_info.id() as i64,
+        id: map_info.id().into(),
         name: map_name.to_string(),
-        map_type: map_info.map_type().ok().map(|mt| format!("{:?}", mt)),
-        key_size: Some(map_info.key_size() as i32), // Convert usize to i32
-        value_size: Some(map_info.value_size() as i32),
-        max_entries: Some(map_info.max_entries() as i32),
+        map_type: Some(format!("{:?}", map_info.map_type()?)),
+        key_size: map_info.key_size().into(),
+        value_size: map_info.value_size().into(),
+        max_entries: map_info.max_entries().into(),
         created_at: Utc::now().naive_utc(),
         updated_at: Utc::now().naive_utc(),
     })
@@ -231,9 +231,8 @@ fn build_bpfprogram_from_aya_program(
         .map(|t| chrono::DateTime::<chrono::Utc>::from(t).to_rfc3339());
 
     Ok(BpfProgram {
-        id: prog_info.id() as i64,
+        id: prog_info.id().into(),
         name: name.to_owned(),
-        description: None, // XXX(frobware) Not available from LoadSpec or Aya.
         kind: program_type.to_string(),
         state: "loaded".to_string(),
         location_type: location_type.to_string(),

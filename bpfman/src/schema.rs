@@ -16,10 +16,10 @@ diesel::table! {
     bpf_maps (id) {
         id -> BigInt,
         name -> Text,
-        map_type -> Nullable<Text>,
-        key_size -> Nullable<Integer>,
-        value_size -> Nullable<Integer>,
-        max_entries -> Nullable<Integer>,
+        map_type -> Text,
+        key_size -> BigInt,
+        value_size -> BigInt,
+        max_entries -> BigInt,
         created_at -> Timestamp,
         updated_at -> Timestamp,
     }
@@ -36,7 +36,6 @@ diesel::table! {
     bpf_programs (id) {
         id -> BigInt,
         name -> Text,
-        description -> Nullable<Text>,
         kind -> Text,
         state -> Text,
         location_type -> Text,
