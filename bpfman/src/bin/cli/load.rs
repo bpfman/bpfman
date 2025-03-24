@@ -3,12 +3,12 @@
 
 use std::collections::HashMap;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use bpfman::{
     add_programs,
     errors::BpfmanError,
     load_ebpf_programs,
-    models::{get_program_bytes_and_validate, BpfMap, BpfProgram},
+    models::{BpfMap, BpfProgram, get_program_bytes_and_validate},
     oci_utils::image_manager::ImageManager,
     program_loader::{EbpfLoadResult, LoadSpec},
     setup, setup_with_sqlite,

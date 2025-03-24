@@ -1,17 +1,16 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::Result;
-use aya::{maps::Map, Ebpf};
+use aya::{Ebpf, maps::Map};
 use chrono::Utc;
 use serde::Serialize;
 
 use crate::{
-    calc_map_pin_path, create_map_pin_path,
+    BpfmanError, ProgramType, calc_map_pin_path, create_map_pin_path,
     directories::*,
     models::{BpfMap, BpfProgram},
     types::Location,
     utils::should_map_be_pinned,
-    BpfmanError, ProgramType,
 };
 
 #[derive(Debug, Serialize)]

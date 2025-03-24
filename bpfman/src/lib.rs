@@ -26,7 +26,7 @@ use aya::{
     },
 };
 use diesel::{prelude::*, sqlite::SqliteConnection};
-use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 use log::{debug, error, info, warn};
 use multiprog::{TcDispatcher, XdpDispatcher};
 use program_loader::{EbpfLoadResult, LoadSpec};

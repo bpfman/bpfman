@@ -609,10 +609,12 @@ mod tests {
             let result = type_test::table.find(1).first::<TypeTestU32>(&mut conn);
 
             assert!(result.is_err());
-            assert!(result
-                .unwrap_err()
-                .to_string()
-                .contains("Invalid input size"));
+            assert!(
+                result
+                    .unwrap_err()
+                    .to_string()
+                    .contains("Invalid input size")
+            );
         }
 
         // Empty and undersized BLOBs.
@@ -666,20 +668,24 @@ mod tests {
                 .first::<BlobTestU8>(&mut conn);
 
             assert!(err_empty.is_err());
-            assert!(err_empty
-                .unwrap_err()
-                .to_string()
-                .contains("Invalid input size"));
+            assert!(
+                err_empty
+                    .unwrap_err()
+                    .to_string()
+                    .contains("Invalid input size")
+            );
 
             let err_undersized = blob_test::table
                 .filter(blob_test::size_type.eq("undersized"))
                 .first::<BlobTestU16>(&mut conn);
 
             assert!(err_undersized.is_err());
-            assert!(err_undersized
-                .unwrap_err()
-                .to_string()
-                .contains("Invalid input size"));
+            assert!(
+                err_undersized
+                    .unwrap_err()
+                    .to_string()
+                    .contains("Invalid input size")
+            );
         }
 
         // Update with wrong size.
