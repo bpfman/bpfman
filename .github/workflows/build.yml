@@ -110,7 +110,7 @@ jobs:
         run: |
           cargo install cross --git https://github.com/cross-rs/cross
 
-      - uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3 # @v2
+      - uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # @v2
 
       - name: Install cargo-llvm-cov
         # Only need to run once
@@ -154,7 +154,7 @@ jobs:
       - name: Archive Integration Test eBPF
         # Only need to build eBPF once and used by integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # @v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # @v4
         with:
           name: bpfman-integration-test
           path: |
@@ -186,7 +186,7 @@ jobs:
       - name: Archive bpfman Binaries
         # Tar and archive the build for basic-integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # @v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # @v4
         with:
           name: bpfman-debug-${{ matrix.arch.filename }}
           path: |
@@ -208,7 +208,7 @@ jobs:
       - name: Archive manpages
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # @v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # @v4
         with:
           name: bpfman-manpages
           path: |
@@ -230,7 +230,7 @@ jobs:
       - name: Archive CLI TAB Completion
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # @v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # @v4
         with:
           name: bpfman-cli-tab-completion
           path: |
@@ -250,7 +250,7 @@ jobs:
 
       - name: Archive bpfman Release Binaries
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # @v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # @v4
         with:
           name: bpfman-release-${{ matrix.arch.filename }}
           path: ./target/${{ matrix.arch.rust-target }}/release/bpfman-${{ matrix.arch.filename }}.tar.gz
@@ -265,7 +265,7 @@ jobs:
       - name: Archive Rust code coverage results
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # @v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # @v4
         with:
           name: coverage-rust
           path: lcov.info
@@ -293,7 +293,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Install go
-        uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # @v5
+        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # @v5
         with:
           # prettier-ignore
           go-version: '1.22' # yamllint disable-line rule:quoted-strings
@@ -308,7 +308,7 @@ jobs:
       - name: Lint
         # Only need to lint the code once, so just pick one of the arch to run on.
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: golangci/golangci-lint-action@4696ba8babb6127d732c3c6dde519db15edab9ea # @v6
+        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # @v6
         with:
           ## https://github.com/golangci/golangci-lint-action/issues/369
           version: v1.54.2
@@ -351,7 +351,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Download bpfman x86_64 build
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # @v4
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # @v4
         with:
           name: bpfman-debug-linux-x86_64
           merge-multiple: true
@@ -362,7 +362,7 @@ jobs:
           tar -C target/debug -xzvf bpfman-debug-linux-x86_64.tar.gz
 
       - name: Download Integration Test eBPF
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # @v4
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # @v4
         with:
           name: bpfman-integration-test
           merge-multiple: true
@@ -372,7 +372,7 @@ jobs:
           tar -xzvf integration-test.tar.gz
 
       - name: Download manpages
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # @v4
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # @v4
         with:
           name: bpfman-manpages
           merge-multiple: true
@@ -382,7 +382,7 @@ jobs:
           tar -xzvf manpages.tar.gz
 
       - name: Download CLI TAB Completion
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # @v4
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # @v4
         with:
           name: bpfman-cli-tab-completion
           merge-multiple: true
@@ -432,7 +432,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Download rust coverage artifacts
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # @v4
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # @v4
         with:
           name: coverage-rust
 
@@ -464,7 +464,7 @@ jobs:
           fi
 
       - name: Download bpfman Release Binaries
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # @v4
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # @v4
         with:
           pattern: bpfman-release-*
           merge-multiple: true
