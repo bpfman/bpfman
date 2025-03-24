@@ -13,7 +13,7 @@ images:
 patches:
 - path: patch.yaml
   target:
-    kind: UprobeProgram
+    kind: ClusterBpfApplication
     name: go-uretprobe-counter-example
 - patch: |-
     - op: add
