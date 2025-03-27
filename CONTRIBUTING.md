@@ -6,6 +6,7 @@
 * [Pull Request Lifecycle](#pull-request-lifecycle)
 * [Development Environment Setup](#development-environment-setup)
 * [Signoff Your Commits](#signoff-your-commits)
+* [Test Policy](#test-policy)
 * [Pull Request Checklist](#pull-request-checklist)
 
 Welcome! We are glad that you want to contribute to our project! 💖
@@ -169,6 +170,13 @@ nicely even when it is indented.
 Fixes: #1337
 Refs: #453, #154
 ```
+
+## Test Policy
+
+We expect new code to have:
+
+- A **unit test** when functionality can be easily unit tested.
+- An **integration test** when adding major new functionality - i.e that which adds a new public-facing API such as a new CLI command.
 
 ## Pull Request Checklist
 
