@@ -71,6 +71,12 @@ Here are some links to help in your bpfman journey (all links are from the bpfma
   bpfman in a Kubernetes cluster.
 - [Meet the Community](https://bpfman.io/main/governance/meetings/) for details on community meeting details.
 
+## Issues
+
+Would you like to report a bug? Feel free to [add an issue](https://github.com/bpfman/bpfman/issues).
+
+Would you like to start a conversation on a specific topic? Please, [open a discussion](https://github.com/bpfman/bpfman/discussions).
+
 ## License
 
 With the exception of eBPF code, everything is distributed under the terms of
