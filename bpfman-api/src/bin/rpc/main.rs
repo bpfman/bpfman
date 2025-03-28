@@ -9,7 +9,7 @@ use bpfman::{
     detach,
     errors::BpfmanError,
     get_program, list_programs, pull_bytecode, remove_program, setup,
-    types::{AttachInfo, BytecodeImage, ListFilter, Program},
+    types::{AttachInfo, BytecodeImage, Link, ListFilter, Program},
 };
 use clap::{Args, Parser};
 use log::debug;
@@ -113,7 +113,7 @@ impl AsyncBpfman {
         }
     }
 
-    pub(crate) async fn attach(&self, id: u32, attach_info: AttachInfo) -> anyhow::Result<u32> {
+    pub(crate) async fn attach(&self, id: u32, attach_info: AttachInfo) -> anyhow::Result<Link> {
         let (config, root_db) = self.setup()?;
         match spawn_blocking(move || attach_program(&config, &root_db, id, attach_info)).await {
             Ok(result) => result.map_err(|e| e.into()),
