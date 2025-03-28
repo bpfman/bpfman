@@ -3,25 +3,47 @@
 
 use anyhow::bail;
 use bpfman::{
-    attach_program, setup,
+    attach_program, get_program, setup,
     types::{AttachInfo, TcProceedOn, XdpProceedOn},
 };
+use log::warn;
 
-use crate::args::{AttachArgs, AttachCommands};
+use crate::{
+    args::{AttachArgs, AttachCommands},
+    load::parse_metadata,
+    table::ProgTable,
+};
 
 pub(crate) fn execute_attach(args: &AttachArgs) -> anyhow::Result<()> {
     let (config, root_db) = setup()?;
-    attach_program(
-        &config,
-        &root_db,
-        args.program_id,
-        args.command.get_attach_info()?,
-    )?;
+
+    match get_program(&root_db, args.program_id) {
+        Ok(program) => {
+            let link = attach_program(
+                &config,
+                &root_db,
+                args.program_id,
+                args.command
+                    .get_attach_info(&program.get_data().get_application_from_metadata())?,
+            )?;
+
+            if let Ok(p) = ProgTable::new_link(&program, &link) {
+                p.print();
+            }
+        }
+        Err(e) => {
+            warn!("unable to retrieve program {}: {}", args.program_id, e);
+            bail!(e)
+        }
+    }
     Ok(())
 }
 
 impl AttachCommands {
-    pub(crate) fn get_attach_info(&self) -> Result<AttachInfo, anyhow::Error> {
+    pub(crate) fn get_attach_info(
+        &self,
+        application: &Option<String>,
+    ) -> Result<AttachInfo, anyhow::Error> {
         match self {
             AttachCommands::Xdp {
                 iface,
@@ -39,12 +61,7 @@ impl AttachCommands {
                     iface: iface.to_string(),
                     proceed_on: proc_on,
                     netns: netns.clone(),
-                    metadata: metadata
-                        .clone()
-                        .unwrap_or_default()
-                        .iter()
-                        .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                        .collect(),
+                    metadata: parse_metadata(metadata, application),
                 })
             }
             AttachCommands::Tc {
@@ -69,12 +86,7 @@ impl AttachCommands {
                     direction: direction.to_string(),
                     proceed_on: proc_on,
                     netns: netns.clone(),
-                    metadata: metadata
-                        .clone()
-                        .unwrap_or_default()
-                        .iter()
-                        .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                        .collect(),
+                    metadata: parse_metadata(metadata, application),
                 })
             }
             AttachCommands::Tcx {
@@ -93,12 +105,7 @@ impl AttachCommands {
                     iface: iface.to_string(),
                     direction: direction.to_string(),
                     netns: netns.clone(),
-                    metadata: metadata
-                        .clone()
-                        .unwrap_or_default()
-                        .iter()
-                        .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                        .collect(),
+                    metadata: parse_metadata(metadata, application),
                 })
             }
             AttachCommands::Tracepoint {
@@ -106,12 +113,7 @@ impl AttachCommands {
                 metadata,
             } => Ok(AttachInfo::Tracepoint {
                 tracepoint: tracepoint.to_string(),
-                metadata: metadata
-                    .clone()
-                    .unwrap_or_default()
-                    .iter()
-                    .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                    .collect(),
+                metadata: parse_metadata(metadata, application),
             }),
             AttachCommands::Kprobe {
                 fn_name,
@@ -127,12 +129,7 @@ impl AttachCommands {
                     fn_name: fn_name.to_string(),
                     offset,
                     container_pid: *container_pid,
-                    metadata: metadata
-                        .clone()
-                        .unwrap_or_default()
-                        .iter()
-                        .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                        .collect(),
+                    metadata: parse_metadata(metadata, application),
                 })
             }
             AttachCommands::Uprobe {
@@ -150,29 +147,14 @@ impl AttachCommands {
                     target: target.to_string(),
                     pid: *pid,
                     container_pid: *container_pid,
-                    metadata: metadata
-                        .clone()
-                        .unwrap_or_default()
-                        .iter()
-                        .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                        .collect(),
+                    metadata: parse_metadata(metadata, application),
                 })
             }
             AttachCommands::Fentry { metadata } => Ok(AttachInfo::Fentry {
-                metadata: metadata
-                    .clone()
-                    .unwrap_or_default()
-                    .iter()
-                    .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                    .collect(),
+                metadata: parse_metadata(metadata, application),
             }),
             AttachCommands::Fexit { metadata } => Ok(AttachInfo::Fexit {
-                metadata: metadata
-                    .clone()
-                    .unwrap_or_default()
-                    .iter()
-                    .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                    .collect(),
+                metadata: parse_metadata(metadata, application),
             }),
         }
     }

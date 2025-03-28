@@ -33,10 +33,12 @@ pub(crate) enum Commands {
     Attach(AttachArgs),
     /// Detach an eBPF program from a hook point using the Link Id.
     Detach(DetachArgs),
-    /// List all eBPF programs loaded via bpfman.
-    List(ListArgs),
-    /// Get an eBPF program using the Program Id.
-    Get(GetArgs),
+    /// List all loaded eBPF programs loaded or list all program attachments.
+    #[command(subcommand)]
+    List(ListSubcommand),
+    /// Get a loaded eBPF program or program attachment link.
+    #[command(subcommand)]
+    Get(GetSubcommand),
     /// eBPF Bytecode Image related commands.
     #[command(subcommand)]
     Image(Box<ImageSubCommand>),
@@ -59,24 +61,48 @@ pub(crate) enum LoadSubcommand {
 
 #[derive(Args, Debug)]
 pub(crate) struct LoadFileArgs {
+    /// Required: The program type and eBPF function name that is the entry point
+    /// for the eBPF program.
+    /// Format <TYPE>:<FUNC_NAME>
+    ///
+    /// For fentry and fexit, the function that is being attached to is also
+    /// required at load time, so the format for fentry and fexit includes attach
+    /// function.
+    /// Format <TYPE>:<FUNC_NAME>:<ATTACH_FUNC>
+    ///
+    /// If the bytecode file contains multiple eBPF programs that need to be
+    /// loaded, multiple eBPF programs can be enter by separating each
+    /// <TYPE>:<FUNC_NAME> pair with a space.
+    /// Example: --programs xdp:xdp_stats kprobe:kprobe_counter
+    /// Example: --programs fentry:test_fentry:do_unlinkat
+    ///
+    /// [possible values for <TYPE>: fentry, fexit, kprobe, tc, tcx, tracepoint,
+    ///                              uprobe, xdp]
+    #[clap(long, verbatim_doc_comment, num_args(1..), value_parser=parse_program_type, required = true)]
+    pub(crate) programs: Vec<(String, Vec<String>)>,
+
     /// Required: Location of local bytecode file
     /// Example: --path /run/bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o
     #[clap(short, long, verbatim_doc_comment)]
     pub(crate) path: String,
-
-    /// Required: The program type and function name that is the entry point
-    /// for the eBPF program(s). Should be in the format <TYPE>:<NAME>.
-    #[clap(long, verbatim_doc_comment, num_args(1..), value_parser=parse_program_type)]
-    pub(crate) programs: Vec<(String, Vec<String>)>,
 
     /// Optional: Global variables to be set when program is loaded.
     /// Format: <NAME>=<Hex Value>
     ///
     /// This is a very low level primitive. The caller is responsible for formatting
     /// the byte string appropriately considering such things as size, endianness,
-    /// alignment and packing of data structures.
+    /// alignment and packing of data structures. Multiple values can be enter by
+    /// separating each <NAME>=<Hex Value> pair with a space.
+    /// Example: -g GLOBAL_u8=01 GLOBAL_u32=0A0B0C0D
     #[clap(short, long, verbatim_doc_comment, num_args(1..), value_parser=parse_global_arg)]
     pub(crate) global: Option<Vec<GlobalArg>>,
+
+    /// Optional: Application is used to group multiple programs that are loaded together
+    /// under the same load command. This actually creates a special <KEY>=<VALUE> in the
+    /// metadata parameter. It can be used to filer on list commands.
+    /// Example: -g GLOBAL_u8=01 GLOBAL_u32=0A0B0C0D
+    #[clap(short, long, verbatim_doc_comment)]
+    pub(crate) application: Option<String>,
 
     /// Optional: Specify Key/Value metadata to be attached to a program when it
     /// is loaded by bpfman.
@@ -97,23 +123,47 @@ pub(crate) struct LoadFileArgs {
 
 #[derive(Args, Debug)]
 pub(crate) struct LoadImageArgs {
+    /// Required: The program type and eBPF function name that is the entry point
+    /// for the eBPF program.
+    /// Format <TYPE>:<FUNC_NAME>
+    ///
+    /// For fentry and fexit, the function that is being attached to is also
+    /// required at load time, so the format for fentry and fexit includes attach
+    /// function.
+    /// Format <TYPE>:<FUNC_NAME>:<ATTACH_FUNC>
+    ///
+    /// If the bytecode file contains multiple eBPF programs that need to be
+    /// loaded, multiple eBPF programs can be enter by separating each
+    /// <TYPE>:<FUNC_NAME> pair with a space.
+    /// Example: --programs xdp:xdp_stats kprobe:kprobe_counter
+    /// Example: --programs fentry:test_fentry:do_unlinkat
+    ///
+    /// [possible values for <TYPE>: fentry, fexit, kprobe, tc, tcx, tracepoint,
+    ///                              uprobe, xdp]
+    #[clap(long, verbatim_doc_comment, num_args(1..), value_parser=parse_program_type, required = true)]
+    pub(crate) programs: Vec<(String, Vec<String>)>,
+
     /// Specify how the bytecode image should be pulled.
     #[command(flatten)]
     pub(crate) pull_args: PullBytecodeArgs,
-
-    /// Required: The program type and function name that is the entry point
-    /// for the eBPF program(s). Should be in the format <TYPE>:<NAME>.
-    #[clap(long, verbatim_doc_comment, num_args(1..), value_parser=parse_program_type)]
-    pub(crate) programs: Vec<(String, Vec<String>)>,
 
     /// Optional: Global variables to be set when program is loaded.
     /// Format: <NAME>=<Hex Value>
     ///
     /// This is a very low level primitive. The caller is responsible for formatting
     /// the byte string appropriately considering such things as size, endianness,
-    /// alignment and packing of data structures.
+    /// alignment and packing of data structures. Multiple values can be enter by
+    /// separating each <NAME>=<Hex Value> pair with a space.
+    /// Example: -g GLOBAL_u8=01 GLOBAL_u32=0A0B0C0D
     #[clap(short, long, verbatim_doc_comment, num_args(1..), value_parser=parse_global_arg)]
     pub(crate) global: Option<Vec<GlobalArg>>,
+
+    /// Optional: Application is used to group multiple programs that are loaded together
+    /// under the same load command. This actually creates a special <KEY>=<VALUE> in the
+    /// metadata parameter. It can be used to filer on list commands.
+    /// Example: -g GLOBAL_u8=01 GLOBAL_u32=0A0B0C0D
+    #[clap(short, long, verbatim_doc_comment)]
+    pub(crate) application: Option<String>,
 
     /// Optional: Specify Key/Value metadata to be attached to a program when it
     /// is loaded by bpfman.
@@ -388,9 +438,58 @@ pub(crate) struct DetachArgs {
     pub(crate) link_id: u32,
 }
 
+#[derive(Subcommand, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) enum ListSubcommand {
+    /// List all loaded eBPF programs.
+    Programs(ListProgramArgs),
+    /// List all loaded eBPF programs.
+    #[clap(hide = true)]
+    Program(ListProgramArgs),
+    /// list all program attachments.
+    Links(ListLinkArgs),
+    /// list all program attachments.
+    #[clap(hide = true)]
+    Link(ListLinkArgs),
+}
+
 #[derive(Args, Debug)]
 #[command(disable_version_flag = true)]
-pub(crate) struct ListArgs {
+pub(crate) struct ListProgramArgs {
+    /// Optional: List programs by a specific program type.
+    /// Example: --program-type xdp
+    ///
+    /// [possible values: unspec, socket-filter, probe, tc, sched-act,
+    ///                   tracepoint, xdp, perf-event, cgroup-skb,
+    ///                   cgroup-sock, lwt-in, lwt-out, lwt-xmit, sock-ops,
+    ///                   sk-skb, cgroup-device, sk-msg, raw-tracepoint,
+    ///                   cgroup-sock-addr, lwt-seg6-local, lirc-mode2,
+    ///                   sk-reuseport, flow-dissector, cgroup-sysctl,
+    ///                   raw-tracepoint-writable, cgroup-sockopt, tracing,
+    ///                   struct-ops, ext, lsm, sk-lookup, syscall]
+    #[clap(short, long, verbatim_doc_comment, hide_possible_values = true)]
+    pub(crate) program_type: Option<BpfProgType>,
+
+    /// Optional: List programs loaded under the same application tag.
+    /// Example: --application go-app
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) application: Option<String>,
+
+    /// Optional: List programs which contain a specific set of metadata labels
+    /// that were applied when the program was loaded with `--metadata` parameter.
+    /// Format: <KEY>=<VALUE>
+    /// Example: --metadata-selector owner=acme
+    #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
+    pub(crate) metadata_selector: Option<Vec<(String, String)>>,
+
+    /// Optional: List all programs.
+    #[clap(short, long, verbatim_doc_comment)]
+    pub(crate) all: bool,
+}
+
+#[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) struct ListLinkArgs {
     /// Optional: List a specific program type
     /// Example: --program-type xdp
     ///
@@ -405,10 +504,14 @@ pub(crate) struct ListArgs {
     #[clap(short, long, verbatim_doc_comment, hide_possible_values = true)]
     pub(crate) program_type: Option<BpfProgType>,
 
+    /// Optional: List links attached under the same application tag.
+    /// Example: --application go-app
+    #[clap(long, verbatim_doc_comment)]
+    pub(crate) application: Option<String>,
+
     /// Optional: List programs which contain a specific set of metadata labels
     /// that were applied when the program was loaded with `--metadata` parameter.
     /// Format: <KEY>=<VALUE>
-    ///
     /// Example: --metadata-selector owner=acme
     #[clap(short, long, verbatim_doc_comment, value_parser=parse_key_val, value_delimiter = ',')]
     pub(crate) metadata_selector: Option<Vec<(String, String)>>,
@@ -418,11 +521,27 @@ pub(crate) struct ListArgs {
     pub(crate) all: bool,
 }
 
+#[derive(Subcommand, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) enum GetSubcommand {
+    /// Get a loaded eBPF program using the Program Id.
+    Program(GetProgramArgs),
+    /// Get a loaded eBPF program's attachment using the Link Id.
+    Link(GetLinkArgs),
+}
+
 #[derive(Args, Debug)]
 #[command(disable_version_flag = true)]
-pub(crate) struct GetArgs {
+pub(crate) struct GetProgramArgs {
     /// Required: Program Id to get.
     pub(crate) program_id: u32,
+}
+
+#[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) struct GetLinkArgs {
+    /// Required: Link Id to get.
+    pub(crate) link_id: u32,
 }
 
 #[derive(Subcommand, Debug)]
