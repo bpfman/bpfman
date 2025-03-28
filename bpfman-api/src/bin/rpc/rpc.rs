@@ -248,7 +248,8 @@ impl BpfmanLoader {
         };
 
         let bpfman_lock = self.lock.lock().await;
-        let link_id = bpfman_lock.attach(request.id, attach_info).await?;
+        let link = bpfman_lock.attach(request.id, attach_info).await?;
+        let link_id = link.get_id()?;
 
         Ok(AttachResponse { link_id })
     }
