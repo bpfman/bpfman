@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+sudo USE_SQLITE="${USE_SQLITE:-1}" RUST_LOG=debug ./target/debug/bpfman \
+     load image \
+     -g GLOBAL_u8=01 \
+     --image-url quay.io/bpfman-bytecode/xdp_pass:latest \
+     --programs xdp:pass
