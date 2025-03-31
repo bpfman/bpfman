@@ -3,15 +3,15 @@
 
 use bpfman::{
     errors::BpfmanError,
-    types::{BytecodeImage, Location, Program},
+    types::{BytecodeImage, Link, Location, Program},
 };
+use v1::FentryAttachInfo;
 
 use crate::v1::{
-    attach_info::Info, bytecode_location::Location as V1Location, AttachInfo,
-    BytecodeImage as V1BytecodeImage, BytecodeLocation, FentryAttachInfo, FexitAttachInfo,
+    AttachInfo, BytecodeImage as V1BytecodeImage, BytecodeLocation,
     KernelProgramInfo as V1KernelProgramInfo, KprobeAttachInfo, ProgramInfo,
     ProgramInfo as V1ProgramInfo, TcAttachInfo, TcxAttachInfo, TracepointAttachInfo,
-    UprobeAttachInfo, XdpAttachInfo,
+    UprobeAttachInfo, XdpAttachInfo, attach_info::Info, bytecode_location::Location as V1Location,
 };
 
 #[path = "bpfman.v1.rs"]
@@ -42,69 +42,13 @@ impl TryFrom<&Program> for ProgramInfo {
             }),
         };
 
-        let attach_info = AttachInfo {
-            info: match program.clone() {
-                Program::Xdp(p) => Some(Info::XdpAttachInfo(XdpAttachInfo {
-                    priority: p.get_priority()?,
-                    iface: p.get_iface()?.to_string(),
-                    position: p.get_current_position()?.unwrap_or(0) as i32,
-                    proceed_on: p.get_proceed_on()?.as_action_vec(),
-                    netns: p
-                        .get_netns()?
-                        .and_then(|path| path.into_os_string().into_string().ok()),
-                })),
-                Program::Tc(p) => Some(Info::TcAttachInfo(TcAttachInfo {
-                    priority: p.get_priority()?,
-                    iface: p.get_iface()?.to_string(),
-                    position: p.get_current_position()?.unwrap_or(0) as i32,
-                    direction: p.get_direction()?.to_string(),
-                    proceed_on: p.get_proceed_on()?.as_action_vec(),
-                    netns: p
-                        .get_netns()?
-                        .and_then(|path| path.into_os_string().into_string().ok()),
-                })),
-
-                Program::Tcx(p) => Some(Info::TcxAttachInfo(TcxAttachInfo {
-                    priority: p.get_priority()?,
-                    iface: p.get_iface()?.to_string(),
-                    position: p.get_current_position()?.unwrap_or(0) as i32,
-                    direction: p.get_direction()?.to_string(),
-                    netns: p
-                        .get_netns()?
-                        .and_then(|path| path.into_os_string().into_string().ok()),
-                })),
-                Program::Tracepoint(p) => Some(Info::TracepointAttachInfo(TracepointAttachInfo {
-                    tracepoint: p.get_tracepoint()?.to_string(),
-                })),
-                Program::Kprobe(p) => Some(Info::KprobeAttachInfo(KprobeAttachInfo {
-                    fn_name: p.get_fn_name()?.to_string(),
-                    offset: p.get_offset()?,
-                    retprobe: p.get_retprobe()?,
-                    container_pid: p.get_container_pid()?,
-                })),
-                Program::Uprobe(p) => Some(Info::UprobeAttachInfo(UprobeAttachInfo {
-                    fn_name: p.get_fn_name()?.map(|v| v.to_string()),
-                    offset: p.get_offset()?,
-                    target: p.get_target()?.to_string(),
-                    retprobe: p.get_retprobe()?,
-                    pid: p.get_pid()?,
-                    container_pid: p.get_container_pid()?,
-                })),
-                Program::Fentry(p) => Some(Info::FentryAttachInfo(FentryAttachInfo {
-                    fn_name: p.get_fn_name()?.to_string(),
-                })),
-                Program::Fexit(p) => Some(Info::FexitAttachInfo(FexitAttachInfo {
-                    fn_name: p.get_fn_name()?.to_string(),
-                })),
-                Program::Unsupported(_) => None,
-            },
-        };
+        let links = program.get_data().get_link_ids()?;
 
         // Populate the Program Info with bpfman data
         Ok(V1ProgramInfo {
             name: data.get_name()?.to_string(),
             bytecode,
-            attach: Some(attach_info),
+            links,
             global_data: data.get_global_data()?,
             map_owner_id: data.get_map_owner_id()?,
             map_pin_path: data
@@ -167,5 +111,85 @@ impl From<V1BytecodeImage> for BytecodeImage {
             None
         };
         BytecodeImage::new(value.url, value.image_pull_policy, username, password)
+    }
+}
+
+impl TryFrom<&Link> for AttachInfo {
+    type Error = BpfmanError;
+
+    fn try_from(value: &Link) -> Result<Self, Self::Error> {
+        match value {
+            Link::Fentry(p) => Ok(AttachInfo {
+                info: Some(Info::FentryAttachInfo(FentryAttachInfo {
+                    metadata: p.get_metadata()?,
+                })),
+            }),
+            Link::Fexit(p) => Ok(AttachInfo {
+                info: Some(Info::FentryAttachInfo(FentryAttachInfo {
+                    metadata: p.get_metadata()?,
+                })),
+            }),
+            Link::Kprobe(p) => Ok(AttachInfo {
+                info: Some(Info::KprobeAttachInfo(KprobeAttachInfo {
+                    fn_name: p.get_fn_name()?.to_string(),
+                    offset: p.get_offset()?,
+                    container_pid: p.get_container_pid()?,
+                    metadata: p.get_metadata()?,
+                })),
+            }),
+            Link::Uprobe(p) => Ok(AttachInfo {
+                info: Some(Info::UprobeAttachInfo(UprobeAttachInfo {
+                    fn_name: p.get_fn_name()?.map(|v| v.to_string()),
+                    offset: p.get_offset()?,
+                    target: p.get_target()?.to_string(),
+                    pid: p.get_pid()?,
+                    container_pid: p.get_container_pid()?,
+                    metadata: p.get_metadata()?,
+                })),
+            }),
+            Link::Tracepoint(p) => Ok(AttachInfo {
+                info: Some(Info::TracepointAttachInfo(TracepointAttachInfo {
+                    tracepoint: p.get_tracepoint()?.to_string(),
+                    metadata: p.get_metadata()?,
+                })),
+            }),
+            Link::Xdp(p) => Ok(AttachInfo {
+                info: Some(Info::XdpAttachInfo(XdpAttachInfo {
+                    priority: p.get_priority()?,
+                    iface: p.get_iface()?.to_string(),
+                    position: p.get_current_position()?.unwrap_or(0) as i32,
+                    proceed_on: p.get_proceed_on()?.as_action_vec(),
+                    netns: p
+                        .get_netns()?
+                        .and_then(|path| path.into_os_string().into_string().ok()),
+                    metadata: p.get_metadata()?,
+                })),
+            }),
+            Link::Tc(p) => Ok(AttachInfo {
+                info: Some(Info::TcAttachInfo(TcAttachInfo {
+                    priority: p.get_priority()?,
+                    iface: p.get_iface()?.to_string(),
+                    position: p.get_current_position()?.unwrap_or(0) as i32,
+                    direction: p.get_direction()?.to_string(),
+                    proceed_on: p.get_proceed_on()?.as_action_vec(),
+                    netns: p
+                        .get_netns()?
+                        .and_then(|path| path.into_os_string().into_string().ok()),
+                    metadata: p.get_metadata()?,
+                })),
+            }),
+            Link::Tcx(p) => Ok(AttachInfo {
+                info: Some(Info::TcxAttachInfo(TcxAttachInfo {
+                    priority: p.get_priority()?,
+                    iface: p.get_iface()?.to_string(),
+                    position: p.get_current_position()?.unwrap_or(0) as i32,
+                    direction: p.get_direction()?.to_string(),
+                    netns: p
+                        .get_netns()?
+                        .and_then(|path| path.into_os_string().into_string().ok()),
+                    metadata: p.get_metadata()?,
+                })),
+            }),
+        }
     }
 }

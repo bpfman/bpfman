@@ -12,7 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	bpfmanHelpers "github.com/bpfman/bpfman-operator/pkg/helpers"
 	gobpfman "github.com/bpfman/bpfman/clients/gobpfman/v1"
 	configMgmt "github.com/bpfman/bpfman/examples/pkg/config-mgmt"
 	"github.com/cilium/ebpf"
@@ -65,65 +64,75 @@ func main() {
 
 		c := gobpfman.NewBpfmanClient(conn)
 
-		fnName := "malloc"
-
 		// If the bytecode src is a Program ID, skip the loading and unloading of the bytecode.
 		if paramData.BytecodeSrc != configMgmt.SrcProgId {
-			var loadRequest *gobpfman.LoadRequest
+			fnName := "malloc"
+			loadRequest := &gobpfman.LoadRequest{
+				Bytecode: paramData.BytecodeSource,
+				Info: []*gobpfman.LoadInfo{
+					{
+						Name:        "uprobe_counter",
+						ProgramType: gobpfman.BpfmanProgramType_UPROBE,
+					},
+				},
+			}
 			if paramData.MapOwnerId != 0 {
 				mapOwnerId := uint32(paramData.MapOwnerId)
-				loadRequest = &gobpfman.LoadRequest{
-					Bytecode:    paramData.BytecodeSource,
-					Name:        "uprobe_counter",
-					ProgramType: *bpfmanHelpers.Kprobe.Uint32(),
-					Attach: &gobpfman.AttachInfo{
-						Info: &gobpfman.AttachInfo_UprobeAttachInfo{
-							UprobeAttachInfo: &gobpfman.UprobeAttachInfo{
-								FnName: &fnName,
-								Target: "libc",
-							},
-						},
-					},
-					MapOwnerId: &mapOwnerId,
-				}
-			} else {
-				loadRequest = &gobpfman.LoadRequest{
-					Bytecode:    paramData.BytecodeSource,
-					Name:        "uprobe_counter",
-					ProgramType: *bpfmanHelpers.Kprobe.Uint32(),
-					Attach: &gobpfman.AttachInfo{
-						Info: &gobpfman.AttachInfo_UprobeAttachInfo{
-							UprobeAttachInfo: &gobpfman.UprobeAttachInfo{
-								FnName: &fnName,
-								Target: "libc",
-							},
-						},
-					},
-				}
+				loadRequest.MapOwnerId = &mapOwnerId
 			}
 
 			// 1. Load Program using bpfman
-			var res *gobpfman.LoadResponse
-			res, err = c.Load(ctx, loadRequest)
+			var loadRes *gobpfman.LoadResponse
+			loadRes, err = c.Load(ctx, loadRequest)
 			if err != nil {
 				conn.Close()
 				log.Print(err)
 				return
 			}
 
-			kernelInfo := res.GetKernelInfo()
+			if len(loadRes.Programs) != 1 {
+				log.Printf("Expected 1 program, got %d\n", len(loadRes.Programs))
+				return
+			}
+
+			prog := loadRes.Programs[0]
+
+			kernelInfo := prog.GetKernelInfo()
 			if kernelInfo != nil {
 				paramData.ProgId = uint(kernelInfo.GetId())
 			} else {
-				conn.Close()
 				log.Printf("kernelInfo not returned in LoadResponse")
 				return
 			}
 			log.Printf("Program registered with id %d\n", paramData.ProgId)
 
-			// 2. Set up defer to unload program when this is closed
+			// 2. Attach the program
+			// 2. Attach the program
+			attachRequest := &gobpfman.AttachRequest{
+				Id: uint32(paramData.ProgId),
+				Attach: &gobpfman.AttachInfo{
+					Info: &gobpfman.AttachInfo_UprobeAttachInfo{
+						UprobeAttachInfo: &gobpfman.UprobeAttachInfo{
+							FnName: &fnName,
+							Target: "libc",
+						},
+					},
+				},
+			}
+
+			var attachRes *gobpfman.AttachResponse
+			attachRes, err = c.Attach(ctx, attachRequest)
+			if err != nil {
+				log.Print(err)
+				return
+			}
+
+			paramData.LinkId = uint(attachRes.LinkId)
+			log.Printf("Program attached with link id %d\n", paramData.LinkId)
+
+			// 3. Set up defer to unload program when this is closed
 			defer func(id uint) {
-				log.Printf("unloading program: %d\n", id)
+				log.Printf("Closing Connection for Program: %d\n", id)
 				_, err = c.Unload(ctx, &gobpfman.UnloadRequest{Id: uint32(id)})
 				if err != nil {
 					conn.Close()
@@ -133,8 +142,8 @@ func main() {
 				conn.Close()
 			}(paramData.ProgId)
 
-			// 3. Get access to our map
-			mapPath, err = configMgmt.CalcMapPinPath(res.GetInfo(), "uprobe_stats_map")
+			// 4. Get access to our map
+			mapPath, err = configMgmt.CalcMapPinPath(prog.GetInfo(), "uprobe_stats_map")
 			if err != nil {
 				log.Print(err)
 				return

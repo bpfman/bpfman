@@ -1,14 +1,44 @@
-[licenses]
-allow = ["Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "MIT", "OpenSSL"]
-allow-osi-fsf-free = "neither"
-copyleft = "warn"
-default = "deny"
-unlicensed = "deny"
-[[licenses.clarify]]
-expression = "MIT AND ISC AND OpenSSL"
-license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
-name = "ring"
-version = "*"
+[graph]
+# cargo-deny is really only ever intended to run on the "normal" tier-1 targets
+all-features = true
+targets = [
+    "aarch64-apple-darwin",
+    "aarch64-unknown-linux-gnu",
+    "x86_64-apple-darwin",
+    "x86_64-pc-windows-msvc",
+    "x86_64-unknown-linux-gnu",
+    "x86_64-unknown-linux-musl",
+]
 
-[licenses.private]
-ignore = true
+[advisories]
+ignore = [
+    "RUSTSEC-2023-0071", # no fix available
+]
+unmaintained = "workspace"
+
+[bans]
+multiple-versions = "allow"
+wildcards = 'deny'
+
+[sources]
+unknown-git = "deny"
+unknown-registry = "deny"
+
+[licenses]
+allow = [
+    "Apache-2.0 WITH LLVM-exception",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "MIT",
+    "OpenSSL",
+    "Unicode-3.0",
+    "Zlib",
+]
+confidence-threshold = 0.95
+
+[[licenses.clarify]]
+crate = "ring"
+expression = "OpenSSL AND Apache-2.0 AND ISC"
+license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]

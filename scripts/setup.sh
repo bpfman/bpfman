@@ -23,10 +23,8 @@ DST_SVC_PATH="/usr/lib/systemd/system"
 SVC_BPFMAN_SOCK="${BIN_BPFMAN}.socket"
 SVC_BPFMAN_SVC="${BIN_BPFMAN}.service"
 
-SRC_CLI_TAB_COMPLETE_PATH="../.output/completions"
 DST_CLI_TAB_COMPLETE_PATH="/usr/share/bash-completion/completions"
 
-SRC_MANPAGE_PATH="../.output/manpage"
 DST_MANPAGE_PATH="/usr/local/share/man/man1"
 
 # ConfigurationDirectory: /etc/bpfman/
@@ -107,6 +105,11 @@ case "$1" in
     "uninstall")
         uninstall
         user_cleanup
+        ;;
+    "test-cleanup")
+        uninstall
+        user_cleanup
+        cleanup_integration_tests
         ;;
     "help"|"--help"|"?")
         usage

@@ -4,18 +4,18 @@
 use std::time::SystemTime;
 
 use aya::{
-    maps::{loaded_maps, MapType as AyaMapType},
-    programs::{loaded_links, loaded_programs, ProgramType as AyaProgramType},
+    maps::{MapType as AyaMapType, loaded_maps},
+    programs::{ProgramType as AyaProgramType, loaded_links, loaded_programs},
 };
-use bpfman::types::{MapType, ProgramType};
-use chrono::{prelude::DateTime, Utc};
+use bpfman::types::{BpfProgType, MapType};
+use chrono::{Utc, prelude::DateTime};
 use clap::Parser;
 use opentelemetry::{
-    metrics::{MeterProvider as _, Unit},
     KeyValue,
+    metrics::{MeterProvider as _, Unit},
 };
 use opentelemetry_otlp::WithExportConfig;
-use opentelemetry_sdk::{metrics::SdkMeterProvider, runtime, Resource};
+use opentelemetry_sdk::{Resource, metrics::SdkMeterProvider, runtime};
 use tokio::signal::ctrl_c;
 
 fn init_meter_provider(grpc_endpoint: &str) -> SdkMeterProvider {
@@ -137,7 +137,7 @@ async fn main() -> anyhow::Result<()> {
                 for program in loaded_programs().flatten() {
                     let id = program.id();
                     let name = program.name_as_str().unwrap_or_default().to_string();
-                    let ty: ProgramType = ProgramType::from(
+                    let ty: BpfProgType = BpfProgType::from(
                         program
                             .program_type()
                             .unwrap_or(AyaProgramType::Unspecified),

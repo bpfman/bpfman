@@ -1,4 +1,15 @@
 [workspace]
+default-members = [
+    "bpf-log-exporter",
+    "bpf-metrics-exporter",
+    "bpfman",
+    "bpfman-api",
+    "bpfman-ns",
+    "csi",
+    # tests/integration-test is omitted from the default-members list since
+    # integration tests MUST be run using cargo xtask
+    "xtask",
+]
 members = [
     "bpf-log-exporter",
     "bpf-metrics-exporter",
@@ -7,17 +18,17 @@ members = [
     "bpfman-ns",
     "csi",
     "tests/integration-test",
-    "tests/integration-test-macros",
     "xtask",
 ]
 resolver = "2"
 
 [workspace.package]
 documentation = "https://bpfman.io/main/getting-started/overview/"
-edition = "2021"
+edition = "2024"
 homepage = "https://bpfman.io"
 license = "Apache-2.0"
 repository = "https://github.com/bpfman/bpfman"
+rust-version = "1.85.0"
 version = "0.5.6"
 
 [patch.crates-io]
@@ -38,17 +49,16 @@ bpfman = { version = "0.5.6", path = "./bpfman" }
 bpfman-api = { version = "0.5.6", path = "./bpfman-api" }
 bpfman-csi = { version = "1.8.0", path = "./csi" }
 caps = { version = "0.5.4", default-features = false }
-cargo_metadata = { version = "0.18.0", default-features = false }
-chrono = { version = "0.4.39", default-features = false }
+cargo_metadata = { version = "0.19.2", default-features = false }
+chrono = { version = "0.4.40", default-features = false }
 clap = { version = "4", default-features = false }
-clap_complete = { version = "4.5.44", default-features = false }
+clap_complete = { version = "4.5.46", default-features = false }
 clap_mangen = { version = "0.2.26", default-features = false }
 comfy-table = { version = "7.1.4", default-features = false }
 dialoguer = { version = "0.11", default-features = false }
 diff = { version = "0.1.13", default-features = false }
-env_logger = { version = "0.11.6", default-features = false }
-flate2 = { version = "1.0", default-features = false }
-futures = { version = "0.3.31", default-features = false }
+env_logger = { version = "0.11.7", default-features = false }
+flate2 = { version = "1.1", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 integration-test-macros = { path = "./tests/integration-test-macros" }
 inventory = { version = "0.3", default-features = false }
@@ -61,7 +71,7 @@ netlink-packet-route = { version = "^0.19", default-features = false }
 netlink-sys = { version = "^0.8", default-features = false }
 nix = { version = "0.28", default-features = false }
 object = { version = "0.36.7", default-features = false }
-oci-distribution = { version = "0.11", default-features = false }
+oci-client = { version = "0.14", default-features = false }
 opentelemetry = { version = "0.22.0", default-features = false }
 opentelemetry-otlp = { version = "0.15.0", default-features = false }
 opentelemetry-semantic-conventions = { version = "0.14.0" }
@@ -70,26 +80,25 @@ predicates = { version = "3.1.3", default-features = false }
 procfs = { version = "0.16.0", default-features = false }
 prost = { version = "0.12.6", default-features = false }
 prost-types = { version = "0.12.6", default-features = false }
-public-api = { version = "0.43.0", default-features = false }
 quote = { version = "1", default-features = false }
-rand = { version = "0.8", default-features = false }
+rand = { version = "0.9", default-features = false }
 regex = { version = "1.11.1", default-features = false }
 rtnetlink = { version = "0.14", default-features = false }
 rustdoc-json = { version = "0.8.9", default-features = false }
-rustup-toolchain = { version = "0.1.9", default-features = false }
+rustup-toolchain = { version = "0.1.10", default-features = false }
 serde = { version = "1.0", default-features = false }
 serde_json = { version = "1", default-features = false }
 sha2 = { version = "0.10.8", default-features = false }
 sigstore = { version = "0.11.0", default-features = false }
 sled = { version = "0.34.7", default-features = false }
 syn = { version = "2.0", default-features = false }
-systemd-journal-logger = { version = "2.2.0", default-features = false }
+systemd-journal-logger = { version = "2.2.1", default-features = false }
 tar = { version = "0.4", default-features = false }
-tempfile = { version = "3.16.0", default-features = false }
+tempfile = { version = "3.19.0", default-features = false }
 thiserror = { version = "2", default-features = false }
-tokio = { version = "1.43.0", default-features = false }
+tokio = { version = "1.44.1", default-features = false }
 tokio-stream = { version = "0.1.17", default-features = false }
-tokio-util = { version = "0.7.13", default-features = false }
+tokio-util = { version = "0.7.14", default-features = false }
 toml = { version = "0.8.20", default-features = false }
 tonic = { version = "0.11.0", default-features = false }
 tonic-build = { version = "0.11.0", default-features = false }
@@ -105,3 +114,9 @@ platforms = [
     "s390x-unknown-linux-gnu",
     "x86_64-unknown-linux-gnu",
 ]
+
+[workspace.lints.clippy]
+unused_trait_names = "warn"
+
+[workspace.lints.rust]
+unused-extern-crates = "warn"
