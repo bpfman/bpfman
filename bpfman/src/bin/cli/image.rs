@@ -9,13 +9,13 @@ use std::{
     process::{Command, Stdio},
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use aya::Endianness;
 use aya_obj::Object;
-use base64::{engine::general_purpose, Engine};
+use base64::{Engine, engine::general_purpose};
 use bpfman::{
-    pull_bytecode,
-    types::{BytecodeImage, ImagePullPolicy, MapType, ProgramType},
+    pull_bytecode, setup,
+    types::{BpfProgType, BytecodeImage, ImagePullPolicy, MapType},
 };
 use log::{debug, warn};
 
@@ -24,11 +24,11 @@ use crate::args::{
 };
 
 impl ImageSubCommand {
-    pub(crate) async fn execute(&self) -> anyhow::Result<()> {
+    pub(crate) fn execute(&self) -> anyhow::Result<()> {
         match self {
-            ImageSubCommand::Pull(args) => execute_pull(args).await,
-            ImageSubCommand::Build(args) => execute_build(args).await,
-            ImageSubCommand::GenerateBuildArgs(args) => execute_build_args(args).await,
+            ImageSubCommand::Pull(args) => execute_pull(args),
+            ImageSubCommand::Build(args) => execute_build(args),
+            ImageSubCommand::GenerateBuildArgs(args) => execute_build_args(args),
         }
     }
 }
@@ -67,14 +67,15 @@ pub(crate) struct ImageBuilder {
     pub(crate) build_args: Vec<String>,
 }
 
-pub(crate) async fn execute_pull(args: &PullBytecodeArgs) -> anyhow::Result<()> {
+pub(crate) fn execute_pull(args: &PullBytecodeArgs) -> anyhow::Result<()> {
     let image: BytecodeImage = args.try_into()?;
-    pull_bytecode(image).await?;
+    let (_, root_db) = setup()?;
+    pull_bytecode(&root_db, image)?;
 
     Ok(())
 }
 
-pub(crate) async fn execute_build(args: &BuildBytecodeArgs) -> anyhow::Result<()> {
+pub(crate) fn execute_build(args: &BuildBytecodeArgs) -> anyhow::Result<()> {
     let container_tool = if let Some(runtime) = &args.runtime {
         match runtime.as_str() {
             "docker" => ContainerRuntime::Docker,
@@ -284,7 +285,7 @@ pub(crate) fn parse_bytecode_from_cilium_ebpf_project(
     })
 }
 
-pub(crate) async fn execute_build_args(args: &GenerateArgs) -> anyhow::Result<()> {
+pub(crate) fn execute_build_args(args: &GenerateArgs) -> anyhow::Result<()> {
     let build_context = if let Some(project_path) = &args.bytecode.cilium_ebpf_project {
         parse_bytecode_from_cilium_ebpf_project(project_path)?
     } else {
@@ -312,7 +313,7 @@ pub(crate) async fn execute_build_args(args: &GenerateArgs) -> anyhow::Result<()
         None => {
             return Err(anyhow!(
                 "An S390 bytecode file cannot be used to generate build args"
-            ))
+            ));
         }
     };
 
@@ -524,7 +525,7 @@ fn build_bpf_info_image_labels(
         .programs
         .into_iter()
         .map(|(k, v)| {
-            let prog_type = ProgramType::from(v.section);
+            let prog_type = BpfProgType::from(v.section);
             (k, prog_type.to_string())
         })
         .collect();

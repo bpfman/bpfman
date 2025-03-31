@@ -1,38 +1,40 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use std::{ffi::OsStr, fs, mem, os::unix::ffi::OsStrExt, path::PathBuf};
+use std::{
+    ffi::OsStr,
+    fs, mem,
+    os::unix::ffi::OsStrExt as _,
+    path::{Path, PathBuf},
+};
 
 use aya::{
+    Ebpf, EbpfLoader,
     programs::{
+        Extension, Link as _, SchedClassifier, TcAttachType,
         links::FdLink,
         tc::{self, NlOptions, SchedClassifierLink, TcAttachOptions},
-        Extension, Link, SchedClassifier, TcAttachType,
     },
-    Ebpf, EbpfLoader,
 };
-use futures::stream::TryStreamExt;
 use log::debug;
-use netlink_packet_route::tc::TcAttribute;
 use sled::Db;
 
 use crate::{
-    calc_map_pin_path,
     config::RegistryConfig,
-    create_map_pin_path,
     directories::*,
     dispatcher_config::TcDispatcherConfig,
     errors::BpfmanError,
     multiprog::Dispatcher,
+    netlink::NetlinkManager,
     oci_utils::image_manager::ImageManager,
     types::{
         BytecodeImage,
         Direction::{self},
-        ImagePullPolicy, Program, TcProgram,
+        ImagePullPolicy, Link, TcLink,
     },
     utils::{
         bytes_to_string, bytes_to_u16, bytes_to_u32, bytes_to_u64, bytes_to_usize, enter_netns,
-        should_map_be_pinned, sled_get, sled_get_option, sled_insert, tc_dispatcher_db_tree_name,
+        sled_get, sled_get_option, sled_insert, tc_dispatcher_db_tree_name,
         tc_dispatcher_link_id_path, tc_dispatcher_rev_path,
     },
 };
@@ -60,6 +62,67 @@ pub struct TcDispatcher {
 }
 
 impl TcDispatcher {
+    pub(crate) fn get_test(
+        root_db: &Db,
+        config: &RegistryConfig,
+        image_manager: &mut ImageManager,
+    ) -> Result<SchedClassifier, BpfmanError> {
+        if Path::new(RTDIR_FS_TEST_TC_DISPATCHER).exists() {
+            return SchedClassifier::from_pin(RTDIR_FS_TEST_TC_DISPATCHER)
+                .map_err(BpfmanError::BpfProgramError);
+        }
+
+        let image = BytecodeImage::new(
+            config.tc_dispatcher_image.to_string(),
+            ImagePullPolicy::IfNotPresent as i32,
+            None,
+            None,
+        );
+
+        let (path, bpf_program_names) = image_manager.get_image(
+            root_db,
+            &image.image_url,
+            image.image_pull_policy.clone(),
+            image.username.clone(),
+            image.password.clone(),
+        )?;
+
+        if !bpf_program_names.contains(&TC_DISPATCHER_PROGRAM_NAME.to_string()) {
+            return Err(BpfmanError::ProgramNotFoundInBytecode {
+                bytecode_image: image.image_url,
+                expected_prog_name: TC_DISPATCHER_PROGRAM_NAME.to_string(),
+                program_names: bpf_program_names,
+            });
+        }
+
+        let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
+
+        let tc_config = TcDispatcherConfig {
+            num_progs_enabled: 11,
+            chain_call_actions: [0; 10],
+            run_prios: [DEFAULT_PRIORITY; 10],
+        };
+
+        let mut loader = EbpfLoader::new()
+            .set_global("CONFIG", &tc_config, true)
+            .load(&program_bytes)
+            .map_err(|e| BpfmanError::DispatcherLoadError(format!("{e}")))?;
+
+        if let Some(program) = loader.program_mut(TC_DISPATCHER_PROGRAM_NAME) {
+            let dispatcher: &mut SchedClassifier = program.try_into()?;
+            dispatcher.load()?;
+            dispatcher
+                .pin(RTDIR_FS_TEST_TC_DISPATCHER)
+                .map_err(BpfmanError::UnableToPinProgram)?;
+            SchedClassifier::from_pin(RTDIR_FS_TEST_TC_DISPATCHER)
+                .map_err(BpfmanError::BpfProgramError)
+        } else {
+            Err(BpfmanError::DispatcherLoadError(
+                "invalid BPF function name".to_string(),
+            ))
+        }
+    }
+
     pub(crate) fn new(
         root_db: &Db,
         direction: Direction,
@@ -100,10 +163,10 @@ impl TcDispatcher {
         }
     }
 
-    pub(crate) async fn load(
+    pub(crate) fn load(
         &mut self,
         root_db: &Db,
-        programs: &mut [Program],
+        links: &mut [Link],
         old_dispatcher: Option<Dispatcher>,
         image_manager: &mut ImageManager,
         config: &RegistryConfig,
@@ -114,10 +177,10 @@ impl TcDispatcher {
         let direction = self.get_direction()?;
 
         debug!("TcDispatcher::new() for if_index {if_index}, revision {revision}");
-        let mut extensions: Vec<&mut TcProgram> = programs
+        let mut extensions: Vec<TcLink> = links
             .iter_mut()
             .map(|v| match v {
-                Program::Tc(p) => p,
+                Link::Tc(p) => p.clone(),
                 _ => panic!("All programs should be of type TC"),
             })
             .collect();
@@ -140,15 +203,13 @@ impl TcDispatcher {
             None,
         );
 
-        let (path, bpf_program_names) = image_manager
-            .get_image(
-                root_db,
-                &image.image_url,
-                image.image_pull_policy.clone(),
-                image.username.clone(),
-                image.password.clone(),
-            )
-            .await?;
+        let (path, bpf_program_names) = image_manager.get_image(
+            root_db,
+            &image.image_url,
+            image.image_pull_policy.clone(),
+            image.username.clone(),
+            image.password.clone(),
+        )?;
 
         if !bpf_program_names.contains(&TC_DISPATCHER_PROGRAM_NAME.to_string()) {
             return Err(BpfmanError::ProgramNotFoundInBytecode {
@@ -185,34 +246,21 @@ impl TcDispatcher {
 
         if let Some(netns) = netns {
             let _netns_guard = enter_netns(netns)?;
-            self.attach(root_db, old_dispatcher).await?;
+            self.attach(root_db, old_dispatcher)?;
         } else {
-            self.attach(root_db, old_dispatcher).await?;
+            self.attach(root_db, old_dispatcher)?;
         };
 
         Ok(())
     }
 
     /// has_qdisc returns true if the qdisc_name is found on the if_index.
-    async fn has_qdisc(qdisc_name: String, if_index: i32) -> Result<bool, anyhow::Error> {
-        let (connection, handle, _) = rtnetlink::new_connection().unwrap();
-        tokio::spawn(connection);
-
-        let mut qdiscs = handle.qdisc().get().execute();
-        while let Some(qdisc_message) = qdiscs.try_next().await? {
-            if qdisc_message.header.index == if_index
-                && qdisc_message
-                    .attributes
-                    .contains(&TcAttribute::Kind(qdisc_name.clone()))
-            {
-                return Ok(true);
-            }
-        }
-
-        Ok(false)
+    fn has_qdisc(qdisc_name: String, if_index: i32) -> Result<bool, anyhow::Error> {
+        let nl = NetlinkManager::new();
+        nl.has_qdisc(qdisc_name, if_index)
     }
 
-    async fn attach(
+    fn attach(
         &mut self,
         root_db: &Db,
         old_dispatcher: Option<Dispatcher>,
@@ -234,14 +282,14 @@ impl TcDispatcher {
         // qdisc, we return an error. If the qdisc is a clsact qdisc, we do nothing. Otherwise, we add a clsact qdisc.
 
         // no need to add a new clsact qdisc if one already exists.
-        if TcDispatcher::has_qdisc("clsact".to_string(), if_index as i32).await? {
+        if TcDispatcher::has_qdisc("clsact".to_string(), if_index as i32)? {
             debug!(
                 "clsact qdisc found for if_index {}, no need to add a new clsact qdisc",
                 if_index
             );
 
         // if ingress qdisc exists, return error.
-        } else if TcDispatcher::has_qdisc("ingress".to_string(), if_index as i32).await? {
+        } else if TcDispatcher::has_qdisc("ingress".to_string(), if_index as i32)? {
             debug!("ingress qdisc found for if_index {}", if_index);
             return Err(BpfmanError::InvalidAttach(format!(
                 "Ingress qdisc found for if_index {}",
@@ -295,7 +343,7 @@ impl TcDispatcher {
         Ok(())
     }
 
-    fn attach_extensions(&mut self, extensions: &mut [&mut TcProgram]) -> Result<(), BpfmanError> {
+    fn attach_extensions(&mut self, extensions: &mut [TcLink]) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
         let direction = self.get_direction()?;
@@ -321,79 +369,16 @@ impl TcDispatcher {
         });
 
         for (i, v) in extensions.iter_mut().enumerate() {
-            if v.get_attached()? {
-                let id = v.data.get_id()?;
-                debug!("program {id} was already attached loading from pin");
-                let mut ext = Extension::from_pin(format!("{RTDIR_FS}/prog_{id}"))?;
-                let target_fn = format!("prog{i}");
-                let new_link_id = ext
-                    .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
-                    .unwrap();
-                let new_link: FdLink = ext.take_link(new_link_id)?.into();
-                let path = tc_dispatcher_link_id_path(direction, nsid, if_index, revision, id)?;
-                new_link.pin(path).map_err(BpfmanError::UnableToPinLink)?;
-            } else {
-                let name = &v.data.get_name()?;
-                let global_data = &v.data.get_global_data()?;
-
-                let mut bpf = EbpfLoader::new();
-
-                bpf.allow_unsupported_maps().extension(name);
-
-                for (name, value) in global_data {
-                    bpf.set_global(name, value.as_slice(), true);
-                }
-
-                // If map_pin_path is set already it means we need to use a pin
-                // path which should already exist on the system.
-                if let Some(map_pin_path) = v.data.get_map_pin_path()? {
-                    debug!("tc program {name} is using maps from {:?}", map_pin_path);
-                    bpf.map_pin_path(map_pin_path);
-                }
-
-                let mut loader = bpf
-                    .load(&v.get_data().get_program_bytes()?)
-                    .map_err(BpfmanError::BpfLoadError)?;
-
-                let ext: &mut Extension = loader
-                    .program_mut(name)
-                    .ok_or_else(|| BpfmanError::BpfFunctionNameNotValid(name.to_string()))?
-                    .try_into()?;
-
-                let target_fn = format!("prog{i}");
-
-                ext.load(dispatcher.fd()?.try_clone()?, &target_fn)?;
-                v.data.set_kernel_info(&ext.info()?)?;
-
-                let id = v.get_data().get_id()?;
-
-                ext.pin(format!("{RTDIR_FS}/prog_{id}"))
-                    .map_err(BpfmanError::UnableToPinProgram)?;
-                let new_link_id = ext.attach()?;
-                let new_link = ext.take_link(new_link_id)?;
-                let fd_link: FdLink = new_link.into();
-                let path = tc_dispatcher_link_id_path(direction, nsid, if_index, revision, id)?;
-                fd_link.pin(path).map_err(BpfmanError::UnableToPinLink)?;
-
-                // If this program is the map(s) owner pin all maps (except for .rodata and .bss) by name.
-                if v.data.get_map_pin_path()?.is_none() {
-                    let map_pin_path = calc_map_pin_path(id);
-                    v.data.set_map_pin_path(&map_pin_path.clone())?;
-                    create_map_pin_path(&map_pin_path)?;
-
-                    for (name, map) in loader.maps_mut() {
-                        if !should_map_be_pinned(name) {
-                            continue;
-                        }
-                        debug!(
-                            "Pinning map: {name} to path: {}",
-                            map_pin_path.join(name).display()
-                        );
-                        map.pin(map_pin_path.join(name))
-                            .map_err(BpfmanError::UnableToPinMap)?;
-                    }
-                }
-            }
+            let id = v.0.get_program_id()?;
+            debug!("program {id} was already attached loading from pin");
+            let mut ext = Extension::from_pin(format!("{RTDIR_FS}/prog_{id}"))?;
+            let target_fn = format!("prog{i}");
+            let new_link_id = ext
+                .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
+                .unwrap();
+            let new_link: FdLink = ext.take_link(new_link_id)?.into();
+            let path = tc_dispatcher_link_id_path(direction, nsid, if_index, revision, i as u32)?;
+            new_link.pin(path).map_err(BpfmanError::UnableToPinLink)?;
         }
         Ok(())
     }

@@ -1,0 +1,25 @@
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.31.0
+    hooks:
+      - id: yamllint
+        args: [--strict, -c=.yamllint.yaml]
+
+  - repo: local
+    hooks:
+      - id: clippy
+        name: clippy
+        entry: cargo +nightly clippy
+        args: [--all, --, --deny, warnings]
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: fmt
+        name: rustfmt
+        entry: cargo +nightly fmt
+        args: [--all, --, --check]
+        language: system
+        types: [rust]
+        pass_filenames: false

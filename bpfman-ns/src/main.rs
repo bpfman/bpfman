@@ -3,11 +3,11 @@
 
 use std::{fs::File, process};
 
-use anyhow::{bail, Context};
-use aya::programs::{links::FdLink, uprobe::UProbeLink, ProbeKind, UProbe};
+use anyhow::{Context, bail};
+use aya::programs::{ProbeKind, UProbe, links::FdLink, uprobe::UProbeLink};
 use clap::{Args, Parser, Subcommand};
 use log::debug;
-use nix::sched::{setns, CloneFlags};
+use nix::sched::{CloneFlags, setns};
 
 #[derive(Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -28,6 +28,10 @@ struct UprobeArgs {
     /// Required: path to pinned entry for bpf program on a bpffs.
     #[clap(short, long, verbatim_doc_comment)]
     program_pin_path: String,
+
+    /// Required: path to pin link on a bpffs.
+    #[clap(short, long, verbatim_doc_comment)]
+    link_pin_path: String,
 
     /// Optional: Function to attach the uprobe to.
     #[clap(short, long)]
@@ -136,7 +140,7 @@ fn execute_uprobe_attach(args: UprobeArgs, bpfman_pid: u32) -> anyhow::Result<()
         .try_into()
         .expect("unable to get owned uprobe attach link");
 
-    fd_link.pin(format!("{}_link", args.program_pin_path))?;
+    fd_link.pin(args.link_pin_path)?;
 
     Ok(())
 }

@@ -14,11 +14,18 @@ RUN apt-get update && apt-get install -y\
 
 RUN apt-get update && apt-get install -y\
     gcc-multilib\
-    libssl-dev
+    libssl-dev\
+    libclang-dev\
+    cmake
 
 # Get Rust for Ubuntu base build
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH=/root/.cargo/bin:$PATH
+
+# Install bindgen-cli (required for aws-lc-sys on some architectures)
+RUN --mount=type=cache,target=/usr/src/bpfman/target/ \
+    --mount=type=cache,target=/usr/local/cargo/registry \
+    cargo install bindgen-cli
 
 WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
@@ -47,6 +54,6 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/\* /tmp/\* /var/tmp/*
 
-COPY --from=bpfman-build  ./usr/src/bpfman/bpfman .
+COPY --from=bpfman-build  ./usr/src/bpfman/bpfman /usr/local/sbin/
 
-ENTRYPOINT ["./bpfman-rpc", "--timeout=0"]
+ENTRYPOINT ["bpfman-rpc", "--timeout=0"]
