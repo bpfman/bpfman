@@ -1,210 +1,144 @@
-use std::path::PathBuf;
-
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
-use bpfman::{
-    add_program, get_program, list_programs, pull_bytecode, remove_program,
-    types::{
-        FentryProgram, FexitProgram, KprobeProgram, ListFilter, Location, Program, ProgramData,
-        TcProceedOn, TcProgram, TcxProgram, TracepointProgram, UprobeProgram, XdpProceedOn,
-        XdpProgram,
-    },
+
+use std::{path::PathBuf, sync::Arc};
+
+use anyhow::{anyhow, bail};
+use bpfman::types::{
+    AttachInfo, FentryProgram, FexitProgram, KprobeProgram, ListFilter, Location, Program,
+    ProgramData, TcProceedOn, TcProgram, TcxProgram, TracepointProgram, UprobeProgram,
+    XdpProceedOn, XdpProgram,
 };
 use bpfman_api::v1::{
+    AttachRequest, AttachResponse, BpfmanProgramType, DetachRequest, DetachResponse, GetRequest,
+    GetResponse, ListRequest, ListResponse, LoadRequest, LoadResponse, LoadResponseInfo,
+    ProgSpecificInfo, PullBytecodeRequest, PullBytecodeResponse, UnloadRequest, UnloadResponse,
     attach_info::Info, bpfman_server::Bpfman, bytecode_location::Location as RpcLocation,
-    list_response::ListResult, FentryAttachInfo, FexitAttachInfo, GetRequest, GetResponse,
-    KprobeAttachInfo, ListRequest, ListResponse, LoadRequest, LoadResponse, PullBytecodeRequest,
-    PullBytecodeResponse, TcAttachInfo, TcxAttachInfo, TracepointAttachInfo, UnloadRequest,
-    UnloadResponse, UprobeAttachInfo, XdpAttachInfo,
+    list_response::ListResult,
 };
+use log::error;
+use tokio::sync::Mutex;
 use tonic::{Request, Response, Status};
 
-pub struct BpfmanLoader {}
+use crate::AsyncBpfman;
+
+pub struct BpfmanLoader {
+    lock: Arc<Mutex<AsyncBpfman>>,
+}
 
 impl BpfmanLoader {
-    pub(crate) fn new() -> BpfmanLoader {
-        BpfmanLoader {}
+    pub(crate) fn new(lock: Arc<Mutex<AsyncBpfman>>) -> BpfmanLoader {
+        BpfmanLoader { lock }
     }
 }
 
-#[tonic::async_trait]
-impl Bpfman for BpfmanLoader {
-    async fn load(&self, request: Request<LoadRequest>) -> Result<Response<LoadResponse>, Status> {
+impl BpfmanLoader {
+    async fn do_load(&self, request: Request<LoadRequest>) -> anyhow::Result<LoadResponse> {
         let request = request.into_inner();
 
         let bytecode_source = match request
             .bytecode
-            .ok_or(Status::aborted("missing bytecode info"))?
+            .ok_or(anyhow!("missing bytecode info"))?
             .location
-            .ok_or(Status::aborted("missing location"))?
+            .ok_or(anyhow!("missing location"))?
         {
             RpcLocation::Image(i) => Location::Image(i.into()),
             RpcLocation::File(p) => Location::File(p),
         };
 
-        let data = ProgramData::new(
-            bytecode_source,
-            request.name,
-            request.metadata,
-            request.global_data,
-            request.map_owner_id,
-        )
-        .map_err(|e| Status::aborted(format!("failed to create ProgramData: {e}")))?;
+        let programs : Vec<Result<Program, anyhow::Error>> = request.info.iter().map(|info| {
+            let data = ProgramData::new(
+                bytecode_source.clone(),
+                info.name.clone(),
+                request.metadata.clone(),
+                request.global_data.clone(),
+                request.map_owner_id,
+            )?;
 
-        let program = match request
-            .attach
-            .ok_or(Status::aborted("missing attach info"))?
-            .info
-            .ok_or(Status::aborted("missing info"))?
-        {
-            Info::XdpAttachInfo(XdpAttachInfo {
-                priority,
-                iface,
-                position: _,
-                proceed_on,
-                netns,
-            }) => Program::Xdp(
-                XdpProgram::new(
-                    data,
-                    priority,
-                    iface,
-                    XdpProceedOn::from_int32s(proceed_on)
-                        .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
-                    netns.map(PathBuf::from),
-                )
-                .map_err(|e| Status::aborted(format!("failed to create xdpprogram: {e}")))?,
-            ),
-            Info::TcAttachInfo(TcAttachInfo {
-                priority,
-                iface,
-                position: _,
-                direction,
-                proceed_on,
-                netns,
-            }) => {
-                let direction = direction
-                    .try_into()
-                    .map_err(|_| Status::aborted("direction is not a string"))?;
-                Program::Tc(
-                    TcProgram::new(
-                        data,
-                        priority,
-                        iface,
-                        TcProceedOn::from_int32s(proceed_on)
-                            .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
-                        direction,
-                        netns.map(PathBuf::from),
-                    )
-                    .map_err(|e| Status::aborted(format!("failed to create tcprogram: {e}")))?,
-                )
-            }
-            Info::TcxAttachInfo(TcxAttachInfo {
-                priority,
-                iface,
-                position: _,
-                direction,
-                netns,
-            }) => {
-                let direction = direction
-                    .try_into()
-                    .map_err(|_| Status::aborted("direction is not a string"))?;
-                Program::Tcx(
-                    TcxProgram::new(data, priority, iface, direction, netns.map(PathBuf::from))
-                        .map_err(|e| {
-                            Status::aborted(format!("failed to create tcxprogram: {e}"))
-                        })?,
-                )
-            }
-            Info::TracepointAttachInfo(TracepointAttachInfo { tracepoint }) => Program::Tracepoint(
-                TracepointProgram::new(data, tracepoint)
-                    .map_err(|e| Status::aborted(format!("failed to create tcprogram: {e}")))?,
-            ),
-            Info::KprobeAttachInfo(KprobeAttachInfo {
-                fn_name,
-                offset,
-                retprobe,
-                container_pid,
-            }) => Program::Kprobe(
-                KprobeProgram::new(data, fn_name, offset, retprobe, container_pid)
-                    .map_err(|e| Status::aborted(format!("failed to create kprobeprogram: {e}")))?,
-            ),
-            Info::UprobeAttachInfo(UprobeAttachInfo {
-                fn_name,
-                offset,
-                target,
-                retprobe,
-                pid,
-                container_pid,
-            }) => Program::Uprobe(
-                UprobeProgram::new(data, fn_name, offset, target, retprobe, pid, container_pid)
-                    .map_err(|e| Status::aborted(format!("failed to create uprobeprogram: {e}")))?,
-            ),
-            Info::FentryAttachInfo(FentryAttachInfo { fn_name }) => Program::Fentry(
-                FentryProgram::new(data, fn_name)
-                    .map_err(|e| Status::aborted(format!("failed to create fentryprogram: {e}")))?,
-            ),
-            Info::FexitAttachInfo(FexitAttachInfo { fn_name }) => Program::Fexit(
-                FexitProgram::new(data, fn_name)
-                    .map_err(|e| Status::aborted(format!("failed to create fexitprogram: {e}")))?,
-            ),
-        };
-
-        let program = add_program(program)
-            .await
-            .map_err(|e| Status::aborted(format!("{e}")))?;
-
-        let reply_entry =
-            LoadResponse {
-                info: Some((&program).try_into().map_err(|e| {
-                    Status::aborted(format!("convert Program to GRPC program: {e}"))
-                })?),
-                kernel_info: Some((&program).try_into().map_err(|e| {
-                    Status::aborted(format!("convert Program to GRPC kernel program info: {e}"))
-                })?),
+            let program = match info.program_type() {
+                BpfmanProgramType::Xdp => Program::Xdp(XdpProgram::new(data)?),
+                BpfmanProgramType::Tc => Program::Tc(TcProgram::new(data)?),
+                BpfmanProgramType::Tcx => Program::Tcx(TcxProgram::new(data)?),
+                BpfmanProgramType::Tracepoint => Program::Tracepoint(TracepointProgram::new(data)?),
+                BpfmanProgramType::Kprobe => Program::Kprobe(KprobeProgram::new(data)?),
+                BpfmanProgramType::Uprobe => Program::Uprobe(UprobeProgram::new(data)?),
+                BpfmanProgramType::Fentry => {
+                    if let Some(ProgSpecificInfo {
+                        info: Some(bpfman_api::v1::prog_specific_info::Info::FentryLoadInfo(fentry)),
+                    }) = &info.info
+                    {
+                        Program::Fentry(FentryProgram::new(data, fentry.fn_name.clone())?)
+                    } else {
+                        bail!("missing FentryInfo");
+                    }
+                }
+                BpfmanProgramType::Fexit => {
+                    if let Some(ProgSpecificInfo {
+                        info: Some(bpfman_api::v1::prog_specific_info::Info::FexitLoadInfo(fexit)),
+                    }) = &info.info
+                    {
+                        Program::Fexit(FexitProgram::new(data, fexit.fn_name.clone())?)
+                    } else {
+                        bail!("missing FexitInfo");
+                    }
+                }
             };
+            Ok(program)
+        }).collect();
 
-        Ok(Response::new(reply_entry))
+        // Check if any of the programs failed to be created
+        for p in programs.iter() {
+            if let Err(e) = p {
+                bail!("{e}");
+            }
+        }
+
+        let bpfman_lock = self.lock.lock().await;
+        let add_prog_result = bpfman_lock
+            .add_programs(programs.into_iter().map(|p| p.unwrap()).collect())
+            .await?;
+
+        let mut load_program_info = vec![];
+        for p in add_prog_result.iter() {
+            let info = p.try_into()?;
+            let kernel_info = p.try_into()?;
+            load_program_info.push(LoadResponseInfo {
+                info: Some(info),
+                kernel_info: Some(kernel_info),
+            });
+        }
+        let reply_entry = LoadResponse {
+            programs: load_program_info,
+        };
+        Ok(reply_entry)
     }
 
-    async fn unload(
-        &self,
-        request: Request<UnloadRequest>,
-    ) -> Result<Response<UnloadResponse>, Status> {
+    async fn do_unload(&self, request: Request<UnloadRequest>) -> anyhow::Result<UnloadResponse> {
         let reply = UnloadResponse {};
         let request = request.into_inner();
-
-        remove_program(request.id)
-            .await
-            .map_err(|e| Status::aborted(format!("{e}")))?;
-
-        Ok(Response::new(reply))
+        let bpfman_lock = self.lock.lock().await;
+        bpfman_lock.remove_program(request.id).await?;
+        Ok(reply)
     }
 
-    async fn get(&self, request: Request<GetRequest>) -> Result<Response<GetResponse>, Status> {
+    async fn do_get(&self, request: Request<GetRequest>) -> anyhow::Result<GetResponse> {
         let request = request.into_inner();
         let id = request.id;
+        let bpfman_lock = self.lock.lock().await;
+        let program = bpfman_lock.get_program(id).await?;
 
-        let program = get_program(id)
-            .await
-            .map_err(|e| Status::aborted(format!("{e}")))?;
-
-        let reply_entry =
-            GetResponse {
-                info: if let Program::Unsupported(_) = program {
-                    None
-                } else {
-                    Some((&program).try_into().map_err(|e| {
-                        Status::aborted(format!("failed to get program metadata: {e}"))
-                    })?)
-                },
-                kernel_info: Some((&program).try_into().map_err(|e| {
-                    Status::aborted(format!("convert Program to GRPC kernel program info: {e}"))
-                })?),
-            };
-        Ok(Response::new(reply_entry))
+        let reply_entry = GetResponse {
+            info: if let Program::Unsupported(_) = program {
+                None
+            } else {
+                Some((&program).try_into()?)
+            },
+            kernel_info: Some((&program).try_into()?),
+        };
+        Ok(reply_entry)
     }
 
-    async fn list(&self, request: Request<ListRequest>) -> Result<Response<ListResponse>, Status> {
+    async fn do_list(&self, request: Request<ListRequest>) -> anyhow::Result<ListResponse> {
         let mut reply = ListResponse { results: vec![] };
 
         let filter = ListFilter::new(
@@ -213,8 +147,11 @@ impl Bpfman for BpfmanLoader {
             request.get_ref().bpfman_programs_only(),
         );
 
+        let bpfman_lock = self.lock.lock().await;
+
         // Await the response
-        for r in list_programs(filter)
+        for r in bpfman_lock
+            .list_programs(filter)
             .await
             .map_err(|e| Status::aborted(format!("failed to list programs: {e}")))?
         {
@@ -223,34 +160,189 @@ impl Bpfman for BpfmanLoader {
                 info: if let Program::Unsupported(_) = r {
                     None
                 } else {
-                    Some((&r).try_into().map_err(|e| {
-                        Status::aborted(format!("failed to get program metadata: {e}"))
-                    })?)
+                    Some((&r).try_into()?)
                 },
-                kernel_info: Some((&r).try_into().map_err(|e| {
-                    Status::aborted(format!("convert Program to GRPC kernel program info: {e}"))
-                })?),
+                kernel_info: Some((&r).try_into()?),
             };
             reply.results.push(reply_entry)
         }
-        Ok(Response::new(reply))
+        Ok(reply)
+    }
+
+    async fn do_pull_bytecode(
+        &self,
+        request: tonic::Request<PullBytecodeRequest>,
+    ) -> anyhow::Result<PullBytecodeResponse> {
+        let request = request.into_inner();
+        let image = match request.image {
+            Some(i) => i.into(),
+            None => bail!("Empty pull_bytecode request received"),
+        };
+        let bpfman_lock = self.lock.lock().await;
+        bpfman_lock.pull_bytecode(image).await?;
+
+        let reply = PullBytecodeResponse {};
+        Ok(reply)
+    }
+
+    async fn do_attach(
+        &self,
+        request: tonic::Request<AttachRequest>,
+    ) -> anyhow::Result<AttachResponse> {
+        let request = request.into_inner();
+
+        let attach_info = if let Some(info) = request.attach {
+            match info.info {
+                Some(Info::XdpAttachInfo(i)) => AttachInfo::Xdp {
+                    priority: i.priority,
+                    iface: i.iface,
+                    proceed_on: XdpProceedOn::from_int32s(i.proceed_on)
+                        .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
+                    netns: i.netns.map(PathBuf::from),
+                    metadata: i.metadata,
+                },
+                Some(Info::TcAttachInfo(i)) => AttachInfo::Tc {
+                    priority: i.priority,
+                    iface: i.iface,
+                    direction: i.direction,
+                    proceed_on: TcProceedOn::from_int32s(i.proceed_on)
+                        .map_err(|_| Status::aborted("failed to parse proceed_on"))?,
+                    netns: i.netns.map(PathBuf::from),
+                    metadata: i.metadata,
+                },
+                Some(Info::TcxAttachInfo(i)) => AttachInfo::Tcx {
+                    priority: i.priority,
+                    iface: i.iface,
+                    direction: i.direction,
+                    netns: i.netns.map(PathBuf::from),
+                    metadata: i.metadata,
+                },
+                Some(Info::TracepointAttachInfo(i)) => AttachInfo::Tracepoint {
+                    tracepoint: i.tracepoint,
+                    metadata: i.metadata,
+                },
+                Some(Info::KprobeAttachInfo(i)) => AttachInfo::Kprobe {
+                    fn_name: i.fn_name,
+                    offset: i.offset,
+                    container_pid: i.container_pid,
+                    metadata: i.metadata,
+                },
+                Some(Info::UprobeAttachInfo(i)) => AttachInfo::Uprobe {
+                    fn_name: i.fn_name,
+                    offset: i.offset,
+                    target: i.target,
+                    pid: i.pid,
+                    container_pid: i.container_pid,
+                    metadata: i.metadata,
+                },
+                Some(Info::FentryAttachInfo(i)) => AttachInfo::Fentry {
+                    metadata: i.metadata,
+                },
+                Some(Info::FexitAttachInfo(i)) => AttachInfo::Fexit {
+                    metadata: i.metadata,
+                },
+                None => bail!("missing attach_info"),
+            }
+        } else {
+            bail!("missing attach_info");
+        };
+
+        let bpfman_lock = self.lock.lock().await;
+        let link_id = bpfman_lock.attach(request.id, attach_info).await?;
+
+        Ok(AttachResponse { link_id })
+    }
+
+    async fn do_detach(&self, request: Request<DetachRequest>) -> anyhow::Result<DetachResponse> {
+        let request = request.into_inner();
+        let bpfman_lock = self.lock.lock().await;
+        bpfman_lock.detach(request.link_id).await?;
+
+        Ok(DetachResponse {})
+    }
+}
+
+#[tonic::async_trait]
+impl Bpfman for BpfmanLoader {
+    async fn load(&self, request: Request<LoadRequest>) -> Result<Response<LoadResponse>, Status> {
+        self.do_load(request)
+            .await
+            .map_err(|e| {
+                error!("Error in load: {e}");
+                Status::aborted(format!("{e}"))
+            })
+            .map(Response::new)
+    }
+
+    async fn unload(
+        &self,
+        request: Request<UnloadRequest>,
+    ) -> Result<Response<UnloadResponse>, Status> {
+        self.do_unload(request)
+            .await
+            .map_err(|e| {
+                error!("Error in get: {e}");
+                Status::aborted(format!("{e}"))
+            })
+            .map(Response::new)
+    }
+
+    async fn get(&self, request: Request<GetRequest>) -> Result<Response<GetResponse>, Status> {
+        self.do_get(request)
+            .await
+            .map_err(|e| {
+                error!("Error in get: {e}");
+                Status::aborted(format!("{e}"))
+            })
+            .map(Response::new)
+    }
+
+    async fn attach(
+        &self,
+        request: Request<AttachRequest>,
+    ) -> Result<Response<AttachResponse>, Status> {
+        self.do_attach(request)
+            .await
+            .map_err(|e| {
+                error!("Error in attach: {e}");
+                Status::aborted(format!("{e}"))
+            })
+            .map(Response::new)
+    }
+
+    async fn detach(
+        &self,
+        request: Request<DetachRequest>,
+    ) -> Result<Response<DetachResponse>, Status> {
+        self.do_detach(request)
+            .await
+            .map_err(|e| {
+                error!("Error in detach: {e}");
+                Status::aborted(format!("{e}"))
+            })
+            .map(Response::new)
+    }
+
+    async fn list(&self, request: Request<ListRequest>) -> Result<Response<ListResponse>, Status> {
+        self.do_list(request)
+            .await
+            .map_err(|e| {
+                error!("Error in list: {e}");
+                Status::aborted(format!("{e}"))
+            })
+            .map(Response::new)
     }
 
     async fn pull_bytecode(
         &self,
         request: tonic::Request<PullBytecodeRequest>,
     ) -> std::result::Result<tonic::Response<PullBytecodeResponse>, tonic::Status> {
-        let request = request.into_inner();
-        let image = match request.image {
-            Some(i) => i.into(),
-            None => return Err(Status::aborted("Empty pull_bytecode request received")),
-        };
-
-        pull_bytecode(image)
+        self.do_pull_bytecode(request)
             .await
-            .map_err(|e| Status::aborted(format!("{e}")))?;
-
-        let reply = PullBytecodeResponse {};
-        Ok(Response::new(reply))
+            .map_err(|e| {
+                error!("Error in pull: {e}");
+                Status::aborted(format!("{e}"))
+            })
+            .map(Response::new)
     }
 }

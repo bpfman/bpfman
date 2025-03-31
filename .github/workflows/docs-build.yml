@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # @v5
         with:
           python-version: 3.8
-      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # @v5
+      - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # @v5
         with:
           # prettier-ignore
           go-version: '1.21' # yamllint disable-line rule:quoted-strings

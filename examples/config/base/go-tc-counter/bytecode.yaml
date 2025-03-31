@@ -1,18 +1,22 @@
 ---
 apiVersion: bpfman.io/v1alpha1
-kind: TcProgram
+kind: ClusterBpfApplication
 metadata:
   labels:
     app.kubernetes.io/name: tcprogram
   name: go-tc-counter-example
 spec:
-  bpffunctionname: stats
   # Select all nodes
-  nodeselector: {}
-  interfaceselector:
-    primarynodeinterface: true
-  priority: 55
-  direction: ingress
-  bytecode:
+  nodeSelector: {}
+  byteCode:
     image:
       url: quay.io/bpfman-bytecode/go-tc-counter:latest
+  programs:
+    - name: stats
+      type: TC
+      tc:
+        links:
+          - interfaceSelector:
+              primaryNodeInterface: true
+            priority: 55
+            direction: Ingress

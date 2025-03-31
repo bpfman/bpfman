@@ -3,11 +3,11 @@
 
 use std::{cell::RefCell, num::NonZeroI32, str::from_utf8};
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use log::{debug, info};
 use netlink_packet_audit::AuditMessage;
 use netlink_packet_core::{NetlinkMessage, NetlinkPayload};
-use netlink_sys::{protocols::NETLINK_AUDIT, Socket, SocketAddr};
+use netlink_sys::{Socket, SocketAddr, protocols::NETLINK_AUDIT};
 use regex::Regex;
 
 fn main() -> anyhow::Result<()> {
@@ -67,7 +67,7 @@ impl NetlinkAudit {
             Err(_) => {
                 return Err(anyhow!(
                     "unable to create socket, make sure audit is enabled"
-                ))
+                ));
             }
         };
         if sock.bind_auto().is_err() {

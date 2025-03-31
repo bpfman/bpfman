@@ -1,11 +1,13 @@
 [package]
 description = "Binary for exporting eBPF subsystem metrics via prometheus"
+name = "bpf-metrics-exporter"
+
 documentation.workspace = true
 edition.workspace = true
 homepage.workspace = true
 license.workspace = true
-name = "bpf-metrics-exporter"
 repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
 
 [dependencies]

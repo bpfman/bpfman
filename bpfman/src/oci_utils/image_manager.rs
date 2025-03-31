@@ -3,19 +3,19 @@
 
 use std::{
     collections::HashMap,
-    io::{copy, Read},
+    io::{Read, copy},
 };
 
 use anyhow::anyhow;
 use flate2::read::GzDecoder;
 use log::{debug, error, info, trace};
 use object::{Endianness, Object};
-use oci_distribution::{
+use oci_client::{
+    Client, Reference,
     client::{ClientConfig, ClientProtocol},
     manifest,
     manifest::OciImageManifest,
     secrets::RegistryAuth,
-    Client, Reference,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -24,7 +24,11 @@ use sled::Db;
 use tar::Archive;
 
 use crate::{
-    oci_utils::{cosign::CosignVerifier, ImageError},
+    oci_utils::{
+        ImageError,
+        cosign::{CosignVerifier, fetch_sigstore_tuf_data},
+        rt,
+    },
     types::ImagePullPolicy,
     utils::{sled_get, sled_insert},
 };
@@ -67,9 +71,10 @@ pub struct ImageManager {
 }
 
 impl ImageManager {
-    pub async fn new(verify_enabled: bool, allow_unsigned: bool) -> Result<Self, anyhow::Error> {
+    pub fn new(verify_enabled: bool, allow_unsigned: bool) -> Result<Self, anyhow::Error> {
         let cosign_verifier = if verify_enabled {
-            Some(CosignVerifier::new(allow_unsigned).await?)
+            let repo = rt()?.block_on(fetch_sigstore_tuf_data())?;
+            Some(CosignVerifier::new(repo, allow_unsigned)?)
         } else {
             None
         };
@@ -84,7 +89,7 @@ impl ImageManager {
         })
     }
 
-    pub(crate) async fn get_image(
+    pub(crate) fn get_image(
         &mut self,
         root_db: &Db,
         image_url: &str,
@@ -98,9 +103,7 @@ impl ImageManager {
         let image: Reference = image_url.parse().map_err(ImageError::InvalidImageUrl)?;
 
         if let Some(cosign_verifier) = &mut self.cosign_verifier {
-            cosign_verifier
-                .verify(image_url, username.as_deref(), password.as_deref())
-                .await?;
+            cosign_verifier.verify(image_url, username.as_deref(), password.as_deref())?;
         } else {
             info!("Cosign verification is disabled, so skipping verification");
         }
@@ -115,15 +118,13 @@ impl ImageManager {
 
         let image_meta = match pull_policy {
             ImagePullPolicy::Always => {
-                self.pull_image(root_db, image, &image_content_key, username, password)
-                    .await?
+                self.pull_image(root_db, image, &image_content_key, username, password)?
             }
             ImagePullPolicy::IfNotPresent => {
                 if exists {
                     self.load_image_meta(root_db, &image_content_key)?
                 } else {
-                    self.pull_image(root_db, image, &image_content_key, username, password)
-                        .await?
+                    self.pull_image(root_db, image, &image_content_key, username, password)?
                 }
             }
             ImagePullPolicy::Never => {
@@ -153,7 +154,7 @@ impl ImageManager {
         }
     }
 
-    pub async fn pull_image(
+    pub fn pull_image(
         &mut self,
         root_db: &Db,
         image: Reference,
@@ -169,123 +170,15 @@ impl ImageManager {
         );
 
         let auth = self.get_auth_for_registry(image.registry(), username, password);
+        let client = self.client.clone();
 
-        let (image_manifest, _, config_contents) = self
-            .client
-            .pull_manifest_and_config(&image.clone(), &auth)
-            .await
-            .map_err(ImageError::ImageManifestPullFailure)?;
-
-        trace!("Raw container image manifest {}", image_manifest);
-
-        let config_sha = &image_manifest
-            .config
-            .digest
-            .split(':')
-            .collect::<Vec<&str>>()[1];
-
-        let image_config: Value = serde_json::from_str(&config_contents)
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
-
-        trace!("Raw container image config {}", image_config);
-
-        let labels_map = image_config["config"]["Labels"].as_object().ok_or(
-            ImageError::ByteCodeImageProcessFailure(anyhow!("Labels not found")),
-        )?;
-
-        // The values of the Labels `io.ebpf.maps` and `io.ebpf.programs` are in JSON format try and
-        // parse those, if that fails fallback to the V1 version of the metadata spec,
-        // if that fails error out.
-        let image_labels = match (
-            labels_map.get(OCI_MAPS_LABEL),
-            labels_map.get(OCI_PROGRAMS_LABEL),
-        ) {
-            (Some(maps), Some(programs)) => {
-                let tmp_map = serde_label(maps, "map".to_string())?;
-                let tmp_program = serde_label(programs, "program".to_string())?;
-
-                ContainerImageMetadata {
-                    _maps: tmp_map,
-                    programs: tmp_program,
-                }
-            }
-            _ => {
-                // Try to deserialize from older version of metadata
-                match serde_json::from_str::<ContainerImageMetadataV1>(
-                    &image_config["config"]["Labels"].to_string(),
-                ) {
-                    Ok(labels) => labels.into(),
-                    Err(e) => return Err(ImageError::ByteCodeImageProcessFailure(e.into())),
-                }
-            }
-        };
-
-        let image_content = self
-            .client
-            .pull(
-                &image,
-                &auth,
-                vec![
-                    manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE,
-                    manifest::IMAGE_DOCKER_LAYER_GZIP_MEDIA_TYPE,
-                ],
-            )
-            .await
-            .map_err(ImageError::BytecodeImagePullFailure)?
-            .layers
-            .into_iter()
-            .next()
-            .map(|layer| layer.data)
-            .ok_or(ImageError::BytecodeImageExtractFailure(
-                "No data in bytecode image layer".to_string(),
-            ))?;
-
-        // Make sure endian target matches that of the system before storing
-        let unzipped_content = get_bytecode_from_gzip(image_content.clone());
-        let obj_endianness = object::read::File::parse(unzipped_content.as_slice())
-            .map_err(|e| ImageError::BytecodeImageExtractFailure(e.to_string()))?
-            .endianness();
-        let host_endianness = Endianness::default();
-
-        if host_endianness != obj_endianness {
-            return Err(ImageError::BytecodeImageExtractFailure(
-                format!("image bytecode endianness: {obj_endianness:?} does not match host {host_endianness:?}"),
-            ));
-        };
-
-        // Update Database to save for later
-        let image_manifest_key = base_key.to_string() + "manifest.json";
-
-        let image_manifest_json = serde_json::to_string(&image_manifest)
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
-
-        sled_insert(root_db, &image_manifest_key, image_manifest_json.as_bytes()).map_err(|e| {
-            ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
-        })?;
-
-        let image_config_path = base_key.to_string() + config_sha;
-
-        root_db
-            .insert(image_config_path, config_contents.as_str())
-            .map_err(|e| {
-                ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
-            })?;
-
-        let bytecode_sha = image_manifest.layers[0]
-            .digest
-            .split(':')
-            .collect::<Vec<&str>>()[1];
-
-        let bytecode_path = base_key.to_string() + bytecode_sha;
-
-        sled_insert(root_db, &bytecode_path, &image_content).map_err(|e| {
-            ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
-        })?;
-
-        root_db.flush().map_err(|e| {
-            ImageError::DatabaseError("failed to flush db".to_string(), e.to_string())
-        })?;
-
+        let image_labels = rt().unwrap().block_on(get_image_labels(
+            client,
+            root_db.clone(),
+            base_key.to_string(),
+            image.clone(),
+            auth,
+        ))?;
         Ok(image_labels)
     }
 
@@ -444,6 +337,133 @@ fn get_image_content_key(image: &Reference) -> String {
     )
 }
 
+async fn get_image_labels(
+    client: Client,
+    root_db: Db,
+    base_key: String,
+    image: Reference,
+    auth: RegistryAuth,
+) -> Result<ContainerImageMetadata, ImageError> {
+    let (image_manifest, _, config_contents) = client
+        .pull_manifest_and_config(&image.clone(), &auth)
+        .await
+        .map_err(ImageError::BytecodeImagePullFailure)?;
+
+    trace!("Raw container image manifest {}", image_manifest);
+
+    let config_sha = &image_manifest
+        .config
+        .digest
+        .split(':')
+        .collect::<Vec<&str>>()[1];
+
+    let image_config: Value = serde_json::from_str(&config_contents)
+        .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
+
+    trace!("Raw container image config {}", image_config);
+
+    let image_content = client
+        .pull(
+            &image,
+            &auth,
+            vec![
+                manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE,
+                manifest::IMAGE_DOCKER_LAYER_GZIP_MEDIA_TYPE,
+            ],
+        )
+        .await
+        .map_err(ImageError::BytecodeImagePullFailure)?
+        .layers
+        .into_iter()
+        .next()
+        .map(|layer| layer.data)
+        .ok_or(ImageError::BytecodeImageExtractFailure(
+            "No data in bytecode image layer".to_string(),
+        ))?;
+
+    let labels_map = image_config["config"]["Labels"].as_object().ok_or(
+        ImageError::ByteCodeImageProcessFailure(anyhow!("Labels not found")),
+    )?;
+
+    // The values of the Labels `io.ebpf.maps` and `io.ebpf.programs` are in JSON format try and
+    // parse those, if that fails fallback to the V1 version of the metadata spec,
+    // if that fails error out.
+    let image_labels = match (
+        labels_map.get(OCI_MAPS_LABEL),
+        labels_map.get(OCI_PROGRAMS_LABEL),
+    ) {
+        (Some(maps), Some(programs)) => {
+            let tmp_map = serde_label(maps, "map".to_string())?;
+            let tmp_program = serde_label(programs, "program".to_string())?;
+
+            ContainerImageMetadata {
+                _maps: tmp_map,
+                programs: tmp_program,
+            }
+        }
+        _ => {
+            // Try to deserialize from older version of metadata
+            match serde_json::from_str::<ContainerImageMetadataV1>(
+                &image_config["config"]["Labels"].to_string(),
+            ) {
+                Ok(labels) => labels.into(),
+                Err(e) => return Err(ImageError::ByteCodeImageProcessFailure(e.into())),
+            }
+        }
+    };
+
+    // Make sure endian target matches that of the system before storing
+    let unzipped_content = get_bytecode_from_gzip(image_content.clone());
+    let obj_endianness = object::read::File::parse(unzipped_content.as_slice())
+        .map_err(|e| ImageError::BytecodeImageExtractFailure(e.to_string()))?
+        .endianness();
+    let host_endianness = Endianness::default();
+
+    if host_endianness != obj_endianness {
+        return Err(ImageError::BytecodeImageExtractFailure(format!(
+            "image bytecode endianness: {obj_endianness:?} does not match host {host_endianness:?}"
+        )));
+    };
+
+    // Update Database to save for later
+    let image_manifest_key = base_key.to_string() + "manifest.json";
+
+    let image_manifest_json = serde_json::to_string(&image_manifest)
+        .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
+
+    sled_insert(
+        &root_db,
+        &image_manifest_key,
+        image_manifest_json.as_bytes(),
+    )
+    .map_err(|e| ImageError::DatabaseError("failed to write to db".to_string(), e.to_string()))?;
+
+    let image_config_path = base_key.to_string() + config_sha;
+
+    root_db
+        .insert(image_config_path, config_contents.as_str())
+        .map_err(|e| {
+            ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
+        })?;
+
+    let bytecode_sha = image_manifest.layers[0]
+        .digest
+        .split(':')
+        .collect::<Vec<&str>>()[1];
+
+    let bytecode_path = base_key.to_string() + bytecode_sha;
+
+    sled_insert(&root_db, &bytecode_path, &image_content).map_err(|e| {
+        ImageError::DatabaseError("failed to write to db".to_string(), e.to_string())
+    })?;
+
+    root_db
+        .flush()
+        .map_err(|e| ImageError::DatabaseError("failed to flush db".to_string(), e.to_string()))?;
+
+    Ok(image_labels)
+}
+
 fn get_bytecode_from_gzip(bytes: Vec<u8>) -> Vec<u8> {
     let decoder = GzDecoder::new(bytes.as_slice());
     Archive::new(decoder)
@@ -470,164 +490,144 @@ mod tests {
     use super::*;
     use crate::{config::SigningConfig, get_db_config, init_database};
 
-    #[tokio::test]
-    async fn image_pull_and_bytecode_verify_legacy() {
-        let root_db = init_database(get_db_config())
-            .await
-            .expect("Unable to open root database for unit test");
+    #[test]
+    fn image_pull_and_bytecode_verify_legacy() {
+        let root_db =
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
         let mut mgr = ImageManager::new(
             SigningConfig::default().verify_enabled,
             SigningConfig::default().allow_unsigned,
         )
-        .await
         .unwrap();
         let (image_content_key, _) = mgr
             .get_image(
-                &root_db,
+                root_db,
                 "quay.io/bpfman-bytecode/go-xdp-counter-legacy-labels:latest",
                 ImagePullPolicy::Always,
                 None,
                 None,
             )
-            .await
             .expect("failed to pull bytecode");
 
         let program_bytes = mgr
-            .get_bytecode_from_image_store(&root_db, image_content_key)
+            .get_bytecode_from_image_store(root_db, image_content_key)
             .expect("failed to get bytecode from image store");
 
         assert!(!program_bytes.is_empty())
     }
 
-    #[tokio::test]
-    async fn image_pull_and_bytecode_verify() {
-        let root_db = init_database(get_db_config())
-            .await
-            .expect("Unable to open root database for unit test");
+    #[test]
+    fn image_pull_and_bytecode_verify() {
+        let root_db =
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
         let mut mgr = ImageManager::new(
             SigningConfig::default().verify_enabled,
             SigningConfig::default().allow_unsigned,
         )
-        .await
         .unwrap();
         let (image_content_key, _) = mgr
             .get_image(
-                &root_db,
+                root_db,
                 "quay.io/bpfman-bytecode/go-xdp-counter:latest",
                 ImagePullPolicy::Always,
                 None,
                 None,
             )
-            .await
             .expect("failed to pull bytecode");
 
         let program_bytes = mgr
-            .get_bytecode_from_image_store(&root_db, image_content_key)
+            .get_bytecode_from_image_store(root_db, image_content_key)
             .expect("failed to get bytecode from image store");
 
         assert!(!program_bytes.is_empty())
     }
 
-    #[tokio::test]
-    async fn image_pull_policy_never_failure() {
+    #[test]
+    fn image_pull_policy_never_failure() {
         let mut mgr = ImageManager::new(
             SigningConfig::default().verify_enabled,
             SigningConfig::default().allow_unsigned,
         )
-        .await
         .unwrap();
-        let root_db = init_database(get_db_config())
-            .await
-            .expect("Unable to open root database for unit test");
+        let root_db =
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
 
-        let result = mgr
-            .get_image(
-                &root_db,
-                "quay.io/bpfman-bytecode/xdp_pass:latest",
-                ImagePullPolicy::Never,
-                None,
-                None,
-            )
-            .await;
+        let result = mgr.get_image(
+            root_db,
+            "quay.io/bpfman-bytecode/xdp_pass:latest",
+            ImagePullPolicy::Never,
+            None,
+            None,
+        );
 
         assert_matches!(result, Err(ImageError::ByteCodeImageNotfound(_)));
     }
 
-    #[tokio::test]
+    #[test]
     #[should_panic]
-    async fn private_image_pull_failure() {
+    fn private_image_pull_failure() {
         let mut mgr = ImageManager::new(
             SigningConfig::default().verify_enabled,
             SigningConfig::default().allow_unsigned,
         )
-        .await
         .unwrap();
-        let root_db = init_database(get_db_config())
-            .await
-            .expect("Unable to open root database for unit test");
+        let root_db =
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
 
         mgr.get_image(
-            &root_db,
+            root_db,
             "quay.io/bpfman-bytecode/xdp_pass_private:latest",
             ImagePullPolicy::Always,
             None,
             None,
         )
-        .await
         .expect("failed to pull bytecode");
     }
 
-    #[tokio::test]
-    async fn private_image_pull_and_bytecode_verify() {
+    #[test]
+    fn private_image_pull_and_bytecode_verify() {
         let mut mgr = ImageManager::new(
             SigningConfig::default().verify_enabled,
             SigningConfig::default().allow_unsigned,
         )
-        .await
         .unwrap();
-        let root_db = init_database(get_db_config())
-            .await
-            .expect("Unable to open root database for unit test");
+        let root_db =
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
 
         let (image_content_key, _) = mgr
             .get_image(
-                &root_db,
+                root_db,
                 "quay.io/bpfman-bytecode/xdp_pass_private:latest",
                 ImagePullPolicy::Always,
                 Some("bpfman-bytecode+bpfmancreds".to_owned()),
                 Some("D49CKWI1MMOFGRCAT8SHW5A56FSVP30TGYX54BBWKY2J129XRI6Q5TVH2ZZGTJ1M".to_owned()),
             )
-            .await
             .expect("failed to pull bytecode");
 
         let program_bytes = mgr
-            .get_bytecode_from_image_store(&root_db, image_content_key)
+            .get_bytecode_from_image_store(root_db, image_content_key)
             .expect("failed to get bytecode from image store");
 
         assert!(!program_bytes.is_empty())
     }
 
-    #[tokio::test]
-    async fn image_pull_failure() {
+    #[test]
+    fn image_pull_failure() {
         let mut mgr = ImageManager::new(
             SigningConfig::default().verify_enabled,
             SigningConfig::default().allow_unsigned,
         )
-        .await
         .unwrap();
-        let root_db = init_database(get_db_config())
-            .await
-            .expect("Unable to open root database for unit test");
+        let root_db =
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
 
-        let result = mgr
-            .get_image(
-                &root_db,
-                "quay.io/bpfman-bytecode/xdp_pass:latest",
-                ImagePullPolicy::Never,
-                None,
-                None,
-            )
-            .await;
+        let result = mgr.get_image(
+            root_db,
+            "quay.io/bpfman-bytecode/xdp_pass:latest",
+            ImagePullPolicy::Never,
+            None,
+            None,
+        );
 
         assert_matches!(result, Err(ImageError::ByteCodeImageNotfound(_)));
     }
@@ -639,15 +639,30 @@ mod tests {
             output: &'static str,
         }
         let tt = vec![
-            Case{input: "busybox", output: "docker.io_library_busybox_latest"},
-            Case{input:"quay.io/busybox", output: "quay.io_busybox_latest"},
-            Case{input:"docker.io/test:tag", output: "docker.io_library_test_tag"},
-            Case{input:"quay.io/test:5000", output: "quay.io_test_5000"},
-            Case{input:"test.com/repo:tag", output: "test.com_repo_tag"},
-            Case{
-                input:"test.com/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            Case {
+                input: "busybox",
+                output: "docker.io_library_busybox_latest",
+            },
+            Case {
+                input: "quay.io/busybox",
+                output: "quay.io_busybox_latest",
+            },
+            Case {
+                input: "docker.io/test:tag",
+                output: "docker.io_library_test_tag",
+            },
+            Case {
+                input: "quay.io/test:5000",
+                output: "quay.io_test_5000",
+            },
+            Case {
+                input: "test.com/repo:tag",
+                output: "test.com_repo_tag",
+            },
+            Case {
+                input: "test.com/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
                 output: "test.com_repo_sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            }
+            },
         ];
 
         for t in tt {

@@ -1,56 +1,60 @@
 ---
 apiVersion: bpfman.io/v1alpha1
-kind: BpfApplication
+kind: ClusterBpfApplication
 metadata:
   labels:
     app.kubernetes.io/name: bpfapplication
   name: app-counter
 spec:
   # Select all nodes
-  nodeselector: {}
-  bytecode:
+  nodeSelector: {}
+  byteCode:
     image:
       url: quay.io/bpfman-bytecode/go-app-counter:latest
-      imagepullpolicy: Always
+      imagePullPolicy: Always
   programs:
-    - type: Kprobe
+    - name: kprobe_counter
+      type: KProbe
       kprobe:
-        bpffunctionname: kprobe_counter
-        func_name: try_to_wake_up
-        offset: 0
-        retprobe: false
-    - type: Tracepoint
+        links:
+          - function: try_to_wake_up
+            offset: 0
+    - name: tracepoint_kill_recorder
+      type: TracePoint
       tracepoint:
-        bpffunctionname: tracepoint_kill_recorder
-        names: [syscalls/sys_enter_kill]
-    - type: TC
+        links:
+          - name: syscalls/sys_enter_kill
+    - name: stats
+      type: TC
       tc:
-        bpffunctionname: stats
-        interfaceselector:
-          primarynodeinterface: true
-        priority: 55
-        direction: ingress
-    - type: TCX
+        links:
+          - interfaceSelector:
+              primaryNodeInterface: true
+            priority: 55
+            direction: Ingress
+    - name: tcx_stats
+      type: TCX
       tcx:
-        bpffunctionname: tcx_stats
-        interfaceselector:
-          primarynodeinterface: true
-        priority: 500
-        direction: ingress
-    - type: Uprobe
+        links:
+          - interfaceSelector:
+              primaryNodeInterface: true
+            priority: 500
+            direction: Ingress
+    - name: uprobe_counter
+      type: UProbe
       uprobe:
-        bpffunctionname: uprobe_counter
-        func_name: main.getCount
-        target: /go-target
-        retprobe: false
-        containers:
-          namespace: go-target
-          pods: {}
-          containernames:
-            - go-target
-    - type: XDP
+        links:
+          - function: main.getCount
+            target: /go-target
+            containers:
+              namespace: go-target
+              pods: {}
+              containerNames:
+                - go-target
+    - name: xdp_stats
+      type: XDP
       xdp:
-        bpffunctionname: xdp_stats
-        interfaceselector:
-          primarynodeinterface: true
-        priority: 55
+        links:
+          - interfaceSelector:
+              primaryNodeInterface: true
+            priority: 55
