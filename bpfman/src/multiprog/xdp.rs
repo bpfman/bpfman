@@ -1,32 +1,34 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use aya::{
-    programs::{
-        links::{FdLink, PinnedLink},
-        Extension, Xdp,
-    },
     Ebpf, EbpfLoader,
+    programs::{
+        Extension, Xdp,
+        links::{FdLink, PinnedLink},
+    },
 };
+use aya_obj::programs::XdpAttachType;
 use log::{debug, info};
 use sled::Db;
 
 use crate::{
-    calc_map_pin_path,
     config::{RegistryConfig, XdpMode},
-    create_map_pin_path,
     directories::*,
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfmanError,
     multiprog::Dispatcher,
     oci_utils::image_manager::ImageManager,
-    types::{BytecodeImage, ImagePullPolicy, Program, XdpProgram},
+    types::{BytecodeImage, ImagePullPolicy, Link, XdpLink},
     utils::{
-        bytes_to_string, bytes_to_u32, bytes_to_u64, bytes_to_usize, enter_netns, nsid,
-        should_map_be_pinned, sled_get, sled_insert, xdp_dispatcher_db_tree_name,
-        xdp_dispatcher_link_id_path, xdp_dispatcher_link_path, xdp_dispatcher_rev_path,
+        bytes_to_string, bytes_to_u32, bytes_to_u64, bytes_to_usize, enter_netns, nsid, sled_get,
+        sled_insert, xdp_dispatcher_db_tree_name, xdp_dispatcher_link_id_path,
+        xdp_dispatcher_link_path, xdp_dispatcher_rev_path,
     },
 };
 
@@ -49,6 +51,62 @@ pub struct XdpDispatcher {
 }
 
 impl XdpDispatcher {
+    pub(crate) fn get_test(
+        root_db: &Db,
+        config: &RegistryConfig,
+        image_manager: &mut ImageManager,
+    ) -> Result<Xdp, BpfmanError> {
+        if Path::new(RTDIR_FS_TEST_XDP_DISPATCHER).exists() {
+            return Xdp::from_pin(RTDIR_FS_TEST_XDP_DISPATCHER, XdpAttachType::Interface)
+                .map_err(BpfmanError::BpfProgramError);
+        }
+
+        let image = BytecodeImage::new(
+            config.xdp_dispatcher_image.to_string(),
+            ImagePullPolicy::IfNotPresent as i32,
+            None,
+            None,
+        );
+
+        let (path, bpf_program_names) = image_manager.get_image(
+            root_db,
+            &image.image_url,
+            image.image_pull_policy.clone(),
+            image.username.clone(),
+            image.password.clone(),
+        )?;
+
+        if !bpf_program_names.contains(&XDP_DISPATCHER_PROGRAM_NAME.to_string()) {
+            return Err(BpfmanError::ProgramNotFoundInBytecode {
+                bytecode_image: image.image_url,
+                expected_prog_name: XDP_DISPATCHER_PROGRAM_NAME.to_string(),
+                program_names: bpf_program_names,
+            });
+        }
+
+        let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
+
+        let xdp_config = XdpDispatcherConfig::new(11, 0, [0; 10], [DEFAULT_PRIORITY; 10], [0; 10]);
+        let mut loader = EbpfLoader::new()
+            .set_global("conf", &xdp_config, true)
+            .load(&program_bytes)
+            .map_err(|e| BpfmanError::DispatcherLoadError(format!("{e}")))?;
+
+        if let Some(program) = loader.program_mut(XDP_DISPATCHER_PROGRAM_NAME) {
+            let dispatcher: &mut Xdp = program.try_into()?;
+            dispatcher.load()?;
+            dispatcher
+                .pin(RTDIR_FS_TEST_XDP_DISPATCHER)
+                .map_err(BpfmanError::UnableToPinProgram)?;
+            Xdp::from_pin(RTDIR_FS_TEST_XDP_DISPATCHER, XdpAttachType::Interface)
+                .map_err(BpfmanError::BpfProgramError)
+        } else {
+            Err(BpfmanError::DispatcherLoadError(
+                "invalid BPF function name".to_string(),
+            ))
+        }
+    }
+
     pub(crate) fn new(
         root_db: &Db,
         mode: &XdpMode,
@@ -84,10 +142,10 @@ impl XdpDispatcher {
         }
     }
 
-    pub(crate) async fn load(
+    pub(crate) fn load(
         &mut self,
         root_db: &Db,
-        programs: &mut [Program],
+        links: &mut [Link],
         old_dispatcher: Option<Dispatcher>,
         image_manager: &mut ImageManager,
         config: &RegistryConfig,
@@ -96,10 +154,10 @@ impl XdpDispatcher {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
         debug!("XdpDispatcher::new() for if_index {if_index}, revision {revision}");
-        let mut extensions: Vec<&mut XdpProgram> = programs
-            .iter_mut()
+        let mut extensions: Vec<XdpLink> = links
+            .iter()
             .map(|v| match v {
-                Program::Xdp(p) => p,
+                Link::Xdp(p) => p.clone(),
                 _ => panic!("All programs should be of type XDP"),
             })
             .collect();
@@ -130,15 +188,13 @@ impl XdpDispatcher {
             None,
         );
 
-        let (path, bpf_program_names) = image_manager
-            .get_image(
-                root_db,
-                &image.image_url.clone(),
-                image.image_pull_policy.clone(),
-                image.username.clone(),
-                image.password.clone(),
-            )
-            .await?;
+        let (path, bpf_program_names) = image_manager.get_image(
+            root_db,
+            &image.image_url.clone(),
+            image.image_pull_policy.clone(),
+            image.username.clone(),
+            image.password.clone(),
+        )?;
 
         if !bpf_program_names.contains(&XDP_DISPATCHER_PROGRAM_NAME.to_string()) {
             return Err(BpfmanError::ProgramNotFoundInBytecode {
@@ -217,7 +273,10 @@ impl XdpDispatcher {
             let mut link = dispatcher.attach(&iface, flags);
             if let Err(e) = link {
                 if mode != XdpMode::Skb {
-                    info!("Unable to attach on interface {} mode {}, falling back to Skb and retrying.", iface, mode);
+                    info!(
+                        "Unable to attach on interface {} mode {}, falling back to Skb and retrying.",
+                        iface, mode
+                    );
                     flags = XdpMode::Skb.as_flags();
                     link = dispatcher.attach(&iface, flags);
                     if let Err(e) = link {
@@ -245,7 +304,7 @@ impl XdpDispatcher {
         Ok(())
     }
 
-    fn attach_extensions(&mut self, extensions: &mut [&mut XdpProgram]) -> Result<(), BpfmanError> {
+    fn attach_extensions(&mut self, extensions: &mut [XdpLink]) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
         let revision = self.get_revision()?;
         let program_name = self.get_program_name()?;
@@ -267,79 +326,15 @@ impl XdpDispatcher {
                 .cmp(&b.get_current_position().unwrap())
         });
         for (i, v) in extensions.iter_mut().enumerate() {
-            if v.get_attached()? {
-                let id = v.get_data().get_id()?;
-                let mut ext = Extension::from_pin(format!("{RTDIR_FS}/prog_{id}"))?;
-                let target_fn = format!("prog{i}");
-                let new_link_id = ext
-                    .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
-                    .unwrap();
-                let new_link: FdLink = ext.take_link(new_link_id)?.into();
-                let path = xdp_dispatcher_link_id_path(nsid, if_index, revision, id)?;
-                new_link.pin(path).map_err(BpfmanError::UnableToPinLink)?;
-            } else {
-                let name = &v.get_data().get_name()?;
-                let global_data = &v.get_data().get_global_data()?;
-
-                let mut bpf = EbpfLoader::new();
-
-                bpf.allow_unsupported_maps().extension(name);
-
-                for (name, value) in global_data {
-                    bpf.set_global(name, value.as_slice(), true);
-                }
-
-                // If map_pin_path is set already it means we need to use a pin
-                // path which should already exist on the system.
-                if let Some(map_pin_path) = v.get_data().get_map_pin_path()? {
-                    debug!("xdp program {name} is using maps from {:?}", map_pin_path);
-                    bpf.map_pin_path(map_pin_path);
-                }
-
-                let mut loader = bpf
-                    .load(&v.get_data().get_program_bytes()?)
-                    .map_err(BpfmanError::BpfLoadError)?;
-
-                let ext: &mut Extension = loader
-                    .program_mut(name)
-                    .ok_or_else(|| BpfmanError::BpfFunctionNameNotValid(name.to_string()))?
-                    .try_into()?;
-
-                let target_fn = format!("prog{i}");
-
-                ext.load(dispatcher.fd()?.try_clone()?, &target_fn)?;
-                v.get_data_mut().set_kernel_info(&ext.info()?)?;
-
-                let id = v.get_data().get_id()?;
-
-                ext.pin(format!("{RTDIR_FS}/prog_{id}"))
-                    .map_err(BpfmanError::UnableToPinProgram)?;
-                let new_link_id = ext.attach()?;
-                let new_link = ext.take_link(new_link_id)?;
-                let fd_link: FdLink = new_link.into();
-                fd_link
-                    .pin(xdp_dispatcher_link_id_path(nsid, if_index, revision, id)?)
-                    .map_err(BpfmanError::UnableToPinLink)?;
-
-                // If this program is the map(s) owner pin all maps (except for .rodata and .bss) by name.
-                if v.get_data().get_map_pin_path()?.is_none() {
-                    let map_pin_path = calc_map_pin_path(id);
-                    v.get_data_mut().set_map_pin_path(&map_pin_path)?;
-                    create_map_pin_path(&map_pin_path)?;
-
-                    for (name, map) in loader.maps_mut() {
-                        if !should_map_be_pinned(name) {
-                            continue;
-                        }
-                        debug!(
-                            "Pinning map: {name} to path: {}",
-                            map_pin_path.join(name).display()
-                        );
-                        map.pin(map_pin_path.join(name))
-                            .map_err(BpfmanError::UnableToPinMap)?;
-                    }
-                }
-            }
+            let id = v.0.get_program_id()?;
+            let mut ext = Extension::from_pin(format!("{RTDIR_FS}/prog_{id}"))?;
+            let target_fn = format!("prog{i}");
+            let new_link_id = ext
+                .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
+                .unwrap();
+            let new_link: FdLink = ext.take_link(new_link_id)?.into();
+            let path = xdp_dispatcher_link_id_path(nsid, if_index, revision, i as u32)?;
+            new_link.pin(path).map_err(BpfmanError::UnableToPinLink)?;
         }
         Ok(())
     }

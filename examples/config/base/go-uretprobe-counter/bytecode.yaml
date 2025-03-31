@@ -1,23 +1,26 @@
 ---
 apiVersion: bpfman.io/v1alpha1
-kind: UprobeProgram
+kind: ClusterBpfApplication
 metadata:
   labels:
     app.kubernetes.io/name: uretprobeprogram
   name: go-uretprobe-counter-example
 spec:
-  bpffunctionname: uretprobe_counter
   # Select all nodes
-  nodeselector: {}
-  func_name: main.getCount
-  target: /go-target
-  retprobe: true
-  bytecode:
+  nodeSelector: {}
+  byteCode:
     image:
       url: quay.io/bpfman-bytecode/go-uretprobe-counter:latest
-      imagepullpolicy: IfNotPresent
-  containers:
-    namespace: go-target
-    pods: {}
-    containernames:
-      - go-target
+      imagePullPolicy: IfNotPresent
+  programs:
+    - name: uretprobe_counter
+      type: URetProbe
+      uretprobe:
+        links:
+          - function: main.getCount
+            target: /go-target
+            containers:
+              namespace: go-target
+              pods: {}
+              containerNames:
+                - go-target

@@ -4,16 +4,18 @@
 pub(crate) mod cosign;
 pub mod image_manager;
 
+use std::sync::LazyLock;
+
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ImageError {
     #[error("Failed to Parse bytecode Image URL: {0}")]
-    InvalidImageUrl(#[source] oci_distribution::ParseError),
+    InvalidImageUrl(#[source] oci_client::ParseError),
     #[error("Failed to pull bytecode Image manifest: {0}")]
-    ImageManifestPullFailure(#[source] oci_distribution::errors::OciDistributionError),
+    ImageManifestPullFailure(#[source] oci_client::errors::OciDistributionError),
     #[error("Failed to pull bytecode Image: {0}")]
-    BytecodeImagePullFailure(#[source] oci_distribution::errors::OciDistributionError),
+    BytecodeImagePullFailure(#[source] oci_client::errors::OciDistributionError),
     #[error("Failed to extract bytecode from Image: {0}")]
     BytecodeImageExtractFailure(String),
     #[error(transparent)]
@@ -24,4 +26,17 @@ pub enum ImageError {
     DatabaseError(String, String),
     #[error("{0}: {1}")]
     BytecodeImageParseFailure(String, String),
+    #[error(transparent)]
+    JoinError(#[from] tokio::task::JoinError),
+}
+
+pub(crate) fn rt() -> Result<tokio::runtime::Handle, std::io::Error> {
+    static RT: LazyLock<tokio::runtime::Runtime> = LazyLock::new(|| {
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .expect("Failed to create tokio runtime")
+    });
+
+    Ok(RT.handle().clone())
 }

@@ -6,10 +6,10 @@ use std::{collections::HashMap, str::FromStr};
 use aya::programs::XdpFlags;
 use serde::{Deserialize, Serialize};
 
-use crate::{errors::ParseError, TC_DISPATCHER_IMAGE, XDP_DISPATCHER_IMAGE};
+use crate::{TC_DISPATCHER_IMAGE, XDP_DISPATCHER_IMAGE, errors::ParseError};
 
 #[derive(Debug, Default, Deserialize, Clone)]
-pub(crate) struct Config {
+pub struct Config {
     interfaces: Option<HashMap<String, InterfaceConfig>>,
     #[serde(default)]
     signing: SigningConfig,

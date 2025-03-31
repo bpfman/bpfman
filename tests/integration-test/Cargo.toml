@@ -1,19 +1,19 @@
 [package]
+name = "integration-test"
+publish = false
+
 documentation.workspace = true
 edition.workspace = true
 homepage.workspace = true
 license.workspace = true
-name = "integration-test"
-publish = false
 repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
 anyhow = { workspace = true, features = ["std"] }
-assert_cmd = { workspace = true }
 bpfman = { workspace = true }
 env_logger = { workspace = true }
-integration-test-macros = { workspace = true }
 inventory = { workspace = true }
 lazy_static = { workspace = true }
 log = { workspace = true }
@@ -21,3 +21,4 @@ predicates = { workspace = true }
 procfs = { workspace = true }
 rand = { workspace = true, features = ["std", "std_rng"] }
 regex = { workspace = true, features = ["unicode-perl"] }
+sled = { workspace = true }

@@ -1,13 +1,14 @@
 [package]
 description = "gRPC bindings to the bpfman API"
+name = "bpfman-api"
+
 documentation.workspace = true
 edition.workspace = true
 homepage.workspace = true
 license.workspace = true
-name = "bpfman-api"
 repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
-
 
 [[bin]]
 name = "bpfman-rpc"
@@ -33,12 +34,12 @@ clap = { workspace = true, features = [
 ] }
 env_logger = { workspace = true }
 flate2 = { workspace = true, features = ["zlib"] }
-futures = { workspace = true }
 hex = { workspace = true, features = ["std"] }
 lazy_static = { workspace = true }
 libsystemd = { workspace = true }
 log = { workspace = true }
 netlink-packet-route = { workspace = true }
+netlink-sys = { workspace = true }
 nix = { workspace = true, features = [
     "fs",
     "mount",
@@ -47,13 +48,12 @@ nix = { workspace = true, features = [
     "socket",
     "user",
 ] }
-oci-distribution = { workspace = true, default-features = false, features = [
-    "rustls-tls",
+oci-client = { workspace = true, default-features = false, features = [
+    "native-tls",
     "trust-dns",
 ] }
 prost = { workspace = true, features = ["prost-derive", "std"] }
 rand = { workspace = true }
-rtnetlink = { workspace = true, features = ["tokio_socket"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }

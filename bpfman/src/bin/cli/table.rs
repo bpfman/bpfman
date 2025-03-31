@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use bpfman::types::{ImagePullPolicy, Location, ProbeType::*, Program};
+use bpfman::types::{ImagePullPolicy, Location, Program};
 use comfy_table::{Cell, Color, Table};
 use hex::encode_upper;
 pub(crate) struct ProgTable(Table);
@@ -11,10 +11,12 @@ impl ProgTable {
         let mut table = Table::new();
 
         table.load_preset(comfy_table::presets::NOTHING);
-        table.set_header(vec![Cell::new("Bpfman State")
-            .add_attribute(comfy_table::Attribute::Bold)
-            .add_attribute(comfy_table::Attribute::Underlined)
-            .fg(Color::Green)]);
+        table.set_header(vec![
+            Cell::new("Bpfman State")
+                .add_attribute(comfy_table::Attribute::Bold)
+                .add_attribute(comfy_table::Attribute::Underlined)
+                .fg(Color::Green),
+        ]);
 
         let data = program.get_data();
 
@@ -100,108 +102,19 @@ impl ProgTable {
                 }
             }
         };
-
-        match program {
-            Program::Xdp(p) => {
-                table.add_row(vec!["Priority:", &p.get_priority()?.to_string()]);
-                table.add_row(vec!["Iface:", &p.get_iface()?]);
-                table.add_row(vec![
-                    "Position:",
-                    &match p.get_current_position()? {
-                        Some(pos) => pos.to_string(),
-                        None => "NONE".to_string(),
-                    },
-                ]);
-                table.add_row(vec!["Proceed On:", &format!("{}", p.get_proceed_on()?)]);
-                table.add_row(vec![
-                    "Network Namespace:",
-                    &p.get_netns()?
-                        .map(|path| path.display().to_string())
-                        .unwrap_or_else(|| "None".to_string()),
-                ]);
-            }
-            Program::Tc(p) => {
-                table.add_row(vec!["Attach Type:", "tc"]);
-                table.add_row(vec!["Priority:", &p.get_priority()?.to_string()]);
-                table.add_row(vec!["Iface:", &p.get_iface()?]);
-                table.add_row(vec![
-                    "Position:",
-                    &match p.get_current_position()? {
-                        Some(pos) => pos.to_string(),
-                        None => "NONE".to_string(),
-                    },
-                ]);
-                table.add_row(vec!["Direction:", &p.get_direction()?.to_string()]);
-                table.add_row(vec!["Proceed On:", &format!("{}", p.get_proceed_on()?)]);
-                table.add_row(vec![
-                    "Network Namespace:",
-                    &p.get_netns()?
-                        .map(|path| path.display().to_string())
-                        .unwrap_or_else(|| "None".to_string()),
-                ]);
-            }
-            Program::Tcx(p) => {
-                table.add_row(vec!["Attach Type:", "tcx"]);
-                table.add_row(vec!["Priority:", &p.get_priority()?.to_string()]);
-                table.add_row(vec!["Iface:", &p.get_iface()?]);
-                table.add_row(vec![
-                    "Position:",
-                    &match p.get_current_position()? {
-                        Some(pos) => pos.to_string(),
-                        None => "NONE".to_string(),
-                    },
-                ]);
-                table.add_row(vec!["Direction:", &p.get_direction()?.to_string()]);
-                table.add_row(vec![
-                    "Network Namespace:",
-                    &p.get_netns()?
-                        .map(|path| path.display().to_string())
-                        .unwrap_or_else(|| "None".to_string()),
-                ]);
-            }
-            Program::Tracepoint(p) => {
-                table.add_row(vec!["Tracepoint:", &p.get_tracepoint()?]);
-            }
-            Program::Kprobe(p) => {
-                let probe_type = match p.get_retprobe()? {
-                    true => Kretprobe,
-                    false => Kprobe,
-                };
-
-                table.add_row(vec!["Probe Type:", &format!["{probe_type}"]]);
-                table.add_row(vec!["Function Name:", &p.get_fn_name()?]);
-                table.add_row(vec!["Offset:", &p.get_offset()?.to_string()]);
-                table.add_row(vec![
-                    "PID:",
-                    &p.get_container_pid()?.unwrap_or(0).to_string(),
-                ]);
-            }
-            Program::Uprobe(p) => {
-                let probe_type = match p.get_retprobe()? {
-                    true => Uretprobe,
-                    false => Uprobe,
-                };
-                table.add_row(vec!["Probe Type:", &format!["{probe_type}"]]);
-                table.add_row(vec![
-                    "Function Name:",
-                    &p.get_fn_name()?.unwrap_or("NONE".to_string()),
-                ]);
-                table.add_row(vec!["Offset:", &p.get_offset()?.to_string()]);
-                table.add_row(vec!["Target:", &p.get_target()?]);
-                table.add_row(vec!["PID", &p.get_pid()?.unwrap_or(0).to_string()]);
-                table.add_row(vec![
-                    "Container PID:",
-                    &p.get_container_pid()?.unwrap_or(0).to_string(),
-                ]);
-            }
-            Program::Fentry(p) => {
-                table.add_row(vec!["Function Name:", &p.get_fn_name()?]);
-            }
-            Program::Fexit(p) => {
-                table.add_row(vec!["Function Name:", &p.get_fn_name()?]);
-            }
-            Program::Unsupported(_) => {
-                table.add_row(vec!["Unsupported Program Type", "None"]);
+        let links = data.get_link_ids()?;
+        if links.is_empty() {
+            table.add_row(vec!["Links:", "None"]);
+        } else {
+            let mut first = true;
+            for link in links {
+                let data = &format! {"{link}"};
+                if first {
+                    first = false;
+                    table.add_row(vec!["Links:", data]);
+                } else {
+                    table.add_row(vec!["", data]);
+                }
             }
         }
         Ok(ProgTable(table))
@@ -211,10 +124,12 @@ impl ProgTable {
         let mut table = Table::new();
 
         table.load_preset(comfy_table::presets::NOTHING);
-        table.set_header(vec![Cell::new("Kernel State")
-            .add_attribute(comfy_table::Attribute::Bold)
-            .add_attribute(comfy_table::Attribute::Underlined)
-            .fg(Color::Green)]);
+        table.set_header(vec![
+            Cell::new("Kernel State")
+                .add_attribute(comfy_table::Attribute::Bold)
+                .add_attribute(comfy_table::Attribute::Underlined)
+                .fg(Color::Green),
+        ]);
 
         let p = r.get_data();
         let name = p.get_kernel_name()?;
@@ -260,7 +175,7 @@ impl ProgTable {
         let mut table = Table::new();
 
         table.load_preset(comfy_table::presets::NOTHING);
-        table.set_header(vec!["Program ID", "Name", "Type", "Load Time"]);
+        table.set_header(vec!["Program ID", "Name", "Type", "Load Time", "Links"]);
         ProgTable(table)
     }
 
@@ -270,8 +185,9 @@ impl ProgTable {
         name: String,
         type_: String,
         load_time: String,
+        links: String,
     ) {
-        self.0.add_row(vec![id, name, type_, load_time]);
+        self.0.add_row(vec![id, name, type_, load_time, links]);
     }
 
     pub(crate) fn add_response_prog(&mut self, r: Program) -> anyhow::Result<()> {
@@ -282,6 +198,11 @@ impl ProgTable {
             data.get_kernel_name()?,
             r.kind().to_string(),
             data.get_kernel_loaded_at()?,
+            data.get_link_ids()?
+                .into_iter()
+                .map(|m| m.to_string())
+                .collect::<Vec<String>>()
+                .join(", "),
         );
 
         Ok(())

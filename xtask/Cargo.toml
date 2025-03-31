@@ -1,17 +1,17 @@
 [package]
+name = "xtask"
+publish = false
+
 documentation.workspace = true
 edition.workspace = true
 homepage.workspace = true
 license.workspace = true
-name = "xtask"
-publish = false
 repository.workspace = true
+rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
 anyhow = { workspace = true, features = ["std"] }
-bpfman = { workspace = true }
-bpfman-api = { workspace = true }
 cargo_metadata = { workspace = true }
 clap = { workspace = true, features = [
     "derive",
@@ -20,14 +20,11 @@ clap = { workspace = true, features = [
     "suggestions",
     "usage",
 ] }
-clap_complete = { workspace = true }
-clap_mangen = { workspace = true }
 dialoguer = { workspace = true }
 diff = { workspace = true }
 hex = { workspace = true, features = ["std"] }
 lazy_static = { workspace = true }
 log = { workspace = true }
-public-api = { workspace = true }
 rustdoc-json = { workspace = true }
 rustup-toolchain = { workspace = true }
 serde_json = { workspace = true, features = ["std"] }
