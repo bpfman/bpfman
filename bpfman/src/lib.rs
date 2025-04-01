@@ -25,8 +25,22 @@ use aya::{
         uprobe::UProbeLink,
     },
 };
+// Internal note: database model re-exports.
+//
+// Although the `db` module is deeply structured (e.g.
+// `db/models/bpf_program.rs`), we flatten and re-export the domain
+// types (`BpfProgram`, `BpfMap`, etc.) so they appear at the crate
+// root (`bpfman::BpfProgram`).
+//
+// This gives application code and binaries a clean, shallow and
+// intuitive interface, while allowing internal modules to remain
+// well-organised and focused on structure.
+pub use db::{BpfMap, BpfProgram, BpfProgramMap, establish_database_connection};
+pub use db::{KernelU32, U8Blob, U16Blob, U32Blob, U64Blob, U128Blob, UxBlobError};
+use diesel::sqlite::SqliteConnection;
 use log::{debug, error, info, warn};
 use multiprog::{TcDispatcher, XdpDispatcher};
+use program_loader::{LoadSpec, LoadedProgram};
 use sled::{Config as SledConfig, Db};
 use types::{AttachInfo, AttachOrder, Link, TcxLink};
 use utils::{initialize_bpfman, tc_dispatcher_id, xdp_dispatcher_id};
@@ -48,11 +62,13 @@ use crate::{
 };
 
 pub mod config;
+mod db;
 mod dispatcher_config;
 pub mod errors;
 mod multiprog;
 mod netlink;
 mod oci_utils;
+pub mod program_loader;
 mod static_program;
 pub mod types;
 pub mod utils;
@@ -96,6 +112,7 @@ pub mod directories {
     pub(crate) const STDIR: &str = "/var/lib/bpfman";
     #[cfg(not(test))]
     pub(crate) const STDIR_DB: &str = "/var/lib/bpfman/db";
+    pub(crate) const STDIR_SQLITE_DB: &str = "/var/lib/bpfman/db.sqlite";
 }
 
 #[cfg(not(test))]
@@ -1235,6 +1252,16 @@ pub fn setup() -> Result<(Config, Db), BpfmanError> {
     Ok((open_config_file(), init_database(get_db_config())?))
 }
 
+/// XXX(frobware) - eventually replace^^ setup().
+pub fn setup_with_sqlite() -> Result<(Config, SqliteConnection), BpfmanError> {
+    initialize_bpfman()?;
+    debug!("BpfManager::setup()");
+    Ok((
+        open_config_file(),
+        establish_database_connection(STDIR_SQLITE_DB)?,
+    ))
+}
+
 pub(crate) fn load_program(
     root_db: &Db,
     config: &Config,
@@ -2062,4 +2089,73 @@ fn get_map(id: u32, root_db: &Db) -> Option<sled::Tree> {
         .into_iter()
         .find(|n| bytes_to_string(n) == format!("{}{}", MAP_PREFIX, id))
         .map(|n| root_db.open_tree(n).expect("unable to open map tree"))
+}
+
+/// Public API for loading and persisting eBPF programs.
+///
+/// This function is the main entry point for fully loading eBPF
+/// programs and storing them in the database. It guarantees
+/// all-or-nothing semantics:
+///
+/// 1. **Kernel Load:** All requested eBPF programs are loaded in a
+///    loop. If any program fails, previously loaded ones are unloaded
+///    (rollback), and a [`BpfmanError::LoadFailed`] is returned with
+///    details of partial successes and unload failures (if any).
+///
+/// 2. **Database Persistence:** If the kernel load finishes
+///    successfully, the programs are inserted in a single database
+///    transaction. If that transaction fails (e.g., CHECK
+///    constraints), all loaded programs are unloaded (rollback), and
+///    a [`BpfmanError::LoadError`] is returned.
+///
+/// On success, it returns a list of all loaded programs (with
+/// associated map metadata).
+///
+/// # Arguments
+///
+/// - `conn`: A mutable SQLite connection to persist the program metadata.
+/// - `spec`: The specification (`LoadSpec`) describing which programs to load and how to configure them.
+///
+/// # Returns
+///
+/// * `Ok(Vec<LoadedProgram>)` if all programs were successfully loaded in the kernel
+///   **and** persisted to the DB.
+/// * `Err(BpfmanError::LoadFailed { ... })` if kernel loading fails — partial
+///   successes are unloaded.
+/// * `Err(BpfmanError::LoadError { ... })` if kernel loading succeeds
+///   but database persistence fails — all loaded programs are then unloaded.
+///
+/// # Errors
+///
+/// - **Kernel load errors**: if any requested program fails, the
+///   process reverts all already loaded programs.
+/// - **Database persistence errors**: if saving the program records
+///   fails, all successfully loaded programs are unloaded to maintain
+///   consistency.
+pub fn load_ebpf_programs(
+    conn: &mut SqliteConnection,
+    spec: &LoadSpec,
+) -> Result<Vec<LoadedProgram>, BpfmanError> {
+    let loaded = program_loader::load_from_spec(spec)?;
+
+    if let Err(db_err) = conn.immediate_transaction::<_, diesel::result::Error, _>(|conn| {
+        for program in &loaded {
+            BpfProgram::insert_record(conn, &program.program)?;
+            for map in &program.maps {
+                BpfMap::insert_record_on_conflict_do_nothing(conn, map)?;
+                BpfProgramMap::insert_record(conn, program.program.id, map.id)?;
+            }
+        }
+        Ok(())
+    }) {
+        let unload_failures = program_loader::unload_all(&loaded);
+
+        return Err(BpfmanError::ProgramLoadError {
+            cause: Box::new(db_err),
+            loaded_before_failure: loaded,
+            unload_failures,
+        });
+    }
+
+    Ok(loaded)
 }

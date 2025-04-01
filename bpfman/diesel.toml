@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Authors of bpfman
+
+[print_schema]
+file = "src/db/schema.rs"
+with_docs = false
+
+# https://github.com/diesel-rs/diesel/issues/852.
+# https://github.com/diesel-rs/diesel/pull/3940.
+sqlite_integer_primary_key_is_bigint = true
+
+[migrations_directory]
+dir = "migrations"

@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::PathBuf, thread::sleep, time::Duration};
 
 use bpfman::{
-    remove_program, setup,
+    establish_database_connection, remove_program, setup,
     types::{AttachInfo, BytecodeImage, Location, TcProceedOn, XdpProceedOn},
 };
 use procfs::sys::kernel::Version;
@@ -1733,4 +1733,15 @@ fn test_netns_delete() {
     drop(namespace_guard);
 
     verify_and_delete_programs(&config, &root_db, progs);
+}
+
+#[test]
+fn test_can_establish_database_connection() {
+    let conn = establish_database_connection(":memory:");
+
+    assert!(
+        conn.is_ok(),
+        "Expected connection to succeed, got error: {:#?}",
+        conn.err()
+    );
 }

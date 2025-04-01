@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Authors of bpfman
+
+# bpfman-sqlite — safe sqlite3 wrapper with FK (foreign key) support
+# enabled.
+#
+# SQLite supports foreign key constraints (FKs), which let you express
+# and enforce relationships between tables — for example,
+# automatically deleting rows in a join table when a referenced parent
+# row is deleted (`ON DELETE CASCADE`).
+#
+# However, **foreign key enforcement is disabled by default in
+# SQLite**, including in the `sqlite3` CLI and many script-based
+# invocations. This means constraints like `ON DELETE CASCADE` will be
+# silently ignored unless explicitly enabled.
+#
+# This wrapper ensures FK support is always turned on by inserting the
+# following directive before executing any commands:
+#
+#     PRAGMA foreign_keys = ON;
+#
+# In bpfman application code (e.g., via Diesel), this pragma is
+# enabled automatically during connection setup (see
+# `establish_database_connection()`). But shell users and scripts must
+# handle this themselves.
+#
+# Example (interactive):
+#
+#     $ bpfman-sqlite /var/lib/bpfman/db.sqlite
+#     sqlite> DELETE FROM bpf_programs WHERE id = 123;
+#
+# Example (scripted):
+#
+#     $ bpfman-sqlite /var/lib/bpfman/db.sqlite "DELETE FROM bpf_programs WHERE id = 123;"
+#
+# If you don’t enable this pragma, foreign key constraints will not
+# work — e.g., dependent rows will remain, and referential integrity
+# will be silently broken.
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+command -v sqlite3 >/dev/null || {
+    echo "Error: sqlite3 not found in PATH." >&2
+    exit 1
+}
+
+if [ $# -lt 1 ]; then
+    echo "Usage: ${0##*/} /path/to/db.sqlite [SQLITE-ARGS...]" >&2
+    exit 1
+fi
+
+db="$1"
+shift
+
+init_file=$(mktemp)
+trap 'rm -f "$init_file"' EXIT
+
+echo 'PRAGMA foreign_keys = ON;' > "$init_file"
+
+exec sqlite3 -init "$init_file" "$db" "$@"
