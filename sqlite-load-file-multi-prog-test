@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+sudo BPFMAN_USE_SQLITE="${BPFMAN_USE_SQLITE:-1}" RUST_LOG=diesel=debug ./target/debug/bpfman \
+     load file \
+     --path ~/src/github.com/frobware/bpfman-hacks/stats/bpf/stats-v2.o \
+     --programs tracepoint:count_context_switches \
+     --programs tracepoint:count_page_faults
