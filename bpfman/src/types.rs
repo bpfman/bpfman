@@ -1778,6 +1778,7 @@ impl ProgramData {
     /// This function will return an error if:
     /// - There is an issue fetching the links from the database.
     pub(crate) fn get_links(&self, root_db: &Db) -> Result<Vec<Link>, BpfmanError> {
+        let prog_id = self.get_id().unwrap_or_default();
         let mut res = vec![];
         let links: Vec<u32> = self
             .0
@@ -1800,15 +1801,21 @@ impl ProgramData {
             .collect::<Result<Vec<u32>, BpfmanError>>()?;
 
         for link in links.iter() {
-            let tree = root_db
-                .open_tree(format!("{LINKS_LINK_PREFIX}{link}").as_str())
-                .map_err(|e| {
-                    BpfmanError::DatabaseError(
-                        "Failed to open link tree".to_string(),
-                        e.to_string(),
-                    )
-                })?;
-            res.push(Link::new_from_db(tree)?);
+            match root_db.open_tree(format!("{LINKS_LINK_PREFIX}{link}").as_str()) {
+                Ok(tree) => match Link::new_from_db(tree) {
+                    Ok(t) => res.push(t),
+                    Err(e) => {
+                        warn!(
+                            "link id {link} from program {prog_id} not found in the DB so skipping: {e}"
+                        );
+                    }
+                },
+                Err(e) => {
+                    warn!(
+                        "link id {link} from program {prog_id} not found in the DB so skipping: {e}"
+                    );
+                }
+            };
         }
         Ok(res)
     }
