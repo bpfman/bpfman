@@ -460,12 +460,14 @@ pub fn attach_program(
     let name = prog.get_data().get_name().unwrap_or("not set".to_string());
     info!("Request to attach {kind} program named \"{name}\" with id {id}");
 
-    // Write attach info into the database
+    // Write attach info into the database. Once written to the database,
+    // DO NOT EXIT with a failure without calling prog.remove_link().
     let mut link = prog.add_link()?;
-    link.attach(attach_info)?;
 
-    let result = attach_program_internal(config, root_db, &prog, link.clone());
-
+    let result = match link.attach(attach_info) {
+        Ok(_) => attach_program_internal(config, root_db, &prog, link.clone()),
+        Err(e) => Err(e),
+    };
     match result {
         Ok(_) => info!("Success: attached {kind} program named \"{name}\" with id {id}"),
         Err(ref e) => {
@@ -1651,7 +1653,7 @@ pub(crate) fn attach_multi_attach_program(
                 Ok(())
             } else {
                 Err(BpfmanError::InvalidAttach(
-                    "program is not a tcx program".to_string(),
+                    "program is not a xdp program".to_string(),
                 ))
             }
         }
@@ -1660,7 +1662,7 @@ pub(crate) fn attach_multi_attach_program(
                 Ok(())
             } else {
                 Err(BpfmanError::InvalidAttach(
-                    "program is not a tcx program".to_string(),
+                    "program is not a tc program".to_string(),
                 ))
             }
         }
