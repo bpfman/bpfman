@@ -5,7 +5,10 @@ use thiserror::Error;
 use tokio::sync::oneshot;
 use url::ParseError as urlParseError;
 
-use crate::oci_utils::ImageError;
+use crate::{
+    oci_utils::ImageError,
+    program_loader::{LoadedProgram, UnloadError},
+};
 
 #[derive(Debug, Error)]
 pub enum BpfmanError {
@@ -87,6 +90,36 @@ pub enum BpfmanError {
     BpfParseError(#[from] ParseError),
     #[error("one or more programs failed to load: {0:?}")]
     ProgramsLoadFailure(Vec<BpfmanError>),
+    #[error("Failed to retrieve map info: {0}")]
+    BpfMapInfoError(#[source] aya::maps::MapError),
+    #[error("Kernel load failed: {cause}")]
+    LoadFailed {
+        /// What specifically caused the load failure (e.g. "bad
+        /// function name").
+        cause: String,
+        /// Programs that were successfully loaded before we hit
+        /// `cause`. They were then unloaded if possible.
+        loaded_before_failure: Vec<LoadedProgram>,
+        /// If unloading those programs failed for some, capture them
+        /// here.
+        unload_failures: Vec<UnloadError>,
+    },
+    #[error("Load program failed: {cause}")]
+    LoadError {
+        /// A string representation of the underlying database error
+        /// (e.g., a constraint violation).
+        cause: String,
+        /// The list of eBPF programs that were successfully loaded
+        /// into the kernel before the database persistence step
+        /// failed. These programs are pending unload as part of the
+        /// rollback.
+        loaded: Vec<LoadedProgram>,
+        /// Any errors encountered while attempting to unload the
+        /// previously loaded eBPF programs. This provides additional
+        /// context if the rollback (unloading) process fails
+        /// partially.
+        unload_failures: Vec<UnloadError>,
+    },
 }
 
 #[derive(Error, Debug)]

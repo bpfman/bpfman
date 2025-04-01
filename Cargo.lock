@@ -451,6 +451,7 @@ dependencies = [
  "clap_complete",
  "clap_mangen",
  "comfy-table",
+ "derive_builder",
  "diesel",
  "diesel_migrations",
  "env_logger",

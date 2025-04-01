@@ -39,6 +39,7 @@ clap = { workspace = true, features = [
 clap_complete = { workspace = true }
 clap_mangen = { workspace = true }
 comfy-table = { workspace = true, features = ["tty"] }
+derive_builder = { workspace = true, features = ["std"] }
 diesel = { workspace = true, features = [
     "32-column-tables",
     "chrono",

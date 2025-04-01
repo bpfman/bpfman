@@ -25,8 +25,13 @@ use aya::{
         uprobe::UProbeLink,
     },
 };
+use diesel::{prelude::*, sqlite::SqliteConnection};
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 use log::{debug, error, info, warn};
+use models::{BpfMap, BpfProgram, BpfProgramMap};
 use multiprog::{TcDispatcher, XdpDispatcher};
+use program_loader::{LoadSpec, LoadedProgram};
+use serde::Serialize;
 use sled::{Config as SledConfig, Db};
 use types::{AttachInfo, AttachOrder, Link, TcxLink};
 use utils::{initialize_bpfman, tc_dispatcher_id, xdp_dispatcher_id};
@@ -50,11 +55,16 @@ use crate::{
 pub mod config;
 mod dispatcher_config;
 pub mod errors;
+pub mod k32;
+pub mod models;
 mod multiprog;
 mod netlink;
-mod oci_utils;
+pub mod oci_utils;
+pub mod program_loader;
+pub mod schema;
 mod static_program;
 pub mod types;
+pub mod uintblob;
 pub mod utils;
 
 const MAPS_MODE: u32 = 0o0660;
@@ -96,6 +106,7 @@ pub mod directories {
     pub(crate) const STDIR: &str = "/var/lib/bpfman";
     #[cfg(not(test))]
     pub(crate) const STDIR_DB: &str = "/var/lib/bpfman/db";
+    pub(crate) const STDIR_SQLITE_DB: &str = "/var/lib/bpfman/db.sqlite";
 }
 
 #[cfg(not(test))]
@@ -1235,6 +1246,16 @@ pub fn setup() -> Result<(Config, Db), BpfmanError> {
     Ok((open_config_file(), init_database(get_db_config())?))
 }
 
+/// XXX(frobware) - eventually replace^^ setup().
+pub fn setup_with_sqlite() -> Result<(Config, SqliteConnection), BpfmanError> {
+    initialize_bpfman()?;
+    debug!("BpfManager::setup()");
+    Ok((
+        open_config_file(),
+        establish_sqlite_connection(STDIR_SQLITE_DB)?,
+    ))
+}
+
 pub(crate) fn load_program(
     root_db: &Db,
     config: &Config,
@@ -2062,4 +2083,221 @@ fn get_map(id: u32, root_db: &Db) -> Option<sled::Tree> {
         .into_iter()
         .find(|n| bytes_to_string(n) == format!("{}{}", MAP_PREFIX, id))
         .map(|n| root_db.open_tree(n).expect("unable to open map tree"))
+}
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+
+pub fn establish_sqlite_connection(database_url: &str) -> anyhow::Result<SqliteConnection> {
+    let mut conn = SqliteConnection::establish(database_url).map_err(|e| {
+        anyhow::anyhow!("Failed to establish connection to {}: {}", database_url, e)
+    })?;
+
+    diesel::sql_query("PRAGMA journal_mode = WAL")
+        .execute(&mut conn)
+        .map_err(|e| {
+            anyhow::anyhow!(
+                "SQLite: Failed to set WAL journal mode for {}: {}",
+                database_url,
+                e
+            )
+        })?;
+
+    diesel::sql_query("PRAGMA busy_timeout = 5000")
+        .execute(&mut conn)
+        .map_err(|e| {
+            anyhow::anyhow!(
+                "SQLite: Failed to set busy timeout for {}: {}",
+                database_url,
+                e
+            )
+        })?;
+
+    diesel::sql_query("PRAGMA foreign_keys = ON")
+        .execute(&mut conn)
+        .map_err(|e| {
+            anyhow::anyhow!(
+                "SQLite: Failed to enable foreign key support for {}: {}",
+                database_url,
+                e
+            )
+        })?;
+
+    eprintln!("Checking for pending migrations...");
+    let applied_migrations = conn
+        .run_pending_migrations(MIGRATIONS)
+        .map_err(|e| anyhow::anyhow!("SQLite: Migration failed for {}: {}", database_url, e))?;
+
+    // Log results
+    if applied_migrations.is_empty() {
+        eprintln!("No new migrations were applied.");
+    } else {
+        eprintln!("Applied migrations:");
+        for migration in applied_migrations {
+            eprintln!("- {}", migration);
+        }
+    }
+
+    Ok(conn)
+}
+
+// XXX(frobware) - as we move away from SLED to SQLite I don't want to
+// change the existing Program enum, at least not initially. Once
+// we're further along we may be able to drop this and use the
+// existing Program enum.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub enum ProgramType {
+    Xdp,
+    Tc,
+    Tcx,
+    Tracepoint,
+    Kprobe,
+    Kretprobe,
+    Uprobe,
+    Uretprobe,
+    Fentry(String), // function name
+    Fexit(String),  // function name
+}
+
+impl ProgramType {
+    pub fn from_str(prog_type: &str, fn_name: Option<&str>) -> anyhow::Result<Self> {
+        match (prog_type, fn_name) {
+            ("xdp", None) => Ok(Self::Xdp),
+            ("tc", None) => Ok(Self::Tc),
+            ("tcx", None) => Ok(Self::Tcx),
+            ("tracepoint", None) => Ok(Self::Tracepoint),
+            ("kprobe", None) => Ok(Self::Kprobe),
+            ("kretprobe", None) => Ok(Self::Kretprobe),
+            ("uprobe", None) => Ok(Self::Uprobe),
+            ("uretprobe", None) => Ok(Self::Uretprobe),
+            ("fentry", Some(name)) => Ok(Self::Fentry(name.to_owned())),
+            ("fexit", Some(name)) => Ok(Self::Fexit(name.to_owned())),
+            ("fentry" | "fexit", None) => {
+                Err(anyhow::anyhow!("Missing function name for '{}'", prog_type))
+            }
+            _ => Err(anyhow::anyhow!(
+                "Unknown or unsupported BPF program type '{}'",
+                prog_type
+            )),
+        }
+    }
+}
+
+impl std::fmt::Display for ProgramType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Xdp => write!(f, "xdp"),
+            Self::Tc => write!(f, "tc"),
+            Self::Tcx => write!(f, "tcx"),
+            Self::Tracepoint => write!(f, "tracepoint"),
+            Self::Kprobe => write!(f, "kprobe"),
+            Self::Kretprobe => write!(f, "kretprobe"),
+            Self::Uprobe => write!(f, "uprobe"),
+            Self::Uretprobe => write!(f, "uretprobe"),
+            Self::Fentry(_) => write!(f, "fentry"),
+            Self::Fexit(_) => write!(f, "fexit"),
+        }
+    }
+}
+
+impl ProgramType {
+    pub fn aya_type(&self) -> &'static str {
+        // XXX(frobware) currently unused
+        match self {
+            Self::Xdp => "Xdp",
+            Self::Tc => "SchedClassifier",
+            Self::Tcx => "SchedClassifier",
+            Self::Tracepoint => "TracePoint",
+            Self::Kprobe | Self::Kretprobe => "KProbe",
+            Self::Uprobe | Self::Uretprobe => "UProbe",
+            Self::Fentry(_) => "FEntry",
+            Self::Fexit(_) => "FExit",
+        }
+    }
+
+    pub fn is_retprobe(&self) -> Option<bool> {
+        match self {
+            Self::Kretprobe | Self::Uretprobe => Some(true),
+            Self::Kprobe | Self::Uprobe => Some(false),
+            _ => None,
+        }
+    }
+
+    pub fn fn_name(&self) -> Option<&str> {
+        match self {
+            Self::Fentry(name) | Self::Fexit(name) => Some(name),
+            _ => None,
+        }
+    }
+}
+
+/// Public API for loading and persisting eBPF programs.
+///
+/// This function is the main entry point for fully loading eBPF
+/// programs and storing them in the database. It guarantees
+/// all-or-nothing semantics:
+///
+/// 1. **Kernel Load:** All requested eBPF programs are loaded in a
+///    loop. If any program fails, previously loaded ones are unloaded
+///    (rollback), and a [`BpfmanError::LoadFailed`] is returned with
+///    details of partial successes and unload failures (if any).
+///
+/// 2. **Database Persistence:** If the kernel load finishes
+///    successfully, the programs are inserted in a single database
+///    transaction. If that transaction fails (e.g., CHECK
+///    constraints), all loaded programs are unloaded (rollback), and
+///    a [`BpfmanError::LoadError`] is returned.
+///
+/// On success, it returns a list of all loaded programs (with
+/// associated map metadata).
+///
+/// # Arguments
+///
+/// - `conn`: A mutable SQLite connection to persist the program metadata.
+/// - `spec`: The specification (`LoadSpec`) describing which programs to load
+///           and how to configure them.
+///
+/// # Returns
+///
+/// * `Ok(Vec<LoadedProgram>)` if all programs were successfully loaded in the kernel
+///   **and** persisted to the DB.
+/// * `Err(BpfmanError::LoadFailed { ... })` if kernel loading fails — partial
+///   successes are unloaded.
+/// * `Err(BpfmanError::LoadError { ... })` if kernel loading succeeds
+///   but database persistence fails — all loaded programs are then unloaded.
+///
+/// # Errors
+///
+/// - **Kernel load errors**: if any requested program fails, the
+///   process reverts all already loaded programs.
+/// - **Database persistence errors**: if saving the program records
+///   fails, all successfully loaded programs are unloaded to maintain
+///   consistency.
+pub fn load_ebpf_programs(
+    conn: &mut SqliteConnection,
+    spec: &LoadSpec,
+) -> Result<Vec<LoadedProgram>, BpfmanError> {
+    let loaded = program_loader::load_from_spec(spec)?;
+
+    use diesel::result::Error as DieselError;
+
+    if let Err(db_err) = conn.immediate_transaction::<_, DieselError, _>(|conn| {
+        for program in &loaded {
+            BpfProgram::insert_record(conn, &program.program)?;
+            for map in &program.maps {
+                BpfMap::insert_record_on_conflict_do_nothing(conn, map)?;
+                BpfProgramMap::insert_record(conn, program.program.id, map.id)?;
+            }
+        }
+        Ok(())
+    }) {
+        let unload_failures = program_loader::unload_all(&loaded);
+
+        return Err(BpfmanError::LoadError {
+            cause: db_err.to_string(),
+            loaded,
+            unload_failures,
+        });
+    }
+
+    Ok(loaded)
 }
