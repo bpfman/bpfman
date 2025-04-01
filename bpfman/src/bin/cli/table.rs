@@ -1,13 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use bpfman::types::{ImagePullPolicy, Location, Program};
+use std::{collections::HashMap, path::PathBuf};
+
+use bpfman::{
+    errors::BpfmanError,
+    types::{ImagePullPolicy, Link, Location, Program, ProgramData},
+};
 use comfy_table::{Cell, Color, Table};
 use hex::encode_upper;
+use log::warn;
+
 pub(crate) struct ProgTable(Table);
 
+const NUM_LIST_LINKS: usize = 3;
+
 impl ProgTable {
-    pub(crate) fn new_program(program: &Program) -> Result<Self, anyhow::Error> {
+    fn create_bpfman_state_table() -> Self {
         let mut table = Table::new();
 
         table.load_preset(comfy_table::presets::NOTHING);
@@ -18,109 +27,344 @@ impl ProgTable {
                 .fg(Color::Green),
         ]);
 
+        ProgTable(table)
+    }
+
+    fn add_program_detail_fields(&mut self, program: &Program) {
         let data = program.get_data();
 
-        let name = data.get_name()?;
-        if name.is_empty() {
-            table.add_row(vec!["Name:", "None"]);
-        } else {
-            table.add_row(vec!["Name:", &name]);
-        }
+        Self::add_string(self, "BPF Function:".to_string(), data.get_name());
 
-        match data.get_location()? {
-            Location::Image(i) => {
-                table.add_row(vec!["Image URL:", &i.image_url]);
-                table.add_row(vec![
-                    "Pull Policy:",
-                    &format! { "{}", TryInto::<ImagePullPolicy>::try_into(i.image_pull_policy)?},
-                ]);
-            }
-            Location::File(p) => {
-                table.add_row(vec!["Path:", &p]);
+        self.0
+            .add_row(vec!["Program Type:", &Self::get_type_str(program)]);
+
+        match data.get_location() {
+            Ok(location) => match location {
+                Location::Image(i) => {
+                    let pull_policy =
+                        match TryInto::<ImagePullPolicy>::try_into(i.image_pull_policy) {
+                            Ok(pp) => pp.to_string(),
+                            Err(e) => {
+                                warn!("error processing Image Pull Policy: {}", e);
+                                "None".to_string()
+                            }
+                        };
+
+                    self.0.add_row(vec!["Image URL:", &i.image_url]);
+                    self.0.add_row(vec!["Pull Policy:", &pull_policy]);
+                }
+                Location::File(p) => {
+                    self.0.add_row(vec!["Path:", &p]);
+                }
+            },
+            Err(e) => {
+                warn!("error retrieving Path: {}", e);
+                self.0.add_row(vec!["Path:", "None"]);
             }
         };
 
-        let global_data = data.get_global_data()?;
-        if global_data.is_empty() {
-            table.add_row(vec!["Global:", "None"]);
-        } else {
-            let mut first = true;
-            for (key, value) in global_data {
-                let data = &format! {"{key}={}", encode_upper(value)};
-                if first {
-                    first = false;
-                    table.add_row(vec!["Global:", data]);
+        match data.get_global_data() {
+            Ok(global_data) => {
+                if global_data.is_empty() {
+                    self.0.add_row(vec!["Global:", "None"]);
                 } else {
-                    table.add_row(vec!["", data]);
+                    let mut first = true;
+                    for (key, value) in global_data {
+                        let data = &format! {"{key}={}", encode_upper(value)};
+                        if first {
+                            first = false;
+                            self.0.add_row(vec!["Global:", data]);
+                        } else {
+                            self.0.add_row(vec!["", data]);
+                        }
+                    }
                 }
             }
-        }
-
-        let metadata = data.get_metadata()?;
-        if metadata.is_empty() {
-            table.add_row(vec!["Metadata:", "None"]);
-        } else {
-            let mut first = true;
-            for (key, value) in metadata.clone() {
-                let data = &format! {"{key}={value}"};
-                if first {
-                    first = false;
-                    table.add_row(vec!["Metadata:", data]);
-                } else {
-                    table.add_row(vec!["", data]);
-                }
-            }
-        }
-
-        if let Some(map_pin_path) = data.get_map_pin_path()? {
-            table.add_row(vec![
-                "Map Pin Path:",
-                map_pin_path
-                    .to_str()
-                    .expect("map_pin_path is not valid Unicode"),
-            ]);
-        } else {
-            table.add_row(vec!["Map Pin Path:", "None"]);
-        }
-
-        match data.get_map_owner_id()? {
-            Some(id) => table.add_row(vec!["Map Owner ID:", &id.to_string()]),
-            None => table.add_row(vec!["Map Owner ID:", "None"]),
-        };
-
-        let map_used_by = data.get_maps_used_by()?;
-        if map_used_by.is_empty() {
-            table.add_row(vec!["Maps Used By:", "None"]);
-        } else {
-            let mut first = true;
-            for prog_id in map_used_by {
-                if first {
-                    first = false;
-                    table.add_row(vec!["Maps Used By:", &prog_id.to_string()]);
-                } else {
-                    table.add_row(vec!["", &prog_id.to_string()]);
-                }
+            Err(e) => {
+                warn!("error retrieving Global Data: {}", e);
+                self.0.add_row(vec!["Global:", "None"]);
             }
         };
-        let links = data.get_link_ids()?;
+
+        Self::add_metadata(self, data.get_metadata());
+
+        Self::add_option_pathbuf(self, "Map Pin Path:".to_string(), data.get_map_pin_path());
+
+        match data.get_map_owner_id() {
+            Ok(map_id) => match map_id {
+                Some(id) => {
+                    self.0.add_row(vec!["Map Owner ID:", &id.to_string()]);
+                }
+                None => {
+                    self.0.add_row(vec!["Map Owner ID:", "None"]);
+                }
+            },
+            Err(e) => {
+                warn!("error retrieving Map Owner ID: {}", e);
+                self.0.add_row(vec!["Map Owner ID:", "None"]);
+            }
+        };
+
+        match data.get_maps_used_by() {
+            Ok(map_used_by) => {
+                if map_used_by.is_empty() {
+                    self.0.add_row(vec!["Maps Used By:", "None"]);
+                } else {
+                    let mut first = true;
+                    for prog_id in map_used_by {
+                        if first {
+                            first = false;
+                            self.0.add_row(vec!["Maps Used By:", &prog_id.to_string()]);
+                        } else {
+                            self.0.add_row(vec!["", &prog_id.to_string()]);
+                        }
+                    }
+                };
+            }
+            Err(e) => {
+                warn!("error retrieving Maps Used By: {}", e);
+                self.0.add_row(vec!["Maps Used By:", "None"]);
+            }
+        };
+    }
+
+    fn add_program_multiple_links(&mut self, program: &Program, links: Vec<Link>) {
         if links.is_empty() {
-            table.add_row(vec!["Links:", "None"]);
+            self.0.add_row(vec!["Links:", "None"]);
         } else {
             let mut first = true;
             for link in links {
-                let data = &format! {"{link}"};
+                let attach_str: String = format! {"{} ({})",
+                    link.get_id().unwrap_or(0),
+                    Self::get_attach_str(program, &link),
+                };
+
                 if first {
                     first = false;
-                    table.add_row(vec!["Links:", data]);
+                    self.0.add_row(vec!["Links:", &attach_str]);
                 } else {
-                    table.add_row(vec!["", data]);
+                    self.0.add_row(vec!["", &attach_str]);
                 }
             }
         }
-        Ok(ProgTable(table))
     }
 
-    pub(crate) fn new_kernel_info(r: &Program) -> Result<Self, anyhow::Error> {
+    fn add_program_single_link(&mut self, program: &Program, link: &Link) {
+        let data = program.get_data();
+
+        Self::add_string(self, "BPF Function:".to_string(), data.get_name());
+
+        self.0
+            .add_row(vec!["Program Type:", &Self::get_type_str(program)]);
+
+        Self::add_u32(self, "Program ID:".to_string(), link.get_program_id());
+        Self::add_u32(self, "Link ID:".to_string(), link.get_id());
+
+        match link {
+            Link::Fentry(fentry_link) => {
+                match program {
+                    Program::Fentry(fentry_program) => {
+                        Self::add_string(
+                            self,
+                            "Attach Function:".to_string(),
+                            fentry_program.get_fn_name(),
+                        );
+                    }
+                    _ => {
+                        warn!("fentry program type and link type mismatch");
+                        self.0.add_row(vec!["Attach Function:", "None"]);
+                    }
+                };
+
+                Self::add_metadata(self, fentry_link.get_metadata());
+            }
+            Link::Fexit(fexit_link) => {
+                match program {
+                    Program::Fexit(fexit_program) => {
+                        Self::add_string(
+                            self,
+                            "Attach Function:".to_string(),
+                            fexit_program.get_fn_name(),
+                        );
+                    }
+                    _ => {
+                        warn!("fexit program type and link type mismatch");
+                        self.0.add_row(vec!["Attach Function:", "None"]);
+                    }
+                };
+
+                Self::add_metadata(self, fexit_link.get_metadata());
+            }
+            Link::Kprobe(kprobe_link) => {
+                Self::add_string(
+                    self,
+                    "Attach Function:".to_string(),
+                    kprobe_link.get_fn_name(),
+                );
+
+                Self::add_u64(self, "Offset:".to_string(), kprobe_link.get_offset());
+
+                Self::add_container_pid(self, kprobe_link.get_container_pid());
+
+                Self::add_metadata(self, kprobe_link.get_metadata());
+            }
+            Link::Tc(tc_link) => {
+                Self::add_string(self, "Interface:".to_string(), tc_link.get_iface());
+
+                match tc_link.get_direction() {
+                    Ok(d) => {
+                        self.0.add_row(vec!["Direction:", &d.to_string()]);
+                    }
+                    Err(e) => {
+                        warn!("error retrieving Direction: {}", e);
+                        self.0.add_row(vec!["Direction:", "None"]);
+                    }
+                };
+
+                Self::add_i32(self, "Priority:".to_string(), tc_link.get_priority());
+
+                Self::add_option_usize(
+                    self,
+                    "Position:".to_string(),
+                    tc_link.get_current_position(),
+                );
+
+                match tc_link.get_proceed_on() {
+                    Ok(proceed_on) => {
+                        self.0.add_row(vec!["Proceed On:", &proceed_on.to_string()]);
+                    }
+                    Err(e) => {
+                        warn!("error retrieving Proceed On: {}", e);
+                        self.0.add_row(vec!["Proceed On:", "None"]);
+                    }
+                };
+
+                Self::add_option_pathbuf(
+                    self,
+                    "Network Namespace:".to_string(),
+                    tc_link.get_netns(),
+                );
+
+                Self::add_metadata(self, tc_link.get_metadata());
+            }
+            Link::Tcx(tcx_link) => {
+                Self::add_string(self, "Interface:".to_string(), tcx_link.get_iface());
+
+                match tcx_link.get_direction() {
+                    Ok(d) => {
+                        self.0.add_row(vec!["Direction:", &d.to_string()]);
+                    }
+                    Err(e) => {
+                        warn!("error retrieving Direction: {}", e);
+                        self.0.add_row(vec!["Direction:", "None"]);
+                    }
+                };
+
+                Self::add_i32(self, "Priority:".to_string(), tcx_link.get_priority());
+
+                Self::add_option_usize(
+                    self,
+                    "Position:".to_string(),
+                    tcx_link.get_current_position(),
+                );
+
+                Self::add_option_pathbuf(
+                    self,
+                    "Network Namespace:".to_string(),
+                    tcx_link.get_netns(),
+                );
+
+                Self::add_metadata(self, tcx_link.get_metadata());
+            }
+            Link::Tracepoint(tracepoint_link) => {
+                Self::add_string(
+                    self,
+                    "Tracepoint:".to_string(),
+                    tracepoint_link.get_tracepoint(),
+                );
+
+                Self::add_metadata(self, tracepoint_link.get_metadata());
+            }
+            Link::Uprobe(uprobe_link) => {
+                Self::add_string(self, "Target:".to_string(), uprobe_link.get_target());
+
+                Self::add_option_string(
+                    self,
+                    "Attach Function:".to_string(),
+                    uprobe_link.get_fn_name(),
+                );
+
+                Self::add_u64(self, "Offset:".to_string(), uprobe_link.get_offset());
+
+                match uprobe_link.get_pid() {
+                    Ok(pid) => match pid {
+                        Some(p) => {
+                            self.0.add_row(vec!["PID:", &p.to_string()]);
+                        }
+                        None => {
+                            self.0.add_row(vec!["PID:", "None"]);
+                        }
+                    },
+                    Err(e) => {
+                        warn!("error retrieving PID: {}", e);
+                        self.0.add_row(vec!["PID:", "None"]);
+                    }
+                };
+
+                Self::add_container_pid(self, uprobe_link.get_container_pid());
+
+                Self::add_metadata(self, uprobe_link.get_metadata());
+            }
+            Link::Xdp(xdp_link) => {
+                Self::add_string(self, "Interface:".to_string(), xdp_link.get_iface());
+
+                Self::add_i32(self, "Priority:".to_string(), xdp_link.get_priority());
+
+                Self::add_option_usize(
+                    self,
+                    "Position:".to_string(),
+                    xdp_link.get_current_position(),
+                );
+
+                match xdp_link.get_proceed_on() {
+                    Ok(proceed_on) => {
+                        self.0.add_row(vec!["Proceed On:", &proceed_on.to_string()]);
+                    }
+                    Err(e) => {
+                        warn!("error retrieving Proceed On: {}", e);
+                        self.0.add_row(vec!["Proceed On:", "None"]);
+                    }
+                };
+
+                Self::add_option_pathbuf(
+                    self,
+                    "Network Namespace:".to_string(),
+                    xdp_link.get_netns(),
+                );
+
+                Self::add_metadata(self, xdp_link.get_metadata());
+            }
+        }
+    }
+
+    pub(crate) fn new_program(program: &Program, links: Vec<Link>) -> Result<Self, anyhow::Error> {
+        let mut table = Self::create_bpfman_state_table();
+
+        table.add_program_detail_fields(program);
+        table.add_program_multiple_links(program, links);
+
+        Ok(table)
+    }
+
+    pub(crate) fn new_link(program: &Program, link: &Link) -> Result<Self, anyhow::Error> {
+        let mut table = Self::create_bpfman_state_table();
+
+        table.add_program_single_link(program, link);
+
+        Ok(table)
+    }
+
+    fn create_kernel_info_table() -> Self {
         let mut table = Table::new();
 
         table.load_preset(comfy_table::presets::NOTHING);
@@ -131,78 +375,194 @@ impl ProgTable {
                 .fg(Color::Green),
         ]);
 
-        let p = r.get_data();
-        let name = p.get_kernel_name()?;
-
-        let rows = vec![
-            vec!["Program ID:".to_string(), p.get_id()?.to_string()],
-            vec!["Name:".to_string(), name],
-            vec!["Type:".to_string(), format!("{}", r.kind())],
-            vec!["Loaded At:".to_string(), p.get_kernel_loaded_at()?],
-            vec!["Tag:".to_string(), p.get_kernel_tag()?],
-            vec![
-                "GPL Compatible:".to_string(),
-                p.get_kernel_gpl_compatible()?.to_string(),
-            ],
-            vec![
-                "Map IDs:".to_string(),
-                format!("{:?}", p.get_kernel_map_ids()?),
-            ],
-            vec!["BTF ID:".to_string(), p.get_kernel_btf_id()?.to_string()],
-            vec![
-                "Size Translated (bytes):".to_string(),
-                p.get_kernel_bytes_xlated()?.to_string(),
-            ],
-            vec!["JITted:".to_string(), p.get_kernel_jited()?.to_string()],
-            vec![
-                "Size JITted:".to_string(),
-                p.get_kernel_bytes_jited()?.to_string(),
-            ],
-            vec![
-                "Kernel Allocated Memory (bytes):".to_string(),
-                p.get_kernel_bytes_memlock()?.to_string(),
-            ],
-            vec![
-                "Verified Instruction Count:".to_string(),
-                p.get_kernel_verified_insns()?.to_string(),
-            ],
-        ];
-        table.add_rows(rows);
-        Ok(ProgTable(table))
-    }
-
-    pub(crate) fn new_list() -> Self {
-        let mut table = Table::new();
-
-        table.load_preset(comfy_table::presets::NOTHING);
-        table.set_header(vec!["Program ID", "Name", "Type", "Load Time", "Links"]);
         ProgTable(table)
     }
 
-    pub(crate) fn add_row_list(
-        &mut self,
-        id: String,
-        name: String,
-        type_: String,
-        load_time: String,
-        links: String,
-    ) {
-        self.0.add_row(vec![id, name, type_, load_time, links]);
+    fn add_kernel_info(&mut self, program: &Program) {
+        let p = program.get_data();
+
+        Self::add_u32(self, "Program ID:".to_string(), p.get_id());
+        Self::add_string(self, "BPF Function:".to_string(), p.get_kernel_name());
+        self.0.add_row(vec![
+            "Kernel Type:".to_string(),
+            format!("{}", program.kind()),
+        ]);
+        Self::add_string(self, "Loaded At:".to_string(), p.get_kernel_loaded_at());
+        Self::add_string(self, "Tag:".to_string(), p.get_kernel_tag());
+        Self::add_bool(
+            self,
+            "GPL Compatible:".to_string(),
+            p.get_kernel_gpl_compatible(),
+        );
+
+        match p.get_kernel_map_ids() {
+            Ok(map_ids) => {
+                self.0
+                    .add_row(vec!["Map IDs:".to_string(), format!("{:?}", map_ids)]);
+            }
+            Err(e) => {
+                warn!("error retrieving Map IDs: {}", e);
+                self.0.add_row(vec!["Map IDs:", "None"]);
+            }
+        };
+
+        Self::add_u32(self, "BTF ID:".to_string(), p.get_kernel_btf_id());
+        Self::add_u32(
+            self,
+            "Size Translated (bytes):".to_string(),
+            p.get_kernel_bytes_xlated(),
+        );
+        Self::add_bool(self, "JITted:".to_string(), p.get_kernel_jited());
+        Self::add_u32(self, "Size JITted:".to_string(), p.get_kernel_bytes_jited());
+        Self::add_u32(
+            self,
+            "Kernel Allocated Memory (bytes):".to_string(),
+            p.get_kernel_bytes_memlock(),
+        );
+        Self::add_u32(
+            self,
+            "Verified Instruction Count:".to_string(),
+            p.get_kernel_verified_insns(),
+        );
     }
 
-    pub(crate) fn add_response_prog(&mut self, r: Program) -> anyhow::Result<()> {
+    pub(crate) fn new_kernel_info(program: &Program) -> Result<Self, anyhow::Error> {
+        let mut table = Self::create_kernel_info_table();
+
+        table.add_kernel_info(program);
+
+        Ok(table)
+    }
+
+    pub(crate) fn new_program_list() -> Self {
+        let mut table = Table::new();
+
+        table.load_preset(comfy_table::presets::NOTHING);
+        table.set_header(vec![
+            "Program ID",
+            "Application",
+            "Type",
+            "Function Name",
+            "Links",
+        ]);
+        ProgTable(table)
+    }
+
+    pub(crate) fn add_program_row_list(
+        &mut self,
+        prog_id: String,
+        application: String,
+        type_: String,
+        fn_name: String,
+        links: String,
+    ) {
+        self.0
+            .add_row(vec![prog_id, application, type_, fn_name, links]);
+    }
+
+    pub(crate) fn add_program_response(&mut self, r: Program) -> anyhow::Result<()> {
         let data = r.get_data();
 
-        self.add_row_list(
-            data.get_id()?.to_string(),
-            data.get_kernel_name()?,
-            r.kind().to_string(),
-            data.get_kernel_loaded_at()?,
-            data.get_link_ids()?
-                .into_iter()
-                .map(|m| m.to_string())
-                .collect::<Vec<String>>()
-                .join(", "),
+        // Build up the list of links string with a count and limit the number links in the list
+        let mut link_ids = data.get_link_ids().unwrap_or_default();
+        let count = link_ids.len();
+        link_ids.truncate(NUM_LIST_LINKS);
+        let link_list = link_ids
+            .into_iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<String>>()
+            .join(", ");
+        let mut truncate_str = String::new();
+        if count > NUM_LIST_LINKS {
+            truncate_str = ", ...".to_string();
+        }
+        let links = if count == 0 {
+            "".to_string()
+        } else {
+            format! {"({count}) {link_list}{truncate_str}"}
+        };
+
+        let prog_id = match data.get_id() {
+            Ok(id) => id.to_string(),
+            Err(_) => "None".to_string(),
+        };
+        let fn_name = match data.get_kernel_name() {
+            Ok(name) => name,
+            Err(_) => "None".to_string(),
+        };
+
+        self.add_program_row_list(
+            prog_id,
+            Self::get_program_application(data),
+            Self::get_type_str(&r),
+            fn_name,
+            links,
+        );
+
+        Ok(())
+    }
+
+    pub(crate) fn new_link_list() -> Self {
+        let mut table = Table::new();
+
+        table.load_preset(comfy_table::presets::NOTHING);
+        table.set_header(vec![
+            "Program ID",
+            "Link ID",
+            "Application",
+            "Type",
+            "Function Name",
+            "Attachment",
+        ]);
+        ProgTable(table)
+    }
+
+    pub(crate) fn add_link_row_list(
+        &mut self,
+        prog_id: String,
+        link_id: String,
+        application: String,
+        type_: String,
+        fn_name: String,
+        attachments: String,
+    ) {
+        self.0.add_row(vec![
+            prog_id,
+            link_id,
+            application,
+            type_,
+            fn_name,
+            attachments,
+        ]);
+    }
+
+    pub(crate) fn add_link_response(
+        &mut self,
+        program: &Program,
+        link: &Link,
+    ) -> anyhow::Result<()> {
+        let data = program.get_data();
+
+        let prog_id = match data.get_id() {
+            Ok(id) => id.to_string(),
+            Err(_) => "None".to_string(),
+        };
+        let link_id = match link.get_id() {
+            Ok(id) => id.to_string(),
+            Err(_) => "None".to_string(),
+        };
+        let fn_name = match data.get_kernel_name() {
+            Ok(name) => name,
+            Err(_) => "None".to_string(),
+        };
+
+        self.add_link_row_list(
+            prog_id,
+            link_id,
+            Self::get_link_application(link),
+            Self::get_type_str(program),
+            fn_name,
+            Self::get_attach_str(program, link),
         );
 
         Ok(())
@@ -210,6 +570,289 @@ impl ProgTable {
 
     pub(crate) fn print(&self) {
         println!("{self}\n")
+    }
+
+    fn get_type_str(program: &Program) -> String {
+        match program {
+            Program::Fentry(_program) => "fentry".to_string(),
+            Program::Fexit(_program) => "fexit".to_string(),
+            Program::Kprobe(_program) => "kprobe".to_string(),
+            Program::Tc(_program) => "tc".to_string(),
+            Program::Tcx(_program) => "tcx".to_string(),
+            Program::Tracepoint(_program) => "tracepoint".to_string(),
+            Program::Uprobe(_program) => "uprobe".to_string(),
+            Program::Xdp(_program) => "xdp".to_string(),
+            _ => program.kind().to_string(),
+        }
+    }
+
+    fn get_attach_str(program: &Program, link: &Link) -> String {
+        match link {
+            Link::Fentry(_fentry_link) => match program {
+                Program::Fentry(fentry_program) => match fentry_program.get_fn_name() {
+                    Ok(fn_name) => fn_name,
+                    Err(_) => "unknown".to_string(),
+                },
+                _ => "unknown".to_string(),
+            },
+            Link::Fexit(_fexit_link) => match program {
+                Program::Fexit(fexit_program) => match fexit_program.get_fn_name() {
+                    Ok(fn_name) => fn_name,
+                    Err(_) => "unknown".to_string(),
+                },
+                _ => "unknown".to_string(),
+            },
+            Link::Kprobe(kprobe_link) => match kprobe_link.get_fn_name() {
+                Ok(fn_name) => fn_name,
+                Err(_) => "unknown".to_string(),
+            },
+            Link::Tc(tc_link) => {
+                let iface = match tc_link.get_iface() {
+                    Ok(iface) => iface,
+                    Err(_) => "unknown".to_string(),
+                };
+                let dir = match tc_link.get_direction() {
+                    Ok(d) => d.to_string(),
+                    Err(_) => "unknown".to_string(),
+                };
+                let position = match tc_link.get_current_position() {
+                    Ok(pos) => match pos {
+                        Some(p) => p.to_string(),
+                        None => "unknown".to_string(),
+                    },
+                    Err(_) => "unknown".to_string(),
+                };
+                format! {"{} {} pos-{}", iface, dir, position}
+            }
+            Link::Tcx(tcx_link) => {
+                let iface = match tcx_link.get_iface() {
+                    Ok(iface) => iface,
+                    Err(_) => "unknown".to_string(),
+                };
+                let dir = match tcx_link.get_direction() {
+                    Ok(d) => d.to_string(),
+                    Err(_) => "unknown".to_string(),
+                };
+                let position = match tcx_link.get_current_position() {
+                    Ok(pos) => match pos {
+                        Some(p) => p.to_string(),
+                        None => "unknown".to_string(),
+                    },
+                    Err(_) => "unknown".to_string(),
+                };
+                format! {"{} {} pos-{}", iface, dir, position}
+            }
+            Link::Tracepoint(tracepoint_link) => match tracepoint_link.get_tracepoint() {
+                Ok(tracepoint) => tracepoint,
+                Err(_) => "unknown".to_string(),
+            },
+            Link::Uprobe(uprobe_link) => {
+                let target = match uprobe_link.get_target() {
+                    Ok(target) => target,
+                    Err(_) => "unknown".to_string(),
+                };
+                match uprobe_link.get_fn_name() {
+                    Ok(fn_name) => match fn_name {
+                        Some(name) => format! {"{} {}", target, name},
+                        None => target,
+                    },
+                    Err(_) => target,
+                }
+            }
+            Link::Xdp(xdp_link) => {
+                let iface = match xdp_link.get_iface() {
+                    Ok(iface) => iface,
+                    Err(_) => "unknown".to_string(),
+                };
+                let position = match xdp_link.get_current_position() {
+                    Ok(pos) => match pos {
+                        Some(p) => p.to_string(),
+                        None => "unknown".to_string(),
+                    },
+                    Err(_) => "unknown".to_string(),
+                };
+                format! {"{} pos-{}", iface, position}
+            }
+        }
+    }
+
+    fn get_program_application(data: &ProgramData) -> String {
+        match data.get_application_from_metadata() {
+            Some(application) => application,
+            None => "".to_string(),
+        }
+    }
+
+    fn get_link_application(link: &Link) -> String {
+        match link.get_application_from_metadata() {
+            Some(application) => application,
+            None => "".to_string(),
+        }
+    }
+
+    fn add_bool(&mut self, tag: String, value: Result<bool, BpfmanError>) {
+        match value {
+            Ok(v) => {
+                self.0.add_row(vec![tag, v.to_string()]);
+            }
+            Err(e) => {
+                warn!("error retrieving {} {}", tag, e);
+                self.0.add_row(vec![tag, "None".to_string()]);
+            }
+        };
+    }
+
+    fn add_i32(&mut self, tag: String, value: Result<i32, BpfmanError>) {
+        match value {
+            Ok(v) => {
+                self.0.add_row(vec![tag, v.to_string()]);
+            }
+            Err(e) => {
+                warn!("error retrieving {} {}", tag, e);
+                self.0.add_row(vec![tag, "None".to_string()]);
+            }
+        };
+    }
+
+    fn add_u32(&mut self, tag: String, value: Result<u32, BpfmanError>) {
+        match value {
+            Ok(v) => {
+                self.0.add_row(vec![tag, v.to_string()]);
+            }
+            Err(e) => {
+                warn!("error retrieving {} {}", tag, e);
+                self.0.add_row(vec![tag, "None".to_string()]);
+            }
+        };
+    }
+
+    fn add_option_usize(&mut self, tag: String, value: Result<Option<usize>, BpfmanError>) {
+        match value {
+            Ok(val) => {
+                match val {
+                    Some(v) => {
+                        self.0.add_row(vec![tag, v.to_string()]);
+                    }
+                    None => {
+                        self.0.add_row(vec![tag, "None".to_string()]);
+                    }
+                };
+            }
+            Err(e) => {
+                warn!("error retrieving {} {}", tag, e);
+                self.0.add_row(vec![tag, "None".to_string()]);
+            }
+        };
+    }
+
+    fn add_u64(&mut self, tag: String, value: Result<u64, BpfmanError>) {
+        match value {
+            Ok(v) => {
+                self.0.add_row(vec![tag, v.to_string()]);
+            }
+            Err(e) => {
+                warn!("error retrieving {} {}", tag, e);
+                self.0.add_row(vec![tag, "None".to_string()]);
+            }
+        };
+    }
+
+    fn add_string(&mut self, tag: String, value: Result<String, BpfmanError>) {
+        match value {
+            Ok(v) => {
+                if v.is_empty() {
+                    self.0.add_row(vec![tag, "None".to_string()]);
+                } else {
+                    self.0.add_row(vec![tag, v]);
+                }
+            }
+            Err(e) => {
+                warn!("error retrieving {} {}", tag, e);
+                self.0.add_row(vec![tag, "None".to_string()]);
+            }
+        };
+    }
+
+    fn add_option_string(&mut self, tag: String, value: Result<Option<String>, BpfmanError>) {
+        match value {
+            Ok(option_str) => {
+                match option_str {
+                    Some(v) => {
+                        self.0.add_row(vec![tag, v]);
+                    }
+                    None => {
+                        self.0.add_row(vec![tag, "None".to_string()]);
+                    }
+                };
+            }
+            Err(e) => {
+                warn!("error retrieving {} {}", tag, e);
+                self.0.add_row(vec![tag, "None".to_string()]);
+            }
+        };
+    }
+
+    fn add_option_pathbuf(&mut self, tag: String, value: Result<Option<PathBuf>, BpfmanError>) {
+        match value {
+            Ok(val) => {
+                match val {
+                    Some(v) => {
+                        self.0.add_row(vec![tag, format!("{}", v.display())]);
+                    }
+                    None => {
+                        self.0.add_row(vec![tag, "None".to_string()]);
+                    }
+                };
+            }
+            Err(e) => {
+                warn!("error retrieving {} {}", tag, e);
+                self.0.add_row(vec![tag, "None".to_string()]);
+            }
+        };
+    }
+
+    fn add_container_pid(&mut self, container_pid: Result<Option<i32>, BpfmanError>) {
+        match container_pid {
+            Ok(pid) => {
+                match pid {
+                    Some(p) => {
+                        self.0.add_row(vec!["Container PID:", &p.to_string()]);
+                    }
+                    None => {
+                        self.0.add_row(vec!["Container PID:", "None"]);
+                    }
+                };
+            }
+            Err(e) => {
+                warn!("error retrieving Container PID: {}", e);
+                self.0.add_row(vec!["Container PID:", "None"]);
+            }
+        };
+    }
+
+    fn add_metadata(&mut self, metadata: Result<HashMap<String, String>, BpfmanError>) {
+        match metadata {
+            Ok(md) => {
+                if md.is_empty() {
+                    self.0.add_row(vec!["Metadata:", "None"]);
+                } else {
+                    let mut first = true;
+                    for (key, value) in md.clone() {
+                        let data = &format! {"{key}={value}"};
+                        if first {
+                            first = false;
+                            self.0.add_row(vec!["Metadata:", data]);
+                        } else {
+                            self.0.add_row(vec!["", data]);
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                warn!("error retrieving Metadata: {}", e);
+                self.0.add_row(vec!["Metadata:", "None"]);
+            }
+        };
     }
 }
 

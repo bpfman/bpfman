@@ -146,7 +146,7 @@ pub fn get_db_config() -> SledConfig {
 ///     // information (similar to Kubernetes labels) to an eBPF program
 ///     // when it is loaded. This metadata consists of key-value pairs
 ///     // (e.g., `owner=acme`) and can be used for filtering or selecting
-///     // programs later, for instance, using commands like `bpfman list
+///     // programs later, for instance, using commands like `bpfman list programs
 ///     // --metadata-selector owner=acme`.
 ///     let mut metadata = HashMap::new();
 ///     metadata.insert("owner".to_string(), "acme".to_string());
@@ -437,7 +437,7 @@ pub fn attach_program(
     root_db: &Db,
     id: u32,
     attach_info: AttachInfo,
-) -> Result<u32, BpfmanError> {
+) -> Result<Link, BpfmanError> {
     let mut prog = match get(root_db, &id) {
         Some(p) => p,
         None => {
@@ -469,7 +469,10 @@ pub fn attach_program(
         Err(e) => Err(e),
     };
     match result {
-        Ok(_) => info!("Success: attached {kind} program named \"{name}\" with id {id}"),
+        Ok(ref link) => info!(
+            "Success: attached {kind} program named \"{name}\" with program id {id} with link {}",
+            link.get_id().unwrap_or_default(),
+        ),
         Err(ref e) => {
             error!("Error: failed to attach {kind} program named \"{name}\": {e}");
             if let Err(e) = prog.remove_link(root_db, link.clone()) {
@@ -487,7 +490,7 @@ fn attach_program_internal(
     root_db: &Db,
     program: &Program,
     mut link: Link,
-) -> Result<u32, BpfmanError> {
+) -> Result<Link, BpfmanError> {
     let program_type = program.kind();
 
     if let Err(e) = match program {
@@ -509,7 +512,7 @@ fn attach_program_internal(
     // write it to the database from the temp tree
     link.finalize(root_db)?;
 
-    link.get_id()
+    Ok(link)
 }
 
 fn detach_program_internal(
@@ -747,6 +750,63 @@ pub fn get_program(root_db: &Db, id: u32) -> Result<Program, BpfmanError> {
                 id
             ))),
     }
+}
+
+/// Retrieves information about a currently loaded eBPF program.
+///
+/// Attempts to retrieve detailed information about an eBPF program
+/// identified by the given kernel `id`. If the program was loaded by
+/// `bpfman`, it uses that information; otherwise, it queries all
+/// loaded eBPF programs through the Aya library. If a match is found,
+/// the program is converted into an unsupported program object.
+///
+/// The `Location` of the program indicates whether the program's
+/// bytecode was provided via a fully qualified local path or through
+/// an OCI-compliant container image tag.
+///
+/// # Arguments
+///
+/// * `id` - A `u32` representing the unique identifier of the eBPF program.
+///
+/// # Returns
+///
+/// * `Ok(Program)` - On successful retrieval of the program
+///   information, returns a `Program` object encapsulating the
+///   program details.
+///
+/// * `Err(BpfmanError)` - Returns an error if the setup fails, the
+///   program is not found, or there is an issue opening the database
+///   tree or setting kernel information.
+///
+/// # Errors
+///
+/// This function can return several types of errors:
+/// * `BpfmanError::SetupError` - If the setup function fails.
+/// * `BpfmanError::DatabaseError` - If there is an issue opening the
+///   database tree for the program.
+/// * `BpfmanError::KernelInfoError` - If there is an issue setting
+///   the kernel information for the program data.
+/// * `BpfmanError::Error` - If the program with the specified `id`
+///   does not exist.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use bpfman::{get_link,setup};
+///
+/// let (_, root_db) = setup().unwrap();
+/// match get_link(&root_db, 42) {
+///     Ok(link) => println!("Link info: {:?}", link),
+///     Err(e) => eprintln!("Error fetching link: {:?}", e),
+/// }
+///
+/// ```
+pub fn get_link(root_db: &Db, id: u32) -> Result<Link, BpfmanError> {
+    let tree = root_db
+        .open_tree(format!("{LINKS_LINK_PREFIX}{id}"))
+        .expect("Unable to open link database tree");
+    let link = Link::new_from_db(tree)?;
+    Ok(link)
 }
 
 /// Pulls an OCI-compliant image containing eBPF bytecode from a
