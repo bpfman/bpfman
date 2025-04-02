@@ -5,7 +5,10 @@ repos:
     hooks:
       - id: yamllint
         args: [--strict, -c=.yamllint.yaml]
-
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: v0.17.2
+    hooks:
+      - id: markdownlint-cli2-rules-docker
   - repo: local
     hooks:
       - id: clippy
