@@ -7,7 +7,7 @@ releases.
 !!! Note
     Instructions for interacting with bpfman change from release to release, so reference
     release specific documentation. For example:
-    
+
     [https://bpfman.io/v0.5.6/getting-started/running-release/](https://bpfman.io/v0.5.6/getting-started/running-release/)
 
 Jump to the [Setup and Building bpfman](./building-bpfman.md) section
@@ -60,8 +60,8 @@ sudo RUST_LOG=info ./bpfman-rpc --timeout=0
 To use the CLI:
 
 ```console
-sudo ./bpfman list
- Program ID  Name  Type  Load Time
+sudo ./bpfman list programs
+ Program ID  Application    Type        Function Name    Links
 ```
 
 Continue in [Deploying Example eBPF Programs On Local Host](./example-bpf-local.md) if desired.
