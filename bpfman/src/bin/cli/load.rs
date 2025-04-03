@@ -3,9 +3,15 @@
 
 use std::collections::HashMap;
 
-use anyhow::bail;
+use anyhow::{Result, bail};
 use bpfman::{
-    add_programs, setup,
+    add_programs,
+    errors::BpfmanError,
+    load_ebpf_programs,
+    models::get_program_bytes_and_validate,
+    oci_utils::image_manager::ImageManager,
+    program_loader::{LoadSpecBuilder, LoadedProgram},
+    setup, setup_with_sqlite,
     types::{
         FentryProgram, FexitProgram, KprobeProgram, Link, Location, METADATA_APPLICATION_TAG,
         Program, ProgramData, TcProgram, TcxProgram, TracepointProgram, UprobeProgram, XdpProgram,
@@ -20,9 +26,25 @@ use crate::{
 
 impl LoadSubcommand {
     pub(crate) fn execute(&self) -> anyhow::Result<()> {
+        let use_sqlite = std::env::var("BPFMAN_USE_SQLITE")
+            .map(|val| val == "1" || val.to_lowercase() == "true")
+            .unwrap_or(false);
+
         match self {
-            LoadSubcommand::File(l) => execute_load_file(l),
-            LoadSubcommand::Image(l) => execute_load_image(l),
+            LoadSubcommand::File(l) => {
+                if use_sqlite {
+                    sqlite_execute_load_file(l)
+                } else {
+                    execute_load_file(l)
+                }
+            }
+            LoadSubcommand::Image(l) => {
+                if use_sqlite {
+                    sqlite_execute_load_image(l)
+                } else {
+                    execute_load_image(l)
+                }
+            }
         }
     }
 }
@@ -185,4 +207,153 @@ fn parse_global(global: &Option<Vec<GlobalArg>>) -> HashMap<String, Vec<u8>> {
         }
     }
     global_data
+}
+
+enum LoadArgs<'a> {
+    File(&'a LoadFileArgs),
+    Image(&'a LoadImageArgs),
+}
+
+impl LoadArgs<'_> {
+    fn get_programs(&self) -> &[(String, Vec<String>)] {
+        match self {
+            LoadArgs::File(file_args) => &file_args.programs,
+            LoadArgs::Image(image_args) => &image_args.programs,
+        }
+    }
+
+    fn get_global_data(&self) -> Option<Vec<(String, Vec<u8>)>> {
+        match self {
+            LoadArgs::File(file_args) => file_args.global.as_deref().map(Self::to_key_value_pairs),
+            LoadArgs::Image(image_args) => {
+                image_args.global.as_deref().map(Self::to_key_value_pairs)
+            }
+        }
+    }
+
+    fn get_metadata(&self) -> Option<Vec<(String, String)>> {
+        match self {
+            LoadArgs::File(file_args) => file_args.metadata.clone(),
+            LoadArgs::Image(image_args) => image_args.metadata.clone(),
+        }
+    }
+
+    fn get_map_owner_id(&self) -> Option<u32> {
+        match self {
+            LoadArgs::File(file_args) => file_args.map_owner_id,
+            LoadArgs::Image(image_args) => image_args.map_owner_id,
+        }
+    }
+
+    fn to_key_value_pairs(global: &[GlobalArg]) -> Vec<(String, Vec<u8>)> {
+        global
+            .iter()
+            .map(|arg| (arg.name.clone(), arg.value.clone()))
+            .collect()
+    }
+}
+
+fn handle_load_result(res: Result<Vec<LoadedProgram>, BpfmanError>) -> Result<()> {
+    match res {
+        Ok(loaded) => {
+            println!("Successfully loaded {} program(s):", loaded.len());
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&loaded)
+                    .unwrap_or_else(|_| "Failed to serialize loaded programs".to_string())
+            );
+            Ok(())
+        }
+
+        Err(BpfmanError::LoadFailed {
+            cause,
+            loaded_before_failure,
+            unload_failures,
+        }) => {
+            eprintln!("Kernel load failed: {cause}");
+            eprintln!(
+                "{} programs were loaded before the failure",
+                loaded_before_failure.len()
+            );
+            if !unload_failures.is_empty() {
+                eprintln!("Some of them also failed to unload:");
+                for uf in &unload_failures {
+                    eprintln!(" - program_id={}, error={}", uf.program_id, uf.error);
+                }
+            }
+
+            let summary = format!(
+                "LoadFailed: {cause}; {} programs loaded before error; unload_failures={:?}",
+                loaded_before_failure.len(),
+                unload_failures,
+            );
+            Err(anyhow::anyhow!(summary))
+        }
+
+        Err(BpfmanError::LoadError {
+            cause,
+            loaded,
+            unload_failures,
+        }) => {
+            eprintln!("DB persistence failed: {cause}");
+            eprintln!(
+                "We had successfully loaded {} programs in the kernel.",
+                loaded.len()
+            );
+            if !unload_failures.is_empty() {
+                eprintln!("Unload also failed for some of them:");
+                for uf in &unload_failures {
+                    eprintln!(" - program_id={}, error={}", uf.program_id, uf.error);
+                }
+            }
+
+            let summary = format!(
+                "DbPersistFailed: {cause}; loaded {} programs; unload_failures={:?}",
+                loaded.len(),
+                unload_failures
+            );
+            Err(anyhow::anyhow!(summary))
+        }
+
+        Err(other) => {
+            eprintln!("Unhandled error: {other}");
+            Err(anyhow::Error::new(other))
+        }
+    }
+}
+
+fn sqlite_execute_load_common(source: Location, args: LoadArgs) -> anyhow::Result<()> {
+    let (config, mut conn) = setup_with_sqlite()?;
+
+    let mut image_manager = ImageManager::new(
+        config.signing().verify_enabled,
+        config.signing().allow_unsigned,
+    )?;
+
+    let (program_bytes, function_names) =
+        get_program_bytes_and_validate(&source, &mut image_manager, args.get_programs())?;
+
+    let load_spec = LoadSpecBuilder::default()
+        .bytecode_source(source)
+        .function_names(function_names)
+        .global_data(args.get_global_data().unwrap_or_default())
+        .map_owner_id(args.get_map_owner_id())
+        .metadata(args.get_metadata().unwrap_or_default())
+        .program_bytes(program_bytes)
+        .programs(args.get_programs().to_vec())
+        .build()
+        .map_err(|e| anyhow::anyhow!("Failed to build LoadSpec: {}", e))?;
+
+    let result = load_ebpf_programs(&mut conn, &load_spec);
+    handle_load_result(result)
+}
+
+fn sqlite_execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
+    let source = Location::File(args.path.clone());
+    sqlite_execute_load_common(source, LoadArgs::File(args))
+}
+
+fn sqlite_execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
+    let source = Location::Image((&args.pull_args).try_into()?);
+    sqlite_execute_load_common(source, LoadArgs::Image(args))
 }
