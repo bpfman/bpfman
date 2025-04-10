@@ -315,14 +315,18 @@ spec:
         value: $(tasks.build-image-index.results.IMAGE_DIGEST)
       - name: image-url
         value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: SOURCE_ARTIFACT
+        value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
+      - name: CACHI2_ARTIFACT
+        value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
       runAfter:
       - build-image-index
       taskRef:
         params:
         - name: name
-          value: sast-shell-check
+          value: sast-shell-check-oci-ta
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-sast-shell-check@sha256:1b3d68c33a92dfc3da3975581cae80c99c8d1995cab519ae98c6331b5677ded0
+          value: quay.io/konflux-ci/tekton-catalog/task-sast-shell-check-oci-ta:0.1@sha256:a591675c72f06fb9c5b1a3d60e6e4c58e4df5f7da180c7a4691a692a6e7e6496
         - name: kind
           value: task
         resolver: bundles
@@ -331,23 +335,22 @@ spec:
         operator: in
         values:
         - "false"
-      workspaces:
-      - name: workspace
-        workspace: workspace
     - name: sast-unicode-check
       params:
-      - name: image-digest
-        value: $(tasks.build-image-index.results.IMAGE_DIGEST)
       - name: image-url
         value: $(tasks.build-image-index.results.IMAGE_URL)
+      - name: SOURCE_ARTIFACT
+        value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
+      - name: CACHI2_ARTIFACT
+        value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
       runAfter:
       - build-image-index
       taskRef:
         params:
         - name: name
-          value: sast-unicode-check
+          value: sast-unicode-check-oci-ta
         - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-sast-unicode-check@sha256:b1a9af196a79baa75632ef494eb6db987f57e870d882d47f5b495e1441c01e3b
+          value: quay.io/konflux-ci/tekton-catalog/task-sast-unicode-check-oci-ta:0.1@sha256:424f2f659c02998dc3a43e1ce869e3148982c59adb74f953f8fa91ff1c9ab86e
         - name: kind
           value: task
         resolver: bundles
@@ -356,9 +359,6 @@ spec:
         operator: in
         values:
         - "false"
-      workspaces:
-      - name: workspace
-        workspace: workspace
     - name: rpms-signature-scan
       when:
         - input: $(params.skip-checks)
