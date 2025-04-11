@@ -26,3 +26,12 @@ repos:
         language: system
         types: [rust]
         pass_filenames: false
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.54.2
+    hooks:
+      - id: golangci-lint
+        name: golangci-lint
+        entry: golangci-lint run
+        types: [go]
+        language: golang
+        pass_filenames: false
