@@ -453,7 +453,8 @@ images:
 ```bash
 cd bpfman-operator/
 
-BPFMAN_AGENT_IMG=quay.io/$QUAY_USER/bpfman:test \
+# Optionally include BPFMAN_IMG if trying to load private bpfman image
+BPFMAN_IMG=quay.io/$QUAY_USER/bpfman:test \
 BPFMAN_AGENT_IMG=quay.io/$QUAY_USER/bpfman-agent:test \
 BPFMAN_OPERATOR_IMG=quay.io/$QUAY_USER/bpfman-operator:test \
 make build-images
@@ -466,7 +467,7 @@ make push-images
 Next, a bundle and catalog needs to be built and pushed:
 
 ```bash
-BPFMAN_AGENT_IMG=quay.io/$QUAY_USER/bpfman:test \
+BPFMAN_IMG=quay.io/$QUAY_USER/bpfman:test \
 BPFMAN_AGENT_IMG=quay.io/$QUAY_USER/bpfman-agent:test \
 BPFMAN_OPERATOR_IMG=quay.io/$QUAY_USER/bpfman-operator:test \
 BUNDLE_IMG=quay.io/$QUAY_USER/bpfman-operator-bundle:development \
