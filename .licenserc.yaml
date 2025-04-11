@@ -14,6 +14,7 @@ header:
       - "**/*.lock"
       - "**/*.yml"
       - "**/*.md"
+      - bpfman/src/db/schema.rs
     comment: on-failure
   - license:
       content: |

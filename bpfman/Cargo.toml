@@ -39,10 +39,19 @@ clap = { workspace = true, features = [
 clap_complete = { workspace = true }
 clap_mangen = { workspace = true }
 comfy-table = { workspace = true, features = ["tty"] }
+derive_builder = { workspace = true, features = ["std"] }
+diesel = { workspace = true, features = [
+    "32-column-tables",
+    "chrono",
+    "returning_clauses_for_sqlite_3_35",
+    "sqlite",
+] }
+diesel_migrations = { workspace = true, features = ["sqlite"] }
 env_logger = { workspace = true }
 flate2 = { workspace = true, features = ["zlib"] }
 hex = { workspace = true, features = ["std"] }
 lazy_static = { workspace = true }
+libsqlite3-sys = { workspace = true, features = ["bundled"] }
 log = { workspace = true }
 netlink-packet-core = { workspace = true }
 netlink-packet-route = { workspace = true }

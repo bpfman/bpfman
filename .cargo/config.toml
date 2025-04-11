@@ -1,2 +1,14 @@
 [alias]
 xtask = "run --package xtask --"
+
+# To use the system's libsqlite3 (via pkg-config) instead of building
+# SQLite from source, enable the following env override:
+#
+# Note: bpfman/Cargo.toml currently sets:
+#   libsqlite3-sys = { workspace = true, features = ["bundled"] }
+#
+# which compiles SQLite from source. To switch to the system library,
+# remove the "bundled" feature and enable this environment variable.
+#
+# [env]
+# LIBSQLITE3_SYS_USE_PKG_CONFIG = "1"

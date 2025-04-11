@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Authors of bpfman
+
+set -euo pipefail
+
+script_dir="$(dirname "$0")"
+db=$(mktemp)
+trap 'rm -rf "$db"' EXIT
+
+export DATABASE_URL="$db"
+
+diesel migration run \
+       --migration-dir "$script_dir/migrations" \
+       --config-file "$script_dir/diesel.toml"
+
+diesel print-schema \
+       --config-file "$script_dir/diesel.toml" \
+       > "$script_dir/src/db/schema.rs"

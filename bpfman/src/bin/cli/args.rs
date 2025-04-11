@@ -7,7 +7,10 @@ use std::{
     str::FromStr,
 };
 
-use bpfman::types::BpfProgType;
+use bpfman::{
+    errors::ParseError,
+    types::{BpfProgType, Location, ProgramType},
+};
 use clap::{ArgGroup, Args, Parser, Subcommand};
 use hex::FromHex;
 
@@ -80,7 +83,9 @@ pub(crate) struct LoadFileArgs {
     ///                              uprobe, xdp]
     #[clap(long, verbatim_doc_comment, num_args(1..), value_parser=parse_program_type, required = true)]
     pub(crate) programs: Vec<(String, Vec<String>)>,
-
+    // TODO(frobware) - this could become more strongly-typed vis-a-vis stringly-typed.
+    // #[clap(value_parser = ProgramType::parse)]
+    // programs: Vec<ProgramType>
     /// Required: Location of local bytecode file
     /// Example: --path /run/bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o
     #[clap(short, long, verbatim_doc_comment)]
@@ -142,7 +147,9 @@ pub(crate) struct LoadImageArgs {
     ///                              uprobe, xdp]
     #[clap(long, verbatim_doc_comment, num_args(1..), value_parser=parse_program_type, required = true)]
     pub(crate) programs: Vec<(String, Vec<String>)>,
-
+    // TODO(frobware) - this could become more strongly-typed vis-a-vis stringly-typed.
+    // #[clap(value_parser = ProgramType::parse)]
+    // programs: Vec<ProgramType>
     /// Specify how the bytecode image should be pulled.
     #[command(flatten)]
     pub(crate) pull_args: PullBytecodeArgs,
@@ -869,6 +876,75 @@ pub(crate) fn parse_program_type(
     parts.peek().ok_or(std::io::ErrorKind::InvalidInput)?;
     let rest = parts.map(|x| x.to_string()).collect::<Vec<String>>();
     Ok((type_str.to_string(), rest))
+}
+
+/// Represents either a local or image-based eBPF program load
+/// request. This enum abstracts over [`LoadFileArgs`] and
+/// [`LoadImageArgs`], allowing shared logic to operate generically on
+/// both.
+pub(crate) enum LoadArgs<'a> {
+    File(&'a LoadFileArgs),
+    Image(&'a LoadImageArgs),
+}
+
+impl LoadArgs<'_> {
+    pub(crate) fn get_source(&self) -> anyhow::Result<Location> {
+        match self {
+            LoadArgs::File(args) => Ok(Location::File(args.path.clone())),
+            LoadArgs::Image(args) => Ok((&args.pull_args).try_into().map(Location::Image)?),
+        }
+    }
+
+    pub(crate) fn get_programs(&self) -> &[(String, Vec<String>)] {
+        match self {
+            LoadArgs::File(file_args) => &file_args.programs,
+            LoadArgs::Image(image_args) => &image_args.programs,
+        }
+    }
+
+    pub(crate) fn get_global_data(&self) -> Option<Vec<(String, Vec<u8>)>> {
+        match self {
+            LoadArgs::File(file_args) => file_args.global.as_deref().map(Self::to_key_value_pairs),
+            LoadArgs::Image(image_args) => {
+                image_args.global.as_deref().map(Self::to_key_value_pairs)
+            }
+        }
+    }
+
+    pub(crate) fn get_metadata(&self) -> Option<Vec<(String, String)>> {
+        match self {
+            LoadArgs::File(file_args) => file_args.metadata.clone(),
+            LoadArgs::Image(image_args) => image_args.metadata.clone(),
+        }
+    }
+
+    pub(crate) fn get_map_owner_id(&self) -> Option<u32> {
+        match self {
+            LoadArgs::File(file_args) => file_args.map_owner_id,
+            LoadArgs::Image(image_args) => image_args.map_owner_id,
+        }
+    }
+
+    pub(crate) fn to_key_value_pairs(global: &[GlobalArg]) -> Vec<(String, Vec<u8>)> {
+        global
+            .iter()
+            .map(|arg| (arg.name.clone(), arg.value.clone()))
+            .collect()
+    }
+
+    pub(crate) fn parse_program_types(&self) -> Result<Vec<ProgramType>, ParseError> {
+        self.get_programs()
+            .iter()
+            .map(|(kind, parts)| {
+                let s = if parts.is_empty() {
+                    kind.clone()
+                } else {
+                    format!("{}:{}", kind, parts.join(":"))
+                };
+                ProgramType::parse(&s)
+            })
+            .collect()
+    }
 }
 
 #[cfg(test)]

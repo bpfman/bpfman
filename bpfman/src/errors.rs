@@ -5,7 +5,10 @@ use thiserror::Error;
 use tokio::sync::oneshot;
 use url::ParseError as urlParseError;
 
-use crate::oci_utils::ImageError;
+use crate::{
+    oci_utils::ImageError,
+    program_loader::{LoadedProgram, UnloadError},
+};
 
 #[derive(Debug, Error)]
 pub enum BpfmanError {
@@ -87,6 +90,42 @@ pub enum BpfmanError {
     BpfParseError(#[from] ParseError),
     #[error("one or more programs failed to load: {0:?}")]
     ProgramsLoadFailure(Vec<BpfmanError>),
+    #[error("Failed to retrieve map info: {0}")]
+    BpfMapInfoError(#[source] aya::maps::MapError),
+    #[error("Kernel load failed: {cause}")]
+    ProgramLoadError {
+        #[source]
+        cause: Box<dyn std::error::Error + Send + Sync>,
+
+        /// Programs that were successfully loaded before the failure
+        /// occurred.
+        loaded_before_failure: Vec<LoadedProgram>,
+
+        /// Any errors encountered during rollback (unloading).
+        unload_failures: Vec<UnloadError>,
+    },
+
+    #[error("SQLite: Failed to establish connection to {database_url}")]
+    SqliteConnectionError {
+        database_url: String,
+        #[source]
+        source: diesel::ConnectionError,
+    },
+
+    #[error("SQLite query failed on {database_url}: {context}")]
+    SqliteQueryError {
+        database_url: String,
+        context: String,
+        #[source]
+        source: diesel::result::Error,
+    },
+
+    #[error("SQLite: Migration failed for {database_url}")]
+    SqliteMigrationError {
+        database_url: String,
+        #[source]
+        source: Box<dyn std::error::Error + Send + Sync>,
+    },
 }
 
 #[derive(Error, Debug)]
