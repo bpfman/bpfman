@@ -19,14 +19,15 @@ a similar fashion.
 Following the diagram (Purple numbers):
 
 1. When `go-xdp-counter` userspace is started, it will send a gRPC request over unix
-   socket to `bpfman-rpc` requesting `bpfman` to load the `go-xdp-counter` eBPF bytecode located
-   on disk at `bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o` at a priority of 50 and on interface `eno3`.
+   socket to `bpfman-rpc` requesting `bpfman` to load and attach the `go-xdp-counter` eBPF bytecode
+   located on disk at `bpfman/examples/go-xdp-counter/bpf_x86_bpfel.o` at a priority of 50 and on
+   interface `eno3`.
    These values are configurable as we will see later, but for now we will use the defaults
    (except interface, which is required to be entered).
 2. `bpfman` will load it's `dispatcher` eBPF program, which links to the `go-xdp-counter` eBPF program
    and return a kernel Program ID referencing the running program.
-3. `bpfman list` can be used to show that the eBPF program was loaded.
-4. Once the `go-xdp-counter` eBPF bytecode is loaded, the eBPF program will write packet counts
+3. `bpfman list programs` can be used to show that the eBPF program was loaded.
+4. Once the `go-xdp-counter` eBPF bytecode is loaded and attached, the eBPF program will write packet counts
    and byte counts to a shared map.
 5. `go-xdp-counter` userspace program periodically reads counters from the shared map and logs
    the value.
@@ -45,7 +46,7 @@ how to build them, and how to run the different examples.
 
 To run the `go-xdp-counter` program, determine the host interface to attach the eBPF
 program to and then start the go program.
-In this example, `eno3` will be used, as shown in the diagram at the top of the page. 
+In this example, `eno3` will be used, as shown in the diagram at the top of the page.
 The output should show the count and total bytes of packets as they pass through the
 interface as shown below:
 
@@ -70,9 +71,9 @@ go run -exec sudo . --iface eno3
 In another terminal, use the CLI to show the `go-xdp-counter` eBPF bytecode was loaded.
 
 ```console
-sudo bpfman list
- Program ID  Name       Type  Load Time
- 6211        xdp_stats  xdp   2023-07-17T17:43:58-0400
+sudo bpfman list programs
+ Program ID  Application    Type        Function Name    Links
+ 64063                      xdp         xdp_stats        (1) 930390918
 ```
 
 Finally, press `<CTRL>+c` when finished with `go-xdp-counter`.
@@ -91,7 +92,7 @@ Finally, press `<CTRL>+c` when finished with `go-xdp-counter`.
 
 bpfman provides a CLI to interact with the `bpfman` Library.
 Find a deeper dive into CLI syntax in [CLI Guide](./cli-guide.md).
-We will load the simple `xdp-pass` program, which allows all traffic to pass through the attached
+We will load  and attach the simple `xdp-pass` program, which allows all traffic to pass through the attached
 interface, `eno3` in this example.
 The source code,
 [xdp_pass.bpf.c](https://github.com/bpfman/bpfman/blob/main/tests/integration-test/bpf/xdp_pass.bpf.c),
@@ -100,88 +101,135 @@ directory and there is also a prebuilt image:
 [quay.io/bpfman-bytecode/xdp_pass:latest](https://quay.io/bpfman-bytecode/).
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface eno3 --priority 100
+sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest \
+     --programs xdp:pass --application XdpPassProgram
  Bpfman State
 ---------------
- Name:          pass
+ BPF Function:  pass
+ Program Type:  xdp
  Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest
  Pull Policy:   IfNotPresent
  Global:        None
- Metadata:      None
- Map Pin Path:  /run/bpfman/fs/maps/6213
+ Metadata:      bpfman_application=XdpPassProgram
+ Map Pin Path:  /run/bpfman/fs/maps/63556
  Map Owner ID:  None
- Map Used By:   6213
- Priority:      100
- Iface:         eno3
- Position:      0
- Proceed On:    pass, dispatcher_return
+ Maps Used By:  63556
+ Links:         None
 
  Kernel State
 ----------------------------------
- Program ID:                       6213
- Name:                             pass
- Type:                             xdp
- Loaded At:                        2023-07-17T17:48:10-0400
+ Program ID:                       63556
+ BPF Function:                     pass
+ Kernel Type:                      xdp
+ Loaded At:                        2025-04-01T10:19:01-0400
  Tag:                              4b9d1b2c140e87ce
  GPL Compatible:                   true
- Map IDs:                          [2724]
- BTF ID:                           2834
+ Map IDs:                          [21073]
+ BTF ID:                           31333
  Size Translated (bytes):          96
- JITed:                            true
- Size JITed (bytes):               67
+ JITted:                           true
+ Size JITted:                      75
  Kernel Allocated Memory (bytes):  4096
  Verified Instruction Count:       9
 ```
 
-`bpfman load image` returns the same data as the `bpfman get` command.
-From the output, the Program Id of `6213` can be found in the `Kernel State` section.
-The Program Id can be used to perform a `bpfman get` to retrieve all relevant program
+`bpfman load image` returns the same data as the `bpfman get program` command.
+From the output, the Program Id of `63661` can be found in the `Kernel State` section.
+The Program Id can be used to perform a `bpfman get program` to retrieve all relevant program
 data and a `bpfman unload` when the program needs to be unloaded.
 
 ```console
-sudo bpfman list
- Program ID  Name  Type  Load Time
- 6213        pass  xdp   2023-07-17T17:48:10-0400
+sudo bpfman list programs --application XdpPassProgram
+ Program ID  Application     Type  Function Name  Links
+ 63661       XdpPassProgram  xdp   pass
 ```
 
-We can recheck the details about the loaded program with the `bpfman get` command:
+We can recheck the details about the loaded program with the `bpfman get program` command:
 
 ```console
-sudo bpfman get 6213
+sudo bpfman get 63661
  Bpfman State
 ---------------
- Name:          pass
+ BPF Function:  pass
+ Program Type:  xdp
  Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest
  Pull Policy:   IfNotPresent
  Global:        None
- Metadata:      None
- Map Pin Path:  /run/bpfman/fs/maps/6213
+ Metadata:      bpfman_application=XdpPassProgram
+ Map Pin Path:  /run/bpfman/fs/maps/63556
  Map Owner ID:  None
- Map Used By:   6213
- Priority:      100
- Iface:         eno3
- Position:      0
- Proceed On:    pass, dispatcher_return
+ Maps Used By:  63556
+ Links:         None
 
  Kernel State
 ----------------------------------
- Program ID:                       6213
- Name:                             pass
- Type:                             xdp
- Loaded At:                        2023-07-17T17:48:10-0400
+ Program ID:                       63556
+ BPF Function:                     pass
+ Kernel Type:                      xdp
+ Loaded At:                        2025-04-01T10:19:01-0400
  Tag:                              4b9d1b2c140e87ce
  GPL Compatible:                   true
- Map IDs:                          [2724]
- BTF ID:                           2834
+ Map IDs:                          [21073]
+ BTF ID:                           31333
  Size Translated (bytes):          96
- JITed:                            true
- Size JITed (bytes):               67
+ JITted:                           true
+ Size JITted:                      75
  Kernel Allocated Memory (bytes):  4096
  Verified Instruction Count:       9
+```
+
+At this point, the program is loaded in kernel memory, but has not been
+attached to any hook points.
+So the eBPF program will not be triggered.
+To attach the eBPF program to a hook point, use the `bpfman attach` command.
+
+```console
+sudo bpfman attach 63661 xdp --iface eno3 --priority 35
+ Bpfman State
+---------------
+ BPF Function:       pass
+ Program Type:       xdp
+ Program ID:         63661
+ Link ID:            1301256968
+ Interface:          eno4
+ Priority:           35
+ Position:           0
+ Proceed On:         pass, dispatcher_return
+ Network Namespace:  None
+ Metadata:           bpfman_application=XdpPassProgram
+```
+
+`bpfman attach` returns the same data as the `bpfman get link` command.
+From the output, the Link Id of `1301256968` can be found in the `Bpfman State` section.
+The Link Id can be used to perform a `bpfman get link` to retrieve all relevant link
+data.
+
+```console
+sudo bpfman list programs --application XdpPassProgram
+ Program ID  Application     Type  Function Name  Links
+ 63661       XdpPassProgram  xdp   pass           (1) 1301256968
+```
+
+We can recheck the details about the attached program with the `bpfman get link` command:
+
+```console
+sudo bpfman get link 63661 1301256968
+ Bpfman State
+---------------
+ BPF Function:       pass
+ Program Type:       xdp
+ Program ID:         63661
+ Link ID:            1301256968
+ Interface:          eno4
+ Priority:           35
+ Position:           0
+ Proceed On:         pass, dispatcher_return
+ Network Namespace:  None
+ Metadata:           bpfman_application=XdpPassProgram
 ```
 
 Then unload the program:
 
 ```console
-sudo bpfman unload 6213
+sudo bpfman unload 63661
 ```

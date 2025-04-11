@@ -77,16 +77,61 @@ sudo systemctl enable bpfman.socket
 sudo systemctl start bpfman.socket
 ```
 
-Finally you can run one of the sample applications:
+Finally you can load and attach one of the sample applications:
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfman-bytecode/tracepoint:latest --name "enter_openat" tracepoint --tracepoint syscalls/sys_enter_openat
+sudo bpfman load image --image-url quay.io/bpfman-bytecode/tracepoint:latest --application my_tracepoint \
+     --programs tracepoint:enter_openat
+ Bpfman State
+ ---------------
+ Name:          enter_openat
+ Program Type:  tracepoint
+ Image URL:     quay.io/bpfman-bytecode/tracepoint:latest
+ Pull Policy:   IfNotPresent
+ Global:        None
+ Metadata:      bpfman_application=my_tracepoint
+ Map Pin Path:  /run/bpfman/fs/maps/63433
+ Map Owner ID:  None
+ Maps Used By:  63433
+ Links:         None
 
-sudo bpfman list
- Program ID  Name          Type        Load Time                
- 1552        enter_openat  tracepoint  2024-05-06T10:50:57-0400 
+ Kernel State
+ ----------------------------------
+ Program ID:                       63433
+ BPF Function:                     enter_openat
+ Kernel Type:                      tracepoint
+ Loaded At:                        2025-03-12T13:02:29-0400
+ Tag:                              9b2c38d37350bfff
+ GPL Compatible:                   true
+ Map IDs:                          [20081]
+ BTF ID:                           30286
+ Size Translated (bytes):          96
+ JITted:                           true
+ Size JITted:                      72
+ Kernel Allocated Memory (bytes):  4096
+ Verified Instruction Count:       9
+```
 
-sudo bpfman unload 1552
+```console
+sudo bpfman attach 63433 tracepoint --tracepoint syscalls/sys_enter_openat
+ Bpfman State
+ ---------------
+ BPF Function:  enter_openat
+ Program Type:  tracepoint
+ Program ID:    63433
+ Link ID:       456579923
+ Tracepoint:    syscalls/sys_enter_openat
+ Metadata:      bpfman_application=my_tracepoint
+```
+
+```console
+sudo bpfman list programs
+ Program ID  Application     Type        Function Name  Links
+ 63433       my_tracepoint   tracepoint  enter_openat   (1) 456579923
+```
+
+```console
+sudo bpfman unload 63433
 ```
 
 When ready to uninstall, determine the RPM that is currently loaded:
@@ -144,9 +189,13 @@ Finally, deploy an example eBPF program:
 ```console
 kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/go-xdp-counter-install.yaml
 
-kubectl get xdpprograms
-NAME                     BPFFUNCTIONNAME   NODESELECTOR   STATUS
-go-xdp-counter-example   xdp_stats         {}             ReconcileSuccess
+kubectl get clusterbpfapplications
+NAME                     NODESELECTOR   STATUS    AGE
+go-xdp-counter-example                  Success   21s
+
+kubectl get clusterbpfapplicationstates
+NAME                              NODE                              STATUS    AGE
+go-xdp-counter-example-317f95f7   bpfman-deployment-control-plane   Success   101s
 ```
 
 There are other example program install yamls in the artifacts for each

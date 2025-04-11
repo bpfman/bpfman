@@ -369,14 +369,14 @@ sudo cp .output/manpage/bpfman*.1 /usr/local/share/man/man1/.
 Once installed, use `man` to view the pages.
 
 ```console
-man bpfman list
+man bpfman attach
 ```
 
 !!! Note
-    `bpfman` commands with subcommands (specifically `bpfman load`) have `-` in the
-    manpage subcommand generation.
+    `bpfman` commands with subcommands (specifically `bpfman load`, `bpfman list` and `bpfman get`)
+    have `-` in the manpage subcommand generation.
     So use `man bpfman load-file`, `man bpfman load-image`, `man bpfman load-image-xdp`,
-    etc. to display the subcommand manpage files.
+    `man bpfman list-programs`, etc. to display the subcommand manpage files.
 
 ## Building bpfman-operator
 

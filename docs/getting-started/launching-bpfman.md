@@ -28,16 +28,25 @@ cd bpfman/
 sudo ./scripts/setup.sh install
 ```
 
-`bpfman` CLI is now in $PATH and can be used to load, view and unload eBPF programs.
+`bpfman` CLI is now in $PATH and can be used to load, attach, view and unload eBPF programs.
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass xdp --iface eno3 --priority 100
+sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest \
+     --programs xdp:pass --application XdpPassProgram
+```
 
-sudo bpfman list
- Program ID  Name  Type  Load Time                
- 53885       pass  xdp   2024-08-26T17:41:36-0400 
+```console
+sudo bpfman attach 63661 xdp --iface eno3 --priority 35
+```
 
-sudo bpfman unload 53885
+```console
+sudo bpfman list programs --application XdpPassProgram
+ Program ID  Application     Type  Function Name  Links
+ 63661       XdpPassProgram  xdp   pass           (1) 1301256968
+```
+
+```console
+sudo bpfman unload 63661
 ```
 
 `bpfman` CLI is a Rust program that calls the `bpfman` library directly.
@@ -45,10 +54,10 @@ To view logs while running `bpfman` CLI commands, prepend `RUST_LOG=info` to eac
 (see [Logging](../developer-guide/logging.md) for more details):
 
 ```console
-sudo RUST_LOG=info bpfman list
+sudo RUST_LOG=info bpfman list programs
 [INFO  bpfman::utils] Has CAP_BPF: true
 [INFO  bpfman::utils] Has CAP_SYS_ADMIN: true
- Program ID  Name  Type  Load Time 
+ Program ID  Application     Type        Function Name    Links
 ```
 
 The examples (see [Deploying Example eBPF Programs On Local Host](./example-bpf-local.md))

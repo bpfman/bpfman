@@ -2,7 +2,7 @@
 
 This section describes how to enable logging in different `bpfman` deployments.
 
-## Local Privileged Bpfman Process
+## Logs From bpfman CLI Commands
 
 `bpfman` uses the [env_logger](https://docs.rs/env_logger) crate to log messages to the terminal.
 By default, only `error` messages are logged, but that can be overwritten by setting
@@ -18,18 +18,19 @@ Valid values:
 Example:
 
 ```console
-$ sudo RUST_LOG=info /usr/local/bin/bpfman
-[2022-08-08T20:29:31Z INFO  bpfman::server] Loading static programs from /etc/bpfman/programs.d
-[2022-08-08T20:29:31Z INFO  bpfman::server::bpf] Map veth12fa8e3 to 13
-[2022-08-08T20:29:31Z INFO  bpfman::server] Listening on [::1]:50051
-[2022-08-08T20:29:31Z INFO  bpfman::server::bpf] Program added: 1 programs attached to veth12fa8e3
-[2022-08-08T20:29:31Z INFO  bpfman::server] Loaded static program pass with UUID d9fd88df-d039-4e64-9f63-19f3e08915ce
+$ sudo RUST_LOG=info bpfman load image ...
+[INFO  bpfman] Request to load 1 programs
+[INFO  bpfman::oci_utils::cosign] Fetching Sigstore TUF data
+[INFO  bpfman::oci_utils::cosign] fetching fulcio_certs
+[INFO  bpfman::oci_utils::cosign] Creating ManualTrustRoot
+[INFO  bpfman::oci_utils::cosign] Starting Cosign Verifier, downloading data from Sigstore TUF repository
+:
 ```
 
-## Systemd Service
+## Logs From bpfman Running as Systemd Service
 
 If `bpfman` is running as a systemd service, then `bpfman` will log to journald.
-As with env_logger, by default, `info` and higher messages are logged, but that can be
+By default, `info` and higher messages are logged, but that can be
 overwritten by setting the `RUST_LOG` environment variable.
 
 Example:
@@ -52,39 +53,40 @@ Start the service:
 
 ```console
 sudo systemctl daemon-reload
-sudo systemctl start bpfman.service
+sudo systemctl enable --now bpfman.socket
 ```
 
 Check the logs:
 
 ```console
-$ sudo journalctl -f -u bpfman
-Aug 08 16:25:04 ebpf03 systemd[1]: Started bpfman.service - Run bpfman as a service.
-Aug 08 16:25:04 ebpf03 bpfman[180118]: Loading static programs from /etc/bpfman/programs.d
-Aug 08 16:25:04 ebpf03 bpfman[180118]: Map veth12fa8e3 to 13
-Aug 08 16:25:04 ebpf03 bpfman[180118]: Listening on [::1]:50051
-Aug 08 16:25:04 ebpf03 bpfman[180118]: Program added: 1 programs attached to veth12fa8e3
-Aug 08 16:25:04 ebpf03 bpfman[180118]: Loaded static program pass with UUID a3ffa14a-786d-48ad-b0cd-a4802f0f10b6
+$ sudo journalctl -u bpfman.service -u bpfman.socket -f
+Feb 23 22:02:02 ebpf03 systemd[1]: bpfman.service: Deactivated successfully.
+Feb 25 13:21:49 ebpf03 systemd[1]: bpfman.socket: Deactivated successfully.
+Feb 25 13:21:49 ebpf03 systemd[1]: Closed bpfman.socket - bpfman API Socket.
+Feb 25 13:21:56 ebpf03 systemd[1]: Listening on bpfman.socket - bpfman API Socket.
+Feb 26 09:32:38 ebpf03 systemd[1]: bpfman.socket: Deactivated successfully.
+Feb 26 09:32:38 ebpf03 systemd[1]: Closed bpfman.socket - bpfman API Socket.
+:
 ```
 
 Stop the service:
 
 ```console
-sudo systemctl stop bpfman.service
+sudo systemctl stop bpfman.socket
 ```
 
 ## Kubernetes Deployment
 
 When `bpfman` is run in a Kubernetes deployment, there is the bpfman Daemonset that runs on every node
-and the bpd Operator that runs on the control plane:
+and the bpfman Operator that runs on the control plane:
 
 ```console
 kubectl get pods -A
 NAMESPACE            NAME                                                    READY   STATUS    RESTARTS   AGE
-bpfman                 bpfman-daemon-dgqzw                                       2/2     Running   0          3d22h
-bpfman                 bpfman-daemon-gqsgd                                       2/2     Running   0          3d22h
-bpfman                 bpfman-daemon-zx9xr                                       2/2     Running   0          3d22h
-bpfman                 bpfman-operator-7fbf4888c4-z8w76                          2/2     Running   0          3d22h
+bpfman               bpfman-daemon-dgqzw                                     3/3     Running   0          3d22h
+bpfman               bpfman-daemon-gqsgd                                     3/3     Running   0          3d22h
+bpfman               bpfman-daemon-zx9xr                                     3/3     Running   0          3d22h
+bpfman               bpfman-operator-7fbf4888c4-z8w76                        2/2     Running   0          3d22h
 :
 ```
 
@@ -98,8 +100,10 @@ To view the `bpfman` logs:
 
 ```console
 kubectl logs -n bpfman bpfman-daemon-dgqzw -c bpfman
-[2023-05-05T14:41:26Z INFO  bpfman] Has CAP_BPF: false
-[2023-05-05T14:41:26Z INFO  bpfman] Has CAP_SYS_ADMIN: true
+[INFO  bpfman_rpc::serve] Using no inactivity timer
+[INFO  bpfman_rpc::serve] Using default Unix socket
+[INFO  bpfman_rpc::serve] Listening on /run/bpfman-sock/bpfman.sock
+[INFO  bpfman_rpc::storage] CSI Plugin Listening on /run/bpfman/csi/csi.sock
 :
 ```
 
@@ -107,9 +111,11 @@ To view the `bpfman-agent` logs:
 
 ```console
 kubectl logs -n bpfman bpfman-daemon-dgqzw -c bpfman-agent
-{"level":"info","ts":"2023-12-20T20:15:34Z","logger":"controller-runtime.metrics","msg":"Metrics server is starting to listen","addr":":8174"}
-{"level":"info","ts":"2023-12-20T20:15:34Z","logger":"setup","msg":"Waiting for active connection to bpfman"}
-{"level":"info","ts":"2023-12-20T20:15:34Z","logger":"setup","msg":"starting Bpfman-Agent"}
+{"level":"info","ts":"2025-03-06T13:37:08Z","logger":"setup","msg":"Waiting for active connection to bpfman"}
+{"level":"info","ts":"2025-03-06T13:37:08Z","logger":"setup","msg":"starting Bpfman-Agent"}
+{"level":"info","ts":"2025-03-06T13:37:08Z","logger":"controller-runtime.metrics","msg":"Starting metrics server"}
+{"level":"info","ts":"2025-03-06T13:37:08Z","msg":"starting server","name":"health probe","addr":"[::]:8175"}
+{"level":"info","ts":"2025-03-06T13:37:08Z","msg":"starting server","name":"pprof","addr":"[::]:6060"}
 :
 ```
 
@@ -163,13 +169,12 @@ To view the `bpfman-operator` logs:
 
 ```console
 kubectl logs -n bpfman bpfman-operator-7fbf4888c4-z8w76 -c bpfman-operator
-{"level":"info","ts":"2023-05-09T18:37:11Z","logger":"controller-runtime.metrics","msg":"Metrics server is starting to listen","addr":"127.0.0.1:8174"}
-{"level":"info","ts":"2023-05-09T18:37:11Z","logger":"setup","msg":"starting manager"}
-{"level":"info","ts":"2023-05-09T18:37:11Z","msg":"Starting server","kind":"health probe","addr":"[::]:8175"}
-{"level":"info","ts":"2023-05-09T18:37:11Z","msg":"Starting server","path":"/metrics","kind":"metrics","addr":"127.0.0.1:8174"}
-I0509 18:37:11.262885       1 leaderelection.go:248] attempting to acquire leader lease bpfman/8730d955.bpfman.io...
-I0509 18:37:11.268918       1 leaderelection.go:258] successfully acquired lease bpfman/8730d955.bpfman.io
-{"level":"info","ts":"2023-05-09T18:37:11Z","msg":"Starting EventSource","controller":"configmap","controllerGroup":"","controllerKind":"ConfigMap","source":"kind source: *v1.ConfigMap"}
+{"level":"info","ts":"2025-03-06T13:36:57Z","logger":"setup","msg":"Discovering APIs"}
+{"level":"info","ts":"2025-03-06T13:36:57Z","logger":"setup","msg":"detected platform version","PlatformVersion":"v1.32.2"}
+{"level":"info","ts":"2025-03-06T13:36:57Z","logger":"setup","msg":"starting manager"}
+{"level":"info","ts":"2025-03-06T13:36:57Z","logger":"controller-runtime.metrics","msg":"Starting metrics server"}
+{"level":"info","ts":"2025-03-06T13:36:57Z","msg":"starting server","name":"health probe","addr":"[::]:8175"}
+{"level":"info","ts":"2025-03-06T13:36:57Z","logger":"controller-runtime.metrics","msg":"Serving metrics server","bindAddress":"127.0.0.1:8174","secure":false}
 :
 ```
 
