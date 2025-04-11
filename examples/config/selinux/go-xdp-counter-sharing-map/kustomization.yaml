@@ -7,7 +7,7 @@ kind: Kustomization
 patches:
 - path: patch.yaml
   target:
-    kind: XdpProgram
+    kind: ClusterBpfApplication
     name: go-xdp-counter-example
 - patch: |-
     - op: add

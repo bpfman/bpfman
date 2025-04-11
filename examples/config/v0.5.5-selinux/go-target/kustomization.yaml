@@ -6,4 +6,4 @@ images:
   - name: quay.io/bpfman-userspace/go-target
     newName: quay.io/bpfman-userspace/go-target
     newTag: v0.5.5
-resources: [../../selinux/go-target]
+resources: [../../archive_056/selinux/go-target]

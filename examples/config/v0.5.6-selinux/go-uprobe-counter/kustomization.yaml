@@ -17,4 +17,4 @@ images:
   - name: quay.io/bpfman-userspace/go-uprobe-counter
     newName: quay.io/bpfman-userspace/go-uprobe-counter
     newTag: v0.5.6
-resources: [../../selinux/go-uprobe-counter]
+resources: [../../archive_056/selinux/go-uprobe-counter]
