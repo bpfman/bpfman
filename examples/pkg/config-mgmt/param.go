@@ -130,11 +130,12 @@ func ParseParamData(progType ProgType, bytecodeFile string) (ParameterData, erro
 		// are "ingress" and "egress". If not provided, defaults to "ingress".
 		//    ./go-tc-counter -iface eth0 -direction ingress
 
-		if direction_str == "ingress" {
+		switch direction_str {
+		case "ingress":
 			paramData.Direction = TcDirectionIngress
-		} else if direction_str == "egress" {
+		case "egress":
 			paramData.Direction = TcDirectionEgress
-		} else {
+		default:
 			return paramData, fmt.Errorf("invalid direction (%s). valid options are ingress or egress", direction_str)
 		}
 	}
