@@ -9,6 +9,8 @@ use std::{
     time::Duration,
 };
 
+use std::io::Write;
+
 use anyhow::{Result, bail};
 use bpfman::{
     add_programs, attach_program,

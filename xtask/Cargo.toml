@@ -29,3 +29,5 @@ rustdoc-json = { workspace = true }
 rustup-toolchain = { workspace = true }
 serde_json = { workspace = true, features = ["std"] }
 tonic-build = { workspace = true, features = ["prost"] }
+uuid = "1.4"
+hex = "0.4"

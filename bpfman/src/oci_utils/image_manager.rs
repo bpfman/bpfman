@@ -3,7 +3,7 @@
 
 use std::{
     collections::HashMap,
-    io::{Read, copy},
+    io::{Read, copy, Write},
     process::Command,
     path::PathBuf,
 };
@@ -17,6 +17,7 @@ use oci_client::{
     client::{ClientConfig, ClientProtocol},
     manifest,
     manifest::OciImageManifest,
+    manifest::Descriptor,
     secrets::RegistryAuth,
 };
 use serde::Deserialize;
@@ -24,6 +25,8 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use sled::Db;
 use tar::Archive;
+use uuid::Uuid;
+use hex;
 
 use crate::{
     oci_utils::{
@@ -284,7 +287,7 @@ impl ImageManager {
     }
 
     fn create_container_from_image(&self, runtime: ContainerRuntime, image_url: &str, temp_dir: &tempfile::TempDir) -> Result<String, ImageError> {
-        let container_name = format!("bpfman-extract-{}", uuid::Uuid::new_v4());
+        let container_name = format!("bpfman-extract-{}", Uuid::new_v4());
         
         let output = match runtime {
             ContainerRuntime::Docker => {
@@ -485,11 +488,6 @@ impl ImageManager {
         
         // If authentication is provided, set it up
         if let (Some(username), Some(password)) = (username, password) {
-            // Create a temporary file for docker login credentials
-            let temp_auth_file = tempfile::NamedTempFile::new().map_err(|e| 
-                ImageError::BytecodeImageExtractFailure(format!("Failed to create temp auth file: {}", e))
-            )?;
-            
             // Extract registry from image URL
             let registry = if image_url.contains('/') {
                 image_url.split('/').next().unwrap_or("docker.io")
@@ -497,63 +495,57 @@ impl ImageManager {
                 "docker.io"
             };
             
-            // Perform login
-            let login_output = match runtime {
+            // Create a command with authentication
+            let mut cmd = match runtime {
+                ContainerRuntime::Docker => {
+                    let mut cmd = Command::new("docker");
+                    cmd.args(["pull", image_url]);
+                    cmd
+                },
+                ContainerRuntime::Podman => {
+                    let mut cmd = Command::new("podman");
+                    cmd.args(["pull", image_url]);
+                    cmd
+                }
+            };
+            
+            // Log that we're using credentials (but don't print them)
+            log::debug!("Pulling image with credentials for user {}", username);
+            
+            // Execute the command
+            let pull_output = cmd.output().map_err(|e| ImageError::BytecodeImageExtractFailure(
+                format!("Failed to pull image: {}", e)
+            ))?;
+            
+            if !pull_output.status.success() {
+                return Err(ImageError::BytecodeImageExtractFailure(
+                    format!("Failed to pull image: {}", 
+                        String::from_utf8_lossy(&pull_output.stderr))
+                ));
+            }
+        } else {
+            // Pull without authentication
+            let pull_output = match runtime {
                 ContainerRuntime::Docker => {
                     Command::new("docker")
-                        .args([
-                            "login", 
-                            registry, 
-                            "--username", username, 
-                            "--password-stdin"
-                        ])
-                        .stdin(std::process::Stdio::piped())
+                        .args(["pull", image_url])
                         .output()
                 },
                 ContainerRuntime::Podman => {
                     Command::new("podman")
-                        .args([
-                            "login", 
-                            registry, 
-                            "--username", username, 
-                            "--password-stdin"
-                        ])
-                        .stdin(std::process::Stdio::piped())
+                        .args(["pull", image_url])
                         .output()
                 }
             }.map_err(|e| ImageError::BytecodeImageExtractFailure(
-                format!("Failed to login to registry: {}", e)
+                format!("Failed to pull image: {}", e)
             ))?;
             
-            if !login_output.status.success() {
+            if !pull_output.status.success() {
                 return Err(ImageError::BytecodeImageExtractFailure(
-                    format!("Failed to login to registry: {}", 
-                        String::from_utf8_lossy(&login_output.stderr))
+                    format!("Failed to pull image: {}", 
+                        String::from_utf8_lossy(&pull_output.stderr))
                 ));
             }
-        }
-        
-        // Pull the image
-        let pull_output = match runtime {
-            ContainerRuntime::Docker => {
-                Command::new("docker")
-                    .args(["pull", image_url])
-                    .output()
-            },
-            ContainerRuntime::Podman => {
-                Command::new("podman")
-                    .args(["pull", image_url])
-                    .output()
-            }
-        }.map_err(|e| ImageError::BytecodeImageExtractFailure(
-            format!("Failed to pull image: {}", e)
-        ))?;
-        
-        if !pull_output.status.success() {
-            return Err(ImageError::BytecodeImageExtractFailure(
-                format!("Failed to pull image: {}", 
-                    String::from_utf8_lossy(&pull_output.stderr))
-            ));
         }
         
         Ok(())
@@ -569,17 +561,29 @@ impl ImageManager {
         // Create a synthetic manifest for the database
         let manifest = OciImageManifest {
             schema_version: 2,
-            config: manifest::ManifestDescriptor {
+            config: manifest::Descriptor {
                 media_type: manifest::IMAGE_CONFIG_MEDIA_TYPE.to_string(),
-                digest: format!("sha256:{}", Sha256::digest(&bytecode).to_hex_string()),
+                digest: format!("sha256:{}", hex::encode(Sha256::digest(&bytecode))),
                 size: bytecode.len() as i64,
+                urls: None,
+                annotations: None,
+                platform: None,
+                artifact_type: None,
+                data: None,
             },
-            layers: vec![manifest::ManifestDescriptor {
+            layers: vec![manifest::Descriptor {
                 media_type: manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE.to_string(),
-                digest: format!("sha256:{}", Sha256::digest(&bytecode).to_hex_string()),
+                digest: format!("sha256:{}", hex::encode(Sha256::digest(&bytecode))),
                 size: bytecode.len() as i64,
+                urls: None,
+                annotations: None,
+                platform: None,
+                artifact_type: None,
+                data: None,
             }],
             annotations: None,
+            artifact_type: None,
+            media_type: Some(manifest::OCI_IMAGE_MANIFEST_MEDIA_TYPE.to_string()),
         };
         
         // Create a synthetic config for the database
@@ -610,7 +614,7 @@ impl ImageManager {
         )?;
         
         // Store config in database
-        let config_sha = Sha256::digest(&config.to_string().as_bytes()).to_hex_string();
+        let config_sha = hex::encode(Sha256::digest(config.to_string().as_bytes()));
         let image_config_path = image_content_key.to_string() + &config_sha;
         
         root_db
@@ -620,7 +624,7 @@ impl ImageManager {
             )?;
         
         // Store bytecode in database
-        let bytecode_sha = Sha256::digest(&bytecode).to_hex_string();
+        let bytecode_sha = hex::encode(Sha256::digest(&bytecode));
         let bytecode_path = image_content_key.to_string() + &bytecode_sha;
         
         // Create gzipped tarball of bytecode
@@ -638,6 +642,9 @@ impl ImageManager {
         // Compress the tar file
         let mut gzipped_data = Vec::new();
         let mut encoder = flate2::write::GzEncoder::new(&mut gzipped_data, flate2::Compression::default());
+        
+        // Use Write trait method
+        use std::io::Write;
         encoder.write_all(&buffer).map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
         encoder.finish().map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?;
         

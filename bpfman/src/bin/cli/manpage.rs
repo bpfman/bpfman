@@ -5,6 +5,7 @@ use std::{
     fs::{File, create_dir_all},
     io::Write as _,
     path::{Path, PathBuf},
+    io::Write,
 };
 
 use clap::{CommandFactory, Parser};
