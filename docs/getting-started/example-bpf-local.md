@@ -45,7 +45,7 @@ how to build them, and how to run the different examples.
 
 To run the `go-xdp-counter` program, determine the host interface to attach the eBPF
 program to and then start the go program.
-In this example, `eno3` will be used, as shown in the diagram at the top of the page. 
+In this example, `eno3` will be used, as shown in the diagram at the top of the page.
 The output should show the count and total bytes of packets as they pass through the
 interface as shown below:
 
@@ -185,3 +185,15 @@ Then unload the program:
 ```console
 sudo bpfman unload 6213
 ```
+
+## Using Container Runtime Images
+
+bpfman now integrates with your local container runtime (Docker or Podman), allowing you to use images directly from your local container storage without pushing to a registry.
+
+### Building a Local Image
+
+First, build your eBPF program as a container image:
+
+```console
+cd examples/go-xdp-counter
+docker build -t go-xdp-counter:local .

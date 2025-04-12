@@ -47,6 +47,7 @@ bpfman operates as an eBPF manager, focusing on simplifying the deployment and a
 - **System Overview**: Provides insights into how eBPF is utilized in your system.
 - **eBPF Program Loader**: Includes a built-in program loader that supports program cooperation for XDP and TC programs, as well as deployment of eBPF programs from OCI images.
 - **eBPF Filesystem Management**: Manages the eBPF filesystem, facilitating the deployment of eBPF applications without requiring additional privileges.
+- **Container Runtime Integration**: Leverages your existing container runtime (Docker or Podman) to use locally built images without needing to push to a registry.
 
 Our program loader and eBPF filesystem manager ensure the secure deployment of eBPF applications.
 Furthermore, bpfman includes a Kubernetes operator, extending these capabilities to Kubernetes.

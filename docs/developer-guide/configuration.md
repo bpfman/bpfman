@@ -9,7 +9,11 @@ There is an example at `scripts/bpfman.toml`, similar to:
 ```toml
 [interfaces]
   [interfaces.eth0]
-  xdp_mode = "drv" # Valid xdp modes are "hw", "skb" and "drv". Default: "drv", but will fall back to "skb" on failure.
+  xdp_mode = "drv"
+  [interfaces.eth1]
+  xdp_mode = "hw"
+  [interfaces.eth2]
+  xdp_mode = "skb"
 
 [signing]
 allow_unsigned = true
@@ -18,6 +22,14 @@ verify_enabled = true
 [database]
 max_retries = 10
 millisec_delay = 1000
+
+[registry]
+xdp_dispatcher_image = "quay.io/bpfman/xdp-dispatcher@sha256:61c34aa2df86d3069aa3c53569134466203c6227c5333f2e45c906cd02e72920" 
+tc_dispatcher_image = "quay.io/bpfman/tc-dispatcher@sha256:daa5b8d936caf3a8c94c19592cee7f55445d1e38addfd8d3af846873b8ffc831"
+
+[container_runtime]
+enabled = true
+preferred_runtime = "docker" # Optional: Specify preferred runtime ("docker" or "podman")
 ```
 
 ### Config Section: [interfaces]
@@ -74,13 +86,26 @@ Valid fields:
 
 ### Config Section: [registry]
 
-`bpfman` uses the latest public container images for the xdp and tc dispatchers by default. 
+`bpfman` uses the latest public container images for the xdp and tc dispatchers by default.
 Optionally, the configuration values for these images are user-configurable. For example, it may
-be desirable in certain enterprise environments to source the xdp and tc dispatcher images from 
-a self-hosted OCI image registry. 
-In this case, the default values for the xdp and tc dispatcher images can be overridden below. 
+be desirable in certain enterprise environments to source the xdp and tc dispatcher images from
+a self-hosted OCI image registry.
+In this case, the default values for the xdp and tc dispatcher images can be overridden below.
 
 Valid fields:
 
-- **xdp_dispatcher_image**: The locator of the xdp dispatcher image in the format `quay.io/bpfman/xdp-dispatcher:latest`
-- **tc_dispatcher_image**: The locator of the tc dispatcher image in the format `quay.io/bpfman/tc-dispatcher:latest`
+- **xdp_dispatcher_image**: The locator of the xdp dispatcher image in the format `quay.io/bpfman/xdp-dispatcher@sha256:61c34aa2df86d3069aa3c53569134466203c6227c5333f2e45c906cd02e72920`
+- **tc_dispatcher_image**: The locator of the tc dispatcher image in the format `quay.io/bpfman/tc-dispatcher@sha256:daa5b8d936caf3a8c94c19592cee7f55445d1e38addfd8d3af846873b8ffc831`
+
+### Config Section: [container_runtime]
+
+This section of the configuration file allows control over the container runtime used by `bpfman`.
+By default, the container runtime is enabled, and the preferred runtime is set to `docker`.
+
+Valid fields:
+
+- **enabled**: Flag indicating whether the container runtime is enabled.
+  Valid values: ["true"|"false"]
+
+- **preferred_runtime**: Specify the preferred container runtime.
+  Valid values: ["docker"|"podman"]

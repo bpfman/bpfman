@@ -566,7 +566,7 @@ Map IDs:                           []
 BTF ID:                            0
 Size Translated (bytes):           64
 JITed:                             true
-Size JITed (bytes):                55
+Size JITed:                        55
 Kernel Allocated Memory (bytes):   4096
 Verified Instruction Count:        8
 ```
@@ -804,7 +804,7 @@ bpfman image build -f Containerfile.bytecode.multi.arch -t quay.io/$QUAY_USER/go
 
 !!! Note
     To build images for multiple architectures on a local system, docker (or podman) may need additional configuration
-    settings to allow for caching of non-native images. See 
+    settings to allow for caching of non-native images. See
     [https://docs.docker.com/build/building/multi-platform/](https://docs.docker.com/build/building/multi-platform/)
     for more details.
 
@@ -946,4 +946,30 @@ docker build \
   --build-arg PROGRAMS={"xdp_stats":"xdp"} \
   --build-arg MAPS={"xdp_stats_map":"per_cpu_array"} \
   -f Containerfile.bytecode . -t quay.io/$USER/go-xdp-counter-bytecode:test
+```
+
+## Container Runtime Integration
+
+bpfman integrates with your local container runtime (Docker or Podman) to simplify the workflow for loading eBPF programs, especially during development.
+
+### Using Container Runtime Images
+
+When loading programs, bpfman can now use images directly from your container runtime's local storage:
+
+```console
+# Build an eBPF program container image locally
+docker build -t myebpf:latest ./my-ebpf-program/
+
+# Load the program directly from the local container runtime storage
+sudo bpfman load image --image-url myebpf:latest --name "my_program" xdp --iface eth0
+```
+
+### Configuration
+
+To enable container runtime integration, add the following configuration to your `bpfman` settings:
+
+```ini
+[container_runtime]
+enabled = true                 # Set to false to disable container runtime integration
+preferred_runtime = "docker"   # Optional: Specify preferred runtime if multiple are available
 ```

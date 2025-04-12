@@ -10,13 +10,15 @@ use crate::{TC_DISPATCHER_IMAGE, XDP_DISPATCHER_IMAGE, errors::ParseError};
 
 #[derive(Debug, Default, Deserialize, Clone)]
 pub struct Config {
-    interfaces: Option<HashMap<String, InterfaceConfig>>,
+    pub interfaces: Option<HashMap<String, InterfaceConfig>>,
     #[serde(default)]
-    signing: SigningConfig,
+    pub signing: SigningConfig,
     #[serde(default)]
-    database: DatabaseConfig,
+    pub database: DatabaseConfig,
     #[serde(default)]
-    registry: RegistryConfig,
+    pub registry: RegistryConfig,
+    #[serde(default)]
+    pub container_runtime: ContainerRuntimeConfig,
 }
 
 impl Config {
@@ -85,6 +87,22 @@ impl Default for RegistryConfig {
         Self {
             xdp_dispatcher_image: XDP_DISPATCHER_IMAGE.to_string(),
             tc_dispatcher_image: TC_DISPATCHER_IMAGE.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(default)]
+pub struct ContainerRuntimeConfig {
+    pub enabled: bool,
+    pub preferred_runtime: Option<String>,
+}
+
+impl Default for ContainerRuntimeConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            preferred_runtime: None,
         }
     }
 }
@@ -247,5 +265,36 @@ mod test {
             config.registry.tc_dispatcher_image,
             String::from(TC_DISPATCHER_IMAGE)
         )
+    }
+
+    #[test]
+    fn test_container_runtime_config_default() {
+        let input = r#"
+        "#;
+        let config: Config = toml::from_str(input).expect("error parsing toml input");
+        assert_eq!(config.container_runtime.enabled, true);
+        assert_eq!(config.container_runtime.preferred_runtime, None);
+    }
+
+    #[test]
+    fn test_container_runtime_config_disabled() {
+        let input = r#"
+        [container_runtime]
+        enabled = false
+        "#;
+        let config: Config = toml::from_str(input).expect("error parsing toml input");
+        assert_eq!(config.container_runtime.enabled, false);
+        assert_eq!(config.container_runtime.preferred_runtime, None);
+    }
+
+    #[test]
+    fn test_container_runtime_config_preferred() {
+        let input = r#"
+        [container_runtime]
+        preferred_runtime = "docker"
+        "#;
+        let config: Config = toml::from_str(input).expect("error parsing toml input");
+        assert_eq!(config.container_runtime.enabled, true);
+        assert_eq!(config.container_runtime.preferred_runtime, Some("docker".to_string()));
     }
 }
