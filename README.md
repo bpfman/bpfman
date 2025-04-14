@@ -10,6 +10,7 @@
 [![Netlify Status][netlify-badge]][netlify-url]
 [![Copr build status][copr-badge]][copr-url]
 [![OpenSSF Scorecard][openssf-badge]][openssf-url]
+[![OpenSSF Best Practices][openssf-best-practices-badge]][openssf-best-practices-url]
 [![FOSSA Status][fossa-badge]][fossa-url]
 
 [apache2-badge]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
@@ -27,6 +28,8 @@
 [netlify-url]: https://app.netlify.com/sites/bpfman/deploys
 [openssf-badge]: https://api.scorecard.dev/projects/github.com/bpfman/bpfman/badge
 [openssf-url]: https://scorecard.dev/viewer/?uri=github.com/bpfman/bpfman
+[openssf-best-practices-badge]: https://www.bestpractices.dev/projects/10169/badge
+[openssf-best-practices-url]: https://www.bestpractices.dev/projects/10169
 [fossa-badge]: https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbpfman%2Fbpfman.svg?type=shield
 [fossa-url]: https://app.fossa.com/projects/git%2Bgithub.com%2Fbpfman%2Fbpfman?ref=badge_shield
 
