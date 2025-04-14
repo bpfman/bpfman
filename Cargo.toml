@@ -52,7 +52,7 @@ clap_mangen = { version = "0.2.26", default-features = false }
 comfy-table = { version = "7.1.4", default-features = false }
 dialoguer = { version = "0.11", default-features = false }
 diff = { version = "0.1.13", default-features = false }
-env_logger = { version = "0.11.7", default-features = false }
+env_logger = { version = "0.11.8", default-features = false }
 flate2 = { version = "1.1", default-features = false }
 hex = { version = "0.4.3", default-features = false }
 integration-test-macros = { path = "./tests/integration-test-macros" }
@@ -91,7 +91,7 @@ systemd-journal-logger = { version = "2.2.1", default-features = false }
 tar = { version = "0.4", default-features = false }
 tempfile = { version = "3.19.0", default-features = false }
 thiserror = { version = "2", default-features = false }
-tokio = { version = "1.44.1", default-features = false }
+tokio = { version = "1.44.2", default-features = false }
 tokio-stream = { version = "0.1.17", default-features = false }
 tokio-util = { version = "0.7.14", default-features = false }
 toml = { version = "0.8.20", default-features = false }
