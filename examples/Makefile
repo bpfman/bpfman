@@ -6,25 +6,25 @@
 ##     quay.io/bpfman-userspace/go-xdp-counter:latest
 ##
 ## Example: Override the upstream tag
-##   make deploy-tc TAG=v0.1.0
-##     quay.io/bpfman-bytecode/go-tc-counter:v0.1.0
-##     quay.io/bpfman-userspace/go-uc-counter:v0.1.0
+##   make deploy-tc TAG=v0.5.6
+##     quay.io/bpfman-bytecode/go-tc-counter:v0.5.6
+##     quay.io/bpfman-userspace/go-uc-counter:v0.5.6
 ##
 ## Example: Run from private image
-##   make deploy-tracepoint IMAGE_TP_US=docker.io/user1/tracepoint-userspace:test \
-##                          IMAGE_TP_BC=docker.io/user1/tracepoint-bytecode:test
-##     docker.io/user1/tracepoint-bytecode:test
-##     docker.io/user1/tracepoint-userspace:test
+##   make deploy-tracepoint IMAGE_TP_US=quay.io/$QUAY_USER/tracepoint-userspace:test \
+##                          IMAGE_TP_BC=quay.io/$QUAY_USER/tracepoint-bytecode:test
+##     quay.io/$QUAY_USER/tracepoint-bytecode:test
+##     quay.io/$QUAY_USER/tracepoint-userspace:test
 ##
 ## Example: Override the upstream tag on all images
-##   make deploy TAG=v0.1.0
-##     quay.io/bpfman-bytecode/go-tc-counter:v0.1.0
-##     quay.io/bpfman-userspace/go-uc-counter:v0.1.0
-##     quay.io/bpfman-bytecode/go-tracepoint-counter:v0.1.0
-##     quay.io/bpfman-userspace/go-tracepoint-counter:v0.1.0
-##     quay.io/bpfman-bytecode/go-xdp-counter:v0.1.0
-##     quay.io/bpfman-userspace/go-xdp-counter:v0.1.0
-##     quay.io/bpfman-userspace/go-app-counter:v0.1.0
+##   make deploy TAG=v0.5.6
+##     quay.io/bpfman-bytecode/go-tc-counter:v0.5.6
+##     quay.io/bpfman-userspace/go-uc-counter:v0.5.6
+##     quay.io/bpfman-bytecode/go-tracepoint-counter:v0.5.6
+##     quay.io/bpfman-userspace/go-tracepoint-counter:v0.5.6
+##     quay.io/bpfman-bytecode/go-xdp-counter:v0.5.6
+##     quay.io/bpfman-userspace/go-xdp-counter:v0.5.6
+##     quay.io/bpfman-userspace/go-app-counter:v0.5.6
 ##     :
 ##
 
@@ -136,6 +136,17 @@ build-bc-images: generate ## Build all example bytecode images
 	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_UP_BC} -b ./go-uprobe-counter/bpf_x86_bpfel.o
 	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_URP_BC} -b ./go-uretprobe-counter/bpf_x86_bpfel.o
 	bpfman image build -f ../Containerfile.bytecode -t ${IMAGE_APP_BC} -b ./go-app-counter/bpf_x86_bpfel.o
+
+.PHONY: push-bc-images
+push-bc-images: ## Push all example userspace images
+	docker push ${IMAGE_TC_BC}
+	docker push ${IMAGE_TCX_BC}
+	docker push ${IMAGE_TP_BC}
+	docker push ${IMAGE_XDP_BC}
+	docker push ${IMAGE_KP_BC}
+	docker push ${IMAGE_UP_BC}
+	docker push ${IMAGE_URP_BC}
+	docker push ${IMAGE_APP_BC}
 
 .PHONY: build-bc-tc
 build-bc-tc: generate ## Build TC example bytecode image
