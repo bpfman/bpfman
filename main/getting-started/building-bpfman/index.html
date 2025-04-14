@@ -2406,14 +2406,14 @@ For example:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="go">sudo cp .output/manpage/bpfman*.1 /usr/local/share/man/man1/.</span>
 </code></pre></div>
 <p>Once installed, use <code>man</code> to view the pages.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="go">man bpfman list</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="go">man bpfman attach</span>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code>bpfman</code> commands with subcommands (specifically <code>bpfman load</code>) have <code>-</code> in the
-manpage subcommand generation.
+<p><code>bpfman</code> commands with subcommands (specifically <code>bpfman load</code>, <code>bpfman list</code> and <code>bpfman get</code>)
+have <code>-</code> in the manpage subcommand generation.
 So use <code>man bpfman load-file</code>, <code>man bpfman load-image</code>, <code>man bpfman load-image-xdp</code>,
-etc. to display the subcommand manpage files.</p>
+<code>man bpfman list-programs</code>, etc. to display the subcommand manpage files.</p>
 </div>
 <h2 id="building-bpfman-operator">Building bpfman-operator</h2>
 <p>Building and deploying bpfman-operator is covered in it's own section.

@@ -1793,8 +1793,8 @@ program.
 The dispatcher program contains a list of 10 stub functions.
 When XDP programs wish to be loaded, they are loaded as extension programs
 which are then called in place of one of the stub functions.</p>
-<p>bpfman is leveraging the libxdp protocol to allow it's users to load up to 10
-XDP programs on a given interface.
+<p>bpfman is leveraging the libxdp protocol and dispatcher program to allow it's
+users to load up to 10 XDP programs on a given interface.
 This tutorial will show you how to use <code>bpfman</code> to load multiple XDP programs
 on an interface.</p>
 <div class="admonition note">
@@ -1803,328 +1803,244 @@ on an interface.</p>
 Within bpfman, TC is implemented in a similar fashion to XDP in that it uses a dispatcher with
 stub functions.
 TCX is a fairly new kernel feature that improves how the kernel handles multiple TC programs
-on a given interface.
-bpfman is on the process of integrating TCX support, which will replace the dispatcher logic
-for TC.
-Until then, assume TC behaves in a similar fashion to XDP.</p>
+on a given interface and does not use the dispatcher program.</p>
 </div>
 <p>See <a href="../../getting-started/launching-bpfman/">Launching bpfman</a>
 for more detailed instructions on building and loading bpfman.
 This tutorial assumes bpfman has been built and the <code>bpfman</code> CLI is in $PATH.</p>
 <h2 id="load-xdp-program">Load XDP program</h2>
-<p>We will load the simple <code>xdp-pass</code> program, which permits all traffic to the attached interface,
-<code>eno3</code> in this example.
+<p>We will load and attach the simple <code>xdp-pass</code> program, which permits all traffic to
+the attached interface, <code>eno3</code> in this example.
 We will use the priority of 100.
 Find a deeper dive into CLI syntax in <a href="../../getting-started/cli-guide/">CLI Guide</a>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass \</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">  xdp --iface eno3 --priority 100</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --application XdpPassProgram \</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">     --programs xdp:pass</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="go"> Bpfman State</span>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">---------------</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="go"> Name:          pass</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="go"> Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="go"> Pull Policy:   IfNotPresent</span>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="go"> Global:        None</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="go"> Metadata:      None</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/6213</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="go"> Metadata:      bpfman_application=XdpPassProgram</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/63336</span>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="go"> Map Owner ID:  None</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="go"> Map Used By:   6213</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="go"> Priority:      100</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="go"> Iface:         eno3</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="go"> Position:      0</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="go"> Proceed On:    pass, dispatcher_return</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="go"> Kernel State</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="go">----------------------------------</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="go"> Program ID:                       6213</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="go"> Name:                             pass</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="go"> Type:                             xdp</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="go"> Loaded At:                        2023-07-17T17:48:10-0400</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="go"> Tag:                              4b9d1b2c140e87ce</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="go"> GPL Compatible:                   true</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="go"> Map IDs:                          [2724]</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="go"> BTF ID:                           2834</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="go"> Size Translated (bytes):          96</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="go"> JITed:                            true</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="go"> Size JITed (bytes):               67</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="go"> Kernel Allocated Memory (bytes):  4096</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="go"> Verified Instruction Count:       9</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="go"> Maps Used By:  63336</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="go"> Links:         None</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="go"> Kernel State</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="go">----------------------------------</span>
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="go"> Program ID:                       63336</span>
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="go"> Name:                             pass</span>
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="go"> Type:                             xdp</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="go"> Loaded At:                        2025-03-31T17:49:22-0400</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="go"> Tag:                              4b9d1b2c140e87ce</span>
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="go"> GPL Compatible:                   true</span>
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="go"> Map IDs:                          [21009]</span>
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="go"> BTF ID:                           31179</span>
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="go"> Size Translated (bytes):          96</span>
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="go"> JITted:                           true</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="go"> Size JITted:                      75</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="go"> Kernel Allocated Memory (bytes):  4096</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="go"> Verified Instruction Count:       9</span>
 </code></pre></div>
-<p><code>bpfman load image</code> returns the same data as a <code>bpfman get</code> command.
-From the output, the Program Id of <code>6213</code> can be found in the <code>Kernel State</code> section.
-This id can be used to perform a <code>bpfman get</code> to retrieve all relevant program
+<p>Using the <code>Program ID</code> from the output from the <code>bpfman load</code> command,
+the eBPF Program can then be attached to the interface.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">sudo bpfman attach 63336 xdp --iface eno3 --priority 100</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go"> Bpfman State</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="go">---------------</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go"> BPF Function:       pass</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="go"> Program Type:       xdp</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="go"> Program ID:         63336</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="go"> Link ID:            3736854134</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="go"> Interface:          eno3</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="go"> Priority:           100</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="go"> Position:           0</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="go"> Proceed On:         pass, dispatcher_return</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="go"> Network Namespace:  None</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="go"> Metadata:           bpfman_application=XdpPassProgram</span>
+</code></pre></div>
+<p><code>bpfman load image</code> returns the same data as a <code>bpfman get program</code> command and the
+<code>bpfman attach</code> returns the same data as a <code>bpfman get link</code> command.
+From the output, the <code>Program ID</code> of <code>63336</code> can be found in the <code>Kernel State</code> section.
+This id can be used to perform a <code>bpfman get program</code> to retrieve all relevant program
 data and a <code>bpfman unload</code> when the program needs to be unloaded.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">sudo bpfman list</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go"> Program ID  Name  Type  Load Time</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="go"> 6213        pass  xdp   2023-07-17T17:48:10-0400</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">sudo bpfman list programs</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go"> Program ID  Application     Type  Function Name  Links</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="go"> 63336       XdpPassProgram  xdp   pass           (1) 3736854134</span>
 </code></pre></div>
-<p>We can recheck the details about the loaded program with the <code>bpfman get</code> command:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">sudo bpfman get 6213</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go"> Bpfman State</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="go">---------------</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="go"> Name:          pass</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="go"> Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="go"> Pull Policy:   IfNotPresent</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="go"> Global:        None</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="go"> Metadata:      None</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/6213</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="go"> Map Owner ID:  None</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="go"> Map Used By:   6213</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="go"> Priority:      100</span>
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="go"> Iface:         eno3</span>
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="go"> Position:      0</span>
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="go"> Proceed On:    pass, dispatcher_return</span>
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="go"> Kernel State</span>
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="go">----------------------------------</span>
-<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="go"> Program ID:                       6213</span>
-<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="go"> Name:                             pass</span>
-<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="go"> Type:                             xdp</span>
-<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="go"> Loaded At:                        2023-07-17T17:48:10-0400</span>
-<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="go"> Tag:                              4b9d1b2c140e87ce</span>
-<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="go"> GPL Compatible:                   true</span>
-<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="go"> Map IDs:                          [2724]</span>
-<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="go"> BTF ID:                           2834</span>
-<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="go"> Size Translated (bytes):          96</span>
-<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="go"> JITed:                            true</span>
-<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="go"> Size JITed (bytes):               67</span>
-<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="go"> Kernel Allocated Memory (bytes):  4096</span>
-<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="go"> Verified Instruction Count:       9</span>
+<p>We can recheck the details about the loaded program with the <code>bpfman get program</code> command:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">sudo bpfman get program 63336</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go"> Bpfman State</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="go">---------------</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="go"> Name:          pass</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="go"> Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="go"> Pull Policy:   IfNotPresent</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="go"> Global:        None</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="go"> Metadata:      bpfman_application=XdpPassProgram</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/63336</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="go"> Map Owner ID:  None</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="go"> Maps Used By:  63336</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="go"> Links:         3736854134 (eno3 pos-0)</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="go"> Kernel State</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="go">----------------------------------</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="go"> Program ID:                       63336</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="go"> Name:                             pass</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="go"> Type:                             xdp</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="go"> Loaded At:                        2025-03-31T17:49:22-0400</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="go"> Tag:                              4b9d1b2c140e87ce</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="go"> GPL Compatible:                   true</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="go"> Map IDs:                          [21009]</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="go"> BTF ID:                           31179</span>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="go"> Size Translated (bytes):          96</span>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="go"> JITted:                           true</span>
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="go"> Size JITted:                      75</span>
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="go"> Kernel Allocated Memory (bytes):  4096</span>
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="go"> Verified Instruction Count:       9</span>
 </code></pre></div>
-<p>From the output above you can see the program was loaded to position 0 on our
+<p>We can also recheck the details about the attached program with the <code>bpfman get link</code> command:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">sudo bpfman get link 3736854134</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go"> Bpfman State</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">---------------</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go"> BPF Function:       pass</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="go"> Program Type:       xdp</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="go"> Program ID:         63336</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="go"> Link ID:            3736854134</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="go"> Interface:          eno3</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="go"> Priority:           100</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="go"> Position:           0</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="go"> Proceed On:         pass, dispatcher_return</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="go"> Network Namespace:  None</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="go"> Metadata:           bpfman_application=XdpPassProgram</span>
+</code></pre></div>
+<p>From the link output above you can see the program was loaded to position 0 on our
 interface and thus will be executed first.</p>
 <h2 id="loading-additional-xdp-programs">Loading Additional XDP Programs</h2>
-<p>We will now load 2 more programs with different priorities to demonstrate how bpfman
+<p>We will now attach 2 more programs with different priorities to demonstrate how bpfman
 will ensure they are ordered correctly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass \</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">  xdp --iface eno3 --priority 50</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="go"> Bpfman State</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="go">---------------</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="go"> Name:          pass</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="go"> Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="go"> Pull Policy:   IfNotPresent</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="go"> Global:        None</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="go"> Metadata:      None</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/6215</span>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="go"> Map Owner ID:  None</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="go"> Map Used By:   6215</span>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="go"> Priority:      50</span>
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="go"> Iface:         eno3</span>
-<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="go"> Position:      0</span>
-<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="go"> Proceed On:    pass, dispatcher_return</span>
-<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>
-<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="go"> Kernel State</span>
-<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="go">----------------------------------</span>
-<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="go"> Program ID:                       6215</span>
-<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="go"> Name:                             pass</span>
-<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="go"> Type:                             xdp</span>
-<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="go">:</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">sudo bpfman attach 63336 xdp --iface eno3 --priority 50</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go"> Bpfman State</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">---------------</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go"> BPF Function:       pass</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go"> Program Type:       xdp</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go"> Program ID:         63336</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="go"> Link ID:            155072461</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="go"> Interface:          eno3</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="go"> Priority:           50</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="go"> Position:           0</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="go"> Proceed On:         pass, dispatcher_return</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="go"> Network Namespace:  None</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="go"> Metadata:           bpfman_application=XdpPassProgram</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass \</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">  xdp --iface eno3 --priority 200</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go"> Bpfman State</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go">---------------</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="go"> Name:          pass</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="go"> Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="go"> Pull Policy:   IfNotPresent</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="go"> Global:        None</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="go"> Metadata:      None</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/6217</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="go"> Map Owner ID:  None</span>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="go"> Map Used By:   6217</span>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="go"> Priority:      200</span>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="go"> Iface:         eno3</span>
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="go"> Position:      2</span>
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="go"> Proceed On:    pass, dispatcher_return</span>
-<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>
-<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="go"> Kernel State</span>
-<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="go">----------------------------------</span>
-<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="go"> Program ID:                       6217</span>
-<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="go"> Name:                             pass</span>
-<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="go"> Type:                             xdp</span>
-<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="go">:</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">sudo bpfman attach 63336 xdp --iface eno3 --priority 200</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="go"> Bpfman State</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="go">---------------</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="go"> BPF Function:       pass</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="go"> Program Type:       xdp</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="go"> Program ID:         63336</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="go"> Link ID:            454777406</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="go"> Interface:          eno3</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="go"> Priority:           200</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="go"> Position:           2</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="go"> Proceed On:         pass, dispatcher_return</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="go"> Network Namespace:  None</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="go"> Metadata:           bpfman_application=XdpPassProgram</span>
 </code></pre></div>
-<p>Using <code>bpfman list</code> we can see all the programs that were loaded.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">sudo bpfman list</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go"> Program ID  Name  Type  Load Time</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go"> 6213        pass  xdp   2023-07-17T17:48:10-0400</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go"> 6215        pass  xdp   2023-07-17T17:52:46-0400</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go"> 6217        pass  xdp   2023-07-17T17:53:57-0400</span>
+<p>Using <code>bpfman list links</code> we can see all the programs that were attached.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">sudo bpfman list links --application XdpPassProgram</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go"> Program ID  Link ID     Application     Type  Function Name  Attachment</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go"> 63336       155072461   XdpPassProgram  xdp   pass           eno3 pos-0</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="go"> 63336       3736854134  XdpPassProgram  xdp   pass           eno3 pos-1</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go"> 63336       454777406   XdpPassProgram  xdp   pass           eno3 pos-2</span>
 </code></pre></div>
 <p>The lowest priority program is executed first, while the highest is executed last.
 As can be seen from the detailed output for each command below:</p>
 <ul>
-<li>Program <code>6215</code> is at position <code>0</code> with a priority of <code>50</code></li>
-<li>Program <code>6213</code> is at position <code>1</code> with a priority of <code>100</code></li>
-<li>Program <code>6217</code> is at position <code>2</code> with a priority of <code>200</code></li>
+<li>Link <code>155072461</code> is at position <code>0</code> with a priority of <code>50</code></li>
+<li>Link <code>3736854134</code> is at position <code>1</code> with a priority of <code>100</code></li>
+<li>Link <code>454777406</code> is at position <code>2</code> with a priority of <code>200</code></li>
 </ul>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">sudo bpfman get 6213</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="go"> Bpfman State</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="go">---------------</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="go"> Name:          pass</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="go">:</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="go"> Priority:      100</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="go"> Iface:         eno3</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="go"> Position:      1</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="go"> Proceed On:    pass, dispatcher_return</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
-<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="go"> Kernel State</span>
-<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="go">----------------------------------</span>
-<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="go"> Program ID:                       6213</span>
-<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="go"> Name:                             pass</span>
-<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="go"> Type:                             xdp</span>
-<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="go">:</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">sudo bpfman get 6215</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go"> Bpfman State</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">---------------</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="go"> Name:          pass</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go">:</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="go"> Priority:      50</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="go"> Iface:         eno3</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="go"> Position:      0</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="go"> Proceed On:    pass, dispatcher_return</span>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="go"> Kernel State</span>
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="go">----------------------------------</span>
-<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="go"> Program ID:                       6215</span>
-<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="go"> Name:                             pass</span>
-<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="go"> Type:                             xdp</span>
-<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="go">:</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">sudo bpfman get 6217</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">sudo bpfman get link 3736854134</span>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="go"> Bpfman State</span>
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="go">---------------</span>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="go"> Name:          pass</span>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="go">:</span>
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="go"> Priority:      200</span>
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="go"> Iface:         eno3</span>
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="go"> Position:      2</span>
-<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="go"> Proceed On:    pass, dispatcher_return</span>
-<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>
-<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="go"> Kernel State</span>
-<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="go">----------------------------------</span>
-<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="go"> Program ID:                       6217</span>
-<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="go"> Name:                             pass</span>
-<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="go"> Type:                             xdp</span>
-<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="go">:</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="go"> BPF Function:       pass</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="go"> Program Type:       xdp</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="go"> Program ID:         63336</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="go"> Link ID:            3736854134</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="go"> Interface:          eno3</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="go"> Priority:           100</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="go"> Position:           1</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="go"> Proceed On:         pass, dispatcher_return</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="go"> Network Namespace:  None</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="go"> Metadata:           bpfman_application=XdpPassProgram</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">sudo bpfman get link 155072461</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go"> Bpfman State</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go">---------------</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go"> BPF Function:       pass</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go"> Program Type:       xdp</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="go"> Program ID:         63336</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="go"> Link ID:            155072461</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="go"> Interface:          eno3</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="go"> Priority:           50</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="go"> Position:           0</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="go"> Proceed On:         pass, dispatcher_return</span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="go"> Network Namespace:  None</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="go"> Metadata:           bpfman_application=XdpPassProgram</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="go">sudo bpfman get link 454777406</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="go"> Bpfman State</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="go">---------------</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="go"> BPF Function:       pass</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="go"> Program Type:       xdp</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="go"> Program ID:         63336</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="go"> Link ID:            454777406</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="go"> Interface:          eno3</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="go"> Priority:           200</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="go"> Position:           2</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="go"> Proceed On:         pass, dispatcher_return</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="go"> Network Namespace:  None</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="go"> Metadata:           bpfman_application=XdpPassProgram</span>
 </code></pre></div>
 <p>By default, the next program in the chain will only be executed if a given program returns
-<code>pass</code> (see <code>proceed-on</code> field in the <code>bpfman get</code> output above).
+<code>pass</code> (see <code>proceed-on</code> field in the <code>bpfman get link</code> output above).
 If the next program in the chain should be called even if a different value is returned,
 then the program can be loaded with those additional return values using the <code>proceed-on</code>
-parameter (see <code>bpfman load image xdp --help</code> for list of valid values):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --name pass \</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">  xdp --iface eno3 --priority 150 --proceed-on &quot;pass&quot; --proceed-on &quot;dispatcher_return&quot;</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go"> Bpfman State</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go">---------------</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go"> Name:          pass</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="go"> Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="go"> Pull Policy:   IfNotPresent</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="go"> Global:        None</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="go"> Metadata:      None</span>
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/6219</span>
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="go"> Map Owner ID:  None</span>
-<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="go"> Map Used By:   6219</span>
-<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="go"> Priority:      150</span>
-<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="go"> Iface:         eno3</span>
-<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="go"> Position:      2</span>
-<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="go"> Proceed On:    pass, dispatcher_return</span>
-<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>
-<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="go"> Kernel State</span>
-<a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="go">----------------------------------</span>
-<a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="go"> Program ID:                       6219</span>
-<a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a><span class="go"> Name:                             pass</span>
-<a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a><span class="go"> Type:                             xdp</span>
-<a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a><span class="go">:</span>
+parameter (see <code>bpfman load attach xdp --help</code> for list of valid values):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="go">sudo bpfman attach 63336 xdp --iface eno3 --priority 150 \</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="go">   --proceed-on pass --proceed-on dispatcher_return --proceed-on drop</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="go"> Bpfman State</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="go">---------------</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="go"> BPF Function:       pass</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="go"> Program Type:       xdp</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="go"> Program ID:         63336</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="go"> Link ID:            702908334</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="go"> Interface:          eno3</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="go"> Priority:           150</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="go"> Position:           2</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="go"> Proceed On:         pass, dispatcher_return, drop</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="go"> Network Namespace:  None</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="go"> Metadata:           bpfman_application=XdpPassProgram</span>
 </code></pre></div>
 <p>Which results in being loaded in position <code>2</code> because it was loaded at priority <code>150</code>,
 which is lower than the previous program at that position with a priority of <code>200</code>.</p>
 <h2 id="delete-xdp-program">Delete XDP Program</h2>
-<p>Let's remove the program at position 1.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="go">sudo bpfman list</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="go"> Program ID  Name  Type  Load Time</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="go"> 6213        pass  xdp   2023-07-17T17:48:10-0400</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="go"> 6215        pass  xdp   2023-07-17T17:52:46-0400</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="go"> 6217        pass  xdp   2023-07-17T17:53:57-0400</span>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="go"> 6219        pass  xdp   2023-07-17T17:59:41-0400</span>
+<p>Let's detach the program at position 1.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="go">sudo bpfman list links --application XdpPassProgram</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="go"> Program ID  Link ID     Application     Type  Function Name  Attachment </span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="go"> 63336       155072461   XdpPassProgram  xdp   pass           eno3 pos-0</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="go"> 63336       3736854134  XdpPassProgram  xdp   pass           eno3 pos-1</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="go"> 63336       454777406   XdpPassProgram  xdp   pass           eno3 pos-3</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="go"> 63336       702908334   XdpPassProgram  xdp   pass           eno3 pos-2</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="go">sudo bpfman unload 6213</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="go">sudo bpfman detach 3736854134</span>
 </code></pre></div>
 <p>And we can verify that it has been removed and the other programs re-ordered:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="go">sudo bpfman list</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="go"> Program ID  Name  Type  Load Time</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="go"> 6215        pass  xdp   2023-07-17T17:52:46-0400</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="go"> 6217        pass  xdp   2023-07-17T17:53:57-0400</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="go"> 6219        pass  xdp   2023-07-17T17:59:41-0400</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="go">bpfman get 6215</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="go"> Bpfman State</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="go">---------------</span>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="go"> Name:          pass</span>
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="go"> Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest</span>
-<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="go"> Pull Policy:   IfNotPresent</span>
-<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="go"> Global:        None</span>
-<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="go"> Metadata:      None</span>
-<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/6215</span>
-<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="go"> Map Owner ID:  None</span>
-<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="go"> Map Used By:   6215</span>
-<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="go"> Priority:      50</span>
-<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="go"> Iface:         eno3</span>
-<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="go"> Position:      0</span>
-<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="go"> Proceed On:    pass, dispatcher_return</span>
-<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a>
-<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="go"> Kernel State</span>
-<a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a><span class="go">----------------------------------</span>
-<a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a><span class="go"> Program ID:                       6215</span>
-<a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a><span class="go"> Name:                             pass</span>
-<a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a><span class="go"> Type:                             xdp</span>
-<a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a><span class="go">:</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>bpfman get 6217
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a> Bpfman State
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>---------------
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a> Name:          pass
-<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a> Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest
-<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a> Pull Policy:   IfNotPresent
-<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a> Global:        None
-<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a> Metadata:      None
-<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a> Map Pin Path:  /run/bpfman/fs/maps/6217
-<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a> Map Owner ID:  None
-<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a> Map Used By:   6217
-<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a> Priority:      200
-<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a> Iface:         eno3
-<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a> Position:      2
-<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a> Proceed On:    pass, dispatcher_return
-<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>
-<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a> Kernel State
-<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a>----------------------------------
-<a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a> Program ID:                       6217
-<a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a> Name:                             pass
-<a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a> Type:                             xdp
-<a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a>:
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>bpfman get 6219
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a> Bpfman State
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>---------------
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a> Name:          pass
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a> Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest
-<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a> Pull Policy:   IfNotPresent
-<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a> Global:        None
-<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a> Metadata:      None
-<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a> Map Pin Path:  /run/bpfman/fs/maps/6219
-<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a> Map Owner ID:  None
-<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a> Map Used By:   6219
-<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a> Priority:      150
-<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a> Iface:         eno3
-<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a> Position:      1
-<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a> Proceed On:    pass, dispatcher_return
-<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a>
-<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a> Kernel State
-<a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a>----------------------------------
-<a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a> Program ID:                       6219
-<a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a> Name:                             pass
-<a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a> Type:                             xdp
-<a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a>:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="go">sudo bpfman list links --application XdpPassProgram</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="go"> Program ID  Link ID    Application     Type  Function Name  Attachment</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="go"> 63336       155072461  XdpPassProgram  xdp   pass           eno3 pos-0</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="go"> 63336       454777406  XdpPassProgram  xdp   pass           eno3 pos-2</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="go"> 63336       702908334  XdpPassProgram  xdp   pass           eno3 pos-1</span>
 </code></pre></div>
 
 

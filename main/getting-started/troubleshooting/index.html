@@ -1780,7 +1780,7 @@
 <h2 id="xdp">XDP</h2>
 <h3 id="xdp-program-fails-to-load">XDP Program Fails to Load</h3>
 <p>When attempting to load an XDP program and the program fails to load:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>load<span class="w"> </span>image<span class="w"> </span>--image-url<span class="w"> </span>quay.io/bpfman-bytecode/xdp_pass:latest<span class="w"> </span>xdp<span class="w"> </span>--iface<span class="w"> </span>veth92cd99b<span class="w"> </span>--priority<span class="w"> </span><span class="m">100</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>attach<span class="w"> </span><span class="m">37568</span><span class="w"> </span>xdp<span class="w"> </span>--iface<span class="w"> </span>veth92cd99b<span class="w"> </span>--priority<span class="w"> </span><span class="m">100</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">Error: status: Aborted, message: &quot;An error occurred. dispatcher attach failed on interface veth92cd99b: `bpf_link_create` failed&quot;, details: [], metadata: MetadataMap { headers: {&quot;content-type&quot;: &quot;application/grpc&quot;, &quot;date&quot;: &quot;Tue, 28 Nov 2023 13:37:02 GMT&quot;, &quot;content-length&quot;: &quot;0&quot;} }</span>
 </code></pre></div>
 <p>The log may look something like this:</p>

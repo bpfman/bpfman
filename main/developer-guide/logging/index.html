@@ -1032,18 +1032,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#local-privileged-bpfman-process" class="md-nav__link">
+  <a href="#logs-from-bpfman-cli-commands" class="md-nav__link">
     <span class="md-ellipsis">
-      Local Privileged Bpfman Process
+      Logs From bpfman CLI Commands
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#systemd-service" class="md-nav__link">
+  <a href="#logs-from-bpfman-running-as-systemd-service" class="md-nav__link">
     <span class="md-ellipsis">
-      Systemd Service
+      Logs From bpfman Running as Systemd Service
     </span>
   </a>
   
@@ -1809,18 +1809,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#local-privileged-bpfman-process" class="md-nav__link">
+  <a href="#logs-from-bpfman-cli-commands" class="md-nav__link">
     <span class="md-ellipsis">
-      Local Privileged Bpfman Process
+      Logs From bpfman CLI Commands
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#systemd-service" class="md-nav__link">
+  <a href="#logs-from-bpfman-running-as-systemd-service" class="md-nav__link">
     <span class="md-ellipsis">
-      Systemd Service
+      Logs From bpfman Running as Systemd Service
     </span>
   </a>
   
@@ -1927,7 +1927,7 @@
 
 <h1 id="logging">Logging</h1>
 <p>This section describes how to enable logging in different <code>bpfman</code> deployments.</p>
-<h2 id="local-privileged-bpfman-process">Local Privileged Bpfman Process</h2>
+<h2 id="logs-from-bpfman-cli-commands">Logs From bpfman CLI Commands</h2>
 <p><code>bpfman</code> uses the <a href="https://docs.rs/env_logger">env_logger</a> crate to log messages to the terminal.
 By default, only <code>error</code> messages are logged, but that can be overwritten by setting
 the <code>RUST_LOG</code> environment variable.
@@ -1940,16 +1940,17 @@ Valid values:</p>
 <li><code>trace</code></li>
 </ul>
 <p>Example:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>sudo<span class="w"> </span><span class="nv">RUST_LOG</span><span class="o">=</span>info<span class="w"> </span>/usr/local/bin/bpfman
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">[2022-08-08T20:29:31Z INFO  bpfman::server] Loading static programs from /etc/bpfman/programs.d</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="go">[2022-08-08T20:29:31Z INFO  bpfman::server::bpf] Map veth12fa8e3 to 13</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">[2022-08-08T20:29:31Z INFO  bpfman::server] Listening on [::1]:50051</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="go">[2022-08-08T20:29:31Z INFO  bpfman::server::bpf] Program added: 1 programs attached to veth12fa8e3</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="go">[2022-08-08T20:29:31Z INFO  bpfman::server] Loaded static program pass with UUID d9fd88df-d039-4e64-9f63-19f3e08915ce</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>sudo<span class="w"> </span><span class="nv">RUST_LOG</span><span class="o">=</span>info<span class="w"> </span>bpfman<span class="w"> </span>load<span class="w"> </span>image<span class="w"> </span>...
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">[INFO  bpfman] Request to load 1 programs</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="go">[INFO  bpfman::oci_utils::cosign] Fetching Sigstore TUF data</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">[INFO  bpfman::oci_utils::cosign] fetching fulcio_certs</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="go">[INFO  bpfman::oci_utils::cosign] Creating ManualTrustRoot</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="go">[INFO  bpfman::oci_utils::cosign] Starting Cosign Verifier, downloading data from Sigstore TUF repository</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="go">:</span>
 </code></pre></div>
-<h2 id="systemd-service">Systemd Service</h2>
+<h2 id="logs-from-bpfman-running-as-systemd-service">Logs From bpfman Running as Systemd Service</h2>
 <p>If <code>bpfman</code> is running as a systemd service, then <code>bpfman</code> will log to journald.
-As with env_logger, by default, <code>info</code> and higher messages are logged, but that can be
+By default, <code>info</code> and higher messages are logged, but that can be
 overwritten by setting the <code>RUST_LOG</code> environment variable.</p>
 <p>Example:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">sudo vi /usr/lib/systemd/system/bpfman.service</span>
@@ -1966,29 +1967,30 @@ overwritten by setting the <code>RUST_LOG</code> environment variable.</p>
 </code></pre></div>
 <p>Start the service:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">sudo systemctl daemon-reload</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">sudo systemctl start bpfman.service</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">sudo systemctl enable --now bpfman.socket</span>
 </code></pre></div>
 <p>Check the logs:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>journalctl<span class="w"> </span>-f<span class="w"> </span>-u<span class="w"> </span>bpfman
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">Aug 08 16:25:04 ebpf03 systemd[1]: Started bpfman.service - Run bpfman as a service.</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="go">Aug 08 16:25:04 ebpf03 bpfman[180118]: Loading static programs from /etc/bpfman/programs.d</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="go">Aug 08 16:25:04 ebpf03 bpfman[180118]: Map veth12fa8e3 to 13</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="go">Aug 08 16:25:04 ebpf03 bpfman[180118]: Listening on [::1]:50051</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="go">Aug 08 16:25:04 ebpf03 bpfman[180118]: Program added: 1 programs attached to veth12fa8e3</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="go">Aug 08 16:25:04 ebpf03 bpfman[180118]: Loaded static program pass with UUID a3ffa14a-786d-48ad-b0cd-a4802f0f10b6</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>journalctl<span class="w"> </span>-u<span class="w"> </span>bpfman.service<span class="w"> </span>-u<span class="w"> </span>bpfman.socket<span class="w"> </span>-f
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">Feb 23 22:02:02 ebpf03 systemd[1]: bpfman.service: Deactivated successfully.</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="go">Feb 25 13:21:49 ebpf03 systemd[1]: bpfman.socket: Deactivated successfully.</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="go">Feb 25 13:21:49 ebpf03 systemd[1]: Closed bpfman.socket - bpfman API Socket.</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="go">Feb 25 13:21:56 ebpf03 systemd[1]: Listening on bpfman.socket - bpfman API Socket.</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="go">Feb 26 09:32:38 ebpf03 systemd[1]: bpfman.socket: Deactivated successfully.</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="go">Feb 26 09:32:38 ebpf03 systemd[1]: Closed bpfman.socket - bpfman API Socket.</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="go">:</span>
 </code></pre></div>
 <p>Stop the service:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">sudo systemctl stop bpfman.service</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">sudo systemctl stop bpfman.socket</span>
 </code></pre></div>
 <h2 id="kubernetes-deployment">Kubernetes Deployment</h2>
 <p>When <code>bpfman</code> is run in a Kubernetes deployment, there is the bpfman Daemonset that runs on every node
-and the bpd Operator that runs on the control plane:</p>
+and the bpfman Operator that runs on the control plane:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">kubectl get pods -A</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go">NAMESPACE            NAME                                                    READY   STATUS    RESTARTS   AGE</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">bpfman                 bpfman-daemon-dgqzw                                       2/2     Running   0          3d22h</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go">bpfman                 bpfman-daemon-gqsgd                                       2/2     Running   0          3d22h</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go">bpfman                 bpfman-daemon-zx9xr                                       2/2     Running   0          3d22h</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go">bpfman                 bpfman-operator-7fbf4888c4-z8w76                          2/2     Running   0          3d22h</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">bpfman               bpfman-daemon-dgqzw                                     3/3     Running   0          3d22h</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go">bpfman               bpfman-daemon-gqsgd                                     3/3     Running   0          3d22h</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go">bpfman               bpfman-daemon-zx9xr                                     3/3     Running   0          3d22h</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go">bpfman               bpfman-operator-7fbf4888c4-z8w76                        2/2     Running   0          3d22h</span>
 <a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="go">:</span>
 </code></pre></div>
 <h3 id="bpfman-daemonset">bpfman Daemonset</h3>
@@ -1996,16 +1998,20 @@ and the bpd Operator that runs on the control plane:</p>
 <h4 id="view-logs">View Logs</h4>
 <p>To view the <code>bpfman</code> logs:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">kubectl logs -n bpfman bpfman-daemon-dgqzw -c bpfman</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="go">[2023-05-05T14:41:26Z INFO  bpfman] Has CAP_BPF: false</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="go">[2023-05-05T14:41:26Z INFO  bpfman] Has CAP_SYS_ADMIN: true</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="go">:</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="go">[INFO  bpfman_rpc::serve] Using no inactivity timer</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="go">[INFO  bpfman_rpc::serve] Using default Unix socket</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="go">[INFO  bpfman_rpc::serve] Listening on /run/bpfman-sock/bpfman.sock</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="go">[INFO  bpfman_rpc::storage] CSI Plugin Listening on /run/bpfman/csi/csi.sock</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="go">:</span>
 </code></pre></div>
 <p>To view the <code>bpfman-agent</code> logs:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">kubectl logs -n bpfman bpfman-daemon-dgqzw -c bpfman-agent</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-12-20T20:15:34Z&quot;,&quot;logger&quot;:&quot;controller-runtime.metrics&quot;,&quot;msg&quot;:&quot;Metrics server is starting to listen&quot;,&quot;addr&quot;:&quot;:8174&quot;}</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-12-20T20:15:34Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;Waiting for active connection to bpfman&quot;}</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-12-20T20:15:34Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;starting Bpfman-Agent&quot;}</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go">:</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:37:08Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;Waiting for active connection to bpfman&quot;}</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:37:08Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;starting Bpfman-Agent&quot;}</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:37:08Z&quot;,&quot;logger&quot;:&quot;controller-runtime.metrics&quot;,&quot;msg&quot;:&quot;Starting metrics server&quot;}</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:37:08Z&quot;,&quot;msg&quot;:&quot;starting server&quot;,&quot;name&quot;:&quot;health probe&quot;,&quot;addr&quot;:&quot;[::]:8175&quot;}</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:37:08Z&quot;,&quot;msg&quot;:&quot;starting server&quot;,&quot;name&quot;:&quot;pprof&quot;,&quot;addr&quot;:&quot;[::]:6060&quot;}</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="go">:</span>
 </code></pre></div>
 <h4 id="change-log-level">Change Log Level</h4>
 <p>To change the log level of the agent or daemon, edit the <code>bpfman-config</code> ConfigMap.
@@ -2047,14 +2053,13 @@ It runs with the containers <code>bpfman-operator</code> and <code>kube-rbac-pro
 <h4 id="view-logs_1">View Logs</h4>
 <p>To view the <code>bpfman-operator</code> logs:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">kubectl logs -n bpfman bpfman-operator-7fbf4888c4-z8w76 -c bpfman-operator</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-05-09T18:37:11Z&quot;,&quot;logger&quot;:&quot;controller-runtime.metrics&quot;,&quot;msg&quot;:&quot;Metrics server is starting to listen&quot;,&quot;addr&quot;:&quot;127.0.0.1:8174&quot;}</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-05-09T18:37:11Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;starting manager&quot;}</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-05-09T18:37:11Z&quot;,&quot;msg&quot;:&quot;Starting server&quot;,&quot;kind&quot;:&quot;health probe&quot;,&quot;addr&quot;:&quot;[::]:8175&quot;}</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-05-09T18:37:11Z&quot;,&quot;msg&quot;:&quot;Starting server&quot;,&quot;path&quot;:&quot;/metrics&quot;,&quot;kind&quot;:&quot;metrics&quot;,&quot;addr&quot;:&quot;127.0.0.1:8174&quot;}</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="go">I0509 18:37:11.262885       1 leaderelection.go:248] attempting to acquire leader lease bpfman/8730d955.bpfman.io...</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="go">I0509 18:37:11.268918       1 leaderelection.go:258] successfully acquired lease bpfman/8730d955.bpfman.io</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2023-05-09T18:37:11Z&quot;,&quot;msg&quot;:&quot;Starting EventSource&quot;,&quot;controller&quot;:&quot;configmap&quot;,&quot;controllerGroup&quot;:&quot;&quot;,&quot;controllerKind&quot;:&quot;ConfigMap&quot;,&quot;source&quot;:&quot;kind source: *v1.ConfigMap&quot;}</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="go">:</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:36:57Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;Discovering APIs&quot;}</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:36:57Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;detected platform version&quot;,&quot;PlatformVersion&quot;:&quot;v1.32.2&quot;}</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:36:57Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;starting manager&quot;}</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:36:57Z&quot;,&quot;logger&quot;:&quot;controller-runtime.metrics&quot;,&quot;msg&quot;:&quot;Starting metrics server&quot;}</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:36:57Z&quot;,&quot;msg&quot;:&quot;starting server&quot;,&quot;name&quot;:&quot;health probe&quot;,&quot;addr&quot;:&quot;[::]:8175&quot;}</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:36:57Z&quot;,&quot;logger&quot;:&quot;controller-runtime.metrics&quot;,&quot;msg&quot;:&quot;Serving metrics server&quot;,&quot;bindAddress&quot;:&quot;127.0.0.1:8174&quot;,&quot;secure&quot;:false}</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="go">:</span>
 </code></pre></div>
 <p>To view the <code>kube-rbac-proxy</code> logs:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="go">kubectl logs -n bpfman bpfman-operator-7fbf4888c4-z8w76 -c kube-rbac-proxy</span>
