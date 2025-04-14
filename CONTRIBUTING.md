@@ -1,21 +1,35 @@
 # Contributing Guide
 
-* [Ways to Contribute](#ways-to-contribute)
-* [Find an Issue](#find-an-issue)
-* [Ask for Help](#ask-for-help)
-* [Pull Request Lifecycle](#pull-request-lifecycle)
-* [Development Environment Setup](#development-environment-setup)
-* [Signoff Your Commits](#signoff-your-commits)
-* [Pull Request Checklist](#pull-request-checklist)
+- [Contributing Guide](#contributing-guide)
+  - [Ways to Contribute](#ways-to-contribute)
+    - [Come to Meetings](#come-to-meetings)
+  - [Find an Issue](#find-an-issue)
+  - [Ask for Help](#ask-for-help)
+  - [Pull Request Lifecycle](#pull-request-lifecycle)
+  - [Development Environment Setup](#development-environment-setup)
+  - [Signoff Your Commits](#signoff-your-commits)
+    - [DCO](#dco)
+  - [Logical Grouping of Commits](#logical-grouping-of-commits)
+  - [Commit message guidelines](#commit-message-guidelines)
+  - [Test Policy](#test-policy)
+    - [Unit Tests](#unit-tests)
+    - [Integration Tests](#integration-tests)
+    - [End-to-End Tests](#end-to-end-tests)
+    - [Test Coverage](#test-coverage)
+    - [Running Tests Locally](#running-tests-locally)
+  - [Pull Request Checklist](#pull-request-checklist)
+    - [bpfman Pinned Rust Toolchain](#bpfman-pinned-rust-toolchain)
+    - [bpfman Checklist](#bpfman-checklist)
+    - [bpfman-operator Checklist](#bpfman-operator-checklist)
 
 Welcome! We are glad that you want to contribute to our project! 💖
 
 As you get started, you are in the best position to give us feedback on areas of
 our project that we need help with including:
 
-* Problems found during setting up a new developer environment
-* Gaps in our Quickstart Guide or documentation
-* Bugs in our automation scripts
+- Problems found during setting up a new developer environment
+- Gaps in our Quickstart Guide or documentation
+- Bugs in our automation scripts
 
 If anything doesn't make sense, or doesn't work when you run it, please open a
 bug report and let us know!
@@ -24,15 +38,15 @@ bug report and let us know!
 
 We welcome many different types of contributions including:
 
-* New features
-* Builds, CI/CD
-* Bug fixes
-* Documentation
-* Issue Triage
-* Answering questions on Slack/Mailing List
-* Web design
-* Communications / Social Media / Blog Posts
-* Release management
+- New features
+- Builds, CI/CD
+- Bug fixes
+- Documentation
+- Issue Triage
+- Answering questions on Slack/Mailing List
+- Web design
+- Communications / Social Media / Blog Posts
+- Release management
 
 Not everything happens through a GitHub pull request. Please come to our
 [meetings](./MEETINGS.md) or [contact us](https://kubernetes.slack.com/archives/C04UJBW2553) and let's discuss how we can work
@@ -68,8 +82,8 @@ that you want to work on it. Something like "I want to work on this" is fine.
 
 The best way to reach us with a question when contributing is to ask on:
 
-* The original github issue
-* Our Slack channel
+- The original github issue
+- Our Slack channel
 
 ## Pull Request Lifecycle
 
@@ -129,16 +143,16 @@ A good commit message should describe what changed and why.
 
 1. The first line should:
   
-* contain a short description of the change (preferably 50 characters or less,
+- contain a short description of the change (preferably 50 characters or less,
     and no more than 72 characters)
-* be entirely in lowercase with the exception of proper nouns, acronyms, and
+- be entirely in lowercase with the exception of proper nouns, acronyms, and
     the words that refer to code, like function/variable names
-* be prefixed with the name of the sub crate being changed
+- be prefixed with the name of the sub crate being changed
 
   Examples:
 
-  * bpfman: validate program section names
-  * bpf: add dispatcher program test slot
+  - bpfman: validate program section names
+  - bpf: add dispatcher program test slot
 
 2. Keep the second line blank.
 3. Wrap all other lines at 72 columns (except for long URLs).
@@ -149,8 +163,8 @@ A good commit message should describe what changed and why.
 
    Examples:
 
-   * `Fixes: #1337`
-   * `Refs: #1234`
+   - `Fixes: #1337`
+   - `Refs: #1234`
 
 Sample complete commit message:
 
@@ -170,6 +184,30 @@ Fixes: #1337
 Refs: #453, #154
 ```
 
+## Test Policy
+
+Testing is a critical part of the development process. All contributions must include tests to verify the functionality of the code. This ensures that the code works as expected and helps prevent future regressions.
+
+### Unit Tests
+
+Unit tests should cover individual components or functions. They should be fast and isolated from external dependencies.
+
+### Integration Tests
+
+Integration tests should verify that different components work together as expected. These tests may involve external dependencies and should be run in an environment that closely resembles production.
+
+### End-to-End Tests
+
+End-to-end tests should simulate real-world scenarios to ensure the entire system works as expected. These tests are typically slower and more complex than unit or integration tests.
+
+### Test Coverage
+
+We aim for high test coverage across the codebase. While 100% coverage is not always feasible, contributors should strive to cover as much of their code as possible.
+
+### Running Tests Locally
+
+Before submitting a pull request, contributors should run all tests locally to ensure they pass. This includes unit, integration, and end-to-end tests.
+
 ## Pull Request Checklist
 
 When you submit your pull request, or you push new commits to it, our automated
@@ -188,8 +226,8 @@ Examine
 [bpfman/.github/workflows/build.yml](https://github.com/bpfman/bpfman/blob/main/.github/workflows/build.yml)
 and find `NIGHTLY_VERSION` to determine if the nightly toolchain is currently pinned.
 
-* Example of using latest toolchain: `NIGHTLY_VERSION: nightly`
-* Example of using pinned toolchain: `NIGHTLY_VERSION: nightly-2024-09-24`
+- Example of using latest toolchain: `NIGHTLY_VERSION: nightly`
+- Example of using pinned toolchain: `NIGHTLY_VERSION: nightly-2024-09-24`
 
 If the toolchain is pinned, use the following to install a pinned toolchain then show all the
 installed toolchains:
@@ -207,40 +245,40 @@ Then replace `+nightly` in the commands below with the pinned toolchain
 
 Before submitting a pull request to the bpfman repository, verify the following:
 
-* Verify that Rust code has been formatted and that all clippy lints have been fixed:
+- Verify that Rust code has been formatted and that all clippy lints have been fixed:
 
     ```console
     cd bpfman/
     cargo +nightly clippy --all -- --deny warnings
     ```
 
-* Verify that the code has been formatted and linted:
+- Verify that the code has been formatted and linted:
 
     ```console
     cargo +nightly fmt --all -- --check
     ```
 
-* Verify that Yaml files have been formatted (see
+- Verify that Yaml files have been formatted (see
   [Install Yaml Formatter](https://bpfman.io/main/getting-started/building-bpfman/#install-yaml-formatter))
 
     ```console
     prettier -l "*.yaml"
     ```
 
-* Verify that Bash scripts have been linted using `shellcheck`
+- Verify that Bash scripts have been linted using `shellcheck`
 
     ```console
     cargo xtask lint
     ```
 
-* Verify that unit tests are passing locally (see
+- Verify that unit tests are passing locally (see
   [Unit Testing](https://bpfman.io/main/developer-guide/testing/#unit-testing)):
 
     ```console
     cargo xtask unit-test
     ```
 
-* Verify that integration tests are passing locally (see
+- Verify that integration tests are passing locally (see
   [Basic Integration Tests](https://bpfman.io/main/developer-guide/testing/#basic-integration-tests)):
 
     ```console
@@ -249,7 +287,7 @@ Before submitting a pull request to the bpfman repository, verify the following:
 
 ### bpfman-operator Checklist
 
-* If developing the bpfman-operator, verify that bpfman-operator unit and integration tests
+- If developing the bpfman-operator, verify that bpfman-operator unit and integration tests
   are passing locally:
   
     See [Kubernetes Operator Tests](https://bpfman.io/main/developer-guide/testing/#kubernetes-operator-tests).
