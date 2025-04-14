@@ -1,0 +1,17 @@
+---
+apiVersion: bpfman.io/v1alpha1
+kind: XdpProgram
+metadata:
+  labels:
+    app.kubernetes.io/name: xdpprogram
+  name: go-xdp-counter-example
+spec:
+  bpffunctionname: xdp_stats
+  # Select all nodes
+  nodeselector: {}
+  interfaceselector:
+    primarynodeinterface: true
+  priority: 55
+  bytecode:
+    image:
+      url: quay.io/bpfman-bytecode/go-xdp-counter:latest

@@ -13,7 +13,7 @@ images:
 patches:
 - path: patch.yaml
   target:
-    kind: uprobeProgram
+    kind: ClusterBpfApplication
     name: go-uprobe-counter-example
 resources:
 - ../../base/go-uprobe-counter
