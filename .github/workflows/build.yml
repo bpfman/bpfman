@@ -308,7 +308,7 @@ jobs:
       - name: Lint
         # Only need to lint the code once, so just pick one of the arch to run on.
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # @v6
+        uses: golangci/golangci-lint-action@1481404843c368bc19ca9406f87d6e0fc97bdcfd # @v6
         with:
           ## https://github.com/golangci/golangci-lint-action/issues/369
           version: v1.54.2
@@ -417,7 +417,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Install Python3
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # @v5
+        uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # @v5
         with:
           python-version: 3.x
 
