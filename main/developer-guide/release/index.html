@@ -2272,9 +2272,11 @@ up with a release for <code>bpfman-operator</code>.</p>
 </ul>
 <p>After the release is complete do the following:</p>
 <ul>
-<li>Run <code>make build-release-yamls</code> from the <code>bpfman/examples</code> directory, and then
-  add the yaml files generated to the release as assets from the GitHub release
-  page.<ul>
+<li>Run <code>make build-release-yamls</code> from the <code>bpfman/examples</code> directory.
+  Next, on the GitHub <code>Releases</code> webpage, find the newly generated release notes
+  and click on the edit icon (a pencil icon).
+  Then copy (drag and drop) the generated yaml files to the release as <code>Assets</code>
+  on the webpage and click <code>Update release</code> button.<ul>
 <li>The yaml files generated include:<ul>
 <li><code>go-app-counter-install-selinux.yaml</code></li>
 <li><code>go-app-counter-install.yaml</code></li>
@@ -2308,8 +2310,8 @@ up with a release for <code>bpfman-operator</code>.</p>
   <a href="https://github.com/bpfman/bpfman-operator/tree/main/changelogs">bpfman-operator/changelogs</a>.</li>
 <li>Update the bpfman version in go.mod</li>
 <li>Run the following commands from the bpfman-operator directory:
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>go mod vendor
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>go mod tidy
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>go mod tidy
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>go mod vendor
 </code></pre></div></li>
 <li>Update the bpfman-operator version in the <a href="https://github.com/bpfman/bpfman-operator/blob/main/Makefile">Makefile</a>:<ul>
 <li><code>VERSION ?= x.y.z</code></li>
@@ -2317,8 +2319,9 @@ up with a release for <code>bpfman-operator</code>.</p>
 </li>
 <li>Run <code>make bundle</code> from the bpfman-operator directory to update the bundle
   version.</li>
-<li>Update the version in the links in README.md</li>
 <li>Update the version in the OpenShift Containerfiles.</li>
+<li>Search the bpfman-operator directory and make sure there are no remaining <code>x.y.z</code>
+  strings that need to be replaced.</li>
 </ul>
 </li>
 <li>Commit the changes, push them to your repo, and open a PR against the
@@ -2348,8 +2351,10 @@ up with a release for <code>bpfman-operator</code>.</p>
 <p>After the release is complete do the following:</p>
 <ul>
 <li>Run <code>make build-release-yamls</code> from the <code>bpfman-operator/</code> directory, and then
-  add the yaml files generated to the release as assets from the GitHub release
-  page.<ul>
+  Next, on the GitHub <code>Releases</code> webpage, find the newly generated release notes
+  and click on the edit icon (a pencil icon).
+  Then copy (drag and drop) the generated yaml files to the release as <code>Assets</code>
+  on the webpage and click <code>Update release</code> button.<ul>
 <li>The yaml files generated include:<ul>
 <li><code>bpfman-crds-install.yaml</code></li>
 <li><code>bpfman-operator-install.yaml</code></li>
@@ -2362,34 +2367,42 @@ up with a release for <code>bpfman-operator</code>.</p>
   latest bundle manifests.<ul>
 <li>Run <code>IMAGE_TAG=vx.y.z make bundle</code> from <code>bpfman-operator</code>.</li>
 <li>Manually update the following tags in
-  bundle/manifests/bpfman-operator.clusterserviceversion.yaml (TODO: automate
+  <code>bpfman-operator/bundle/manifests/bpfman-operator.clusterserviceversion.yaml</code> (TODO: automate
   this step).<ul>
-<li>Change :latest to :vx.y.z on for the example image URLs.</li>
-<li>Change "containerImage: quay.io/bpfman/bpfman-operator:latest" to
-  "containerImage: quay.io/bpfman/bpfman-operator:vx.y.z".</li>
+<li>Change <code>:latest</code> to <code>:vx.y.z</code> in all the example image URLs:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="s">&quot;url&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;quay.io/bpfman-bytecode/&lt;example&gt;&gt;:latest&quot;</span>
+</code></pre></div>
+to
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="s">&quot;url&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;quay.io/bpfman-bytecode/&lt;example&gt;:v0.5.6&quot;</span>
+</code></pre></div></li>
+<li>Change <code>:latest</code> to <code>:vx.y.z</code> in the bpfman-operator container image reference:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">containerImage</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">quay.io/bpfman/bpfman-operator:latest</span>
+</code></pre></div>
+to
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">containerImage</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">quay.io/bpfman/bpfman-operator:vx.y.z</span>
+</code></pre></div></li>
 </ul>
 </li>
 <li>Open a PR in the <a href="https://github.com/k8s-operatorhub/community-operators">community-operator</a> repository with the following:<ul>
 <li>Create a new release directory under <code>operator/bpfman-operator/</code> named <code>x.y.z</code>:
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nb">cd</span><span class="w"> </span><span class="nv">$SRC_DIR</span>/community-operators/operators/bpfman-operator/
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>mkdir<span class="w"> </span>x.y.z
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">cd</span><span class="w"> </span><span class="nv">$SRC_DIR</span>/community-operators/operators/bpfman-operator/
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>mkdir<span class="w"> </span>x.y.z
 </code></pre></div></li>
-<li>Copy <code>bpfman-operator/bundle/{manifests, metadata, tests}</code> to the new release
-  directory and copy<code>bpfman-operator/Containerfile.bundle.openshift</code> to the new
-  release directory and rename it <code>bundle.Dockerfile</code>.
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">cd</span><span class="w"> </span>x.y.z
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>cp<span class="w"> </span>-r<span class="w"> </span><span class="nv">$SRC_DIR</span>/bpfman-operator/bundle/manifests/<span class="w"> </span>.
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>cp<span class="w"> </span>-r<span class="w"> </span><span class="nv">$SRC_DIR</span>/bpfman-operator/bundle/metadata/<span class="w"> </span>.
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>cp<span class="w"> </span>-r<span class="w"> </span><span class="nv">$SRC_DIR</span>/bpfman-operator/bundle/tests/<span class="w"> </span>.
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>cp<span class="w"> </span><span class="nv">$SRC_DIR</span>/bpfman-operator/Containerfile.bundle.openshift<span class="w"> </span>bundle.Dockerfile
+<li>Copy the directories <code>bpfman-operator/bundle/{manifests, metadata, tests}</code> and the file
+  <code>bpfman-operator/bundle.Dockerfile</code> to the new release directory.
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">cd</span><span class="w"> </span>x.y.z
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>cp<span class="w"> </span>-r<span class="w"> </span><span class="nv">$SRC_DIR</span>/bpfman-operator/bundle/manifests/<span class="w"> </span>.
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>cp<span class="w"> </span>-r<span class="w"> </span><span class="nv">$SRC_DIR</span>/bpfman-operator/bundle/metadata/<span class="w"> </span>.
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>cp<span class="w"> </span>-r<span class="w"> </span><span class="nv">$SRC_DIR</span>/bpfman-operator/bundle/tests/<span class="w"> </span>.
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>cp<span class="w"> </span><span class="nv">$SRC_DIR</span>/bpfman-operator/bundle.Dockerfile<span class="w"> </span>.
 </code></pre></div></li>
-<li>Push the PR as a draft PR to allow for review (see Note).
+<li>Push the PR as a <strong>draft</strong> PR to allow for review (<strong>see Note</strong>).
   Once the PR is reviewed and all checks pass, mark it as ready for review.
   Once it merges, move to the next repository.</li>
 </ul>
 </li>
 <li>Open a PR in the <a href="https://github.com/redhat-openshift-ecosystem/community-operators-prod">community-operators-prod</a> repository.
-  Repeat the previous steps, but don't push PR as draft.</li>
+  Repeat the previous steps, <strong>but don't push PR as draft</strong>.</li>
 <li><strong>NOTE:</strong> Lessons learned about updating the community operators: <ul>
 <li>These PRs usually auto-merge as soon as all checks pass, and once a
   bundle for a release is merged, it cannot be modified. If any errors

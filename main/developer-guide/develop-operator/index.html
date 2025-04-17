@@ -2516,17 +2516,18 @@ Once the changes compile and are ready to be tested, build and push the containe
 images:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator/
 <a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman:test<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-agent:test<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-operator:test<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>make<span class="w"> </span>build-images
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-agent:test<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-operator:test<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>make<span class="w"> </span>push-images
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="c1"># Optionally include BPFMAN_IMG if trying to load private bpfman image</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="nv">BPFMAN_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-agent:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-operator:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>make<span class="w"> </span>build-images
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-agent:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-operator:test<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>make<span class="w"> </span>push-images
 </code></pre></div>
 <p>Next, a bundle and catalog needs to be built and pushed:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman:test<span class="w"> </span><span class="se">\</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nv">BPFMAN_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman:test<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="nv">BPFMAN_AGENT_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-agent:test<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="nv">BPFMAN_OPERATOR_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-operator:test<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="nv">BUNDLE_IMG</span><span class="o">=</span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman-operator-bundle:development<span class="w"> </span><span class="se">\</span>
