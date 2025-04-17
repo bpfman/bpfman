@@ -416,7 +416,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Install Python3
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # @v5
+        uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # @v5
         with:
           python-version: 3.x
 
@@ -436,7 +436,7 @@ jobs:
           name: coverage-rust
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574 # @v4
+        uses: codecov/codecov-action@ad3126e916f78f00edff4ed0317cf185271ccc2d # @v4
         with:
           files: ./lcov.info
           verbose: true
