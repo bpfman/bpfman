@@ -35,3 +35,11 @@ repos:
         types: [go]
         language: golang
         pass_filenames: false
+
+      - id: cargo-deny
+        name: cargo-deny
+        entry: cargo deny
+        args: [--all-features, check]
+        language: system
+        types: [rust]
+        pass_filenames: false
