@@ -30,6 +30,7 @@ use crate::{
     errors::{BpfmanError, ParseError},
     multiprog::{DispatcherId, DispatcherInfo},
     oci_utils::image_manager::ImageManager,
+    setup,
     utils::{
         bool_to_bytes, bytes_to_bool, bytes_to_i32, bytes_to_string, bytes_to_u32, bytes_to_u64,
         bytes_to_usize, get_ifindex, nsid, sled_get, sled_get_option, sled_insert,
@@ -1407,6 +1408,18 @@ impl Location {
                 Ok((bytecode, bpf_function_names))
             }
         }
+    }
+
+    // TODO(frobware): this function and the preceding need to become
+    // one; when we drop SLED we can drop the requirement to need a
+    // root_db parameter. This function only exists because in the new
+    // SQLite code paths we don't have (or want) a SLED DB handle.
+    pub(crate) fn get_program_bytes_no_sled(
+        &self,
+        image_manager: &mut ImageManager,
+    ) -> Result<(Vec<u8>, Vec<String>), BpfmanError> {
+        let (_config, root_db) = setup()?;
+        self.get_program_bytes(&root_db, image_manager)
     }
 }
 
@@ -3853,3 +3866,278 @@ impl_get_metadata!(
     FentryLink,
     FexitLink,
 );
+
+/// Represents a declarative specification for an eBPF program,
+/// mirroring the CLI `--programs` argument format.
+///
+/// Each variant of `ProgramType` corresponds to a supported eBPF
+/// program type, optionally including associated metadata such as the
+/// eBPF function name and/or the kernel attach function.
+///
+/// # CLI Format
+///
+/// The CLI expects one or more program specifications in the form:
+///
+/// ```text
+/// <TYPE>:<FUNC-NAME>
+/// <TYPE>:<FUNC-NAME>:<ATTACH-FUNC>  (for fentry/fexit)
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ProgramType {
+    Fentry {
+        function_name: String,
+        attach_function: String,
+    },
+    Fexit {
+        function_name: String,
+        attach_function: String,
+    },
+    Kprobe {
+        function_name: String,
+    },
+    Kretprobe {
+        function_name: String,
+    },
+    Tracepoint {
+        function_name: String,
+    },
+    Tc,
+    Tcx,
+    Uprobe {
+        function_name: String,
+    },
+    Uretprobe {
+        function_name: String,
+    },
+    Xdp {
+        function_name: String,
+    },
+}
+
+impl ProgramType {
+    pub fn parse(program_str: &str) -> Result<Self, ParseError> {
+        let parts: Vec<&str> = program_str.split(':').collect();
+
+        if parts.is_empty() {
+            return Err(ParseError::InvalidProgramType {
+                program: program_str.to_string(),
+            });
+        }
+
+        match parts[0] {
+            "fentry" if parts.len() == 3 => Ok(Self::Fentry {
+                function_name: parts[1].to_string(),
+                attach_function: parts[2].to_string(),
+            }),
+            "fexit" if parts.len() == 3 => Ok(Self::Fexit {
+                function_name: parts[1].to_string(),
+                attach_function: parts[2].to_string(),
+            }),
+            "kprobe" if parts.len() == 2 => Ok(Self::Kprobe {
+                function_name: parts[1].to_string(),
+            }),
+            "kretprobe" if parts.len() == 2 => Ok(Self::Kretprobe {
+                function_name: parts[1].to_string(),
+            }),
+            "tracepoint" if parts.len() >= 2 => Ok(Self::Tracepoint {
+                function_name: parts[1..].join(":"),
+            }),
+            "tc" if parts.len() == 1 => Ok(Self::Tc),
+            "tcx" if parts.len() == 1 => Ok(Self::Tcx),
+            "uprobe" if parts.len() == 2 => Ok(Self::Uprobe {
+                function_name: parts[1].to_string(),
+            }),
+            "uretprobe" if parts.len() == 2 => Ok(Self::Uretprobe {
+                function_name: parts[1].to_string(),
+            }),
+            "xdp" if parts.len() == 2 => Ok(Self::Xdp {
+                function_name: parts[1].to_string(),
+            }),
+            _ => Err(ParseError::InvalidProgramType {
+                program: program_str.to_string(),
+            }),
+        }
+    }
+
+    pub fn type_str(&self) -> &'static str {
+        match self {
+            Self::Fentry { .. } => "fentry",
+            Self::Fexit { .. } => "fexit",
+            Self::Kprobe { .. } => "kprobe",
+            Self::Kretprobe { .. } => "kretprobe",
+            Self::Tracepoint { .. } => "tracepoint",
+            Self::Tc => "tc",
+            Self::Tcx => "tcx",
+            Self::Uprobe { .. } => "uprobe",
+            Self::Uretprobe { .. } => "uretprobe",
+            Self::Xdp { .. } => "xdp",
+        }
+    }
+
+    pub fn function_name(&self) -> Option<&str> {
+        match self {
+            Self::Fentry { function_name, .. }
+            | Self::Fexit { function_name, .. }
+            | Self::Kprobe { function_name }
+            | Self::Kretprobe { function_name }
+            | Self::Uprobe { function_name }
+            | Self::Uretprobe { function_name }
+            | Self::Xdp { function_name }
+            | Self::Tracepoint { function_name } => Some(function_name),
+            _ => None,
+        }
+    }
+
+    pub fn attach_function(&self) -> Option<&str> {
+        match self {
+            Self::Fentry {
+                attach_function, ..
+            }
+            | Self::Fexit {
+                attach_function, ..
+            } => Some(attach_function),
+            _ => None,
+        }
+    }
+
+    pub fn is_retprobe(&self) -> Option<bool> {
+        match self {
+            Self::Kretprobe { .. } | Self::Uretprobe { .. } => Some(true),
+            Self::Kprobe { .. } | Self::Uprobe { .. } => Some(false),
+            _ => None,
+        }
+    }
+}
+
+impl std::fmt::Display for ProgramType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Xdp { function_name } => write!(f, "xdp:{}", function_name),
+            Self::Tc => write!(f, "tc"),
+            Self::Tcx => write!(f, "tcx"),
+            Self::Tracepoint { function_name } => write!(f, "tracepoint:{}", function_name),
+            Self::Kprobe { function_name } => write!(f, "kprobe:{}", function_name),
+            Self::Kretprobe { function_name } => write!(f, "kretprobe:{}", function_name),
+            Self::Uprobe { function_name } => write!(f, "uprobe:{}", function_name),
+            Self::Uretprobe { function_name } => write!(f, "uretprobe:{}", function_name),
+            Self::Fentry {
+                function_name,
+                attach_function,
+            } => write!(f, "fentry:{}:{}", function_name, attach_function),
+            Self::Fexit {
+                function_name,
+                attach_function,
+            } => write!(f, "fexit:{}:{}", function_name, attach_function),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ProgramType;
+
+    struct Case<'a> {
+        input: &'a str,
+        display: &'a str,
+        type_str: &'a str,
+        function_name: Option<&'a str>,
+        attach_function: Option<&'a str>,
+        is_retprobe: Option<bool>,
+    }
+
+    #[test]
+    fn test_program_type_parsing() {
+        let cases = vec![
+            Case {
+                input: "fentry:test_fentry:do_unlinkat",
+                display: "fentry:test_fentry:do_unlinkat",
+                type_str: "fentry",
+                function_name: Some("test_fentry"),
+                attach_function: Some("do_unlinkat"),
+                is_retprobe: None,
+            },
+            Case {
+                input: "fexit:test_fexit:do_unlinkat",
+                display: "fexit:test_fexit:do_unlinkat",
+                type_str: "fexit",
+                function_name: Some("test_fexit"),
+                attach_function: Some("do_unlinkat"),
+                is_retprobe: None,
+            },
+            Case {
+                input: "kprobe:do_sys_open",
+                display: "kprobe:do_sys_open",
+                type_str: "kprobe",
+                function_name: Some("do_sys_open"),
+                attach_function: None,
+                is_retprobe: Some(false),
+            },
+            Case {
+                input: "kretprobe:do_sys_open",
+                display: "kretprobe:do_sys_open",
+                type_str: "kretprobe",
+                function_name: Some("do_sys_open"),
+                attach_function: None,
+                is_retprobe: Some(true),
+            },
+            Case {
+                input: "uprobe:main",
+                display: "uprobe:main",
+                type_str: "uprobe",
+                function_name: Some("main"),
+                attach_function: None,
+                is_retprobe: Some(false),
+            },
+            Case {
+                input: "uretprobe:main",
+                display: "uretprobe:main",
+                type_str: "uretprobe",
+                function_name: Some("main"),
+                attach_function: None,
+                is_retprobe: Some(true),
+            },
+            Case {
+                input: "tracepoint:sched:sched_switch",
+                display: "tracepoint:sched:sched_switch",
+                type_str: "tracepoint",
+                function_name: Some("sched:sched_switch"),
+                attach_function: None,
+                is_retprobe: None,
+            },
+            Case {
+                input: "xdp:pass",
+                display: "xdp:pass",
+                type_str: "xdp",
+                function_name: Some("pass"),
+                attach_function: None,
+                is_retprobe: None,
+            },
+            Case {
+                input: "tc",
+                display: "tc",
+                type_str: "tc",
+                function_name: None,
+                attach_function: None,
+                is_retprobe: None,
+            },
+            Case {
+                input: "tcx",
+                display: "tcx",
+                type_str: "tcx",
+                function_name: None,
+                attach_function: None,
+                is_retprobe: None,
+            },
+        ];
+
+        for case in cases {
+            let pt = ProgramType::parse(case.input).unwrap();
+            assert_eq!(pt.to_string(), case.display, "{}", case.input);
+            assert_eq!(pt.type_str(), case.type_str, "{}", case.input);
+            assert_eq!(pt.function_name(), case.function_name, "{}", case.input);
+            assert_eq!(pt.attach_function(), case.attach_function, "{}", case.input);
+            assert_eq!(pt.is_retprobe(), case.is_retprobe, "{}", case.input);
+        }
+    }
+}

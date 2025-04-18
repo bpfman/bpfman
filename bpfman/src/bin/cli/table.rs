@@ -4,6 +4,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use bpfman::{
+    BpfMap, BpfProgram,
     errors::BpfmanError,
     types::{ImagePullPolicy, Link, Location, Program, ProgramData},
 };
@@ -859,5 +860,150 @@ impl ProgTable {
 impl std::fmt::Display for ProgTable {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+pub fn sqlite_print_program_list(programs: &[BpfProgram]) -> anyhow::Result<()> {
+    let mut table = ProgTable::new_program_list();
+
+    for p in programs {
+        let prog_id = p.id.to_string();
+        let application = extract_application(p.metadata.as_deref());
+        let kind = p.kind.clone();
+        let fn_name = p.kernel_name.clone().unwrap_or_else(|| "None".into());
+
+        // No links yet, so this remains blank
+        let links = "".into();
+
+        table.add_program_row_list(prog_id, application, kind, fn_name, links);
+    }
+
+    table.print();
+    Ok(())
+}
+
+pub fn sqlite_print_program_detail(p: &BpfProgram, maps: &[BpfMap]) -> anyhow::Result<()> {
+    let mut table = ProgTable::create_bpfman_state_table();
+
+    table.add_string("BPF Function:".into(), Ok(p.name.clone()));
+    table.0.add_row(vec!["Program Type:", &p.kind]);
+
+    match p.location_type.as_str() {
+        "file" => {
+            table.add_string(
+                "Path:".into(),
+                Ok(p.file_path.clone().unwrap_or_else(|| "None".to_string())),
+            );
+        }
+        "image" => {
+            table.add_string(
+                "Path:".into(),
+                Ok(p.file_path.clone().unwrap_or_else(|| "None".to_string())),
+            );
+            table.add_string(
+                "Pull Policy:".into(),
+                Ok(p.image_pull_policy.clone().unwrap_or_else(|| "None".into())),
+            );
+        }
+        _ => {
+            table.0.add_row(vec!["Location:", "Unknown"]);
+        }
+    }
+
+    match &p.global_data {
+        Some(s) => table.add_string("Global:".into(), Ok(s.clone())),
+        None => table.add_string("Global:".into(), Ok("None".into())),
+    }
+
+    match &p.metadata {
+        Some(s) => table.add_string("Metadata:".into(), Ok(s.clone())),
+        None => table.add_string("Metadata:".into(), Ok("None".into())),
+    }
+
+    table.add_string("Map Pin Path:".into(), Ok(p.map_pin_path.clone()));
+
+    match p.map_owner_id {
+        Some(id) => table.add_string("Map Owner ID:".into(), Ok(id.to_string())),
+        None => table.add_string("Map Owner ID:".into(), Ok("None".into())),
+    }
+
+    let used_maps: Vec<&BpfMap> = maps.iter().filter(|m| m.name == p.name).collect();
+    if used_maps.is_empty() {
+        table.0.add_row(vec!["Maps Used:", "None"]);
+    } else {
+        let mut first = true;
+        for map in used_maps {
+            let entry = format!(
+                "{} (key={} val={} entries={})",
+                map.name, map.key_size, map.value_size, map.max_entries
+            );
+            if first {
+                table.0.add_row(vec!["Maps Used:", &entry]);
+                first = false;
+            } else {
+                table.0.add_row(vec!["", &entry]);
+            }
+        }
+    }
+
+    let mut ktable = ProgTable::create_kernel_info_table();
+    ktable.add_string("Program ID:".into(), Ok(p.id.to_string()));
+    ktable.add_string(
+        "BPF Function:".into(),
+        Ok(p.kernel_name.clone().unwrap_or_default()),
+    );
+    ktable.0.add_row(vec!["Kernel Type:", &p.kind]);
+    ktable.add_string(
+        "Loaded At:".into(),
+        Ok(p.kernel_loaded_at.clone().unwrap_or_default()),
+    );
+    ktable.add_string("Tag:".into(), Ok(format!("{:#x}", p.kernel_tag.get())));
+    ktable.add_bool(
+        "GPL Compatible:".into(),
+        Ok(p.kernel_gpl_compatible.unwrap_or(false)),
+    );
+    ktable.add_string(
+        "BTF ID:".into(),
+        Ok(p.kernel_btf_id.map(|v| v.to_string()).unwrap_or_default()),
+    );
+    ktable.add_string(
+        "Size Translated (bytes):".into(),
+        Ok(p.kernel_bytes_xlated
+            .map(|v| v.to_string())
+            .unwrap_or_default()),
+    );
+    ktable.add_bool("JITted:".into(), Ok(p.kernel_jited.unwrap_or(false)));
+    ktable.add_string(
+        "Size JITted:".into(),
+        Ok(p.kernel_bytes_jited
+            .map(|v| v.to_string())
+            .unwrap_or_default()),
+    );
+    ktable.add_string(
+        "Kernel Allocated Memory (bytes):".into(),
+        Ok(p.kernel_bytes_memlock
+            .map(|v| v.to_string())
+            .unwrap_or_default()),
+    );
+    ktable.add_string(
+        "Verified Instruction Count:".into(),
+        Ok(p.kernel_verified_insns
+            .map(|v| v.to_string())
+            .unwrap_or_default()),
+    );
+
+    table.print();
+    ktable.print();
+    Ok(())
+}
+
+fn extract_application(metadata: Option<&str>) -> String {
+    match metadata.and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok()) {
+        Some(serde_json::Value::Object(map)) => map
+            .get("application")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        _ => "".into(),
     }
 }
