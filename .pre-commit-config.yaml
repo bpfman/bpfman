@@ -26,6 +26,13 @@ repos:
         language: system
         types: [rust]
         pass_filenames: false
+
+  - repo: https://github.com/EmbarkStudios/cargo-deny
+    rev: 0.18.2
+    hooks:
+      - id: cargo-deny
+        args: [--all-features, check]
+
   - repo: https://github.com/golangci/golangci-lint
     rev: v2.0.2
     hooks:
@@ -34,12 +41,4 @@ repos:
         entry: golangci-lint run
         types: [go]
         language: golang
-        pass_filenames: false
-
-      - id: cargo-deny
-        name: cargo-deny
-        entry: cargo deny
-        args: [--all-features, check]
-        language: system
-        types: [rust]
         pass_filenames: false

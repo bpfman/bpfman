@@ -13,6 +13,8 @@ targets = [
 [advisories]
 ignore = [
     "RUSTSEC-2023-0071", # no fix available
+    "RUSTSEC-2025-0021", # requires update of OTEL
+    "RUSTSEC-2025-0022", # requires an OpenSSL bump
 ]
 unmaintained = "workspace"
 
@@ -32,6 +34,7 @@ allow = [
     "BSD-3-Clause",
     "ISC",
     "MIT",
+    "MPL-2.0",                        # for webpki-roots
     "OpenSSL",
     "Unicode-3.0",
     "Zlib",
