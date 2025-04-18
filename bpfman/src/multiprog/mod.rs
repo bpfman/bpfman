@@ -61,14 +61,23 @@ impl Dispatcher {
                     revision,
                 )?;
 
-                x.load(
+                let load_result = x.load(
                     root_db,
                     links,
                     old_dispatcher,
                     image_manager,
                     registry_config,
                     xdp_link.get_netns()?,
-                )?;
+                );
+
+                if let Err(e) = load_result {
+                    debug!("Failed to load xdp dispatcher: {}", e);
+                    let delete_result = x.delete(root_db, false);
+                    if let Err(delete_err) = delete_result {
+                        debug!("Failed to delete xdp dispatcher: {}", delete_err);
+                    }
+                    return Err(e);
+                }
 
                 Dispatcher::Xdp(x)
             }
@@ -83,14 +92,23 @@ impl Dispatcher {
                     revision,
                 )?;
 
-                t.load(
+                let load_result = t.load(
                     root_db,
                     links,
                     old_dispatcher,
                     image_manager,
                     registry_config,
                     tc_link.get_netns()?,
-                )?;
+                );
+
+                if let Err(e) = load_result {
+                    debug!("Failed to load tc dispatcher: {}", e);
+                    let delete_result = t.delete(root_db, false);
+                    if let Err(delete_err) = delete_result {
+                        debug!("Failed to delete tc dispatcher: {}", delete_err);
+                    }
+                    return Err(e);
+                }
 
                 Dispatcher::Tc(t)
             }
