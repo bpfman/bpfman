@@ -308,10 +308,9 @@ jobs:
       - name: Lint
         # Only need to lint the code once, so just pick one of the arch to run on.
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: golangci/golangci-lint-action@55c2c1448f86e01eaae002a5a3a9624417608d84 # @v6
+        uses: golangci/golangci-lint-action@1481404843c368bc19ca9406f87d6e0fc97bdcfd # @v7
         with:
-          ## https://github.com/golangci/golangci-lint-action/issues/369
-          version: v1.54.2
+          version: v2.0.2
           skip-cache: true
           skip-save-cache: true
           args: -v --timeout 5m
@@ -435,7 +434,7 @@ jobs:
           name: coverage-rust
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574 # @v4
+        uses: codecov/codecov-action@ad3126e916f78f00edff4ed0317cf185271ccc2d # @v4
         with:
           files: ./lcov.info
           verbose: true
