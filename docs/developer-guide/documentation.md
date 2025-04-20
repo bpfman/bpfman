@@ -61,7 +61,7 @@ from the bpfman root directory, use `mkdocs` to build:
 
 ```console
 cd bpfman/
-mkdocs build
+uv run mkdocs build
 ```
 
 !!! Note
@@ -73,7 +73,7 @@ then open up `http://127.0.0.1:8000/` in your browser, and you'll see the defaul
 being displayed:
 
 ```console
-mkdocs serve
+uv run mkdocs serve
 ```
 
 To preview from a build on a remote machine, start the mkdocs dev-server with the command below,
@@ -81,27 +81,27 @@ then open up `http://<ServerIP>:8000/` in your browser, and you'll see the defau
 being displayed:
 
 ```console
-mkdocs serve -a 0.0.0.0:8000
+uv run mkdocs serve -a 0.0.0.0:8000
 ```
 
 ## Development Environment Setup
 
-The recommended installation method is using `pip`.
+The recommended installation method is using `uv`.
 
 ```console
-pip install -r requirements.txt 
+uv sync
 ```
 
 Once installed, ensure the `mkdocs` is in your PATH:
 
 ```console
-mkdocs -V
-mkdocs, version 1.4.3 from /home/$USER/.local/lib/python3.11/site-packages/mkdocs (Python 3.11)
+uv run mkdocs -V
+mkdocs, version 1.5.3 from /home/$USER/<bpfman project location>/.venv/lib/python3.13/site-packages/mkdocs (Python 3.13)
 ```
 
 !!! Note
     If you have an older version of mkdocs installed, you may need to use
-    the `--upgrade` option (e.g., `pip install --upgrade mkdocs`) to get it to work.
+    the `--upgrade` option (e.g., `uv add --upgrade mkdocs`) to get it to work.
 
 ## Document Images
 
