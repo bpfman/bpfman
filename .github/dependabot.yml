@@ -27,3 +27,12 @@ updates:
         dependency-type: production
       development-dependencies:
         dependency-type: development
+  
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      python-packages:
+        patterns:
+          - "*"

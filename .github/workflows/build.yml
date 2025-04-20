@@ -416,16 +416,14 @@ jobs:
       - name: Checkout bpfman
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
-      - name: Install Python3
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # @v5
+      - name: Install required-version defined in pyproject.toml
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: 3.x
+          pyproject-file: "./pyproject.toml"
 
       - name: Mkdocs Build
         run: |
-          pip install mkdocs-material
-          pip install -r requirements.txt
-          mkdocs build --strict
+          uv run mkdocs build --strict
 
   coverage:
     needs: [build, build-go]
