@@ -42,7 +42,8 @@ use crate::AsyncBpfman;
 
 const DRIVER_NAME: &str = "csi.bpfman.io";
 const MAPS_KEY: &str = "csi.bpfman.io/maps";
-const PROGRAM_KEY: &str = "csi.bpfman.io/program";
+const DEPRECATED_PROGRAM_KEY: &str = "csi.bpfman.io/program";
+const APPLICATION_KEY: &str = "csi.bpfman.io/application";
 const OPERATOR_PROGRAM_KEY: &str = "bpfman.io/ProgramName";
 const RTPATH_BPFMAN_CSI_SOCKET: &str = "/run/bpfman/csi/csi.sock";
 const RTDIR_BPFMAN_CSI_FS: &str = "/run/bpfman/csi/fs";
@@ -145,11 +146,24 @@ impl Node for CsiNode {
         );
 
         let bpfman_lock = self.db_lock.lock().await;
+        let application_name = match volume_context.get(APPLICATION_KEY) {
+            Some(a) => a,
+            None => {
+                match volume_context.get(DEPRECATED_PROGRAM_KEY) {
+                   Some(p) => {
+                        warn!("{} is deprecated, please use {}", DEPRECATED_PROGRAM_KEY, APPLICATION_KEY);
+                        p
+                   }
+                   None => 
+                       return Err(Status::new(NPV_NOT_FOUND.into(), format!("Bpfman Program {DEPRECATED_PROGRAM_KEY} or {APPLICATION_KEY} not found")))
+                }
+            }
+        };
         match (
             volume_context.get(MAPS_KEY),
-            volume_context.get(PROGRAM_KEY),
+            application_name,
         ) {
-            (Some(m), Some(program_name)) => {
+            (Some(m), program_name) => {
                 let maps: Vec<&str> = m.split(',').collect();
 
                 // Find the Program with the specified *Program CRD name
@@ -256,21 +270,8 @@ impl Node for CsiNode {
 
                 Ok(Response::new(NodePublishVolumeResponse {}))
             }
-            (_, Some(program)) => {
+            (_, program) => {
                 let err_msg = format!("No {MAPS_KEY} set in volume context from {program}");
-                warn!("{}", err_msg);
-
-                Err(Status::new(NPV_NOT_FOUND.into(), err_msg))
-            }
-            (Some(m), _) => {
-                let err_msg =
-                    format!("No {PROGRAM_KEY} set in volume context in for requested maps {m}");
-                warn!("{}", err_msg);
-
-                Err(Status::new(NPV_NOT_FOUND.into(), err_msg))
-            }
-            (_, _) => {
-                let err_msg = format!("No {MAPS_KEY} or {PROGRAM_KEY} set in volume context");
                 warn!("{}", err_msg);
 
                 Err(Status::new(NPV_NOT_FOUND.into(), err_msg))
