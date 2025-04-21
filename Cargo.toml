@@ -58,13 +58,13 @@ hex = { version = "0.4.3", default-features = false }
 integration-test-macros = { path = "./tests/integration-test-macros" }
 inventory = { version = "0.3", default-features = false }
 lazy_static = { version = "1", default-features = false }
-libsystemd = { version = "0.7.0", default-features = false }
+libsystemd = { version = "0.7.1", default-features = false }
 log = { version = "0.4", default-features = false }
 netlink-packet-audit = { version = "^0.5", default-features = false }
 netlink-packet-core = { version = "^0.7", default-features = false }
 netlink-packet-route = { version = "^0.19", default-features = false }
 netlink-sys = { version = "^0.8", default-features = false }
-nix = { version = "0.28", default-features = false }
+nix = { version = "0.29", default-features = false }
 object = { version = "0.36.7", default-features = false }
 oci-client = { version = "0.14", default-features = false }
 opentelemetry = { version = "0.22.0", default-features = false }
