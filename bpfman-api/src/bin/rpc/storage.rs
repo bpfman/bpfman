@@ -148,21 +148,25 @@ impl Node for CsiNode {
         let bpfman_lock = self.db_lock.lock().await;
         let application_name = match volume_context.get(APPLICATION_KEY) {
             Some(a) => a,
-            None => {
-                match volume_context.get(DEPRECATED_PROGRAM_KEY) {
-                   Some(p) => {
-                        warn!("{} is deprecated, please use {}", DEPRECATED_PROGRAM_KEY, APPLICATION_KEY);
-                        p
-                   }
-                   None => 
-                       return Err(Status::new(NPV_NOT_FOUND.into(), format!("Bpfman Program {DEPRECATED_PROGRAM_KEY} or {APPLICATION_KEY} not found")))
+            None => match volume_context.get(DEPRECATED_PROGRAM_KEY) {
+                Some(p) => {
+                    warn!(
+                        "{} is deprecated, please use {}",
+                        DEPRECATED_PROGRAM_KEY, APPLICATION_KEY
+                    );
+                    p
                 }
-            }
+                None => {
+                    return Err(Status::new(
+                        NPV_NOT_FOUND.into(),
+                        format!(
+                            "Bpfman Program {DEPRECATED_PROGRAM_KEY} or {APPLICATION_KEY} not found"
+                        ),
+                    ));
+                }
+            },
         };
-        match (
-            volume_context.get(MAPS_KEY),
-            application_name,
-        ) {
+        match (volume_context.get(MAPS_KEY), application_name) {
             (Some(m), program_name) => {
                 let maps: Vec<&str> = m.split(',').collect();
 
