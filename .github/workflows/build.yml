@@ -417,8 +417,6 @@ jobs:
 
       - name: Install required-version defined in pyproject.toml
         uses: astral-sh/setup-uv@v5
-        with:
-          pyproject-file: "./pyproject.toml"
 
       - name: Mkdocs Build
         run: |
