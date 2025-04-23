@@ -910,7 +910,7 @@ pub(crate) fn init_image_manager() -> Result<ImageManager, BpfmanError> {
 
 fn get_dispatcher(id: &DispatcherId, root_db: &Db) -> Result<Option<Dispatcher>, BpfmanError> {
     debug!("Getting dispatcher with id: {:?}", id);
-    let tree_name_prefix = match id {
+    let dispatcher_id = match id {
         DispatcherId::Xdp(DispatcherInfo(nsid, if_index, _)) => {
             xdp_dispatcher_id(*nsid, *if_index)?
         }
@@ -921,6 +921,7 @@ fn get_dispatcher(id: &DispatcherId, root_db: &Db) -> Result<Option<Dispatcher>,
             return Ok(None);
         }
     };
+    let tree_name_prefix = format!("{dispatcher_id}_");
 
     Ok(root_db
         .tree_names()
@@ -1738,11 +1739,10 @@ pub(crate) fn attach_multi_attach_program(
         .ok_or(BpfmanError::DispatcherNotRequired)?;
 
     let next_available_id = num_attached_programs(&did, root_db)?;
+    debug!("next_available_id={next_available_id}");
     if next_available_id >= 10 {
         return Err(BpfmanError::TooManyPrograms);
     }
-
-    debug!("next_available_id={next_available_id}");
 
     let if_index = l.ifindex()?;
     let if_name = l.if_name().unwrap().to_string();
@@ -1796,30 +1796,28 @@ fn detach_multi_attach_program(
     debug!("BpfManager::detach_multi_attach_program()");
     let mut image_manager = init_image_manager()?;
 
-    let netns_deleted = if let Some(netns) = netns {
-        !netns.exists()
-    } else {
-        false
-    };
-    debug!("netns_deleted = {netns_deleted}");
-
-    let next_available_id = if netns_deleted {
-        0
-    } else {
-        num_attached_programs(&did, root_db)? - 1
-    };
-    debug!("next_available_id = {next_available_id}");
-
+    let netns_deleted = netns.is_some_and(|n| !n.exists());
+    let num_remaining_programs = num_attached_programs(&did, root_db)?.saturating_sub(1);
     let mut old_dispatcher = get_dispatcher(&did, root_db)?;
 
-    if let Some(ref mut old) = old_dispatcher {
-        if next_available_id == 0 {
+    debug!(
+        "netns_deleted: {}, num_remaining_programs: {}, old_dispatcher exists: {}",
+        netns_deleted,
+        num_remaining_programs,
+        old_dispatcher.is_some()
+    );
+
+    // If there are no remaining programs, delete the old dispatcher and return
+    // early because there is no need to rebuild and attach a new dispatcher
+    // with the remaining programs. Additionally, do the same if the programs
+    // were attached inside a network namespace that has been deleted, as
+    // attempting to attach a new dispatcher will fail since the namespace can
+    // no longer be entered.
+    if num_remaining_programs == 0 || netns_deleted {
+        if let Some(ref mut old) = old_dispatcher {
             // Delete the dispatcher
             return old.delete(root_db, true);
         }
-    }
-
-    if netns_deleted {
         return Ok(());
     }
 
