@@ -1022,6 +1022,66 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#test-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test Policy
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Test Policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Unit Tests
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration Tests
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#end-to-end-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      End-to-End Tests
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test Coverage
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-tests-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running Tests Locally
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#pull-request-checklist" class="md-nav__link">
     <span class="md-ellipsis">
       Pull Request Checklist
@@ -2128,6 +2188,66 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#test-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test Policy
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Test Policy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Unit Tests
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration Tests
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#end-to-end-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      End-to-End Tests
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-coverage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Test Coverage
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-tests-locally" class="md-nav__link">
+    <span class="md-ellipsis">
+      Running Tests Locally
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#pull-request-checklist" class="md-nav__link">
     <span class="md-ellipsis">
       Pull Request Checklist
@@ -2190,13 +2310,35 @@
 
 <h1 id="contributing-guide">Contributing Guide</h1>
 <ul>
-<li><a href="#ways-to-contribute">Ways to Contribute</a></li>
+<li><a href="#contributing-guide">Contributing Guide</a></li>
+<li><a href="#ways-to-contribute">Ways to Contribute</a><ul>
+<li><a href="#come-to-meetings">Come to Meetings</a></li>
+</ul>
+</li>
 <li><a href="#find-an-issue">Find an Issue</a></li>
 <li><a href="#ask-for-help">Ask for Help</a></li>
 <li><a href="#pull-request-lifecycle">Pull Request Lifecycle</a></li>
 <li><a href="#development-environment-setup">Development Environment Setup</a></li>
-<li><a href="#signoff-your-commits">Signoff Your Commits</a></li>
-<li><a href="#pull-request-checklist">Pull Request Checklist</a></li>
+<li><a href="#signoff-your-commits">Signoff Your Commits</a><ul>
+<li><a href="#dco">DCO</a></li>
+</ul>
+</li>
+<li><a href="#logical-grouping-of-commits">Logical Grouping of Commits</a></li>
+<li><a href="#commit-message-guidelines">Commit message guidelines</a></li>
+<li><a href="#test-policy">Test Policy</a><ul>
+<li><a href="#unit-tests">Unit Tests</a></li>
+<li><a href="#integration-tests">Integration Tests</a></li>
+<li><a href="#end-to-end-tests">End-to-End Tests</a></li>
+<li><a href="#test-coverage">Test Coverage</a></li>
+<li><a href="#running-tests-locally">Running Tests Locally</a></li>
+</ul>
+</li>
+<li><a href="#pull-request-checklist">Pull Request Checklist</a><ul>
+<li><a href="#bpfman-pinned-rust-toolchain">bpfman Pinned Rust Toolchain</a></li>
+<li><a href="#bpfman-checklist">bpfman Checklist</a></li>
+<li><a href="#bpfman-operator-checklist">bpfman-operator Checklist</a></li>
+</ul>
+</li>
 </ul>
 <p>Welcome! We are glad that you want to contribute to our project! 💖</p>
 <p>As you get started, you are in the best position to give us feedback on areas of
@@ -2337,6 +2479,18 @@ When addressing review comments, please perform an interactive rebase and edit c
 <a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>Fixes: #1337
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>Refs: #453, #154
 </code></pre></div>
+<h2 id="test-policy">Test Policy</h2>
+<p>Testing is a critical part of the development process. All contributions must include tests to verify the functionality of the code. This ensures that the code works as expected and helps prevent future regressions.</p>
+<h3 id="unit-tests">Unit Tests</h3>
+<p>Unit tests should cover individual components or functions. They should be fast and isolated from external dependencies.</p>
+<h3 id="integration-tests">Integration Tests</h3>
+<p>Integration tests should verify that different components work together as expected. These tests may involve external dependencies and should be run in an environment that closely resembles production.</p>
+<h3 id="end-to-end-tests">End-to-End Tests</h3>
+<p>End-to-end tests should simulate real-world scenarios to ensure the entire system works as expected. These tests are typically slower and more complex than unit or integration tests.</p>
+<h3 id="test-coverage">Test Coverage</h3>
+<p>We aim for high test coverage across the codebase. While 100% coverage is not always feasible, contributors should strive to cover as much of their code as possible.</p>
+<h3 id="running-tests-locally">Running Tests Locally</h3>
+<p>Before submitting a pull request, contributors should run all tests locally to ensure they pass. This includes unit, integration, and end-to-end tests.</p>
 <h2 id="pull-request-checklist">Pull Request Checklist</h2>
 <p>When you submit your pull request, or you push new commits to it, our automated
 systems will run some checks on your new code. We require that your pull request
