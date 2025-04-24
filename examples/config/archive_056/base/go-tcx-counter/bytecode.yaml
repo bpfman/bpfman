@@ -1,0 +1,18 @@
+---
+apiVersion: bpfman.io/v1alpha1
+kind: TcxProgram
+metadata:
+  labels:
+    app.kubernetes.io/name: tcxprogram
+  name: go-tcx-counter-example
+spec:
+  bpffunctionname: tcx_stats
+  # Select all nodes
+  nodeselector: {}
+  interfaceselector:
+    primarynodeinterface: true
+  priority: 55
+  direction: ingress
+  bytecode:
+    image:
+      url: quay.io/bpfman-bytecode/go-tcx-counter:latest

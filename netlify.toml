@@ -1,0 +1,15 @@
+[build]
+command = """
+  pip install uv && uv run mkdocs build -d site
+  """
+environment = { PYTHON_VERSION = "3.13" }
+publish = "site"
+
+
+[context.staging]
+command = """
+  pip install uv && uv run mkdocs build -d site
+
+  echo "X-Robots-Tag: noindex" > site/_headers
+  """
+environment = { PYTHON_VERSION = "3.13" }

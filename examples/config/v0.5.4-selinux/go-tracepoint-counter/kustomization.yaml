@@ -17,4 +17,4 @@ images:
   - name: quay.io/bpfman-userspace/go-tracepoint-counter
     newName: quay.io/bpfman-userspace/go-tracepoint-counter
     newTag: v0.5.4
-resources: [../../selinux/go-tracepoint-counter]
+resources: [../../archive_056/selinux/go-tracepoint-counter]

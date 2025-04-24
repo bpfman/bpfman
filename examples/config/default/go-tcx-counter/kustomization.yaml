@@ -13,7 +13,7 @@ images:
 patches:
 - path: patch.yaml
   target:
-    kind: tcxProgram
+    kind: ClusterBpfApplication
     name: go-tcx-counter-example
 resources:
 - ../../base/go-tcx-counter

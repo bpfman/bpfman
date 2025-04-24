@@ -7,10 +7,11 @@ use anyhow::bail;
 use bpfman::{
     add_programs, setup,
     types::{
-        FentryProgram, FexitProgram, KprobeProgram, Location, Program, ProgramData, TcProgram,
-        TcxProgram, TracepointProgram, UprobeProgram, XdpProgram,
+        FentryProgram, FexitProgram, KprobeProgram, Link, Location, METADATA_APPLICATION_TAG,
+        Program, ProgramData, TcProgram, TcxProgram, TracepointProgram, UprobeProgram, XdpProgram,
     },
 };
+use log::warn;
 
 use crate::{
     args::{GlobalArg, LoadFileArgs, LoadImageArgs, LoadSubcommand},
@@ -42,16 +43,11 @@ pub(crate) fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
         let data = ProgramData::new(
             bytecode_source.clone(),
             name.clone(),
-            args.metadata
-                .clone()
-                .unwrap_or_default()
-                .iter()
-                .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                .collect(),
+            parse_metadata(&args.metadata, &args.application),
             parse_global(&args.global),
             args.map_owner_id,
         )?;
-        // Need to determin the program type here (XDP, TC, etc)
+        // Need to determine the program type here (XDP, TC, etc)
         // This would not be required if we had a generic "load" function
         let prog = match prog_type.as_str() {
             "xdp" => Program::Xdp(XdpProgram::new(data)?),
@@ -73,9 +69,19 @@ pub(crate) fn execute_load_file(args: &LoadFileArgs) -> anyhow::Result<()> {
         progs.push(prog);
     }
     let programs = add_programs(&config, &root_db, progs)?;
-    for program in programs {
-        ProgTable::new_program(&program)?.print();
-        ProgTable::new_kernel_info(&program)?.print();
+
+    if programs.len() == 1 {
+        let links: Vec<Link> = vec![];
+        ProgTable::new_program(&programs[0], links)?.print();
+        ProgTable::new_kernel_info(&programs[0])?.print();
+    } else {
+        let mut table = ProgTable::new_program_list();
+        for program in programs {
+            if let Err(e) = table.add_program_response(program) {
+                bail!(e)
+            }
+        }
+        table.print();
     }
     Ok(())
 }
@@ -96,12 +102,7 @@ pub(crate) fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
         let data = ProgramData::new(
             bytecode_source.clone(),
             name.clone(),
-            args.metadata
-                .clone()
-                .unwrap_or_default()
-                .iter()
-                .map(|(k, v)| (k.to_owned(), v.to_owned()))
-                .collect(),
+            parse_metadata(&args.metadata, &args.application),
             parse_global(&args.global),
             args.map_owner_id,
         )?;
@@ -129,12 +130,50 @@ pub(crate) fn execute_load_image(args: &LoadImageArgs) -> anyhow::Result<()> {
         progs.push(prog);
     }
     let programs = add_programs(&config, &root_db, progs)?;
-    for program in programs {
-        ProgTable::new_program(&program)?.print();
-        ProgTable::new_kernel_info(&program)?.print();
+
+    if programs.len() == 1 {
+        let links: Vec<Link> = vec![];
+        ProgTable::new_program(&programs[0], links)?.print();
+        ProgTable::new_kernel_info(&programs[0])?.print();
+    } else {
+        let mut table = ProgTable::new_program_list();
+        for program in programs {
+            if let Err(e) = table.add_program_response(program) {
+                bail!(e)
+            }
+        }
+        table.print();
+    }
+    Ok(())
+}
+
+pub(crate) fn parse_metadata(
+    metadata: &Option<Vec<(String, String)>>,
+    application: &Option<String>,
+) -> HashMap<String, String> {
+    let mut data: HashMap<String, String> = HashMap::new();
+    let mut found = false;
+
+    if let Some(metadata) = metadata {
+        for (k, v) in metadata {
+            if k == METADATA_APPLICATION_TAG {
+                found = true;
+            }
+            data.insert(k.to_string(), v.to_string());
+        }
+    }
+    if let Some(app) = application {
+        if found {
+            warn!(
+                "application entered but {} already in metadata, ignoring application",
+                METADATA_APPLICATION_TAG
+            );
+        } else {
+            data.insert(METADATA_APPLICATION_TAG.to_string(), app.to_string());
+        }
     }
 
-    Ok(())
+    data
 }
 
 fn parse_global(global: &Option<Vec<GlobalArg>>) -> HashMap<String, Vec<u8>> {
