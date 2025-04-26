@@ -33,7 +33,7 @@ readtime==3.0.0
 regex==2024.11.6
 requests==2.32.3
 six==1.17.0
-soupsieve==2.6
+soupsieve==2.7
 urllib3==2.3.0
 verspec==0.1.0
 watchdog==6.0.0
