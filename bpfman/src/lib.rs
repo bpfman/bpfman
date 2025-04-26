@@ -229,8 +229,6 @@ fn add_programs_internal(
     root_db: &Db,
     mut programs: Vec<Program>,
 ) -> Result<Vec<Program>, BpfmanError> {
-    let mut image_manager = init_image_manager()?;
-
     // This is only required in the add_program api
     // TODO: We should document why ^^^ is true here
     for program in programs.iter_mut() {
@@ -249,6 +247,8 @@ fn add_programs_internal(
             program.get_data_mut().set_map_pin_path(&map_pin_path)?;
         }
     }
+
+    let mut image_manager = init_image_manager()?;
 
     // This will iterate over all the programs and set the program bytes
     // The image is only pulled once and the bytes are set for each program
@@ -1243,7 +1243,6 @@ pub(crate) fn load_program(
     mut p: Program,
 ) -> Result<u32, BpfmanError> {
     debug!("BpfManager::load_program()");
-    let mut image_manager = init_image_manager()?;
     let name = &p.get_data().get_name()?;
 
     let raw_program = loader
@@ -1253,6 +1252,7 @@ pub(crate) fn load_program(
     let res = match p {
         Program::Tc(ref mut program) => {
             let ext: &mut Extension = raw_program.try_into()?;
+            let mut image_manager = init_image_manager()?;
             let dispatcher =
                 TcDispatcher::get_test(root_db, config.registry(), &mut image_manager)?;
             let fd = dispatcher.fd()?.try_clone()?;
@@ -1268,6 +1268,7 @@ pub(crate) fn load_program(
         }
         Program::Xdp(ref mut program) => {
             let ext: &mut Extension = raw_program.try_into()?;
+            let mut image_manager = init_image_manager()?;
             let dispatcher =
                 XdpDispatcher::get_test(root_db, config.registry(), &mut image_manager)?;
             let fd = dispatcher.fd()?.try_clone()?;
@@ -1732,8 +1733,6 @@ pub(crate) fn attach_multi_attach_program(
         )),
     }?;
 
-    let mut image_manager = init_image_manager()?;
-
     let did = l
         .dispatcher_id()?
         .ok_or(BpfmanError::DispatcherNotRequired)?;
@@ -1768,6 +1767,8 @@ pub(crate) fn attach_multi_attach_program(
         1
     };
 
+    let mut image_manager = init_image_manager()?;
+
     let _ = Dispatcher::new(
         root_db,
         if_config,
@@ -1794,7 +1795,6 @@ fn detach_multi_attach_program(
     netns: Option<PathBuf>,
 ) -> Result<(), BpfmanError> {
     debug!("BpfManager::detach_multi_attach_program()");
-    let mut image_manager = init_image_manager()?;
 
     let netns_deleted = netns.is_some_and(|n| !n.exists());
     let num_remaining_programs = num_attached_programs(&did, root_db)?.saturating_sub(1);
@@ -1837,6 +1837,8 @@ fn detach_multi_attach_program(
         1
     };
     debug!("next_revision = {next_revision}");
+
+    let mut image_manager = init_image_manager()?;
 
     Dispatcher::new(
         root_db,
