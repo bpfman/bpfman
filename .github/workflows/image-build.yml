@@ -299,7 +299,7 @@ jobs:
 
       # bpfman ONLY
       - name: Download built bpfman Binaries
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # @v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
         if: ${{ matrix.image.image == 'bpfman'}}
         with:
           pattern: bpfman-build-*
@@ -320,7 +320,7 @@ jobs:
 
       - name: Build and push
         id: build-push-image
-        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # @v6
+        uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # @v6
         with:
           platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
           push: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
@@ -765,7 +765,7 @@ jobs:
           password: ${{ secrets.BPFMAN_BYTECODE_ROBOT_TOKEN }}
 
       - name: Download bpfman binary
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # @v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
         with:
           name: bpfman-for-build-args
 
@@ -800,7 +800,7 @@ jobs:
 
       - name: Build and push
         id: build-push-image
-        uses: docker/build-push-action@471d1dc4e07e5cdedd4c2171150001c434f0b7a4 # @v6
+        uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # @v6
         with:
           platforms: linux/amd64, linux/arm64, linux/ppc64le, linux/s390x
           push: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
