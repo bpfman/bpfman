@@ -93,8 +93,8 @@ tempfile = { version = "3.19.0", default-features = false }
 thiserror = { version = "2", default-features = false }
 tokio = { version = "1.44.2", default-features = false }
 tokio-stream = { version = "0.1.17", default-features = false }
-tokio-util = { version = "0.7.14", default-features = false }
-toml = { version = "0.8.20", default-features = false }
+tokio-util = { version = "0.7.15", default-features = false }
+toml = { version = "0.8.21", default-features = false }
 tonic = { version = "0.11.0", default-features = false }
 tonic-build = { version = "0.11.0", default-features = false }
 tower = { version = "0.5.2", default-features = false }
