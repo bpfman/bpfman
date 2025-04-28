@@ -350,7 +350,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Download bpfman x86_64 build
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # @v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
         with:
           name: bpfman-debug-linux-x86_64
           merge-multiple: true
@@ -361,7 +361,7 @@ jobs:
           tar -C target/debug -xzvf bpfman-debug-linux-x86_64.tar.gz
 
       - name: Download Integration Test eBPF
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # @v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
         with:
           name: bpfman-integration-test
           merge-multiple: true
@@ -371,7 +371,7 @@ jobs:
           tar -xzvf integration-test.tar.gz
 
       - name: Download manpages
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # @v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
         with:
           name: bpfman-manpages
           merge-multiple: true
@@ -381,7 +381,7 @@ jobs:
           tar -xzvf manpages.tar.gz
 
       - name: Download CLI TAB Completion
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # @v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
         with:
           name: bpfman-cli-tab-completion
           merge-multiple: true
@@ -416,7 +416,7 @@ jobs:
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
       - name: Install required-version defined in pyproject.toml
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
 
       - name: Mkdocs Build
         run: |
@@ -427,7 +427,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Download rust coverage artifacts
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # @v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
         with:
           name: coverage-rust
 
@@ -459,7 +459,7 @@ jobs:
           fi
 
       - name: Download bpfman Release Binaries
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # @v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
         with:
           pattern: bpfman-release-*
           merge-multiple: true
