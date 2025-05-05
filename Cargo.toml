@@ -45,9 +45,9 @@ bpfman-api = { version = "0.5.6", path = "./bpfman-api" }
 bpfman-csi = { version = "1.8.0", path = "./csi" }
 caps = { version = "0.5.4", default-features = false }
 cargo_metadata = { version = "0.19.2", default-features = false }
-chrono = { version = "0.4.40", default-features = false }
+chrono = { version = "0.4.41", default-features = false }
 clap = { version = "4", default-features = false }
-clap_complete = { version = "4.5.46", default-features = false }
+clap_complete = { version = "4.5.48", default-features = false }
 clap_mangen = { version = "0.2.26", default-features = false }
 comfy-table = { version = "7.1.4", default-features = false }
 dialoguer = { version = "0.11", default-features = false }
@@ -58,7 +58,7 @@ hex = { version = "0.4.3", default-features = false }
 integration-test-macros = { path = "./tests/integration-test-macros" }
 inventory = { version = "0.3", default-features = false }
 lazy_static = { version = "1", default-features = false }
-libsystemd = { version = "0.7.1", default-features = false }
+libsystemd = { version = "0.7.2", default-features = false }
 log = { version = "0.4", default-features = false }
 netlink-packet-audit = { version = "^0.5", default-features = false }
 netlink-packet-core = { version = "^0.7", default-features = false }
@@ -83,18 +83,18 @@ rustdoc-json = { version = "0.8.9", default-features = false }
 rustup-toolchain = { version = "0.1.10", default-features = false }
 serde = { version = "1.0", default-features = false }
 serde_json = { version = "1", default-features = false }
-sha2 = { version = "0.10.8", default-features = false }
+sha2 = { version = "0.10.9", default-features = false }
 sigstore = { version = "0.11.0", default-features = false }
 sled = { version = "0.34.7", default-features = false }
 syn = { version = "2.0", default-features = false }
-systemd-journal-logger = { version = "2.2.1", default-features = false }
+systemd-journal-logger = { version = "2.2.2", default-features = false }
 tar = { version = "0.4", default-features = false }
 tempfile = { version = "3.19.0", default-features = false }
 thiserror = { version = "2", default-features = false }
 tokio = { version = "1.44.2", default-features = false }
 tokio-stream = { version = "0.1.17", default-features = false }
 tokio-util = { version = "0.7.15", default-features = false }
-toml = { version = "0.8.21", default-features = false }
+toml = { version = "0.8.22", default-features = false }
 tonic = { version = "0.11.0", default-features = false }
 tonic-build = { version = "0.11.0", default-features = false }
 tower = { version = "0.5.2", default-features = false }
