@@ -112,6 +112,18 @@ platforms = [
 
 [workspace.lints.clippy]
 unused_trait_names = "warn"
+pedantic = { level = "warn", priority = -1 } 
+restriction = { level = "warn", priority = -1 } 
+unwrap_used = "deny"
+expect_used = "deny"
+missing_docs_in_private_items = "allow"
+question_mark_used = "allow"
+implicit_return = "allow"
+multiple_inherent_impl = "allow"
+dbg_macro = "deny"
+manual_let_else = "warn"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
 
 [workspace.lints.rust]
 unused-extern-crates = "warn"
