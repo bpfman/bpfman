@@ -1,14 +1,14 @@
-# yamllint disable-file
 apiVersion: tekton.dev/v1
 kind: PipelineRun
 metadata:
   annotations:
+    build.appstudio.openshift.io/build-nudge-files: hack/update_configmap.sh
     build.appstudio.openshift.io/repo: https://github.com/openshift/bpfman?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
-    build.appstudio.openshift.io/build-nudge-files: "hack/update_configmap.sh"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
+      == "main"
   creationTimestamp: null
   labels:
     appstudio.openshift.io/application: bpfman
@@ -32,13 +32,14 @@ spec:
     value: .
   - name: build-platforms
     value:
-      - localhost
-      - linux/arm64
-      - linux/ppc64le
-      - linux/s390x
+    - localhost
+    - linux/arm64
+    - linux/ppc64le
+    - linux/s390x
   pipelineRef:
     name: build-pipeline
-  taskRunTemplate: {}
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-ocp-bpfman
   workspaces:
   - name: workspace
     volumeClaimTemplate:
