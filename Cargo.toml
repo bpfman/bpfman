@@ -47,7 +47,7 @@ caps = { version = "0.5.4", default-features = false }
 cargo_metadata = { version = "0.19.2", default-features = false }
 chrono = { version = "0.4.41", default-features = false }
 clap = { version = "4", default-features = false }
-clap_complete = { version = "4.5.48", default-features = false }
+clap_complete = { version = "4.5.50", default-features = false }
 clap_mangen = { version = "0.2.26", default-features = false }
 comfy-table = { version = "7.1.4", default-features = false }
 dialoguer = { version = "0.11", default-features = false }
@@ -89,9 +89,9 @@ sled = { version = "0.34.7", default-features = false }
 syn = { version = "2.0", default-features = false }
 systemd-journal-logger = { version = "2.2.2", default-features = false }
 tar = { version = "0.4", default-features = false }
-tempfile = { version = "3.19.0", default-features = false }
+tempfile = { version = "3.20.0", default-features = false }
 thiserror = { version = "2", default-features = false }
-tokio = { version = "1.44.2", default-features = false }
+tokio = { version = "1.45.0", default-features = false }
 tokio-stream = { version = "0.1.17", default-features = false }
 tokio-util = { version = "0.7.15", default-features = false }
 toml = { version = "0.8.22", default-features = false }
