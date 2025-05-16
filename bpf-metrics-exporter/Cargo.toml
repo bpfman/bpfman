@@ -10,6 +10,9 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
+[build-dependencies]
+buildinfo = { workspace = true }
+
 [dependencies]
 anyhow = { workspace = true }
 aya = { workspace = true }
