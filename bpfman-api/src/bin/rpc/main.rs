@@ -32,6 +32,7 @@ const RTDIR_BPFMAN_CSI: &str = "/run/bpfman/csi";
 #[derive(Parser, Debug)]
 #[command(long_about = "A rpc server proxy for the bpfman library")]
 #[command(name = "bpfman-rpc")]
+#[command(version = env!("BPFMAN_BUILD_INFO"))]
 pub(crate) struct Rpc {
     /// Optional: Enable CSI support. Only supported when run in a Kubernetes
     /// environment with bpfman-agent.

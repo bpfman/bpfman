@@ -1,0 +1,15 @@
+[package]
+description = "Shared build-time version generation"
+name = "buildinfo"
+publish = false
+
+documentation.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+chrono = { workspace = true, features = ["now"] }
