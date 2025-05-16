@@ -36,6 +36,7 @@ fn init_meter_provider(grpc_endpoint: &str) -> SdkMeterProvider {
 }
 
 #[derive(Parser)]
+#[command(version = env!("BPFMAN_BUILD_INFO"))]
 struct Cli {
     #[clap(long, default_value = "http://localhost:4317")]
     otel_grpc: String,

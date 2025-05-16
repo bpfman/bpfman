@@ -10,7 +10,7 @@ use log::debug;
 use nix::sched::{CloneFlags, setns};
 
 #[derive(Debug, Parser)]
-#[clap(author, version, about, long_about = None)]
+#[clap(author, version = env!("BPFMAN_BUILD_INFO"), about, long_about = None)]
 struct Cli {
     #[clap(subcommand)]
     command: Commands,
