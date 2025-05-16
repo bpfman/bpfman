@@ -9,7 +9,7 @@ ghp-import==2.1.0
 idna==3.10
 importlib-metadata==8.6.1
 Jinja2==3.1.6
-lxml==5.3.1
+lxml==5.4.0
 Markdown==3.8
 markdown2==2.5.3
 MarkupSafe==3.0.2
