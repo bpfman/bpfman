@@ -18,6 +18,9 @@ path = "src/lib.rs"
 name = "bpfman"
 path = "src/bin/cli/main.rs"
 
+[build-dependencies]
+buildinfo = { workspace = true }
+
 [dependencies]
 anyhow = { workspace = true, features = ["std"] }
 async-trait = { workspace = true }
