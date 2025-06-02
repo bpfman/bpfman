@@ -7,6 +7,12 @@ See [CODEOWNERS](https://github.com/bpfman/bpfman/blob/main/CODEOWNERS) for a de
 | Name | Employer | Responsibilities |
 | ---- | -------- | ---------------- |
 | [Dave Tucker](https://github.com/dave-tucker) | Red Hat  | Catch all |
-| [Andrew Stoycos](https://github.com/astoycos) | Red Hat | bpfman-operator, bpfman-agent |
+| [Andrew McDermott](https://github.com/frobware) | Red Hat | bpfman-operator, bpfman-agent |
 | [Andre Fredette](https://github.com/anfredette) | Red Hat | All things tc-bpf |
 | [Billy McFall](https://github.com/Billy99)   | Red Hat | All things systemd |
+
+# Emeritus Maintainers
+
+| Name | Employer | Responsibilities |
+| ---- | -------- | ---------------- |
+| [Andrew Stoycos](https://github.com/astoycos) | Red Hat | bpfman-operator, bpfman-agent |
