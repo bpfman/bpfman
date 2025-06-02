@@ -16,7 +16,7 @@ use hex::FromHex;
     long_about = "An eBPF manager focusing on simplifying the deployment and administration of eBPF programs."
 )]
 #[command(name = "bpfman")]
-#[command(disable_version_flag = true)]
+#[command(version = env!("BPFMAN_BUILD_INFO"))]
 pub(crate) struct Cli {
     #[command(subcommand)]
     pub(crate) command: Commands,
