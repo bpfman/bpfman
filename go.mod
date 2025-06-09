@@ -14,7 +14,7 @@ require (
 require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/google/gnostic-models v0.6.9 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	google.golang.org/genproto/googleapis/rpc f936aa4a68b2 // indirect
 	k8s.io/api v0.33.1 // indirect
 	k8s.io/apimachinery v0.33.1 // indirect
