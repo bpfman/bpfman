@@ -1,45 +1,5 @@
 {
-  "extends": [
-    "config:recommended"
-  ],
-  "vulnerabilityAlerts": {
-    "enabled": true
-  },
-  "osvVulnerabilityAlerts": true,
-  "packageRules": [
-    {
-      "enabled": false,
-      "matchPackageNames": [
-        "*"
-      ]
-    },
-    {
-      "matchManagers": [
-        "gomod"
-      ],
-      "matchUpdateTypes": [
-        "major",
-        "minor",
-        "patch"
-      ],
-      "enabled": false
-    }
-  ],
   "gomod": {
-    "enabled": true
-  },
-  "postUpdateOptions": [
-    "gomodTidy"
-  ],
-  "postUpgradeTasks": {
-    "commands": [
-      "go mod tidy",
-      "go mod vendor"
-    ],
-    "fileFilters": [
-      "go.mod",
-      "go.sum",
-      "vendor/**"
-    ]
+    "enabled": false
   }
 }
