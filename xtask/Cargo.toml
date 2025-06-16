@@ -31,4 +31,4 @@ serde_json = { workspace = true, features = ["std"] }
 tonic-build = { workspace = true, features = ["prost"] }
 
 [dev-dependencies]
-cargo-deny = "0.18.2"
+cargo-deny = "0.18.3"
