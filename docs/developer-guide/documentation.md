@@ -86,7 +86,14 @@ uv run mkdocs serve -a 0.0.0.0:8000
 
 ## Development Environment Setup
 
-The recommended installation method is using `uv`.
+The documentation generation uses `uv`.
+To install `uv`:
+
+```console
+pip install uv
+```
+
+The recommended installation method for `mkdocs` is using `uv`.
 
 ```console
 uv sync
