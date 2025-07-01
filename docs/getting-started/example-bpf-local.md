@@ -8,6 +8,7 @@ Assume the following command is run:
 
 ```console
 cd bpfman/examples/go-xdp-counter/
+go generate .
 go run -exec sudo . -iface eno3
 ```
 
@@ -134,20 +135,20 @@ sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest \
 ```
 
 `bpfman load image` returns the same data as the `bpfman get program` command.
-From the output, the Program Id of `63661` can be found in the `Kernel State` section.
+From the output, the Program Id of `63556` can be found in the `Kernel State` section.
 The Program Id can be used to perform a `bpfman get program` to retrieve all relevant program
 data and a `bpfman unload` when the program needs to be unloaded.
 
 ```console
 sudo bpfman list programs --application XdpPassProgram
  Program ID  Application     Type  Function Name  Links
- 63661       XdpPassProgram  xdp   pass
+ 63556       XdpPassProgram  xdp   pass
 ```
 
 We can recheck the details about the loaded program with the `bpfman get program` command:
 
 ```console
-sudo bpfman get 63661
+sudo bpfman get program 63556
  Bpfman State
 ---------------
  BPF Function:  pass
@@ -184,12 +185,12 @@ So the eBPF program will not be triggered.
 To attach the eBPF program to a hook point, use the `bpfman attach` command.
 
 ```console
-sudo bpfman attach 63661 xdp --iface eno3 --priority 35
+sudo bpfman attach 63556 xdp --iface eno3 --priority 35
  Bpfman State
 ---------------
  BPF Function:       pass
  Program Type:       xdp
- Program ID:         63661
+ Program ID:         63556
  Link ID:            1301256968
  Interface:          eno4
  Priority:           35
@@ -207,18 +208,18 @@ data.
 ```console
 sudo bpfman list programs --application XdpPassProgram
  Program ID  Application     Type  Function Name  Links
- 63661       XdpPassProgram  xdp   pass           (1) 1301256968
+ 63556       XdpPassProgram  xdp   pass           (1) 1301256968
 ```
 
 We can recheck the details about the attached program with the `bpfman get link` command:
 
 ```console
-sudo bpfman get link 63661 1301256968
+sudo bpfman get link 1301256968
  Bpfman State
 ---------------
  BPF Function:       pass
  Program Type:       xdp
- Program ID:         63661
+ Program ID:         63556
  Link ID:            1301256968
  Interface:          eno4
  Priority:           35
@@ -231,5 +232,5 @@ sudo bpfman get link 63661 1301256968
 Then unload the program:
 
 ```console
-sudo bpfman unload 63661
+sudo bpfman unload 63556
 ```
