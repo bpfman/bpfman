@@ -158,12 +158,12 @@ spec:
     params:
     - name: BINARY_IMAGE
       value: $(tasks.build-image-index.results.IMAGE_URL)
+    - name: BINARY_IMAGE_DIGEST
+      value: $(tasks.build-image-index.results.IMAGE_DIGEST)
     - name: SOURCE_ARTIFACT
       value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
     - name: CACHI2_ARTIFACT
       value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
-    - name: BINARY_IMAGE_DIGEST
-      value: $(tasks.build-image-index.results.IMAGE_DIGEST)
     runAfter:
     - build-image-index
     taskRef:
