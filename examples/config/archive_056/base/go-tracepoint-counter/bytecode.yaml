@@ -1,0 +1,16 @@
+---
+apiVersion: bpfman.io/v1alpha1
+kind: TracepointProgram
+metadata:
+  labels:
+    app.kubernetes.io/name: tracepointprogram
+  name: go-tracepoint-counter-example
+spec:
+  bpffunctionname: tracepoint_kill_recorder
+  # Select all nodes
+  nodeselector: {}
+  names: [syscalls/sys_enter_kill]
+  bytecode:
+    image:
+      url: quay.io/bpfman-bytecode/go-tracepoint-counter:latest
+      imagepullpolicy: IfNotPresent

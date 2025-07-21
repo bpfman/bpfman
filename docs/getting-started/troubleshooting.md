@@ -9,7 +9,7 @@ This section provides a list of common issues and solutions when working with `b
 When attempting to load an XDP program and the program fails to load:
 
 ```console
-$ sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest xdp --iface veth92cd99b --priority 100
+$ sudo bpfman attach 37568 xdp --iface veth92cd99b --priority 100
 Error: status: Aborted, message: "An error occurred. dispatcher attach failed on interface veth92cd99b: `bpf_link_create` failed", details: [], metadata: MetadataMap { headers: {"content-type": "application/grpc", "date": "Tue, 28 Nov 2023 13:37:02 GMT", "content-length": "0"} }
 ```
 

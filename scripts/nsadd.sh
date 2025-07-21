@@ -6,14 +6,26 @@
 # netns option for intsalling the programs inside a network namespace.
 #
 # non-ns load tests:
-# bpfman load image --image-url quay.io/bpfman-bytecode/tcx_test:latest -n tcx_pass tcx -d ingress -i bpfman-host -p 20
-# bpfman load image --image-url quay.io/bpfman-bytecode/tc_pass:latest -n pass tc -d ingress -i bpfman-host -p 50
-# bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest -n pass xdp -i bpfman-host -p 100
+# ------------------
+# bpfman load image --image-url quay.io/bpfman-bytecode/tcx_test:latest --programs tcx:tcx_pass
+# bpfman attach <PROGRAM_ID> tcx -d ingress -i bpfman-host -p 20
+#
+# bpfman load image --image-url quay.io/bpfman-bytecode/tc_pass:latest --programs tc:pass
+# bpfman attach <PROGRAM_ID> tc -d ingress -i bpfman-host -p 50
+#
+# bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --programs xdp:pass
+# bpfman attach <PROGRAM_ID> xdp -i bpfman-host -p 100
 #
 # netns load tests:
-# bpfman load image --image-url quay.io/bpfman-bytecode/tcx_test:latest -n tcx_pass tcx -d ingress -i bpfman-ns -n bpfman-test -p 20
-# bpfman load image --image-url quay.io/bpfman-bytecode/tc_pass:latest -n pass tc -d ingress -i bpfman-ns -n bpfman-test -p 50
-# bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest -n pass xdp -i bpfman-ns -n bpfman-test -p 100
+# -----------------
+# bpfman load image --image-url quay.io/bpfman-bytecode/tcx_test:latest --programs tcx:tcx_pass
+# bpfman attach <PROGRAM_ID> tcx -d ingress -i bpfman-ns -n bpfman-test -p 20
+#
+# bpfman load image --image-url quay.io/bpfman-bytecode/tc_pass:latest --programs tc:pass
+# bpfman attach <PROGRAM_ID> tc -d ingress -i bpfman-ns -n bpfman-test -p 50
+#
+# bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest --programs xdp:pass
+# bpfman attach <PROGRAM_ID> xdp -i bpfman-ns -n bpfman-test -p 100
 
 NS_NAME="bpfman-test"
 HOST_VETH="bpfman-host"

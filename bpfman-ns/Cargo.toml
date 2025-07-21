@@ -10,6 +10,9 @@ repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
 
+[build-dependencies]
+buildinfo = { workspace = true }
+
 [[bin]]
 name = "bpfman-ns"
 path = "src/main.rs"

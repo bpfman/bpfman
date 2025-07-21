@@ -10,7 +10,9 @@
 [![Netlify Status][netlify-badge]][netlify-url]
 [![Copr build status][copr-badge]][copr-url]
 [![OpenSSF Scorecard][openssf-badge]][openssf-url]
+[![OpenSSF Best Practices][openssf-best-practices-badge]][openssf-best-practices-url]
 [![FOSSA Status][fossa-badge]][fossa-url]
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/bpfman/bpfman)
 
 [apache2-badge]: https://img.shields.io/badge/License-Apache%202.0-blue.svg
 [apache2-url]: https://opensource.org/licenses/Apache-2.0
@@ -27,6 +29,8 @@
 [netlify-url]: https://app.netlify.com/sites/bpfman/deploys
 [openssf-badge]: https://api.scorecard.dev/projects/github.com/bpfman/bpfman/badge
 [openssf-url]: https://scorecard.dev/viewer/?uri=github.com/bpfman/bpfman
+[openssf-best-practices-badge]: https://www.bestpractices.dev/projects/10169/badge
+[openssf-best-practices-url]: https://www.bestpractices.dev/projects/10169
 [fossa-badge]: https://app.fossa.com/api/projects/git%2Bgithub.com%2Fbpfman%2Fbpfman.svg?type=shield
 [fossa-url]: https://app.fossa.com/projects/git%2Bgithub.com%2Fbpfman%2Fbpfman?ref=badge_shield
 
@@ -70,6 +74,12 @@ Here are some links to help in your bpfman journey (all links are from the bpfma
 - [Deploying the bpfman-operator](https://bpfman.io/main/getting-started/develop-operator/) for details on launching
   bpfman in a Kubernetes cluster.
 - [Meet the Community](https://bpfman.io/main/governance/meetings/) for details on community meeting details.
+
+## Issues
+
+Would you like to report a bug? Feel free to [add an issue](https://github.com/bpfman/bpfman/issues).
+
+Would you like to start a conversation on a specific topic? Please, [open a discussion](https://github.com/bpfman/bpfman/discussions).
 
 ## License
 

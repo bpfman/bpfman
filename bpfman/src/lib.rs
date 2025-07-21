@@ -146,7 +146,7 @@ pub fn get_db_config() -> SledConfig {
 ///     // information (similar to Kubernetes labels) to an eBPF program
 ///     // when it is loaded. This metadata consists of key-value pairs
 ///     // (e.g., `owner=acme`) and can be used for filtering or selecting
-///     // programs later, for instance, using commands like `bpfman list
+///     // programs later, for instance, using commands like `bpfman list programs
 ///     // --metadata-selector owner=acme`.
 ///     let mut metadata = HashMap::new();
 ///     metadata.insert("owner".to_string(), "acme".to_string());
@@ -229,8 +229,6 @@ fn add_programs_internal(
     root_db: &Db,
     mut programs: Vec<Program>,
 ) -> Result<Vec<Program>, BpfmanError> {
-    let mut image_manager = init_image_manager()?;
-
     // This is only required in the add_program api
     // TODO: We should document why ^^^ is true here
     for program in programs.iter_mut() {
@@ -249,6 +247,8 @@ fn add_programs_internal(
             program.get_data_mut().set_map_pin_path(&map_pin_path)?;
         }
     }
+
+    let mut image_manager = init_image_manager()?;
 
     // This will iterate over all the programs and set the program bytes
     // The image is only pulled once and the bytes are set for each program
@@ -437,7 +437,7 @@ pub fn attach_program(
     root_db: &Db,
     id: u32,
     attach_info: AttachInfo,
-) -> Result<u32, BpfmanError> {
+) -> Result<Link, BpfmanError> {
     let mut prog = match get(root_db, &id) {
         Some(p) => p,
         None => {
@@ -460,14 +460,19 @@ pub fn attach_program(
     let name = prog.get_data().get_name().unwrap_or("not set".to_string());
     info!("Request to attach {kind} program named \"{name}\" with id {id}");
 
-    // Write attach info into the database
+    // Write attach info into the database. Once written to the database,
+    // DO NOT EXIT with a failure without calling prog.remove_link().
     let mut link = prog.add_link()?;
-    link.attach(attach_info)?;
 
-    let result = attach_program_internal(config, root_db, &prog, link.clone());
-
+    let result = match link.attach(attach_info) {
+        Ok(_) => attach_program_internal(config, root_db, &prog, link.clone()),
+        Err(e) => Err(e),
+    };
     match result {
-        Ok(_) => info!("Success: attached {kind} program named \"{name}\" with id {id}"),
+        Ok(ref link) => info!(
+            "Success: attached {kind} program named \"{name}\" with program id {id} with link {}",
+            link.get_id().unwrap_or_default(),
+        ),
         Err(ref e) => {
             error!("Error: failed to attach {kind} program named \"{name}\": {e}");
             if let Err(e) = prog.remove_link(root_db, link.clone()) {
@@ -485,7 +490,7 @@ fn attach_program_internal(
     root_db: &Db,
     program: &Program,
     mut link: Link,
-) -> Result<u32, BpfmanError> {
+) -> Result<Link, BpfmanError> {
     let program_type = program.kind();
 
     if let Err(e) = match program {
@@ -507,7 +512,7 @@ fn attach_program_internal(
     // write it to the database from the temp tree
     link.finalize(root_db)?;
 
-    link.get_id()
+    Ok(link)
 }
 
 fn detach_program_internal(
@@ -747,6 +752,63 @@ pub fn get_program(root_db: &Db, id: u32) -> Result<Program, BpfmanError> {
     }
 }
 
+/// Retrieves information about a currently loaded eBPF program.
+///
+/// Attempts to retrieve detailed information about an eBPF program
+/// identified by the given kernel `id`. If the program was loaded by
+/// `bpfman`, it uses that information; otherwise, it queries all
+/// loaded eBPF programs through the Aya library. If a match is found,
+/// the program is converted into an unsupported program object.
+///
+/// The `Location` of the program indicates whether the program's
+/// bytecode was provided via a fully qualified local path or through
+/// an OCI-compliant container image tag.
+///
+/// # Arguments
+///
+/// * `id` - A `u32` representing the unique identifier of the eBPF program.
+///
+/// # Returns
+///
+/// * `Ok(Program)` - On successful retrieval of the program
+///   information, returns a `Program` object encapsulating the
+///   program details.
+///
+/// * `Err(BpfmanError)` - Returns an error if the setup fails, the
+///   program is not found, or there is an issue opening the database
+///   tree or setting kernel information.
+///
+/// # Errors
+///
+/// This function can return several types of errors:
+/// * `BpfmanError::SetupError` - If the setup function fails.
+/// * `BpfmanError::DatabaseError` - If there is an issue opening the
+///   database tree for the program.
+/// * `BpfmanError::KernelInfoError` - If there is an issue setting
+///   the kernel information for the program data.
+/// * `BpfmanError::Error` - If the program with the specified `id`
+///   does not exist.
+///
+/// # Examples
+///
+/// ```rust,no_run
+/// use bpfman::{get_link,setup};
+///
+/// let (_, root_db) = setup().unwrap();
+/// match get_link(&root_db, 42) {
+///     Ok(link) => println!("Link info: {:?}", link),
+///     Err(e) => eprintln!("Error fetching link: {:?}", e),
+/// }
+///
+/// ```
+pub fn get_link(root_db: &Db, id: u32) -> Result<Link, BpfmanError> {
+    let tree = root_db
+        .open_tree(format!("{LINKS_LINK_PREFIX}{id}"))
+        .expect("Unable to open link database tree");
+    let link = Link::new_from_db(tree)?;
+    Ok(link)
+}
+
 /// Pulls an OCI-compliant image containing eBPF bytecode from a
 /// remote container registry.
 ///
@@ -848,7 +910,7 @@ pub(crate) fn init_image_manager() -> Result<ImageManager, BpfmanError> {
 
 fn get_dispatcher(id: &DispatcherId, root_db: &Db) -> Result<Option<Dispatcher>, BpfmanError> {
     debug!("Getting dispatcher with id: {:?}", id);
-    let tree_name_prefix = match id {
+    let dispatcher_id = match id {
         DispatcherId::Xdp(DispatcherInfo(nsid, if_index, _)) => {
             xdp_dispatcher_id(*nsid, *if_index)?
         }
@@ -859,6 +921,7 @@ fn get_dispatcher(id: &DispatcherId, root_db: &Db) -> Result<Option<Dispatcher>,
             return Ok(None);
         }
     };
+    let tree_name_prefix = format!("{dispatcher_id}_");
 
     Ok(root_db
         .tree_names()
@@ -1180,7 +1243,6 @@ pub(crate) fn load_program(
     mut p: Program,
 ) -> Result<u32, BpfmanError> {
     debug!("BpfManager::load_program()");
-    let mut image_manager = init_image_manager()?;
     let name = &p.get_data().get_name()?;
 
     let raw_program = loader
@@ -1190,6 +1252,7 @@ pub(crate) fn load_program(
     let res = match p {
         Program::Tc(ref mut program) => {
             let ext: &mut Extension = raw_program.try_into()?;
+            let mut image_manager = init_image_manager()?;
             let dispatcher =
                 TcDispatcher::get_test(root_db, config.registry(), &mut image_manager)?;
             let fd = dispatcher.fd()?.try_clone()?;
@@ -1205,6 +1268,7 @@ pub(crate) fn load_program(
         }
         Program::Xdp(ref mut program) => {
             let ext: &mut Extension = raw_program.try_into()?;
+            let mut image_manager = init_image_manager()?;
             let dispatcher =
                 XdpDispatcher::get_test(root_db, config.registry(), &mut image_manager)?;
             let fd = dispatcher.fd()?.try_clone()?;
@@ -1651,7 +1715,7 @@ pub(crate) fn attach_multi_attach_program(
                 Ok(())
             } else {
                 Err(BpfmanError::InvalidAttach(
-                    "program is not a tcx program".to_string(),
+                    "program is not a xdp program".to_string(),
                 ))
             }
         }
@@ -1660,7 +1724,7 @@ pub(crate) fn attach_multi_attach_program(
                 Ok(())
             } else {
                 Err(BpfmanError::InvalidAttach(
-                    "program is not a tcx program".to_string(),
+                    "program is not a tc program".to_string(),
                 ))
             }
         }
@@ -1669,18 +1733,15 @@ pub(crate) fn attach_multi_attach_program(
         )),
     }?;
 
-    let mut image_manager = init_image_manager()?;
-
     let did = l
         .dispatcher_id()?
         .ok_or(BpfmanError::DispatcherNotRequired)?;
 
     let next_available_id = num_attached_programs(&did, root_db)?;
+    debug!("next_available_id={next_available_id}");
     if next_available_id >= 10 {
         return Err(BpfmanError::TooManyPrograms);
     }
-
-    debug!("next_available_id={next_available_id}");
 
     let if_index = l.ifindex()?;
     let if_name = l.if_name().unwrap().to_string();
@@ -1705,6 +1766,8 @@ pub(crate) fn attach_multi_attach_program(
     } else {
         1
     };
+
+    let mut image_manager = init_image_manager()?;
 
     let _ = Dispatcher::new(
         root_db,
@@ -1732,32 +1795,29 @@ fn detach_multi_attach_program(
     netns: Option<PathBuf>,
 ) -> Result<(), BpfmanError> {
     debug!("BpfManager::detach_multi_attach_program()");
-    let mut image_manager = init_image_manager()?;
 
-    let netns_deleted = if let Some(netns) = netns {
-        !netns.exists()
-    } else {
-        false
-    };
-    debug!("netns_deleted = {netns_deleted}");
-
-    let next_available_id = if netns_deleted {
-        0
-    } else {
-        num_attached_programs(&did, root_db)? - 1
-    };
-    debug!("next_available_id = {next_available_id}");
-
+    let netns_deleted = netns.is_some_and(|n| !n.exists());
+    let num_remaining_programs = num_attached_programs(&did, root_db)?.saturating_sub(1);
     let mut old_dispatcher = get_dispatcher(&did, root_db)?;
 
-    if let Some(ref mut old) = old_dispatcher {
-        if next_available_id == 0 {
+    debug!(
+        "netns_deleted: {}, num_remaining_programs: {}, old_dispatcher exists: {}",
+        netns_deleted,
+        num_remaining_programs,
+        old_dispatcher.is_some()
+    );
+
+    // If there are no remaining programs, delete the old dispatcher and return
+    // early because there is no need to rebuild and attach a new dispatcher
+    // with the remaining programs. Additionally, do the same if the programs
+    // were attached inside a network namespace that has been deleted, as
+    // attempting to attach a new dispatcher will fail since the namespace can
+    // no longer be entered.
+    if num_remaining_programs == 0 || netns_deleted {
+        if let Some(ref mut old) = old_dispatcher {
             // Delete the dispatcher
             return old.delete(root_db, true);
         }
-    }
-
-    if netns_deleted {
         return Ok(());
     }
 
@@ -1777,6 +1837,8 @@ fn detach_multi_attach_program(
         1
     };
     debug!("next_revision = {next_revision}");
+
+    let mut image_manager = init_image_manager()?;
 
     Dispatcher::new(
         root_db,

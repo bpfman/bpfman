@@ -9,7 +9,7 @@ use bpfman::{
     detach,
     errors::BpfmanError,
     get_program, list_programs, pull_bytecode, remove_program, setup,
-    types::{AttachInfo, BytecodeImage, ListFilter, Program},
+    types::{AttachInfo, BytecodeImage, Link, ListFilter, Program},
 };
 use clap::{Args, Parser};
 use log::debug;
@@ -32,6 +32,7 @@ const RTDIR_BPFMAN_CSI: &str = "/run/bpfman/csi";
 #[derive(Parser, Debug)]
 #[command(long_about = "A rpc server proxy for the bpfman library")]
 #[command(name = "bpfman-rpc")]
+#[command(version = env!("BPFMAN_BUILD_INFO"))]
 pub(crate) struct Rpc {
     /// Optional: Enable CSI support. Only supported when run in a Kubernetes
     /// environment with bpfman-agent.
@@ -113,7 +114,7 @@ impl AsyncBpfman {
         }
     }
 
-    pub(crate) async fn attach(&self, id: u32, attach_info: AttachInfo) -> anyhow::Result<u32> {
+    pub(crate) async fn attach(&self, id: u32, attach_info: AttachInfo) -> anyhow::Result<Link> {
         let (config, root_db) = self.setup()?;
         match spawn_blocking(move || attach_program(&config, &root_db, id, attach_info)).await {
             Ok(result) => result.map_err(|e| e.into()),
