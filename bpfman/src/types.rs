@@ -36,6 +36,9 @@ use crate::{
     },
 };
 
+// Special metadata tag used to group programs loaded under the same load request
+pub const METADATA_APPLICATION_TAG: &str = "bpfman_application";
+
 // These constants define the key of SLED DB
 // Program database layout
 //
@@ -966,6 +969,44 @@ impl Link {
         }
     }
 
+    pub fn get_metadata(&self) -> Result<HashMap<String, String>, BpfmanError> {
+        match self {
+            Link::Xdp(p) => p.0.get_metadata(),
+            Link::Tc(p) => p.0.get_metadata(),
+            Link::Tcx(p) => p.0.get_metadata(),
+            Link::Tracepoint(p) => p.0.get_metadata(),
+            Link::Kprobe(p) => p.0.get_metadata(),
+            Link::Uprobe(p) => p.0.get_metadata(),
+            Link::Fentry(p) => p.0.get_metadata(),
+            Link::Fexit(p) => p.0.get_metadata(),
+        }
+    }
+
+    /// Loops through the metadata of the link and if the
+    /// application tag exists, returns the value, otherwise
+    /// returns None.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Option<String>`.
+    ///
+    /// # Errors
+    ///
+    /// This function does not return an error.
+    pub fn get_application_from_metadata(&self) -> Option<String> {
+        let mut application: Option<String> = None;
+
+        if let Ok(metadata) = Self::get_metadata(self) {
+            for (k, v) in metadata {
+                if k == METADATA_APPLICATION_TAG {
+                    application = Some(v);
+                    break;
+                }
+            }
+        }
+        application
+    }
+
     pub fn get_current_position(&self) -> Result<Option<usize>, BpfmanError> {
         match self {
             Link::Xdp(p) => p.get_current_position(),
@@ -1778,6 +1819,7 @@ impl ProgramData {
     /// This function will return an error if:
     /// - There is an issue fetching the links from the database.
     pub(crate) fn get_links(&self, root_db: &Db) -> Result<Vec<Link>, BpfmanError> {
+        let prog_id = self.get_id().unwrap_or_default();
         let mut res = vec![];
         let links: Vec<u32> = self
             .0
@@ -1800,15 +1842,21 @@ impl ProgramData {
             .collect::<Result<Vec<u32>, BpfmanError>>()?;
 
         for link in links.iter() {
-            let tree = root_db
-                .open_tree(format!("{LINKS_LINK_PREFIX}{link}").as_str())
-                .map_err(|e| {
-                    BpfmanError::DatabaseError(
-                        "Failed to open link tree".to_string(),
-                        e.to_string(),
-                    )
-                })?;
-            res.push(Link::new_from_db(tree)?);
+            match root_db.open_tree(format!("{LINKS_LINK_PREFIX}{link}").as_str()) {
+                Ok(tree) => match Link::new_from_db(tree) {
+                    Ok(t) => res.push(t),
+                    Err(e) => {
+                        warn!(
+                            "link id {link} from program {prog_id} not found in the DB so skipping: {e}"
+                        );
+                    }
+                },
+                Err(e) => {
+                    warn!(
+                        "link id {link} from program {prog_id} not found in the DB so skipping: {e}"
+                    );
+                }
+            };
         }
         Ok(res)
     }
@@ -1865,6 +1913,31 @@ impl ProgramData {
                 })
             })
             .collect()
+    }
+
+    /// Loops through the metadata of the program and if the
+    /// application tag exists, returns the value, otherwise
+    /// returns None.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Option<String>`.
+    ///
+    /// # Errors
+    ///
+    /// This function does not return an error.
+    pub fn get_application_from_metadata(&self) -> Option<String> {
+        let mut application: Option<String> = None;
+
+        if let Ok(metadata) = Self::get_metadata(self) {
+            for (k, v) in metadata {
+                if k == METADATA_APPLICATION_TAG {
+                    application = Some(v);
+                    break;
+                }
+            }
+        }
+        application
     }
 
     pub(crate) fn set_map_owner_id(&mut self, id: u32) -> Result<(), BpfmanError> {

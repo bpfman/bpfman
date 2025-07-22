@@ -265,17 +265,19 @@ impl XdpDispatcher {
         let path = PathBuf::from(xdp_dispatcher_link_path(nsid, if_index)?);
         if path.exists() {
             let pinned_link: FdLink = PinnedLink::from_pin(path).unwrap().into();
-            dispatcher
-                .attach_to_link(pinned_link.try_into().unwrap())
-                .unwrap();
+            if let Err(e) = dispatcher.attach_to_link(pinned_link.try_into().unwrap()) {
+                return Err(BpfmanError::Error(format!(
+                    "xdp dispatcher attach to link failed on interface {iface} mode {mode}: {e}"
+                )));
+            }
         } else {
             let mut flags = mode.as_flags();
             let mut link = dispatcher.attach(&iface, flags);
             if let Err(e) = link {
                 if mode != XdpMode::Skb {
                     info!(
-                        "Unable to attach on interface {} mode {}, falling back to Skb and retrying.",
-                        iface, mode
+                        "xdp dispatcher attach failed on interface {} mode {}, error: {}, falling back to Skb and retrying.",
+                        iface, mode, e
                     );
                     flags = XdpMode::Skb.as_flags();
                     link = dispatcher.attach(&iface, flags);

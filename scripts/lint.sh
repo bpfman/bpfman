@@ -1,6 +1,6 @@
 #!/bin/bash
 
-readonly GOLANGCI_LINT_VERSION="v1.54.2"
+readonly GOLANGCI_LINT_VERSION="v2.0.2"
 
 lint_all() {
     echo "### Linting yaml"

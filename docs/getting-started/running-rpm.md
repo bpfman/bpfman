@@ -40,7 +40,7 @@ sudo dnf copr enable @ebpf-sig/bpfman-next
     automatically pull from `bpfman-next`.
     Either repo can be disabled.
     For example, to disable `bpfman-next` run:
-    
+
     ```console
     sudo dnf copr disable @ebpf-sig/bpfman-next
     ```
@@ -87,9 +87,8 @@ $ sudo systemctl status bpfman.service
 TriggeredBy: ● bpfman.socket
 :
 
-$ sudo bpfman list
- Program ID  Name  Type  Load Time
-
+$ sudo bpfman list programs
+ Program ID  Application    Type        Function Name    Links
 ```
 
 ### Uninstall Given RPM
@@ -203,9 +202,8 @@ $ sudo systemctl status bpfman.service
 TriggeredBy: ● bpfman.socket
 :
 
-$ sudo bpfman list
- Program ID  Name  Type  Load Time
-
+$ sudo bpfman list programs
+ Program ID  Application    Type        Function Name    Links
 ```
 
 ### Uninstall Local Build

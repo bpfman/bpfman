@@ -13,7 +13,7 @@ images:
 patches:
 - path: patch.yaml
   target:
-    kind: KprobeProgram
+    kind: ClusterBpfApplication
     name: go-kprobe-counter-example
 - patch: |-
     - op: add

@@ -1,13 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Authors of bpfman
 
-use anyhow::anyhow;
 use args::Commands;
 use attach::execute_attach;
 use clap::Parser;
 use detach::execute_detach;
-use get::execute_get;
-use list::execute_list;
 use log::debug;
 use unload::execute_unload;
 
@@ -39,8 +36,8 @@ impl Commands {
             Commands::Unload(args) => execute_unload(args),
             Commands::Attach(args) => execute_attach(args),
             Commands::Detach(args) => execute_detach(args),
-            Commands::List(args) => execute_list(args),
-            Commands::Get(args) => execute_get(args).map_err(|e| anyhow!("get error: {e}")),
+            Commands::List(l) => l.execute(),
+            Commands::Get(g) => g.execute(),
             Commands::Image(i) => i.execute(),
             Commands::Man(args) => manpage::generate(args),
             Commands::Completions(args) => completions::generate(args),
