@@ -319,21 +319,19 @@ fn serde_label(labels: &Value, label_type: String) -> Result<HashMap<String, Str
 }
 
 fn get_image_content_key(image: &Reference) -> String {
-    // Try to get the tag, if it doesn't exist, get the digest
-    // if neither exist, return "latest" as the tag
-    let tag = match image.tag() {
+    // Generate a unique key for storing image content by preferring
+    // tag over digest, falling back to "latest" if neither are
+    // present.
+    let identifier = match image.tag() {
         Some(t) => t,
-        _ => match image.digest() {
-            Some(d) => d,
-            _ => "latest",
-        },
+        _ => image.digest().unwrap_or("latest"),
     };
 
     format!(
         "{}_{}_{}",
         image.registry(),
         image.repository().replace('/', "_"),
-        tag
+        identifier
     )
 }
 
