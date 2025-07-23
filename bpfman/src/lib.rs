@@ -91,16 +91,13 @@ pub mod directories {
     pub const RTDIR_FS_MAPS: &str = "/run/bpfman/fs/maps";
     // The TUF repository is used to store Rekor and Fulcio public keys.
     pub(crate) const RTDIR_TUF: &str = "/run/bpfman/tuf";
-    // StateDirectory: /var/lib/bpfman/
-    pub(crate) const STDIR_MODE: u32 = 0o6770;
-    pub(crate) const STDIR: &str = "/var/lib/bpfman";
-    #[cfg(not(test))]
-    pub(crate) const STDIR_DB: &str = "/var/lib/bpfman/db";
+    // Database location must be on tmpfs such as /run
+    pub(crate) const RTDIR_DB: &str = "/run/bpfman/db";
 }
 
 #[cfg(not(test))]
 pub fn get_db_config() -> SledConfig {
-    SledConfig::default().path(STDIR_DB)
+    SledConfig::default().path(RTDIR_DB)
 }
 
 #[cfg(test)]
@@ -2062,4 +2059,16 @@ fn get_map(id: u32, root_db: &Db) -> Option<sled::Tree> {
         .into_iter()
         .find(|n| bytes_to_string(n) == format!("{}{}", MAP_PREFIX, id))
         .map(|n| root_db.open_tree(n).expect("unable to open map tree"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_assert_rtdir_db() {
+        // Database location must be on tmpfs such as /run
+        // See https://github.com/bpfman/bpfman/issues/1563
+        assert!(RTDIR_DB.starts_with("/run/"));
+    }
 }

@@ -306,13 +306,10 @@ pub(crate) fn initialize_bpfman() -> anyhow::Result<()> {
     create_dir_all(RTDIR_FS_LINKS).context("unable to create links directory")?;
     create_dir_all(RTDIR_TUF).context("unable to create TUF directory")?;
 
-    create_dir_all(STDIR).context("unable to create state directory")?;
-
     create_dir_all(CFGDIR_STATIC_PROGRAMS).context("unable to create static programs directory")?;
 
     set_dir_permissions(CFGDIR, CFGDIR_MODE);
     set_dir_permissions(RTDIR, RTDIR_MODE);
-    set_dir_permissions(STDIR, STDIR_MODE);
 
     Ok(())
 }
