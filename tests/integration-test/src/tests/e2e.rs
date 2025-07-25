@@ -7,7 +7,8 @@ use bpfman::{
 use procfs::sys::kernel::Version;
 
 use crate::tests::{
-    RTDIR_FS_TC_EGRESS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP, basic::trigger_bpf_program, utils::*,
+    RTDIR_FS_TC_EGRESS, RTDIR_FS_TC_INGRESS, RTDIR_FS_XDP, basic::trigger_bpf_program,
+    container_utils::*, utils::*,
 };
 
 pub(crate) const GLOBAL_U8: &str = "GLOBAL_u8";
@@ -1148,17 +1149,94 @@ fn test_load_unload_tracepoint_maps() {
     verify_and_delete_programs(&config, &root_db, vec![res]);
 }
 
+const BPFMAN_LOAD_CMD: &str = concat!(
+    "bpfman load image ",
+    "--image-url quay.io/bpfman-bytecode/xdp_pass:latest ",
+    "--programs xdp:pass ",
+    "--application XdpPassProgram"
+);
+
+#[test]
+// test_xdp_container_restart simulates a node reboot scenario, e.g. it makes sure that the
+// database is correctly reset. In order to do so, it builds a local container image
+// and runs it. The container is then stopped and restarted, and the bpfman commands
+// are executed inside the container to ensure that the programs can be loaded and attached
+// correctly after the restart.
+fn test_xdp_container_restart() {
+    init_logger();
+    start_docker().unwrap();
+    let image_name = "localhost/bpfman:test";
+    let containerfile = "./Containerfile.bpfman.local";
+    let container_name = "bpfman_xdp_test";
+    let startup_cmd = vec!["sleep", "infinity"];
+
+    // Clean up at start, just in case
+    let container_image = DockerContainerImage::new(image_name).unwrap();
+    let container = DockerContainer::new(container_name).unwrap();
+    container.stop().unwrap();
+    container.remove().unwrap();
+    container_image.remove().unwrap();
+
+    // Collect all container images in a vector to prevent them from being dropped
+    let mut container_images = Vec::new();
+    container_images.push(build_container_image(image_name, containerfile).unwrap());
+
+    let iterations = [true, false];
+    for should_commit in iterations {
+        // Run a new container from container_image.
+        // Do not reuse container variable from before as we want to drop at the
+        // end of the loop or in case of an error in order of declaration (drop
+        // container first, container_images vector last)
+        let container = run_new_container(
+            container_name,
+            container_images[0].id(),
+            None,
+            true,
+            Some(""),
+            Some(startup_cmd.clone()),
+        )
+        .unwrap();
+
+        let output = container.exec(BPFMAN_LOAD_CMD).unwrap();
+
+        // Find line containing "Program ID: " in output and return the ID
+        let program_id = output
+            .lines()
+            .find(|line| line.contains("Program ID: "))
+            .map(|line| line.split_whitespace().nth(2).unwrap())
+            .expect("Failed to find program ID in output");
+
+        let output = container
+            .exec(&format!(
+                "bpfman attach {program_id} xdp --iface eth0 --priority 100"
+            ))
+            .unwrap();
+        assert!(!output.is_empty());
+
+        // Commit the container to create a new image with the loaded program.
+        // Vectors are unwound in order of sequence, so we insert the new image at the beginning
+        if should_commit {
+            container_images.insert(
+                0,
+                container.commit(&format!("{image_name}_commit")).unwrap(),
+            );
+        }
+    }
+}
+
 #[test]
 fn test_uprobe_container() {
     init_logger();
     let (config, root_db) = setup().unwrap();
     // Start docker container and verify we can attach a uprobe inside.
-    let container = start_container().unwrap();
+    start_docker().unwrap();
+    let container =
+        run_new_container("mynginx1", "nginx", Some("80:80"), false, None, None).unwrap();
     let _trace_guard = start_trace_pipe().unwrap();
 
     let mut progs = vec![];
 
-    let container_pid = container.container_pid();
+    let container_pid = container.pid();
 
     println!("Installing uprobe program");
     let res = add_uprobe(
@@ -1184,11 +1262,14 @@ fn test_uprobe_container() {
     progs.push(res);
 
     // run the target progream in the container to generate some logs
-    container.bash(b"echo hello\necho ebpf is cool\necho goodbye");
+    let output = container
+        .exec("echo hello\necho ebpf is cool\necho goodbye")
+        .unwrap();
+    assert!(!output.is_empty());
 
     std::thread::sleep(std::time::Duration::from_secs(2));
     let trace_pipe_log = read_trace_pipe_log().unwrap();
-    println!("trace_pipe_log: {}", trace_pipe_log);
+    println!("trace_pipe_log: {trace_pipe_log}");
     assert!(trace_pipe_log.contains(UPROBE_GLOBAL_1_LOG));
     println!("Successfully validated uprobe in a container");
 
