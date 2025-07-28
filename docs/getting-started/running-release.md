@@ -31,10 +31,10 @@ links above for further information on how to test and interact with `bpfman`.
 ## Run as a Long Lived Process
 
 ```console
-export BPFMAN_REL=0.5.6
-mkdir -p $SRC_DIR/bpfman-${BPFMAN_REL}/; cd $SRC_DIR/bpfman-${BPFMAN_REL}/
-wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-linux-x86_64.tar.gz
-tar -xzvf bpfman-linux-x86_64.tar.gz; rm bpfman-linux-x86_64.tar.gz
+$ export BPFMAN_REL=0.5.6
+$ mkdir -p $SRC_DIR/bpfman-${BPFMAN_REL}/; cd $SRC_DIR/bpfman-${BPFMAN_REL}/
+$ wget https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/bpfman-linux-x86_64.tar.gz
+$ tar -xzvf bpfman-linux-x86_64.tar.gz; rm bpfman-linux-x86_64.tar.gz
 
 $ tree
 .
@@ -48,7 +48,7 @@ $ tree
 To deploy `bpfman-rpc`:
 
 ```console
-sudo RUST_LOG=info ./bpfman-rpc --timeout=0
+$ sudo RUST_LOG=info ./bpfman-rpc --timeout=0
 [INFO  bpfman::utils] Has CAP_BPF: true
 [INFO  bpfman::utils] Has CAP_SYS_ADMIN: true
 [INFO  bpfman_rpc::serve] Using no inactivity timer
@@ -60,7 +60,7 @@ sudo RUST_LOG=info ./bpfman-rpc --timeout=0
 To use the CLI:
 
 ```console
-sudo ./bpfman list programs
+$ sudo ./bpfman list programs
  Program ID  Application    Type        Function Name    Links
 ```
 
@@ -72,27 +72,31 @@ The quickest solution for running `bpfman` in a Kubernetes deployment is to run 
 Kubernetes KIND Cluster:
 
 ```console
-kind create cluster --name=test-bpfman
+$ kind create cluster --name=test-bpfman
 ```
 
 Next, deploy the bpfman CRDs:
 
 ```console
-export BPFMAN_REL=0.5.6
-kubectl apply -f  https://github.com/bpfman/bpfman-operator/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml
+$ export BPFMAN_REL=0.5.6
+$ kubectl apply -f  https://github.com/bpfman/bpfman-operator/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml
 ```
 
 Next, deploy the `bpfman-operator`, which will also deploy the `bpfman-daemon`, which contains
 `bpfman-rpc`, `bpfman` Library and `bpfman-agent`:
 
 ```console
-kubectl apply -f https://github.com/bpfman/bpfman-operator/releases/download/v${BPFMAN_REL}/bpfman-operator-install-v${BPFMAN_REL}.yaml
+$ kubectl apply -f https://github.com/bpfman/bpfman-operator/releases/download/v${BPFMAN_REL}/bpfman-operator-install.yaml
 ```
 
 Finally, deploy an example eBPF program.
 
 ```console
-kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/go-xdp-counter-install-v${BPFMAN_REL}.yaml
+$ kubectl apply -f https://github.com/bpfman/bpfman/releases/download/v${BPFMAN_REL}/go-xdp-counter-install.yaml
+namespace/go-xdp-counter created
+serviceaccount/bpfman-app-go-xdp-counter created
+daemonset.apps/go-xdp-counter-ds created
+xdpprogram.bpfman.io/go-xdp-counter-example created
 ```
 
 There are other example programs in the [Releases](https://github.com/bpfman/bpfman/releases)
@@ -106,5 +110,5 @@ So follow the release specific documentation.
 Use the following command to teardown the cluster:
 
 ```console
-kind delete cluster -n test-bpfman
+$ kind delete cluster -n test-bpfman
 ```
