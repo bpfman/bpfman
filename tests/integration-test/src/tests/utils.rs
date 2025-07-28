@@ -4,7 +4,6 @@ use std::{
     io::{Read, Write},
     path::{Path, PathBuf},
     process::Command,
-    str::FromStr,
     thread::sleep,
     time::Duration,
 };
@@ -704,97 +703,6 @@ pub(crate) fn add_fexit(
         attach_info
     )
 }
-
-#[derive(Debug)]
-pub struct DockerContainer {
-    container_pid: i32,
-    container_id: String,
-}
-
-impl Drop for DockerContainer {
-    fn drop(&mut self) {
-        let output = Command::new("docker")
-            .args(["rm", "-f", self.container_id.as_str()])
-            .output()
-            .expect("failed to start docker");
-
-        if output.status.success() {
-            println!("Docker container {} removed", self.container_id);
-        } else {
-            println!("Error removing container {}", self.container_id);
-        }
-    }
-}
-
-impl DockerContainer {
-    /// Return the container PID
-    pub fn container_pid(&self) -> i32 {
-        self.container_pid
-    }
-
-    /// Runs bash in the container
-    pub fn bash(&self, cmd: &[u8]) {
-        let mut child = Command::new("docker")
-            .stdin(std::process::Stdio::piped())
-            .args(["exec", &self.container_id, "/bin/bash"])
-            .spawn()
-            .expect("failed run ls in container");
-        let input = [cmd, b"\nexit\n"].concat();
-        let child_stdin = child.stdin.as_mut().expect("Failed to open stdin");
-        child_stdin
-            .write_all(&input)
-            .expect("Failed to write to stdin");
-        child.wait().expect("Failed to kill child");
-    }
-}
-
-/// Starts a docker container from the nginx image
-pub fn start_container() -> Result<DockerContainer> {
-    let status = Command::new("systemctl")
-        .args(["start", "docker"])
-        .status()
-        .expect("failed to start docker");
-    assert!(status.success());
-
-    let output = Command::new("docker")
-        .args(["run", "--name", "mynginx1", "-p", "80:80", "-d", "nginx"])
-        .output()
-        .expect("failed to start nginx");
-
-    let mut container_id = String::from_utf8(output.stdout).unwrap();
-    // Get rid of trailing '\n'
-    container_id.pop();
-
-    assert!(!container_id.is_empty());
-
-    let output = Command::new("lsns")
-        .args(["-t", "pid"])
-        .output()
-        .expect("systemctl start docker");
-
-    let output = String::from_utf8(output.stdout).unwrap();
-
-    let mut container_pid: i32 = 0;
-    for line in output.lines() {
-        if line.contains("nginx") {
-            let pid_str: Vec<&str> = line.split_whitespace().collect();
-            container_pid = FromStr::from_str(pid_str[3]).unwrap();
-            break;
-        }
-    }
-    assert!(container_pid != 0);
-
-    println!(
-        "Docker container with ID {} and PID {} created",
-        container_id, container_pid
-    );
-
-    Ok(DockerContainer {
-        container_pid,
-        container_id,
-    })
-}
-
 pub struct DisableCosignGuard<'a> {
     path: &'a str,
 }
@@ -820,10 +728,7 @@ pub fn disable_cosign() -> Result<DisableCosignGuard<'static>> {
     let mut file = fs::File::create(path)?;
     file.write_all(content.as_bytes())?;
 
-    println!(
-        "bpfman.toml with \"verify_enabled = false\" created at {}",
-        path
-    );
+    println!("bpfman.toml with \"verify_enabled = false\" created at {path}");
 
     Ok(cosign_guard)
 }
