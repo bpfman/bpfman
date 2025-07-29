@@ -1395,15 +1395,13 @@ impl Location {
         match self {
             Location::File(l) => Ok((crate::utils::read(l)?, Vec::new())),
             Location::Image(l) => {
-                let (path, bpf_function_names) = image_manager.get_image(
+                let (bytecode, bpf_function_names) = image_manager.get_image(
                     root_db,
                     &l.image_url,
                     l.image_pull_policy.clone(),
                     l.username.clone(),
                     l.password.clone(),
                 )?;
-                let bytecode = image_manager.get_bytecode_from_image_store(root_db, path)?;
-
                 Ok((bytecode, bpf_function_names))
             }
         }

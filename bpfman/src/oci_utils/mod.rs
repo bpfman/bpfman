@@ -22,8 +22,12 @@ pub enum ImageError {
     ByteCodeImageProcessFailure(#[from] anyhow::Error),
     #[error("BytecodeImage not found: {0}")]
     ByteCodeImageNotfound(String),
+    #[error("BytecodeImage compromised: {0}")]
+    ByteCodeImageCompromised(String),
     #[error("{0}: {1}")]
     DatabaseError(String, String),
+    #[error("Failed reading from database at: {0}")]
+    DatabaseReadError(String),
     #[error("{0}: {1}")]
     BytecodeImageParseFailure(String, String),
     #[error(transparent)]
