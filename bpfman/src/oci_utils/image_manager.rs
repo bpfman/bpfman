@@ -7,6 +7,8 @@ use std::{
 };
 
 use anyhow::anyhow;
+use base64::Engine;
+use comfy_table::Table;
 use flate2::read::GzDecoder;
 use log::{debug, error, info, trace};
 use object::{Endianness, Object};
@@ -34,6 +36,8 @@ use crate::{
 
 const OCI_PROGRAMS_LABEL: &str = "io.ebpf.programs";
 const OCI_MAPS_LABEL: &str = "io.ebpf.maps";
+const IMAGE_PREFIX: &str = "image_";
+const MANIFEST_EXTENSION: &str = "_manifest.json";
 
 #[derive(Debug)]
 pub struct ContainerImageMetadata {
@@ -224,13 +228,13 @@ impl DatabaseImage {
 
     /// Generates the database key for storing the image manifest.
     fn generate_manifest_key(image_content_key: &str) -> String {
-        format!("{image_content_key}manifest.json")
+        format!("{image_content_key}{MANIFEST_EXTENSION}")
     }
 
     /// Generates the database key for storing the image configuration.
     fn generate_config_key(image_content_key: &str, config_digest: &str) -> String {
         format!(
-            "{image_content_key}{}",
+            "{image_content_key}_{}",
             Self::extract_sha_from_digest(config_digest)
         )
     }
@@ -238,7 +242,7 @@ impl DatabaseImage {
     /// Generates the database key for storing the image bytecode.
     fn generate_bytecode_key(image_content_key: &str, bytecode_digest: &str) -> String {
         format!(
-            "{image_content_key}{}",
+            "{image_content_key}_{}",
             Self::extract_sha_from_digest(bytecode_digest)
         )
     }
@@ -338,19 +342,7 @@ impl DatabaseImage {
 
         // Manifest
         let manifest_key = Self::generate_manifest_key(&image_content_key);
-        let manifest = serde_json::from_str::<OciImageManifest>(
-            std::str::from_utf8(
-                &sled_get(root_db, &manifest_key)
-                    .map_err(|e| ImageError::DatabaseReadError(e.to_string()))?,
-            )
-            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?,
-        )
-        .map_err(|e| {
-            ImageError::DatabaseError(
-                "failed to parse image manifest from db".to_string(),
-                e.to_string(),
-            )
-        })?;
+        let manifest = Self::load_manifest(root_db, &manifest_key)?;
 
         // Bytecode
         let bytecode_key =
@@ -382,6 +374,117 @@ impl DatabaseImage {
             _ => e,
         })?;
         Ok(image)
+    }
+
+    // Helper function to load the manifest only.
+    fn load_manifest(root_db: &Db, manifest_key: &str) -> Result<OciImageManifest, ImageError> {
+        let manifest = serde_json::from_str::<OciImageManifest>(
+            std::str::from_utf8(
+                &sled_get(root_db, manifest_key)
+                    .map_err(|e| ImageError::ImageNotFound(e.to_string()))?,
+            )
+            .map_err(|e| ImageError::ByteCodeImageProcessFailure(e.into()))?,
+        )
+        .map_err(|e| {
+            ImageError::DatabaseError(
+                "failed to parse image manifest from db".to_string(),
+                e.to_string(),
+            )
+        })?;
+        Ok(manifest)
+    }
+
+    /// Deletes a complete image from the database.
+    ///
+    /// Removes all components of an image (manifest, configuration, and bytecode) from the
+    /// database. The image must exist in the database or an error will be returned.
+    ///
+    /// # Arguments
+    /// * `root_db` - The database connection
+    /// * `image_url` - The image URL to delete
+    ///
+    /// # Returns
+    /// * `Vec<ImageError>` - A vector containing any errors encountered
+    fn delete(root_db: &Db, image_url: &str) -> Vec<ImageError> {
+        let image_content_key = match Self::generate_image_content_key(image_url) {
+            Ok(key) => key,
+            Err(e) => {
+                return vec![e];
+            }
+        };
+
+        // Manifest
+        let manifest_key = Self::generate_manifest_key(&image_content_key);
+        let manifest = match Self::load_manifest(root_db, &manifest_key.clone()) {
+            Ok(manifest) => manifest,
+            Err(e) => match e {
+                ImageError::ImageNotFound(_) => {
+                    return vec![ImageError::ImageNotFound(image_url.to_string())];
+                }
+                _ => return vec![e],
+            },
+        };
+
+        let mut delete_errors = vec![];
+
+        if let Err(e) = root_db.remove(&manifest_key) {
+            delete_errors.push(ImageError::ImageDeleteError(e.to_string()));
+        } else {
+            debug!("Deleted manifest key: {manifest_key}");
+        }
+
+        // Bytecode
+        let bytecode_key =
+            Self::generate_bytecode_key(&image_content_key, &manifest.layers[0].digest);
+        if let Err(e) = root_db.remove(&bytecode_key) {
+            delete_errors.push(ImageError::DatabaseDeleteError(e.to_string()));
+        } else {
+            debug!("Deleted bytecode key: {bytecode_key}");
+        }
+
+        // Config contents
+        let image_config_key =
+            Self::generate_config_key(&image_content_key, &manifest.config.digest);
+        if let Err(e) = root_db.remove(&image_config_key) {
+            delete_errors.push(ImageError::DatabaseDeleteError(e.to_string()));
+        } else {
+            debug!("Deleted image config key: {image_config_key}");
+        }
+
+        delete_errors
+    }
+
+    // list_images lists all images in the database. Valid images start with
+    // `IMAGE_PREFIX` and end with `MANIFEST_EXTENSION`.
+    // # Arguments
+    // * `root_db` - The database connection
+    // # Returns
+    // * `(Vec<String>, Vec<ImageError>)` - A tuple containing a list of image names and any errors encountered
+    fn list(root_db: &Db) -> (Vec<String>, Vec<ImageError>) {
+        let mut image_names = vec![];
+        let mut image_errors = vec![];
+        for res in root_db.into_iter() {
+            let (key, _) = match res {
+                Ok(key_val) => key_val,
+                Err(e) => {
+                    image_errors.push(ImageError::DatabaseError(
+                        "could not parse key from database".to_string(),
+                        e.to_string(),
+                    ));
+                    continue;
+                }
+            };
+            let key_string = String::from_utf8_lossy(&key).to_string();
+            if key_string.starts_with(IMAGE_PREFIX) && key_string.ends_with(MANIFEST_EXTENSION) {
+                let end = key_string.len() - MANIFEST_EXTENSION.len();
+                let image_content_key = &key_string[..end];
+                match parse_image_content_key(image_content_key) {
+                    Ok(image_name) => image_names.push(image_name),
+                    Err(e) => image_errors.push(e),
+                }
+            }
+        }
+        (image_names, image_errors)
     }
 }
 
@@ -471,7 +574,7 @@ impl ImageManager {
     /// # Returns
     /// * `Ok(Image)` - The pulled and saved image
     /// * `Err(ImageError)` - If pulling or saving fails
-    pub fn pull_image(
+    fn pull_image(
         &mut self,
         root_db: &Db,
         image_url: &str,
@@ -488,6 +591,54 @@ impl ImageManager {
             password,
         ))?;
         Ok(image)
+    }
+
+    /// Deletes a complete image from the database.
+    ///
+    /// # Arguments
+    /// * `root_db` - The database connection
+    /// * `image_url` - The image URL to delete
+    ///
+    /// # Returns
+    /// * `Ok(())` - If success
+    /// * `Err(ImageErroror) - If failure
+    pub fn delete_image(&mut self, root_db: &Db, image_url: &str) -> Result<(), ImageError> {
+        let delete_errors = DatabaseImage::delete(root_db, image_url);
+        if !delete_errors.is_empty() {
+            let error_messages: Vec<String> = delete_errors.iter().map(|e| e.to_string()).collect();
+            let error_message = error_messages.join(", ");
+            return Err(ImageError::DatabaseDeleteError(error_message));
+        }
+        Ok(())
+    }
+
+    /// Prints (and returns) all container images stored in the database
+    ///
+    /// # Arguments
+    /// * `root_db` - The database connection
+    ///
+    /// # Returns
+    /// * `Ok(Vec<String>)` - If listing succeeds
+    /// * `Err(ImageError)` - If listing fails
+    pub fn list_images(&mut self, root_db: &Db) -> Result<Vec<String>, ImageError> {
+        let (images, image_errors) = DatabaseImage::list(root_db);
+        let mut table = Table::new();
+        table.load_preset(comfy_table::presets::NOTHING);
+        table.set_header(vec!["Image"]);
+        for v in &images {
+            table.add_row(vec![v]);
+        }
+        println!("{table}");
+        if !image_errors.is_empty() {
+            // return joined image_errors as anyhow::Error
+            let error_messages: Vec<String> = image_errors.iter().map(|e| e.to_string()).collect();
+            let error_message = error_messages.join(", ");
+            return Err(ImageError::DatabaseError(
+                "One or more images could not be listed".to_string(),
+                error_message,
+            ));
+        }
+        Ok(images)
     }
 }
 
@@ -510,16 +661,59 @@ fn serde_label(labels: &Value, label_type: String) -> Result<HashMap<String, Str
     Ok(val)
 }
 
+/// Generates a base64-encoded content key for an image from its reference.
+///
+/// Converts an OCI image reference to a safe database key by base64 encoding the full image URL.
+/// This approach avoids character conflicts that can occur with Docker images containing underscores,
+/// forward slashes, or other special characters. The key format is: `image_<base64_encoded_url>`
+///
+/// # Arguments
+/// * `image` - The OCI image reference to convert
+///
+/// # Returns
+/// * `String` - The base64-encoded database key with IMAGE_PREFIX
 fn get_image_content_key(image: &Reference) -> String {
     // Try to get the tag, if it doesn't exist, get the digest
     // if neither exist, return "latest" as the tag
-    let tag = image.tag().unwrap_or(image.digest().unwrap_or("latest"));
-    format!(
-        "{}_{}_{}",
-        image.registry(),
-        image.repository().replace('/', "_"),
-        tag
-    )
+    let tag = match image.tag() {
+        Some(tag) => format!(":{tag}"),
+        _ => match image.digest() {
+            Some(digest) => format!("@{digest}"),
+            _ => "latest".to_string(),
+        },
+    };
+    let image_url = format!("{}/{}{tag}", image.registry(), image.repository());
+    let encoded = base64::engine::general_purpose::STANDARD.encode(image_url);
+    format!("{IMAGE_PREFIX}{encoded}")
+}
+
+/// Parses a base64-encoded image content key back to the original image URL.
+///
+/// Reverses the process of `get_image_content_key` by extracting the base64-encoded portion
+/// from a database key and decoding it back to the original image URL. This enables
+/// accurate reconstruction of image URLs even when they contain special characters.
+///
+/// # Arguments
+/// * `image_content_key` - The base64-encoded database key to parse
+///
+/// # Returns
+/// * `Ok(String)` - The decoded original image URL
+/// * `Err(ImageError::DatabaseError)` - If the key is malformed
+fn parse_image_content_key(image_content_key: &str) -> Result<String, ImageError> {
+    if !image_content_key.starts_with(IMAGE_PREFIX) {
+        return Err(ImageError::DatabaseError(
+            "invalid image key".to_string(),
+            image_content_key.to_string(),
+        ));
+    }
+    let start = IMAGE_PREFIX.len();
+    let encoded = &image_content_key[start..];
+    let decoded = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .map_err(|e| {
+            ImageError::DatabaseError("could not decode image key".to_string(), e.to_string())
+        })?;
+    Ok(String::from_utf8_lossy(&decoded).to_string())
 }
 
 /// Asynchronously pulls an image from a registry, verifies it, and saves it to the database.

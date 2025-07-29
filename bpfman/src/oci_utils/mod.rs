@@ -26,12 +26,18 @@ pub enum ImageError {
     ByteCodeImageCompromised(String),
     #[error("{0}: {1}")]
     DatabaseError(String, String),
+    #[error("Failed deleting from database at: {0}")]
+    DatabaseDeleteError(String),
     #[error("Failed reading from database at: {0}")]
     DatabaseReadError(String),
     #[error("{0}: {1}")]
     BytecodeImageParseFailure(String, String),
     #[error(transparent)]
     JoinError(#[from] tokio::task::JoinError),
+    #[error("Image not found: {0}")]
+    ImageNotFound(String),
+    #[error("Failed deleting image: {0}")]
+    ImageDeleteError(String),
 }
 
 pub(crate) fn rt() -> Result<tokio::runtime::Handle, std::io::Error> {
