@@ -15,9 +15,9 @@ pub enum ImageError {
     #[error("Failed to pull bytecode Image manifest: {0}")]
     ImageManifestPullFailure(#[source] oci_client::errors::OciDistributionError),
     #[error("Failed to pull bytecode Image: {0}")]
-    BytecodeImagePullFailure(#[source] oci_client::errors::OciDistributionError),
+    ByteCodeImagePullFailure(#[source] oci_client::errors::OciDistributionError),
     #[error("Failed to extract bytecode from Image: {0}")]
-    BytecodeImageExtractFailure(String),
+    ByteCodeImageExtractFailure(String),
     #[error(transparent)]
     ByteCodeImageProcessFailure(#[from] anyhow::Error),
     #[error("BytecodeImage not found: {0}")]
@@ -31,7 +31,7 @@ pub enum ImageError {
     #[error("Failed reading from database at: {0}")]
     DatabaseReadError(String),
     #[error("{0}: {1}")]
-    BytecodeImageParseFailure(String, String),
+    ByteCodeImageParseFailure(String, String),
     #[error(transparent)]
     JoinError(#[from] tokio::task::JoinError),
     #[error("Image not found: {0}")]

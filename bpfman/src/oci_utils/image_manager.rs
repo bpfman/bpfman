@@ -143,12 +143,12 @@ impl DatabaseImage {
     fn verify_endianness(&self) -> Result<(), ImageError> {
         let unzipped_content = self.get_bytecode_from_gzip()?;
         let obj_endianness = object::read::File::parse(unzipped_content.as_slice())
-            .map_err(|e| ImageError::BytecodeImageExtractFailure(e.to_string()))?
+            .map_err(|e| ImageError::ByteCodeImageExtractFailure(e.to_string()))?
             .endianness();
         let host_endianness = Endianness::default();
 
         if host_endianness != obj_endianness {
-            return Err(ImageError::BytecodeImageExtractFailure(format!(
+            return Err(ImageError::ByteCodeImageExtractFailure(format!(
                 "image bytecode endianness: {obj_endianness:?} does not match host {host_endianness:?}"
             )));
         };
@@ -190,7 +190,7 @@ impl DatabaseImage {
         let map_function = |mut entry: Entry<'_, GzDecoder<&[u8]>>| {
             let mut data = Vec::new();
             entry.read_to_end(&mut data).map_err(|e| {
-                ImageError::BytecodeImageParseFailure(
+                ImageError::ByteCodeImageParseFailure(
                     "unable to read bytecode tarball entry".to_string(),
                     e.to_string(),
                 )
@@ -201,7 +201,7 @@ impl DatabaseImage {
         let archive = Archive::new(decoder)
             .entries()
             .map_err(|e| {
-                ImageError::BytecodeImageParseFailure(
+                ImageError::ByteCodeImageParseFailure(
                     "unable to parse tarball entries".to_string(),
                     e.to_string(),
                 )
@@ -211,7 +211,7 @@ impl DatabaseImage {
             .collect::<Result<Vec<Vec<u8>>, ImageError>>()?
             .first()
             .ok_or_else(|| {
-                ImageError::BytecodeImageParseFailure(
+                ImageError::ByteCodeImageParseFailure(
                     "no bytecode file found in tarball".to_string(),
                     "empty archive".to_string(),
                 )
@@ -651,7 +651,7 @@ fn serde_label(labels: &Value, label_type: String) -> Result<HashMap<String, Str
         Err(e) => {
             let err_str = format!("error pulling image, invalid image {label_type} label");
             error!("{err_str}");
-            return Err(ImageError::BytecodeImageParseFailure(
+            return Err(ImageError::ByteCodeImageParseFailure(
                 err_str,
                 e.to_string(),
             ));
@@ -743,7 +743,7 @@ async fn async_pull_image(
     let (image_manifest, _, config_contents) = client
         .pull_manifest_and_config(&image.clone(), &auth)
         .await
-        .map_err(ImageError::BytecodeImagePullFailure)?;
+        .map_err(ImageError::ByteCodeImagePullFailure)?;
     trace!("Raw container image manifest {image_manifest}");
 
     debug!("Pulling bytecode from image path: {image_url}");
@@ -757,12 +757,12 @@ async fn async_pull_image(
             ],
         )
         .await
-        .map_err(ImageError::BytecodeImagePullFailure)?
+        .map_err(ImageError::ByteCodeImagePullFailure)?
         .layers
         .into_iter()
         .next()
         .map(|layer| layer.data)
-        .ok_or(ImageError::BytecodeImageExtractFailure(
+        .ok_or(ImageError::ByteCodeImageExtractFailure(
             "No data in bytecode image layer".to_string(),
         ))?;
 
