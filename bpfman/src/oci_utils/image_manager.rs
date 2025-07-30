@@ -910,42 +910,271 @@ mod tests {
     }
 
     #[test]
-    fn test_good_image_content_key() {
+    fn test_image_content_key_roundtrip() {
         struct Case {
             input: &'static str,
-            output: &'static str,
+            expected_url: &'static str, // What the URL should normalize to
         }
         let tt = vec![
             Case {
                 input: "busybox",
-                output: "docker.io_library_busybox_latest",
+                expected_url: "docker.io/library/busybox:latest",
             },
             Case {
                 input: "quay.io/busybox",
-                output: "quay.io_busybox_latest",
+                expected_url: "quay.io/busybox:latest",
             },
             Case {
                 input: "docker.io/test:tag",
-                output: "docker.io_library_test_tag",
+                expected_url: "docker.io/library/test:tag",
             },
             Case {
                 input: "quay.io/test:5000",
-                output: "quay.io_test_5000",
+                expected_url: "quay.io/test:5000",
             },
             Case {
                 input: "test.com/repo:tag",
-                output: "test.com_repo_tag",
+                expected_url: "test.com/repo:tag",
             },
             Case {
                 input: "test.com/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-                output: "test.com_repo_sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                expected_url: "test.com/repo@sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            },
+            // Test cases with underscores to verify the base64 encoding works correctly
+            Case {
+                input: "registry.com/my_repo/sub_path:tag",
+                expected_url: "registry.com/my_repo/sub_path:tag",
+            },
+            Case {
+                input: "test_registry.com/repo_with_underscores:my_tag",
+                expected_url: "test_registry.com/repo_with_underscores:my_tag",
             },
         ];
 
         for t in tt {
-            let good_reference: Reference = t.input.parse().unwrap();
-            let image_content_key = get_image_content_key(&good_reference);
-            assert_eq!(image_content_key, t.output);
+            let reference: Reference = t.input.parse().unwrap();
+            let image_content_key = get_image_content_key(&reference);
+
+            // Verify the key starts with the correct prefix
+            assert!(
+                image_content_key.starts_with(IMAGE_PREFIX),
+                "Key should start with IMAGE_PREFIX"
+            );
+
+            // Test roundtrip: key -> URL
+            let parsed_url = parse_image_content_key(&image_content_key).unwrap();
+            assert_eq!(
+                parsed_url, t.expected_url,
+                "Roundtrip failed for input: {}",
+                t.input
+            );
         }
+    }
+
+    #[test]
+    fn test_parse_image_content_key_errors() {
+        // Test invalid prefix
+        let result = parse_image_content_key("invalid_prefix_test");
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            ImageError::DatabaseError(_, _)
+        ));
+
+        // Test invalid base64
+        let invalid_base64_key = format!("{IMAGE_PREFIX}invalid@base64!");
+        let result = parse_image_content_key(&invalid_base64_key);
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            ImageError::DatabaseError(_, _)
+        ));
+    }
+
+    #[test]
+    fn test_image_load_success() {
+        use oci_client::manifest::{OciDescriptor, OciImageManifest};
+        use sha2::{Digest, Sha256};
+
+        let root_db =
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
+
+        // Create test data
+        let test_bytecode = b"test_bytecode_content";
+        let config_contents =
+            r#"{"config":{"Labels":{"io.ebpf.programs":"{\"test_program\":\"xdp\"}"}}}"#;
+
+        // Calculate the correct SHA256 hash for bytecode
+        let mut hasher = Sha256::new();
+        hasher.update(test_bytecode);
+        let hash = hasher.finalize();
+        let bytecode_sha = format!("sha256:{}", base16ct::lower::encode_string(&hash));
+
+        // Calculate SHA256 hash for config
+        let mut config_hasher = Sha256::new();
+        config_hasher.update(config_contents.as_bytes());
+        let config_hash = config_hasher.finalize();
+        let config_sha = format!("sha256:{}", base16ct::lower::encode_string(&config_hash));
+
+        // Create a test manifest
+        let manifest = OciImageManifest {
+            schema_version: 2,
+            media_type: Some("application/vnd.oci.image.manifest.v1+json".to_string()),
+            config: OciDescriptor {
+                media_type: "application/vnd.oci.image.config.v1+json".to_string(),
+                size: config_contents.len() as i64,
+                digest: config_sha,
+                urls: None,
+                annotations: None,
+            },
+            layers: vec![OciDescriptor {
+                media_type: "application/vnd.oci.image.layer.v1.tar+gzip".to_string(),
+                size: test_bytecode.len() as i64,
+                digest: bytecode_sha,
+                urls: None,
+                annotations: None,
+            }],
+            annotations: None,
+            artifact_type: None,
+        };
+
+        // Create and save test image
+        let original_image = DatabaseImage {
+            manifest: manifest.clone(),
+            config_contents: config_contents.to_string(),
+            byte_code: test_bytecode.to_vec(),
+        };
+
+        let test_image_url = "test.registry.com/test/image:tag";
+
+        // Save the image to database
+        DatabaseImage::save(root_db, test_image_url, &original_image)
+            .expect("Failed to save test image");
+
+        // Test loading the image
+        let loaded_image = DatabaseImage::load(root_db, test_image_url)
+            .expect("Failed to load image from database");
+
+        // Verify loaded image matches original
+        assert_eq!(loaded_image.config_contents, original_image.config_contents);
+        assert_eq!(loaded_image.byte_code, original_image.byte_code);
+        assert_eq!(
+            loaded_image.manifest.schema_version,
+            original_image.manifest.schema_version
+        );
+        assert_eq!(
+            loaded_image.manifest.layers.len(),
+            original_image.manifest.layers.len()
+        );
+        assert_eq!(
+            loaded_image.manifest.layers[0].digest,
+            original_image.manifest.layers[0].digest
+        );
+    }
+
+    #[test]
+    fn test_image_load_not_found() {
+        let root_db =
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
+
+        // Try to load a non-existent image
+        let result = DatabaseImage::load(root_db, "nonexistent.registry.com/test/image:tag");
+
+        assert!(result.is_err(), "Loading non-existent image should fail");
+        assert!(matches!(result.unwrap_err(), ImageError::ImageNotFound(_)));
+    }
+
+    #[test]
+    fn test_image_load_list_delete() {
+        use oci_client::manifest::{OciDescriptor, OciImageManifest};
+        use sha2::{Digest, Sha256};
+
+        let root_db =
+            &init_database(get_db_config()).expect("Unable to open root database for unit test");
+
+        // Create test data
+        let test_bytecode = b"test_bytecode_for_list_delete";
+        let config_contents =
+            r#"{"config":{"Labels":{"io.ebpf.programs":"{\"test_list_program\":\"xdp\"}"}}}"#;
+
+        // Calculate the correct SHA256 hash for bytecode
+        let mut hasher = Sha256::new();
+        hasher.update(test_bytecode);
+        let hash = hasher.finalize();
+        let bytecode_sha = format!("sha256:{}", base16ct::lower::encode_string(&hash));
+
+        // Calculate SHA256 hash for config
+        let mut config_hasher = Sha256::new();
+        config_hasher.update(config_contents.as_bytes());
+        let config_hash = config_hasher.finalize();
+        let config_sha = format!("sha256:{}", base16ct::lower::encode_string(&config_hash));
+
+        // Create a test manifest
+        let manifest = OciImageManifest {
+            schema_version: 2,
+            media_type: Some("application/vnd.oci.image.manifest.v1+json".to_string()),
+            config: OciDescriptor {
+                media_type: "application/vnd.oci.image.config.v1+json".to_string(),
+                size: config_contents.len() as i64,
+                digest: config_sha,
+                urls: None,
+                annotations: None,
+            },
+            layers: vec![OciDescriptor {
+                media_type: "application/vnd.oci.image.layer.v1.tar+gzip".to_string(),
+                size: test_bytecode.len() as i64,
+                digest: bytecode_sha,
+                urls: None,
+                annotations: None,
+            }],
+            annotations: None,
+            artifact_type: None,
+        };
+
+        // Create and save test image
+        let original_image = DatabaseImage {
+            manifest: manifest.clone(),
+            config_contents: config_contents.to_string(),
+            byte_code: test_bytecode.to_vec(),
+        };
+
+        let test_image_url = "test.registry.com/test/image-list-delete:tag";
+
+        // Save the image to database
+        DatabaseImage::save(root_db, test_image_url, &original_image)
+            .expect("Failed to save test image");
+
+        // Test listing images - should contain our test image
+        let (image_list, list_errors) = DatabaseImage::list(root_db);
+        assert!(
+            list_errors.is_empty(),
+            "List operation should succeed without errors"
+        );
+        assert!(
+            image_list.contains(&test_image_url.to_string()),
+            "Image list should contain our test image"
+        );
+
+        // Test deleting the image
+        let delete_errors = DatabaseImage::delete(root_db, test_image_url);
+        assert!(
+            delete_errors.is_empty(),
+            "Delete operation should succeed without errors"
+        );
+
+        // Verify image is no longer in the database
+        let result = DatabaseImage::load(root_db, test_image_url);
+        assert!(result.is_err(), "Loading deleted image should fail");
+
+        // Verify image is no longer in the list
+        let (image_list_after_delete, list_errors_after) = DatabaseImage::list(root_db);
+        assert!(
+            list_errors_after.is_empty(),
+            "List operation should succeed without errors"
+        );
+        assert!(
+            !image_list_after_delete.contains(&test_image_url.to_string()),
+            "Image list should not contain deleted image"
+        );
     }
 }
