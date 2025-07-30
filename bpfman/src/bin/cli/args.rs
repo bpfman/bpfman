@@ -541,6 +541,10 @@ pub(crate) struct GetLinkArgs {
 #[command(disable_version_flag = true)]
 #[allow(clippy::large_enum_variant)]
 pub(crate) enum ImageSubCommand {
+    /// Delete an eBPF bytecode image from the local database.
+    Delete(DeleteImageArgs),
+    /// List all pulled eBPF bytecode images.
+    List(ListImagesArgs),
     /// Pull an eBPF bytecode image from a remote registry.
     Pull(PullBytecodeArgs),
     /// Build an eBPF bytecode image from local bytecode objects and push to a registry.
@@ -814,6 +818,19 @@ pub(crate) struct BytecodeFile {
 pub(crate) struct GenerateArgs {
     #[clap(flatten)]
     pub(crate) bytecode: BytecodeFile,
+}
+
+#[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) struct ListImagesArgs {}
+
+#[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) struct DeleteImageArgs {
+    /// Required: Container Image URL.
+    /// Example: --image-url quay.io/bpfman-bytecode/xdp_pass:latest
+    #[clap(short, long, verbatim_doc_comment)]
+    pub(crate) image_url: String,
 }
 
 #[derive(Args, Debug)]

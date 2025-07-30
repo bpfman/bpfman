@@ -1,8 +1,9 @@
 use std::{collections::HashMap, iter, path::PathBuf};
 
 use bpfman::{
+    delete_image,
     directories::RTDIR_FS_MAPS,
-    list_programs, pull_bytecode, remove_program, setup,
+    list_images, list_programs, pull_bytecode, remove_program, setup,
     types::{
         AttachInfo, BytecodeImage, ImagePullPolicy, ListFilter, Location, TcProceedOn, XdpProceedOn,
     },
@@ -739,6 +740,124 @@ fn test_load_unload_cosign_disabled() {
     }
 
     verify_and_delete_programs(&config, &root_db, progs);
+}
+
+#[test]
+fn test_load_list_delete_images() {
+    init_logger();
+    let (_, root_db) = setup().unwrap();
+    println!("Testing load, list, and delete operations for images");
+
+    println!("Cleaning up test images regardless of outcome");
+    let _ = delete_image(&root_db, TC_PASS_IMAGE_LOC.to_string());
+    let _ = delete_image(&root_db, XDP_PASS_IMAGE_LOC.to_string());
+
+    // Get initial image list
+    let initial_images = list_images(&root_db).unwrap();
+    let initial_count = initial_images.len();
+    println!("Initial image count: {initial_count}");
+
+    // Pull two images into the database
+    println!("Pulling TC_PASS_IMAGE");
+    pull_bytecode(
+        &root_db,
+        BytecodeImage {
+            image_url: TC_PASS_IMAGE_LOC.to_string(),
+            image_pull_policy: ImagePullPolicy::Always,
+            username: None,
+            password: None,
+        },
+    )
+    .unwrap();
+
+    println!("Pulling XDP_PASS_IMAGE");
+    pull_bytecode(
+        &root_db,
+        BytecodeImage {
+            image_url: XDP_PASS_IMAGE_LOC.to_string(),
+            image_pull_policy: ImagePullPolicy::Always,
+            username: None,
+            password: None,
+        },
+    )
+    .unwrap();
+
+    // List images and verify both show up
+    println!("Listing images after pulls");
+    let images_after_pull = list_images(&root_db).unwrap();
+    assert_eq!(
+        images_after_pull.len(),
+        initial_count + 2,
+        "Expected {} images after pulls, got {}: {:?}",
+        initial_count + 2,
+        images_after_pull.len(),
+        images_after_pull
+    );
+    assert!(
+        images_after_pull.contains(&TC_PASS_IMAGE_LOC),
+        "Expected to find TC_PASS_IMAGE_LOC in list"
+    );
+    assert!(
+        images_after_pull.contains(&XDP_PASS_IMAGE_LOC),
+        "Expected to find XDP_PASS_IMAGE_LOC in list"
+    );
+
+    // Delete first image
+    println!("Deleting TC_PASS_IMAGE");
+    delete_image(&root_db, TC_PASS_IMAGE_LOC.to_string()).unwrap();
+
+    // List images and verify only one test image remains
+    let images_after_first_delete = list_images(&root_db).unwrap();
+    assert_eq!(
+        images_after_first_delete.len(),
+        initial_count + 1,
+        "Expected {} images after first deletion, got {}: {:?}",
+        initial_count + 1,
+        images_after_first_delete.len(),
+        images_after_first_delete
+    );
+    assert!(
+        !images_after_first_delete.contains(&TC_PASS_IMAGE_LOC),
+        "Expected TC_PASS_IMAGE_LOC to be deleted"
+    );
+    assert!(
+        images_after_first_delete.contains(&XDP_PASS_IMAGE_LOC),
+        "Expected to find XDP_PASS_IMAGE_LOC in list after first deletion"
+    );
+
+    // Delete second image
+    println!("Deleting XDP_PASS_IMAGE");
+    delete_image(&root_db, XDP_PASS_IMAGE_LOC.to_string()).unwrap();
+
+    // List images and verify we're back to initial state
+    let images_after_second_delete = list_images(&root_db).unwrap();
+    assert_eq!(
+        images_after_second_delete.len(),
+        initial_count,
+        "Expected {} images after both deletions, got {}: {:?}",
+        initial_count,
+        images_after_second_delete.len(),
+        images_after_second_delete
+    );
+
+    // Verify the final list matches the initial list (sorted)
+    let mut initial_sorted = initial_images.clone();
+    let mut final_sorted = images_after_second_delete.clone();
+    initial_sorted.sort();
+    final_sorted.sort();
+    assert_eq!(
+        initial_sorted, final_sorted,
+        "Expected final image list to match initial list"
+    );
+
+    // Try to delete the second image again - this should yield an error
+    println!("Attempting to delete XDP_PASS_IMAGE again (should fail)");
+    let result = delete_image(&root_db, XDP_PASS_IMAGE_LOC.to_string());
+    assert!(
+        result.is_err(),
+        "Expected error when deleting non-existent image, but got success"
+    );
+    println!("Successfully got expected error: {}", result.unwrap_err());
 }
 
 #[unsafe(no_mangle)]
