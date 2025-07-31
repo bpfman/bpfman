@@ -4,10 +4,11 @@ ARG DNF_CMD="microdnf"
 WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
 
+# Install minimal dependencies and modern Rust via rustup
 RUN ${DNF_CMD} update -y \
-    && ${DNF_CMD} install -y gcc openssl-devel cmake clang\
+    && ${DNF_CMD} install -y gcc openssl-devel \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.85.0 \
     && ${DNF_CMD} clean all
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Compile bpfman cli, bpfman-ns, and bpfman-rpc binaries
