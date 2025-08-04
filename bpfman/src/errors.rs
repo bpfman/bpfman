@@ -87,6 +87,11 @@ pub enum BpfmanError {
     BpfParseError(#[from] ParseError),
     #[error("one or more programs failed to load: {0:?}")]
     ProgramsLoadFailure(Vec<BpfmanError>),
+    #[error("Unable load BPF from pinned file {path} due to: {reason}")]
+    LoadPinError {
+        path: String,
+        reason: aya::programs::ProgramError,
+    },
 }
 
 #[derive(Error, Debug)]
