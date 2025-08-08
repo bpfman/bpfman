@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.6-1754456323 AS bpfman-build
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.6-1754584681 AS bpfman-build
 ARG DNF_CMD="microdnf"
 
 WORKDIR /usr/src/bpfman
@@ -15,7 +15,7 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 RUN mkdir -p bin/
 RUN cargo build --release
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.6-1754456323
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.6-1754584681
 
 COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman .
 COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman-ns .
