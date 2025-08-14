@@ -92,15 +92,13 @@ pub mod directories {
     // The TUF repository is used to store Rekor and Fulcio public keys.
     pub(crate) const RTDIR_TUF: &str = "/run/bpfman/tuf";
     // StateDirectory: /var/lib/bpfman/
-    pub(crate) const STDIR_MODE: u32 = 0o6770;
-    pub(crate) const STDIR: &str = "/var/lib/bpfman";
     #[cfg(not(test))]
-    pub(crate) const STDIR_DB: &str = "/var/lib/bpfman/db";
+    pub(crate) const RTDIR_DB: &str = "/run/bpfman/db";
 }
 
 #[cfg(not(test))]
 pub fn get_db_config() -> SledConfig {
-    SledConfig::default().path(STDIR_DB)
+    SledConfig::default().path(RTDIR_DB)
 }
 
 #[cfg(test)]
