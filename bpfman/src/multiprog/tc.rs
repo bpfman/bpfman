@@ -79,7 +79,7 @@ impl TcDispatcher {
             None,
         );
 
-        let (path, bpf_program_names) = image_manager.get_image(
+        let (program_bytes, bpf_program_names) = image_manager.get_image(
             root_db,
             &image.image_url,
             image.image_pull_policy.clone(),
@@ -94,8 +94,6 @@ impl TcDispatcher {
                 program_names: bpf_program_names,
             });
         }
-
-        let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
 
         let tc_config = TcDispatcherConfig {
             num_progs_enabled: 11,
@@ -203,7 +201,7 @@ impl TcDispatcher {
             None,
         );
 
-        let (path, bpf_program_names) = image_manager.get_image(
+        let (program_bytes, bpf_program_names) = image_manager.get_image(
             root_db,
             &image.image_url,
             image.image_pull_policy.clone(),
@@ -218,8 +216,6 @@ impl TcDispatcher {
                 program_names: bpf_program_names,
             });
         }
-
-        let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
 
         let mut loader = EbpfLoader::new()
             .set_global("CONFIG", &tc_config, true)

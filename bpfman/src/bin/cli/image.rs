@@ -14,18 +14,21 @@ use aya::Endianness;
 use aya_obj::Object;
 use base64::{Engine, engine::general_purpose};
 use bpfman::{
-    pull_bytecode, setup,
+    delete_image, list_images, pull_bytecode, setup,
     types::{BpfProgType, BytecodeImage, ImagePullPolicy, MapType},
 };
 use log::{debug, warn};
 
 use crate::args::{
-    BuildBytecodeArgs, BytecodeFile, GenerateArgs, GoArch, ImageSubCommand, PullBytecodeArgs,
+    BuildBytecodeArgs, BytecodeFile, DeleteImageArgs, GenerateArgs, GoArch, ImageSubCommand,
+    ListImagesArgs, PullBytecodeArgs,
 };
 
 impl ImageSubCommand {
     pub(crate) fn execute(&self) -> anyhow::Result<()> {
         match self {
+            ImageSubCommand::Delete(args) => execute_delete(args),
+            ImageSubCommand::List(args) => execute_list(args),
             ImageSubCommand::Pull(args) => execute_pull(args),
             ImageSubCommand::Build(args) => execute_build(args),
             ImageSubCommand::GenerateBuildArgs(args) => execute_build_args(args),
@@ -65,6 +68,21 @@ pub(crate) struct ImageBuilder {
     pub(crate) platforms: Option<Vec<String>>,
     /// Container Build arguments which signify where the prebuilt bytecode files exist on disk.
     pub(crate) build_args: Vec<String>,
+}
+
+pub(crate) fn execute_delete(args: &DeleteImageArgs) -> anyhow::Result<()> {
+    let image_url: String = args.image_url.parse()?;
+    let (_, root_db) = setup()?;
+    delete_image(&root_db, image_url)?;
+
+    Ok(())
+}
+
+pub(crate) fn execute_list(_args: &ListImagesArgs) -> anyhow::Result<()> {
+    let (_, root_db) = setup()?;
+    list_images(&root_db)?;
+
+    Ok(())
 }
 
 pub(crate) fn execute_pull(args: &PullBytecodeArgs) -> anyhow::Result<()> {

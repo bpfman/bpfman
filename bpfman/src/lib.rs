@@ -809,6 +809,38 @@ pub fn get_link(root_db: &Db, id: u32) -> Result<Link, BpfmanError> {
     Ok(link)
 }
 
+/// Deletes a given container image stored in the database
+///
+/// # Arguments
+/// * `root_db` - The database connection
+/// * `image_url` - The image URL
+///
+/// # Returns
+/// * `Ok(())` - If delete succeeds
+/// * `Err(anyhow::Error)` - If deletion fails
+pub fn delete_image(root_db: &Db, image_url: String) -> anyhow::Result<()> {
+    let image_manager = &mut init_image_manager().map_err(|e| anyhow!(format!("{e}")))?;
+    image_manager
+        .delete_image(root_db, &image_url)
+        .map_err(|e| anyhow!(format!("{e}")))
+}
+
+/// Prints (and returns) all container images stored in the database
+///
+/// # Arguments
+/// * `root_db` - The database connection
+///
+/// # Returns
+/// * `Ok(Vec<String>)` - If listing succeeds
+/// * `Err(anyhow::Error)` - If listing fails
+pub fn list_images(root_db: &Db) -> anyhow::Result<Vec<String>> {
+    let image_manager = &mut init_image_manager().map_err(|e| anyhow!(format!("{e}")))?;
+    let images = image_manager
+        .list_images(root_db)
+        .map_err(|e| anyhow!(format!("{e}")))?;
+    Ok(images)
+}
+
 /// Pulls an OCI-compliant image containing eBPF bytecode from a
 /// remote container registry.
 ///
