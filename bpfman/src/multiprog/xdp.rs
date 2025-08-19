@@ -68,7 +68,7 @@ impl XdpDispatcher {
             None,
         );
 
-        let (path, bpf_program_names) = image_manager.get_image(
+        let (program_bytes, bpf_program_names) = image_manager.get_image(
             root_db,
             &image.image_url,
             image.image_pull_policy.clone(),
@@ -83,8 +83,6 @@ impl XdpDispatcher {
                 program_names: bpf_program_names,
             });
         }
-
-        let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
 
         let xdp_config = XdpDispatcherConfig::new(11, 0, [0; 10], [DEFAULT_PRIORITY; 10], [0; 10]);
         let mut loader = EbpfLoader::new()
@@ -188,7 +186,7 @@ impl XdpDispatcher {
             None,
         );
 
-        let (path, bpf_program_names) = image_manager.get_image(
+        let (program_bytes, bpf_program_names) = image_manager.get_image(
             root_db,
             &image.image_url.clone(),
             image.image_pull_policy.clone(),
@@ -203,8 +201,6 @@ impl XdpDispatcher {
                 program_names: bpf_program_names,
             });
         }
-
-        let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
 
         let mut loader = EbpfLoader::new()
             .set_global("conf", &xdp_config, true)
