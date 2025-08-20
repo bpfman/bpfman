@@ -349,7 +349,6 @@ go-tc-counter-example-bpfman-deployment-control-plane-eth0                      
 go-tracepoint-counter-example-bpfman-deployment-control-plane-syscalls-sys-enter-kill               tracepoint   bpfmanLoaded   2m35s
 go-uprobe-counter-example-bpfman-deployment-control-plane--go-target-go-target-ds-nbdf5-go-target   uprobe       bpfmanLoaded   2m29s
 go-xdp-counter-example-bpfman-deployment-control-plane-eth0                                         xdp          bpfmanLoaded   2m24s
-go-xdp-counter-sharing-map-example-bpfman-deployment-control-plane-eth0                             xdp          bpfmanLoaded   2m21s
 
 make undeploy
   for target in undeploy-tc undeploy-tracepoint undeploy-xdp undeploy-xdp-ms undeploy-kprobe undeploy-uprobe undeploy-target ; do \
@@ -424,8 +423,6 @@ Deployment
   undeploy-tracepoint  Undeploy go-tracepoint-counter from the cluster specified in ~/.kube/config.
   deploy-xdp       Deploy go-xdp-counter to the cluster specified in ~/.kube/config.
   undeploy-xdp     Undeploy go-xdp-counter from the cluster specified in ~/.kube/config.
-  deploy-xdp-ms    Deploy go-xdp-counter-sharing-map (shares map with go-xdp-counter) to the cluster specified in ~/.kube/config.
-  undeploy-xdp-ms  Undeploy go-xdp-counter-sharing-map from the cluster specified in ~/.kube/config.
   deploy-kprobe    Deploy go-kprobe-counter to the cluster specified in ~/.kube/config.
   undeploy-kprobe  Undeploy go-kprobe-counter from the cluster specified in ~/.kube/config.
   deploy-uprobe    Deploy go-uprobe-counter to the cluster specified in ~/.kube/config.

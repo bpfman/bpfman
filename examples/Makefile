@@ -310,7 +310,7 @@ KIND_CLUSTER_NAME ?= bpfman-deployment
 ##############################################################
 
 # Collect all targets for deploy, deploy-selinux, undeploy and undeploy-selinux.
-DEPLOY_TARGETS = deploy-tc deploy-tcx deploy-tracepoint deploy-xdp deploy-xdp-ms deploy-kprobe deploy-uprobe deploy-uretprobe deploy-app deploy-target
+DEPLOY_TARGETS = deploy-tc deploy-tcx deploy-tracepoint deploy-xdp deploy-kprobe deploy-uprobe deploy-uretprobe deploy-app deploy-target
 DEPLOY_SELINUX_TARGETS := $(addsuffix -selinux,$(filter-out deploy-target,$(DEPLOY_TARGETS)))
 UNDEPLOY_TARGETS := $(addprefix un,$(DEPLOY_TARGETS))
 UNDEPLOY_SELINUX_TARGETS := $(addsuffix -selinux,$(filter-out undeploy-target,$(UNDEPLOY_TARGETS)))
@@ -353,7 +353,6 @@ PROGRAM_CONFIGS := \
 	tcx:go-tcx-counter:IMAGE_TCX_BC:IMAGE_TCX_US \
 	tracepoint:go-tracepoint-counter:IMAGE_TP_BC:IMAGE_TP_US \
 	xdp:go-xdp-counter:IMAGE_XDP_BC:IMAGE_XDP_US \
-	xdp-ms:go-xdp-counter-sharing-map:IMAGE_XDP_BC:IMAGE_XDP_US \
 	kprobe:go-kprobe-counter:IMAGE_KP_BC:IMAGE_KP_US \
 	uprobe:go-uprobe-counter:IMAGE_UP_BC:IMAGE_UP_US \
 	uretprobe:go-uretprobe-counter:IMAGE_URP_BC:IMAGE_URP_US \
