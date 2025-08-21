@@ -372,7 +372,7 @@ else
 	$(eval DIRECTORY=$(if $(findstring selinux,$(MAKECMDGOALS)),$(TAG)-selinux,$(TAG)))
 endif
 	$(eval KUST_DIR=$(DIRECTORY)/$(PROG_NAME))
-	$(eval KUBECTL_CMD=$(if $(findstring undeploy,$(MAKECMDGOALS)),kubectl delete --ignore-not-found=$(ignore-not-found),kubectl apply))
+	$(eval KUBECTL_CMD=$(if $(findstring undeploy,$(MAKECMDGOALS)),kubectl delete --timeout=120s --ignore-not-found=$(ignore-not-found),kubectl apply))
 	@if [ -f config/$(KUST_DIR)/kustomization.yaml ]; then \
 		echo "Using KUST_DIR=$(KUST_DIR)" ; \
 		$(KUSTOMIZE) build config/$(KUST_DIR) | $(KUBECTL_CMD) -f - ; \
