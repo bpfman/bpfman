@@ -396,6 +396,12 @@ The cluster needs to be up and running and specified in ~/.kube/config file.
 * **Manually with OLM Bundle:** The other option for installing the bpfman-operator is to install
   it using [OLM bundle](https://www.redhat.com/en/blog/deploying-operators-olm-bundles).
 
+!!! warning
+
+Regardless of which installation method you choose you must also install the Security Profiles
+Operator. This is required to be able to run the userspace side of your eBPF applications with
+reduced privileges since it requires a custom SELinux profile.
+
 ### OperatorHub
 
 When installing the latest release of bpfman/bpfman-operator, bpfman can be installed in a
