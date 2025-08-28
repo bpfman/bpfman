@@ -323,10 +323,7 @@ fn get_image_content_key(image: &Reference) -> String {
     // if neither exist, return "latest" as the tag
     let tag = match image.tag() {
         Some(t) => t,
-        _ => match image.digest() {
-            Some(d) => d,
-            _ => "latest",
-        },
+        _ => image.digest().unwrap_or("latest"),
     };
 
     format!(
