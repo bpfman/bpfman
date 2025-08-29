@@ -402,6 +402,9 @@ jobs:
       - name: Run integration tests
         run: cargo xtask integration-test
 
+      - name: Run restart test
+        run: tests/test_xdp_container_restart.sh
+
   build-docs:
     runs-on: ubuntu-24.04
     steps:
