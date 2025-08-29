@@ -1,16 +1,16 @@
 # Run bpfman From RPM
 
 This section describes how to deploy `bpfman` from an RPM.
-RPMs are generated each time a Pull Request is merged in github for Fedora 38, 39 and
-Rawhide (see [Install Prebuilt RPM](#install-prebuilt-rpm) below).
-RPMs can also be built locally from a Fedora server
-(see [Build RPM Locally](#build-rpm-locally) below).
+RPMs are generated each time a Pull Request is merged in github. RPMs can also
+be built locally from a Fedora server (see [Build RPM Locally](#build-rpm-locally)
+below).
 
-## Install Prebuilt RPM
+# Install Prebuilt RPM
 
-This section describes how to install an RPM built automatically by the
+This section describes how to install an RPM built automatically for Fedora by the
 [Packit Service](https://dashboard.packit.dev/projects/github.com/bpfman/bpfman).
-The Packit Service builds RPMs for each Pull Request merged.
+The Packit Service builds RPMs for each Pull Request merged for the 2 latest
+Fedora releases and for Rawhide.
 
 ### Packit Service Prerequisites
 
@@ -54,7 +54,7 @@ and follow the Packit Dashboard link to the `Copr Build Results`.
 Then install the given RPM:
 
 ```console
-sudo dnf install -y bpfman-0.4.0~dev-1.20240117143006587102.main.191.gda44a71.fc38.x86_64
+sudo dnf install -y bpfman-0:0.5.6-1.20250728040841768999.main.161.2ce46c8d.fc42.x86_64
 ```
 
 `bpfman` is now installed but not running.
@@ -97,7 +97,7 @@ To determine the RPM that is currently loaded:
 
 ```console
 $ sudo rpm -qa | grep bpfman
-bpfman-0.4.0~dev-1.20240117143006587102.main.191.gda44a71.fc39.x86_64
+bpfman-0.5.6-1.20250728040841768999.main.161.2ce46c8d.fc42.x86_64
 ```
 
 To stop bpfman and uninstall the RPM:
@@ -106,7 +106,7 @@ To stop bpfman and uninstall the RPM:
 sudo systemctl stop bpfman.socket
 sudo systemctl disable bpfman.socket
 
-sudo dnf erase -y bpfman-0.4.0~dev-1.20240117143006587102.main.191.gda44a71.fc39.x86_64
+sudo dnf remove -y bpfman-0.5.6-1.20250728040841768999.main.161.2ce46c8d.fc42.x86_64
 
 sudo systemctl daemon-reload
 ```
@@ -128,7 +128,12 @@ sudo dnf install cargo-rpm-macros
 
 !!! Note
     `cargo-rpm-macros` needs to be version 25 or higher.
-    It appears this is only available on Fedora 37, 38, 39 and Rawhide at the moment.
+
+!!! Note
+     The RPM spec and build scripts are set up to always download a source
+     tarball for the current commit from GitHub. Therefore, the RPM build process
+     will fail with a 404 error if you're building from a local commit that
+     hasn't been pushed, or from a commit that was removed or rebased away.
 
 ### Build Locally
 
@@ -151,7 +156,7 @@ If local RPM builds were previously run on the system, the `packit build locally
 fail with something similar to:
 
 ```console
-packit build locally
+$ packit build locally
 2024-05-21 10:00:03.904 base_git.py       INFO   Using user-defined script for ActionName.post_upstream_clone: [['bash', '-c', 'if [[ ! -d /var/tmp/cargo-vendor-filterer ]]; then git clone https://github.com/coreos/cargo-vendor-filterer.git /var/tmp/cargo-vendor-filterer; fi && cd /var/tmp/cargo-vendor-filterer && cargo build && cd - && cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . && ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz']]
 2024-05-21 10:00:03.956 logging.py        INFO   error: could not find `Cargo.toml` in `/var/tmp/cargo-vendor-filterer` or any parent directory
 2024-05-21 10:00:03.957 commands.py       ERROR  Command 'bash -c if [[ ! -d /var/tmp/cargo-vendor-filterer ]]; then git clone https://github.com/coreos/cargo-vendor-filterer.git /var/tmp/cargo-vendor-filterer; fi && cd /var/tmp/cargo-vendor-filterer && cargo build && cd - && cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . && ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz' failed.

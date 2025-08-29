@@ -5,20 +5,19 @@ This operator was built utilizing some great tooling provided by the
 [operator-sdk library](https://sdk.operatorframework.io/).
 A great first step in understanding some of the functionality can be to just run `make help`.
 
-## Deploy bpfman Operation
+## Deploy bpfman Operator
 
 The `bpfman-operator` is running as a Deployment with a ReplicaSet of one.
-It runs on the control plane and is composed of the containers `bpfman-operator` and
-`kube-rbac-proxy`.
-The operator is responsible for launching the bpfman Daemonset, which runs on every node.
-The bpfman Daemonset is composed of the containers `bpfman`, `bpfman-agent`, and `node-driver-registrar`.
+It runs on the control plane and is composed of a single container.
+The operator is responsible for launching the `bpfman-daemon` DaemonSet and the `bpfman-metrics-proxy` DaemonSet, which run on every node.
+The `bpfman-daemon` DaemonSet is composed of the containers `bpfman`, `bpfman-agent`, and `node-driver-registrar`.
 
 Described below are two ways to deploy bpfman in a Kubernetes cluster:
 
 * [Deploy Locally via KIND](#deploy-locally-via-kind): Easiest way to deploy bpfman in a Kubernetes cluster
   and great for testing.
 * [Deploy To Openshift Cluster](#deploy-to-openshift-cluster): Special steps are needed to deploy on an
-  Openshift cluster because SELinux is enable.
+  Openshift cluster because SELinux is enabled.
 
 ### Deploy Locally via KIND
 
@@ -49,55 +48,18 @@ For other options, see
 
 ## API Types Overview
 
-Refer to  [api-spec.md](../developer-guide/api-spec.md) for a more detailed description of all the bpfman Kubernetes API types.
+Refer to  [api-spec.md](../developer-guide/api-spec.md) for a detailed description of all the bpfman Kubernetes API types.
 
 ### Cluster Scoped Versus Namespaced Scoped CRDs
 
 For security reasons, cluster admins may want to limit certain applications to only loading eBPF programs
-within a given namespace.
-To provide these tighter controls on eBPF program loading, some of the bpfman Custom Resource Definitions (CRDs)
-are Namespace scoped.
-Not all eBPF programs make sense to be namespaced scoped.
-The namespaced scoped CRDs use the "<ProgramType\>NsProgram" identifier and cluster scoped CRDs to use "<ProgramType\>Program"
-identifier.
-
-### Multiple Program CRDs
-
-The multiple `*Program` CRDs are the bpfman Kubernetes API objects most relevant to users and can be used to
-understand clusterwide state for an eBPF program.
-It's designed to express how, and where eBPF programs are to be deployed within a Kubernetes cluster.
-Currently bpfman supports:
-
-* `fentryProgram`
-* `fexitProgram`
-* `kprobeProgram`
-* `tcProgram` and `tcNsProgram`
-* `tcxProgram` and `tcxNsProgram`
-* `tracepointProgram`
-* `uprobeProgram` and `uprobeNsProgam`
-* `xdpProgram` and `xdpNsProgram`
-
-There is also the `bpfApplication` and `bpfNsApplication` CRDs, which are
-designed for managing eBPF programs at an application level within a Kubernetes cluster.
-These CRD allows Kubernetes users to define which eBPF programs are essential for an application's operations
-and specify how these programs should be deployed across the cluster.
-With cluster scoped variant (`bpfApplication`), any variation of the cluster scoped
-eBPF programs can be loaded.
-With namespace scoped variant (`bpfNsApplication`), any variation of the namespace scoped
-eBPF programs can be loaded.
-
-### BpfProgram and BpfNsProgram CRD
-
-The `BpfProgram` and  `BpfNsProgram` CRDs are used internally by the bpfman-deployment to keep track of per
-node bpfman state such as map pin points, and to report node specific errors back to the user.
-Kubernetes users/controllers are only allowed to view these objects, NOT create or edit them.
-
-Applications wishing to use bpfman to deploy/manage their eBPF programs in Kubernetes will make use of this
-object to find references to the bpfMap pin points (`spec.maps`) in order to configure their eBPF programs.
+within a given namespace. However, not all eBPF programs make sense to be namespaced scoped.
+To provide these controls for eBPF program loading, the bpfman operator includes both cluster-scoped CRDs (identified by the
+`Cluster` prefix) and namespace-scoped CRDs.
 
 ## Deploy an eBPF Program to the cluster
 
-There are sample yamls for each of the support program type in the
+There are sample yamls for a number of support program types in the
 [bpfman-operator/config/samples](https://github.com/bpfman/bpfman-operator/tree/main/config/samples)
 directory.
 
@@ -112,102 +74,113 @@ kubectl apply -f config/samples/bpfman.io_v1alpha1_xdp_pass_xdpprogram.yaml
 ```
 
 If loading of the XDP Program to the selected nodes was successful it will be reported
-back to the user via the `xdpProgram`'s status field:
+back to the user via the `ClusterBpfApplication`'s status.
 
-```bash
-$ kubectl get xdpprogram xdp-pass-all-nodes -o yaml
-apiVersion: bpfman.io/v1alpha1
-kind: XdpProgram
-metadata:
-  annotations:
-    kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"bpfman.io/v1alpha1","kind":"XdpProgram","metadata":{"annotations":{},"labels":{"app.kubernetes.io/name":"xdpprogram"},"name":"xdp-pass-all-nodes"},"spec":{"bpffunctionname":"pass","bytecode":{"image":{"url":"quay.io/bpfman-bytecode/xdp_pass:latest"}},"globaldata":{"GLOBAL_u32":[13,12,11,10],"GLOBAL_u8":[1]},"interfaceselector":{"primarynodeinterface":true},"nodeselector":{},"priority":0}}
-  creationTimestamp: "2023-11-07T19:16:39Z"
-  finalizers:
-  - bpfman.io.operator/finalizer
-  generation: 2
-  labels:
-    app.kubernetes.io/name: xdpprogram
-  name: xdp-pass-all-nodes
-  resourceVersion: "157187"
-  uid: 21c71a61-4e73-44eb-9b49-07af2866d25b
-spec:
-  bpffunctionname: pass
-  bytecode:
-    image:
-      imagepullpolicy: IfNotPresent
-      url: quay.io/bpfman-bytecode/xdp_pass:latest
-  globaldata:
-    GLOBAL_u8: AQ==
-    GLOBAL_u32: DQwLCg==
-  interfaceselector:
-    primarynodeinterface: true
-  mapownerselector: {}
-  nodeselector: {}
-  priority: 0
-  proceedon:
-  - pass
-  - dispatcher_return
-status:
-  conditions:
-  - lastTransitionTime: "2023-11-07T19:16:42Z"
-    message: bpfProgramReconciliation Succeeded on all nodes
-    reason: ReconcileSuccess
-    status: "True"
-    type: ReconcileSuccess
-```
 
 To see information in listing form simply run:
 
 ```bash
-$ kubectl get xdpprogram -o wide
-NAME                 BPFFUNCTIONNAME   NODESELECTOR   PRIORITY   INTERFACESELECTOR               PROCEEDON
-xdp-pass-all-nodes   pass              {}             0          {"primarynodeinterface":true}   ["pass","dispatcher_return"]
+$ kubectl get ClusterBpfApplication xdp-pass-all-nodes
+NAME                 NODESELECTOR   STATUS    AGE
+xdp-pass-all-nodes                  Success   92s
 ```
 
-To view each attachment point on each node, use the `bpfProgram` object:
+For view full information, run:
 
 ```bash
-$ kubectl get bpfprograms
-NAME                          TYPE   STATUS         AGE
-xdp-pass-all-nodes-f3def00d   xdp    bpfmanLoaded   56s
-
-
-$ kubectl get bpfprograms xdp-pass-all-nodes-f3def00d -o yaml
+$ kubectl get ClusterBpfApplication xdp-pass-all-nodes -o yaml
 apiVersion: bpfman.io/v1alpha1
-kind: BpfProgram
+kind: ClusterBpfApplication
 metadata:
   annotations:
-    bpfman.io.xdpprogramcontroller/interface: eth0
-    bpfman.io/ProgramId: "26577"
-    bpfman.io/bpfProgramAttachPoint: eth0
-  creationTimestamp: "2024-12-18T22:26:55Z"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"bpfman.io/v1alpha1","kind":"ClusterBpfApplication","metadata":{"annotations":{},"labels":{"app.kubernetes.io/name":"clusterbpfapplication"},"name":"xdp-pass-all-nodes"},"spec":{"byteCode":{"image":{"url":"quay.io/bpfman-bytecode/xdp_pass:latest"}},"nodeSelector":{},"programs":[{"name":"pass","type":"XDP","xdp":{"links":[{"interfaceSelector":{"primaryNodeInterface":true},"priority":55}]}}]}}
+  creationTimestamp: "2025-07-01T21:46:01Z"
   finalizers:
-  - bpfman.io.xdpprogramcontroller/finalizer
+  - bpfman.io.operator/finalizer
   generation: 1
   labels:
-    bpfman.io/appProgramId: ""
+    app.kubernetes.io/name: clusterbpfapplication
+  name: xdp-pass-all-nodes
+  resourceVersion: "69629"
+  uid: 389cdde5-5916-4198-8ce8-2f7409d6c3f8
+spec:
+  byteCode:
+    image:
+      imagePullPolicy: IfNotPresent
+      url: quay.io/bpfman-bytecode/xdp_pass:latest
+  nodeSelector: {}
+  programs:
+  - name: pass
+    type: XDP
+    xdp:
+      links:
+      - interfaceSelector:
+          primaryNodeInterface: true
+        priority: 55
+        proceedOn:
+        - Pass
+        - DispatcherReturn
+status:
+  conditions:
+  - lastTransitionTime: "2025-07-01T21:46:10Z"
+    message: BPF application configuration successfully applied on all nodes
+    reason: Success
+    status: "True"
+    type: Success
+```
+
+
+To view each attachment point on each node, use the `ClusterBpfApplicationState` object:
+
+```bash
+$ kubectl get clusterbpfapplicationstates -l bpfman.io/ownedByProgram=xdp-pass-all-nodes -o yaml
+apiVersion: bpfman.io/v1alpha1
+kind: ClusterBpfApplicationState
+metadata:
+  creationTimestamp: "2025-07-01T21:46:01Z"
+  finalizers:
+  - bpfman.io.clbpfapplicationcontroller/finalizer
+  generation: 1
+  labels:
     bpfman.io/ownedByProgram: xdp-pass-all-nodes
     kubernetes.io/hostname: bpfman-deployment-control-plane
-  name: xdp-pass-all-nodes-f3def00d
+  name: xdp-pass-all-nodes-cb774e3c
   ownerReferences:
   - apiVersion: bpfman.io/v1alpha1
     blockOwnerDeletion: true
     controller: true
-    kind: XdpProgram
+    kind: ClusterBpfApplication
     name: xdp-pass-all-nodes
-    uid: 7685a5b6-a626-4483-8c20-06b29643a2a8
-  resourceVersion: "8430"
-  uid: 83c5a80d-2dca-46ce-806b-6fdf7bde901f
-spec:
-  type: xdp
+    uid: 389cdde5-5916-4198-8ce8-2f7409d6c3f8
+  resourceVersion: "69628"
+  uid: b1436771-8591-490b-acaf-f229d079c336
 status:
+  appLoadStatus: LoadSuccess
   conditions:
-  - lastTransitionTime: "2024-12-18T22:27:11Z"
-    message: Successfully loaded bpfProgram
-    reason: bpfmanLoaded
+  - lastTransitionTime: "2025-07-01T21:46:10Z"
+    message: The BPF application has been successfully loaded and attached
+    reason: Success
     status: "True"
-    type: Loaded
+    type: Success
+  node: bpfman-deployment-control-plane
+  programs:
+  - name: pass
+    programId: 841
+    programLinkStatus: Success
+    type: XDP
+    xdp:
+      links:
+      - interfaceName: eth0
+        linkId: 1718587848
+        linkStatus: Attached
+        priority: 55
+        proceedOn:
+        - Pass
+        - DispatcherReturn
+        shouldAttach: true
+        uuid: c36d23bd-8ac2-4579-9e89-f745fd361fdd
+  updateCount: 2
 ```
 
 ### Deploy Namespace Scoped Sample
@@ -219,8 +192,8 @@ The reason for namespace scoped CRDs is to limit an application or user to a nam
 To this end, this yaml also creates a limited `ServiceAccount`, `Role`, `RoleBinding` and `Secret`.
 
 ```bash
-cd bpfman-operator
-kubectl apply -f hack/namespace_scoped.yaml 
+$ cd bpfman-operator
+$ kubectl apply -f hack/namespace_scoped.yaml 
   namespace/acme created
   serviceaccount/test-account created
   role.rbac.authorization.k8s.io/test-account created
@@ -229,7 +202,7 @@ kubectl apply -f hack/namespace_scoped.yaml
 ```
 
 To create a `kubeconfig` file that limits access to the created namespace, use the script 
-[bpfman-operator/hack/namespace_scoped.sh](https://github.com/bpfman/bpfman-operator/blob/main/hack/nginx-deployment.sh).
+[bpfman-operator/hack/namespace_scoped.sh](https://github.com/bpfman/bpfman-operator/blob/main/hack/namespace_scoped.sh).
 The script needs to know the name of the `Cluster`, `Namespace`, `Service Account` and `Secret`.
 The script defaults these fields to what is currently in 
 [bpfman-operator/hack/namespace_scoped.yaml](https://github.com/bpfman/bpfman-operator/blob/main/hack/namespace_scoped.yaml).
@@ -248,129 +221,194 @@ To use the `kubeconfig` file, select the session to limit access in and run:
 export KUBECONFIG=/tmp/kubeconfig
 ```
 
-From within this limited access session, a sample `nginx` deployment can be created in the same namespace using
-[bpfman-operator/hack/namespace_scoped.yaml](https://github.com/bpfman/bpfman-operator/blob/main/hack/nginx-deployment.yaml).
+From within this limited access session, a sample `nginx` deployment can be created in the same namespace.
 
 ```bash
-kubectl apply -f hack/nginx-deployment.yaml
-  deployment.apps/nginx-deployment created
+kubectl create deployment nginx --image=nginx
 ```
 
 Finally, load any of the namespaced samples from
 [bpfman-operator/config/samples](https://github.com/bpfman/bpfman-operator/tree/main/config/samples).
-They are of the format: `bpfman.io_v1alpha1_*nsprogram.yaml`
 
 ```bash
-kubectl apply -f config/samples/bpfman.io_v1alpha1_tc_pass_tcnsprogram.yaml 
-  tcnsprogram.bpfman.io/tc-containers created
+kubectl apply -f config/samples/bpfman.io_v1alpha1_bpfapplication.yaml
 ```
 
-The status for each namespaced program is reported via the \*NsProgram status field and further
-information can be seen in the resulting BpfNsProgram CRDs.
-As an example, the following commands display the information of the TC program loaded in the acme
+The status for each namespaced program is reported via the BpfApplication status field and further
+information can be seen in the BpfApplicationState CRDs.
+As an example, the following commands display the information of the program loaded in the acme
 namespace with the command above.
 
 ```bash
-$ kubectl get tcnsprograms
-NAME            BPFFUNCTIONNAME   NODESELECTOR   STATUS
-tc-containers   pass              {}             ReconcileSuccess
+$ kubectl get bpfapplications -n acme
+NAME                    NODESELECTOR   STATUS    AGE
+bpfapplication-sample                  Success   2d6h
 
-
-$ kubectl get tcnsprograms tc-containers -o yaml
+$ kubectl get bpfapplications bpfapplication-sample -n acme -o yaml
 apiVersion: bpfman.io/v1alpha1
-kind: TcNsProgram
+kind: BpfApplication
 metadata:
   annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"bpfman.io/v1alpha1","kind":"TcNsProgram","metadata":{"annotations":{},"labels":{"app.kubernetes.io/name":"tcnsprogram"},"name":"tc-containers","namespace":"acme"},"spec":{"bpffunctionname":"pass","bytecode":{"image":{"url":"quay.io/bpfman-bytecode/tc_pass:latest"}},"containers":{"containernames":["nginx"],"pods":{"matchLabels":{"app":"nginx"}}},"direction":"ingress","globaldata":{"GLOBAL_u32":[13,12,11,10],"GLOBAL_u8":[1]},"interfaceselector":{"interfaces":["eth0"]},"nodeselector":{},"priority":0}}
-  creationTimestamp: "2024-12-18T22:22:52Z"
+      {"apiVersion":"bpfman.io/v1alpha1","kind":"BpfApplication","metadata":{"annotations":{},"labels":{"app.kubernetes.io/name":"bpfapplication"},"name":"bpfapplication-sample","namespace":"acme"},"spec":{"byteCode":{"image":{"url":"quay.io/bpfman-bytecode/app-test:latest"}},"globalData":{"GLOBAL_u32":[13,12,11,10],"GLOBAL_u8":[1]},"nodeSelector":{},"programs":[{"name":"tc_pass_test","tc":{"links":[{"direction":"Ingress","interfaceSelector":{"interfaces":["eth0"]},"networkNamespaces":{"pods":{"matchLabels":{"app":"test-target"}}},"priority":55}]},"type":"TC"},{"name":"tcx_next_test","tcx":{"links":[{"direction":"Egress","interfaceSelector":{"interfaces":["eth0"]},"networkNamespaces":{"pods":{"matchLabels":{"app":"test-target"}}},"priority":100}]},"type":"TCX"},{"name":"uprobe_test","type":"UProbe","uprobe":{"links":[{"containers":{"pods":{"matchLabels":{"app":"test-target"}}},"function":"malloc","target":"libc"}]}},{"name":"uretprobe_test","type":"URetProbe","uretprobe":{"links":[{"containers":{"pods":{"matchLabels":{"app":"test-target"}}},"function":"malloc","target":"libc"}]}},{"name":"xdp_pass_test","type":"XDP","xdp":{"links":[{"interfaceSelector":{"interfaces":["eth0"]},"networkNamespaces":{"pods":{"matchLabels":{"app":"test-target"}}},"priority":100}]}}]}}
+  creationTimestamp: "2025-07-02T08:58:02Z"
   finalizers:
   - bpfman.io.operator/finalizer
   generation: 2
   labels:
-    app.kubernetes.io/name: tcnsprogram
-  name: tc-containers
+    app.kubernetes.io/name: bpfapplication
+  name: bpfapplication-sample
   namespace: acme
-  resourceVersion: "7993"
-  uid: 49291f28-49dc-4486-9119-af7c31569de3
+  resourceVersion: "74053"
+  uid: 0a2dd439-577f-49ae-81ae-54a9a2265ddb
 spec:
-  bpffunctionname: pass
-  bytecode:
+  byteCode:
     image:
-      imagepullpolicy: IfNotPresent
-      url: quay.io/bpfman-bytecode/tc_pass:latest
-  containers:
-    containernames:
-    - nginx
-    pods:
-      matchLabels:
-        app: nginx
-  direction: ingress
-  globaldata:
+      imagePullPolicy: IfNotPresent
+      url: quay.io/bpfman-bytecode/app-test:latest
+  globalData:
     GLOBAL_u8: AQ==
     GLOBAL_u32: DQwLCg==
-  interfaceselector:
-    interfaces:
-    - eth0
-  mapownerselector: {}
-  nodeselector: {}
-  priority: 0
-  proceedon:
-  - pipe
-  - dispatcher_return
+  nodeSelector: {}
+  programs:
+  - name: tc_pass_test
+    tc:
+      links:
+      - direction: Ingress
+        interfaceSelector:
+          interfaces:
+          - eth0
+        networkNamespaces:
+          pods:
+            matchLabels:
+              app: test-target
+        priority: 55
+        proceedOn:
+        - Pipe
+        - DispatcherReturn
+    type: TC
+  - name: tcx_next_test
+    tcx:
+      links:
+      - direction: Egress
+        interfaceSelector:
+          interfaces:
+          - eth0
+        networkNamespaces:
+          pods:
+            matchLabels:
+              app: test-target
+        priority: 100
+    type: TCX
+  - name: uprobe_test
+    type: UProbe
+    uprobe:
+      links:
+      - containers:
+          pods:
+            matchLabels:
+              app: test-target
+        function: malloc
+        offset: 0
+        target: libc
+  - name: uretprobe_test
+    type: URetProbe
+    uretprobe:
+      links:
+      - containers:
+          pods:
+            matchLabels:
+              app: test-target
+        function: malloc
+        offset: 0
+        target: libc
+  - name: xdp_pass_test
+    type: XDP
+    xdp:
+      links:
+      - interfaceSelector:
+          interfaces:
+          - eth0
+        networkNamespaces:
+          pods:
+            matchLabels:
+              app: test-target
+        priority: 100
+        proceedOn:
+        - Pass
+        - DispatcherReturn
 status:
   conditions:
-  - lastTransitionTime: "2024-12-18T22:23:11Z"
-    message: bpfProgramReconciliation Succeeded on all nodes
-    reason: ReconcileSuccess
+  - lastTransitionTime: "2025-07-02T08:58:19Z"
+    message: BPF application configuration successfully applied on all nodes
+    reason: Success
     status: "True"
-    type: ReconcileSuccess
+    type: Success
 ```
 
-To view each attachment point on each node, use the `bpfNsProgram` object:
+To view each attachment point on each node, use the `BpfApplicationState` object:
 
 ```bash
-$ kubectl get bpfnsprograms
-NAME                     TYPE   STATUS         AGE
-tc-containers-6494dbed   tc     bpfmanLoaded   12m
-tc-containers-7dcde5ab   tc     bpfmanLoaded   12m
+$ kubectl get bpfapplicationstate -n acme -l bpfman.io/ownedByProgram=bpfapplication-sample
+NAME                             NODE                              STATUS    AGE
+bpfapplication-sample-6eab3078   bpfman-deployment-control-plane   Success   2d7h
 
-
-$ kubectl get bpfnsprograms tc-containers-6494dbed -o yaml
+$ kubectl get bpfapplicationstate -n acme -l bpfman.io/ownedByProgram=bpfapplication-sample -o yaml
 apiVersion: bpfman.io/v1alpha1
-kind: BpfNsProgram
+kind: BpfApplicationState
 metadata:
-  annotations:
-    bpfman.io.tcnsprogramcontroller/containerpid: "3256"
-    bpfman.io.tcnsprogramcontroller/interface: eth0
-    bpfman.io/ProgramId: "26575"
-    bpfman.io/bpfProgramAttachPoint: eth0-ingress-nginx-deployment-57d84f57dc-lgc6f-nginx
-  creationTimestamp: "2024-12-18T22:23:08Z"
+  creationTimestamp: "2025-07-02T08:58:02Z"
   finalizers:
-  - bpfman.io.tcnsprogramcontroller/finalizer
+  - bpfman.io.nsbpfapplicationcontroller/finalizer
   generation: 1
   labels:
-    bpfman.io/appProgramId: ""
-    bpfman.io/ownedByProgram: tc-containers
+    bpfman.io/ownedByProgram: bpfapplication-sample
     kubernetes.io/hostname: bpfman-deployment-control-plane
-  name: tc-containers-6494dbed
+  name: bpfapplication-sample-6eab3078
   namespace: acme
   ownerReferences:
   - apiVersion: bpfman.io/v1alpha1
     blockOwnerDeletion: true
     controller: true
-    kind: TcNsProgram
-    name: tc-containers
-    uid: 49291f28-49dc-4486-9119-af7c31569de3
-  resourceVersion: "7992"
-  uid: c913eea4-71e0-4d5d-b664-078abac36c40
-spec:
-  type: tc
+    kind: BpfApplication
+    name: bpfapplication-sample
+    uid: 0a2dd439-577f-49ae-81ae-54a9a2265ddb
+  resourceVersion: "74052"
+  uid: 71499d5d-e248-404f-b432-112b395754dd
 status:
+  appLoadStatus: LoadSuccess
   conditions:
-  - lastTransitionTime: "2024-12-18T22:23:11Z"
-    message: Successfully loaded bpfProgram
-    reason: bpfmanLoaded
+  - lastTransitionTime: "2025-07-02T08:58:19Z"
+    message: The BPF application has been successfully loaded and attached
+    reason: Success
     status: "True"
-    type: Loaded
+    type: Success
+  node: bpfman-deployment-control-plane
+  programs:
+  - name: tc_pass_test
+    programId: 851
+    programLinkStatus: Success
+    tc: {}
+    type: TC
+  - name: tcx_next_test
+    programId: 852
+    programLinkStatus: Success
+    tcx: {}
+    type: TCX
+  - name: uprobe_test
+    programId: 853
+    programLinkStatus: Success
+    type: UProbe
+    uprobe: {}
+  - name: uretprobe_test
+    programId: 854
+    programLinkStatus: Success
+    type: URetProbe
+    uretprobe: {}
+  - name: xdp_pass_test
+    programId: 855
+    programLinkStatus: Success
+    type: XDP
+    xdp: {}
+  updateCount: 2
 ```

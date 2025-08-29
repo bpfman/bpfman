@@ -36,7 +36,7 @@ from the `bpfman` repository.
 Below are the commands supported by `bpfman`.
 
 ```console
-sudo bpfman --help
+$ bpfman --help
 An eBPF manager focusing on simplifying the deployment and administration of eBPF programs.
 
 Usage: bpfman <COMMAND>
@@ -61,24 +61,24 @@ The general flow for using the CLI is as follows:
 * **Load Program**: The first step is to load the eBPF Program (or Programs) using the
   `bpfman load` command.
   The programs can be from a locally built eBPF program (.o file) or an eBPF program
-  packaged in a OCI container image from a given registry.
+  packaged in an OCI container image from a given registry.
   Once the command completes successfully, the eBPF programs are loaded in kernel memory,
-  but have not been attached to any hook points yet.
+  but have not yet been attached to any hook points.
 * **Attach Program**: The next step is to attach a loaded eBPF Program to a hook point
   using the `bpfman attach` command.
   Each program type (kprobe, tc, tracepoint, xdp, etc) has unique hook points and unique
   configuration data which is provided with the attach command.
-  Once attached, the eBPF Program will be called if it's hook point is triggered.
+  Once attached, the eBPF Program will be called when its hook point is triggered.
 * **Display Programs**: At any time, the set of programs loaded and attach can be displayed.
   To get a list of all the programs, use the `bpfman list programs` command.
   If a program shows up in the list then the program has been loaded.
   One of the attributes in the output is  the `Links` parameter.
   If there is a values in the `Links` parameter, then the program has also been attached.
   To retrieve all the parameters of a given program, use the `bpfman get program` command, which
-  displays a given program based its `Program ID`, which can be found in the list output.
+  displays a given program based on its `Program ID`, which can be found in the list output.
   To get a list of all the links, use the `bpfman list links` command.
-  To retrieve all the parameters of a given link, use the `bpfman get link` command, which
-  displays a given link based its `Link ID`, which can be found in the list output.
+  To retrieve all the parameters of a given link, use the `bpfman get link` command which
+  displays a given link based on its `Link ID` which can be found in the list output.
 * **Detach Program**: Optionally, an eBPF Program can be detached from a hook point if desired
   using the `bpfman detach` command.
 * **Unload Program**: Once an eBPF Program is no longer needed, the program can be unloaded
@@ -92,15 +92,15 @@ If the command is successful, the eBPF programs are loaded in kernel memory, but
 not been attached to any hook points yet (see [bpfman attach](#bpfman-attach)).
 If the bytecode file contains multiple eBPF programs, they should be loaded in a single
 command by passing multiple <TYPE\>:<NAME\> pairs to the `--programs` parameters.
-They need to be loaded in one command so each those eBPF programs can share any global
-data and maps between the eBPF programs.
+They need to be loaded in a single command so that each of the eBPF programs can share any
+global data and maps between them.
 
 The `bpfman load file` command is used to load a locally built eBPF program.
-The `bpfman load image` command is used to load an eBPF program packaged in a OCI container
+The `bpfman load image` command is used to load an eBPF program packaged in an OCI container
 image from a given registry.
 
 ```console
-sudo bpfman load file --help
+$ sudo bpfman load file --help
 Load an eBPF program from a local .o file
 
 Usage: bpfman load file [OPTIONS] --programs <PROGRAMS>... --path <PATH>
@@ -166,7 +166,7 @@ Options:
 and
 
 ```console
-sudo bpfman load image --help
+$ sudo bpfman load image --help
 Load an eBPF program packaged in a OCI container image from a given registry
 
 Usage: bpfman load image [OPTIONS] --programs <PROGRAMS>... --image-url <IMAGE_URL>
@@ -251,9 +251,34 @@ Below are some different examples for using the `bpfmam load` command.
 The following is an example of the `tc` command from local file:
 
 ```console
-cd bpfman/
-sudo bpfman load file -p tests/integration-test/bpf/.output/tc_pass.bpf/bpf_x86_bpfel.o \
+$ cd bpfman/
+$ sudo bpfman load file -p tests/integration-test/bpf/.output/tc_pass.bpf/bpf_x86_bpfel.o \
      --programs tc:pass --application TcPassProgram
+ Bpfman State                                                                  
+ BPF Function:  pass                                                           
+ Program Type:  tc                                                             
+ Path:          tests/integration-test/bpf/.output/tc_pass.bpf/bpf_x86_bpfel.o 
+ Global:        None                                                           
+ Metadata:      bpfman_application=TcPassProgram                               
+ Map Pin Path:  /run/bpfman/fs/maps/90                                         
+ Map Owner ID:  None                                                           
+ Maps Used By:  90                                                             
+ Links:         None                                                           
+
+ Kernel State                                               
+ Program ID:                       90                       
+ BPF Function:                     pass                     
+ Kernel Type:                      tc                       
+ Loaded At:                        2025-07-22T08:16:06+0000 
+ Tag:                              d796b57bdaf88123         
+ GPL Compatible:                   true                     
+ Map IDs:                          [27]                     
+ BTF ID:                           101                      
+ Size Translated (bytes):          96                       
+ JITted:                           true                     
+ Size JITted:                      76                       
+ Kernel Allocated Memory (bytes):  4096                     
+ Verified Instruction Count:       9
 ```
 
 For the `--programs tc:pass` program loaded with the command above, the `<FUNC_NAME>`
@@ -270,26 +295,59 @@ int pass(struct __sk_buff *skb) {
 
 #### Loading From Remote Repository
 
-Below is an example loading an eBPF program packaged in a OCI container image
+Below is an example loading an eBPF program packaged in an OCI container image
 from a given registry:
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest \
+$ sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest \
      --programs xdp:pass --application XdpPassProgram
+ Bpfman State                                           
+ BPF Function:  pass                                    
+ Program Type:  xdp                                     
+ Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest 
+ Pull Policy:   IfNotPresent                            
+ Global:        None                                    
+ Metadata:      bpfman_application=XdpPassProgram       
+ Map Pin Path:  /run/bpfman/fs/maps/184                 
+ Map Owner ID:  None                                    
+ Maps Used By:  184                                     
+ Links:         None                                    
+
+ Kernel State                                               
+ Program ID:                       184                      
+ BPF Function:                     pass                     
+ Kernel Type:                      xdp                      
+ Loaded At:                        2025-07-22T08:22:05+0000 
+ Tag:                              4b9d1b2c140e87ce         
+ GPL Compatible:                   true                     
+ Map IDs:                          [60]                     
+ BTF ID:                           188                      
+ Size Translated (bytes):          96                       
+ JITted:                           true                     
+ Size JITted:                      79                       
+ Kernel Allocated Memory (bytes):  4096                     
+ Verified Instruction Count:       9 
 ```
 
 #### Loading Multiple Programs
 
-An eBPF bytecode image can can contain multiple programs.
+An eBPF bytecode image can contain multiple programs.
 Below is an example of how to load multiple eBPF programs in one load command.
 Commands that are loaded together can share global data and maps.
 Optionally, include an `application` name that can be used to group the load
 programs together when displaying.
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfman-bytecode/go-app-counter:latest \
+$ sudo bpfman load image --image-url quay.io/bpfman-bytecode/go-app-counter:latest \
    --programs kprobe:kprobe_counter tracepoint:tracepoint_kill_recorder tc:stats \
-              tcx:tcx_stats uprobe:uprobe_counter xdp:xdp_stats  --application go-app
+              tcx:tcx_stats uprobe:uprobe_counter xdp:xdp_stats --application go-app
+ Program ID  Application  Type        Function Name    Links 
+ 224         go-app       kprobe      kprobe_counter         
+ 225         go-app       tracepoint  tracepoint_kill        
+ 226         go-app       tc          stats                  
+ 227         go-app       tcx         tcx_stats              
+ 228         go-app       uprobe      uprobe_counter         
+ 229         go-app       xdp         xdp_stats 
 ```
 
 #### Loading fentry/fexit Programs
@@ -303,11 +361,63 @@ The fentry and fexit programs still require a `bpfman attach` command to be
 called before they will actually be triggered.
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfman-bytecode/fentry:latest \
+$ sudo bpfman load image --image-url quay.io/bpfman-bytecode/fentry:latest \
      --programs fentry:test_fentry:do_unlinkat
+ Bpfman State                                         
+ BPF Function:  test_fentry                           
+ Program Type:  fentry                                
+ Image URL:     quay.io/bpfman-bytecode/fentry:latest 
+ Pull Policy:   IfNotPresent                          
+ Global:        None                                  
+ Metadata:      None                                  
+ Map Pin Path:  /run/bpfman/fs/maps/244               
+ Map Owner ID:  None                                  
+ Maps Used By:  244                                   
+ Links:         None                                  
 
-sudo bpfman load image --image-url quay.io/bpfman-bytecode/fentry:latest \
+ Kernel State                                               
+ Program ID:                       244                      
+ BPF Function:                     test_fentry              
+ Kernel Type:                      tracing                  
+ Loaded At:                        2025-07-22T08:25:37+0000 
+ Tag:                              dda189308c8908           
+ GPL Compatible:                   true                     
+ Map IDs:                          [93]                     
+ BTF ID:                           253                      
+ Size Translated (bytes):          48                       
+ JITted:                           true                     
+ Size JITted:                      48                       
+ Kernel Allocated Memory (bytes):  4096                     
+ Verified Instruction Count:       5
+
+$ sudo bpfman load image --image-url quay.io/bpfman-bytecode/fentry:latest \
      --programs fexit:test_fexit:do_unlinkat
+ Bpfman State                                         
+ BPF Function:  test_fexit                            
+ Program Type:  fexit                                 
+ Image URL:     quay.io/bpfman-bytecode/fentry:latest 
+ Pull Policy:   IfNotPresent                          
+ Global:        None                                  
+ Metadata:      None                                  
+ Map Pin Path:  /run/bpfman/fs/maps/252               
+ Map Owner ID:  None                                  
+ Maps Used By:  252                                   
+ Links:         None                                  
+
+ Kernel State                                               
+ Program ID:                       252                      
+ BPF Function:                     test_fexit               
+ Kernel Type:                      tracing                  
+ Loaded At:                        2025-07-22T08:26:29+0000 
+ Tag:                              85719cd36bd53c46         
+ GPL Compatible:                   true                     
+ Map IDs:                          [97]                     
+ BTF ID:                           262                      
+ Size Translated (bytes):          48                       
+ JITted:                           true                     
+ Size JITted:                      48                       
+ Kernel Allocated Memory (bytes):  4096                     
+ Verified Instruction Count:       5
 ```
 
 #### Loading probe Versus retprobe Programs
@@ -338,16 +448,68 @@ int my_kretprobe(struct pt_regs *ctx) {
 }
 ```
 
-But loading each type of program is similar:
+But loading each program type is similar:
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfman-bytecode/kprobe:latest \
+$ sudo bpfman load image --image-url quay.io/bpfman-bytecode/kprobe:latest \
    --programs kprobe:my_kprobe
+ Bpfman State                                         
+ BPF Function:  my_kprobe                             
+ Program Type:  kprobe                                
+ Image URL:     quay.io/bpfman-bytecode/kprobe:latest 
+ Pull Policy:   IfNotPresent                          
+ Global:        None                                  
+ Metadata:      None                                  
+ Map Pin Path:  /run/bpfman/fs/maps/81                
+ Map Owner ID:  None                                  
+ Maps Used By:  81                                    
+ Links:         None                                  
+
+ Kernel State                                               
+ Program ID:                       81                       
+ BPF Function:                     my_kprobe                
+ Kernel Type:                      probe                    
+ Loaded At:                        2025-07-22T11:30:57+0000 
+ Tag:                              9b2c38d37350bfff         
+ GPL Compatible:                   true                     
+ Map IDs:                          [24]                     
+ BTF ID:                           82                       
+ Size Translated (bytes):          96                       
+ JITted:                           true                     
+ Size JITted:                      76                       
+ Kernel Allocated Memory (bytes):  4096                     
+ Verified Instruction Count:       9
 ```
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfman-bytecode/kretprobe:latest \
+$ sudo bpfman load image --image-url quay.io/bpfman-bytecode/kretprobe:latest \
    --programs kprobe:my_kretprobe
+ Bpfman State                                            
+ BPF Function:  my_kretprobe                             
+ Program Type:  kprobe                                   
+ Image URL:     quay.io/bpfman-bytecode/kretprobe:latest 
+ Pull Policy:   IfNotPresent                             
+ Global:        None                                     
+ Metadata:      None                                     
+ Map Pin Path:  /run/bpfman/fs/maps/89                   
+ Map Owner ID:  None                                     
+ Maps Used By:  89                                       
+ Links:         None                                     
+
+ Kernel State                                               
+ Program ID:                       89                       
+ BPF Function:                     my_kretprobe             
+ Kernel Type:                      probe                    
+ Loaded At:                        2025-07-22T11:31:45+0000 
+ Tag:                              9b2c38d37350bfff         
+ GPL Compatible:                   true                     
+ Map IDs:                          [28]                     
+ BTF ID:                           91                       
+ Size Translated (bytes):          96                       
+ JITted:                           true                     
+ Size JITted:                      76                       
+ Kernel Allocated Memory (bytes):  4096                     
+ Verified Instruction Count:       9
 ```
 
 ### Setting Global Variables in eBPF Programs
@@ -355,15 +517,42 @@ sudo bpfman load image --image-url quay.io/bpfman-bytecode/kretprobe:latest \
 Global variables can be set for any eBPF program type when loading as follows:
 
 ```console
-cd bpfman/
-sudo bpfman load file -p tests/integration-test/bpf/.output/tc_pass.bpf/bpf_x86_bpfel.o \
+$ cd bpfman/
+$ sudo bpfman load file -p tests/integration-test/bpf/.output/tc_pass.bpf/bpf_x86_bpfel.o \
      --programs tc:pass -g GLOBAL_u8=01 GLOBAL_u32=0A0B0C0D --application TcGlobal
+ Bpfman State                                                                  
+ BPF Function:  pass                                                           
+ Program Type:  tc                                                             
+ Path:          tests/integration-test/bpf/.output/tc_pass.bpf/bpf_x86_bpfel.o 
+ Global:        GLOBAL_u8=01                                                   
+                GLOBAL_u32=0A0B0C0D                                            
+ Metadata:      bpfman_application=TcGlobal                                    
+ Map Pin Path:  /run/bpfman/fs/maps/98                                         
+ Map Owner ID:  None                                                           
+ Maps Used By:  98                                                             
+ Links:         None                                                           
+
+ Kernel State                                               
+ Program ID:                       98                       
+ BPF Function:                     pass                     
+ Kernel Type:                      tc                       
+ Loaded At:                        2025-07-22T11:32:57+0000 
+ Tag:                              d796b57bdaf88123         
+ GPL Compatible:                   true                     
+ Map IDs:                          [32]                     
+ BTF ID:                           109                      
+ Size Translated (bytes):          96                       
+ JITted:                           true                     
+ Size JITted:                      76                       
+ Kernel Allocated Memory (bytes):  4096                     
+ Verified Instruction Count:       9
 ```
 
 Note that when setting global variables, the eBPF program being loaded must
 have global variables named with the strings given, and the size of the value
 provided must match the size of the given variable.  For example, the above
-command can be used to update the following global variables in an eBPF program.
+command can be used to update the following global variables in an eBPF program
+(see [tc_pass.bpf.c](https://github.com/bpfman/bpfman/blob/main/tests/integration-test/bpf/tc_pass.bpf.c)).
 
 ```c
 volatile const __u32 GLOBAL_u8 = 0;
@@ -378,7 +567,7 @@ and those program specific attributes MUST come after the `Program ID` (from the
 the program type are entered.
 
 ```console
-sudo bpfman attach --help
+$ sudo bpfman attach --help
 Attach an eBPF program to a hook point using the Program Id
 
 Usage: bpfman attach <PROGRAM_ID> <COMMAND>
@@ -404,7 +593,7 @@ Options:
 Each `<COMMAND>` has its own custom parameters:
 
 ```console
-sudo bpfman attach xdp --help
+$ sudo bpfman attach xdp --help
 Install an eBPF program on the XDP hook point for a given interface
 
 Usage: bpfman attach <PROGRAM_ID> xdp [OPTIONS] --iface <IFACE> --priority <PRIORITY>
@@ -445,14 +634,25 @@ Options:
 Example attaching an XDP Program:
 
 ```console
-sudo bpfman attach 63674 xdp --iface eno3 --priority 100
+$ bpfman attach 184 xdp --iface enp1s0 --priority 100
+ Bpfman State                                          
+ BPF Function:       pass                              
+ Program Type:       xdp                               
+ Program ID:         184                               
+ Link ID:            713799068                         
+ Interface:          enp1s0                            
+ Priority:           100                               
+ Position:           0                                 
+ Proceed On:         pass, dispatcher_return           
+ Network Namespace:  None                              
+ Metadata:           bpfman_application=XdpPassProgram
 ```
 
 The `tc` command is similar to `xdp`, but it also requires the `direction` option
 and the `proceed-on` values are different.
 
 ```console
-sudo bpfman attach tc --help
+$ sudo bpfman attach tc --help
 Install an eBPF program on the TC hook point for a given interface
 
 Usage: bpfman attach <PROGRAM_ID> tc [OPTIONS] --direction <DIRECTION> --iface <IFACE> --priority <PRIORITY>
@@ -500,7 +700,19 @@ Options:
 The following is an example of attaching the `tc` command using short option names:
 
 ```console
-sudo bpfman attach 63671 tc -d ingress -i eno3 -p 40
+$ sudo bpfman attach 98 tc -d ingress -i enp1s0 -p 40
+ Bpfman State                                    
+ BPF Function:       pass                        
+ Program Type:       tc                          
+ Program ID:         98                          
+ Link ID:            4210414695                  
+ Interface:          enp1s0                      
+ Direction:          ingress                     
+ Priority:           40                          
+ Position:           0                           
+ Proceed On:         pipe, dispatcher_return     
+ Network Namespace:  None                        
+ Metadata:           bpfman_application=TcGlobal
 ```
 
 ### Additional Attach Examples
@@ -574,10 +786,10 @@ To attach a program to multiple hook points, simply call `bpfman attach`
 multiple times with the same `Program ID`:
 
 ```console
-sudo bpfman attach 63661 xdp --iface eno3 --priority 35
-sudo bpfman attach 63661 xdp --iface eno4 --priority 35
+$ sudo bpfman attach 63661 xdp --iface eno3 --priority 35
+$ sudo bpfman attach 63661 xdp --iface eno4 --priority 35
 
-sudo bpfman list programs --application XdpPassProgram
+$ sudo bpfman list programs --application XdpPassProgram
  Program ID  Application     Type  Function Name  Links
  63661       XdpPassProgram  xdp   pass           (2) 1301256968, 18827142
 ```
@@ -604,7 +816,7 @@ The `bpfman detach` takes the `Link ID`, which can be obtained from the
 `bpfman list programs|links` or `bpfman get program|link` commands.
 
 ```console
-sudo bpfman detach --help
+$ sudo bpfman detach --help
 Detach an eBPF program from a hook point using the Link Id
 
 Usage: bpfman detach <LINK_ID>
@@ -619,7 +831,7 @@ Options:
 For example:
 
 ```console
-sudo bpfman list programs
+$ sudo bpfman list programs
  Program ID  Application     Type        Function Name    Links
  63652       TcPassProgram   tc          pass
  63661       XdpPassProgram  xdp         pass             (3) 1301256968, 18827142, 3974774760
@@ -651,10 +863,10 @@ the `bpfman list links` command lists all the bpfman attached eBPF programs.
 Use the `bpfman list programs` command lists all the bpfman loaded eBPF programs.
 From the output of the command, if there is a value for the `Links` parameter,
 then the program has been loaded and attached.
-If no value exists, the program has only been loaded (or not managed by bpfman).
+If no value exists, the program has only been loaded (or is not managed by bpfman).
 
 ```console
-sudo bpfman list programs
+$ sudo bpfman list programs
  Program ID  Application     Type        Function Name    Links
  63652       TcPassProgram   tc          pass
  63661       XdpPassProgram  xdp         pass             (2) 1301256968, 18827142
@@ -676,7 +888,7 @@ If the `--application` parameter was used during the `bpfman load` command, that
 can be used to filter the programs displayed in the command.
 
 ```console
-sudo bpfman list programs --application go-app
+$ sudo bpfman list programs --application go-app
  Program ID  Application  Type        Function Name    Links
  63669       go-app       kprobe      kprobe_counter
  63670       go-app       tracepoint  tracepoint_kill  (1) 1462192047
@@ -690,7 +902,7 @@ To see all eBPF programs loaded on the system, not just bpfman loaded programs,
 include the `--all` option.
 
 ```console
-sudo bpfman list programs --all
+$ sudo bpfman list programs --all
  :
  63638                       cgroup_device  sd_devices
  63639                       cgroup_skb     sd_fw_egress
@@ -722,7 +934,7 @@ sudo bpfman list programs --all
 To filter on a given program type, include the `--program-type` parameter:
 
 ```console
-sudo bpfman list programs --all --program-type tc
+$ sudo bpfman list programs --all --program-type tc
  Program ID  Application    Type  Function Name  Links
  63651                      tc    tc_dispatcher
  63652       TcPassProgram  tc    pass
@@ -737,13 +949,14 @@ sudo bpfman list programs --all --program-type tc
 * **probe**: `kprobe`, `kretprobe`, `uprobe` and `uretprobe` all map to the `probe` Kernel Program Type.
 * **tracing**: `fentry` and `fexit` both map to the `tracing` Kernel Program Type.
 * **tc**: `tc` and `tcx` both map to the `tc` Kernel Program Type.
+* For all possible program type values, see `bpfman list programs --help`.
 
 ### bpfman list links
 
 Use the `bpfman list links` command lists all the bpfman attached eBPF programs.
 
 ```console
-sudo bpfman list links
+$ sudo bpfman list links
  Program ID  Link ID     Application     Type        Function Name    Attachment
  63661       1301256968  XdpPassProgram  xdp         pass             eno4 pos-0
  63661       18827142    XdpPassProgram  xdp         pass             eno3 pos-0
@@ -764,7 +977,7 @@ If the `--application` parameter was used during the `bpfman load` command, that
 can be used to filter the programs displayed in the command.
 
 ```console
-sudo bpfman list links --application go-app
+$ sudo bpfman list links --application go-app
  Program ID  Link ID     Application  Type        Function Name    Attachment
  63670       1462192047  go-app       tracepoint  tracepoint_kill  syscalls/sys_enter_openat
  63671       3041462868  go-app       tc          stats            eno3 ingress pos-0
@@ -776,7 +989,7 @@ sudo bpfman list links --application go-app
 To filter on a given program type, include the `--program-type` parameter:
 
 ```console
-sudo bpfman list links -p tc
+$ sudo bpfman list links -p tc
  Program ID  Link ID     Application  Type  Function Name  Attachment
  63671       3041462868  go-app       tc    stats          eno3 ingress pos-0
  63672       3926782293  go-app       tcx   tcx_stats      eno3 ingress pos-0
@@ -809,7 +1022,7 @@ section will be empty and `Kernel State` section will be populated.
 bpfman managed eBPF Program:
 
 ```console
-sudo bpfman get program 63661
+$ sudo bpfman get program 63661
  Bpfman State
 ---------------
  BPF Function:  pass
@@ -843,7 +1056,7 @@ sudo bpfman get program 63661
 Non-bpfman managed eBPF Program:
 
 ```console
-sudo bpfman get program 63643
+$ sudo bpfman get program 63643
  Kernel State
 ----------------------------------
  Program ID:                       63643
@@ -868,7 +1081,7 @@ To retrieve detailed information for an attached eBPF program, use the
 Only bpfman loaded and attached eBPF programs contain link data.
 
 ```console
-sudo bpfman get link 18827142
+$ sudo bpfman get link 18827142
  Bpfman State
 ---------------
  BPF Function:       pass
@@ -894,7 +1107,7 @@ sudo bpfman unload 63661
 ```
 
 ```console
-sudo bpfman list programs
+$ sudo bpfman list programs
  Program ID  Application    Type        Function Name    Links
  63652       TcPassProgram  tc          pass
  63669       go-app         kprobe      kprobe_counter
@@ -921,7 +1134,7 @@ The `bpfman image pull` command pulls a given bytecode image for future use
 by a load command.
 
 ```console
-sudo bpfman image pull --help
+$ sudo bpfman image pull --help
 Pull an eBPF bytecode image from a remote registry
 
 Usage: bpfman image pull [OPTIONS] --image-url <IMAGE_URL>
@@ -951,14 +1164,14 @@ Options:
 Example usage:
 
 ```console
-sudo bpfman image pull --image-url quay.io/bpfman-bytecode/xdp_pass:latest
+$ sudo bpfman image pull --image-url quay.io/bpfman-bytecode/xdp_pass:latest
 Successfully downloaded bytecode
 ```
 
 Then when loaded, the local image will be used:
 
 ```console
-sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest \
+$ sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest \
      --programs xdp:pass
  Bpfman State
  ---------------
