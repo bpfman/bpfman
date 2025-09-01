@@ -52,7 +52,7 @@ chrono = { version = "0.4.41", default-features = false }
 clap = { version = "4", default-features = false }
 clap_complete = { version = "4.5.57", default-features = false }
 clap_mangen = { version = "0.2.29", default-features = false }
-comfy-table = { version = "7.1.4", default-features = false }
+comfy-table = { version = "7.2.0", default-features = false }
 dialoguer = { version = "0.11", default-features = false }
 diff = { version = "0.1.13", default-features = false }
 env_logger = { version = "0.11.8", default-features = false }
