@@ -329,7 +329,12 @@ impl XdpDispatcher {
         });
         for (i, v) in extensions.iter_mut().enumerate() {
             let id = v.0.get_program_id()?;
-            let mut ext = Extension::from_pin(format!("{RTDIR_FS}/prog_{id}"))?;
+            let path = format!("{RTDIR_FS}/prog_{id}");
+            let mut ext = Extension::from_pin(&path).map_err(|e| {
+                BpfmanError::Error(format!(
+                    "Unable to load pinned BPF program from {path}: {e}"
+                ))
+            })?;
             let target_fn = format!("prog{i}");
             let new_link_id = ext
                 .attach_to_program(dispatcher.fd().unwrap(), &target_fn)
