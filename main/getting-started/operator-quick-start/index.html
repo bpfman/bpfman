@@ -675,13 +675,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#deploy-bpfman-operation" class="md-nav__link">
+  <a href="#deploy-bpfman-operator" class="md-nav__link">
     <span class="md-ellipsis">
-      Deploy bpfman Operation
+      Deploy bpfman Operator
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Deploy bpfman Operation">
+    <nav class="md-nav" aria-label="Deploy bpfman Operator">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -721,24 +721,6 @@
   <a href="#cluster-scoped-versus-namespaced-scoped-crds" class="md-nav__link">
     <span class="md-ellipsis">
       Cluster Scoped Versus Namespaced Scoped CRDs
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#multiple-program-crds" class="md-nav__link">
-    <span class="md-ellipsis">
-      Multiple Program CRDs
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#bpfprogram-and-bpfnsprogram-crd" class="md-nav__link">
-    <span class="md-ellipsis">
-      BpfProgram and BpfNsProgram CRD
     </span>
   </a>
   
@@ -1990,13 +1972,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#deploy-bpfman-operation" class="md-nav__link">
+  <a href="#deploy-bpfman-operator" class="md-nav__link">
     <span class="md-ellipsis">
-      Deploy bpfman Operation
+      Deploy bpfman Operator
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Deploy bpfman Operation">
+    <nav class="md-nav" aria-label="Deploy bpfman Operator">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -2036,24 +2018,6 @@
   <a href="#cluster-scoped-versus-namespaced-scoped-crds" class="md-nav__link">
     <span class="md-ellipsis">
       Cluster Scoped Versus Namespaced Scoped CRDs
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#multiple-program-crds" class="md-nav__link">
-    <span class="md-ellipsis">
-      Multiple Program CRDs
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#bpfprogram-and-bpfnsprogram-crd" class="md-nav__link">
-    <span class="md-ellipsis">
-      BpfProgram and BpfNsProgram CRD
     </span>
   </a>
   
@@ -2121,18 +2085,17 @@
 This operator was built utilizing some great tooling provided by the
 <a href="https://sdk.operatorframework.io/">operator-sdk library</a>.
 A great first step in understanding some of the functionality can be to just run <code>make help</code>.</p>
-<h2 id="deploy-bpfman-operation">Deploy bpfman Operation</h2>
+<h2 id="deploy-bpfman-operator">Deploy bpfman Operator</h2>
 <p>The <code>bpfman-operator</code> is running as a Deployment with a ReplicaSet of one.
-It runs on the control plane and is composed of the containers <code>bpfman-operator</code> and
-<code>kube-rbac-proxy</code>.
-The operator is responsible for launching the bpfman Daemonset, which runs on every node.
-The bpfman Daemonset is composed of the containers <code>bpfman</code>, <code>bpfman-agent</code>, and <code>node-driver-registrar</code>.</p>
+It runs on the control plane and is composed of a single container.
+The operator is responsible for launching the <code>bpfman-daemon</code> DaemonSet and the <code>bpfman-metrics-proxy</code> DaemonSet, which run on every node.
+The <code>bpfman-daemon</code> DaemonSet is composed of the containers <code>bpfman</code>, <code>bpfman-agent</code>, and <code>node-driver-registrar</code>.</p>
 <p>Described below are two ways to deploy bpfman in a Kubernetes cluster:</p>
 <ul>
 <li><a href="#deploy-locally-via-kind">Deploy Locally via KIND</a>: Easiest way to deploy bpfman in a Kubernetes cluster
   and great for testing.</li>
 <li><a href="#deploy-to-openshift-cluster">Deploy To Openshift Cluster</a>: Special steps are needed to deploy on an
-  Openshift cluster because SELinux is enable.</li>
+  Openshift cluster because SELinux is enabled.</li>
 </ul>
 <h3 id="deploy-locally-via-kind">Deploy Locally via KIND</h3>
 <p>After reviewing the possible make targets it's quick and easy to get bpfman deployed locally on your system
@@ -2157,46 +2120,14 @@ This is described in
 For other options, see
 <a href="../../developer-guide/develop-operator/#deploy-to-existing-cluster">Deploy To Existing Cluster</a>.</p>
 <h2 id="api-types-overview">API Types Overview</h2>
-<p>Refer to  <a href="../../developer-guide/api-spec/">api-spec.md</a> for a more detailed description of all the bpfman Kubernetes API types.</p>
+<p>Refer to  <a href="../../developer-guide/api-spec/">api-spec.md</a> for a detailed description of all the bpfman Kubernetes API types.</p>
 <h3 id="cluster-scoped-versus-namespaced-scoped-crds">Cluster Scoped Versus Namespaced Scoped CRDs</h3>
 <p>For security reasons, cluster admins may want to limit certain applications to only loading eBPF programs
-within a given namespace.
-To provide these tighter controls on eBPF program loading, some of the bpfman Custom Resource Definitions (CRDs)
-are Namespace scoped.
-Not all eBPF programs make sense to be namespaced scoped.
-The namespaced scoped CRDs use the "&lt;ProgramType>NsProgram" identifier and cluster scoped CRDs to use "&lt;ProgramType>Program"
-identifier.</p>
-<h3 id="multiple-program-crds">Multiple Program CRDs</h3>
-<p>The multiple <code>*Program</code> CRDs are the bpfman Kubernetes API objects most relevant to users and can be used to
-understand clusterwide state for an eBPF program.
-It's designed to express how, and where eBPF programs are to be deployed within a Kubernetes cluster.
-Currently bpfman supports:</p>
-<ul>
-<li><code>fentryProgram</code></li>
-<li><code>fexitProgram</code></li>
-<li><code>kprobeProgram</code></li>
-<li><code>tcProgram</code> and <code>tcNsProgram</code></li>
-<li><code>tcxProgram</code> and <code>tcxNsProgram</code></li>
-<li><code>tracepointProgram</code></li>
-<li><code>uprobeProgram</code> and <code>uprobeNsProgam</code></li>
-<li><code>xdpProgram</code> and <code>xdpNsProgram</code></li>
-</ul>
-<p>There is also the <code>bpfApplication</code> and <code>bpfNsApplication</code> CRDs, which are
-designed for managing eBPF programs at an application level within a Kubernetes cluster.
-These CRD allows Kubernetes users to define which eBPF programs are essential for an application's operations
-and specify how these programs should be deployed across the cluster.
-With cluster scoped variant (<code>bpfApplication</code>), any variation of the cluster scoped
-eBPF programs can be loaded.
-With namespace scoped variant (<code>bpfNsApplication</code>), any variation of the namespace scoped
-eBPF programs can be loaded.</p>
-<h3 id="bpfprogram-and-bpfnsprogram-crd">BpfProgram and BpfNsProgram CRD</h3>
-<p>The <code>BpfProgram</code> and  <code>BpfNsProgram</code> CRDs are used internally by the bpfman-deployment to keep track of per
-node bpfman state such as map pin points, and to report node specific errors back to the user.
-Kubernetes users/controllers are only allowed to view these objects, NOT create or edit them.</p>
-<p>Applications wishing to use bpfman to deploy/manage their eBPF programs in Kubernetes will make use of this
-object to find references to the bpfMap pin points (<code>spec.maps</code>) in order to configure their eBPF programs.</p>
+within a given namespace. However, not all eBPF programs make sense to be namespaced scoped.
+To provide these controls for eBPF program loading, the bpfman operator includes both cluster-scoped CRDs (identified by the
+<code>Cluster</code> prefix) and namespace-scoped CRDs.</p>
 <h2 id="deploy-an-ebpf-program-to-the-cluster">Deploy an eBPF Program to the cluster</h2>
-<p>There are sample yamls for each of the support program type in the
+<p>There are sample yamls for a number of support program types in the
 <a href="https://github.com/bpfman/bpfman-operator/tree/main/config/samples">bpfman-operator/config/samples</a>
 directory.</p>
 <h3 id="deploy-cluster-scoped-sample">Deploy Cluster Scoped Sample</h3>
@@ -2206,94 +2137,102 @@ To test the deployment simply deploy one of the sample <code>xdpPrograms</code>:
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>config/samples/bpfman.io_v1alpha1_xdp_pass_xdpprogram.yaml
 </code></pre></div>
 <p>If loading of the XDP Program to the selected nodes was successful it will be reported
-back to the user via the <code>xdpProgram</code>'s status field:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>xdpprogram<span class="w"> </span>xdp-pass-all-nodes<span class="w"> </span>-o<span class="w"> </span>yaml
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>apiVersion:<span class="w"> </span>bpfman.io/v1alpha1
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>kind:<span class="w"> </span>XdpProgram
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>metadata:
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span>annotations:
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span>kubectl.kubernetes.io/last-applied-configuration:<span class="w"> </span><span class="p">|</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">      </span><span class="o">{</span><span class="s2">&quot;apiVersion&quot;</span>:<span class="s2">&quot;bpfman.io/v1alpha1&quot;</span>,<span class="s2">&quot;kind&quot;</span>:<span class="s2">&quot;XdpProgram&quot;</span>,<span class="s2">&quot;metadata&quot;</span>:<span class="o">{</span><span class="s2">&quot;annotations&quot;</span>:<span class="o">{}</span>,<span class="s2">&quot;labels&quot;</span>:<span class="o">{</span><span class="s2">&quot;app.kubernetes.io/name&quot;</span>:<span class="s2">&quot;xdpprogram&quot;</span><span class="o">}</span>,<span class="s2">&quot;name&quot;</span>:<span class="s2">&quot;xdp-pass-all-nodes&quot;</span><span class="o">}</span>,<span class="s2">&quot;spec&quot;</span>:<span class="o">{</span><span class="s2">&quot;bpffunctionname&quot;</span>:<span class="s2">&quot;pass&quot;</span>,<span class="s2">&quot;bytecode&quot;</span>:<span class="o">{</span><span class="s2">&quot;image&quot;</span>:<span class="o">{</span><span class="s2">&quot;url&quot;</span>:<span class="s2">&quot;quay.io/bpfman-bytecode/xdp_pass:latest&quot;</span><span class="o">}}</span>,<span class="s2">&quot;globaldata&quot;</span>:<span class="o">{</span><span class="s2">&quot;GLOBAL_u32&quot;</span>:<span class="o">[</span><span class="m">13</span>,12,11,10<span class="o">]</span>,<span class="s2">&quot;GLOBAL_u8&quot;</span>:<span class="o">[</span><span class="m">1</span><span class="o">]}</span>,<span class="s2">&quot;interfaceselector&quot;</span>:<span class="o">{</span><span class="s2">&quot;primarynodeinterface&quot;</span>:true<span class="o">}</span>,<span class="s2">&quot;nodeselector&quot;</span>:<span class="o">{}</span>,<span class="s2">&quot;priority&quot;</span>:0<span class="o">}}</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span>creationTimestamp:<span class="w"> </span><span class="s2">&quot;2023-11-07T19:16:39Z&quot;</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">  </span>finalizers:
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">  </span>-<span class="w"> </span>bpfman.io.operator/finalizer
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">  </span>generation:<span class="w"> </span><span class="m">2</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">  </span>labels:
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span>app.kubernetes.io/name:<span class="w"> </span>xdpprogram
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">  </span>name:<span class="w"> </span>xdp-pass-all-nodes
-<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">  </span>resourceVersion:<span class="w"> </span><span class="s2">&quot;157187&quot;</span>
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">  </span>uid:<span class="w"> </span>21c71a61-4e73-44eb-9b49-07af2866d25b
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>spec:
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">  </span>bpffunctionname:<span class="w"> </span>pass
-<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="w">  </span>bytecode:
-<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="w">    </span>image:
-<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">      </span>imagepullpolicy:<span class="w"> </span>IfNotPresent
-<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">      </span>url:<span class="w"> </span>quay.io/bpfman-bytecode/xdp_pass:latest
-<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">  </span>globaldata:
-<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">    </span>GLOBAL_u8:<span class="w"> </span><span class="nv">AQ</span><span class="o">==</span>
-<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">    </span>GLOBAL_u32:<span class="w"> </span><span class="nv">DQwLCg</span><span class="o">==</span>
-<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="w">  </span>interfaceselector:
-<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="w">    </span>primarynodeinterface:<span class="w"> </span><span class="nb">true</span>
-<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="w">  </span>mapownerselector:<span class="w"> </span><span class="o">{}</span>
-<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="w">  </span>nodeselector:<span class="w"> </span><span class="o">{}</span>
-<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="w">  </span>priority:<span class="w"> </span><span class="m">0</span>
-<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="w">  </span>proceedon:
-<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="w">  </span>-<span class="w"> </span>pass
-<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a><span class="w">  </span>-<span class="w"> </span>dispatcher_return
-<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a>status:
-<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a><span class="w">  </span>conditions:
-<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a><span class="w">  </span>-<span class="w"> </span>lastTransitionTime:<span class="w"> </span><span class="s2">&quot;2023-11-07T19:16:42Z&quot;</span>
-<a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a><span class="w">    </span>message:<span class="w"> </span>bpfProgramReconciliation<span class="w"> </span>Succeeded<span class="w"> </span>on<span class="w"> </span>all<span class="w"> </span>nodes
-<a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a><span class="w">    </span>reason:<span class="w"> </span>ReconcileSuccess
-<a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a><span class="w">    </span>status:<span class="w"> </span><span class="s2">&quot;True&quot;</span>
-<a id="__codelineno-2-40" name="__codelineno-2-40" href="#__codelineno-2-40"></a><span class="w">    </span>type:<span class="w"> </span>ReconcileSuccess
-</code></pre></div>
+back to the user via the <code>ClusterBpfApplication</code>'s status.</p>
 <p>To see information in listing form simply run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>xdpprogram<span class="w"> </span>-o<span class="w"> </span>wide
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>NAME<span class="w">                 </span>BPFFUNCTIONNAME<span class="w">   </span>NODESELECTOR<span class="w">   </span>PRIORITY<span class="w">   </span>INTERFACESELECTOR<span class="w">               </span>PROCEEDON
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>xdp-pass-all-nodes<span class="w">   </span>pass<span class="w">              </span><span class="o">{}</span><span class="w">             </span><span class="m">0</span><span class="w">          </span><span class="o">{</span><span class="s2">&quot;primarynodeinterface&quot;</span>:true<span class="o">}</span><span class="w">   </span><span class="o">[</span><span class="s2">&quot;pass&quot;</span>,<span class="s2">&quot;dispatcher_return&quot;</span><span class="o">]</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>ClusterBpfApplication<span class="w"> </span>xdp-pass-all-nodes
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>NAME<span class="w">                 </span>NODESELECTOR<span class="w">   </span>STATUS<span class="w">    </span>AGE
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>xdp-pass-all-nodes<span class="w">                  </span>Success<span class="w">   </span>92s
 </code></pre></div>
-<p>To view each attachment point on each node, use the <code>bpfProgram</code> object:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>bpfprograms
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>NAME<span class="w">                          </span>TYPE<span class="w">   </span>STATUS<span class="w">         </span>AGE
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>xdp-pass-all-nodes-f3def00d<span class="w">   </span>xdp<span class="w">    </span>bpfmanLoaded<span class="w">   </span>56s
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>bpfprograms<span class="w"> </span>xdp-pass-all-nodes-f3def00d<span class="w"> </span>-o<span class="w"> </span>yaml
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>apiVersion:<span class="w"> </span>bpfman.io/v1alpha1
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>kind:<span class="w"> </span>BpfProgram
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>metadata:
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">  </span>annotations:
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span>bpfman.io.xdpprogramcontroller/interface:<span class="w"> </span>eth0
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">    </span>bpfman.io/ProgramId:<span class="w"> </span><span class="s2">&quot;26577&quot;</span>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">    </span>bpfman.io/bpfProgramAttachPoint:<span class="w"> </span>eth0
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">  </span>creationTimestamp:<span class="w"> </span><span class="s2">&quot;2024-12-18T22:26:55Z&quot;</span>
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">  </span>finalizers:
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">  </span>-<span class="w"> </span>bpfman.io.xdpprogramcontroller/finalizer
-<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">  </span>generation:<span class="w"> </span><span class="m">1</span>
-<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">  </span>labels:
-<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">    </span>bpfman.io/appProgramId:<span class="w"> </span><span class="s2">&quot;&quot;</span>
-<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">    </span>bpfman.io/ownedByProgram:<span class="w"> </span>xdp-pass-all-nodes
-<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="w">    </span>kubernetes.io/hostname:<span class="w"> </span>bpfman-deployment-control-plane
-<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">  </span>name:<span class="w"> </span>xdp-pass-all-nodes-f3def00d
-<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">  </span>ownerReferences:
-<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">  </span>-<span class="w"> </span>apiVersion:<span class="w"> </span>bpfman.io/v1alpha1
-<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">    </span>blockOwnerDeletion:<span class="w"> </span><span class="nb">true</span>
-<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="w">    </span>controller:<span class="w"> </span><span class="nb">true</span>
-<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w">    </span>kind:<span class="w"> </span>XdpProgram
-<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="w">    </span>name:<span class="w"> </span>xdp-pass-all-nodes
-<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="w">    </span>uid:<span class="w"> </span>7685a5b6-a626-4483-8c20-06b29643a2a8
-<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="w">  </span>resourceVersion:<span class="w"> </span><span class="s2">&quot;8430&quot;</span>
-<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="w">  </span>uid:<span class="w"> </span>83c5a80d-2dca-46ce-806b-6fdf7bde901f
-<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>spec:
-<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="w">  </span>type:<span class="w"> </span>xdp
-<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a>status:
-<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="w">  </span>conditions:
-<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="w">  </span>-<span class="w"> </span>lastTransitionTime:<span class="w"> </span><span class="s2">&quot;2024-12-18T22:27:11Z&quot;</span>
-<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a><span class="w">    </span>message:<span class="w"> </span>Successfully<span class="w"> </span>loaded<span class="w"> </span>bpfProgram
-<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="w">    </span>reason:<span class="w"> </span>bpfmanLoaded
-<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="w">    </span>status:<span class="w"> </span><span class="s2">&quot;True&quot;</span>
-<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="w">    </span>type:<span class="w"> </span>Loaded
+<p>For view full information, run:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>ClusterBpfApplication<span class="w"> </span>xdp-pass-all-nodes<span class="w"> </span>-o<span class="w"> </span>yaml
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>apiVersion:<span class="w"> </span>bpfman.io/v1alpha1
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>kind:<span class="w"> </span>ClusterBpfApplication
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>metadata:
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span>annotations:
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span>kubectl.kubernetes.io/last-applied-configuration:<span class="w"> </span><span class="p">|</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">      </span><span class="o">{</span><span class="s2">&quot;apiVersion&quot;</span>:<span class="s2">&quot;bpfman.io/v1alpha1&quot;</span>,<span class="s2">&quot;kind&quot;</span>:<span class="s2">&quot;ClusterBpfApplication&quot;</span>,<span class="s2">&quot;metadata&quot;</span>:<span class="o">{</span><span class="s2">&quot;annotations&quot;</span>:<span class="o">{}</span>,<span class="s2">&quot;labels&quot;</span>:<span class="o">{</span><span class="s2">&quot;app.kubernetes.io/name&quot;</span>:<span class="s2">&quot;clusterbpfapplication&quot;</span><span class="o">}</span>,<span class="s2">&quot;name&quot;</span>:<span class="s2">&quot;xdp-pass-all-nodes&quot;</span><span class="o">}</span>,<span class="s2">&quot;spec&quot;</span>:<span class="o">{</span><span class="s2">&quot;byteCode&quot;</span>:<span class="o">{</span><span class="s2">&quot;image&quot;</span>:<span class="o">{</span><span class="s2">&quot;url&quot;</span>:<span class="s2">&quot;quay.io/bpfman-bytecode/xdp_pass:latest&quot;</span><span class="o">}}</span>,<span class="s2">&quot;nodeSelector&quot;</span>:<span class="o">{}</span>,<span class="s2">&quot;programs&quot;</span>:<span class="o">[{</span><span class="s2">&quot;name&quot;</span>:<span class="s2">&quot;pass&quot;</span>,<span class="s2">&quot;type&quot;</span>:<span class="s2">&quot;XDP&quot;</span>,<span class="s2">&quot;xdp&quot;</span>:<span class="o">{</span><span class="s2">&quot;links&quot;</span>:<span class="o">[{</span><span class="s2">&quot;interfaceSelector&quot;</span>:<span class="o">{</span><span class="s2">&quot;primaryNodeInterface&quot;</span>:true<span class="o">}</span>,<span class="s2">&quot;priority&quot;</span>:55<span class="o">}]}}]}}</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">  </span>creationTimestamp:<span class="w"> </span><span class="s2">&quot;2025-07-01T21:46:01Z&quot;</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span>finalizers:
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">  </span>-<span class="w"> </span>bpfman.io.operator/finalizer
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">  </span>generation:<span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">  </span>labels:
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">    </span>app.kubernetes.io/name:<span class="w"> </span>clusterbpfapplication
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">  </span>name:<span class="w"> </span>xdp-pass-all-nodes
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">  </span>resourceVersion:<span class="w"> </span><span class="s2">&quot;69629&quot;</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">  </span>uid:<span class="w"> </span>389cdde5-5916-4198-8ce8-2f7409d6c3f8
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>spec:
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">  </span>byteCode:
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">    </span>image:
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">      </span>imagePullPolicy:<span class="w"> </span>IfNotPresent
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">      </span>url:<span class="w"> </span>quay.io/bpfman-bytecode/xdp_pass:latest
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">  </span>nodeSelector:<span class="w"> </span><span class="o">{}</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="w">  </span>programs:
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="w">  </span>-<span class="w"> </span>name:<span class="w"> </span>pass
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="w">    </span>type:<span class="w"> </span>XDP
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="w">    </span>xdp:
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="w">      </span>links:
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="w">      </span>-<span class="w"> </span>interfaceSelector:
+<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="w">          </span>primaryNodeInterface:<span class="w"> </span><span class="nb">true</span>
+<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="w">        </span>priority:<span class="w"> </span><span class="m">55</span>
+<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="w">        </span>proceedOn:
+<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="w">        </span>-<span class="w"> </span>Pass
+<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="w">        </span>-<span class="w"> </span>DispatcherReturn
+<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a>status:
+<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a><span class="w">  </span>conditions:
+<a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a><span class="w">  </span>-<span class="w"> </span>lastTransitionTime:<span class="w"> </span><span class="s2">&quot;2025-07-01T21:46:10Z&quot;</span>
+<a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a><span class="w">    </span>message:<span class="w"> </span>BPF<span class="w"> </span>application<span class="w"> </span>configuration<span class="w"> </span>successfully<span class="w"> </span>applied<span class="w"> </span>on<span class="w"> </span>all<span class="w"> </span>nodes
+<a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a><span class="w">    </span>reason:<span class="w"> </span>Success
+<a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a><span class="w">    </span>status:<span class="w"> </span><span class="s2">&quot;True&quot;</span>
+<a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a><span class="w">    </span>type:<span class="w"> </span>Success
+</code></pre></div>
+<p>To view each attachment point on each node, use the <code>ClusterBpfApplicationState</code> object:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>clusterbpfapplicationstates<span class="w"> </span>-l<span class="w"> </span>bpfman.io/ownedByProgram<span class="o">=</span>xdp-pass-all-nodes<span class="w"> </span>-o<span class="w"> </span>yaml
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>apiVersion:<span class="w"> </span>bpfman.io/v1alpha1
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>kind:<span class="w"> </span>ClusterBpfApplicationState
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>metadata:
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span>creationTimestamp:<span class="w"> </span><span class="s2">&quot;2025-07-01T21:46:01Z&quot;</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span>finalizers:
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span>-<span class="w"> </span>bpfman.io.clbpfapplicationcontroller/finalizer
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span>generation:<span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span>labels:
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">    </span>bpfman.io/ownedByProgram:<span class="w"> </span>xdp-pass-all-nodes
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span>kubernetes.io/hostname:<span class="w"> </span>bpfman-deployment-control-plane
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">  </span>name:<span class="w"> </span>xdp-pass-all-nodes-cb774e3c
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">  </span>ownerReferences:
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">  </span>-<span class="w"> </span>apiVersion:<span class="w"> </span>bpfman.io/v1alpha1
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">    </span>blockOwnerDeletion:<span class="w"> </span><span class="nb">true</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">    </span>controller:<span class="w"> </span><span class="nb">true</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">    </span>kind:<span class="w"> </span>ClusterBpfApplication
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">    </span>name:<span class="w"> </span>xdp-pass-all-nodes
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">    </span>uid:<span class="w"> </span>389cdde5-5916-4198-8ce8-2f7409d6c3f8
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">  </span>resourceVersion:<span class="w"> </span><span class="s2">&quot;69628&quot;</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="w">  </span>uid:<span class="w"> </span>b1436771-8591-490b-acaf-f229d079c336
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>status:
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">  </span>appLoadStatus:<span class="w"> </span>LoadSuccess
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">  </span>conditions:
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">  </span>-<span class="w"> </span>lastTransitionTime:<span class="w"> </span><span class="s2">&quot;2025-07-01T21:46:10Z&quot;</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="w">    </span>message:<span class="w"> </span>The<span class="w"> </span>BPF<span class="w"> </span>application<span class="w"> </span>has<span class="w"> </span>been<span class="w"> </span>successfully<span class="w"> </span>loaded<span class="w"> </span>and<span class="w"> </span>attached
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w">    </span>reason:<span class="w"> </span>Success
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="w">    </span>status:<span class="w"> </span><span class="s2">&quot;True&quot;</span>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="w">    </span>type:<span class="w"> </span>Success
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="w">  </span>node:<span class="w"> </span>bpfman-deployment-control-plane
+<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="w">  </span>programs:
+<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="w">  </span>-<span class="w"> </span>name:<span class="w"> </span>pass
+<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="w">    </span>programId:<span class="w"> </span><span class="m">841</span>
+<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="w">    </span>programLinkStatus:<span class="w"> </span>Success
+<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="w">    </span>type:<span class="w"> </span>XDP
+<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="w">    </span>xdp:
+<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a><span class="w">      </span>links:
+<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="w">      </span>-<span class="w"> </span>interfaceName:<span class="w"> </span>eth0
+<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="w">        </span>linkId:<span class="w"> </span><span class="m">1718587848</span>
+<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="w">        </span>linkStatus:<span class="w"> </span>Attached
+<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="w">        </span>priority:<span class="w"> </span><span class="m">55</span>
+<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="w">        </span>proceedOn:
+<a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a><span class="w">        </span>-<span class="w"> </span>Pass
+<a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a><span class="w">        </span>-<span class="w"> </span>DispatcherReturn
+<a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a><span class="w">        </span>shouldAttach:<span class="w"> </span><span class="nb">true</span>
+<a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a><span class="w">        </span>uuid:<span class="w"> </span>c36d23bd-8ac2-4579-9e89-f745fd361fdd
+<a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a><span class="w">  </span>updateCount:<span class="w"> </span><span class="m">2</span>
 </code></pre></div>
 <h3 id="deploy-namespace-scoped-sample">Deploy Namespace Scoped Sample</h3>
 <p>The namespace scoped samples need a namespace and pods to attach to.
@@ -2301,8 +2240,8 @@ A yaml has been created that will create a <code>Namespace</code> called "acme" 
 <a href="https://github.com/bpfman/bpfman-operator/blob/main/hack/namespace_scoped.yaml">bpfman-operator/hack/namespace_scoped.yaml</a>).
 The reason for namespace scoped CRDs is to limit an application or user to a namespace.
 To this end, this yaml also creates a limited <code>ServiceAccount</code>, <code>Role</code>, <code>RoleBinding</code> and <code>Secret</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman-operator
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>hack/namespace_scoped.yaml<span class="w"> </span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>bpfman-operator
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>$<span class="w"> </span>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>hack/namespace_scoped.yaml<span class="w"> </span>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span>namespace/acme<span class="w"> </span>created
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span>serviceaccount/test-account<span class="w"> </span>created
 <a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span>role.rbac.authorization.k8s.io/test-account<span class="w"> </span>created
@@ -2310,7 +2249,7 @@ To this end, this yaml also creates a limited <code>ServiceAccount</code>, <code
 <a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span>secret/test-account-token<span class="w"> </span>created
 </code></pre></div>
 <p>To create a <code>kubeconfig</code> file that limits access to the created namespace, use the script 
-<a href="https://github.com/bpfman/bpfman-operator/blob/main/hack/nginx-deployment.sh">bpfman-operator/hack/namespace_scoped.sh</a>.
+<a href="https://github.com/bpfman/bpfman-operator/blob/main/hack/namespace_scoped.sh">bpfman-operator/hack/namespace_scoped.sh</a>.
 The script needs to know the name of the <code>Cluster</code>, <code>Namespace</code>, <code>Service Account</code> and <code>Secret</code>.
 The script defaults these fields to what is currently in 
 <a href="https://github.com/bpfman/bpfman-operator/blob/main/hack/namespace_scoped.yaml">bpfman-operator/hack/namespace_scoped.yaml</a>.
@@ -2323,120 +2262,185 @@ This can be printed to the console or redirected to a file.</p>
 <p>To use the <code>kubeconfig</code> file, select the session to limit access in and run:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">KUBECONFIG</span><span class="o">=</span>/tmp/kubeconfig
 </code></pre></div>
-<p>From within this limited access session, a sample <code>nginx</code> deployment can be created in the same namespace using
-<a href="https://github.com/bpfman/bpfman-operator/blob/main/hack/nginx-deployment.yaml">bpfman-operator/hack/namespace_scoped.yaml</a>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>hack/nginx-deployment.yaml
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span>deployment.apps/nginx-deployment<span class="w"> </span>created
+<p>From within this limited access session, a sample <code>nginx</code> deployment can be created in the same namespace.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>kubectl<span class="w"> </span>create<span class="w"> </span>deployment<span class="w"> </span>nginx<span class="w"> </span>--image<span class="o">=</span>nginx
 </code></pre></div>
 <p>Finally, load any of the namespaced samples from
-<a href="https://github.com/bpfman/bpfman-operator/tree/main/config/samples">bpfman-operator/config/samples</a>.
-They are of the format: <code>bpfman.io_v1alpha1_*nsprogram.yaml</code></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>config/samples/bpfman.io_v1alpha1_tc_pass_tcnsprogram.yaml<span class="w"> </span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span>tcnsprogram.bpfman.io/tc-containers<span class="w"> </span>created
+<a href="https://github.com/bpfman/bpfman-operator/tree/main/config/samples">bpfman-operator/config/samples</a>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>config/samples/bpfman.io_v1alpha1_bpfapplication.yaml
 </code></pre></div>
-<p>The status for each namespaced program is reported via the *NsProgram status field and further
-information can be seen in the resulting BpfNsProgram CRDs.
-As an example, the following commands display the information of the TC program loaded in the acme
+<p>The status for each namespaced program is reported via the BpfApplication status field and further
+information can be seen in the BpfApplicationState CRDs.
+As an example, the following commands display the information of the program loaded in the acme
 namespace with the command above.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>tcnsprograms
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>NAME<span class="w">            </span>BPFFUNCTIONNAME<span class="w">   </span>NODESELECTOR<span class="w">   </span>STATUS
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>tc-containers<span class="w">   </span>pass<span class="w">              </span><span class="o">{}</span><span class="w">             </span>ReconcileSuccess
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>bpfapplications<span class="w"> </span>-n<span class="w"> </span>acme
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>NAME<span class="w">                    </span>NODESELECTOR<span class="w">   </span>STATUS<span class="w">    </span>AGE
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>bpfapplication-sample<span class="w">                  </span>Success<span class="w">   </span>2d6h
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>tcnsprograms<span class="w"> </span>tc-containers<span class="w"> </span>-o<span class="w"> </span>yaml
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>apiVersion:<span class="w"> </span>bpfman.io/v1alpha1
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>kind:<span class="w"> </span>TcNsProgram
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>metadata:
-<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">  </span>annotations:
-<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="w">    </span>kubectl.kubernetes.io/last-applied-configuration:<span class="w"> </span><span class="p">|</span>
-<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="w">      </span><span class="o">{</span><span class="s2">&quot;apiVersion&quot;</span>:<span class="s2">&quot;bpfman.io/v1alpha1&quot;</span>,<span class="s2">&quot;kind&quot;</span>:<span class="s2">&quot;TcNsProgram&quot;</span>,<span class="s2">&quot;metadata&quot;</span>:<span class="o">{</span><span class="s2">&quot;annotations&quot;</span>:<span class="o">{}</span>,<span class="s2">&quot;labels&quot;</span>:<span class="o">{</span><span class="s2">&quot;app.kubernetes.io/name&quot;</span>:<span class="s2">&quot;tcnsprogram&quot;</span><span class="o">}</span>,<span class="s2">&quot;name&quot;</span>:<span class="s2">&quot;tc-containers&quot;</span>,<span class="s2">&quot;namespace&quot;</span>:<span class="s2">&quot;acme&quot;</span><span class="o">}</span>,<span class="s2">&quot;spec&quot;</span>:<span class="o">{</span><span class="s2">&quot;bpffunctionname&quot;</span>:<span class="s2">&quot;pass&quot;</span>,<span class="s2">&quot;bytecode&quot;</span>:<span class="o">{</span><span class="s2">&quot;image&quot;</span>:<span class="o">{</span><span class="s2">&quot;url&quot;</span>:<span class="s2">&quot;quay.io/bpfman-bytecode/tc_pass:latest&quot;</span><span class="o">}}</span>,<span class="s2">&quot;containers&quot;</span>:<span class="o">{</span><span class="s2">&quot;containernames&quot;</span>:<span class="o">[</span><span class="s2">&quot;nginx&quot;</span><span class="o">]</span>,<span class="s2">&quot;pods&quot;</span>:<span class="o">{</span><span class="s2">&quot;matchLabels&quot;</span>:<span class="o">{</span><span class="s2">&quot;app&quot;</span>:<span class="s2">&quot;nginx&quot;</span><span class="o">}}}</span>,<span class="s2">&quot;direction&quot;</span>:<span class="s2">&quot;ingress&quot;</span>,<span class="s2">&quot;globaldata&quot;</span>:<span class="o">{</span><span class="s2">&quot;GLOBAL_u32&quot;</span>:<span class="o">[</span><span class="m">13</span>,12,11,10<span class="o">]</span>,<span class="s2">&quot;GLOBAL_u8&quot;</span>:<span class="o">[</span><span class="m">1</span><span class="o">]}</span>,<span class="s2">&quot;interfaceselector&quot;</span>:<span class="o">{</span><span class="s2">&quot;interfaces&quot;</span>:<span class="o">[</span><span class="s2">&quot;eth0&quot;</span><span class="o">]}</span>,<span class="s2">&quot;nodeselector&quot;</span>:<span class="o">{}</span>,<span class="s2">&quot;priority&quot;</span>:0<span class="o">}}</span>
-<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="w">  </span>creationTimestamp:<span class="w"> </span><span class="s2">&quot;2024-12-18T22:22:52Z&quot;</span>
-<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="w">  </span>finalizers:
-<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="w">  </span>-<span class="w"> </span>bpfman.io.operator/finalizer
-<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="w">  </span>generation:<span class="w"> </span><span class="m">2</span>
-<a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="w">  </span>labels:
-<a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="w">    </span>app.kubernetes.io/name:<span class="w"> </span>tcnsprogram
-<a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="w">  </span>name:<span class="w"> </span>tc-containers
-<a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="w">  </span>namespace:<span class="w"> </span>acme
-<a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="w">  </span>resourceVersion:<span class="w"> </span><span class="s2">&quot;7993&quot;</span>
-<a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a><span class="w">  </span>uid:<span class="w"> </span>49291f28-49dc-4486-9119-af7c31569de3
-<a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>spec:
-<a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a><span class="w">  </span>bpffunctionname:<span class="w"> </span>pass
-<a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a><span class="w">  </span>bytecode:
-<a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a><span class="w">    </span>image:
-<a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a><span class="w">      </span>imagepullpolicy:<span class="w"> </span>IfNotPresent
-<a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a><span class="w">      </span>url:<span class="w"> </span>quay.io/bpfman-bytecode/tc_pass:latest
-<a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a><span class="w">  </span>containers:
-<a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a><span class="w">    </span>containernames:
-<a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a><span class="w">    </span>-<span class="w"> </span>nginx
-<a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a><span class="w">    </span>pods:
-<a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a><span class="w">      </span>matchLabels:
-<a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a><span class="w">        </span>app:<span class="w"> </span>nginx
-<a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a><span class="w">  </span>direction:<span class="w"> </span>ingress
-<a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a><span class="w">  </span>globaldata:
-<a id="__codelineno-10-37" name="__codelineno-10-37" href="#__codelineno-10-37"></a><span class="w">    </span>GLOBAL_u8:<span class="w"> </span><span class="nv">AQ</span><span class="o">==</span>
-<a id="__codelineno-10-38" name="__codelineno-10-38" href="#__codelineno-10-38"></a><span class="w">    </span>GLOBAL_u32:<span class="w"> </span><span class="nv">DQwLCg</span><span class="o">==</span>
-<a id="__codelineno-10-39" name="__codelineno-10-39" href="#__codelineno-10-39"></a><span class="w">  </span>interfaceselector:
-<a id="__codelineno-10-40" name="__codelineno-10-40" href="#__codelineno-10-40"></a><span class="w">    </span>interfaces:
-<a id="__codelineno-10-41" name="__codelineno-10-41" href="#__codelineno-10-41"></a><span class="w">    </span>-<span class="w"> </span>eth0
-<a id="__codelineno-10-42" name="__codelineno-10-42" href="#__codelineno-10-42"></a><span class="w">  </span>mapownerselector:<span class="w"> </span><span class="o">{}</span>
-<a id="__codelineno-10-43" name="__codelineno-10-43" href="#__codelineno-10-43"></a><span class="w">  </span>nodeselector:<span class="w"> </span><span class="o">{}</span>
-<a id="__codelineno-10-44" name="__codelineno-10-44" href="#__codelineno-10-44"></a><span class="w">  </span>priority:<span class="w"> </span><span class="m">0</span>
-<a id="__codelineno-10-45" name="__codelineno-10-45" href="#__codelineno-10-45"></a><span class="w">  </span>proceedon:
-<a id="__codelineno-10-46" name="__codelineno-10-46" href="#__codelineno-10-46"></a><span class="w">  </span>-<span class="w"> </span>pipe
-<a id="__codelineno-10-47" name="__codelineno-10-47" href="#__codelineno-10-47"></a><span class="w">  </span>-<span class="w"> </span>dispatcher_return
-<a id="__codelineno-10-48" name="__codelineno-10-48" href="#__codelineno-10-48"></a>status:
-<a id="__codelineno-10-49" name="__codelineno-10-49" href="#__codelineno-10-49"></a><span class="w">  </span>conditions:
-<a id="__codelineno-10-50" name="__codelineno-10-50" href="#__codelineno-10-50"></a><span class="w">  </span>-<span class="w"> </span>lastTransitionTime:<span class="w"> </span><span class="s2">&quot;2024-12-18T22:23:11Z&quot;</span>
-<a id="__codelineno-10-51" name="__codelineno-10-51" href="#__codelineno-10-51"></a><span class="w">    </span>message:<span class="w"> </span>bpfProgramReconciliation<span class="w"> </span>Succeeded<span class="w"> </span>on<span class="w"> </span>all<span class="w"> </span>nodes
-<a id="__codelineno-10-52" name="__codelineno-10-52" href="#__codelineno-10-52"></a><span class="w">    </span>reason:<span class="w"> </span>ReconcileSuccess
-<a id="__codelineno-10-53" name="__codelineno-10-53" href="#__codelineno-10-53"></a><span class="w">    </span>status:<span class="w"> </span><span class="s2">&quot;True&quot;</span>
-<a id="__codelineno-10-54" name="__codelineno-10-54" href="#__codelineno-10-54"></a><span class="w">    </span>type:<span class="w"> </span>ReconcileSuccess
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>bpfapplications<span class="w"> </span>bpfapplication-sample<span class="w"> </span>-n<span class="w"> </span>acme<span class="w"> </span>-o<span class="w"> </span>yaml
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>apiVersion:<span class="w"> </span>bpfman.io/v1alpha1
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>kind:<span class="w"> </span>BpfApplication
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>metadata:
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">  </span>annotations:
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="w">    </span>kubectl.kubernetes.io/last-applied-configuration:<span class="w"> </span><span class="p">|</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="w">      </span><span class="o">{</span><span class="s2">&quot;apiVersion&quot;</span>:<span class="s2">&quot;bpfman.io/v1alpha1&quot;</span>,<span class="s2">&quot;kind&quot;</span>:<span class="s2">&quot;BpfApplication&quot;</span>,<span class="s2">&quot;metadata&quot;</span>:<span class="o">{</span><span class="s2">&quot;annotations&quot;</span>:<span class="o">{}</span>,<span class="s2">&quot;labels&quot;</span>:<span class="o">{</span><span class="s2">&quot;app.kubernetes.io/name&quot;</span>:<span class="s2">&quot;bpfapplication&quot;</span><span class="o">}</span>,<span class="s2">&quot;name&quot;</span>:<span class="s2">&quot;bpfapplication-sample&quot;</span>,<span class="s2">&quot;namespace&quot;</span>:<span class="s2">&quot;acme&quot;</span><span class="o">}</span>,<span class="s2">&quot;spec&quot;</span>:<span class="o">{</span><span class="s2">&quot;byteCode&quot;</span>:<span class="o">{</span><span class="s2">&quot;image&quot;</span>:<span class="o">{</span><span class="s2">&quot;url&quot;</span>:<span class="s2">&quot;quay.io/bpfman-bytecode/app-test:latest&quot;</span><span class="o">}}</span>,<span class="s2">&quot;globalData&quot;</span>:<span class="o">{</span><span class="s2">&quot;GLOBAL_u32&quot;</span>:<span class="o">[</span><span class="m">13</span>,12,11,10<span class="o">]</span>,<span class="s2">&quot;GLOBAL_u8&quot;</span>:<span class="o">[</span><span class="m">1</span><span class="o">]}</span>,<span class="s2">&quot;nodeSelector&quot;</span>:<span class="o">{}</span>,<span class="s2">&quot;programs&quot;</span>:<span class="o">[{</span><span class="s2">&quot;name&quot;</span>:<span class="s2">&quot;tc_pass_test&quot;</span>,<span class="s2">&quot;tc&quot;</span>:<span class="o">{</span><span class="s2">&quot;links&quot;</span>:<span class="o">[{</span><span class="s2">&quot;direction&quot;</span>:<span class="s2">&quot;Ingress&quot;</span>,<span class="s2">&quot;interfaceSelector&quot;</span>:<span class="o">{</span><span class="s2">&quot;interfaces&quot;</span>:<span class="o">[</span><span class="s2">&quot;eth0&quot;</span><span class="o">]}</span>,<span class="s2">&quot;networkNamespaces&quot;</span>:<span class="o">{</span><span class="s2">&quot;pods&quot;</span>:<span class="o">{</span><span class="s2">&quot;matchLabels&quot;</span>:<span class="o">{</span><span class="s2">&quot;app&quot;</span>:<span class="s2">&quot;test-target&quot;</span><span class="o">}}}</span>,<span class="s2">&quot;priority&quot;</span>:55<span class="o">}]}</span>,<span class="s2">&quot;type&quot;</span>:<span class="s2">&quot;TC&quot;</span><span class="o">}</span>,<span class="o">{</span><span class="s2">&quot;name&quot;</span>:<span class="s2">&quot;tcx_next_test&quot;</span>,<span class="s2">&quot;tcx&quot;</span>:<span class="o">{</span><span class="s2">&quot;links&quot;</span>:<span class="o">[{</span><span class="s2">&quot;direction&quot;</span>:<span class="s2">&quot;Egress&quot;</span>,<span class="s2">&quot;interfaceSelector&quot;</span>:<span class="o">{</span><span class="s2">&quot;interfaces&quot;</span>:<span class="o">[</span><span class="s2">&quot;eth0&quot;</span><span class="o">]}</span>,<span class="s2">&quot;networkNamespaces&quot;</span>:<span class="o">{</span><span class="s2">&quot;pods&quot;</span>:<span class="o">{</span><span class="s2">&quot;matchLabels&quot;</span>:<span class="o">{</span><span class="s2">&quot;app&quot;</span>:<span class="s2">&quot;test-target&quot;</span><span class="o">}}}</span>,<span class="s2">&quot;priority&quot;</span>:100<span class="o">}]}</span>,<span class="s2">&quot;type&quot;</span>:<span class="s2">&quot;TCX&quot;</span><span class="o">}</span>,<span class="o">{</span><span class="s2">&quot;name&quot;</span>:<span class="s2">&quot;uprobe_test&quot;</span>,<span class="s2">&quot;type&quot;</span>:<span class="s2">&quot;UProbe&quot;</span>,<span class="s2">&quot;uprobe&quot;</span>:<span class="o">{</span><span class="s2">&quot;links&quot;</span>:<span class="o">[{</span><span class="s2">&quot;containers&quot;</span>:<span class="o">{</span><span class="s2">&quot;pods&quot;</span>:<span class="o">{</span><span class="s2">&quot;matchLabels&quot;</span>:<span class="o">{</span><span class="s2">&quot;app&quot;</span>:<span class="s2">&quot;test-target&quot;</span><span class="o">}}}</span>,<span class="s2">&quot;function&quot;</span>:<span class="s2">&quot;malloc&quot;</span>,<span class="s2">&quot;target&quot;</span>:<span class="s2">&quot;libc&quot;</span><span class="o">}]}}</span>,<span class="o">{</span><span class="s2">&quot;name&quot;</span>:<span class="s2">&quot;uretprobe_test&quot;</span>,<span class="s2">&quot;type&quot;</span>:<span class="s2">&quot;URetProbe&quot;</span>,<span class="s2">&quot;uretprobe&quot;</span>:<span class="o">{</span><span class="s2">&quot;links&quot;</span>:<span class="o">[{</span><span class="s2">&quot;containers&quot;</span>:<span class="o">{</span><span class="s2">&quot;pods&quot;</span>:<span class="o">{</span><span class="s2">&quot;matchLabels&quot;</span>:<span class="o">{</span><span class="s2">&quot;app&quot;</span>:<span class="s2">&quot;test-target&quot;</span><span class="o">}}}</span>,<span class="s2">&quot;function&quot;</span>:<span class="s2">&quot;malloc&quot;</span>,<span class="s2">&quot;target&quot;</span>:<span class="s2">&quot;libc&quot;</span><span class="o">}]}}</span>,<span class="o">{</span><span class="s2">&quot;name&quot;</span>:<span class="s2">&quot;xdp_pass_test&quot;</span>,<span class="s2">&quot;type&quot;</span>:<span class="s2">&quot;XDP&quot;</span>,<span class="s2">&quot;xdp&quot;</span>:<span class="o">{</span><span class="s2">&quot;links&quot;</span>:<span class="o">[{</span><span class="s2">&quot;interfaceSelector&quot;</span>:<span class="o">{</span><span class="s2">&quot;interfaces&quot;</span>:<span class="o">[</span><span class="s2">&quot;eth0&quot;</span><span class="o">]}</span>,<span class="s2">&quot;networkNamespaces&quot;</span>:<span class="o">{</span><span class="s2">&quot;pods&quot;</span>:<span class="o">{</span><span class="s2">&quot;matchLabels&quot;</span>:<span class="o">{</span><span class="s2">&quot;app&quot;</span>:<span class="s2">&quot;test-target&quot;</span><span class="o">}}}</span>,<span class="s2">&quot;priority&quot;</span>:100<span class="o">}]}}]}}</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="w">  </span>creationTimestamp:<span class="w"> </span><span class="s2">&quot;2025-07-02T08:58:02Z&quot;</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="w">  </span>finalizers:
+<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="w">  </span>-<span class="w"> </span>bpfman.io.operator/finalizer
+<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="w">  </span>generation:<span class="w"> </span><span class="m">2</span>
+<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="w">  </span>labels:
+<a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="w">    </span>app.kubernetes.io/name:<span class="w"> </span>bpfapplication
+<a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="w">  </span>name:<span class="w"> </span>bpfapplication-sample
+<a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="w">  </span>namespace:<span class="w"> </span>acme
+<a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="w">  </span>resourceVersion:<span class="w"> </span><span class="s2">&quot;74053&quot;</span>
+<a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="w">  </span>uid:<span class="w"> </span>0a2dd439-577f-49ae-81ae-54a9a2265ddb
+<a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>spec:
+<a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a><span class="w">  </span>byteCode:
+<a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a><span class="w">    </span>image:
+<a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a><span class="w">      </span>imagePullPolicy:<span class="w"> </span>IfNotPresent
+<a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a><span class="w">      </span>url:<span class="w"> </span>quay.io/bpfman-bytecode/app-test:latest
+<a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a><span class="w">  </span>globalData:
+<a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a><span class="w">    </span>GLOBAL_u8:<span class="w"> </span><span class="nv">AQ</span><span class="o">==</span>
+<a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a><span class="w">    </span>GLOBAL_u32:<span class="w"> </span><span class="nv">DQwLCg</span><span class="o">==</span>
+<a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a><span class="w">  </span>nodeSelector:<span class="w"> </span><span class="o">{}</span>
+<a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a><span class="w">  </span>programs:
+<a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a><span class="w">  </span>-<span class="w"> </span>name:<span class="w"> </span>tc_pass_test
+<a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a><span class="w">    </span>tc:
+<a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a><span class="w">      </span>links:
+<a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a><span class="w">      </span>-<span class="w"> </span>direction:<span class="w"> </span>Ingress
+<a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a><span class="w">        </span>interfaceSelector:
+<a id="__codelineno-10-37" name="__codelineno-10-37" href="#__codelineno-10-37"></a><span class="w">          </span>interfaces:
+<a id="__codelineno-10-38" name="__codelineno-10-38" href="#__codelineno-10-38"></a><span class="w">          </span>-<span class="w"> </span>eth0
+<a id="__codelineno-10-39" name="__codelineno-10-39" href="#__codelineno-10-39"></a><span class="w">        </span>networkNamespaces:
+<a id="__codelineno-10-40" name="__codelineno-10-40" href="#__codelineno-10-40"></a><span class="w">          </span>pods:
+<a id="__codelineno-10-41" name="__codelineno-10-41" href="#__codelineno-10-41"></a><span class="w">            </span>matchLabels:
+<a id="__codelineno-10-42" name="__codelineno-10-42" href="#__codelineno-10-42"></a><span class="w">              </span>app:<span class="w"> </span>test-target
+<a id="__codelineno-10-43" name="__codelineno-10-43" href="#__codelineno-10-43"></a><span class="w">        </span>priority:<span class="w"> </span><span class="m">55</span>
+<a id="__codelineno-10-44" name="__codelineno-10-44" href="#__codelineno-10-44"></a><span class="w">        </span>proceedOn:
+<a id="__codelineno-10-45" name="__codelineno-10-45" href="#__codelineno-10-45"></a><span class="w">        </span>-<span class="w"> </span>Pipe
+<a id="__codelineno-10-46" name="__codelineno-10-46" href="#__codelineno-10-46"></a><span class="w">        </span>-<span class="w"> </span>DispatcherReturn
+<a id="__codelineno-10-47" name="__codelineno-10-47" href="#__codelineno-10-47"></a><span class="w">    </span>type:<span class="w"> </span>TC
+<a id="__codelineno-10-48" name="__codelineno-10-48" href="#__codelineno-10-48"></a><span class="w">  </span>-<span class="w"> </span>name:<span class="w"> </span>tcx_next_test
+<a id="__codelineno-10-49" name="__codelineno-10-49" href="#__codelineno-10-49"></a><span class="w">    </span>tcx:
+<a id="__codelineno-10-50" name="__codelineno-10-50" href="#__codelineno-10-50"></a><span class="w">      </span>links:
+<a id="__codelineno-10-51" name="__codelineno-10-51" href="#__codelineno-10-51"></a><span class="w">      </span>-<span class="w"> </span>direction:<span class="w"> </span>Egress
+<a id="__codelineno-10-52" name="__codelineno-10-52" href="#__codelineno-10-52"></a><span class="w">        </span>interfaceSelector:
+<a id="__codelineno-10-53" name="__codelineno-10-53" href="#__codelineno-10-53"></a><span class="w">          </span>interfaces:
+<a id="__codelineno-10-54" name="__codelineno-10-54" href="#__codelineno-10-54"></a><span class="w">          </span>-<span class="w"> </span>eth0
+<a id="__codelineno-10-55" name="__codelineno-10-55" href="#__codelineno-10-55"></a><span class="w">        </span>networkNamespaces:
+<a id="__codelineno-10-56" name="__codelineno-10-56" href="#__codelineno-10-56"></a><span class="w">          </span>pods:
+<a id="__codelineno-10-57" name="__codelineno-10-57" href="#__codelineno-10-57"></a><span class="w">            </span>matchLabels:
+<a id="__codelineno-10-58" name="__codelineno-10-58" href="#__codelineno-10-58"></a><span class="w">              </span>app:<span class="w"> </span>test-target
+<a id="__codelineno-10-59" name="__codelineno-10-59" href="#__codelineno-10-59"></a><span class="w">        </span>priority:<span class="w"> </span><span class="m">100</span>
+<a id="__codelineno-10-60" name="__codelineno-10-60" href="#__codelineno-10-60"></a><span class="w">    </span>type:<span class="w"> </span>TCX
+<a id="__codelineno-10-61" name="__codelineno-10-61" href="#__codelineno-10-61"></a><span class="w">  </span>-<span class="w"> </span>name:<span class="w"> </span>uprobe_test
+<a id="__codelineno-10-62" name="__codelineno-10-62" href="#__codelineno-10-62"></a><span class="w">    </span>type:<span class="w"> </span>UProbe
+<a id="__codelineno-10-63" name="__codelineno-10-63" href="#__codelineno-10-63"></a><span class="w">    </span>uprobe:
+<a id="__codelineno-10-64" name="__codelineno-10-64" href="#__codelineno-10-64"></a><span class="w">      </span>links:
+<a id="__codelineno-10-65" name="__codelineno-10-65" href="#__codelineno-10-65"></a><span class="w">      </span>-<span class="w"> </span>containers:
+<a id="__codelineno-10-66" name="__codelineno-10-66" href="#__codelineno-10-66"></a><span class="w">          </span>pods:
+<a id="__codelineno-10-67" name="__codelineno-10-67" href="#__codelineno-10-67"></a><span class="w">            </span>matchLabels:
+<a id="__codelineno-10-68" name="__codelineno-10-68" href="#__codelineno-10-68"></a><span class="w">              </span>app:<span class="w"> </span>test-target
+<a id="__codelineno-10-69" name="__codelineno-10-69" href="#__codelineno-10-69"></a><span class="w">        </span><span class="k">function</span>:<span class="w"> </span>malloc
+<a id="__codelineno-10-70" name="__codelineno-10-70" href="#__codelineno-10-70"></a><span class="w">        </span>offset:<span class="w"> </span><span class="m">0</span>
+<a id="__codelineno-10-71" name="__codelineno-10-71" href="#__codelineno-10-71"></a><span class="w">        </span>target:<span class="w"> </span>libc
+<a id="__codelineno-10-72" name="__codelineno-10-72" href="#__codelineno-10-72"></a><span class="w">  </span>-<span class="w"> </span>name:<span class="w"> </span>uretprobe_test
+<a id="__codelineno-10-73" name="__codelineno-10-73" href="#__codelineno-10-73"></a><span class="w">    </span>type:<span class="w"> </span>URetProbe
+<a id="__codelineno-10-74" name="__codelineno-10-74" href="#__codelineno-10-74"></a><span class="w">    </span>uretprobe:
+<a id="__codelineno-10-75" name="__codelineno-10-75" href="#__codelineno-10-75"></a><span class="w">      </span>links:
+<a id="__codelineno-10-76" name="__codelineno-10-76" href="#__codelineno-10-76"></a><span class="w">      </span>-<span class="w"> </span>containers:
+<a id="__codelineno-10-77" name="__codelineno-10-77" href="#__codelineno-10-77"></a><span class="w">          </span>pods:
+<a id="__codelineno-10-78" name="__codelineno-10-78" href="#__codelineno-10-78"></a><span class="w">            </span>matchLabels:
+<a id="__codelineno-10-79" name="__codelineno-10-79" href="#__codelineno-10-79"></a><span class="w">              </span>app:<span class="w"> </span>test-target
+<a id="__codelineno-10-80" name="__codelineno-10-80" href="#__codelineno-10-80"></a><span class="w">        </span><span class="k">function</span>:<span class="w"> </span>malloc
+<a id="__codelineno-10-81" name="__codelineno-10-81" href="#__codelineno-10-81"></a><span class="w">        </span>offset:<span class="w"> </span><span class="m">0</span>
+<a id="__codelineno-10-82" name="__codelineno-10-82" href="#__codelineno-10-82"></a><span class="w">        </span>target:<span class="w"> </span>libc
+<a id="__codelineno-10-83" name="__codelineno-10-83" href="#__codelineno-10-83"></a><span class="w">  </span>-<span class="w"> </span>name:<span class="w"> </span>xdp_pass_test
+<a id="__codelineno-10-84" name="__codelineno-10-84" href="#__codelineno-10-84"></a><span class="w">    </span>type:<span class="w"> </span>XDP
+<a id="__codelineno-10-85" name="__codelineno-10-85" href="#__codelineno-10-85"></a><span class="w">    </span>xdp:
+<a id="__codelineno-10-86" name="__codelineno-10-86" href="#__codelineno-10-86"></a><span class="w">      </span>links:
+<a id="__codelineno-10-87" name="__codelineno-10-87" href="#__codelineno-10-87"></a><span class="w">      </span>-<span class="w"> </span>interfaceSelector:
+<a id="__codelineno-10-88" name="__codelineno-10-88" href="#__codelineno-10-88"></a><span class="w">          </span>interfaces:
+<a id="__codelineno-10-89" name="__codelineno-10-89" href="#__codelineno-10-89"></a><span class="w">          </span>-<span class="w"> </span>eth0
+<a id="__codelineno-10-90" name="__codelineno-10-90" href="#__codelineno-10-90"></a><span class="w">        </span>networkNamespaces:
+<a id="__codelineno-10-91" name="__codelineno-10-91" href="#__codelineno-10-91"></a><span class="w">          </span>pods:
+<a id="__codelineno-10-92" name="__codelineno-10-92" href="#__codelineno-10-92"></a><span class="w">            </span>matchLabels:
+<a id="__codelineno-10-93" name="__codelineno-10-93" href="#__codelineno-10-93"></a><span class="w">              </span>app:<span class="w"> </span>test-target
+<a id="__codelineno-10-94" name="__codelineno-10-94" href="#__codelineno-10-94"></a><span class="w">        </span>priority:<span class="w"> </span><span class="m">100</span>
+<a id="__codelineno-10-95" name="__codelineno-10-95" href="#__codelineno-10-95"></a><span class="w">        </span>proceedOn:
+<a id="__codelineno-10-96" name="__codelineno-10-96" href="#__codelineno-10-96"></a><span class="w">        </span>-<span class="w"> </span>Pass
+<a id="__codelineno-10-97" name="__codelineno-10-97" href="#__codelineno-10-97"></a><span class="w">        </span>-<span class="w"> </span>DispatcherReturn
+<a id="__codelineno-10-98" name="__codelineno-10-98" href="#__codelineno-10-98"></a>status:
+<a id="__codelineno-10-99" name="__codelineno-10-99" href="#__codelineno-10-99"></a><span class="w">  </span>conditions:
+<a id="__codelineno-10-100" name="__codelineno-10-100" href="#__codelineno-10-100"></a><span class="w">  </span>-<span class="w"> </span>lastTransitionTime:<span class="w"> </span><span class="s2">&quot;2025-07-02T08:58:19Z&quot;</span>
+<a id="__codelineno-10-101" name="__codelineno-10-101" href="#__codelineno-10-101"></a><span class="w">    </span>message:<span class="w"> </span>BPF<span class="w"> </span>application<span class="w"> </span>configuration<span class="w"> </span>successfully<span class="w"> </span>applied<span class="w"> </span>on<span class="w"> </span>all<span class="w"> </span>nodes
+<a id="__codelineno-10-102" name="__codelineno-10-102" href="#__codelineno-10-102"></a><span class="w">    </span>reason:<span class="w"> </span>Success
+<a id="__codelineno-10-103" name="__codelineno-10-103" href="#__codelineno-10-103"></a><span class="w">    </span>status:<span class="w"> </span><span class="s2">&quot;True&quot;</span>
+<a id="__codelineno-10-104" name="__codelineno-10-104" href="#__codelineno-10-104"></a><span class="w">    </span>type:<span class="w"> </span>Success
 </code></pre></div>
-<p>To view each attachment point on each node, use the <code>bpfNsProgram</code> object:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>bpfnsprograms
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>NAME<span class="w">                     </span>TYPE<span class="w">   </span>STATUS<span class="w">         </span>AGE
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>tc-containers-6494dbed<span class="w">   </span>tc<span class="w">     </span>bpfmanLoaded<span class="w">   </span>12m
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>tc-containers-7dcde5ab<span class="w">   </span>tc<span class="w">     </span>bpfmanLoaded<span class="w">   </span>12m
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>bpfnsprograms<span class="w"> </span>tc-containers-6494dbed<span class="w"> </span>-o<span class="w"> </span>yaml
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>apiVersion:<span class="w"> </span>bpfman.io/v1alpha1
-<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>kind:<span class="w"> </span>BpfNsProgram
-<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>metadata:
-<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">  </span>annotations:
-<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">    </span>bpfman.io.tcnsprogramcontroller/containerpid:<span class="w"> </span><span class="s2">&quot;3256&quot;</span>
-<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">    </span>bpfman.io.tcnsprogramcontroller/interface:<span class="w"> </span>eth0
-<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="w">    </span>bpfman.io/ProgramId:<span class="w"> </span><span class="s2">&quot;26575&quot;</span>
-<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="w">    </span>bpfman.io/bpfProgramAttachPoint:<span class="w"> </span>eth0-ingress-nginx-deployment-57d84f57dc-lgc6f-nginx
-<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="w">  </span>creationTimestamp:<span class="w"> </span><span class="s2">&quot;2024-12-18T22:23:08Z&quot;</span>
-<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="w">  </span>finalizers:
-<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="w">  </span>-<span class="w"> </span>bpfman.io.tcnsprogramcontroller/finalizer
-<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="w">  </span>generation:<span class="w"> </span><span class="m">1</span>
-<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="w">  </span>labels:
-<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="w">    </span>bpfman.io/appProgramId:<span class="w"> </span><span class="s2">&quot;&quot;</span>
-<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="w">    </span>bpfman.io/ownedByProgram:<span class="w"> </span>tc-containers
-<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="w">    </span>kubernetes.io/hostname:<span class="w"> </span>bpfman-deployment-control-plane
-<a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a><span class="w">  </span>name:<span class="w"> </span>tc-containers-6494dbed
-<a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a><span class="w">  </span>namespace:<span class="w"> </span>acme
-<a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a><span class="w">  </span>ownerReferences:
-<a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a><span class="w">  </span>-<span class="w"> </span>apiVersion:<span class="w"> </span>bpfman.io/v1alpha1
-<a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a><span class="w">    </span>blockOwnerDeletion:<span class="w"> </span><span class="nb">true</span>
-<a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a><span class="w">    </span>controller:<span class="w"> </span><span class="nb">true</span>
-<a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a><span class="w">    </span>kind:<span class="w"> </span>TcNsProgram
-<a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a><span class="w">    </span>name:<span class="w"> </span>tc-containers
-<a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a><span class="w">    </span>uid:<span class="w"> </span>49291f28-49dc-4486-9119-af7c31569de3
-<a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a><span class="w">  </span>resourceVersion:<span class="w"> </span><span class="s2">&quot;7992&quot;</span>
-<a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a><span class="w">  </span>uid:<span class="w"> </span>c913eea4-71e0-4d5d-b664-078abac36c40
-<a id="__codelineno-11-35" name="__codelineno-11-35" href="#__codelineno-11-35"></a>spec:
-<a id="__codelineno-11-36" name="__codelineno-11-36" href="#__codelineno-11-36"></a><span class="w">  </span>type:<span class="w"> </span>tc
-<a id="__codelineno-11-37" name="__codelineno-11-37" href="#__codelineno-11-37"></a>status:
-<a id="__codelineno-11-38" name="__codelineno-11-38" href="#__codelineno-11-38"></a><span class="w">  </span>conditions:
-<a id="__codelineno-11-39" name="__codelineno-11-39" href="#__codelineno-11-39"></a><span class="w">  </span>-<span class="w"> </span>lastTransitionTime:<span class="w"> </span><span class="s2">&quot;2024-12-18T22:23:11Z&quot;</span>
-<a id="__codelineno-11-40" name="__codelineno-11-40" href="#__codelineno-11-40"></a><span class="w">    </span>message:<span class="w"> </span>Successfully<span class="w"> </span>loaded<span class="w"> </span>bpfProgram
-<a id="__codelineno-11-41" name="__codelineno-11-41" href="#__codelineno-11-41"></a><span class="w">    </span>reason:<span class="w"> </span>bpfmanLoaded
-<a id="__codelineno-11-42" name="__codelineno-11-42" href="#__codelineno-11-42"></a><span class="w">    </span>status:<span class="w"> </span><span class="s2">&quot;True&quot;</span>
-<a id="__codelineno-11-43" name="__codelineno-11-43" href="#__codelineno-11-43"></a><span class="w">    </span>type:<span class="w"> </span>Loaded
+<p>To view each attachment point on each node, use the <code>BpfApplicationState</code> object:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>bpfapplicationstate<span class="w"> </span>-n<span class="w"> </span>acme<span class="w"> </span>-l<span class="w"> </span>bpfman.io/ownedByProgram<span class="o">=</span>bpfapplication-sample
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>NAME<span class="w">                             </span>NODE<span class="w">                              </span>STATUS<span class="w">    </span>AGE
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>bpfapplication-sample-6eab3078<span class="w">   </span>bpfman-deployment-control-plane<span class="w">   </span>Success<span class="w">   </span>2d7h
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>$<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>bpfapplicationstate<span class="w"> </span>-n<span class="w"> </span>acme<span class="w"> </span>-l<span class="w"> </span>bpfman.io/ownedByProgram<span class="o">=</span>bpfapplication-sample<span class="w"> </span>-o<span class="w"> </span>yaml
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>apiVersion:<span class="w"> </span>bpfman.io/v1alpha1
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>kind:<span class="w"> </span>BpfApplicationState
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>metadata:
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">  </span>creationTimestamp:<span class="w"> </span><span class="s2">&quot;2025-07-02T08:58:02Z&quot;</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">  </span>finalizers:
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">  </span>-<span class="w"> </span>bpfman.io.nsbpfapplicationcontroller/finalizer
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">  </span>generation:<span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">  </span>labels:
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="w">    </span>bpfman.io/ownedByProgram:<span class="w"> </span>bpfapplication-sample
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="w">    </span>kubernetes.io/hostname:<span class="w"> </span>bpfman-deployment-control-plane
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="w">  </span>name:<span class="w"> </span>bpfapplication-sample-6eab3078
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="w">  </span>namespace:<span class="w"> </span>acme
+<a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="w">  </span>ownerReferences:
+<a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="w">  </span>-<span class="w"> </span>apiVersion:<span class="w"> </span>bpfman.io/v1alpha1
+<a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="w">    </span>blockOwnerDeletion:<span class="w"> </span><span class="nb">true</span>
+<a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="w">    </span>controller:<span class="w"> </span><span class="nb">true</span>
+<a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="w">    </span>kind:<span class="w"> </span>BpfApplication
+<a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="w">    </span>name:<span class="w"> </span>bpfapplication-sample
+<a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a><span class="w">    </span>uid:<span class="w"> </span>0a2dd439-577f-49ae-81ae-54a9a2265ddb
+<a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a><span class="w">  </span>resourceVersion:<span class="w"> </span><span class="s2">&quot;74052&quot;</span>
+<a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a><span class="w">  </span>uid:<span class="w"> </span>71499d5d-e248-404f-b432-112b395754dd
+<a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a>status:
+<a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a><span class="w">  </span>appLoadStatus:<span class="w"> </span>LoadSuccess
+<a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a><span class="w">  </span>conditions:
+<a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a><span class="w">  </span>-<span class="w"> </span>lastTransitionTime:<span class="w"> </span><span class="s2">&quot;2025-07-02T08:58:19Z&quot;</span>
+<a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a><span class="w">    </span>message:<span class="w"> </span>The<span class="w"> </span>BPF<span class="w"> </span>application<span class="w"> </span>has<span class="w"> </span>been<span class="w"> </span>successfully<span class="w"> </span>loaded<span class="w"> </span>and<span class="w"> </span>attached
+<a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a><span class="w">    </span>reason:<span class="w"> </span>Success
+<a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a><span class="w">    </span>status:<span class="w"> </span><span class="s2">&quot;True&quot;</span>
+<a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a><span class="w">    </span>type:<span class="w"> </span>Success
+<a id="__codelineno-11-35" name="__codelineno-11-35" href="#__codelineno-11-35"></a><span class="w">  </span>node:<span class="w"> </span>bpfman-deployment-control-plane
+<a id="__codelineno-11-36" name="__codelineno-11-36" href="#__codelineno-11-36"></a><span class="w">  </span>programs:
+<a id="__codelineno-11-37" name="__codelineno-11-37" href="#__codelineno-11-37"></a><span class="w">  </span>-<span class="w"> </span>name:<span class="w"> </span>tc_pass_test
+<a id="__codelineno-11-38" name="__codelineno-11-38" href="#__codelineno-11-38"></a><span class="w">    </span>programId:<span class="w"> </span><span class="m">851</span>
+<a id="__codelineno-11-39" name="__codelineno-11-39" href="#__codelineno-11-39"></a><span class="w">    </span>programLinkStatus:<span class="w"> </span>Success
+<a id="__codelineno-11-40" name="__codelineno-11-40" href="#__codelineno-11-40"></a><span class="w">    </span>tc:<span class="w"> </span><span class="o">{}</span>
+<a id="__codelineno-11-41" name="__codelineno-11-41" href="#__codelineno-11-41"></a><span class="w">    </span>type:<span class="w"> </span>TC
+<a id="__codelineno-11-42" name="__codelineno-11-42" href="#__codelineno-11-42"></a><span class="w">  </span>-<span class="w"> </span>name:<span class="w"> </span>tcx_next_test
+<a id="__codelineno-11-43" name="__codelineno-11-43" href="#__codelineno-11-43"></a><span class="w">    </span>programId:<span class="w"> </span><span class="m">852</span>
+<a id="__codelineno-11-44" name="__codelineno-11-44" href="#__codelineno-11-44"></a><span class="w">    </span>programLinkStatus:<span class="w"> </span>Success
+<a id="__codelineno-11-45" name="__codelineno-11-45" href="#__codelineno-11-45"></a><span class="w">    </span>tcx:<span class="w"> </span><span class="o">{}</span>
+<a id="__codelineno-11-46" name="__codelineno-11-46" href="#__codelineno-11-46"></a><span class="w">    </span>type:<span class="w"> </span>TCX
+<a id="__codelineno-11-47" name="__codelineno-11-47" href="#__codelineno-11-47"></a><span class="w">  </span>-<span class="w"> </span>name:<span class="w"> </span>uprobe_test
+<a id="__codelineno-11-48" name="__codelineno-11-48" href="#__codelineno-11-48"></a><span class="w">    </span>programId:<span class="w"> </span><span class="m">853</span>
+<a id="__codelineno-11-49" name="__codelineno-11-49" href="#__codelineno-11-49"></a><span class="w">    </span>programLinkStatus:<span class="w"> </span>Success
+<a id="__codelineno-11-50" name="__codelineno-11-50" href="#__codelineno-11-50"></a><span class="w">    </span>type:<span class="w"> </span>UProbe
+<a id="__codelineno-11-51" name="__codelineno-11-51" href="#__codelineno-11-51"></a><span class="w">    </span>uprobe:<span class="w"> </span><span class="o">{}</span>
+<a id="__codelineno-11-52" name="__codelineno-11-52" href="#__codelineno-11-52"></a><span class="w">  </span>-<span class="w"> </span>name:<span class="w"> </span>uretprobe_test
+<a id="__codelineno-11-53" name="__codelineno-11-53" href="#__codelineno-11-53"></a><span class="w">    </span>programId:<span class="w"> </span><span class="m">854</span>
+<a id="__codelineno-11-54" name="__codelineno-11-54" href="#__codelineno-11-54"></a><span class="w">    </span>programLinkStatus:<span class="w"> </span>Success
+<a id="__codelineno-11-55" name="__codelineno-11-55" href="#__codelineno-11-55"></a><span class="w">    </span>type:<span class="w"> </span>URetProbe
+<a id="__codelineno-11-56" name="__codelineno-11-56" href="#__codelineno-11-56"></a><span class="w">    </span>uretprobe:<span class="w"> </span><span class="o">{}</span>
+<a id="__codelineno-11-57" name="__codelineno-11-57" href="#__codelineno-11-57"></a><span class="w">  </span>-<span class="w"> </span>name:<span class="w"> </span>xdp_pass_test
+<a id="__codelineno-11-58" name="__codelineno-11-58" href="#__codelineno-11-58"></a><span class="w">    </span>programId:<span class="w"> </span><span class="m">855</span>
+<a id="__codelineno-11-59" name="__codelineno-11-59" href="#__codelineno-11-59"></a><span class="w">    </span>programLinkStatus:<span class="w"> </span>Success
+<a id="__codelineno-11-60" name="__codelineno-11-60" href="#__codelineno-11-60"></a><span class="w">    </span>type:<span class="w"> </span>XDP
+<a id="__codelineno-11-61" name="__codelineno-11-61" href="#__codelineno-11-61"></a><span class="w">    </span>xdp:<span class="w"> </span><span class="o">{}</span>
+<a id="__codelineno-11-62" name="__codelineno-11-62" href="#__codelineno-11-62"></a><span class="w">  </span>updateCount:<span class="w"> </span><span class="m">2</span>
 </code></pre></div>
 
 

@@ -2016,149 +2016,174 @@ deploying bpfman on a Kubernetes cluster, but the quickest solution is to run a 
 the bytecode will be loaded by creating a Kubernetes CRD object.
 There is a CRD object for each eBPF program type bpfman supports.</p>
 <ul>
-<li>FentryProgram CRD: <a href="https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/samples/bpfman.io_v1alpha1_fentry_fentryprogram.yaml">Fentry Sample yaml</a></li>
-<li>FexitProgram CRD: <a href="https://github.com/bpfman/bpfman/blob/main/bpfman-operator/config/samples/bpfman.io_v1alpha1_fexit_fexitprogram.yaml">Fexit Sample yaml</a></li>
-<li>KprobeProgram CRD: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-kprobe-counter/bytecode.yaml">Kprobe Examples yaml</a></li>
-<li>TcProgram CRD: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tc-counter/bytecode.yaml">TcProgram Examples yaml</a></li>
-<li>TcxProgram CRD: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tcx-counter/bytecode.yaml">TcxProgram Examples yaml</a></li>
-<li>TracepointProgram CRD: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tracepoint-counter/bytecode.yaml">Tracepoint Examples yaml</a></li>
-<li>UprobeProgram CRD: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-uprobe-counter/bytecode.yaml">Uprobe Examples yaml</a></li>
-<li>XdpProgram CRD: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-xdp-counter/bytecode.yaml">XdpProgram Examples yaml</a></li>
+<li>Kprobe program: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-kprobe-counter/bytecode.yaml">Kprobe Examples yaml</a></li>
+<li>Tc prograom: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tc-counter/bytecode.yaml">TcProgram Examples yaml</a></li>
+<li>Tcx program: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tcx-counter/bytecode.yaml">TcxProgram Examples yaml</a></li>
+<li>Tracepoint program: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tracepoint-counter/bytecode.yaml">Tracepoint Examples yaml</a></li>
+<li>Uprobe program: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-uprobe-counter/bytecode.yaml">Uprobe Examples yaml</a></li>
+<li>URetProbe program: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-uretprobe-counter/bytecode.yaml">URetProbe Examples yaml</a></li>
+<li>Xdp program: <a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-xdp-counter/bytecode.yaml">XdpProgram Examples yaml</a></li>
 </ul>
 <p>Sample bytecode yaml with XdpProgram CRD:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">cat examples/config/base/go-xdp-counter/bytecode.yaml</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">apiVersion: bpfman.io/v1alpha1</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="go">kind: XdpProgram</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go">metadata:</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="go">  labels:</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="go">    app.kubernetes.io/name: xdpprogram</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="go">  name: go-xdp-counter-example</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="go">spec:</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="go">  name: xdp_stats</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="gp">$ </span>cat<span class="w"> </span>examples/config/base/go-xdp-counter/bytecode.yaml
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="go">---</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="go">apiVersion: bpfman.io/v1alpha1</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="go">kind: ClusterBpfApplication</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="go">metadata:</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="go">  labels:</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="go">    app.kubernetes.io/name: xdpprogram</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="go">  name: go-xdp-counter-example</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="go">spec:</span>
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="gp">  # </span>Select<span class="w"> </span>all<span class="w"> </span>nodes
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="go">  nodeselector: {}</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="go">  interfaceselector:</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="go">    primarynodeinterface: true</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="go">  priority: 55</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="go">  bytecode:</span>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="go">    image:</span>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="go">      url: quay.io/bpfman-bytecode/go-xdp-counter:latest</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="go">  nodeSelector: {}</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="go">  byteCode:</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="go">    image:</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="go">      url: quay.io/bpfman-bytecode/go-xdp-counter:latest</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="go">  programs:</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="go">    - name: xdp_stats</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="go">      type: XDP</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="go">      xdp:</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="go">        links:</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="go">          - interfaceSelector:</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="go">              primaryNodeInterface: true</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="go">            priority: 55</span>
 </code></pre></div></p>
 <p>Note that all the sample yaml files are configured with the bytecode running on all nodes
 (<code>nodeselector: {}</code>).
 This can be configured to run on specific nodes, but the DaemonSet yaml for the userspace program, which
 is described below, should have an equivalent change.</p>
 <p>Assume the following command is run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">kubectl apply -f examples/config/base/go-xdp-counter/bytecode.yaml</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">  xdpprogram.bpfman.io/go-xdp-counter-example created</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="gp">$ </span>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>examples/config/base/go-xdp-counter/bytecode.yaml
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">clusterbpfapplication.bpfman.io/go-xdp-counter-example created</span>
 </code></pre></div>
 <p>The diagram below shows <code>go-xdp-counter</code> example, but the other examples operate in
 a similar fashion.</p>
 <p><img alt="go-xdp-counter On Kubernetes" src="../../img/gocounter-on-k8s.png" /></p>
 <p>Following the diagram for XDP example (Blue numbers):</p>
 <ol>
-<li>The user creates a <code>XdpProgram</code> object with the parameters
+<li>The user creates a <code>ClusterBpfApplicatin</code> object of program type XDP and with the parameters
 associated with the eBPF bytecode, like interface, priority and BFP bytecode image.
-The name of the <code>XdpProgram</code> object in this example is <code>go-xdp-counter-example</code>.
-The <code>XdpProgram</code> is applied using <code>kubectl</code>, but in a more practical deployment, the <code>XdpProgram</code>
+The name of the <code>ClusterBpfApplication</code> object in this example is <code>go-xdp-counter-example</code>.
+The <code>ClusterBpfApplication</code> is applied using <code>kubectl</code>, but in a more practical deployment, the <code>ClusterBpfApplication</code>
 would be applied by the application or a controller.</li>
-<li><code>bpfman-agent</code>, running on each node, is watching for all changes to <code>XdpProgram</code> objects.
-When it sees a <code>XdpProgram</code> object created or modified, it makes sure a <code>BpfProgram</code> object for that
-node exists.
-The name of the <code>BpfProgram</code> object is the <code>XdpProgram</code> object name with the node name and interface or
-attach point appended.
-On a KIND Cluster, it would be similar to <code>go-xdp-counter-example-bpfman-deployment-control-plane-eth0</code>.</li>
+<li><code>bpfman-agent</code>, running on each node, is watching for all changes to <code>ClusterBpfApplication</code> objects.
+When it sees a <code>ClusterBpfApplication</code> object created or modified, it makes sure a apply the corresponding
+BPF program to that node.</li>
 <li><code>bpfman-agent</code> then determines if it should be running on the given node, loads or unloads as needed
-by making gRPC calls the <code>bpfman-rpc</code>, which calls into the <code>bpfman</code> Library.
-<code>bpfman</code> behaves the same as described in the running locally example.</li>
-<li><code>bpfman-agent</code> finally updates the status of the <code>BpfProgram</code> object.</li>
-<li><code>bpfman-operator</code> watches all <code>BpfProgram</code> objects, and updates the status of the <code>XdpProgram</code>
-object indicating if the eBPF program has been applied to all the desired nodes or not.</li>
+by making gRPC calls via <code>bpfman-rpc</code>, which calls into the <code>bpfman</code> Library.
+<code>bpfman</code> behaves the same as described in the <code>running locally</code> example.</li>
+<li><code>bpfman-agent</code> finally updates the status of the <code>ClusterBpfApplicationState</code> object.</li>
+<li><code>bpfman-operator</code> watches all <code>ClusterBpfApplicationState</code> objects, and updates the status of the corresponding
+<code>ClusterBpfApplication</code> object indicating if the eBPF program has been applied to all the desired nodes or not.</li>
 </ol>
-<p>To retrieve information on the <code>XdpProgram</code> objects:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">kubectl get xdpprograms</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">NAME                     BPFFUNCTIONNAME   NODESELECTOR   STATUS</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="go">go-xdp-counter-example   xdp_stats         {}             ReconcileSuccess</span>
+<p>To retrieve information about the <code>ClusterBpfApplication</code> object:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="gp">$ </span>kubectl<span class="w"> </span>get<span class="w"> </span>ClusterBpfApplication
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">NAME                     NODESELECTOR   STATUS    AGE</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="go">go-xdp-counter-example                  Success   5m47s</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="go">kubectl get xdpprograms go-xdp-counter-example -o yaml</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="go">apiVersion: bpfman.io/v1alpha1</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="go">kind: XdpProgram</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="go">metadata:</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="go">  annotations:</span>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="go">    kubectl.kubernetes.io/last-applied-configuration: |</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="go">      {&quot;apiVersion&quot;:&quot;bpfman.io/v1alpha1&quot;,&quot;kind&quot;:&quot;XdpProgram&quot;,&quot;metadata&quot;:{&quot;annotations&quot;:{},&quot;labels&quot;:{&quot;app.kubernetes.io/name&quot;:&quot;xdpprogram&quot;},&quot;name&quot;:&quot;go-xdp-counter-example&quot;},&quot;spec&quot;:{&quot;bpffunctionname&quot;:&quot;xdp_stats&quot;,&quot;bytecode&quot;:{&quot;image&quot;:{&quot;url&quot;:&quot;quay.io/bpfman-bytecode/go-xdp-counter:latest&quot;}},&quot;interfaceselector&quot;:{&quot;primarynodeinterface&quot;:true},&quot;nodeselector&quot;:{},&quot;priority&quot;:55}}</span>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="go">  creationTimestamp: &quot;2023-11-06T21:05:15Z&quot;</span>
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="go">  finalizers:</span>
-<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="go">  - bpfman.io.operator/finalizer</span>
-<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="go">  generation: 2</span>
-<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="go">  labels:</span>
-<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="go">    app.kubernetes.io/name: xdpprogram</span>
-<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="go">  name: go-xdp-counter-example</span>
-<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="go">  resourceVersion: &quot;3103&quot;</span>
-<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="go">  uid: edd45e2e-a40b-4668-ac76-c1f1eb63a23b</span>
-<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="go">spec:</span>
-<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="go">  bpffunctionname: xdp_stats</span>
-<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="go">  bytecode:</span>
-<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="go">    image:</span>
-<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="go">      imagepullpolicy: IfNotPresent</span>
-<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="go">      url: quay.io/bpfman-bytecode/go-xdp-counter:latest</span>
-<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="go">  interfaceselector:</span>
-<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="go">    primarynodeinterface: true</span>
-<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="go">  mapownerselector: {}</span>
-<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="go">  nodeselector: {}</span>
-<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="go">  priority: 55</span>
-<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="go">  proceedon:</span>
-<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a><span class="go">  - pass</span>
-<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a><span class="go">  - dispatcher_return</span>
-<a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a><span class="go">status:</span>
-<a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a><span class="go">  conditions:</span>
-<a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a><span class="go">  - lastTransitionTime: &quot;2023-11-06T21:05:21Z&quot;</span>
-<a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a><span class="go">    message: bpfProgramReconciliation Succeeded on all nodes</span>
-<a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a><span class="go">    reason: ReconcileSuccess</span>
-<a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a><span class="go">    status: &quot;True&quot;</span>
-<a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a><span class="go">    type: ReconcileSuccess</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="gp">$ </span>kubectl<span class="w"> </span>get<span class="w"> </span>ClusterBpfApplication<span class="w"> </span>-o<span class="w"> </span>yaml
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="go">apiVersion: v1</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="go">items:</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="go">- apiVersion: bpfman.io/v1alpha1</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="go">  kind: ClusterBpfApplication</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="go">  metadata:</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="go">    annotations:</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="go">      kubectl.kubernetes.io/last-applied-configuration: |</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="go">        {&quot;apiVersion&quot;:&quot;bpfman.io/v1alpha1&quot;,&quot;kind&quot;:&quot;ClusterBpfApplication&quot;,&quot;metadata&quot;:{&quot;annotations&quot;:{},&quot;labels&quot;:{&quot;app.kubernetes.io/name&quot;:&quot;xdpprogram&quot;},&quot;name&quot;:&quot;go-xdp-counter-example&quot;},&quot;spec&quot;:{&quot;byteCode&quot;:{&quot;image&quot;:{&quot;url&quot;:&quot;quay.io/bpfman-bytecode/go-xdp-counter:latest&quot;}},&quot;nodeSelector&quot;:{},&quot;programs&quot;:[{&quot;name&quot;:&quot;xdp_stats&quot;,&quot;type&quot;:&quot;XDP&quot;,&quot;xdp&quot;:{&quot;links&quot;:[{&quot;interfaceSelector&quot;:{&quot;primaryNodeInterface&quot;:true},&quot;priority&quot;:55}]}}]}}</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="go">    creationTimestamp: &quot;2025-07-21T15:47:29Z&quot;</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="go">    finalizers:</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="go">    - bpfman.io.operator/finalizer</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="go">    generation: 1</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="go">    labels:</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="go">      app.kubernetes.io/name: xdpprogram</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="go">    name: go-xdp-counter-example</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="go">    resourceVersion: &quot;1004&quot;</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="go">    uid: e84f069f-1584-41fa-b4ac-e260f10e5012</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="go">  spec:</span>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="go">    byteCode:</span>
+<a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="go">      image:</span>
+<a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="go">        imagePullPolicy: IfNotPresent</span>
+<a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="go">        url: quay.io/bpfman-bytecode/go-xdp-counter:latest</span>
+<a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a><span class="go">    nodeSelector: {}</span>
+<a id="__codelineno-3-29" name="__codelineno-3-29" href="#__codelineno-3-29"></a><span class="go">    programs:</span>
+<a id="__codelineno-3-30" name="__codelineno-3-30" href="#__codelineno-3-30"></a><span class="go">    - name: xdp_stats</span>
+<a id="__codelineno-3-31" name="__codelineno-3-31" href="#__codelineno-3-31"></a><span class="go">      type: XDP</span>
+<a id="__codelineno-3-32" name="__codelineno-3-32" href="#__codelineno-3-32"></a><span class="go">      xdp:</span>
+<a id="__codelineno-3-33" name="__codelineno-3-33" href="#__codelineno-3-33"></a><span class="go">        links:</span>
+<a id="__codelineno-3-34" name="__codelineno-3-34" href="#__codelineno-3-34"></a><span class="go">        - interfaceSelector:</span>
+<a id="__codelineno-3-35" name="__codelineno-3-35" href="#__codelineno-3-35"></a><span class="go">            primaryNodeInterface: true</span>
+<a id="__codelineno-3-36" name="__codelineno-3-36" href="#__codelineno-3-36"></a><span class="go">          priority: 55</span>
+<a id="__codelineno-3-37" name="__codelineno-3-37" href="#__codelineno-3-37"></a><span class="go">          proceedOn:</span>
+<a id="__codelineno-3-38" name="__codelineno-3-38" href="#__codelineno-3-38"></a><span class="go">          - Pass</span>
+<a id="__codelineno-3-39" name="__codelineno-3-39" href="#__codelineno-3-39"></a><span class="go">          - DispatcherReturn</span>
+<a id="__codelineno-3-40" name="__codelineno-3-40" href="#__codelineno-3-40"></a><span class="go">  status:</span>
+<a id="__codelineno-3-41" name="__codelineno-3-41" href="#__codelineno-3-41"></a><span class="go">    conditions:</span>
+<a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a><span class="go">    - lastTransitionTime: &quot;2025-07-21T15:47:39Z&quot;</span>
+<a id="__codelineno-3-43" name="__codelineno-3-43" href="#__codelineno-3-43"></a><span class="go">      message: BPF application configuration successfully applied on all nodes</span>
+<a id="__codelineno-3-44" name="__codelineno-3-44" href="#__codelineno-3-44"></a><span class="go">      reason: Success</span>
+<a id="__codelineno-3-45" name="__codelineno-3-45" href="#__codelineno-3-45"></a><span class="go">      status: &quot;True&quot;</span>
+<a id="__codelineno-3-46" name="__codelineno-3-46" href="#__codelineno-3-46"></a><span class="go">      type: Success</span>
+<a id="__codelineno-3-47" name="__codelineno-3-47" href="#__codelineno-3-47"></a><span class="go">kind: List</span>
+<a id="__codelineno-3-48" name="__codelineno-3-48" href="#__codelineno-3-48"></a><span class="go">metadata:</span>
+<a id="__codelineno-3-49" name="__codelineno-3-49" href="#__codelineno-3-49"></a><span class="go">  resourceVersion: &quot;&quot;</span>
 </code></pre></div>
-<p>To retrieve information on the <code>BpfProgram</code> objects:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">kubectl get bpfprograms</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">NAME                                                          TYPE      STATUS         AGE</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">:</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go">go-xdp-counter-example-bpfman-deployment-control-plane-eth0   xdp       bpfmanLoaded   11m</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="go">kubectl get bpfprograms go-xdp-counter-example-bpfman-deployment-control-plane-eth0 -o yaml</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="go">apiVersion: bpfman.io/v1alpha1</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="go">kind: BpfProgram</span>
-<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="go">metadata:</span>
-<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="go">  annotations:</span>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="go">    bpfman.io.xdpprogramcontroller/interface: eth0</span>
-<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="go">    bpfman.io/ProgramId: &quot;4801&quot;</span>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="go">  creationTimestamp: &quot;2023-11-06T21:05:15Z&quot;</span>
-<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="go">  finalizers:</span>
-<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="go">  - bpfman.io.xdpprogramcontroller/finalizer</span>
-<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="go">  generation: 1</span>
-<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="go">  labels:</span>
-<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="go">    bpfman.io/ownedByProgram: go-xdp-counter-example</span>
-<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="go">    kubernetes.io/hostname: bpfman-deployment-control-plane</span>
-<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="go">  name: go-xdp-counter-example-bpfman-deployment-control-plane-eth0</span>
-<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="go">  ownerReferences:</span>
-<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="go">  - apiVersion: bpfman.io/v1alpha1</span>
-<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="go">    blockOwnerDeletion: true</span>
-<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="go">    controller: true</span>
-<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="go">    kind: XdpProgram</span>
-<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="go">    name: go-xdp-counter-example</span>
-<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="go">    uid: edd45e2e-a40b-4668-ac76-c1f1eb63a23b</span>
-<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="go">  resourceVersion: &quot;3102&quot;</span>
-<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="go">  uid: f7ffd156-168b-4dc8-be38-18c42626a631</span>
-<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="go">spec:</span>
-<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="go">  type: xdp</span>
-<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="go">status:</span>
-<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="go">  conditions:</span>
-<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="go">  - lastTransitionTime: &quot;2023-11-06T21:05:21Z&quot;</span>
-<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="go">    message: Successfully loaded bpfProgram</span>
-<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a><span class="go">    reason: bpfmanLoaded</span>
-<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="go">    status: &quot;True&quot;</span>
-<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="go">    type: Loaded</span>
+<p>To retrieve information about the <code>ClusterBpfApplicationState</code> objects:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>kubectl<span class="w"> </span>get<span class="w"> </span>ClusterBpfApplicationState<span class="w"> </span>-l<span class="w"> </span>bpfman.io/ownedByProgram<span class="o">=</span>go-xdp-counter-example
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">NAME                              NODE                              STATUS    AGE</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">go-xdp-counter-example-34a4624c   bpfman-deployment-control-plane   Success   7m57s</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="gp">$ </span>kubectl<span class="w"> </span>get<span class="w"> </span>ClusterBpfApplicationState<span class="w"> </span>-l<span class="w"> </span>bpfman.io/ownedByProgram<span class="o">=</span>go-xdp-counter-example<span class="w"> </span>-o<span class="w"> </span>yaml
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="go">apiVersion: v1</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="go">items:</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="go">- apiVersion: bpfman.io/v1alpha1</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="go">  kind: ClusterBpfApplicationState</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="go">  metadata:</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="go">    creationTimestamp: &quot;2025-07-21T15:47:29Z&quot;</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="go">    finalizers:</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="go">    - bpfman.io.clbpfapplicationcontroller/finalizer</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="go">    generation: 1</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="go">    labels:</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="go">      bpfman.io/ownedByProgram: go-xdp-counter-example</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="go">      kubernetes.io/hostname: bpfman-deployment-control-plane</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="go">    name: go-xdp-counter-example-34a4624c</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="go">    ownerReferences:</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="go">    - apiVersion: bpfman.io/v1alpha1</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="go">      blockOwnerDeletion: true</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="go">      controller: true</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="go">      kind: ClusterBpfApplication</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="go">      name: go-xdp-counter-example</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="go">      uid: e84f069f-1584-41fa-b4ac-e260f10e5012</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="go">    resourceVersion: &quot;1003&quot;</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="go">    uid: b8316810-f4a5-4760-8a72-bf943625eaed</span>
+<a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="go">  status:</span>
+<a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a><span class="go">    appLoadStatus: LoadSuccess</span>
+<a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="go">    conditions:</span>
+<a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="go">    - lastTransitionTime: &quot;2025-07-21T15:47:39Z&quot;</span>
+<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="go">      message: The BPF application has been successfully loaded and attached</span>
+<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="go">      reason: Success</span>
+<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="go">      status: &quot;True&quot;</span>
+<a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a><span class="go">      type: Success</span>
+<a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="go">    node: bpfman-deployment-control-plane</span>
+<a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a><span class="go">    programs:</span>
+<a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a><span class="go">    - name: xdp_stats</span>
+<a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a><span class="go">      programId: 1845</span>
+<a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a><span class="go">      programLinkStatus: Success</span>
+<a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a><span class="go">      type: XDP</span>
+<a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a><span class="go">      xdp:</span>
+<a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a><span class="go">        links:</span>
+<a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a><span class="go">        - interfaceName: eth0</span>
+<a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a><span class="go">          linkId: 2825010721</span>
+<a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a><span class="go">          linkStatus: Attached</span>
+<a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a><span class="go">          priority: 55</span>
+<a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a><span class="go">          proceedOn:</span>
+<a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a><span class="go">          - Pass</span>
+<a id="__codelineno-4-50" name="__codelineno-4-50" href="#__codelineno-4-50"></a><span class="go">          - DispatcherReturn</span>
+<a id="__codelineno-4-51" name="__codelineno-4-51" href="#__codelineno-4-51"></a><span class="go">          shouldAttach: true</span>
+<a id="__codelineno-4-52" name="__codelineno-4-52" href="#__codelineno-4-52"></a><span class="go">          uuid: 86961016-12a2-467d-92b1-5ef0b7c3d74e</span>
+<a id="__codelineno-4-53" name="__codelineno-4-53" href="#__codelineno-4-53"></a><span class="go">    updateCount: 2</span>
+<a id="__codelineno-4-54" name="__codelineno-4-54" href="#__codelineno-4-54"></a><span class="go">kind: List</span>
+<a id="__codelineno-4-55" name="__codelineno-4-55" href="#__codelineno-4-55"></a><span class="go">metadata:</span>
+<a id="__codelineno-4-56" name="__codelineno-4-56" href="#__codelineno-4-56"></a><span class="go">  resourceVersion: &quot;&quot;</span>
 </code></pre></div>
 <h2 id="deploying-an-ebpf-enabled-application-on-kubernetes">Deploying an eBPF enabled application On Kubernetes</h2>
 <p>Here, a userspace container is deployed to consume the map data generated by the
@@ -2212,7 +2237,7 @@ for reference:</p>
 <li><a href="https://quay.io/organization/bpfman-userspace">quay.io/bpfman-userspace/go-uprobe-counter:latest</a></li>
 <li><a href="https://quay.io/organization/bpfman-userspace">quay.io/bpfman-userspace/go-xdp-counter:latest</a></li>
 </ul>
-<p>The example yaml files below are loading from these image.</p>
+<p>The example YAML files below utilise the following images:</p>
 <ul>
 <li><a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-kprobe-counter/deployment.yaml">go-kprobe-counter/deployment.yaml</a></li>
 <li><a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-tc-counter/deployment.yaml">go-tc-counter/deployment.yaml</a></li>
@@ -2220,49 +2245,47 @@ for reference:</p>
 <li><a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-uprobe-counter/deployment.yaml">go-uprobe-counter/deployment.yaml</a></li>
 <li><a href="https://github.com/bpfman/bpfman/tree/main/examples/config/base/go-xdp-counter/deployment.yaml">go-xdp-counter/deployment.yaml</a></li>
 </ul>
-<p>The userspace program in a Kubernetes Deployment doesn't interacts directly with <code>bpfman</code> like it
+<p>The userspace program in a Kubernetes Deployment doesn't interact directly with <code>bpfman</code> like it
 did in the local host deployment.
-Instead, the userspace program running on each node, if needed, reads the <code>BpfProgram</code> object
+Instead, the userspace program running on each node, if needed, reads the <code>ClusterBpfApplicationState</code> object
 from the KubeApiServer to gather additional information about the loaded eBPF program.
-To interact with the KubeApiServer, RBAC must be setup properly to access the <code>BpfProgram</code>
+To interact with the KubeApiServer, RBAC must be setup properly to access the <code>ClusterBpfApplicationState</code>
 object.
 The <code>bpfman-operator</code> defined the yaml for several ClusterRoles that can be used to access the
 different <code>bpfman</code> related CRD objects with different access rights.
-The example userspace containers will use the <code>bpfprogram-viewer-role</code>, which allows Read-Only
-access to the <code>BpfProgram</code> object.
+The example userspace containers will use the <code>bpfman-bpfapplication-viewer-role</code> and
+<code>bpfman-clusterbpfapplication-viewer-role</code> clusterroles, which allow Read-Only
+access to the <code>BpfApplication</code> / <code>ClusterBpfApplication</code> objects.
 This ClusterRole is created automatically by the <code>bpfman-operator</code>.</p>
 <p>The remaining objects (NameSpace, ServiceAccount, ClusterRoleBinding and examples DaemonSet)
 can be created for each program type as follows:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">cd bpfman/</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="go">kubectl create -f examples/config/base/go-xdp-counter/deployment.yaml</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>bpfman/
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="gp">$ </span>kubectl<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>examples/config/base/go-xdp-counter/deployment.yaml
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="go">namespace/go-xdp-counter created</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="go">serviceaccount/bpfman-app-go-xdp-counter created</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="go">daemonset.apps/go-xdp-counter-ds created</span>
 </code></pre></div>
 <p>This creates the <code>go-xdp-counter</code> userspace pod, but the other examples operate in
 a similar fashion.</p>
 <p><img alt="go-xdp-counter On Kubernetes" src="../../img/gocounter-on-k8s.png" /></p>
 <p>Following the diagram for the XDP example (Green numbers):</p>
 <ol>
-<li>The userspace program queries the KubeApiServer for a specific <code>BpfProgram</code> object.</li>
-<li>The userspace program verifies the <code>BpfProgram</code> has been loaded and uses the map to
-periodically read the counter values.</li>
+<li>The userspace program queries the KubeApiServer for a specific <code>ClusterBpfApplication</code> or <code>BpfApplication</code> object,
+if required.</li>
+<li>The userspace program verifies the BPF program has been loaded and uses the map to periodically read the counter
+values.</li>
 </ol>
 <p>To see if the userspace programs are working, view the logs:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">kubectl get pods -A</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">NAMESPACE               NAME                              READY   STATUS    RESTARTS   AGE</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">bpfman                  bpfman-daemon-jsgdh               3/3     Running   0          11m</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="go">bpfman                  bpfman-operator-6c5c8887f7-qk28x  2/2     Running   0          12m</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go">go-xdp-counter          go-xdp-counter-ds-2hs6g           1/1     Running   0          6m12s</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="go">:</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="go">kubectl logs -n go-xdp-counter go-xdp-counter-ds-2hs6g</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="go">2023/11/06 20:27:16 2429 packets received</span>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="go">2023/11/06 20:27:16 1328474 bytes received</span>
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="go">2023/11/06 20:27:19 2429 packets received</span>
-<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="go">2023/11/06 20:27:19 1328474 bytes received</span>
-<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>
-<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="go">2023/11/06 20:27:22 2430 packets received</span>
-<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="go">2023/11/06 20:27:22 1328552 bytes received</span>
-<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="go">:</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="gp">$ </span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>go-xdp-counter
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">NAME                      READY   STATUS    RESTARTS   AGE</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">go-xdp-counter-ds-hnnj7   1/1     Running   0          49m</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="gp">$ </span>kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>go-xdp-counter<span class="w"> </span>--tail<span class="o">=</span><span class="m">6</span><span class="w"> </span>go-xdp-counter-ds-hnnj7
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="go">2025/07/21 17:22:40 44015 packets received</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="go">2025/07/21 17:22:40 63352772 bytes received</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="go">2025/07/21 17:22:43 44031 packets received</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="go">2025/07/21 17:22:43 63357010 bytes received</span>
 </code></pre></div>
 <p>To cleanup:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">kubectl delete -f examples/config/base/go-xdp-counter/deployment.yaml</span>
@@ -2272,8 +2295,8 @@ periodically read the counter values.</li>
 <p>The steps above are automated in the <code>Makefile</code> in the examples directory.
 Run <code>make deploy</code> to load each of the example bytecode and userspace yaml files, then
 <code>make undeploy</code> to unload them.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">cd bpfman/examples/</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">make deploy</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>bpfman/examples/
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="gp">$ </span>make<span class="w"> </span>deploy
 <a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go">  for target in deploy-tc deploy-tracepoint deploy-xdp deploy-xdp-ms deploy-kprobe deploy-target deploy-uprobe ; do \</span>
 <a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go">      make $target  || true; \</span>
 <a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go">  done</span>
@@ -2295,43 +2318,45 @@ Run <code>make deploy</code> to load each of the example bytecode and userspace 
 <a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>
 <a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a><span class="gp"># </span>Test<span class="w"> </span>Away<span class="w"> </span>...
 <a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>
-<a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a><span class="go">kubectl get pods -A</span>
-<a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a><span class="go">NAMESPACE               NAME                                                      READY   STATUS    RESTARTS   AGE</span>
-<a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a><span class="go">bpfman                  bpfman-daemon-md2c5                                       3/3     Running   0          2d17h</span>
-<a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a><span class="go">bpfman                  bpfman-operator-7f67bc7c57-95zf7                          2/2     Running   0          2d17h</span>
-<a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a><span class="go">go-kprobe-counter       go-kprobe-counter-ds-8dkls                                1/1     Running   0          2m14s</span>
-<a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a><span class="go">go-target               go-target-ds-nbdf5                                        1/1     Running   0          2m14s</span>
-<a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a><span class="go">go-tc-counter           go-tc-counter-ds-7mtcw                                    1/1     Running   0          2m19s</span>
-<a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a><span class="go">go-tracepoint-counter   go-tracepoint-counter-ds-bcbs7                            1/1     Running   0          2m18s</span>
-<a id="__codelineno-9-32" name="__codelineno-9-32" href="#__codelineno-9-32"></a><span class="go">go-uprobe-counter       go-uprobe-counter-ds-j26hc                                1/1     Running   0          2m13s</span>
-<a id="__codelineno-9-33" name="__codelineno-9-33" href="#__codelineno-9-33"></a><span class="go">go-xdp-counter          go-xdp-counter-ds-nls6s                                   1/1     Running   0          2m17s</span>
+<a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a><span class="gp">$ </span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-A<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s1">&#39;^go-&#39;</span>
+<a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a><span class="go">go-app-counter          go-app-counter-ds-xt6h8                                   1/1     Running   0          3m8s</span>
+<a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a><span class="go">go-kprobe-counter       go-kprobe-counter-ds-2wrsz                                1/1     Running   0          3m10s</span>
+<a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a><span class="go">go-target               go-target-ds-72x86                                        1/1     Running   0          3m10s</span>
+<a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a><span class="go">go-tc-counter           go-tc-counter-ds-zv8f5                                    1/1     Running   0          3m13s</span>
+<a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a><span class="go">go-tcx-counter          go-tcx-counter-ds-cf6sz                                   1/1     Running   0          3m12s</span>
+<a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a><span class="go">go-tracepoint-counter   go-tracepoint-counter-ds-zbnkl                            1/1     Running   0          3m12s</span>
+<a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a><span class="go">go-uprobe-counter       go-uprobe-counter-ds-r5dm7                                1/1     Running   0          3m9s</span>
+<a id="__codelineno-9-32" name="__codelineno-9-32" href="#__codelineno-9-32"></a><span class="go">go-uretprobe-counter    go-uretprobe-counter-ds-8bvw9                             1/1     Running   0          3m8s</span>
+<a id="__codelineno-9-33" name="__codelineno-9-33" href="#__codelineno-9-33"></a><span class="go">go-xdp-counter          go-xdp-counter-ds-b9jk4                                   1/1     Running   0          3m11s</span>
 <a id="__codelineno-9-34" name="__codelineno-9-34" href="#__codelineno-9-34"></a>
-<a id="__codelineno-9-35" name="__codelineno-9-35" href="#__codelineno-9-35"></a><span class="go">kubectl get bpfprograms</span>
-<a id="__codelineno-9-36" name="__codelineno-9-36" href="#__codelineno-9-36"></a><span class="go">NAME                                                                                                TYPE         STATUS         AGE</span>
-<a id="__codelineno-9-37" name="__codelineno-9-37" href="#__codelineno-9-37"></a><span class="go">go-kprobe-counter-example-bpfman-deployment-control-plane-try-to-wake-up                            kprobe       bpfmanLoaded   2m41s</span>
-<a id="__codelineno-9-38" name="__codelineno-9-38" href="#__codelineno-9-38"></a><span class="go">go-tc-counter-example-bpfman-deployment-control-plane-eth0                                          tc           bpfmanLoaded   2m46s</span>
-<a id="__codelineno-9-39" name="__codelineno-9-39" href="#__codelineno-9-39"></a><span class="go">go-tracepoint-counter-example-bpfman-deployment-control-plane-syscalls-sys-enter-kill               tracepoint   bpfmanLoaded   2m35s</span>
-<a id="__codelineno-9-40" name="__codelineno-9-40" href="#__codelineno-9-40"></a><span class="go">go-uprobe-counter-example-bpfman-deployment-control-plane--go-target-go-target-ds-nbdf5-go-target   uprobe       bpfmanLoaded   2m29s</span>
-<a id="__codelineno-9-41" name="__codelineno-9-41" href="#__codelineno-9-41"></a><span class="go">go-xdp-counter-example-bpfman-deployment-control-plane-eth0                                         xdp          bpfmanLoaded   2m24s</span>
-<a id="__codelineno-9-42" name="__codelineno-9-42" href="#__codelineno-9-42"></a><span class="go">go-xdp-counter-sharing-map-example-bpfman-deployment-control-plane-eth0                             xdp          bpfmanLoaded   2m21s</span>
-<a id="__codelineno-9-43" name="__codelineno-9-43" href="#__codelineno-9-43"></a>
-<a id="__codelineno-9-44" name="__codelineno-9-44" href="#__codelineno-9-44"></a><span class="go">make undeploy</span>
-<a id="__codelineno-9-45" name="__codelineno-9-45" href="#__codelineno-9-45"></a><span class="go">  for target in undeploy-tc undeploy-tracepoint undeploy-xdp undeploy-xdp-ms undeploy-kprobe undeploy-uprobe undeploy-target ; do \</span>
-<a id="__codelineno-9-46" name="__codelineno-9-46" href="#__codelineno-9-46"></a><span class="go">      make $target  || true; \</span>
-<a id="__codelineno-9-47" name="__codelineno-9-47" href="#__codelineno-9-47"></a><span class="go">  done</span>
-<a id="__codelineno-9-48" name="__codelineno-9-48" href="#__codelineno-9-48"></a><span class="go">  make[1]: Entering directory &#39;/home/&lt;$USER&gt;/go/src/github.com/bpfman/bpfman/examples&#39;</span>
-<a id="__codelineno-9-49" name="__codelineno-9-49" href="#__codelineno-9-49"></a><span class="go">  sed &#39;s@URL_BC@quay.io/bpfman-bytecode/go-tc-counter:latest@&#39; config/default/go-tc-counter/patch.yaml.env &gt; config/default/go-tc-counter/patch.yaml</span>
-<a id="__codelineno-9-50" name="__codelineno-9-50" href="#__codelineno-9-50"></a><span class="go">  cd config/default/go-tc-counter &amp;&amp; /home/&lt;$USER&gt;/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tc-counter=quay.io/bpfman-userspace/go-tc-counter:latest</span>
-<a id="__codelineno-9-51" name="__codelineno-9-51" href="#__codelineno-9-51"></a><span class="go">  namespace &quot;go-tc-counter&quot; deleted</span>
-<a id="__codelineno-9-52" name="__codelineno-9-52" href="#__codelineno-9-52"></a><span class="go">  serviceaccount &quot;bpfman-app-go-tc-counter&quot; deleted</span>
-<a id="__codelineno-9-53" name="__codelineno-9-53" href="#__codelineno-9-53"></a><span class="go">  daemonset.apps &quot;go-tc-counter-ds&quot; deleted</span>
-<a id="__codelineno-9-54" name="__codelineno-9-54" href="#__codelineno-9-54"></a><span class="go">  tcprogram.bpfman.io &quot;go-tc-counter-example&quot; deleted</span>
-<a id="__codelineno-9-55" name="__codelineno-9-55" href="#__codelineno-9-55"></a><span class="go">  :</span>
-<a id="__codelineno-9-56" name="__codelineno-9-56" href="#__codelineno-9-56"></a><span class="go">  kubectl delete -f config/base/go-target/deployment.yaml</span>
-<a id="__codelineno-9-57" name="__codelineno-9-57" href="#__codelineno-9-57"></a><span class="go">  namespace &quot;go-target&quot; deleted</span>
-<a id="__codelineno-9-58" name="__codelineno-9-58" href="#__codelineno-9-58"></a><span class="go">  serviceaccount &quot;bpfman-app-go-target&quot; deleted</span>
-<a id="__codelineno-9-59" name="__codelineno-9-59" href="#__codelineno-9-59"></a><span class="go">  daemonset.apps &quot;go-target-ds&quot; deleted</span>
-<a id="__codelineno-9-60" name="__codelineno-9-60" href="#__codelineno-9-60"></a><span class="go">  make[1]: Leaving directory &#39;/home/&lt;$USER&gt;/go/src/github.com/bpfman/bpfman/examples&#39;</span>
+<a id="__codelineno-9-35" name="__codelineno-9-35" href="#__codelineno-9-35"></a><span class="gp">$ </span>kubectl<span class="w"> </span>get<span class="w"> </span>clusterbpfapplications
+<a id="__codelineno-9-36" name="__codelineno-9-36" href="#__codelineno-9-36"></a><span class="go">NAME                            NODESELECTOR   STATUS    AGE</span>
+<a id="__codelineno-9-37" name="__codelineno-9-37" href="#__codelineno-9-37"></a><span class="go">app-counter                                    Success   3m46s</span>
+<a id="__codelineno-9-38" name="__codelineno-9-38" href="#__codelineno-9-38"></a><span class="go">go-kprobe-counter-example                      Success   3m48s</span>
+<a id="__codelineno-9-39" name="__codelineno-9-39" href="#__codelineno-9-39"></a><span class="go">go-tc-counter-example                          Success   3m51s</span>
+<a id="__codelineno-9-40" name="__codelineno-9-40" href="#__codelineno-9-40"></a><span class="go">go-tcx-counter-example                         Success   3m50s</span>
+<a id="__codelineno-9-41" name="__codelineno-9-41" href="#__codelineno-9-41"></a><span class="go">go-tracepoint-counter-example                  Success   3m50s</span>
+<a id="__codelineno-9-42" name="__codelineno-9-42" href="#__codelineno-9-42"></a><span class="go">go-uprobe-counter-example                      Success   3m47s</span>
+<a id="__codelineno-9-43" name="__codelineno-9-43" href="#__codelineno-9-43"></a><span class="go">go-uretprobe-counter-example                   Success   3m46s</span>
+<a id="__codelineno-9-44" name="__codelineno-9-44" href="#__codelineno-9-44"></a><span class="go">go-xdp-counter-example                         Success   3m49s</span>
+<a id="__codelineno-9-45" name="__codelineno-9-45" href="#__codelineno-9-45"></a>
+<a id="__codelineno-9-46" name="__codelineno-9-46" href="#__codelineno-9-46"></a><span class="gp">$ </span>make<span class="w"> </span>undeploy
+<a id="__codelineno-9-47" name="__codelineno-9-47" href="#__codelineno-9-47"></a><span class="go">  for target in undeploy-tc undeploy-tracepoint undeploy-xdp undeploy-xdp-ms undeploy-kprobe undeploy-uprobe undeploy-target ; do \</span>
+<a id="__codelineno-9-48" name="__codelineno-9-48" href="#__codelineno-9-48"></a><span class="go">      make $target  || true; \</span>
+<a id="__codelineno-9-49" name="__codelineno-9-49" href="#__codelineno-9-49"></a><span class="go">  done</span>
+<a id="__codelineno-9-50" name="__codelineno-9-50" href="#__codelineno-9-50"></a><span class="go">  make[1]: Entering directory &#39;/home/&lt;$USER&gt;/go/src/github.com/bpfman/bpfman/examples&#39;</span>
+<a id="__codelineno-9-51" name="__codelineno-9-51" href="#__codelineno-9-51"></a><span class="go">  sed &#39;s@URL_BC@quay.io/bpfman-bytecode/go-tc-counter:latest@&#39; config/default/go-tc-counter/patch.yaml.env &gt; config/default/go-tc-counter/patch.yaml</span>
+<a id="__codelineno-9-52" name="__codelineno-9-52" href="#__codelineno-9-52"></a><span class="go">  cd config/default/go-tc-counter &amp;&amp; /home/&lt;$USER&gt;/go/src/github.com/bpfman/bpfman/examples/bin/kustomize edit set image quay.io/bpfman-userspace/go-tc-counter=quay.io/bpfman-userspace/go-tc-counter:latest</span>
+<a id="__codelineno-9-53" name="__codelineno-9-53" href="#__codelineno-9-53"></a><span class="go">  namespace &quot;go-tc-counter&quot; deleted</span>
+<a id="__codelineno-9-54" name="__codelineno-9-54" href="#__codelineno-9-54"></a><span class="go">  serviceaccount &quot;bpfman-app-go-tc-counter&quot; deleted</span>
+<a id="__codelineno-9-55" name="__codelineno-9-55" href="#__codelineno-9-55"></a><span class="go">  daemonset.apps &quot;go-tc-counter-ds&quot; deleted</span>
+<a id="__codelineno-9-56" name="__codelineno-9-56" href="#__codelineno-9-56"></a><span class="go">  tcprogram.bpfman.io &quot;go-tc-counter-example&quot; deleted</span>
+<a id="__codelineno-9-57" name="__codelineno-9-57" href="#__codelineno-9-57"></a><span class="go">  :</span>
+<a id="__codelineno-9-58" name="__codelineno-9-58" href="#__codelineno-9-58"></a><span class="go">  kubectl delete -f config/base/go-target/deployment.yaml</span>
+<a id="__codelineno-9-59" name="__codelineno-9-59" href="#__codelineno-9-59"></a><span class="go">  namespace &quot;go-target&quot; deleted</span>
+<a id="__codelineno-9-60" name="__codelineno-9-60" href="#__codelineno-9-60"></a><span class="go">  serviceaccount &quot;bpfman-app-go-target&quot; deleted</span>
+<a id="__codelineno-9-61" name="__codelineno-9-61" href="#__codelineno-9-61"></a><span class="go">  daemonset.apps &quot;go-target-ds&quot; deleted</span>
+<a id="__codelineno-9-62" name="__codelineno-9-62" href="#__codelineno-9-62"></a><span class="go">  make[1]: Leaving directory &#39;/home/&lt;$USER&gt;/go/src/github.com/bpfman/bpfman/examples&#39;</span>
 </code></pre></div>
 <p>Individual examples can be loaded and unloaded as well, for example <code>make deploy-xdp</code> and
 <code>make undeploy-xdp</code>.

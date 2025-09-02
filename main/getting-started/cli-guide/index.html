@@ -2656,7 +2656,7 @@ use as your system is deployed.</p>
 from the <code>bpfman</code> repository.</p>
 <h2 id="basic-syntax">Basic Syntax</h2>
 <p>Below are the commands supported by <code>bpfman</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">sudo bpfman --help</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="gp">$ </span>bpfman<span class="w"> </span>--help
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">An eBPF manager focusing on simplifying the deployment and administration of eBPF programs.</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="go">Usage: bpfman &lt;COMMAND&gt;</span>
@@ -2680,24 +2680,24 @@ from the <code>bpfman</code> repository.</p>
 <li><strong>Load Program</strong>: The first step is to load the eBPF Program (or Programs) using the
   <code>bpfman load</code> command.
   The programs can be from a locally built eBPF program (.o file) or an eBPF program
-  packaged in a OCI container image from a given registry.
+  packaged in an OCI container image from a given registry.
   Once the command completes successfully, the eBPF programs are loaded in kernel memory,
-  but have not been attached to any hook points yet.</li>
+  but have not yet been attached to any hook points.</li>
 <li><strong>Attach Program</strong>: The next step is to attach a loaded eBPF Program to a hook point
   using the <code>bpfman attach</code> command.
   Each program type (kprobe, tc, tracepoint, xdp, etc) has unique hook points and unique
   configuration data which is provided with the attach command.
-  Once attached, the eBPF Program will be called if it's hook point is triggered.</li>
+  Once attached, the eBPF Program will be called when its hook point is triggered.</li>
 <li><strong>Display Programs</strong>: At any time, the set of programs loaded and attach can be displayed.
   To get a list of all the programs, use the <code>bpfman list programs</code> command.
   If a program shows up in the list then the program has been loaded.
   One of the attributes in the output is  the <code>Links</code> parameter.
   If there is a values in the <code>Links</code> parameter, then the program has also been attached.
   To retrieve all the parameters of a given program, use the <code>bpfman get program</code> command, which
-  displays a given program based its <code>Program ID</code>, which can be found in the list output.
+  displays a given program based on its <code>Program ID</code>, which can be found in the list output.
   To get a list of all the links, use the <code>bpfman list links</code> command.
-  To retrieve all the parameters of a given link, use the <code>bpfman get link</code> command, which
-  displays a given link based its <code>Link ID</code>, which can be found in the list output.</li>
+  To retrieve all the parameters of a given link, use the <code>bpfman get link</code> command which
+  displays a given link based on its <code>Link ID</code> which can be found in the list output.</li>
 <li><strong>Detach Program</strong>: Optionally, an eBPF Program can be detached from a hook point if desired
   using the <code>bpfman detach</code> command.</li>
 <li><strong>Unload Program</strong>: Once an eBPF Program is no longer needed, the program can be unloaded
@@ -2710,12 +2710,12 @@ If the command is successful, the eBPF programs are loaded in kernel memory, but
 not been attached to any hook points yet (see <a href="#bpfman-attach">bpfman attach</a>).
 If the bytecode file contains multiple eBPF programs, they should be loaded in a single
 command by passing multiple &lt;TYPE>:&lt;NAME> pairs to the <code>--programs</code> parameters.
-They need to be loaded in one command so each those eBPF programs can share any global
-data and maps between the eBPF programs.</p>
+They need to be loaded in a single command so that each of the eBPF programs can share any
+global data and maps between them.</p>
 <p>The <code>bpfman load file</code> command is used to load a locally built eBPF program.
-The <code>bpfman load image</code> command is used to load an eBPF program packaged in a OCI container
+The <code>bpfman load image</code> command is used to load an eBPF program packaged in an OCI container
 image from a given registry.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">sudo bpfman load file --help</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>load<span class="w"> </span>file<span class="w"> </span>--help
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="go">Load an eBPF program from a local .o file</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="go">Usage: bpfman load file [OPTIONS] --programs &lt;PROGRAMS&gt;... --path &lt;PATH&gt;</span>
@@ -2778,7 +2778,7 @@ image from a given registry.</p>
 <a id="__codelineno-3-61" name="__codelineno-3-61" href="#__codelineno-3-61"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
 </code></pre></div>
 <p>and</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">sudo bpfman load image --help</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>load<span class="w"> </span>image<span class="w"> </span>--help
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">Load an eBPF program packaged in a OCI container image from a given registry</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="go">Usage: bpfman load image [OPTIONS] --programs &lt;PROGRAMS&gt;... --image-url &lt;IMAGE_URL&gt;</span>
@@ -2857,9 +2857,34 @@ image from a given registry.</p>
 <p>Below are some different examples for using the <code>bpfmam load</code> command.</p>
 <h4 id="loading-from-local-file">Loading From Local File</h4>
 <p>The following is an example of the <code>tc</code> command from local file:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">cd bpfman/</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go">sudo bpfman load file -p tests/integration-test/bpf/.output/tc_pass.bpf/bpf_x86_bpfel.o \</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">     --programs tc:pass --application TcPassProgram</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>bpfman/
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>load<span class="w"> </span>file<span class="w"> </span>-p<span class="w"> </span>tests/integration-test/bpf/.output/tc_pass.bpf/bpf_x86_bpfel.o<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">     </span>--programs<span class="w"> </span>tc:pass<span class="w"> </span>--application<span class="w"> </span>TcPassProgram
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go"> Bpfman State                                                                  </span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go"> BPF Function:  pass                                                           </span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go"> Program Type:  tc                                                             </span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="go"> Path:          tests/integration-test/bpf/.output/tc_pass.bpf/bpf_x86_bpfel.o </span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="go"> Global:        None                                                           </span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="go"> Metadata:      bpfman_application=TcPassProgram                               </span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/90                                         </span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="go"> Map Owner ID:  None                                                           </span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="go"> Maps Used By:  90                                                             </span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="go"> Links:         None                                                           </span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="go"> Kernel State                                               </span>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="go"> Program ID:                       90                       </span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="go"> BPF Function:                     pass                     </span>
+<a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="go"> Kernel Type:                      tc                       </span>
+<a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="go"> Loaded At:                        2025-07-22T08:16:06+0000 </span>
+<a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="go"> Tag:                              d796b57bdaf88123         </span>
+<a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="go"> GPL Compatible:                   true                     </span>
+<a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="go"> Map IDs:                          [27]                     </span>
+<a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="go"> BTF ID:                           101                      </span>
+<a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a><span class="go"> Size Translated (bytes):          96                       </span>
+<a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a><span class="go"> JITted:                           true                     </span>
+<a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a><span class="go"> Size JITted:                      76                       </span>
+<a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a><span class="go"> Kernel Allocated Memory (bytes):  4096                     </span>
+<a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a><span class="go"> Verified Instruction Count:       9</span>
 </code></pre></div>
 <p>For the <code>--programs tc:pass</code> program loaded with the command above, the <code>&lt;FUNC_NAME&gt;</code>
 would be set as shown in the following snippet, taken from the function name,
@@ -2871,20 +2896,53 @@ not <code>SEC()</code>:</p>
 <a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">}</span>
 </code></pre></div>
 <h4 id="loading-from-remote-repository">Loading From Remote Repository</h4>
-<p>Below is an example loading an eBPF program packaged in a OCI container image
+<p>Below is an example loading an eBPF program packaged in an OCI container image
 from a given registry:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest \</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">     --programs xdp:pass --application XdpPassProgram</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>load<span class="w"> </span>image<span class="w"> </span>--image-url<span class="w"> </span>quay.io/bpfman-bytecode/xdp_pass:latest<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">     </span>--programs<span class="w"> </span>xdp:pass<span class="w"> </span>--application<span class="w"> </span>XdpPassProgram
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go"> Bpfman State                                           </span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="go"> BPF Function:  pass                                    </span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go"> Program Type:  xdp                                     </span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="go"> Image URL:     quay.io/bpfman-bytecode/xdp_pass:latest </span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="go"> Pull Policy:   IfNotPresent                            </span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="go"> Global:        None                                    </span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="go"> Metadata:      bpfman_application=XdpPassProgram       </span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/184                 </span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="go"> Map Owner ID:  None                                    </span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="go"> Maps Used By:  184                                     </span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="go"> Links:         None                                    </span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="go"> Kernel State                                               </span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="go"> Program ID:                       184                      </span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="go"> BPF Function:                     pass                     </span>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="go"> Kernel Type:                      xdp                      </span>
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="go"> Loaded At:                        2025-07-22T08:22:05+0000 </span>
+<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="go"> Tag:                              4b9d1b2c140e87ce         </span>
+<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="go"> GPL Compatible:                   true                     </span>
+<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="go"> Map IDs:                          [60]                     </span>
+<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a><span class="go"> BTF ID:                           188                      </span>
+<a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a><span class="go"> Size Translated (bytes):          96                       </span>
+<a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a><span class="go"> JITted:                           true                     </span>
+<a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a><span class="go"> Size JITted:                      79                       </span>
+<a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a><span class="go"> Kernel Allocated Memory (bytes):  4096                     </span>
+<a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a><span class="go"> Verified Instruction Count:       9 </span>
 </code></pre></div>
 <h4 id="loading-multiple-programs">Loading Multiple Programs</h4>
-<p>An eBPF bytecode image can can contain multiple programs.
+<p>An eBPF bytecode image can contain multiple programs.
 Below is an example of how to load multiple eBPF programs in one load command.
 Commands that are loaded together can share global data and maps.
 Optionally, include an <code>application</code> name that can be used to group the load
 programs together when displaying.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/go-app-counter:latest \</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="go">   --programs kprobe:kprobe_counter tracepoint:tracepoint_kill_recorder tc:stats \</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="go">              tcx:tcx_stats uprobe:uprobe_counter xdp:xdp_stats  --application go-app</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>load<span class="w"> </span>image<span class="w"> </span>--image-url<span class="w"> </span>quay.io/bpfman-bytecode/go-app-counter:latest<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">   </span>--programs<span class="w"> </span>kprobe:kprobe_counter<span class="w"> </span>tracepoint:tracepoint_kill_recorder<span class="w"> </span>tc:stats<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">              </span>tcx:tcx_stats<span class="w"> </span>uprobe:uprobe_counter<span class="w"> </span>xdp:xdp_stats<span class="w"> </span>--application<span class="w"> </span>go-app
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="go"> Program ID  Application  Type        Function Name    Links </span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="go"> 224         go-app       kprobe      kprobe_counter         </span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="go"> 225         go-app       tracepoint  tracepoint_kill        </span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="go"> 226         go-app       tc          stats                  </span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="go"> 227         go-app       tcx         tcx_stats              </span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="go"> 228         go-app       uprobe      uprobe_counter         </span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="go"> 229         go-app       xdp         xdp_stats </span>
 </code></pre></div>
 <h4 id="loading-fentryfexit-programs">Loading fentry/fexit Programs</h4>
 <p>Below is an example loading an fentry program (fexit is similar).
@@ -2894,11 +2952,63 @@ The function name is included in the <code>--programs</code> parameter and uses 
 format: <code>&lt;TYPE&gt;:&lt;FUNC_NAME&gt;:&lt;ATTACH_FUNC&gt;</code>
 The fentry and fexit programs still require a <code>bpfman attach</code> command to be
 called before they will actually be triggered.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/fentry:latest \</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">     --programs fentry:test_fentry:do_unlinkat</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/fentry:latest \</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go">     --programs fexit:test_fexit:do_unlinkat</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>load<span class="w"> </span>image<span class="w"> </span>--image-url<span class="w"> </span>quay.io/bpfman-bytecode/fentry:latest<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">     </span>--programs<span class="w"> </span>fentry:test_fentry:do_unlinkat
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go"> Bpfman State                                         </span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go"> BPF Function:  test_fentry                           </span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go"> Program Type:  fentry                                </span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="go"> Image URL:     quay.io/bpfman-bytecode/fentry:latest </span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="go"> Pull Policy:   IfNotPresent                          </span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="go"> Global:        None                                  </span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="go"> Metadata:      None                                  </span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/244               </span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a><span class="go"> Map Owner ID:  None                                  </span>
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="go"> Maps Used By:  244                                   </span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="go"> Links:         None                                  </span>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="go"> Kernel State                                               </span>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="go"> Program ID:                       244                      </span>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="go"> BPF Function:                     test_fentry              </span>
+<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="go"> Kernel Type:                      tracing                  </span>
+<a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a><span class="go"> Loaded At:                        2025-07-22T08:25:37+0000 </span>
+<a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a><span class="go"> Tag:                              dda189308c8908           </span>
+<a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a><span class="go"> GPL Compatible:                   true                     </span>
+<a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a><span class="go"> Map IDs:                          [93]                     </span>
+<a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a><span class="go"> BTF ID:                           253                      </span>
+<a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a><span class="go"> Size Translated (bytes):          48                       </span>
+<a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a><span class="go"> JITted:                           true                     </span>
+<a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a><span class="go"> Size JITted:                      48                       </span>
+<a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a><span class="go"> Kernel Allocated Memory (bytes):  4096                     </span>
+<a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a><span class="go"> Verified Instruction Count:       5</span>
+<a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a>
+<a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>load<span class="w"> </span>image<span class="w"> </span>--image-url<span class="w"> </span>quay.io/bpfman-bytecode/fentry:latest<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a><span class="w">     </span>--programs<span class="w"> </span>fexit:test_fexit:do_unlinkat
+<a id="__codelineno-9-32" name="__codelineno-9-32" href="#__codelineno-9-32"></a><span class="go"> Bpfman State                                         </span>
+<a id="__codelineno-9-33" name="__codelineno-9-33" href="#__codelineno-9-33"></a><span class="go"> BPF Function:  test_fexit                            </span>
+<a id="__codelineno-9-34" name="__codelineno-9-34" href="#__codelineno-9-34"></a><span class="go"> Program Type:  fexit                                 </span>
+<a id="__codelineno-9-35" name="__codelineno-9-35" href="#__codelineno-9-35"></a><span class="go"> Image URL:     quay.io/bpfman-bytecode/fentry:latest </span>
+<a id="__codelineno-9-36" name="__codelineno-9-36" href="#__codelineno-9-36"></a><span class="go"> Pull Policy:   IfNotPresent                          </span>
+<a id="__codelineno-9-37" name="__codelineno-9-37" href="#__codelineno-9-37"></a><span class="go"> Global:        None                                  </span>
+<a id="__codelineno-9-38" name="__codelineno-9-38" href="#__codelineno-9-38"></a><span class="go"> Metadata:      None                                  </span>
+<a id="__codelineno-9-39" name="__codelineno-9-39" href="#__codelineno-9-39"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/252               </span>
+<a id="__codelineno-9-40" name="__codelineno-9-40" href="#__codelineno-9-40"></a><span class="go"> Map Owner ID:  None                                  </span>
+<a id="__codelineno-9-41" name="__codelineno-9-41" href="#__codelineno-9-41"></a><span class="go"> Maps Used By:  252                                   </span>
+<a id="__codelineno-9-42" name="__codelineno-9-42" href="#__codelineno-9-42"></a><span class="go"> Links:         None                                  </span>
+<a id="__codelineno-9-43" name="__codelineno-9-43" href="#__codelineno-9-43"></a>
+<a id="__codelineno-9-44" name="__codelineno-9-44" href="#__codelineno-9-44"></a><span class="go"> Kernel State                                               </span>
+<a id="__codelineno-9-45" name="__codelineno-9-45" href="#__codelineno-9-45"></a><span class="go"> Program ID:                       252                      </span>
+<a id="__codelineno-9-46" name="__codelineno-9-46" href="#__codelineno-9-46"></a><span class="go"> BPF Function:                     test_fexit               </span>
+<a id="__codelineno-9-47" name="__codelineno-9-47" href="#__codelineno-9-47"></a><span class="go"> Kernel Type:                      tracing                  </span>
+<a id="__codelineno-9-48" name="__codelineno-9-48" href="#__codelineno-9-48"></a><span class="go"> Loaded At:                        2025-07-22T08:26:29+0000 </span>
+<a id="__codelineno-9-49" name="__codelineno-9-49" href="#__codelineno-9-49"></a><span class="go"> Tag:                              85719cd36bd53c46         </span>
+<a id="__codelineno-9-50" name="__codelineno-9-50" href="#__codelineno-9-50"></a><span class="go"> GPL Compatible:                   true                     </span>
+<a id="__codelineno-9-51" name="__codelineno-9-51" href="#__codelineno-9-51"></a><span class="go"> Map IDs:                          [97]                     </span>
+<a id="__codelineno-9-52" name="__codelineno-9-52" href="#__codelineno-9-52"></a><span class="go"> BTF ID:                           262                      </span>
+<a id="__codelineno-9-53" name="__codelineno-9-53" href="#__codelineno-9-53"></a><span class="go"> Size Translated (bytes):          48                       </span>
+<a id="__codelineno-9-54" name="__codelineno-9-54" href="#__codelineno-9-54"></a><span class="go"> JITted:                           true                     </span>
+<a id="__codelineno-9-55" name="__codelineno-9-55" href="#__codelineno-9-55"></a><span class="go"> Size JITted:                      48                       </span>
+<a id="__codelineno-9-56" name="__codelineno-9-56" href="#__codelineno-9-56"></a><span class="go"> Kernel Allocated Memory (bytes):  4096                     </span>
+<a id="__codelineno-9-57" name="__codelineno-9-57" href="#__codelineno-9-57"></a><span class="go"> Verified Instruction Count:       5</span>
 </code></pre></div>
 <h4 id="loading-probe-versus-retprobe-programs">Loading probe Versus retprobe Programs</h4>
 <p><code>kprobe</code> and <code>kretprobe</code> (as well as <code>uprobe</code> and <code>uretprobe</code>) are loaded and attached
@@ -2921,23 +3031,102 @@ For example, <code>kprobe</code> will look something like:</p>
 <a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="p">}</span>
 </code></pre></div>
-<p>But loading each type of program is similar:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/kprobe:latest \</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="go">   --programs kprobe:my_kprobe</span>
+<p>But loading each program type is similar:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>load<span class="w"> </span>image<span class="w"> </span>--image-url<span class="w"> </span>quay.io/bpfman-bytecode/kprobe:latest<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">   </span>--programs<span class="w"> </span>kprobe:my_kprobe
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="go"> Bpfman State                                         </span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="go"> BPF Function:  my_kprobe                             </span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="go"> Program Type:  kprobe                                </span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="go"> Image URL:     quay.io/bpfman-bytecode/kprobe:latest </span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="go"> Pull Policy:   IfNotPresent                          </span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="go"> Global:        None                                  </span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="go"> Metadata:      None                                  </span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/81                </span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="go"> Map Owner ID:  None                                  </span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="go"> Maps Used By:  81                                    </span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="go"> Links:         None                                  </span>
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="go"> Kernel State                                               </span>
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="go"> Program ID:                       81                       </span>
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="go"> BPF Function:                     my_kprobe                </span>
+<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="go"> Kernel Type:                      probe                    </span>
+<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="go"> Loaded At:                        2025-07-22T11:30:57+0000 </span>
+<a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="go"> Tag:                              9b2c38d37350bfff         </span>
+<a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="go"> GPL Compatible:                   true                     </span>
+<a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a><span class="go"> Map IDs:                          [24]                     </span>
+<a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a><span class="go"> BTF ID:                           82                       </span>
+<a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a><span class="go"> Size Translated (bytes):          96                       </span>
+<a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a><span class="go"> JITted:                           true                     </span>
+<a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a><span class="go"> Size JITted:                      76                       </span>
+<a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a><span class="go"> Kernel Allocated Memory (bytes):  4096                     </span>
+<a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a><span class="go"> Verified Instruction Count:       9</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/kretprobe:latest \</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="go">   --programs kprobe:my_kretprobe</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>load<span class="w"> </span>image<span class="w"> </span>--image-url<span class="w"> </span>quay.io/bpfman-bytecode/kretprobe:latest<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">   </span>--programs<span class="w"> </span>kprobe:my_kretprobe
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="go"> Bpfman State                                            </span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="go"> BPF Function:  my_kretprobe                             </span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="go"> Program Type:  kprobe                                   </span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="go"> Image URL:     quay.io/bpfman-bytecode/kretprobe:latest </span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="go"> Pull Policy:   IfNotPresent                             </span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="go"> Global:        None                                     </span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="go"> Metadata:      None                                     </span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/89                   </span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="go"> Map Owner ID:  None                                     </span>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="go"> Maps Used By:  89                                       </span>
+<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="go"> Links:         None                                     </span>
+<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>
+<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="go"> Kernel State                                               </span>
+<a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="go"> Program ID:                       89                       </span>
+<a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="go"> BPF Function:                     my_kretprobe             </span>
+<a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a><span class="go"> Kernel Type:                      probe                    </span>
+<a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a><span class="go"> Loaded At:                        2025-07-22T11:31:45+0000 </span>
+<a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a><span class="go"> Tag:                              9b2c38d37350bfff         </span>
+<a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a><span class="go"> GPL Compatible:                   true                     </span>
+<a id="__codelineno-13-22" name="__codelineno-13-22" href="#__codelineno-13-22"></a><span class="go"> Map IDs:                          [28]                     </span>
+<a id="__codelineno-13-23" name="__codelineno-13-23" href="#__codelineno-13-23"></a><span class="go"> BTF ID:                           91                       </span>
+<a id="__codelineno-13-24" name="__codelineno-13-24" href="#__codelineno-13-24"></a><span class="go"> Size Translated (bytes):          96                       </span>
+<a id="__codelineno-13-25" name="__codelineno-13-25" href="#__codelineno-13-25"></a><span class="go"> JITted:                           true                     </span>
+<a id="__codelineno-13-26" name="__codelineno-13-26" href="#__codelineno-13-26"></a><span class="go"> Size JITted:                      76                       </span>
+<a id="__codelineno-13-27" name="__codelineno-13-27" href="#__codelineno-13-27"></a><span class="go"> Kernel Allocated Memory (bytes):  4096                     </span>
+<a id="__codelineno-13-28" name="__codelineno-13-28" href="#__codelineno-13-28"></a><span class="go"> Verified Instruction Count:       9</span>
 </code></pre></div>
 <h3 id="setting-global-variables-in-ebpf-programs">Setting Global Variables in eBPF Programs</h3>
 <p>Global variables can be set for any eBPF program type when loading as follows:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="go">cd bpfman/</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="go">sudo bpfman load file -p tests/integration-test/bpf/.output/tc_pass.bpf/bpf_x86_bpfel.o \</span>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="go">     --programs tc:pass -g GLOBAL_u8=01 GLOBAL_u32=0A0B0C0D --application TcGlobal</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="gp">$ </span><span class="nb">cd</span><span class="w"> </span>bpfman/
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>load<span class="w"> </span>file<span class="w"> </span>-p<span class="w"> </span>tests/integration-test/bpf/.output/tc_pass.bpf/bpf_x86_bpfel.o<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">     </span>--programs<span class="w"> </span>tc:pass<span class="w"> </span>-g<span class="w"> </span><span class="nv">GLOBAL_u8</span><span class="o">=</span><span class="m">01</span><span class="w"> </span><span class="nv">GLOBAL_u32</span><span class="o">=</span>0A0B0C0D<span class="w"> </span>--application<span class="w"> </span>TcGlobal
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="go"> Bpfman State                                                                  </span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="go"> BPF Function:  pass                                                           </span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="go"> Program Type:  tc                                                             </span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="go"> Path:          tests/integration-test/bpf/.output/tc_pass.bpf/bpf_x86_bpfel.o </span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="go"> Global:        GLOBAL_u8=01                                                   </span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="go">                GLOBAL_u32=0A0B0C0D                                            </span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="go"> Metadata:      bpfman_application=TcGlobal                                    </span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="go"> Map Pin Path:  /run/bpfman/fs/maps/98                                         </span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="go"> Map Owner ID:  None                                                           </span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="go"> Maps Used By:  98                                                             </span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="go"> Links:         None                                                           </span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a><span class="go"> Kernel State                                               </span>
+<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="go"> Program ID:                       98                       </span>
+<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a><span class="go"> BPF Function:                     pass                     </span>
+<a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a><span class="go"> Kernel Type:                      tc                       </span>
+<a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a><span class="go"> Loaded At:                        2025-07-22T11:32:57+0000 </span>
+<a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a><span class="go"> Tag:                              d796b57bdaf88123         </span>
+<a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a><span class="go"> GPL Compatible:                   true                     </span>
+<a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a><span class="go"> Map IDs:                          [32]                     </span>
+<a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a><span class="go"> BTF ID:                           109                      </span>
+<a id="__codelineno-14-25" name="__codelineno-14-25" href="#__codelineno-14-25"></a><span class="go"> Size Translated (bytes):          96                       </span>
+<a id="__codelineno-14-26" name="__codelineno-14-26" href="#__codelineno-14-26"></a><span class="go"> JITted:                           true                     </span>
+<a id="__codelineno-14-27" name="__codelineno-14-27" href="#__codelineno-14-27"></a><span class="go"> Size JITted:                      76                       </span>
+<a id="__codelineno-14-28" name="__codelineno-14-28" href="#__codelineno-14-28"></a><span class="go"> Kernel Allocated Memory (bytes):  4096                     </span>
+<a id="__codelineno-14-29" name="__codelineno-14-29" href="#__codelineno-14-29"></a><span class="go"> Verified Instruction Count:       9</span>
 </code></pre></div>
 <p>Note that when setting global variables, the eBPF program being loaded must
 have global variables named with the strings given, and the size of the value
 provided must match the size of the given variable.  For example, the above
-command can be used to update the following global variables in an eBPF program.</p>
+command can be used to update the following global variables in an eBPF program
+(see <a href="https://github.com/bpfman/bpfman/blob/main/tests/integration-test/bpf/tc_pass.bpf.c">tc_pass.bpf.c</a>).</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="k">volatile</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">__u32</span><span class="w"> </span><span class="n">GLOBAL_u8</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="k">volatile</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">__u32</span><span class="w"> </span><span class="n">GLOBAL_u32</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 </code></pre></div>
@@ -2946,7 +3135,7 @@ command can be used to update the following global variables in an eBPF program.
 Each program type (i.e. <code>&lt;COMMAND&gt;</code>) has it's own set of attributes specific to the program type,
 and those program specific attributes MUST come after the <code>Program ID</code> (from the load command) and
 the program type are entered.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="go">sudo bpfman attach --help</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>attach<span class="w"> </span>--help
 <a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="go">Attach an eBPF program to a hook point using the Program Id</span>
 <a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
 <a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="go">Usage: bpfman attach &lt;PROGRAM_ID&gt; &lt;COMMAND&gt;</span>
@@ -2969,7 +3158,7 @@ the program type are entered.</p>
 <a id="__codelineno-16-21" name="__codelineno-16-21" href="#__codelineno-16-21"></a><span class="go">  -h, --help  Print help</span>
 </code></pre></div>
 <p>Each <code>&lt;COMMAND&gt;</code> has its own custom parameters:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="go">sudo bpfman attach xdp --help</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>attach<span class="w"> </span>xdp<span class="w"> </span>--help
 <a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="go">Install an eBPF program on the XDP hook point for a given interface</span>
 <a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
 <a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="go">Usage: bpfman attach &lt;PROGRAM_ID&gt; xdp [OPTIONS] --iface &lt;IFACE&gt; --priority &lt;PRIORITY&gt;</span>
@@ -3010,11 +3199,22 @@ the program type are entered.</p>
 <a id="__codelineno-17-39" name="__codelineno-17-39" href="#__codelineno-17-39"></a><span class="go">Example attaching an XDP Program:</span>
 <a id="__codelineno-17-40" name="__codelineno-17-40" href="#__codelineno-17-40"></a>
 <a id="__codelineno-17-41" name="__codelineno-17-41" href="#__codelineno-17-41"></a><span class="go">```console</span>
-<a id="__codelineno-17-42" name="__codelineno-17-42" href="#__codelineno-17-42"></a><span class="go">sudo bpfman attach 63674 xdp --iface eno3 --priority 100</span>
+<a id="__codelineno-17-42" name="__codelineno-17-42" href="#__codelineno-17-42"></a><span class="gp">$ </span>bpfman<span class="w"> </span>attach<span class="w"> </span><span class="m">184</span><span class="w"> </span>xdp<span class="w"> </span>--iface<span class="w"> </span>enp1s0<span class="w"> </span>--priority<span class="w"> </span><span class="m">100</span>
+<a id="__codelineno-17-43" name="__codelineno-17-43" href="#__codelineno-17-43"></a><span class="go"> Bpfman State                                          </span>
+<a id="__codelineno-17-44" name="__codelineno-17-44" href="#__codelineno-17-44"></a><span class="go"> BPF Function:       pass                              </span>
+<a id="__codelineno-17-45" name="__codelineno-17-45" href="#__codelineno-17-45"></a><span class="go"> Program Type:       xdp                               </span>
+<a id="__codelineno-17-46" name="__codelineno-17-46" href="#__codelineno-17-46"></a><span class="go"> Program ID:         184                               </span>
+<a id="__codelineno-17-47" name="__codelineno-17-47" href="#__codelineno-17-47"></a><span class="go"> Link ID:            713799068                         </span>
+<a id="__codelineno-17-48" name="__codelineno-17-48" href="#__codelineno-17-48"></a><span class="go"> Interface:          enp1s0                            </span>
+<a id="__codelineno-17-49" name="__codelineno-17-49" href="#__codelineno-17-49"></a><span class="go"> Priority:           100                               </span>
+<a id="__codelineno-17-50" name="__codelineno-17-50" href="#__codelineno-17-50"></a><span class="go"> Position:           0                                 </span>
+<a id="__codelineno-17-51" name="__codelineno-17-51" href="#__codelineno-17-51"></a><span class="go"> Proceed On:         pass, dispatcher_return           </span>
+<a id="__codelineno-17-52" name="__codelineno-17-52" href="#__codelineno-17-52"></a><span class="go"> Network Namespace:  None                              </span>
+<a id="__codelineno-17-53" name="__codelineno-17-53" href="#__codelineno-17-53"></a><span class="go"> Metadata:           bpfman_application=XdpPassProgram</span>
 </code></pre></div>
 <p>The <code>tc</code> command is similar to <code>xdp</code>, but it also requires the <code>direction</code> option
 and the <code>proceed-on</code> values are different.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="go">sudo bpfman attach tc --help</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>attach<span class="w"> </span>tc<span class="w"> </span>--help
 <a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="go">Install an eBPF program on the TC hook point for a given interface</span>
 <a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
 <a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="go">Usage: bpfman attach &lt;PROGRAM_ID&gt; tc [OPTIONS] --direction &lt;DIRECTION&gt; --iface &lt;IFACE&gt; --priority &lt;PRIORITY&gt;</span>
@@ -3059,7 +3259,19 @@ and the <code>proceed-on</code> values are different.</p>
 <a id="__codelineno-18-43" name="__codelineno-18-43" href="#__codelineno-18-43"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
 </code></pre></div>
 <p>The following is an example of attaching the <code>tc</code> command using short option names:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="go">sudo bpfman attach 63671 tc -d ingress -i eno3 -p 40</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>attach<span class="w"> </span><span class="m">98</span><span class="w"> </span>tc<span class="w"> </span>-d<span class="w"> </span>ingress<span class="w"> </span>-i<span class="w"> </span>enp1s0<span class="w"> </span>-p<span class="w"> </span><span class="m">40</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="go"> Bpfman State                                    </span>
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="go"> BPF Function:       pass                        </span>
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="go"> Program Type:       tc                          </span>
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="go"> Program ID:         98                          </span>
+<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="go"> Link ID:            4210414695                  </span>
+<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="go"> Interface:          enp1s0                      </span>
+<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="go"> Direction:          ingress                     </span>
+<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="go"> Priority:           40                          </span>
+<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a><span class="go"> Position:           0                           </span>
+<a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a><span class="go"> Proceed On:         pipe, dispatcher_return     </span>
+<a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a><span class="go"> Network Namespace:  None                        </span>
+<a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a><span class="go"> Metadata:           bpfman_application=TcGlobal</span>
 </code></pre></div>
 <h3 id="additional-attach-examples">Additional Attach Examples</h3>
 <p>Below are some additional examples of <code>bpfman attach</code> commands:</p>
@@ -3097,10 +3309,10 @@ and the <code>proceed-on</code> values are different.</p>
 <p>Most programs can attach to multiple hook points.
 To attach a program to multiple hook points, simply call <code>bpfman attach</code>
 multiple times with the same <code>Program ID</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="go">sudo bpfman attach 63661 xdp --iface eno3 --priority 35</span>
-<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="go">sudo bpfman attach 63661 xdp --iface eno4 --priority 35</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>attach<span class="w"> </span><span class="m">63661</span><span class="w"> </span>xdp<span class="w"> </span>--iface<span class="w"> </span>eno3<span class="w"> </span>--priority<span class="w"> </span><span class="m">35</span>
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>attach<span class="w"> </span><span class="m">63661</span><span class="w"> </span>xdp<span class="w"> </span>--iface<span class="w"> </span>eno4<span class="w"> </span>--priority<span class="w"> </span><span class="m">35</span>
 <a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>
-<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="go">sudo bpfman list programs --application XdpPassProgram</span>
+<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>list<span class="w"> </span>programs<span class="w"> </span>--application<span class="w"> </span>XdpPassProgram
 <a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a><span class="go"> Program ID  Application     Type  Function Name  Links</span>
 <a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a><span class="go"> 63661       XdpPassProgram  xdp   pass           (2) 1301256968, 18827142</span>
 </code></pre></div>
@@ -3119,7 +3331,7 @@ When detached, the eBPF program is still loaded in kernel memory, but it is not
 attached to the hook point, so the eBPF program will not be triggered.
 The <code>bpfman detach</code> takes the <code>Link ID</code>, which can be obtained from the
 <code>bpfman list programs|links</code> or <code>bpfman get program|link</code> commands.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="go">sudo bpfman detach --help</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>detach<span class="w"> </span>--help
 <a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="go">Detach an eBPF program from a hook point using the Link Id</span>
 <a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>
 <a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="go">Usage: bpfman detach &lt;LINK_ID&gt;</span>
@@ -3131,7 +3343,7 @@ The <code>bpfman detach</code> takes the <code>Link ID</code>, which can be obta
 <a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a><span class="go">  -h, --help  Print help</span>
 </code></pre></div>
 <p>For example:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="go">sudo bpfman list programs</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>list<span class="w"> </span>programs
 <a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="go"> Program ID  Application     Type        Function Name    Links</span>
 <a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="go"> 63652       TcPassProgram   tc          pass</span>
 <a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a><span class="go"> 63661       XdpPassProgram  xdp         pass             (3) 1301256968, 18827142, 3974774760</span>
@@ -3157,8 +3369,8 @@ the <code>bpfman list links</code> command lists all the bpfman attached eBPF pr
 <p>Use the <code>bpfman list programs</code> command lists all the bpfman loaded eBPF programs.
 From the output of the command, if there is a value for the <code>Links</code> parameter,
 then the program has been loaded and attached.
-If no value exists, the program has only been loaded (or not managed by bpfman).</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="go">sudo bpfman list programs</span>
+If no value exists, the program has only been loaded (or is not managed by bpfman).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>list<span class="w"> </span>programs
 <a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="go"> Program ID  Application     Type        Function Name    Links</span>
 <a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a><span class="go"> 63652       TcPassProgram   tc          pass</span>
 <a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="go"> 63661       XdpPassProgram  xdp         pass             (2) 1301256968, 18827142</span>
@@ -3177,7 +3389,7 @@ If no value exists, the program has only been loaded (or not managed by bpfman).
 </code></pre></div>
 <p>If the <code>--application</code> parameter was used during the <code>bpfman load</code> command, that
 can be used to filter the programs displayed in the command.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="go">sudo bpfman list programs --application go-app</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>list<span class="w"> </span>programs<span class="w"> </span>--application<span class="w"> </span>go-app
 <a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="go"> Program ID  Application  Type        Function Name    Links</span>
 <a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="go"> 63669       go-app       kprobe      kprobe_counter</span>
 <a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a><span class="go"> 63670       go-app       tracepoint  tracepoint_kill  (1) 1462192047</span>
@@ -3191,7 +3403,7 @@ can be used to filter the programs displayed in the command.</p>
 <a id="__codelineno-36-12" name="__codelineno-36-12" href="#__codelineno-36-12"></a><span class="go">include the `--all` option.</span>
 <a id="__codelineno-36-13" name="__codelineno-36-13" href="#__codelineno-36-13"></a>
 <a id="__codelineno-36-14" name="__codelineno-36-14" href="#__codelineno-36-14"></a><span class="go">```console</span>
-<a id="__codelineno-36-15" name="__codelineno-36-15" href="#__codelineno-36-15"></a><span class="go">sudo bpfman list programs --all</span>
+<a id="__codelineno-36-15" name="__codelineno-36-15" href="#__codelineno-36-15"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>list<span class="w"> </span>programs<span class="w"> </span>--all
 <a id="__codelineno-36-16" name="__codelineno-36-16" href="#__codelineno-36-16"></a><span class="go"> :</span>
 <a id="__codelineno-36-17" name="__codelineno-36-17" href="#__codelineno-36-17"></a><span class="go"> 63638                       cgroup_device  sd_devices</span>
 <a id="__codelineno-36-18" name="__codelineno-36-18" href="#__codelineno-36-18"></a><span class="go"> 63639                       cgroup_skb     sd_fw_egress</span>
@@ -3223,7 +3435,7 @@ can be used to filter the programs displayed in the command.</p>
 <a id="__codelineno-36-44" name="__codelineno-36-44" href="#__codelineno-36-44"></a><span class="go">To filter on a given program type, include the `--program-type` parameter:</span>
 <a id="__codelineno-36-45" name="__codelineno-36-45" href="#__codelineno-36-45"></a>
 <a id="__codelineno-36-46" name="__codelineno-36-46" href="#__codelineno-36-46"></a><span class="go">```console</span>
-<a id="__codelineno-36-47" name="__codelineno-36-47" href="#__codelineno-36-47"></a><span class="go">sudo bpfman list programs --all --program-type tc</span>
+<a id="__codelineno-36-47" name="__codelineno-36-47" href="#__codelineno-36-47"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>list<span class="w"> </span>programs<span class="w"> </span>--all<span class="w"> </span>--program-type<span class="w"> </span>tc
 <a id="__codelineno-36-48" name="__codelineno-36-48" href="#__codelineno-36-48"></a><span class="go"> Program ID  Application    Type  Function Name  Links</span>
 <a id="__codelineno-36-49" name="__codelineno-36-49" href="#__codelineno-36-49"></a><span class="go"> 63651                      tc    tc_dispatcher</span>
 <a id="__codelineno-36-50" name="__codelineno-36-50" href="#__codelineno-36-50"></a><span class="go"> 63652       TcPassProgram  tc    pass</span>
@@ -3237,10 +3449,11 @@ can be used to filter the programs displayed in the command.</p>
 <li><strong>probe</strong>: <code>kprobe</code>, <code>kretprobe</code>, <code>uprobe</code> and <code>uretprobe</code> all map to the <code>probe</code> Kernel Program Type.</li>
 <li><strong>tracing</strong>: <code>fentry</code> and <code>fexit</code> both map to the <code>tracing</code> Kernel Program Type.</li>
 <li><strong>tc</strong>: <code>tc</code> and <code>tcx</code> both map to the <code>tc</code> Kernel Program Type.</li>
+<li>For all possible program type values, see <code>bpfman list programs --help</code>.</li>
 </ul>
 <h3 id="bpfman-list-links">bpfman list links</h3>
 <p>Use the <code>bpfman list links</code> command lists all the bpfman attached eBPF programs.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="go">sudo bpfman list links</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>list<span class="w"> </span>links
 <a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a><span class="go"> Program ID  Link ID     Application     Type        Function Name    Attachment</span>
 <a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a><span class="go"> 63661       1301256968  XdpPassProgram  xdp         pass             eno4 pos-0</span>
 <a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a><span class="go"> 63661       18827142    XdpPassProgram  xdp         pass             eno3 pos-0</span>
@@ -3258,7 +3471,7 @@ can be used to filter the programs displayed in the command.</p>
 </code></pre></div>
 <p>If the <code>--application</code> parameter was used during the <code>bpfman load</code> command, that
 can be used to filter the programs displayed in the command.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="go">sudo bpfman list links --application go-app</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>list<span class="w"> </span>links<span class="w"> </span>--application<span class="w"> </span>go-app
 <a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="go"> Program ID  Link ID     Application  Type        Function Name    Attachment</span>
 <a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="go"> 63670       1462192047  go-app       tracepoint  tracepoint_kill  syscalls/sys_enter_openat</span>
 <a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="go"> 63671       3041462868  go-app       tc          stats            eno3 ingress pos-0</span>
@@ -3270,7 +3483,7 @@ can be used to filter the programs displayed in the command.</p>
 <a id="__codelineno-38-10" name="__codelineno-38-10" href="#__codelineno-38-10"></a><span class="go">To filter on a given program type, include the `--program-type` parameter:</span>
 <a id="__codelineno-38-11" name="__codelineno-38-11" href="#__codelineno-38-11"></a>
 <a id="__codelineno-38-12" name="__codelineno-38-12" href="#__codelineno-38-12"></a><span class="go">```console</span>
-<a id="__codelineno-38-13" name="__codelineno-38-13" href="#__codelineno-38-13"></a><span class="go">sudo bpfman list links -p tc</span>
+<a id="__codelineno-38-13" name="__codelineno-38-13" href="#__codelineno-38-13"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>list<span class="w"> </span>links<span class="w"> </span>-p<span class="w"> </span>tc
 <a id="__codelineno-38-14" name="__codelineno-38-14" href="#__codelineno-38-14"></a><span class="go"> Program ID  Link ID     Application  Type  Function Name  Attachment</span>
 <a id="__codelineno-38-15" name="__codelineno-38-15" href="#__codelineno-38-15"></a><span class="go"> 63671       3041462868  go-app       tc    stats          eno3 ingress pos-0</span>
 <a id="__codelineno-38-16" name="__codelineno-38-16" href="#__codelineno-38-16"></a><span class="go"> 63672       3926782293  go-app       tcx   tcx_stats      eno3 ingress pos-0</span>
@@ -3296,7 +3509,7 @@ kernel information.
 If the eBPF program was loaded outside of bpfman, then the <code>Bpfman State</code>
 section will be empty and <code>Kernel State</code> section will be populated.</p>
 <p>bpfman managed eBPF Program:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="go">sudo bpfman get program 63661</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>get<span class="w"> </span>program<span class="w"> </span><span class="m">63661</span>
 <a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="go"> Bpfman State</span>
 <a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a><span class="go">---------------</span>
 <a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a><span class="go"> BPF Function:  pass</span>
@@ -3327,7 +3540,7 @@ section will be empty and <code>Kernel State</code> section will be populated.</
 <a id="__codelineno-39-29" name="__codelineno-39-29" href="#__codelineno-39-29"></a><span class="go"> Verified Instruction Count:       9</span>
 </code></pre></div>
 <p>Non-bpfman managed eBPF Program:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="go">sudo bpfman get program 63643</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-40-1" name="__codelineno-40-1" href="#__codelineno-40-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>get<span class="w"> </span>program<span class="w"> </span><span class="m">63643</span>
 <a id="__codelineno-40-2" name="__codelineno-40-2" href="#__codelineno-40-2"></a><span class="go"> Kernel State</span>
 <a id="__codelineno-40-3" name="__codelineno-40-3" href="#__codelineno-40-3"></a><span class="go">----------------------------------</span>
 <a id="__codelineno-40-4" name="__codelineno-40-4" href="#__codelineno-40-4"></a><span class="go"> Program ID:                       63643</span>
@@ -3348,7 +3561,7 @@ section will be empty and <code>Kernel State</code> section will be populated.</
 <p>To retrieve detailed information for an attached eBPF program, use the
 <code>bpfman get link &lt;LINK_ID&gt;</code> command.
 Only bpfman loaded and attached eBPF programs contain link data.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="go">sudo bpfman get link 18827142</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-41-1" name="__codelineno-41-1" href="#__codelineno-41-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>get<span class="w"> </span>link<span class="w"> </span><span class="m">18827142</span>
 <a id="__codelineno-41-2" name="__codelineno-41-2" href="#__codelineno-41-2"></a><span class="go"> Bpfman State</span>
 <a id="__codelineno-41-3" name="__codelineno-41-3" href="#__codelineno-41-3"></a><span class="go">---------------</span>
 <a id="__codelineno-41-4" name="__codelineno-41-4" href="#__codelineno-41-4"></a><span class="go"> BPF Function:       pass</span>
@@ -3368,7 +3581,7 @@ and unloads the requested eBPF program.
 The eBPF programs do not need to be detached before unloading.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-42-1" name="__codelineno-42-1" href="#__codelineno-42-1"></a><span class="go">sudo bpfman unload 63661</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="go">sudo bpfman list programs</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-43-1" name="__codelineno-43-1" href="#__codelineno-43-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>list<span class="w"> </span>programs
 <a id="__codelineno-43-2" name="__codelineno-43-2" href="#__codelineno-43-2"></a><span class="go"> Program ID  Application    Type        Function Name    Links</span>
 <a id="__codelineno-43-3" name="__codelineno-43-3" href="#__codelineno-43-3"></a><span class="go"> 63652       TcPassProgram  tc          pass</span>
 <a id="__codelineno-43-4" name="__codelineno-43-4" href="#__codelineno-43-4"></a><span class="go"> 63669       go-app         kprobe      kprobe_counter</span>
@@ -3389,7 +3602,7 @@ The eBPF programs do not need to be detached before unloading.</p>
 <h3 id="bpfman-image-pull">bpfman image pull</h3>
 <p>The <code>bpfman image pull</code> command pulls a given bytecode image for future use
 by a load command.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="go">sudo bpfman image pull --help</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-44-1" name="__codelineno-44-1" href="#__codelineno-44-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>image<span class="w"> </span>pull<span class="w"> </span>--help
 <a id="__codelineno-44-2" name="__codelineno-44-2" href="#__codelineno-44-2"></a><span class="go">Pull an eBPF bytecode image from a remote registry</span>
 <a id="__codelineno-44-3" name="__codelineno-44-3" href="#__codelineno-44-3"></a>
 <a id="__codelineno-44-4" name="__codelineno-44-4" href="#__codelineno-44-4"></a><span class="go">Usage: bpfman image pull [OPTIONS] --image-url &lt;IMAGE_URL&gt;</span>
@@ -3416,12 +3629,12 @@ by a load command.</p>
 <a id="__codelineno-44-25" name="__codelineno-44-25" href="#__codelineno-44-25"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
 </code></pre></div>
 <p>Example usage:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="go">sudo bpfman image pull --image-url quay.io/bpfman-bytecode/xdp_pass:latest</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>image<span class="w"> </span>pull<span class="w"> </span>--image-url<span class="w"> </span>quay.io/bpfman-bytecode/xdp_pass:latest
 <a id="__codelineno-45-2" name="__codelineno-45-2" href="#__codelineno-45-2"></a><span class="go">Successfully downloaded bytecode</span>
 </code></pre></div>
 <p>Then when loaded, the local image will be used:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="go">sudo bpfman load image --image-url quay.io/bpfman-bytecode/xdp_pass:latest \</span>
-<a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a><span class="go">     --programs xdp:pass</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-46-1" name="__codelineno-46-1" href="#__codelineno-46-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>load<span class="w"> </span>image<span class="w"> </span>--image-url<span class="w"> </span>quay.io/bpfman-bytecode/xdp_pass:latest<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-46-2" name="__codelineno-46-2" href="#__codelineno-46-2"></a><span class="w">     </span>--programs<span class="w"> </span>xdp:pass
 <a id="__codelineno-46-3" name="__codelineno-46-3" href="#__codelineno-46-3"></a><span class="go"> Bpfman State</span>
 <a id="__codelineno-46-4" name="__codelineno-46-4" href="#__codelineno-46-4"></a><span class="go"> ---------------</span>
 <a id="__codelineno-46-5" name="__codelineno-46-5" href="#__codelineno-46-5"></a><span class="go"> BPF Function:  pass</span>
