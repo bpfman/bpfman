@@ -109,6 +109,14 @@ spec:
       value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
     - name: IMAGE_APPEND_PLATFORM
       value: 'true'
+    - name: LABELS
+      value:
+      - io.openshift.build.commit.id=$(tasks.clone-repository.results.commit)
+      - io.openshift.build.commit.ref=$(params.revision)
+      - io.openshift.build.commit.date=$(tasks.clone-repository.results.commit-timestamp)
+      - io.openshift.build.source-location=$(params.git-url)
+      - vcs-ref=$(tasks.clone-repository.results.short-commit)
+      - vcs-url=$(tasks.clone-repository.results.url)
     runAfter:
     - prefetch-dependencies
     taskRef:
