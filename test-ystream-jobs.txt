@@ -1,0 +1,8 @@
+Test file to verify that only y-stream jobs run after disabling the legacy ocp-* components.
+
+This demonstrates that the current CEL expressions are too broad - they trigger on ANY file change.
+We should add pathChanged() filters to only trigger on relevant source code changes.
+
+Reference: https://github.com/openshift/bpfman-operator/pull/878
+
+This file can be deleted after verification.
