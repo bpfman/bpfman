@@ -1,1 +1,2 @@
 2025-09-19: Test nudging after adding build-nudge-files annotation to bpfman-daemon-ystream
+2025-09-24: Test nudging to verify Konflux integration is working correctly
