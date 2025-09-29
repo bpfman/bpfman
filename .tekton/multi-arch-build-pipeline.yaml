@@ -18,7 +18,7 @@ spec:
       - name: name
         value: init
       - name: bundle
-        value: quay.io/konflux-ci/tekton-catalog/task-init:0.2@sha256:ec962d0be18f36ca7d331c99bf243800f569fc0a2ea6f8c8c3d3a574b71c44dc
+        value: quay.io/konflux-ci/tekton-catalog/task-init:0.2@sha256:abf231cfc5a68b56f68a8ac9bb26dca3c3e434c88dd9627c72bdec0b8c335c67
       - name: kind
         value: task
       resolver: bundles
@@ -117,6 +117,8 @@ spec:
       - io.openshift.build.source-location=$(params.git-url)
       - vcs-ref=$(tasks.clone-repository.results.short-commit)
       - vcs-url=$(tasks.clone-repository.results.url)
+    - name: BUILDAH_FORMAT
+      value: $(params.buildah-format)
     runAfter:
     - prefetch-dependencies
     taskRef:
@@ -146,6 +148,8 @@ spec:
     - name: IMAGES
       value:
       - $(tasks.build-images.results.IMAGE_REF[*])
+    - name: BUILDAH_FORMAT
+      value: $(params.buildah-format)
     runAfter:
     - build-images
     taskRef:
@@ -481,6 +485,10 @@ spec:
     description: List of platforms to build the container images on. The available set of values is determined by the configuration of the multi-platform-controller.
     name: build-platforms
     type: array
+  - name: buildah-format
+    default: docker
+    type: string
+    description: The format for the resulting image's mediaType. Valid values are oci or docker.
   workspaces:
   - name: git-auth
     optional: true
