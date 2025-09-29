@@ -1,5 +1,8 @@
 {
   "gomod": {
     "enabled": false
+  },
+  "cargo": {
+    "enabled": false
   }
 }
