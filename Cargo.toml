@@ -80,7 +80,7 @@ prost = { version = "0.12.6", default-features = false }
 prost-types = { version = "0.12.6", default-features = false }
 quote = { version = "1", default-features = false }
 rand = { version = "0.9", default-features = false }
-regex = { version = "1.11.3", default-features = false }
+regex = { version = "1.12.1", default-features = false }
 rtnetlink = { version = "0.14", default-features = false }
 rustdoc-json = { version = "0.8.9", default-features = false }
 rustup-toolchain = { version = "0.1.10", default-features = false }
