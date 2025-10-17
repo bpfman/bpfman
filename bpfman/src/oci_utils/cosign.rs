@@ -147,7 +147,7 @@ pub(crate) async fn fetch_sigstore_tuf_data() -> anyhow::Result<Arc<ManualTrustR
             .rekor_keys()
             .expect("Cannot fetch Rekor keys from TUF repository")
             .iter()
-            .map(|k| k.to_vec())
+            .map(|(k, v)| (k.clone(), v.to_vec()))
             .collect(),
         ..Default::default()
     };
