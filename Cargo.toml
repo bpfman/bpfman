@@ -92,7 +92,7 @@ rustup-toolchain = { version = "0.1.10", default-features = false }
 serde = { version = "1.0", default-features = false }
 serde_json = { version = "1", default-features = false }
 sha2 = { version = "0.10.9", default-features = false }
-sigstore = { version = "0.11.0", default-features = false }
+sigstore = { version = "0.13.0", default-features = false }
 sled = { version = "0.34.7", default-features = false }
 syn = { version = "2.0", default-features = false }
 systemd-journal-logger = { version = "2.2.2", default-features = false }
