@@ -27,6 +27,8 @@ spec:
     value: quay.io/redhat-user-workloads/ocp-bpfman-tenant/bpfman-daemon-ystream:{{revision}}
   - name: dockerfile
     value: Containerfile.bpfman.openshift
+  - name: build-args-file
+    value: OPENSHIFT-VERSION
   pipelineRef:
     name: build-pipeline
   taskRunTemplate:

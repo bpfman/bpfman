@@ -1,4 +1,7 @@
+ARG BUILDVERSION
+
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.6-1760515502 AS bpfman-build
+ARG BUILDVERSION
 ARG DNF_CMD="microdnf"
 
 WORKDIR /usr/src/bpfman
@@ -17,6 +20,8 @@ RUN cargo build --release
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.6-1760515502
 
+ARG BUILDVERSION
+
 COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman .
 COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman-ns .
 COPY --from=bpfman-build  /usr/src/bpfman/target/release/bpfman-rpc .
@@ -28,7 +33,7 @@ LABEL name="bpfman/bpfman" \
       description="Bpfman operates as an eBPF programs manager, focusing on simplifying the deployment and administration of eBPF programs." \
       io.k8s.description="Bpfman operates as an eBPF programs manager, focusing on simplifying the deployment and administration of eBPF programs." \
       io.openshift.tags="bpfman" \
-      version="0.5.6" \
+      version=$BUILDVERSION \
       vendor="Red Hat, Inc."
 
 ENTRYPOINT ["./bpfman-rpc", "--timeout=0"]
