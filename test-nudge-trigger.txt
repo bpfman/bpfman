@@ -1,0 +1,10 @@
+This file exists solely to trigger a daemon build and test the nudge
+mechanism after fixing the bpfman-daemon-ystream component configuration.
+
+Expected flow:
+1. This commit triggers daemon build
+2. Daemon build completes and nudges bpfman-operator-bundle-ystream
+3. Nudge PR created updating hack/konflux/images/bpfman.txt in bpfman-operator repo
+4. Nudge PR merges
+5. Bundle pipeline triggers (validating the CEL expression fix)
+6. Bundle rebuilds with updated ConfigMap
