@@ -1,0 +1,11 @@
+This is a test file to trigger daemon builds after PR #326 merged.
+
+The builds need to pick up the hermetic: 'false' parameter that was
+added in PR #326 to satisfy Enterprise Contract policy requirements.
+
+Previous builds were failing EC validation with:
+  Violation: hermetic_task.hermetic
+  Reason: Task 'buildah-remote-oci-ta' was not invoked with the hermetic parameter set
+
+This dummy commit should trigger fresh daemon builds with the correct
+parameters.
