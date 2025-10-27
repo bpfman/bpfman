@@ -1,0 +1,6 @@
+Third test file to trigger daemon builds after PR #326.
+
+Previous build failed with CouldntGetTask - Konflux infrastructure issue.
+
+This dummy commit triggers fresh daemon builds with the hermetic: 'false'
+parameter required by Enterprise Contract policy.
