@@ -31,6 +31,8 @@ spec:
     value: Containerfile.bpfman.openshift
   - name: build-args-file
     value: OPENSHIFT-VERSION
+  - name: hermetic
+    value: 'false'
   pipelineRef:
     name: build-pipeline
   taskRunTemplate:
