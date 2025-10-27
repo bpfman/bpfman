@@ -453,8 +453,7 @@ spec:
     description: Skip checks against built image
     name: skip-checks
     type: string
-  - default: 'false'
-    description: Execute the build with network isolation
+  - description: Execute the build with network isolation
     name: hermetic
     type: string
   - default: ''
