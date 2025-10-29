@@ -1,0 +1,11 @@
+Test daemon build nudge mechanism (attempt 4)
+
+This change validates the end-to-end nudging flow after the pipeline fixes in bpfman-operator PR #1097.
+
+Expected flow:
+1. Daemon builds trigger with this change
+2. Daemon nudges operator via hack/konflux/images/bpfman.txt
+3. Operator rebuilds
+4. Operator nudges bundle via hack/konflux/images/bpfman-operator.txt
+5. Bundle rebuilds
+6. Snapshot created with consistent component versions
