@@ -30,7 +30,7 @@ edition = "2024"
 homepage = "https://bpfman.io"
 license = "Apache-2.0"
 repository = "https://github.com/bpfman/bpfman"
-rust-version = "1.85.0"
+rust-version = "1.88.0"
 version = "0.5.6"
 
 [patch.crates-io]
