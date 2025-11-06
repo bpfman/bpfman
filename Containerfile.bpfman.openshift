@@ -9,7 +9,7 @@ COPY ./ /usr/src/bpfman
 
 # Install minimal dependencies and modern Rust via rustup
 RUN ${DNF_CMD} update -y \
-    && ${DNF_CMD} install -y gcc openssl-devel cmake \
+    && ${DNF_CMD} install -y gcc openssl-devel cmake clang-devel \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.88.0 \
     && ${DNF_CMD} clean all
 ENV PATH="/root/.cargo/bin:${PATH}"
