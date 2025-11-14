@@ -34,7 +34,7 @@ repos:
         args: [--all-features, check]
 
   - repo: https://github.com/golangci/golangci-lint
-    rev: v2.6.1
+    rev: v2.6.2
     hooks:
       - id: golangci-lint
         name: golangci-lint
