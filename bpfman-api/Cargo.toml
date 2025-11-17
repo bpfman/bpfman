@@ -62,7 +62,8 @@ serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }
 sigstore = { workspace = true, features = [
     "cached-client",
-    "full-native-tls",
+    "full",
+    "native-tls",
     "sign",
     "sigstore-trust-root",
 ] }

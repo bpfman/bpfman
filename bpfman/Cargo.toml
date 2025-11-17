@@ -70,7 +70,8 @@ serde_json = { workspace = true, features = ["std"] }
 sha2 = { workspace = true }
 sigstore = { workspace = true, features = [
     "cached-client",
-    "cosign-native-tls",
+    "cosign",
+    "native-tls",
     "sigstore-trust-root",
 ] }
 sled = { workspace = true }
