@@ -6,7 +6,7 @@ repos:
       - id: yamllint
         args: [--strict, -c=.yamllint.yaml]
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.18.1
+    rev: v0.19.0
     hooks:
       - id: markdownlint-cli2-rules-docker
   - repo: local
