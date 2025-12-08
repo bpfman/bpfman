@@ -1,6 +1,6 @@
 ARG BUILDVERSION
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7-1763362218 AS bpfman-build
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7-1764794109 AS bpfman-build
 ARG BUILDVERSION
 ARG DNF_CMD="microdnf"
 
@@ -18,7 +18,7 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 RUN mkdir -p bin/
 RUN cargo build --release
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7-1763362218
+FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7-1764794109
 
 ARG BUILDVERSION
 
