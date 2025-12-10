@@ -33,11 +33,6 @@ repository = "https://github.com/bpfman/bpfman"
 rust-version = "1.88.0"
 version = "0.5.6"
 
-[patch.crates-io]
-# This is a workaround to the issue with the tough dependency in the sigstore
-# crate.
-sigstore = { git = "https://github.com/dave-tucker/sigstore-rs", branch = "tough-down" }
-
 [workspace.dependencies]
 anyhow = { version = "1", default-features = false }
 assert_cmd = { version = "2", default-features = false }
