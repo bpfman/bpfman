@@ -1,24 +1,20 @@
 ARG BUILDVERSION
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7-1764794109 AS bpfman-build
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest AS bpfman-build
 ARG BUILDVERSION
-ARG DNF_CMD="microdnf"
 
 WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
 
-# Install minimal dependencies and modern Rust via rustup
-RUN ${DNF_CMD} update -y \
-    && ${DNF_CMD} install -y gcc openssl-devel cmake clang-devel \
-    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain 1.88.0 \
-    && ${DNF_CMD} clean all
-ENV PATH="/root/.cargo/bin:${PATH}"
+# Install build dependencies using pre-fetched RPM packages for hermetic builds
+RUN microdnf install -y --nodocs --setopt=keepcache=0 --setopt=tsflags=nodocs \
+    gcc openssl-devel cmake clang-devel rust cargo && microdnf clean all
 
 # Compile bpfman cli, bpfman-ns, and bpfman-rpc binaries
 RUN mkdir -p bin/
 RUN cargo build --release
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7-1764794109
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 ARG BUILDVERSION
 
