@@ -1,0 +1,19 @@
+packages:
+  - gcc
+  - openssl-devel
+  - cmake
+  - clang-devel
+  - rust
+  - cargo
+contentOrigin:
+  repofiles:
+    - ./ubi.repo
+arches:
+  - x86_64
+  - s390x
+  - aarch64
+  - ppc64le
+context:
+  containerfile:
+    file: ./Containerfile.bpfman.openshift
+    stageName: bpfman-build
