@@ -32,7 +32,9 @@ spec:
   - name: build-args-file
     value: OPENSHIFT-VERSION
   - name: hermetic
-    value: 'false'
+    value: 'true'
+  - name: prefetch-input
+    value: '[{"type": "rpm", "path": "."}, {"type": "cargo", "path": "."}]'
   pipelineRef:
     name: build-pipeline
   taskRunTemplate:
