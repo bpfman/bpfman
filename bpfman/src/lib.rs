@@ -62,10 +62,7 @@ const MAP_PREFIX: &str = "map_";
 const MAPS_USED_BY_PREFIX: &str = "map_used_by_";
 
 pub mod directories {
-    // The dispatcher images don't change very often and are pinned to a SHA,
-    // but can be overwritten via the bpfman configuration file - config::Config's RegistryConfig
-    pub(crate) const XDP_DISPATCHER_IMAGE: &str = "quay.io/bpfman/xdp-dispatcher@sha256:61c34aa2df86d3069aa3c53569134466203c6227c5333f2e45c906cd02e72920";
-    pub(crate) const TC_DISPATCHER_IMAGE: &str = "quay.io/bpfman/tc-dispatcher@sha256:daa5b8d936caf3a8c94c19592cee7f55445d1e38addfd8d3af846873b8ffc831";
+    // Dispatcher bytecode is now embedded at build time for hermetic builds.
 
     // The following directories are used by bpfman. They should be created by bpfman service
     // via the bpfman.service settings. They will be manually created in the case where bpfman
@@ -194,13 +191,13 @@ pub fn get_db_config() -> SledConfig {
 /// In case of failure, any created directories or loaded programs
 /// will be cleaned up to maintain system integrity.
 pub fn add_programs(
-    config: &Config,
+    _config: &Config,
     root_db: &Db,
     programs: Vec<Program>,
 ) -> Result<Vec<Program>, BpfmanError> {
     info!("Request to load {} programs", programs.len());
 
-    let result = add_programs_internal(config, root_db, programs);
+    let result = add_programs_internal(root_db, programs);
 
     match result {
         Ok(ref p) => {
@@ -222,7 +219,6 @@ pub fn add_programs(
 }
 
 fn add_programs_internal(
-    config: &Config,
     root_db: &Db,
     mut programs: Vec<Program>,
 ) -> Result<Vec<Program>, BpfmanError> {
@@ -288,7 +284,7 @@ fn add_programs_internal(
     for program in programs.iter_mut() {
         let res = match program {
             Program::Unsupported(_) => panic!("Cannot add unsupported program"),
-            _ => load_program(root_db, config, &mut ebpf, program.clone()),
+            _ => load_program(root_db, &mut ebpf, program.clone()),
         };
         results.push(res);
     }
@@ -1235,7 +1231,6 @@ pub fn setup() -> Result<(Config, Db), BpfmanError> {
 
 pub(crate) fn load_program(
     root_db: &Db,
-    config: &Config,
     loader: &mut Ebpf,
     mut p: Program,
 ) -> Result<u32, BpfmanError> {
@@ -1249,9 +1244,7 @@ pub(crate) fn load_program(
     let res = match p {
         Program::Tc(ref mut program) => {
             let ext: &mut Extension = raw_program.try_into()?;
-            let mut image_manager = init_image_manager()?;
-            let dispatcher =
-                TcDispatcher::get_test(root_db, config.registry(), &mut image_manager)?;
+            let dispatcher = TcDispatcher::get_test()?;
             let fd = dispatcher.fd()?.try_clone()?;
             ext.load(fd, "compat_test")?;
             program.get_data_mut().set_kernel_info(&ext.info()?)?;
@@ -1265,9 +1258,7 @@ pub(crate) fn load_program(
         }
         Program::Xdp(ref mut program) => {
             let ext: &mut Extension = raw_program.try_into()?;
-            let mut image_manager = init_image_manager()?;
-            let dispatcher =
-                XdpDispatcher::get_test(root_db, config.registry(), &mut image_manager)?;
+            let dispatcher = XdpDispatcher::get_test()?;
             let fd = dispatcher.fd()?.try_clone()?;
             ext.load(fd, "compat_test")?;
             program.get_data_mut().set_kernel_info(&ext.info()?)?;
@@ -1764,16 +1755,12 @@ pub(crate) fn attach_multi_attach_program(
         1
     };
 
-    let mut image_manager = init_image_manager()?;
-
     let _ = Dispatcher::new(
         root_db,
         if_config,
-        config.registry(),
         &mut programs,
         next_revision,
         old_dispatcher,
-        &mut image_manager,
     )?;
     l.set_attached()?;
     Ok(())
@@ -1835,16 +1822,12 @@ fn detach_multi_attach_program(
     };
     debug!("next_revision = {next_revision}");
 
-    let mut image_manager = init_image_manager()?;
-
     Dispatcher::new(
         root_db,
         if_config,
-        config.registry(),
         &mut programs,
         next_revision,
         old_dispatcher,
-        &mut image_manager,
     )?;
 
     Ok(())

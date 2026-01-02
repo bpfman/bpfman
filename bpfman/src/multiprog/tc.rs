@@ -20,17 +20,14 @@ use log::debug;
 use sled::Db;
 
 use crate::{
-    config::RegistryConfig,
     directories::*,
     dispatcher_config::TcDispatcherConfig,
     errors::BpfmanError,
     multiprog::Dispatcher,
     netlink::NetlinkManager,
-    oci_utils::image_manager::ImageManager,
     types::{
-        BytecodeImage,
         Direction::{self},
-        ImagePullPolicy, Link, TcLink,
+        Link, TcLink,
     },
     utils::{
         bytes_to_string, bytes_to_u16, bytes_to_u32, bytes_to_u64, bytes_to_usize, enter_netns,
@@ -43,7 +40,6 @@ const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the d
 const TC_DISPATCHER_PRIORITY: u16 = 50; // Default TC priority for TC Dispatcher
 const TC_DISPATCHER_PROGRAM_NAME: &str = "tc_dispatcher";
 
-// Embedded TC dispatcher bytecode - compiled at build time for hermetic builds
 static TC_DISPATCHER_BYTES: &[u8] =
     include_bytes_aligned!(concat!(env!("OUT_DIR"), "/tc_dispatcher.bpf.o"));
 
@@ -66,17 +62,13 @@ pub struct TcDispatcher {
 }
 
 impl TcDispatcher {
-    pub(crate) fn get_test(
-        _root_db: &Db,
-        _config: &RegistryConfig,
-        _image_manager: &mut ImageManager,
-    ) -> Result<SchedClassifier, BpfmanError> {
+    pub(crate) fn get_test() -> Result<SchedClassifier, BpfmanError> {
         if Path::new(RTDIR_FS_TEST_TC_DISPATCHER).exists() {
             return SchedClassifier::from_pin(RTDIR_FS_TEST_TC_DISPATCHER)
                 .map_err(BpfmanError::BpfProgramError);
         }
 
-        // Use embedded TC dispatcher bytecode
+        // Use embedded TC dispatcher bytecode instead of pulling from registry
         let program_bytes = TC_DISPATCHER_BYTES;
 
         let tc_config = TcDispatcherConfig {
@@ -150,8 +142,6 @@ impl TcDispatcher {
         root_db: &Db,
         links: &mut [Link],
         old_dispatcher: Option<Dispatcher>,
-        _image_manager: &mut ImageManager,
-        _config: &RegistryConfig,
         netns: Option<PathBuf>,
     ) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
@@ -179,7 +169,7 @@ impl TcDispatcher {
 
         debug!("tc dispatcher config: {:?}", tc_config);
 
-        // Use embedded TC dispatcher bytecode
+        // Use embedded TC dispatcher bytecode instead of pulling from registry
         let program_bytes = TC_DISPATCHER_BYTES;
 
         let mut loader = EbpfLoader::new()

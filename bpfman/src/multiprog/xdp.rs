@@ -18,13 +18,12 @@ use log::{debug, info};
 use sled::Db;
 
 use crate::{
-    config::{RegistryConfig, XdpMode},
+    config::XdpMode,
     directories::*,
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfmanError,
     multiprog::Dispatcher,
-    oci_utils::image_manager::ImageManager,
-    types::{BytecodeImage, ImagePullPolicy, Link, XdpLink},
+    types::{Link, XdpLink},
     utils::{
         bytes_to_string, bytes_to_u32, bytes_to_u64, bytes_to_usize, enter_netns, nsid, sled_get,
         sled_insert, xdp_dispatcher_db_tree_name, xdp_dispatcher_link_id_path,
@@ -35,7 +34,6 @@ use crate::{
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
 const XDP_DISPATCHER_PROGRAM_NAME: &str = "xdp_dispatcher";
 
-// Embedded XDP dispatcher bytecode - compiled at build time for hermetic builds
 static XDP_DISPATCHER_BYTES: &[u8] =
     include_bytes_aligned!(concat!(env!("OUT_DIR"), "/xdp_dispatcher_v2.bpf.o"));
 
@@ -55,17 +53,13 @@ pub struct XdpDispatcher {
 }
 
 impl XdpDispatcher {
-    pub(crate) fn get_test(
-        _root_db: &Db,
-        _config: &RegistryConfig,
-        _image_manager: &mut ImageManager,
-    ) -> Result<Xdp, BpfmanError> {
+    pub(crate) fn get_test() -> Result<Xdp, BpfmanError> {
         if Path::new(RTDIR_FS_TEST_XDP_DISPATCHER).exists() {
             return Xdp::from_pin(RTDIR_FS_TEST_XDP_DISPATCHER, XdpAttachType::Interface)
                 .map_err(BpfmanError::BpfProgramError);
         }
 
-        // Use embedded XDP dispatcher bytecode
+        // Use embedded XDP dispatcher bytecode instead of pulling from registry
         let program_bytes = XDP_DISPATCHER_BYTES;
 
         let xdp_config = XdpDispatcherConfig::new(11, 0, [0; 10], [DEFAULT_PRIORITY; 10], [0; 10]);
@@ -129,8 +123,6 @@ impl XdpDispatcher {
         root_db: &Db,
         links: &mut [Link],
         old_dispatcher: Option<Dispatcher>,
-        _image_manager: &mut ImageManager,
-        _config: &RegistryConfig,
         netns: Option<PathBuf>,
     ) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
@@ -164,7 +156,7 @@ impl XdpDispatcher {
 
         debug!("xdp dispatcher config: {:?}", xdp_config);
 
-        // Use embedded XDP dispatcher bytecode
+        // Use embedded XDP dispatcher bytecode instead of pulling from registry
         let program_bytes = XDP_DISPATCHER_BYTES;
 
         let mut loader = EbpfLoader::new()

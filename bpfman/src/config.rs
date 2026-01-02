@@ -6,7 +6,7 @@ use std::{collections::HashMap, str::FromStr};
 use aya::programs::XdpFlags;
 use serde::{Deserialize, Serialize};
 
-use crate::{TC_DISPATCHER_IMAGE, XDP_DISPATCHER_IMAGE, errors::ParseError};
+use crate::errors::ParseError;
 
 #[derive(Debug, Default, Deserialize, Clone)]
 pub struct Config {
@@ -15,8 +15,6 @@ pub struct Config {
     signing: SigningConfig,
     #[serde(default)]
     database: DatabaseConfig,
-    #[serde(default)]
-    registry: RegistryConfig,
 }
 
 impl Config {
@@ -30,10 +28,6 @@ impl Config {
 
     pub(crate) fn database(&self) -> &DatabaseConfig {
         &self.database
-    }
-
-    pub(crate) fn registry(&self) -> &RegistryConfig {
-        &self.registry
     }
 }
 
@@ -69,22 +63,6 @@ impl Default for DatabaseConfig {
             max_retries: 10,
             // Number of milli-seconds to wait between failed database attempts
             millisec_delay: 1000,
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Clone)]
-#[serde(default)]
-pub struct RegistryConfig {
-    pub xdp_dispatcher_image: String,
-    pub tc_dispatcher_image: String,
-}
-
-impl Default for RegistryConfig {
-    fn default() -> Self {
-        Self {
-            xdp_dispatcher_image: XDP_DISPATCHER_IMAGE.to_string(),
-            tc_dispatcher_image: TC_DISPATCHER_IMAGE.to_string(),
         }
     }
 }
@@ -201,51 +179,5 @@ mod test {
             }
             None => panic!("expected interfaces to be present"),
         }
-    }
-
-    #[test]
-    fn test_config_incomplete_image_registry() {
-        let input = r#"
-        [registry]
-          xdp_dispatcher_image = "foobar"
-        "#;
-        let expected = String::from("foobar");
-        let config: Config = toml::from_str(input).expect("error parsing toml input");
-        assert_eq!(config.registry.xdp_dispatcher_image, expected);
-        assert_eq!(
-            config.registry.tc_dispatcher_image,
-            String::from(TC_DISPATCHER_IMAGE)
-        )
-    }
-
-    #[test]
-    fn test_config_invalid_image_registry() {
-        let input = r#"
-        [registry]
-          xdeezpatcher_image = "foobar"
-        "#;
-        let config: Config = toml::from_str(input).expect("error parsing toml input");
-        assert_eq!(
-            config.registry.xdp_dispatcher_image,
-            String::from(XDP_DISPATCHER_IMAGE)
-        );
-        assert_eq!(
-            config.registry.tc_dispatcher_image,
-            String::from(TC_DISPATCHER_IMAGE)
-        )
-    }
-    #[test]
-    fn test_config_no_image_registry() {
-        let input = r#"
-        "#;
-        let config: Config = toml::from_str(input).expect("error parsing toml input");
-        assert_eq!(
-            config.registry.xdp_dispatcher_image,
-            String::from(XDP_DISPATCHER_IMAGE)
-        );
-        assert_eq!(
-            config.registry.tc_dispatcher_image,
-            String::from(TC_DISPATCHER_IMAGE)
-        )
     }
 }

@@ -10,9 +10,8 @@ pub use tc::TcDispatcher;
 pub use xdp::XdpDispatcher;
 
 use crate::{
-    config::{InterfaceConfig, RegistryConfig, XdpMode},
+    config::{InterfaceConfig, XdpMode},
     errors::BpfmanError,
-    oci_utils::image_manager::ImageManager,
     types::{Direction, Link},
     utils::bytes_to_string,
 };
@@ -30,11 +29,9 @@ impl Dispatcher {
     pub fn new(
         root_db: &Db,
         if_config: Option<&InterfaceConfig>,
-        registry_config: &RegistryConfig,
         links: &mut [Link],
         revision: u32,
         old_dispatcher: Option<Dispatcher>,
-        image_manager: &mut ImageManager,
     ) -> Result<Dispatcher, BpfmanError> {
         debug!("Dispatcher::new()");
         let l = links
@@ -61,14 +58,7 @@ impl Dispatcher {
                     revision,
                 )?;
 
-                if let Err(e) = x.load(
-                    root_db,
-                    links,
-                    old_dispatcher,
-                    image_manager,
-                    registry_config,
-                    xdp_link.get_netns()?,
-                ) {
+                if let Err(e) = x.load(root_db, links, old_dispatcher, xdp_link.get_netns()?) {
                     debug!("Failed to load xdp dispatcher: {}", e);
                     if let Err(delete_err) = x.delete(root_db, false) {
                         debug!("Failed to delete xdp dispatcher: {}", delete_err);
@@ -89,14 +79,7 @@ impl Dispatcher {
                     revision,
                 )?;
 
-                if let Err(e) = t.load(
-                    root_db,
-                    links,
-                    old_dispatcher,
-                    image_manager,
-                    registry_config,
-                    tc_link.get_netns()?,
-                ) {
+                if let Err(e) = t.load(root_db, links, old_dispatcher, tc_link.get_netns()?) {
                     debug!("Failed to load tc dispatcher: {}", e);
                     if let Err(delete_err) = t.delete(root_db, false) {
                         debug!("Failed to delete tc dispatcher: {}", delete_err);
