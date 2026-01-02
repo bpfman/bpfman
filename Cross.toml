@@ -14,6 +14,6 @@ pre-build = [
     "cargo install --force --locked bindgen-cli && mv $HOME/.cargo/bin/bindgen /usr/bin",
     "rm -rf $HOME/.cargo",
     "dpkg --add-architecture $CROSS_DEB_ARCH",
-    "apt-get update && apt-get --assume-yes install clang libbpf-dev libssl-dev:$CROSS_DEB_ARCH",
-    "ln -sf /usr/include/$(uname -m)-linux-gnu/asm /usr/include/asm",
+    "apt-get update && apt-get --assume-yes install clang libbpf-dev libssl-dev:$CROSS_DEB_ARCH dpkg-dev",
+    "ln -sf /usr/include/$(dpkg-architecture -qDEB_HOST_MULTIARCH)/asm /usr/include/asm",
 ]
