@@ -7,17 +7,12 @@ repositories.
 
 * [quay.io/bpfman](https://quay.io/organization/bpfman):  This repository contains images needed
   to run bpfman.
-  It contains the `xdp-dispatcher` and `tc-dispatcher` eBPF container images, which are used by
-  bpfman to allow multiple XDP or TC programs to be loaded on a given interface.
-  It also includes the container images which are used to deploy bpfman in a Kubernetes deployment:
+  It includes the container images which are used to deploy bpfman in a Kubernetes deployment:
     * **bpfman**: Packages all the bpfman binaries, including `bpfman` CLI, `bpfman-ns` and `bpfman-rpc`.
+      The XDP and TC dispatcher bytecode is compiled and embedded during the build.
     * **bpfman-agent**: Agent that listens to KubeAPI Server and makes calls to bpfman to load or unload
       eBPF programs based on user intent.
     * **bpfman-operator**: Operator for deploying bpfman.
-    * **tc-dispatcher**: eBPF container image containing the TC Dispatcher, which is used by bpfman
-      to manage and allow multiple TC based programs to be loaded on a given TC hook point.
-    * **xdp-dispatcher**: eBPF container image containing the XDP Dispatcher, which is used by bpfman
-      to manage and allow multiple TC based programs to be loaded on a given XDP hook point.
     * **csi-node-driver-registrar**: CSI Driver used by bpfman.
     * **bpfman-operator-bundle**: Image containing all the CRDs (Custom-Resource-Definitions) used
       by bpfman-agent to define Kubernetes objects used to manage eBPF programs.
@@ -111,44 +106,6 @@ kubectl describe pod -n bpfman bpfman-daemon-87fqg
     Image ID:      quay.io/$QUAY_USER/bpfman@sha256:f2c94b7acff6b463fc55232a1896816283521dd1ba5560b0d0779af99f811cd0
 :
 ```
-
-## Locally Build TC or XDP Dispatcher Container Image
-
-The TC and XDP Dispatcher images are automatically built and pushed to `quay.io/` under the `:latest`
-tag whenever code is merged into the `main` branch of the `github.com/bpfman/bpfman`.
-If a dispatcher container image needs to be built locally, use the following steps.
-
-Build the object files:
-
-```sh
-cargo xtask build-ebpf --libbpf-dir ~/src/libbpf/
-
-$ ls .output/tc_dispatcher.bpf/
-bpf_arm64_bpfel.o  bpf_powerpc_bpfel.o  bpf_s390_bpfeb.o  bpf_x86_bpfel.o
-
-$ ls .output/xdp_dispatcher_v2.bpf/
-bpf_arm64_bpfel.o  bpf_powerpc_bpfel.o  bpf_s390_bpfeb.o  bpf_x86_bpfel.o
-```
-
-Then build the bytecode image files:
-
-```sh
-bpfman image build -f Containerfile.bytecode -t quay.io/$QUAY_USER/tc-dispatcher:test -b .output/tc_dispatcher.bpf/bpf_x86_bpfel.o
-bpfman image build -f Containerfile.bytecode -t quay.io/$QUAY_USER/xdp-dispatcher:test -b .output/xdp_dispatcher_v2.bpf/bpf_x86_bpfel.o
-```
-
-If a multi-arch image is needed, use:
-
-```sh
-bpfman image build -f Containerfile.bytecode.multi.arch -t quay.io/$QUAY_USER/tc-dispatcher:test -c .output/tc_dispatcher.bpf/
-bpfman image build -f Containerfile.bytecode.multi.arch -t quay.io/$QUAY_USER/xdp-dispatcher:test -c .output/xdp_dispatcher_v2.bpf/
-```
-
-!!! Note
-    To build images for multiple architectures on a local system, docker (or podman) may need additional configuration
-    settings to allow for caching of non-native images. See
-    [https://docs.docker.com/build/building/multi-platform/](https://docs.docker.com/build/building/multi-platform/)
-    for more details.
 
 ## CSI Node Driver Registrar Container Image
 
