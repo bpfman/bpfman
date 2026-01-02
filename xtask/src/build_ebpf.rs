@@ -15,9 +15,6 @@ pub struct Options {
     /// Optional: Build the release target
     #[clap(long)]
     pub release: bool,
-    /// Optional: Compile rust eBPF dispatcher
-    #[clap(long)]
-    pub compile_rust_ebpf: bool,
     /// Required: Libbpf dir, required for compiling C code
     #[clap(long, action)]
     pub libbpf_dir: PathBuf,
