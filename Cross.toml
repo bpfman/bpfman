@@ -1,10 +1,19 @@
 [build]
-default-target = "x86_64-unknown-linux-gnu" # use this target if none is explicitly provided
-pre-build = [                               # additional commands to run prior to building the package
+default-target = "x86_64-unknown-linux-gnu"
+
+# Debian/Ubuntu places arch-specific headers in /usr/include/<arch>-linux-gnu/
+# rather than /usr/include/. When clang targets bpfel, it drops the multiarch
+# include path, causing 'asm/types.h' not found errors. The gcc-multilib
+# package would create this symlink automatically, but it conflicts with
+# cross-compilation toolchains by removing gcc-aarch64-linux-gnu and similar
+# packages needed for C dependencies (aws-lc-sys, openssl-sys, libz-sys).
+# The manual symlink below provides the same fix without breaking cross builds.
+pre-build = [
     "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable",
     ". $HOME/.cargo/env",
     "cargo install --force --locked bindgen-cli && mv $HOME/.cargo/bin/bindgen /usr/bin",
     "rm -rf $HOME/.cargo",
     "dpkg --add-architecture $CROSS_DEB_ARCH",
-    "apt-get update && apt-get --assume-yes install libssl-dev:$CROSS_DEB_ARCH",
+    "apt-get update && apt-get --assume-yes install clang libbpf-dev libssl-dev:$CROSS_DEB_ARCH",
+    "ln -sf /usr/include/$(uname -m)-linux-gnu/asm /usr/include/asm",
 ]

@@ -5,7 +5,7 @@ WORKDIR /usr/src/bpfman
 COPY ./ /usr/src/bpfman
 
 RUN ${DNF_CMD} update -y \
-    && ${DNF_CMD} install -y gcc openssl-devel \
+    && ${DNF_CMD} install -y clang gcc libbpf-devel openssl-devel \
     && ${DNF_CMD} clean all
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"

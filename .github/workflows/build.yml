@@ -70,6 +70,7 @@ jobs:
             protobuf-compiler \
             cmake \
             perl \
+            libbpf-dev \
             libssl-dev \
             gcc-multilib \
             libelf-dev \
