@@ -7,7 +7,7 @@ use std::{
 };
 
 use aya::{
-    Ebpf, EbpfLoader,
+    Ebpf, EbpfLoader, include_bytes_aligned,
     programs::{
         Extension, Xdp,
         links::{FdLink, PinnedLink},
@@ -18,13 +18,12 @@ use log::{debug, info};
 use sled::Db;
 
 use crate::{
-    config::{RegistryConfig, XdpMode},
+    config::XdpMode,
     directories::*,
     dispatcher_config::XdpDispatcherConfig,
     errors::BpfmanError,
     multiprog::Dispatcher,
-    oci_utils::image_manager::ImageManager,
-    types::{BytecodeImage, ImagePullPolicy, Link, XdpLink},
+    types::{Link, XdpLink},
     utils::{
         bytes_to_string, bytes_to_u32, bytes_to_u64, bytes_to_usize, enter_netns, nsid, sled_get,
         sled_insert, xdp_dispatcher_db_tree_name, xdp_dispatcher_link_id_path,
@@ -34,6 +33,9 @@ use crate::{
 
 pub(crate) const DEFAULT_PRIORITY: u32 = 50;
 const XDP_DISPATCHER_PROGRAM_NAME: &str = "xdp_dispatcher";
+
+static XDP_DISPATCHER_BYTES: &[u8] =
+    include_bytes_aligned!(concat!(env!("OUT_DIR"), "/xdp_dispatcher_v2.bpf.o"));
 
 /// These constants define the key of SLED DB
 const REVISION: &str = "revision";
@@ -51,40 +53,14 @@ pub struct XdpDispatcher {
 }
 
 impl XdpDispatcher {
-    pub(crate) fn get_test(
-        root_db: &Db,
-        config: &RegistryConfig,
-        image_manager: &mut ImageManager,
-    ) -> Result<Xdp, BpfmanError> {
+    pub(crate) fn get_test() -> Result<Xdp, BpfmanError> {
         if Path::new(RTDIR_FS_TEST_XDP_DISPATCHER).exists() {
             return Xdp::from_pin(RTDIR_FS_TEST_XDP_DISPATCHER, XdpAttachType::Interface)
                 .map_err(BpfmanError::BpfProgramError);
         }
 
-        let image = BytecodeImage::new(
-            config.xdp_dispatcher_image.to_string(),
-            ImagePullPolicy::IfNotPresent as i32,
-            None,
-            None,
-        );
-
-        let (path, bpf_program_names) = image_manager.get_image(
-            root_db,
-            &image.image_url,
-            image.image_pull_policy.clone(),
-            image.username.clone(),
-            image.password.clone(),
-        )?;
-
-        if !bpf_program_names.contains(&XDP_DISPATCHER_PROGRAM_NAME.to_string()) {
-            return Err(BpfmanError::ProgramNotFoundInBytecode {
-                bytecode_image: image.image_url,
-                expected_prog_name: XDP_DISPATCHER_PROGRAM_NAME.to_string(),
-                program_names: bpf_program_names,
-            });
-        }
-
-        let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
+        // Use embedded XDP dispatcher bytecode instead of pulling from registry
+        let program_bytes = XDP_DISPATCHER_BYTES;
 
         let xdp_config = XdpDispatcherConfig::new(11, 0, [0; 10], [DEFAULT_PRIORITY; 10], [0; 10]);
         let mut loader = EbpfLoader::new()
@@ -147,8 +123,6 @@ impl XdpDispatcher {
         root_db: &Db,
         links: &mut [Link],
         old_dispatcher: Option<Dispatcher>,
-        image_manager: &mut ImageManager,
-        config: &RegistryConfig,
         netns: Option<PathBuf>,
     ) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
@@ -181,30 +155,9 @@ impl XdpDispatcher {
         );
 
         debug!("xdp dispatcher config: {:?}", xdp_config);
-        let image = BytecodeImage::new(
-            config.xdp_dispatcher_image.to_string(),
-            ImagePullPolicy::IfNotPresent as i32,
-            None,
-            None,
-        );
 
-        let (path, bpf_program_names) = image_manager.get_image(
-            root_db,
-            &image.image_url.clone(),
-            image.image_pull_policy.clone(),
-            image.username.clone(),
-            image.password.clone(),
-        )?;
-
-        if !bpf_program_names.contains(&XDP_DISPATCHER_PROGRAM_NAME.to_string()) {
-            return Err(BpfmanError::ProgramNotFoundInBytecode {
-                bytecode_image: image.image_url,
-                expected_prog_name: XDP_DISPATCHER_PROGRAM_NAME.to_string(),
-                program_names: bpf_program_names,
-            });
-        }
-
-        let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
+        // Use embedded XDP dispatcher bytecode instead of pulling from registry
+        let program_bytes = XDP_DISPATCHER_BYTES;
 
         let mut loader = EbpfLoader::new()
             .set_global("conf", &xdp_config, true)

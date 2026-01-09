@@ -72,15 +72,6 @@ Valid fields:
 - **max_retries**: The number of times to retry opening the database on a given request.
 - **millisec_delay**: Time in milliseconds to wait between retry attempts.
 
-### Config Section: [registry]
+## Dispatcher Implementation
 
-`bpfman` uses the latest public container images for the xdp and tc dispatchers by default. 
-Optionally, the configuration values for these images are user-configurable. For example, it may
-be desirable in certain enterprise environments to source the xdp and tc dispatcher images from 
-a self-hosted OCI image registry. 
-In this case, the default values for the xdp and tc dispatcher images can be overridden below. 
-
-Valid fields:
-
-- **xdp_dispatcher_image**: The locator of the xdp dispatcher image in the format `quay.io/bpfman/xdp-dispatcher:latest`
-- **tc_dispatcher_image**: The locator of the tc dispatcher image in the format `quay.io/bpfman/tc-dispatcher:latest`
+bpfman uses embedded dispatcher bytecode compiled at build time for both XDP and TC dispatchers. This ensures hermetic builds and eliminates runtime dependencies on external container registries. The dispatcher bytecode is automatically compiled during the bpfman build process and embedded directly into the binary.

@@ -9,7 +9,7 @@ use std::{
 };
 
 use aya::{
-    Ebpf, EbpfLoader,
+    Ebpf, EbpfLoader, include_bytes_aligned,
     programs::{
         Extension, Link as _, SchedClassifier, TcAttachType,
         links::FdLink,
@@ -20,17 +20,14 @@ use log::debug;
 use sled::Db;
 
 use crate::{
-    config::RegistryConfig,
     directories::*,
     dispatcher_config::TcDispatcherConfig,
     errors::BpfmanError,
     multiprog::Dispatcher,
     netlink::NetlinkManager,
-    oci_utils::image_manager::ImageManager,
     types::{
-        BytecodeImage,
         Direction::{self},
-        ImagePullPolicy, Link, TcLink,
+        Link, TcLink,
     },
     utils::{
         bytes_to_string, bytes_to_u16, bytes_to_u32, bytes_to_u64, bytes_to_usize, enter_netns,
@@ -42,6 +39,9 @@ use crate::{
 const DEFAULT_PRIORITY: u32 = 50; // Default priority for user programs in the dispatcher
 const TC_DISPATCHER_PRIORITY: u16 = 50; // Default TC priority for TC Dispatcher
 const TC_DISPATCHER_PROGRAM_NAME: &str = "tc_dispatcher";
+
+static TC_DISPATCHER_BYTES: &[u8] =
+    include_bytes_aligned!(concat!(env!("OUT_DIR"), "/tc_dispatcher.bpf.o"));
 
 /// These constants define the key of SLED DB
 const REVISION: &str = "revision";
@@ -62,40 +62,14 @@ pub struct TcDispatcher {
 }
 
 impl TcDispatcher {
-    pub(crate) fn get_test(
-        root_db: &Db,
-        config: &RegistryConfig,
-        image_manager: &mut ImageManager,
-    ) -> Result<SchedClassifier, BpfmanError> {
+    pub(crate) fn get_test() -> Result<SchedClassifier, BpfmanError> {
         if Path::new(RTDIR_FS_TEST_TC_DISPATCHER).exists() {
             return SchedClassifier::from_pin(RTDIR_FS_TEST_TC_DISPATCHER)
                 .map_err(BpfmanError::BpfProgramError);
         }
 
-        let image = BytecodeImage::new(
-            config.tc_dispatcher_image.to_string(),
-            ImagePullPolicy::IfNotPresent as i32,
-            None,
-            None,
-        );
-
-        let (path, bpf_program_names) = image_manager.get_image(
-            root_db,
-            &image.image_url,
-            image.image_pull_policy.clone(),
-            image.username.clone(),
-            image.password.clone(),
-        )?;
-
-        if !bpf_program_names.contains(&TC_DISPATCHER_PROGRAM_NAME.to_string()) {
-            return Err(BpfmanError::ProgramNotFoundInBytecode {
-                bytecode_image: image.image_url,
-                expected_prog_name: TC_DISPATCHER_PROGRAM_NAME.to_string(),
-                program_names: bpf_program_names,
-            });
-        }
-
-        let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
+        // Use embedded TC dispatcher bytecode instead of pulling from registry
+        let program_bytes = TC_DISPATCHER_BYTES;
 
         let tc_config = TcDispatcherConfig {
             num_progs_enabled: 11,
@@ -168,8 +142,6 @@ impl TcDispatcher {
         root_db: &Db,
         links: &mut [Link],
         old_dispatcher: Option<Dispatcher>,
-        image_manager: &mut ImageManager,
-        config: &RegistryConfig,
         netns: Option<PathBuf>,
     ) -> Result<(), BpfmanError> {
         let if_index = self.get_ifindex()?;
@@ -196,30 +168,9 @@ impl TcDispatcher {
         };
 
         debug!("tc dispatcher config: {:?}", tc_config);
-        let image = BytecodeImage::new(
-            config.tc_dispatcher_image.to_string(),
-            ImagePullPolicy::IfNotPresent as i32,
-            None,
-            None,
-        );
 
-        let (path, bpf_program_names) = image_manager.get_image(
-            root_db,
-            &image.image_url,
-            image.image_pull_policy.clone(),
-            image.username.clone(),
-            image.password.clone(),
-        )?;
-
-        if !bpf_program_names.contains(&TC_DISPATCHER_PROGRAM_NAME.to_string()) {
-            return Err(BpfmanError::ProgramNotFoundInBytecode {
-                bytecode_image: image.image_url,
-                expected_prog_name: TC_DISPATCHER_PROGRAM_NAME.to_string(),
-                program_names: bpf_program_names,
-            });
-        }
-
-        let program_bytes = image_manager.get_bytecode_from_image_store(root_db, path)?;
+        // Use embedded TC dispatcher bytecode instead of pulling from registry
+        let program_bytes = TC_DISPATCHER_BYTES;
 
         let mut loader = EbpfLoader::new()
             .set_global("CONFIG", &tc_config, true)

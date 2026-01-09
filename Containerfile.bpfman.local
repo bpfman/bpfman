@@ -13,9 +13,11 @@ RUN apt-get update && apt-get install -y\
     curl
 
 RUN apt-get update && apt-get install -y\
+    clang\
     gcc-multilib\
-    libssl-dev\
+    libbpf-dev\
     libclang-dev\
+    libssl-dev\
     cmake
 
 # Get Rust for Ubuntu base build

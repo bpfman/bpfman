@@ -6,6 +6,7 @@ header:
         Copyright Authors of bpfman
     paths:
       - bpfman
+      - bpf/Makefile
     paths-ignore:
       - "**/LICENSE-*"
       - "**/target/**"
@@ -14,6 +15,7 @@ header:
       - "**/*.lock"
       - "**/*.yml"
       - "**/*.md"
+      - bpf/*.d
     comment: on-failure
   - license:
       content: |
