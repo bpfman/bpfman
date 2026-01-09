@@ -1188,17 +1188,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#locally-build-tc-or-xdp-dispatcher-container-image" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Locally Build TC or XDP Dispatcher Container Image
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#csi-node-driver-registrar-container-image" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2345,17 +2334,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#locally-build-tc-or-xdp-dispatcher-container-image" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Locally Build TC or XDP Dispatcher Container Image
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#csi-node-driver-registrar-container-image" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2494,17 +2472,12 @@ repositories.</p>
 <ul>
 <li><a href="https://quay.io/organization/bpfman">quay.io/bpfman</a>:  This repository contains images needed
   to run bpfman.
-  It contains the <code>xdp-dispatcher</code> and <code>tc-dispatcher</code> eBPF container images, which are used by
-  bpfman to allow multiple XDP or TC programs to be loaded on a given interface.
-  It also includes the container images which are used to deploy bpfman in a Kubernetes deployment:<ul>
-<li><strong>bpfman</strong>: Packages all the bpfman binaries, including <code>bpfman</code> CLI, <code>bpfman-ns</code> and <code>bpfman-rpc</code>.</li>
+  It includes the container images which are used to deploy bpfman in a Kubernetes deployment:<ul>
+<li><strong>bpfman</strong>: Packages all the bpfman binaries, including <code>bpfman</code> CLI, <code>bpfman-ns</code> and <code>bpfman-rpc</code>.
+  The XDP and TC dispatcher bytecode is compiled and embedded during the build.</li>
 <li><strong>bpfman-agent</strong>: Agent that listens to KubeAPI Server and makes calls to bpfman to load or unload
   eBPF programs based on user intent.</li>
 <li><strong>bpfman-operator</strong>: Operator for deploying bpfman.</li>
-<li><strong>tc-dispatcher</strong>: eBPF container image containing the TC Dispatcher, which is used by bpfman
-  to manage and allow multiple TC based programs to be loaded on a given TC hook point.</li>
-<li><strong>xdp-dispatcher</strong>: eBPF container image containing the XDP Dispatcher, which is used by bpfman
-  to manage and allow multiple TC based programs to be loaded on a given XDP hook point.</li>
 <li><strong>csi-node-driver-registrar</strong>: CSI Driver used by bpfman.</li>
 <li><strong>bpfman-operator-bundle</strong>: Image containing all the CRDs (Custom-Resource-Definitions) used
   by bpfman-agent to define Kubernetes objects used to manage eBPF programs.</li>
@@ -2580,34 +2553,6 @@ command shown above:</p>
 <a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="w">    </span>Image<span class="w"> </span>ID:<span class="w">      </span>quay.io/<span class="nv">$QUAY_USER</span>/bpfman@sha256:f2c94b7acff6b463fc55232a1896816283521dd1ba5560b0d0779af99f811cd0
 <a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>:
 </code></pre></div>
-<h2 id="locally-build-tc-or-xdp-dispatcher-container-image">Locally Build TC or XDP Dispatcher Container Image</h2>
-<p>The TC and XDP Dispatcher images are automatically built and pushed to <code>quay.io/</code> under the <code>:latest</code>
-tag whenever code is merged into the <code>main</code> branch of the <code>github.com/bpfman/bpfman</code>.
-If a dispatcher container image needs to be built locally, use the following steps.</p>
-<p>Build the object files:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>cargo<span class="w"> </span>xtask<span class="w"> </span>build-ebpf<span class="w"> </span>--libbpf-dir<span class="w"> </span>~/src/libbpf/
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>$<span class="w"> </span>ls<span class="w"> </span>.output/tc_dispatcher.bpf/
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>bpf_arm64_bpfel.o<span class="w">  </span>bpf_powerpc_bpfel.o<span class="w">  </span>bpf_s390_bpfeb.o<span class="w">  </span>bpf_x86_bpfel.o
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>$<span class="w"> </span>ls<span class="w"> </span>.output/xdp_dispatcher_v2.bpf/
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>bpf_arm64_bpfel.o<span class="w">  </span>bpf_powerpc_bpfel.o<span class="w">  </span>bpf_s390_bpfeb.o<span class="w">  </span>bpf_x86_bpfel.o
-</code></pre></div>
-<p>Then build the bytecode image files:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>bpfman<span class="w"> </span>image<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>Containerfile.bytecode<span class="w"> </span>-t<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/tc-dispatcher:test<span class="w"> </span>-b<span class="w"> </span>.output/tc_dispatcher.bpf/bpf_x86_bpfel.o
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>bpfman<span class="w"> </span>image<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>Containerfile.bytecode<span class="w"> </span>-t<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/xdp-dispatcher:test<span class="w"> </span>-b<span class="w"> </span>.output/xdp_dispatcher_v2.bpf/bpf_x86_bpfel.o
-</code></pre></div>
-<p>If a multi-arch image is needed, use:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>bpfman<span class="w"> </span>image<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>Containerfile.bytecode.multi.arch<span class="w"> </span>-t<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/tc-dispatcher:test<span class="w"> </span>-c<span class="w"> </span>.output/tc_dispatcher.bpf/
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>bpfman<span class="w"> </span>image<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>Containerfile.bytecode.multi.arch<span class="w"> </span>-t<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/xdp-dispatcher:test<span class="w"> </span>-c<span class="w"> </span>.output/xdp_dispatcher_v2.bpf/
-</code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>To build images for multiple architectures on a local system, docker (or podman) may need additional configuration
-settings to allow for caching of non-native images. See
-<a href="https://docs.docker.com/build/building/multi-platform/">https://docs.docker.com/build/building/multi-platform/</a>
-for more details.</p>
-</div>
 <h2 id="csi-node-driver-registrar-container-image">CSI Node Driver Registrar Container Image</h2>
 <p>The <code>csi-node-driver-registrar</code> is a community image.
 It is built from
@@ -2626,7 +2571,7 @@ guarantees please consider mirroring images to a location you control.
 </code></pre></div>
 <p>Following the mirroring link, the following command is an example of how to copy the
 <code>registry.k8s.io/sig-storage</code> image to <code>quay.io/bpfman</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>crane<span class="w"> </span>copy<span class="w"> </span>registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0<span class="w"> </span>quay.io/bpfman/csi-node-driver-registrar:v2.13.0
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>crane<span class="w"> </span>copy<span class="w"> </span>registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.13.0<span class="w"> </span>quay.io/bpfman/csi-node-driver-registrar:v2.13.0
 </code></pre></div>
 <h2 id="locally-build-example-container-images">Locally Build Example Container Images</h2>
 <p>The example images are automatically built and pushed to <code>quay.io/</code> under the <code>:latest</code> tag whenever code is
@@ -2660,27 +2605,27 @@ See <code>make help</code> in the examples directory and the samples below.</p>
 <h3 id="example-bytecode-container-images">Example Bytecode Container Images</h3>
 <p>If an example bytecode container image needs to be built locally, use the following to
 build the bytecode container image, (optionally passing the <code>USER_BC</code> and <code>TAG_BC</code> for the image):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Build images for all eBPF program types</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>$<span class="w"> </span>make<span class="w"> </span>build-bc-images<span class="w"> </span><span class="nv">USER_BC</span><span class="o">=</span><span class="nv">$QUAY_USER</span><span class="w"> </span><span class="nv">TAG_BC</span><span class="o">=</span>test-bc
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>:
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-kprobe-counter:test-bc<span class="w"> </span>with<span class="w"> </span>docker
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>:
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-tc-counter:test-bc<span class="w"> </span>with<span class="w"> </span>docker
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>:
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-tracepoint-counter:test-bc<span class="w"> </span>with<span class="w"> </span>docker
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>:
-<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>
-<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>--<span class="w"> </span>OR<span class="w"> </span>--
-<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>
-<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="c1"># Build image for a single eBPF program type, XDP in this example</span>
-<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>$<span class="w"> </span>make<span class="w"> </span>build-bc-xdp<span class="w"> </span><span class="nv">USER_BC</span><span class="o">=</span><span class="nv">$QUAY_USER</span><span class="w"> </span><span class="nv">TAG_BC</span><span class="o">=</span>test-bc
-<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>:
-<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-xdp-counter:test-bc<span class="w"> </span>with<span class="w"> </span>docker
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Build images for all eBPF program types</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>$<span class="w"> </span>make<span class="w"> </span>build-bc-images<span class="w"> </span><span class="nv">USER_BC</span><span class="o">=</span><span class="nv">$QUAY_USER</span><span class="w"> </span><span class="nv">TAG_BC</span><span class="o">=</span>test-bc
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>:
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-kprobe-counter:test-bc<span class="w"> </span>with<span class="w"> </span>docker
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>:
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-tc-counter:test-bc<span class="w"> </span>with<span class="w"> </span>docker
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>:
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-tracepoint-counter:test-bc<span class="w"> </span>with<span class="w"> </span>docker
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>:
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>--<span class="w"> </span>OR<span class="w"> </span>--
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="c1"># Build image for a single eBPF program type, XDP in this example</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>$<span class="w"> </span>make<span class="w"> </span>build-bc-xdp<span class="w"> </span><span class="nv">USER_BC</span><span class="o">=</span><span class="nv">$QUAY_USER</span><span class="w"> </span><span class="nv">TAG_BC</span><span class="o">=</span>test-bc
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>:
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-xdp-counter:test-bc<span class="w"> </span>with<span class="w"> </span>docker
 </code></pre></div>
 <p>If a multi-arch image is needed, use (appending <code>PLATFORM</code>):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>$<span class="w"> </span>make<span class="w"> </span>build-bc-xdp<span class="w"> </span><span class="nv">USER_BC</span><span class="o">=</span><span class="nv">$QUAY_USER</span><span class="w"> </span><span class="nv">TAG_BC</span><span class="o">=</span>test-bc<span class="w"> </span><span class="nv">PLATFORM</span><span class="o">=</span>linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>:
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-xdp-counter:test-bc<span class="w"> </span>with<span class="w"> </span>docker
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>$<span class="w"> </span>make<span class="w"> </span>build-bc-xdp<span class="w"> </span><span class="nv">USER_BC</span><span class="o">=</span><span class="nv">$QUAY_USER</span><span class="w"> </span><span class="nv">TAG_BC</span><span class="o">=</span>test-bc<span class="w"> </span><span class="nv">PLATFORM</span><span class="o">=</span>linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>:
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-xdp-counter:test-bc<span class="w"> </span>with<span class="w"> </span>docker
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -2692,29 +2637,29 @@ for more details.</p>
 <h3 id="example-userspace-container-images">Example Userspace Container Images</h3>
 <p>If an example userspace container image needs to be built locally, use the following to
 build the userspace container images, (optionally passing the <code>USER_US</code> and <code>TAG_US</code> for the image):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman/examples/
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="c1"># Build all images</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>$<span class="w"> </span>make<span class="w"> </span>build-us-images<span class="w"> </span><span class="nv">USER_US</span><span class="o">=</span><span class="nv">$QUAY_USER</span><span class="w"> </span><span class="nv">TAG_US</span><span class="o">=</span>test-us
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>:
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-kprobe-counter:test-us<span class="w"> </span>with<span class="w"> </span>docker
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>:
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-tc-counter:test-us<span class="w"> </span>with<span class="w"> </span>docker
-<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>:
-<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-tracepoint-counter:test-us<span class="w"> </span>with<span class="w"> </span>docker
-<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>:
-<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>
-<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>--<span class="w"> </span>OR<span class="w"> </span>--
-<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>
-<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a><span class="c1"># Build a single image</span>
-<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>$<span class="w"> </span>make<span class="w"> </span>build-us-xdp<span class="w"> </span><span class="nv">USER_US</span><span class="o">=</span><span class="nv">$QUAY_USER</span><span class="w"> </span><span class="nv">TAG_US</span><span class="o">=</span>test-us
-<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>:
-<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-xdp-counter:test-us<span class="w"> </span>with<span class="w"> </span>docker
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nb">cd</span><span class="w"> </span>bpfman/examples/
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="c1"># Build all images</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>$<span class="w"> </span>make<span class="w"> </span>build-us-images<span class="w"> </span><span class="nv">USER_US</span><span class="o">=</span><span class="nv">$QUAY_USER</span><span class="w"> </span><span class="nv">TAG_US</span><span class="o">=</span>test-us
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>:
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-kprobe-counter:test-us<span class="w"> </span>with<span class="w"> </span>docker
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>:
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-tc-counter:test-us<span class="w"> </span>with<span class="w"> </span>docker
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>:
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-tracepoint-counter:test-us<span class="w"> </span>with<span class="w"> </span>docker
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>:
+<a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>--<span class="w"> </span>OR<span class="w"> </span>--
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="c1"># Build a single image</span>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>$<span class="w"> </span>make<span class="w"> </span>build-us-xdp<span class="w"> </span><span class="nv">USER_US</span><span class="o">=</span><span class="nv">$QUAY_USER</span><span class="w"> </span><span class="nv">TAG_US</span><span class="o">=</span>test-us
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>:
+<a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-xdp-counter:test-us<span class="w"> </span>with<span class="w"> </span>docker
 </code></pre></div>
 <p>If a multi-arch image is needed, use (appending <code>PLATFORM</code>):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>$<span class="w"> </span>make<span class="w"> </span>build-us-xdp<span class="w"> </span><span class="nv">USER_US</span><span class="o">=</span><span class="nv">$QUAY_USER</span><span class="w"> </span><span class="nv">TAG_US</span><span class="o">=</span>test-us<span class="w"> </span><span class="nv">PLATFORM</span><span class="o">=</span>linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>:
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-xdp-counter:test-us<span class="w"> </span>with<span class="w"> </span>docker
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>$<span class="w"> </span>make<span class="w"> </span>build-us-xdp<span class="w"> </span><span class="nv">USER_US</span><span class="o">=</span><span class="nv">$QUAY_USER</span><span class="w"> </span><span class="nv">TAG_US</span><span class="o">=</span>test-us<span class="w"> </span><span class="nv">PLATFORM</span><span class="o">=</span>linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>:
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w"> </span><span class="o">=</span>&gt;<span class="w"> </span>pushing<span class="w"> </span>quay.io/<span class="nv">$QUAY_USER</span>/go-xdp-counter:test-us<span class="w"> </span>with<span class="w"> </span>docker
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -2743,22 +2688,22 @@ integration tests, several steps need to be performed.</p>
 <a href="https://docs.sigstore.dev/signing/quickstart/">cosign</a>.
 Below is a summary of the steps needed to sign an image.</p>
 <p>First, install <code>cosign</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="go">go install github.com/sigstore/cosign/v2/cmd/cosign@latest</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="go">go install github.com/sigstore/cosign/v2/cmd/cosign@latest</span>
 </code></pre></div>
 <p>Then sign the image.
 The <code>cosign</code> command will generate a URL.
 Follow the <code>sigstore</code> URL and login with either GitHub, Google to Microsoft.
 That will generate a verification code that will complete the <code>cosign</code> command.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="go">cosign sign -y quay.io/$QUAY_USER/test-image@sha256:55fe3cfe46409939876be27f7ed4d2948842918145f6cda167d0c31fdea2046f</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="go">Generating ephemeral keys...</span>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="go">Retrieving signed certificate...</span>
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="go">:</span>
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="gp">https://oauth2.sigstore.dev/auth/auth?access_type=online&amp;client_id=sigstore&amp;code_challenge=EwHYBahRxlbli-oEXxS9DoEzEWcyuS_f1lLBhntCVFI&amp;code_challenge_method=S256&amp;nonce=2kR9mJbP0eUxFBAQI9Nhs6LyS4l&amp;redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%</span>3Aoob<span class="p">&amp;</span><span class="nv">response_type</span><span class="o">=</span>code<span class="p">&amp;</span><span class="nv">scope</span><span class="o">=</span>openid+email<span class="p">&amp;</span><span class="nv">state</span><span class="o">=</span>2kR9mIqOn6IgmAw46BxVrnEEi0M
-<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="go">Enter verification code: wq3g58qhw6y25wwibcz2kgzfx</span>
-<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>
-<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="go">Successfully verified SCT...</span>
-<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="go">tlog entry created with index: 120018072</span>
-<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="go">Pushing signature to: quay.io/$QUAY_USER/test-image</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="go">cosign sign -y quay.io/$QUAY_USER/test-image@sha256:55fe3cfe46409939876be27f7ed4d2948842918145f6cda167d0c31fdea2046f</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="go">Generating ephemeral keys...</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="go">Retrieving signed certificate...</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="go">:</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="gp">https://oauth2.sigstore.dev/auth/auth?access_type=online&amp;client_id=sigstore&amp;code_challenge=EwHYBahRxlbli-oEXxS9DoEzEWcyuS_f1lLBhntCVFI&amp;code_challenge_method=S256&amp;nonce=2kR9mJbP0eUxFBAQI9Nhs6LyS4l&amp;redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%</span>3Aoob<span class="p">&amp;</span><span class="nv">response_type</span><span class="o">=</span>code<span class="p">&amp;</span><span class="nv">scope</span><span class="o">=</span>openid+email<span class="p">&amp;</span><span class="nv">state</span><span class="o">=</span>2kR9mIqOn6IgmAw46BxVrnEEi0M
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="go">Enter verification code: wq3g58qhw6y25wwibcz2kgzfx</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="go">Successfully verified SCT...</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="go">tlog entry created with index: 120018072</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="go">Pushing signature to: quay.io/$QUAY_USER/test-image</span>
 </code></pre></div>
 <h2 id="containerfiles">Containerfiles</h2>
 <p>There are multiple Containerfiles in the bpfman repositories.
