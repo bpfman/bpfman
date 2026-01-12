@@ -18,12 +18,12 @@ jobs:
             libxml2-dev \
             libxslt-dev \
 
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # @v4
         with:
           ref: gh-pages
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
-      - uses: astral-sh/setup-uv@v6
-      - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # @v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # @v4
+      - uses: astral-sh/setup-uv@v7
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # @v5
         with:
           # prettier-ignore
           go-version: '1.21' # yamllint disable-line rule:quoted-strings
