@@ -21,9 +21,9 @@ jobs:
     timeout-minutes: 3
 
     steps:
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # @v4
       - name: Check License Header
-        uses: apache/skywalking-eyes@5c5b974209f0de5d905f37deb69369068ebfc15c
+        uses: apache/skywalking-eyes@61275cc80d0798a405cb070f7d3a8aaf7cf2c2c1
 
   build:
     runs-on: ubuntu-24.04
@@ -76,12 +76,12 @@ jobs:
             libelf-dev \
 
       - name: Checkout bpfman
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # @v4
 
       - name: Checkout libbpf
         # libbpf only needed to build eBPF and used by integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # @v4
         with:
           repository: libbpf/libbpf
           path: libbpf
@@ -111,7 +111,7 @@ jobs:
         run: |
           cargo install cross --git https://github.com/cross-rs/cross
 
-      - uses: Swatinem/rust-cache@9d47c6ad4b02e050fd481d890b2ea34778fd09d6 # @v2
+      - uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5 # @v2
 
       - name: Install cargo-llvm-cov
         # Only need to run once
@@ -155,7 +155,7 @@ jobs:
       - name: Archive Integration Test eBPF
         # Only need to build eBPF once and used by integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # @v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # @v4
         with:
           name: bpfman-integration-test
           path: |
@@ -187,7 +187,7 @@ jobs:
       - name: Archive bpfman Binaries
         # Tar and archive the build for basic-integration-tests, only on amd64
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # @v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # @v4
         with:
           name: bpfman-debug-${{ matrix.arch.filename }}
           path: |
@@ -209,7 +209,7 @@ jobs:
       - name: Archive manpages
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # @v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # @v4
         with:
           name: bpfman-manpages
           path: |
@@ -231,7 +231,7 @@ jobs:
       - name: Archive CLI TAB Completion
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # @v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # @v4
         with:
           name: bpfman-cli-tab-completion
           path: |
@@ -251,7 +251,7 @@ jobs:
 
       - name: Archive bpfman Release Binaries
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # @v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # @v4
         with:
           name: bpfman-release-${{ matrix.arch.filename }}
           path: ./target/${{ matrix.arch.rust-target }}/release/bpfman-${{ matrix.arch.filename }}.tar.gz
@@ -266,7 +266,7 @@ jobs:
       - name: Archive Rust code coverage results
         # Only need to run once
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # @v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # @v4
         with:
           name: coverage-rust
           path: lcov.info
@@ -291,10 +291,10 @@ jobs:
     name: Build Go Modules (${{ matrix.arch.arch }})
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # @v4
 
       - name: Install go
-        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # @v5
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # @v5
         with:
           # prettier-ignore
           go-version: '1.22' # yamllint disable-line rule:quoted-strings
@@ -309,7 +309,7 @@ jobs:
       - name: Lint
         # Only need to lint the code once, so just pick one of the arch to run on.
         if: ${{ matrix.arch.arch == 'amd64' }}
-        uses: golangci/golangci-lint-action@1481404843c368bc19ca9406f87d6e0fc97bdcfd # @v7
+        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # @v7
         with:
           version: v2.0.2
           skip-cache: true
@@ -343,15 +343,15 @@ jobs:
           echo "FEXIT_IMAGE_LOC=quay.io/bpfman-bytecode/fexit:${GITHUB_REF_NAME}" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # @v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # @v3
         with:
           driver-opts: network=host
 
       - name: Checkout bpfman
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # @v4
 
       - name: Download bpfman x86_64 build
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # @v4
         with:
           name: bpfman-debug-linux-x86_64
           merge-multiple: true
@@ -362,7 +362,7 @@ jobs:
           tar -C target/debug -xzvf bpfman-debug-linux-x86_64.tar.gz
 
       - name: Download Integration Test eBPF
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # @v4
         with:
           name: bpfman-integration-test
           merge-multiple: true
@@ -372,7 +372,7 @@ jobs:
           tar -xzvf integration-test.tar.gz
 
       - name: Download manpages
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # @v4
         with:
           name: bpfman-manpages
           merge-multiple: true
@@ -382,7 +382,7 @@ jobs:
           tar -xzvf manpages.tar.gz
 
       - name: Download CLI TAB Completion
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # @v4
         with:
           name: bpfman-cli-tab-completion
           merge-multiple: true
@@ -414,10 +414,10 @@ jobs:
             libxslt-dev \
 
       - name: Checkout bpfman
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # @v4
 
       - name: Install required-version defined in pyproject.toml
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
 
       - name: Mkdocs Build
         run: |
@@ -428,12 +428,12 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Download rust coverage artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # @v4
         with:
           name: coverage-rust
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@ad3126e916f78f00edff4ed0317cf185271ccc2d # @v4
+        uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de # @v4
         with:
           files: ./lcov.info
           verbose: true
@@ -448,7 +448,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # @v4
 
       - name: Set env
         run: |
@@ -460,7 +460,7 @@ jobs:
           fi
 
       - name: Download bpfman Release Binaries
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # @v4
         with:
           pattern: bpfman-release-*
           merge-multiple: true
@@ -469,7 +469,7 @@ jobs:
         # Revert softprops/action-gh-release from v2.2.0 to v2.1.0 due to
         # "Error: Request body length does not match content-length header"
         # https://github.com/softprops/action-gh-release/issues/556
-        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # @v2
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # @v2
         with:
           body_path: ./changelogs/CHANGELOG-${{ env.RELEASE_VERSION }}.md
           prerelease: ${{ env.PRE_RELEASE }}
