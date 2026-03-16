@@ -6,9 +6,9 @@
 ##     quay.io/bpfman-userspace/go-xdp-counter:latest
 ##
 ## Example: Override the upstream tag
-##   make deploy-tc TAG=v0.5.6
-##     quay.io/bpfman-bytecode/go-tc-counter:v0.5.6
-##     quay.io/bpfman-userspace/go-uc-counter:v0.5.6
+##   make deploy-tc TAG=v0.6.0
+##     quay.io/bpfman-bytecode/go-tc-counter:v0.6.0
+##     quay.io/bpfman-userspace/go-uc-counter:v0.6.0
 ##
 ## Example: Run from private image
 ##   make deploy-tracepoint IMAGE_TP_US=quay.io/$QUAY_USER/tracepoint-userspace:test \
@@ -17,22 +17,22 @@
 ##     quay.io/$QUAY_USER/tracepoint-userspace:test
 ##
 ## Example: Override the upstream tag on all images
-##   make deploy TAG=v0.5.6
-##     quay.io/bpfman-bytecode/go-tc-counter:v0.5.6
-##     quay.io/bpfman-userspace/go-uc-counter:v0.5.6
-##     quay.io/bpfman-bytecode/go-tracepoint-counter:v0.5.6
-##     quay.io/bpfman-userspace/go-tracepoint-counter:v0.5.6
-##     quay.io/bpfman-bytecode/go-xdp-counter:v0.5.6
-##     quay.io/bpfman-userspace/go-xdp-counter:v0.5.6
-##     quay.io/bpfman-userspace/go-app-counter:v0.5.6
+##   make deploy TAG=v0.6.0
+##     quay.io/bpfman-bytecode/go-tc-counter:v0.6.0
+##     quay.io/bpfman-userspace/go-uc-counter:v0.6.0
+##     quay.io/bpfman-bytecode/go-tracepoint-counter:v0.6.0
+##     quay.io/bpfman-userspace/go-tracepoint-counter:v0.6.0
+##     quay.io/bpfman-bytecode/go-xdp-counter:v0.6.0
+##     quay.io/bpfman-userspace/go-xdp-counter:v0.6.0
+##     quay.io/bpfman-userspace/go-app-counter:v0.6.0
 ##     :
 ##
 
 # VERSION defines the project version for the bundle.
 # Update this value when you upgrade the version of your project.
 # To re-generate a bundle for another specific version without changing the standard setup, you can:
-# - use environment variables to overwrite this value (e.g export VERSION=0.5.6)
-VERSION ?= 0.5.6
+# - use environment variables to overwrite this value (e.g export VERSION=0.6.0)
+VERSION ?= 0.6.0
 
 .DEFAULT_GOAL := help
 

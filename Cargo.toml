@@ -31,7 +31,7 @@ homepage = "https://bpfman.io"
 license = "Apache-2.0"
 repository = "https://github.com/bpfman/bpfman"
 rust-version = "1.85.0"
-version = "0.5.6"
+version = "0.6.0"
 
 [workspace.dependencies]
 anyhow = { version = "1", default-features = false }
@@ -42,10 +42,10 @@ aya = { version = "0.13.1", default-features = false }
 aya-obj = { version = "0.2.1", default-features = false }
 base16ct = { version = "0.2.0", default-features = false }
 base64 = { version = "0.22.0", default-features = false }
-bpfman = { version = "0.5.6", path = "./bpfman" }
-bpfman-api = { version = "0.5.6", path = "./bpfman-api" }
+bpfman = { version = "0.6.0", path = "./bpfman" }
+bpfman-api = { version = "0.6.0", path = "./bpfman-api" }
 bpfman-csi = { version = "1.8.0", path = "./csi" }
-buildinfo = { version = "0.5.6", path = "./buildinfo" }
+buildinfo = { version = "0.6.0", path = "./buildinfo" }
 caps = { version = "0.5.4", default-features = false }
 cargo_metadata = { version = "0.19.2", default-features = false }
 chrono = { version = "0.4.42", default-features = false }
