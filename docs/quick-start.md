@@ -173,7 +173,7 @@ kind create cluster --name=test-bpfman
 Next, deploy the bpfman CRDs:
 
 ```console
-export BPFMAN_REL=0.5.6
+export BPFMAN_REL=0.6.0
 kubectl apply -f https://github.com/bpfman/bpfman-operator/releases/download/v${BPFMAN_REL}/bpfman-crds-install.yaml
 ```
 
