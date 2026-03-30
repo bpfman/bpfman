@@ -32,6 +32,10 @@ tests/_tmp
 # Ignore docs
 site/
 
+# BPF dispatcher build artefacts
+bpfman/bpf/*.o
+bpfman/bpf/*.d
+
 # RPM build artifacts
 *.tar.gz
 *.rpm

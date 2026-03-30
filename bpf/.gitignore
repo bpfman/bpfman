@@ -1,5 +1,0 @@
-# Compiled eBPF object files
-*.o
-
-# Dependency files
-*.d
