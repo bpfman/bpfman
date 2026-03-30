@@ -21,7 +21,7 @@ git_origin=$(git config --get remote.origin.url 2>/dev/null || true)
 
 timestamp=${BPFMAN_BUILD_TIMESTAMP:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
 
-rustc_version=$(rustc --version 2>/dev/null || true)
+rustc_version=$(rustc --version)
 
 info="${version} ("
 if [ -n "$git_version" ]; then
@@ -30,10 +30,7 @@ fi
 if [ -n "$git_origin" ]; then
     info="${info}${git_origin} "
 fi
-info="${info}${timestamp})"
-if [ -n "$rustc_version" ]; then
-    info="${info} ${rustc_version}"
-fi
+info="${info}${timestamp}) ${rustc_version}"
 
 case "${1:-}" in
     --value)

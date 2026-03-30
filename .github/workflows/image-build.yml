@@ -28,6 +28,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -qy clang llvm libbpf-dev gcc-multilib libelf-dev
 
+      - name: Generate build info
+        run: echo "BPFMAN_BUILD_INFO=$(scripts/build-info.sh --value)" >> "$GITHUB_ENV"
+
       - name: Build bpfman binary
         run: cargo build -p bpfman --verbose
 
@@ -104,6 +107,9 @@ jobs:
       #       with some caching, but not sure of the details. Need to run with it enabled
       #       and disabled and see if it speeds anything up or not.
       # - uses: Swatinem/rust-cache@v2
+
+      - name: Generate build info
+        run: echo "BPFMAN_BUILD_INFO=$(scripts/build-info.sh --value)" >> "$GITHUB_ENV"
 
       - name: Build Binary
         run: |
