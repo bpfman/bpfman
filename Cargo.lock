@@ -476,7 +476,7 @@ dependencies = [
 
 [[package]]
 name = "bpf-log-exporter"
-version = "0.5.6"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "env_logger",
@@ -490,7 +490,7 @@ dependencies = [
 
 [[package]]
 name = "bpf-metrics-exporter"
-version = "0.5.6"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "aya",
@@ -509,7 +509,7 @@ dependencies = [
 
 [[package]]
 name = "bpfman"
-version = "0.5.6"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -557,7 +557,7 @@ dependencies = [
 
 [[package]]
 name = "bpfman-api"
-version = "0.5.6"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -610,7 +610,7 @@ dependencies = [
 
 [[package]]
 name = "bpfman-ns"
-version = "0.5.6"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "aya",
@@ -635,7 +635,7 @@ dependencies = [
 
 [[package]]
 name = "buildinfo"
-version = "0.5.6"
+version = "0.6.0"
 dependencies = [
  "chrono",
 ]
@@ -3209,7 +3209,7 @@ dependencies = [
 
 [[package]]
 name = "integration-test"
-version = "0.5.6"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "bpfman",
@@ -7126,7 +7126,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.5.6"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "cargo-deny",
