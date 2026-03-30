@@ -55,7 +55,7 @@ fn build_ebpf_files(
 pub fn build_ebpf(opts: Options) -> anyhow::Result<()> {
     // build operational eBPF code
     let mut src_path = PathBuf::from(WORKSPACE_ROOT.to_string());
-    src_path.push("bpf");
+    src_path.push("bpfman/bpf");
 
     let mut out_path = PathBuf::from(WORKSPACE_ROOT.to_string());
     out_path.push(".output");

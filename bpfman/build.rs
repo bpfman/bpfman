@@ -3,7 +3,7 @@
 
 use std::process::Command;
 
-const BPF_DIR: &str = "../bpf";
+const BPF_DIR: &str = "bpf";
 
 fn main() {
     println!("cargo:rerun-if-changed=src");
