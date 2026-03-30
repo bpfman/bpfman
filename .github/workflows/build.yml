@@ -173,9 +173,6 @@ jobs:
         run: |
           cargo test --doc --all-features
 
-      - name: Generate build info
-        run: echo "BPFMAN_BUILD_INFO=$(scripts/build-info.sh --value)" >> "$GITHUB_ENV"
-
       - name: Build
         run: |
           ${{ matrix.arch.command }} build --verbose --target ${{ matrix.arch.rust-target }}
