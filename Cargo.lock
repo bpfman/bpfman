@@ -496,7 +496,6 @@ dependencies = [
  "aya",
  "bpfman",
  "bpfman-api",
- "buildinfo",
  "chrono",
  "clap",
  "opentelemetry",
@@ -519,7 +518,6 @@ dependencies = [
  "base16ct",
  "base64 0.22.1",
  "bpfman-csi",
- "buildinfo",
  "caps",
  "chrono",
  "clap",
@@ -566,7 +564,6 @@ dependencies = [
  "base64 0.22.1",
  "bpfman",
  "bpfman-csi",
- "buildinfo",
  "caps",
  "chrono",
  "clap",
@@ -614,7 +611,6 @@ version = "0.6.0"
 dependencies = [
  "anyhow",
  "aya",
- "buildinfo",
  "caps",
  "clap",
  "env_logger",
@@ -631,13 +627,6 @@ dependencies = [
  "memchr",
  "regex-automata",
  "serde",
-]
-
-[[package]]
-name = "buildinfo"
-version = "0.6.0"
-dependencies = [
- "chrono",
 ]
 
 [[package]]
