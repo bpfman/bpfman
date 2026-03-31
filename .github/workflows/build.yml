@@ -465,6 +465,18 @@ jobs:
           pattern: bpfman-release-*
           merge-multiple: true
 
+      - name: publish bpfman crate
+        run: cargo publish -p bpfman --token ${{ secrets.BPFMAN_DEV_TOKEN }}
+
+      - name: publish bpfman-api crate
+        run: cargo publish -p bpfman-api --token ${{ secrets.BPFMAN_DEV_TOKEN }}
+
+      - name: publish bpf-log-exporter crate
+        run: cargo publish -p bpf-log-exporter --token ${{ secrets.BPFMAN_DEV_TOKEN }}
+
+      - name: publish bpf-metrics-exporter crate
+        run: cargo publish -p bpf-metrics-exporter --token ${{ secrets.BPFMAN_DEV_TOKEN }}
+
       - name: release
         # Revert softprops/action-gh-release from v2.2.0 to v2.1.0 due to
         # "Error: Request body length does not match content-length header"
@@ -478,18 +490,6 @@ jobs:
             bpfman-linux-arm64.tar.gz
             bpfman-linux-ppc64le.tar.gz
             bpfman-linux-s390x.tar.gz
-
-      - name: publish bpfman crate
-        run: cargo publish -p bpfman --token ${{ secrets.BPFMAN_DEV_TOKEN }}
-
-      - name: publish bpfman-api crate
-        run: cargo publish -p bpfman-api --token ${{ secrets.BPFMAN_DEV_TOKEN }}
-
-      - name: publish bpf-log-exporter crate
-        run: cargo publish -p bpf-log-exporter --token ${{ secrets.BPFMAN_DEV_TOKEN }}
-
-      - name: publish bpf-metrics-exporter crate
-        run: cargo publish -p bpf-metrics-exporter --token ${{ secrets.BPFMAN_DEV_TOKEN }}
 
   build-workflow-complete:
     needs:
