@@ -56,9 +56,9 @@ Our program loader and eBPF filesystem manager ensure the secure deployment of e
 Furthermore, bpfman includes a Kubernetes operator, extending these capabilities to Kubernetes.
 This allows users to confidently deploy eBPF through custom resource definitions across nodes in a cluster.
 
-Here are some links to help in your bpfman journey (all links are from the bpfman website <https://bpfman.io/>):
+Here are some links to help in your bpfman journey (all links are from the bpfman website `https://bpfman.io/`):
 
-- [Welcome to bpfman](https://bpfman.io/) for overview of bpfman.
+- [Welcome to bpfman](https://bpfman.io/main/) for overview of bpfman.
 - [Quick Start](https://bpfman.io/main/quick-start) for a quick installation of bpfman without having to download or
   build the code from source.
   Good for just getting familiar with bpfman and playing around with it.
@@ -71,7 +71,7 @@ Here are some links to help in your bpfman journey (all links are from the bpfma
   on setting up your development environment and building bpfman.
 - [Example eBPF Programs](https://bpfman.io/main/getting-started/example-bpf/) for some
   examples of eBPF programs written in Go, interacting with `bpfman`.
-- [Deploying the bpfman-operator](https://bpfman.io/main/getting-started/develop-operator/) for details on launching
+- [Deploying the bpfman-operator](https://bpfman.io/main/getting-started/operator-quick-start/) for details on launching
   bpfman in a Kubernetes cluster.
 - [Meet the Community](https://bpfman.io/main/governance/meetings/) for details on community meeting details.
 
