@@ -40,7 +40,7 @@ jobs:
       - name: Deploy Docs (Release Version)
         if: startsWith(github.ref_name, 'v')
         run: |
-          uv run mike deploy --push --update-aliases ${{ github.ref_name }} latest
+          uv run mike deploy --push --update-aliases --alias-type=redirect ${{ github.ref_name }} latest
 
       - name: Deploy Docs (Development Version)
         if: github.ref_name == 'main'
