@@ -1,6 +1,6 @@
 ![bpfman logo](./img/horizontal/color/bpfman-horizontal-color.png) <!-- markdownlint-disable-line first-line-heading -->
 
-_Formerly know as `bpfd`_
+_Formerly known as `bpfd`_
 
 # bpfman: An eBPF Manager
 
