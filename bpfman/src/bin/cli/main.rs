@@ -12,6 +12,7 @@ mod args;
 mod attach;
 mod completions;
 mod detach;
+mod dispatcher;
 mod get;
 mod image;
 mod list;
@@ -38,6 +39,7 @@ impl Commands {
             Commands::Detach(args) => execute_detach(args),
             Commands::List(l) => l.execute(),
             Commands::Get(g) => g.execute(),
+            Commands::Dispatcher(d) => d.execute(),
             Commands::Image(i) => i.execute(),
             Commands::Man(args) => manpage::generate(args),
             Commands::Completions(args) => completions::generate(args),

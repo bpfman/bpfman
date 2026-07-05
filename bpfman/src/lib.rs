@@ -49,6 +49,7 @@ use crate::{
 
 pub mod config;
 mod dispatcher_config;
+pub mod dispatcher_view;
 pub mod errors;
 mod multiprog;
 mod netlink;
@@ -901,7 +902,10 @@ pub(crate) fn init_image_manager() -> Result<ImageManager, BpfmanError> {
     //.expect("failed to initialize image manager")
 }
 
-fn get_dispatcher(id: &DispatcherId, root_db: &Db) -> Result<Option<Dispatcher>, BpfmanError> {
+pub(crate) fn get_dispatcher(
+    id: &DispatcherId,
+    root_db: &Db,
+) -> Result<Option<Dispatcher>, BpfmanError> {
     debug!("Getting dispatcher with id: {:?}", id);
     let dispatcher_id = match id {
         DispatcherId::Xdp(DispatcherInfo(nsid, if_index, _)) => {
@@ -950,7 +954,7 @@ fn get(root_db: &Db, id: &u32) -> Option<Program> {
     }
 }
 
-fn get_multi_attach_links(
+pub(crate) fn get_multi_attach_links(
     root_db: &'_ Db,
     program_type: BpfProgType,
     if_index: Option<u32>,

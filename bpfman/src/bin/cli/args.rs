@@ -8,7 +8,7 @@ use std::{
 };
 
 use bpfman::types::BpfProgType;
-use clap::{ArgGroup, Args, Parser, Subcommand};
+use clap::{ArgGroup, Args, Parser, Subcommand, ValueEnum};
 use hex::FromHex;
 
 #[derive(Parser, Debug)]
@@ -39,6 +39,10 @@ pub(crate) enum Commands {
     /// Get a loaded eBPF program or program attachment link.
     #[command(subcommand)]
     Get(GetSubcommand),
+    /// Inspect XDP/TC dispatcher state (debug).
+    #[command(subcommand)]
+    #[clap(hide = true)]
+    Dispatcher(DispatcherSubcommand),
     /// eBPF Bytecode Image related commands.
     #[command(subcommand)]
     Image(Box<ImageSubCommand>),
@@ -535,6 +539,47 @@ pub(crate) struct GetProgramArgs {
 pub(crate) struct GetLinkArgs {
     /// Required: Link Id to get.
     pub(crate) link_id: u32,
+}
+
+/// Output format for the dispatcher debug commands.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
+pub(crate) enum OutputFormat {
+    Text,
+    Json,
+}
+
+#[derive(Subcommand, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) enum DispatcherSubcommand {
+    /// List all dispatchers.
+    List(DispatcherListArgs),
+    /// Get a single dispatcher by type, nsid and ifindex.
+    Get(DispatcherGetArgs),
+}
+
+#[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) struct DispatcherListArgs {
+    /// Optional: Output format.
+    #[clap(short, long, value_enum, default_value = "text")]
+    pub(crate) output: OutputFormat,
+}
+
+#[derive(Args, Debug)]
+#[command(disable_version_flag = true)]
+pub(crate) struct DispatcherGetArgs {
+    /// Required: Dispatcher type (xdp, tc-ingress, tc-egress).
+    pub(crate) dispatcher_type: String,
+
+    /// Required: Network namespace id.
+    pub(crate) nsid: u64,
+
+    /// Required: Interface index.
+    pub(crate) ifindex: u32,
+
+    /// Optional: Output format.
+    #[clap(short, long, value_enum, default_value = "text")]
+    pub(crate) output: OutputFormat,
 }
 
 #[derive(Subcommand, Debug)]
