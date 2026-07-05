@@ -27,7 +27,11 @@ fn execute_dispatcher_list(args: &DispatcherListArgs) -> anyhow::Result<()> {
         list_dispatcher_snapshots(&root_db).map_err(|e| anyhow!("dispatcher list error: {e}"))?;
 
     match args.output {
-        OutputFormat::Json => println!("{}", serde_json::to_string_pretty(&summaries)?),
+        // Wrap in a "dispatchers" object to match the Go CLI's list JSON.
+        OutputFormat::Json => println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({ "dispatchers": summaries }))?
+        ),
         OutputFormat::Text => print_summary_table(&summaries),
     }
     Ok(())

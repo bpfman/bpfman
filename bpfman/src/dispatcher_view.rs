@@ -70,6 +70,10 @@ pub struct DispatcherMember {
     pub position: Option<usize>,
     pub priority: i32,
     pub proceed_on: u32,
+    pub ifname: String,
+    /// User link labels applied at attach time. A BTreeMap so the
+    /// serialised order is deterministic for diffing.
+    pub metadata: BTreeMap<String, String>,
 }
 
 /// A full dispatcher view including its members.
@@ -175,7 +179,8 @@ fn snapshot_from_dispatcher(
     root_db: &Db,
     dispatcher: &Dispatcher,
 ) -> Result<DispatcherSnapshot, BpfmanError> {
-    let (key, revision, runtime, program_type, ifindex, direction, nsid) = match dispatcher {
+    let (key, revision, runtime, program_type, ifindex, direction, nsid, ifname) = match dispatcher
+    {
         Dispatcher::Xdp(d) => {
             let nsid = d.get_nsid()?;
             let ifindex = d.get_ifindex()?;
@@ -199,6 +204,7 @@ fn snapshot_from_dispatcher(
                 ifindex,
                 None,
                 nsid,
+                d.get_ifname()?,
             )
         }
         Dispatcher::Tc(d) => {
@@ -233,6 +239,7 @@ fn snapshot_from_dispatcher(
                 ifindex,
                 Some(direction),
                 nsid,
+                d.get_ifname()?,
             )
         }
     };
@@ -255,6 +262,8 @@ fn snapshot_from_dispatcher(
             position: link.get_current_position()?,
             priority,
             proceed_on,
+            ifname: ifname.clone(),
+            metadata: link.get_metadata()?.into_iter().collect(),
         });
     }
 
