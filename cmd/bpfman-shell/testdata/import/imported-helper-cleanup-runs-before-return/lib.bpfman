@@ -1,0 +1,6 @@
+def mk() {
+  guard wd <- tempdir probe
+  let path = $wd.path
+  defer exec rm -rf $path
+  return $wd
+}

@@ -1,0 +1,6 @@
+err_text: "1 defer(s) failed"
+stdout_lines:
+  - before-exit
+stderr_contains:
+  - "__definitely_not_a_real_command_2027__: command not found"
+defer_failures: 1

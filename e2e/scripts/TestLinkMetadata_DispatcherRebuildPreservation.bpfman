@@ -1,0 +1,44 @@
+# -*- mode: bpfman -*-
+#
+# Given: an XDP dispatcher whose first member already carries link
+# metadata
+#
+# When: a second member is attached, rebuilding the dispatcher and
+# re-inserting every member row
+#
+# Then: the rebuild preserves the first member's metadata and stores the
+# new member's separately, exercising the snapshot read-carry-write path
+# the simple and TCX attach paths lack
+
+import ../lib.bpfman
+
+guard pair <- net veth-pair
+defer net release $pair
+require_host_route_to_peer $pair
+
+# First member, labelled owner=alpha.
+guard loadedA <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs xdp:pass
+let progA = $loadedA.programs[0]
+defer bpfman program unload $progA.record.program_id
+
+guard linkA <- bpfman link attach xdp $progA $pair.host_link --priority 10 -m owner=alpha
+let linkAID = $linkA.record.id
+assert $linkA.record.metadata.owner == alpha
+
+# Second member, labelled owner=beta -- triggers a full dispatcher
+# rebuild that re-inserts link A's row.
+guard loadedB <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs xdp:pass
+let progB = $loadedB.programs[0]
+defer bpfman program unload $progB.record.program_id
+
+guard linkB <- bpfman link attach xdp $progB $pair.host_link --priority 20 -m owner=beta
+let linkBID = $linkB.record.id
+assert $linkB.record.metadata.owner == beta
+
+# The rebuild must have preserved the existing member's metadata, and
+# the new member must carry its own -- both verified via a fresh get.
+guard gotA <- bpfman link get $linkAID
+assert $gotA.record.metadata.owner == alpha
+
+guard gotB <- bpfman link get $linkBID
+assert $gotB.record.metadata.owner == beta

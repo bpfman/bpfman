@@ -1,0 +1,100 @@
+# -*- mode: bpfman -*-
+#pragma labels={"serial":"true","program":"tc","shared-map":"true"}
+#
+# Given: two TC programs loaded from bytecode whose map is
+# LIBBPF_PIN_BY_NAME, both attached to one dispatcher
+#
+# When: traffic crosses the dispatcher
+#
+# Then: the programs keep distinct ids but share one kernel map,
+# observing the same packet counter through both pins
+#
+# tc_stats_map is LIBBPF_PIN_BY_NAME, so concurrent runs of this script
+# would share a single kernel-global pin and stomp on each other's
+# counters -- hence the serial marker.
+#
+# tc_counter_pinned.bpf.o declares its tc_stats_map with
+# LIBBPF_PIN_BY_NAME, so two separate program loads must share one
+# underlying kernel map -- the canonical "same name, same pin" sharing
+# convention aya/Rust-bpfman established. The script:
+#
+#   1. Loads the bytecode twice; programs must have distinct kernel IDs
+#      but their tc_stats_map entries must reference the same kernel
+#      map ID.
+#   2. Attaches both with proceed-on ok,pipe,dispatcher_return so the
+#      dispatcher executes each one.
+#   3. Sends 20 pings.
+#   4. Detaches both links to freeze the counter, then dumps each
+#      program's per-program pin and asserts the counts match exactly
+#      (writes via either pin must be visible through both).
+#   5. Asserts the shared pin path exists in bpffs while at least one
+#      program is loaded.
+#
+# Deliberate scope reduction: the Go test also asserts the shared pin
+# disappears after the last user unloads. That absence-after-cleanup
+# half is not portable to parallel script execution -- other
+# concurrently-running scripts may load the same bytecode and
+# legitimately keep the shared pin alive -- so it stays in the Go test
+# as a global property. The existence half here captures the sharing
+# semantics.
+
+import ../lib.bpfman
+
+guard pair <- net veth-pair
+defer net release $pair
+require_host_route_to_peer $pair
+
+guard loaded_a <- bpfman program load file testdata/bpf/tc_counter_pinned.bpf.o --programs tc:stats
+guard loaded_b <- bpfman program load file testdata/bpf/tc_counter_pinned.bpf.o --programs tc:stats
+
+let prog_a = $loaded_a.programs[0]
+let prog_b = $loaded_b.programs[0]
+let pid_a = $prog_a.record.program_id
+let pid_b = $prog_b.record.program_id
+defer bpfman program unload $prog_a
+defer bpfman program unload $prog_b
+
+# Distinct program IDs (separate program loads).
+assert $pid_a != $pid_b
+
+# tc_stats_map kernel map ID: same value for both programs
+# proves the map is shared, not duplicated.
+let mapID_a = $prog_a |> jq '[.status.maps[] | select(.name == "tc_stats_map") | .id][0]'
+let mapID_b = $prog_b |> jq '[.status.maps[] | select(.name == "tc_stats_map") | .id][0]'
+assert $mapID_a == $mapID_b
+
+# Both links are detached explicitly mid-script (to freeze the
+# counter before reading), so no defers are registered for
+# them. A failure between the attach and the explicit detach
+# would leak the links until the next test that flushes them;
+# the trade-off is unavoidable without a defer-cancellation
+# primitive.
+guard l_a <- bpfman link attach tc $prog_a $pair.host_link ingress --priority 100 --proceed-on ok,pipe,dispatcher_return
+guard l_b <- bpfman link attach tc $prog_b $pair.host_link ingress --priority 200 --proceed-on ok,pipe,dispatcher_return
+
+# The shared pin lives under the active runtime root, not a hard-coded
+# default. While at least one program is loaded the pin must exist.
+let runtime_base = $prog_a.record.handles.pin_path |> jq 'split("/fs/")[0]'
+let shared_pin = "${runtime_base}/fs/shared/tc_stats_map"
+assert path-exists $shared_pin
+
+guard _ <- net exec $pair ping -c 20 -i 0.05 -W 1 $pair.host_addr
+
+# Detach before dumping so the per-CPU counter is frozen.
+# Reading a live counter twice would race in-flight packets
+# (ARP, NAPI batching) and produce different totals through
+# the two pins even though they reference the same kernel map.
+bpfman link detach $l_a
+bpfman link detach $l_b
+
+let sumFilter = "fromjson | [.[].formatted.values[].value.rx_packets | tonumber] | add"
+guard dump_a <- bpftool map dump id $mapID_a -j
+guard dump_b <- bpftool map dump id $mapID_b -j
+let count_a = $dump_a.stdout |> jq $sumFilter
+let count_b = $dump_b.stdout |> jq $sumFilter
+
+
+# Both pins reference the same kernel map, so writes via
+# either must be observable through both.
+assert $count_a > 0
+assert $count_a == $count_b

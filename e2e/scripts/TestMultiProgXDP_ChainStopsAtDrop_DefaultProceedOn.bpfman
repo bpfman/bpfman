@@ -1,0 +1,77 @@
+# -*- mode: bpfman -*-
+#
+# Given: three XDP programs attached where the middle member returns
+# DROP under the default proceed-on mask
+#
+# When: a packet wave crosses the dispatcher chain
+#
+# Then: the chain stops at the DROP member, later counters remain zero,
+# and ping loss is the expected verdict
+
+import ../lib.bpfman
+
+let n = 5
+let weight_a = 41
+let weight_b = 42
+let weight_c = 43
+
+guard pair <- net veth-pair
+defer net release $pair
+require_host_route_to_peer $pair
+
+# Warmup ping to populate the ARP caches both ways before any
+# BPF programs attach. The ChainStopsAtDrop variant drops ARP
+# along with everything else, so without prepopulation the
+# script's pings would never resolve A's MAC and the BPF
+# programs would never see the ICMP requests.
+guard _ <- net exec $pair ping -c 1 -W 1 $pair.host_addr
+
+
+guard loaded <- bpfman program load file testdata/bpf/multi_prog_xdp_chain_stops_at_drop.bpf.o --programs xdp:mxdp_chain_a,xdp:mxdp_chain_b,xdp:mxdp_chain_c -g "weight_a=0x${u64le $weight_a}" -g "weight_b=0x${u64le $weight_b}" -g "weight_c=0x${u64le $weight_c}"
+
+let a = $loaded.programs[0]
+let b = $loaded.programs[1]
+let c = $loaded.programs[2]
+
+defer bpfman program unload $a
+defer bpfman program unload $b
+defer bpfman program unload $c
+
+let mapID_a = $a |> jq '[.status.maps[] | select(.name == "mxda_count") | .id][0]'
+let mapID_b = $b |> jq '[.status.maps[] | select(.name == "mxdb_count") | .id][0]'
+let mapID_c = $c |> jq '[.status.maps[] | select(.name == "mxdc_count") | .id][0]'
+
+guard link_a <- bpfman link attach xdp $a $pair.host_link --priority 50
+guard link_b <- bpfman link attach xdp $b $pair.host_link --priority 60
+guard link_c <- bpfman link attach xdp $c $pair.host_link --priority 70
+
+let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+# Send N pings and discard the rc; b returns XDP_DROP so the
+# kernel never replies and ping reports 100% loss. The XDP
+# counters still advance for every program that ran.
+let _ <- net exec $pair ping -c $n -i 0.05 -W 1 $pair.host_addr
+
+guard dump_a <- bpftool map dump id $mapID_a -j
+guard dump_b <- bpftool map dump id $mapID_b -j
+guard dump_c <- bpftool map dump id $mapID_c -j
+
+let count_a = $dump_a.stdout |> jq $counter_filter
+let count_b = $dump_b.stdout |> jq $counter_filter
+let count_c = $dump_c.stdout |> jq $counter_filter
+
+let want_a = $n * $weight_a
+let want_b = $n * $weight_b
+let want_c = 0
+
+print "a: got=${count_a} want=${want_a}  (ran, returned PASS)"
+print "b: got=${count_b} want=${want_b}  (ran, returned DROP)"
+print "c: got=${count_c} want=${want_c}    (never ran)"
+
+assert $count_a == $want_a
+assert $count_b == $want_b
+assert $count_c == $want_c
+
+bpfman link detach $link_a
+bpfman link detach $link_b
+bpfman link detach $link_c

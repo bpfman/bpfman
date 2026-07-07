@@ -1,0 +1,3 @@
+# csi-sanity is built entirely from a remote Go module
+# (`go install <module>@<version>`); the local context is unused.
+*

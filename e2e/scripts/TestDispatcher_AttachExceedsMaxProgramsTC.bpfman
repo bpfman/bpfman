@@ -1,0 +1,32 @@
+# -*- mode: bpfman -*-
+#
+# Given: a TC dispatcher with all ten ingress slots filled
+#
+# When: an eleventh program is attached to the same ingress hook
+#
+# Then: the extra attach fails with a clear no-free-slots error instead
+# of corrupting the dispatcher state
+
+guard pair <- net veth-pair
+defer net release $pair
+
+guard loaded <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let prog = $loaded.programs[0]
+defer bpfman program unload $prog
+
+# Fill all ten slots at ascending priorities 100..1000.
+let priorities = [100 200 300 400 500 600 700 800 900 1000]
+
+guard links <- foreach prio in $priorities {
+    bpfman link attach tc $prog $pair.host_link ingress --priority $prio
+}
+
+foreach l in $links {
+    defer bpfman link detach $l
+}
+
+# Eleventh attach must fail. `let <-` keeps the outcome inspectable
+# even though the attach never produced a Link.
+let rc <- bpfman link attach tc $prog $pair.host_link ingress --priority 1100
+assert not $rc.ok
+assert contains $rc.stderr "no free dispatcher slots"

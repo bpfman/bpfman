@@ -1,0 +1,11 @@
+err_is: silent
+stdout_lines: []
+stdout_not_contains:
+  - inside-after
+  - after
+stderr_contains:
+  - "{lib}:3:"
+  - "[require] FAIL: expected $snap.status.last_error to be present"
+stderr_not_contains:
+  - "{main}:2:"
+  - "{main}:3:"

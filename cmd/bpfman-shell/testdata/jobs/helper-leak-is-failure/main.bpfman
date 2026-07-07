@@ -1,0 +1,3 @@
+import ./lib.bpfman
+let _ <- spawn
+print after-launch

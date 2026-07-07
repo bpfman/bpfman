@@ -1,0 +1,109 @@
+# -*- mode: bpfman -*-
+#pragma labels={"exclusive":"true","operation":"delete","shared-map":"true"}
+#
+# Given: an owner/dependant pair sharing a real kernel map set
+#
+# When: program delete runs owner-first, recursively, and with --all
+#
+# Then: every delete order preserves the map set while a dependant still
+# needs it
+#
+# Exercises bpfman program delete --all, which mutates global bpfman
+# state and cannot run beside other scripts.
+#
+# This is the real-kernel counterpart to manager/delete_test.go: those
+# tests prove the ordering logic against a fake kernel and a real
+# SQLite store; this drives the real CLI -> daemon -> kernel with a
+# genuinely shared map. In each block, load a counter program (the
+# owner), then load the same program again with --map-owner-id pointing
+# at the owner (the dependant). The dependant reuses the owner's pinned
+# maps, so record.handles.map_owner_id == owner. The owner program row
+# may be deleted while a dependant survives, because dependants
+# reference the durable map set, not the owner row.
+
+import ../lib.bpfman
+
+print "PROOF: shared-map program delete lifetime (owner-first / dependant-first / recursive / --all)"
+
+# ----------------------------------------------------------------------
+# Block A -- a non-recursive single-target delete of an owner with a
+# surviving dependant succeeds, leaves the dependant and map set alive,
+# then deleting the dependant reclaims the set.
+# ----------------------------------------------------------------------
+
+guard ownerA <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats -m role=owner
+let progOwnerA = $ownerA.programs[0]
+let oA = $progOwnerA.record.program_id
+expect_program_load $progOwnerA tcx schedcls tcx_stats
+
+guard depA <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oA -m role=dependent
+let dA = $depA.programs[0].record.program_id
+
+# If the dependant does not actually share the owner's maps the rest of
+# this script proves nothing, so assert the relationship up front.
+assert $depA.programs[0].record.handles.map_owner_id == $oA
+print "A: loaded owner=${oA}, dependant=${dA} sharing its maps"
+
+# Safety rail: deleting only the owner, non-recursively, must leave the
+# dependant alive and still pointing at the owner's map set.
+bpfman program delete $oA
+assert fail bpfman program get $oA
+guard survivedDepA <- bpfman program get $dA
+assert $survivedDepA.record.handles.map_owner_id == $oA
+assert $survivedDepA matches {
+    status.map_used_by: [$dA]
+}
+print "A: non-recursive delete of owner ${oA} left dependant ${dA} alive"
+
+bpfman program delete $dA
+assert fail bpfman program get $dA
+print "A: dependant ${dA} deleted after owner; map set reclaimed"
+
+# ----------------------------------------------------------------------
+# Block B -- explicit dependant-first batch, non-recursive: same result
+# as owner-first (order independence).
+# ----------------------------------------------------------------------
+
+guard ownerB <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats
+let oB = $ownerB.programs[0].record.program_id
+guard depB <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oB
+let dB = $depB.programs[0].record.program_id
+assert $depB.programs[0].record.handles.map_owner_id == $oB
+
+bpfman program delete $dB $oB
+assert fail bpfman program get $oB
+assert fail bpfman program get $dB
+print "B: dependant-first batch deleted ${oB} and ${dB}"
+
+# ----------------------------------------------------------------------
+# Block C -- recursive delete from the owner expands to the unnamed
+# dependant and removes both.
+# ----------------------------------------------------------------------
+
+guard ownerC <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats
+let oC = $ownerC.programs[0].record.program_id
+guard depC <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oC
+let dC = $depC.programs[0].record.program_id
+assert $depC.programs[0].record.handles.map_owner_id == $oC
+
+bpfman program delete $oC -r
+assert fail bpfman program get $oC
+assert fail bpfman program get $dC
+print "C: recursive delete of ${oC} removed unnamed dependant ${dC}"
+
+# ----------------------------------------------------------------------
+# Block D -- --all expands across the whole set and clears the store.
+# ----------------------------------------------------------------------
+
+guard ownerD <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats
+let oD = $ownerD.programs[0].record.program_id
+guard depD <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oD
+let dD = $depD.programs[0].record.program_id
+assert $depD.programs[0].record.handles.map_owner_id == $oD
+
+bpfman program delete --all
+guard listedD <- bpfman program list -o json
+let remaining = $listedD |> jq "[.programs[]] | length"
+assert $remaining == 0
+print "D: --all cleared the store; remaining=${remaining}"
+print "PROOF complete: shared-map lifetime holds for owner-first, dependant-first, recursive, and --all"

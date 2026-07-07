@@ -1,0 +1,35 @@
+# -*- mode: bpfman -*-
+#
+# Given: program declarations that intentionally contradict their ELF
+# section type
+#
+# When: each declaration is loaded
+#
+# Then: load rejects the real mismatches before the verifier or attach
+# behaviour can mislabel the program
+
+let asKprobe <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs kprobe:pass
+assert not $asKprobe.ok
+assert contains $asKprobe.stderr "program type mismatch"
+
+# kprobe section function declared as xdp: would otherwise reach the
+# kernel and fail with a cryptic "not a pointer to context" verifier
+# error.
+let asXdp <- bpfman program load file testdata/bpf/kprobe_counter.bpf.o --programs xdp:kprobe_counter
+assert not $asXdp.ok
+assert contains $asXdp.stderr "program type mismatch"
+
+# uprobe section function declared as kprobe: same kernel type, but the
+# section encodes distinct intent, so this is a cross-family mismatch.
+let asProbe <- bpfman program load file testdata/bpf/uprobe_counter.bpf.o --programs kprobe:uprobe_counter
+assert not $asProbe.ok
+assert contains $asProbe.stderr "program type mismatch"
+
+# Controls: legitimate interchanges within a family must still load.
+# tcx objects are compiled with the classifier SEC (infers tc).
+guard tcx <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats
+defer bpfman program unload $tcx.programs[0]
+
+# kprobe section loaded as kretprobe: entry vs return is set at attach.
+guard kret <- bpfman program load file testdata/bpf/kprobe_counter.bpf.o --programs kretprobe:kprobe_counter
+defer bpfman program unload $kret.programs[0]

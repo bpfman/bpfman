@@ -1,0 +1,4 @@
+import ./lib.bpfman
+let rc <- exec false
+check $rc
+print after

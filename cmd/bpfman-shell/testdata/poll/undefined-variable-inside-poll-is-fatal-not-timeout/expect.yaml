@@ -1,0 +1,9 @@
+err_is: silent
+stdout_not_contains:
+  - before
+  - after
+stderr_contains:
+  - "{main}:3:"
+  - "undefined variable: missing"
+stderr_not_contains:
+  - "[poll] FAIL"

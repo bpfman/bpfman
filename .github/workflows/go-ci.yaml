@@ -1,0 +1,209 @@
+name: CI
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["*"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Each docker-using job is a thin shell over a `make ci-*`
+# target -- the same recipe a developer runs locally via
+# `make ci`. CI_BUILDX_CACHE wires the buildkit layer cache
+# into GHA cache; the cache scope is shared across all jobs
+# (and with test.yaml) so the dnf install layer warms once and
+# everyone reuses it.
+env:
+  CI_BUILDX_CACHE: --cache-from type=gha,scope=ci --cache-to type=gha,mode=max,scope=ci
+
+jobs:
+  check-vendor:
+    name: Check go.mod and vendor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read Go version from Makefile
+        run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - run: make ci-check-vendor
+
+  check-fmt:
+    name: Check Go formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read Go version from Makefile
+        run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - run: make ci-check-fmt
+
+  check-goimports:
+    name: Check Go imports
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read Go version from Makefile
+        run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+
+      - run: make ci-check-goimports
+
+  check-vet:
+    name: Check go vet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - run: make ci-check-vet
+
+  check-gofix:
+    name: Check go fix modernisers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - run: make ci-check-gofix
+
+  check-bpfman-shell-fmt:
+    name: Check .bpfman formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - run: make ci-check-bpfman-shell-fmt
+
+  build:
+    name: Build bpfman (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - run: make ci-build
+
+  tests:
+    uses: ./.github/workflows/go-test.yaml
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - run: make ci-lint
+
+  # Additional nix-backed sweep: build the flake package and run the
+  # full `make lint` via the devshell, which pins checkmake,
+  # shellcheck, hadolint, and golangci-lint. This complements the
+  # primary `lint` job above rather than replacing it: the existing
+  # golangci-lint-action stays the canonical Go-lint gate with its
+  # own PR annotations; this job catches Make, shell, and Dockerfile
+  # regressions and verifies `nix build .` still produces a working
+  # binary.
+  #
+  # BPF objects are built fresh by `make lint` -- the nix devshell
+  # supplies clang, libbpf, and kernel headers, so there's no
+  # special seeding step. The compile is cheap (~1-2s) and skipping
+  # the magic keeps the workflow honest about what it actually does.
+  nix:
+    name: Nix lint and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Build flake package
+        run: nix build .
+
+      - name: Smoke-test the binary
+        run: |
+          file result/bin/bpfman
+          ./result/bin/bpfman version
+
+      - name: Run lint
+        run: nix develop --command make lint
+
+  test-bpfman-ns-qemu:
+    name: Test bpfman-ns QEMU (${{ matrix.goarch }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goarch: ppc64le
+            pkgs: gcc-powerpc64le-linux-gnu libc6-dev-ppc64el-cross qemu-user-binfmt
+          - goarch: s390x
+            pkgs: gcc-s390x-linux-gnu libc6-dev-s390x-cross qemu-user-binfmt
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Read Go version from Makefile
+        run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install cross-compilation toolchain
+        # Retries on transient mirror failures -- the Ubuntu
+        # ports mirror has been intermittently unreachable from
+        # GitHub-hosted runners and a single blip otherwise
+        # kills the whole matrix.
+        run: |
+          retry() {
+            for delay in 10 20 30; do
+              "$@" && return 0
+              echo "::warning::$* failed, retrying in ${delay}s"
+              sleep "$delay"
+            done
+            "$@"
+          }
+          retry sudo apt-get update
+          retry sudo apt-get install -y ${{ matrix.pkgs }}
+
+      - name: Run bpfman-ns transport tests
+        run: make test-bpfman-ns-${{ matrix.goarch }}
+
+  ci-complete:
+    name: CI complete
+    needs: [check-vendor, check-fmt, check-goimports, check-vet, check-gofix, check-bpfman-shell-fmt, build, tests, lint, nix, test-bpfman-ns-qemu]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check results
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            echo "Some checks failed"
+            exit 1
+          fi
+          echo "All checks passed"

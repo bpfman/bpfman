@@ -1,0 +1,4 @@
+guard p <- start sleep 60
+defer kill $p
+let rc <- __definitely_not_a_real_command_2026__ $p
+print unreachable

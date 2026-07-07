@@ -1,0 +1,9 @@
+stdout_lines:
+  - ready
+  - after
+stderr_contains:
+  - "poll attempt"
+  - "poll retry"
+  - "poll success"
+stderr_not_contains:
+  - "[poll] FAIL"

@@ -1,0 +1,7 @@
+def helper() {
+  break
+}
+
+foreach x in [1] {
+  helper
+}

@@ -1,0 +1,61 @@
+# -*- mode: bpfman -*-
+#
+# Given: an interface that exists only inside a requested network
+# namespace
+#
+# When: XDP, TC, and TCX programs are attached to that interface
+#
+# Then: bpfman resolves the interface from inside the namespace and
+# returns the expected link records
+
+guard pair <- net veth-pair
+defer net release $pair
+
+let netns = "/var/run/netns/${pair.ns}"
+print "attaching to peer-only interface ${pair.peer_link} in netns ${netns}"
+
+guard xdpLoaded <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs xdp:pass
+let xdpProg = $xdpLoaded.programs[0]
+let xdpPID = $xdpProg.record.program_id
+defer bpfman program unload $xdpPID
+
+guard tcLoaded <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let tcProg = $tcLoaded.programs[0]
+let tcPID = $tcProg.record.program_id
+defer bpfman program unload $tcPID
+
+guard tcxLoaded <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats
+let tcxProg = $tcxLoaded.programs[0]
+let tcxPID = $tcxProg.record.program_id
+defer bpfman program unload $tcxPID
+
+guard xdpLink <- bpfman link attach xdp $xdpProg $pair.peer_link --priority 50 --netns $netns
+defer bpfman link detach $xdpLink
+
+print "xdp attach resolved ${pair.peer_link} through ${netns}"
+assert $xdpLink.record.kind == xdp
+assert $xdpLink.record.program_id == $xdpPID
+assert $xdpLink.record.details.interface == $pair.peer_link
+assert $xdpLink.status.kernel_seen
+
+guard tcLink <- bpfman link attach tc $tcProg $pair.peer_link ingress --priority 50 --netns $netns
+defer bpfman link detach $tcLink
+
+print "tc attach resolved ${pair.peer_link} through ${netns}"
+assert $tcLink.record.kind == tc
+assert $tcLink.record.program_id == $tcPID
+assert $tcLink.record.details.interface == $pair.peer_link
+assert $tcLink.record.details.direction == ingress
+assert $tcLink.record.details.priority == 50
+assert $tcLink.status.kernel_seen
+
+guard tcxLink <- bpfman link attach tcx $tcxProg $pair.peer_link ingress --priority 60 --netns $netns
+defer bpfman link detach $tcxLink
+
+print "tcx attach resolved ${pair.peer_link} through ${netns}"
+assert $tcxLink.record.kind == tcx
+assert $tcxLink.record.program_id == $tcxPID
+assert $tcxLink.record.details.interface == $pair.peer_link
+assert $tcxLink.record.details.direction == ingress
+assert $tcxLink.record.details.priority == 60
+assert $tcxLink.status.kernel_seen

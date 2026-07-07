@@ -1,0 +1,4 @@
+stdout_lines:
+  - ok
+stderr_not_contains:
+  - FAIL

@@ -1,0 +1,17 @@
+guard d <- tempdir predicate-workflow
+defer exec rm -rf $d.path
+
+let present = "${d.path}/payload.txt"
+let absent = "${d.path}/absent.txt"
+
+require not path-exists $absent
+
+exec sh -c "printf ready-for-checks > '${present}'"
+
+require path-exists $present
+let rc <- exec cat $present
+require not-empty $rc.stdout
+assert contains $rc.stdout "ready"
+assert not (contains $rc.stdout "missing")
+
+print predicate-workflow-ok

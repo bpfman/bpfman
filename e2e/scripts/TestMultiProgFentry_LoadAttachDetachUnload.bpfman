@@ -1,0 +1,77 @@
+# -*- mode: bpfman -*-
+#
+# Given: three fentry programs attached to one leased kfunc slot
+#
+# When: the slot is fired once per event, then every program is detached
+# and unloaded
+#
+# Then: each private counter records the exact event count and no
+# program remains loaded
+
+import ../lib.bpfman
+
+let n = 5
+let weight_a = 41
+let weight_b = 42
+let weight_c = 43
+
+guard fn <- kfunc acquire
+defer kfunc release $fn
+
+# Load three fentry programs. Each --programs spec is a 3-tuple
+# TYPE:NAME:ATTACH_FUNC because fentry/fexit encode the target
+# function at load time (no separate --fn-name on attach).
+guard loaded <- bpfman program load file testdata/bpf/multi_prog_fentry_kmod_counter.bpf.o --programs "fentry:mfe_a:${fn.name},fentry:mfe_b:${fn.name},fentry:mfe_c:${fn.name}" -g "weight_a=0x${u64le $weight_a}" -g "weight_b=0x${u64le $weight_b}" -g "weight_c=0x${u64le $weight_c}"
+
+let a = $loaded.programs[0]
+let b = $loaded.programs[1]
+let c = $loaded.programs[2]
+
+# Defer cleanup the moment we have the handles so a mid-script
+# failure does not leak.
+defer bpfman program unload $a
+defer bpfman program unload $b
+defer bpfman program unload $c
+
+# Map IDs come straight off each program's load result; no extra
+# `bpfman program get` round-trips needed.
+let mapID_a = $a |> jq '[.status.maps[] | select(.name == "mfe_a_count") | .id][0]'
+let mapID_b = $b |> jq '[.status.maps[] | select(.name == "mfe_b_count") | .id][0]'
+let mapID_c = $c |> jq '[.status.maps[] | select(.name == "mfe_c_count") | .id][0]'
+
+# Attach each program. Fentry attaches need no extra args -- the
+# target function was set at load time as part of the program spec.
+guard link_a <- bpfman link attach fentry $a
+guard link_b <- bpfman link attach fentry $b
+guard link_c <- bpfman link attach fentry $c
+
+let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+# Fire one wave with a, b, and c all attached.
+kfunc fire $fn $n
+
+# Read counters and assert exactness.
+guard dump_a <- bpftool map dump id $mapID_a -j
+guard dump_b <- bpftool map dump id $mapID_b -j
+guard dump_c <- bpftool map dump id $mapID_c -j
+
+let count_a = $dump_a.stdout |> jq $counter_filter
+let count_b = $dump_b.stdout |> jq $counter_filter
+let count_c = $dump_c.stdout |> jq $counter_filter
+
+let want_a = $n * $weight_a
+let want_b = $n * $weight_b
+let want_c = $n * $weight_c
+
+print "a: got=${count_a} want=${want_a}"
+print "b: got=${count_b} want=${want_b}"
+print "c: got=${count_c} want=${want_c}"
+
+assert $count_a == $want_a
+assert $count_b == $want_b
+assert $count_c == $want_c
+
+# Detach explicitly before the deferred program-unloads fire.
+bpfman link detach $link_c
+bpfman link detach $link_b
+bpfman link detach $link_a

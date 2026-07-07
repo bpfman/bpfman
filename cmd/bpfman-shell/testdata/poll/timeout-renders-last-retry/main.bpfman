@@ -1,0 +1,5 @@
+print before
+poll timeout 20ms every 1ms {
+  retry "waiting for ack"
+}
+print after

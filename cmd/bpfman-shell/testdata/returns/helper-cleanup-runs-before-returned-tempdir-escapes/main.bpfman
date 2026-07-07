@@ -1,0 +1,10 @@
+def mk() {
+  guard d <- tempdir local-return
+  let path = $d.path
+  defer exec rm -rf $path
+  return $d
+}
+guard d <- mk
+let rc <- exec test -d $d.path
+print $rc.ok
+print $rc.exit_code

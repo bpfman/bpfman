@@ -1,0 +1,9 @@
+stdout_lines:
+  - after
+stderr_contains:
+  - "[assert] FAIL: matches: 3 mismatches"
+  - "left.keep: expected \"1\", got \"2\""
+  - "left.extra: present in value but unclaimed in exhaustive block"
+  - "right.extra: present in value but unclaimed in exhaustive block"
+err_text: "1 assertion(s) failed"
+assert_failures: 1

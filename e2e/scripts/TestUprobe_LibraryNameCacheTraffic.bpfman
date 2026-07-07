@@ -1,0 +1,93 @@
+# -*- mode: bpfman -*-
+#
+# Given: a bare libc uprobe target with no pid, which skips the maps
+# tier (covered by the TestResolveUprobeTarget_TierOrder unit test) and
+# forces resolution through /etc/ld.so.cache
+#
+# When: the target is attached and malloc is fired
+#
+# Then: the link attaches and is kernel-seen wherever the cache parses;
+# where the cache names the process's own mapped libc, firing malloc
+# advances the counter -- a gate that is naturally false on non-FHS
+# hosts (NixOS) with no global cache, where the script skips
+
+import ../lib.bpfman
+
+let calls = 5
+let weight = 11
+
+guard target <- uprobe target
+
+# Bare-name cache resolution reads /etc/ld.so.cache. A non-FHS host
+# has none (see the header), so the cache tier has nothing to
+# resolve and the structural attach below would fail rather than
+# prove anything. Run the exercise only where the cache exists; the
+# tier order is pinned by the TestResolveUprobeTarget_TierOrder unit
+# test.
+if path-exists "/etc/ld.so.cache" {
+    guard loaded <- bpfman program load file \
+        testdata/bpf/uprobe_exact.bpf.o \
+        --programs uprobe:uprobe_counter \
+        -g "expected_pid=0x${u32le $target.pid}" \
+        -g "weight=0x${u64le $weight}"
+    let prog = $loaded.programs[0]
+    let pid = $prog.record.program_id
+    defer bpfman program unload $pid
+
+    # Bare name, no path, no pid: forces the cache tier.
+    guard link <- bpfman link attach uprobe \
+        $prog \
+        libc \
+        --fn-name malloc
+    let linkID = $link.record.id
+
+    # Structural proof: resolution produced an attachable, pinned,
+    # kernel-seen link. This is the portable cache-tier assertion.
+    expect_pinned_link_identity $link
+    assert $link.record.kind == uprobe
+    assert $link.record.details.target == libc
+    assert $link.record.details.fn_name == malloc
+
+    guard gotLink <- bpfman link get $linkID
+    expect_link_get_identity $gotLink $link $linkID
+
+    # Decide whether the behavioural phase can hold: it can only if
+    # the libc this process maps is the one bare-name resolution
+    # lands on. Read the mapped libc path from this process's maps,
+    # then ask whether the cache lists that exact file. If it does,
+    # the linker resolved this binary's libc through the cache, so a
+    # bare libc target resolves to the same file and firing counts.
+    # If it does not (a store-private libc the global cache omits) or
+    # there is no mapped libc (a static binary), the fire cannot
+    # count and the script skips, keying on the cache rather than
+    # naming any distribution.
+    guard mapped <- exec sh -c "awk '/\\/libc[.-]/ && /\\.so/ {print \$6; exit}' /proc/${target.pid}/maps"
+    let mapped_libc = $mapped.stdout
+    print "cache-tier: process maps libc at ${mapped_libc}"
+
+    guard incache <- exec sh -c "test -n '${mapped_libc}' && grep -qaF -- '${mapped_libc}' /etc/ld.so.cache && echo yes || echo no"
+
+    let mapID = $prog |> jq '[.status.maps[] | select(.name == "up_count") | .id][0]'
+    let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+    if $incache.stdout != yes {
+        print "cache-tier: mapped libc is not listed in /etc/ld.so.cache (store-private or static binary); cache resolves a different file. Skipping traffic assertion (structural proof stands; an FHS layout exercises traffic)."
+    } else {
+        guard dumpBefore <- bpftool map dump id $mapID -j
+        let before = $dumpBefore.stdout |> jq $counter_filter
+
+        guard _ <- uprobe fire $calls
+
+        guard dumpAfter <- bpftool map dump id $mapID -j
+        let after = $dumpAfter.stdout |> jq $counter_filter
+        let delta = $after - $before
+        let floor = $calls * $weight
+        print "cache-tier library-name count: got=${delta} floor=${floor}"
+        assert $delta >= $floor
+    }
+
+    bpfman link detach $link
+    assert fail bpfman link get $linkID
+} else {
+    print "cache-tier: no /etc/ld.so.cache on this host (non-FHS, e.g. NixOS); skipping (the TestResolveUprobeTarget_TierOrder unit test covers the tier order)"
+}

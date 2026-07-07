@@ -1,0 +1,108 @@
+# -*- mode: bpfman -*-
+#
+# Given: two processes executing the same uprobe target, with programs
+# attached --pid-scoped to the shell process and to a worker control
+#
+# When: both processes exercise the target
+#
+# Then: the shell-scoped program counts while the worker-scoped control
+# stays zero, proving kernel-level pid filtering
+#
+# A uprobe is file-based, so without --pid every process running the
+# target binary fires it. Two processes execute the same fixture symbol
+# from the same binary: this bpfman-shell process (driven by uprobe
+# fire) and a worker subprocess (driven by the sentinel/ack wave
+# protocol). Two counter programs attach to the symbol, both --pid
+# scoped to the shell process:
+#
+#   - program A carries expected_pid=<shell>, so it counts the shell's
+#     events: the positive control proving the scoped probe still
+#     delivers (count == calls * weight exactly).
+#   - program B carries expected_pid=<worker>. The kernel filter must
+#     drop the worker's events before B ever runs, so B counts exactly
+#     zero. Without the pid filter the worker's events would reach B,
+#     match its expected_pid, and count.
+#
+# The BPF-side expected_pid filter is strict equality, so B's zero
+# cannot be an artefact of B rejecting the worker -- it accepts exactly
+# the worker. Only the kernel-level pid scope keeps B at zero while A
+# counts.
+
+import ../lib.bpfman
+
+let calls = 5
+let workerEvents = 7
+let weight = 11
+
+guard wd <- tempdir uprobe-pid-filter
+defer exec rm -rf $wd.path
+let sentinel = "${wd.path}/sentinel"
+let ack = "${wd.path}/ack"
+
+guard shell_path <- exec sh -c 'p=$(command -v bpfman-shell); printf %s "$p"'
+assert path-exists $shell_path.stdout
+
+guard target <- uprobe target
+
+# The worker is the same binary in fixture mode, in the same
+# namespaces: only its pid differs, which is exactly the axis
+# under test. It sleeps until the sentinel appears.
+guard worker <- start env BPFMAN_SHELL_MODE=uprobe-fire-worker \
+    $shell_path.stdout \
+    $sentinel \
+    $ack \
+    $workerEvents \
+    1
+defer kill $worker
+
+guard loadedA <- bpfman program load file testdata/bpf/uprobe_exact.bpf.o --programs uprobe:uprobe_counter -g "expected_pid=0x${u32le $target.pid}" -g "weight=0x${u64le $weight}"
+let progA = $loadedA.programs[0]
+defer bpfman program unload $progA
+
+guard loadedB <- bpfman program load file testdata/bpf/uprobe_exact.bpf.o --programs uprobe:uprobe_counter -g "expected_pid=0x${u32le $worker.pid}" -g "weight=0x${u64le $weight}"
+let progB = $loadedB.programs[0]
+defer bpfman program unload $progB
+
+guard linkA <- bpfman link attach uprobe $progA $target.path --fn-name $target.symbol --pid $target.pid
+defer bpfman link detach $linkA
+
+guard linkB <- bpfman link attach uprobe $progB $target.path --fn-name $target.symbol --pid $target.pid
+defer bpfman link detach $linkB
+
+# The pid filter is part of the link's identity: the attach
+# response and the get round-trip must both report it, not pid 0.
+assert $linkA.record.details.pid == $target.pid
+guard gotA <- bpfman link get $linkA.record.id
+assert $gotA.record.details.pid == $target.pid
+
+let mapA = $progA |> jq '[.status.maps[] | select(.name == "up_count") | .id][0]'
+let mapB = $progB |> jq '[.status.maps[] | select(.name == "up_count") | .id][0]'
+let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+guard dumpABefore <- bpftool map dump id $mapA -j
+let beforeA = $dumpABefore.stdout |> jq $counter_filter
+guard dumpBBefore <- bpftool map dump id $mapB -j
+let beforeB = $dumpBBefore.stdout |> jq $counter_filter
+
+# Worker fires first, while both probes are live. Its events must
+# be invisible to both: A rejects them in BPF, B never sees them
+# because the kernel filter drops them first.
+guard _ <- exec touch "${sentinel}.1"
+poll timeout 5s every 100ms {
+    await_wave_completion $ack 1
+}
+
+# Then the shell fires its own events through the scoped probe.
+guard _ <- uprobe fire $calls
+
+guard dumpAAfter <- bpftool map dump id $mapA -j
+let afterA = $dumpAAfter.stdout |> jq $counter_filter
+guard dumpBAfter <- bpftool map dump id $mapB -j
+let afterB = $dumpBAfter.stdout |> jq $counter_filter
+
+let deltaA = $afterA - $beforeA
+let deltaB = $afterB - $beforeB
+let wantA = $calls * $weight
+print "pid-filter: scoped-to-self delta=${deltaA} want=${wantA}; scoped-away delta=${deltaB} want=0 (worker fired ${workerEvents})"
+assert $deltaA == $wantA
+assert $deltaB == 0

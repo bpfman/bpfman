@@ -1,0 +1,7 @@
+def helper() {
+  retry "waiting"
+}
+
+print before
+helper
+print after

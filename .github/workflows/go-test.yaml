@@ -1,0 +1,267 @@
+name: Tests
+
+on: # yamllint disable-line rule:truthy
+  workflow_call:
+
+# Each job is a thin shell over a `make ci-*` target. The
+# Makefile recipes are the same ones a developer runs locally
+# via `make ci`, so what passes here is what passes locally and
+# vice versa. CI_BUILDX_CACHE wires the buildkit layer cache
+# into GHA cache; the cache scope is shared across all jobs so
+# the dnf install layer warms once and everyone reuses it.
+
+env:
+  CI_BUILDX_CACHE: --cache-from type=gha,scope=ci --cache-to type=gha,mode=max,scope=ci
+
+jobs:
+  # Unit tests run with RACE=1 only. The race detector only adds
+  # checks; nothing passes under RACE=1 that would fail under RACE=0,
+  # and the no-kernel surface here means the timing-mask argument
+  # that justifies a RACE=0 e2e lane does not apply. The default
+  # `make` build and the test-e2e-scripts RACE=0 lane already
+  # exercise the non-race link path.
+  test:
+    name: Unit tests (${{ matrix.arch }}, RACE=1)
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - run: make ci-test RACE=1
+
+  test-e2e:
+    name: E2E tests (${{ matrix.arch }}, RACE=${{ matrix.race }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        race: [1, 0]
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - name: Install kmod runtime deps
+        run: |
+          retry() {
+            for delay in 10 20 30; do
+              "$@" && return 0
+              echo "::warning::$* failed, retrying in ${delay}s"
+              sleep "$delay"
+            done
+            "$@"
+          }
+          retry sudo apt-get update
+          retry sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            dwarves \
+            kmod \
+            "linux-headers-$(uname -r)"
+      # STRESS_COUNT shrinks to 1 under RACE=1: the race detector
+      # roughly doubles per-test wall time, so a 5x stress on a
+      # RACE=1 lane compounds to ~10x the baseline cost. The
+      # RACE=0 lane keeps the 5x stress to catch flakes that need
+      # repeated iteration; the RACE=1 lane still exercises every
+      # test once with the race detector active, which is the
+      # unique value the lane is paying for.
+      - run: make ci-test-e2e PARALLEL=1 STRESS_COUNT=${{ matrix.race == 1 && '1' || '5' }} RACE=${{ matrix.race }}
+
+  # Parallel-mode canary for the e2e suite. Mirrors test-e2e but
+  # omits the PARALLEL=1 override so go test runs at GOMAXPROCS,
+  # which exercises the suite's intra-binary parallelism (50 of 58
+  # tests opt into t.Parallel()). Race detector is off here by
+  # design -- race+parallelism is its own beast and the existing
+  # test-e2e matrix already gates RACE=1. The lane runs the
+  # production-shaped shared-state path (the suite default), so it
+  # specifically stresses contention there. Blocking from day one:
+  # a regression here is treated as a real failure, not a canary
+  # warning.
+  test-e2e-parallel:
+    name: E2E tests parallel (${{ matrix.arch }}, RACE=0)
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - name: Install kmod runtime deps
+        run: |
+          retry() {
+            for delay in 10 20 30; do
+              "$@" && return 0
+              echo "::warning::$* failed, retrying in ${delay}s"
+              sleep "$delay"
+            done
+            "$@"
+          }
+          retry sudo apt-get update
+          retry sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            dwarves \
+            kmod \
+            "linux-headers-$(uname -r)"
+      - run: make ci-test-e2e STRESS_COUNT=5 RACE=0
+
+  # Parallel gRPC e2e: stands up a real `bpfman serve` subprocess
+  # and fans goroutines through the full
+  # load/get/attach/detach/unload cycle for every program type
+  # concurrently against the daemon. The matrix covers both
+  # architectures and both race-detector states, mirroring the
+  # other e2e lanes. The test spawns its own daemon with its own
+  # tmp suite root regardless. STRESS_COUNT=5 catches flakes that
+  # don't repro on a single run.
+  test-e2e-grpc:
+    name: E2E tests gRPC (${{ matrix.arch }}, RACE=${{ matrix.race }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        race: [1, 0]
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - name: Install kmod runtime deps
+        run: |
+          retry() {
+            for delay in 10 20 30; do
+              "$@" && return 0
+              echo "::warning::$* failed, retrying in ${delay}s"
+              sleep "$delay"
+            done
+            "$@"
+          }
+          retry sudo apt-get update
+          retry sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            dwarves \
+            kmod \
+            "linux-headers-$(uname -r)"
+      # SQLite tuning and the global writer-lock timeout are
+      # widened only on the RACE=1 lane because the race
+      # detector roughly doubles per-transaction wall time. With
+      # N=32 goroutines per program type the writer queue
+      # effectively becomes twice as deep, which pushes the
+      # default 5s busy_timeout + ~1s retry budget below the
+      # threshold needed to absorb the burst, and pushes the
+      # 30s flock-acquire deadline close to the worst-case wait
+      # the gRPC client allows before cancelling. RACE=0 jobs
+      # keep the daemon on its package defaults so the defaults
+      # themselves stay exercised in CI.
+      # STRESS_COUNT shrinks to 1 under RACE=1; see test-e2e
+      # above. The RACE=0 lane keeps the 5x stress to catch
+      # flakes the single-run race lane would miss.
+      - run: make ci-test-e2e-grpc STRESS_COUNT=${{ matrix.race == 1 && '1' || '5' }} RACE=${{ matrix.race }}
+        env:
+          BPFMAN_SQLITE_BUSY_TIMEOUT: ${{ matrix.race == 1 && '30s' || '' }}
+          BPFMAN_SQLITE_TX_RETRY_BACKOFFS: ${{ matrix.race == 1 && '100ms,500ms,2s,8s' || '' }}
+          BPFMAN_LOCK_TIMEOUT: ${{ matrix.race == 1 && '120s' || '' }}
+
+  test-e2e-scripts:
+    name: E2E .bpfman scripts (${{ matrix.arch }}, RACE=${{ matrix.race }}, SOURCE=${{ matrix.bytecode_source }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        race: [1, 0]
+        # Rerun the whole corpus with every `program load file`
+        # brokered through an image build/push/pull cycle
+        # (BPFMAN_E2E_BYTECODE_SOURCE=image). Image mode is heavier
+        # -- a real build and registry round-trip per load -- so
+        # gate it to RACE=0 while still covering both architectures.
+        bytecode_source: [file, image]
+        exclude:
+          - {bytecode_source: image, race: 1}
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Install runtime deps
+        # iproute2 provides ip and tc for veth/netns setup;
+        # iputils-ping drives the packet generation that fires
+        # the TCX/TC/XDP counters. build-essential, dwarves,
+        # linux-headers-$(uname -r), and kmod let the host runner
+        # build, BTF-finalize, load, and unload the e2e kernel
+        # module. apt-get is wrapped in a small retry loop because
+        # Ubuntu's mirrors occasionally drop connections from
+        # GitHub-hosted runners (especially the arm64 lane) and a
+        # single transient blip otherwise fails the whole matrix
+        # run.
+        run: |
+          retry() {
+            for delay in 10 20 30; do
+              "$@" && return 0
+              echo "::warning::$* failed, retrying in ${delay}s"
+              sleep "$delay"
+            done
+            "$@"
+          }
+          retry sudo apt-get update
+          retry sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            dwarves \
+            iproute2 \
+            iputils-ping \
+            kmod \
+            "linux-headers-$(uname -r)"
+
+      - name: Install bpftool
+        # linux-tools-generic ships a working bpftool at
+        # /usr/lib/linux-tools/<ver>-generic/bpftool. Symlink it
+        # directly to /usr/local/bin instead of going through
+        # the /usr/sbin/bpftool wrapper: the wrapper dispatches
+        # on uname -r and Canonical's
+        # linux-tools-<kernel>-azure package ships an empty
+        # tools directory on some Azure runner kernels, so
+        # wrapper-based access is unreliable. The apt-get
+        # install retries on transient mirror failures, same
+        # reasoning as the runtime-deps step above.
+        run: |
+          retry() {
+            for delay in 10 20 30; do
+              "$@" && return 0
+              echo "::warning::$* failed, retrying in ${delay}s"
+              sleep "$delay"
+            done
+            "$@"
+          }
+          retry sudo apt-get install -y --no-install-recommends linux-tools-generic
+          bpf_bin=$(ls /usr/lib/linux-tools/*-generic/bpftool | head -n 1)
+          sudo ln -sf "$bpf_bin" /usr/local/bin/bpftool
+          bpftool version
+
+      # STRESS_COUNT shrinks to 1 under RACE=1; see test-e2e
+      # above for the rationale (race detector roughly doubles
+      # per-test cost, 5x stress compounds to ~10x baseline).
+      - run: make ci-test-e2e-scripts RACE=${{ matrix.race }} STRESS_COUNT=${{ matrix.race == 1 && '1' || '5' }}
+        env:
+          BPFMAN_E2E_BYTECODE_SOURCE: ${{ matrix.bytecode_source }}

@@ -1,0 +1,89 @@
+# -*- mode: bpfman -*-
+#
+# Given: a uprobe attached to a target inside its own mount namespace
+# through the external bpfman CLI, not the in-process dispatcher
+#
+# When: the attach command exits before any traffic fires
+#
+# Then: the bpffs link pin keeps the probe alive -- not the attaching
+# process fd table -- and the private counter advances on later target
+# activity
+
+import ../lib.bpfman
+
+let events = 5
+let weight = 13
+
+guard wd <- tempdir container-uprobe-external
+defer exec rm -rf $wd.path
+let sentinel = "${wd.path}/sentinel"
+let ack = "${wd.path}/ack"
+
+guard shell_path <- exec sh -c 'p=$(command -v bpfman-shell); printf %s "$p"'
+assert path-exists $shell_path.stdout
+
+guard target_info <- uprobe target
+
+guard target <- start unshare -m -- env BPFMAN_SHELL_MODE=uprobe-fire-worker \
+    $shell_path.stdout \
+    $sentinel \
+    $ack \
+    $events \
+    1
+defer kill $target
+
+guard self_ns <- exec readlink /proc/self/ns/mnt
+# unshare switches mount namespace a moment after start forks the
+# child; poll until the target's namespace actually differs instead
+# of racing the readlink against the switch.
+poll timeout 5s every 100ms {
+    let target_ns <- exec readlink "/proc/${target.pid}/ns/mnt"
+    retry "waiting for target mount namespace switch" unless $target_ns.stdout != $self_ns.stdout
+}
+guard target_ns <- exec readlink "/proc/${target.pid}/ns/mnt"
+print "container-uprobe external namespaces: self=${self_ns.stdout} target=${target_ns.stdout}"
+assert $self_ns.stdout != $target_ns.stdout
+
+guard loaded <- bpfman program load file testdata/bpf/uprobe_exact.bpf.o --programs uprobe:uprobe_counter -g "expected_pid=0x${u32le $target.pid}" -g "weight=0x${u64le $weight}"
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $pid
+
+guard attach <- exec bpfman link attach uprobe $pid $shell_path.stdout --fn-name $target_info.symbol --container-pid $target.pid -o json
+let link = $attach.stdout |> jq "fromjson"
+let linkID = $link.record.id
+let kernelLinkID = $link.record.kernel_link_id
+let pinPath = $link.record.pin_path
+defer bpfman link detach $linkID
+
+assert $linkID > 0
+assert not null $kernelLinkID
+assert not null $pinPath
+assert $link.status.kernel_seen
+assert $link.status.pin_present
+assert path-exists $pinPath
+
+guard kernelVisible <- exec sh -c "bpftool link list | grep -q '^${kernelLinkID}:'"
+assert $kernelVisible.exit_code == 0
+
+guard gotLink <- bpfman link get $linkID
+assert $gotLink.record.kernel_link_id == $kernelLinkID
+assert $gotLink.record.pin_path == $pinPath
+
+let mapID = $prog |> jq '[.status.maps[] | select(.name == "up_count") | .id][0]'
+let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+guard dumpBefore <- bpftool map dump id $mapID -j
+let before = $dumpBefore.stdout |> jq $counter_filter
+
+exec touch "${sentinel}.1"
+poll timeout 5s every 100ms {
+    await_wave_completion $ack 1
+}
+
+guard dumpAfter <- bpftool map dump id $mapID -j
+let after = $dumpAfter.stdout |> jq $counter_filter
+let delta = $after - $before
+let want = $events * $weight
+print "container-uprobe external count: got=${delta} want=${want}"
+assert $delta == $want

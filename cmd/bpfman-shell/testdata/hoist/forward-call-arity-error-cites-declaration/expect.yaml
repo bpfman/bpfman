@@ -1,0 +1,8 @@
+err_is: silent
+stdout_not_contains:
+  - unreachable
+stderr_contains:
+  - "{main}:1"
+  - "helper: expected 1 argument(s), got 2 (def declared at 3:5)"
+stderr_not_contains:
+  - "command not found"

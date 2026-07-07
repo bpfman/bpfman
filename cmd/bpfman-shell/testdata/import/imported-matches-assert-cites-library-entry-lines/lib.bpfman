@@ -1,0 +1,7 @@
+def check(rc) {
+  assert $rc matches {
+    ok: true
+    exit_code: 0
+  }
+  print helper-after
+}

@@ -1,0 +1,5 @@
+err_is: silent
+stderr_contains:
+  - "cannot compare string to number"
+stdout_not_contains:
+  - not-reached

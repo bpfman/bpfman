@@ -1,0 +1,5 @@
+let xs = [1]
+foreach x in $xs {
+  print $x
+}
+print $x

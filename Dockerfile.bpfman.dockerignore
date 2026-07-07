@@ -1,0 +1,24 @@
+# In-container cross-build: needs the full source tree (COPY . .)
+# but must not pull in host-built artefacts. A stale host
+# bin/bpfman or dispatcher/*.bpf.o copied into the context would
+# overlap with the in-container build outputs and could mask
+# "didn't rebuild" bugs.
+bin/
+dispatcher/*.bpf.o
+dispatcher/*.bpf.d
+
+# `nix build` symlinks (`result`, `result-bin`, ...). Following them
+# would pull /nix/store closures into the context.
+result*
+
+# Host-side caches. .cache/go-build is created by host `go build`
+# / `go test`; .direnv is the nix-direnv shell cache. Both bloat
+# the build context and can confuse the in-container Go cache.
+.cache/
+.direnv/
+
+# Heavy/irrelevant trees that never need to be in the build context.
+.git/
+.gitignore
+*.md
+build/

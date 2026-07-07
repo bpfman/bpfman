@@ -1,0 +1,5 @@
+def n(x) {
+  assert $x == 1
+}
+n 1
+print not-reached

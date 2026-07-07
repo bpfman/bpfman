@@ -1,0 +1,3 @@
+def let() {
+  print never
+}

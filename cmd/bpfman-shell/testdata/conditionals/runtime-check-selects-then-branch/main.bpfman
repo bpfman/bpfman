@@ -1,0 +1,7 @@
+let passwd <- exec test -f /etc/passwd
+if $passwd.ok {
+  print found
+} else {
+  print missing
+}
+print after

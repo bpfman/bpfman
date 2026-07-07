@@ -1,0 +1,5 @@
+err_is: silent
+stderr_contains:
+  - "quoting asserts string"
+stdout_not_contains:
+  - not-reached

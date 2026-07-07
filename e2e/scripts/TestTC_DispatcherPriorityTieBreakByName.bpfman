@@ -1,0 +1,38 @@
+# -*- mode: bpfman -*-
+#
+# Given: two same-priority TC programs attached in reverse alphabetical
+# order
+#
+# When: the dispatcher sorts the chain
+#
+# Then: program name acts as the secondary key, so alpha precedes beta
+
+guard pair <- net veth-pair
+defer net release $pair
+
+# Load the same bytecode twice under distinct names so the
+# tie-breaker has something to break against. Attach order
+# (beta first, alpha second) deliberately runs counter to the
+# expected position order (alpha < beta) so the assertion
+# proves the sort, not insertion order.
+guard loaded_beta <- bpfman program load file testdata/bpf/tc_pass.bpf.o --programs tc:beta
+guard loaded_alpha <- bpfman program load file testdata/bpf/tc_pass.bpf.o --programs tc:alpha
+
+let prog_beta = $loaded_beta.programs[0]
+let prog_alpha = $loaded_alpha.programs[0]
+defer bpfman program unload $prog_beta
+defer bpfman program unload $prog_alpha
+
+guard l_beta <- bpfman link attach tc $prog_beta $pair.host_link ingress --priority 100
+guard l_alpha <- bpfman link attach tc $prog_alpha $pair.host_link ingress --priority 100
+defer bpfman link detach $l_beta
+defer bpfman link detach $l_alpha
+
+# Re-query each link so position reflects the dispatcher's
+# steady-state ordering after both attaches have committed.
+guard g_alpha <- bpfman link get $l_alpha
+guard g_beta <- bpfman link get $l_beta
+
+assert $g_alpha.record.details.priority == 100
+assert $g_beta.record.details.priority == 100
+assert $g_alpha.record.details.position < $g_beta.record.details.position

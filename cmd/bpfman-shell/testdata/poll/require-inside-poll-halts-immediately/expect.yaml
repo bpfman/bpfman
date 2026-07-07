@@ -1,0 +1,11 @@
+err_is: silent
+stdout_lines:
+  - before
+stdout_not_contains:
+  - after
+stderr_contains:
+  - "{main}:2:"
+  - "[require] FAIL: expected false to be true"
+stderr_not_contains:
+  - "[poll] FAIL"
+

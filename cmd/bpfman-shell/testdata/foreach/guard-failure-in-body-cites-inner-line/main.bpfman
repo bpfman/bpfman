@@ -1,0 +1,7 @@
+print before
+foreach n in [1 2 3] {
+  print $n
+  guard _ <- exec test $n -lt 2
+  print body-ok
+}
+print after

@@ -1,0 +1,95 @@
+# syntax=docker/dockerfile:1.7
+#
+# Cross-compile bpfman on Fedora and package it on ubi9-minimal.
+#
+# The build stage runs on $BUILDPLATFORM and dispatches per
+# TARGETARCH: cross gcc + a foreign-arch sysroot built with
+# `dnf --installroot --forcearch`, plus GOOS/GOARCH for Go (whose
+# compiler is multi-arch internally). This means buildx multi-arch
+# invocations (one Dockerfile pass per TARGETARCH) all run natively
+# on the build host -- no QEMU emulation.
+#
+# Static linkage keeps the binary independent of the runtime image's
+# glibc, so the same artefact runs on ubi9-minimal, scratch, or
+# anything else.
+#
+# Usage via the Make targets:
+#
+#   make build-image-arm64        # single arch, --load
+#   make build-image PLATFORMS=linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
+#                                 # all four, cache-only
+
+ARG FEDORA_VERSION=43
+ARG RUNTIME_IMAGE=registry.fedoraproject.org/fedora-minimal:43
+
+# ---------------------------------------------------------------------------
+# Stage 1: build.
+# ---------------------------------------------------------------------------
+FROM --platform=$BUILDPLATFORM fedora:${FEDORA_VERSION} AS builder
+
+# Canonical Fedora dep list, shared with the host bootstrap path.
+# `dnf clean all` runs after so the image stays lean -- the script
+# itself does not clean because host users typically want the dnf
+# cache for follow-up installs.
+COPY hack/install-fedora-deps.sh /tmp/install-fedora-deps.sh
+RUN bash /tmp/install-fedora-deps.sh \
+  && rm /tmp/install-fedora-deps.sh \
+  && dnf clean all
+
+# Per-target cross gcc + foreign-arch sysroot. The script no-ops on
+# the host arch (amd64) so each platform build only pays for what
+# it actually needs.
+ARG TARGETARCH
+COPY hack/install-cross-sysroot.sh /tmp/install-cross-sysroot.sh
+RUN /tmp/install-cross-sysroot.sh "$TARGETARCH" \
+  && rm /tmp/install-cross-sysroot.sh \
+  && dnf clean all
+
+WORKDIR /src
+COPY . .
+
+ARG GIT_COMMIT=
+ARG GIT_BRANCH=
+ARG GIT_VERSION=
+ARG BUILD_DATE=
+ARG EXTRA_GOFLAGS=
+ARG EXTRA_GO_LDFLAGS=
+ARG IMAGE_REF=
+ARG SIGNER_IDENTITY=
+ARG OIDC_ISSUER=
+ARG STATIC=
+ARG TARGETOS
+ARG TARGETARCH
+
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    set -eux; \
+    case "$TARGETARCH" in \
+        amd64)   CC="gcc"                                                       ;; \
+        arm64)   CC="aarch64-linux-gnu-gcc --sysroot=/sysroots/aarch64"         ;; \
+        ppc64le) CC="powerpc64le-linux-gnu-gcc --sysroot=/sysroots/ppc64le"     ;; \
+        s390x)   CC="s390x-linux-gnu-gcc --sysroot=/sysroots/s390x"             ;; \
+        *) echo "unsupported TARGETARCH=$TARGETARCH" >&2; exit 1 ;; \
+    esac; \
+    export CC CGO_ENABLED=1 GOOS="$TARGETOS" GOARCH="$TARGETARCH"; \
+    make bpfman-compile STAMP=1 STATIC="$STATIC" \
+        GIT_COMMIT="$GIT_COMMIT" \
+        GIT_BRANCH="$GIT_BRANCH" \
+        GIT_VERSION="$GIT_VERSION" \
+        BUILD_DATE="$BUILD_DATE" \
+        EXTRA_GOFLAGS="$EXTRA_GOFLAGS" \
+        EXTRA_GO_LDFLAGS="$EXTRA_GO_LDFLAGS" \
+        IMAGE_REF="$IMAGE_REF" \
+        SIGNER_IDENTITY="$SIGNER_IDENTITY" \
+        OIDC_ISSUER="$OIDC_ISSUER"; \
+    file bin/bpfman
+
+# ---------------------------------------------------------------------------
+# Stage 2: runtime.
+# ---------------------------------------------------------------------------
+# hadolint ignore=DL3006
+FROM ${RUNTIME_IMAGE}
+
+COPY --from=builder /src/bin/bpfman /bpfman
+
+ENTRYPOINT ["/bpfman"]

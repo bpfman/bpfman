@@ -1,0 +1,240 @@
+# -*- mode: bpfman -*-
+# e2e/lib.bpfman
+#
+# Shared helpers for the Test*_LoadAttachDetachUnload .bpfman scripts.
+# Imported from each lifecycle script via `import ../lib.bpfman`.
+# `import` resolves relative paths against the directory of the script
+# containing the `import` statement, so this works regardless of where
+# the runner is invoked from.
+#
+# This file is deliberately placed one level above e2e/scripts/ so the
+# test-e2e-scripts harness glob (e2e/scripts/*.bpfman) does not pick
+# it up as a standalone test.
+
+# Assert the structural shape of a program load response.
+#
+# load_tp and kernel_tp are taken separately because they only agree
+# for a subset of program types (kprobe, tracepoint). fentry/fexit
+# load as their declared type but the kernel reports them as
+# "tracing"; uprobe/uretprobe report "kprobe"; tc and xdp load as
+# BPF_PROG_TYPE_EXT and report "extension"; tcx reports "schedcls".
+#
+#   prog:      structured value returned by `bpfman program load file ...`
+#   load_tp:   expected record.load.program_type (the user-declared type)
+#   kernel_tp: expected status.kernel.program_type (what the kernel reports)
+#   name:      expected record.meta.name (the user-supplied program name)
+def expect_program_load(prog load_tp kernel_tp name) {
+    assert $prog matches {
+        record.load.program_type:   $load_tp
+        status.kernel.program_type: $kernel_tp
+        record.meta.name:           $name
+        status.kernel.id:           $prog.record.program_id
+        status.kernel.name:         not-empty
+        status.kernel.tag:          not-empty
+        status.kernel.loaded_at:    not-empty
+        record.handles.pin_path:    not-empty
+    }
+    # image_source is populated only for image-backed loads, including
+    # file loads brokered to images under BPFMAN_E2E_BYTECODE_SOURCE=image;
+    # a bare file load has none, so there is nothing to assert here -- no
+    # else (asserting it is null would just restate the branch condition).
+    if not null $prog.record.load.image_source {
+        assert $prog.record.load.image_source.url != ""
+        assert $prog.record.load.image_source.digest != ""
+        assert $prog.record.load.image_source.pull_policy == Always
+    }
+}
+
+# Assert that a Get response round-trips a program load response on
+# the fields the user controls or that the kernel locks in at load
+# time. Anything outside this list is allowed to vary.
+#
+#   got:  result of `bpfman program get $pid`
+#   prog: the original load response
+def expect_program_round_trip(got prog) {
+    assert $got matches {
+        status.kernel.id:           $prog.status.kernel.id
+        status.kernel.program_type: $prog.status.kernel.program_type
+        status.kernel.name:         $prog.status.kernel.name
+        status.kernel.tag:          $prog.status.kernel.tag
+        record.meta.name:           $prog.record.meta.name
+        record.handles.pin_path:    $prog.record.handles.pin_path
+    }
+}
+
+# Inspect a published bytecode image and return a named
+# {inspected, manifest} object: the top-level inspection plus the
+# manifest-shaped metadata that advertises the requested program
+# name. Callers read $x.inspected and $x.manifest.
+def inspect_published_image(image program_name) {
+    guard inspected <- bpfman image inspect $image
+    assert $inspected matches {
+        reference: not-empty
+        digest:    not-empty
+    }
+
+    # Plain images carry programs/maps/layers at the top level. Image
+    # indexes carry labels on each platform child, so pick any child
+    # that advertises the requested program name; the load provenance
+    # check below separately verifies that the loaded digest belongs
+    # to the inspected object.
+    let program_filter = "if ((.manifests // []) | length) > 0 then [.manifests[] | select(.programs.${program_name} != null)][0] else . end"
+    let bundle = $inspected |> jq "{inspected: ., manifest: (${program_filter})}"
+    assert not null $bundle.manifest
+    assert ($bundle.manifest.layers |> jq "length") >= 1
+
+    return $bundle
+}
+
+# Assert that a loaded image program records the same registry
+# reference as the inspected tag and a digest published by that tag.
+# For image indexes the recorded digest is the selected platform child
+# manifest, not the top-level index digest.
+def expect_loaded_image_source(prog image inspected) {
+    assert $prog.record.load.image_source.url == $image
+
+    let digest = $prog.record.load.image_source.digest
+    let matches = $inspected |> jq "if ((.manifests // []) | length) > 0 then [.manifests[].digest | select(. == \"${digest}\")] | length else if .digest == \"${digest}\" then 1 else 0 end end"
+    assert $matches == 1
+}
+
+# Polling helper for the numbered sentinel/ack worker protocol used by
+# the multi-wave workload drivers in e2e/new. Call from inside a poll
+# body:
+#
+#   poll timeout 5s every 100ms { await_wave_completion $ack 2 }
+#
+# This keeps the wait contract explicit (`retry` is the only
+# recoverable signal) while letting scripts keep their wave narrative
+# local to the call site.
+def await_wave_completion(ack n) {
+    retry "waiting for ack.${n}" unless path-exists "${ack}.${n}"
+}
+
+# Assert that a given linkID is not present in a `bpfman link list -o
+# json` result. Used by the Test*_LinkRoundTrip.bpfman scripts to
+# verify post-detach absence.
+#
+# We count via `[<filter>] | length` rather than testing `assert null
+# (<filter>)`: a bare `select(...)` that matches nothing yields jq's
+# empty stream, which the DSL binds as the command-result envelope
+# (ok/exit_code/stdout/stderr) rather than as null. Wrapping the filter in
+# `[...]` collapses the stream to a single array and `| length`
+# collapses that to a single number, so the bind always sees one value
+# regardless of how many entries matched.
+def assert_link_absent(listed linkID) {
+    let count = $listed |> jq "[.links[] | select(.id == ${linkID})] | length"
+    assert $count == 0
+}
+
+# Wait until a just-detached kfunc-backed program stops observing its
+# target. Perf-link teardown is asynchronous, so a fixed sleep after
+# `bpfman link detach` can still race the kernel-side detach path on a
+# busy runner. Each poll attempt establishes the current counter value,
+# fires the exact kfunc workload once, then retries while the detached
+# program's own counter still moves.
+def await_kfunc_detach_quiescent(fn mapID events counterFilter) {
+    guard beforeDump <- bpftool map dump id $mapID -j
+    let before = $beforeDump.stdout |> jq $counterFilter
+    guard _ <- kfunc fire $fn $events
+    guard afterDump <- bpftool map dump id $mapID -j
+    let after = $afterDump.stdout |> jq $counterFilter
+    retry "waiting for kfunc detach quiescence" unless $after == $before
+}
+
+# Wait until a just-detached uprobe-backed program stops observing its
+# target. This mirrors await_kfunc_detach_quiescent, but fires the
+# current shell's uprobe fixture instead of a leased kfunc slot.
+def await_uprobe_detach_quiescent(mapID events counterFilter) {
+    guard beforeDump <- bpftool map dump id $mapID -j
+    let before = $beforeDump.stdout |> jq $counterFilter
+    guard _ <- uprobe fire $events
+    guard afterDump <- bpftool map dump id $mapID -j
+    let after = $afterDump.stdout |> jq $counterFilter
+    retry "waiting for uprobe detach quiescence" unless $after == $before
+}
+
+# Asserts the store records exactly `want` dispatchers on the given
+# (nsid, ifindex), across all dispatcher types. List-derived
+# assertions must scope to keys the script owns: scripts run in
+# parallel against a shared runtime, so an unscoped emptiness check
+# would race with whatever other scripts have attached. With want 0
+# this is the per-interface leak detector; with want 1 it proves a
+# rebuild left exactly one dispatcher behind. The annotations parse
+# literal arguments at the call boundary, so callers may pass bare
+# counts or numeric variables interchangeably.
+def assert_dispatcher_count(nsid: number ifindex: number want: number) {
+    guard listed <- bpfman dispatcher list --nsid $nsid --ifindex $ifindex -o json
+    assert ($listed |> jq ".dispatchers | length") == $want
+}
+
+# Temporary host-routing precheck for root-netns veth tests. Some
+# hosts install policy routing rules for VPNs such as Tailscale or
+# WireGuard. Those rules can route replies to the peer-side veth
+# address through a tunnel table instead of the freshly-created host
+# veth, causing packet tests to fail before bpfman has loaded or
+# attached anything. Fail early with the selected route so the reason
+# is explicit. The long-term fix is to move packet-path tests into
+# isolated test netns pairs rather than depending on host routing.
+def require_host_route_to_peer(pair) {
+    let route <- exec ip route get $pair.peer_addr
+    if not $route.ok {
+        print "host route precheck failed: ip route get ${pair.peer_addr} exited ${route.exit_code}"
+        print "stdout: ${route.stdout}"
+        print "stderr: ${route.stderr}"
+    }
+    require $route.ok
+
+    if not contains $route.stdout $pair.host_link {
+        print "host route precheck failed: route to ${pair.peer_addr} does not use ${pair.host_link}"
+        print "selected route: ${route.stdout}"
+        print "This usually means host policy routing or a VPN route table is hijacking the e2e veth reply path."
+    }
+    require contains $route.stdout $pair.host_link
+}
+
+# Assert the common identity shape for currently-managed pinned links.
+# `record.id` is the bpfman management handle allocated by SQLite; it
+# must be a real autoincrement value, never the zero value. The
+# `kernel_link_id` is the captured kernel bpf_link ID for attach paths
+# that create and pin one. The two fields live in different namespaces,
+# so tests deliberately avoid asserting numeric inequality between them.
+def expect_pinned_link_identity(link) {
+    assert $link.record.id > 0
+    assert not null $link.record.kernel_link_id
+    assert $link.record.kernel_link_id > 0
+    assert not null $link.record.pin_path
+    assert $link.record.pin_path != ""
+    assert $link.status.kernel_seen
+    assert $link.status.pin_present
+
+    let kernelLinkID = $link.record.kernel_link_id
+    # Read the link straight from the kernel by id. linkinfo uses the
+    # bpf() syscall, so it returns structured fields with no parsing
+    # and no exit-code quirk (bpftool's `link show id` can exit
+    # non-zero while still printing the link).
+    guard kernelLink <- linkinfo id $kernelLinkID
+    assert $kernelLink.id == $kernelLinkID
+    assert $kernelLink.prog_id == $link.record.program_id
+}
+
+# Assert that `bpfman link get` preserved the bpfman handle and the
+# captured kernel/pin metadata from the original attach response.
+def expect_link_get_identity(got original linkID) {
+    assert $got.record.id == $original.record.id
+    assert $got.record.kernel_link_id == $original.record.kernel_link_id
+    assert $got.record.pin_path == $original.record.pin_path
+    assert $got.status.kernel_seen
+    assert $got.status.pin_present
+}
+
+# Assert that `bpfman link list -o json` contains exactly this managed
+# link and reports the same identity fields as the attach response.
+def expect_link_list_identity(listed original linkID kind) {
+    let count = $listed |> jq "[.links[] | select(.id == ${linkID})] | length"
+    assert $count == 1
+    let ourLink = $listed |> jq ".links[] | select(.id == ${linkID})"
+    assert $ourLink.id == $original.record.id
+    assert $ourLink.kind == $kind
+    assert $ourLink.kernel_link_id == $original.record.kernel_link_id
+}

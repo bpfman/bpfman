@@ -1,0 +1,11 @@
+stdout_lines:
+  - before-exit
+  - outer-body
+  - inner-cleanup
+stderr_contains:
+  - "+ {main}:3: defer outer"
+  - "+ {main}:4: print before-exit"
+  - "+ {main}:3: defer fire: outer"
+  - "+ {lib}:2: print outer-body"
+  - "+ {lib}:3: defer print inner-cleanup"
+  - "+ {lib}:3: defer fire: print inner-cleanup"

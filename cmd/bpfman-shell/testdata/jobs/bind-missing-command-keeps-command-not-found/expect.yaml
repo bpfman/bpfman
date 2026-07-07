@@ -1,0 +1,7 @@
+err_is: silent
+stdout_not_contains:
+  - unreachable
+stderr_contains:
+  - "__definitely_not_a_real_command_2026__: command not found"
+stderr_not_contains:
+  - "cannot pass a job value to an external command"

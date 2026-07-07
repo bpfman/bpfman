@@ -1,0 +1,12 @@
+let doc = jq "." "{\"left\":{\"keep\":2,\"extra\":20},\"right\":{\"keep\":1,\"extra\":30}}"
+
+assert $doc matches exhaustive {
+  left: matches exhaustive {
+    keep: 1
+  }
+  right: matches exhaustive {
+    keep: 1
+  }
+}
+
+print after

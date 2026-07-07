@@ -1,0 +1,6 @@
+import ./lib.bpfman
+print before
+guard xs <- foreach n in [1 2 3] {
+  keep_odd $n
+}
+print after

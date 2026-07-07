@@ -1,0 +1,6 @@
+def mk(name) {
+  guard wd <- tempdir $name
+  let path = $wd.path
+  defer exec rm -rf $path
+  return $wd
+}

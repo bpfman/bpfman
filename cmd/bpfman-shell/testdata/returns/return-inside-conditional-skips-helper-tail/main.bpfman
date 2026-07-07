@@ -1,0 +1,11 @@
+def choose(flag) {
+  print before
+  if $flag == take {
+    return taken
+  }
+  print tail
+  return fallback
+}
+guard v <- choose take
+print $v
+print after

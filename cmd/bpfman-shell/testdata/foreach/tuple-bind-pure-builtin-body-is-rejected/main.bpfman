@@ -1,0 +1,4 @@
+let xs = [10 20 30]
+let (rc doubled) <- foreach n in $xs {
+  jq ". * 2" $n
+}

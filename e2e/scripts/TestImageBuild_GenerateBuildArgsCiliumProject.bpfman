@@ -1,0 +1,38 @@
+# -*- mode: bpfman -*-
+#pragma labels={"area":"image-build","cli":"true"}
+#
+# Given: Cilium/bpf2go-style object names as input
+#
+# When: generate-build-args inspects them
+#
+# Then: the CLI emits platform build arguments classified from those
+# object names
+
+guard dir <- tempdir image-build-cilium
+defer exec rm -rf $dir.path
+
+let amd64 = "${dir.path}/bpf_x86_bpfel.o"
+let arm64 = "${dir.path}/bpf_arm64_bpfel.o"
+
+guard _ <- exec cp testdata/bpf/xdp_pass.bpf.o $amd64
+guard _ <- exec cp testdata/bpf/xdp_pass.bpf.o $arm64
+
+let rc <- exec bpfman image generate-build-args \
+    --cilium-ebpf-project $dir.path \
+    -o json
+
+assert $rc.ok
+let platforms = $rc.stdout |> jq 'fromjson | .platforms | join(",")'
+assert $platforms == "linux/amd64,linux/arm64"
+
+let got_amd64 = $rc.stdout |> jq "fromjson | .build_args.BC_AMD64_EL"
+assert $got_amd64 == $amd64
+
+let got_arm64 = $rc.stdout |> jq "fromjson | .build_args.BC_ARM64_EL"
+assert $got_arm64 == $arm64
+
+let prog_type = $rc.stdout |> jq "fromjson | .programs.pass"
+assert $prog_type == xdp
+
+let map_type = $rc.stdout |> jq "fromjson | .maps.xdp_pass_stats_map"
+assert $map_type == per_cpu_array

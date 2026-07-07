@@ -1,0 +1,57 @@
+# -*- mode: bpfman -*-
+#
+# Given: two same-priority XDP programs with distinct names -- pass
+# (non-counting) and xdp_stats (counting) -- attached in reverse
+# alphabetical order
+#
+# When: the dispatcher sorts the chain and a packet wave crosses it
+#
+# Then: program name breaks the priority tie so pass precedes xdp_stats,
+# and traffic proceeds through pass to reach and count on xdp_stats
+#
+# The TC tie-break fixture loads tc_pass twice as alpha/beta so the only
+# difference is the name. No XDP test object exports two functions, so
+# two distinct objects supply the two names here; the tie-break is by
+# name, not bytecode. pass sorts to slot 0 and returns XDP_PASS under
+# the default proceed-on, so the chain continues to xdp_stats at slot 1,
+# whose map proves the ordered chain actually delivered traffic. Attach
+# order (xdp_stats first, pass second) runs counter to the expected
+# position order so the assertion proves the sort, not insertion order.
+
+import ../lib.bpfman
+
+guard pair <- net veth-pair
+defer net release $pair
+require_host_route_to_peer $pair
+
+guard loaded_stats <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard loaded_pass <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs xdp:pass
+
+let prog_stats = $loaded_stats.programs[0]
+let prog_pass = $loaded_pass.programs[0]
+defer bpfman program unload $prog_stats
+defer bpfman program unload $prog_pass
+
+guard l_stats <- bpfman link attach xdp $prog_stats $pair.host_link --priority 100
+guard l_pass <- bpfman link attach xdp $prog_pass $pair.host_link --priority 100
+defer bpfman link detach $l_stats
+defer bpfman link detach $l_pass
+
+# Re-query each link so position reflects the dispatcher's
+# steady-state ordering after both attaches have committed.
+guard g_pass <- bpfman link get $l_pass
+guard g_stats <- bpfman link get $l_stats
+
+assert $g_pass.record.details.priority == 100
+assert $g_stats.record.details.priority == 100
+assert $g_pass.record.details.position < $g_stats.record.details.position
+
+# Traffic proof: pass at slot 0 proceeds under default proceed-on, so
+# xdp_stats at slot 1 receives and counts the packet wave.
+let statsMapID = $prog_stats.status.maps[0].id
+guard _ <- net exec $pair ping -c 20 -i 0.05 -W 1 $pair.host_addr
+
+let sumFilter = "fromjson | [.[].formatted.values[].value.rx_packets | tonumber] | add"
+guard dump <- bpftool map dump id $statsMapID -j
+let count = $dump.stdout |> jq $sumFilter
+assert $count > 0

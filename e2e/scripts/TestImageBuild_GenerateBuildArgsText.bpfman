@@ -1,0 +1,16 @@
+# -*- mode: bpfman -*-
+#pragma labels={"area":"image-build","cli":"true"}
+#
+# Given: generate-build-args run without a format flag
+#
+# When: it renders its default text output
+#
+# Then: the CLI keeps producing shell-oriented KEY=VALUE lines
+
+let rc <- exec bpfman image generate-build-args \
+    testdata/bpf/xdp_pass.bpf.o
+
+assert $rc.ok
+assert contains $rc.stdout "BYTECODE_FILE=testdata/bpf/xdp_pass.bpf.o"
+assert contains $rc.stdout 'PROGRAMS={"pass":"xdp"}'
+assert contains $rc.stdout 'MAPS={"xdp_pass_stats_map":"per_cpu_array"}'

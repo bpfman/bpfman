@@ -1,0 +1,28 @@
+# -*- mode: bpfman -*-
+#
+# Given: a program that has already been unloaded
+#
+# When: unload runs again on the same program ID, with and without
+# --ignore-missing
+#
+# Then: the bare repeat fails because the program is gone, and the
+# --ignore-missing repeat reports success, so a deferred cleanup unload
+# stays idempotent
+
+guard loaded <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs xdp:pass
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+
+# First unload removes the program.
+guard _ <- bpfman program unload $pid
+assert fail bpfman program get $pid
+
+# Repeating the unload without the flag is an error: the program is gone.
+let repeat <- bpfman program unload $pid
+assert not $repeat.ok
+assert contains $repeat.stderr "does not exist"
+
+# The same repeat with --ignore-missing reports success, so a deferred
+# cleanup unload never fails a script once the program is already gone.
+let ignored <- bpfman program unload $pid --ignore-missing
+assert $ignored.ok

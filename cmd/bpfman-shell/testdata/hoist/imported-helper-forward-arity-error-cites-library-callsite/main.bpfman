@@ -1,0 +1,7 @@
+import ./lib.bpfman
+
+runner
+
+def helper(one) {
+  print $one
+}

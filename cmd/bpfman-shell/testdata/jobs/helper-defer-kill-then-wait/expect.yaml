@@ -1,0 +1,5 @@
+stdout_lines:
+  - "false"
+  - "true"
+  - TERM
+  - "143"

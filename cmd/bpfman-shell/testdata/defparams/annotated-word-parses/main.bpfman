@@ -1,0 +1,11 @@
+def c(want: number) {
+  assert $want == 5
+}
+def b(flag: bool) {
+  if $flag {
+    print flag-true
+  }
+}
+c 5
+b true
+print annotated-ok

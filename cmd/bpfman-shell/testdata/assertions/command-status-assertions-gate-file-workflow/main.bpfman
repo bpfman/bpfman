@@ -1,0 +1,12 @@
+guard d <- tempdir status-assertions
+defer exec rm -rf $d.path
+
+let probe = "${d.path}/probe.txt"
+let absent = "${d.path}/absent.txt"
+
+exec sh -c "printf ready > '${probe}'"
+
+assert ok exec test -f $probe
+assert fail exec test -f $absent
+
+print command-status-assertions-ok

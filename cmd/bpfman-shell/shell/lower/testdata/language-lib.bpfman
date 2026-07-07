@@ -1,0 +1,6 @@
+# Imported library for the lowering contract fixture.
+# Libraries contain only top-level def statements.
+
+def lib_double(n) {
+    return $n * 2
+}

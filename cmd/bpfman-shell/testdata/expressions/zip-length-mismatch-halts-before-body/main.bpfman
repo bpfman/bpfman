@@ -1,0 +1,7 @@
+let spec = jq "." "{\"ids\":[10,11,12],\"names\":[\"alpha\",\"beta\"]}"
+
+print before
+foreach (id name) in (zip ($spec |> jq ".ids") ($spec |> jq ".names")) {
+  print "${id}-${name}"
+}
+print after

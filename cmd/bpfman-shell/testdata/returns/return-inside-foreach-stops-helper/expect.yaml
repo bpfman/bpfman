@@ -1,0 +1,8 @@
+stdout_lines:
+  - seen-go
+  - found
+  - after
+stdout_not_contains:
+  - seen-stop
+  - seen-end
+  - after-loop

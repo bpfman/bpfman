@@ -1,0 +1,84 @@
+version: "2"
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/bpfman/bpfman
+  exclusions:
+    paths:
+      # The example applications predate this configuration and
+      # keep their original import grouping.
+      - examples
+
+linters:
+  default: none
+  enable:
+    - bodyclose
+    - copyloopvar
+    - depguard
+    - durationcheck
+    - govet
+    - ineffassign
+    - misspell
+    - paralleltest
+    - staticcheck
+    - unconvert
+    - unused
+
+  settings:
+    depguard:
+      rules:
+        main:
+          deny:
+            - pkg: github.com/hashicorp/go-multierror
+              desc: Use errors.Join instead
+
+    govet:
+      enable:
+        - nilness
+        - reflectvaluecompare
+        - sortslice
+        - unusedwrite
+
+    paralleltest:
+      ignore-missing: false
+      ignore-missing-subtests: false
+
+    staticcheck:
+      checks:
+        - all
+        - -QF*
+        - -ST*
+
+  exclusions:
+    generated: lax
+    paths:
+      - vendor
+      - third_party
+    rules:
+      # Generated protobuf files.
+      - path: \.pb\.go$
+        linters:
+          - govet
+          - staticcheck
+          - unused
+
+      # Cgo'd uprobe target. The preamble carries the literal C
+      # attribute __attribute__((optimize("O0"))) -- not English
+      # text we control -- and per-line nolint directives do not
+      # round-trip through cgo comment lines reliably.
+      - path: cmd/bpfman-shell/uprobe_helper\.go$
+        linters:
+          - misspell
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

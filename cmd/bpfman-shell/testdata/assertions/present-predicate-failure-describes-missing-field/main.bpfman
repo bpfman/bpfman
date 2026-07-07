@@ -1,0 +1,4 @@
+let snap = jq "." "{\"status\":{\"updated_at\":null},\"items\":[1],\"note\":\"filled\"}"
+print before
+assert present $snap.status.last_error
+print after

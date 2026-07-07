@@ -1,0 +1,4 @@
+import ./lib.bpfman
+
+guard _ <- helper
+print after

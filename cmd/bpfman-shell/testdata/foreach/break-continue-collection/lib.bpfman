@@ -1,0 +1,4 @@
+def mk(n) {
+  guard f <- file temp $n
+  return $f
+}

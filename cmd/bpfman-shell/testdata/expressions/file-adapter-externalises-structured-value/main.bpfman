@@ -1,0 +1,9 @@
+let doc = jq "." "{\"id\":42,\"tags\":[\"alpha\",\"beta\"]}"
+
+let out <- exec cat file:$doc
+
+assert contains $out.stdout "\"id\": 42"
+assert contains $out.stdout "\"alpha\""
+assert contains $out.stdout "\"beta\""
+
+print file-adapter-ok

@@ -1,0 +1,45 @@
+# -*- mode: bpfman -*-
+#
+# Given: XDP links attached across the full range of proceed-on action
+# sets
+#
+# When: each is stored and the dispatcher member is read back
+#
+# Then: the member's proceed_on bitmask equals the exact ABI encoding
+# for that set -- one bit per action (aborted 0x1, drop 0x2, pass 0x4,
+# tx 0x8, redirect 0x10) plus the dispatcher_return sentinel 0x80000000
+#
+# The existing ProceedOn*Encoding scripts each pin a single value; this
+# pins every single action, representative combinations, and the
+# default, so the encoding contract is covered end to end. This is an
+# encoding assertion, not a delivery test -- the chain continue/stop
+# behaviour of proceed-on is covered by the MultiProgXDP_ChainStops
+# scripts.
+
+import ../lib.bpfman
+
+guard pair <- net veth-pair
+defer net release $pair
+
+guard loaded <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs xdp:pass
+let prog = $loaded.programs[0]
+defer bpfman program unload $prog
+
+# proceed-on is a link property independent of the program, so one
+# program serves every case. Each case attaches, reads the single
+# member's mask, and detaches so the next case starts clean.
+let specs = ["aborted" "drop" "pass" "tx" "redirect" "dispatcher_return" "pass,drop" "pass,dispatcher_return" "aborted,drop,pass,tx,redirect"]
+let masks = [1 2 4 8 16 2147483648 6 2147483652 31]
+
+foreach (spec mask) in zip $specs $masks {
+    guard link <- bpfman link attach xdp $prog $pair.host_link --priority 50 --proceed-on $spec
+    guard snap <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+    assert ($snap |> jq ".members[0].proceed_on") == $mask
+    bpfman link detach $link
+}
+
+# The default (no --proceed-on) is [XDP_PASS, dispatcher_return].
+guard link_default <- bpfman link attach xdp $prog $pair.host_link --priority 50
+guard snap_default <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_default |> jq ".members[0].proceed_on") == 2147483652
+bpfman link detach $link_default

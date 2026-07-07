@@ -1,0 +1,6 @@
+let out <- exec sh -c "printf 'weight32=0x${u32le 4660}\nweight64=0x${u64le 42}\n'"
+
+assert contains $out.stdout "weight32=0x34120000"
+assert contains $out.stdout "weight64=0x2a00000000000000"
+
+print endian-encoders-ok

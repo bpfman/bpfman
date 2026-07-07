@@ -1,0 +1,6 @@
+def c(want: number) {
+  assert $want == 5
+}
+let n = 5
+c $n
+print variable-ok

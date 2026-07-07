@@ -1,0 +1,62 @@
+# -*- mode: bpfman -*-
+#pragma labels={"area":"image-build","cli":"true","image":"true","program":"xdp","serial":"true"}
+#
+# Given: an XDP bytecode image published into the e2e registry through
+# bpfman's native OCI tooling
+#
+# When: the published image is pulled and driven through load, attach,
+# detach, and unload
+#
+# Then: every stage of the bpfman flow completes successfully
+
+import ../lib.bpfman
+
+def main() {
+    guard image <- registry ref explicit-xdp-pass
+    print "image-build: minted image=${image}"
+
+    print "image-build: publishing ${image}"
+    guard build <- bpfman image build \
+        $image \
+        testdata/bpf/xdp_pass.bpf.o
+    print "image-build: published ${image}"
+
+    print "image-build: inspecting ${image}"
+    guard inspected <- bpfman image inspect $image
+    print "image-build: inspected reference=${inspected.reference} digest=${inspected.digest}"
+    assert $inspected.digest != ""
+
+    print "image-build: loading ${image}"
+    guard loaded <- bpfman program load image $image --pull-policy Always --programs xdp:pass
+    let prog = $loaded.programs[0]
+    let pid = $prog.record.program_id
+    defer print "image-build: unloaded program pid=${pid}"
+    defer bpfman program unload $pid
+    print "image-build: loaded program pid=${pid} source=${prog.record.load.image_source.url}"
+
+    expect_program_load $prog xdp extension pass
+    assert $prog.record.load.image_source.url == $inspected.reference
+    assert $prog.record.load.image_source.digest == $inspected.digest
+
+    print "image-build: creating veth pair"
+    guard pair <- net veth-pair
+    defer print "image-build: released veth host=${pair.host_link}"
+    defer net release $pair
+    print "image-build: veth host=${pair.host_link} peer=${pair.peer_link}"
+
+    print "image-build: attaching xdp pid=${pid} iface=${pair.host_link}"
+    guard link <- bpfman link attach xdp $prog $pair.host_link --priority 50
+    let linkID = $link.record.id
+    expect_pinned_link_identity $link
+    print "image-build: attached link=${linkID}"
+    assert $link.record.kind == xdp
+    assert $link.record.program_id == $pid
+    assert $link.status.kernel_seen
+
+    print "image-build: detaching link=${linkID}"
+    bpfman link detach $link
+    assert fail bpfman link get $linkID
+    print "image-build: detached link=${linkID}"
+}
+
+main

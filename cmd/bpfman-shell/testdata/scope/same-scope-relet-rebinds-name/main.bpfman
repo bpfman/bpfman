@@ -1,0 +1,4 @@
+let label = outer
+print $label
+let label = inner
+print $label

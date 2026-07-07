@@ -1,0 +1,26 @@
+# -*- mode: bpfman -*-
+#pragma labels={"area":"image-build","cli":"true"}
+#
+# Given: a single-architecture input
+#
+# When: generate-build-args renders its JSON output
+#
+# Then: the output exposes structured build args and labels without
+# embedding JSON strings inside JSON
+
+let rc <- exec bpfman image generate-build-args \
+    testdata/bpf/xdp_pass.bpf.o \
+    -o json
+
+assert $rc.ok
+let platform_count = $rc.stdout |> jq "fromjson | .platforms | length"
+assert $platform_count == 0
+
+let bytecode = $rc.stdout |> jq "fromjson | .build_args.BYTECODE_FILE"
+assert $bytecode == "testdata/bpf/xdp_pass.bpf.o"
+
+let prog_type = $rc.stdout |> jq "fromjson | .programs.pass"
+assert $prog_type == xdp
+
+let map_type = $rc.stdout |> jq "fromjson | .maps.xdp_pass_stats_map"
+assert $map_type == per_cpu_array

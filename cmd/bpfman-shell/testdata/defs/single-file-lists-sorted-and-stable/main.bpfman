@@ -1,0 +1,10 @@
+def beta(seed) {
+  print never
+}
+
+def alpha() {
+  print never
+}
+
+defs
+defs

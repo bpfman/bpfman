@@ -1,0 +1,22 @@
+# -*- mode: bpfman -*-
+#
+# Given: an object holding one good XDP program alongside an
+# unverifiable sibling
+#
+# When: the good program is selected by name
+#
+# Then: it loads successfully, while requesting the broken sibling or
+# the whole object fails
+
+let bad <- bpfman program load file testdata/bpf/multi_prog_one_bad.bpf.o --programs xdp:bad
+assert not $bad.ok
+
+# Control: loading both programs (bad included) fails as a unit.
+let whole <- bpfman program load file testdata/bpf/multi_prog_one_bad.bpf.o --programs xdp:good,xdp:bad
+assert not $whole.ok
+
+# The behaviour under test: requesting only good succeeds despite bad
+# sharing the object.
+guard loaded <- bpfman program load file testdata/bpf/multi_prog_one_bad.bpf.o --programs xdp:good
+let prog = $loaded.programs[0]
+defer bpfman program unload $prog

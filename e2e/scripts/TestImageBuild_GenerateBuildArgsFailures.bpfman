@@ -1,0 +1,43 @@
+# -*- mode: bpfman -*-
+#pragma labels={"area":"image-build","cli":"true"}
+#
+# Given: invalid generate-build-args inputs
+#
+# When: the command validates them
+#
+# Then: validation fails before any container runtime work is attempted
+
+let missing_rc <- exec bpfman image generate-build-args \
+    testdata/bpf/does-not-exist.bpf.o \
+    -o json
+assert not $missing_rc.ok
+assert contains $missing_rc.stderr "open bytecode ELF"
+
+guard dir <- tempdir image-build-failures
+defer exec rm -rf $dir.path
+
+let malformed = "${dir.path}/malformed.o"
+guard _ <- exec sh -c 'printf "not an elf" > "$1"' sh $malformed
+
+let malformed_rc <- exec bpfman image generate-build-args \
+    $malformed \
+    -o json
+assert not $malformed_rc.ok
+assert contains $malformed_rc.stderr "open bytecode ELF"
+
+let endian_rc <- exec bpfman image generate-build-args \
+    linux/s390x=testdata/bpf/xdp_pass.bpf.o \
+    -o json
+assert not $endian_rc.ok
+assert contains $endian_rc.stderr "expected ELFDATA2MSB"
+
+let recognised = "${dir.path}/bpf_x86_bpfel.o"
+let unrecognised = "${dir.path}/bpf_future_bpfel.o"
+guard _ <- exec cp testdata/bpf/xdp_pass.bpf.o $recognised
+guard _ <- exec cp testdata/bpf/xdp_pass.bpf.o $unrecognised
+
+let cilium_rc <- exec bpfman image generate-build-args \
+    --cilium-ebpf-project $dir.path \
+    -o json
+assert not $cilium_rc.ok
+assert contains $cilium_rc.stderr "unrecognised cilium/ebpf bytecode file"

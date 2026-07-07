@@ -1,0 +1,23 @@
+let label = outer
+
+if true {
+  let label = branch
+  print if $label
+}
+print after-if $label
+
+let items = [one two]
+foreach item in $items {
+  let label = $item
+  print loop $label
+}
+print after-foreach $label
+
+poll timeout 5ms every 1ms {
+  let label = eventual
+  print poll $label
+}
+print after-poll $label
+
+let label = final
+print final $label

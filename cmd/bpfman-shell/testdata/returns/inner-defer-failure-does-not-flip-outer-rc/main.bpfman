@@ -1,0 +1,12 @@
+def inner() {
+  defer exec false
+  return 7
+}
+def outer() {
+  let _ <- inner
+  return 1
+}
+let r <- outer
+print $r.ok
+print $r.value
+print after

@@ -1,0 +1,6 @@
+let doc = jq "." "{\"left\":{\"name\":\"demo\"}}"
+assert $doc matches {
+  left matches {
+    name: "demo"
+  }
+}

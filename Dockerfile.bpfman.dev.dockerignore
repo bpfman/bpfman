@@ -1,0 +1,16 @@
+# This file exists to override the root .dockerignore's `bin/`
+# exclusion so that `COPY bin/bpfman` in Dockerfile.bpfman.dev
+# works; without it, the host-built binary would be invisible to
+# buildkit. The other entries mirror the root for build-context
+# hygiene.
+#
+# Buildkit picks this file up automatically. Podman/buildah does
+# not honor the <dockerfile>.dockerignore per-file convention; the
+# build-image-dev Make recipe handles podman by passing
+# --ignorefile explicitly. A direct `podman build -f
+# Dockerfile.bpfman.dev .` invocation would need the same flag.
+.git/
+.gitignore
+*.md
+build/
+vendor/

@@ -1,0 +1,26 @@
+# -*- mode: bpfman -*-
+#
+# Given: an object whose kprobe program the kernel verifier rejects --
+#        it dereferences a hash-map lookup with no null check
+#
+# When: the program is loaded
+#
+# Then: the load fails and the CLI surfaces the whole verifier log, not
+#       the one- or two-line summary; the log names the rejected
+#       instruction and reason, the primary diagnostic for a failed load
+
+# Capture the result rather than guard on it: the load is expected to
+# fail, and the assertions below inspect why.
+let r <- bpfman program load file testdata/bpf/verifier_reject.bpf.o --programs kprobe:verifier_reject
+
+assert not $r.ok
+
+# The verifier rejected the map-value dereference. The reason line proves
+# the kernel verifier log reached the user at all.
+assert contains $r.stderr "invalid mem access"
+
+# The verifier log ends with a "processed N insns" summary line. The
+# truncated summary the error's Error() would otherwise print drops that
+# line and shows only the last line or two, so its presence proves the
+# full log surfaced rather than the summary.
+assert contains $r.stderr "processed"

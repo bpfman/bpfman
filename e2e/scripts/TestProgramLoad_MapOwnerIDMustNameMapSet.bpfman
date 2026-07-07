@@ -1,0 +1,36 @@
+# -*- mode: bpfman -*-
+#pragma labels={"program":"kprobe","map-owner":"true"}
+#
+# Given: a --map-owner-id naming either an absent id or a dependant that
+# never created a map set
+#
+# When: program load is attempted with each
+#
+# Then: both loads are rejected before any kernel work and the error
+# names the offending owner id
+
+import ../lib.bpfman
+
+let obj = "testdata/bpf/multi_prog_kprobe_kmod_counter.bpf.o"
+
+guard load_a <- bpfman program load file $obj --programs kprobe:mkp_a
+let a = $load_a.programs[0].record.program_id
+defer bpfman program unload $a
+assert $load_a.programs[0].record.handles.map_owner_id == null
+
+guard load_b <- bpfman program load file $obj --programs kprobe:mkp_b --map-owner-id $a
+let b = $load_b.programs[0].record.program_id
+defer bpfman program unload $b
+assert $load_b.programs[0].record.handles.map_owner_id == $a
+
+# B exists as a program but never created a map set, so it is not a
+# valid owner. The load is refused before any kernel work, and the
+# message names the cause.
+let dep_as_owner <- bpfman program load file $obj --programs kprobe:mkp_a --map-owner-id $b
+assert not $dep_as_owner.ok
+assert contains $dep_as_owner.stderr "map_owner_id ${b} does not exist"
+
+# A completely absent map-set id is rejected the same way.
+let absent <- bpfman program load file $obj --programs kprobe:mkp_a --map-owner-id 429496729
+assert not $absent.ok
+assert contains $absent.stderr "map_owner_id 429496729 does not exist"

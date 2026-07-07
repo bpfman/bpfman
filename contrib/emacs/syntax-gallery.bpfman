@@ -1,0 +1,615 @@
+# -*- mode: bpfman; bpfman-format-on-save: nil -*-
+# Syntax gallery for bpfman-mode.el highlighting.
+#
+# This file is NOT intended to be evaluated. It exists so every
+# construct in the bpfman-shell language has a representative line to
+# stress-test the Emacs major mode. Open it, scan top to bottom, and
+# confirm every token is fontified according to its role.
+#
+# This file is deliberately not canonical and must not be reformatted.
+# It shows valid forms that the formatter rewrites to one canonical
+# spelling, and the highlighter must cope with all of them. Treat the
+# canonical spelling as house style; the forms below are valid but not
+# what `bpfman-shell --fmt' emits:
+#
+#   - braces on a varref are optional: ${x} becomes $x
+#   - single-quoted strings become double-quoted: 'a' becomes "a"
+#   - one-line blocks expand: if c { a; b } becomes a multi-line block
+#   - duration 60s becomes 1m0s
+#   - hand-aligned columns collapse to single spaces
+#
+# Because the formatter would strip that variety, bpfman-format-on-save
+# is disabled for this file via the file-local on line 1. Do not run
+# the formatter on it.
+#
+# Expected faces (with Emacs default face mapping):
+#
+#   keywords           font-lock-keyword-face    (let, if, elif, else,
+#                                                 assert, exec, ...)
+#   domain subcommands font-lock-builtin-face    (program, link, attach,
+#                                                 not-empty, ...)
+#   variables          font-lock-variable-name-face ($foo, file:$bar, the
+#                                                    identifier after `let')
+#   strings            font-lock-string-face      ("double", 'single')
+#   comments           font-lock-comment-face     (# to end of line)
+#   flags              font-lock-constant-face    (--flag, -x)
+#
+# Plain arg-position words (file paths, numeric IDs, attach points)
+# stay unfontified. Delimiters ({ } ; ( ) [ ]) are not highlighted.
+# Commas are not separators in bpfman-shell binding lists or def
+# parameter lists; use whitespace-separated names.
+
+# ---- 1. Comments and quoting ----
+
+# A full-line comment.
+let cmt_a = foo   # trailing comment after a statement
+let cmt_b = "a # inside double quotes is literal"
+let cmt_c = 'a # inside single quotes is literal'
+let cmt_d = 'the $ here is literal (single quotes keep $ literal)'
+
+# ---- 2. Scalar and quoted literal bindings ----
+
+let bare_word  = eth0
+let int_lit    = 42
+let float_lit  = 3.14
+# Hex is not a JSON number, so 0x1a is not a numeric literal in
+# expression position; a digit-leading word that is not a valid
+# number must be quoted as string text.
+let hex_str    = "0x1a"
+let dq_string  = "hello world"
+let sq_string  = 'single quoted'
+let empty_str  = ""
+let path_lit   = /sys/fs/bpf/bpfman
+
+# ---- 2a. Placeholder bindings for demonstrations below ----
+#
+# The sections that follow use these names as stand-ins so the
+# syntax forms parse cleanly under '--check'. Names that the
+# downstream demos walk with field or index paths bind through
+# 'jq .' against an inline JSON string -- jq's output kind is
+# unknown to the static checker so any '.field' or '[n]' access
+# is permitted. Names used in scalar position bind directly to
+# a literal. In a real script the structured bindings would
+# come from a bpfman command, an exec capture, or a prior 'let
+# <- ...'; the placeholder shape is a self-contained substitute
+# so the gallery accepts '--check' without external context.
+let prog = jq "." '{"record":{"program_id":42},"name":"demo"}'
+let progs = jq "." '[{"id":1},{"id":2}]'
+let items = jq "." '[{"field":"a"},{"field":"b"},{"field":"c"},{"field":"d"}]'
+let data = jq "." '{"maps":[{"name":"counts"}]}'
+let count      = 5
+let raw_count  = "5"
+let name       = "demo-name"
+let other      = "demo-other"
+let kind       = "demo-kind"
+let flag       = true
+let dry_run    = false
+let haystack   = "needle in this"
+let x          = 1
+let inner      = "demo-inner"
+let outer      = "demo-outer"
+let maybe      = "demo-maybe"
+let ready      = true
+let healthy    = true
+let booting    = false
+let failing    = false
+let unbounded  = false
+let a          = 1
+let b          = 2
+let pair       = [1 2]
+let pairs      = [[1 10] [2 20]]
+let ids        = [1 2 3]
+
+# ---- 3. Variable references (every form) ----
+
+let by_name    = $bare_word
+let field      = $prog.record.program_id
+let indexed    = $items[0]
+let deep_path  = $data.maps[0].name
+let braced     = ${prog.record.program_id}
+let braced_idx = ${items[3].field}
+
+# ---- 3a. Lists and destructuring ----
+
+# List literals are expression syntax. Destructure targets are a
+# whitespace-separated parenthesised name list; '_' discards one
+# slot. Commas are deliberately rejected by the parser.
+let nums       = [1 2 3]
+let nested     = [[1] [2 3]]
+let refs       = [$a $b ($count + 1)]
+let (left right) = $pair
+let (_ kept)      = $pair
+
+# ---- 3c. Record literals ----
+
+# 'record { name: value ... }' builds a structured value. The
+# 'record' keyword fontifies as a builtin, like the sibling
+# 'matches' brace-block constructor; the field names inside are
+# plain (as matches keys are), and only value tokens such as a
+# $varref carry their own role. Fields are whitespace-separated --
+# a comma is not a separator, and one glued to a value either rides
+# silently into a string field or fails a numeric field as an
+# invalid literal. Single-line and multi-line forms both parse.
+let rec_one  = record { id: 1 name: demo }
+let rec_many = record {
+    program: $prog
+    count:   ($count + 1)
+    label:   "ready"
+}
+
+# ---- 3b. String interpolation in double-quoted strings ----
+
+# "${EXPR}" splices a scalar value into a double-quoted string.
+# Single-quoted strings never interpolate; a bare '$' inside a
+# double-quoted string is a lex-time error (use single quotes or
+# '\$' for a literal '$').
+
+let n          = 60
+let interp_v   = "${n}s"                          # variable slot
+let interp_p   = "/sys/fs/bpf/prog-${int_lit}"    # path construction
+let interp_m   = "pre-${int_lit}-mid-${n}-suf"   # multiple slots
+let interp_a   = "${$n * 2}s"                      # arithmetic in interpolation
+
+# Double-quoted strings support C-style escapes: \n, \t, \r,
+# \\, \", and \$ (for a literal dollar sign). Single-quoted
+# strings are fully literal -- backslashes and everything else
+# pass through unchanged.
+let esc_nl     = "line1\nline2"                    # newline in the middle
+let esc_tab    = "col1\tcol2"                      # tab separator
+let esc_quote  = "he said \"hi\""                  # embedded double-quote
+let esc_bs     = "path\\sub"                       # literal backslash
+let esc_dollar = "price=\$5"                       # literal $ without ${...}
+
+# ---- 4. Command capture with the bind sigil ----
+
+# Single-name 'let' captures an inspectable outcome and continues
+# regardless of failure. 'guard' requires success and unwraps the
+# provider's declared value.
+let r <- ip link show
+guard one <- bpfman program list
+guard arg_after <- diff file:$a file:$b
+
+# A typed operation captured with 'let' exposes its conditional
+# payload through `.value`; a guarded bind unwraps it directly.
+let loaded_result <- bpfman program load file ./foo.o --programs xdp:pass
+require $loaded_result.ok
+let loaded = $loaded_result.value
+let prog = $loaded.programs[0]
+let rc2 <- ip link del veth-host
+
+# '_' is the "run, ignore result, continue regardless" idiom for
+# cleanup.
+let _ <- ip link del bpfman-demo
+guard _ <- ip netns add bpfman-test
+
+# Bind-collect runs a foreach body and returns an aggregate outcome:
+# per-iteration results plus the filtered successful values.
+let collected <- foreach id in $ids {
+    print $id
+}
+
+# ---- 4a. Lifecycle with defer ----
+
+# 'defer COMMAND' registers a cleanup that runs LIFO at scope
+# exit, on both normal completion and guard halt. Argument
+# values are captured at defer-statement time, so a later
+# rebinding of the variable does not change the deferred call.
+guard loaded2 <- bpfman program load file ./bar.o --programs xdp:bar
+let prog2 = $loaded2.programs[0]
+defer bpfman program unload $prog2
+guard link2 <- bpfman link attach xdp $prog2 bpfman-demo
+defer bpfman link detach $link2
+
+# ---- 5. Binary comparisons (textual vs numeric) ----
+
+assert $prog.record.meta.name == xdp_pass
+assert $prog.record.meta.name != tc_ingress
+assert $name < $other
+assert $name <= $other
+assert $name > $other
+assert $name >= $other
+
+assert $count == 5
+assert $count != 5
+assert $count <  10
+assert $count <= 10
+assert $count >  0
+assert $count >= 0
+
+# Comparison semantics is chosen by operand type, not by operator.
+assert 9 < 10                       # numeric: 9 < 10 is true
+assert "a" < "b"                    # textual: "a" < "b" is true
+assert "fentry" == $kind            # textual when both sides are strings
+assert $count == 5                  # numeric when both sides are numbers
+
+# ---- 6. Unary predicates (expression grammar) ----
+
+assert not-empty $name
+assert $flag
+assert not $flag
+
+# ---- 7. Prefix-verb assertions (outside expression grammar) ----
+
+assert null maybe
+assert ok       bpfman show program 42
+assert fail     bpfman link get 9999
+assert path-exists /sys/fs/bpf/bpfman
+assert contains "hello world" world
+
+# Negation with `not'.
+assert not null              maybe
+assert not not-empty         $dry_run
+assert not ok                exec false
+assert not path-exists /does/not/exist
+assert not contains $haystack needle
+
+# `require' is the fatal counterpart; same grammar otherwise.
+require ok      bpfman program get 42
+require not null prog
+require $count > 0
+
+# ---- 8. if / elif / else blocks ----
+
+if $count > 0 {
+    bpfman program list
+}
+
+if $count > 0 {
+    let took = then
+} else {
+    let took = else
+}
+
+if $x == 1 {
+    let label = one
+} elif $x == 2 {
+    let label = two
+} elif $x == 3 {
+    let label = three
+} else {
+    let label = other
+}
+
+# ---- 9. Nested if ----
+
+if $outer == yes {
+    if $inner == yes {
+        bpfman show program 42
+    } elif not-empty $maybe {
+        bpfman show program 42 maps
+    } else {
+        require fail
+    }
+}
+
+# ---- 10. One-liner blocks with `;' separator ----
+
+if $x > 0 { let a = 1; let b = 2; print a }
+if $ready { bpfman list programs; bpfman link list } else { require fail }
+
+# ---- 12. Top-level commands and registered providers ----
+
+# 'bpfman' and the shell builtins (jq, file, print, tempdir,
+# ...) are registered providers.
+# Any other first word falls through to subprocess execution,
+# so 'ip', 'cat', 'diff' run as host commands without needing
+# an explicit 'exec' prefix.
+ip link add dummy0 type dummy
+ip link set dummy0 up
+let _ <- diff -u file:$raw1.stdout file:$raw2.stdout
+
+# 'exec NAME' is the explicit force-external escape hatch for
+# the rare case where NAME collides with a registered provider
+# and the script wants the host binary. Otherwise it is
+# redundant.
+let r2 <- exec bpfman version
+
+let parsed = jq "." '{"name":"xdp_pass","id":42}'
+jq "." '{"a":1}'     # bare form prints the parsed value
+
+let data     = hello
+guard tmp_path <- file temp $data
+cat file:$data
+cat file:$parsed.name
+
+print $parsed
+print $tmp_path.path
+# source setup.bpfman       # would evaluate a script file at path
+
+# ---- 13. Domain commands (every noun and verb we recognise) ----
+
+bpfman list programs
+bpfman program list
+bpfman program get 42
+bpfman program unload 42
+bpfman program delete 42 43 -r
+
+bpfman link list
+bpfman link get 8801
+bpfman link detach 8801
+bpfman link delete 8801
+
+bpfman show program 42
+bpfman show program 42 summary
+bpfman show program 42 links
+bpfman show program 42 maps
+bpfman show program 42 paths
+
+bpfman dispatcher
+bpfman doctor checkup
+bpfman doctor explain
+bpfman doctor explain orphan-fs-entries
+bpfman gc
+bpfman gc --dry-run
+
+# ---- 14. Load and attach: every attach kind ----
+
+guard p_file <- bpfman program load file ./foo.o --programs xdp:xdp_pass
+guard p_image <- bpfman program load image quay.io/example/xdp:latest --programs xdp:pass
+
+guard l_xdp <- bpfman link attach xdp        $p_file eth0
+guard l_tc <- bpfman link attach tc         $p_file eth0 ingress
+guard l_tcx <- bpfman link attach tcx        $p_file eth0 ingress
+guard l_tracepoint <- bpfman link attach tracepoint $p_file syscalls/sys_enter_kill
+guard l_kprobe <- bpfman link attach kprobe     $p_file vfs_read
+guard l_uprobe <- bpfman link attach uprobe     $p_file /lib64/libc.so.6 --fn-name __libc_start_main
+guard l_fentry <- bpfman link attach fentry     $p_file
+guard l_fexit <- bpfman link attach fexit      $p_file
+
+# ---- 15. Every flag shape ----
+
+# Backslash at end of line folds the newline into whitespace.
+# The continuation works at statement level and on the right of
+# '<-'; the editor mode treats a backslash-continued sequence as
+# one logical line, so flag and argument context is carried
+# across the boundary. Use it wherever a call has enough flags
+# to make one line unreadable.
+
+bpfman program load file             \
+    ./prog.o                         \
+    --programs xdp:xdp_stats         \
+    -m      app=stats                \
+    -m      team=networking          \
+    -g      SAMPLING_RATE=0x0a000000 \
+    -g      VERBOSE=0x01             \
+    -a      stats                    \
+    --map-owner-id 42                \
+    -o      json
+
+# Continuation works on the right of a bind too.
+
+guard p_multi <- bpfman program load file        \
+    ./prog.o                                     \
+    --programs xdp:xdp_stats                     \
+    -m owner=test-team                           \
+    -g SAMPLING_RATE=0x0a000000
+
+bpfman program list -o text
+bpfman program list -o json
+bpfman program delete 42 -r
+bpfman gc --dry-run
+
+# ---- 16. File adapter (inline `file:$var') ----
+
+let lhs = "aaa"
+let rhs = "bbb"
+diff file:$lhs file:$rhs
+wc -c file:$parsed.name
+sha256sum file:${parsed.name}
+
+# ---- 17. Assignment vs comparison on adjacent lines ----
+
+let x = 5            # `=' is assignment
+assert $x == 5       # `==' compares (numeric here, both sides are numbers)
+
+# ---- 18. The `select' projection keyword ----
+
+bpfman list programs select name,program_id,kernel_seen
+bpfman link list     select id,kind,program_id
+
+# ---- 19. Logical operators and parenthesised expressions ----
+
+# `and', `or' short-circuit; `not' is a unary prefix. Parens
+# group sub-expressions; they do not introduce a new command.
+assert $ready and $healthy
+assert $ready or  $booting
+assert not $failing
+assert not ($a == 1 and $b == 2)
+assert ($x > 0 and $x < 10) or $unbounded
+if (not-empty $progs) and ($count > 0) { print progs }
+
+# ---- 19a. Arithmetic operators ----
+
+# Binary arithmetic: '+', '-', '*', '/', '%'. '+', '*', '%'
+# split without surrounding whitespace because they cannot appear
+# in paths, flags, or negative literals; '-' and '/' stay
+# word-interior so `/sys/fs/bpf' and `-x' tokenise whole, which
+# means arithmetic using '-' or '/' requires whitespace.
+# Unary '-' negates any expression.
+
+let count    = 10
+let doubled  = $count * 2
+let doubled2 = $count + $count
+let halved   = $count / 2
+let mod7     = 7 % 3
+let neg      = -$count
+let ws_sub   = $count - 1
+let nest     = ($count + 5) * 2
+
+# Arithmetic may appear as a comparison operand; precedence
+# binds the arithmetic tighter than the comparison.
+if $count + 1 > $halved * 3 { print $count }
+
+# Auto-printed expression statements.
+$count + 1
+-$count
+
+# ---- 19b. Expressions ----
+
+# Every RHS after `=' is an expression. There is no separate
+# expression-substitution form; the expression grammar handles
+# arithmetic, comparison, logical combinators, and threading
+# inline.
+
+let half     = 1 / 2               # 0.5
+let quarter  = 1 / 4               # 0.25
+let diff     = 10 - 3              # 7
+let scaled   = $count * 2 + 1      # mixed precedence
+
+# Expression in a condition, auto-entering expression grammar.
+if $count - 1 > 0 { print $count }
+
+# ---- 20. Value-threading with `|>' ----
+
+# LHS becomes the last arg of the RHS command. Chains are common.
+let n = $raw_count |> jq tonumber
+let f = $progs |> jq ".[] | select(.kind == \"xdp\")"
+guard list <- bpfman program list -o json
+let names = $list |> jq ".[].name"
+assert not-empty $names
+
+# ---- 21. foreach iteration ----
+
+# Iterate a materialised list; the iteration variable is in scope
+# only inside the block.  `break' stops early; `continue' skips.
+guard listed <- bpfman program list -o json
+let ids = $listed |> jq ".[].program_id"
+foreach id in $ids {
+    bpfman show program $id summary
+}
+
+foreach item in $progs {
+    if $item.kind == xdp {
+        continue
+    }
+    if $item.kind == blacklisted {
+        break
+    }
+    print $item
+}
+
+# Multi-name foreach destructures each item in the iterable.
+foreach (id weight) in $pairs {
+    print $id $weight
+}
+
+# ---- 22. poll / retry ----
+
+# Poll retries only when the script says `retry`. `require`
+# remains fail-now; `assert` is not valid inside poll.
+poll timeout 60s every 100ms {
+    guard status <- bpfman program get 42 -o json
+    retry "waiting for GPL-compatible status" unless $status.record.gpl_compatible
+}
+
+poll timeout 30s every 250ms {
+    guard status <- bpfman program get 42 -o json
+    retry unless $status.record.gpl_compatible
+}
+
+poll timeout 2m every 1s {
+    guard link <- bpfman link get 8801 -o json
+    retry "waiting for xdp link kind" unless $link.record.kind == xdp
+}
+
+def await_ready_link(id) {
+    guard link <- bpfman link get $id -o json
+    retry "waiting for xdp helper link kind" unless $link.record.kind == xdp
+}
+
+poll timeout 2m every 1s {
+    await_ready_link 8801
+}
+
+# ---- 23. jq as a higher-order operator over structured data ----
+
+guard raw <- bpfman program list -o json
+let xdp = jq ".[] | select(.kind == \"xdp\")" $raw
+let names = jq "[ .[].name ]" $raw
+let first = jq ".[0]" $raw
+let scalar = jq "." '{"answer": 42}'
+
+# ---- 24. assert <expr> matches { ... } ----
+
+# A subset-match block: every listed path is checked against its
+# pattern; unlisted fields on the record are allowed. Patterns may
+# be literals, $variables, $variable.path lookups, or the
+# `not-empty' unary form. The keyword `matches' is highlighted as
+# a builtin; the block's `{' / `}' delimiters are plain. Entries
+# are separated by newlines -- the block is a table of relations,
+# not a sequence of statements, so `,' and `;' between entries are
+# both syntax errors (a deliberate departure from the rest of the
+# language, where `\n' and `;' are interchangeable inside braces).
+assert $prog matches {
+    record.load.program_type:    tracepoint
+    status.kernel.program_type:  tracepoint
+    record.meta.name:            tracepoint_kill_recorder
+    status.kernel.id:            $prog.record.program_id
+    status.kernel.tag:           not-empty
+    record.handles.pin_path:     not-empty
+}
+
+# Bare `not-empty' is the unary predicate. To assert that a field
+# equals the literal string "not-empty", quote it -- the quoted
+# form falls through to a normal literal comparison. The same
+# escape rule covers `true' and `false' if you ever need to
+# compare against those literal strings rather than the booleans.
+assert $prog matches {
+    record.meta.name:    "not-empty"
+    record.meta.flag:    "true"
+}
+
+# ---- 25. User-defined commands (def) ----
+
+# `def NAME(P1 P2 ...) { BODY }' registers NAME as a callable.
+# The keyword `def' is fontified like `let'/`foreach'; the def name
+# and each parameter name carry the variable-name face. Inside the
+# body, statements fontify exactly as they do at the top level.
+def expect_program_load(prog load_tp kernel_tp name) {
+    assert $prog matches {
+        record.load.program_type:    $load_tp
+        status.kernel.program_type:  $kernel_tp
+        record.meta.name:            $name
+        status.kernel.id:            $prog.record.program_id
+        status.kernel.tag:           not-empty
+        record.handles.pin_path:     not-empty
+    }
+}
+
+# A def with no parameters.
+def banner() {
+    print "running lifecycle checks"
+}
+
+# Parameters may carry an optional type annotation `name: type'
+# (types number, string, bool). The colon binds to the parameter
+# name; the type word carries the type face, distinct from the
+# variable-name face on the parameter itself. A space after the
+# colon is required (`x: number', not `x:number'). Annotated and
+# bare parameters mix freely.
+def assert_dispatcher_count(nsid: number ifindex: number want: number label) {
+    print "${label}: expecting ${want} members at ${nsid}/${ifindex}"
+}
+
+def publish_id(prog) {
+    return $prog.record.program_id
+}
+
+def expect_link(link prog kind) {
+    assert $link.record.kind == $kind
+    assert $link.record.program_id == $prog.record.program_id
+}
+
+# Calling a registered def reads exactly like any other command;
+# the def name is not specially highlighted at the call site
+# because the fontifier sees it as an unknown command word.
+expect_program_load $prog tracepoint tracepoint tp_a
+banner
+let link = $link2
+expect_link $link $prog tracepoint
+
+# `defs' lists registered defs and fonts as a shell-language
+# keyword.
+defs
+
+# ---- End of gallery ----

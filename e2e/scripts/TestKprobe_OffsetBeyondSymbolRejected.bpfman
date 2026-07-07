@@ -1,0 +1,35 @@
+# -*- mode: bpfman -*-
+#
+# Given: a kprobe program and a leased kfunc slot
+#
+# When: the program is attached with an offset far beyond the target
+# symbol's size (1MiB; no kernel function is that long, and the
+# kernel's perf_kprobe offset validation rejects an out-of-symbol
+# offset on every architecture, independent of instruction layout)
+#
+# Then: the attach fails, no link is recorded for the program, and the
+# same slot still attaches cleanly at offset 0 -- the rejected attempt
+# leaves no residue behind
+
+import ../lib.bpfman
+
+guard fn <- kfunc acquire
+defer kfunc release $fn
+
+guard loaded <- bpfman program load file testdata/bpf/kprobe_counter.bpf.o --programs kprobe:kprobe_counter
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $prog
+
+assert fail bpfman link attach kprobe $prog $fn.name --offset 1048576
+
+# The rejected attach recorded nothing.
+guard listed <- bpfman link list -o json
+assert ($listed |> jq "[.links[] | select(.program_id == ${pid})] | length") == 0
+
+# The same program and slot still attach cleanly at offset 0.
+guard link <- bpfman link attach kprobe $prog $fn.name
+assert $link.record.details.offset == 0
+assert $link.status.kernel_seen
+
+bpfman link detach $link

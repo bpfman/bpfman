@@ -1,0 +1,7 @@
+stdout_lines:
+  - inside-ready
+  - after
+stderr_not_contains:
+  - "[poll] FAIL"
+  - "[assert] FAIL"
+

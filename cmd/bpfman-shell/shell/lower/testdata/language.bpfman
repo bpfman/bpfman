@@ -1,0 +1,90 @@
+# Lowering contract fixture.
+#
+# One dense, valid program exercising the statement, binding,
+# control-flow, and expression forms the lowerer handles, one canonical
+# spelling each, chosen for IR coverage rather than surface variety
+# (this is not the syntax gallery and not a behavioural test). When you
+# add a lowering branch, add a line here so the golden keeps covering
+# it. Regenerate language.lowered with `make update-lowered-goldens`.
+
+import ./language-lib.bpfman
+
+# Top-level command.
+print "start"
+
+# Expression let-bindings: list literal, index, field-free arithmetic.
+let nums = [1 2 3]
+let first = $nums[0]
+let sum = $first + 10
+
+# Positional destructure of a list.
+let (a b c) = $nums
+
+# Record literal: named fields, a compound value in parentheses.
+let rec = record {id: $first label: "demo" total: ($sum + 1)}
+
+# Command capture: outcome bind, guard unwrap, and a call to an
+# imported def in bind position.
+let doubled_result <- lib_double 21
+let doubled = $doubled_result.value
+let greeting <- echo hello
+let echoed <- echo world
+guard ok <- echo ready
+
+# Def with params and a return; called as a command head.
+def describe(label value) {
+    print $label $value
+    return $value
+}
+
+guard described <- describe count $sum
+
+# Deferred cleanup.
+defer echo cleanup
+
+# Control flow.
+if $sum > 0 {
+    print positive
+} elif $sum == 0 {
+    print zero
+} else {
+    print negative
+}
+
+# Iteration with continue and break.
+foreach n in $nums {
+    if $n == 2 {
+        continue
+    }
+    if $n == 3 {
+        break
+    }
+    print $n
+}
+
+# Bind-collect: a foreach whose per-iteration result is collected.
+let collected_result <- foreach n in $nums {
+    echo $n
+}
+let collected = $collected_result.values
+
+# Poll with a guarded retry carrying a message.
+poll timeout 5s every 1s {
+    retry "waiting for the command to report ok" unless $ok.ok
+}
+
+# Structural match on a captured envelope.
+assert $ok matches {
+    ok: true
+}
+
+# Command-form assertion and require (IsRequire), distinct lowerings
+# from the expression and matches assert forms above.
+assert ok echo done
+require $sum > 0
+
+# Threaded expression.
+let piped = $nums |> jq length
+
+# Adapter reference in argument position.
+let _ <- cat file:$first

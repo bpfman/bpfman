@@ -1,0 +1,13 @@
+stdout_lines:
+  - helper-after
+  - after
+stderr_contains:
+  - "[assert] FAIL: matches: 2 mismatches"
+  - "{lib}:3:5: ok:"
+  - "{lib}:4:5: exit_code:"
+stderr_not_contains:
+  - "{main}:2:"
+  - "{main}:3:"
+  - "{main}:4:"
+err_text: "1 assertion(s) failed"
+assert_failures: 1

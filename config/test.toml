@@ -1,0 +1,10 @@
+# Test configuration for development
+# Disables signature verification for easier local testing
+
+[signing]
+allow_unsigned = true
+verify_enabled = false
+
+[logging]
+format = "text"
+level = "debug"

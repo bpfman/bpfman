@@ -1,0 +1,8 @@
+def s(x: string) {
+  assert $x == "hi"
+}
+let v = "hi"
+s hi
+s "hi"
+s $v
+print string-ok

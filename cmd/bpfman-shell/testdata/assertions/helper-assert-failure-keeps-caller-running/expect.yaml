@@ -1,0 +1,8 @@
+err_text: "1 assertion(s) failed"
+stdout_lines:
+  - before
+  - after
+stderr_contains:
+  - "{main}:2:"
+  - "[assert] FAIL: expected false to be true"
+assert_failures: 1

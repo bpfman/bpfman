@@ -1,0 +1,3 @@
+def loaded() {
+  print loaded-lib
+}

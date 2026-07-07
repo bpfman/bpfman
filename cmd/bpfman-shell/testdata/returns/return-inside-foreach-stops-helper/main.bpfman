@@ -1,0 +1,13 @@
+def first_stop(xs) {
+  foreach x in $xs {
+    if $x == stop {
+      return found
+    }
+    print "seen-${x}"
+  }
+  print after-loop
+  return none
+}
+guard v <- first_stop [go stop end]
+print $v
+print after

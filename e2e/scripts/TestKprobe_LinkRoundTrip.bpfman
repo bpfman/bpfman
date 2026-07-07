@@ -1,0 +1,79 @@
+# -*- mode: bpfman -*-
+#
+# Given: a kprobe attached to a leased kfunc slot (an isolated symbol
+# with an exact debugfs trigger)
+#
+# When: the link is fetched, listed, triggered through a counter phase
+# the other LinkRoundTrip variants omit, then detached and unloaded
+#
+# Then: get/list round-trip the link, firing the trigger advances the
+# counter, and after detach the link is absent and the counter is quiet
+
+import ../lib.bpfman
+
+let events = 5
+
+guard fn <- kfunc acquire
+defer kfunc release $fn
+
+guard loaded <- bpfman program load file testdata/bpf/kprobe_counter.bpf.o --programs kprobe:kprobe_counter
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+
+expect_program_load $prog kprobe kprobe kprobe_counter
+
+guard link <- bpfman link attach kprobe $prog $fn.name -m owner=kprobe
+let linkID = $link.record.id
+expect_pinned_link_identity $link
+
+assert $link.record.kind == kprobe
+assert $link.record.metadata.owner == kprobe
+assert $link.record.program_id == $pid
+assert $link.record.details.fn_name == $fn.name
+assert $link.record.details.offset == 0
+assert not $link.record.details.retprobe
+assert $link.status.kernel_seen
+
+guard gotLink <- bpfman link get $linkID
+expect_link_get_identity $gotLink $link $linkID
+assert $gotLink.record.id == $linkID
+assert $gotLink.record.kind == kprobe
+assert $gotLink.record.metadata.owner == kprobe
+assert $gotLink.record.program_id == $pid
+assert $gotLink.record.details.fn_name == $fn.name
+assert $gotLink.record.details.offset == 0
+assert not $gotLink.record.details.retprobe
+
+guard listed <- bpfman link list -o json
+expect_link_list_identity $listed $link $linkID kprobe
+
+guard fired <- kfunc fire $fn $events
+assert $fired.ok
+
+let mapID = $prog.status.maps[0].id
+let sumFilter = "fromjson | [.[0].formatted.values[].value | tonumber] | add"
+guard dump <- bpftool map dump id $mapID -j
+let got = $dump.stdout |> jq $sumFilter
+print "kfunc=${fn.name} got=${got} want=${events}"
+assert $got == $events
+
+bpfman link detach $link
+assert fail bpfman link get $linkID
+
+guard listedAfter <- bpfman link list -o json
+assert_link_absent $listedAfter $linkID
+
+poll timeout 2s every 50ms {
+    await_kfunc_detach_quiescent $fn $mapID $events $sumFilter
+}
+
+guard dumpDetached <- bpftool map dump id $mapID -j
+let detached = $dumpDetached.stdout |> jq $sumFilter
+guard _ <- kfunc fire $fn $events
+guard dumpAfterDetach <- bpftool map dump id $mapID -j
+let afterDetach = $dumpAfterDetach.stdout |> jq $sumFilter
+print "kfunc=${fn.name} after-detach=${afterDetach} want=${detached}"
+assert $afterDetach == $detached
+
+bpfman program unload $pid
+assert fail bpfman program get $prog

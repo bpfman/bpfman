@@ -1,0 +1,84 @@
+# -*- mode: bpfman -*-
+#
+# Given: a uprobe attached by absolute file offset with no function name
+#
+# When: the fixture target is exercised
+#
+# Then: the offset-only attach fires the same target and advances the
+# counter exactly once per event
+#
+# Rust's fn_name is optional: with no symbol, aya attaches at the
+# absolute file offset. Go passed the empty symbol to cilium and failed
+# with ErrNoSymbol, so --offset N without --fn-name did not work at
+# all; this is the regression test. uprobe target publishes
+# symbol_offset, the cgo fixture symbol's absolute file offset in the
+# running bpfman-shell ELF, translated from the symbol's virtual
+# address through its PT_LOAD segment -- the offset shape cilium
+# resolves a symbol to internally. Attaching at that offset is the same
+# attach point as --fn-name $target.symbol, reached without naming the
+# symbol. A wrong offset would attach to the wrong instruction or none,
+# so the exact-equality assertion on the counter is what proves the
+# offset is right.
+
+import ../lib.bpfman
+
+let calls = 5
+let weight = 11
+
+guard target <- uprobe target
+
+guard loaded <- bpfman program load file testdata/bpf/uprobe_exact.bpf.o --programs uprobe:uprobe_counter -g "expected_pid=0x${u32le $target.pid}" -g "weight=0x${u64le $weight}"
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $pid
+
+# Offset-only attach: file offset, no --fn-name.
+guard link <- bpfman link attach uprobe $prog $target.path --offset $target.symbol_offset --pid $target.pid
+let linkID = $link.record.id
+expect_pinned_link_identity $link
+
+# The link carries the offset and no function name.
+assert $link.record.kind == uprobe
+assert $link.record.program_id == $pid
+assert $link.record.details.target == $target.path
+assert $link.record.details.offset == $target.symbol_offset
+assert $link.record.details.fn_name == ""
+
+guard gotLink <- bpfman link get $linkID
+expect_link_get_identity $gotLink $link $linkID
+assert $gotLink.record.details.offset == $target.symbol_offset
+assert $gotLink.record.details.fn_name == ""
+
+# Trigger the fixture symbol and assert exact counter arithmetic.
+# The fire path enters the cgo symbol once per call; if the
+# offset resolved to the wrong instruction the count would not be
+# calls * weight.
+let mapID = $prog |> jq '[.status.maps[] | select(.name == "up_count") | .id][0]'
+let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+guard dumpBefore <- bpftool map dump id $mapID -j
+let before = $dumpBefore.stdout |> jq $counter_filter
+
+guard _ <- uprobe fire $calls
+
+guard dumpAfter <- bpftool map dump id $mapID -j
+let after = $dumpAfter.stdout |> jq $counter_filter
+let delta = $after - $before
+let want = $calls * $weight
+print "uprobe offset-only count: got=${delta} want=${want} (offset=${target.symbol_offset})"
+assert $delta == $want
+
+# Detach, then verify the probe stops counting.
+bpfman link detach $link
+assert fail bpfman link get $linkID
+
+sleep 0.1
+
+guard dumpDetached <- bpftool map dump id $mapID -j
+let detached = $dumpDetached.stdout |> jq $counter_filter
+guard _ <- uprobe fire 1
+
+guard dumpAfterDetach <- bpftool map dump id $mapID -j
+let afterDetach = $dumpAfterDetach.stdout |> jq $counter_filter
+print "uprobe offset-only after-detach=${afterDetach} want=${detached}"
+assert $afterDetach == $detached

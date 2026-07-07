@@ -1,0 +1,9 @@
+import ./lib.bpfman
+guard dirs <- foreach name in ["one" "two"] {
+  mk $name
+}
+foreach d in $dirs {
+  let rc <- exec test -d $d.path
+  print $rc.ok
+  print $rc.exit_code
+}

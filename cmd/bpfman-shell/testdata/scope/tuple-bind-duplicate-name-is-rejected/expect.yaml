@@ -1,0 +1,7 @@
+err_is: silent
+stdout_not_contains:
+  - unreachable
+stderr_contains:
+  - "{main}:1"
+  - "tuple bind after '<-' is no longer supported"
+  - "use named fields"

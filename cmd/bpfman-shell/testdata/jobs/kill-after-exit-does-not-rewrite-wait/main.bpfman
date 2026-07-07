@@ -1,0 +1,14 @@
+guard p <- start sh -c "exit 0"
+let before <- wait $p
+let _ <- kill $p
+let after <- wait $p
+
+assert $before.ok
+assert not $before.killed
+assert $before.signal == ""
+
+assert $after.ok
+assert not $after.killed
+assert $after.signal == ""
+
+print stable

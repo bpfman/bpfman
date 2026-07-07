@@ -1,0 +1,3 @@
+def inner(x) {
+  return $x.missing
+}

@@ -1,0 +1,62 @@
+# -*- mode: bpfman -*-
+#
+# Given: programs already loaded with known kinds
+#
+# When: each is attached through a verb its declared kind cannot drive
+#
+# Then: every mismatch is rejected before any link is created, and the
+# diagnostic names the actual program kind
+
+# Lease an isolated kmod target slot so the fexit program attaches to a
+# function that exists in kernel BTF; do_unlinkat is inlined away on some
+# kernels and architectures. The kprobe cross-attaches below reference the
+# same slot, so each rejection is unambiguously a kind mismatch rather than
+# an unresolved symbol.
+guard fn <- kfunc acquire
+defer kfunc release $fn
+
+guard up <- bpfman program load file testdata/bpf/uprobe_counter.bpf.o --programs uprobe:uprobe_counter
+let uprobe = $up.programs[0]
+defer bpfman program unload $uprobe
+
+guard kp <- bpfman program load file testdata/bpf/kprobe_counter.bpf.o --programs kprobe:kprobe_counter
+let kprobe = $kp.programs[0]
+defer bpfman program unload $kprobe
+
+guard tp <- bpfman program load file testdata/bpf/tracepoint_counter.bpf.o --programs tracepoint:tracepoint_kill_recorder
+let tracepoint = $tp.programs[0]
+defer bpfman program unload $tracepoint
+
+guard fx <- bpfman program load file testdata/bpf/fexit_kmod_exact.bpf.o --programs "fexit:test_fexit:${fn.name}"
+let fexit = $fx.programs[0]
+defer bpfman program unload $fexit
+
+guard xd <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs xdp:pass
+let xdp = $xd.programs[0]
+defer bpfman program unload $xdp
+
+guard tc <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let tcprog = $tc.programs[0]
+defer bpfman program unload $tcprog
+
+# Probe-family cross-attaches: uprobe and kprobe share a kernel type,
+# so before the guard this attached silently with the wrong family.
+assert fail bpfman link attach kprobe $uprobe $fn.name
+assert fail bpfman link attach uprobe $kprobe /bin/bash
+
+# kprobe program via tracepoint verb, and the reverse.
+assert fail bpfman link attach tracepoint $kprobe syscalls/sys_enter_kill
+assert fail bpfman link attach kprobe $tracepoint $fn.name
+
+# fexit program via fentry verb (attach type is bound at load).
+assert fail bpfman link attach fentry $fexit
+
+# Network kinds: xdp via tc and tcx verbs, and tc via xdp.
+assert fail bpfman link attach tc $xdp lo ingress --priority 50
+assert fail bpfman link attach tcx $xdp lo ingress --priority 50
+assert fail bpfman link attach xdp $tcprog lo --priority 50
+
+# Lock the rejection message shape.
+let r <- bpfman link attach kprobe $uprobe $fn.name
+assert not $r.ok
+assert contains $r.stderr "is a uprobe program"

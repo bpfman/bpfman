@@ -1,0 +1,7 @@
+import ./lib.bpfman
+guard xs <- foreach n in [1 2 3] {
+  square $n
+}
+foreach x in $xs {
+  print $x
+}

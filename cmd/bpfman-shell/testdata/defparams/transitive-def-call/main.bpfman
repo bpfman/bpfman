@@ -1,0 +1,9 @@
+def inner(x) {
+  assert $x == 3
+}
+def outer(x) {
+  inner $x
+}
+let n = 3
+outer $n
+print transitive-ok

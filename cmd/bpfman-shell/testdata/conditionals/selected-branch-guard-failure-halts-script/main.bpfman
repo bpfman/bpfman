@@ -1,0 +1,8 @@
+print before
+if true {
+  guard _ <- exec false
+  print inside-after
+} else {
+  print wrong-branch
+}
+print after

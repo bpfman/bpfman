@@ -1,0 +1,11 @@
+err_is: silent
+stdout_lines: []
+stderr_contains:
+  - "{lib}:2:"
+  - "[require] FAIL: expected \"1\" to equal \"2\""
+stderr_not_contains:
+  - "{main}:2:"
+  - "{main}:3:"
+stdout_not_contains:
+  - inside-after
+  - after

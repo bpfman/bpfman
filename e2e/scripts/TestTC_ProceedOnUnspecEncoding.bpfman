@@ -1,0 +1,27 @@
+# -*- mode: bpfman -*-
+#
+# Given: a TC link attached with explicit proceed-on unspec
+#
+# When: the link is stored and read back
+#
+# Then: bpfman records dispatcher bit zero and reports the link action
+# back as -1
+
+import ../lib.bpfman
+
+guard pair <- net veth-pair
+defer net release $pair
+
+guard loaded <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let prog = $loaded.programs[0]
+defer bpfman program unload $prog
+
+guard link <- bpfman link attach tc $prog $pair.host_link ingress --priority 50 --proceed-on unspec
+defer bpfman link detach $link
+
+guard got <- bpfman link get $link
+assert $got |> jq ".record.details.proceed_on == [-1]"
+
+guard snap <- bpfman dispatcher get tc-ingress $pair.host_nsid $pair.host_ifindex -o json
+assert ($snap |> jq ".members | length") == 1
+assert ($snap |> jq ".members[0].proceed_on") == 1

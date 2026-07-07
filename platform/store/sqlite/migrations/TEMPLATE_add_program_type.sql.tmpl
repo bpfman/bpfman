@@ -1,0 +1,232 @@
+-- TEMPLATE -- not a live migration.
+--
+-- The filename ends in .sql.tmpl, so the //go:embed migrations/*.sql
+-- glob ignores it and goose never runs it. To use it: copy it to
+-- migrations/NNNNN_add_<type>.sql with the next free version number,
+-- trim this preamble, and adapt the four marked spots for your type.
+--
+-- Adding a program type touches up to four things:
+--
+--   1. managed_programs.program_type  -- the program-type enum. Always.
+--   2. links.kind                     -- the link discriminator. Only if
+--                                        the type can be attached.
+--   3. link_<type>_details            -- a new detail table. Only if the
+--                                        type has type-specific link fields.
+--   4. dispatchers.type               -- only for XDP/TC-style chained
+--                                        types. Rare; not shown here.
+--
+-- Items 1 and 2 widen a CHECK (... IN (...)) constraint. SQLite cannot
+-- alter a CHECK in place, so each is a full table rebuild: create a new
+-- table with the wider CHECK, copy the rows, drop the old, rename the
+-- new into its place. Drop-then-rename (rather than rename-old-then-drop)
+-- avoids SQLite rewriting the child tables' foreign keys to follow the
+-- rename.
+--
+-- Both tables are referenced by foreign keys from other tables, so the
+-- rebuild runs with foreign_keys OFF. That pragma cannot be toggled
+-- inside a transaction, which is why the migration is marked
+-- NO TRANSACTION and manages one explicit transaction itself: the swap
+-- is atomic, foreign_key_check proves nothing was orphaned, and
+-- enforcement is restored before the migration returns.
+--
+-- The links table is AUTOINCREMENT. The copy preserves the existing id
+-- values, and SQLite advances sqlite_sequence to the highest copied id,
+-- so the next allocated handle continues past them with no manual fix-up.
+--
+-- This example adds 'sockops' with a one-column detail table. Replace
+-- the value and the link_sockops_details shape with your own.
+
+-- +goose NO TRANSACTION
+-- +goose Up
+-- +goose StatementBegin
+PRAGMA foreign_keys = OFF;
+
+BEGIN TRANSACTION;
+
+-- (1) Rebuild managed_programs to widen the program_type CHECK. The
+--     column list is copied verbatim from the current schema; only the
+--     CHECK list gains the new value.
+CREATE TABLE managed_programs_new (
+    program_id INTEGER PRIMARY KEY,
+    program_name TEXT NOT NULL,
+    program_type TEXT NOT NULL CHECK (program_type IN (
+        'xdp','tc','tcx','tracepoint','kprobe','kretprobe',
+        'uprobe','uretprobe','fentry','fexit',
+        'sockops'                                       -- <-- new value
+    )),
+    object_path TEXT NOT NULL,
+    pin_path TEXT NOT NULL,
+    attach_func TEXT,
+    global_data TEXT CHECK (global_data IS NULL OR json_valid(global_data)),
+    map_set_id INTEGER NOT NULL,
+    image_source TEXT CHECK (
+        image_source IS NULL
+        OR (
+            json_valid(image_source)
+            AND json_extract(image_source, '$.url') IS NOT NULL
+            AND json_extract(image_source, '$.url') != ''
+            AND json_extract(image_source, '$.pull_policy') IN (
+                'Always', 'IfNotPresent', 'Never'
+            )
+        )
+    ),
+    owner TEXT,
+    description TEXT,
+    license TEXT,
+    gpl_compatible INTEGER NOT NULL DEFAULT 0 CHECK (gpl_compatible IN (0, 1)),
+    metadata_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(metadata_json)),
+    created_at TEXT NOT NULL,
+    updated_at TEXT,
+
+    FOREIGN KEY (map_set_id)
+        REFERENCES map_sets(id)
+        ON DELETE RESTRICT
+) STRICT;
+
+INSERT INTO managed_programs_new SELECT * FROM managed_programs;
+DROP TABLE managed_programs;
+ALTER TABLE managed_programs_new RENAME TO managed_programs;
+
+-- (2) Rebuild links to widen the kind CHECK, then recreate its indexes
+--     (they were dropped with the old table).
+CREATE TABLE links_new (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind            TEXT NOT NULL CHECK (kind IN (
+                        'tracepoint','kprobe','kretprobe','uprobe','uretprobe',
+                        'fentry','fexit','xdp','tc','tcx',
+                        'sockops'                           -- <-- new value
+                    )),
+    kernel_prog_id  INTEGER NOT NULL,
+    kernel_link_id  INTEGER,
+    pin_path        TEXT,
+    metadata_json   TEXT NOT NULL DEFAULT '{}'
+                        CHECK (json_valid(metadata_json)),
+    created_at      TEXT NOT NULL,
+
+    FOREIGN KEY (kernel_prog_id)
+        REFERENCES managed_programs(program_id)
+        ON DELETE CASCADE
+) STRICT;
+
+INSERT INTO links_new SELECT * FROM links;
+DROP TABLE links;
+ALTER TABLE links_new RENAME TO links;
+
+CREATE INDEX idx_links_by_prog ON links(kernel_prog_id);
+CREATE UNIQUE INDEX idx_links_kernel_link_id
+    ON links(kernel_link_id)
+    WHERE kernel_link_id IS NOT NULL;
+CREATE UNIQUE INDEX idx_links_pin_path
+    ON links(pin_path)
+    WHERE pin_path IS NOT NULL;
+
+-- (3) Add the type-specific detail table. Plain additive DDL mirroring
+--     the other link_*_details tables: 1:1 with links on id, cascading
+--     on delete. Replace the columns with your type's fields.
+CREATE TABLE link_sockops_details (
+    id INTEGER PRIMARY KEY,
+    cgroup_path TEXT NOT NULL,
+
+    FOREIGN KEY (id)
+        REFERENCES links(id)
+        ON DELETE CASCADE
+) STRICT;
+
+PRAGMA foreign_key_check;
+
+COMMIT;
+
+PRAGMA foreign_keys = ON;
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+PRAGMA foreign_keys = OFF;
+
+BEGIN TRANSACTION;
+
+-- Reverse order: drop the detail table, then remove rows of the new
+-- kind/type (they would fail the narrower CHECK on copy), then rebuild
+-- both tables back to their original constraint.
+DROP TABLE link_sockops_details;
+
+DELETE FROM links WHERE kind = 'sockops';
+
+CREATE TABLE links_new (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind            TEXT NOT NULL CHECK (kind IN (
+                        'tracepoint','kprobe','kretprobe','uprobe','uretprobe',
+                        'fentry','fexit','xdp','tc','tcx'
+                    )),
+    kernel_prog_id  INTEGER NOT NULL,
+    kernel_link_id  INTEGER,
+    pin_path        TEXT,
+    metadata_json   TEXT NOT NULL DEFAULT '{}'
+                        CHECK (json_valid(metadata_json)),
+    created_at      TEXT NOT NULL,
+
+    FOREIGN KEY (kernel_prog_id)
+        REFERENCES managed_programs(program_id)
+        ON DELETE CASCADE
+) STRICT;
+
+INSERT INTO links_new SELECT * FROM links;
+DROP TABLE links;
+ALTER TABLE links_new RENAME TO links;
+
+CREATE INDEX idx_links_by_prog ON links(kernel_prog_id);
+CREATE UNIQUE INDEX idx_links_kernel_link_id
+    ON links(kernel_link_id)
+    WHERE kernel_link_id IS NOT NULL;
+CREATE UNIQUE INDEX idx_links_pin_path
+    ON links(pin_path)
+    WHERE pin_path IS NOT NULL;
+
+DELETE FROM managed_programs WHERE program_type = 'sockops';
+
+CREATE TABLE managed_programs_new (
+    program_id INTEGER PRIMARY KEY,
+    program_name TEXT NOT NULL,
+    program_type TEXT NOT NULL CHECK (program_type IN (
+        'xdp','tc','tcx','tracepoint','kprobe','kretprobe',
+        'uprobe','uretprobe','fentry','fexit'
+    )),
+    object_path TEXT NOT NULL,
+    pin_path TEXT NOT NULL,
+    attach_func TEXT,
+    global_data TEXT CHECK (global_data IS NULL OR json_valid(global_data)),
+    map_set_id INTEGER NOT NULL,
+    image_source TEXT CHECK (
+        image_source IS NULL
+        OR (
+            json_valid(image_source)
+            AND json_extract(image_source, '$.url') IS NOT NULL
+            AND json_extract(image_source, '$.url') != ''
+            AND json_extract(image_source, '$.pull_policy') IN (
+                'Always', 'IfNotPresent', 'Never'
+            )
+        )
+    ),
+    owner TEXT,
+    description TEXT,
+    license TEXT,
+    gpl_compatible INTEGER NOT NULL DEFAULT 0 CHECK (gpl_compatible IN (0, 1)),
+    metadata_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(metadata_json)),
+    created_at TEXT NOT NULL,
+    updated_at TEXT,
+
+    FOREIGN KEY (map_set_id)
+        REFERENCES map_sets(id)
+        ON DELETE RESTRICT
+) STRICT;
+
+INSERT INTO managed_programs_new SELECT * FROM managed_programs;
+DROP TABLE managed_programs;
+ALTER TABLE managed_programs_new RENAME TO managed_programs;
+
+PRAGMA foreign_key_check;
+
+COMMIT;
+
+PRAGMA foreign_keys = ON;
+-- +goose StatementEnd

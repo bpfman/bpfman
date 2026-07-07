@@ -1,0 +1,46 @@
+# -*- mode: bpfman -*-
+#pragma labels={"external":"true","image":"true","program":"xdp","reference":"true"}
+#
+# Given: a published XDP image addressable by bare name, tag, and digest
+#
+# When: it is inspected and loaded through each reference form
+#
+# Then: image inspection and load provenance agree for every accepted
+# form
+
+import ../lib.bpfman
+
+def expect_xdp_ref(image) {
+    print "image-ref: inspecting ${image}"
+    guard published <- inspect_published_image $image xdp_stats
+    assert $published.manifest.programs.xdp_stats == xdp
+    assert $published.manifest.maps.xdp_stats_map == per_cpu_array
+
+    print "image-ref: loading ${image}"
+    guard loaded <- bpfman program load image $image --pull-policy Always --programs xdp:xdp_stats
+    let prog = $loaded.programs[0]
+    let pid = $prog.record.program_id
+    defer print "image-ref: unloaded ${image} pid=${pid}"
+    defer bpfman program unload $pid
+
+    expect_program_load $prog xdp extension xdp_stats
+    expect_loaded_image_source $prog $image $published.inspected
+    print "image-ref: loaded ${image} digest=${prog.record.load.image_source.digest}"
+
+    return $published.inspected
+}
+
+let bare = "quay.io/bpfman-bytecode/go-xdp-counter"
+let tagged = "${bare}:latest"
+
+guard tagged_inspected <- expect_xdp_ref $tagged
+assert $tagged_inspected.reference == $tagged
+
+guard bare_inspected <- expect_xdp_ref $bare
+assert $bare_inspected.reference == $tagged
+assert $bare_inspected.digest == $tagged_inspected.digest
+
+let digest_ref = "${bare}@${tagged_inspected.digest}"
+guard digest_inspected <- expect_xdp_ref $digest_ref
+assert $digest_inspected.reference == $digest_ref
+assert $digest_inspected.digest == $tagged_inspected.digest

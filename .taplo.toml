@@ -1,5 +1,7 @@
 # taplo wants to reorder commands in alphabetical order, but order is important here
-exclude = ["Cross.toml"]
+# vendor/ is regenerated wholesale by go mod vendor and its
+# third-party tomls follow their own conventions.
+exclude = ["Cross.toml", "vendor/**"]
 
 [[rule]]
 

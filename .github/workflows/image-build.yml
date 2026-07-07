@@ -1,5 +1,11 @@
 name: bpfman-image-build
 
+# IMAGE_REGISTRY below selects the destination for every image.
+# The quay.io login steps arm only when it points at quay.io, so
+# pointing it at a scratch registry (e.g. ttl.sh) lets a fork
+# prove the pipeline end to end -- image names, tag rules, and
+# signing unchanged -- without release credentials.
+
 on: # yamllint disable-line rule:truthy
   push:
     branches: [main]
@@ -8,15 +14,21 @@ on: # yamllint disable-line rule:truthy
   pull_request:
     paths:
       - .github/workflows/image-build.yml
-      - Containerfile.bpfman.multi.arch
+      - Dockerfile.bpfman
       - Containerfile.bytecode.multi.arch
       - examples/**/container-deployment/Containerfile**
   workflow_dispatch:
+
+env:
+  IMAGE_REGISTRY: quay.io
 
 jobs:
   # Build bpfman and store the bpfman CLI binary in artifacts for the
   # "build-and-push-bytecode-images" step. It will be used to generate
   # build args with the "bpfman image generate-build-args" command.
+  # The binary is the Go implementation; the dispatcher BPF objects
+  # are compiled first because the dispatcher package embeds them at
+  # compile time.
   build-bpfman-for-build-arg-gen:
     runs-on: ubuntu-24.04
     steps:
@@ -26,14 +38,24 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -qy clang llvm libbpf-dev gcc-multilib libelf-dev
+          sudo apt-get install -qy clang llvm libbpf-dev gcc-multilib libelf-dev pkgconf
+
+      - name: Read Go version from Makefile
+        run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"
+
+      - name: Install Golang
+        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # @v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
       - name: Build bpfman binary
-        run: cargo build -p bpfman --verbose
+        run: |
+          make dispatcher/tc_dispatcher.bpf.o dispatcher/xdp_dispatcher_v2.bpf.o
+          make bpfman-compile
 
       - name: archive bpfman binary
         run: |
-          cd target/debug
+          cd bin
           tar -czvf bpfman.tar.gz bpfman
 
       - name: Archive bpfman Binaries
@@ -41,89 +63,137 @@ jobs:
         with:
           name: bpfman-for-build-args
           path: |
-            ./target/debug/bpfman.tar.gz
+            ./bin/bpfman.tar.gz
 
-  # Build bpfman for each architecture and store the bpfman binaries in artifacts
-  # for the "build-and-push-userspace-images" step. The rust tool `cross` cannot be run in a
-  # container, so build the binaries locally, and the container build will just copy
-  # the files into the container.
-  build-bpfman-per-arch:
+  # Build and push the bpfman daemon image via the repository's own
+  # image tooling (make build-image): the in-container multi-arch
+  # build also bakes the attestation metadata into the binary
+  # (IMAGE_REF, SIGNER_IDENTITY, OIDC_ISSUER), so `bpfman version`
+  # prints a ready-to-run cosign verify command for the image it
+  # shipped in. The push and signing are gated on push events; pull
+  # requests get a cache-only build.
+  build-and-push-bpfman-image:
     permissions:
       contents: read
       packages: write
       id-token: write # needed for signing the images with GitHub OIDC Token
-
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        arch:
-          - arch: amd64
-            rust-target: x86_64-unknown-linux-gnu
-            filename: linux-x86_64
-            command: cargo
-          - arch: arm64
-            rust-target: aarch64-unknown-linux-gnu
-            filename: linux-arm64
-            command: cross
-          - arch: ppc64le
-            rust-target: powerpc64le-unknown-linux-gnu
-            filename: linux-ppc64le
-            command: cross
-          - arch: s390x
-            rust-target: s390x-unknown-linux-gnu
-            filename: linux-s390x
-            command: cross
-
-    name: Build bpfman (bpfman-${{ matrix.arch.arch }})
     steps:
+      - name: Set image reference
+        run: echo "BPFMAN_IMG=${IMAGE_REGISTRY}/bpfman/bpfman:latest" >> "$GITHUB_ENV"
+
       - name: Checkout bpfman
         uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
 
-      - name: Install dependencies
-        if: ${{ matrix.arch.arch == 'amd64' }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install -qy clang llvm libbpf-dev gcc-multilib libelf-dev
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # @v3
 
-      - name: Install rust toolchain - stable
-        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af # @v1
+      - name: Install cosign
+        uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # @v3.8.2
+
+      - name: Login to quay.io/bpfman
+        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # @v1
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && env.IMAGE_REGISTRY == 'quay.io' }}
         with:
-          toolchain: stable
-          override: true
-          target: ${{ matrix.arch.rust-target }}
+          registry: quay.io
+          username: ${{ secrets.BPFMAN_USERNAME }}
+          password: ${{ secrets.BPFMAN_ROBOT_TOKEN }}
 
-      # Only install cross if we need it
-      - name: Install Cross
-        if: ${{ matrix.arch.command == 'cross' }}
-        shell: bash
+      - name: Build and push multi-arch image
+        env:
+          BUILD_DATE: ${{ github.event.head_commit.timestamp }}
         run: |
-          cargo install cross --git https://github.com/cross-rs/cross
+          make build-image \
+            EXTRA_GO_LDFLAGS="-s -w" \
+            IMAGE_REF="${BPFMAN_IMG%:*}" \
+            SIGNER_IDENTITY=https://github.com/${{ github.repository }}/.github/workflows/image-build.yml@${{ github.ref }} \
+            OIDC_ISSUER=https://token.actions.githubusercontent.com \
+            PLATFORMS=linux/amd64,linux/arm64,linux/ppc64le,linux/s390x \
+            ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && 'PUSH=1' || '' }} \
+            BUILDX_EXTRA_ARGS="--cache-from type=gha --cache-to type=gha,mode=max --metadata-file=${RUNNER_TEMP}/buildx-meta.json"
 
-      # TODO: Is this needed? Quick glance this action is supposed to speed up rust builds
-      #       with some caching, but not sure of the details. Need to run with it enabled
-      #       and disabled and see if it speeds anything up or not.
-      # - uses: Swatinem/rust-cache@v2
-
-      - name: Build Binary
+      - name: Sign published image with cosign
+        if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
         run: |
-          ${{ matrix.arch.command }} build --release --target ${{ matrix.arch.rust-target }}
+          make cosign-sign \
+            BUILDX_METADATA_FILE="${RUNNER_TEMP}/buildx-meta.json"
 
-      - name: Package bpfman Binaries
+  verify-bpfman-image:
+    name: Verify bpfman image (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    needs: build-and-push-bpfman-image
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    steps:
+      - name: Set image reference
+        # Must match the BPFMAN_IMG used in build-and-push-bpfman-image;
+        # this job pulls the image that job pushed.
+        run: echo "BPFMAN_IMG=${IMAGE_REGISTRY}/bpfman/bpfman:latest" >> "$GITHUB_ENV"
+
+      - name: Verify image metadata
         run: |
-          cd target/${{ matrix.arch.rust-target }}/release
-          tar -czvf bpfman-build-${{ matrix.arch.filename }}.tar.gz bpfman bpfman-rpc bpfman-ns bpf-metrics-exporter bpf-log-exporter
+          output=$(docker run --rm -e BPFMAN_MODE= "$BPFMAN_IMG" version)
+          echo "$output"
+          echo "$output" | grep -q "${{ github.sha }}" || { echo "FAIL: expected git commit ${{ github.sha }}"; exit 1; }
+          echo "$output" | grep -q "${{ github.event.head_commit.timestamp }}" || { echo "FAIL: expected build date ${{ github.event.head_commit.timestamp }}"; exit 1; }
+          echo "$output" | grep -q "${{ matrix.platform }}" || { echo "FAIL: expected platform ${{ matrix.platform }}"; exit 1; }
 
-      - name: Archive bpfman Binaries
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # @v4
-        with:
-          name: bpfman-build-${{ matrix.arch.filename }}
-          path: ./target/${{ matrix.arch.rust-target }}/release/bpfman-build-${{ matrix.arch.filename }}.tar.gz
+      - name: Install cosign
+        uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # @v3.8.2
 
-  # Build all the userspace images and push them to quay.io. This includes bpfman
-  # as well as the go-*-counter examples.
+      - name: Verify cosign signature
+        # Asserts a sigstore signature exists on the published
+        # image, that it was issued by the GitHub Actions OIDC
+        # provider, that the signing identity is this workflow on
+        # this repository, and that the signature was made by the
+        # current commit rather than a prior run's stale signature
+        # on the floating :latest tag.
+        run: |
+          set -euo pipefail
+          cosign verify "$BPFMAN_IMG" \
+            --certificate-identity-regexp 'https://github\.com/${{ github.repository }}/\.github/workflows/image-build\.yml@.*' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            > "${RUNNER_TEMP}/cosign-verify.json"
+          actual_sha=$(jq -r '.[0].optional.githubWorkflowSha' "${RUNNER_TEMP}/cosign-verify.json")
+          if [ "${actual_sha}" != "${{ github.sha }}" ]; then
+            echo "FAIL: signature is from sha=${actual_sha}, expected ${{ github.sha }}" >&2
+            jq '.[0].optional' "${RUNNER_TEMP}/cosign-verify.json" >&2
+            exit 1
+          fi
+          echo "Signature verified: githubWorkflowSha=${actual_sha}"
+
+      - name: Verify cosign signature via binary's embedded attestation
+        # Self-consistency check between the attestation the binary
+        # carries in its version output and the signature actually
+        # applied: a typo in IMAGE_REF or SIGNER_IDENTITY in the
+        # build args fails here even though the direct verification
+        # above would pass.
+        run: |
+          set -euo pipefail
+          docker run --rm -e BPFMAN_MODE= "$BPFMAN_IMG" version \
+            | grep ^Attestation: \
+            | sed 's/^Attestation: *//' \
+            | sh \
+            > "${RUNNER_TEMP}/embedded-verify.json"
+          actual_sha=$(jq -r '.[0].optional.githubWorkflowSha' "${RUNNER_TEMP}/embedded-verify.json")
+          if [ "${actual_sha}" != "${{ github.sha }}" ]; then
+            echo "FAIL: embedded-attestation verify returned sha=${actual_sha}, expected ${{ github.sha }}" >&2
+            jq '.[0].optional' "${RUNNER_TEMP}/embedded-verify.json" >&2
+            exit 1
+          fi
+          echo "Embedded attestation verified: githubWorkflowSha=${actual_sha}"
+
+  # Build all the userspace example images and push them to the registry.
   build-and-push-userspace-images:
-    needs: [build-bpfman-per-arch]
     permissions:
       contents: read
       packages: write
@@ -134,21 +204,7 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - registry: quay.io
-            repository: bpfman
-            image: bpfman
-            dockerfile: ./Containerfile.bpfman.multi.arch
-            context: .
-            tags: |
-              type=ref,event=branch
-              type=ref,event=tag
-              type=ref,event=pr
-              type=sha,format=long
-              # set latest tag for default branch
-              type=raw,value=latest,enable={{is_default_branch}}
-
-          - registry: quay.io
-            repository: bpfman-userspace
+          - repository: bpfman-userspace
             image: go-xdp-counter
             context: .
             dockerfile: ./examples/go-xdp-counter/container-deployment/Containerfile.go-xdp-counter
@@ -160,8 +216,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            repository: bpfman-userspace
+          - repository: bpfman-userspace
             image: go-tc-counter
             context: .
             dockerfile: ./examples/go-tc-counter/container-deployment/Containerfile.go-tc-counter
@@ -173,8 +228,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            repository: bpfman-userspace
+          - repository: bpfman-userspace
             image: go-tcx-counter
             context: .
             dockerfile: ./examples/go-tcx-counter/container-deployment/Containerfile.go-tcx-counter
@@ -186,8 +240,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            # build_language: go - Not building locally, so don't install go tools
+          - # build_language: go - Not building locally, so don't install go tools
             repository: bpfman-userspace
             image: go-tracepoint-counter
             context: .
@@ -200,8 +253,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            repository: bpfman-userspace
+          - repository: bpfman-userspace
             image: go-kprobe-counter
             context: .
             dockerfile: ./examples/go-kprobe-counter/container-deployment/Containerfile.go-kprobe-counter
@@ -213,8 +265,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            repository: bpfman-userspace
+          - repository: bpfman-userspace
             image: go-uprobe-counter
             context: .
             dockerfile: ./examples/go-uprobe-counter/container-deployment/Containerfile.go-uprobe-counter
@@ -226,8 +277,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            repository: bpfman-userspace
+          - repository: bpfman-userspace
             image: go-uretprobe-counter
             context: .
             dockerfile: ./examples/go-uretprobe-counter/container-deployment/Containerfile.go-uretprobe-counter
@@ -239,8 +289,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            repository: bpfman-userspace
+          - repository: bpfman-userspace
             image: go-target
             context: .
             dockerfile: ./examples/go-target/container-deployment/Containerfile.go-target
@@ -252,8 +301,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            repository: bpfman-userspace
+          - repository: bpfman-userspace
             image: go-app-counter
             context: .
             dockerfile: ./examples/go-app-counter/container-deployment/Containerfile.go-app-counter
@@ -273,19 +321,11 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # @v3.8.2
 
-      - name: Login to quay.io/bpfman
-        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # @v1
-        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman'}}
-        with:
-          registry: ${{ matrix.image.registry }}
-          username: ${{ secrets.BPFMAN_USERNAME }}
-          password: ${{ secrets.BPFMAN_ROBOT_TOKEN }}
-
       - name: Login to quay.io/bpfman-userspace
         uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # @v1
-        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman-userspace'}}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && env.IMAGE_REGISTRY == 'quay.io' && matrix.image.repository == 'bpfman-userspace'}}
         with:
-          registry: ${{ matrix.image.registry }}
+          registry: ${{ env.IMAGE_REGISTRY }}
           username: ${{ secrets.BPFMAN_USERSPACE_USERNAME }}
           password: ${{ secrets.BPFMAN_USERSPACE_ROBOT_TOKEN }}
 
@@ -293,7 +333,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # @v5.7.0
         with:
-          images: ${{ matrix.image.registry }}/${{ matrix.image.repository }}/${{ matrix.image.image }}
+          images: ${{ env.IMAGE_REGISTRY }}/${{ matrix.image.repository }}/${{ matrix.image.image }}
           tags: ${{ matrix.image.tags }}
 
       - name: Set up QEMU
@@ -301,33 +341,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # @v3
-
-      # bpfman ONLY
-      - name: Update .dockerignore to allow "target/" directory
-        if: ${{ matrix.image.image == 'bpfman'}}
-        run: |
-          sed -i '/target/d' ./.dockerignore
-
-      # bpfman ONLY
-      - name: Download built bpfman Binaries
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # @v4
-        if: ${{ matrix.image.image == 'bpfman'}}
-        with:
-          pattern: bpfman-build-*
-          merge-multiple: true
-
-      # bpfman ONLY
-      - name: Unpack built bpfman binaries
-        if: ${{ matrix.image.image == 'bpfman'}}
-        run: |
-          mkdir -p target/x86_64-unknown-linux-gnu/release
-          tar -C target/x86_64-unknown-linux-gnu/release -xzvf bpfman-build-linux-x86_64.tar.gz
-          mkdir -p target/aarch64-unknown-linux-gnu/release
-          tar -C target/aarch64-unknown-linux-gnu/release -xzvf bpfman-build-linux-arm64.tar.gz
-          mkdir -p target/powerpc64le-unknown-linux-gnu/release
-          tar -C target/powerpc64le-unknown-linux-gnu/release -xzvf bpfman-build-linux-ppc64le.tar.gz
-          mkdir -p target/s390x-unknown-linux-gnu/release
-          tar -C target/s390x-unknown-linux-gnu/release -xzvf bpfman-build-linux-s390x.tar.gz
 
       - name: Build and push
         id: build-push-image
@@ -364,8 +377,7 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - registry: quay.io
-            build_language: go
+          - build_language: go
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-xdp-counter
@@ -380,8 +392,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: go
+          - build_language: go
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-tc-counter
@@ -396,8 +407,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: go
+          - build_language: go
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-tcx-counter
@@ -412,8 +422,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: go
+          - build_language: go
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-tracepoint-counter
@@ -428,8 +437,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: go
+          - build_language: go
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-kprobe-counter
@@ -444,8 +452,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: go
+          - build_language: go
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-uprobe-counter
@@ -460,8 +467,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: go
+          - build_language: go
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-uretprobe-counter
@@ -476,8 +482,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: go
+          - build_language: go
             bpf_build_wrapper: go
             repository: bpfman-bytecode
             image: go-app-counter
@@ -492,8 +497,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: rust
+          - build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: xdp_pass
@@ -508,8 +512,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: rust
+          - build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: xdp_pass_private
@@ -524,8 +527,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: rust
+          - build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: tc_pass
@@ -540,8 +542,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: rust
+          - build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: tcx_test
@@ -556,8 +557,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: rust
+          - build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: tracepoint
@@ -572,8 +572,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: rust
+          - build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: uprobe
@@ -588,8 +587,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: rust
+          - build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: uretprobe
@@ -604,8 +602,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: rust
+          - build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: kprobe
@@ -620,8 +617,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: rust
+          - build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: kretprobe
@@ -636,8 +632,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: rust
+          - build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: fentry
@@ -652,8 +647,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: rust
+          - build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: fexit
@@ -668,8 +662,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: rust
+          - build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman-bytecode
             image: app-test
@@ -684,8 +677,7 @@ jobs:
               # set latest tag for default branch
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: rust
+          - build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman
             image: xdp-dispatcher
@@ -699,8 +691,7 @@ jobs:
               type=sha,format=long
               type=raw,value=latest,enable={{is_default_branch}}
 
-          - registry: quay.io
-            build_language: rust
+          - build_language: rust
             bpf_build_wrapper: rust
             repository: bpfman
             image: tc-dispatcher
@@ -724,7 +715,7 @@ jobs:
         if: ${{ matrix.image.build_language == 'go' }}
         with:
           # prettier-ignore
-          go-version: '1.22' # yamllint disable-line rule:quoted-strings
+          go-version: '1.25' # yamllint disable-line rule:quoted-strings
 
       - name: Install cosign
         uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # @v3.8.2
@@ -761,17 +752,17 @@ jobs:
 
       - name: Login to quay.io/bpfman
         uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # @v1
-        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman'}}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && env.IMAGE_REGISTRY == 'quay.io' && matrix.image.repository == 'bpfman'}}
         with:
-          registry: ${{ matrix.image.registry }}
+          registry: ${{ env.IMAGE_REGISTRY }}
           username: ${{ secrets.BPFMAN_USERNAME }}
           password: ${{ secrets.BPFMAN_ROBOT_TOKEN }}
 
       - name: Login to quay.io/bpfman-bytecode
         uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # @v1
-        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && matrix.image.repository == 'bpfman-bytecode' }}
+        if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && env.IMAGE_REGISTRY == 'quay.io' && matrix.image.repository == 'bpfman-bytecode' }}
         with:
-          registry: ${{ matrix.image.registry }}
+          registry: ${{ env.IMAGE_REGISTRY }}
           username: ${{ secrets.BPFMAN_BYTECODE_USERNAME }}
           password: ${{ secrets.BPFMAN_BYTECODE_ROBOT_TOKEN }}
 
@@ -788,7 +779,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # @v5.7.0
         with:
-          images: ${{ matrix.image.registry }}/${{ matrix.image.repository }}/${{ matrix.image.image }}
+          images: ${{ env.IMAGE_REGISTRY }}/${{ matrix.image.repository }}/${{ matrix.image.image }}
           tags: ${{ matrix.image.tags }}
 
       - name: Set up QEMU

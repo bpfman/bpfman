@@ -1,0 +1,95 @@
+# -*- mode: bpfman -*-
+#
+# Given: a TC program attached on the isolated netns-veth topology
+#
+# When: the link is fetched, listed, exercised with traffic, then
+# detached
+#
+# Then: get/list, traffic delivery, detach absence, and after-detach
+# counter quiescence all hold inside the namespaced attach path
+
+import ../lib.bpfman
+
+guard pair <- net netns-veth-pair
+defer net release $pair
+
+let netns = "/var/run/netns/${pair.a.ns}"
+
+guard loaded <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $pid
+
+guard link <- bpfman link attach tc $prog $pair.a.link ingress --priority 50 --netns $netns -m owner=tc
+let linkID = $link.record.id
+expect_pinned_link_identity $link
+
+# Structural shape of the attach response. TC links record the
+# dispatcher's identity rather than the user extension's, plus the
+# user-supplied attach point (iface, direction, priority).
+assert $link.record.kind == tc
+assert $link.record.metadata.owner == tc
+assert $link.record.program_id == $pid
+assert $link.record.details.interface == $pair.a.link
+assert $link.record.details.direction == ingress
+assert $link.record.details.priority == 50
+assert $link.record.details.dispatcher_id > 0
+assert $link.record.details.revision > 0
+assert $link.status.kernel_seen
+
+# Get round-trip: same shape, same values.
+guard gotLink <- bpfman link get $linkID
+expect_link_get_identity $gotLink $link $linkID
+assert $gotLink.record.id == $linkID
+assert $gotLink.record.kind == tc
+assert $gotLink.record.metadata.owner == tc
+assert $gotLink.record.program_id == $pid
+assert $gotLink.record.details.interface == $pair.a.link
+assert $gotLink.record.details.direction == ingress
+assert $gotLink.record.details.priority == 50
+assert $gotLink.record.details.dispatcher_id == $link.record.details.dispatcher_id
+
+# The TC dispatcher should also be visible through tc(8) on the
+# ingress hook inside a's namespace.
+guard _ <- net exec $pair.a tc filter show dev $pair.a.link ingress
+
+# List round-trip: link appears in the listing with matching id/kind.
+guard listed <- bpfman link list -o json
+expect_link_list_identity $listed $link $linkID tc
+
+# Traffic round-trip: ping from endpoint b to endpoint a and prove
+# the TC counter moved while attached. ARP/control traffic may add
+# packets, so this is a lower-bound assertion.
+let mapID = $prog.status.maps[0].id
+let sumFilter = "fromjson | [.[] | select(.formatted.key == 0) | .formatted.values[].value.rx_packets] | add"
+guard dumpBefore <- bpftool map dump id $mapID -j
+let before = $dumpBefore.stdout |> jq $sumFilter
+
+guard _ <- net exec $pair.b ping -c 5 -i 0.05 -W 1 $pair.a.addr
+
+guard dumpAfter <- bpftool map dump id $mapID -j
+let after = $dumpAfter.stdout |> jq $sumFilter
+let delta = $after - $before
+print "tc count: before=${before} after=${after} delta=${delta}"
+assert $delta >= 5
+
+# Detach, then verify the link is gone from both Get and List.
+bpfman link detach $link
+assert fail bpfman link get $linkID
+
+guard listedAfter <- bpfman link list -o json
+assert_link_absent $listedAfter $linkID
+
+# Let any in-flight pre-detach packet accounting settle before
+# establishing the detached baseline.
+sleep 0.1
+
+guard dumpDetached <- bpftool map dump id $mapID -j
+let detached = $dumpDetached.stdout |> jq $sumFilter
+
+guard _ <- net exec $pair.b ping -c 5 -i 0.05 -W 1 $pair.a.addr
+
+guard dumpAfterDetach <- bpftool map dump id $mapID -j
+let afterDetach = $dumpAfterDetach.stdout |> jq $sumFilter
+print "tc after-detach=${afterDetach} want=${detached}"
+assert $afterDetach == $detached

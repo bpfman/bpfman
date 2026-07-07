@@ -1,0 +1,8 @@
+stdout_lines:
+  - before
+  - after
+stderr_contains:
+  - "{main}:4:"
+  - "[assert] FAIL: expected $snap.status.updated_at to be missing from the shape"
+err_text: "1 assertion(s) failed"
+assert_failures: 1

@@ -1,0 +1,554 @@
+# -*- mode: bpfman -*-
+#
+# Given: an XDP dispatcher driven through repeated fill, partial drain,
+# and refill across shifting slot ranges
+#
+# When: each peak and trough is reached
+#
+# Then: member counts, slot reuse, and packet counters stay correct
+# throughout
+#
+# Four peaks and three troughs. Each peak fills the dispatcher's free
+# slots with new programs and confirms every active program counts
+# traffic across a ping burst. Each trough drains a slot range and
+# confirms the dispatcher's member count tracks the operation. The
+# drain boundary shifts each oscillation so every physical slot
+# position is vacated and reused at least once. Programs are named by
+# priority rather than slot index; the slot-array invariants are
+# carried in the choice of which links get a deferred detach (survivor)
+# and which are detached mid-script (drained at a specific trough).
+#
+# State trace at each phase (slot index -> priority, "_" for empty):
+#
+#   peak 0: 0 100 200 300 400 500 600 700 800 900
+#   trough 1 (drain 0..5):
+#           _ _   _   _   _   _   600 700 800 900
+#   peak 1 (refill 6, priorities 950 850 750 650 550 450):
+#           950 850 750 650 550 450 600 700 800 900
+#   trough 2 (drain 3..9):
+#           950 850 750 _ _ _ _ _ _ _
+#   peak 2 (refill 7, priorities 25 125 225 325 425 525 625):
+#           950 850 750 25 125 225 325 425 525 625
+#   trough 3 (drain 0..7):
+#           _ _ _ _ _ _ _ _ 525 625
+#   peak 3 (refill 8, priorities 62 162 262 362 462 562 662 762):
+#           62 162 262 362 462 562 662 762 525 625
+#
+# Survivor partitions (which links carry a deferred detach):
+#   peak 0:  600 700 800 900            (slots 6..9 survive trough 1)
+#   peak 1:  950 850 750                (slots 0..2 survive trough 2)
+#   peak 2:  525 625                    (slots 8..9 survive trough 3)
+#   peak 3:  62 162 262 362 462 562 662 762  (all eight survive to exit)
+
+import ../lib.bpfman
+
+guard pair <- net veth-pair
+defer net release $pair
+require_host_route_to_peer $pair
+
+let sumFilter = "fromjson | [.[].formatted.values[].value.rx_packets | tonumber] | add"
+
+# ============================================================
+# Peak 0: load + attach ten programs at priorities 0..900.
+# ============================================================
+
+guard ld_0 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_100 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_200 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_300 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_400 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_500 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_600 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_700 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_800 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_900 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+
+let p_0 = $ld_0.programs[0]
+let p_100 = $ld_100.programs[0]
+let p_200 = $ld_200.programs[0]
+let p_300 = $ld_300.programs[0]
+let p_400 = $ld_400.programs[0]
+let p_500 = $ld_500.programs[0]
+let p_600 = $ld_600.programs[0]
+let p_700 = $ld_700.programs[0]
+let p_800 = $ld_800.programs[0]
+let p_900 = $ld_900.programs[0]
+
+defer bpfman program unload $p_0
+defer bpfman program unload $p_100
+defer bpfman program unload $p_200
+defer bpfman program unload $p_300
+defer bpfman program unload $p_400
+defer bpfman program unload $p_500
+defer bpfman program unload $p_600
+defer bpfman program unload $p_700
+defer bpfman program unload $p_800
+defer bpfman program unload $p_900
+
+let m_0 = $p_0 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_100 = $p_100 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_200 = $p_200 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_300 = $p_300 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_400 = $p_400 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_500 = $p_500 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_600 = $p_600 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_700 = $p_700 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_800 = $p_800 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_900 = $p_900 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+
+guard l_0 <- bpfman link attach xdp $p_0 $pair.host_link --priority 0
+guard l_100 <- bpfman link attach xdp $p_100 $pair.host_link --priority 100
+guard l_200 <- bpfman link attach xdp $p_200 $pair.host_link --priority 200
+guard l_300 <- bpfman link attach xdp $p_300 $pair.host_link --priority 300
+guard l_400 <- bpfman link attach xdp $p_400 $pair.host_link --priority 400
+guard l_500 <- bpfman link attach xdp $p_500 $pair.host_link --priority 500
+guard l_600 <- bpfman link attach xdp $p_600 $pair.host_link --priority 600
+guard l_700 <- bpfman link attach xdp $p_700 $pair.host_link --priority 700
+guard l_800 <- bpfman link attach xdp $p_800 $pair.host_link --priority 800
+guard l_900 <- bpfman link attach xdp $p_900 $pair.host_link --priority 900
+
+# Peak-0 links: none survive to script exit. Slots 0..5 (l_0
+# through l_500) are detached in trough 1; slots 6..9 (l_600
+# through l_900) are detached in trough 2. No defers here --
+# every detach happens explicitly in its trough phase.
+
+# Verify member count == 10.
+guard snap_p0 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_p0 |> jq ".members | length") == 10
+
+# Verify traffic at peak 0: every active program's rx_packets
+# strictly increases after a ping burst.
+guard d_p0_b_0 <- bpftool map dump id $m_0 -j
+guard d_p0_b_100 <- bpftool map dump id $m_100 -j
+guard d_p0_b_200 <- bpftool map dump id $m_200 -j
+guard d_p0_b_300 <- bpftool map dump id $m_300 -j
+guard d_p0_b_400 <- bpftool map dump id $m_400 -j
+guard d_p0_b_500 <- bpftool map dump id $m_500 -j
+guard d_p0_b_600 <- bpftool map dump id $m_600 -j
+guard d_p0_b_700 <- bpftool map dump id $m_700 -j
+guard d_p0_b_800 <- bpftool map dump id $m_800 -j
+guard d_p0_b_900 <- bpftool map dump id $m_900 -j
+let b_p0_0 = $d_p0_b_0.stdout |> jq $sumFilter
+let b_p0_100 = $d_p0_b_100.stdout |> jq $sumFilter
+let b_p0_200 = $d_p0_b_200.stdout |> jq $sumFilter
+let b_p0_300 = $d_p0_b_300.stdout |> jq $sumFilter
+let b_p0_400 = $d_p0_b_400.stdout |> jq $sumFilter
+let b_p0_500 = $d_p0_b_500.stdout |> jq $sumFilter
+let b_p0_600 = $d_p0_b_600.stdout |> jq $sumFilter
+let b_p0_700 = $d_p0_b_700.stdout |> jq $sumFilter
+let b_p0_800 = $d_p0_b_800.stdout |> jq $sumFilter
+let b_p0_900 = $d_p0_b_900.stdout |> jq $sumFilter
+
+guard _ <- net exec $pair ping -c 20 -i 0.05 -W 1 $pair.host_addr
+
+guard d_p0_a_0 <- bpftool map dump id $m_0 -j
+guard d_p0_a_100 <- bpftool map dump id $m_100 -j
+guard d_p0_a_200 <- bpftool map dump id $m_200 -j
+guard d_p0_a_300 <- bpftool map dump id $m_300 -j
+guard d_p0_a_400 <- bpftool map dump id $m_400 -j
+guard d_p0_a_500 <- bpftool map dump id $m_500 -j
+guard d_p0_a_600 <- bpftool map dump id $m_600 -j
+guard d_p0_a_700 <- bpftool map dump id $m_700 -j
+guard d_p0_a_800 <- bpftool map dump id $m_800 -j
+guard d_p0_a_900 <- bpftool map dump id $m_900 -j
+let a_p0_0 = $d_p0_a_0.stdout |> jq $sumFilter
+let a_p0_100 = $d_p0_a_100.stdout |> jq $sumFilter
+let a_p0_200 = $d_p0_a_200.stdout |> jq $sumFilter
+let a_p0_300 = $d_p0_a_300.stdout |> jq $sumFilter
+let a_p0_400 = $d_p0_a_400.stdout |> jq $sumFilter
+let a_p0_500 = $d_p0_a_500.stdout |> jq $sumFilter
+let a_p0_600 = $d_p0_a_600.stdout |> jq $sumFilter
+let a_p0_700 = $d_p0_a_700.stdout |> jq $sumFilter
+let a_p0_800 = $d_p0_a_800.stdout |> jq $sumFilter
+let a_p0_900 = $d_p0_a_900.stdout |> jq $sumFilter
+
+assert $a_p0_0 > $b_p0_0
+assert $a_p0_100 > $b_p0_100
+assert $a_p0_200 > $b_p0_200
+assert $a_p0_300 > $b_p0_300
+assert $a_p0_400 > $b_p0_400
+assert $a_p0_500 > $b_p0_500
+assert $a_p0_600 > $b_p0_600
+assert $a_p0_700 > $b_p0_700
+assert $a_p0_800 > $b_p0_800
+assert $a_p0_900 > $b_p0_900
+
+# ============================================================
+# Trough 1: drain slots 0..5 (priorities 0..500).
+# ============================================================
+
+bpfman link detach $l_0
+bpfman link detach $l_100
+bpfman link detach $l_200
+bpfman link detach $l_300
+bpfman link detach $l_400
+bpfman link detach $l_500
+
+guard snap_t1 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_t1 |> jq ".members | length") == 4
+
+# ============================================================
+# Peak 1: refill six slots with priorities 950 850 750 650 550 450.
+# ============================================================
+
+guard ld_950 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_850 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_750 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_650 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_550 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_450 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+
+let p_950 = $ld_950.programs[0]
+let p_850 = $ld_850.programs[0]
+let p_750 = $ld_750.programs[0]
+let p_650 = $ld_650.programs[0]
+let p_550 = $ld_550.programs[0]
+let p_450 = $ld_450.programs[0]
+
+defer bpfman program unload $p_950
+defer bpfman program unload $p_850
+defer bpfman program unload $p_750
+defer bpfman program unload $p_650
+defer bpfman program unload $p_550
+defer bpfman program unload $p_450
+
+let m_950 = $p_950 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_850 = $p_850 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_750 = $p_750 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_650 = $p_650 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_550 = $p_550 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_450 = $p_450 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+
+guard l_950 <- bpfman link attach xdp $p_950 $pair.host_link --priority 950
+guard l_850 <- bpfman link attach xdp $p_850 $pair.host_link --priority 850
+guard l_750 <- bpfman link attach xdp $p_750 $pair.host_link --priority 750
+guard l_650 <- bpfman link attach xdp $p_650 $pair.host_link --priority 650
+guard l_550 <- bpfman link attach xdp $p_550 $pair.host_link --priority 550
+guard l_450 <- bpfman link attach xdp $p_450 $pair.host_link --priority 450
+
+# Peak-1 links: none survive to script exit. l_650, l_550,
+# l_450 are detached in trough 2 (slots 3..5). l_950, l_850,
+# l_750 sit in slots 0..2 until trough 3 detaches them. All
+# six are handled explicitly in their respective troughs.
+
+guard snap_p1 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_p1 |> jq ".members | length") == 10
+
+# Verify traffic at peak 1: every active program counts more.
+# Active set: 950 850 750 650 550 450 (new) + 600 700 800 900 (survivors).
+guard d_p1_b_950 <- bpftool map dump id $m_950 -j
+guard d_p1_b_850 <- bpftool map dump id $m_850 -j
+guard d_p1_b_750 <- bpftool map dump id $m_750 -j
+guard d_p1_b_650 <- bpftool map dump id $m_650 -j
+guard d_p1_b_550 <- bpftool map dump id $m_550 -j
+guard d_p1_b_450 <- bpftool map dump id $m_450 -j
+guard d_p1_b_600 <- bpftool map dump id $m_600 -j
+guard d_p1_b_700 <- bpftool map dump id $m_700 -j
+guard d_p1_b_800 <- bpftool map dump id $m_800 -j
+guard d_p1_b_900 <- bpftool map dump id $m_900 -j
+let b_p1_950 = $d_p1_b_950.stdout |> jq $sumFilter
+let b_p1_850 = $d_p1_b_850.stdout |> jq $sumFilter
+let b_p1_750 = $d_p1_b_750.stdout |> jq $sumFilter
+let b_p1_650 = $d_p1_b_650.stdout |> jq $sumFilter
+let b_p1_550 = $d_p1_b_550.stdout |> jq $sumFilter
+let b_p1_450 = $d_p1_b_450.stdout |> jq $sumFilter
+let b_p1_600 = $d_p1_b_600.stdout |> jq $sumFilter
+let b_p1_700 = $d_p1_b_700.stdout |> jq $sumFilter
+let b_p1_800 = $d_p1_b_800.stdout |> jq $sumFilter
+let b_p1_900 = $d_p1_b_900.stdout |> jq $sumFilter
+
+guard _ <- net exec $pair ping -c 20 -i 0.05 -W 1 $pair.host_addr
+
+guard d_p1_a_950 <- bpftool map dump id $m_950 -j
+guard d_p1_a_850 <- bpftool map dump id $m_850 -j
+guard d_p1_a_750 <- bpftool map dump id $m_750 -j
+guard d_p1_a_650 <- bpftool map dump id $m_650 -j
+guard d_p1_a_550 <- bpftool map dump id $m_550 -j
+guard d_p1_a_450 <- bpftool map dump id $m_450 -j
+guard d_p1_a_600 <- bpftool map dump id $m_600 -j
+guard d_p1_a_700 <- bpftool map dump id $m_700 -j
+guard d_p1_a_800 <- bpftool map dump id $m_800 -j
+guard d_p1_a_900 <- bpftool map dump id $m_900 -j
+let a_p1_950 = $d_p1_a_950.stdout |> jq $sumFilter
+let a_p1_850 = $d_p1_a_850.stdout |> jq $sumFilter
+let a_p1_750 = $d_p1_a_750.stdout |> jq $sumFilter
+let a_p1_650 = $d_p1_a_650.stdout |> jq $sumFilter
+let a_p1_550 = $d_p1_a_550.stdout |> jq $sumFilter
+let a_p1_450 = $d_p1_a_450.stdout |> jq $sumFilter
+let a_p1_600 = $d_p1_a_600.stdout |> jq $sumFilter
+let a_p1_700 = $d_p1_a_700.stdout |> jq $sumFilter
+let a_p1_800 = $d_p1_a_800.stdout |> jq $sumFilter
+let a_p1_900 = $d_p1_a_900.stdout |> jq $sumFilter
+
+assert $a_p1_950 > $b_p1_950
+assert $a_p1_850 > $b_p1_850
+assert $a_p1_750 > $b_p1_750
+assert $a_p1_650 > $b_p1_650
+assert $a_p1_550 > $b_p1_550
+assert $a_p1_450 > $b_p1_450
+assert $a_p1_600 > $b_p1_600
+assert $a_p1_700 > $b_p1_700
+assert $a_p1_800 > $b_p1_800
+assert $a_p1_900 > $b_p1_900
+
+# ============================================================
+# Trough 2: drain slots 3..9.
+# At entry: slots [950, 850, 750, 650, 550, 450, 600, 700, 800, 900].
+# Drain detaches 650, 550, 450, 600, 700, 800, 900.
+# ============================================================
+
+bpfman link detach $l_650
+bpfman link detach $l_550
+bpfman link detach $l_450
+bpfman link detach $l_600
+bpfman link detach $l_700
+bpfman link detach $l_800
+bpfman link detach $l_900
+
+guard snap_t2 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_t2 |> jq ".members | length") == 3
+
+# ============================================================
+# Peak 2: refill seven slots with priorities 25 125 225 325 425 525 625.
+# ============================================================
+
+guard ld_25 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_125 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_225 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_325 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_425 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_525 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_625 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+
+let p_25 = $ld_25.programs[0]
+let p_125 = $ld_125.programs[0]
+let p_225 = $ld_225.programs[0]
+let p_325 = $ld_325.programs[0]
+let p_425 = $ld_425.programs[0]
+let p_525 = $ld_525.programs[0]
+let p_625 = $ld_625.programs[0]
+
+defer bpfman program unload $p_25
+defer bpfman program unload $p_125
+defer bpfman program unload $p_225
+defer bpfman program unload $p_325
+defer bpfman program unload $p_425
+defer bpfman program unload $p_525
+defer bpfman program unload $p_625
+
+let m_25 = $p_25 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_125 = $p_125 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_225 = $p_225 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_325 = $p_325 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_425 = $p_425 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_525 = $p_525 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_625 = $p_625 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+
+guard l_25 <- bpfman link attach xdp $p_25 $pair.host_link --priority 25
+guard l_125 <- bpfman link attach xdp $p_125 $pair.host_link --priority 125
+guard l_225 <- bpfman link attach xdp $p_225 $pair.host_link --priority 225
+guard l_325 <- bpfman link attach xdp $p_325 $pair.host_link --priority 325
+guard l_425 <- bpfman link attach xdp $p_425 $pair.host_link --priority 425
+guard l_525 <- bpfman link attach xdp $p_525 $pair.host_link --priority 525
+guard l_625 <- bpfman link attach xdp $p_625 $pair.host_link --priority 625
+
+# Peak-2 survivors (slots 8..9 after trough 3): 525, 625.
+defer bpfman link detach $l_525
+defer bpfman link detach $l_625
+
+guard snap_p2 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_p2 |> jq ".members | length") == 10
+
+# Verify traffic at peak 2.
+# Active set: 25 125 225 325 425 525 625 (new) + 950 850 750 (survivors).
+guard d_p2_b_25 <- bpftool map dump id $m_25 -j
+guard d_p2_b_125 <- bpftool map dump id $m_125 -j
+guard d_p2_b_225 <- bpftool map dump id $m_225 -j
+guard d_p2_b_325 <- bpftool map dump id $m_325 -j
+guard d_p2_b_425 <- bpftool map dump id $m_425 -j
+guard d_p2_b_525 <- bpftool map dump id $m_525 -j
+guard d_p2_b_625 <- bpftool map dump id $m_625 -j
+guard d_p2_b_950 <- bpftool map dump id $m_950 -j
+guard d_p2_b_850 <- bpftool map dump id $m_850 -j
+guard d_p2_b_750 <- bpftool map dump id $m_750 -j
+let b_p2_25 = $d_p2_b_25.stdout |> jq $sumFilter
+let b_p2_125 = $d_p2_b_125.stdout |> jq $sumFilter
+let b_p2_225 = $d_p2_b_225.stdout |> jq $sumFilter
+let b_p2_325 = $d_p2_b_325.stdout |> jq $sumFilter
+let b_p2_425 = $d_p2_b_425.stdout |> jq $sumFilter
+let b_p2_525 = $d_p2_b_525.stdout |> jq $sumFilter
+let b_p2_625 = $d_p2_b_625.stdout |> jq $sumFilter
+let b_p2_950 = $d_p2_b_950.stdout |> jq $sumFilter
+let b_p2_850 = $d_p2_b_850.stdout |> jq $sumFilter
+let b_p2_750 = $d_p2_b_750.stdout |> jq $sumFilter
+
+guard _ <- net exec $pair ping -c 20 -i 0.05 -W 1 $pair.host_addr
+
+guard d_p2_a_25 <- bpftool map dump id $m_25 -j
+guard d_p2_a_125 <- bpftool map dump id $m_125 -j
+guard d_p2_a_225 <- bpftool map dump id $m_225 -j
+guard d_p2_a_325 <- bpftool map dump id $m_325 -j
+guard d_p2_a_425 <- bpftool map dump id $m_425 -j
+guard d_p2_a_525 <- bpftool map dump id $m_525 -j
+guard d_p2_a_625 <- bpftool map dump id $m_625 -j
+guard d_p2_a_950 <- bpftool map dump id $m_950 -j
+guard d_p2_a_850 <- bpftool map dump id $m_850 -j
+guard d_p2_a_750 <- bpftool map dump id $m_750 -j
+let a_p2_25 = $d_p2_a_25.stdout |> jq $sumFilter
+let a_p2_125 = $d_p2_a_125.stdout |> jq $sumFilter
+let a_p2_225 = $d_p2_a_225.stdout |> jq $sumFilter
+let a_p2_325 = $d_p2_a_325.stdout |> jq $sumFilter
+let a_p2_425 = $d_p2_a_425.stdout |> jq $sumFilter
+let a_p2_525 = $d_p2_a_525.stdout |> jq $sumFilter
+let a_p2_625 = $d_p2_a_625.stdout |> jq $sumFilter
+let a_p2_950 = $d_p2_a_950.stdout |> jq $sumFilter
+let a_p2_850 = $d_p2_a_850.stdout |> jq $sumFilter
+let a_p2_750 = $d_p2_a_750.stdout |> jq $sumFilter
+
+assert $a_p2_25 > $b_p2_25
+assert $a_p2_125 > $b_p2_125
+assert $a_p2_225 > $b_p2_225
+assert $a_p2_325 > $b_p2_325
+assert $a_p2_425 > $b_p2_425
+assert $a_p2_525 > $b_p2_525
+assert $a_p2_625 > $b_p2_625
+assert $a_p2_950 > $b_p2_950
+assert $a_p2_850 > $b_p2_850
+assert $a_p2_750 > $b_p2_750
+
+# ============================================================
+# Trough 3: drain slots 0..7.
+# At entry: slots [950, 850, 750, 25, 125, 225, 325, 425, 525, 625].
+# Drain detaches 950, 850, 750, 25, 125, 225, 325, 425.
+# ============================================================
+
+bpfman link detach $l_950
+bpfman link detach $l_850
+bpfman link detach $l_750
+bpfman link detach $l_25
+bpfman link detach $l_125
+bpfman link detach $l_225
+bpfman link detach $l_325
+bpfman link detach $l_425
+
+guard snap_t3 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_t3 |> jq ".members | length") == 2
+
+# ============================================================
+# Peak 3: refill eight slots with priorities 62 162 262 362 462 562 662 762.
+# All eight survive to script exit.
+# ============================================================
+
+guard ld_62 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_162 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_262 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_362 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_462 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_562 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_662 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard ld_762 <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+
+let p_62 = $ld_62.programs[0]
+let p_162 = $ld_162.programs[0]
+let p_262 = $ld_262.programs[0]
+let p_362 = $ld_362.programs[0]
+let p_462 = $ld_462.programs[0]
+let p_562 = $ld_562.programs[0]
+let p_662 = $ld_662.programs[0]
+let p_762 = $ld_762.programs[0]
+
+defer bpfman program unload $p_62
+defer bpfman program unload $p_162
+defer bpfman program unload $p_262
+defer bpfman program unload $p_362
+defer bpfman program unload $p_462
+defer bpfman program unload $p_562
+defer bpfman program unload $p_662
+defer bpfman program unload $p_762
+
+let m_62 = $p_62 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_162 = $p_162 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_262 = $p_262 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_362 = $p_362 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_462 = $p_462 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_562 = $p_562 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_662 = $p_662 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+let m_762 = $p_762 |> jq '[.status.maps[] | select(.name == "xdp_stats_map") | .id][0]'
+
+guard l_62 <- bpfman link attach xdp $p_62 $pair.host_link --priority 62
+guard l_162 <- bpfman link attach xdp $p_162 $pair.host_link --priority 162
+guard l_262 <- bpfman link attach xdp $p_262 $pair.host_link --priority 262
+guard l_362 <- bpfman link attach xdp $p_362 $pair.host_link --priority 362
+guard l_462 <- bpfman link attach xdp $p_462 $pair.host_link --priority 462
+guard l_562 <- bpfman link attach xdp $p_562 $pair.host_link --priority 562
+guard l_662 <- bpfman link attach xdp $p_662 $pair.host_link --priority 662
+guard l_762 <- bpfman link attach xdp $p_762 $pair.host_link --priority 762
+
+defer bpfman link detach $l_62
+defer bpfman link detach $l_162
+defer bpfman link detach $l_262
+defer bpfman link detach $l_362
+defer bpfman link detach $l_462
+defer bpfman link detach $l_562
+defer bpfman link detach $l_662
+defer bpfman link detach $l_762
+
+guard snap_p3 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_p3 |> jq ".members | length") == 10
+
+# Verify traffic at peak 3.
+# Active set: 62 162 262 362 462 562 662 762 (new) + 525 625 (survivors).
+guard d_p3_b_62 <- bpftool map dump id $m_62 -j
+guard d_p3_b_162 <- bpftool map dump id $m_162 -j
+guard d_p3_b_262 <- bpftool map dump id $m_262 -j
+guard d_p3_b_362 <- bpftool map dump id $m_362 -j
+guard d_p3_b_462 <- bpftool map dump id $m_462 -j
+guard d_p3_b_562 <- bpftool map dump id $m_562 -j
+guard d_p3_b_662 <- bpftool map dump id $m_662 -j
+guard d_p3_b_762 <- bpftool map dump id $m_762 -j
+guard d_p3_b_525 <- bpftool map dump id $m_525 -j
+guard d_p3_b_625 <- bpftool map dump id $m_625 -j
+let b_p3_62 = $d_p3_b_62.stdout |> jq $sumFilter
+let b_p3_162 = $d_p3_b_162.stdout |> jq $sumFilter
+let b_p3_262 = $d_p3_b_262.stdout |> jq $sumFilter
+let b_p3_362 = $d_p3_b_362.stdout |> jq $sumFilter
+let b_p3_462 = $d_p3_b_462.stdout |> jq $sumFilter
+let b_p3_562 = $d_p3_b_562.stdout |> jq $sumFilter
+let b_p3_662 = $d_p3_b_662.stdout |> jq $sumFilter
+let b_p3_762 = $d_p3_b_762.stdout |> jq $sumFilter
+let b_p3_525 = $d_p3_b_525.stdout |> jq $sumFilter
+let b_p3_625 = $d_p3_b_625.stdout |> jq $sumFilter
+
+guard _ <- net exec $pair ping -c 20 -i 0.05 -W 1 $pair.host_addr
+
+guard d_p3_a_62 <- bpftool map dump id $m_62 -j
+guard d_p3_a_162 <- bpftool map dump id $m_162 -j
+guard d_p3_a_262 <- bpftool map dump id $m_262 -j
+guard d_p3_a_362 <- bpftool map dump id $m_362 -j
+guard d_p3_a_462 <- bpftool map dump id $m_462 -j
+guard d_p3_a_562 <- bpftool map dump id $m_562 -j
+guard d_p3_a_662 <- bpftool map dump id $m_662 -j
+guard d_p3_a_762 <- bpftool map dump id $m_762 -j
+guard d_p3_a_525 <- bpftool map dump id $m_525 -j
+guard d_p3_a_625 <- bpftool map dump id $m_625 -j
+let a_p3_62 = $d_p3_a_62.stdout |> jq $sumFilter
+let a_p3_162 = $d_p3_a_162.stdout |> jq $sumFilter
+let a_p3_262 = $d_p3_a_262.stdout |> jq $sumFilter
+let a_p3_362 = $d_p3_a_362.stdout |> jq $sumFilter
+let a_p3_462 = $d_p3_a_462.stdout |> jq $sumFilter
+let a_p3_562 = $d_p3_a_562.stdout |> jq $sumFilter
+let a_p3_662 = $d_p3_a_662.stdout |> jq $sumFilter
+let a_p3_762 = $d_p3_a_762.stdout |> jq $sumFilter
+let a_p3_525 = $d_p3_a_525.stdout |> jq $sumFilter
+let a_p3_625 = $d_p3_a_625.stdout |> jq $sumFilter
+
+assert $a_p3_62 > $b_p3_62
+assert $a_p3_162 > $b_p3_162
+assert $a_p3_262 > $b_p3_262
+assert $a_p3_362 > $b_p3_362
+assert $a_p3_462 > $b_p3_462
+assert $a_p3_562 > $b_p3_562
+assert $a_p3_662 > $b_p3_662
+assert $a_p3_762 > $b_p3_762
+assert $a_p3_525 > $b_p3_525
+assert $a_p3_625 > $b_p3_625

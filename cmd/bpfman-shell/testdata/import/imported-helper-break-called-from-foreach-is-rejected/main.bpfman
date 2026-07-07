@@ -1,0 +1,7 @@
+import ./lib.bpfman
+
+foreach x in [1] {
+  helper
+}
+
+print after

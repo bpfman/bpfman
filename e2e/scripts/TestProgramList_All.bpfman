@@ -1,0 +1,50 @@
+# -*- mode: bpfman -*-
+#
+# Given: one program managed by bpfman and another loaded directly into
+# the kernel with bpftool
+#
+# When: program list runs with and without --all
+#
+# Then: the default lists only managed rows while --all also reports the
+# unmanaged kernel-only program
+
+import ../lib.bpfman
+
+guard loaded <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs xdp:pass -m owner=e2e
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $pid
+
+# A program bpfman does not manage: bpftool loads and pins it so it
+# stays live after bpftool exits. The pin name is keyed by our managed
+# program ID so parallel instances do not collide on the path.
+let strayPin = "/sys/fs/bpf/bpfman_e2e_unmanaged_${pid}"
+guard _ <- exec bpftool prog load testdata/bpf/xdp_pass.bpf.o $strayPin type xdp
+defer exec rm -f $strayPin
+
+guard strayShow <- proginfo pinned $strayPin
+let strayID = $strayShow.id
+print "managed pid=${pid} unmanaged kernel id=${strayID}"
+
+# Default listing: the managed program is present and flagged managed
+# with its store record; the bpftool-loaded program is absent.
+guard listed <- bpfman program list -o json
+let mineDefault = $listed |> jq "[.programs[] | select(.program_id == ${pid} and .managed == true and .record != null)] | length"
+assert $mineDefault == 1
+let strayDefault = $listed |> jq "[.programs[] | select(.program_id == ${strayID})] | length"
+assert $strayDefault == 0
+
+# --all: both present. The managed program keeps its record; the
+# bpftool-loaded program appears as a kernel-only entry with no record.
+guard listedAll <- bpfman program list --all -o json
+let mineAll = $listedAll |> jq "[.programs[] | select(.program_id == ${pid} and .managed == true and .record != null)] | length"
+assert $mineAll == 1
+let strayAll = $listedAll |> jq "[.programs[] | select(.program_id == ${strayID} and .managed == false and .record == null)] | length"
+assert $strayAll == 1
+
+# The kernel-only entry carries the kernel observation and takes its
+# type from the kernel.
+let strayKernelID = $listedAll |> jq ".programs[] | select(.program_id == ${strayID}) | .kernel.id"
+assert $strayKernelID == $strayID
+let strayType = $listedAll |> jq ".programs[] | select(.program_id == ${strayID}) | .type"
+assert $strayType == xdp

@@ -1,0 +1,5 @@
+err_is: silent
+stderr_contains:
+  - 'numeric literal "1e309" exceeds the representable range'
+stdout_not_contains:
+  - not-reached

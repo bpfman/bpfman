@@ -1,0 +1,3 @@
+import ./lib.bpfman
+guard p <- f
+print after

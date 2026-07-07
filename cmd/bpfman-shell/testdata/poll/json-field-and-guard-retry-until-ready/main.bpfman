@@ -1,0 +1,24 @@
+guard d <- tempdir poll-json-ready
+defer exec rm -rf $d.path
+let state = "${d.path}/state.json"
+
+poll timeout 100ms every 1ms {
+  let probe <- exec test -f $state
+  if $probe.ok {
+    guard raw <- exec cat $state
+    let doc = $raw.stdout |> jq "fromjson"
+    if $doc.status == pending {
+      exec sh -c "printf '{\"status\":\"ready\"}' > '${state}'"
+    }
+    retry "waiting for ready status" unless $doc.status == ready
+    print json-ready
+  } else {
+    exec sh -c "printf '{\"status\":\"pending\"}' > '${state}'"
+    retry "waiting for state file"
+  }
+}
+
+let raw <- exec cat $state
+let doc = $raw.stdout |> jq "fromjson"
+assert $doc.status == ready
+print $doc.status

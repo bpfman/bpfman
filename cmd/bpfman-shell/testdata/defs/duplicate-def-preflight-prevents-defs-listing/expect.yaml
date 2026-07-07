@@ -1,0 +1,5 @@
+err_is: silent
+stdout_not_contains:
+  - "helper()"
+stderr_contains:
+  - 'duplicate top-level def "helper"'

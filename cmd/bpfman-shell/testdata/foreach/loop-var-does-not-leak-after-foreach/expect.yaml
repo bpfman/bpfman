@@ -1,0 +1,6 @@
+err_is: silent
+stdout_not_contains:
+  - "1"
+stderr_contains:
+  - "{main}:5:"
+  - "undefined variable: x"

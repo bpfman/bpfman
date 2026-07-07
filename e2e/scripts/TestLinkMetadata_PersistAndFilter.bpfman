@@ -1,0 +1,60 @@
+# -*- mode: bpfman -*-
+#
+# Given: a link attached with its own user metadata whose owning program
+# also carries load-time metadata
+#
+# When: the link is fetched and link list is filtered
+#
+# Then: link get returns the link's metadata while link list matches the
+# owning program, not the link's attach labels
+
+import ../lib.bpfman
+
+guard fn <- kfunc acquire
+defer kfunc release $fn
+
+# Program labelled owner=acme at load; link labelled at attach.
+guard loaded <- bpfman program load file testdata/bpf/kprobe_counter.bpf.o --programs kprobe:kprobe_counter -m owner=acme --application demo
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+
+guard link <- bpfman link attach kprobe $prog $fn.name -m team=net -m tier=edge
+let linkID = $link.record.id
+expect_pinned_link_identity $link
+
+# Link metadata is present in the attach response...
+assert $link.record.metadata.team == net
+assert $link.record.metadata.tier == edge
+
+# ...and survives a link get round-trip.
+guard got <- bpfman link get $linkID
+assert $got.record.metadata.team == net
+assert $got.record.metadata.tier == edge
+
+# Program-scoped filter: the owning program is labelled owner=acme, so a
+# matching metadata selector returns the link.
+guard match <- bpfman link list --metadata-selector owner=acme -o json
+expect_link_list_identity $match $link $linkID kprobe
+
+# The list -o json output carries the link's own metadata too.
+let listedTeam = $match |> jq ".links[] | select(.id == ${linkID}) | .metadata.team"
+assert $listedTeam == net
+
+# A non-matching program selector excludes it.
+guard nomatch <- bpfman link list --metadata-selector owner=nope -o json
+assert_link_absent $nomatch $linkID
+
+# Filtering by the owning program's type also returns the link.
+guard byType <- bpfman link list --program-type kprobe -o json
+expect_link_list_identity $byType $link $linkID kprobe
+
+# Filtering by the owning program's application tag (set with
+# --application at load) also returns the link, with no other selector.
+guard byApp <- bpfman link list --application demo -o json
+expect_link_list_identity $byApp $link $linkID kprobe
+
+bpfman link detach $link
+assert fail bpfman link get $linkID
+
+bpfman program unload $pid
+assert fail bpfman program get $prog

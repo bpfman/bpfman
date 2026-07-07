@@ -1,0 +1,20 @@
+guard d <- tempdir poll-helper-retry
+defer exec rm -rf $d.path
+let marker = "${d.path}/marker"
+
+def await_marker(path) {
+  let rc <- exec test -f $path
+  if $rc.ok {
+    print helper-ready
+  } else {
+    exec touch $path
+    retry "waiting from helper"
+  }
+}
+
+poll timeout 100ms every 1ms {
+  await_marker $marker
+}
+
+assert path-exists $marker
+print after

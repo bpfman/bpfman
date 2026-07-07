@@ -1,0 +1,6 @@
+stdout_lines:
+  - before
+  - taken
+  - after
+stdout_not_contains:
+  - tail

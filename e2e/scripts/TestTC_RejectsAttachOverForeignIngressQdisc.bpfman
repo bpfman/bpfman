@@ -1,0 +1,31 @@
+# -*- mode: bpfman -*-
+#
+# Given: a foreign ingress qdisc already owning the TC ingress slot
+#
+# When: bpfman attempts to attach in either direction
+#
+# Then: the attach is refused and the foreign qdisc is left in place
+
+import ../lib.bpfman
+
+guard pair <- net netns-veth-pair
+defer net release $pair
+
+let netns = "/var/run/netns/${pair.a.ns}"
+
+guard load <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let prog = $load.programs[0]
+defer bpfman program unload $prog
+
+# Plant a foreign classic ingress qdisc on a's interface.
+guard _ <- net exec $pair.a tc qdisc add dev $pair.a.link ingress
+
+# Egress over an ingress-only qdisc cannot work; ingress would only work
+# by riding a qdisc bpfman does not own. Both must be refused.
+assert fail bpfman link attach tc $prog $pair.a.link egress --priority 50 --netns $netns
+assert fail bpfman link attach tc $prog $pair.a.link ingress --priority 50 --netns $netns
+
+# The foreign qdisc must still be present -- bpfman must not have torn it
+# down as a side effect of the refusal.
+guard q <- net exec $pair.a tc -j qdisc show dev $pair.a.link
+assert ($q.stdout |> jq 'fromjson | [.[] | select(.kind == "ingress")] | length') == 1

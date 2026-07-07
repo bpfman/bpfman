@@ -1,0 +1,9 @@
+err_is: silent
+stdout_lines:
+  - before
+stderr_contains:
+  - "[guard] FAIL"
+  - "wait $p"
+  - "[guard] FAIL at {main}:4"
+stdout_not_contains:
+  - after
