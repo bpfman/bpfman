@@ -1,0 +1,4 @@
+def f() {
+  defer exec false
+  return 7
+}

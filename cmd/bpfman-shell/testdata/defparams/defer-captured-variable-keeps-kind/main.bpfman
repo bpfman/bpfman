@@ -1,0 +1,6 @@
+def chk(x) {
+  assert $x == 4
+}
+let n = 4
+defer chk $n
+print main-done

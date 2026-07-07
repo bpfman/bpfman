@@ -1,0 +1,9 @@
+err_is: silent
+normalise_stderr: poll_timeout
+stdout_lines:
+  - before
+stdout_not_contains:
+  - after
+stderr_contains:
+  - "[poll] FAIL: timed out after <timeout> every <every> across <attempts> attempt(s): waiting for ack"
+

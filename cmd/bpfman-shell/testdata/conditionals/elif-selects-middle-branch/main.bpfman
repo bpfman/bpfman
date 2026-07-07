@@ -1,0 +1,10 @@
+let first <- exec test -f /definitely-not-present
+let second <- exec test -f /etc/passwd
+if $first.ok {
+  print first
+} elif $second.ok {
+  print second
+} else {
+  print else
+}
+print after

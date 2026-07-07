@@ -1,0 +1,8 @@
+foreach outer in [x y] {
+  foreach inner in [1 2] {
+    if $inner == 2 {
+      break
+    }
+    print "${outer}-${inner}"
+  }
+}

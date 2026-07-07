@@ -1,0 +1,61 @@
+# -*- mode: bpfman -*-
+#pragma labels={"external":"true","image":"true","program":"tracepoint","example":"tracepoint"}
+#
+# Given: the published tracepoint bytecode example image from the
+# registry
+#
+# When: the image is inspected, loaded, and attached
+#
+# Then: its manifest, link shape, traffic counter, and cleanup all match
+# the expected published example
+
+import ../lib.bpfman
+
+let image = "quay.io/bpfman-bytecode/go-tracepoint-counter"
+
+guard published <- inspect_published_image $image tracepoint_kill_recorder
+assert $published.manifest.programs.tracepoint_kill_recorder == tracepoint
+assert $published.manifest.maps.tracepoint_stats_map == per_cpu_array
+
+guard loaded <- bpfman program load image $image --pull-policy Always --programs tracepoint:tracepoint_kill_recorder
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $pid
+
+expect_program_load $prog tracepoint tracepoint tracepoint_kill_recorder
+expect_loaded_image_source $prog $image $published.inspected
+
+guard link <- bpfman link attach tracepoint $prog syscalls/sys_enter_kill
+let linkID = $link.record.id
+expect_pinned_link_identity $link
+assert $link.record.kind == tracepoint
+assert $link.record.program_id == $pid
+assert $link.record.details.group == syscalls
+assert $link.record.details.name == sys_enter_kill
+assert $link.status.kernel_seen
+
+let events = 5
+let mapID = $prog.status.maps[0].id
+let sumFilter = "fromjson | [.[].formatted.values[].value.calls | tonumber] | add"
+guard dumpBefore <- bpftool map dump id $mapID -j
+let before = $dumpBefore.stdout |> jq $sumFilter
+
+guard _ <- exec sh -c 'i=0; trap "" USR1; while [ $i -lt "$1" ]; do kill -USR1 $$; i=$((i + 1)); done' sh $events
+
+guard dumpAfter <- bpftool map dump id $mapID -j
+let after = $dumpAfter.stdout |> jq $sumFilter
+let delta = $after - $before
+print "published tracepoint image: events=${delta}"
+assert $delta >= $events
+
+bpfman link detach $link
+assert fail bpfman link get $linkID
+
+sleep 0.1
+guard dumpDetached <- bpftool map dump id $mapID -j
+let detached = $dumpDetached.stdout |> jq $sumFilter
+guard _ <- exec sh -c 'i=0; trap "" USR1; while [ $i -lt "$1" ]; do kill -USR1 $$; i=$((i + 1)); done' sh $events
+guard dumpAfterDetach <- bpftool map dump id $mapID -j
+let afterDetach = $dumpAfterDetach.stdout |> jq $sumFilter
+print "published tracepoint image after-detach=${afterDetach} want=${detached}"
+assert $afterDetach == $detached

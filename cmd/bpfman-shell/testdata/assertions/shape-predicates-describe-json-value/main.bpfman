@@ -1,0 +1,9 @@
+let snap = jq "." "{\"status\":{\"updated_at\":null},\"items\":[],\"note\":\"\"}"
+
+assert present $snap.status
+assert null $snap.status.updated_at
+assert missing $snap.status.last_error
+assert empty $snap.items
+assert empty $snap.note
+
+print shape-predicates-ok

@@ -1,0 +1,9 @@
+stdout_lines:
+  - "if branch"
+  - "after-if outer"
+  - "loop one"
+  - "loop two"
+  - "after-foreach outer"
+  - "poll eventual"
+  - "after-poll outer"
+  - "final final"

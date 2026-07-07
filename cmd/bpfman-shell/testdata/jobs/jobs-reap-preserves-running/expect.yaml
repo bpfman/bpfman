@@ -1,0 +1,8 @@
+normalise_stdout: jobs_listing
+stdout_lines:
+  - PID START STATUS ORIGIN ARGV
+  - "<pid> <time> exited 0 {main}:1:1 sh -c printf done"
+  - "<pid> <time> running {main}:2:1 sleep 60"
+  - ---
+  - PID START STATUS ORIGIN ARGV
+  - "<pid> <time> running {main}:2:1 sleep 60"

@@ -1,0 +1,50 @@
+# -*- mode: bpfman -*-
+#
+# Given: XDP dispatcher members attached across two independent
+# interfaces
+#
+# When: one interface is drained of all its members
+#
+# Then: the drained interface loses its dispatcher while the other keeps
+# its members and snapshot intact
+
+guard pair_a <- net veth-pair
+defer net release $pair_a
+
+guard pair_b <- net veth-pair
+defer net release $pair_b
+
+guard loaded <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+let prog = $loaded.programs[0]
+defer bpfman program unload $prog
+
+# Three members on A (priorities 100, 200, 300).
+guard a_100 <- bpfman link attach xdp $prog $pair_a.host_link --priority 100
+guard a_200 <- bpfman link attach xdp $prog $pair_a.host_link --priority 200
+guard a_300 <- bpfman link attach xdp $prog $pair_a.host_link --priority 300
+defer bpfman link detach $a_100
+defer bpfman link detach $a_200
+defer bpfman link detach $a_300
+
+# Two members on B (priorities 100, 200). No defers: the script
+# detaches them mid-test as the operation under test.
+guard b_100 <- bpfman link attach xdp $prog $pair_b.host_link --priority 100
+guard b_200 <- bpfman link attach xdp $prog $pair_b.host_link --priority 200
+
+guard snap_a <- bpfman dispatcher get xdp $pair_a.host_nsid $pair_a.host_ifindex
+let count_a = $snap_a |> jq ".members | length"
+assert $count_a == 3
+
+guard snap_b <- bpfman dispatcher get xdp $pair_b.host_nsid $pair_b.host_ifindex
+let count_b = $snap_b |> jq ".members | length"
+assert $count_b == 2
+
+# Detach everything from B. The dispatcher should disappear.
+bpfman link detach $b_100
+bpfman link detach $b_200
+assert fail bpfman dispatcher get xdp $pair_b.host_nsid $pair_b.host_ifindex
+
+# A's dispatcher must be unaffected.
+guard snap_a_after <- bpfman dispatcher get xdp $pair_a.host_nsid $pair_a.host_ifindex
+let count_a_after = $snap_a_after |> jq ".members | length"
+assert $count_a_after == 3

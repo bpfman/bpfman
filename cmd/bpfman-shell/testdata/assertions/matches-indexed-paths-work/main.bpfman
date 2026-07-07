@@ -1,0 +1,8 @@
+let doc = jq "." "{\"items\":[{\"id\":1},{\"id\":2}]}"
+
+assert $doc matches {
+  items[0].id: 1
+  items[1].id: 2
+}
+
+print ok

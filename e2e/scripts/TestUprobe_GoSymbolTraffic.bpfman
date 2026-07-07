@@ -1,0 +1,64 @@
+# -*- mode: bpfman -*-
+#
+# Given: a uprobe attached to a dotted Go symbol in the running
+# bpfman-shell fixture, targeting a nosplit leaf so the entry fires
+# exactly once
+#
+# When: the symbol is exercised
+#
+# Then: the link pin avoids the dotted symbol name and the counter
+# advances by the exact expected count
+
+import ../lib.bpfman
+
+let calls = 5
+let weight = 11
+
+guard target <- uprobe target
+
+guard loaded <- bpfman program load file testdata/bpf/uprobe_exact.bpf.o --programs uprobe:uprobe_counter -g "expected_pid=0x${u32le $target.pid}" -g "weight=0x${u64le $weight}"
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $pid
+
+guard link <- bpfman link attach uprobe $prog $target.path --fn-name $target.go_symbol
+let linkID = $link.record.id
+expect_pinned_link_identity $link
+
+assert $link.record.kind == uprobe
+assert $link.record.program_id == $pid
+assert $link.record.details.target == $target.path
+assert $link.record.details.fn_name == $target.go_symbol
+
+guard gotLink <- bpfman link get $linkID
+expect_link_get_identity $gotLink $link $linkID
+
+# Trigger the Go target once per event and assert exact counter
+# arithmetic.
+let mapID = $prog |> jq '[.status.maps[] | select(.name == "up_count") | .id][0]'
+let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+guard _ <- uprobe fire $calls
+
+guard dump <- bpftool map dump id $mapID -j
+let count = $dump.stdout |> jq $counter_filter
+let want = $calls * $weight
+print "uprobe go-symbol count: got=${count} want=${want}"
+assert $count == $want
+
+# Detach, then verify the probe stops counting.
+bpfman link detach $link
+assert fail bpfman link get $linkID
+
+# Let any async detach teardown settle before establishing
+# the detached baseline.
+sleep 0.1
+
+guard dumpDetached <- bpftool map dump id $mapID -j
+let detached = $dumpDetached.stdout |> jq $counter_filter
+guard _ <- uprobe fire 1
+
+guard dumpAfterDetach <- bpftool map dump id $mapID -j
+let afterDetach = $dumpAfterDetach.stdout |> jq $counter_filter
+print "uprobe go-symbol after-detach=${afterDetach} want=${detached}"
+assert $afterDetach == $detached

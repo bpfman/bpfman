@@ -1,0 +1,69 @@
+# -*- mode: bpfman -*-
+#
+# Given: a full XDP dispatcher with the final link deferred to cleanup
+#
+# When: the dispatcher is drained one member at a time
+#
+# Then: the member count decrements from ten to one without exercising
+# final dispatcher teardown
+
+guard pair <- net veth-pair
+defer net release $pair
+
+guard loaded <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs xdp:pass
+let prog = $loaded.programs[0]
+defer bpfman program unload $prog
+
+# Fill all ten slots from a single program. The attaches differ
+# only by ordinal, so range + bind-collect captures the set
+# cleanly. The detach-and-check phase below uses literal-index
+# access into $links because the per-iteration expected count
+# changes; there is no index-by-variable in path lookups today,
+# so each step is spelled out.
+guard links <- foreach _ in range 10 {
+    bpfman link attach xdp $prog $pair.host_link --priority 50
+}
+
+# $links[0] .. $links[8] are detached explicitly mid-script;
+# $links[9] survives until the deferred unwind so the dispatcher
+# never reaches the empty state inside this script.
+defer bpfman link detach $links[9]
+
+guard snap_10 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_10 |> jq ".members | length") == 10
+
+bpfman link detach $links[0]
+guard snap_9 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_9 |> jq ".members | length") == 9
+
+bpfman link detach $links[1]
+guard snap_8 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_8 |> jq ".members | length") == 8
+
+bpfman link detach $links[2]
+guard snap_7 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_7 |> jq ".members | length") == 7
+
+bpfman link detach $links[3]
+guard snap_6 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_6 |> jq ".members | length") == 6
+
+bpfman link detach $links[4]
+guard snap_5 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_5 |> jq ".members | length") == 5
+
+bpfman link detach $links[5]
+guard snap_4 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_4 |> jq ".members | length") == 4
+
+bpfman link detach $links[6]
+guard snap_3 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_3 |> jq ".members | length") == 3
+
+bpfman link detach $links[7]
+guard snap_2 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_2 |> jq ".members | length") == 2
+
+bpfman link detach $links[8]
+guard snap_1 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap_1 |> jq ".members | length") == 1

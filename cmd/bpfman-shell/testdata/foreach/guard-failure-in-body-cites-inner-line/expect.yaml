@@ -1,0 +1,15 @@
+err_is: silent
+stdout_lines:
+  - before
+  - "1"
+  - body-ok
+  - "2"
+stderr_contains:
+  - "[guard] FAIL"
+  - "exec test 2 -lt 2"
+  - "[guard] FAIL at {main}:4:3"
+stderr_not_contains:
+  - "[guard] FAIL at {main}:2"
+stdout_not_contains:
+  - "3"
+  - after

@@ -1,0 +1,9 @@
+def helper() {
+  assert false
+}
+
+print before
+poll timeout 20ms every 1ms {
+  helper
+}
+print after

@@ -1,0 +1,126 @@
+# -*- mode: bpfman -*-
+#
+# Given: unmanaged kernel-only programs listed with --all
+#
+# When: a fine-grained bpfman type filter is applied
+#
+# Then: the filter maps those fine types onto the coarser kernel program
+# taxonomy for the kernel-only rows
+
+guard loaded <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs xdp:pass -m owner=e2e
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $pid
+
+# Managed rows keep exact bpfman-type filtering, unlike the coarse
+# kernel-only projection exercised below: the managed XDP program
+# matches --type xdp but not --type tc.
+guard managedXDPList <- bpfman program list --all --type xdp -o json
+let managedXDPCount = $managedXDPList |> jq "[.programs[] | select(.program_id == ${pid} and .managed == true)] | length"
+assert $managedXDPCount == 1
+
+guard managedTCList <- bpfman program list --all --type tc -o json
+let managedTCCount = $managedTCList |> jq "[.programs[] | select(.program_id == ${pid})] | length"
+assert $managedTCCount == 0
+
+let schedclsPin = "/sys/fs/bpf/bpfman_e2e_unmanaged_schedcls_${pid}"
+guard _ <- exec bpftool prog load testdata/bpf/tc_counter.bpf.o $schedclsPin type classifier
+defer exec rm -f $schedclsPin
+
+guard schedclsShow <- proginfo pinned $schedclsPin
+let schedclsID = $schedclsShow.id
+print "unmanaged schedcls kernel id=${schedclsID}"
+
+guard listedAll <- bpfman program list --all -o json
+let schedclsAll = $listedAll |> jq "[.programs[] | select(.program_id == ${schedclsID} and .managed == false and .record == null and .type == \"schedcls\")] | length"
+assert $schedclsAll == 1
+
+guard listedTC <- bpfman program list --all --type tc -o json
+let schedclsTC = $listedTC |> jq "[.programs[] | select(.program_id == ${schedclsID})] | length"
+assert $schedclsTC == 1
+
+guard listedTCX <- bpfman program list --all --type tcx -o json
+let schedclsTCX = $listedTCX |> jq "[.programs[] | select(.program_id == ${schedclsID})] | length"
+assert $schedclsTCX == 1
+
+guard listedXDP <- bpfman program list --all --type xdp -o json
+let schedclsXDP = $listedXDP |> jq "[.programs[] | select(.program_id == ${schedclsID})] | length"
+assert $schedclsXDP == 0
+
+let kprobePin = "/sys/fs/bpf/bpfman_e2e_unmanaged_kprobe_${pid}"
+guard _ <- exec bpftool prog load testdata/bpf/kprobe_exact.bpf.o $kprobePin type kprobe
+defer exec rm -f $kprobePin
+
+guard kprobeShow <- proginfo pinned $kprobePin
+let kprobeID = $kprobeShow.id
+print "unmanaged kprobe kernel id=${kprobeID}"
+
+guard listedAllAfterKprobe <- bpfman program list --all -o json
+let kprobeAll = $listedAllAfterKprobe |> jq "[.programs[] | select(.program_id == ${kprobeID} and .managed == false and .record == null and .type == \"kprobe\")] | length"
+assert $kprobeAll == 1
+
+guard listedKprobe <- bpfman program list --all --type kprobe -o json
+let kprobeKprobe = $listedKprobe |> jq "[.programs[] | select(.program_id == ${kprobeID})] | length"
+assert $kprobeKprobe == 1
+
+guard listedKretprobe <- bpfman program list --all --type kretprobe -o json
+let kprobeKretprobe = $listedKretprobe |> jq "[.programs[] | select(.program_id == ${kprobeID})] | length"
+assert $kprobeKretprobe == 1
+
+guard listedUprobe <- bpfman program list --all --type uprobe -o json
+let kprobeUprobe = $listedUprobe |> jq "[.programs[] | select(.program_id == ${kprobeID})] | length"
+assert $kprobeUprobe == 1
+
+guard listedUretprobe <- bpfman program list --all --type uretprobe -o json
+let kprobeUretprobe = $listedUretprobe |> jq "[.programs[] | select(.program_id == ${kprobeID})] | length"
+assert $kprobeUretprobe == 1
+
+# Negative control: a non-probe filter does not match the kprobe row.
+guard listedKprobeXDP <- bpfman program list --all --type xdp -o json
+let kprobeXDP = $listedKprobeXDP |> jq "[.programs[] | select(.program_id == ${kprobeID})] | length"
+assert $kprobeXDP == 0
+
+let tracepointPin = "/sys/fs/bpf/bpfman_e2e_unmanaged_tracepoint_${pid}"
+guard _ <- exec bpftool prog load testdata/bpf/tracepoint_exact.bpf.o $tracepointPin type tracepoint
+defer exec rm -f $tracepointPin
+
+guard tracepointShow <- proginfo pinned $tracepointPin
+let tracepointID = $tracepointShow.id
+print "unmanaged tracepoint kernel id=${tracepointID}"
+
+guard listedAllAfterTracepoint <- bpfman program list --all -o json
+let tracepointAll = $listedAllAfterTracepoint |> jq "[.programs[] | select(.program_id == ${tracepointID} and .managed == false and .record == null and .type == \"tracepoint\")] | length"
+assert $tracepointAll == 1
+
+guard listedTracepoint <- bpfman program list --all --type tracepoint -o json
+let tracepointTracepoint = $listedTracepoint |> jq "[.programs[] | select(.program_id == ${tracepointID})] | length"
+assert $tracepointTracepoint == 1
+
+guard listedTracepointTC <- bpfman program list --all --type tc -o json
+let tracepointTC = $listedTracepointTC |> jq "[.programs[] | select(.program_id == ${tracepointID})] | length"
+assert $tracepointTC == 0
+
+let tracingPin = "/sys/fs/bpf/bpfman_e2e_unmanaged_tracing_${pid}"
+guard _ <- exec bpftool prog load testdata/bpf/fentry_kmod_exact.bpf.o $tracingPin type fentry
+defer exec rm -f $tracingPin
+
+guard tracingShow <- proginfo pinned $tracingPin
+let tracingID = $tracingShow.id
+print "unmanaged tracing kernel id=${tracingID}"
+
+guard listedAllAfterTracing <- bpfman program list --all -o json
+let tracingAll = $listedAllAfterTracing |> jq "[.programs[] | select(.program_id == ${tracingID} and .managed == false and .record == null and .type == \"tracing\")] | length"
+assert $tracingAll == 1
+
+guard listedFentry <- bpfman program list --all --type fentry -o json
+let tracingFentry = $listedFentry |> jq "[.programs[] | select(.program_id == ${tracingID})] | length"
+assert $tracingFentry == 1
+
+guard listedFexit <- bpfman program list --all --type fexit -o json
+let tracingFexit = $listedFexit |> jq "[.programs[] | select(.program_id == ${tracingID})] | length"
+assert $tracingFexit == 1
+
+# Negative control: a non-tracing filter does not match the tracing row.
+guard listedTracingXDP <- bpfman program list --all --type xdp -o json
+let tracingXDP = $listedTracingXDP |> jq "[.programs[] | select(.program_id == ${tracingID})] | length"
+assert $tracingXDP == 0

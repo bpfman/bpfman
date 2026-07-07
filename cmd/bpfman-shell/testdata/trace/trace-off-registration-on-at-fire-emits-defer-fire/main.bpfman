@@ -1,0 +1,3 @@
+defer print cleanup
+trace on
+print before-exit

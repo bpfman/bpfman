@@ -1,0 +1,7 @@
+helper one two
+
+def helper(one) {
+  print $one
+}
+
+print unreachable

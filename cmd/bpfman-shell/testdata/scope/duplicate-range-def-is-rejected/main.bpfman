@@ -1,0 +1,9 @@
+def range() {
+  return one
+}
+
+def range() {
+  return two
+}
+
+print unreachable

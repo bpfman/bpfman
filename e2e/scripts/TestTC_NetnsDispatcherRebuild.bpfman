@@ -1,0 +1,77 @@
+# -*- mode: bpfman -*-
+#
+# Given: a TC dispatcher whose interface lives in a requested network
+# namespace
+#
+# When: a second member is attached, rebuilding the dispatcher
+#
+# Then: the old filter is replaced inside that namespace and both
+# members count traffic afterwards
+
+import ../lib.bpfman
+
+guard pair <- net veth-pair
+defer net release $pair
+require_host_route_to_peer $pair
+
+let netns = "/var/run/netns/${pair.ns}"
+let filterCount = 'fromjson | [ .[] | select(.kind == "bpf") ] | length'
+let sumFilter = "fromjson | [.[] | select(.formatted.key == 0) | .formatted.values[].value.rx_packets] | add"
+
+guard firstLoad <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let firstProg = $firstLoad.programs[0]
+defer bpfman program unload $firstProg
+
+guard firstLink <- bpfman link attach tc $firstProg $pair.peer_link ingress --priority 50 --proceed-on ok,pipe,dispatcher_return --netns $netns
+defer bpfman link detach $firstLink
+
+guard firstFilters <- net exec $pair tc -j filter show dev $pair.peer_link ingress
+let firstCount = $firstFilters.stdout |> jq $filterCount
+
+# Pre-rebuild delivery: the single-member dispatcher counts
+# traffic arriving on the peer's ingress. Lower bound; ARP/control
+# traffic may add packets.
+let firstMapID = $firstProg.status.maps[0].id
+guard dumpBefore <- bpftool map dump id $firstMapID -j
+let firstBefore = $dumpBefore.stdout |> jq $sumFilter
+
+guard _ <- net exec $pair ping -c 5 -i 0.05 -W 1 $pair.host_addr
+
+guard dumpAfter <- bpftool map dump id $firstMapID -j
+let firstAfter = $dumpAfter.stdout |> jq $sumFilter
+let firstDelta = $firstAfter - $firstBefore
+print "pre-rebuild: first member delta=${firstDelta}"
+assert $firstDelta >= 5
+
+guard secondLoad <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let secondProg = $secondLoad.programs[0]
+defer bpfman program unload $secondProg
+
+guard secondLink <- bpfman link attach tc $secondProg $pair.peer_link ingress --priority 60 --proceed-on ok,pipe,dispatcher_return --netns $netns
+defer bpfman link detach $secondLink
+
+guard rebuiltFilters <- net exec $pair tc -j filter show dev $pair.peer_link ingress
+let rebuiltCount = $rebuiltFilters.stdout |> jq $filterCount
+assert $rebuiltCount == $firstCount
+
+# Post-rebuild delivery: the rebuilt dispatcher must still deliver
+# to the first member and chain through to the second (proceed-on
+# ok lets the chain continue past the first counter).
+let secondMapID = $secondProg.status.maps[0].id
+guard dumpRebuiltFirstBefore <- bpftool map dump id $firstMapID -j
+let rebuiltFirstBefore = $dumpRebuiltFirstBefore.stdout |> jq $sumFilter
+guard dumpSecondBefore <- bpftool map dump id $secondMapID -j
+let secondBefore = $dumpSecondBefore.stdout |> jq $sumFilter
+
+guard _ <- net exec $pair ping -c 5 -i 0.05 -W 1 $pair.host_addr
+
+guard dumpRebuiltFirstAfter <- bpftool map dump id $firstMapID -j
+let rebuiltFirstAfter = $dumpRebuiltFirstAfter.stdout |> jq $sumFilter
+guard dumpSecondAfter <- bpftool map dump id $secondMapID -j
+let secondAfter = $dumpSecondAfter.stdout |> jq $sumFilter
+
+let rebuiltFirstDelta = $rebuiltFirstAfter - $rebuiltFirstBefore
+let secondDelta = $secondAfter - $secondBefore
+print "post-rebuild: first member delta=${rebuiltFirstDelta} second member delta=${secondDelta}"
+assert $rebuiltFirstDelta >= 5
+assert $secondDelta >= 5

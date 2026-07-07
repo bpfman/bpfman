@@ -1,0 +1,4 @@
+err_is: silent
+stderr_contains:
+  - "{main}:1"
+  - "retry is only valid inside poll"

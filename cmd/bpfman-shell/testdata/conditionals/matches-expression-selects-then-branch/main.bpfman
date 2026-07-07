@@ -1,0 +1,12 @@
+let prog = jq "." "{\"status\":{\"id\":\"42\",\"tag\":\"demo\"}}"
+
+if $prog matches {
+  status.id: 42
+  status.tag: not-empty
+} {
+  print matched
+} else {
+  print missed
+}
+
+print after

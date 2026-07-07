@@ -1,0 +1,78 @@
+# -*- mode: bpfman -*-
+#
+# Given: three XDP programs returning DROP, attached with a custom
+# proceed-on mask that includes drop
+#
+# When: a packet wave crosses the dispatcher chain
+#
+# Then: every member runs even though the final kernel verdict drops the
+# ping packets
+
+import ../lib.bpfman
+
+let n = 5
+let weight_a = 41
+let weight_b = 42
+let weight_c = 43
+
+guard pair <- net veth-pair
+defer net release $pair
+require_host_route_to_peer $pair
+
+# Warmup ping to populate the ARP caches both ways before any
+# BPF programs attach. The chain ends with DROP and the kernel
+# never sees the packet, so without a primed ARP cache the
+# script's pings would never resolve A's MAC.
+guard _ <- net exec $pair ping -c 1 -W 1 $pair.host_addr
+
+
+# All programs return XDP_DROP = 1 -> 0x01000000.
+guard loaded <- bpfman program load file testdata/bpf/multi_prog_xdp_param_verdict.bpf.o --programs xdp:mxdv_a,xdp:mxdv_b,xdp:mxdv_c -g "weight_a=0x${u64le $weight_a}" -g "weight_b=0x${u64le $weight_b}" -g "weight_c=0x${u64le $weight_c}" -g verdict_a=0x01000000 -g verdict_b=0x01000000 -g verdict_c=0x01000000
+
+let a = $loaded.programs[0]
+let b = $loaded.programs[1]
+let c = $loaded.programs[2]
+
+defer bpfman program unload $a
+defer bpfman program unload $b
+defer bpfman program unload $c
+
+let mapID_a = $a |> jq '[.status.maps[] | select(.name == "mxdv_a_count") | .id][0]'
+let mapID_b = $b |> jq '[.status.maps[] | select(.name == "mxdv_b_count") | .id][0]'
+let mapID_c = $c |> jq '[.status.maps[] | select(.name == "mxdv_c_count") | .id][0]'
+
+# Custom proceed-on includes DROP so the chain doesn't stop.
+guard link_a <- bpfman link attach xdp $a $pair.host_link --priority 50 --proceed-on drop,dispatcher_return
+guard link_b <- bpfman link attach xdp $b $pair.host_link --priority 60 --proceed-on drop,dispatcher_return
+guard link_c <- bpfman link attach xdp $c $pair.host_link --priority 70 --proceed-on drop,dispatcher_return
+
+let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+# Send N pings and discard the rc; final verdict is DROP so the
+# kernel never replies and ping reports 100% loss. The XDP
+# counters still advance for every program in the chain.
+let _ <- net exec $pair ping -c $n -i 0.05 -W 1 $pair.host_addr
+
+guard dump_a <- bpftool map dump id $mapID_a -j
+guard dump_b <- bpftool map dump id $mapID_b -j
+guard dump_c <- bpftool map dump id $mapID_c -j
+
+let count_a = $dump_a.stdout |> jq $counter_filter
+let count_b = $dump_b.stdout |> jq $counter_filter
+let count_c = $dump_c.stdout |> jq $counter_filter
+
+let want_a = $n * $weight_a
+let want_b = $n * $weight_b
+let want_c = $n * $weight_c
+
+print "a: got=${count_a} want=${want_a}  (ran, returned DROP)"
+print "b: got=${count_b} want=${want_b}  (ran, returned DROP)"
+print "c: got=${count_c} want=${want_c}  (ran, returned DROP)"
+
+assert $count_a == $want_a
+assert $count_b == $want_b
+assert $count_c == $want_c
+
+bpfman link detach $link_a
+bpfman link detach $link_b
+bpfman link detach $link_c

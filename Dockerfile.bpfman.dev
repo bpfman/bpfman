@@ -1,0 +1,12 @@
+# syntax=docker/dockerfile:1.7
+# Runtime image for go-bpfman, assembled from a host-built binary.
+# The caller is responsible for producing bin/bpfman before invoking
+# docker build; this file does no compilation.
+
+ARG RUNTIME_IMAGE=registry.fedoraproject.org/fedora-minimal:43
+# hadolint ignore=DL3006
+FROM ${RUNTIME_IMAGE}
+
+COPY --link --chmod=0755 bin/bpfman /bpfman
+
+ENTRYPOINT ["/bpfman"]

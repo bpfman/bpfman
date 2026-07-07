@@ -1,0 +1,6 @@
+import ./lib.bpfman
+guard p <- spawn
+let rc <- wait $p
+print $rc.ok
+print $rc.exit_code
+print $rc.stdout

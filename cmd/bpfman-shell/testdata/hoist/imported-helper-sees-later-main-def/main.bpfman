@@ -1,0 +1,6 @@
+import ./helpers.bpfman
+def inner(x) {
+  return $x
+}
+guard v <- outer hi
+print $v

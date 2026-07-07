@@ -1,0 +1,7 @@
+def helper() {
+  assert false
+}
+
+print before
+helper
+print after

@@ -1,0 +1,75 @@
+# -*- mode: bpfman -*-
+#
+# Given: a TC dispatcher on an isolated netns-veth endpoint whose
+# namespace is deleted
+#
+# When: one member is detached after the namespace is gone
+#
+# Then: detach removes the dispatcher while the surviving endpoint
+# namespace stays under the harness
+
+import ../lib.bpfman
+
+guard pair <- net netns-veth-pair
+defer net release $pair
+
+let netns = "/var/run/netns/${pair.a.ns}"
+let sumFilter = "fromjson | [.[] | select(.formatted.key == 0) | .formatted.values[].value.rx_packets] | add"
+
+guard firstLoad <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let firstProg = $firstLoad.programs[0]
+defer bpfman program unload $firstProg
+
+guard secondLoad <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let secondProg = $secondLoad.programs[0]
+defer bpfman program unload $secondProg
+
+guard firstLink <- bpfman link attach tc $firstProg $pair.a.link ingress --priority 50 --proceed-on ok,pipe,dispatcher_return --netns $netns
+
+guard secondLink <- bpfman link attach tc $secondProg $pair.a.link ingress --priority 60 --proceed-on ok,pipe,dispatcher_return --netns $netns
+
+let nsid = $firstLink.record.details.nsid
+let ifindex = $firstLink.record.details.ifindex
+
+# The link record's dispatcher scope must agree with the builder's
+# per-endpoint capture; this is the identity $pair.a.nsid and
+# $pair.a.ifindex exist to provide.
+assert $nsid == $pair.a.nsid
+assert $ifindex == $pair.a.ifindex
+
+guard before <- bpfman dispatcher get tc-ingress $nsid $ifindex
+assert ($before |> jq ".members | length") == 2
+
+# Pre-deletion delivery: both members count traffic arriving on
+# a's ingress (proceed-on ok lets the chain continue past the
+# first counter). Lower bound; ARP/control traffic may add packets.
+let firstMapID = $firstProg.status.maps[0].id
+let secondMapID = $secondProg.status.maps[0].id
+guard dumpFirstBefore <- bpftool map dump id $firstMapID -j
+let firstBefore = $dumpFirstBefore.stdout |> jq $sumFilter
+guard dumpSecondBefore <- bpftool map dump id $secondMapID -j
+let secondBefore = $dumpSecondBefore.stdout |> jq $sumFilter
+
+guard _ <- net exec $pair.b ping -c 5 -i 0.05 -W 1 $pair.a.addr
+
+guard dumpFirstAfter <- bpftool map dump id $firstMapID -j
+let firstAfter = $dumpFirstAfter.stdout |> jq $sumFilter
+guard dumpSecondAfter <- bpftool map dump id $secondMapID -j
+let secondAfter = $dumpSecondAfter.stdout |> jq $sumFilter
+
+let firstDelta = $firstAfter - $firstBefore
+let secondDelta = $secondAfter - $secondBefore
+print "pre-deletion: first member delta=${firstDelta} second member delta=${secondDelta}"
+assert $firstDelta >= 5
+assert $secondDelta >= 5
+
+guard _ <- exec ip netns del $pair.a.ns
+
+bpfman link detach $firstLink
+
+assert fail bpfman dispatcher get tc-ingress $nsid $ifindex
+assert_dispatcher_count $nsid $ifindex 0
+
+guard listed <- bpfman link list -o json
+assert_link_absent $listed $firstLink.record.id
+assert_link_absent $listed $secondLink.record.id

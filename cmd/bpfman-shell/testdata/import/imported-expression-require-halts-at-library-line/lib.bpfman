@@ -1,0 +1,4 @@
+def check() {
+  require 1 == 2
+  print inside-after
+}

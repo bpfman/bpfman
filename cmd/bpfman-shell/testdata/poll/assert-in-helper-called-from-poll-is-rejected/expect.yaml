@@ -1,0 +1,11 @@
+err_is: silent
+stdout_lines:
+  - before
+stdout_not_contains:
+  - after
+stderr_contains:
+  - "{main}:2:"
+  - "assert is not valid inside poll; use retry unless ... or require ..."
+stderr_not_contains:
+  - "[assert] FAIL"
+  - "[poll] FAIL"

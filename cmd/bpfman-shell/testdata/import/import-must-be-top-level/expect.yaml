@@ -1,0 +1,6 @@
+err_is: silent
+stdout_not_contains:
+  - unreachable
+stderr_contains:
+  - "{main}:2"
+  - "import must be declared at top level"

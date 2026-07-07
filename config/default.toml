@@ -1,0 +1,24 @@
+# Default bpfman configuration
+# These values are embedded at build time and used as baseline defaults.
+
+[signing]
+allow_unsigned = true
+verify_enabled = true
+
+# Keyless sigstore identity policy. Leave unset to accept any valid
+# sigstore identity when signature verification is required. Add one
+# table per trusted identity/issuer pair to tighten policy; entries are
+# ORed. Exact values match exactly; regexp values are anchored to the
+# whole certificate value.
+#
+# [[signing.trusted_identities]]
+# certificate_identity = "signer@example.com"
+# certificate_oidc_issuer = "https://github.com/login/oauth"
+#
+# [[signing.trusted_identities]]
+# certificate_identity_regexp = ".*@example\\.com"
+# certificate_oidc_issuer_regexp = "https://github\\.com/.*"
+
+[logging]
+format = "text"
+level = "info"

@@ -1,0 +1,7 @@
+err_is: silent
+stdout_not_contains:
+  - unreachable
+stderr_contains:
+  - "{lib}:1:5"
+  - 'duplicate top-level def "helper"'
+  - "{main}:1:5"

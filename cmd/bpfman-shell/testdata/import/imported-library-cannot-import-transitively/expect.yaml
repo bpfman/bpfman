@@ -1,0 +1,6 @@
+err_is: silent
+stdout_not_contains:
+  - unreachable
+stderr_contains:
+  - "{lib}:1:1"
+  - "imported files may contain only top-level def statements"

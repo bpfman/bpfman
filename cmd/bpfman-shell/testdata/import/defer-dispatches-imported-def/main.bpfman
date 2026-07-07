@@ -1,0 +1,3 @@
+import ./lib.bpfman
+defer cleanup
+print body

@@ -1,0 +1,194 @@
+def lib_double(n) entry=bb0
+
+bb0:
+  EnterFrame kind=def
+  EnterDeferScope kind=def
+  BindName n = t0
+  Eval t1 = $n * 2
+  ReturnValue t1 to=bb2
+
+bb1:
+  Jump bb2
+
+bb2:
+  RunDefers policy=def-local
+  ExitFrame
+  EmitBindResult rc=synthetic primary=nil
+
+def describe(label value) entry=bb0
+
+bb0:
+  EnterFrame kind=def
+  EnterDeferScope kind=def
+  BindName label = t0
+  BindName value = t1
+  BuildArgs t2 = [print $label $value]
+  DispatchCommand argv=t2 policy=def-then-exec-command lane=builtin(print)
+  Eval t3 = $value
+  ReturnValue t3 to=bb2
+
+bb1:
+  Jump bb2
+
+bb2:
+  RunDefers policy=def-local
+  ExitFrame
+  EmitBindResult rc=synthetic primary=nil
+
+body entry=bb0
+
+bb0:
+  EnterDeferScope kind=program
+  BuildArgs t0 = [print "start"]
+  DispatchCommand argv=t0 policy=def-then-exec-command lane=builtin(print)
+  Eval t1 = [1 2 3]
+  BindName nums = t1
+  Eval t2 = $nums.[0]
+  BindName first = t2
+  Eval t3 = $first + 10
+  BindName sum = t3
+  Eval t4 = $nums
+  BindDestructure [a b c] = t4
+  Eval t5 = record {id: $first label: "demo" total: $sum + 1}
+  BindName rec = t5
+  BuildArgs t6 = [lib_double 21]
+  DispatchBind t7 = t6 policy=def-then-exec-bind lane=def(lib_double)
+  ApplyBind src=t7 argv=t6 target=doubled_result guard=false
+  Eval t8 = $doubled_result.value
+  BindName doubled = t8
+  BuildArgs t9 = [echo hello]
+  DispatchBind t10 = t9 policy=def-then-exec-bind lane=exec
+  ApplyBind src=t10 argv=t9 target=greeting guard=false
+  BuildArgs t11 = [echo world]
+  DispatchBind t12 = t11 policy=def-then-exec-bind lane=exec
+  ApplyBind src=t12 argv=t11 target=echoed guard=false
+  BuildArgs t13 = [echo ready]
+  DispatchBind t14 = t13 policy=def-then-exec-bind lane=exec
+  ApplyBind src=t14 argv=t13 target=ok guard=true fail=bb1
+  BuildArgs t15 = [describe count $sum]
+  DispatchBind t16 = t15 policy=def-then-exec-bind lane=def(describe)
+  ApplyBind src=t16 argv=t15 target=described guard=true fail=bb2
+  BuildArgs t17 = [echo cleanup]
+  RegisterDefer argv=t17 policy=def-then-exec-bind lane=exec
+  Eval t18 = $sum > 0
+  Branch cond=t18 true=bb3 false=bb4
+
+bb1:
+  RunDefers policy=program
+  PropagateError
+
+bb2:
+  RunDefers policy=program
+  PropagateError
+
+bb3:
+  EnterFrame kind=if-branch
+  BuildArgs t19 = [print positive]
+  DispatchCommand argv=t19 policy=def-then-exec-command lane=builtin(print)
+  ExitFrame
+  Jump bb7
+
+bb4:
+  Eval t20 = $sum == 0
+  Branch cond=t20 true=bb5 false=bb6
+
+bb5:
+  EnterFrame kind=if-branch
+  BuildArgs t21 = [print zero]
+  DispatchCommand argv=t21 policy=def-then-exec-command lane=builtin(print)
+  ExitFrame
+  Jump bb7
+
+bb6:
+  EnterFrame kind=if-branch
+  BuildArgs t22 = [print negative]
+  DispatchCommand argv=t22 policy=def-then-exec-command lane=builtin(print)
+  ExitFrame
+  Jump bb7
+
+bb7:
+  Eval t23 = $nums
+  ForEach list=t23 names=[n] body=bb8 exit=bb9
+
+bb8:
+  Eval t24 = $n == 2
+  Branch cond=t24 true=bb10 false=bb11
+
+bb9:
+  Eval t27 = $nums
+  ForEachCollect list=t27 names=[n] target=collected_result guard=false body=bb18 exit=bb19
+
+bb10:
+  EnterFrame kind=if-branch
+  ForEachContinue
+
+bb11:
+  Jump bb13
+
+bb12:
+  ExitFrame
+  Jump bb13
+
+bb13:
+  Eval t25 = $n == 3
+  Branch cond=t25 true=bb14 false=bb15
+
+bb14:
+  EnterFrame kind=if-branch
+  ExitLoop
+
+bb15:
+  Jump bb17
+
+bb16:
+  ExitFrame
+  Jump bb17
+
+bb17:
+  BuildArgs t26 = [print $n]
+  DispatchCommand argv=t26 policy=def-then-exec-command lane=builtin(print)
+  ForEachContinue
+
+bb18:
+  BuildArgs t28 = [echo $n]
+  DispatchBind t29 = t28 policy=def-then-exec-bind lane=exec
+  CollectProduce t29
+
+bb19:
+  Eval t30 = $collected_result.values
+  BindName collected = t30
+  BeginPoll timeout=5s every=1s attempt=bb20 timeout=bb21 success=bb22
+
+bb20:
+  EnterFrame kind=poll-attempt
+  EnterDeferScope kind=poll-attempt
+  Eval t31 = $ok.ok
+  Branch cond=t31 true=bb23 false=bb24
+
+bb21:
+  PropagateError
+
+bb22:
+  Assert $ok matches { ok: true }
+  Assert ok echo done
+  Require $sum > 0
+  Eval t33 = $nums |> jq length
+  BindName piped = t33
+  BuildArgs t34 = [cat file:$first]
+  DispatchBind t35 = t34 policy=def-then-exec-bind lane=exec
+  ApplyBind src=t35 argv=t34 target=_ guard=false
+  RunDefers policy=program
+  Stop
+
+bb23:
+  RunDefers policy=attempt-fatal
+  ExitFrame
+  Jump bb22
+
+bb24:
+  Eval t32 = "waiting for the command to report ok"
+  RunDefers policy=attempt-fatal
+  ExitFrame
+  RetryPoll message=t32
+
+bb25:

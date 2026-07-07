@@ -1,0 +1,4 @@
+def outer(x) {
+  guard v <- inner $x
+  return $v
+}

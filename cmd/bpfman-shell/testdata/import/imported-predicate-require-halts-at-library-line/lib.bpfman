@@ -1,0 +1,5 @@
+def check() {
+  let snap = jq "." "{\"status\":{\"updated_at\":null}}"
+  require present $snap.status.last_error
+  print inside-after
+}

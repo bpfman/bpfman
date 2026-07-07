@@ -1,0 +1,5 @@
+print before
+poll timeout 20ms every 1ms {
+  let x = $missing
+}
+print after

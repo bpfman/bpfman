@@ -1,0 +1,29 @@
+# In-container CI build (Dockerfile.ci): the e2e-builder stage
+# compiles every artefact the tests need from source. Exclude
+# every host-built artefact so a stale host copy cannot leak into
+# the build context, get COPYed via `COPY . .`, and mask a
+# "didn't rebuild" bug.
+bin/
+ci-e2e-bundle/
+dispatcher/*.bpf.o
+dispatcher/*.bpf.d
+e2e/testdata/bpf/*.bpf.o
+e2e/testdata/bpf/*.bpf.d
+platform/ebpf/*.bpf.o
+platform/ebpf/*.bpf.d
+
+# `nix build` symlinks (`result`, `result-bin`, ...). Following them
+# would pull /nix/store closures into the context.
+result*
+
+# Host-side caches. .cache/go-build is created by host `go build`
+# / `go test`; .direnv is the nix-direnv shell cache. Both bloat
+# the build context and can confuse the in-container Go cache.
+.cache/
+.direnv/
+
+# Heavy/irrelevant trees that never need to be in the build context.
+.git/
+.gitignore
+*.md
+build/

@@ -1,0 +1,6 @@
+stdout_lines:
+  - helper-ready
+  - after
+stderr_not_contains:
+  - "[poll] FAIL"
+  - "[assert] FAIL"

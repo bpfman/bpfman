@@ -1,0 +1,4 @@
+import ./lib.bpfman
+trace on
+defer outer
+print before-exit

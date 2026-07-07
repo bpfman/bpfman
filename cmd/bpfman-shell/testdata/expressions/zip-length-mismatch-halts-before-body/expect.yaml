@@ -1,0 +1,9 @@
+err_is: silent
+stdout_lines:
+  - before
+stderr_contains:
+  - "{main}:4"
+  - "zip: length mismatch (arg 0 has 3, arg 1 has 2)"
+stdout_not_contains:
+  - 10-alpha
+  - after

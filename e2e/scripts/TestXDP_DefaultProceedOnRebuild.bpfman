@@ -1,0 +1,64 @@
+# -*- mode: bpfman -*-
+#
+# Given: an existing XDP member and an incoming same-priority, same-name
+# program under default proceed-on
+#
+# When: attaching the incoming program triggers a dispatcher rebuild
+#
+# Then: the newly-attached member sorts ahead of the existing one on the
+# attached-flag tie-break, and the default proceed-on
+# [XDP_PASS, dispatcher_return] carries the chain through both, so each
+# counts traffic
+#
+# Mirrors TestTC_DefaultProceedOnRebuild. Both programs share a name and
+# priority, so neither priority nor program name breaks the tie; the
+# attached-flag rule does -- the not-yet-attached incoming program sorts
+# ahead of the already-attached existing one. XDP's default proceed-on
+# includes the program's own verdict (XDP_PASS), so the chain continues
+# and both members deliver -- the opposite of TC, whose default excludes
+# the OK verdict and stops the chain at slot zero.
+
+import ../lib.bpfman
+
+guard pair <- net veth-pair
+defer net release $pair
+require_host_route_to_peer $pair
+
+guard loaded_existing <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+guard loaded_incoming <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+
+let prog_existing = $loaded_existing.programs[0]
+let prog_incoming = $loaded_incoming.programs[0]
+let pid_existing = $prog_existing.record.program_id
+let pid_incoming = $prog_incoming.record.program_id
+defer bpfman program unload $prog_existing
+defer bpfman program unload $prog_incoming
+
+let mapID_existing = $prog_existing.status.maps[0].id
+let mapID_incoming = $prog_incoming.status.maps[0].id
+
+# Attach existing first, then incoming at the same priority with no
+# explicit --proceed-on. The attached-flag tie-break puts the
+# newly-attached incoming program ahead of the existing one.
+guard l_existing <- bpfman link attach xdp $prog_existing $pair.host_link --priority 55
+guard l_incoming <- bpfman link attach xdp $prog_incoming $pair.host_link --priority 55
+defer bpfman link detach $l_existing
+defer bpfman link detach $l_incoming
+
+guard snap <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap |> jq ".members | length") == 2
+
+let pos_incoming = $snap |> jq ".members[] | select(.program_id == ${pid_incoming}) | .position"
+let pos_existing = $snap |> jq ".members[] | select(.program_id == ${pid_existing}) | .position"
+assert $pos_incoming == 0
+assert $pos_existing == 1
+
+# xdp_counter returns XDP_PASS, which the default proceed-on carries
+# through, so both members run and count.
+guard _ <- net exec $pair ping -c 20 -i 0.05 -W 1 $pair.host_addr
+
+let sumFilter = "fromjson | [.[].formatted.values[].value.rx_packets | tonumber] | add"
+guard dump_incoming <- bpftool map dump id $mapID_incoming -j
+guard dump_existing <- bpftool map dump id $mapID_existing -j
+assert ($dump_incoming.stdout |> jq $sumFilter) > 0
+assert ($dump_existing.stdout |> jq $sumFilter) > 0

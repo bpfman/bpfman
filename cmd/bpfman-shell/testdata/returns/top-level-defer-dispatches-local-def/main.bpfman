@@ -1,0 +1,5 @@
+def cleanup() {
+  print cleaned
+}
+defer cleanup
+print main

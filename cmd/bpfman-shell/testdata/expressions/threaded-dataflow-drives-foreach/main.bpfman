@@ -1,0 +1,7 @@
+let spec = jq "." "{\"names\":[\"alpha\",\"beta\",\"gamma\"]}"
+
+foreach (idx name) in (zip (range 3) ($spec |> jq ".names")) {
+  print "${idx}-${name}"
+}
+
+print done

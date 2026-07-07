@@ -1,0 +1,35 @@
+# -*- mode: bpfman -*-
+#
+# Given: a link that has already been detached
+#
+# When: detach runs again on the same link ID, with and without
+# --ignore-missing
+#
+# Then: the bare repeat fails because the link is gone, and the
+# --ignore-missing repeat reports success, so a deferred cleanup detach
+# stays idempotent
+
+guard pair <- net veth-pair
+defer net release $pair
+
+guard loaded <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs xdp:pass
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $pid
+
+guard link <- bpfman link attach xdp $prog $pair.host_link --priority 50
+let linkID = $link.record.id
+
+# First detach removes the link.
+guard _ <- bpfman link detach $linkID
+assert fail bpfman link get $linkID
+
+# Repeating the detach without the flag is an error: the link is gone.
+let repeat <- bpfman link detach $linkID
+assert not $repeat.ok
+assert contains $repeat.stderr "does not exist"
+
+# The same repeat with --ignore-missing reports success, so a deferred
+# cleanup detach never fails a script once the link is already gone.
+let ignored <- bpfman link detach $linkID --ignore-missing
+assert $ignored.ok

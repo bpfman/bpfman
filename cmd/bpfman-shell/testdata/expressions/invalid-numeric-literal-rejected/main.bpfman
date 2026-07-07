@@ -1,0 +1,2 @@
+let bad = 1e309
+print not-reached

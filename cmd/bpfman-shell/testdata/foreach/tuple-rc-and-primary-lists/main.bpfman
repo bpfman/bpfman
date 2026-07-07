@@ -1,0 +1,12 @@
+import ./lib.bpfman
+let result <- foreach name in ["left" "right"] {
+  mk $name
+}
+foreach item in $result.results {
+  print $item.ok
+  print $item.exit_code
+}
+foreach path in $result.values {
+  let out <- exec cat $path
+  print $out.stdout
+}

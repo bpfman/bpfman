@@ -1,0 +1,11 @@
+err_is: silent
+stdout_not_contains:
+  - one
+  - two
+  - unreachable
+stderr_contains:
+  - "{main}:7:5"
+  - 'duplicate top-level def "helper"'
+  - "{main}:3:5"
+stderr_not_contains:
+  - "command not found"

@@ -1,0 +1,6 @@
+def takes(x) {
+  assert $x == 2
+}
+let r = record { count: 2 }
+takes $r.count
+print projection-ok

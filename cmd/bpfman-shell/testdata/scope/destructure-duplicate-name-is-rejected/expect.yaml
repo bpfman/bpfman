@@ -1,0 +1,6 @@
+err_is: silent
+stdout_not_contains:
+  - unreachable
+stderr_contains:
+  - "{main}:1"
+  - 'let: duplicate name "a"'

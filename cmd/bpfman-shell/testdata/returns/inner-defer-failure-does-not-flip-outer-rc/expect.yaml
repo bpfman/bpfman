@@ -1,0 +1,9 @@
+stdout_lines:
+  - "true"
+  - "1"
+  - after
+stderr_contains:
+  - "[defer] FAIL"
+  - "exec false"
+err_text: "1 defer(s) failed"
+defer_failures: 1

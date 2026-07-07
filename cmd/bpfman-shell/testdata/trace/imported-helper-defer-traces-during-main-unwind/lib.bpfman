@@ -1,0 +1,4 @@
+def outer() {
+  print outer-body
+  defer print inner-cleanup
+}

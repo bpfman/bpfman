@@ -1,0 +1,110 @@
+# -*- mode: bpfman -*-
+#
+# Given: tracepoint, kprobe, and kretprobe programs from one object
+# attached to one leased kmod stimulus
+#
+# When: the stimulus is fired across waves with the programs detached at
+# staggered points
+#
+# Then: each program ends with the exact event count implied by the
+# waves it survived
+#
+# Three program types -- tracepoint, kprobe, kretprobe -- in one
+# .bpf.o, all driven by a single stimulus per wave: a write to the
+# leased kfunc slot's debugfs trigger. The kmod's trigger handler both
+# invokes the slot's noinline function (which the kprobes attach to)
+# and emits the bpfman_e2e/bpfman_e2e_ping tracepoint (which the
+# tracepoint program attaches to), so one fire produces N events on
+# every attached program:
+#
+#   mixed_tp  (tracepoint)  -> bpfman_e2e/bpfman_e2e_ping
+#   mixed_kp  (kprobe)      -> leased bpfman_e2e_target_N entry
+#   mixed_krp (kretprobe)   -> leased bpfman_e2e_target_N return
+#
+# The tracepoint program filters on the leased slot index; the probes
+# attach to a slot-private symbol, so the symbol itself is their
+# isolation boundary. Three waves with staggered detach (krp first,
+# then kp) leave:
+#
+#   tp  counts waves 1+2+3 = 3 * N
+#   kp  counts waves 1+2   = 2 * N
+#   krp counts wave 1      = 1 * N
+#
+# Between detach and the next wave a brief sleep lets the perf-link RCU
+# grace period close; perf-link applies to the kp/krp pair, while
+# tracepoint detach is effectively synchronous.
+
+import ../lib.bpfman
+
+let n = 5
+let weight_tp = 41
+let weight_kp = 42
+let weight_krp = 43
+
+guard fn <- kfunc acquire
+defer kfunc release $fn
+
+# Load three programs of three different types from one object
+# file. The --programs spec carries the type per entry; bpfman
+# routes each through its own load path. expected_slot pins the
+# tracepoint program to the leased slot's index so concurrent
+# scripts on different slots cannot cross-count.
+guard loaded <- bpfman program load file testdata/bpf/multi_prog_mixed_counter_script.bpf.o --programs tracepoint:mixed_tp,kprobe:mixed_kp,kretprobe:mixed_krp -g "expected_slot=0x${u32le $fn.index}" -g "weight_tp=0x${u64le $weight_tp}" -g "weight_kp=0x${u64le $weight_kp}" -g "weight_krp=0x${u64le $weight_krp}"
+
+let tp = $loaded.programs[0]
+let kp = $loaded.programs[1]
+let krp = $loaded.programs[2]
+
+defer bpfman program unload $tp
+defer bpfman program unload $kp
+defer bpfman program unload $krp
+
+let mapID_tp = $tp |> jq '[.status.maps[] | select(.name == "mtp_count")  | .id][0]'
+let mapID_kp = $kp |> jq '[.status.maps[] | select(.name == "mkp_count")  | .id][0]'
+let mapID_krp = $krp |> jq '[.status.maps[] | select(.name == "mkrp_count") | .id][0]'
+
+guard link_tp <- bpfman link attach tracepoint $tp bpfman_e2e/bpfman_e2e_ping
+guard link_kp <- bpfman link attach kprobe $kp $fn.name
+guard link_krp <- bpfman link attach kprobe $krp $fn.name
+
+let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+# --- Wave 1: tp, kp, krp all attached ---
+guard _ <- kfunc fire $fn $n
+
+# Detach krp first.
+bpfman link detach $link_krp
+sleep 0.1
+
+# --- Wave 2: tp, kp attached; krp detached ---
+guard _ <- kfunc fire $fn $n
+
+bpfman link detach $link_kp
+sleep 0.1
+
+# --- Wave 3: only tp attached ---
+guard _ <- kfunc fire $fn $n
+
+guard dump_tp <- bpftool map dump id $mapID_tp -j
+guard dump_kp <- bpftool map dump id $mapID_kp -j
+guard dump_krp <- bpftool map dump id $mapID_krp -j
+
+let count_tp = $dump_tp.stdout |> jq $counter_filter
+let count_kp = $dump_kp.stdout |> jq $counter_filter
+let count_krp = $dump_krp.stdout |> jq $counter_filter
+
+let want_tp = (3 * $n) * $weight_tp
+let want_kp = (2 * $n) * $weight_kp
+let want_krp = (1 * $n) * $weight_krp
+
+print "tp:  got=${count_tp}  want=${want_tp}"
+print "kp:  got=${count_kp}  want=${want_kp}"
+print "krp: got=${count_krp} want=${want_krp}"
+
+assert $count_tp == $want_tp
+assert $count_kp == $want_kp
+assert $count_krp == $want_krp
+
+# tp is still attached on the happy path; detach explicitly
+# before the deferred program-unloads fire.
+bpfman link detach $link_tp

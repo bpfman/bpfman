@@ -1,0 +1,9 @@
+stdout_lines:
+  - before-exit
+  - cleanup
+stderr_contains:
+  - "+ {main}:2: defer print cleanup"
+  - "+ {main}:3: trace off"
+stderr_not_contains:
+  - "+ {main}:4: print before-exit"
+  - "defer fire: print cleanup"

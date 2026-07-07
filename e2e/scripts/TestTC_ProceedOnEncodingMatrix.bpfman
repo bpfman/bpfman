@@ -1,0 +1,48 @@
+# -*- mode: bpfman -*-
+#
+# Given: TC ingress links attached across the full range of proceed-on
+# action sets
+#
+# When: each is stored and the dispatcher member is read back
+#
+# Then: the member's proceed_on bitmask equals the exact ABI encoding
+# for that set -- 1 << (action code + 1), so unspec (-1) is bit 0, ok
+# bit 1, reclassify bit 2, shot bit 3, pipe bit 4, stolen bit 5, queued
+# bit 6, repeat bit 7, redirect bit 8, trap bit 9 -- plus the
+# dispatcher_return sentinel 0x80000000
+#
+# The existing ProceedOn*Encoding scripts each pin a single value;
+# TC_ProceedOnUnspecEncoding pins only unspec. This pins every single
+# action, a representative combination, and the default
+# (pipe, dispatcher_return), so the TC encoding contract is covered end
+# to end. This is an encoding assertion, not a delivery test -- chain
+# continue/stop behaviour is covered by the MultiProgTC_ChainStops
+# scripts.
+
+import ../lib.bpfman
+
+guard pair <- net veth-pair
+defer net release $pair
+
+guard loaded <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let prog = $loaded.programs[0]
+defer bpfman program unload $prog
+
+# proceed-on is a link property independent of the program, so one
+# program serves every case. Each case attaches, reads the single
+# member's mask, and detaches so the next case starts clean.
+let specs = ["unspec" "ok" "reclassify" "shot" "pipe" "stolen" "queued" "repeat" "redirect" "trap" "dispatcher_return" "ok,pipe,dispatcher_return"]
+let masks = [1 2 4 8 16 32 64 128 256 512 2147483648 2147483666]
+
+foreach (spec mask) in zip $specs $masks {
+    guard link <- bpfman link attach tc $prog $pair.host_link ingress --priority 50 --proceed-on $spec
+    guard snap <- bpfman dispatcher get tc-ingress $pair.host_nsid $pair.host_ifindex
+    assert ($snap |> jq ".members[0].proceed_on") == $mask
+    bpfman link detach $link
+}
+
+# The default (no --proceed-on) is [pipe, dispatcher_return].
+guard link_default <- bpfman link attach tc $prog $pair.host_link ingress --priority 50
+guard snap_default <- bpfman dispatcher get tc-ingress $pair.host_nsid $pair.host_ifindex
+assert ($snap_default |> jq ".members[0].proceed_on") == 2147483664
+bpfman link detach $link_default

@@ -1,0 +1,8 @@
+err_text: "1 assertion(s) failed"
+stdout_lines:
+  - before
+  - after
+stderr_contains:
+  - "{main}:3:"
+  - "[assert] FAIL: expected $snap.status.last_error to be present"
+assert_failures: 1

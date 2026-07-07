@@ -1,0 +1,63 @@
+# -*- mode: bpfman -*-
+#pragma labels={"external":"true","image":"true","program":"uprobe","example":"uprobe"}
+#
+# Given: the published uprobe bytecode example image from the registry
+#
+# When: the image is inspected, loaded, and attached
+#
+# Then: its manifest, link shape, traffic counter, and cleanup all match
+# the expected published example
+
+import ../lib.bpfman
+
+let image = "quay.io/bpfman-bytecode/go-uprobe-counter"
+
+guard published <- inspect_published_image $image uprobe_counter
+assert $published.manifest.programs.uprobe_counter == probe
+assert $published.manifest.maps.uprobe_stats_map == per_cpu_array
+
+guard target <- uprobe target
+
+guard loaded <- bpfman program load image $image --pull-policy Always --programs uprobe:uprobe_counter
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $pid
+
+expect_program_load $prog uprobe kprobe uprobe_counter
+expect_loaded_image_source $prog $image $published.inspected
+
+guard link <- bpfman link attach uprobe $prog $target.path --fn-name $target.symbol
+let linkID = $link.record.id
+expect_pinned_link_identity $link
+assert $link.record.kind == uprobe
+assert $link.record.program_id == $pid
+assert $link.record.details.target == $target.path
+assert $link.record.details.fn_name == $target.symbol
+assert not $link.record.details.retprobe
+assert $link.status.kernel_seen
+
+let events = 5
+let mapID = $prog.status.maps[0].id
+let sumFilter = "fromjson | [.[].formatted.values[].value.counter | tonumber] | add"
+guard dumpBefore <- bpftool map dump id $mapID -j
+let before = $dumpBefore.stdout |> jq $sumFilter
+
+guard _ <- uprobe fire $events
+
+guard dumpAfter <- bpftool map dump id $mapID -j
+let after = $dumpAfter.stdout |> jq $sumFilter
+let delta = $after - $before
+print "published uprobe image: events=${delta}"
+assert $delta >= $events
+
+bpfman link detach $link
+assert fail bpfman link get $linkID
+
+sleep 0.1
+guard dumpDetached <- bpftool map dump id $mapID -j
+let detached = $dumpDetached.stdout |> jq $sumFilter
+guard _ <- uprobe fire $events
+guard dumpAfterDetach <- bpftool map dump id $mapID -j
+let afterDetach = $dumpAfterDetach.stdout |> jq $sumFilter
+print "published uprobe image after-detach=${afterDetach} want=${detached}"
+assert $afterDetach == $detached

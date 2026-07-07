@@ -1,0 +1,21 @@
+# -*- mode: bpfman -*-
+#
+# Given: a program load given one real global-data key and one key that
+# names no variable in the object
+#
+# When: each global-data load is attempted
+#
+# Then: the real key loads while the unknown key is rejected, not
+# silently ignored
+
+guard ok <- bpfman program load file testdata/bpf/xdp_pass.bpf.o \
+    --programs xdp:pass \
+    -g config_u32=0xdeadbeef
+defer bpfman program unload $ok.programs[0].record.program_id
+assert $ok.programs[0].record.load.global_data.config_u32 == "3q2+7w=="
+
+# A key that names no variable in the object is rejected, not
+# silently dropped.
+assert fail bpfman program load file testdata/bpf/xdp_pass.bpf.o \
+    --programs xdp:pass \
+    -g definitely_not_a_real_global=0x42

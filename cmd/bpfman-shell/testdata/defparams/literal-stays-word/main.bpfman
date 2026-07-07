@@ -1,0 +1,5 @@
+def w(x) {
+  assert $x == "1"
+}
+w 1
+print word-ok

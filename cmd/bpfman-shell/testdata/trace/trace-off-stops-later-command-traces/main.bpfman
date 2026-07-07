@@ -1,0 +1,4 @@
+trace on
+print before
+trace off
+print after

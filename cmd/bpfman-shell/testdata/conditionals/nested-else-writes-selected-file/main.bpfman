@@ -1,0 +1,14 @@
+guard d <- tempdir branches
+defer exec rm -rf $d.path
+let out = "${d.path}/chosen"
+if true {
+  if false {
+    exec sh -c "printf inner-then > '${out}'"
+  } else {
+    exec sh -c "printf inner-else > '${out}'"
+  }
+} else {
+  exec sh -c "printf outer-else > '${out}'"
+}
+let rc <- exec cat $out
+print $rc.stdout

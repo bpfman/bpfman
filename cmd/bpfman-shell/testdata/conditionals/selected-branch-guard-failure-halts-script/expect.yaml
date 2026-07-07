@@ -1,0 +1,11 @@
+err_is: silent
+stdout_lines:
+  - before
+stderr_contains:
+  - "[guard] FAIL"
+  - "exec false"
+  - "[guard] FAIL at {main}:3"
+stdout_not_contains:
+  - inside-after
+  - wrong-branch
+  - after

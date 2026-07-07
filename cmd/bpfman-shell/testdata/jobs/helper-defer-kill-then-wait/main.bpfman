@@ -1,0 +1,8 @@
+import ./lib.bpfman
+let result <- spawn
+let p = $result.value
+let rc <- wait $p
+print $rc.ok
+print $rc.killed
+print $rc.signal
+print $rc.exit_code

@@ -1,0 +1,11 @@
+import ./lib.bpfman
+
+def range(limit) {
+  print never
+}
+
+def local(name) {
+  print never
+}
+
+defs

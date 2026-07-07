@@ -1,0 +1,5 @@
+err_is: silent
+stderr_contains:
+  - 'def c: parameter "want": expected number, got "NaN"'
+stdout_not_contains:
+  - not-reached

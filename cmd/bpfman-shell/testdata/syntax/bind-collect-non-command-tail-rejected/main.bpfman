@@ -1,0 +1,4 @@
+let xs = [1]
+let out <- foreach item in $xs {
+  let y = $item
+}

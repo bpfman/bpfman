@@ -1,0 +1,6 @@
+stdout_lines:
+  - let-bind-ready
+  - after
+stderr_not_contains:
+  - "[poll] FAIL"
+  - "[assert] FAIL"

@@ -1,0 +1,45 @@
+# -*- mode: bpfman -*-
+#pragma labels={"requires-clsact-reclaim":"true"}
+#
+# Given: clsact reclaim is enabled (tcpolicy.ReclaimClsactOnDetach; the
+# runner skips this script when the policy is off, nothing to un-skip by
+# hand) and bpfman owns the clsact qdisc it created on first TC attach
+#
+# When: TC members are detached one at a time until the last one leaves
+#
+# Then: clsact survives while any member remains (both filter blocks are
+# reclaimed only when empty) and is removed once the last owned member
+# detaches, rather than leaking on churned interfaces
+
+import ../lib.bpfman
+
+guard pair <- net netns-veth-pair
+defer net release $pair
+
+let netns = "/var/run/netns/${pair.a.ns}"
+let clsactCount = 'fromjson | [ .[] | select(.kind == "clsact") ] | length'
+
+guard firstLoad <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let firstProg = $firstLoad.programs[0]
+defer bpfman program unload $firstProg
+
+guard secondLoad <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let secondProg = $secondLoad.programs[0]
+defer bpfman program unload $secondProg
+
+guard firstLink <- bpfman link attach tc $firstProg $pair.a.link ingress --priority 50 --netns $netns
+guard secondLink <- bpfman link attach tc $secondProg $pair.a.link ingress --priority 100 --netns $netns
+
+# clsact present while members are attached.
+guard qAttached <- net exec $pair.a tc -j qdisc show dev $pair.a.link
+assert ($qAttached.stdout |> jq $clsactCount) == 1
+
+# Detaching one of two leaves a member: the clsact must be retained.
+bpfman link detach $firstLink
+guard qOneLeft <- net exec $pair.a tc -j qdisc show dev $pair.a.link
+assert ($qOneLeft.stdout |> jq $clsactCount) == 1
+
+# Detaching the last member reclaims the clsact: the slot empties.
+bpfman link detach $secondLink
+guard qEmpty <- net exec $pair.a tc -j qdisc show dev $pair.a.link
+assert ($qEmpty.stdout |> jq $clsactCount) == 0

@@ -1,0 +1,5 @@
+err_is: silent
+stderr_contains:
+  - "{main}:2:"
+  - "assert is not valid inside poll; use retry unless ... or require ..."
+

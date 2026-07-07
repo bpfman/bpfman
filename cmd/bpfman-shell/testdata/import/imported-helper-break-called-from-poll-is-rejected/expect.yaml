@@ -1,0 +1,11 @@
+err_is: silent
+stdout_not_contains:
+  - after
+stderr_contains:
+  - "{lib}:2:"
+  - "'break' outside any foreach loop"
+stderr_not_contains:
+  - "{main}:3:"
+  - "{main}:4:"
+  - "[poll] FAIL"
+

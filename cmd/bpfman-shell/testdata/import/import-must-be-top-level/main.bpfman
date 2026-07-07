@@ -1,0 +1,5 @@
+if true {
+  import ./lib.bpfman
+}
+
+print unreachable

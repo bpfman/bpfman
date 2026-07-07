@@ -1,0 +1,52 @@
+# -*- mode: bpfman -*-
+#
+# Given: a two-member TC dispatcher
+#
+# When: one member is unloaded rather than explicitly detached
+#
+# Then: the dispatcher rebuilds immediately around the survivor and
+# drops the unloaded link from listings
+
+import ../lib.bpfman
+
+guard pair <- net veth-pair
+defer net release $pair
+
+guard firstLoad <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let firstProg = $firstLoad.programs[0]
+
+guard secondLoad <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let secondProg = $secondLoad.programs[0]
+defer bpfman program unload $secondProg
+
+guard firstLink <- bpfman link attach tc $firstProg $pair.host_link ingress --priority 50 --proceed-on ok,pipe,dispatcher_return
+
+let filterCount = 'fromjson | [ .[] | select(.kind == "bpf") ] | length'
+guard firstFilters <- tc -j filter show dev $pair.host_link ingress
+let firstFilterCount = $firstFilters.stdout |> jq $filterCount
+
+guard secondLink <- bpfman link attach tc $secondProg $pair.host_link ingress --priority 60 --proceed-on ok,pipe,dispatcher_return
+defer bpfman link detach $secondLink
+
+guard beforeFilters <- tc -j filter show dev $pair.host_link ingress
+let beforeFilterCount = $beforeFilters.stdout |> jq $filterCount
+assert $beforeFilterCount == $firstFilterCount
+
+guard before <- bpfman dispatcher get tc-ingress $pair.host_nsid $pair.host_ifindex
+assert ($before |> jq ".members | length") == 2
+let beforeRevision = $before.revision
+
+bpfman program unload $firstProg
+
+guard after <- bpfman dispatcher get tc-ingress $pair.host_nsid $pair.host_ifindex
+assert ($after |> jq ".members | length") == 1
+assert $after.revision == ($beforeRevision + 1)
+assert $after.members[0].program_id == $secondProg.record.program_id
+assert_dispatcher_count $pair.host_nsid $pair.host_ifindex 1
+
+guard afterFilters <- tc -j filter show dev $pair.host_link ingress
+let afterFilterCount = $afterFilters.stdout |> jq $filterCount
+assert $afterFilterCount == $firstFilterCount
+
+guard listed <- bpfman link list -o json
+assert_link_absent $listed $firstLink.record.id

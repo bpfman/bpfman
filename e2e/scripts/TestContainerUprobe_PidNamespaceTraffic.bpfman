@@ -1,0 +1,164 @@
+# -*- mode: bpfman -*-
+#
+# Given: a Kubernetes-shaped target with its own mount and pid
+# namespaces and a freshly mounted /proc, the split that exposed the
+# container-uprobe regression
+#
+# When: a uprobe is attached by --container-pid to the target's dotted
+# Go symbol
+#
+# Then: resolution finds the symbol inside that namespace, the dotted
+# name also exercises numeric link-id pin naming (bpffs rejects dots),
+# and the counter advances exactly once per fired wave
+#
+# This is the Kubernetes-shaped counterpart to the plain `unshare -m`
+# container uprobe tests. The existing `unshare -m` tests prove that
+# bpfman can cross a mount-namespace boundary, but they still share the
+# host pid namespace and host /proc. A real Kubernetes pod has its own
+# pid namespace and a freshly mounted /proc as well as its own mount
+# namespace. That pid-namespace/procfs split is the environment that
+# exposed the container-uprobe regression, so this script builds that
+# shape locally with:
+#
+#     sudo unshare --mount --pid --fork --mount-proc -- ...
+#
+# The container-like process is not running a BPF program. It is
+# running a normal userspace binary: bpfman-shell in a special test
+# mode. The probe target is the dotted Go symbol of the fixture's
+# nosplit Go leaf, entered once per event alongside the cgo
+# target. Real Go uprobe targets carry dotted, package-qualified
+# symbols -- the operator's TestUprobeGoCounter attaches to
+# main.getCount -- and bpffs rejects dots in pin names, so the
+# dotted symbol also guards the numeric link-id pin naming. The
+# worker waits until this test says "go", then fires the targets
+# events times per wave (events=1 here, so once per wave).
+#
+# Separately, this test loads a BPF uprobe program into the kernel.
+# That BPF program increments a counter every time the target
+# userspace function is hit.
+#
+# The .bpfman flow is:
+#
+#  1. Start a fake container-like process:
+#
+#         sudo unshare --mount --pid --fork --mount-proc -- bpfman-shell ...
+#
+#     This gives the worker its own mount namespace, pid namespace,
+#     and /proc, like the Kubernetes case that broke.
+#
+#  2. The worker process sleeps until the test creates a sentinel
+#     file.
+#
+#  3. Load the BPF uprobe counter program into the kernel.
+#
+#  4. Ask bpfman to attach that BPF program to the userspace function
+#     inside the container-like process:
+#
+# bpfman link attach uprobe # /path/to/bpfman-shell --fn-name github.com/.../fixturemode.GoUprobeTarget --container-pid <container-process-host-pid> # # # <bpf-program-id>
+#
+#  5. bpfman uses --container-pid to resolve the target binary from
+#     inside that process's mount namespace.
+#
+#  6. Touch one sentinel file per wave.
+#
+#  7. The container-like bpfman-shell worker wakes up and enters the
+#     probed function events times per wave (once, with events=1).
+#
+#  8. Each entry fires the uprobe, so the kernel runs the BPF program
+#     once per wave.
+#
+#  9. Read the BPF map counter and assert it advanced by exactly
+#     waves * weight.
+#
+# The thing in the container is the normal userspace program being
+# observed. The BPF program lives in the kernel and is attached to a
+# function in that userspace program.
+
+import ../lib.bpfman
+
+let waves = 5
+let events = 1
+let weight = 13
+
+guard wd <- tempdir container-uprobe-pidns
+defer exec rm -rf $wd.path
+let sentinel = "${wd.path}/sentinel"
+let ack = "${wd.path}/ack"
+
+guard shell_path <- exec sh -c 'p=$(command -v bpfman-shell); printf %s "$p"'
+assert path-exists $shell_path.stdout
+
+guard target_info <- uprobe target
+
+guard launcher <- start unshare --mount --pid --fork --mount-proc -- \
+    env BPFMAN_SHELL_MODE=uprobe-fire-worker \
+    $shell_path.stdout \
+    $sentinel \
+    $ack \
+    $events \
+    $waves
+defer kill $launcher
+
+# With --pid --fork, `start` sees the unshare launcher. The
+# host-visible worker PID that bpfman needs is unshare's child --
+# pid 1 inside the new pid namespace.
+poll timeout 5s every 100ms {
+    let children <- process children $launcher.pid
+    retry "waiting for target worker pid" unless $children.value.count > 0
+}
+guard children <- process children $launcher.pid
+assert $children.count == 1
+let target_pid = $children.pids[0]
+
+guard self_mnt_ns <- exec readlink /proc/self/ns/mnt
+guard self_pid_ns <- exec readlink /proc/self/ns/pid
+
+poll timeout 5s every 100ms {
+    let target_mnt_ns <- exec readlink "/proc/${target_pid}/ns/mnt"
+    retry "waiting for target mount namespace switch" unless $target_mnt_ns.stdout != $self_mnt_ns.stdout
+}
+
+guard target_mnt_ns <- exec readlink "/proc/${target_pid}/ns/mnt"
+guard target_pid_ns <- exec readlink "/proc/${target_pid}/ns/pid"
+print "container-uprobe pidns namespaces: self-mnt=${self_mnt_ns.stdout} target-mnt=${target_mnt_ns.stdout} self-pid=${self_pid_ns.stdout} target-pid=${target_pid_ns.stdout}"
+assert $self_mnt_ns.stdout != $target_mnt_ns.stdout
+assert $self_pid_ns.stdout != $target_pid_ns.stdout
+
+guard loaded <- bpfman program load file testdata/bpf/uprobe_exact.bpf.o --programs uprobe:uprobe_counter -g "expected_pid=0x${u32le $target_pid}" -g "weight=0x${u64le $weight}"
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $pid
+
+guard link <- bpfman link attach uprobe $prog $shell_path.stdout --fn-name $target_info.go_symbol --container-pid $target_pid
+defer bpfman link detach $link
+let linkID = $link.record.id
+
+expect_pinned_link_identity $link
+
+guard gotLink <- bpfman link get $linkID
+expect_link_get_identity $gotLink $link $linkID
+
+guard listed <- bpfman link list -o json
+expect_link_list_identity $listed $link $linkID uprobe
+
+let mapID = $prog |> jq '[.status.maps[] | select(.name == "up_count") | .id][0]'
+let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+guard dumpBefore <- bpftool map dump id $mapID -j
+let before = $dumpBefore.stdout |> jq $counter_filter
+
+# The worker consumes waves sequentially, so ack.${waves} implies
+# every earlier wave completed.
+foreach w in [1 2 3 4 5] {
+    exec touch "${sentinel}.${w}"
+}
+poll timeout 5s every 100ms {
+    await_wave_completion $ack $waves
+}
+
+guard dumpAfter <- bpftool map dump id $mapID -j
+let after = $dumpAfter.stdout |> jq $counter_filter
+let delta = $after - $before
+let want = $waves * $weight
+print "container-uprobe pidns count: got=${delta} want=${want}"
+assert $delta == $want

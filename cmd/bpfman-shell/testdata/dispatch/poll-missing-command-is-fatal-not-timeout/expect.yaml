@@ -1,0 +1,10 @@
+err_is: silent
+stdout_lines:
+  - before
+stdout_not_contains:
+  - after
+stderr_contains:
+  - "__definitely_not_a_real_command_2027__: command not found"
+stderr_not_contains:
+  - "[poll] FAIL"
+

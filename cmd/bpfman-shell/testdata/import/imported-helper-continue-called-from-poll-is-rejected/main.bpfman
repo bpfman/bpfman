@@ -1,0 +1,7 @@
+import ./lib.bpfman
+
+poll timeout 1s every 1ms {
+  helper
+}
+
+print after

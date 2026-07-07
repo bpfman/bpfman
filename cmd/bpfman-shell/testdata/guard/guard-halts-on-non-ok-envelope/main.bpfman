@@ -1,0 +1,6 @@
+print before
+
+# A non-ok envelope is enough to stop the script here.
+guard r <- exec sh -c "printf child-out; exit 7"
+
+print after

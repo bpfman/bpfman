@@ -1,0 +1,10 @@
+err_is: silent
+stdout_lines:
+  - before
+stdout_not_contains:
+  - after
+  - child-out
+stderr_contains:
+  - "[guard] FAIL"
+  - "exec sh -c"
+  - "[guard] FAIL at {main}:4"

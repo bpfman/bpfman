@@ -1,0 +1,225 @@
+# -*- mode: bpfman -*-
+#
+# Given: a fexit program loaded with user metadata, with no attach,
+# traffic, or detach activity
+#
+# When: the full Program record is read back through program load and
+# program get
+#
+# Then: deterministic fields (bytecode-derived names, ID-computed bpffs
+# paths, the map ID set, zero-shaped Get stats) are asserted exactly,
+# kernel-dependent numerics (btf_id, jited_size) only required to be
+# positive; the kernel program_type reads tracing while the bpfman type
+# distinguishes fexit from fentry
+
+import ../lib.bpfman
+
+guard fn <- kfunc acquire
+defer kfunc release $fn
+
+guard loaded <- bpfman program load file testdata/bpf/fentry_counter.bpf.o --programs "fexit:test_fexit:${fn.name}" -m owner=e2e -m purpose=load-and-get
+
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+
+let runtime_base = $prog.record.handles.pin_path |> jq 'split("/fs/")[0]'
+let expect_prog_pin = "${runtime_base}/fs/prog_${pid}"
+let expect_map_dir = "${runtime_base}/fs/maps/${pid}"
+let expect_bytecode = "${runtime_base}/programs/${pid}/bytecode.o"
+# source_path echoes the file argument for a bare file load, but is null
+# when that load is brokered to an image under
+# BPFMAN_E2E_BYTECODE_SOURCE=image. Derive the expectation from the
+# in-band image_source signal so both source modes assert exactly.
+let expect_source_path = $prog.record.load |> jq 'if .image_source == null then "testdata/bpf/fentry_counter.bpf.o" else null end'
+let expect_map_ids = $prog.status.maps |> jq "[.[].id]"
+let expect_map_id = $prog.status.kernel.map_ids[0]
+
+expect_program_load $prog fexit tracing test_fexit
+
+assert $prog matches exhaustive {
+    record: matches exhaustive {
+        program_id:     $pid
+        license:        "Dual BSD/GPL"
+        gpl_compatible: true
+        created_at:     not-empty
+        updated_at:     null
+        load: matches exhaustive {
+            object_path:  $expect_bytecode
+            source_path:  $expect_source_path
+            program_name: test_fexit
+            program_type: fexit
+            attach_func:  $fn.name
+            map_owner_id: null
+            global_data:  empty
+            image_source: $prog.record.load.image_source
+        }
+        handles: matches exhaustive {
+            pin_path:     $expect_prog_pin
+            map_pin_path: $expect_map_dir
+            map_owner_id: null
+        }
+        meta: matches exhaustive {
+            name:        test_fexit
+            owner:       ""
+            description: ""
+            metadata: matches exhaustive {
+                owner:   e2e
+                purpose: load-and-get
+            }
+        }
+    }
+    status: matches exhaustive {
+        kernel: matches exhaustive {
+            id:             $pid
+            name:           test_fexit
+            program_type:   tracing
+            tag:            not-empty
+            loaded_at:      not-empty
+            uid:            0
+            has_uid:        true
+            btf_id:         not-empty
+            has_btf_id:     true
+            map_ids:        $expect_map_ids
+            has_map_ids:    true
+            jited_size:     not-empty
+            xlated_size:    not-empty
+            verified_insns: not-empty
+            memlock:        not-empty
+            has_memlock:    true
+            restricted:     false
+        }
+        stats:       null
+        prog_pin:    $expect_prog_pin
+        map_dir:     $expect_map_dir
+        bytecode:    $expect_bytecode
+        links:       empty
+        maps:        not-empty
+        map_used_by: [$pid]
+    }
+}
+assert $pid > 0
+assert $prog.status.kernel.jited_size > 0
+assert $prog.status.kernel.xlated_size > 0
+assert $prog.status.kernel.verified_insns > 0
+assert $prog.status.kernel.btf_id > 0
+assert $prog.status.kernel.memlock > 0
+
+let m = $prog.status.maps[0]
+assert $m matches exhaustive {
+    id:            $expect_map_id
+    name:          fentry_stats_ma
+    map_type:      percpuarray
+    key_size:      4
+    value_size:    8
+    max_entries:   2
+    flags:         0
+    btf_id:        not-empty
+    has_btf_id:    true
+    map_extra:     0
+    has_map_extra: false
+    memlock:       not-empty
+    has_memlock:   true
+    frozen:        false
+    pin_path:      ""
+    present:       false
+}
+assert $m.id > 0
+assert $m.btf_id > 0
+assert $m.memlock > 0
+
+guard got <- bpfman program get $pid
+assert $got matches exhaustive {
+    record: matches exhaustive {
+        program_id:     $prog.record.program_id
+        license:        $prog.record.license
+        gpl_compatible: $prog.record.gpl_compatible
+        created_at:     $prog.record.created_at
+        updated_at:     null
+        load: matches exhaustive {
+            object_path:  $prog.record.load.object_path
+            source_path:  $expect_source_path
+            program_name: $prog.record.load.program_name
+            program_type: $prog.record.load.program_type
+            attach_func:  $fn.name
+            map_owner_id: $prog.record.load.map_owner_id
+            global_data:  empty
+            image_source: $prog.record.load.image_source
+        }
+        handles: matches exhaustive {
+            pin_path:     $prog.record.handles.pin_path
+            map_pin_path: $prog.record.handles.map_pin_path
+            map_owner_id: null
+        }
+        meta: matches exhaustive {
+            name:        $prog.record.meta.name
+            owner:       $prog.record.meta.owner
+            description: $prog.record.meta.description
+            metadata: matches exhaustive {
+                owner:   $prog.record.meta.metadata.owner
+                purpose: $prog.record.meta.metadata.purpose
+            }
+        }
+    }
+    status: matches exhaustive {
+        kernel: matches exhaustive {
+            id:             $prog.status.kernel.id
+            name:           test_fexit
+            program_type:   tracing
+            tag:            $prog.status.kernel.tag
+            loaded_at:      $prog.status.kernel.loaded_at
+            uid:            0
+            has_uid:        true
+            btf_id:         $prog.status.kernel.btf_id
+            has_btf_id:     true
+            map_ids:        $expect_map_ids
+            has_map_ids:    true
+            jited_size:     $prog.status.kernel.jited_size
+            xlated_size:    $prog.status.kernel.xlated_size
+            verified_insns: $prog.status.kernel.verified_insns
+            memlock:        $prog.status.kernel.memlock
+            has_memlock:    true
+            restricted:     false
+        }
+        stats: matches exhaustive {
+            runtime:          0
+            run_count:        0
+            recursion_misses: 0
+        }
+        prog_pin:    $expect_prog_pin
+        map_dir:     $expect_map_dir
+        bytecode:    $expect_bytecode
+        links:       empty
+        maps:        not-empty
+        map_used_by: [$pid]
+    }
+}
+
+let gm = $got.status.maps[0]
+let expect_map_pin = "${runtime_base}/fs/maps/${pid}/fentry_stats_map"
+assert $gm matches exhaustive {
+    id:            $m.id
+    name:          $m.name
+    map_type:      $m.map_type
+    key_size:      $m.key_size
+    value_size:    $m.value_size
+    max_entries:   $m.max_entries
+    flags:         $m.flags
+    btf_id:        $m.btf_id
+    has_btf_id:    $m.has_btf_id
+    map_extra:     $m.map_extra
+    has_map_extra: $m.has_map_extra
+    memlock:       $m.memlock
+    has_memlock:   $m.has_memlock
+    frozen:        $m.frozen
+    pin_path:      $expect_map_pin
+    present:       true
+}
+
+guard listed <- bpfman program list -o json
+let ours = $listed |> jq ".programs[] | select(.record.program_id == ${pid})"
+assert present $ours
+assert $ours.record.meta.name == $prog.record.meta.name
+assert $ours.kernel.id == $prog.status.kernel.id
+
+bpfman program unload $pid
+assert fail bpfman program get $pid

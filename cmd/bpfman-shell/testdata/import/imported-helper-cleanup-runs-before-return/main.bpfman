@@ -1,0 +1,5 @@
+import ./lib.bpfman
+guard wd <- mk
+let rc <- exec test -d $wd.path
+print $rc.ok
+print $rc.exit_code

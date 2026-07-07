@@ -1,0 +1,51 @@
+# -*- mode: bpfman -*-
+#
+# Given: an XDP dispatcher holding a single member at the attach point
+#
+# When: that only member is detached and a later attach reuses the same
+# attach point
+#
+# Then: the first detach removes the dispatcher and the later attach
+# creates a fresh dispatcher with a new program id
+#
+# Three phases:
+#   1. Attach a single member at priority 100. The dispatcher exists
+#      with one member; record its runtime.program_id (the dispatcher's
+#      own BPF program ID, distinct from the attached user-program's ID).
+#   2. Detach the only member. bpfman dispatcher get now fails, because
+#      no dispatcher exists for this attach point.
+#   3. Attach again at priority 200. A fresh dispatcher exists, again
+#      with one member, and its runtime.program_id differs from the
+#      phase-1 value.
+#
+# The Go test inspects link-pin state directly; the DSL uses dispatcher
+# get's success or failure as the proxy -- a dispatcher snapshot exists
+# iff the kernel-side attach point does.
+
+guard pair <- net veth-pair
+defer net release $pair
+
+guard loaded <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+let prog = $loaded.programs[0]
+defer bpfman program unload $prog
+
+# Phase 1: attach one program; dispatcher comes into being.
+guard l1 <- bpfman link attach xdp $prog $pair.host_link --priority 100
+guard snap1 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+let members1 = $snap1 |> jq ".members | length"
+assert $members1 == 1
+let dispatcher_pid_1 = $snap1.runtime.program_id
+
+# Phase 2: detach the only member; the dispatcher goes away.
+bpfman link detach $l1
+assert fail bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+
+# Phase 3: reattach; a fresh dispatcher is created with a new
+# kernel program ID.
+guard l2 <- bpfman link attach xdp $prog $pair.host_link --priority 200
+defer bpfman link detach $l2
+
+guard snap2 <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+let members2 = $snap2 |> jq ".members | length"
+assert $members2 == 1
+assert $snap2.runtime.program_id != $dispatcher_pid_1

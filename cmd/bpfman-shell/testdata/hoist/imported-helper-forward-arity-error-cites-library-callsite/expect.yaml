@@ -1,0 +1,6 @@
+err_is: silent
+stderr_contains:
+  - "{lib}:2"
+  - "helper: expected 1 argument(s), got 2 (def declared at 5:5)"
+stderr_not_contains:
+  - "command not found"

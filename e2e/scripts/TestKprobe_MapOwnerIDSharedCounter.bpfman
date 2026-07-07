@@ -1,0 +1,111 @@
+# -*- mode: bpfman -*-
+#pragma labels={"program":"kprobe","shared-map":"true"}
+#
+# Given: kprobe programs loaded both as ordinary LIBBPF_PIN_NONE copies
+# and as an explicit --map-owner-id pair
+#
+# When: each set is exercised with the same number of events
+#
+# Then: the ordinary copies keep independent counters while the
+# owner/dependant pair shares one real kernel map -- proving
+# --map-owner-id is kernel-map sharing, not just shared metadata
+
+import ../lib.bpfman
+
+let n = 5
+let owner_weight = 10
+let dependent_weight = 3
+let control_a_weight = 4
+let control_b_weight = 7
+
+guard fn <- kfunc acquire
+defer kfunc release $fn
+
+let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+# Control: two independent loads of the same PIN_NONE map do not share
+# by accident. Each program should advance only its own counter.
+guard control_a_load <- bpfman program load file testdata/bpf/multi_prog_kprobe_kmod_counter.bpf.o --programs kprobe:mkp_a -g "weight_a=0x${u64le $control_a_weight}"
+let control_a = $control_a_load.programs[0]
+defer bpfman program unload $control_a
+
+guard control_b_load <- bpfman program load file testdata/bpf/multi_prog_kprobe_kmod_counter.bpf.o --programs kprobe:mkp_a -g "weight_a=0x${u64le $control_b_weight}"
+let control_b = $control_b_load.programs[0]
+defer bpfman program unload $control_b
+
+assert $control_a.record.handles.map_owner_id == null
+assert $control_b.record.handles.map_owner_id == null
+assert $control_a.record.handles.map_pin_path != $control_b.record.handles.map_pin_path
+
+let control_a_map_id = $control_a |> jq '[.status.maps[] | select(.name == "mkp_a_count") | .id][0]'
+let control_b_map_id = $control_b |> jq '[.status.maps[] | select(.name == "mkp_a_count") | .id][0]'
+assert $control_a_map_id != $control_b_map_id
+
+guard control_a_link <- bpfman link attach kprobe $control_a $fn.name
+guard control_b_link <- bpfman link attach kprobe $control_b $fn.name
+
+guard control_a_before_dump <- bpftool map dump id $control_a_map_id -j
+guard control_b_before_dump <- bpftool map dump id $control_b_map_id -j
+let control_a_before = $control_a_before_dump.stdout |> jq $counter_filter
+let control_b_before = $control_b_before_dump.stdout |> jq $counter_filter
+
+kfunc fire $fn $n
+
+guard control_a_after_dump <- bpftool map dump id $control_a_map_id -j
+guard control_b_after_dump <- bpftool map dump id $control_b_map_id -j
+let control_a_after = $control_a_after_dump.stdout |> jq $counter_filter
+let control_b_after = $control_b_after_dump.stdout |> jq $counter_filter
+let control_a_delta = $control_a_after - $control_a_before
+let control_b_delta = $control_b_after - $control_b_before
+let control_a_want = $n * $control_a_weight
+let control_b_want = $n * $control_b_weight
+
+print "control maps ${control_a_map_id}/${control_b_map_id}: delta_a=${control_a_delta} want_a=${control_a_want} delta_b=${control_b_delta} want_b=${control_b_want}"
+
+assert $control_a_delta == $control_a_want
+assert $control_b_delta == $control_b_want
+
+bpfman link detach $control_b_link
+bpfman link detach $control_a_link
+
+# Explicit owner/dependent sharing: both programs should resolve the
+# named map to the same kernel object and both weights should accumulate
+# in that one shared map.
+guard owner_load <- bpfman program load file testdata/bpf/multi_prog_kprobe_kmod_counter.bpf.o --programs kprobe:mkp_a -g "weight_a=0x${u64le $owner_weight}"
+let owner = $owner_load.programs[0]
+let owner_id = $owner.record.program_id
+defer bpfman program unload $owner
+
+guard dependent_load <- bpfman program load file testdata/bpf/multi_prog_kprobe_kmod_counter.bpf.o --programs kprobe:mkp_a --map-owner-id $owner_id -g "weight_a=0x${u64le $dependent_weight}"
+let dependent = $dependent_load.programs[0]
+let dependent_id = $dependent.record.program_id
+defer bpfman program unload $dependent
+
+assert $owner_id != $dependent_id
+assert $owner.record.handles.map_owner_id == null
+assert $dependent.record.handles.map_owner_id == $owner_id
+assert $dependent.record.handles.map_pin_path == $owner.record.handles.map_pin_path
+
+let owner_map_id = $owner |> jq '[.status.maps[] | select(.name == "mkp_a_count") | .id][0]'
+let dependent_map_id = $dependent |> jq '[.status.maps[] | select(.name == "mkp_a_count") | .id][0]'
+assert $owner_map_id == $dependent_map_id
+
+guard owner_link <- bpfman link attach kprobe $owner $fn.name
+defer bpfman link detach $owner_link
+
+guard dependent_link <- bpfman link attach kprobe $dependent $fn.name
+defer bpfman link detach $dependent_link
+
+guard before_dump <- bpftool map dump id $owner_map_id -j
+let before = $before_dump.stdout |> jq $counter_filter
+
+kfunc fire $fn $n
+
+guard after_dump <- bpftool map dump id $owner_map_id -j
+let after = $after_dump.stdout |> jq $counter_filter
+let delta = $after - $before
+let want = $n * ($owner_weight + $dependent_weight)
+
+print "shared map ${owner_map_id}: before=${before} after=${after} delta=${delta} want=${want}"
+
+assert $delta == $want

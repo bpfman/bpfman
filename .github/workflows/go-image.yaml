@@ -1,0 +1,214 @@
+name: Image
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    uses: ./.github/workflows/go-test.yaml
+
+  build-and-push:
+    name: Build and push (multiarch)
+    runs-on: ubuntu-24.04
+    # Gate the registry push on tests passing.
+    needs: test
+    permissions:
+      # Required for keyless cosign signing via the GitHub Actions
+      # OIDC token: cosign exchanges this token with sigstore's
+      # Fulcio CA for a short-lived signing certificate, signs the
+      # pushed image digest, and records the signature plus
+      # certificate in the Rekor transparency log.
+      id-token: write
+      contents: read
+    env:
+      # Override the Makefile's default of quay.io/bpfman/bpfman:latest:
+      # CI pushes to an ephemeral ttl.sh repo keyed on the owning
+      # GitHub org rather than to the canonical quay.io location.
+      # Set once at job scope so every `make` invocation in the
+      # build, sign, and verify steps inherits the same value via
+      # `BPFMAN_IMG ?=` in the Makefile.
+      BPFMAN_IMG: ttl.sh/${{ github.repository_owner }}/bpfman:latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install cosign
+        # Pinned by SHA (not version tag) so the action's content is
+        # immutable: a malicious tag move cannot quietly substitute
+        # a different signing binary.  This is the same SHA the
+        # upstream Rust bpfman v0.6 image-build workflow uses
+        # (sigstore/cosign-installer v3.8.2).
+        uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb
+
+      - name: Build and push multi-arch image
+        env:
+          # Override the Makefile's host-time default so the version
+          # metadata baked into the binary matches the commit being
+          # built rather than the runner's wall clock.
+          BUILD_DATE: ${{ github.event.head_commit.timestamp }}
+        run: |
+          # EXTRA_GO_LDFLAGS="-s -w" strips the symbol table and
+          # DWARF sections from the shipped binary, dropping the
+          # image size by roughly 90 MB on the Fedora path (which
+          # otherwise inherits a lot of debug info from
+          # glibc-static). Local builds leave this empty so
+          # bin/bpfman stays debuggable.
+          #
+          # --metadata-file makes buildx write the published index
+          # digest to disk so the subsequent cosign step can sign
+          # the immutable digest rather than the mutable :latest
+          # tag. The file ends up in $RUNNER_TEMP so it is cleaned
+          # up at job teardown.
+          # IMAGE_REF / SIGNER_IDENTITY / OIDC_ISSUER bake the
+          # cosign verify command into the binary via -ldflags so
+          # `bpfman version` can print a ready-to-pipe verification
+          # command for the image it was published from. Only set
+          # here in CI; local and downstream builds leave them
+          # empty and the version printer omits the Attestation
+          # line entirely.  SIGNER_IDENTITY is constructed to
+          # exactly match the cert subject Fulcio will issue when
+          # this same workflow signs in the next step.
+          make build-image \
+            EXTRA_GO_LDFLAGS="-s -w" \
+            IMAGE_REF=ttl.sh/${{ github.repository_owner }}/bpfman \
+            SIGNER_IDENTITY=https://github.com/${{ github.repository }}/.github/workflows/go-image.yaml@${{ github.ref }} \
+            OIDC_ISSUER=https://token.actions.githubusercontent.com \
+            PLATFORMS=linux/amd64,linux/arm64,linux/ppc64le,linux/s390x \
+            PUSH=1 \
+            BUILDX_EXTRA_ARGS="--cache-from type=gha --cache-to type=gha,mode=max --metadata-file=${RUNNER_TEMP}/buildx-meta.json"
+
+      - name: Sign published image with cosign
+        # Keyless signing via the cosign-sign Make target.  The
+        # target reads the index digest from the buildx metadata
+        # file produced by the previous step and runs `cosign sign
+        # -y <image>@<digest>`.  cosign uses the OIDC token granted
+        # by `id-token: write` above to fetch a short-lived
+        # certificate from sigstore's Fulcio CA, signs the digest,
+        # and uploads the signature plus certificate to the Rekor
+        # transparency log.  No long-lived secrets are involved.
+        #
+        # The same Make target also drives local signing for
+        # smoke-testing the supply-chain plumbing without
+        # round-tripping through CI; see the cosign-sign comment
+        # block in the Makefile for the local invocation.
+        #
+        # Verifiers can later confirm the image was published by
+        # this exact workflow in this exact repository:
+        #
+        #   cosign verify ttl.sh/bpfman/bpfman:latest \
+        #     --certificate-identity-regexp \
+        #       'https://github.com/bpfman/bpfman/.github/workflows/go-image\.yaml@.*' \
+        #     --certificate-oidc-issuer \
+        #       https://token.actions.githubusercontent.com
+        run: |
+          make cosign-sign \
+            BUILDX_METADATA_FILE="${RUNNER_TEMP}/buildx-meta.json"
+
+  verify-image:
+    name: Verify image (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    needs: build-and-push
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            platform: linux/amd64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            platform: linux/arm64
+    env:
+      # Must match the BPFMAN_IMG used in build-and-push above; this
+      # job pulls the image that job pushed.
+      BPFMAN_IMG: ttl.sh/${{ github.repository_owner }}/bpfman:latest
+    steps:
+      - name: Verify image metadata
+        run: |
+          output=$(docker run --rm -e BPFMAN_MODE= "$BPFMAN_IMG" version)
+          echo "$output"
+          echo "$output" | grep -q "${{ github.sha }}" || { echo "FAIL: expected git commit ${{ github.sha }}"; exit 1; }
+          echo "$output" | grep -q "${{ github.event.head_commit.timestamp }}" || { echo "FAIL: expected build date ${{ github.event.head_commit.timestamp }}"; exit 1; }
+          echo "$output" | grep -q "${{ matrix.platform }}" || { echo "FAIL: expected platform ${{ matrix.platform }}"; exit 1; }
+
+      - name: Install cosign
+        # Required for the verify step below.  Pinned by SHA to
+        # match the build-and-push job and to immunise against
+        # malicious tag moves on the action repo.
+        uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb
+
+      - name: Verify cosign signature
+        # Closes the loop on the build-and-push job's signing
+        # step: assert that a sigstore signature exists on the
+        # published image, that it was issued by the GitHub
+        # Actions OIDC provider, that the signing identity is
+        # this exact workflow file on this exact repository, and
+        # crucially that the signature was made by the *current*
+        # commit (not some prior run that left a stale signature
+        # on the floating :latest tag).
+        run: |
+          set -euo pipefail
+          cosign verify "$BPFMAN_IMG" \
+            --certificate-identity-regexp 'https://github\.com/${{ github.repository }}/\.github/workflows/go-image\.yaml@.*' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            > "${RUNNER_TEMP}/cosign-verify.json"
+          actual_sha=$(jq -r '.[0].optional.githubWorkflowSha' "${RUNNER_TEMP}/cosign-verify.json")
+          if [ "${actual_sha}" != "${{ github.sha }}" ]; then
+            echo "FAIL: signature is from sha=${actual_sha}, expected ${{ github.sha }}" >&2
+            jq '.[0].optional' "${RUNNER_TEMP}/cosign-verify.json" >&2
+            exit 1
+          fi
+          echo "Signature verified: githubWorkflowSha=${actual_sha}"
+          jq '.[0].optional | {Issuer, Subject, githubWorkflowName, githubWorkflowRef, githubWorkflowSha}' \
+            "${RUNNER_TEMP}/cosign-verify.json"
+
+      - name: Verify cosign signature via binary's embedded attestation
+        # Self-consistency check between the build-args used to
+        # bake the Attestation field into the binary and the
+        # cosign signature that was actually applied.  The
+        # previous step verifies the signature against
+        # workflow-hardcoded identity values; this step verifies
+        # the signature against the values the binary itself
+        # carries in its `bpfman version` output.  If anyone
+        # typos IMAGE_REF or SIGNER_IDENTITY in the build-args
+        # passed to the make target, this step fails because
+        # cosign verify would either run against the wrong
+        # registry path or assert against the wrong cert
+        # subject.  The previous step would not catch that.
+        #
+        # The pipeline below is the same one we document for
+        # operators consuming the published image:
+        #
+        #   docker run --rm -e BPFMAN_MODE= <image> version \
+        #     | grep ^Attestation: \
+        #     | sed 's/^Attestation: *//' \
+        #     | sh
+        #
+        # Here we capture cosign's stdout (the verification
+        # JSON) so we can assert githubWorkflowSha matches the
+        # current run's commit.
+        run: |
+          set -euo pipefail
+          docker run --rm -e BPFMAN_MODE= "$BPFMAN_IMG" version \
+            | grep ^Attestation: \
+            | sed 's/^Attestation: *//' \
+            | sh \
+            > "${RUNNER_TEMP}/embedded-verify.json"
+          actual_sha=$(jq -r '.[0].optional.githubWorkflowSha' "${RUNNER_TEMP}/embedded-verify.json")
+          if [ "${actual_sha}" != "${{ github.sha }}" ]; then
+            echo "FAIL: embedded-attestation verify returned sha=${actual_sha}, expected ${{ github.sha }}" >&2
+            jq '.[0].optional' "${RUNNER_TEMP}/embedded-verify.json" >&2
+            exit 1
+          fi
+          echo "Embedded attestation verified: githubWorkflowSha=${actual_sha}"
+
+      - name: Inspect attestations
+        run: |
+          # Provenance and SBOM are attached as separate manifests in
+          # the OCI image index. Informational; does not gate.
+          docker buildx imagetools inspect \
+            "$BPFMAN_IMG" \
+            --format '{{ json .Provenance }}' || true

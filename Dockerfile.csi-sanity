@@ -1,0 +1,24 @@
+# syntax=docker/dockerfile:1.4
+
+ARG GO_VERSION=1.25
+ARG BUILDER_IMAGE=registry.access.redhat.com/ubi9/go-toolset:${GO_VERSION}
+ARG BASE_IMAGE=registry.access.redhat.com/ubi9/ubi-minimal:latest
+
+# Build csi-sanity tool
+# hadolint ignore=DL3006
+FROM ${BUILDER_IMAGE} AS builder
+
+ARG CSI_TEST_VERSION=v5.4.0
+
+RUN --mount=type=cache,target=/go-cache,uid=1001,gid=0 \
+    --mount=type=cache,target=/go-mod-cache,uid=1001,gid=0 \
+    CGO_ENABLED=0 GOCACHE=/go-cache GOMODCACHE=/go-mod-cache \
+    go install "github.com/kubernetes-csi/csi-test/v5/cmd/csi-sanity@${CSI_TEST_VERSION}"
+
+# Runtime image
+# hadolint ignore=DL3006
+FROM ${BASE_IMAGE}
+
+COPY --from=builder /opt/app-root/src/go/bin/csi-sanity /usr/local/bin/
+
+ENTRYPOINT ["/usr/local/bin/csi-sanity"]

@@ -1,0 +1,7 @@
+def warmup() {
+  print warming
+}
+let rc <- warmup
+print $rc.ok
+print $rc.exit_code
+print after

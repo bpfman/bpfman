@@ -1,0 +1,7 @@
+import ./lib.bpfman
+
+def helper() {
+  print main
+}
+
+print unreachable

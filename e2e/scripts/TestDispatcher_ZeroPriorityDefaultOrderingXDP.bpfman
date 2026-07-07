@@ -1,0 +1,59 @@
+# -*- mode: bpfman -*-
+#
+# Given: XDP dispatcher members attached with priority zero alongside
+# positive priorities
+#
+# When: the dispatcher sorts the chain into execution order
+#
+# Then: priority zero is stored verbatim and sorts ahead of the positive
+# priorities
+
+guard pair <- net veth-pair
+defer net release $pair
+
+guard loaded <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+let prog = $loaded.programs[0]
+defer bpfman program unload $prog
+
+guard l_25 <- bpfman link attach xdp $prog $pair.host_link --priority 25
+guard l_0 <- bpfman link attach xdp $prog $pair.host_link --priority 0
+guard l_75 <- bpfman link attach xdp $prog $pair.host_link --priority 75
+
+defer bpfman link detach $l_25
+defer bpfman link detach $l_0
+defer bpfman link detach $l_75
+
+guard g_25 <- bpfman link get $l_25
+guard g_0 <- bpfman link get $l_0
+guard g_75 <- bpfman link get $l_75
+
+guard snap <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+assert ($snap |> jq ".members | length") == 3
+
+assert $g_25.record.details.priority == 25
+assert $g_0.record.details.priority == 0
+assert $g_75.record.details.priority == 75
+
+assert $g_0.record.details.position == 0
+assert $g_25.record.details.position == 1
+assert $g_75.record.details.position == 2
+
+let id_25 = $l_25.record.id
+let id_0 = $l_0.record.id
+let id_75 = $l_75.record.id
+
+let snap_25_priority = $snap |> jq ".members[] | select(.link_id == ${id_25}) | .priority"
+let snap_0_priority = $snap |> jq ".members[] | select(.link_id == ${id_0}) | .priority"
+let snap_75_priority = $snap |> jq ".members[] | select(.link_id == ${id_75}) | .priority"
+
+let snap_25_position = $snap |> jq ".members[] | select(.link_id == ${id_25}) | .position"
+let snap_0_position = $snap |> jq ".members[] | select(.link_id == ${id_0}) | .position"
+let snap_75_position = $snap |> jq ".members[] | select(.link_id == ${id_75}) | .position"
+
+assert $snap_25_priority == 25
+assert $snap_0_priority == 0
+assert $snap_75_priority == 75
+
+assert $snap_0_position == 0
+assert $snap_25_position == 1
+assert $snap_75_position == 2

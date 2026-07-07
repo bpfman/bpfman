@@ -1,0 +1,5 @@
+err_is: silent
+stderr_contains:
+  - "{main}:2:"
+  - "'break' outside any foreach loop"
+

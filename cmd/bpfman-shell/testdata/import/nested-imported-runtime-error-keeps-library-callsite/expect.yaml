@@ -1,0 +1,8 @@
+err_is: silent
+stdout_lines: []
+stderr_contains:
+  - "{lib}"
+  - "in def inner"
+  - "called at 2:"
+stderr_not_contains:
+  - "called at 3:"

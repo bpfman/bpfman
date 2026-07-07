@@ -1,0 +1,71 @@
+# -*- mode: bpfman -*-
+#
+# Given: three TC programs attached with a custom proceed-on mask that
+# excludes PIPE
+#
+# When: a packet wave crosses the dispatcher chain
+#
+# Then: the chain stops at the PIPE member while the OK members ahead of
+# it continue under the custom mask
+
+import ../lib.bpfman
+
+let n = 5
+let weight_a = 41
+let weight_b = 42
+let weight_c = 43
+
+guard pair <- net veth-pair
+defer net release $pair
+require_host_route_to_peer $pair
+
+
+# Verdicts are u32 little-endian. TC_ACT_OK = 0 -> 0x00000000;
+# TC_ACT_PIPE = 3 -> 0x03000000.
+guard loaded <- bpfman program load file testdata/bpf/multi_prog_tc_param_verdict.bpf.o --programs tc:mtcv_a,tc:mtcv_b,tc:mtcv_c -g "weight_a=0x${u64le $weight_a}" -g "weight_b=0x${u64le $weight_b}" -g "weight_c=0x${u64le $weight_c}" -g verdict_a=0x00000000 -g verdict_b=0x03000000 -g verdict_c=0x00000000
+
+let a = $loaded.programs[0]
+let b = $loaded.programs[1]
+let c = $loaded.programs[2]
+
+defer bpfman program unload $a
+defer bpfman program unload $b
+defer bpfman program unload $c
+
+let mapID_a = $a |> jq '[.status.maps[] | select(.name == "mtcv_a_count") | .id][0]'
+let mapID_b = $b |> jq '[.status.maps[] | select(.name == "mtcv_b_count") | .id][0]'
+let mapID_c = $c |> jq '[.status.maps[] | select(.name == "mtcv_c_count") | .id][0]'
+
+# Custom proceed-on: includes OK (so a's verdict continues the
+# chain) and excludes PIPE (so b's verdict stops it).
+guard link_a <- bpfman link attach tc $a $pair.host_link ingress --priority 50 --proceed-on ok,dispatcher_return
+guard link_b <- bpfman link attach tc $b $pair.host_link ingress --priority 60 --proceed-on ok,dispatcher_return
+guard link_c <- bpfman link attach tc $c $pair.host_link ingress --priority 70 --proceed-on ok,dispatcher_return
+
+let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+guard _ <- net exec $pair ping -c $n -i 0.05 -W 1 $pair.host_addr
+
+guard dump_a <- bpftool map dump id $mapID_a -j
+guard dump_b <- bpftool map dump id $mapID_b -j
+guard dump_c <- bpftool map dump id $mapID_c -j
+
+let count_a = $dump_a.stdout |> jq $counter_filter
+let count_b = $dump_b.stdout |> jq $counter_filter
+let count_c = $dump_c.stdout |> jq $counter_filter
+
+let want_a = $n * $weight_a
+let want_b = $n * $weight_b
+let want_c = 0
+
+print "a: got=${count_a} want=${want_a}  (ran, returned OK)"
+print "b: got=${count_b} want=${want_b}  (ran, returned PIPE)"
+print "c: got=${count_c} want=${want_c}    (never ran)"
+
+assert $count_a == $want_a
+assert $count_b == $want_b
+assert $count_c == $want_c
+
+bpfman link detach $link_a
+bpfman link detach $link_b
+bpfman link detach $link_c

@@ -1,0 +1,9 @@
+def helper() {
+  print one
+}
+
+def helper() {
+  print two
+}
+
+print unreachable

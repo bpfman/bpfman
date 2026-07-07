@@ -1,0 +1,3 @@
+import ./lib.bpfman
+check
+print after

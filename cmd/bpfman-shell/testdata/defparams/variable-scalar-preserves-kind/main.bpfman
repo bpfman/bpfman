@@ -1,0 +1,11 @@
+def num(x) {
+  assert $x == 1
+}
+def str(s) {
+  assert $s == "hello"
+}
+let n = 1
+let h = "hello"
+num $n
+str $h
+print kinds-ok

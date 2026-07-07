@@ -1,0 +1,50 @@
+# -*- mode: bpfman -*-
+#
+# Given: ten TC ingress members attached at deliberately scrambled
+# priorities
+#
+# When: every link is re-fetched once all ten attaches have committed
+#
+# Then: each link reports a position matching its priority rank, since
+# positions only stabilise after the full chain is in place
+
+guard pair <- net veth-pair
+defer net release $pair
+
+guard loaded <- bpfman program load file testdata/bpf/tc_counter.bpf.o --programs tc:stats
+let prog = $loaded.programs[0]
+defer bpfman program unload $prog
+
+# Scrambled priorities. The expected position for each link is the
+# rank of its priority in ascending sort:
+#
+#   sorted = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900]
+#
+# so the rank of priority P is (P / 100) for P >= 100 and 0 for
+# P == 50, giving positions 0..9 across the ten links.
+
+let priorities = [500 100 800 300 900 200 700 400 600 50]
+
+guard links <- foreach prio in $priorities {
+    bpfman link attach tc $prog $pair.host_link ingress --priority $prio
+}
+
+foreach l in $links {
+    defer bpfman link detach $l
+}
+
+# Re-query each link so positions reflect the final sorted order.
+guard refreshed <- foreach l in $links {
+    bpfman link get $l
+}
+
+# Position equals the priority's rank in the sorted-ascending list.
+# Computed per link via jq sort+index rather than enumerated by
+# hand so the assertion expresses the contract, not the expected
+# values.
+foreach r in $refreshed {
+    let prio = $r.record.details.priority
+    let pos = $r.record.details.position
+    let want_pos = $priorities |> jq "sort | index(${prio})"
+    assert $pos == $want_pos
+}

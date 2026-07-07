@@ -1,0 +1,9 @@
+err_is: silent
+stdout_lines: []
+stderr_contains:
+  - "[defer] FAIL at {lib}:2:3"
+  - "[guard] FAIL at {main}:2:1"
+stdout_not_contains:
+  - "[defer] FAIL at {main}:2:1"
+  - after
+defer_failures: 1

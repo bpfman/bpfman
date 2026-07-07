@@ -1,0 +1,163 @@
+# -*- mode: bpfman -*-
+#pragma labels={"exclusive":"true","operation":"delete","shared-map":"true"}
+#
+# Given: one map owner with several dependants sharing its map set
+#
+# When: program delete runs owner-first, recursively, and with --all
+#
+# Then: every owner-first, recursive, and --all delete preserves the
+# live shared maps and fans out without duplicate work
+#
+# Exercises bpfman program delete --all, which mutates global bpfman
+# state and cannot run beside other scripts.
+#
+# This complements TestProgramDelete_SharedMapOrdering (a single
+# owner/dependant pair). Fan-out exercises paths a pair cannot: the
+# multi-dependant loop, an ordering descent with more than one child,
+# and the cross-sibling dedup -- an owner's recursive pass removes all
+# its dependants, so the same dependants named later in the batch are
+# skipped rather than re-deleted. Map sharing is single-hop, so the
+# topology is a star: one real owner that owns the maps and N
+# dependants pointing at it via --map-owner-id.
+
+import ../lib.bpfman
+
+print "PROOF: shared-map delete fan-out (one owner, three dependants)"
+
+# This script asserts global store counts and uses `program delete
+# --all`, so `exclusive=true` is not enough on its own: it must also
+# start from an empty managed store. If this fails, a previous run
+# left residue behind and this script cannot prove the delete-ordering
+# invariant honestly.
+guard initial <- bpfman program list -o json
+let initialCount = $initial |> jq "[.programs[]] | length"
+require $initialCount == 0
+
+# Load one owner and three dependants that all share its maps.
+guard ownerA <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats -m role=owner
+let progOwnerA = $ownerA.programs[0]
+let oA = $progOwnerA.record.program_id
+expect_program_load $progOwnerA tcx schedcls tcx_stats
+
+guard depA1 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oA
+let dA1 = $depA1.programs[0].record.program_id
+assert $depA1.programs[0].record.handles.map_owner_id == $oA
+
+guard depA2 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oA
+let dA2 = $depA2.programs[0].record.program_id
+assert $depA2.programs[0].record.handles.map_owner_id == $oA
+
+guard depA3 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oA
+let dA3 = $depA3.programs[0].record.program_id
+assert $depA3.programs[0].record.handles.map_owner_id == $oA
+print "A: owner=${oA} with dependants ${dA1}, ${dA2}, ${dA3} sharing its maps"
+
+# Safety rail: a non-recursive delete of the owner alone leaves all
+# dependants alive and still using the owner's map set.
+bpfman program delete $oA
+assert fail bpfman program get $oA
+guard afterFailA <- bpfman program list -o json
+let survivorsA = $afterFailA |> jq "[.programs[]] | length"
+assert $survivorsA == 3
+guard survivedA1 <- bpfman program get $dA1
+guard survivedA2 <- bpfman program get $dA2
+guard survivedA3 <- bpfman program get $dA3
+assert $survivedA1 matches {
+    status.map_used_by: [$dA1 $dA2 $dA3]
+}
+assert $survivedA2 matches {
+    status.map_used_by: [$dA1 $dA2 $dA3]
+}
+assert $survivedA3 matches {
+    status.map_used_by: [$dA1 $dA2 $dA3]
+}
+print "A: non-recursive delete of owner ${oA} left all 3 dependants alive"
+
+bpfman program delete $dA2 $dA3 $dA1
+assert fail bpfman program get $dA1
+assert fail bpfman program get $dA2
+assert fail bpfman program get $dA3
+print "A: deleted surviving dependants ${dA2} ${dA3} ${dA1}"
+
+# Scrambled explicit batch with the owner in the middle: ordering must
+# delete all three dependants before the owner regardless of argument
+# position, and the sibling dedup must keep it from re-deleting any.
+guard ownerA2 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats
+let oA2 = $ownerA2.programs[0].record.program_id
+guard depA21 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oA2
+let dA21 = $depA21.programs[0].record.program_id
+guard depA22 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oA2
+let dA22 = $depA22.programs[0].record.program_id
+guard depA23 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oA2
+let dA23 = $depA23.programs[0].record.program_id
+bpfman program delete $dA22 $oA2 $dA23 $dA21
+assert fail bpfman program get $oA2
+assert fail bpfman program get $dA21
+assert fail bpfman program get $dA22
+assert fail bpfman program get $dA23
+print "A2: scrambled batch (${dA22} ${oA2} ${dA23} ${dA21}) deleted all four"
+
+# ----------------------------------------------------------------------
+# Recursive delete from the owner expands to every unnamed dependant.
+# ----------------------------------------------------------------------
+
+guard ownerB <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats
+let oB = $ownerB.programs[0].record.program_id
+guard depB1 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oB
+let dB1 = $depB1.programs[0].record.program_id
+guard depB2 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oB
+let dB2 = $depB2.programs[0].record.program_id
+guard depB3 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oB
+let dB3 = $depB3.programs[0].record.program_id
+assert $depB1.programs[0].record.handles.map_owner_id == $oB
+assert $depB3.programs[0].record.handles.map_owner_id == $oB
+
+bpfman program delete $oB -r
+assert fail bpfman program get $oB
+assert fail bpfman program get $dB1
+assert fail bpfman program get $dB2
+assert fail bpfman program get $dB3
+print "B: recursive delete of ${oB} removed unnamed dependants ${dB1}, ${dB2}, ${dB3}"
+
+# ----------------------------------------------------------------------
+# Recursive owner plus named dependants: the owner recursive pass removes
+# all siblings, and later top-level arguments are skipped rather than
+# re-deleted.
+# ----------------------------------------------------------------------
+
+guard ownerC <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats
+let oC = $ownerC.programs[0].record.program_id
+guard depC1 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oC
+let dC1 = $depC1.programs[0].record.program_id
+guard depC2 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oC
+let dC2 = $depC2.programs[0].record.program_id
+guard depC3 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oC
+let dC3 = $depC3.programs[0].record.program_id
+assert $depC1.programs[0].record.handles.map_owner_id == $oC
+assert $depC2.programs[0].record.handles.map_owner_id == $oC
+assert $depC3.programs[0].record.handles.map_owner_id == $oC
+
+bpfman program delete $oC $dC2 $dC1 -r
+assert fail bpfman program get $oC
+assert fail bpfman program get $dC1
+assert fail bpfman program get $dC2
+assert fail bpfman program get $dC3
+print "C: recursive owner-plus-named batch (${oC} ${dC2} ${dC1}) deduped all dependants"
+
+# ----------------------------------------------------------------------
+# --all orders the whole fan-out dependants-first and clears the store.
+# ----------------------------------------------------------------------
+
+guard ownerD <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats
+let oD = $ownerD.programs[0].record.program_id
+guard depD1 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oD
+guard depD2 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oD
+guard depD3 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats --map-owner-id $oD
+assert $depD1.programs[0].record.handles.map_owner_id == $oD
+
+bpfman program delete --all
+guard listedD <- bpfman program list -o json
+let remainingD = $listedD |> jq "[.programs[]] | length"
+assert $remainingD == 0
+print "D: --all cleared the fan-out; remaining=${remainingD}"
+print "PROOF complete: fan-out lifetime holds for owner-first, scrambled batch, recursive, dedup, and --all"

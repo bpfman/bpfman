@@ -1,0 +1,75 @@
+# -*- mode: bpfman -*-
+#
+# Given: TCX links attached with two priority-zero entries alongside
+# positive priorities
+#
+# When: the chain is sorted into execution order
+#
+# Then: zero is stored verbatim, sorts ahead of the positives, and the
+# equal-zero links keep insertion order
+
+guard pair <- net veth-pair
+defer net release $pair
+
+guard loaded_25 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats
+let prog_25 = $loaded_25.programs[0]
+defer bpfman program unload $prog_25
+
+guard loaded_0a <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats
+let prog_0a = $loaded_0a.programs[0]
+defer bpfman program unload $prog_0a
+
+guard loaded_75 <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats
+let prog_75 = $loaded_75.programs[0]
+defer bpfman program unload $prog_75
+
+guard loaded_0b <- bpfman program load file testdata/bpf/tcx_counter.bpf.o --programs tcx:tcx_stats
+let prog_0b = $loaded_0b.programs[0]
+defer bpfman program unload $prog_0b
+
+guard l_25 <- bpfman link attach tcx $prog_25 $pair.host_link ingress --priority 25
+guard l_0a <- bpfman link attach tcx $prog_0a $pair.host_link ingress --priority 0
+guard l_75 <- bpfman link attach tcx $prog_75 $pair.host_link ingress --priority 75
+guard l_0b <- bpfman link attach tcx $prog_0b $pair.host_link ingress --priority 0
+
+defer bpfman link detach $l_25
+defer bpfman link detach $l_0a
+defer bpfman link detach $l_75
+defer bpfman link detach $l_0b
+
+# Re-query after all attaches so positions reflect the final chain,
+# not the chain position at each individual attach time.
+guard g_25 <- bpfman link get $l_25
+guard g_0a <- bpfman link get $l_0a
+guard g_75 <- bpfman link get $l_75
+guard g_0b <- bpfman link get $l_0b
+
+assert $g_25.record.kind == tcx
+assert $g_0a.record.kind == tcx
+assert $g_75.record.kind == tcx
+assert $g_0b.record.kind == tcx
+
+assert $g_25.record.program_id == $prog_25.record.program_id
+assert $g_0a.record.program_id == $prog_0a.record.program_id
+assert $g_75.record.program_id == $prog_75.record.program_id
+assert $g_0b.record.program_id == $prog_0b.record.program_id
+
+assert $g_25.record.details.interface == $pair.host_link
+assert $g_0a.record.details.interface == $pair.host_link
+assert $g_75.record.details.interface == $pair.host_link
+assert $g_0b.record.details.interface == $pair.host_link
+
+assert $g_25.record.details.direction == ingress
+assert $g_0a.record.details.direction == ingress
+assert $g_75.record.details.direction == ingress
+assert $g_0b.record.details.direction == ingress
+
+assert $g_25.record.details.priority == 25
+assert $g_0a.record.details.priority == 0
+assert $g_75.record.details.priority == 75
+assert $g_0b.record.details.priority == 0
+
+assert $g_0a.record.details.position == 0
+assert $g_0b.record.details.position == 1
+assert $g_25.record.details.position == 2
+assert $g_75.record.details.position == 3

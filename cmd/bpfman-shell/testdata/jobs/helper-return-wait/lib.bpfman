@@ -1,0 +1,4 @@
+def spawn() {
+  guard p <- start sh -c "printf ready"
+  return $p
+}

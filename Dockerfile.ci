@@ -1,0 +1,132 @@
+# syntax=docker/dockerfile:1.7
+#
+# Hermetic Fedora-based CI environment. Two distinct usage modes
+# share a single source of truth:
+#
+# 1. **Build / unit-test environment** (`docker run`) -- builds
+#    to the `base` stage. The source tree is mounted in at
+#    runtime so a `make <target>` invocation behaves exactly like
+#    a host build:
+#
+#      docker buildx build --target=base -t bpfman-ci -f Dockerfile.ci --load .
+#      docker run --rm -v "$PWD":/src -w /src bpfman-ci \
+#        make test PARALLEL=1 STATIC=1
+#
+#    The `make ci-test` target wraps these two commands.
+#
+# 2. **e2e binary extraction** (`buildx --output type=local`) --
+#    builds the `e2e-export` scratch stage which contains the
+#    static e2e binaries plus the BPF object tree they load via
+#    filesystem paths. The layout mirrors the source tree:
+#
+#      docker buildx build \
+#        --file Dockerfile.ci \
+#        --target e2e-export \
+#        --output type=local,dest=./ci-e2e-bundle \
+#        .
+#      sudo BPFMAN_E2E_BYTECODE_DIR="$PWD/ci-e2e-bundle/e2e" \
+#        ./ci-e2e-bundle/bin/e2e.test -test.v -test.failfast
+#
+#    The `make ci-test-e2e` target wraps these two commands.
+#
+# Hermeticity is enforced by Dockerfile.ci.dockerignore, which
+# excludes every host-built artefact from the build context, so a
+# stale host copy cannot mask "didn't rebuild" bugs.
+
+# ---------------------------------------------------------------------------
+# Stage 1: base. Fedora + the canonical dep set (mirrors the RPMS
+# array in hack/install-fedora-deps.sh). All later stages descend
+# from here, and this is also the stage to `--target` for the
+# docker-run pattern.
+# ---------------------------------------------------------------------------
+FROM fedora:43 AS base
+
+# Use hack/install-fedora-deps.sh as the canonical Fedora dep
+# list, shared with the host-bootstrap path. The script is
+# sudo-aware: it skips sudo when running as root (i.e. here),
+# uses sudo on a regular host. `dnf clean all` runs after so the
+# image stays lean -- the script itself doesn't clean because
+# host users typically want the dnf cache for follow-up
+# installs.
+COPY hack/install-fedora-deps.sh /tmp/install-fedora-deps.sh
+RUN bash /tmp/install-fedora-deps.sh \
+  && rm /tmp/install-fedora-deps.sh \
+  && dnf clean all
+
+# Tell git inside the container to trust any working tree
+# regardless of UID mismatch. With `docker run -v "$PWD":/src`
+# the host's .git/ has the host user's UID, while the container
+# runs as root (or whatever the image's default is) -- git's
+# safe.directory check (CVE-2022-24765 hardening) treats this
+# as dubious ownership and refuses to operate, which propagates
+# as `error obtaining VCS status: exit status 128` from go build
+# and as silent empty values from the Makefile's git-rev-parse
+# shell calls. The container is single-user, so trusting all
+# directories is appropriate here.
+RUN git config --system --add safe.directory '*'
+
+WORKDIR /src
+
+# ---------------------------------------------------------------------------
+# Stage 2: e2e-builder. Builds the static e2e test binaries, the
+# static bpfman binary, and the static bpfman-shell binary. e2e.test
+# is still its own uprobe attach target (cgo'd
+# e2e_uprobe_call_malloc plus a TestMain helper-mode dispatch), while
+# the Go e2e suites and .bpfman scripts all load test BPF objects from
+# the exported filesystem tree.
+# Source is COPYed in (no host mount); the dockerignore excludes
+# every host-built artefact so the build is genuinely hermetic. All
+# deliverables are gathered into /ci-e2e-bundle so the export stage
+# can grab them in one shot.
+# ---------------------------------------------------------------------------
+FROM base AS e2e-builder
+
+# RACE and EXTRA_TAGS are forwarded from the buildx --build-arg by
+# the ci-test-e2e and ci-test-e2e-scripts make recipes; empty by
+# default. EXTRA_TAGS lets a CI lane add build tags on top of the
+# defaults.
+ARG RACE=
+ARG EXTRA_TAGS=
+
+COPY . .
+
+# Build artefacts via Make's dep graph: `e2e.test` pulls in
+# dispatcher BPF + e2e BPF transitively, then `bpfman-compile` and
+# `bpfman-shell-compile` reuse the cached dispatcher BPF and
+# produce bin/bpfman and bin/bpfman-shell. test-e2e (the run
+# target) is intentionally skipped here -- we want only the build
+# halves; the runner executes the binaries on the host with sudo.
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/root/go/pkg/mod \
+    set -eux; \
+    make bin/e2e.test STATIC=1 RACE=${RACE} EXTRA_TAGS=${EXTRA_TAGS}; \
+    make bin/e2e-grpc.test STATIC=1 RACE=${RACE} EXTRA_TAGS=${EXTRA_TAGS}; \
+    make bin/e2e-scripts.test STATIC=1 RACE=${RACE} EXTRA_TAGS=${EXTRA_TAGS}; \
+    make bpfman-compile STATIC=1 RACE=${RACE} EXTRA_TAGS=${EXTRA_TAGS}; \
+    make bpfman-shell-compile STATIC=1 RACE=${RACE} EXTRA_TAGS=${EXTRA_TAGS}; \
+    mkdir -p /ci-e2e-bundle/bin /ci-e2e-bundle/e2e/testdata/bpf; \
+    cp bin/e2e.test /ci-e2e-bundle/bin/; \
+    cp bin/e2e-grpc.test /ci-e2e-bundle/bin/; \
+    cp bin/e2e-scripts.test /ci-e2e-bundle/bin/; \
+    cp bin/bpfman /ci-e2e-bundle/bin/; \
+    cp bin/bpfman-shell /ci-e2e-bundle/bin/; \
+    cp e2e/testdata/bpf/*.bpf.o /ci-e2e-bundle/e2e/testdata/bpf/
+
+# ---------------------------------------------------------------------------
+# Stage 3: e2e-export. Scratch stage that mirrors the layout
+# under /ci-e2e-bundle from the e2e-builder stage. After
+#   docker buildx build --target=e2e-export --output type=local,dest=./ci-e2e-bundle
+# the bundle contains:
+#   ./ci-e2e-bundle/bin/e2e.test                 (Go e2e test binary)
+#   ./ci-e2e-bundle/bin/e2e-grpc.test            (parallel gRPC e2e test binary)
+#   ./ci-e2e-bundle/bin/e2e-scripts.test         (Go-driven .bpfman script runner)
+#   ./ci-e2e-bundle/bin/bpfman                   (static bpfman binary)
+#   ./ci-e2e-bundle/bin/bpfman-shell             (static bpfman-shell binary)
+#   ./ci-e2e-bundle/e2e/testdata/bpf/*.bpf.o     (BPF programs for Go and script e2e)
+# The bundle layout matches the in-tree layout, so Go e2e binaries
+# can set BPFMAN_E2E_BYTECODE_DIR to the exported e2e/ directory and
+# .bpfman scripts can still resolve testdata via relative paths.
+# ---------------------------------------------------------------------------
+FROM scratch AS e2e-export
+
+COPY --from=e2e-builder /ci-e2e-bundle /

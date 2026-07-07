@@ -1,0 +1,4 @@
+import ./lib.bpfman
+let r <- f
+print $r.ok
+print $r.value

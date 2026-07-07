@@ -1,0 +1,9 @@
+err_text: "1 job(s) leaked"
+stdout_lines:
+  - after-launch
+stderr_contains:
+  - "[job] FAIL"
+  - "never waited or killed: sleep 60"
+  - "1 job(s) leaked"
+  - "{lib}:2"
+job_leaks: 1

@@ -1,0 +1,41 @@
+# -*- mode: bpfman -*-
+#
+# Given: ten XDP members attached at deliberately scrambled priorities
+#
+# When: every link is re-fetched once all ten attaches have committed
+#
+# Then: each link reports a position matching its priority rank, since
+# positions only stabilise after the full chain is in place
+
+guard pair <- net veth-pair
+defer net release $pair
+
+guard loaded <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+let prog = $loaded.programs[0]
+defer bpfman program unload $prog
+
+let priorities = [500 100 800 300 900 200 700 400 600 50]
+
+guard links <- foreach prio in $priorities {
+    bpfman link attach xdp $prog $pair.host_link --priority $prio
+}
+
+foreach l in $links {
+    defer bpfman link detach $l
+}
+
+# Re-query each link so positions reflect the final sorted order.
+guard refreshed <- foreach l in $links {
+    bpfman link get $l
+}
+
+# Position equals the priority's rank in the sorted-ascending list.
+# Computed per link via jq sort+index rather than enumerated by
+# hand so the assertion expresses the contract, not the expected
+# values.
+foreach r in $refreshed {
+    let prio = $r.record.details.priority
+    let pos = $r.record.details.position
+    let want_pos = $priorities |> jq "sort | index(${prio})"
+    assert $pos == $want_pos
+}

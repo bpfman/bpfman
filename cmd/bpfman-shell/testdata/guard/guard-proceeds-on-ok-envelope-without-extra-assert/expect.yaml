@@ -1,0 +1,6 @@
+stdout_lines:
+  - before
+  - after
+  - child-out
+stderr_not_contains:
+  - "[guard] FAIL"

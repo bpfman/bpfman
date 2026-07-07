@@ -1,0 +1,6 @@
+def c(want: number) {
+  assert $want == 5
+}
+let s = "5"
+c $s
+print not-reached

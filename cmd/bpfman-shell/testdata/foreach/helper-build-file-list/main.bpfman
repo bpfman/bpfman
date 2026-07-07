@@ -1,0 +1,8 @@
+import ./lib.bpfman
+guard files <- foreach name in ["one" "two" "three"] {
+  mk $name
+}
+foreach path in $files {
+  let out <- exec cat $path
+  print $out.stdout
+}

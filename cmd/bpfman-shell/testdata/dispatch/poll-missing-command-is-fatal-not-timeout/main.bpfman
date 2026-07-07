@@ -1,0 +1,5 @@
+print before
+poll timeout 20ms every 1ms {
+  __definitely_not_a_real_command_2027__
+}
+print after

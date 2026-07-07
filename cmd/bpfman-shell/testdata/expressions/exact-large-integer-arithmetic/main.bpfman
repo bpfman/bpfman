@@ -1,0 +1,7 @@
+let near = 18446744073709551614
+let max = $near + 1
+assert $max == 18446744073709551615
+assert ($max - 1) == $near
+assert (9223372036854775808 * 2) == 18446744073709551616
+
+print large-arithmetic-ok

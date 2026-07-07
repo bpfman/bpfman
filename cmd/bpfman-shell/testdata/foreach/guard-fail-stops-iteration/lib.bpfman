@@ -1,0 +1,6 @@
+def keep_odd(n) {
+  if $n == 2 {
+    guard _ <- exec false
+  }
+  return $n
+}

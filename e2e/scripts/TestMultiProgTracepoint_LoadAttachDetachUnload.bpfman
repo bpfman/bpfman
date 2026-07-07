@@ -1,0 +1,92 @@
+# -*- mode: bpfman -*-
+#
+# Given: three tracepoint programs attached to the e2e kmod tracepoint
+#
+# When: the tracepoint fires across waves with links detached at
+# staggered points
+#
+# Then: each private counter records only the waves during which its
+# link stayed attached
+
+import ../lib.bpfman
+
+let n = 5
+let weight_a = 41
+let weight_b = 42
+let weight_c = 43
+
+guard fn <- kfunc acquire
+defer kfunc release $fn
+
+# Load three tracepoint programs from one object file. The load
+# contract returns {programs: [...]} with all loaded programs in
+# input order.
+guard loaded <- bpfman program load file testdata/bpf/multi_prog_tracepoint_kmod_counter.bpf.o --programs tracepoint:tp_a,tracepoint:tp_b,tracepoint:tp_c -g "expected_slot=0x${u32le $fn.index}" -g "weight_a=0x${u64le $weight_a}" -g "weight_b=0x${u64le $weight_b}" -g "weight_c=0x${u64le $weight_c}"
+
+let a = $loaded.programs[0]
+let b = $loaded.programs[1]
+let c = $loaded.programs[2]
+
+# Defer cleanup the moment we have the handles so a mid-script
+# failure does not leak.
+defer bpfman program unload $a
+defer bpfman program unload $b
+defer bpfman program unload $c
+
+# Map IDs come straight off each program's load result; no extra
+# `bpfman program get` round-trips needed.
+let mapID_a = $a |> jq '[.status.maps[] | select(.name == "tp_a_count") | .id][0]'
+let mapID_b = $b |> jq '[.status.maps[] | select(.name == "tp_b_count") | .id][0]'
+let mapID_c = $c |> jq '[.status.maps[] | select(.name == "tp_c_count") | .id][0]'
+
+# Attach each program to the kmod-emitted tracepoint.
+guard link_a <- bpfman link attach tracepoint $a bpfman_e2e/bpfman_e2e_ping
+guard link_b <- bpfman link attach tracepoint $b bpfman_e2e/bpfman_e2e_ping
+guard link_c <- bpfman link attach tracepoint $c bpfman_e2e/bpfman_e2e_ping
+
+let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+# --- Wave 1: a, b, c all attached ---
+guard _ <- kfunc fire $fn $n
+
+# Detach c. Sleep briefly so the perf-link RCU GP completes before the
+# next wave fires, otherwise some of wave 2's events could still hit
+# c's program.
+bpfman link detach $link_c
+sleep 0.1
+
+# --- Wave 2: a, b attached; c detached ---
+guard _ <- kfunc fire $fn $n
+
+# Detach b.
+bpfman link detach $link_b
+sleep 0.1
+
+# --- Wave 3: only a attached ---
+guard _ <- kfunc fire $fn $n
+
+# Read counters and assert exactness.
+guard dump_a <- bpftool map dump id $mapID_a -j
+guard dump_b <- bpftool map dump id $mapID_b -j
+guard dump_c <- bpftool map dump id $mapID_c -j
+
+let count_a = $dump_a.stdout |> jq $counter_filter
+let count_b = $dump_b.stdout |> jq $counter_filter
+let count_c = $dump_c.stdout |> jq $counter_filter
+
+let want_a = (3 * $n) * $weight_a
+let want_b = (2 * $n) * $weight_b
+let want_c = (1 * $n) * $weight_c
+
+print "a: got=${count_a} want=${want_a}"
+print "b: got=${count_b} want=${want_b}"
+print "c: got=${count_c} want=${want_c}"
+
+assert $count_a == $want_a
+assert $count_b == $want_b
+assert $count_c == $want_c
+
+# link_a is still attached on the happy path; detach it explicitly
+# before the deferred program-unloads fire (an attached program
+# refuses to unload).
+bpfman link detach $link_a

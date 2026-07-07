@@ -1,0 +1,6 @@
+def p(x) {
+  print "v=${x}"
+}
+let n = 6
+p $n
+print interp-done

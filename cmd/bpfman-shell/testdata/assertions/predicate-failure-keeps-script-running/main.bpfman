@@ -1,0 +1,5 @@
+let snap = jq "." "{\"status\":{\"updated_at\":null}}"
+
+print before
+assert missing $snap.status.updated_at
+print after

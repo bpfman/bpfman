@@ -1,0 +1,5 @@
+def c(want: number) {
+  print "x=${want}"
+}
+c NaN
+print not-reached

@@ -1,0 +1,5 @@
+import ./helpers.bpfman
+
+def helper() {
+  print lib
+}

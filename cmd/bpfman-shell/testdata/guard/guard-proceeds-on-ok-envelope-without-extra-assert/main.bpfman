@@ -1,0 +1,9 @@
+print before
+
+# guard already checks the result envelope's ok field.
+# The bound envelope is for post-success data like stdout/stderr,
+# not for repeating assert $r.ok.
+guard r <- exec sh -c "printf child-out"
+
+print after
+print $r.stdout

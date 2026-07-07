@@ -1,0 +1,8 @@
+def c(want) {
+  let w = $want |> jq "tonumber"
+  assert $w == 5
+}
+let n = 5
+c $n
+c 5
+print tonumber-ok

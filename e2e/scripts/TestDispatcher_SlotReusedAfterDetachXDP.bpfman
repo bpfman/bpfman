@@ -1,0 +1,63 @@
+# -*- mode: bpfman -*-
+#
+# Given: a full XDP dispatcher with ten members at distinct priorities
+#
+# When: one middle-priority member is detached and a new priority is
+# inserted into the freed gap
+#
+# Then: the member count returns to ten and the new link occupies the
+# position its priority sorts to
+#
+# Sequence:
+#   1. Attach all ten slots at priorities 100, 200, ..., 1000.
+#   2. Confirm the dispatcher reports 10 members.
+#   3. Detach the member at priority 400 (position 3 in the sort).
+#   4. Confirm the dispatcher reports 9 members.
+#   5. Reattach at priority 350. Sorted positions become
+#      [100, 200, 300, 350, 500, 600, 700, 800, 900, 1000], so the new
+#      link sits at position 3.
+#   6. Confirm the dispatcher reports 10 members again and the new
+#      link's position is exactly 3.
+
+guard pair <- net veth-pair
+defer net release $pair
+
+guard loaded <- bpfman program load file testdata/bpf/xdp_counter.bpf.o --programs xdp:xdp_stats
+let prog = $loaded.programs[0]
+defer bpfman program unload $prog
+
+# Nine "permanent" slots; priority 400 is sacrificial (attached
+# below, detached mid-script, no defer). Splitting the lists
+# keeps the foreach-defer over the kept links uniform.
+let keep_priorities = [100 200 300 500 600 700 800 900 1000]
+
+guard kept <- foreach prio in $keep_priorities {
+    bpfman link attach xdp $prog $pair.host_link --priority $prio
+}
+
+foreach l in $kept {
+    defer bpfman link detach $l
+}
+
+# Sacrificial link at priority 400. Detached explicitly below;
+# no defer.
+guard l_400 <- bpfman link attach xdp $prog $pair.host_link --priority 400
+
+guard snap_full <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+let count_full = $snap_full |> jq ".members | length"
+assert $count_full == 10
+
+bpfman link detach $l_400
+
+guard snap_partial <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+let count_partial = $snap_partial |> jq ".members | length"
+assert $count_partial == 9
+
+guard l_350 <- bpfman link attach xdp $prog $pair.host_link --priority 350
+defer bpfman link detach $l_350
+
+guard snap_refilled <- bpfman dispatcher get xdp $pair.host_nsid $pair.host_ifindex
+let count_refilled = $snap_refilled |> jq ".members | length"
+assert $count_refilled == 10
+
+assert $l_350.record.details.position == 3

@@ -1,0 +1,15 @@
+guard d <- tempdir poll-retry
+defer exec rm -rf $d.path
+let marker = "${d.path}/marker"
+
+poll timeout 100ms every 1ms {
+  if path-exists $marker {
+    print inside-ready
+  } else {
+    exec touch $marker
+    retry "waiting for marker"
+  }
+}
+
+assert path-exists $marker
+print after

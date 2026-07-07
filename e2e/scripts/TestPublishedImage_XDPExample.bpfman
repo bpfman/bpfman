@@ -1,0 +1,62 @@
+# -*- mode: bpfman -*-
+#pragma labels={"external":"true","image":"true","program":"xdp","example":"xdp","serial":"true"}
+#
+# Given: the published XDP bytecode example image from the registry
+#
+# When: the image is inspected, loaded, and attached
+#
+# Then: its manifest, link shape, traffic counter, and cleanup all match
+# the expected published example
+
+import ../lib.bpfman
+
+let image = "quay.io/bpfman-bytecode/go-xdp-counter"
+
+guard published <- inspect_published_image $image xdp_stats
+assert $published.manifest.programs.xdp_stats == xdp
+assert $published.manifest.maps.xdp_stats_map == per_cpu_array
+
+guard pair <- net veth-pair
+defer net release $pair
+require_host_route_to_peer $pair
+
+guard loaded <- bpfman program load image $image --pull-policy Always --programs xdp:xdp_stats
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $pid
+
+expect_program_load $prog xdp extension xdp_stats
+expect_loaded_image_source $prog $image $published.inspected
+
+guard link <- bpfman link attach xdp $prog $pair.host_link --priority 50
+let linkID = $link.record.id
+expect_pinned_link_identity $link
+assert $link.record.kind == xdp
+assert $link.record.program_id == $pid
+assert $link.record.details.interface == $pair.host_link
+assert $link.status.kernel_seen
+
+let mapID = $prog.status.maps[0].id
+let sumFilter = "fromjson | [.[].formatted.values[].value.rx_packets | tonumber] | add"
+guard dumpBefore <- bpftool map dump id $mapID -j
+let before = $dumpBefore.stdout |> jq $sumFilter
+
+guard _ <- net exec $pair ping -c 5 -i 0.05 -W 1 $pair.host_addr
+
+guard dumpAfter <- bpftool map dump id $mapID -j
+let after = $dumpAfter.stdout |> jq $sumFilter
+let delta = $after - $before
+print "published xdp image: packets=${delta}"
+assert $delta >= 5
+
+bpfman link detach $link
+assert fail bpfman link get $linkID
+
+sleep 0.1
+guard dumpDetached <- bpftool map dump id $mapID -j
+let detached = $dumpDetached.stdout |> jq $sumFilter
+guard _ <- net exec $pair ping -c 5 -i 0.05 -W 1 $pair.host_addr
+guard dumpAfterDetach <- bpftool map dump id $mapID -j
+let afterDetach = $dumpAfterDetach.stdout |> jq $sumFilter
+print "published xdp image after-detach=${afterDetach} want=${detached}"
+assert $afterDetach == $detached
