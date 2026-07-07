@@ -1247,10 +1247,12 @@ bpfman-vet: $(DISPATCHER_BPF_EMBEDS)
 # moderniser toolchain on top of whatever build Go is active,
 # downloading it on demand; see GOFIX_GO_VERSION for why the pin lives
 # apart from GO_VERSION. Like bpfman-fmt this mutates the tree in
-# place; ci-check-gofix wraps it with a git-diff gate.
+# place; ci-check-gofix wraps it with a git-diff gate. The example
+# applications are excluded: they stay as their authors wrote them.
 .PHONY: bpfman-gofix
 bpfman-gofix: $(DISPATCHER_BPF_EMBEDS)
-	GOTOOLCHAIN=$(GOFIX_GO_VERSION) go fix -tags 'e2e,bpfman_ns' ./...
+	GOTOOLCHAIN=$(GOFIX_GO_VERSION) go fix -tags 'e2e,bpfman_ns' \
+		$$(go list ./... | grep -v '^github.com/bpfman/bpfman/examples')
 
 # Compile bpfman. Depends on the dispatcher BPF embeds because
 # the dispatcher Go package's go:embed directives need them at
