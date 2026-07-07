@@ -12,6 +12,11 @@ formatters:
     goimports:
       local-prefixes:
         - github.com/bpfman/bpfman
+  exclusions:
+    paths:
+      # The example applications predate this configuration and
+      # keep their original import grouping.
+      - examples
 
 linters:
   default: none
@@ -42,9 +47,6 @@ linters:
         - reflectvaluecompare
         - sortslice
         - unusedwrite
-
-    misspell:
-      locale: UK
 
     paralleltest:
       ignore-missing: false

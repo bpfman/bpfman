@@ -13,3 +13,6 @@ ignore:
   - vendor/*
   - examples/config/default/*/kustomization.yaml
   - examples/config/selinux/*/kustomization.yaml
+  # The shell testdata expect.yaml files are byte-exact test
+  # fixtures, not formatting subjects.
+  - cmd/bpfman-shell/testdata/**/*.yaml
