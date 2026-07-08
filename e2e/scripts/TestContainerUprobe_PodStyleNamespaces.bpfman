@@ -1,0 +1,125 @@
+# -*- mode: bpfman -*-
+#
+# BPFMAN-42 -- https://redhat.atlassian.net/browse/BPFMAN-42
+#
+# Container uprobe library-name resolution against a
+# kube-faithful target: its own mount AND pid namespaces, a
+# pivot_root'd rootfs (what real runtimes do -- setns into a merely
+# chroot'd namespace lands at the host root, so chroot would lie),
+# a container-scoped /proc, and a synthetic /etc/ld.so.cache whose
+# entry names a path that exists nowhere on the host.
+#
+# The rootfs carries: the worker's loader closure (top-level
+# directories derived from ldd, so /nix on NixOS, /lib and /usr on
+# conventional distros -- no distro paths are encoded here),
+# /worker (bind of bpfman-shell), /data (bind shared with the host
+# for the wave protocol), /testlib/libbpfmantest.so.1 (bind of the
+# real libc, preserving the inode the worker's mallocs run from),
+# /etc/ld.so.cache (synthetic, sole entry libbpfmantest.so.1 ->
+# /testlib/libbpfmantest.so.1), and /proc scoped to the new pid
+# namespace (mounted before the pivot -- the pid namespace is
+# already ours -- so nothing external runs after pivot_root and no
+# binary needs a rootfs-internal path). The old root stays mounted
+# at /old: hiding it is cosmetic, and what the test discriminates
+# -- which cache resolves the bare name -- does not depend on it.
+#
+# Given: a fire worker running as pid 1 of its own pid namespace
+# inside that rootfs
+#
+# When: a uprobe is attached to malloc with the bare name target
+# "libbpfmantest" via --container-pid (no --pid: only the
+# namespace's cache can resolve it, and the cache's value path is
+# meaningless outside the namespace)
+#
+# Then: the attach succeeds and firing the worker advances the
+# pid-filtered counter map by at least events * weight
+
+import ../lib.bpfman
+
+let events = 5
+let weight = 13
+
+guard wd <- tempdir container-uprobe-podstyle
+defer exec rm -rf $wd.path
+let cachefile = "${wd.path}/ld.so.cache"
+let rootfs = "${wd.path}/rootfs"
+let data = "${wd.path}/data"
+
+guard shell_path <- exec sh -c 'p=$(command -v bpfman-shell); printf %s "$p"'
+assert path-exists $shell_path.stdout
+
+guard libc <- exec sh -c 'ldd "$(command -v bpfman-shell)" | grep -o "/[^ ]*libc.so[^ ]*" | head -n1 | tr -d "[:space:]"'
+assert path-exists $libc.stdout
+
+exec mkdir -p "${rootfs}/proc" "${rootfs}/etc" "${rootfs}/testlib" "${rootfs}/data" "${rootfs}/old" $data
+
+# The worker's loader closure as bind commands: every top-level
+# directory ldd names gets a mountpoint in the rootfs and a bind
+# fragment for the namespace assembly below. Derived, not encoded,
+# so the same script works on any distro layout.
+guard libbinds <- exec sh -c 'r=$1; bin=$2; out=""; for d in $(ldd "$bin" 2>/dev/null | grep -o "/[^ ]*" | xargs -rn1 dirname | cut -d/ -f2 | sort -u); do mkdir -p "$r/$d" && out="$out mount --bind /$d $r/$d && "; done; printf %s "$out"' sh $rootfs $shell_path.stdout
+exec touch "${rootfs}/worker" "${rootfs}/testlib/libbpfmantest.so.1"
+exec env BPFMAN_SHELL_MODE=ldso-cache-writer $shell_path.stdout $cachefile "libbpfmantest.so.1=/testlib/libbpfmantest.so.1"
+exec cp $cachefile "${rootfs}/etc/ld.so.cache"
+
+# Assemble the container: private propagation, binds (closure,
+# data, libc, worker), pid-ns-scoped /proc mounted pre-pivot,
+# pivot_root, then straight into the worker -- sh builtins only
+# after the pivot, so no binary needs a rootfs-internal path (the
+# assignment-prefix exec likewise avoids needing env(1)).
+let nssetup = "mount --make-rprivate / && mount --bind '${rootfs}' '${rootfs}' && ${libbinds.stdout}mount --bind '${data}' '${rootfs}/data' && mount --bind '${libc.stdout}' '${rootfs}/testlib/libbpfmantest.so.1' && mount --bind '${shell_path.stdout}' '${rootfs}/worker' && mount -t proc proc '${rootfs}/proc' && cd '${rootfs}' && pivot_root . old && BPFMAN_SHELL_MODE=uprobe-fire-worker exec /worker /data/sentinel /data/ack ${events} 1"
+guard target <- start unshare --mount --pid --fork -- sh -c $nssetup
+defer kill $target
+
+# --pid forces --fork, so $target.pid is unshare; the worker is its
+# child. Wait for the fork, then for the exec (comm flips to
+# "worker") which marks the namespace assembly complete.
+poll timeout 5s every 100ms {
+    let c <- exec sh -c "pgrep -P ${target.pid} | head -n1 | tr -d '[:space:]'"
+    retry "waiting for pod child" unless $c.stdout != ""
+}
+guard cpid <- exec sh -c "pgrep -P ${target.pid} | head -n1 | tr -d '[:space:]'"
+defer exec sh -c "kill ${cpid.stdout} 2>/dev/null || true"
+poll timeout 5s every 100ms {
+    let comm <- exec sh -c "cat /proc/${cpid.stdout}/comm 2>/dev/null | tr -d '[:space:]'"
+    retry "waiting for worker exec" unless $comm.stdout == "worker"
+}
+
+# The worker is pid 1 in its own namespace; its host pid is what
+# both the BPF-side filter (root-namespace tgid) and container-pid
+# want.
+let cpidn = $cpid.stdout |> jq "tonumber"
+
+guard loaded <- bpfman program load file testdata/bpf/uprobe_exact.bpf.o --programs uprobe:uprobe_counter -g "expected_pid=0x${u32le $cpidn}" -g "weight=0x${u64le $weight}"
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $pid
+
+# The essence: a bare name only the container's cache knows, whose
+# resolved path only the container's rootfs contains.
+guard link <- bpfman link attach uprobe $prog libbpfmantest --fn-name malloc --container-pid $cpidn
+defer bpfman link detach $link
+let linkID = $link.record.id
+
+assert $link.record.id > 0
+assert not null $link.record.kernel_link_id
+assert $link.status.kernel_seen
+assert $link.status.pin_present
+
+let mapID = $prog |> jq '[.status.maps[] | select(.name == "up_count") | .id][0]'
+let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+guard dumpBefore <- bpftool map dump id $mapID -j
+let before = $dumpBefore.stdout |> jq $counter_filter
+
+exec touch "${data}/sentinel.1"
+poll timeout 5s every 100ms {
+    await_wave_completion "${data}/ack" 1
+}
+
+guard dumpAfter <- bpftool map dump id $mapID -j
+let after = $dumpAfter.stdout |> jq $counter_filter
+let delta = $after - $before
+let want = $events * $weight
+print "container-uprobe pod-style count: got=${delta} want>=${want}"
+assert $delta >= $want

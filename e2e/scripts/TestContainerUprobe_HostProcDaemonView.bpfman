@@ -1,0 +1,107 @@
+# -*- mode: bpfman -*-
+#pragma labels={"serial":"true"}
+#
+# BPFMAN-42 companion -- https://redhat.atlassian.net/browse/BPFMAN-42
+#
+# The DAEMON side of the kube deployment
+# shape. In the operator's daemonset the bpfman pod has no hostPID:
+# its /proc shows only its own processes, and the host's procfs is
+# volume-mounted at /host/proc. A container uprobe attach must
+# therefore reach the target's namespace file through the
+# /proc -> /host/proc fallback -- dead code in every other test,
+# load-bearing in every real cluster.
+#
+# The rig: the attach runs through the external bpfman CLI wrapped
+# in its own mount+pid namespaces, with the real procfs bound at
+# /host/proc BEFORE a pod-scoped procfs overmounts /proc (order
+# matters: bind first or you hide what you meant to expose). The
+# target is a fire worker in its own mount namespace with a
+# synthetic /etc/ld.so.cache (tmpfs over /etc) mapping
+# libbpfmantest.so.1 to a namespace-private bind of the real libc.
+#
+# The attach succeeding IS the fallback assertion: inside the
+# daemon pod, /proc/<target-pid> does not exist, so the namespace
+# file is only reachable via /host/proc.
+#
+# Serial: the script creates and removes the /host/proc mountpoint
+# on the host filesystem.
+
+import ../lib.bpfman
+
+let events = 5
+let weight = 13
+
+guard wd <- tempdir container-uprobe-hostproc
+defer exec rm -rf $wd.path
+let sentinel = "${wd.path}/sentinel"
+let ack = "${wd.path}/ack"
+let cachefile = "${wd.path}/ld.so.cache"
+let bindtgt = "${wd.path}/libbpfmantest.so.1"
+
+guard shell_path <- exec sh -c 'p=$(command -v bpfman-shell); printf %s "$p"'
+assert path-exists $shell_path.stdout
+
+guard libc <- exec sh -c 'ldd "$(command -v bpfman-shell)" | grep -o "/[^ ]*libc.so[^ ]*" | head -n1 | tr -d "[:space:]"'
+assert path-exists $libc.stdout
+
+exec touch $bindtgt
+exec env BPFMAN_SHELL_MODE=ldso-cache-writer $shell_path.stdout $cachefile "libbpfmantest.so.1=${bindtgt}"
+
+# The daemonset mounts host /proc at /host/proc; here that needs a
+# mountpoint on the host root. Ownership is tracked per directory
+# with marker files in the script's tempdir: only a directory this
+# run created is removed afterwards, so a pre-existing /host or
+# /host/proc on the machine is never touched. (The tempdir's own
+# cleanup defer was registered first, so it runs last and the
+# markers are still present here.)
+exec sh -c "[ -d /host ] || touch '${wd.path}/created-host'; [ -d /host/proc ] || touch '${wd.path}/created-hostproc'; mkdir -p /host/proc"
+defer exec sh -c "[ ! -e '${wd.path}/created-hostproc' ] || rmdir /host/proc 2>/dev/null; [ ! -e '${wd.path}/created-host' ] || rmdir /host 2>/dev/null; true"
+
+# Target: mount namespace with a divergent /etc (tmpfs), synthetic
+# cache installed, real libc bound at the advertised path, then
+# exec into the fire worker (pid preserved).
+let nssetup = "mount -t tmpfs tmpfs /etc && cp '${cachefile}' /etc/ld.so.cache && mount --bind '${libc.stdout}' '${bindtgt}' && exec env BPFMAN_SHELL_MODE=uprobe-fire-worker '${shell_path.stdout}' '${sentinel}' '${ack}' ${events} 1"
+guard target <- start unshare -m -- sh -c $nssetup
+defer kill $target
+
+guard self_ns <- exec readlink /proc/self/ns/mnt
+poll timeout 5s every 100ms {
+    let target_ns <- exec readlink "/proc/${target.pid}/ns/mnt"
+    retry "waiting for target mount namespace switch" unless $target_ns.stdout != $self_ns.stdout
+}
+
+guard loaded <- bpfman program load file testdata/bpf/uprobe_exact.bpf.o --programs uprobe:uprobe_counter -g "expected_pid=0x${u32le $target.pid}" -g "weight=0x${u64le $weight}"
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $pid
+
+# The attach, issued from inside the synthesised daemon pod: pod
+# pid namespace, pod-scoped /proc (the target's pid is invisible
+# there), host procfs at /host/proc. Bare-name target: only the
+# target namespace's cache can resolve it.
+let podattach = "mount --make-rprivate / && mount --bind /proc /host/proc && mount -t proc proc /proc && exec bpfman link attach uprobe ${pid} libbpfmantest --fn-name malloc --container-pid ${target.pid} -o json"
+guard att <- exec unshare --mount --pid --fork -- sh -c $podattach
+let lid = $att.stdout |> jq "fromjson | .record.id"
+defer exec bpfman link detach $lid
+let klid = $att.stdout |> jq "fromjson | .record.kernel_link_id"
+
+assert $lid > 0
+assert not null $klid
+
+let mapID = $prog |> jq '[.status.maps[] | select(.name == "up_count") | .id][0]'
+let counter_filter = "fromjson | .[0].formatted.value | tonumber"
+
+guard dumpBefore <- bpftool map dump id $mapID -j
+let before = $dumpBefore.stdout |> jq $counter_filter
+
+exec touch "${sentinel}.1"
+poll timeout 5s every 100ms {
+    await_wave_completion $ack 1
+}
+
+guard dumpAfter <- bpftool map dump id $mapID -j
+let after = $dumpAfter.stdout |> jq $counter_filter
+let delta = $after - $before
+let want = $events * $weight
+print "container-uprobe host-proc daemon view count: got=${delta} want>=${want}"
+assert $delta >= $want
