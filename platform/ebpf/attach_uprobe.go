@@ -88,16 +88,11 @@ func uprobeOptions(fnName string, offset uint64, pid int32) (string, *link.Uprob
 	return fnName, &link.UprobeOptions{Offset: offset, PID: int(pid)}
 }
 
-// doAttachUprobeLocal attaches a uprobe directly (no namespace switching).
-// pid > 0 scopes the perf event to that process; cilium maps 0 to
-// "all threads", so the unfiltered default needs no special-casing.
+// doAttachUprobeLocal resolves the target in bpfman's own namespace
+// and attaches (no namespace switching). pid > 0 scopes the perf
+// event to that process; cilium maps 0 to "all threads", so the
+// unfiltered default needs no special-casing.
 func (k *kernelAdapter) doAttachUprobeLocal(progPinPath, target, fnName string, offset uint64, pid int32, retprobe bool, linkPinPath string) (kernel.LinkID, *kernel.Link, error) {
-	prog, err := ebpf.LoadPinnedProgram(progPinPath, nil)
-	if err != nil {
-		return 0, nil, fmt.Errorf("load pinned program %s: %w", progPinPath, err)
-	}
-	defer prog.Close()
-
 	resolved, err := libresolve.Default.Resolve(target, pid)
 	if err != nil {
 		return 0, nil, err
@@ -107,9 +102,26 @@ func (k *kernelAdapter) doAttachUprobeLocal(progPinPath, target, fnName string, 
 		k.logger.Debug("resolved uprobe target", "target", target, "path", resolved.Path, "source", resolved.Source.String())
 	}
 
-	ex, err := link.OpenExecutable(resolved.Path)
+	return k.doAttachUprobeResolved(progPinPath, resolved.Path, fnName, offset, pid, retprobe, linkPinPath)
+}
+
+// doAttachUprobeResolved attaches a uprobe to an already-resolved
+// path, keeping pid for the perf-event filter only. The container
+// path lands here with /proc/self/fd of the helper-opened target:
+// resolution has already happened on the correct side of the
+// namespace boundary, and re-running it would read the pid's maps
+// through bpfman's own procfs -- unreadable in a daemonset pod, and
+// answering a question the open fd has already settled.
+func (k *kernelAdapter) doAttachUprobeResolved(progPinPath, path, fnName string, offset uint64, pid int32, retprobe bool, linkPinPath string) (kernel.LinkID, *kernel.Link, error) {
+	prog, err := ebpf.LoadPinnedProgram(progPinPath, nil)
 	if err != nil {
-		return 0, nil, fmt.Errorf("open executable %s: %w", resolved.Path, err)
+		return 0, nil, fmt.Errorf("load pinned program %s: %w", progPinPath, err)
+	}
+	defer prog.Close()
+
+	ex, err := link.OpenExecutable(path)
+	if err != nil {
+		return 0, nil, fmt.Errorf("open executable %s: %w", path, err)
 	}
 
 	symbol, opts := uprobeOptions(fnName, offset, pid)
@@ -121,9 +133,9 @@ func (k *kernelAdapter) doAttachUprobeLocal(progPinPath, target, fnName string, 
 	}
 	if err != nil {
 		if fnName == "" {
-			return 0, nil, fmt.Errorf("attach uprobe at offset %#x in %s: %w", offset, target, err)
+			return 0, nil, fmt.Errorf("attach uprobe at offset %#x in %s: %w", offset, path, err)
 		}
-		return 0, nil, fmt.Errorf("attach uprobe to %s in %s: %w", fnName, target, err)
+		return 0, nil, fmt.Errorf("attach uprobe to %s in %s: %w", fnName, path, err)
 	}
 
 	// Get link info
@@ -165,17 +177,21 @@ func (k *kernelAdapter) doAttachUprobeLocal(progPinPath, target, fnName string, 
 // Go's runtime is multi-threaded and setns(CLONE_NEWNS) requires a
 // single-threaded process. We solve this using a CGO constructor in the
 // bpfman-ns transport that runs before Go's runtime starts. The child does no
-// BPF work; it only opens the target binary, whose path resolves only in the
-// container namespace:
+// BPF work; it only resolves and opens the target, whose path resolves only
+// in the container namespace:
 //
-//  1. Parent creates socketpair for fd passing
-//  2. Parent passes socket via ExtraFiles (fd 3) and the writer lock fd
-//  3. Parent sets _BPFMAN_MNT_NS env var and re-execs itself in bpfman-ns mode
-//  4. Child's C constructor calls setns() before Go runtime starts
-//  5. Child verifies it holds the writer lock
-//  6. Child opens the target binary (visible only in the target namespace)
-//  7. Child sends the target-binary fd back to parent via socket (SCM_RIGHTS)
-//  8. Parent, in its own namespace, attaches and pins the uprobe via
+//  1. Parent resolves a library name via the pid's maps when a pid
+//     filter is given (a host pid only the host's procfs can interpret)
+//  2. Parent creates socketpair for fd passing
+//  3. Parent passes socket via ExtraFiles (fd 3) and the writer lock fd
+//  4. Parent sets _BPFMAN_MNT_NS env var and re-execs itself in bpfman-ns mode
+//  5. Child's C constructor calls setns() before Go runtime starts
+//  6. Child verifies it holds the writer lock
+//  7. Child resolves a still-bare library name via the container's
+//     /etc/ld.so.cache and opens the target (visible only in the
+//     target namespace)
+//  8. Child sends the target-binary fd back to parent via socket (SCM_RIGHTS)
+//  9. Parent, in its own namespace, attaches and pins the uprobe via
 //     /proc/self/fd of the received fd -- the same path as a local uprobe,
 //     where the kernel exposes a pinnable perf-event bpf_link
 func (k *kernelAdapter) attachUprobeViaHelper(scope lock.WriterScope, progPinPath, target, fnName string, offset uint64, pid int32, retprobe bool, linkPinPath string, containerPid int32) (kernel.LinkID, *kernel.Link, error) {
@@ -184,6 +200,41 @@ func (k *kernelAdapter) attachUprobeViaHelper(scope lock.WriterScope, progPinPat
 	if err != nil {
 		k.logger.Error("failed to get executable path", "error", err)
 		return 0, nil, fmt.Errorf("get executable path: %w", err)
+	}
+
+	// Determine target namespace path - try /proc first, then /host/proc
+	// for k8s, where the daemonset has no hostPID and the host's procfs
+	// is volume-mounted at /host/proc. The procfs that can see the
+	// container pid is also the one that can interpret the uprobe's pid
+	// filter for the maps tier below.
+	procRoot := "/proc"
+	nsPath := fmt.Sprintf("/proc/%d/ns/mnt", containerPid)
+	if _, err := os.Stat(nsPath); err != nil {
+		altRoot := "/host/proc"
+		altPath := fmt.Sprintf("%s/%d/ns/mnt", altRoot, containerPid)
+		if _, err := os.Stat(altPath); err != nil {
+			k.logger.Error("container namespace not accessible", "container_pid", containerPid, "tried_paths", []string{nsPath, altPath}, "error", err, "hint", "ensure container PID is valid and /proc or /host/proc is accessible")
+			return 0, nil, fmt.Errorf("container namespace for PID %d not accessible (tried %s and %s): %w", containerPid, nsPath, altPath, err)
+		}
+		nsPath, procRoot = altPath, altRoot
+	}
+
+	// The maps tier of library-name resolution runs here, in the
+	// parent: the pid filter is a host-namespace pid, and inside the
+	// container's mount namespace /proc is numbered in container
+	// pids. The paths in a process's maps are valid in its own mount
+	// namespace, which is where the helper opens them. Absolute
+	// targets pass through; a still-bare name is the helper's to
+	// resolve against the container's /etc/ld.so.cache after setns.
+	if pid > 0 {
+		path, ok, err := (libresolve.Resolver{ProcRoot: procRoot}).FromMaps(target, pid)
+		if err != nil {
+			return 0, nil, err
+		}
+		if ok {
+			k.logger.Debug("resolved container uprobe target from process maps", "target", target, "path", path, "pid", pid, "proc_root", procRoot)
+			target = path
+		}
 	}
 
 	// Create socketpair for receiving the target-binary fd from the child.
@@ -198,20 +249,9 @@ func (k *kernelAdapter) attachUprobeViaHelper(scope lock.WriterScope, progPinPat
 	// Get current mount namespace inode for logging
 	currentMntNs, _ := ns.GetCurrentMntNsInode()
 
-	// Determine target namespace path - try /proc first, then /host/proc for k8s
-	nsPath := fmt.Sprintf("/proc/%d/ns/mnt", containerPid)
-	if _, err := os.Stat(nsPath); err != nil {
-		altPath := fmt.Sprintf("/host/proc/%d/ns/mnt", containerPid)
-		if _, err := os.Stat(altPath); err != nil {
-			k.logger.Error("container namespace not accessible", "container_pid", containerPid, "tried_paths", []string{nsPath, altPath}, "error", err, "hint", "ensure container PID is valid and /proc or /host/proc is accessible")
-			return 0, nil, fmt.Errorf("container namespace for PID %d not accessible (tried %s and %s): %w", containerPid, nsPath, altPath, err)
-		}
-		nsPath = altPath
-	}
-
 	k.logger.Info("preparing container uprobe attachment", "container_pid", containerPid, "current_mnt_ns_inode", currentMntNs, "target_ns_path", nsPath, "target_binary", target, "fn_name", fnName, "offset", offset, "retprobe", retprobe, "prog_pin_path", progPinPath, "link_pin_path", linkPinPath)
 
-	// The child needs only the target path; the parent owns the attach.
+	// The child needs only the target; the parent owns the attach.
 	// bpfman-ns mode is set via the BPFMAN_MODE env var, not argv.
 	args := []string{"uprobe", target}
 
@@ -280,11 +320,12 @@ func (k *kernelAdapter) attachUprobeViaHelper(scope lock.WriterScope, progPinPat
 
 	// Attach and pin in bpfman's own namespace. The kernel resolves
 	// /proc/self/fd of the inherited fd back to the target binary's inode,
-	// so this is the same code path as a local uprobe -- and the perf-event
+	// so this joins the local uprobe's attach path below resolution --
+	// the target is already resolved and open, and the perf-event
 	// bpf_link is created here, where Cilium's feature probe behaves.
 	procTarget := fmt.Sprintf("/proc/self/fd/%d", binaryFd)
 	k.logger.Info("attaching container uprobe in host namespace", "container_pid", containerPid, "proc_target", procTarget, "fn_name", fnName, "pid", pid, "link_pin_path", linkPinPath)
-	return k.doAttachUprobeLocal(progPinPath, procTarget, fnName, offset, pid, retprobe, linkPinPath)
+	return k.doAttachUprobeResolved(progPinPath, procTarget, fnName, offset, pid, retprobe, linkPinPath)
 }
 
 func helperExitError(fnName, target string, containerPid int32, exitCode int, stderr string) error {

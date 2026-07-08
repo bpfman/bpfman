@@ -3187,14 +3187,13 @@ func TestUprobe_NeitherFnNameNorOffset_Fails(t *testing.T) {
 	assert.Equal(t, 0, fix.Kernel.LinkCount(), "rejection must happen before any kernel attach")
 }
 
-// TestUprobe_ContainerLibraryNameRejected pins the deferred scope
-// boundary: library-name resolution happens in bpfman's own
-// namespace, but a container uprobe's target is opened inside the
-// container's mount namespace, where no resolution is implemented.
-// A bare name with --container-pid must be a designed error before
-// any helper spawns, not a literal-path open failure inside the
-// child.
-func TestUprobe_ContainerLibraryNameRejected(t *testing.T) {
+// TestUprobe_ContainerLibraryNameDelegated pins the manager-level
+// contract for bare library names with --container-pid: the manager
+// neither resolves nor rejects them. Resolution is the platform's
+// attach-time concern (the maps tier in the parent, the container's
+// ld.so.cache in the bpfman-ns helper), and the link record keeps
+// the user's spelling of the target.
+func TestUprobe_ContainerLibraryNameDelegated(t *testing.T) {
 	t.Parallel()
 
 	fix := newTestFixture(t)
@@ -3209,8 +3208,14 @@ func TestUprobe_ContainerLibraryNameRejected(t *testing.T) {
 	require.NoError(t, err)
 	attachSpec = attachSpec.WithFnName("malloc")
 
-	_, err = fix.Attach(ctx, attachSpec)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "container uprobe target must be an absolute path")
-	assert.Equal(t, 0, fix.Kernel.LinkCount())
+	link, err := fix.Attach(ctx, attachSpec)
+	require.NoError(t, err)
+	assert.Equal(t, 1, fix.Kernel.LinkCount())
+
+	record, err := fix.Store.GetLink(ctx, link.Record.ID)
+	require.NoError(t, err)
+	details, ok := record.Details.(bpfman.UprobeDetails)
+	require.True(t, ok, "expected UprobeDetails")
+	assert.Equal(t, "libc", details.Target, "the raw target spelling persists; resolution is attach-time only")
+	assert.Equal(t, int32(4242), details.ContainerPid)
 }

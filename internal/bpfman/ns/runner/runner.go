@@ -10,6 +10,7 @@ import (
 	"github.com/alecthomas/kong"
 
 	"github.com/bpfman/bpfman/internal/bpfman/ns"
+	"github.com/bpfman/bpfman/internal/libresolve"
 	"github.com/bpfman/bpfman/lock"
 )
 
@@ -27,11 +28,12 @@ type NSCmd struct {
 	Uprobe NSUprobeCmd `cmd:"" help:"Attach a uprobe program in the given container."`
 }
 
-// NSUprobeCmd opens the target binary in the container's mount namespace
-// and returns its fd to the parent. When this code runs, the process is
-// already in the target namespace (switched by the CGO constructor before
-// Go started), so the binary path resolves against the container's
-// filesystem.
+// NSUprobeCmd resolves and opens the target binary in the container's
+// mount namespace and returns its fd to the parent. When this code
+// runs, the process is already in the target namespace (switched by
+// the CGO constructor before Go started), so both the dynamic-linker
+// cache consulted for a bare library name and the final path resolve
+// against the container's filesystem.
 //
 // The parent passes a Unix socket via fd 3 (ExtraFiles[0]); the child sends
 // the opened target-binary fd back over it. The parent, in bpfman's own
@@ -39,12 +41,14 @@ type NSCmd struct {
 // link create and pin there, where the kernel reliably exposes a pinnable
 // perf-event bpf_link. The function name, offset, and retprobe flag are not
 // needed here -- the parent owns the attach -- so the child takes only the
-// target path.
+// target.
 type NSUprobeCmd struct {
-	// Target is the path of the binary to open. It resolves against the
-	// container's filesystem because the C constructor already switched
-	// the process into the target mount namespace before parsing.
-	Target string `arg:"" help:"Target binary path (resolved in container namespace)."`
+	// Target is the binary to open: an absolute path, or a bare
+	// library name (e.g. libc) resolved through the container's
+	// /etc/ld.so.cache. Both resolve against the container's
+	// filesystem because the C constructor already switched the
+	// process into the target mount namespace before parsing.
+	Target string `arg:"" help:"Absolute target path, or a library name resolved in the container namespace."`
 }
 
 // getMntNsInode returns the inode of a mount namespace file.
@@ -129,14 +133,33 @@ func (cmd *NSUprobeCmd) Run() error {
 	}
 	defer socket.Close()
 
-	// Open the target binary in the container's mount namespace. Only this
-	// path resolution needs the target namespace; the parent performs the
-	// uprobe attach and pin in bpfman's own namespace, reaching this same
-	// inode through /proc/self/fd of the fd sent below.
-	target, err := os.Open(cmd.Target)
+	// Resolve a bare library-name target through the dynamic
+	// linker's cache. The setns into the container's mount namespace
+	// has already happened (CGO constructor), so /etc/ld.so.cache
+	// here is the container's -- the same view aya resolved against
+	// in the Rust implementation. Absolute paths pass through, and
+	// the maps tier is not run here: its pid would be a host pid,
+	// which this namespace's procfs cannot interpret, so the parent
+	// runs that tier before spawning us.
+	resolved, err := libresolve.Default.Resolve(cmd.Target, 0)
 	if err != nil {
-		logger.Error("failed to open target binary in container namespace", "target", cmd.Target, "error", err, "current_mnt_ns_inode", currentMntNs, "hint", "ensure the target path exists in the container's filesystem")
-		return fmt.Errorf("open target binary %q in container (mnt ns inode %d): %w", cmd.Target, currentMntNs, err)
+		logger.Error("failed to resolve target in container namespace", "target", cmd.Target, "error", err, "current_mnt_ns_inode", currentMntNs, "hint", "ensure the container has an /etc/ld.so.cache naming the library, or pass an absolute path")
+		return fmt.Errorf("resolve target %q in container (mnt ns inode %d): %w", cmd.Target, currentMntNs, err)
+	}
+
+	if resolved.Source != libresolve.SourceAbsolutePath {
+		logger.Info("resolved target in container namespace", "target", cmd.Target, "path", resolved.Path, "source", resolved.Source.String())
+	}
+
+	// Open the target binary in the container's mount namespace. Only
+	// resolution and this open need the target namespace; the parent
+	// performs the uprobe attach and pin in bpfman's own namespace,
+	// reaching this same inode through /proc/self/fd of the fd sent
+	// below.
+	target, err := os.Open(resolved.Path)
+	if err != nil {
+		logger.Error("failed to open target binary in container namespace", "target", resolved.Path, "error", err, "current_mnt_ns_inode", currentMntNs, "hint", "ensure the target path exists in the container's filesystem")
+		return fmt.Errorf("open target binary %q in container (mnt ns inode %d): %w", resolved.Path, currentMntNs, err)
 	}
 
 	defer target.Close()

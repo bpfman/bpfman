@@ -3,7 +3,6 @@ package manager
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"slices"
 
 	"github.com/bpfman/bpfman"
@@ -113,13 +112,6 @@ func (m *Manager) attachUprobe(ctx context.Context, scope lock.WriterScope, spec
 			retprobe := prog.Load.ProgramType() == bpfman.ProgramTypeUretprobe
 			if fnName == "" && offset == 0 {
 				return attachPlan{}, fmt.Errorf("uprobe attach requires a function name or a non-zero offset")
-			}
-			// Library-name resolution runs in bpfman's own
-			// namespace, but a container uprobe's target is
-			// opened inside the container's mount namespace,
-			// where no resolution is implemented.
-			if containerPid > 0 && !filepath.IsAbs(binaryTarget) {
-				return attachPlan{}, fmt.Errorf("container uprobe target must be an absolute path (got %q; library-name resolution is not supported inside containers)", binaryTarget)
 			}
 			if containerPid > 0 && scope == nil {
 				return attachPlan{}, fmt.Errorf("container uprobe requires lock scope (containerPid=%d)", containerPid)
