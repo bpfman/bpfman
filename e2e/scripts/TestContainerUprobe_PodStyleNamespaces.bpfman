@@ -13,8 +13,10 @@
 # directories derived from ldd, so /nix on NixOS, /lib and /usr on
 # conventional distros -- no distro paths are encoded here),
 # /worker (bind of bpfman-shell), /data (bind shared with the host
-# for the wave protocol), /testlib/libbpfmantest.so.1 (bind of the
-# real libc, preserving the inode the worker's mallocs run from),
+# for the wave protocol), /testlib/libbpfmantest.so.1 (a second
+# bind of the worker's own binary, preserving the inode its cgo
+# fixture symbol executes from -- static-linking-proof, where a
+# libc bind would not be),
 # /etc/ld.so.cache (synthetic, sole entry libbpfmantest.so.1 ->
 # /testlib/libbpfmantest.so.1), and /proc scoped to the new pid
 # namespace (mounted before the pivot -- the pid namespace is
@@ -48,8 +50,7 @@ let data = "${wd.path}/data"
 guard shell_path <- exec sh -c 'p=$(command -v bpfman-shell); printf %s "$p"'
 assert path-exists $shell_path.stdout
 
-guard libc <- exec sh -c 'ldd "$(command -v bpfman-shell)" | grep -o "/[^ ]*libc.so[^ ]*" | head -n1 | tr -d "[:space:]"'
-assert path-exists $libc.stdout
+guard tinfo <- uprobe-target
 
 exec mkdir -p "${rootfs}/proc" "${rootfs}/etc" "${rootfs}/testlib" "${rootfs}/data" "${rootfs}/old" $data
 
@@ -67,7 +68,7 @@ exec cp $cachefile "${rootfs}/etc/ld.so.cache"
 # pivot_root, then straight into the worker -- sh builtins only
 # after the pivot, so no binary needs a rootfs-internal path (the
 # assignment-prefix exec likewise avoids needing env(1)).
-let nssetup = "mount --make-rprivate / && mount --bind '${rootfs}' '${rootfs}' && ${libbinds.stdout}mount --bind '${data}' '${rootfs}/data' && mount --bind '${libc.stdout}' '${rootfs}/testlib/libbpfmantest.so.1' && mount --bind '${shell_path.stdout}' '${rootfs}/worker' && mount -t proc proc '${rootfs}/proc' && cd '${rootfs}' && pivot_root . old && BPFMAN_SHELL_MODE=uprobe-fire-worker exec /worker /data/sentinel /data/ack ${events} 1"
+let nssetup = "mount --make-rprivate / && mount --bind '${rootfs}' '${rootfs}' && ${libbinds.stdout}mount --bind '${data}' '${rootfs}/data' && mount --bind '${shell_path.stdout}' '${rootfs}/testlib/libbpfmantest.so.1' && mount --bind '${shell_path.stdout}' '${rootfs}/worker' && mount -t proc proc '${rootfs}/proc' && cd '${rootfs}' && pivot_root . old && BPFMAN_SHELL_MODE=uprobe-fire-worker exec /worker /data/sentinel /data/ack ${events} 1"
 guard target <- start unshare --mount --pid --fork -- sh -c $nssetup
 defer kill $target
 
@@ -97,7 +98,7 @@ defer bpfman program unload $pid
 
 # The essence: a bare name only the container's cache knows, whose
 # resolved path only the container's rootfs contains.
-guard link <- bpfman link attach uprobe $prog libbpfmantest --fn-name malloc --container-pid $cpidn
+guard link <- bpfman link attach uprobe $prog libbpfmantest --fn-name $tinfo.symbol --container-pid $cpidn
 defer bpfman link detach $link
 let linkID = $link.record.id
 

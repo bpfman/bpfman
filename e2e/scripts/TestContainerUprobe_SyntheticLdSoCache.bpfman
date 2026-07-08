@@ -8,19 +8,21 @@
 # This is the discriminating test for where resolution runs. The
 # target namespace gets a synthetic ld.so.cache (tmpfs over /etc)
 # whose only entry maps a library name no host cache has --
-# libbpfmantest -- to a namespace-private bind mount of the real
-# libc. Resolution done inside the namespace finds it; resolution
-# done in the host's namespace cannot, on any distro. The bind
-# mount preserves the libc inode the fire worker executes, so the
-# malloc uprobe still counts real traffic.
+# libbpfmantest -- to a namespace-private bind mount of the fire
+# worker's own binary. Resolution done inside the namespace finds
+# it; resolution done in the host's namespace cannot, on any
+# distro. The bind preserves the worker's executable inode, so a
+# probe on its cgo fixture symbol counts real traffic -- and does
+# so whether bpfman-shell is linked dynamically or statically (CI
+# builds it static, so a libc probe would never fire).
 #
-# Given: a cgo-linked target process in its own mount namespace,
-# with a synthetic /etc/ld.so.cache mapping libbpfmantest.so.1 to
-# a namespace-private bind of the worker's real libc
+# Given: a target process in its own mount namespace, with a
+# synthetic /etc/ld.so.cache mapping libbpfmantest.so.1 to a
+# namespace-private bind of the worker's own binary
 #
-# When: a uprobe is attached to function malloc with the bare name
-# target "libbpfmantest" via --container-pid (no --pid, so the
-# maps tier cannot answer; only the namespace's cache can)
+# When: a uprobe is attached to the fixture symbol with the bare
+# name target "libbpfmantest" via --container-pid (no --pid, so
+# the maps tier cannot answer; only the namespace's cache can)
 #
 # Then: the attach succeeds and firing the target advances the
 # pid-filtered counter map by at least events * weight
@@ -39,12 +41,7 @@ let bindtgt = "${wd.path}/libbpfmantest.so.1"
 
 guard shell_path <- exec sh -c 'p=$(command -v bpfman-shell); printf %s "$p"'
 assert path-exists $shell_path.stdout
-
-# The worker's real libc: the bind-mount source, so the synthetic
-# cache entry resolves to the same inode the worker's mallocs run
-# from.
-guard libc <- exec sh -c 'ldd "$(command -v bpfman-shell)" | grep -o "/[^ ]*libc.so[^ ]*" | head -n1 | tr -d "[:space:]"'
-assert path-exists $libc.stdout
+guard tinfo <- uprobe-target
 
 # Fabricate the cache and the bind mountpoint on the shared
 # filesystem; the mounts below are what make them namespace-private.
@@ -55,7 +52,7 @@ exec env BPFMAN_SHELL_MODE=ldso-cache-writer $shell_path.stdout $cachefile "libb
 # host /etc behind a tmpfs, install the synthetic cache, bind the
 # real libc at the path the cache advertises, then become the fire
 # worker (exec keeps the pid).
-let nssetup = "mount -t tmpfs tmpfs /etc && cp '${cachefile}' /etc/ld.so.cache && mount --bind '${libc.stdout}' '${bindtgt}' && exec env BPFMAN_SHELL_MODE=uprobe-fire-worker '${shell_path.stdout}' '${sentinel}' '${ack}' ${events} 1"
+let nssetup = "mount -t tmpfs tmpfs /etc && cp '${cachefile}' /etc/ld.so.cache && mount --bind '${shell_path.stdout}' '${bindtgt}' && exec env BPFMAN_SHELL_MODE=uprobe-fire-worker '${shell_path.stdout}' '${sentinel}' '${ack}' ${events} 1"
 guard target <- start unshare -m -- sh -c $nssetup
 defer kill $target
 
@@ -73,7 +70,7 @@ defer bpfman program unload $pid
 # No --pid: the maps tier is unavailable, so only the namespace's
 # synthetic cache can resolve the name. This line is where a
 # host-side resolver fails on every distro.
-guard link <- bpfman link attach uprobe $prog libbpfmantest --fn-name malloc --container-pid $target.pid
+guard link <- bpfman link attach uprobe $prog libbpfmantest --fn-name $tinfo.symbol --container-pid $target.pid
 defer bpfman link detach $link
 let linkID = $link.record.id
 

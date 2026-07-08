@@ -46,7 +46,11 @@ guard libc <- exec sh -c 'ldd "$(command -v bpfman-shell)" | grep -o "/[^ ]*libc
 assert path-exists $libc.stdout
 
 # The synthetic cache maps the reproducer's bare name, libc, to a
-# namespace-private bind of the real libc.
+# namespace-private bind of the real libc. The bound file must
+# define the malloc symbol the reproducer's links name, so this
+# script needs a dynamically linked bpfman-shell to discover libc
+# from -- true for local builds; CI's static bundle does not run
+# external scripts.
 exec touch $bindtgt
 exec env BPFMAN_SHELL_MODE=ldso-cache-writer $shell_path.stdout $cachefile "libc.so.6=${bindtgt}"
 

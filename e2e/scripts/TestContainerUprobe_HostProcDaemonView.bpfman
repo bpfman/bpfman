@@ -17,7 +17,9 @@
 # matters: bind first or you hide what you meant to expose). The
 # target is a fire worker in its own mount namespace with a
 # synthetic /etc/ld.so.cache (tmpfs over /etc) mapping
-# libbpfmantest.so.1 to a namespace-private bind of the real libc.
+# libbpfmantest.so.1 to a namespace-private bind of the worker's
+# own binary, probed at its cgo fixture symbol (static-proof; a
+# libc probe would never fire on CI's statically linked worker).
 #
 # The attach succeeding IS the fallback assertion: inside the
 # daemon pod, /proc/<target-pid> does not exist, so the namespace
@@ -40,9 +42,7 @@ let bindtgt = "${wd.path}/libbpfmantest.so.1"
 
 guard shell_path <- exec sh -c 'p=$(command -v bpfman-shell); printf %s "$p"'
 assert path-exists $shell_path.stdout
-
-guard libc <- exec sh -c 'ldd "$(command -v bpfman-shell)" | grep -o "/[^ ]*libc.so[^ ]*" | head -n1 | tr -d "[:space:]"'
-assert path-exists $libc.stdout
+guard tinfo <- uprobe-target
 
 exec touch $bindtgt
 exec env BPFMAN_SHELL_MODE=ldso-cache-writer $shell_path.stdout $cachefile "libbpfmantest.so.1=${bindtgt}"
@@ -60,7 +60,7 @@ defer exec sh -c "[ ! -e '${wd.path}/created-hostproc' ] || rmdir /host/proc 2>/
 # Target: mount namespace with a divergent /etc (tmpfs), synthetic
 # cache installed, real libc bound at the advertised path, then
 # exec into the fire worker (pid preserved).
-let nssetup = "mount -t tmpfs tmpfs /etc && cp '${cachefile}' /etc/ld.so.cache && mount --bind '${libc.stdout}' '${bindtgt}' && exec env BPFMAN_SHELL_MODE=uprobe-fire-worker '${shell_path.stdout}' '${sentinel}' '${ack}' ${events} 1"
+let nssetup = "mount -t tmpfs tmpfs /etc && cp '${cachefile}' /etc/ld.so.cache && mount --bind '${shell_path.stdout}' '${bindtgt}' && exec env BPFMAN_SHELL_MODE=uprobe-fire-worker '${shell_path.stdout}' '${sentinel}' '${ack}' ${events} 1"
 guard target <- start unshare -m -- sh -c $nssetup
 defer kill $target
 
@@ -79,7 +79,7 @@ defer bpfman program unload $pid
 # pid namespace, pod-scoped /proc (the target's pid is invisible
 # there), host procfs at /host/proc. Bare-name target: only the
 # target namespace's cache can resolve it.
-let podattach = "mount --make-rprivate / && mount --bind /proc /host/proc && mount -t proc proc /proc && exec bpfman link attach uprobe ${pid} libbpfmantest --fn-name malloc --container-pid ${target.pid} -o json"
+let podattach = "mount --make-rprivate / && mount --bind /proc /host/proc && mount -t proc proc /proc && exec bpfman link attach uprobe ${pid} libbpfmantest --fn-name ${tinfo.symbol} --container-pid ${target.pid} -o json"
 guard att <- exec unshare --mount --pid --fork -- sh -c $podattach
 let lid = $att.stdout |> jq "fromjson | .record.id"
 defer exec bpfman link detach $lid
