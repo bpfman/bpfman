@@ -18,6 +18,7 @@ import (
 
 	"github.com/bpfman/bpfman"
 	"github.com/bpfman/bpfman/internal/bpfman/ns"
+	"github.com/bpfman/bpfman/internal/libresolve"
 	"github.com/bpfman/bpfman/kernel"
 	"github.com/bpfman/bpfman/lock"
 )
@@ -97,12 +98,12 @@ func (k *kernelAdapter) doAttachUprobeLocal(progPinPath, target, fnName string, 
 	}
 	defer prog.Close()
 
-	resolved, err := defaultTargetResolver.resolve(target, pid)
+	resolved, err := libresolve.Default.Resolve(target, pid)
 	if err != nil {
 		return 0, nil, err
 	}
 
-	if resolved.Source != sourceAbsolutePath {
+	if resolved.Source != libresolve.SourceAbsolutePath {
 		k.logger.Debug("resolved uprobe target", "target", target, "path", resolved.Path, "source", resolved.Source.String())
 	}
 

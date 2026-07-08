@@ -17,7 +17,7 @@
 // running an attacker-supplied library's constructors inside the
 // daemon would be code execution. aya parses the cache for the
 // same reason.
-package ebpf
+package libresolve
 
 import (
 	"bytes"
@@ -32,44 +32,50 @@ import (
 // resolutionSource says which tier resolved a target. Carried on
 // targetResolution so logs and errors can name the decision, not
 // just its outcome.
-type resolutionSource int
+type Source int
 
 const (
-	sourceProcMaps resolutionSource = iota
-	sourceAbsolutePath
-	sourceLdSoCache
+	SourceProcMaps Source = iota
+	SourceAbsolutePath
+	SourceLdSoCache
 )
 
 // String returns a human-readable name for the resolution tier.
-func (s resolutionSource) String() string {
+func (s Source) String() string {
 	switch s {
-	case sourceProcMaps:
+	case SourceProcMaps:
 		return "process maps"
-	case sourceAbsolutePath:
+	case SourceAbsolutePath:
 		return "absolute path"
-	case sourceLdSoCache:
+	case SourceLdSoCache:
 		return "ld.so.cache"
 	default:
-		return fmt.Sprintf("resolutionSource(%d)", int(s))
+		return fmt.Sprintf("Source(%d)", int(s))
 	}
 }
 
-// targetResolution is the resolver's decision as a value: the path
-// to open and the tier that chose it. The caller performs the open.
-type targetResolution struct {
+// Resolution is the resolver's decision as a value: the path to
+// open and the tier that chose it. The caller performs the open.
+type Resolution struct {
 	Path   string
-	Source resolutionSource
+	Source Source
 }
 
-// targetResolver is the imperative shell: it owns the two file
-// reads and the tier order, nothing else. The zero-value paths are
-// only for tests; production uses defaultTargetResolver.
-type targetResolver struct {
-	procRoot  string
-	cachePath string
+// Resolver is the imperative shell: it owns the two file reads and
+// the tier order, nothing else. The zero-value paths are only for
+// tests; production uses Default or derives ProcRoot from the same
+// /proc-vs-/host/proc decision as the container namespace lookup.
+type Resolver struct {
+	ProcRoot  string
+	CachePath string
 }
 
-var defaultTargetResolver = targetResolver{procRoot: "/proc", cachePath: "/etc/ld.so.cache"}
+// Default resolves against the calling process's own view of the
+// world. For a local uprobe that is bpfman's namespace; inside the
+// bpfman-ns helper, which has already setns'd into the container's
+// mount namespace, the same paths dereference against the
+// container's filesystem.
+var Default = Resolver{ProcRoot: "/proc", CachePath: "/etc/ld.so.cache"}
 
 // resolve maps target to a probeable path using aya's tier order:
 // a pid's mapped libraries first (a library name names the copy
@@ -78,36 +84,60 @@ var defaultTargetResolver = targetResolver{procRoot: "/proc", cachePath: "/etc/l
 // pid is an error rather than a fallthrough -- the caller asked
 // about that process, and resolving the name some other way could
 // silently probe a different library than the one mapped.
-func (r targetResolver) resolve(target string, pid int32) (targetResolution, error) {
+func (r Resolver) Resolve(target string, pid int32) (Resolution, error) {
 	if pid > 0 {
-		mapsPath := filepath.Join(r.procRoot, strconv.Itoa(int(pid)), "maps")
-		data, err := os.ReadFile(mapsPath)
+		path, ok, err := r.FromMaps(target, pid)
 		if err != nil {
-			return targetResolution{}, fmt.Errorf("resolve target %q: read %s: %w", target, mapsPath, err)
+			return Resolution{}, err
 		}
-
-		if path, ok := libFromMaps(data, target); ok {
-			return targetResolution{Path: path, Source: sourceProcMaps}, nil
+		if ok {
+			return Resolution{Path: path, Source: SourceProcMaps}, nil
 		}
 	}
 	if filepath.IsAbs(target) {
-		return targetResolution{Path: target, Source: sourceAbsolutePath}, nil
+		return Resolution{Path: target, Source: SourceAbsolutePath}, nil
 	}
-	data, err := os.ReadFile(r.cachePath)
+
+	data, err := os.ReadFile(r.CachePath)
 	if err != nil {
-		return targetResolution{}, fmt.Errorf("resolve target %q: read %s: %w", target, r.cachePath, err)
+		return Resolution{}, fmt.Errorf("resolve target %q: read %s: %w", target, r.CachePath, err)
 	}
 
 	entries, err := parseLdSoCache(data)
 	if err != nil {
-		return targetResolution{}, fmt.Errorf("resolve target %q: parse %s: %w", target, r.cachePath, err)
+		return Resolution{}, fmt.Errorf("resolve target %q: parse %s: %w", target, r.CachePath, err)
 	}
 
 	path, ok := resolveLibName(entries, target)
 	if !ok {
-		return targetResolution{}, fmt.Errorf("resolve target %q: not found in %s (pass an absolute path)", target, r.cachePath)
+		return Resolution{}, fmt.Errorf("resolve target %q: not found in %s (pass an absolute path)", target, r.CachePath)
 	}
-	return targetResolution{Path: path, Source: sourceLdSoCache}, nil
+
+	return Resolution{Path: path, Source: SourceLdSoCache}, nil
+}
+
+// FromMaps runs only the maps tier: the queried library among the
+// files pid has mapped. It exists separately from Resolve for the
+// container attach path, where the tiers run on opposite sides of
+// the namespace boundary -- the maps tier in the parent, whose
+// procfs can interpret a host pid, and the cache tier in the
+// helper, whose /etc/ld.so.cache is the container's. A maps read
+// failure for a requested pid is an error rather than a
+// fallthrough, as in Resolve. pid <= 0 reports no match.
+func (r Resolver) FromMaps(target string, pid int32) (string, bool, error) {
+	if pid <= 0 {
+		return "", false, nil
+	}
+
+	mapsPath := filepath.Join(r.ProcRoot, strconv.Itoa(int(pid)), "maps")
+
+	data, err := os.ReadFile(mapsPath)
+	if err != nil {
+		return "", false, fmt.Errorf("resolve target %q: read %s: %w", target, mapsPath, err)
+	}
+
+	path, ok := libFromMaps(data, target)
+	return path, ok, nil
 }
 
 // libFromMaps finds the first mapped file in /proc/<pid>/maps text

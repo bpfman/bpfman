@@ -1,4 +1,4 @@
-package ebpf
+package libresolve
 
 import (
 	"encoding/binary"
@@ -206,7 +206,7 @@ func TestLibFromMaps(t *testing.T) {
 
 // writeResolverFixture lays out a fake procRoot and cache file for
 // shell-level tier tests.
-func writeResolverFixture(t *testing.T, pid string, maps string, cache []byte) targetResolver {
+func writeResolverFixture(t *testing.T, pid string, maps string, cache []byte) Resolver {
 	t.Helper()
 	dir := t.TempDir()
 	procRoot := filepath.Join(dir, "proc")
@@ -225,7 +225,7 @@ func writeResolverFixture(t *testing.T, pid string, maps string, cache []byte) t
 			t.Fatal(err)
 		}
 	}
-	return targetResolver{procRoot: procRoot, cachePath: cachePath}
+	return Resolver{ProcRoot: procRoot, CachePath: cachePath}
 }
 
 func TestResolveUprobeTarget_TierOrder(t *testing.T) {
@@ -236,25 +236,25 @@ func TestResolveUprobeTarget_TierOrder(t *testing.T) {
 	t.Run("pid present and lib mapped wins over cache", func(t *testing.T) {
 		t.Parallel()
 		r := writeResolverFixture(t, "1234", fixtureMaps, cache)
-		res, err := r.resolve("libc", 1234)
+		res, err := r.Resolve("libc", 1234)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if res.Path != "/usr/lib64/libc.so.6" || res.Source != sourceProcMaps {
+		if res.Path != "/usr/lib64/libc.so.6" || res.Source != SourceProcMaps {
 			t.Fatalf("got %+v", res)
 		}
 	})
 
 	t.Run("absolute path used as-is without reads", func(t *testing.T) {
 		t.Parallel()
-		r := targetResolver{procRoot: "/nonexistent", cachePath: "/nonexistent"}
-		res, err := r.resolve("/usr/bin/thing", 0)
+		r := Resolver{ProcRoot: "/nonexistent", CachePath: "/nonexistent"}
+		res, err := r.Resolve("/usr/bin/thing", 0)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if res.Path != "/usr/bin/thing" || res.Source != sourceAbsolutePath {
+		if res.Path != "/usr/bin/thing" || res.Source != SourceAbsolutePath {
 			t.Fatalf("got %+v", res)
 		}
 	})
@@ -262,12 +262,12 @@ func TestResolveUprobeTarget_TierOrder(t *testing.T) {
 	t.Run("bare name with no pid resolves via cache", func(t *testing.T) {
 		t.Parallel()
 		r := writeResolverFixture(t, "0", "", cache)
-		res, err := r.resolve("libc", 0)
+		res, err := r.Resolve("libc", 0)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if res.Path != "/from/cache/libc.so.6" || res.Source != sourceLdSoCache {
+		if res.Path != "/from/cache/libc.so.6" || res.Source != SourceLdSoCache {
 			t.Fatalf("got %+v", res)
 		}
 	})
@@ -275,12 +275,12 @@ func TestResolveUprobeTarget_TierOrder(t *testing.T) {
 	t.Run("pid present but lib unmapped falls through to cache", func(t *testing.T) {
 		t.Parallel()
 		r := writeResolverFixture(t, "1234", "7f00-7f01 r-xp 00000000 00:21 1 /usr/lib64/libssl.so.3\n", cache)
-		res, err := r.resolve("libc", 1234)
+		res, err := r.Resolve("libc", 1234)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if res.Path != "/from/cache/libc.so.6" || res.Source != sourceLdSoCache {
+		if res.Path != "/from/cache/libc.so.6" || res.Source != SourceLdSoCache {
 			t.Fatalf("got %+v", res)
 		}
 	})
@@ -288,7 +288,7 @@ func TestResolveUprobeTarget_TierOrder(t *testing.T) {
 	t.Run("pid present but maps unreadable is an error", func(t *testing.T) {
 		t.Parallel()
 		r := writeResolverFixture(t, "9999", "", cache) // no maps file for 1234
-		_, err := r.resolve("libc", 1234)
+		_, err := r.Resolve("libc", 1234)
 		if err == nil {
 			t.Fatal("an unreadable maps file for a requested pid must not silently fall through")
 		}
@@ -297,7 +297,7 @@ func TestResolveUprobeTarget_TierOrder(t *testing.T) {
 	t.Run("name missing from cache is a designed error naming the target", func(t *testing.T) {
 		t.Parallel()
 		r := writeResolverFixture(t, "0", "", cache)
-		_, err := r.resolve("libnope", 0)
+		_, err := r.Resolve("libnope", 0)
 		if err == nil {
 			t.Fatal("want error")
 		}
@@ -309,7 +309,41 @@ func TestResolveUprobeTarget_TierOrder(t *testing.T) {
 	t.Run("unreadable cache surfaces as an error", func(t *testing.T) {
 		t.Parallel()
 		r := writeResolverFixture(t, "0", "", nil) // no cache file
-		_, err := r.resolve("libc", 0)
+		_, err := r.Resolve("libc", 0)
+		if err == nil {
+			t.Fatal("want error")
+		}
+	})
+}
+
+func TestFromMaps(t *testing.T) {
+	t.Parallel()
+
+	t.Run("pid zero reports no match without touching procfs", func(t *testing.T) {
+		t.Parallel()
+		r := Resolver{ProcRoot: "/nonexistent"}
+		path, ok, err := r.FromMaps("libc", 0)
+		if err != nil || ok || path != "" {
+			t.Fatalf("got (%q, %v, %v), want no match and no error", path, ok, err)
+		}
+	})
+
+	t.Run("mapped library resolves", func(t *testing.T) {
+		t.Parallel()
+		r := writeResolverFixture(t, "1234", fixtureMaps, nil)
+		path, ok, err := r.FromMaps("libc", 1234)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !ok || path != "/usr/lib64/libc.so.6" {
+			t.Fatalf("got (%q, %v)", path, ok)
+		}
+	})
+
+	t.Run("unreadable maps is an error, not a fallthrough", func(t *testing.T) {
+		t.Parallel()
+		r := writeResolverFixture(t, "9999", "", nil)
+		_, _, err := r.FromMaps("libc", 1234)
 		if err == nil {
 			t.Fatal("want error")
 		}
