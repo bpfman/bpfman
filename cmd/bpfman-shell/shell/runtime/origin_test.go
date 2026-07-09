@@ -26,6 +26,7 @@ func TestOriginKind_String(t *testing.T) {
 		{semantics.OriginEnvelope, "result"},
 		{semantics.OriginNetnsVethPair, "netns-veth-pair"},
 		{semantics.OriginNetnsVethEndpoint, "netns-veth-pair endpoint"},
+		{semantics.OriginLsm, "lsm probe"},
 		{semantics.OriginKind(999), "OriginKind(999)"},
 	}
 	for _, tc := range cases {
@@ -112,6 +113,11 @@ func TestValue_InternalOriginMirrorKeysMatchSealedShapeFields(t *testing.T) {
 			name: semantics.OriginNetnsVethEndpoint.String(),
 			kind: semantics.OriginNetnsVethEndpoint,
 			v:    valueFromNetnsVethEndpoint(testNetnsVethPair().A),
+		},
+		{
+			name: semantics.OriginLsm.String(),
+			kind: semantics.OriginLsm,
+			v:    ValueFromLsmProbe(&LsmProbe{Marker: "lsmf0001", MarkerHex: "6c736d6630303031", File: "/tmp/lsm-probe/target", Dir: "/tmp/lsm-probe"}),
 		},
 	}
 	for _, tc := range cases {
