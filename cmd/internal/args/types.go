@@ -155,7 +155,8 @@ func GlobalDataMap(gds []GlobalData) map[string][]byte {
 }
 
 // ProgramSpec represents a TYPE:NAME[:ATTACH_FUNC] program specification for loading.
-// For fentry and fexit, the attach function is required.
+// For fentry, fexit and lsm, the attach function (the traced function, or
+// the lsm hook) is required.
 type ProgramSpec struct {
 	// Type is the validated program type parsed from the spec's first component.
 	Type bpfman.ProgramType
@@ -163,7 +164,7 @@ type ProgramSpec struct {
 	// Name is the program name within the ELF object, taken from the spec's second component.
 	Name string
 
-	// AttachFunc is the optional attach function from the spec's third component; it is required for fentry and fexit.
+	// AttachFunc is the optional attach function from the spec's third component; it is required for fentry, fexit and lsm.
 	AttachFunc string
 }
 
@@ -172,9 +173,11 @@ type ProgramSpec struct {
 //   - "xdp:xdp_pass"
 //   - "tc:stats"
 //   - "fentry:test_fentry:do_unlinkat"
+//   - "lsm:test_lsm:file_open"
 //
 // The type is validated against known program types at parse time.
-// For fentry and fexit, the attach function (third component) is required.
+// For fentry, fexit and lsm, the attach function (third component,
+// the traced function or the lsm hook) is required.
 func ParseProgramSpec(s string) (ProgramSpec, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
@@ -202,11 +205,12 @@ func ParseProgramSpec(s string) (ProgramSpec, error) {
 
 	progType, err := bpfman.ParseProgramType(typeStr)
 	if err != nil {
-		return ProgramSpec{}, fmt.Errorf("invalid program spec %q: unknown type %q (valid: xdp, tc, tcx, tracepoint, kprobe, kretprobe, uprobe, uretprobe, fentry, fexit)", s, typeStr)
+		return ProgramSpec{}, fmt.Errorf("invalid program spec %q: unknown type %q (valid: xdp, tc, tcx, tracepoint, kprobe, kretprobe, uprobe, uretprobe, fentry, fexit, lsm)", s, typeStr)
 	}
 
-	// Validate fentry/fexit require attach function
-	if (progType == bpfman.ProgramTypeFentry || progType == bpfman.ProgramTypeFexit) && attachFunc == "" {
+	// fentry/fexit require the traced function and lsm the hook, all
+	// supplied as the third component (see RequiresAttachFunc).
+	if progType.RequiresAttachFunc() && attachFunc == "" {
 		return ProgramSpec{}, fmt.Errorf("invalid program spec %q: %s requires attach function (format: %s:FUNC_NAME:ATTACH_FUNC)", s, typeStr, typeStr)
 	}
 

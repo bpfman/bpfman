@@ -44,6 +44,7 @@ var _ platform.ProgramValidator = (*ProgramValidator)(nil)
 //   - tcx/* -> tcx
 //   - fentry/* -> fentry
 //   - fexit/* -> fexit
+//   - lsm/* -> lsm
 func InferProgramType(sectionName string) bpfman.ProgramType {
 	return inferProgramType(sectionName)
 }

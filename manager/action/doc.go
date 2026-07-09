@@ -15,7 +15,7 @@
 //   - Kernel:     LoadProgram, UnloadProgram, DetachLink, RemoveMapsPins,
 //     AttachTracepoint, AttachKprobe, AttachTCX,
 //     AttachUprobeLocal, AttachUprobeContainer, AttachFentry,
-//     AttachFexit
+//     AttachFexit, AttachLsm
 //   - Filesystem: PublishBytecode, RemoveProgramDir,
 //     RemoveDispatcherRevDir
 //   - Rebuild:    RebuildXDPDispatcher, RebuildTCDispatcher,

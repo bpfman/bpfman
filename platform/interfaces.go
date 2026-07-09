@@ -356,6 +356,10 @@ type ProgramAttacher interface {
 	// AttachFexit attaches a pinned program to a kernel function exit point.
 	// The fnName was specified at load time and stored with the program.
 	AttachFexit(ctx context.Context, progPinPath bpfman.ProgPinPath, fnName string, linkPinPath bpfman.LinkPath) (bpfman.AttachOutput, error)
+
+	// AttachLsm attaches a pinned program to an LSM hook. The hookName
+	// was specified at load time and stored with the program.
+	AttachLsm(ctx context.Context, progPinPath bpfman.ProgPinPath, hookName string, linkPinPath bpfman.LinkPath) (bpfman.AttachOutput, error)
 }
 
 // XDPDispatcherResult holds the result of loading an XDP dispatcher.

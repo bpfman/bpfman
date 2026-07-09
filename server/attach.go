@@ -62,6 +62,9 @@ func (s *Server) Attach(ctx context.Context, req *pb.AttachRequest) (*pb.AttachR
 		case *pb.AttachInfo_FexitAttachInfo:
 			attachType = "fexit"
 			resp, err = s.attachFexit(ctx, writeLock, programID, info.FexitAttachInfo)
+		case *pb.AttachInfo_LsmAttachInfo:
+			attachType = "lsm"
+			resp, err = s.attachLsm(ctx, writeLock, programID, info.LsmAttachInfo)
 		default:
 			return nil, status.Errorf(codes.Unimplemented, "attach type %T not yet implemented", req.Attach.Info)
 		}
@@ -311,6 +314,26 @@ func (s *Server) attachFexit(ctx context.Context, writeLock lock.WriterScope, pr
 	link, err := s.mgr.Attach(ctx, writeLock, spec)
 	if err != nil {
 		return nil, attachManagerError(programID, "fexit", err)
+	}
+
+	return &pb.AttachResponse{
+		LinkId: grpcLinkID(link.Record.ID),
+	}, nil
+}
+
+// attachLsm handles LSM attachment via the manager.
+// The hook name is stored in the program metadata from load time.
+func (s *Server) attachLsm(ctx context.Context, writeLock lock.WriterScope, programID kernel.ProgramID, _ *pb.LsmAttachInfo) (*pb.AttachResponse, error) {
+	// Construct LsmAttachSpec with validated input
+	spec, err := bpfman.NewLsmAttachSpec(programID)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid lsm attach spec: %v", err)
+	}
+
+	// Call manager
+	link, err := s.mgr.Attach(ctx, writeLock, spec)
+	if err != nil {
+		return nil, attachManagerError(programID, "lsm", err)
 	}
 
 	return &pb.AttachResponse{

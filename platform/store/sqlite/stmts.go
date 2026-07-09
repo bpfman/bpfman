@@ -208,6 +208,11 @@ func (s *sqliteStore) prepareLinkDetailStatements(ctx context.Context) error {
 		return fmt.Errorf("prepare GetFexitDetails: %w", err)
 	}
 
+	const sqlGetLsmDetails = "SELECT hook_name FROM link_lsm_details WHERE id = ?"
+	if s.stmtGetLsmDetails, err = s.db.PrepareContext(ctx, sqlGetLsmDetails); err != nil {
+		return fmt.Errorf("prepare GetLsmDetails: %w", err)
+	}
+
 	const sqlGetXDPDetails = `
 		SELECT d.interface, d.ifindex, d.priority, d.position, d.proceed_on, d.netns, d.nsid, d.dispatcher_program_id, disp.revision
 		FROM link_xdp_details d
@@ -276,6 +281,13 @@ func (s *sqliteStore) prepareLinkDetailStatements(ctx context.Context) error {
 		return fmt.Errorf("prepare SaveFexitDetails: %w", err)
 	}
 
+	const sqlSaveLsmDetails = `
+		INSERT INTO link_lsm_details (id, hook_name)
+		VALUES (?, ?)`
+	if s.stmtSaveLsmDetails, err = s.db.PrepareContext(ctx, sqlSaveLsmDetails); err != nil {
+		return fmt.Errorf("prepare SaveLsmDetails: %w", err)
+	}
+
 	const sqlSaveXDPDetails = `
 		INSERT INTO link_xdp_details (id, interface, ifindex, priority, position, proceed_on, netns, nsid, dispatcher_program_id)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -321,6 +333,11 @@ func (s *sqliteStore) prepareLinkDetailStatements(ctx context.Context) error {
 	const sqlListAllFexitDetails = "SELECT id, fn_name FROM link_fexit_details"
 	if s.stmtListAllFexitDetails, err = s.db.PrepareContext(ctx, sqlListAllFexitDetails); err != nil {
 		return fmt.Errorf("prepare ListAllFexitDetails: %w", err)
+	}
+
+	const sqlListAllLsmDetails = "SELECT id, hook_name FROM link_lsm_details"
+	if s.stmtListAllLsmDetails, err = s.db.PrepareContext(ctx, sqlListAllLsmDetails); err != nil {
+		return fmt.Errorf("prepare ListAllLsmDetails: %w", err)
 	}
 
 	const sqlListAllXDPDetails = `

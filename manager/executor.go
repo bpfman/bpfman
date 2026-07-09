@@ -91,6 +91,9 @@ func (e *executor) ExecuteResult(ctx context.Context, a action.Action) (any, err
 	case action.AttachFexit:
 		return e.kernel.AttachFexit(ctx, a.ProgPinPath, a.FnName, a.LinkPinPath)
 
+	case action.AttachLsm:
+		return e.kernel.AttachLsm(ctx, a.ProgPinPath, a.HookName, a.LinkPinPath)
+
 	case action.AttachTCX:
 		return e.kernel.AttachTCX(ctx, a.Ifindex, a.Direction, a.ProgPinPath, a.LinkPinPath, a.NetnsPath, a.Order)
 

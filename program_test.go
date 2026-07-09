@@ -120,6 +120,7 @@ func TestProgramType_KernelType(t *testing.T) {
 		bpfman.ProgramTypeUretprobe:  "kprobe",
 		bpfman.ProgramTypeFentry:     "tracing",
 		bpfman.ProgramTypeFexit:      "tracing",
+		bpfman.ProgramTypeLsm:        "lsm",
 	}
 	for pt, want := range cases {
 		assert.Equalf(t, want, pt.KernelType().String(), "KernelType of %s", pt)
