@@ -42,7 +42,7 @@ dependencies = [
 requires-dist = [
     { name = "mike", specifier = ">=2.2.0" },
     { name = "mkdocs", specifier = ">=1.6.1" },
-    { name = "mkdocs-callouts", specifier = ">=1.14.1" },
+    { name = "mkdocs-callouts", specifier = ">=1.16.1" },
     { name = "mkdocs-material", specifier = ">=9.5.46" },
 ]
 
@@ -185,14 +185,11 @@ wheels = [
 
 [[package]]
 name = "mkdocs-callouts"
-version = "1.16.0"
+version = "1.16.1"
 source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "mkdocs" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/5a/1b/e20a9930d68f03e62af1d7c571c9b333f6a6f447d094bff9024562b129aa/mkdocs_callouts-1.16.0.tar.gz", hash = "sha256:d3248eb99b7acb00ba6526e183ca58d3f7083fb3cfa1739f74f8377e71002aec", size = 11788, upload-time = "2025-01-15T12:47:11.979Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/28/29/9c7c71cc63b9cc77b00eb551c9cae721c5fd6cacb30da66367b15e98c5d1/mkdocs_callouts-1.16.1.tar.gz", hash = "sha256:ca15e9e56c212450bd1b9712ef8033809b624212bfdc6415ecd95c9f6262e932", size = 11937, upload-time = "2026-05-13T21:45:55.428Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/29/70/9f3d3e682333e77a76ab855df63b8ada97c46e142ff30d54299a2e362bea/mkdocs_callouts-1.16.0-py3-none-any.whl", hash = "sha256:01ed1511045d61c05b072e4af42d68ef03a1863b7cfcc582bdbb676f26ffdf62", size = 8601, upload-time = "2025-01-15T12:47:09.938Z" },
+    { url = "https://files.pythonhosted.org/packages/a7/29/a80a22182011f53808dc0a01dc782bd1adf025f651e8962d15ef942c445b/mkdocs_callouts-1.16.1-py3-none-any.whl", hash = "sha256:3956c1a79623f85d50e5ddc1cacf68ddbc8c5c9faffa14e85aa312be5e603aeb", size = 8701, upload-time = "2026-05-13T21:45:54.445Z" },
 ]
 
 [[package]]
