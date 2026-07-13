@@ -24,12 +24,12 @@ jobs:
     name: Check go.mod and vendor
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.0
 
       - name: Read Go version from Makefile
         run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
@@ -40,12 +40,12 @@ jobs:
     name: Check Go formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.0
 
       - name: Read Go version from Makefile
         run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
@@ -56,12 +56,12 @@ jobs:
     name: Check Go imports
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.0
 
       - name: Read Go version from Makefile
         run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: false
@@ -72,24 +72,24 @@ jobs:
     name: Check go vet
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7.0.0
+      - uses: docker/setup-buildx-action@v4
       - run: make ci-check-vet
 
   check-gofix:
     name: Check go fix modernisers
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7.0.0
+      - uses: docker/setup-buildx-action@v4
       - run: make ci-check-gofix
 
   check-bpfman-shell-fmt:
     name: Check .bpfman formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7.0.0
+      - uses: docker/setup-buildx-action@v4
       - run: make ci-check-bpfman-shell-fmt
 
   build:
@@ -104,8 +104,8 @@ jobs:
           - arch: arm64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v6
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7.0.0
+      - uses: docker/setup-buildx-action@v4
       - run: make ci-build
 
   tests:
@@ -115,8 +115,8 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7.0.0
+      - uses: docker/setup-buildx-action@v4
       - run: make ci-lint
 
   # Additional nix-backed sweep: build the flake package and run the
@@ -136,7 +136,7 @@ jobs:
     name: Nix lint and build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.0
 
       - uses: DeterminateSystems/nix-installer-action@main
 
@@ -164,12 +164,12 @@ jobs:
             pkgs: gcc-s390x-linux-gnu libc6-dev-s390x-cross qemu-user-binfmt
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7.0.0
 
       - name: Read Go version from Makefile
         run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v6.5.0
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
