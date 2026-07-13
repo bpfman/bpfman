@@ -16,9 +16,9 @@ jobs:
     timeout-minutes: 3
 
     steps:
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
       - name: Check License Header
-        uses: apache/skywalking-eyes@5c5b974209f0de5d905f37deb69369068ebfc15c
+        uses: apache/skywalking-eyes@61275cc80d0798a405cb070f7d3a8aaf7cf2c2c1
 
 
   # Repository hygiene checks carried over from the removed Rust
@@ -28,10 +28,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
 
       - name: Install toml linter
-        uses: taiki-e/install-action@e29814c376696105d80cec9e9efaa98bae8e7347 # @v2
+        uses: taiki-e/install-action@43aecc8d72668fbcfe75c31400bc4f890f1c5853 # @v2
         with:
           tool: taplo-cli
 
@@ -66,10 +66,10 @@ jobs:
     name: Build Go Modules (${{ matrix.arch.arch }})
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
 
       - name: Install go
-        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # @v5
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # @v5
         with:
           # prettier-ignore
           go-version: '1.25' # yamllint disable-line rule:quoted-strings
@@ -102,10 +102,10 @@ jobs:
             libxslt-dev \
 
       - name: Checkout bpfman
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
 
       - name: Install required-version defined in pyproject.toml
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
 
       - name: Mkdocs Build
         run: |
@@ -119,7 +119,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # @v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
 
       - name: Install dependencies
         # clang and libbpf compile the dispatcher BPF objects the
@@ -134,7 +134,7 @@ jobs:
         run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"
 
       - name: Install go
-        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # @v5
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # @v5
         with:
           go-version: ${{ env.GO_VERSION }}
 
@@ -168,7 +168,7 @@ jobs:
         # Revert softprops/action-gh-release from v2.2.0 to v2.1.0 due to
         # "Error: Request body length does not match content-length header"
         # https://github.com/softprops/action-gh-release/issues/556
-        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # @v2
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # @v2
         with:
           body_path: ./changelogs/CHANGELOG-${{ env.RELEASE_VERSION }}.md
           prerelease: ${{ env.PRE_RELEASE }}
