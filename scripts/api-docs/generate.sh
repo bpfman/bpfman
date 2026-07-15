@@ -32,11 +32,15 @@ gendoc::build() {
     go install github.com/ahmetb/gen-crd-api-reference-docs@latest
 }
 
-# Exec the doc generator.
+# Exec the doc generator. -mod=mod is required because this repo vendors
+# its dependencies, but go mod vendor prunes the operator's parent "apis"
+# package (nothing imports it), leaving the generator's go/build unable to
+# resolve it and nil-panicking. -mod=mod bypasses vendor/ and resolves the
+# package from the module cache instead.
 gendoc::exec() {
     local readonly confdir="${REPO}/scripts/api-docs"
 
-    ${GOBIN}/gen-crd-api-reference-docs \
+    GOFLAGS="${GOFLAGS:-} -mod=mod" ${GOBIN}/gen-crd-api-reference-docs \
         -template-dir ${confdir} \
         -config ${confdir}/config.json \
         "$@"
