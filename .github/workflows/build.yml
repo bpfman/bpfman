@@ -104,8 +104,16 @@ jobs:
       - name: Checkout bpfman
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
 
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # @v5
+        with:
+          go-version-file: go.mod
+
       - name: Install required-version defined in pyproject.toml
         uses: astral-sh/setup-uv@v7
+
+      - name: Build API docs
+        run: |
+          ./scripts/api-docs/generate.sh apidocs.html
 
       - name: Mkdocs Build
         run: |
