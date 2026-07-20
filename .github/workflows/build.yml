@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
 
       - name: Install toml linter
-        uses: taiki-e/install-action@43aecc8d72668fbcfe75c31400bc4f890f1c5853 # @v2
+        uses: taiki-e/install-action@07b4745e0c39a41822af610387492e3e53aa222b # @v2
         with:
           tool: taplo-cli
 
@@ -69,7 +69,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
 
       - name: Install go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # @v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # @v5
         with:
           # prettier-ignore
           go-version: '1.25' # yamllint disable-line rule:quoted-strings
@@ -104,7 +104,7 @@ jobs:
       - name: Checkout bpfman
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
 
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # @v5
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # @v5
         with:
           go-version-file: go.mod
 
@@ -142,7 +142,7 @@ jobs:
         run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"
 
       - name: Install go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # @v5
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # @v5
         with:
           go-version: ${{ env.GO_VERSION }}
 
@@ -176,7 +176,7 @@ jobs:
         # Revert softprops/action-gh-release from v2.2.0 to v2.1.0 due to
         # "Error: Request body length does not match content-length header"
         # https://github.com/softprops/action-gh-release/issues/556
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # @v2
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # @v2
         with:
           body_path: ./changelogs/CHANGELOG-${{ env.RELEASE_VERSION }}.md
           prerelease: ${{ env.PRE_RELEASE }}
