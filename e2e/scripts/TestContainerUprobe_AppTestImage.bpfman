@@ -1,0 +1,94 @@
+# -*- mode: bpfman -*-
+#pragma labels={"external":"true","image":"true"}
+#
+# BPFMAN-42 -- https://redhat.atlassian.net/browse/BPFMAN-42
+#
+# The reporter's reproducer with its real bytecode: the operator's
+# sample BpfApplication loads quay.io/bpfman-bytecode/app-test and
+# attaches its uprobe_test/uretprobe_test pair to `target: libc,
+# function: malloc` in selected containers. This script loads that
+# exact image by reference -- bpfman's native OCI support, no
+# container runtime involved -- and attaches both programs, by
+# their real names, into a mount namespace whose synthetic
+# /etc/ld.so.cache resolves the bare name.
+#
+# The app-test programs only bpf_printk and return, so there is no
+# counter to assert; traffic proof for bare-name container attaches
+# lives in the sibling LibraryNameTarget and SyntheticLdSoCache
+# scripts. What this script pins is the reproducer's own artefacts:
+# the published image loads, and both probe directions attach with
+# the bare name.
+#
+# Given: the published app-test bytecode image, and a target
+# process in a mount namespace with a synthetic cache mapping
+# libc to a namespace-private bind of the real libc
+#
+# When: uprobe_test and uretprobe_test are attached to malloc with
+# target "libc" via --container-pid (no --pid: the cache tier must
+# answer, from inside the namespace)
+#
+# Then: both attaches succeed, recording the raw target and the
+# correct probe directions
+
+import ../lib.bpfman
+
+let image = "quay.io/bpfman-bytecode/app-test"
+
+guard wd <- tempdir container-uprobe-apptest
+defer exec rm -rf $wd.path
+let cachefile = "${wd.path}/ld.so.cache"
+let bindtgt = "${wd.path}/libc.so.6"
+
+guard shell_path <- exec sh -c 'p=$(command -v bpfman-shell); printf %s "$p"'
+assert path-exists $shell_path.stdout
+
+guard libc <- exec sh -c 'ldd "$(command -v bpfman-shell)" | grep -o "/[^ ]*libc.so[^ ]*" | head -n1 | tr -d "[:space:]"'
+assert path-exists $libc.stdout
+
+# The synthetic cache maps the reproducer's bare name, libc, to a
+# namespace-private bind of the real libc. The bound file must
+# define the malloc symbol the reproducer's links name, so this
+# script needs a dynamically linked bpfman-shell to discover libc
+# from -- true for local builds; CI's static bundle does not run
+# external scripts.
+exec touch $bindtgt
+exec env BPFMAN_SHELL_MODE=ldso-cache-writer $shell_path.stdout $cachefile "libc.so.6=${bindtgt}"
+
+let nssetup = "mount -t tmpfs tmpfs /etc && cp '${cachefile}' /etc/ld.so.cache && mount --bind '${libc.stdout}' '${bindtgt}' && exec sleep 300"
+guard target <- start unshare -m -- sh -c $nssetup
+defer kill $target
+
+guard self_ns <- exec readlink /proc/self/ns/mnt
+poll timeout 5s every 100ms {
+    let target_ns <- exec readlink "/proc/${target.pid}/ns/mnt"
+    retry "waiting for target mount namespace switch" unless $target_ns.stdout != $self_ns.stdout
+}
+
+guard loaded <- bpfman program load image $image --pull-policy Always --programs uprobe:uprobe_test,uretprobe:uretprobe_test
+let progU = $loaded.programs[0]
+let progR = $loaded.programs[1]
+assert $progU.record.meta.name == "uprobe_test"
+assert $progR.record.meta.name == "uretprobe_test"
+let pidU = $progU.record.program_id
+let pidR = $progR.record.program_id
+defer bpfman program unload $pidU
+defer bpfman program unload $pidR
+
+guard linkU <- bpfman link attach uprobe $progU libc --fn-name malloc --container-pid $target.pid
+defer bpfman link detach $linkU
+assert $linkU.record.id > 0
+assert not null $linkU.record.kernel_link_id
+assert $linkU.record.kind == uprobe
+assert $linkU.record.details.target == "libc"
+assert $linkU.status.kernel_seen
+
+guard linkR <- bpfman link attach uprobe $progR libc --fn-name malloc --container-pid $target.pid
+defer bpfman link detach $linkR
+assert $linkR.record.id > 0
+assert not null $linkR.record.kernel_link_id
+assert $linkR.record.kind == uretprobe
+assert $linkR.record.details.target == "libc"
+assert $linkR.record.details.retprobe
+assert $linkR.status.kernel_seen
+
+print "app-test image attach: uprobe link=${linkU.record.id} uretprobe link=${linkR.record.id}"

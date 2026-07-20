@@ -323,12 +323,14 @@ type AttachUprobeCmd struct {
 	Offset uint64 `name:"offset" help:"Offset within the function." default:"0"`
 
 	// Pid restricts tracing to a single process ID; 0 traces all
-	// processes.
-	Pid int32 `name:"pid" help:"Only trace this process ID (0 traces all processes)."`
+	// processes. The number is a host PID -- the same pid namespace
+	// ContainerPid uses -- for both the process-maps tier of
+	// library-name resolution and the perf-event filter.
+	Pid int32 `name:"pid" help:"Only trace this host PID (0 traces all processes; same pid namespace as --container-pid)."`
 
 	// ContainerPid identifies the container whose mount namespace
-	// resolves Target, enabling namespace-aware attachment.
-	ContainerPid int32 `name:"container-pid" help:"Container PID for namespace-aware uprobe attachment."`
+	// resolves and opens Target, enabling namespace-aware attachment.
+	ContainerPid int32 `name:"container-pid" help:"Host PID of the container whose mount namespace resolves the target."`
 }
 
 // Run builds a uprobe attach spec from the flags, attaches the
