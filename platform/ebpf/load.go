@@ -166,6 +166,15 @@ func (k *kernelAdapter) Load(ctx context.Context, spec bpfman.LoadSpec, bpffs fs
 		progSpec.Type = ebpf.Extension
 		progSpec.AttachTarget = testProg
 		progSpec.AttachTo = "prog0"
+
+		// cilium/ebpf resolves an extension's freplace target from the
+		// (Type, AttachType) pair and recognises only
+		// (Extension, AttachNone), then looks the function up by name in
+		// the target BTF (see findTargetInProgram). The section sets
+		// AttachType -- xdp.frags yields XDP -- which has no mapping, so
+		// the load is refused with "unrecognized attach type". Clear it
+		// so the target resolves by name.
+		progSpec.AttachType = ebpf.AttachNone
 	}
 
 	// Check if we should share maps with another program (map_owner_id).
