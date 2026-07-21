@@ -1,0 +1,57 @@
+# -*- mode: bpfman -*-
+#
+# Given: an XDP program compiled into the "xdp.frags" section (so it
+# carries BPF_F_XDP_HAS_FRAGS) that counts packets, and a normal-MTU
+# netns veth pair
+#
+# When: it is loaded and attached through bpfman
+#
+# Then: the load succeeds, the program is the dispatcher's sole member,
+# and it counts traffic on the packet path. bpfman loads XDP programs as
+# BPF_PROG_TYPE_EXT against a dispatcher; the loader must reset the
+# section-derived attach type when it does so, or the load is refused
+# with "unrecognized attach type" because the xdp.frags section leaves a
+# concrete attach type on the spec that has no extension mapping in
+# cilium/ebpf.
+
+guard veth <- net netns-veth-pair
+defer net release $veth
+
+let netns = "/var/run/netns/${veth.a.ns}"
+
+guard loaded <- bpfman program load file testdata/bpf/xdp_frags_pass.bpf.o --programs xdp:frags_pass
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+assert $prog.record.load.program_name == "frags_pass"
+defer bpfman program unload $pid
+
+guard link <- bpfman link attach xdp $prog $veth.a.link --priority 50 --netns $netns
+defer bpfman link detach $link
+assert $link.record.kind == xdp
+assert $link.record.program_id == $pid
+assert $link.record.details.interface == $veth.a.link
+assert $link.status.kernel_seen
+
+# The program is spliced into the XDP dispatcher as its sole member.
+guard disp <- bpfman dispatcher get xdp $veth.a.nsid $veth.a.ifindex
+let members = $disp |> jq ".members | length"
+assert $members == 1
+assert $disp.members[0].program_id == $pid
+assert $disp.members[0].program_name == "frags_pass"
+assert $disp.members[0].position == 0
+
+# Drive traffic to prove the frags program is on the packet path: ping a
+# from b and confirm its per-CPU packet counter advances. ARP/control
+# traffic may add packets, so five echoes is a lower bound.
+let mapID = $prog.status.maps[0].id
+let sumFilter = "fromjson | [.[0].formatted.values[].value | tonumber] | add"
+guard dumpBefore <- bpftool map dump id $mapID -j
+let before = $dumpBefore.stdout |> jq $sumFilter
+
+guard _ <- net exec $veth.b ping -c 5 -i 0.05 -W 1 $veth.a.addr
+
+guard dumpAfter <- bpftool map dump id $mapID -j
+let after = $dumpAfter.stdout |> jq $sumFilter
+let delta = $after - $before
+print "xdp frags count: before=${before} after=${after} delta=${delta}"
+assert $delta >= 5
