@@ -27,6 +27,7 @@ var bindShapeRegistry = map[string]bindShapeFn{
 	"fire":          staticBindShape(KindShape(OriginJob)),
 	"kfunc":         inferKfuncBindShape,
 	"kill":          staticBindShape(KindShape(OriginEnvelope)),
+	"lsm":           inferLsmBindShape,
 	"linkinfo":      staticBindShape(KindShape(OriginLinkInfo)),
 	"net":           inferNetBindShape,
 	"process":       staticBindShape(Shape{Sealed: false, Kind: OriginUnknown}),
@@ -91,6 +92,23 @@ func inferKfuncBindShape(args []syntax.Expr) Shape {
 	case "acquire":
 		return KindShape(OriginKfunc)
 	case "release", "fire":
+		return KindShape(OriginEnvelope)
+	}
+	return Shape{Sealed: false, Kind: OriginUnknown}
+}
+
+func inferLsmBindShape(args []syntax.Expr) Shape {
+	if len(args) < 1 {
+		return Shape{Sealed: false, Kind: OriginUnknown}
+	}
+	sub, ok := args[0].(*syntax.LiteralExpr)
+	if !ok || sub.Quoted {
+		return Shape{Sealed: false, Kind: OriginUnknown}
+	}
+	switch sub.Text {
+	case "probe":
+		return KindShape(OriginLsm)
+	case "fire":
 		return KindShape(OriginEnvelope)
 	}
 	return Shape{Sealed: false, Kind: OriginUnknown}

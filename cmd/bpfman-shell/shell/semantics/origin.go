@@ -137,6 +137,16 @@ const (
 	// tag) read by id or from a pinned path. Like OriginLinkInfo
 	// it is a snapshot rather than a handle.
 	OriginProgInfo
+
+	// OriginLsm tags a Value that wraps an LsmProbe: the handle
+	// returned by `lsm probe`, owning a unique marker comm and a
+	// target file used to drive deterministic, self-attributed
+	// file_open events past an LSM program. `lsm fire` opens the
+	// target under the marker comm so the program's comm filter
+	// counts exactly those opens. Field reads (marker, marker_hex,
+	// file, dir) expose the marker for load-time global data and
+	// the tempdir for cleanup.
+	OriginLsm
 )
 
 // String returns the canonical name used in user-facing error
@@ -178,6 +188,8 @@ func (k OriginKind) String() string {
 		return "link info"
 	case OriginProgInfo:
 		return "program info"
+	case OriginLsm:
+		return "lsm probe"
 	default:
 		return fmt.Sprintf("OriginKind(%d)", int(k))
 	}
@@ -338,6 +350,16 @@ var (
 				"type": {Sealed: true, Kind: OriginScalar},
 				"name": {Sealed: true, Kind: OriginScalar},
 				"tag":  {Sealed: true, Kind: OriginScalar},
+			},
+		},
+		OriginLsm: {
+			Sealed: true,
+			Kind:   OriginLsm,
+			Fields: map[string]Shape{
+				"marker":     {Sealed: true, Kind: OriginScalar},
+				"marker_hex": {Sealed: true, Kind: OriginScalar},
+				"file":       {Sealed: true, Kind: OriginScalar},
+				"dir":        {Sealed: true, Kind: OriginScalar},
 			},
 		},
 		OriginMap:     {Sealed: false, Kind: OriginMap},
