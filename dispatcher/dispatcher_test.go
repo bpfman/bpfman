@@ -41,7 +41,7 @@ func TestNewXDPConfig(t *testing.T) {
 	t.Run("valid range", func(t *testing.T) {
 		t.Parallel()
 		for n := 1; n <= dispatcher.MaxPrograms; n++ {
-			cfg, err := dispatcher.NewXDPConfig(n, dispatcher.XDPFragsDisabled)
+			cfg, err := dispatcher.NewXDPConfig(n, false)
 			if err != nil {
 				t.Fatalf("NewXDPConfig(%d): unexpected error: %v", n, err)
 			}
@@ -53,7 +53,7 @@ func TestNewXDPConfig(t *testing.T) {
 
 	t.Run("default priorities", func(t *testing.T) {
 		t.Parallel()
-		cfg, err := dispatcher.NewXDPConfig(1, dispatcher.XDPFragsDisabled)
+		cfg, err := dispatcher.NewXDPConfig(1, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -66,7 +66,7 @@ func TestNewXDPConfig(t *testing.T) {
 
 	t.Run("frags enabled", func(t *testing.T) {
 		t.Parallel()
-		cfg, err := dispatcher.NewXDPConfig(2, dispatcher.XDPFragsEnabled)
+		cfg, err := dispatcher.NewXDPConfig(2, true)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -87,21 +87,21 @@ func TestNewXDPConfig(t *testing.T) {
 
 	t.Run("zero", func(t *testing.T) {
 		t.Parallel()
-		if _, err := dispatcher.NewXDPConfig(0, dispatcher.XDPFragsDisabled); err == nil {
+		if _, err := dispatcher.NewXDPConfig(0, false); err == nil {
 			t.Error("NewXDPConfig(0): expected error")
 		}
 	})
 
 	t.Run("negative", func(t *testing.T) {
 		t.Parallel()
-		if _, err := dispatcher.NewXDPConfig(-1, dispatcher.XDPFragsDisabled); err == nil {
+		if _, err := dispatcher.NewXDPConfig(-1, false); err == nil {
 			t.Error("NewXDPConfig(-1): expected error")
 		}
 	})
 
 	t.Run("exceeds max", func(t *testing.T) {
 		t.Parallel()
-		if _, err := dispatcher.NewXDPConfig(dispatcher.MaxPrograms+1, dispatcher.XDPFragsDisabled); err == nil {
+		if _, err := dispatcher.NewXDPConfig(dispatcher.MaxPrograms+1, false); err == nil {
 			t.Errorf("NewXDPConfig(%d): expected error", dispatcher.MaxPrograms+1)
 		}
 	})

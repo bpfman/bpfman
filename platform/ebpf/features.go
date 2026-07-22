@@ -44,14 +44,15 @@ func haveXDPFrags() bool {
 			// the negative.
 			xdpFragsSupported = false
 		default:
-			// The probe failed for a reason unrelated to
-			// the flag -- a kernel that lacks frags
-			// returns EINVAL. Assume supported rather
-			// than caching a false negative that would
-			// silently strip frags from every program for
-			// the rest of the process; if the kernel
-			// really lacks frags the real load is still
-			// rejected.
+			// A non-EINVAL failure is unrelated to frags support: a
+			// kernel that lacks frags rejects the flag with EINVAL
+			// (handled above), so this is a transient or
+			// environmental failure (EPERM without CAP_BPF, ENOMEM).
+			// Assume supported rather than caching a false negative
+			// that would strip frags from every program for the
+			// process lifetime. Such failures hit the real program
+			// load equally, so this cannot silently turn a frags
+			// load into a non-frags one.
 			xdpFragsSupported = true
 		}
 	})

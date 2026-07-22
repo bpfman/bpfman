@@ -102,17 +102,6 @@ const (
 	DispatcherRunPriority = 50
 )
 
-// XDPFragsMode controls whether an XDP dispatcher is loaded as
-// fragments-aware. It is a defined bool so call sites read
-// XDPFragsEnabled/XDPFragsDisabled rather than a bare bool, while the
-// type can hold no value other than the two below.
-type XDPFragsMode bool
-
-const (
-	XDPFragsDisabled XDPFragsMode = false
-	XDPFragsEnabled  XDPFragsMode = true
-)
-
 // FragsEligible reports whether an XDP dispatcher built from these
 // members should be loaded frags-aware: the set is non-empty and every
 // member is frags-capable. Empty, or any non-frags member, yields false.
@@ -213,8 +202,9 @@ func ProceedOnActions(dt DispatcherType, mask uint32) ([]int32, error) {
 }
 
 // NewXDPConfig creates a default XDP dispatcher config. numProgs
-// must be in the range [1, MaxPrograms].
-func NewXDPConfig(numProgs int, fragsMode XDPFragsMode) (XDPConfig, error) {
+// must be in the range [1, MaxPrograms]. fragsAware loads the dispatcher
+// frags-aware (see FragsEligible for the eligibility rule).
+func NewXDPConfig(numProgs int, fragsAware bool) (XDPConfig, error) {
 	if numProgs < 1 || numProgs > MaxPrograms {
 		return XDPConfig{}, fmt.Errorf("numProgs %d out of range [1, %d]", numProgs, MaxPrograms)
 	}
@@ -223,12 +213,15 @@ func NewXDPConfig(numProgs int, fragsMode XDPFragsMode) (XDPConfig, error) {
 		DispatcherVersion: xdpDispatcherVersion,
 		NumProgsEnabled:   uint8(numProgs),
 	}
-	if fragsMode == XDPFragsEnabled {
+
+	// IsXDPFrags is the C .rodata field (uint8, 0/1); frags is a plain
+	// bool everywhere else and converts to the ABI representation here.
+	if fragsAware {
 		cfg.IsXDPFrags = 1
 	}
 	for i := range MaxPrograms {
 		cfg.RunPrios[i] = DispatcherRunPriority
-		if fragsMode == XDPFragsEnabled && i < numProgs {
+		if fragsAware && i < numProgs {
 			cfg.ProgramFlags[i] = unix.BPF_F_XDP_HAS_FRAGS
 		}
 	}

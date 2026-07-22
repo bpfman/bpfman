@@ -117,7 +117,11 @@ type DispatcherMemberSpec struct {
 	Metadata map[string]string `json:"metadata"`
 
 	// HasXDPFrags reports whether this XDP member was loaded from a
-	// frags-capable program spec. It is false for non-XDP members.
+	// frags-capable program spec; false for non-XDP members. It is not
+	// persisted per-member: managed_programs.has_xdp_frags (the program
+	// record) is the source of truth, and the store re-derives the member
+	// flag from it on read via a join. On the spec this is load-transient
+	// input to the frags-eligibility decision, not a durable field.
 	HasXDPFrags bool `json:"has_xdp_frags"`
 }
 
