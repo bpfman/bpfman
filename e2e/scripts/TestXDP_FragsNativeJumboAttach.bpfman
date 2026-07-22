@@ -46,3 +46,9 @@ guard disp <- bpfman dispatcher get xdp $veth.a.nsid $veth.a.ifindex
 assert $disp.is_xdp_frags
 assert $disp.members[0].program_name == "frags_pass"
 assert $disp.members[0].has_xdp_frags
+
+# dispatcher list carries the same frags summary, so frags dispatchers
+# can be found without a per-dispatcher get.
+guard dispList <- bpfman dispatcher list
+let listFrags = $dispList |> jq "[.dispatchers[] | select(.key.nsid == ${veth.a.nsid} and .key.ifindex == ${veth.a.ifindex})][0].is_xdp_frags"
+assert $listFrags

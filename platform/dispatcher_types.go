@@ -224,6 +224,12 @@ type DispatcherSummary struct {
 	// MemberCount is the number of extension members attached to the
 	// dispatcher.
 	MemberCount int `json:"member_count"`
+
+	// IsXDPFrags reports whether the dispatcher is loaded frags-aware
+	// (BPF_F_XDP_HAS_FRAGS). Always false for a non-XDP dispatcher.
+	// Mirrors DispatcherSnapshot.IsXDPFrags so `dispatcher list` can be
+	// filtered for frags dispatchers without a per-dispatcher get.
+	IsXDPFrags bool `json:"is_xdp_frags"`
 }
 
 // DispatcherListResult wraps dispatcher list output for consistent

@@ -113,6 +113,39 @@ const (
 	XDPFragsEnabled  XDPFragsMode = true
 )
 
+// FragsEligible reports whether an XDP dispatcher built from these
+// members should be loaded frags-aware: the set is non-empty and every
+// member is frags-capable. Empty, or any non-frags member, yields false.
+// TC members are never frags-capable, so this returns false for a TC
+// dispatcher. It is the single definition of the frags-eligibility rule,
+// shared by the load decision and the reported dispatcher snapshot.
+//
+// A member is frags-capable when its XDP program is compiled with a
+// SEC("xdp.frags") section: cilium/ebpf reads that section and sets
+// BPF_F_XDP_HAS_FRAGS at load, which bpfman records per member and passes
+// here as memberFrags. A plain SEC("xdp") program never carries the flag.
+//
+// The all-or-nothing rule is the libxdp dispatcher policy, not a kernel
+// constraint. BPF_F_XDP_HAS_FRAGS is a property of the dispatcher as a
+// whole -- it cannot be set per freplace member -- so it is only safe to
+// set when every member is written to handle fragmented packets; a
+// non-frags member exposed to frags can silently misbehave, and the
+// kernel cannot detect this. See lib/libxdp/protocol.org, "Supporting XDP
+// programs with frags support", in xdp-project/xdp-tools.
+func FragsEligible(memberFrags []bool) bool {
+	if len(memberFrags) == 0 {
+		return false
+	}
+
+	for _, frags := range memberFrags {
+		if !frags {
+			return false
+		}
+	}
+
+	return true
+}
+
 func proceedOnOffset(dt DispatcherType) (int32, error) {
 	switch dt {
 	case DispatcherTypeXDP:
