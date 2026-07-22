@@ -70,6 +70,11 @@ func (s *sqliteStore) prepareDispatcherStatements(ctx context.Context) error {
 		           WHEN 'tc-ingress' THEN 'ingress'
 		           WHEN 'tc-egress' THEN 'egress'
 		           ELSE '' END) AS member_count,
+		    -- member_frags reaches has_xdp_frags via managed_programs, while
+		    -- member_count counts link_xdp_details directly. They enumerate the
+		    -- same members only because FK enforcement (foreign_keys=1)
+		    -- guarantees every link row has a program row; without it an orphan
+		    -- link would be counted but dropped here, skewing the frags verdict.
 		    (SELECT json_group_array(p.has_xdp_frags)
 		     FROM link_xdp_details x
 		     JOIN links l ON x.id = l.id
@@ -268,8 +273,8 @@ func (s *sqliteStore) GetDispatcherSnapshot(ctx context.Context, key dispatcher.
 			&m.ProgPinPath, &m.LinkID, &kernelLinkID, &m.ProgramID, &linkPinPath, &m.Ifname, &metadataJSON, &hasXDPFrags); err != nil {
 			return platform.DispatcherSnapshot{}, fmt.Errorf("scan dispatcher member: %w", err)
 		}
-		m.HasXDPFrags = hasXDPFrags != 0
 
+		m.HasXDPFrags = hasXDPFrags != 0
 		if kernelLinkID.Valid {
 			id := kernel.LinkID(kernelLinkID.Int64)
 			m.KernelLinkID = &id

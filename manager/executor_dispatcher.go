@@ -88,18 +88,16 @@ func dispatcherMembers(slots []rebuildSlot, attached []attachedExt) []platform.D
 	return members
 }
 
-func xdpFragsModeForSlots(slots []rebuildSlot) dispatcher.XDPFragsMode {
+// xdpFragsForSlots reports whether an XDP dispatcher built from these
+// rebuild slots should be loaded frags-aware, applying the shared
+// dispatcher.FragsEligible rule over each slot's member.
+func xdpFragsForSlots(slots []rebuildSlot) bool {
 	frags := make([]bool, len(slots))
-
 	for i, slot := range slots {
 		frags[i] = slot.HasXDPFrags
 	}
 
-	if dispatcher.FragsEligible(frags) {
-		return dispatcher.XDPFragsEnabled
-	}
-
-	return dispatcher.XDPFragsDisabled
+	return dispatcher.FragsEligible(frags)
 }
 
 // rebuildXDPDispatcher performs a full XDP dispatcher rebuild.
@@ -155,7 +153,7 @@ func (e *executor) rebuildXDPDispatcher(
 	sortRebuildSlots(allSlots)
 
 	// Compute .rodata config.
-	cfg, err := dispatcher.NewXDPConfig(len(allSlots), xdpFragsModeForSlots(allSlots))
+	cfg, err := dispatcher.NewXDPConfig(len(allSlots), xdpFragsForSlots(allSlots))
 	if err != nil {
 		return extensionResult{}, fmt.Errorf("create XDP dispatcher config: %w", err)
 	}
@@ -716,7 +714,7 @@ func (e *executor) rebuildXDPForDetach(
 ) error {
 	key := snap.Key
 
-	cfg, err := dispatcher.NewXDPConfig(len(slots), xdpFragsModeForSlots(slots))
+	cfg, err := dispatcher.NewXDPConfig(len(slots), xdpFragsForSlots(slots))
 	if err != nil {
 		return fmt.Errorf("create XDP dispatcher config for detach rebuild: %w", err)
 	}
