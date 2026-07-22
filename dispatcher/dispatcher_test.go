@@ -41,7 +41,7 @@ func TestNewXDPConfig(t *testing.T) {
 	t.Run("valid range", func(t *testing.T) {
 		t.Parallel()
 		for n := 1; n <= dispatcher.MaxPrograms; n++ {
-			cfg, err := dispatcher.NewXDPConfig(n)
+			cfg, err := dispatcher.NewXDPConfig(n, dispatcher.XDPFragsDisabled)
 			if err != nil {
 				t.Fatalf("NewXDPConfig(%d): unexpected error: %v", n, err)
 			}
@@ -53,7 +53,7 @@ func TestNewXDPConfig(t *testing.T) {
 
 	t.Run("default priorities", func(t *testing.T) {
 		t.Parallel()
-		cfg, err := dispatcher.NewXDPConfig(1)
+		cfg, err := dispatcher.NewXDPConfig(1, dispatcher.XDPFragsDisabled)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -64,23 +64,44 @@ func TestNewXDPConfig(t *testing.T) {
 		}
 	})
 
+	t.Run("frags enabled", func(t *testing.T) {
+		t.Parallel()
+		cfg, err := dispatcher.NewXDPConfig(2, dispatcher.XDPFragsEnabled)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cfg.IsXDPFrags != 1 {
+			t.Fatalf("IsXDPFrags = %d, want 1", cfg.IsXDPFrags)
+		}
+		for i := range 2 {
+			if cfg.ProgramFlags[i] == 0 {
+				t.Fatalf("ProgramFlags[%d] = 0, want frags flag", i)
+			}
+		}
+		for i := 2; i < dispatcher.MaxPrograms; i++ {
+			if cfg.ProgramFlags[i] != 0 {
+				t.Fatalf("ProgramFlags[%d] = %d, want 0", i, cfg.ProgramFlags[i])
+			}
+		}
+	})
+
 	t.Run("zero", func(t *testing.T) {
 		t.Parallel()
-		if _, err := dispatcher.NewXDPConfig(0); err == nil {
+		if _, err := dispatcher.NewXDPConfig(0, dispatcher.XDPFragsDisabled); err == nil {
 			t.Error("NewXDPConfig(0): expected error")
 		}
 	})
 
 	t.Run("negative", func(t *testing.T) {
 		t.Parallel()
-		if _, err := dispatcher.NewXDPConfig(-1); err == nil {
+		if _, err := dispatcher.NewXDPConfig(-1, dispatcher.XDPFragsDisabled); err == nil {
 			t.Error("NewXDPConfig(-1): expected error")
 		}
 	})
 
 	t.Run("exceeds max", func(t *testing.T) {
 		t.Parallel()
-		if _, err := dispatcher.NewXDPConfig(dispatcher.MaxPrograms + 1); err == nil {
+		if _, err := dispatcher.NewXDPConfig(dispatcher.MaxPrograms+1, dispatcher.XDPFragsDisabled); err == nil {
 			t.Errorf("NewXDPConfig(%d): expected error", dispatcher.MaxPrograms+1)
 		}
 	})

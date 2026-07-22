@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/cilium/ebpf"
+	"golang.org/x/sys/unix"
 
 	"github.com/bpfman/bpfman"
 )
@@ -43,8 +44,7 @@ type XDPConfig struct {
 	NumProgsEnabled uint8
 
 	// IsXDPFrags, when nonzero, marks the dispatcher as XDP-fragments
-	// aware. This codebase never sets it, so it stays zero; the field
-	// exists only to mirror the C struct layout.
+	// aware.
 	IsXDPFrags uint8
 
 	// ChainCallActions holds the per-slot proceed-on bitmask: element i
@@ -59,9 +59,7 @@ type XDPConfig struct {
 	// stored priority and position before the config is built.
 	RunPrios [MaxPrograms]uint32
 
-	// ProgramFlags holds the per-slot program flags. This codebase never
-	// sets it, so it stays zero; the field exists only to mirror the C
-	// struct layout.
+	// ProgramFlags holds the per-slot program flags.
 	ProgramFlags [MaxPrograms]uint32
 }
 
@@ -102,6 +100,17 @@ const (
 	// does not determine chain order; user links are ordered by their
 	// stored priority and position.
 	DispatcherRunPriority = 50
+)
+
+// XDPFragsMode controls whether an XDP dispatcher is loaded as
+// fragments-aware. It is a defined bool so call sites read
+// XDPFragsEnabled/XDPFragsDisabled rather than a bare bool, while the
+// type can hold no value other than the two below.
+type XDPFragsMode bool
+
+const (
+	XDPFragsDisabled XDPFragsMode = false
+	XDPFragsEnabled  XDPFragsMode = true
 )
 
 func proceedOnOffset(dt DispatcherType) (int32, error) {
@@ -172,7 +181,7 @@ func ProceedOnActions(dt DispatcherType, mask uint32) ([]int32, error) {
 
 // NewXDPConfig creates a default XDP dispatcher config. numProgs
 // must be in the range [1, MaxPrograms].
-func NewXDPConfig(numProgs int) (XDPConfig, error) {
+func NewXDPConfig(numProgs int, fragsMode XDPFragsMode) (XDPConfig, error) {
 	if numProgs < 1 || numProgs > MaxPrograms {
 		return XDPConfig{}, fmt.Errorf("numProgs %d out of range [1, %d]", numProgs, MaxPrograms)
 	}
@@ -181,8 +190,14 @@ func NewXDPConfig(numProgs int) (XDPConfig, error) {
 		DispatcherVersion: xdpDispatcherVersion,
 		NumProgsEnabled:   uint8(numProgs),
 	}
+	if fragsMode == XDPFragsEnabled {
+		cfg.IsXDPFrags = 1
+	}
 	for i := range MaxPrograms {
 		cfg.RunPrios[i] = DispatcherRunPriority
+		if fragsMode == XDPFragsEnabled && i < numProgs {
+			cfg.ProgramFlags[i] = unix.BPF_F_XDP_HAS_FRAGS
+		}
 	}
 	return cfg, nil
 }

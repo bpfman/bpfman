@@ -33,6 +33,7 @@ type rebuildSlot struct {
 	ProgramID      kernel.ProgramID  // managed program's kernel ID
 	Ifname         string            // interface name from detail record
 	Metadata       map[string]string // user link labels; new slot from spec, existing slots preserved from the snapshot
+	HasXDPFrags    bool
 }
 
 // xdpRebuildOps returns the type-specific operations for XDP
@@ -81,9 +82,22 @@ func dispatcherMembers(slots []rebuildSlot, attached []attachedExt) []platform.D
 			ProceedOn:      slot.ProceedOn,
 			Ifname:         slot.Ifname,
 			Metadata:       slot.Metadata,
+			HasXDPFrags:    slot.HasXDPFrags,
 		}
 	}
 	return members
+}
+
+func xdpFragsModeForSlots(slots []rebuildSlot) dispatcher.XDPFragsMode {
+	for _, slot := range slots {
+		if !slot.HasXDPFrags {
+			return dispatcher.XDPFragsDisabled
+		}
+	}
+	if len(slots) == 0 {
+		return dispatcher.XDPFragsDisabled
+	}
+	return dispatcher.XDPFragsEnabled
 }
 
 // rebuildXDPDispatcher performs a full XDP dispatcher rebuild.
@@ -92,24 +106,9 @@ func dispatcherMembers(slots []rebuildSlot, attached []attachedExt) []platform.D
 // The managedProgramID identifies the user program being attached.
 func (e *executor) rebuildXDPDispatcher(
 	ctx context.Context,
-	managedProgramID kernel.ProgramID,
 	ops xdpRebuildOps,
-	progPinPath bpfman.ProgPinPath,
-	programName string,
-	priority int,
-	proceedOn uint32,
-	metadata map[string]string,
+	newSlot rebuildSlot,
 ) (extensionResult, error) {
-	newSlot := rebuildSlot{
-		ProgPinPath: progPinPath,
-		ProgramName: programName,
-		Priority:    priority,
-		ProceedOn:   proceedOn,
-		ProgramID:   managedProgramID,
-		Ifname:      ops.ifname,
-		Metadata:    metadata,
-	}
-
 	nsid, err := netns.NSID(ops.netnsPath)
 	if err != nil {
 		return extensionResult{}, fmt.Errorf("get nsid: %w", err)
@@ -141,6 +140,7 @@ func (e *executor) rebuildXDPDispatcher(
 			ProgramID:      m.ProgramID,
 			Ifname:         m.Ifname,
 			Metadata:       m.Metadata,
+			HasXDPFrags:    m.HasXDPFrags,
 		})
 	}
 	allSlots = append(allSlots, newSlot)
@@ -153,7 +153,7 @@ func (e *executor) rebuildXDPDispatcher(
 	sortRebuildSlots(allSlots)
 
 	// Compute .rodata config.
-	cfg, err := dispatcher.NewXDPConfig(len(allSlots))
+	cfg, err := dispatcher.NewXDPConfig(len(allSlots), xdpFragsModeForSlots(allSlots))
 	if err != nil {
 		return extensionResult{}, fmt.Errorf("create XDP dispatcher config: %w", err)
 	}
@@ -319,7 +319,7 @@ func (e *executor) rebuildXDPDispatcher(
 	newExtLinkRecord := completed.Members[newSlotPosition]
 	newExtRecord := bpfman.LinkRecord{
 		ID:           newExtLinkRecord.LinkID,
-		ProgramID:    managedProgramID,
+		ProgramID:    newSlot.ProgramID,
 		KernelLinkID: newExtLinkRecord.KernelLinkID,
 		Kind:         bpfman.LinkKindXDP,
 		PinPath:      bpfman.NewLinkPath(newExt.pinPath),
@@ -687,6 +687,7 @@ func (e *executor) rebuildDispatcherForDetach(ctx context.Context, key dispatche
 			ExistingLinkID: &linkID,
 			ProgramID:      m.ProgramID,
 			Ifname:         m.Ifname,
+			HasXDPFrags:    m.HasXDPFrags,
 		}
 	}
 	sortRebuildSlots(rebuildSlots)
@@ -713,7 +714,7 @@ func (e *executor) rebuildXDPForDetach(
 ) error {
 	key := snap.Key
 
-	cfg, err := dispatcher.NewXDPConfig(len(slots))
+	cfg, err := dispatcher.NewXDPConfig(len(slots), xdpFragsModeForSlots(slots))
 	if err != nil {
 		return fmt.Errorf("create XDP dispatcher config for detach rebuild: %w", err)
 	}

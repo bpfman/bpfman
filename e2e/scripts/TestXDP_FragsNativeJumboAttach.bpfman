@@ -1,0 +1,48 @@
+# -*- mode: bpfman -*-
+#
+# Given: an xdp.frags program and a netns veth pair raised to a jumbo
+# MTU (8901), which exceeds the per-page XDP buffer limit, so a
+# non-frags XDP program cannot attach in native mode
+#
+# When: the frags program is attached through bpfman
+#
+# Then: because every dispatcher member is frags-capable, bpfman loads
+# the dispatcher with BPF_F_XDP_HAS_FRAGS and the attach lands in native
+# (driver) mode (ip xdp.mode == 1). dispatcher get reports is_xdp_frags.
+# Without frags support the native attach fails with ERANGE, since this
+# branch has no generic-mode fallback.
+
+guard veth <- net netns-veth-pair
+defer net release $veth
+
+let netns = "/var/run/netns/${veth.a.ns}"
+
+# Raise both ends to the jumbo MTU.
+guard _ <- net exec $veth.a ip link set dev $veth.a.link mtu 8901
+guard _ <- net exec $veth.b ip link set dev $veth.b.link mtu 8901
+
+guard loaded <- bpfman program load file testdata/bpf/xdp_frags_pass.bpf.o --programs xdp:frags_pass
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+assert $prog.record.has_xdp_frags
+defer bpfman program unload $pid
+
+# Native attach to the jumbo interface succeeds only because the
+# dispatcher is loaded frags-aware.
+guard link <- bpfman link attach xdp $prog $veth.a.link --priority 50 --netns $netns
+defer bpfman link detach $link
+assert $link.status.kernel_seen
+
+# Kernel proof: the dispatcher is attached in native (driver) mode, not
+# generic. Mode 1 is XDP_FLAGS_DRV_MODE; 2 would be XDP_FLAGS_SKB_MODE.
+guard xdpShow <- net exec $veth.a ip -j -d link show dev $veth.a.link
+let xdpMode = $xdpShow.stdout |> jq "fromjson | .[0].xdp.mode"
+print "xdp mode on ${veth.a.link}: ${xdpMode} (1=native, 2=generic)"
+assert $xdpMode == 1
+
+# The dispatcher was loaded with BPF_F_XDP_HAS_FRAGS, and the member
+# records its frags capability.
+guard disp <- bpfman dispatcher get xdp $veth.a.nsid $veth.a.ifindex
+assert $disp.is_xdp_frags
+assert $disp.members[0].program_name == "frags_pass"
+assert $disp.members[0].has_xdp_frags

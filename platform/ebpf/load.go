@@ -105,6 +105,7 @@ func (k *kernelAdapter) Load(ctx context.Context, spec bpfman.LoadSpec, bpffs fs
 		return bpfman.LoadOutput{}, fmt.Errorf("program %q not found in collection spec; available programs: %v", spec.ProgramName(), available)
 	}
 	license := progSpec.License
+	hasXDPFrags := progSpec.Flags&unix.BPF_F_XDP_HAS_FRAGS != 0
 
 	// Determine program type: prefer user-specified type, fall back to ELF inference.
 	// The user's CLI specification (e.g., --programs kretprobe:func) takes precedence
@@ -428,6 +429,7 @@ func (k *kernelAdapter) Load(ctx context.Context, spec bpfman.LoadSpec, bpffs fs
 		License:        license,
 		InferredType:   programType,
 		SharedMapNames: sharedMapNames,
+		HasXDPFrags:    hasXDPFrags,
 	}, nil
 }
 

@@ -1,0 +1,42 @@
+# -*- mode: bpfman -*-
+#
+# Given: a dispatcher holding one frags-capable XDP program
+#
+# When: a non-frags XDP program is attached to the same interface
+#
+# Then: the dispatcher is downgraded -- is_xdp_frags becomes false,
+# because BPF_F_XDP_HAS_FRAGS is only safe when every member is
+# frags-capable. Each member still records its own capability.
+
+guard veth <- net netns-veth-pair
+defer net release $veth
+
+let netns = "/var/run/netns/${veth.a.ns}"
+
+guard fragsLoaded <- bpfman program load file testdata/bpf/xdp_frags_pass.bpf.o --programs xdp:frags_pass
+let fragsProg = $fragsLoaded.programs[0]
+let fragsPid = $fragsProg.record.program_id
+defer bpfman program unload $fragsPid
+guard fragsLink <- bpfman link attach xdp $fragsProg $veth.a.link --priority 50 --netns $netns
+defer bpfman link detach $fragsLink
+
+# Frags-only: the dispatcher is frags-aware.
+guard disp1 <- bpfman dispatcher get xdp $veth.a.nsid $veth.a.ifindex
+assert $disp1.is_xdp_frags
+
+# Add a non-frags program to the same interface.
+guard plainLoaded <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs xdp:pass
+let plainProg = $plainLoaded.programs[0]
+let plainPid = $plainProg.record.program_id
+assert not $plainProg.record.has_xdp_frags
+defer bpfman program unload $plainPid
+guard plainLink <- bpfman link attach xdp $plainProg $veth.a.link --priority 60 --netns $netns
+defer bpfman link detach $plainLink
+
+# The dispatcher is downgraded: not all members are frags-capable.
+guard disp2 <- bpfman dispatcher get xdp $veth.a.nsid $veth.a.ifindex
+assert not $disp2.is_xdp_frags
+let members = $disp2 |> jq ".members | length"
+assert $members == 2
+let fragsMembers = $disp2 |> jq "[.members[] | select(.has_xdp_frags)] | length"
+assert $fragsMembers == 1

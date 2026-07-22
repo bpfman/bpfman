@@ -32,7 +32,7 @@ func (s *sqliteStore) prepareDispatcherStatements(ctx context.Context) error {
 
 	const getXDPMembersSQL = `
 		SELECT d.position, d.priority, p.program_name, d.proceed_on,
-		       p.pin_path, l.id, l.kernel_link_id, l.kernel_prog_id, l.pin_path, d.interface, l.metadata_json
+		       p.pin_path, l.id, l.kernel_link_id, l.kernel_prog_id, l.pin_path, d.interface, l.metadata_json, p.has_xdp_frags
 		FROM link_xdp_details d
 		JOIN links l ON d.id = l.id
 		JOIN managed_programs p ON l.kernel_prog_id = p.program_id
@@ -46,7 +46,7 @@ func (s *sqliteStore) prepareDispatcherStatements(ctx context.Context) error {
 
 	const getTCMembersSQL = `
 		SELECT d.position, d.priority, p.program_name, d.proceed_on,
-		       p.pin_path, l.id, l.kernel_link_id, l.kernel_prog_id, l.pin_path, d.interface, l.metadata_json
+		       p.pin_path, l.id, l.kernel_link_id, l.kernel_prog_id, l.pin_path, d.interface, l.metadata_json, 0
 		FROM link_tc_details d
 		JOIN links l ON d.id = l.id
 		JOIN managed_programs p ON l.kernel_prog_id = p.program_id
@@ -218,6 +218,7 @@ func (s *sqliteStore) GetDispatcherSnapshot(ctx context.Context, key dispatcher.
 		Revision: revision,
 		Runtime:  scanDispatcherRuntime(programID, nullLinkID, priority, filterHandle, netnsPath),
 	}
+	allXDPFrags := key.Type == dispatcher.DispatcherTypeXDP
 
 	// Fetch members from the appropriate detail table.
 	var rows *sql.Rows
@@ -240,9 +241,14 @@ func (s *sqliteStore) GetDispatcherSnapshot(ctx context.Context, key dispatcher.
 		var kernelLinkID sql.NullInt64
 		var linkPinPath sql.NullString
 		var metadataJSON sql.NullString
+		var hasXDPFrags int
 		if err := rows.Scan(&m.Position, &m.Priority, &m.ProgramName, &proceedOnJSON,
-			&m.ProgPinPath, &m.LinkID, &kernelLinkID, &m.ProgramID, &linkPinPath, &m.Ifname, &metadataJSON); err != nil {
+			&m.ProgPinPath, &m.LinkID, &kernelLinkID, &m.ProgramID, &linkPinPath, &m.Ifname, &metadataJSON, &hasXDPFrags); err != nil {
 			return platform.DispatcherSnapshot{}, fmt.Errorf("scan dispatcher member: %w", err)
+		}
+		m.HasXDPFrags = hasXDPFrags != 0
+		if !m.HasXDPFrags {
+			allXDPFrags = false
 		}
 		if kernelLinkID.Valid {
 			id := kernel.LinkID(kernelLinkID.Int64)
@@ -274,6 +280,9 @@ func (s *sqliteStore) GetDispatcherSnapshot(ctx context.Context, key dispatcher.
 	}
 	if err := rows.Err(); err != nil {
 		return platform.DispatcherSnapshot{}, fmt.Errorf("iterate dispatcher members: %w", err)
+	}
+	if key.Type == dispatcher.DispatcherTypeXDP && len(snap.Members) > 0 {
+		snap.IsXDPFrags = allXDPFrags
 	}
 
 	s.logger.Debug("sql", "stmt", "GetDispatcherSnapshot", "args", []any{key}, "duration_ms", msec(time.Since(start)), "members", len(snap.Members))
@@ -434,6 +443,7 @@ func (s *sqliteStore) replaceDispatcherSnapshot(ctx context.Context, snap platfo
 			ProceedOn:    spec.ProceedOn,
 			Ifname:       spec.Ifname,
 			Metadata:     spec.Metadata,
+			HasXDPFrags:  spec.HasXDPFrags,
 		}
 
 		// Insert detail row.
@@ -457,6 +467,15 @@ func (s *sqliteStore) replaceDispatcherSnapshot(ctx context.Context, snap platfo
 			}
 		}
 		completed.Members = append(completed.Members, m)
+	}
+	if snap.Key.Type == dispatcher.DispatcherTypeXDP && len(completed.Members) > 0 {
+		completed.IsXDPFrags = true
+		for _, m := range completed.Members {
+			if !m.HasXDPFrags {
+				completed.IsXDPFrags = false
+				break
+			}
+		}
 	}
 
 	s.logger.Debug("sql", "stmt", "ReplaceDispatcherSnapshot", "args", []any{snap.Key, snap.Revision}, "duration_ms", msec(time.Since(start)), "members", len(snap.Members))

@@ -372,6 +372,9 @@ type RebuildXDPDispatcher struct {
 	// Metadata holds user-supplied key/value link labels to persist on
 	// the new extension's link record.
 	Metadata map[string]string
+
+	// HasXDPFrags reports whether the new XDP extension is frags-capable.
+	HasXDPFrags bool
 }
 
 func (RebuildXDPDispatcher) isAction() {}

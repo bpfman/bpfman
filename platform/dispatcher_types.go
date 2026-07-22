@@ -56,6 +56,10 @@ type DispatcherMember struct {
 	// Metadata is the caller-supplied key/value metadata recorded with
 	// the link.
 	Metadata map[string]string `json:"metadata"`
+
+	// HasXDPFrags reports whether this XDP member was loaded from a
+	// frags-capable program spec. It is false for non-XDP members.
+	HasXDPFrags bool `json:"has_xdp_frags"`
 }
 
 // DispatcherMemberSpec describes an extension program that should be
@@ -111,6 +115,10 @@ type DispatcherMemberSpec struct {
 	// Metadata is the caller-supplied key/value metadata to record
 	// with the link.
 	Metadata map[string]string `json:"metadata"`
+
+	// HasXDPFrags reports whether this XDP member was loaded from a
+	// frags-capable program spec. It is false for non-XDP members.
+	HasXDPFrags bool `json:"has_xdp_frags"`
 }
 
 // DispatcherRuntime holds the kernel-assigned identifiers for the
@@ -168,6 +176,10 @@ type DispatcherSnapshot struct {
 	// Members are the extension programs currently attached to the
 	// dispatcher, in slot order (ascending Position).
 	Members []DispatcherMember `json:"members"`
+
+	// IsXDPFrags reports whether this XDP dispatcher was loaded with
+	// BPF_F_XDP_HAS_FRAGS. It is false for non-XDP dispatchers.
+	IsXDPFrags bool `json:"is_xdp_frags"`
 }
 
 // DispatcherSnapshotSpec is the requested replacement state for a dispatcher.

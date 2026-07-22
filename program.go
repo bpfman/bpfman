@@ -190,6 +190,10 @@ type ProgramRecord struct {
 	// because it is a property of the loaded program, not the load request.
 	GPLCompatible bool `json:"gpl_compatible"`
 
+	// HasXDPFrags reports whether the program was loaded from bytecode whose
+	// program spec carried BPF_F_XDP_HAS_FRAGS.
+	HasXDPFrags bool `json:"has_xdp_frags"`
+
 	// Handles holds the stable filesystem handles used for lifecycle operations.
 	Handles ProgramHandles `json:"handles"`
 
@@ -369,6 +373,10 @@ type LoadOutput struct {
 
 	// SharedMapNames is the list of PinByName map names, for reference counting.
 	SharedMapNames []string
+
+	// HasXDPFrags reports whether the loaded program's spec carried
+	// BPF_F_XDP_HAS_FRAGS.
+	HasXDPFrags bool
 }
 
 // IsGPLCompatible checks if a license string is GPL compatible.
