@@ -8,6 +8,7 @@ import (
 	"os"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -59,6 +60,10 @@ type typeSpec struct {
 	enumType      pb.BpfmanProgramType
 	loadInfo      *pb.ProgSpecificInfo
 	attachBuilder func(t *testing.T, gid int) func() *pb.AttachInfo
+	// precheck, when set, runs once at the start of the type's
+	// sub-test and may t.Skip it -- used by lsm to skip on kernels
+	// without the BPF LSM in the active list.
+	precheck func(t *testing.T)
 }
 
 // TestParallel_GRPC runs each program type's lifecycle as a
@@ -82,6 +87,7 @@ func TestParallel_GRPC(t *testing.T) {
 		tracepointSpec(),
 		fentrySpec(),
 		fexitSpec(),
+		lsmSpec(),
 		uprobeSpec(),
 		xdpSpec(),
 		tcSpec(),
@@ -140,6 +146,9 @@ func TestParallel_GRPC(t *testing.T) {
 		counter := counts[spec.name]
 		t.Run(spec.name, func(t *testing.T) {
 			t.Parallel()
+			if spec.precheck != nil {
+				spec.precheck(t)
+			}
 			runParallelLifecycles(t, spec, counter)
 		})
 	}
@@ -499,6 +508,47 @@ func fexitSpec() typeSpec {
 				FexitAttachInfo: &pb.FexitAttachInfo{},
 			},
 		}),
+	}
+}
+
+// grpcLsmHook is the LSM hook the lsm sub-test loads and attaches
+// against. file_open is a mandatory, always-present hook; the program
+// always allows (returns 0), so cycling it under load is safe.
+const grpcLsmHook = "file_open"
+
+func lsmSpec() typeSpec {
+	return typeSpec{
+		name:     "lsm",
+		object:   "lsm_exact.bpf.o",
+		progName: "test_lsm",
+		enumType: pb.BpfmanProgramType_LSM,
+		loadInfo: &pb.ProgSpecificInfo{
+			Info: &pb.ProgSpecificInfo_LsmLoadInfo{
+				LsmLoadInfo: &pb.LsmLoadInfo{HookName: grpcLsmHook},
+			},
+		},
+		attachBuilder: constantAttachBuilder(&pb.AttachInfo{
+			Info: &pb.AttachInfo_LsmAttachInfo{
+				LsmAttachInfo: &pb.LsmAttachInfo{},
+			},
+		}),
+		precheck: skipUnlessBPFLSM,
+	}
+}
+
+// skipUnlessBPFLSM skips the caller unless the running kernel has the
+// BPF LSM in its active list. Attaching a BPF_PROG_TYPE_LSM program
+// needs "bpf" present in /sys/kernel/security/lsm (CONFIG_BPF_LSM plus
+// lsm=...,bpf); GitHub-hosted runners ship CONFIG_BPF_LSM=y but not the
+// active entry, and it cannot be enabled without a reboot. Mirrors the
+// kmod-availability skip guarding TestParallel_GRPC.
+func skipUnlessBPFLSM(t *testing.T) {
+	data, err := os.ReadFile("/sys/kernel/security/lsm")
+	if err != nil {
+		t.Skipf("cannot read /sys/kernel/security/lsm (%v); BPF LSM support unknown", err)
+	}
+	if !slices.Contains(strings.Split(strings.TrimSpace(string(data)), ","), "bpf") {
+		t.Skipf("BPF LSM not in the active list (%s); boot with lsm=...,bpf to run the lsm sub-test", strings.TrimSpace(string(data)))
 	}
 }
 

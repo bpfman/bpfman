@@ -155,6 +155,8 @@ func attachmentSummary(details bpfman.LinkDetails) string {
 		return d.FnName
 	case bpfman.FexitDetails:
 		return d.FnName
+	case bpfman.LsmDetails:
+		return d.HookName
 	default:
 		return "<none>"
 	}
@@ -203,6 +205,8 @@ func linkDetailRows(view LinkGetView) []row {
 		add("Target Function", d.FnName)
 	case bpfman.FexitDetails:
 		add("Target Function", d.FnName)
+	case bpfman.LsmDetails:
+		add("LSM Hook", d.HookName)
 	case bpfman.KprobeDetails:
 		if d.Retprobe {
 			add("Attach Type", "kretprobe")

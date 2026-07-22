@@ -1,0 +1,93 @@
+# -*- mode: bpfman -*-
+#pragma labels={"program":"lsm","requires-bpf-lsm":"true"}
+#
+# Given: an LSM program attached to the file_open hook, counting only
+# opens made by a leased fixture probe (identified by its marker comm),
+# so the count is deterministic despite file_open being system-wide
+#
+# When: the link is fetched and listed, the probe fires a known number
+# of opens, then the link is detached and the probe fires again
+#
+# Then: get/list round-trip the link, the link details carry the LSM
+# hook name exhaustively, the program counts exactly the fired opens,
+# and after detach further opens are not counted
+
+import ../lib.bpfman
+
+let count = 50
+
+# Lease a probe: a unique marker comm plus a target file. The program
+# counts only opens whose comm matches this marker, so the box's own
+# file activity does not perturb the count.
+guard probe <- lsm probe
+defer exec rm -rf $probe.dir
+
+guard loaded <- bpfman program load file testdata/bpf/lsm_exact.bpf.o --programs "lsm:test_lsm:file_open" -g "target_comm=0x${probe.marker_hex}"
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+
+# bpfman program type lsm; kernel program type lsm (distinct from
+# fentry/fexit's tracing). The hook is stored in attach_func, shared
+# with fentry/fexit.
+expect_program_load $prog lsm lsm test_lsm
+assert $prog.record.load.attach_func == file_open
+
+guard link <- bpfman link attach lsm $prog -m owner=lsm
+let linkID = $link.record.id
+expect_pinned_link_identity $link
+
+assert $link.record.kind == lsm
+assert $link.record.metadata.owner == lsm
+assert $link.record.program_id == $pid
+assert $link.status.kernel_seen
+
+# The new LSM link detail: the hook name, matched exhaustively so an
+# extra or renamed detail field is caught.
+assert $link.record.details matches exhaustive {
+    hook_name: file_open
+}
+
+guard gotLink <- bpfman link get $linkID
+expect_link_get_identity $gotLink $link $linkID
+assert $gotLink.record.id == $linkID
+assert $gotLink.record.kind == lsm
+assert $gotLink.record.details.hook_name == file_open
+
+guard listed <- bpfman link list -o json
+expect_link_list_identity $listed $link $linkID lsm
+
+# Behavioural: nothing carries the marker comm yet, so the counter
+# starts at zero. Firing the probe opens the target exactly $count
+# times under the marker, and the program counts exactly those.
+# The program carries a .rodata global map alongside the counter, so
+# select the counter map by name rather than by position.
+let mapID = $prog.status.maps |> jq '[.[] | select(.name == "lsm_count")][0].id'
+let counterFilter = "fromjson | .[0].formatted.value | tonumber"
+
+guard beforeDump <- bpftool map dump id $mapID -j
+let before = $beforeDump.stdout |> jq $counterFilter
+assert $before == 0
+
+guard _ <- lsm fire $probe $count
+
+guard afterDump <- bpftool map dump id $mapID -j
+let after = $afterDump.stdout |> jq $counterFilter
+print "lsm hook=file_open marker=${probe.marker} count=${after} want=${count}"
+assert $after == $count
+
+bpfman link detach $link
+assert fail bpfman link get $linkID
+
+guard listedAfter <- bpfman link list -o json
+assert_link_absent $listedAfter $linkID
+
+# After detach the program no longer observes the hook, so firing the
+# probe again leaves the counter untouched.
+guard _ <- lsm fire $probe $count
+guard detachedDump <- bpftool map dump id $mapID -j
+let afterDetach = $detachedDump.stdout |> jq $counterFilter
+print "lsm after-detach count=${afterDetach} want=${after}"
+assert $afterDetach == $after
+
+bpfman program unload $pid
+assert fail bpfman program get $prog

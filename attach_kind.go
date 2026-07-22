@@ -23,6 +23,8 @@ func attachVerb(spec AttachSpec) (verb string, accepts []ProgramType) {
 		return "fentry", []ProgramType{ProgramTypeFentry}
 	case FexitAttachSpec:
 		return "fexit", []ProgramType{ProgramTypeFexit}
+	case LsmAttachSpec:
+		return "lsm", []ProgramType{ProgramTypeLsm}
 	case XDPAttachSpec:
 		return "xdp", []ProgramType{ProgramTypeXDP}
 	case TCAttachSpec:

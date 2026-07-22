@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -126,6 +127,7 @@ func TestBPFManScripts(t *testing.T) {
 	// subtest, so one malformed pragma does not abort
 	// registration of the rest of the corpus.
 	selector := scriptLabelSelector(t)
+	bpfLSM := bpfLSMActive()
 	serial := make(map[string]bool, len(matches))
 	exclusive := make(map[string]bool, len(matches))
 	metadata := make(map[string]scriptMetadata, len(matches))
@@ -177,6 +179,11 @@ func TestBPFManScripts(t *testing.T) {
 					meta.mode.Labels.Get("requires-clsact-reclaim") == "true" &&
 					!tcpolicy.ReclaimClsactOnDetach {
 					skipReason = "tcpolicy.ReclaimClsactOnDetach is false; flip it to true to run this"
+				}
+				if skipReason == "" &&
+					meta.mode.Labels.Get("requires-bpf-lsm") == "true" &&
+					!bpfLSM {
+					skipReason = "BPF LSM not in the active list (/sys/kernel/security/lsm lacks bpf); boot with lsm=...,bpf to run this"
 				}
 			}
 			t.Run(name, func(t *testing.T) {
@@ -363,6 +370,20 @@ func scriptLabelSelector(t *testing.T) k8slabels.Selector {
 	}
 
 	return selector
+}
+
+// bpfLSMActive reports whether the running kernel has the BPF LSM in
+// its active list, read from /sys/kernel/security/lsm. Scripts labelled
+// requires-bpf-lsm=true attach BPF_PROG_TYPE_LSM programs, which needs
+// "bpf" in that list (CONFIG_BPF_LSM plus lsm=...,bpf); GitHub-hosted
+// runners ship CONFIG_BPF_LSM=y without the active entry and cannot add
+// it without a reboot, so those scripts skip there rather than fail.
+func bpfLSMActive() bool {
+	data, err := os.ReadFile("/sys/kernel/security/lsm")
+	if err != nil {
+		return false
+	}
+	return slices.Contains(strings.Split(strings.TrimSpace(string(data)), ","), "bpf")
 }
 
 func scriptSelectorSkipReason(selector k8slabels.Selector, labels k8slabels.Set) string {

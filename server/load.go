@@ -59,7 +59,9 @@ func (s *Server) Load(ctx context.Context, req *pb.LoadRequest) (*pb.LoadRespons
 			return nil, status.Errorf(codes.InvalidArgument, "invalid program type for %s: %v", info.Name, err)
 		}
 
-		// Extract AttachFunc from ProgSpecificInfo for fentry/fexit
+		// Extract the load-time attach target from ProgSpecificInfo:
+		// the traced function for fentry/fexit, or the hook for lsm.
+		// All three share the AttachFunc field (see RequiresAttachFunc).
 		var attachFunc string
 		if info.Info != nil {
 			switch i := info.Info.Info.(type) {
@@ -67,6 +69,8 @@ func (s *Server) Load(ctx context.Context, req *pb.LoadRequest) (*pb.LoadRespons
 				attachFunc = i.FentryLoadInfo.FnName
 			case *pb.ProgSpecificInfo_FexitLoadInfo:
 				attachFunc = i.FexitLoadInfo.FnName
+			case *pb.ProgSpecificInfo_LsmLoadInfo:
+				attachFunc = i.LsmLoadInfo.HookName
 			}
 		}
 

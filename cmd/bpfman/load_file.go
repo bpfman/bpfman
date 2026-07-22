@@ -36,7 +36,7 @@ type loadFlags struct {
 	// the ATTACH_FUNC component is required. The flag is required: there is
 	// no untyped bulk load, because a section-derived type would be a guess
 	// (classifier sections cannot distinguish tc from tcx).
-	Programs []args.ProgramSpec `name:"programs" sep:"," required:"" help:"TYPE:NAME or TYPE:NAME:ATTACH_FUNC program to load (comma-separated or repeated). For fentry/fexit, ATTACH_FUNC is required. Every program to load must be named."`
+	Programs []args.ProgramSpec `name:"programs" sep:"," required:"" help:"TYPE:NAME or TYPE:NAME:ATTACH_FUNC program to load (comma-separated or repeated). For fentry/fexit/lsm, ATTACH_FUNC is required (the traced function, or the lsm hook). Every program to load must be named."`
 
 	// Application groups the loaded programs under an application name,
 	// stored as the bpfman.io/application metadata key.

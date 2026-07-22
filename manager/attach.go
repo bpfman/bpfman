@@ -47,6 +47,8 @@ func (m *Manager) Attach(ctx context.Context, writeLock lock.WriterScope, spec b
 		return m.attachFentry(ctx, s)
 	case bpfman.FexitAttachSpec:
 		return m.attachFexit(ctx, s)
+	case bpfman.LsmAttachSpec:
+		return m.attachLsm(ctx, s)
 	case bpfman.XDPAttachSpec:
 		return m.attachXDP(ctx, s)
 	case bpfman.TCAttachSpec:

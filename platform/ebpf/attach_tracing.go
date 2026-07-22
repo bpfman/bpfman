@@ -115,6 +115,27 @@ func (k *kernelAdapter) AttachFexit(ctx context.Context, progPinPath bpfman.Prog
 	return k.attachTracing(ctx, progPinPath, fnName, linkPinPath)
 }
 
+// AttachLsm attaches a pinned LSM program to its hook. The hook was
+// specified at load time (from the lsm/<hook> ELF section, propagated to
+// ProgramSpec.AttachTo) and baked into the program, so link.AttachLSM
+// takes no hook argument -- mirroring how fentry/fexit bind at load.
+func (k *kernelAdapter) AttachLsm(ctx context.Context, progPinPath bpfman.ProgPinPath, hookName string, linkPinPath bpfman.LinkPath) (bpfman.AttachOutput, error) {
+	prog, err := ebpf.LoadPinnedProgram(progPinPath.String(), nil)
+	if err != nil {
+		return bpfman.AttachOutput{}, fmt.Errorf("load pinned program %s: %w", progPinPath, err)
+	}
+	defer prog.Close()
+
+	lnk, err := link.AttachLSM(link.LSMOptions{
+		Program: prog,
+	})
+	if err != nil {
+		return bpfman.AttachOutput{}, fmt.Errorf("attach lsm to %s: %w", hookName, err)
+	}
+
+	return k.finishProbeAttach(lnk, linkPinPath)
+}
+
 // attachTracing is the shared implementation for fentry and fexit attachment.
 func (k *kernelAdapter) attachTracing(ctx context.Context, progPinPath bpfman.ProgPinPath, fnName string, linkPinPath bpfman.LinkPath) (bpfman.AttachOutput, error) {
 	prog, err := ebpf.LoadPinnedProgram(progPinPath.String(), nil)

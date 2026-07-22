@@ -206,6 +206,18 @@ func (FexitDetails) linkDetails() {}
 // Kind returns LinkKindFexit.
 func (FexitDetails) Kind() LinkKind { return LinkKindFexit }
 
+// LsmDetails contains fields specific to LSM attachments.
+type LsmDetails struct {
+	// HookName is the LSM hook the program guards (e.g. file_open),
+	// fixed at load time from the lsm/<hook> ELF section.
+	HookName string `json:"hook_name"`
+}
+
+func (LsmDetails) linkDetails() {}
+
+// Kind returns LinkKindLsm.
+func (LsmDetails) Kind() LinkKind { return LinkKindLsm }
+
 // XDPDetails contains fields specific to XDP attachments.
 // Netns empty means the root network namespace.
 type XDPDetails struct {
@@ -394,6 +406,7 @@ const (
 	LinkKindUretprobe  LinkKind = "uretprobe"
 	LinkKindFentry     LinkKind = "fentry"
 	LinkKindFexit      LinkKind = "fexit"
+	LinkKindLsm        LinkKind = "lsm"
 	LinkKindXDP        LinkKind = "xdp"
 	LinkKindTC         LinkKind = "tc"
 	LinkKindTCX        LinkKind = "tcx"
@@ -408,6 +421,7 @@ var allLinkKinds = []LinkKind{
 	LinkKindUretprobe,
 	LinkKindFentry,
 	LinkKindFexit,
+	LinkKindLsm,
 	LinkKindXDP,
 	LinkKindTC,
 	LinkKindTCX,
@@ -457,6 +471,8 @@ func ParseLinkKind(s string) (LinkKind, error) {
 		return LinkKindFentry, nil
 	case "fexit":
 		return LinkKindFexit, nil
+	case "lsm":
+		return LinkKindLsm, nil
 	case "xdp":
 		return LinkKindXDP, nil
 	case "tc":
@@ -554,14 +570,16 @@ func newLinkDetails(kind LinkKind) LinkDetails {
 		return &FentryDetails{}
 	case LinkKindFexit:
 		return &FexitDetails{}
+	case LinkKindLsm:
+		return &LsmDetails{}
 	}
 	return nil
 }
 
 // LinkAttachKinds returns the attach subcommand keywords the CLI
 // exposes (xdp, tc, tcx, tracepoint, kprobe, uprobe, fentry,
-// fexit). Eight entries, not ten -- kprobe / kretprobe and uprobe
-// / uretprobe collapse into the kprobe and uprobe attach
+// fexit, lsm). Nine entries, not eleven -- kprobe / kretprobe and
+// uprobe / uretprobe collapse into the kprobe and uprobe attach
 // subcommands respectively, with --retprobe selecting the paired
 // LinkKind at attach time.
 func LinkAttachKinds() []string {
@@ -574,6 +592,7 @@ func LinkAttachKinds() []string {
 		"uprobe",
 		"fentry",
 		"fexit",
+		"lsm",
 	}
 }
 
@@ -601,6 +620,8 @@ func LinkAttachKindDetailsType(attachKind string) reflect.Type {
 		return reflect.TypeFor[FentryDetails]()
 	case "fexit":
 		return reflect.TypeFor[FexitDetails]()
+	case "lsm":
+		return reflect.TypeFor[LsmDetails]()
 	}
 	return nil
 }

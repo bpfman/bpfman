@@ -214,6 +214,119 @@ func TestFexit_FullLifecycle(t *testing.T) {
 }
 
 // =============================================================================
+// LSM Lifecycle Tests
+// =============================================================================
+//
+// LSM programs bind their hook at load time and reuse the fentry/fexit
+// attach-func plumbing: the hook is supplied to NewAttachLoadSpec and
+// stored in the program's AttachFunc, then surfaced on the link as
+// LsmDetails.HookName.
+
+// TestLsm_AttachSucceeds verifies that:
+//
+//	Given a loaded LSM program with its hook specified,
+//	When I attach it,
+//	Then a link is created.
+func TestLsm_AttachSucceeds(t *testing.T) {
+	t.Parallel()
+
+	fix := newTestFixture(t)
+	ctx := context.Background()
+
+	spec, err := bpfman.NewAttachLoadSpec(fix.BytecodeFile("lsm.o"), "lsm_prog", bpfman.ProgramTypeLsm, "file_open")
+	require.NoError(t, err, "failed to create load spec")
+
+	prog, err := fix.Load(ctx, spec, manager.LoadOpts{})
+	require.NoError(t, err, "Load should succeed")
+
+	attachSpec, err := bpfman.NewLsmAttachSpec(prog.Record.ProgramID)
+	require.NoError(t, err, "failed to create attach spec")
+	link, err := fix.Attach(ctx, attachSpec)
+	require.NoError(t, err, "AttachLsm should succeed")
+	require.NotZero(t, link.Record.ID, "link ID should be non-zero")
+
+	assert.Equal(t, 1, fix.Kernel.LinkCount(), "should have 1 link in kernel")
+}
+
+// TestLsm_LoadWithoutHookName_Fails verifies that:
+//
+//	Given an LSM program load request without a hook specified,
+//	When I try to create the spec,
+//	Then spec creation fails because lsm requires an attach func.
+func TestLsm_LoadWithoutHookName_Fails(t *testing.T) {
+	t.Parallel()
+
+	fix := newTestFixture(t)
+
+	_, err := bpfman.NewLoadSpec("/path/to/lsm.o", "lsm_prog", bpfman.ProgramTypeLsm)
+	require.Error(t, err, "spec creation should fail without a hook for lsm")
+	assert.Contains(t, err.Error(), "attachFunc", "error should mention attachFunc")
+
+	assert.Equal(t, 0, fix.Kernel.ProgramCount(), "no programs should exist")
+}
+
+// TestLsm_FullLifecycle verifies the complete LSM lifecycle and that the
+// hook is surfaced on the link as LsmDetails.HookName.
+func TestLsm_FullLifecycle(t *testing.T) {
+	t.Parallel()
+
+	fix := newTestFixture(t)
+	ctx := context.Background()
+
+	// Step 1: Load LSM program
+	spec, err := bpfman.NewAttachLoadSpec(fix.BytecodeFile("lsm.o"), "lsm_prog", bpfman.ProgramTypeLsm, "file_open")
+	require.NoError(t, err)
+	prog, err := fix.Load(ctx, spec, manager.LoadOpts{})
+	require.NoError(t, err, "Load should succeed")
+
+	// Step 2: Attach
+	attachSpec, err := bpfman.NewLsmAttachSpec(prog.Record.ProgramID)
+	require.NoError(t, err)
+	link, err := fix.Attach(ctx, attachSpec)
+	require.NoError(t, err, "Attach should succeed")
+
+	assert.Equal(t, 1, fix.Kernel.ProgramCount(), "should have 1 program")
+	assert.Equal(t, 1, fix.Kernel.LinkCount(), "should have 1 link")
+
+	// Step 3: Verify link details carry the hook
+	assert.Equal(t, bpfman.LinkKindLsm, link.Record.Kind, "link kind should be lsm")
+	details, ok := link.Record.Details.(bpfman.LsmDetails)
+	require.Truef(t, ok, "expected LsmDetails, got %T", link.Record.Details)
+	assert.Equal(t, "file_open", details.HookName, "hook name should be preserved")
+
+	// Step 4: Detach
+	err = fix.Detach(ctx, link.Record.ID)
+	require.NoError(t, err, "Detach should succeed")
+	assert.Equal(t, 0, fix.Kernel.LinkCount(), "should have 0 links after detach")
+
+	// Step 5: Unload
+	err = fix.Unload(ctx, prog.Record.ProgramID)
+	require.NoError(t, err, "Unload should succeed")
+
+	// Step 6: Verify clean state
+	fix.AssertCleanState()
+}
+
+// TestLsm_HookNamePreservedAfterLoad verifies that the hook specified at
+// load time is recoverable from the stored program record (in AttachFunc,
+// which lsm shares with fentry/fexit).
+func TestLsm_HookNamePreservedAfterLoad(t *testing.T) {
+	t.Parallel()
+
+	fix := newTestFixture(t)
+	ctx := context.Background()
+
+	spec, err := bpfman.NewAttachLoadSpec(fix.BytecodeFile("lsm.o"), "lsm_prog", bpfman.ProgramTypeLsm, "socket_connect")
+	require.NoError(t, err)
+
+	prog, err := fix.Load(ctx, spec, manager.LoadOpts{})
+	require.NoError(t, err)
+
+	assert.Equal(t, "socket_connect", prog.Record.Load.AttachFunc(), "hook should be preserved in the stored record")
+	assert.Equal(t, bpfman.ProgramTypeLsm, prog.Record.Load.ProgramType(), "program type should be lsm")
+}
+
+// =============================================================================
 // Kprobe Lifecycle Tests
 // =============================================================================
 

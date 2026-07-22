@@ -157,6 +157,7 @@ type sqliteStore struct {
 	stmtGetUprobeDetails     *sql.Stmt
 	stmtGetFentryDetails     *sql.Stmt
 	stmtGetFexitDetails      *sql.Stmt
+	stmtGetLsmDetails        *sql.Stmt
 	stmtGetXDPDetails        *sql.Stmt
 	stmtGetTCDetails         *sql.Stmt
 	stmtGetTCXDetails        *sql.Stmt
@@ -167,6 +168,7 @@ type sqliteStore struct {
 	stmtSaveUprobeDetails     *sql.Stmt
 	stmtSaveFentryDetails     *sql.Stmt
 	stmtSaveFexitDetails      *sql.Stmt
+	stmtSaveLsmDetails        *sql.Stmt
 	stmtSaveXDPDetails        *sql.Stmt
 	stmtSaveTCDetails         *sql.Stmt
 	stmtSaveTCXDetails        *sql.Stmt
@@ -177,6 +179,7 @@ type sqliteStore struct {
 	stmtListAllUprobeDetails     *sql.Stmt
 	stmtListAllFentryDetails     *sql.Stmt
 	stmtListAllFexitDetails      *sql.Stmt
+	stmtListAllLsmDetails        *sql.Stmt
 	stmtListAllXDPDetails        *sql.Stmt
 	stmtListAllTCDetails         *sql.Stmt
 	stmtListAllTCXDetails        *sql.Stmt
@@ -400,6 +403,7 @@ func (s *sqliteStore) closeStatements() {
 		s.stmtGetUprobeDetails,
 		s.stmtGetFentryDetails,
 		s.stmtGetFexitDetails,
+		s.stmtGetLsmDetails,
 		s.stmtGetXDPDetails,
 		s.stmtGetTCDetails,
 		s.stmtGetTCXDetails,
@@ -408,6 +412,7 @@ func (s *sqliteStore) closeStatements() {
 		s.stmtSaveUprobeDetails,
 		s.stmtSaveFentryDetails,
 		s.stmtSaveFexitDetails,
+		s.stmtSaveLsmDetails,
 		s.stmtSaveXDPDetails,
 		s.stmtSaveTCDetails,
 		s.stmtSaveTCXDetails,
@@ -416,6 +421,7 @@ func (s *sqliteStore) closeStatements() {
 		s.stmtListAllUprobeDetails,
 		s.stmtListAllFentryDetails,
 		s.stmtListAllFexitDetails,
+		s.stmtListAllLsmDetails,
 		s.stmtListAllXDPDetails,
 		s.stmtListAllTCDetails,
 		s.stmtListAllTCXDetails,
@@ -594,6 +600,7 @@ func (s *sqliteStore) runTransactionAttempt(ctx context.Context, logger *slog.Lo
 		stmtGetUprobeDetails:     tx.StmtContext(ctx, s.stmtGetUprobeDetails),
 		stmtGetFentryDetails:     tx.StmtContext(ctx, s.stmtGetFentryDetails),
 		stmtGetFexitDetails:      tx.StmtContext(ctx, s.stmtGetFexitDetails),
+		stmtGetLsmDetails:        tx.StmtContext(ctx, s.stmtGetLsmDetails),
 		stmtGetXDPDetails:        tx.StmtContext(ctx, s.stmtGetXDPDetails),
 		stmtGetTCDetails:         tx.StmtContext(ctx, s.stmtGetTCDetails),
 		stmtGetTCXDetails:        tx.StmtContext(ctx, s.stmtGetTCXDetails),
@@ -603,6 +610,7 @@ func (s *sqliteStore) runTransactionAttempt(ctx context.Context, logger *slog.Lo
 		stmtSaveUprobeDetails:     tx.StmtContext(ctx, s.stmtSaveUprobeDetails),
 		stmtSaveFentryDetails:     tx.StmtContext(ctx, s.stmtSaveFentryDetails),
 		stmtSaveFexitDetails:      tx.StmtContext(ctx, s.stmtSaveFexitDetails),
+		stmtSaveLsmDetails:        tx.StmtContext(ctx, s.stmtSaveLsmDetails),
 		stmtSaveXDPDetails:        tx.StmtContext(ctx, s.stmtSaveXDPDetails),
 		stmtSaveTCDetails:         tx.StmtContext(ctx, s.stmtSaveTCDetails),
 		stmtSaveTCXDetails:        tx.StmtContext(ctx, s.stmtSaveTCXDetails),
@@ -612,6 +620,7 @@ func (s *sqliteStore) runTransactionAttempt(ctx context.Context, logger *slog.Lo
 		stmtListAllUprobeDetails:     tx.StmtContext(ctx, s.stmtListAllUprobeDetails),
 		stmtListAllFentryDetails:     tx.StmtContext(ctx, s.stmtListAllFentryDetails),
 		stmtListAllFexitDetails:      tx.StmtContext(ctx, s.stmtListAllFexitDetails),
+		stmtListAllLsmDetails:        tx.StmtContext(ctx, s.stmtListAllLsmDetails),
 		stmtListAllXDPDetails:        tx.StmtContext(ctx, s.stmtListAllXDPDetails),
 		stmtListAllTCDetails:         tx.StmtContext(ctx, s.stmtListAllTCDetails),
 		stmtListAllTCXDetails:        tx.StmtContext(ctx, s.stmtListAllTCXDetails),
