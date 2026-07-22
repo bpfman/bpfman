@@ -107,9 +107,19 @@ func (e *executor) ExecuteResult(ctx context.Context, a action.Action) (any, err
 		return nil, e.bpffs.RemoveDispatcherRevDir(a.Path)
 
 	case action.RebuildXDPDispatcher:
-		return e.rebuildXDPDispatcher(ctx, a.ProgramID,
+		newSlot := rebuildSlot{
+			ProgPinPath: a.ProgPinPath,
+			ProgramName: a.ProgramName,
+			Priority:    a.Priority,
+			ProceedOn:   a.ProceedOn,
+			ProgramID:   a.ProgramID,
+			Ifname:      a.Ifname,
+			Metadata:    a.Metadata,
+			HasXDPFrags: a.HasXDPFrags,
+		}
+		return e.rebuildXDPDispatcher(ctx,
 			xdpRebuildOps{ifindex: a.Ifindex, ifname: a.Ifname, netnsPath: a.NetnsPath},
-			a.ProgPinPath, a.ProgramName, a.Priority, a.ProceedOn, a.Metadata)
+			newSlot)
 
 	case action.RebuildTCDispatcher:
 		return e.rebuildTCDispatcher(ctx, a.ProgramID,

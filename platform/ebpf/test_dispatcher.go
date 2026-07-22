@@ -33,7 +33,7 @@ func (td *testDispatchers) getXDP() (*ebpf.Program, error) {
 		return td.xdp, nil
 	}
 
-	cfg, err := dispatcher.NewXDPConfig(1)
+	cfg, err := dispatcher.NewXDPConfig(1, false)
 	if err != nil {
 		return nil, fmt.Errorf("create test XDP dispatcher config: %w", err)
 	}

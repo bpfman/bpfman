@@ -56,6 +56,10 @@ type DispatcherMember struct {
 	// Metadata is the caller-supplied key/value metadata recorded with
 	// the link.
 	Metadata map[string]string `json:"metadata"`
+
+	// HasXDPFrags reports whether this XDP member was loaded from a
+	// frags-capable program spec. It is false for non-XDP members.
+	HasXDPFrags bool `json:"has_xdp_frags"`
 }
 
 // DispatcherMemberSpec describes an extension program that should be
@@ -111,6 +115,14 @@ type DispatcherMemberSpec struct {
 	// Metadata is the caller-supplied key/value metadata to record
 	// with the link.
 	Metadata map[string]string `json:"metadata"`
+
+	// HasXDPFrags reports whether this XDP member was loaded from a
+	// frags-capable program spec; false for non-XDP members. It is not
+	// persisted per-member: managed_programs.has_xdp_frags (the program
+	// record) is the source of truth, and the store re-derives the member
+	// flag from it on read via a join. On the spec this is load-transient
+	// input to the frags-eligibility decision, not a durable field.
+	HasXDPFrags bool `json:"has_xdp_frags"`
 }
 
 // DispatcherRuntime holds the kernel-assigned identifiers for the
@@ -168,6 +180,10 @@ type DispatcherSnapshot struct {
 	// Members are the extension programs currently attached to the
 	// dispatcher, in slot order (ascending Position).
 	Members []DispatcherMember `json:"members"`
+
+	// IsXDPFrags reports whether this XDP dispatcher was loaded with
+	// BPF_F_XDP_HAS_FRAGS. It is false for non-XDP dispatchers.
+	IsXDPFrags bool `json:"is_xdp_frags"`
 }
 
 // DispatcherSnapshotSpec is the requested replacement state for a dispatcher.
@@ -212,6 +228,12 @@ type DispatcherSummary struct {
 	// MemberCount is the number of extension members attached to the
 	// dispatcher.
 	MemberCount int `json:"member_count"`
+
+	// IsXDPFrags reports whether the dispatcher is loaded frags-aware
+	// (BPF_F_XDP_HAS_FRAGS). Always false for a non-XDP dispatcher.
+	// Mirrors DispatcherSnapshot.IsXDPFrags so `dispatcher list` can be
+	// filtered for frags dispatchers without a per-dispatcher get.
+	IsXDPFrags bool `json:"is_xdp_frags"`
 }
 
 // DispatcherListResult wraps dispatcher list output for consistent

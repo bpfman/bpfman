@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/cilium/ebpf"
+	"golang.org/x/sys/unix"
 
 	"github.com/bpfman/bpfman"
 )
@@ -43,8 +44,7 @@ type XDPConfig struct {
 	NumProgsEnabled uint8
 
 	// IsXDPFrags, when nonzero, marks the dispatcher as XDP-fragments
-	// aware. This codebase never sets it, so it stays zero; the field
-	// exists only to mirror the C struct layout.
+	// aware.
 	IsXDPFrags uint8
 
 	// ChainCallActions holds the per-slot proceed-on bitmask: element i
@@ -59,9 +59,7 @@ type XDPConfig struct {
 	// stored priority and position before the config is built.
 	RunPrios [MaxPrograms]uint32
 
-	// ProgramFlags holds the per-slot program flags. This codebase never
-	// sets it, so it stays zero; the field exists only to mirror the C
-	// struct layout.
+	// ProgramFlags holds the per-slot program flags.
 	ProgramFlags [MaxPrograms]uint32
 }
 
@@ -103,6 +101,39 @@ const (
 	// stored priority and position.
 	DispatcherRunPriority = 50
 )
+
+// FragsEligible reports whether an XDP dispatcher built from these
+// members should be loaded frags-aware: the set is non-empty and every
+// member is frags-capable. Empty, or any non-frags member, yields false.
+// TC members are never frags-capable, so this returns false for a TC
+// dispatcher. It is the single definition of the frags-eligibility rule,
+// shared by the load decision and the reported dispatcher snapshot.
+//
+// A member is frags-capable when its XDP program is compiled with a
+// SEC("xdp.frags") section: cilium/ebpf reads that section and sets
+// BPF_F_XDP_HAS_FRAGS at load, which bpfman records per member and passes
+// here as memberFrags. A plain SEC("xdp") program never carries the flag.
+//
+// The all-or-nothing rule is the libxdp dispatcher policy, not a kernel
+// constraint. BPF_F_XDP_HAS_FRAGS is a property of the dispatcher as a
+// whole -- it cannot be set per freplace member -- so it is only safe to
+// set when every member is written to handle fragmented packets; a
+// non-frags member exposed to frags can silently misbehave, and the
+// kernel cannot detect this. See lib/libxdp/protocol.org, "Supporting XDP
+// programs with frags support", in xdp-project/xdp-tools.
+func FragsEligible(memberFrags []bool) bool {
+	if len(memberFrags) == 0 {
+		return false
+	}
+
+	for _, frags := range memberFrags {
+		if !frags {
+			return false
+		}
+	}
+
+	return true
+}
 
 func proceedOnOffset(dt DispatcherType) (int32, error) {
 	switch dt {
@@ -171,8 +202,9 @@ func ProceedOnActions(dt DispatcherType, mask uint32) ([]int32, error) {
 }
 
 // NewXDPConfig creates a default XDP dispatcher config. numProgs
-// must be in the range [1, MaxPrograms].
-func NewXDPConfig(numProgs int) (XDPConfig, error) {
+// must be in the range [1, MaxPrograms]. fragsAware loads the dispatcher
+// frags-aware (see FragsEligible for the eligibility rule).
+func NewXDPConfig(numProgs int, fragsAware bool) (XDPConfig, error) {
 	if numProgs < 1 || numProgs > MaxPrograms {
 		return XDPConfig{}, fmt.Errorf("numProgs %d out of range [1, %d]", numProgs, MaxPrograms)
 	}
@@ -181,8 +213,17 @@ func NewXDPConfig(numProgs int) (XDPConfig, error) {
 		DispatcherVersion: xdpDispatcherVersion,
 		NumProgsEnabled:   uint8(numProgs),
 	}
+
+	// IsXDPFrags is the C .rodata field (uint8, 0/1); frags is a plain
+	// bool everywhere else and converts to the ABI representation here.
+	if fragsAware {
+		cfg.IsXDPFrags = 1
+	}
 	for i := range MaxPrograms {
 		cfg.RunPrios[i] = DispatcherRunPriority
+		if fragsAware && i < numProgs {
+			cfg.ProgramFlags[i] = unix.BPF_F_XDP_HAS_FRAGS
+		}
 	}
 	return cfg, nil
 }
