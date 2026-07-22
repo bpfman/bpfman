@@ -36,6 +36,11 @@ defer bpfman link detach $plainLink
 # The dispatcher is downgraded: not all members are frags-capable.
 guard disp2 <- bpfman dispatcher get xdp $veth.a.nsid $veth.a.ifindex
 assert not $disp2.is_xdp_frags
+
+# The downgrade shows in dispatcher list too, not just get.
+guard dispList <- bpfman dispatcher list
+let listFrags = $dispList |> jq "[.dispatchers[] | select(.key.nsid == ${veth.a.nsid} and .key.ifindex == ${veth.a.ifindex})][0].is_xdp_frags"
+assert not $listFrags
 let members = $disp2 |> jq ".members | length"
 assert $members == 2
 let fragsMembers = $disp2 |> jq "[.members[] | select(.has_xdp_frags)] | length"

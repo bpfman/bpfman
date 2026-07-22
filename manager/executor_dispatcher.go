@@ -89,15 +89,17 @@ func dispatcherMembers(slots []rebuildSlot, attached []attachedExt) []platform.D
 }
 
 func xdpFragsModeForSlots(slots []rebuildSlot) dispatcher.XDPFragsMode {
-	for _, slot := range slots {
-		if !slot.HasXDPFrags {
-			return dispatcher.XDPFragsDisabled
-		}
+	frags := make([]bool, len(slots))
+
+	for i, slot := range slots {
+		frags[i] = slot.HasXDPFrags
 	}
-	if len(slots) == 0 {
-		return dispatcher.XDPFragsDisabled
+
+	if dispatcher.FragsEligible(frags) {
+		return dispatcher.XDPFragsEnabled
 	}
-	return dispatcher.XDPFragsEnabled
+
+	return dispatcher.XDPFragsDisabled
 }
 
 // rebuildXDPDispatcher performs a full XDP dispatcher rebuild.
