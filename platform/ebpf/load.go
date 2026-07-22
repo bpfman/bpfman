@@ -105,7 +105,14 @@ func (k *kernelAdapter) Load(ctx context.Context, spec bpfman.LoadSpec, bpffs fs
 		return bpfman.LoadOutput{}, fmt.Errorf("program %q not found in collection spec; available programs: %v", spec.ProgramName(), available)
 	}
 	license := progSpec.License
-	hasXDPFrags := progSpec.Flags&unix.BPF_F_XDP_HAS_FRAGS != 0
+
+	// The loader sets BPF_F_XDP_HAS_FRAGS from an xdp.frags section. On a
+	// kernel that predates it (< 5.18) BPF_PROG_LOAD rejects the unknown
+	// flag, so resolveXDPFrags strips it and loads the program as
+	// non-frags -- mirroring libxdp, which loads the dispatcher without
+	// the flag when the kernel lacks it.
+	var hasXDPFrags bool
+	progSpec.Flags, hasXDPFrags = resolveXDPFrags(progSpec.Flags, haveXDPFrags())
 
 	// Determine program type: prefer user-specified type, fall back to ELF inference.
 	// The user's CLI specification (e.g., --programs kretprobe:func) takes precedence
