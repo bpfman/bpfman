@@ -9,7 +9,16 @@
 -- Schema for bpfman SQLite database
 --
 -- This schema uses the registry + detail tables pattern for links,
--- providing both polymorphic access and type-specific constraints.
+-- providing polymorphic access with a separate column set per type.
+--
+-- Value validation lives in the domain, not the schema. The store is
+-- reached only through the Store interface; the domain types and their
+-- constructors validate enums, ranges and JSON shape before anything is
+-- written, so re-encoding those as SQL CHECK constraints would only
+-- duplicate an invariant our own code already guarantees. The schema
+-- therefore keeps only structural guarantees: primary and foreign keys
+-- (identity and referential integrity, including the delete cascades),
+-- NOT NULL, uniqueness, and STRICT column typing.
 --
 -- Entity lifecycle
 -- ================
@@ -47,8 +56,8 @@
 -- here regardless of type, with a "kind" discriminator column that
 -- indicates which detail table holds the type-specific data. Each
 -- detail table has a 1:1 relationship with links, joined on id.
--- This avoids a single wide nullable table and lets each type enforce
--- its own constraints.
+-- This avoids a single wide nullable table and keeps each type's
+-- columns separate.
 --
 -- CREATE: A link row is inserted into both the base links table and
 --   the appropriate detail table in a single transaction. The id is
@@ -122,12 +131,6 @@
 --   it, SQLite allows any value in any column regardless of declared
 --   type. With STRICT, inserting a TEXT into an INTEGER column (or
 --   vice versa) is an error. Every table in this schema uses STRICT.
---
--- CHECK: an inline constraint that validates a value at
---   insert/update time. Used throughout for enum-style columns
---   (program_type, kind, direction), range constraints (offset >= 0,
---   position BETWEEN 0 AND 9), boolean columns (IN (0, 1)), and
---   JSON validation (json_valid).
 
 CREATE TABLE IF NOT EXISTS map_sets (
     id         INTEGER PRIMARY KEY,
@@ -141,36 +144,21 @@ CREATE TABLE IF NOT EXISTS map_sets (
 CREATE TABLE IF NOT EXISTS managed_programs (
     program_id INTEGER PRIMARY KEY,
     program_name TEXT NOT NULL,
-    program_type TEXT NOT NULL CHECK (program_type IN (
-        'xdp','tc','tcx','tracepoint','kprobe','kretprobe',
-        'uprobe','uretprobe','fentry','fexit'
-    )),
+    program_type TEXT NOT NULL,
     object_path TEXT NOT NULL,
     source_path TEXT,            -- the caller's file-load path operand,
                                      -- verbatim; NULL for image loads, whose
                                      -- provenance lives in image_source
     pin_path TEXT NOT NULL,
     attach_func TEXT,
-    global_data TEXT CHECK (global_data IS NULL OR json_valid(global_data)),
-                                     -- JSON map<string, bytes>, opaque
+    global_data TEXT,                -- JSON map<string, bytes>, opaque
     map_set_id INTEGER NOT NULL,
-    image_source TEXT CHECK (
-        image_source IS NULL
-        OR (
-            json_valid(image_source)
-            AND json_extract(image_source, '$.url') IS NOT NULL
-            AND json_extract(image_source, '$.url') != ''
-            AND json_extract(image_source, '$.pull_policy') IN (
-                'Always', 'IfNotPresent', 'Never'
-            )
-        )
-    ),           -- JSON ImageSource struct, NULL if file-loaded
+    image_source TEXT,               -- JSON ImageSource struct, NULL if file-loaded
     owner TEXT,
     description TEXT,
     license TEXT,                -- ELF license string from bytecode
-    gpl_compatible INTEGER NOT NULL DEFAULT 0 CHECK (gpl_compatible IN (0, 1)),
-    metadata_json TEXT NOT NULL DEFAULT '{}' CHECK (json_valid(metadata_json)),
-                                     -- User key-value metadata as JSON
+    gpl_compatible INTEGER NOT NULL DEFAULT 0,
+    metadata_json TEXT NOT NULL DEFAULT '{}',   -- User key-value metadata as JSON
     created_at TEXT NOT NULL,
     updated_at TEXT,
     -- updated_at is NULL when the program has never been updated
@@ -197,15 +185,11 @@ CREATE TABLE IF NOT EXISTS managed_programs (
 -- captured kernel bpf_link ID, if the attach path observed one.
 CREATE TABLE IF NOT EXISTS links (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
-    kind            TEXT NOT NULL CHECK (kind IN (
-                        'tracepoint','kprobe','kretprobe','uprobe','uretprobe',
-                        'fentry','fexit','xdp','tc','tcx'
-                    )),        -- LinkKind discriminator
+    kind            TEXT NOT NULL,        -- LinkKind discriminator
     kernel_prog_id  INTEGER NOT NULL,     -- useful for queries
     kernel_link_id  INTEGER,
     pin_path        TEXT,
-    metadata_json   TEXT NOT NULL DEFAULT '{}'
-                        CHECK (json_valid(metadata_json)),  -- user key/value labels
+    metadata_json   TEXT NOT NULL DEFAULT '{}',  -- user key/value labels
     created_at      TEXT NOT NULL,
 
     -- Deleting a program cascades here, removing all its links.
@@ -253,8 +237,8 @@ CREATE TABLE IF NOT EXISTS link_tracepoint_details (
 CREATE TABLE IF NOT EXISTS link_kprobe_details (
     id INTEGER PRIMARY KEY,
     fn_name TEXT NOT NULL,
-    offset INTEGER NOT NULL DEFAULT 0 CHECK (offset >= 0),
-    retprobe INTEGER NOT NULL DEFAULT 0 CHECK (retprobe IN (0, 1)),
+    offset INTEGER NOT NULL DEFAULT 0,
+    retprobe INTEGER NOT NULL DEFAULT 0,
 
     FOREIGN KEY (id)
         REFERENCES links(id)
@@ -266,10 +250,10 @@ CREATE TABLE IF NOT EXISTS link_uprobe_details (
     id INTEGER PRIMARY KEY,
     target TEXT NOT NULL,
     fn_name TEXT,
-    offset INTEGER NOT NULL DEFAULT 0 CHECK (offset >= 0),
+    offset INTEGER NOT NULL DEFAULT 0,
     pid INTEGER,
     container_pid INTEGER,
-    retprobe INTEGER NOT NULL DEFAULT 0 CHECK (retprobe IN (0, 1)),
+    retprobe INTEGER NOT NULL DEFAULT 0,
 
     FOREIGN KEY (id)
         REFERENCES links(id)
@@ -310,33 +294,28 @@ CREATE TABLE IF NOT EXISTS link_fexit_details (
 -- currently persisted dispatcher revision via FK. It is not the
 -- logical identity of the dispatcher.
 --
+-- The per-type shape (XDP carries a kernel link and no filter
+-- priority/handle; TC carries a filter priority and handle and no
+-- kernel link) is a domain invariant enforced by the dispatcher types
+-- above the store, not by the schema.
+--
 -- No FK back to managed_programs: this is deliberate, giving
 -- flexibility in lifecycle ordering (the dispatcher row may be
 -- created before or after the corresponding managed_programs row).
 CREATE TABLE IF NOT EXISTS dispatchers (
-    type TEXT NOT NULL CHECK (type IN ('xdp', 'tc-ingress', 'tc-egress')),
+    type TEXT NOT NULL,
     nsid INTEGER NOT NULL,
     ifindex INTEGER NOT NULL,
-    revision INTEGER NOT NULL DEFAULT 1 CHECK (revision >= 1),
+    revision INTEGER NOT NULL DEFAULT 1,
     program_id INTEGER NOT NULL UNIQUE,
     kernel_link_id INTEGER,
-    priority INTEGER CHECK (priority >= 0),
-    filter_handle INTEGER CHECK (filter_handle >= 0),
+    priority INTEGER,
+    filter_handle INTEGER,
     netns TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
 
-    PRIMARY KEY (type, nsid, ifindex),
-
-    -- XDP dispatchers have a kernel link but no filter priority or handle.
-    -- TC dispatchers have a filter priority and the exact kernel-assigned
-    -- filter handle (recorded at create), but no kernel link (they use
-    -- netlink filters).
-    CHECK (
-        (type = 'xdp' AND kernel_link_id IS NOT NULL AND priority IS NULL AND filter_handle IS NULL)
-        OR
-        (type IN ('tc-ingress', 'tc-egress') AND kernel_link_id IS NULL AND priority IS NOT NULL AND filter_handle IS NOT NULL)
-    )
+    PRIMARY KEY (type, nsid, ifindex)
 ) STRICT;
 
 --------------------------------------------------------------------------------
@@ -350,9 +329,9 @@ CREATE TABLE IF NOT EXISTS link_xdp_details (
     id INTEGER PRIMARY KEY,
     interface TEXT NOT NULL,
     ifindex INTEGER NOT NULL,
-    priority INTEGER NOT NULL CHECK (priority >= 0),
-    position INTEGER NOT NULL CHECK (position BETWEEN 0 AND 9),
-    proceed_on TEXT NOT NULL CHECK (json_valid(proceed_on)),
+    priority INTEGER NOT NULL,
+    position INTEGER NOT NULL,
+    proceed_on TEXT NOT NULL,
     netns TEXT,
     nsid INTEGER NOT NULL,
     dispatcher_program_id INTEGER NOT NULL,
@@ -379,10 +358,10 @@ CREATE TABLE IF NOT EXISTS link_tc_details (
     id INTEGER PRIMARY KEY,
     interface TEXT NOT NULL,
     ifindex INTEGER NOT NULL,
-    direction TEXT NOT NULL CHECK (direction IN ('ingress', 'egress')),
-    priority INTEGER NOT NULL CHECK (priority >= 0),
-    position INTEGER NOT NULL CHECK (position BETWEEN 0 AND 9),
-    proceed_on TEXT NOT NULL CHECK (json_valid(proceed_on)),
+    direction TEXT NOT NULL,
+    priority INTEGER NOT NULL,
+    position INTEGER NOT NULL,
+    proceed_on TEXT NOT NULL,
     netns TEXT,
     nsid INTEGER NOT NULL,
     dispatcher_program_id INTEGER NOT NULL,
@@ -411,8 +390,8 @@ CREATE TABLE IF NOT EXISTS link_tcx_details (
     id INTEGER PRIMARY KEY,
     interface TEXT NOT NULL,
     ifindex INTEGER NOT NULL,
-    direction TEXT NOT NULL CHECK (direction IN ('ingress', 'egress')),
-    priority INTEGER NOT NULL CHECK (priority >= 0),
+    direction TEXT NOT NULL,
+    priority INTEGER NOT NULL,
     netns TEXT,
     nsid INTEGER NOT NULL,
 
