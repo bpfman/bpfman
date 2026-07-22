@@ -10,9 +10,8 @@
 // kernel. A load of only "good" must succeed even though "bad" shares
 // the object; loading "bad" must fail.
 //
-// The two programs sit in distinct sections (xdp, xdp.frags) so they
-// are separate entry points -- clang merges same-section functions
-// into a single program. Both sections infer BPF_PROG_TYPE_XDP.
+// Both functions are in the "xdp" section and load as separate
+// programs, keyed by function name.
 
 #include <linux/bpf.h>
 
@@ -21,7 +20,7 @@
 SEC("xdp")
 int good(struct xdp_md *ctx) { return XDP_PASS; }
 
-SEC("xdp.frags")
+SEC("xdp")
 int bad(struct xdp_md *ctx) {
   char *p = (char *)(unsigned long)ctx->data;
   return p[100]; // no bounds check against data_end -> verifier reject

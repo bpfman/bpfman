@@ -6,17 +6,22 @@
 # When: the good program is selected by name
 #
 # Then: it loads successfully, while requesting the broken sibling or
-# the whole object fails
+# the whole object fails.
 
-let bad <- bpfman program load file testdata/bpf/multi_prog_one_bad.bpf.o --programs xdp:bad
-assert not $bad.ok
+let broken <- bpfman program load file testdata/bpf/multi_prog_one_bad.bpf.o --programs xdp:bad
+assert not $broken.ok
+assert contains $broken.stderr "invalid access to packet"
 
 # Control: loading both programs (bad included) fails as a unit.
 let whole <- bpfman program load file testdata/bpf/multi_prog_one_bad.bpf.o --programs xdp:good,xdp:bad
 assert not $whole.ok
+assert contains $whole.stderr "invalid access to packet"
 
-# The behaviour under test: requesting only good succeeds despite bad
-# sharing the object.
+# The behaviour under test: requesting only good succeeds and loads
+# exactly that one program -- proof the broken sibling was not dragged
+# in.
 guard loaded <- bpfman program load file testdata/bpf/multi_prog_one_bad.bpf.o --programs xdp:good
-let prog = $loaded.programs[0]
-defer bpfman program unload $prog
+let count = $loaded |> jq ".programs | length"
+assert $count == 1
+assert $loaded.programs[0].record.load.program_name == "good"
+defer bpfman program unload $loaded.programs[0]
