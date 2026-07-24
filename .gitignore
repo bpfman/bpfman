@@ -79,3 +79,6 @@ cargo-vendor-filterer
 
 /ci-e2e-bundle/
 .cache/
+
+# Go build cache persisted across hack/fedora-vm.sh runs.
+/.gocache/
