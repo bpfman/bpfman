@@ -1,0 +1,137 @@
+name: e2e (nested Fedora VM, LSM)
+
+# Run the e2e suite -- the gRPC lifecycle tests and the
+# whole .bpfman script corpus -- under a kernel with bpf in the
+# active LSM list.
+#
+# Hosted runners boot without bpf-LSM (/sys/kernel/security/lsm lacks
+# bpf) and cannot be rebooted mid-job, so the lsm tests otherwise
+# skip. hack/fedora-vm.sh boots a Fedora cloud VM (stock Fedora
+# kernels ship bpf-LSM active), shares the checkout into the guest
+# over virtiofs, and runs hack/nested-vm-e2e.sh inside. The guest builds
+# with Fedora's native BPF toolchain, so nothing beyond the VM
+# tooling is installed on the runner.
+#
+# Two caches keep the steady-state run short: the harness caches the
+# base image and a provisioned disk (dependencies pre-installed,
+# keyed on hack/install-fedora-deps.sh content) under
+# ~/.cache/bpfman-fedora-vm, and the guest Go build cache persists in
+# .gocache on the share.
+#
+# Push to this branch (no PR) to run; nothing else triggers on it.
+
+on: # yamllint disable-line rule:truthy
+  push:
+    branches: [vm-e2e-harness]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Each push supersedes the previous head; cancel the stale run
+# rather than racing several VMs for the same caches.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nested-vm-e2e:
+    name: e2e (nested Fedora VM, LSM)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7.0.0
+
+      - name: Install VM tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            qemu-system-x86 qemu-utils genisoimage libseccomp-dev libcap-ng-dev
+
+      - name: Cache virtiofsd binary
+        uses: actions/cache@v4
+        with:
+          path: ~/virtiofsd-bin
+          key: virtiofsd-1.13.2
+
+      - name: Build virtiofsd
+        run: |
+          # The harness needs virtiofsd's --translate-uid/--translate-gid,
+          # added in 1.13; noble packages 1.10, so build from crates.io
+          # with the runner's Rust toolchain (cached across runs).
+          if [[ ! -x ~/virtiofsd-bin/bin/virtiofsd ]]; then
+            cargo install virtiofsd --version 1.13.2 --root ~/virtiofsd-bin
+          fi
+          sudo ln -sf ~/virtiofsd-bin/bin/virtiofsd /usr/local/bin/virtiofsd
+          virtiofsd --version
+
+      - name: Open up KVM and unprivileged user namespaces
+        run: |
+          # Standard x64 Linux runners expose /dev/kvm but root-only.
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          ls -la /dev/kvm
+          # Ubuntu 24.04 confines unprivileged user namespaces behind
+          # AppArmor; unprivileged virtiofsd sandboxes itself in one.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          # virtiofsd pins an O_PATH fd per inode the guest touches
+          # (repo + vendor + Go cache); the runner's default file
+          # table is small enough to exhaust, and the guest sees the
+          # host's ENFILE verbatim through FUSE.
+          sudo sysctl -w fs.file-max=4194304
+          ulimit -Hn
+
+      - name: Sanity -- the bare runner has no bpf-LSM (that is what the VM fixes)
+        run: |
+          echo -n "host lsm: "; cat /sys/kernel/security/lsm; echo
+          ! grep -qw bpf /sys/kernel/security/lsm
+
+      - name: Cache base image and provisioned disk
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/bpfman-fedora-vm
+          key: fedora-vm-${{ hashFiles('hack/fedora-vm.sh', 'hack/install-fedora-deps.sh') }}
+          restore-keys: fedora-vm-
+
+      - name: Cache guest Go build cache
+        uses: actions/cache@v4
+        with:
+          path: .gocache
+          key: lsm-gocache-${{ github.sha }}
+          restore-keys: lsm-gocache-
+
+      # Three separate steps, each its own VM boot against the cached
+      # provisioned disk, so the stages are visible as they complete.
+      - name: Provision the Fedora VM disk
+        env:
+          SERIAL_LOG: /tmp/guest-serial.log
+        run: hack/fedora-vm.sh --provision hack/install-fedora-deps.sh
+
+      # prlimit is per-step: each run script is a fresh shell, and
+      # virtiofsd (started by the harness) inherits the raised hard
+      # limit from it.
+      - name: Build the e2e artefacts in the VM
+        env:
+          VIRTFS_FAST: "1"
+          SERIAL_LOG: /tmp/guest-serial.log
+        run: |
+          sudo prlimit --pid $$ --nofile=1048576:1048576
+          hack/fedora-vm.sh --provision hack/install-fedora-deps.sh --run 'hack/nested-vm-e2e.sh build'
+
+      - name: Run the e2e tests in the VM
+        env:
+          VIRTFS_FAST: "1"
+          SERIAL_LOG: /tmp/guest-serial.log
+        run: |
+          sudo prlimit --pid $$ --nofile=1048576:1048576
+          hack/fedora-vm.sh --provision hack/install-fedora-deps.sh --run 'hack/nested-vm-e2e.sh test'
+
+      - name: Upload guest serial log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guest-serial-log
+          path: /tmp/guest-serial.log
+          if-no-files-found: ignore
