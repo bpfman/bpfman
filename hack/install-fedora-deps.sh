@@ -99,6 +99,13 @@ rpms=(
     sqlite-devel
 )
 
+# Fast path: skip dnf (and its metadata refresh) when everything is
+# already present -- e.g. on a disk provisioned by hack/fedora-vm.sh.
+if [ "$#" -eq 0 ] && rpm -q "${rpms[@]}" >/dev/null 2>&1; then
+    echo "Fedora dependencies already installed."
+    exit 0
+fi
+
 # Skip sudo when already root (e.g. inside a container during
 # `docker build`); use sudo on a regular host where the user
 # typically isn't root.
@@ -107,7 +114,11 @@ if [ "$(id -u)" -ne 0 ]; then
     sudo_cmd=sudo
 fi
 
-$sudo_cmd dnf install -y "${rpms[@]}" "$@"
+# rpm fsyncs as it unpacks, which dominates install time on virtual
+# disks. eatmydata no-ops the fsyncs for just this transaction;
+# durability is irrelevant for an install we would simply rerun.
+$sudo_cmd dnf install -y libeatmydata
+$sudo_cmd eatmydata dnf install -y "${rpms[@]}" "$@"
 
 cat <<'EOF'
 

@@ -72,9 +72,9 @@ assert fail bpfman link get $linkID
 guard listedAfter <- bpfman link list -o json
 assert_link_absent $listedAfter $linkID
 
-# Let any in-flight pre-detach packet accounting settle before
-# establishing the detached baseline.
-sleep 0.1
+poll timeout 2s every 50ms {
+    await_net_detach_quiescent $pair.b $pair.a.addr $mapID $sumFilter
+}
 
 guard dumpDetached <- bpftool map dump id $mapID -j
 let detached = $dumpDetached.stdout |> jq $sumFilter
