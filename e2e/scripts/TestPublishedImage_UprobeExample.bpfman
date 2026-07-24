@@ -53,7 +53,12 @@ assert $delta >= $events
 bpfman link detach $link
 assert fail bpfman link get $linkID
 
-sleep 0.1
+# The kernel unhooks a detached program asynchronously; wait for the
+# counter to quiesce before taking the frozen baseline.
+poll timeout 2s every 50ms {
+    await_uprobe_detach_quiescent $mapID 1 $sumFilter
+}
+
 guard dumpDetached <- bpftool map dump id $mapID -j
 let detached = $dumpDetached.stdout |> jq $sumFilter
 guard _ <- uprobe fire $events
