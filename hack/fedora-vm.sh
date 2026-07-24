@@ -11,10 +11,12 @@
 # building/testing inside Fedora gives the native BPF toolchain
 # (clang/libbpf-devel/bpftool) with no cross-distro workarounds.
 #
-# Host requirements: qemu-system-<arch> (x86_64 and aarch64), virtiofsd
-# (the Rust daemon), genisoimage, ssh, ssh-keygen, qemu-img, curl, and
-# /dev/kvm. The guest arch follows the host by default so KVM applies;
-# VM_ARCH crosses over to TCG for smoke tests.
+# Host requirements (hack/fedora-vm-host-deps.sh installs them on
+# Fedora and Ubuntu/Debian hosts): qemu-system-<arch> (x86_64 and
+# aarch64), virtiofsd 1.13+ (the Rust daemon), genisoimage, ssh,
+# ssh-keygen, qemu-img, curl, and /dev/kvm. The guest arch follows the
+# host by default so KVM applies; VM_ARCH crosses over to TCG for
+# smoke tests.
 #
 # Usage:
 #   hack/fedora-vm.sh [options] [--run "<command>"]
@@ -103,7 +105,7 @@ while [[ $# -gt 0 ]]; do
         --image) image="$2"; shift 2 ;;
         --provision) provision_cmd="$2"; shift 2 ;;
         --run) run_cmd="$2"; shift 2 ;;
-        -h|--help) sed -n '2,48p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help) sed -n '2,50p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "unknown option: $1" >&2; exit 2 ;;
     esac
 done
