@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
+	"golang.org/x/sys/unix"
 
 	"github.com/bpfman/bpfman"
 	"github.com/bpfman/bpfman/kernel"
@@ -168,9 +170,10 @@ func (k *kernelAdapter) Unpin(pinDir string) (int, error) {
 	return count, nil
 }
 
-// DetachLink tears down a previously-attached link in three
+// DetachLink tears down a previously-attached link in four
 // stages: explicit kernel-side Detach() where supported, removal
-// of the bpffs pin, then Close of the live *link.Link FD.
+// of the bpffs pin, Close of the live *link.Link FD, then a
+// bounded wait for the kernel link object to disappear.
 //
 // Stage 1 (Detach): for link types that implement the kernel's
 // bpf_link_ops.detach callback -- XDP, TCX, cgroup, netfilter,
@@ -191,11 +194,15 @@ func (k *kernelAdapter) Unpin(pinDir string) (int, error) {
 // Stage 3 (Close): drops the last user reference to the link
 // FD; the kernel reclaims the link object.
 //
-// For Detach-supporting types the program is already provably
-// offline by the time we reach Close. For non-supporting types
-// the test surface still observes async kernel teardown lag
-// (see waitForDetachComplete in e2e/helpers.go) -- there is no
-// userspace primitive to make perf-event teardown synchronous.
+// Stage 4 (wait): for Detach-supporting types the program is
+// already provably offline by the time we reach Close. For
+// non-supporting types the kernel releases the link via deferred
+// work and RCU grace periods, and under CPU contention the
+// program keeps firing on its hook well after Close returns.
+// There is no userspace primitive to make that teardown
+// synchronous, so we poll the kernel link ID (bounded) until the
+// object is gone, giving detach the contract callers expect:
+// returned means no longer invoked.
 func (k *kernelAdapter) DetachLink(ctx context.Context, linkPinPath bpfman.LinkPath) error {
 	pin := linkPinPath.String()
 	k.logger.Debug("detaching link by removing pin", "link_pin_path", pin)
@@ -227,8 +234,17 @@ func (k *kernelAdapter) DetachLink(ctx context.Context, linkPinPath bpfman.LinkP
 		// as ENOENT.
 		k.logger.Warn("LoadPinnedLink failed", "link_pin_path", pin, "err", err)
 	}
+	var syncDetached bool
+	var kernelLinkID link.ID
 	if detachLnk != nil {
-		if err := detachLnk.Detach(); err != nil && !errors.Is(err, ebpf.ErrNotSupported) {
+		// Capture the kernel link ID while we still hold an FD;
+		// stage 4 needs it to observe the object's release.
+		if info, err := detachLnk.Info(); err == nil {
+			kernelLinkID = info.ID
+		}
+		if err := detachLnk.Detach(); err == nil {
+			syncDetached = true
+		} else if !errors.Is(err, ebpf.ErrNotSupported) {
 			k.logger.Warn("link Detach failed", "link_pin_path", pin, "err", err)
 			// continue: cleanup must still happen
 		}
@@ -265,7 +281,49 @@ func (k *kernelAdapter) DetachLink(ctx context.Context, linkPinPath bpfman.LinkP
 	// but attach calls MkdirAll before pinning, so it recovers
 	// if the directory disappears underneath it.
 	os.Remove(filepath.Dir(pin))
+
+	// Stage 4: only the async-teardown types need the wait; a
+	// successful Detach already disconnected the program.
+	if !syncDetached && kernelLinkID != 0 {
+		k.waitKernelLinkGone(ctx, kernelLinkID, pin)
+	}
 	return nil
+}
+
+// waitKernelLinkGone polls until the kernel link object with the
+// given ID has been released, bounded so a wedged reference can
+// never hang teardown. The ID exposes three states: alive (an FD
+// comes back), dying (EAGAIN: the refcount already hit zero but
+// the deferred release has not run -- the program can still fire
+// on its hook), and gone (ENOENT: the ID has left the table).
+// Only the third terminates the wait; treating EAGAIN as gone
+// returns into the very window this wait exists to outlive.
+func (k *kernelAdapter) waitKernelLinkGone(ctx context.Context, id link.ID, pin string) {
+	const deadline = 3 * time.Second
+	backoff := time.Millisecond
+	start := time.Now()
+	for {
+		l, err := link.NewFromID(id)
+		if err != nil && !errors.Is(err, unix.EAGAIN) {
+			return
+		}
+		if err == nil {
+			_ = l.Close()
+		}
+
+		if time.Since(start) >= deadline {
+			k.logger.Warn("kernel link still present after detach wait", "link_pin_path", pin, "kernel_link_id", id, "waited", deadline)
+			return
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(backoff):
+		}
+		if backoff < 50*time.Millisecond {
+			backoff *= 2
+		}
+	}
 }
 
 // pinWithRetry creates the parent directory and invokes pin. If the
