@@ -51,7 +51,19 @@ assert $delta >= $events
 bpfman link detach $link
 assert fail bpfman link get $linkID
 
-sleep 0.1
+# The kernel unhooks a detached program asynchronously; wait for the
+# counter to quiesce before taking the frozen baseline. No lib helper
+# fires this script's kill(2) stimulus, so the poll body mirrors the
+# await_*_detach_quiescent shape inline.
+poll timeout 2s every 50ms {
+    guard quiesceBefore <- bpftool map dump id $mapID -j
+    let qBefore = $quiesceBefore.stdout |> jq $sumFilter
+    guard _ <- exec sh -c 'i=0; trap "" USR1; while [ $i -lt "$1" ]; do kill -USR1 $$; i=$((i + 1)); done' sh 1
+    guard quiesceAfter <- bpftool map dump id $mapID -j
+    let qAfter = $quiesceAfter.stdout |> jq $sumFilter
+    retry "waiting for tracepoint detach quiescence" unless $qAfter == $qBefore
+}
+
 guard dumpDetached <- bpftool map dump id $mapID -j
 let detached = $dumpDetached.stdout |> jq $sumFilter
 guard _ <- exec sh -c 'i=0; trap "" USR1; while [ $i -lt "$1" ]; do kill -USR1 $$; i=$((i + 1)); done' sh $events
