@@ -16,7 +16,7 @@ jobs:
     timeout-minutes: 3
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # @v4
       - name: Check License Header
         uses: apache/skywalking-eyes@61275cc80d0798a405cb070f7d3a8aaf7cf2c2c1
 
@@ -28,10 +28,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # @v4
 
       - name: Install toml linter
-        uses: taiki-e/install-action@07b4745e0c39a41822af610387492e3e53aa222b # @v2
+        uses: taiki-e/install-action@41049aa56687c35e0afa74eed4f09cec4f9afabf # @v2
         with:
           tool: taplo-cli
 
@@ -66,7 +66,7 @@ jobs:
     name: Build Go Modules (${{ matrix.arch.arch }})
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # @v4
 
       - name: Install go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # @v5
@@ -102,7 +102,7 @@ jobs:
             libxslt-dev \
 
       - name: Checkout bpfman
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # @v4
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # @v5
         with:
@@ -127,7 +127,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # @v4
 
       - name: Install dependencies
         # clang and libbpf compile the dispatcher BPF objects the

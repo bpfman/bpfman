@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # @v4
 
       - name: Install dependencies
         run: |
@@ -83,7 +83,7 @@ jobs:
         run: echo "BPFMAN_IMG=${IMAGE_REGISTRY}/bpfman/bpfman:latest" >> "$GITHUB_ENV"
 
       - name: Checkout bpfman
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # @v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # @v3
@@ -92,7 +92,7 @@ jobs:
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # @v4.1.2
 
       - name: Login to quay.io/bpfman
-        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # @v1
+        uses: redhat-actions/podman-login@50c2d9a331bb67c8fdab99b86455fad05e2e3252 # @v2.0
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && env.IMAGE_REGISTRY == 'quay.io' }}
         with:
           registry: quay.io
@@ -316,13 +316,13 @@ jobs:
     name: Build Image (${{ matrix.image.image }})
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # @v4
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # @v4.1.2
 
       - name: Login to quay.io/bpfman-userspace
-        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # @v1
+        uses: redhat-actions/podman-login@50c2d9a331bb67c8fdab99b86455fad05e2e3252 # @v2.0
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && env.IMAGE_REGISTRY == 'quay.io' && matrix.image.repository == 'bpfman-userspace'}}
         with:
           registry: ${{ env.IMAGE_REGISTRY }}
@@ -708,7 +708,7 @@ jobs:
     name: Build eBPF Image (${{ matrix.image.image }})
     steps:
       - name: Checkout bpfman
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # @v4
 
       - name: Install Golang
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # @v5
@@ -721,7 +721,7 @@ jobs:
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # @v4.1.2
 
       - name: Checkout libbpf
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # @v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # @v4
         if: ${{ matrix.image.bpf_build_wrapper == 'rust' }}
         with:
           repository: libbpf/libbpf
@@ -751,7 +751,7 @@ jobs:
           cd examples && make generate
 
       - name: Login to quay.io/bpfman
-        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # @v1
+        uses: redhat-actions/podman-login@50c2d9a331bb67c8fdab99b86455fad05e2e3252 # @v2.0
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && env.IMAGE_REGISTRY == 'quay.io' && matrix.image.repository == 'bpfman'}}
         with:
           registry: ${{ env.IMAGE_REGISTRY }}
@@ -759,7 +759,7 @@ jobs:
           password: ${{ secrets.BPFMAN_ROBOT_TOKEN }}
 
       - name: Login to quay.io/bpfman-bytecode
-        uses: redhat-actions/podman-login@4934294ad0449894bcd1e9f191899d7292469603 # @v1
+        uses: redhat-actions/podman-login@50c2d9a331bb67c8fdab99b86455fad05e2e3252 # @v2.0
         if: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && env.IMAGE_REGISTRY == 'quay.io' && matrix.image.repository == 'bpfman-bytecode' }}
         with:
           registry: ${{ env.IMAGE_REGISTRY }}
