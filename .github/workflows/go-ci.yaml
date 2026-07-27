@@ -24,7 +24,7 @@ jobs:
     name: Check go.mod and vendor
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
 
       - name: Read Go version from Makefile
         run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"
@@ -40,7 +40,7 @@ jobs:
     name: Check Go formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
 
       - name: Read Go version from Makefile
         run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"
@@ -56,7 +56,7 @@ jobs:
     name: Check Go imports
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
 
       - name: Read Go version from Makefile
         run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"
@@ -72,7 +72,7 @@ jobs:
     name: Check go vet
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: docker/setup-buildx-action@v4
       - run: make ci-check-vet
 
@@ -80,7 +80,7 @@ jobs:
     name: Check go fix modernisers
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: docker/setup-buildx-action@v4
       - run: make ci-check-gofix
 
@@ -88,7 +88,7 @@ jobs:
     name: Check .bpfman formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: docker/setup-buildx-action@v4
       - run: make ci-check-bpfman-shell-fmt
 
@@ -104,7 +104,7 @@ jobs:
           - arch: arm64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: docker/setup-buildx-action@v4
       - run: make ci-build
 
@@ -115,7 +115,7 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: docker/setup-buildx-action@v4
       - run: make ci-lint
 
@@ -136,7 +136,7 @@ jobs:
     name: Nix lint and build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
 
       - uses: DeterminateSystems/nix-installer-action@main
 
@@ -164,7 +164,7 @@ jobs:
             pkgs: gcc-s390x-linux-gnu libc6-dev-s390x-cross qemu-user-binfmt
 
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
 
       - name: Read Go version from Makefile
         run: echo "GO_VERSION=$(make -s print-go-version)" >> "$GITHUB_ENV"

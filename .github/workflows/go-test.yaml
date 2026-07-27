@@ -32,7 +32,7 @@ jobs:
           - arch: arm64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: docker/setup-buildx-action@v4
       - run: make ci-test RACE=1
 
@@ -50,7 +50,7 @@ jobs:
           - arch: arm64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: docker/setup-buildx-action@v4
       - name: Install kmod runtime deps
         run: |
@@ -100,7 +100,7 @@ jobs:
           - arch: arm64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: docker/setup-buildx-action@v4
       - name: Install kmod runtime deps
         run: |
@@ -142,7 +142,7 @@ jobs:
           - arch: arm64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: docker/setup-buildx-action@v4
       - name: Install kmod runtime deps
         run: |
@@ -202,7 +202,7 @@ jobs:
           - arch: arm64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
       - uses: docker/setup-buildx-action@v4
 
       - name: Install runtime deps
