@@ -99,6 +99,18 @@ rpms=(
     sqlite-devel
 )
 
+# In the throwaway VM from hack/fedora-vm.sh, only the shared
+# directories outlive a poweroff: the guest disk is a per-boot overlay.
+# Go's default cache sits in the guest home, off the share, so a build
+# typed at the interactive prompt starts cold every boot. Point a login
+# shell at the .gocache on the share, where hack/nested-vm-e2e.sh
+# already puts it, and interactive builds go incremental too. Guarded
+# on the guest hostname: run on a real host or in `docker build`, this
+# script must leave your own Go cache alone.
+if [ "$(cat /etc/hostname 2>/dev/null)" = bpfman-fedora-vm ] && ! grep -qs GOCACHE "$HOME/.bashrc"; then
+    printf 'export GOCACHE=%s/.gocache\n' "$PWD" >> "$HOME/.bashrc"
+fi
+
 # Fast path: skip dnf (and its metadata refresh) when everything is
 # already present -- e.g. on a disk provisioned by hack/fedora-vm.sh.
 if [ "$#" -eq 0 ] && rpm -q "${rpms[@]}" >/dev/null 2>&1; then
