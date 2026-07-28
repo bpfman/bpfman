@@ -241,6 +241,8 @@ func (k *kernelAdapter) DetachLink(ctx context.Context, linkPinPath bpfman.LinkP
 		// stage 4 needs it to observe the object's release.
 		if info, err := detachLnk.Info(); err == nil {
 			kernelLinkID = info.ID
+		} else {
+			k.logger.Warn("link Info failed before detach wait", "link_pin_path", pin, "err", err)
 		}
 		if err := detachLnk.Detach(); err == nil {
 			syncDetached = true
