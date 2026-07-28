@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 package main
 
@@ -58,44 +57,30 @@ func main() {
 	// Create a wait group to wait for all goroutines to finish
 	var wg sync.WaitGroup
 
-	// Increment the wait group counter before starting each goroutine
-
 	// Start your goroutines, passing the cancellable context
-	wg.Add(1)
-	go func() {
-		defer wg.Done() // Decrement the wait group counter when the goroutine finishes
+	wg.Go(func() {
 		processKprobe(cancelCtx, &paramData)
-	}()
+	})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		processTracepoint(cancelCtx, &paramData)
-	}()
+	})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		processTc(cancelCtx, &paramData)
-	}()
+	})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		processTcx(cancelCtx, &paramData)
-	}()
+	})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		processUprobe(cancelCtx, &paramData)
-	}()
+	})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		processXdp(cancelCtx, &paramData)
-	}()
+	})
 
 	// Listen for interrupt signal to gracefully shut down the goroutines
 	stop := make(chan os.Signal, 1)
