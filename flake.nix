@@ -107,6 +107,14 @@
             # SQLite CLI for inspecting the store database.
             sqlite
             sqlite.dev
+
+            # Shared-directory daemon for the nested Fedora VM
+            # harness (hack/fedora-vm.sh). Needs 1.13+ for
+            # --translate-uid; distro packages can lag (Ubuntu
+            # noble ships 1.10), so supply it from nixpkgs. qemu
+            # itself still comes from the host via
+            # hack/fedora-vm-host-deps.sh.
+            virtiofsd
           ];
 
           shellHook = ''
