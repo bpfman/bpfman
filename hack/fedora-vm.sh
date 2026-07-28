@@ -11,11 +11,13 @@
 # building/testing inside Fedora gives the native BPF toolchain
 # (clang/libbpf-devel/bpftool) with no cross-distro workarounds.
 #
-# Host requirements: qemu-system-<arch> (x86_64 and aarch64), virtiofsd
-# (the Rust daemon), genisoimage, ssh, ssh-keygen, qemu-img, curl, and
-# /dev/kvm. The guest arch follows the host by default so KVM applies;
-# VM_ARCH crosses over to TCG for smoke tests. See usage() below, or
-# --help, for options and environment knobs.
+# Host requirements (hack/fedora-vm-host-deps.sh installs them on
+# Fedora and Ubuntu/Debian hosts): qemu-system-<arch> (x86_64 and
+# aarch64), virtiofsd 1.13+ (the Rust daemon), genisoimage, ssh,
+# ssh-keygen, qemu-img, curl, and /dev/kvm. The guest arch follows the
+# host by default so KVM applies; VM_ARCH crosses over to TCG for
+# smoke tests. See usage() below, or --help, for options and
+# environment knobs.
 
 set -euo pipefail
 
@@ -52,6 +54,9 @@ Environment:
   VM_ARCH           guest arch (default: host arch; cross-arch = TCG)
   VM_FIRMWARE       aarch64 UEFI image (default: probed from the
                     usual distribution paths)
+  VIRTIOFSD         virtiofsd binary (default: probed from PATH,
+                    ~/.local/bin and /usr/libexec for one that
+                    supports --translate-uid)
   VM_CACHE_DIR      base-image cache dir
   VM_MEMORY (4G), VM_CPUS (nproc), SSH_PORT (2222), BOOT_TIMEOUT (300)
   VIRTFS_FAST       1 = cache=always,writeback (near-native, default);
@@ -141,9 +146,43 @@ repo=$(cd "$(dirname "$0")/.." && pwd)
 # Default share: the repository.
 [[ ${#vol_specs[@]} -eq 0 ]] && vol_specs+=("$repo")
 
-for tool in "$qemu_bin" virtiofsd genisoimage ssh ssh-keygen qemu-img curl; do
+for tool in "$qemu_bin" genisoimage ssh ssh-keygen qemu-img curl; do
     command -v "$tool" >/dev/null || { echo "error: '$tool' not on PATH" >&2; exit 1; }
 done
+
+# resolve_virtiofsd prints the path of a virtiofsd that supports
+# --translate-uid/--translate-gid (1.13+): $VIRTIOFSD when set (an
+# explicit override never falls through -- it must itself be capable),
+# otherwise the first capable candidate among PATH, the cargo install
+# target hack/fedora-vm-host-deps.sh uses, and the libexec directory
+# the Fedora and Debian packages install into, off PATH. Capability
+# decides, not position: noble's packaged /usr/libexec/virtiofsd is
+# 1.10 and must lose to a good build elsewhere. Keep in sync with the
+# copy in hack/fedora-vm-host-deps.sh.
+resolve_virtiofsd() {
+    if [[ -n "${VIRTIOFSD:-}" ]]; then
+        if "$VIRTIOFSD" --help 2>/dev/null | grep -q -- --translate-uid; then
+            echo "$VIRTIOFSD"
+            return 0
+        fi
+        echo "error: VIRTIOFSD=$VIRTIOFSD does not support --translate-uid (need virtiofsd 1.13+)" >&2
+        return 1
+    fi
+
+    local candidate
+    for candidate in "$(command -v virtiofsd || true)" "$HOME/.local/bin/virtiofsd" /usr/libexec/virtiofsd; do
+        [[ -n "$candidate" && -x "$candidate" ]] || continue
+        if "$candidate" --help 2>/dev/null | grep -q -- --translate-uid; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+
+    echo "error: no virtiofsd with --translate-uid (1.13+) on PATH, in ~/.local/bin or /usr/libexec; run hack/fedora-vm-host-deps.sh or set VIRTIOFSD" >&2
+    return 1
+}
+
+virtiofsd_bin=$(resolve_virtiofsd) || exit 1
 [[ -e /dev/kvm ]] || echo "warning: /dev/kvm absent; qemu will use TCG (slow)" >&2
 
 # Resolve the base image (explicit --image, else a cached download).
@@ -238,7 +277,7 @@ start_virtiofsd() {
     virtiofsd_pids=()
     for i in "${!v_host[@]}"; do
         rm -f "$work/vol$i.sock"
-        virtiofsd --socket-path="$work/vol$i.sock" --shared-dir="${v_host[$i]}" \
+        "$virtiofsd_bin" --socket-path="$work/vol$i.sock" --shared-dir="${v_host[$i]}" \
             --announce-submounts "${vfs_cache[@]}" "${vfs_translate[@]}" >>"$work/vol$i.log" 2>&1 &
         virtiofsd_pids+=("$!")
     done
