@@ -99,6 +99,25 @@ rpms=(
     sqlite-devel
 )
 
+# In the throwaway VM from hack/fedora-vm.sh, only the shared
+# directories outlive a poweroff: the guest disk is a per-boot overlay.
+# Go's default cache sits in the guest home, off the share, so a build
+# typed at the interactive prompt starts cold every boot. Point a login
+# shell at the .gocache on the share, where hack/nested-vm-e2e.sh
+# already puts it, and interactive builds go incremental too. Guarded
+# on the guest hostname: run on a real host or in `docker build`, this
+# script must leave your own Go cache alone.
+if [ "$(cat /etc/hostname 2>/dev/null)" = bpfman-fedora-vm ] && ! grep -qs GOCACHE "$HOME/.bashrc"; then
+    printf 'export GOCACHE=%s/.gocache\n' "$PWD" >> "$HOME/.bashrc"
+fi
+
+# Fast path: skip dnf (and its metadata refresh) when everything is
+# already present -- e.g. on a disk provisioned by hack/fedora-vm.sh.
+if [ "$#" -eq 0 ] && rpm -q "${rpms[@]}" >/dev/null 2>&1; then
+    echo "Fedora dependencies already installed."
+    exit 0
+fi
+
 # Skip sudo when already root (e.g. inside a container during
 # `docker build`); use sudo on a regular host where the user
 # typically isn't root.
@@ -107,7 +126,11 @@ if [ "$(id -u)" -ne 0 ]; then
     sudo_cmd=sudo
 fi
 
-$sudo_cmd dnf install -y "${rpms[@]}" "$@"
+# rpm fsyncs as it unpacks, which dominates install time on virtual
+# disks. eatmydata no-ops the fsyncs for just this transaction;
+# durability is irrelevant for an install we would simply rerun.
+$sudo_cmd dnf install -y libeatmydata
+$sudo_cmd eatmydata dnf install -y "${rpms[@]}" "$@"
 
 cat <<'EOF'
 

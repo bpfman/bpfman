@@ -154,6 +154,19 @@ def await_uprobe_detach_quiescent(mapID events counterFilter) {
     retry "waiting for uprobe detach quiescence" unless $after == $before
 }
 
+# Wait until a just-detached network program (xdp/tc/tcx, plain or
+# dispatcher-backed) stops counting packets on its interface. One
+# ping from `ns` to `addr` is the probe: while the program still
+# observes the hook the counter moves, so retry until it holds.
+def await_net_detach_quiescent(ns addr mapID counterFilter) {
+    guard beforeDump <- bpftool map dump id $mapID -j
+    let before = $beforeDump.stdout |> jq $counterFilter
+    guard _ <- net exec $ns ping -c 1 -W 1 $addr
+    guard afterDump <- bpftool map dump id $mapID -j
+    let after = $afterDump.stdout |> jq $counterFilter
+    retry "waiting for network detach quiescence" unless $after == $before
+}
+
 # Asserts the store records exactly `want` dispatchers on the given
 # (nsid, ifindex), across all dispatcher types. List-derived
 # assertions must scope to keys the script owns: scripts run in

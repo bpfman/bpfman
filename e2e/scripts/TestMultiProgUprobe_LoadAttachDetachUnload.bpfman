@@ -41,40 +41,76 @@ guard link_c <- bpfman link attach uprobe $c $target.path -f $target.symbol
 
 let counter_filter = "fromjson | .[0].formatted.value | tonumber"
 
+# The kernel unhooks a detached program asynchronously, so each
+# detach is followed by a quiescence poll before the next wave; the
+# poll's probe fires feed the still-attached programs, so the wave
+# assertions are deltas between snapshots taken around each poll
+# rather than fixed whole-run totals.
+
 # --- Wave 1: a, b, c all attached ---
 guard _ <- uprobe fire $n
 
-bpfman link detach $link_c
-sleep 0.1
+guard w1_a <- bpftool map dump id $mapID_a -j
+guard w1_b <- bpftool map dump id $mapID_b -j
+guard w1_c <- bpftool map dump id $mapID_c -j
+let snap1_a = $w1_a.stdout |> jq $counter_filter
+let snap1_b = $w1_b.stdout |> jq $counter_filter
+let snap1_c = $w1_c.stdout |> jq $counter_filter
+print "wave1 a=${snap1_a} b=${snap1_b} c=${snap1_c}"
+assert $snap1_a == ($n * $weight_a)
+assert $snap1_b == ($n * $weight_b)
+assert $snap1_c == ($n * $weight_c)
 
-# --- Wave 2: a, b attached; c detached ---
+bpfman link detach $link_c
+poll timeout 2s every 50ms {
+    await_uprobe_detach_quiescent $mapID_c 1 $counter_filter
+}
+guard q2_a <- bpftool map dump id $mapID_a -j
+guard q2_b <- bpftool map dump id $mapID_b -j
+guard q2_c <- bpftool map dump id $mapID_c -j
+let snap2_a = $q2_a.stdout |> jq $counter_filter
+let snap2_b = $q2_b.stdout |> jq $counter_filter
+let snap2_c = $q2_c.stdout |> jq $counter_filter
+
+# --- Wave 2: a, b attached; c detached and quiescent ---
 guard _ <- uprobe fire $n
+
+guard w2_a <- bpftool map dump id $mapID_a -j
+guard w2_b <- bpftool map dump id $mapID_b -j
+guard w2_c <- bpftool map dump id $mapID_c -j
+let snap3_a = $w2_a.stdout |> jq $counter_filter
+let snap3_b = $w2_b.stdout |> jq $counter_filter
+let snap3_c = $w2_c.stdout |> jq $counter_filter
+print "wave2 da=${snap3_a} db=${snap3_b} c=${snap3_c} want_c=${snap2_c}"
+assert ($snap3_a - $snap2_a) == ($n * $weight_a)
+assert ($snap3_b - $snap2_b) == ($n * $weight_b)
+assert $snap3_c == $snap2_c
 
 bpfman link detach $link_b
-sleep 0.1
+poll timeout 2s every 50ms {
+    await_uprobe_detach_quiescent $mapID_b 1 $counter_filter
+}
+guard q3_a <- bpftool map dump id $mapID_a -j
+guard q3_b <- bpftool map dump id $mapID_b -j
+guard q3_c <- bpftool map dump id $mapID_c -j
+let snap4_a = $q3_a.stdout |> jq $counter_filter
+let snap4_b = $q3_b.stdout |> jq $counter_filter
+let snap4_c = $q3_c.stdout |> jq $counter_filter
+assert $snap4_c == $snap3_c
 
-# --- Wave 3: only a attached ---
+# --- Wave 3: only a attached; b, c quiescent ---
 guard _ <- uprobe fire $n
 
-guard dump_a <- bpftool map dump id $mapID_a -j
-guard dump_b <- bpftool map dump id $mapID_b -j
-guard dump_c <- bpftool map dump id $mapID_c -j
-
-let count_a = $dump_a.stdout |> jq $counter_filter
-let count_b = $dump_b.stdout |> jq $counter_filter
-let count_c = $dump_c.stdout |> jq $counter_filter
-
-let want_a = (3 * $n) * $weight_a
-let want_b = (2 * $n) * $weight_b
-let want_c = (1 * $n) * $weight_c
-
-print "a: got=${count_a} want=${want_a}"
-print "b: got=${count_b} want=${want_b}"
-print "c: got=${count_c} want=${want_c}"
-
-assert $count_a == $want_a
-assert $count_b == $want_b
-assert $count_c == $want_c
+guard w3_a <- bpftool map dump id $mapID_a -j
+guard w3_b <- bpftool map dump id $mapID_b -j
+guard w3_c <- bpftool map dump id $mapID_c -j
+let final_a = $w3_a.stdout |> jq $counter_filter
+let final_b = $w3_b.stdout |> jq $counter_filter
+let final_c = $w3_c.stdout |> jq $counter_filter
+print "wave3 da=${final_a} b=${final_b} want_b=${snap4_b} c=${final_c} want_c=${snap4_c}"
+assert ($final_a - $snap4_a) == ($n * $weight_a)
+assert $final_b == $snap4_b
+assert $final_c == $snap4_c
 
 # link_a is still attached on the happy path; detach it explicitly
 # before the deferred program-unloads fire.

@@ -39,8 +39,12 @@ guard listed <- bpfman link list -o json
 assert ($listed |> jq "[.links[] | select(.id == ${link.record.id})] | length") == 1
 assert ($listed |> jq "[.links[] | select(.program_id == ${prog.record.program_id})] | length") == 1
 
-guard klinks <- bpftool link list -j
-assert ($klinks.stdout |> jq "fromjson | [ .[] | select(.id == ${link.record.kernel_link_id}) ] | length") == 1
+# linkinfo reads the kernel link by id via the bpf() syscall,
+# avoiding both bpftool enumeration (racy against concurrent
+# teardown elsewhere in the parallel corpus) and bpftool's show-id
+# exit-code quirk.
+guard klink <- linkinfo id $link.record.kernel_link_id
+assert $klink.id == $link.record.kernel_link_id
 
 # The kernel listing proves the link object exists; the counter
 # proves it is still on the packet path. Lower bound; ARP/control
