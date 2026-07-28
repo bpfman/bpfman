@@ -54,24 +54,25 @@ if path-exists "/etc/ld.so.cache" {
     # Decide whether the behavioural phase can hold: it can only if
     # the libc this process maps is the one bare-name resolution
     # lands on. Read the mapped libc path from this process's maps,
-    # then ask whether the cache lists that exact file. If it does,
-    # the linker resolved this binary's libc through the cache, so a
-    # bare libc target resolves to the same file and firing counts.
-    # If it does not (a store-private libc the global cache omits) or
-    # there is no mapped libc (a static binary), the fire cannot
-    # count and the script skips, keying on the cache rather than
-    # naming any distribution.
-    guard mapped <- exec sh -c "awk '/\\/libc[.-]/ && /\\.so/ {print \$6; exit}' /proc/${target.pid}/maps"
+    # then ask whether the cache names that same file. Compare by
+    # file identity, not by string: on a usr-merged host the cache
+    # says /lib64/libc.so.6 whilst maps reports the resolved
+    # /usr/lib64/libc.so.6, and those are one file. If the cache
+    # names a different file (a store-private libc the global cache
+    # omits) or there is no mapped libc (a static binary), the fire
+    # cannot count and the script skips, keying on the cache rather
+    # than naming any distribution.
+    guard mapped <- exec sh -c "awk '/\\/libc[.-]/ && /\\.so/ {print \$6; exit}' /proc/${target.pid}/maps | tr -d '[:space:]'"
     let mapped_libc = $mapped.stdout
     print "cache-tier: process maps libc at ${mapped_libc}"
 
-    guard incache <- exec sh -c "test -n '${mapped_libc}' && grep -qaF -- '${mapped_libc}' /etc/ld.so.cache && echo yes || echo no"
+    guard incache <- exec sh -c "if [ -z '${mapped_libc}' ]; then echo no; else r=no; for c in \$(grep -aoE '/[A-Za-z0-9_.+-]+(/[A-Za-z0-9_.+-]+)*/libc\\.so\\.6' /etc/ld.so.cache | sort -u); do if [ \"\$c\" -ef '${mapped_libc}' ]; then r=yes; fi; done; echo \$r; fi | tr -d '[:space:]'"
 
     let mapID = $prog |> jq '[.status.maps[] | select(.name == "up_count") | .id][0]'
     let counter_filter = "fromjson | .[0].formatted.value | tonumber"
 
     if $incache.stdout != yes {
-        print "cache-tier: mapped libc is not listed in /etc/ld.so.cache (store-private or static binary); cache resolves a different file. Skipping traffic assertion (structural proof stands; an FHS layout exercises traffic)."
+        print "cache-tier: /etc/ld.so.cache does not name the mapped libc (store-private or static binary); cache resolves a different file. Skipping traffic assertion (structural proof stands; an FHS layout exercises traffic)."
     } else {
         guard dumpBefore <- bpftool map dump id $mapID -j
         let before = $dumpBefore.stdout |> jq $counter_filter
