@@ -66,6 +66,7 @@ assert $count == $want
 
 # Detach, then verify the link is gone from both Get and List.
 bpfman link detach $link
+assert_kernel_link_gone $link
 assert fail bpfman link get $linkID
 
 guard listedAfter <- bpfman link list -o json

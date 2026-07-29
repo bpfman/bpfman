@@ -22,6 +22,8 @@
 # dispatcher get's success or failure as the proxy -- a dispatcher
 # snapshot exists iff the kernel-side attach point does.
 
+import ../lib.bpfman
+
 guard pair <- net veth-pair
 defer net release $pair
 
@@ -43,6 +45,7 @@ assert $snap1 |> jq ".runtime.filter_handle > 0"
 
 # Phase 2: detach the only member; the dispatcher goes away.
 bpfman link detach $l1
+assert_kernel_link_gone $l1
 assert fail bpfman dispatcher get tc-ingress $pair.host_nsid $pair.host_ifindex
 
 # Phase 3: reattach; a fresh dispatcher is created with a new

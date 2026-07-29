@@ -67,6 +67,7 @@ assert $snap1_b == ($n * $weight_b)
 assert $snap1_c == ($n * $weight_c)
 
 bpfman link detach $link_c
+assert_kernel_link_gone $link_c
 poll timeout 2s every 50ms {
     await_kfunc_detach_quiescent $fn $mapID_c 1 $counter_filter
 }
@@ -92,6 +93,7 @@ assert ($snap3_b - $snap2_b) == ($n * $weight_b)
 assert $snap3_c == $snap2_c
 
 bpfman link detach $link_b
+assert_kernel_link_gone $link_b
 poll timeout 2s every 50ms {
     await_kfunc_detach_quiescent $fn $mapID_b 1 $counter_filter
 }
@@ -121,3 +123,4 @@ assert $final_c == $snap4_c
 # before the deferred program-unloads fire (an attached program
 # refuses to unload).
 bpfman link detach $link_a
+assert_kernel_link_gone $link_a

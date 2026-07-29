@@ -127,6 +127,24 @@ def assert_link_absent(listed linkID) {
     assert $count == 0
 }
 
+# Assert that a link's kernel bpf_link ID is no longer openable at
+# the moment detach returns. The probe is one bpf() syscall with no
+# retry, so it only catches references that outlive the detach
+# command: a pin left behind, or a held FD in a long-lived
+# (daemon-mode) process. It cannot observe the kernel's
+# deferred-release window: script bpfman commands run as short-lived
+# subprocesses, and process exit releases any leaked FD milliseconds
+# before this probe runs, so post-detach firing is guarded by the
+# quiescence polls, not by this assert. The preconditions keep the
+# check honest: `assert fail` passes on any linkinfo error, so
+# without them a link that never recorded a kernel ID would turn the
+# probe into a green no-op.
+def assert_kernel_link_gone(link) {
+    assert not null $link.record.kernel_link_id
+    assert $link.record.kernel_link_id > 0
+    assert fail linkinfo id $link.record.kernel_link_id
+}
+
 # Wait until a just-detached kfunc-backed program stops observing its
 # target. Perf-link teardown is asynchronous, so a fixed sleep after
 # `bpfman link detach` can still race the kernel-side detach path on a
