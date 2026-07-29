@@ -1251,8 +1251,7 @@ bpfman-vet: $(DISPATCHER_BPF_EMBEDS)
 # applications are excluded: they stay as their authors wrote them.
 .PHONY: bpfman-gofix
 bpfman-gofix: $(DISPATCHER_BPF_EMBEDS)
-	GOTOOLCHAIN=$(GOFIX_GO_VERSION) go fix -tags 'e2e,bpfman_ns' \
-		$$(go list ./... | grep -v '^github.com/bpfman/bpfman/examples')
+	GOTOOLCHAIN=$(GOFIX_GO_VERSION) go fix -tags 'e2e,bpfman_ns' ./...
 
 # Compile bpfman. Depends on the dispatcher BPF embeds because
 # the dispatcher Go package's go:embed directives need them at
