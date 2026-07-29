@@ -841,7 +841,7 @@ $(BIN_DIR)/e2e.test: $(DISPATCHER_BPF_EMBEDS) $(E2E_BPF_OBJECTS) | $(BIN_DIR)
 .PHONY: test-e2e
 test-e2e: $(BIN_DIR)/e2e.test
 	$(Q)$(MAKE) e2e-kmod-reload
-	sudo BPFMAN_E2E_BYTECODE_DIR=$(abspath e2e) $(call forward-env,BPFMAN_E2E_ISOLATED_RUNTIME BPFMAN_E2E_POLICY_RULE_PREF BPFMAN_LOG) $(BIN_DIR)/e2e.test -test.v -test.failfast -test.count=$(STRESS_COUNT) $(if $(filter-out 0,$(PARALLEL)),-test.parallel $(PARALLEL)) $(if $(TEST),-test.run $(TEST))
+	sudo BPFMAN_E2E_BYTECODE_DIR=$(abspath e2e) $(call forward-env,BPFMAN_E2E_ISOLATED_RUNTIME BPFMAN_E2E_POLICY_RULE_PREF BPFMAN_LOG) $(BIN_DIR)/e2e.test -test.v -test.failfast -test.count=$(STRESS_COUNT) $(if $(filter-out 0,$(PARALLEL)),-test.parallel $(PARALLEL)) $(if $(TEST),-test.run "$(TEST)")
 
 # Parallel gRPC e2e: stands up a real `bpfman serve` subprocess and
 # fans goroutines through load/get/attach/detach/unload over the
@@ -904,7 +904,7 @@ run-e2e-grpc:
 	    BPFMAN_E2E_BYTECODE_DIR=$(E2E_GRPC_BYTECODE_DIR) \
 	    $(call forward-env,$(E2E_GRPC_FORWARD_VARS)) \
 	    $(E2E_GRPC_TEST_BIN) -test.v -test.failfast \
-	    -test.count=$(STRESS_COUNT) $(if $(TEST),-test.run $(TEST))
+	    -test.count=$(STRESS_COUNT) $(if $(TEST),-test.run "$(TEST)")
 
 .PHONY: test-e2e-grpc
 test-e2e-grpc: build-e2e-grpc
