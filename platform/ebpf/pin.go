@@ -267,6 +267,9 @@ func (k *kernelAdapter) DetachLink(ctx context.Context, linkPinPath bpfman.LinkP
 			if cerr := k.releaseLink(pin); cerr != nil {
 				k.logger.Warn("close tracked link after missing pin", "link_pin_path", pin, "err", cerr)
 			}
+			if !syncDetached && kernelLinkID != 0 {
+				k.waitKernelLinkGone(ctx, kernelLinkID, pin)
+			}
 			return nil
 		}
 		return fmt.Errorf("remove link pin %s: %w", pin, err)
