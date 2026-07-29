@@ -19,11 +19,6 @@ import (
 type kernelAdapter struct {
 	logger *slog.Logger
 
-	// testDisp holds lazily-loaded test dispatchers used as
-	// verification targets when loading XDP/TC programs as
-	// Extension type.
-	testDisp testDispatchers
-
 	// linkWait bounds the kernel-link release wait in DetachLink.
 	linkWait linkWaitParams
 }

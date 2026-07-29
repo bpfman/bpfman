@@ -153,15 +153,14 @@ func (k *kernelAdapter) Load(ctx context.Context, spec bpfman.LoadSpec, bpffs fs
 	// programs are loaded once and reused from their pin on every
 	// dispatcher rebuild, rather than re-reading the ELF file.
 	if programType == bpfman.ProgramTypeXDP || programType == bpfman.ProgramTypeTC {
-		var testProg *ebpf.Program
-		if programType == bpfman.ProgramTypeXDP {
-			testProg, err = k.testDisp.getXDP()
-		} else {
-			testProg, err = k.testDisp.getTC()
-		}
+		testProg, closeTestDisp, err := loadTestDispatcher(programType)
 		if err != nil {
-			return bpfman.LoadOutput{}, fmt.Errorf("get test dispatcher for %s: %w", programType, err)
+			return bpfman.LoadOutput{}, fmt.Errorf("load test dispatcher for %s: %w", programType, err)
 		}
+		// Closed once the extension has loaded: the kernel holds
+		// its own reference on the target while the extension
+		// exists, and the daemon keeps no bpf FDs open.
+		defer closeTestDisp()
 
 		progSpec.Type = ebpf.Extension
 		progSpec.AttachTarget = testProg
