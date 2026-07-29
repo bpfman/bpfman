@@ -136,6 +136,29 @@ func TestParallel_GRPC(t *testing.T) {
 		t.Logf("    reads (Get):                          %6d ops  ~%6.1f/s", totalReads, readRate)
 	})
 
+	// End-state quiescence check, also on the parent so it runs
+	// after every sub-test has finished. Per-lifecycle reference
+	// assertions are impossible while mutations are in flight --
+	// the daemon legitimately holds a link FD inside each attach
+	// and detach -- but leaks accumulate, so once the suite goes
+	// quiet the daemon must hold no bpf object FDs and manage no
+	// programs. A reference leaked by any lifecycle, in any
+	// interleaving, is still visible here.
+	t.Cleanup(func() {
+		if fds := bpfFDTargets(t, fmt.Sprintf("/proc/%d/fd", daemonPID)); len(fds) != 0 {
+			t.Errorf("daemon holds %d bpf object FD(s) after all lifecycles completed: %v", len(fds), fds)
+		}
+		only := true
+		resp, err := client.List(context.Background(), &pb.ListRequest{BpfmanProgramsOnly: &only})
+		if err != nil {
+			t.Errorf("quiescence List: %v", err)
+			return
+		}
+		if n := len(resp.Results); n != 0 {
+			t.Errorf("daemon still manages %d program(s) after all lifecycles completed", n)
+		}
+	})
+
 	for _, spec := range specs {
 		counter := counts[spec.name]
 		t.Run(spec.name, func(t *testing.T) {

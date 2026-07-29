@@ -76,6 +76,14 @@ var (
 	// Per-type specs join their .bpf.o filename to this path to
 	// produce the absolute path the daemon's Load RPC opens.
 	testdataDir string
+
+	// daemonPID is the spawned `bpfman serve` process, and
+	// daemonRuntimeDir its --runtime-dir. The detach-contract
+	// tests read the daemon's /proc/<pid>/fd table and its bpffs
+	// pin layout directly: the daemon outliving every RPC is what
+	// makes reference-lifetime properties observable at all.
+	daemonPID        int
+	daemonRuntimeDir string
 )
 
 func TestMain(m *testing.M) {
@@ -187,6 +195,8 @@ func bootstrap() (func(), error) {
 		cleanupRoot()
 		return nil, fmt.Errorf("start daemon: %w", err)
 	}
+	daemonPID = serverCmd.Process.Pid
+	daemonRuntimeDir = runtimeDir
 
 	cleanupDaemon := func() {
 		_ = syscall.Kill(serverCmd.Process.Pid, syscall.SIGTERM)
