@@ -39,6 +39,18 @@ type cachedMetadata struct {
 	Programs map[string]string `json:"programs,omitempty"`
 	Maps     map[string]string `json:"maps,omitempty"`
 	PulledAt time.Time         `json:"pulled_at"`
+
+	// Policy is the SignatureVerifier.PolicyID that admitted this
+	// entry. Empty on entries cached before the policy was
+	// recorded, or with no verifier configured, which no policy
+	// matches, so those entries are pulled again on the next hit.
+	Policy string `json:"policy,omitempty"`
+
+	// VerifiedDigest is the image the verifier was asked about. For
+	// a multi-platform image that is the index digest, which cosign
+	// signs, and so differs from Digest above once a platform child
+	// has been selected.
+	VerifiedDigest string `json:"verified_digest,omitempty"`
 }
 
 // puller implements ImagePuller using ORAS for OCI registry access.
@@ -87,6 +99,13 @@ func NewPuller(cache fs.EnsuredImageCache, opts ...Option) (platform.ImagePuller
 		}
 	}
 
+	// The cache reserves the empty policy for images admitted by no
+	// verifier, so a verifier answering with it could never record a
+	// reusable entry. Refuse here rather than degrade quietly later.
+	if p.verifier != nil && p.verifier.PolicyID() == "" {
+		return nil, fmt.Errorf("signature verifier reports an empty policy id")
+	}
+
 	p.logger.Debug("initialising OCI puller", "cache_dir", p.cache.Root())
 
 	return p, nil
@@ -103,9 +122,18 @@ func (p *puller) Pull(ctx context.Context, ref platform.ImageRef) (platform.Pull
 
 	// Check cache based on pull policy
 	if ref.PullPolicy != bpfman.PullAlways {
-		if cached, ok := p.checkCache(cacheKey, ref, logger); ok {
-			logger.Info("using cached image", "digest", cached.Digest)
-			return cached, nil
+		if cached, meta, ok := p.checkCache(cacheKey, ref, logger); ok {
+			serve, err := p.cachedEntryAdmitted(ctx, cacheKey, ref, meta, logger)
+			if err != nil {
+				return platform.PulledImage{}, err
+			}
+			if serve {
+				logger.Info("using cached image", "digest", cached.Digest)
+				return cached, nil
+			}
+			// The entry cannot be judged against the current
+			// policy without asking the registry, so fall
+			// through and pull it again.
 		}
 
 		if ref.PullPolicy == bpfman.PullNever {
@@ -147,7 +175,15 @@ func (p *puller) Pull(ctx context.Context, ref platform.ImageRef) (platform.Pull
 
 	logger.Info("image resolved", "digest", desc.Digest.String(), "media_type", desc.MediaType)
 
-	// Verify image signature if a verifier is configured
+	// Verify image signature if a verifier is configured. Both of
+	// these go into the cache entry below, so a later policy change
+	// can be detected on a cache hit.
+
+	// admittedBy is the policy that accepted the image.
+	var admittedBy string
+
+	// verifiedDigest is the image the verifier was asked about.
+	var verifiedDigest string
 	if p.verifier != nil {
 		// Use the resolved digest for verification to ensure we verify what we pull
 		verifyRef := ref.URL
@@ -163,6 +199,9 @@ func (p *puller) Pull(ctx context.Context, ref platform.ImageRef) (platform.Pull
 			logger.Error("image signature verification failed", "error", err)
 			return platform.PulledImage{}, fmt.Errorf("signature verification failed: %w", err)
 		}
+
+		admittedBy = p.verifier.PolicyID()
+		verifiedDigest = desc.Digest.String()
 
 		switch verification.Status {
 		case platform.SignatureVerificationVerified:
@@ -300,10 +339,12 @@ func (p *puller) Pull(ctx context.Context, ref platform.ImageRef) (platform.Pull
 
 	// Save metadata
 	meta := cachedMetadata{
-		Digest:   resolvedDigest,
-		Programs: programs,
-		Maps:     maps,
-		PulledAt: time.Now(),
+		Digest:         resolvedDigest,
+		Programs:       programs,
+		Maps:           maps,
+		PulledAt:       time.Now(),
+		Policy:         admittedBy,
+		VerifiedDigest: verifiedDigest,
 	}
 
 	if err := p.cache.SaveMetadata(cacheKey, meta); err != nil {
@@ -322,19 +363,20 @@ func (p *puller) Pull(ctx context.Context, ref platform.ImageRef) (platform.Pull
 	}, nil
 }
 
-// checkCache checks if a valid cached image exists.
-func (p *puller) checkCache(cacheKey string, ref platform.ImageRef, logger *slog.Logger) (platform.PulledImage, bool) {
+// checkCache checks if a valid cached image exists, returning the
+// image and the metadata recording how it was admitted.
+func (p *puller) checkCache(cacheKey string, ref platform.ImageRef, logger *slog.Logger) (platform.PulledImage, cachedMetadata, bool) {
 	// Check if bytecode exists
 	if !p.cache.BytecodeExists(cacheKey) {
 		logger.Debug("cache miss: bytecode not found")
-		return platform.PulledImage{}, false
+		return platform.PulledImage{}, cachedMetadata{}, false
 	}
 
 	// Try to load metadata
 	var meta cachedMetadata
 	if err := p.cache.LoadMetadata(cacheKey, &meta); err != nil {
 		logger.Debug("cache miss: metadata not found", "error", err)
-		return platform.PulledImage{}, false
+		return platform.PulledImage{}, cachedMetadata{}, false
 	}
 
 	logger.Debug("cache hit", "digest", meta.Digest, "pulled_at", meta.PulledAt)
@@ -346,7 +388,70 @@ func (p *puller) checkCache(cacheKey string, ref platform.ImageRef, logger *slog
 		URL:        ref.URL,
 		Digest:     meta.Digest,
 		PullPolicy: ref.PullPolicy,
-	}, true
+	}, meta, true
+}
+
+// cachedEntryAdmitted reports whether a cached entry may be served
+// under the signing policy now in force. An entry admitted under that
+// same policy is served untouched, which is the steady state and costs
+// nothing. Otherwise the image is verified again and the new decision
+// recorded, so the check happens once per policy change rather than
+// once per load.
+//
+// Verification asks about the digest the verifier was originally asked
+// about, so a policy change does not force the image to be downloaded
+// again. Returns false when the entry cannot be judged without a fresh
+// resolve, leaving the caller to pull it.
+func (p *puller) cachedEntryAdmitted(ctx context.Context, cacheKey string, ref platform.ImageRef, meta cachedMetadata, logger *slog.Logger) (bool, error) {
+	if p.verifier == nil {
+		return true, nil
+	}
+
+	// An entry carrying no policy was admitted by something this
+	// code cannot reason about, so it never counts as admitted --
+	// including against a verifier that names its policy with the
+	// empty string.
+	policy := p.verifier.PolicyID()
+	recorded := meta.Policy != "" && meta.VerifiedDigest != ""
+	if recorded && meta.Policy == policy {
+		return true, nil
+	}
+
+	// Verification reaches sigstore and the registry, which
+	// PullNever exists to avoid. Refusing is the only choice that
+	// neither breaks that contract nor serves bytecode the current
+	// policy has never passed.
+	if ref.PullPolicy == bpfman.PullNever {
+		return false, fmt.Errorf("image %s was cached under a different signing policy and pull policy is Never, so it cannot be verified", ref.URL)
+	}
+
+	// Nothing recorded to re-verify, so pull the image again and
+	// put it through the full check.
+	if !recorded {
+		logger.Info("cached image predates signing policy tracking, pulling again")
+		return false, nil
+	}
+
+	logger.Info("signing policy changed since image was cached, verifying again",
+		"cached_policy", meta.Policy, "current_policy", policy)
+
+	if _, err := p.verifier.Verify(ctx, platform.SignatureVerificationRequest{
+		ImageRef: ref.URL + "@" + meta.VerifiedDigest,
+		Auth:     ref.Auth,
+	}); err != nil {
+		logger.Error("cached image rejected by current signing policy", "error", err)
+		return false, fmt.Errorf("signature verification failed: %w", err)
+	}
+
+	// Recording the new policy saves the next load a verification;
+	// failing to record it costs a repeat, which is not worth
+	// failing a load that policy has just accepted.
+	meta.Policy = policy
+	if err := p.cache.SaveMetadata(cacheKey, meta); err != nil {
+		logger.Warn("failed to record signing policy against cached image", "error", err)
+	}
+
+	return true, nil
 }
 
 // configureAuth sets up authentication for the repository.

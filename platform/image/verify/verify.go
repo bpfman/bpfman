@@ -3,9 +3,13 @@ package verify
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
+	"sort"
+	"strings"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -34,6 +38,11 @@ func (noSignVerifier) Verify(ctx context.Context, req platform.SignatureVerifica
 	return platform.SignatureVerification{
 		Status: platform.SignatureVerificationDisabled,
 	}, nil
+}
+
+// PolicyID identifies the absence of a policy.
+func (noSignVerifier) PolicyID() string {
+	return "disabled"
 }
 
 // CosignOption configures a cosign verifier.
@@ -120,6 +129,29 @@ type cosignVerifier struct {
 	logger        *slog.Logger
 	allowUnsigned bool
 	identities    []cosign.Identity
+}
+
+// PolicyID fingerprints the accept/reject decision this verifier
+// makes: whether unsigned images pass, and which signers count. Two
+// verifiers built from the same [config.SigningConfig] produce the
+// same ID, and any edit to those settings produces a different one.
+func (v *cosignVerifier) PolicyID() string {
+	identities := make([]string, 0, len(v.identities))
+	for _, identity := range v.identities {
+		identities = append(identities, strings.Join([]string{
+			identity.Issuer,
+			identity.IssuerRegExp,
+			identity.Subject,
+			identity.SubjectRegExp,
+		}, "\x00"))
+	}
+	// Identity order is a detail of how the config was written, not
+	// of the policy it expresses.
+	sort.Strings(identities)
+
+	sum := sha256.Sum256(fmt.Appendf(nil, "cosign\x00allow_unsigned=%t\x00%s",
+		v.allowUnsigned, strings.Join(identities, "\x01")))
+	return hex.EncodeToString(sum[:16])
 }
 
 // Verify checks that the image has a valid sigstore signature.
