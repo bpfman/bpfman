@@ -259,8 +259,9 @@ func (k *kernelAdapter) DetachLink(ctx context.Context, linkPinPath bpfman.LinkP
 			k.logger.Warn("link Detach failed", "link_pin_path", pin, "err", err)
 			// continue: cleanup must still happen
 		}
-		// The FD is deliberately NOT closed yet: it must be held
-		// across the stage-2 pin removal so the pin's put can
+		// The FD is deliberately NOT closed yet: stage 4's
+		// first-probe fast path is sound only if an FD is held
+		// across the stage-2 pin removal, so the pin's put can
 		// never drop the last reference. Stage 3 closes it.
 	}
 
@@ -273,8 +274,12 @@ func (k *kernelAdapter) DetachLink(ctx context.Context, linkPinPath bpfman.LinkP
 					k.logger.Warn("close loaded link", "link_pin_path", pin, "err", cerr)
 				}
 			}
+			// The pin vanished out-of-band, so our Close is not
+			// provably the last reference drop: the external
+			// unlink's put may still be pending. Disable the
+			// first-probe fast path; every ENOENT settles.
 			if !syncDetached && kernelLinkID != 0 {
-				k.waitKernelLinkGone(ctx, kernelLinkID, pin)
+				k.waitKernelLinkGone(ctx, kernelLinkID, pin, false)
 			}
 			return nil
 		}
@@ -289,7 +294,8 @@ func (k *kernelAdapter) DetachLink(ctx context.Context, linkPinPath bpfman.LinkP
 	// Stage 3: close our link FD. This must stay after the
 	// stage-2 pin removal: with the FD held across the pin's put,
 	// only our own close can drop the last reference, and an FD
-	// close tears the link down synchronously inside close(2).
+	// close tears the link down synchronously inside close(2) --
+	// the invariant behind stage 4's first-probe fast path.
 	if detachLnk != nil {
 		if cerr := detachLnk.Close(); cerr != nil {
 			k.logger.Warn("close loaded link", "link_pin_path", pin, "err", cerr)
@@ -307,44 +313,107 @@ func (k *kernelAdapter) DetachLink(ctx context.Context, linkPinPath bpfman.LinkP
 	// Stage 4: only the async-teardown types need the wait; a
 	// successful Detach already disconnected the program.
 	if !syncDetached && kernelLinkID != 0 {
-		k.waitKernelLinkGone(ctx, kernelLinkID, pin)
+		k.waitKernelLinkGone(ctx, kernelLinkID, pin, true)
 	}
 	return nil
 }
 
 // waitKernelLinkGone polls until the kernel link object with the
 // given ID has been released, bounded so a wedged reference can
-// never hang teardown. The ID exposes three states: alive (an FD
-// comes back), dying (EAGAIN: the refcount already hit zero but
-// the deferred release has not run -- the program can still fire
-// on its hook), and gone (ENOENT: the ID has left the table).
-// Only the third terminates the wait; treating EAGAIN as gone
-// returns into the very window this wait exists to outlive.
-func (k *kernelAdapter) waitKernelLinkGone(ctx context.Context, id link.ID, pin string) {
-	const deadline = 3 * time.Second
+// never hang teardown.
+//
+// The caller holds the link's FD across the pin removal (DetachLink
+// stages 1-3), so the pin's put can never drop the last reference;
+// only our own Close can, and an FD close frees the link
+// synchronously inside close(2) -- ID removal and the hook detach
+// both complete before Close returns. ENOENT on the first probe
+// therefore means the teardown already happened, and the wait ends
+// at once. ENOENT on any later probe is ambiguous: an external
+// holder may have released the link via a deferred (non-FD) put
+// whose hook detach is still unwinding behind the ID removal, so
+// those paths observe a short settle period before returning.
+//
+// closeWasLastDrop states whether the caller's Close provably
+// performed the last reference drop, which is what makes the
+// first-probe fast path sound. When the pin vanished out-of-band
+// the external unlink's put may still be pending, so the caller
+// passes false and every ENOENT takes the settle path.
+func (k *kernelAdapter) waitKernelLinkGone(ctx context.Context, id link.ID, pin string, closeWasLastDrop bool) {
 	backoff := time.Millisecond
 	start := time.Now()
+	firstProbe := closeWasLastDrop
+	lookupErrLogged := false
+	var goneSince time.Time
 	for {
-		l, err := link.NewFromID(id)
-		if err != nil && !errors.Is(err, unix.EAGAIN) {
-			return
-		}
-		if err == nil {
+		l, err := k.linkWait.newLinkFromID(id)
+		switch {
+		case err == nil:
 			_ = l.Close()
+			goneSince = time.Time{}
+		case errors.Is(err, os.ErrNotExist):
+			if firstProbe {
+				return
+			}
+			if goneSince.IsZero() {
+				goneSince = time.Now()
+			}
+			if time.Since(goneSince) >= k.linkWait.settle {
+				return
+			}
+		case errors.Is(err, unix.EAGAIN):
+			// The ID slot holds a link mid-creation, which for
+			// our ID means it has been recycled by a concurrent
+			// attach -- so our link was already freed by an
+			// external deferred put whose hook detach may still
+			// be unwinding. Not proof of settled teardown; keep
+			// polling.
+			goneSince = time.Time{}
+		default:
+			// Log once per wait: a persistent failure (EMFILE,
+			// EPERM) would otherwise emit a warning every probe
+			// for the full deadline.
+			if !lookupErrLogged {
+				k.logger.Warn("kernel link lookup failed during detach wait", "link_pin_path", pin, "kernel_link_id", id, "err", err)
+				lookupErrLogged = true
+			}
 		}
+		firstProbe = false
 
-		if time.Since(start) >= deadline {
-			k.logger.Warn("kernel link still present after detach wait", "link_pin_path", pin, "kernel_link_id", id, "waited", deadline)
+		if time.Since(start) >= k.linkWait.deadline {
+			if goneSince.IsZero() {
+				k.logger.Warn("kernel link still present after detach wait", "link_pin_path", pin, "kernel_link_id", id, "waited", k.linkWait.deadline)
+			}
 			return
 		}
 		select {
 		case <-ctx.Done():
+			k.logger.Warn("kernel link detach wait cancelled", "link_pin_path", pin, "kernel_link_id", id, "err", ctx.Err())
 			return
 		case <-time.After(backoff):
 		}
-		if backoff < 50*time.Millisecond {
-			backoff *= 2
-		}
+		backoff = min(backoff*2, k.linkWait.maxBackoff)
+	}
+}
+
+type kernelLinkHandle interface {
+	Close() error
+}
+
+// linkWaitParams bounds waitKernelLinkGone. New fills in the
+// defaults; tests construct adapters with faster ones.
+type linkWaitParams struct {
+	newLinkFromID func(id link.ID) (kernelLinkHandle, error)
+	deadline      time.Duration
+	settle        time.Duration
+	maxBackoff    time.Duration
+}
+
+func defaultLinkWaitParams() linkWaitParams {
+	return linkWaitParams{
+		newLinkFromID: func(id link.ID) (kernelLinkHandle, error) { return link.NewFromID(id) },
+		deadline:      3 * time.Second,
+		settle:        100 * time.Millisecond,
+		maxBackoff:    50 * time.Millisecond,
 	}
 }
 

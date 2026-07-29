@@ -23,6 +23,9 @@ type kernelAdapter struct {
 	// verification targets when loading XDP/TC programs as
 	// Extension type.
 	testDisp testDispatchers
+
+	// linkWait bounds the kernel-link release wait in DetachLink.
+	linkWait linkWaitParams
 }
 
 // Option configures a kernelAdapter.
@@ -38,7 +41,8 @@ func WithLogger(logger *slog.Logger) Option {
 // New creates a new kernel adapter.
 func New(opts ...Option) platform.KernelOperations {
 	k := &kernelAdapter{
-		logger: slog.Default(),
+		logger:   slog.Default(),
+		linkWait: defaultLinkWaitParams(),
 	}
 	for _, opt := range opts {
 		opt(k)
