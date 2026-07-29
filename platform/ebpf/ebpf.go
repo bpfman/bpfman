@@ -6,7 +6,6 @@ import (
 	"iter"
 	"log/slog"
 	"net"
-	"sync"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
@@ -20,38 +19,10 @@ import (
 type kernelAdapter struct {
 	logger *slog.Logger
 
-	// liveLinks holds the *link.Link returned by cilium/ebpf at
-	// attach time, keyed by bpffs link pin path. For probe-style
-	// attachments (tracepoint, k(ret)probe, u(ret)probe,
-	// fentry/fexit) where multiple BPF programs share a kernel
-	// hook, pin-removal alone does not run perf_event_free_bpf_prog
-	// for the released link's program. DetachLink removes the pin
-	// and then consumes this map -- the order matters.
-	liveLinks sync.Map
-
 	// testDisp holds lazily-loaded test dispatchers used as
 	// verification targets when loading XDP/TC programs as
 	// Extension type.
 	testDisp testDispatchers
-}
-
-// trackLink remembers a live link so DetachLink can close it. A
-// no-op when linkPinPath is empty (caller owns lnk and must Close).
-func (k *kernelAdapter) trackLink(linkPinPath string, lnk link.Link) {
-	if linkPinPath == "" {
-		return
-	}
-	k.liveLinks.Store(linkPinPath, lnk)
-}
-
-// releaseLink Closes and forgets the live link tracked at
-// linkPinPath, if any. Returns the Close error.
-func (k *kernelAdapter) releaseLink(linkPinPath string) error {
-	v, ok := k.liveLinks.LoadAndDelete(linkPinPath)
-	if !ok {
-		return nil
-	}
-	return v.(link.Link).Close()
 }
 
 // Option configures a kernelAdapter.

@@ -158,13 +158,14 @@ func (k *kernelAdapter) doAttachUprobeResolved(progPinPath, path, fnName string,
 		k.logger.Debug("link pinned successfully", "path", linkPinPath)
 	}
 
-	// Hand the live link to the kernelAdapter so DetachLink can
-	// Close it after unpinning. Pin-removal alone does not run
-	// perf_event_free_bpf_prog for probe-style attachments.
-	if linkPinPath != "" {
-		k.trackLink(linkPinPath, lnk)
-	} else {
-		lnk.Close()
+	// Close our FD: the bpffs pin (when present) holds the link's
+	// only reference -- the daemon keeps no link state -- and
+	// DetachLink reopens an FD from the pin to make teardown
+	// synchronous. On cilium's tracefs fallback path a failed close
+	// leaks the uprobe_events entry with no owner left to reap it,
+	// so the error must at least be visible.
+	if err := lnk.Close(); err != nil {
+		k.logger.Warn("close attached link", "link_pin_path", linkPinPath, "err", err)
 	}
 
 	return linkID, ToKernelLink(linkInfo), nil
