@@ -42,6 +42,9 @@ type AttachCmd struct {
 	// Fexit attaches a loaded program to a function-exit tracing
 	// point.
 	Fexit AttachFexitCmd `cmd:"" help:"Attach a program to a function exit tracing point."`
+
+	// Lsm attaches a loaded program to an LSM hook.
+	Lsm AttachLsmCmd `cmd:"" help:"Attach a program to an LSM hook."`
 }
 
 // runAttach is the common attach pattern: build the spec, create the
@@ -406,6 +409,33 @@ func (c *AttachFexitCmd) Run(cli *runtime.CLI, ctx context.Context) error {
 		spec, err := bpfman.NewFexitAttachSpec(c.ProgramID)
 		if err != nil {
 			return nil, fmt.Errorf("invalid fexit spec: %w", err)
+		}
+
+		return spec.WithMetadata(args.MetadataMap(c.Metadata)), nil
+	})
+}
+
+// AttachLsmCmd attaches a program to an LSM hook.
+type AttachLsmCmd struct {
+	// OutputFlags carries the -o/--output flag selecting text or
+	// JSON rendering of the created link.
+	cliformat.OutputFlags
+
+	// MetadataFlags carries the repeatable -m/--metadata
+	// key/value labels recorded on the new link.
+	MetadataFlags
+
+	// ProgramID is the kernel ID of the loaded LSM program to
+	// attach. The hook is fixed at load time, so no further target
+	// is required.
+	ProgramID kernel.ProgramID `arg:"" name:"program-id" help:"Program ID to attach."`
+}
+
+func (c *AttachLsmCmd) Run(cli *runtime.CLI, ctx context.Context) error {
+	return runAttach(cli, ctx, &c.OutputFlags, func() (bpfman.AttachSpec, error) {
+		spec, err := bpfman.NewLsmAttachSpec(c.ProgramID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid lsm spec: %w", err)
 		}
 
 		return spec.WithMetadata(args.MetadataMap(c.Metadata)), nil

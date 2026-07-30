@@ -31,10 +31,13 @@ type LoadSpec struct {
 	mapOwnerID      kernel.ProgramID
 }
 
-// RequiresAttachFunc returns true if this program type requires an attach
-// function (fentry and fexit).
+// RequiresAttachFunc returns true if this program type binds its attach
+// target at load time (fentry, fexit and lsm). For fentry/fexit the
+// target is the traced kernel function; for lsm it is the hook, which
+// resolves to the kernel function bpf_lsm_<hook>. All three flow through
+// the same attachFunc field and load-time ProgramSpec.AttachTo.
 func (t ProgramType) RequiresAttachFunc() bool {
-	return t == ProgramTypeFentry || t == ProgramTypeFexit
+	return t == ProgramTypeFentry || t == ProgramTypeFexit || t == ProgramTypeLsm
 }
 
 // Valid reports whether t is one of the known program types. It is the
@@ -150,8 +153,9 @@ func (s LoadSpec) ImageUsername() string { return s.imageUsername }
 // or empty when none was set.
 func (s LoadSpec) ImagePassword() string { return s.imagePassword }
 
-// AttachFunc returns the attach function for fentry/fexit programs, or
-// empty for program types that do not use one.
+// AttachFunc returns the load-time attach target for fentry/fexit/lsm
+// programs (the traced function, or the lsm hook), or empty for program
+// types that do not use one.
 func (s LoadSpec) AttachFunc() string { return s.attachFunc }
 
 // MapOwnerID returns the kernel ID of the program whose maps this

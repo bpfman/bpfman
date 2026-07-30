@@ -371,6 +371,8 @@ func formatAttachDetails(details bpfman.LinkDetails) string {
 		return d.FnName
 	case bpfman.FexitDetails:
 		return d.FnName
+	case bpfman.LsmDetails:
+		return d.HookName
 	case bpfman.XDPDetails:
 		return fmt.Sprintf("%s (ifindex=%d, pos=%d)", d.Interface, d.Ifindex, d.Position)
 	case bpfman.TCDetails:
