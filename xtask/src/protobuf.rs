@@ -22,7 +22,7 @@ fn build_bpfman(_opts: &Options) -> anyhow::Result<()> {
     let includes = &[proto_dir.to_str().unwrap()];
     tonic_build::configure()
         .out_dir(out_dir)
-        .compile(protos, includes)?;
+        .compile_protos(protos, includes)?;
 
     // protoc -I=./bpfman/proto --go_out=paths=source_relative:./clients/gobpfman ./bpfman/proto/bpfman.proto
     let status = Command::new("protoc")
@@ -59,6 +59,6 @@ fn build_csi(_opts: &Options) -> anyhow::Result<()> {
 
     tonic_build::configure()
         .out_dir(out_dir)
-        .compile(protos, includes)?;
+        .compile_protos(protos, includes)?;
     Ok(())
 }
