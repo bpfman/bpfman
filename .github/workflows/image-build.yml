@@ -156,20 +156,17 @@ jobs:
         # provider, that the signing identity is this workflow on
         # this repository, and that the signature was made by the
         # current commit rather than a prior run's stale signature
-        # on the floating :latest tag.
+        # on the floating :latest tag. The commit assertion uses
+        # cosign's own certificate flag because cosign v3 no
+        # longer emits the optional claims in its verify output.
         run: |
           set -euo pipefail
           cosign verify "$BPFMAN_IMG" \
             --certificate-identity-regexp 'https://github\.com/${{ github.repository }}/\.github/workflows/image-build\.yml@.*' \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            > "${RUNNER_TEMP}/cosign-verify.json"
-          actual_sha=$(jq -r '.[0].optional.githubWorkflowSha' "${RUNNER_TEMP}/cosign-verify.json")
-          if [ "${actual_sha}" != "${{ github.sha }}" ]; then
-            echo "FAIL: signature is from sha=${actual_sha}, expected ${{ github.sha }}" >&2
-            jq '.[0].optional' "${RUNNER_TEMP}/cosign-verify.json" >&2
-            exit 1
-          fi
-          echo "Signature verified: githubWorkflowSha=${actual_sha}"
+            --certificate-github-workflow-sha "${{ github.sha }}" \
+            > /dev/null
+          echo "Signature verified: githubWorkflowSha=${{ github.sha }}"
 
       - name: Verify cosign signature via binary's embedded attestation
         # Self-consistency check between the attestation the binary
@@ -179,18 +176,9 @@ jobs:
         # above would pass.
         run: |
           set -euo pipefail
-          docker run --rm -e BPFMAN_MODE= "$BPFMAN_IMG" version \
-            | grep ^Attestation: \
-            | sed 's/^Attestation: *//' \
-            | sh \
-            > "${RUNNER_TEMP}/embedded-verify.json"
-          actual_sha=$(jq -r '.[0].optional.githubWorkflowSha' "${RUNNER_TEMP}/embedded-verify.json")
-          if [ "${actual_sha}" != "${{ github.sha }}" ]; then
-            echo "FAIL: embedded-attestation verify returned sha=${actual_sha}, expected ${{ github.sha }}" >&2
-            jq '.[0].optional' "${RUNNER_TEMP}/embedded-verify.json" >&2
-            exit 1
-          fi
-          echo "Embedded attestation verified: githubWorkflowSha=${actual_sha}"
+          attest_cmd=$(docker run --rm -e BPFMAN_MODE= "$BPFMAN_IMG" version | grep ^Attestation: | sed 's/^Attestation: *//')
+          sh -c "${attest_cmd} --certificate-github-workflow-sha ${{ github.sha }}" > /dev/null
+          echo "Embedded attestation verified: githubWorkflowSha=${{ github.sha }}"
 
   # Build all the userspace example images and push them to the registry.
   build-and-push-userspace-images:
