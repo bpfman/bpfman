@@ -46,9 +46,9 @@ type CLI struct {
 	// subcommands.
 	Dispatcher DispatcherCmd `cmd:"" hidden:"" group:"resources" help:"Manage dispatchers."`
 
-	// Image groups the OCI image subcommands (build, inspect, verify
-	// signatures).
-	Image ImageCmd `cmd:"" hidden:"" group:"infra" help:"Image operations (verify signatures)."`
+	// Image groups the OCI image subcommands (build,
+	// generate-build-args, inspect, verify).
+	Image ImageCmd `cmd:"" group:"infra" help:"Manage OCI images containing BPF bytecode."`
 
 	// Serve starts the gRPC daemon.
 	Serve ServeCmd `cmd:"" hidden:"" group:"infra" help:"Start the gRPC daemon."`

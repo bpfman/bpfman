@@ -157,6 +157,10 @@ func TestRootHelpShowsOnlyPublicLifecycleCommands(t *testing.T) {
 		"link detach",
 		"link get",
 		"link list",
+		"image build",
+		"image generate-build-args",
+		"image inspect",
+		"image verify",
 		"version",
 	} {
 		if !strings.Contains(help, want) {
@@ -169,10 +173,6 @@ func TestRootHelpShowsOnlyPublicLifecycleCommands(t *testing.T) {
 		"link delete",
 		"dispatcher list",
 		"dispatcher get",
-		"image build",
-		"image generate-build-args",
-		"image inspect",
-		"image verify",
 		"serve",
 	} {
 		if strings.Contains(help, hidden) {
