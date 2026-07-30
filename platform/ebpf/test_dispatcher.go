@@ -30,7 +30,7 @@ func loadTestDispatcher(programType bpfman.ProgramType) (*ebpf.Program, func(), 
 	)
 	switch programType {
 	case bpfman.ProgramTypeXDP:
-		cfg, cfgErr := dispatcher.NewXDPConfig(1)
+		cfg, cfgErr := dispatcher.NewXDPConfig(1, dispatcher.XDPFragsDisabled)
 		if cfgErr != nil {
 			return nil, nil, fmt.Errorf("create test XDP dispatcher config: %w", cfgErr)
 		}
