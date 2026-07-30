@@ -660,6 +660,17 @@ type SignatureVerifier interface {
 	// Returns an error if the image signature is invalid or missing
 	// (when unsigned images are not allowed).
 	Verify(ctx context.Context, req SignatureVerificationRequest) (SignatureVerification, error)
+
+	// PolicyID identifies the policy this verifier enforces. Two
+	// verifiers that would accept exactly the same images share an
+	// ID. Callers that cache an accepted image record the ID
+	// alongside it, so a later change of policy is detectable
+	// without repeating the verification.
+	//
+	// The ID must not be empty. Callers reserve the empty string
+	// for images admitted by no verifier at all, so a verifier
+	// returning it could not tell its own decisions from those.
+	PolicyID() string
 }
 
 // ProgramValidator validates requested program names against BPF
