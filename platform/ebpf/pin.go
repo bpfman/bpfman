@@ -172,58 +172,54 @@ func (k *kernelAdapter) Unpin(pinDir string) (int, error) {
 
 // DetachLink tears down a previously-attached link in four
 // stages: explicit kernel-side Detach() where supported, removal
-// of the bpffs pin, Close of the live *link.Link FD, then a
+// of the bpffs pin, Close of the FD opened from the pin, then a
 // bounded wait for the kernel link object to disappear.
 //
-// Stage 1 (Detach): for link types that implement the kernel's
-// bpf_link_ops.detach callback -- XDP, TCX, cgroup, netfilter,
-// netkit, struct_ops, sockmap -- this synchronously disconnects
-// the program from its hook before we touch the pin or the FD.
+// The invariant the stages rest on: the FD opened in stage 1 is
+// held across the stage-2 pin removal, so the pin's put can never
+// drop the link's last reference -- only our own Close in stage 3
+// can. An FD close frees the link synchronously inside close(2)
+// (bpf_link_put_direct), ID removal and hook detach both complete
+// before Close returns, where every other put path defers to a
+// workqueue. That ordering, not the pin removal itself, is what
+// makes teardown synchronous and gives detach the contract
+// callers expect: returned means no longer invoked.
+//
+// Stage 1 (open + Detach): open an FD from the pin, then, for
+// link types that implement the kernel's bpf_link_ops.detach
+// callback -- XDP, TCX, cgroup, netfilter, netkit, struct_ops,
+// sockmap -- synchronously disconnect the program from its hook.
 // Returns EOPNOTSUPP (wrapped as ebpf.ErrNotSupported) for
 // perf-event / tracing link types (kprobe, uprobe, tracepoint,
-// fentry/fexit), where there is no kernel-side sync detach API.
-// Best-effort: a non-EOPNOTSUPP failure is logged but does not
-// abort cleanup.
+// fentry/fexit), where there is no kernel-side sync detach API;
+// those rely wholly on the invariant above.
 //
-// Stage 2 (Remove): removes the bpffs pin entry. For perf-event
-// link types where Detach() is not supported, this is the step
-// that gets bpf_perf_link_release running synchronously enough
-// for the program to stop firing -- the order Remove-then-Close
-// (rather than the reverse) is load-bearing here.
+// Stage 2 (Remove): removes the bpffs pin entry while the FD is
+// still held.
 //
-// Stage 3 (Close): drops the last user reference to the link
-// FD; the kernel reclaims the link object.
+// Stage 3 (Close): drops what is normally the last reference,
+// tearing the link down synchronously inside close(2).
 //
-// Stage 4 (wait): for Detach-supporting types the program is
-// already provably offline by the time we reach Close. For
-// non-supporting types the kernel releases the link via deferred
-// work and RCU grace periods, and under CPU contention the
-// program keeps firing on its hook well after Close returns.
-// There is no userspace primitive to make that teardown
-// synchronous, so we poll the kernel link ID (bounded) until the
-// object is gone, giving detach the contract callers expect:
-// returned means no longer invoked.
+// Stage 4 (wait): insurance for the one case the invariant does
+// not cover -- an external FD holder (bpftool, an inspection
+// tool) releasing its reference through the deferred put path
+// after our Close. Skipped when stage 1's Detach succeeded (the
+// program is already provably off the hook); otherwise polls the
+// kernel link ID, bounded, until the object is gone.
 func (k *kernelAdapter) DetachLink(ctx context.Context, linkPinPath bpfman.LinkPath) error {
 	pin := linkPinPath.String()
 	k.logger.Debug("detaching link by removing pin", "link_pin_path", pin)
 
-	// Stage 1: synchronous kernel-side detach for supported
-	// link types. Prefer the in-process tracked link (saved by
-	// trackLink at attach time) so we don't open a fresh FD;
-	// fall back to LoadPinnedLink when the attach path closed
-	// the original FD after pinning (TCX, XDP, dispatcher
-	// extensions). Either way the resulting *link.Link is
-	// asked to Detach. EOPNOTSUPP comes back for perf-event /
-	// tracing link types where the kernel has no synchronous
+	// Stage 1: open an FD from the pin -- the pin holds the
+	// link's only reference; the daemon keeps no link state --
+	// and attempt the synchronous kernel-side detach for
+	// supported link types. EOPNOTSUPP comes back for perf-event
+	// / tracing link types where the kernel has no synchronous
 	// detach API; those rely on the Remove-then-Close ordering
 	// below.
 	var detachLnk link.Link
-	var detachLnkOpened bool
-	if v, ok := k.liveLinks.Load(pin); ok {
-		detachLnk = v.(link.Link)
-	} else if lnk, err := link.LoadPinnedLink(pin, nil); err == nil {
+	if lnk, err := link.LoadPinnedLink(pin, nil); err == nil {
 		detachLnk = lnk
-		detachLnkOpened = true
 	} else if !errors.Is(err, os.ErrNotExist) {
 		// cilium/ebpf wraps the underlying ENOENT in a string-formatted
 		// error ("load pinned link: no such file or directory"), so the
@@ -232,15 +228,30 @@ func (k *kernelAdapter) DetachLink(ctx context.Context, linkPinPath bpfman.LinkP
 		// step -- gets logged as a WARN. errors.Is unwraps through fmt's
 		// %w chain and treats both raw PathError and the cilium wrapper
 		// as ENOENT.
-		k.logger.Warn("LoadPinnedLink failed", "link_pin_path", pin, "err", err)
+		//
+		// Any other failure aborts the detach: without an FD we can
+		// neither attempt the kernel-side Detach nor observe the
+		// link's release, so proceeding would remove the pin and
+		// report success while the program may keep running --
+		// exactly the contract violation this function exists to
+		// rule out. The link record survives for a retry.
+		return fmt.Errorf("load pinned link %s: %w", pin, err)
 	}
 	var syncDetached bool
 	var kernelLinkID link.ID
 	if detachLnk != nil {
 		// Capture the kernel link ID while we still hold an FD;
-		// stage 4 needs it to observe the object's release.
+		// stage 4 needs it to observe the object's release. An
+		// Info failure aborts for the same reason a load failure
+		// does: without the ID, stage 4 cannot verify the release
+		// for the async-teardown link types.
 		if info, err := detachLnk.Info(); err == nil {
 			kernelLinkID = info.ID
+		} else {
+			if cerr := detachLnk.Close(); cerr != nil {
+				k.logger.Warn("close loaded link", "link_pin_path", pin, "err", cerr)
+			}
+			return fmt.Errorf("link info %s: %w", pin, err)
 		}
 		if err := detachLnk.Detach(); err == nil {
 			syncDetached = true
@@ -248,89 +259,170 @@ func (k *kernelAdapter) DetachLink(ctx context.Context, linkPinPath bpfman.LinkP
 			k.logger.Warn("link Detach failed", "link_pin_path", pin, "err", err)
 			// continue: cleanup must still happen
 		}
-		if detachLnkOpened {
-			// We opened this FD ourselves; close it. The
-			// tracked-link case (if any) is closed later
-			// via releaseLink.
-			_ = detachLnk.Close()
-		}
+		// The FD is deliberately NOT closed yet: stage 4's
+		// first-probe fast path is sound only if an FD is held
+		// across the stage-2 pin removal, so the pin's put can
+		// never drop the last reference. Stage 3 closes it.
 	}
 
 	// Stage 2: remove the pin.
 	if err := os.Remove(pin); err != nil {
 		if os.IsNotExist(err) {
 			k.logger.Debug("link pin already gone", "link_pin_path", pin)
-			// Pin gone, but a tracked link may still be live
-			// (in-process attach by the same adapter). Drop it.
-			if cerr := k.releaseLink(pin); cerr != nil {
-				k.logger.Warn("close tracked link after missing pin", "link_pin_path", pin, "err", cerr)
+			if detachLnk != nil {
+				if cerr := detachLnk.Close(); cerr != nil {
+					k.logger.Warn("close loaded link", "link_pin_path", pin, "err", cerr)
+				}
+			}
+			// The pin vanished out-of-band, so our Close is not
+			// provably the last reference drop: the external
+			// unlink's put may still be pending. Disable the
+			// first-probe fast path; every ENOENT settles.
+			if !syncDetached && kernelLinkID != 0 {
+				k.waitKernelLinkGone(ctx, kernelLinkID, pin, false)
 			}
 			return nil
+		}
+		if detachLnk != nil {
+			if cerr := detachLnk.Close(); cerr != nil {
+				k.logger.Warn("close loaded link", "link_pin_path", pin, "err", cerr)
+			}
 		}
 		return fmt.Errorf("remove link pin %s: %w", pin, err)
 	}
 
-	// Stage 3: close the FD via releaseLink (which also drops
-	// the tracking-map entry).
-	if err := k.releaseLink(pin); err != nil {
-		k.logger.Warn("close tracked link", "link_pin_path", pin, "err", err)
+	// Stage 3: close our link FD. This must stay after the
+	// stage-2 pin removal: with the FD held across the pin's put,
+	// only our own close can drop the last reference, and an FD
+	// close tears the link down synchronously inside close(2) --
+	// the invariant behind stage 4's first-probe fast path.
+	if detachLnk != nil {
+		if cerr := detachLnk.Close(); cerr != nil {
+			k.logger.Warn("close loaded link", "link_pin_path", pin, "err", cerr)
+		}
 	}
 	k.logger.Debug("link pin removed", "link_pin_path", pin)
-	// Best-effort removal of the parent directory. This races
-	// with concurrent attach in non-daemon mode (no global lock),
-	// but attach calls MkdirAll before pinning, so it recovers
-	// if the directory disappears underneath it.
+	// Best-effort removal of the parent directory. bpfman's own
+	// attach cannot race this -- every mutation, CLI or daemon,
+	// holds the cross-process writer flock -- but the directory
+	// lives on a shared bpffs that out-of-band actors can touch;
+	// attach calls MkdirAll before pinning, so it recovers if the
+	// directory disappears underneath it.
 	os.Remove(filepath.Dir(pin))
 
 	// Stage 4: only the async-teardown types need the wait; a
 	// successful Detach already disconnected the program.
 	if !syncDetached && kernelLinkID != 0 {
-		k.waitKernelLinkGone(ctx, kernelLinkID, pin)
+		k.waitKernelLinkGone(ctx, kernelLinkID, pin, true)
 	}
 	return nil
 }
 
 // waitKernelLinkGone polls until the kernel link object with the
 // given ID has been released, bounded so a wedged reference can
-// never hang teardown. The ID exposes three states: alive (an FD
-// comes back), dying (EAGAIN: the refcount already hit zero but
-// the deferred release has not run -- the program can still fire
-// on its hook), and gone (ENOENT: the ID has left the table).
-// Only the third terminates the wait; treating EAGAIN as gone
-// returns into the very window this wait exists to outlive.
-func (k *kernelAdapter) waitKernelLinkGone(ctx context.Context, id link.ID, pin string) {
-	const deadline = 3 * time.Second
+// never hang teardown.
+//
+// The caller holds the link's FD across the pin removal (DetachLink
+// stages 1-3), so the pin's put can never drop the last reference;
+// only our own Close can, and an FD close frees the link
+// synchronously inside close(2) -- ID removal and the hook detach
+// both complete before Close returns. ENOENT on the first probe
+// therefore means the teardown already happened, and the wait ends
+// at once. ENOENT on any later probe is ambiguous: an external
+// holder may have released the link via a deferred (non-FD) put
+// whose hook detach is still unwinding behind the ID removal, so
+// those paths observe a short settle period before returning.
+//
+// closeWasLastDrop states whether the caller's Close provably
+// performed the last reference drop, which is what makes the
+// first-probe fast path sound. When the pin vanished out-of-band
+// the external unlink's put may still be pending, so the caller
+// passes false and every ENOENT takes the settle path.
+func (k *kernelAdapter) waitKernelLinkGone(ctx context.Context, id link.ID, pin string, closeWasLastDrop bool) {
 	backoff := time.Millisecond
 	start := time.Now()
+	firstProbe := closeWasLastDrop
+	lookupErrLogged := false
+	var goneSince time.Time
 	for {
-		l, err := link.NewFromID(id)
-		if err != nil && !errors.Is(err, unix.EAGAIN) {
-			return
-		}
-		if err == nil {
+		l, err := k.linkWait.newLinkFromID(id)
+		switch {
+		case err == nil:
 			_ = l.Close()
+			goneSince = time.Time{}
+		case errors.Is(err, os.ErrNotExist):
+			if firstProbe {
+				return
+			}
+			if goneSince.IsZero() {
+				goneSince = time.Now()
+			}
+			if time.Since(goneSince) >= k.linkWait.settle {
+				return
+			}
+		case errors.Is(err, unix.EAGAIN):
+			// The ID slot holds a link mid-creation, which for
+			// our ID means it has been recycled by a concurrent
+			// attach -- so our link was already freed by an
+			// external deferred put whose hook detach may still
+			// be unwinding. Not proof of settled teardown; keep
+			// polling.
+			goneSince = time.Time{}
+		default:
+			// Log once per wait: a persistent failure (EMFILE,
+			// EPERM) would otherwise emit a warning every probe
+			// for the full deadline.
+			if !lookupErrLogged {
+				k.logger.Warn("kernel link lookup failed during detach wait", "link_pin_path", pin, "kernel_link_id", id, "err", err)
+				lookupErrLogged = true
+			}
 		}
+		firstProbe = false
 
-		if time.Since(start) >= deadline {
-			k.logger.Warn("kernel link still present after detach wait", "link_pin_path", pin, "kernel_link_id", id, "waited", deadline)
+		if time.Since(start) >= k.linkWait.deadline {
+			if goneSince.IsZero() {
+				k.logger.Warn("kernel link still present after detach wait", "link_pin_path", pin, "kernel_link_id", id, "waited", k.linkWait.deadline)
+			}
 			return
 		}
 		select {
 		case <-ctx.Done():
+			k.logger.Warn("kernel link detach wait cancelled", "link_pin_path", pin, "kernel_link_id", id, "err", ctx.Err())
 			return
 		case <-time.After(backoff):
 		}
-		if backoff < 50*time.Millisecond {
-			backoff *= 2
-		}
+		backoff = min(backoff*2, k.linkWait.maxBackoff)
+	}
+}
+
+type kernelLinkHandle interface {
+	Close() error
+}
+
+// linkWaitParams bounds waitKernelLinkGone. New fills in the
+// defaults; tests construct adapters with faster ones.
+type linkWaitParams struct {
+	newLinkFromID func(id link.ID) (kernelLinkHandle, error)
+	deadline      time.Duration
+	settle        time.Duration
+	maxBackoff    time.Duration
+}
+
+func defaultLinkWaitParams() linkWaitParams {
+	return linkWaitParams{
+		newLinkFromID: func(id link.ID) (kernelLinkHandle, error) { return link.NewFromID(id) },
+		deadline:      3 * time.Second,
+		settle:        100 * time.Millisecond,
+		maxBackoff:    50 * time.Millisecond,
 	}
 }
 
 // pinWithRetry creates the parent directory and invokes pin. If the
-// pin fails because a concurrent detach removed the directory, it
-// retries once. This covers the race between detach (which removes
-// empty link directories) and attach (which creates them) when
-// running outside daemon mode with no global lock.
+// pin fails because the directory vanished underneath it, it retries
+// once. bpfman's own detach cannot race this -- every mutation, CLI
+// or daemon, holds the cross-process writer flock -- but the
+// directory lives on a shared bpffs where an out-of-band removal can
+// strike between MkdirAll and pin.
 //
 // Generic over any string-derived path type (bpfman.LinkPath, plain
 // string, future newtypes) so callers preserve their type discipline

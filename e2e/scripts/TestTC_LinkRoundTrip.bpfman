@@ -75,6 +75,7 @@ assert $delta >= 5
 # Detach, then verify the link is gone from both Get and List.
 bpfman link detach $link
 assert fail bpfman link get $linkID
+assert_kernel_link_gone $link
 
 guard listedAfter <- bpfman link list -o json
 assert_link_absent $listedAfter $linkID

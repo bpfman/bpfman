@@ -36,11 +36,9 @@ func (k *kernelAdapter) AttachTracepoint(ctx context.Context, progPinPath bpfman
 
 // finishProbeAttach is the shared tail of the probe-style attaches
 // (tracepoint, kprobe, fentry/fexit). It pins the link when linkPinPath
-// is set, reads its info, and then either hands the live link to the
-// adapter for a later Close or closes it. Probe-style links need an
-// explicit Close after unpinning: pin-removal alone does not run
-// perf_event_free_bpf_prog, so the program stays attached to the
-// perf_event until the link object is Closed.
+// is set, reads its info, and closes our FD: the bpffs pin then holds
+// the link's only reference -- the daemon keeps no link state -- and
+// DetachLink reopens an FD from the pin to make teardown synchronous.
 func (k *kernelAdapter) finishProbeAttach(lnk link.Link, linkPinPath bpfman.LinkPath) (bpfman.AttachOutput, error) {
 	linkPin := linkPinPath.String()
 
@@ -57,10 +55,11 @@ func (k *kernelAdapter) finishProbeAttach(lnk link.Link, linkPinPath bpfman.Link
 		return bpfman.AttachOutput{}, fmt.Errorf("get link info: %w", err)
 	}
 
-	if linkPin != "" {
-		k.trackLink(linkPin, lnk)
-	} else {
-		lnk.Close()
+	// On cilium's tracefs fallback path a failed close leaks the
+	// kprobe_events/uprobe_events entry with no owner left to reap
+	// it, so the error must at least be visible.
+	if err := lnk.Close(); err != nil {
+		k.logger.Warn("close attached link", "link_pin_path", linkPin, "err", err)
 	}
 
 	kernelLinkID := kernel.LinkID(linkInfo.ID)
