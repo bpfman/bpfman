@@ -103,7 +103,8 @@ func TestLinkKindNames(t *testing.T) {
 	assert.Contains(t, names, "tracepoint")
 	assert.Contains(t, names, "fentry")
 	assert.Contains(t, names, "fexit")
-	assert.Len(t, names, 10)
+	assert.Contains(t, names, "lsm")
+	assert.Len(t, names, 11)
 }
 
 func TestAllLinkKinds(t *testing.T) {
@@ -121,5 +122,6 @@ func TestAllLinkKinds(t *testing.T) {
 	assert.Contains(t, kinds, bpfman.LinkKindTracepoint)
 	assert.Contains(t, kinds, bpfman.LinkKindFentry)
 	assert.Contains(t, kinds, bpfman.LinkKindFexit)
-	assert.Len(t, kinds, 10)
+	assert.Contains(t, kinds, bpfman.LinkKindLsm)
+	assert.Len(t, kinds, 11)
 }

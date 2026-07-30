@@ -17,6 +17,8 @@ func Run(mode string, args []string) error {
 		return runKillFireWorker(args)
 	case "ldso-cache-writer":
 		return runLdSoCacheWriter(args)
+	case "lsm-open-worker":
+		return runLsmOpenWorker(args)
 	default:
 		return fmt.Errorf("unknown BPFMAN_SHELL_MODE %q", mode)
 	}

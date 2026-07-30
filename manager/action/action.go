@@ -240,6 +240,20 @@ type AttachFexit struct {
 
 func (AttachFexit) isAction() {}
 
+// AttachLsm attaches a pinned program to an LSM hook.
+type AttachLsm struct {
+	// ProgPinPath is the bpffs program pin of the program to attach.
+	ProgPinPath bpfman.ProgPinPath
+
+	// HookName is the LSM hook the program guards (e.g. file_open).
+	HookName string
+
+	// LinkPinPath is the bpffs path at which to pin the resulting link.
+	LinkPinPath bpfman.LinkPath
+}
+
+func (AttachLsm) isAction() {}
+
 // Kernel link actions - operations on kernel links
 
 // DetachLink tears down a kernel-attached BPF link synchronously

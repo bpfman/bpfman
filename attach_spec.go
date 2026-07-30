@@ -234,6 +234,27 @@ func (FexitAttachSpec) attachSpec() {}
 // ProgramID returns the kernel ID of the program to attach.
 func (s FexitAttachSpec) ProgramID() kernel.ProgramID { return s.programID }
 
+// LsmAttachSpec specifies how to attach an LSM program.
+// Note: the hook comes from the program's stored metadata (set at load
+// time from the lsm/<hook> ELF section), not from user input.
+type LsmAttachSpec struct {
+	attachMetadata
+	programID kernel.ProgramID
+}
+
+// NewLsmAttachSpec creates a LsmAttachSpec with validated fields.
+func NewLsmAttachSpec(programID kernel.ProgramID) (LsmAttachSpec, error) {
+	if programID == 0 {
+		return LsmAttachSpec{}, errors.New("programID is required")
+	}
+	return LsmAttachSpec{programID: programID}, nil
+}
+
+func (LsmAttachSpec) attachSpec() {}
+
+// ProgramID returns the kernel ID of the program to attach.
+func (s LsmAttachSpec) ProgramID() kernel.ProgramID { return s.programID }
+
 // XDPAttachSpec specifies how to attach XDP.
 type XDPAttachSpec struct {
 	attachMetadata
@@ -501,6 +522,12 @@ func (s FentryAttachSpec) WithMetadata(md map[string]string) FentryAttachSpec {
 
 // WithMetadata returns a copy of s with the given link labels set.
 func (s FexitAttachSpec) WithMetadata(md map[string]string) FexitAttachSpec {
+	s.metadata = md
+	return s
+}
+
+// WithMetadata returns a copy of s with the given link labels set.
+func (s LsmAttachSpec) WithMetadata(md map[string]string) LsmAttachSpec {
 	s.metadata = md
 	return s
 }

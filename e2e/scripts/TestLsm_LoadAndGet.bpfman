@@ -1,0 +1,61 @@
+# -*- mode: bpfman -*-
+#pragma labels={"program":"lsm","requires-bpf-lsm":"true"}
+#
+# Given: an LSM program loaded with its hook, with no attach, traffic,
+# or detach activity
+#
+# When: the Program record is read back through program load and
+# program get
+#
+# Then: the load block matches exhaustively -- so a new or renamed field
+# is caught -- pinning the bpfman program type to lsm and the reused
+# attach_func to the file_open hook, while the kernel program type reads
+# lsm (distinct from fentry/fexit's tracing)
+
+import ../lib.bpfman
+
+guard loaded <- bpfman program load file testdata/bpf/lsm_exact.bpf.o --programs "lsm:test_lsm:file_open" -m owner=e2e -m purpose=load-and-get
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+
+expect_program_load $prog lsm lsm test_lsm
+
+# The load block, matched exhaustively. program_type is the bpfman type
+# lsm; attach_func carries the hook (LSM reuses the fentry/fexit
+# attach_func field rather than a separate hook column). Deterministic
+# LSM-specific fields are pinned to literals; the file-load-vs-image
+# fields echo the load response so both source modes assert exactly.
+assert $prog.record.load matches exhaustive {
+    object_path:  not-empty
+    source_path:  $prog.record.load.source_path
+    program_name: test_lsm
+    program_type: lsm
+    attach_func:  file_open
+    map_owner_id: null
+    global_data:  empty
+    image_source: $prog.record.load.image_source
+}
+assert $pid > 0
+
+guard got <- bpfman program get $pid
+expect_program_round_trip $got $prog
+assert $got.record.load matches exhaustive {
+    object_path:  $prog.record.load.object_path
+    source_path:  $prog.record.load.source_path
+    program_name: test_lsm
+    program_type: lsm
+    attach_func:  file_open
+    map_owner_id: $prog.record.load.map_owner_id
+    global_data:  empty
+    image_source: $prog.record.load.image_source
+}
+assert $got.status.kernel.program_type == lsm
+
+guard listed <- bpfman program list -o json
+let ours = $listed |> jq ".programs[] | select(.record.program_id == ${pid})"
+assert present $ours
+assert $ours.record.load.program_type == lsm
+assert $ours.record.load.attach_func == file_open
+
+bpfman program unload $pid
+assert fail bpfman program get $pid
