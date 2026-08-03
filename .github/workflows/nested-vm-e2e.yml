@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
 
       - name: Install VM tooling
         run: |
@@ -43,7 +43,7 @@ jobs:
             qemu-system-x86 qemu-utils genisoimage libseccomp-dev libcap-ng-dev
 
       - name: Cache virtiofsd binary
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/virtiofsd-bin
           key: virtiofsd-1.13.2
@@ -83,14 +83,14 @@ jobs:
           ! grep -qw bpf /sys/kernel/security/lsm
 
       - name: Cache base image and provisioned disk
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/bpfman-fedora-vm
           key: fedora-vm-${{ hashFiles('hack/fedora-vm.sh', 'hack/install-fedora-deps.sh') }}
           restore-keys: fedora-vm-
 
       - name: Cache guest Go build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .gocache
           key: lsm-gocache-${{ github.sha }}
@@ -124,7 +124,7 @@ jobs:
 
       - name: Upload guest serial log
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: guest-serial-log
           path: /tmp/guest-serial.log
