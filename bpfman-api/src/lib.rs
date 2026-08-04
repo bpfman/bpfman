@@ -133,7 +133,6 @@ impl TryFrom<&Link> for AttachInfo {
                 info: Some(Info::KprobeAttachInfo(KprobeAttachInfo {
                     fn_name: p.get_fn_name()?.to_string(),
                     offset: p.get_offset()?,
-                    container_pid: p.get_container_pid()?,
                     metadata: p.get_metadata()?,
                 })),
             }),
