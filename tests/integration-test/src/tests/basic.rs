@@ -453,7 +453,6 @@ fn test_load_unload_kprobe() {
                 fn_name: KPROBE_KERNEL_FUNCTION_NAME.to_string(),
                 offset: 0,
                 metadata: HashMap::new(),
-                container_pid: None,
             },
         );
         progs.push(prog);
@@ -496,7 +495,6 @@ fn test_load_unload_kretprobe() {
                 fn_name: KRETPROBE_KERNEL_FUNCTION_NAME.to_string(),
                 offset: 0,
                 metadata: HashMap::new(),
-                container_pid: None,
             },
         );
         progs.push(prog);
@@ -732,7 +730,6 @@ fn test_load_unload_cosign_disabled() {
                 fn_name: KPROBE_KERNEL_FUNCTION_NAME.to_string(),
                 offset: 0,
                 metadata: HashMap::new(),
-                container_pid: None,
             },
         );
         progs.push(prog);
