@@ -62,7 +62,7 @@ libsystemd = { version = "0.7.2", default-features = false }
 log = { version = "0.4", default-features = false }
 netlink-packet-audit = { version = "^0.6", default-features = false }
 netlink-packet-core = { version = "^0.8", default-features = false }
-netlink-packet-route = { version = "^0.31", default-features = false }
+netlink-packet-route = { version = "^0.32", default-features = false }
 netlink-sys = { version = "^0.8", default-features = false }
 nix = { version = "0.31", default-features = false }
 object = { version = "0.40.0", default-features = false }
