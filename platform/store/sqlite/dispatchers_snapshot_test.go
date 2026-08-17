@@ -115,6 +115,88 @@ func setupXDPSnapshot(t *testing.T, ctx context.Context, store platform.Store) p
 	}
 }
 
+func TestXDPSnapshotAggregatesFragsCapability(t *testing.T) {
+	t.Parallel()
+
+	store, err := sqlite.NewInMemory(context.Background(), testLogger())
+	require.NoError(t, err)
+	defer store.Close()
+
+	ctx := context.Background()
+	prog1ID := kernel.ProgramID(1001)
+	prog2ID := kernel.ProgramID(1002)
+	prog1 := testXDPProgram("xdp_frags_1")
+	prog1.HasXDPFrags = true
+	prog2 := testXDPProgram("xdp_frags_2")
+	prog2.HasXDPFrags = true
+	require.NoError(t, store.Save(ctx, prog1ID, prog1))
+	require.NoError(t, store.Save(ctx, prog2ID, prog2))
+
+	member1KernelLinkID := kernel.LinkID(701)
+	member2KernelLinkID := kernel.LinkID(702)
+	snap := platform.DispatcherSnapshotSpec{
+		Key:      xdpKey(),
+		Revision: 1,
+		Runtime: platform.DispatcherRuntime{
+			ProgramID:    500,
+			KernelLinkID: ptr(kernel.LinkID(501)),
+		},
+		Members: []platform.DispatcherMemberSpec{
+			{
+				ProgramID:    prog1ID,
+				ProgramName:  "xdp_frags_1",
+				ProgPinPath:  "/sys/fs/bpf/xdp_frags_1",
+				KernelLinkID: &member1KernelLinkID,
+				LinkPinPath:  "/sys/fs/bpf/dispatch/r1/link0",
+				Position:     0,
+				Priority:     50,
+				ProceedOn:    0x04,
+				Ifname:       "eth0",
+				HasXDPFrags:  true,
+			},
+			{
+				ProgramID:    prog2ID,
+				ProgramName:  "xdp_frags_2",
+				ProgPinPath:  "/sys/fs/bpf/xdp_frags_2",
+				KernelLinkID: &member2KernelLinkID,
+				LinkPinPath:  "/sys/fs/bpf/dispatch/r1/link1",
+				Position:     1,
+				Priority:     100,
+				ProceedOn:    0x04,
+				Ifname:       "eth0",
+				HasXDPFrags:  true,
+			},
+		},
+	}
+
+	completed, err := store.ReplaceDispatcherSnapshot(ctx, snap)
+	require.NoError(t, err)
+	require.True(t, completed.IsXDPFrags)
+
+	got, err := store.GetDispatcherSnapshot(ctx, xdpKey())
+	require.NoError(t, err)
+	require.True(t, got.IsXDPFrags)
+	require.True(t, got.Members[0].HasXDPFrags)
+	require.True(t, got.Members[1].HasXDPFrags)
+
+	prog2.HasXDPFrags = false
+	require.NoError(t, store.Save(ctx, prog2ID, prog2))
+	snap.Revision = 2
+	snap.Runtime.ProgramID = 501
+	snap.Runtime.KernelLinkID = ptr(kernel.LinkID(502))
+	snap.Members[1].HasXDPFrags = false
+
+	completed, err = store.ReplaceDispatcherSnapshot(ctx, snap)
+	require.NoError(t, err)
+	require.False(t, completed.IsXDPFrags)
+
+	got, err = store.GetDispatcherSnapshot(ctx, xdpKey())
+	require.NoError(t, err)
+	require.False(t, got.IsXDPFrags)
+	require.True(t, got.Members[0].HasXDPFrags)
+	require.False(t, got.Members[1].HasXDPFrags)
+}
+
 func TestSnapshotStore_ReplaceAndGet_XDP(t *testing.T) {
 	t.Parallel()
 

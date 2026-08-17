@@ -32,7 +32,7 @@ func (s *sqliteStore) prepareDispatcherStatements(ctx context.Context) error {
 
 	const getXDPMembersSQL = `
 		SELECT d.position, d.priority, p.program_name, d.proceed_on,
-		       p.pin_path, l.id, l.kernel_link_id, l.kernel_prog_id, l.pin_path, d.interface, l.metadata_json
+		       p.pin_path, l.id, l.kernel_link_id, l.kernel_prog_id, l.pin_path, d.interface, l.metadata_json, p.has_xdp_frags
 		FROM link_xdp_details d
 		JOIN links l ON d.id = l.id
 		JOIN managed_programs p ON l.kernel_prog_id = p.program_id
@@ -46,7 +46,7 @@ func (s *sqliteStore) prepareDispatcherStatements(ctx context.Context) error {
 
 	const getTCMembersSQL = `
 		SELECT d.position, d.priority, p.program_name, d.proceed_on,
-		       p.pin_path, l.id, l.kernel_link_id, l.kernel_prog_id, l.pin_path, d.interface, l.metadata_json
+		       p.pin_path, l.id, l.kernel_link_id, l.kernel_prog_id, l.pin_path, d.interface, l.metadata_json, 0
 		FROM link_tc_details d
 		JOIN links l ON d.id = l.id
 		JOIN managed_programs p ON l.kernel_prog_id = p.program_id
@@ -69,7 +69,18 @@ func (s *sqliteStore) prepareDispatcherStatements(ctx context.Context) error {
 		       AND t.direction = CASE d.type
 		           WHEN 'tc-ingress' THEN 'ingress'
 		           WHEN 'tc-egress' THEN 'egress'
-		           ELSE '' END) AS member_count
+		           ELSE '' END) AS member_count,
+		    -- member_frags reaches has_xdp_frags via managed_programs, while
+		    -- member_count counts link_xdp_details directly. They enumerate the
+		    -- same members only because FK enforcement (foreign_keys=1)
+		    -- guarantees every link row has a program row; without it an orphan
+		    -- link would be counted but dropped here, skewing the frags verdict.
+		    (SELECT json_group_array(p.has_xdp_frags)
+		     FROM link_xdp_details x
+		     JOIN links l ON x.id = l.id
+		     JOIN managed_programs p ON l.kernel_prog_id = p.program_id
+		     WHERE x.nsid = d.nsid AND x.ifindex = d.ifindex
+		       AND d.type = 'xdp') AS member_frags
 		FROM dispatchers d`
 
 	s.stmtListDispatcherSummaries, err = s.db.PrepareContext(ctx, listDispatcherSummariesSQL)
@@ -188,6 +199,23 @@ func scanDispatcherRuntime(programID kernel.ProgramID, nullLinkID sql.NullInt64,
 	return rt
 }
 
+// xdpDispatcherFrags reports whether an XDP dispatcher with these members
+// is frags-aware, applying the shared dispatcher.FragsEligible rule.
+// Always false for a non-XDP dispatcher, since TC members are never
+// frags-capable.
+func xdpDispatcherFrags(key dispatcher.Key, members []platform.DispatcherMember) bool {
+	if key.Type != dispatcher.DispatcherTypeXDP {
+		return false
+	}
+
+	frags := make([]bool, len(members))
+	for i, m := range members {
+		frags[i] = m.HasXDPFrags
+	}
+
+	return dispatcher.FragsEligible(frags)
+}
+
 // GetDispatcherSnapshot retrieves a complete snapshot of a dispatcher
 // and all its extension members.
 func (s *sqliteStore) GetDispatcherSnapshot(ctx context.Context, key dispatcher.Key) (platform.DispatcherSnapshot, error) {
@@ -240,10 +268,13 @@ func (s *sqliteStore) GetDispatcherSnapshot(ctx context.Context, key dispatcher.
 		var kernelLinkID sql.NullInt64
 		var linkPinPath sql.NullString
 		var metadataJSON sql.NullString
+		var hasXDPFrags int
 		if err := rows.Scan(&m.Position, &m.Priority, &m.ProgramName, &proceedOnJSON,
-			&m.ProgPinPath, &m.LinkID, &kernelLinkID, &m.ProgramID, &linkPinPath, &m.Ifname, &metadataJSON); err != nil {
+			&m.ProgPinPath, &m.LinkID, &kernelLinkID, &m.ProgramID, &linkPinPath, &m.Ifname, &metadataJSON, &hasXDPFrags); err != nil {
 			return platform.DispatcherSnapshot{}, fmt.Errorf("scan dispatcher member: %w", err)
 		}
+
+		m.HasXDPFrags = hasXDPFrags != 0
 		if kernelLinkID.Valid {
 			id := kernel.LinkID(kernelLinkID.Int64)
 			m.KernelLinkID = &id
@@ -272,17 +303,21 @@ func (s *sqliteStore) GetDispatcherSnapshot(ctx context.Context, key dispatcher.
 
 		snap.Members = append(snap.Members, m)
 	}
+
 	if err := rows.Err(); err != nil {
 		return platform.DispatcherSnapshot{}, fmt.Errorf("iterate dispatcher members: %w", err)
 	}
+
+	snap.IsXDPFrags = xdpDispatcherFrags(key, snap.Members)
 
 	s.logger.Debug("sql", "stmt", "GetDispatcherSnapshot", "args", []any{key}, "duration_ms", msec(time.Since(start)), "members", len(snap.Members))
 	return snap, nil
 }
 
 // ListDispatcherSummaries returns lightweight summaries of all
-// dispatchers with member counts. Uses a correlated subquery to
-// count members without joining detail tables.
+// dispatchers with member counts. Uses correlated subqueries to count
+// members and gather their frags flags without joining detail tables at
+// the top level, so the whole listing is one consistent snapshot.
 func (s *sqliteStore) ListDispatcherSummaries(ctx context.Context) ([]platform.DispatcherSummary, error) {
 	start := time.Now()
 
@@ -303,8 +338,9 @@ func (s *sqliteStore) ListDispatcherSummaries(ctx context.Context) ([]platform.D
 		var priority sql.NullInt64
 		var filterHandle sql.NullInt64
 		var netnsPath string
+		var memberFragsJSON string
 		if err := rows.Scan(&dispTypeStr, &summary.Key.Nsid, &summary.Key.Ifindex,
-			&summary.Revision, &programID, &nullLinkID, &priority, &filterHandle, &netnsPath, &summary.MemberCount); err != nil {
+			&summary.Revision, &programID, &nullLinkID, &priority, &filterHandle, &netnsPath, &summary.MemberCount, &memberFragsJSON); err != nil {
 			s.logger.Debug("sql", "stmt", "ListDispatcherSummaries", "duration_ms", msec(time.Since(start)), "error", err)
 			return nil, fmt.Errorf("scan dispatcher summary: %w", err)
 		}
@@ -314,7 +350,23 @@ func (s *sqliteStore) ListDispatcherSummaries(ctx context.Context) ([]platform.D
 			return nil, fmt.Errorf("invalid dispatcher type in DB: %w", err)
 		}
 
+		// member_frags is a JSON array of each XDP member's has_xdp_frags
+		// flag ('[]' for non-XDP dispatchers), gathered in the same
+		// statement so the frags verdict shares one snapshot with the
+		// rest of the row. SQL only gathers; the frags rule stays in
+		// dispatcher.FragsEligible, the same rule the snapshot uses.
+		var memberFrags []int
+		if err := json.Unmarshal([]byte(memberFragsJSON), &memberFrags); err != nil {
+			return nil, fmt.Errorf("parse dispatcher member frags: %w", err)
+		}
+
+		frags := make([]bool, len(memberFrags))
+		for i, v := range memberFrags {
+			frags[i] = v != 0
+		}
+
 		summary.Key.Type = parsed
+		summary.IsXDPFrags = dispatcher.FragsEligible(frags)
 		summary.Runtime = scanDispatcherRuntime(programID, nullLinkID, priority, filterHandle, netnsPath)
 		result = append(result, summary)
 	}
@@ -434,6 +486,7 @@ func (s *sqliteStore) replaceDispatcherSnapshot(ctx context.Context, snap platfo
 			ProceedOn:    spec.ProceedOn,
 			Ifname:       spec.Ifname,
 			Metadata:     spec.Metadata,
+			HasXDPFrags:  spec.HasXDPFrags,
 		}
 
 		// Insert detail row.
@@ -458,6 +511,8 @@ func (s *sqliteStore) replaceDispatcherSnapshot(ctx context.Context, snap platfo
 		}
 		completed.Members = append(completed.Members, m)
 	}
+
+	completed.IsXDPFrags = xdpDispatcherFrags(snap.Key, completed.Members)
 
 	s.logger.Debug("sql", "stmt", "ReplaceDispatcherSnapshot", "args", []any{snap.Key, snap.Revision}, "duration_ms", msec(time.Since(start)), "members", len(snap.Members))
 	return completed, nil
