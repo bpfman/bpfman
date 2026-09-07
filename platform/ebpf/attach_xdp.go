@@ -10,6 +10,7 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/link"
+	"golang.org/x/sys/unix"
 
 	"github.com/bpfman/bpfman"
 	"github.com/bpfman/bpfman/dispatcher"
@@ -140,6 +141,13 @@ func (k *kernelAdapter) LoadAndPinXDPDispatcher(ctx context.Context, cfg dispatc
 	collSpec, err := dispatcher.LoadXDPDispatcher(cfg)
 	if err != nil {
 		return 0, fmt.Errorf("load XDP dispatcher spec: %w", err)
+	}
+	if cfg.IsXDPFrags == 1 {
+		progSpec, ok := collSpec.Programs["xdp_dispatcher"]
+		if !ok {
+			return 0, fmt.Errorf("xdp_dispatcher program not found in collection spec")
+		}
+		progSpec.Flags |= unix.BPF_F_XDP_HAS_FRAGS
 	}
 
 	coll, err := ebpf.NewCollection(collSpec)
