@@ -29,7 +29,7 @@ patches:
   target:
     kind: DaemonSet
     name: go-xdp-counter-ds
-- patch: "- op: add\n  path: \"/spec/template/spec/containers/0/securityContext/seLinuxOptions/type\"\n  value: \n    bpfman-secure_go-xdp-counter.process"
+- patch: "- op: add\n  path: \"/spec/template/spec/containers/0/securityContext/seLinuxOptions/type\"\n  value: \n    bpfman-secure-go-xdp-counter.process"
   target:
     kind: DaemonSet
     name: go-xdp-counter-ds

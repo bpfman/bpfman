@@ -27,7 +27,7 @@ patches:
     - op: add
       path: "/spec/template/spec/containers/0/securityContext/seLinuxOptions/type"
       value:
-        bpfman-secure_go-xdp-counter.process
+        bpfman-secure-go-xdp-counter.process
   target:
     kind: DaemonSet
     name: go-xdp-counter-ds
