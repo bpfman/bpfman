@@ -670,14 +670,6 @@ impl KprobeLink {
         sled_get(&self.0.0, KPROBE_OFFSET).map(bytes_to_u64)
     }
 
-    pub(crate) fn set_container_pid(&mut self, container_pid: i32) -> Result<(), BpfmanError> {
-        sled_insert(
-            &self.0.0,
-            KPROBE_CONTAINER_PID,
-            &container_pid.to_ne_bytes(),
-        )
-    }
-
     pub fn get_container_pid(&self) -> Result<Option<i32>, BpfmanError> {
         Ok(sled_get_option(&self.0.0, KPROBE_CONTAINER_PID)?.map(bytes_to_i32))
     }
@@ -687,14 +679,10 @@ impl KprobeLink {
             AttachInfo::Kprobe {
                 fn_name,
                 offset,
-                container_pid,
                 metadata,
             } => {
                 self.set_fn_name(fn_name.clone())?;
                 self.set_offset(offset)?;
-                if let Some(container_pid) = container_pid {
-                    self.set_container_pid(container_pid)?;
-                }
                 self.set_metadata(metadata)?;
             }
             _ => panic!("Invalid attach info"),
@@ -1361,7 +1349,6 @@ pub enum AttachInfo {
     Kprobe {
         fn_name: String,
         offset: u64,
-        container_pid: Option<i32>,
         metadata: HashMap<String, String>,
     },
     Uprobe {

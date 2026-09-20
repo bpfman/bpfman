@@ -128,7 +128,6 @@ impl AttachCommands {
                 Ok(AttachInfo::Kprobe {
                     fn_name: fn_name.to_string(),
                     offset,
-                    container_pid: *container_pid,
                     metadata: parse_metadata(metadata, application),
                 })
             }
