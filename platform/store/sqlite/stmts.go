@@ -12,7 +12,7 @@ func (s *sqliteStore) prepareProgramStatements(ctx context.Context) error {
 	const sqlGetProgram = `
 		SELECT m.program_name, m.program_type, m.object_path, m.source_path, m.pin_path, m.attach_func,
 		       m.global_data, m.map_set_id, ms.pin_path, m.image_source, m.owner, m.description,
-		       m.license, m.gpl_compatible, m.created_at, m.updated_at, m.metadata_json
+		       m.license, m.gpl_compatible, m.has_xdp_frags, m.created_at, m.updated_at, m.metadata_json
 		FROM managed_programs m
 		JOIN map_sets ms ON ms.id = m.map_set_id
 		WHERE m.program_id = ?`
@@ -36,8 +36,8 @@ func (s *sqliteStore) prepareProgramStatements(ctx context.Context) error {
 	const sqlSaveProgram = `
 		INSERT INTO managed_programs
 		(program_id, program_name, program_type, object_path, source_path, pin_path, attach_func,
-		 global_data, map_set_id, image_source, owner, description, license, gpl_compatible, metadata_json, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		 global_data, map_set_id, image_source, owner, description, license, gpl_compatible, has_xdp_frags, metadata_json, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(program_id) DO UPDATE SET
 		  program_name = excluded.program_name,
 		  program_type = excluded.program_type,
@@ -52,6 +52,7 @@ func (s *sqliteStore) prepareProgramStatements(ctx context.Context) error {
 		  description = excluded.description,
 		  license = excluded.license,
 		  gpl_compatible = excluded.gpl_compatible,
+		  has_xdp_frags = excluded.has_xdp_frags,
 		  metadata_json = excluded.metadata_json,
 		  updated_at = excluded.updated_at`
 	if s.stmtSaveProgram, err = s.db.PrepareContext(ctx, sqlSaveProgram); err != nil {
@@ -66,7 +67,7 @@ func (s *sqliteStore) prepareProgramStatements(ctx context.Context) error {
 	const sqlListPrograms = `
 		SELECT m.program_id, m.program_name, m.program_type, m.object_path, m.source_path, m.pin_path, m.attach_func,
 		       m.global_data, m.map_set_id, ms.pin_path, m.image_source, m.owner, m.description,
-		       m.license, m.gpl_compatible, m.created_at, m.updated_at, m.metadata_json
+		       m.license, m.gpl_compatible, m.has_xdp_frags, m.created_at, m.updated_at, m.metadata_json
 		FROM managed_programs m
 		JOIN map_sets ms ON ms.id = m.map_set_id`
 	if s.stmtListPrograms, err = s.db.PrepareContext(ctx, sqlListPrograms); err != nil {
