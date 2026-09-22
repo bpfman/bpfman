@@ -29,7 +29,7 @@ patches:
   target:
     kind: DaemonSet
     name: go-tracepoint-counter-ds
-- patch: "- op: add\n  path: \"/spec/template/spec/containers/0/securityContext/seLinuxOptions/type\"\n  value: \n    bpfman-secure_go-tracepoint-counter.process"
+- patch: "- op: add\n  path: \"/spec/template/spec/containers/0/securityContext/seLinuxOptions/type\"\n  value: \n    bpfman-secure-go-tracepoint-counter.process"
   target:
     kind: DaemonSet
     name: go-tracepoint-counter-ds
