@@ -1,0 +1,68 @@
+# -*- mode: bpfman -*-
+#
+# BPFMAN-43: XDP attach to a jumbo-MTU veth must succeed by falling
+# back to generic/SKB mode.
+#
+# Given: a netns veth pair raised to the OpenShift overlay MTU
+# (8901), which exceeds the per-page XDP buffer limit (~3506 bytes on
+# a 4K-page system), so native/driver-mode XDP attach is rejected by
+# the veth driver with ERANGE ("numerical result out of range")
+#
+# When: an XDP program is attached through bpfman
+#
+# Then: the attach succeeds, the kernel reports the link in generic
+# mode (ip xdp.mode == 2 == XDP_FLAGS_SKB_MODE), and traffic drives
+# the XDP counter -- proving the SKB fallback fired and is on the
+# packet path. Without the fix the attach fails with ERANGE.
+
+import ../lib.bpfman
+
+guard pair <- net netns-veth-pair
+defer net release $pair
+
+let netns = "/var/run/netns/${pair.a.ns}"
+
+# Raise both ends to the overlay MTU so native-mode XDP attach hits
+# the veth driver's peer-MTU rejection.
+guard _ <- net exec $pair.a ip link set dev $pair.a.link mtu 8901
+guard _ <- net exec $pair.b ip link set dev $pair.b.link mtu 8901
+
+guard loaded <- bpfman program load file testdata/bpf/xdp_pass.bpf.o --programs xdp:pass
+let prog = $loaded.programs[0]
+let pid = $prog.record.program_id
+defer bpfman program unload $pid
+
+# Native mode fails with ERANGE here before the fix; with the fix the
+# attach retries in generic/SKB mode and succeeds.
+guard link <- bpfman link attach xdp $prog $pair.a.link --priority 50 --netns $netns -m owner=xdp
+let linkID = $link.record.id
+assert $link.record.kind == xdp
+assert $link.record.program_id == $pid
+assert $link.status.kernel_seen
+
+# Direct kernel proof that the fallback fired: the interface carries
+# an XDP program in generic mode (mode 2 = XDP_FLAGS_SKB_MODE; native
+# would be 1).
+guard xdpShow <- net exec $pair.a ip -j -d link show dev $pair.a.link
+let xdpMode = $xdpShow.stdout |> jq "fromjson | .[0].xdp.mode"
+print "xdp mode on ${pair.a.link}: ${xdpMode} (1=native, 2=generic/SKB)"
+assert $xdpMode == 2
+
+# Traffic round-trip: ping from b to a and prove the XDP counter
+# moved, so the generic-mode dispatcher is genuinely on the path.
+# ARP/control traffic may add packets, so this is a lower bound.
+let mapID = $prog.status.maps[0].id
+let sumFilter = "fromjson | [.[0].formatted.values[].value | tonumber] | add"
+guard dumpBefore <- bpftool map dump id $mapID -j
+let before = $dumpBefore.stdout |> jq $sumFilter
+
+guard _ <- net exec $pair.b ping -c 5 -i 0.05 -W 1 $pair.a.addr
+
+guard dumpAfter <- bpftool map dump id $mapID -j
+let after = $dumpAfter.stdout |> jq $sumFilter
+let delta = $after - $before
+print "xdp count: before=${before} after=${after} delta=${delta}"
+assert $delta >= 5
+
+bpfman link detach $link
+assert fail bpfman link get $linkID
