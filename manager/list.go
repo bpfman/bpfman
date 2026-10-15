@@ -357,10 +357,32 @@ func (m *Manager) ProgramName(ctx context.Context, programID kernel.ProgramID) (
 // ordering ever does. It also matches Rust bpfman, whose CSI resolves
 // the first match over the kernel's ascending-ID program iteration.
 func (m *Manager) FindLoadedProgramByMetadata(ctx context.Context, key, value string) (bpfman.ProgramRecord, kernel.ProgramID, error) {
+	matches, err := m.FindLoadedProgramsByMetadata(ctx, key, value)
+	if err != nil {
+		return bpfman.ProgramRecord{}, 0, err
+	}
+
+	if len(matches) == 0 {
+		return bpfman.ProgramRecord{}, 0, fmt.Errorf("program with %s=%s: %w", key, value, platform.ErrRecordNotFound)
+	}
+
+	m.logger.DebugContext(ctx, "found metadata match", "key", key, "value", value, "total_matches", len(matches), "program_id", matches[0].ProgramID, "program_name", matches[0].Meta.Name)
+	return matches[0], matches[0].ProgramID, nil
+}
+
+// FindLoadedProgramsByMetadata finds all programs matching a metadata
+// key/value from the reconciled list of loaded programs (those in both
+// DB and kernel), ordered by ascending kernel program ID.
+//
+// Unlike FindLoadedProgramByMetadata this returns every match, which
+// lets callers expose maps from a family of programs (e.g. one XDP
+// program per interface, selected by a shared metadata label) rather
+// than a single program.
+func (m *Manager) FindLoadedProgramsByMetadata(ctx context.Context, key, value string) ([]bpfman.ProgramRecord, error) {
 	scanner := m.rt.BPFFS().Scanner()
 	obs, err := inspect.Snapshot(ctx, m.store, m.kernel, scanner)
 	if err != nil {
-		return bpfman.ProgramRecord{}, 0, fmt.Errorf("snapshot: %w", err)
+		return nil, fmt.Errorf("snapshot: %w", err)
 	}
 
 	// Find managed programs that are also in kernel and match the metadata
@@ -374,16 +396,15 @@ func (m *Manager) FindLoadedProgramByMetadata(ctx context.Context, key, value st
 		}
 	}
 
-	switch len(matches) {
-	case 0:
-		return bpfman.ProgramRecord{}, 0, fmt.Errorf("program with %s=%s: %w", key, value, platform.ErrRecordNotFound)
-	default:
-		slices.SortFunc(matches, func(a, b inspect.ProgramView) int {
-			return cmp.Compare(a.ProgramID, b.ProgramID)
-		})
-		m.logger.DebugContext(ctx, "found metadata match", "key", key, "value", value, "total_matches", len(matches), "program_id", matches[0].ProgramID, "program_name", matches[0].Managed.Meta.Name)
-		return *matches[0].Managed, matches[0].ProgramID, nil
+	records := make([]bpfman.ProgramRecord, 0, len(matches))
+	for _, row := range matches {
+		records = append(records, *row.Managed)
 	}
+	slices.SortFunc(records, func(a, b bpfman.ProgramRecord) int {
+		return cmp.Compare(a.ProgramID, b.ProgramID)
+	})
+
+	return records, nil
 }
 
 // ListPrograms returns all managed programs with full spec and status,
