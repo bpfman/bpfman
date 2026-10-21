@@ -959,7 +959,6 @@ fn test_program_execution_with_global_variables() {
         AttachInfo::Kprobe {
             fn_name: KPROBE_KERNEL_FUNCTION_NAME.to_string(),
             metadata: HashMap::new(),
-            container_pid: None,
             offset: 0,
         },
     );
@@ -980,7 +979,6 @@ fn test_program_execution_with_global_variables() {
         AttachInfo::Kprobe {
             fn_name: KRETPROBE_KERNEL_FUNCTION_NAME.to_string(),
             metadata: HashMap::new(),
-            container_pid: None,
             offset: 0,
         },
     );
