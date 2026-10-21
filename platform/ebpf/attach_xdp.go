@@ -18,6 +18,30 @@ import (
 	"github.com/bpfman/bpfman/platform"
 )
 
+// attachXDP attaches an XDP program, falling back from native/driver
+// mode to generic (SKB) mode when the driver rejects the attach with
+// ERANGE. A veth pair rejects native XDP when the peer MTU exceeds the
+// per-page XDP buffer limit (~3506 bytes on 4K-page systems); this is
+// the common case on OpenShift, where OVN-Kubernetes sets the pod veth
+// MTU to the overlay size (e.g. 8901). Generic mode runs XDP in the
+// stack's software path and does not invoke the driver's MTU check.
+func attachXDP(opts link.XDPOptions) (link.Link, error) {
+	lnk, err := attachXDPWithRetry(opts)
+	if shouldFallbackToGeneric(err, opts.Flags) {
+		opts.Flags = link.XDPGenericMode
+		lnk, err = attachXDPWithRetry(opts)
+	}
+	return lnk, err
+}
+
+// shouldFallbackToGeneric reports whether a failed native-mode XDP
+// attach should be retried in generic/SKB mode. ERANGE is the veth
+// driver's rejection of a peer MTU too large for native XDP; the flag
+// guard stops a generic-mode attach that itself fails from looping.
+func shouldFallbackToGeneric(err error, flags link.XDPAttachFlags) bool {
+	return errors.Is(err, syscall.ERANGE) && flags != link.XDPGenericMode
+}
+
 // attachXDPWithRetry retries link.AttachXDP on EBUSY. Removing a
 // pinned XDP link drops the last kernel reference, but the kernel
 // releases the XDP hook asynchronously. A brief retry avoids
@@ -48,7 +72,7 @@ func (k *kernelAdapter) AttachXDP(ctx context.Context, progPinPath bpfman.ProgPi
 	}
 	defer prog.Close()
 
-	lnk, err := attachXDPWithRetry(link.XDPOptions{
+	lnk, err := attachXDP(link.XDPOptions{
 		Program:   prog,
 		Interface: ifindex,
 	})
@@ -198,7 +222,7 @@ func (k *kernelAdapter) CreateXDPLink(ctx context.Context, progPinPath bpfman.Pr
 	var result *platform.XDPDispatcherResult
 	err = netns.Run(netnsPath, func() error {
 		k.logger.Debug("creating XDP link", "ifindex", ifindex, "prog_pin_path", progPinPath, "link_pin_path", linkPinPath, "netns", netnsPath)
-		lnk, err := attachXDPWithRetry(link.XDPOptions{
+		lnk, err := attachXDP(link.XDPOptions{
 			Program:   prog,
 			Interface: ifindex,
 		})
