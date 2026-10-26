@@ -41,6 +41,7 @@ assert $prog matches exhaustive {
         program_id:     $pid
         license:        "Dual BSD/GPL"
         gpl_compatible: true
+        has_xdp_frags:  false
         created_at:     not-empty
         updated_at:     null
         load: matches exhaustive {
@@ -138,6 +139,7 @@ assert $got matches exhaustive {
         program_id:     $prog.record.program_id
         license:        $prog.record.license
         gpl_compatible: $prog.record.gpl_compatible
+        has_xdp_frags:  $prog.record.has_xdp_frags
         created_at:     $prog.record.created_at
         updated_at:     null
         load: matches exhaustive {
