@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../img/icon/color/bpfman-icon-color.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -27,10 +27,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2445,7 +2445,7 @@ overwritten by setting the <code>RUST_LOG</code> environment variable.</p>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="go">After=network.target</span>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="go">[Service]</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="go">Environment=&quot;RUST_LOG=Info&quot;    &lt;==== Set Log Level Here</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="go">Environment="RUST_LOG=Info"    &lt;==== Set Log Level Here</span>
 <a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="go">ExecStart=/usr/sbin/bpfman system service</span>
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="go">AmbientCapabilities=CAP_BPF CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_PERFMON CAP_SYS_ADMIN CAP_SYS_RESOURCE</span>
 <a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="go">CapabilityBoundingSet=CAP_BPF CAP_DAC_READ_SEARCH CAP_NET_ADMIN CAP_PERFMON CAP_SYS_ADMIN CAP_SYS_RESOURCE</span>
@@ -2491,11 +2491,11 @@ and the bpfman Operator that runs on the control plane:</p>
 </code></pre></div>
 <p>To view the <code>bpfman-agent</code> logs:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">kubectl logs -n bpfman bpfman-daemon-dgqzw -c bpfman-agent</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:37:08Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;Waiting for active connection to bpfman&quot;}</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:37:08Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;starting Bpfman-Agent&quot;}</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:37:08Z&quot;,&quot;logger&quot;:&quot;controller-runtime.metrics&quot;,&quot;msg&quot;:&quot;Starting metrics server&quot;}</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:37:08Z&quot;,&quot;msg&quot;:&quot;starting server&quot;,&quot;name&quot;:&quot;health probe&quot;,&quot;addr&quot;:&quot;[::]:8175&quot;}</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:37:08Z&quot;,&quot;msg&quot;:&quot;starting server&quot;,&quot;name&quot;:&quot;pprof&quot;,&quot;addr&quot;:&quot;[::]:6060&quot;}</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">{"level":"info","ts":"2025-03-06T13:37:08Z","logger":"setup","msg":"Waiting for active connection to bpfman"}</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">{"level":"info","ts":"2025-03-06T13:37:08Z","logger":"setup","msg":"starting Bpfman-Agent"}</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="go">{"level":"info","ts":"2025-03-06T13:37:08Z","logger":"controller-runtime.metrics","msg":"Starting metrics server"}</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go">{"level":"info","ts":"2025-03-06T13:37:08Z","msg":"starting server","name":"health probe","addr":"[::]:8175"}</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="go">{"level":"info","ts":"2025-03-06T13:37:08Z","msg":"starting server","name":"pprof","addr":"[::]:6060"}</span>
 <a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="go">:</span>
 </code></pre></div>
 <h4 id="change-log-level">Change Log Level</h4>
@@ -2510,10 +2510,10 @@ The <code>bpfman-operator</code> will detect the change and restart the bpfman d
 <a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="go">  bpfman.agent.log.level: info               &lt;==== Set bpfman agent Log Level Here</span>
 <a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="go">kind: ConfigMap</span>
 <a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="go">metadata:</span>
-<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="go">  creationTimestamp: &quot;2023-05-05T14:41:19Z&quot;</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="go">  creationTimestamp: "2023-05-05T14:41:19Z"</span>
 <a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="go">  name: bpfman-config</span>
 <a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="go">  namespace: bpfman</span>
-<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="go">  resourceVersion: &quot;700803&quot;</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="go">  resourceVersion: "700803"</span>
 <a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="go">  uid: 0cc04af4-032c-4712-b824-748b321d319b</span>
 </code></pre></div>
 <p>Valid values for the <strong>daemon</strong> (<code>bpfman.log.level</code>) are:</p>
@@ -2538,12 +2538,12 @@ It runs with the containers <code>bpfman-operator</code> and <code>kube-rbac-pro
 <h4 id="view-logs_1">View Logs</h4>
 <p>To view the <code>bpfman-operator</code> logs:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">kubectl logs -n bpfman bpfman-operator-7fbf4888c4-z8w76 -c bpfman-operator</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:36:57Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;Discovering APIs&quot;}</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:36:57Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;detected platform version&quot;,&quot;PlatformVersion&quot;:&quot;v1.32.2&quot;}</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:36:57Z&quot;,&quot;logger&quot;:&quot;setup&quot;,&quot;msg&quot;:&quot;starting manager&quot;}</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:36:57Z&quot;,&quot;logger&quot;:&quot;controller-runtime.metrics&quot;,&quot;msg&quot;:&quot;Starting metrics server&quot;}</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:36:57Z&quot;,&quot;msg&quot;:&quot;starting server&quot;,&quot;name&quot;:&quot;health probe&quot;,&quot;addr&quot;:&quot;[::]:8175&quot;}</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="go">{&quot;level&quot;:&quot;info&quot;,&quot;ts&quot;:&quot;2025-03-06T13:36:57Z&quot;,&quot;logger&quot;:&quot;controller-runtime.metrics&quot;,&quot;msg&quot;:&quot;Serving metrics server&quot;,&quot;bindAddress&quot;:&quot;127.0.0.1:8174&quot;,&quot;secure&quot;:false}</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">{"level":"info","ts":"2025-03-06T13:36:57Z","logger":"setup","msg":"Discovering APIs"}</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="go">{"level":"info","ts":"2025-03-06T13:36:57Z","logger":"setup","msg":"detected platform version","PlatformVersion":"v1.32.2"}</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="go">{"level":"info","ts":"2025-03-06T13:36:57Z","logger":"setup","msg":"starting manager"}</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="go">{"level":"info","ts":"2025-03-06T13:36:57Z","logger":"controller-runtime.metrics","msg":"Starting metrics server"}</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="go">{"level":"info","ts":"2025-03-06T13:36:57Z","msg":"starting server","name":"health probe","addr":"[::]:8175"}</span>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="go">{"level":"info","ts":"2025-03-06T13:36:57Z","logger":"controller-runtime.metrics","msg":"Serving metrics server","bindAddress":"127.0.0.1:8174","secure":false}</span>
 <a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="go">:</span>
 </code></pre></div>
 <p>To view the <code>kube-rbac-proxy</code> logs:</p>
@@ -2561,10 +2561,10 @@ The change will get detected and the bpfman operator pod will get restarted with
 <a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="go">kind: Deployment</span>
 <a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="go">metadata:</span>
 <a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="go">  annotations:</span>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="go">    deployment.kubernetes.io/revision: &quot;1&quot;</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="go">    deployment.kubernetes.io/revision: "1"</span>
 <a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="go">    kubectl.kubernetes.io/last-applied-configuration: |</span>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="go">      {&quot;apiVersion&quot;:&quot;apps/v1&quot;,&quot;kind&quot;:&quot;Deployment&quot;,&quot;metadata&quot;:{&quot;annotations&quot;:{},&quot;labels&quot;:{&quot;app.kubernetes.io/component&quot;:&quot;manager&quot;,&quot;app.kubernetes.io/create&gt;</span>
-<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="go">  creationTimestamp: &quot;2023-05-09T18:37:08Z&quot;</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="go">      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app.kubernetes.io/component":"manager","app.kubernetes.io/create&gt;</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="go">  creationTimestamp: "2023-05-09T18:37:08Z"</span>
 <a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="go">  generation: 1</span>
 <a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="go">:</span>
 <a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="go">spec:</span>
@@ -2678,10 +2678,10 @@ The change will get detected and the bpfman operator pod will get restarted with
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

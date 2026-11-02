@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../img/icon/color/bpfman-icon-color.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -27,10 +27,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2715,7 +2715,7 @@ output.</p>
 <a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a><span class="w">  </span>destroy-kind<span class="w">     </span>Destroy<span class="w"> </span>Kind<span class="w"> </span>cluster
 <a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a><span class="w">  </span>deploy<span class="w">           </span>Deploy<span class="w"> </span>bpfman-operator<span class="w"> </span>to<span class="w"> </span>the<span class="w"> </span>K8s<span class="w"> </span>cluster<span class="w"> </span>specified<span class="w"> </span><span class="k">in</span><span class="w"> </span>~/.kube/config<span class="w"> </span>with<span class="w"> </span>the<span class="w"> </span>csi<span class="w"> </span>driver<span class="w"> </span>initialized.
 <a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a><span class="w">  </span>undeploy<span class="w">         </span>Undeploy<span class="w"> </span>bpfman-operator<span class="w"> </span>from<span class="w"> </span>the<span class="w"> </span>K8s<span class="w"> </span>cluster<span class="w"> </span>specified<span class="w"> </span><span class="k">in</span><span class="w"> </span>~/.kube/config.<span class="w"> </span>Call<span class="w"> </span>with<span class="w"> </span>ignore-not-found<span class="o">=</span><span class="nb">true</span><span class="w"> </span>to<span class="w"> </span>ignore<span class="w"> </span>resource<span class="w"> </span>not<span class="w"> </span>found<span class="w"> </span>errors<span class="w"> </span>during<span class="w"> </span>deletion.
-<a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a><span class="w">  </span>kind-reload-images<span class="w">  </span>Reload<span class="w"> </span>locally<span class="w"> </span>build<span class="w"> </span>images<span class="w"> </span>into<span class="w"> </span>a<span class="w"> </span>kind<span class="w"> </span>cluster<span class="w"> </span>and<span class="w"> </span>restart<span class="w"> </span>the<span class="w"> </span>ds<span class="w"> </span>and<span class="w"> </span>deployment<span class="w"> </span>so<span class="w"> </span>they<span class="err">&#39;</span>re<span class="w"> </span>picked<span class="w"> </span>up.
+<a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a><span class="w">  </span>kind-reload-images<span class="w">  </span>Reload<span class="w"> </span>locally<span class="w"> </span>build<span class="w"> </span>images<span class="w"> </span>into<span class="w"> </span>a<span class="w"> </span>kind<span class="w"> </span>cluster<span class="w"> </span>and<span class="w"> </span>restart<span class="w"> </span>the<span class="w"> </span>ds<span class="w"> </span>and<span class="w"> </span>deployment<span class="w"> </span>so<span class="w"> </span>they<span class="err">'</span>re<span class="w"> </span>picked<span class="w"> </span>up.
 <a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a><span class="w">  </span>run-on-kind<span class="w">      </span>Kind<span class="w"> </span>Deploy<span class="w"> </span>runs<span class="w"> </span>the<span class="w"> </span>bpfman-operator<span class="w"> </span>on<span class="w"> </span>a<span class="w"> </span><span class="nb">local</span><span class="w"> </span>kind<span class="w"> </span>cluster<span class="w"> </span>using<span class="w"> </span><span class="nb">local</span><span class="w"> </span>builds<span class="w"> </span>of<span class="w"> </span>bpfman,<span class="w"> </span>bpfman-agent,<span class="w"> </span>and<span class="w"> </span>bpfman-operator
 <a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a>
 <a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a>Openshift<span class="w"> </span>Deployment
@@ -2732,7 +2732,7 @@ The following is a brief description of the main directories under <code>bpfman-
 <p><strong>NOTE: Bolded directories contain auto-generated code</strong></p>
 <ul>
 <li><code>apis/v1alpha1/*_types.go</code>: Contains the K8s CRD api definitions (<code>*_types.go</code>) for each program type.</li>
-<li><strong>apis/v1alpha1/zz_generated.*.go</strong>: Contains the auto-generated register (<code>zz_generate.register.go</code>)
+<li>**apis/v1alpha1/zz_generated.*.go**: Contains the auto-generated register (<code>zz_generate.register.go</code>)
   and deep copy (<code>zz_generated.deepcopy.go</code>) methods.</li>
 <li><strong>bundle/</strong>: Contains the bundle manifests and metadata for the operator.
   More details can be found in the operator-sdk documentation.</li>
@@ -3189,11 +3189,11 @@ you will see the <code>bpfman-daemon</code> and <code>bpfman-operator</code> pod
 </tbody>
 </table>
 <p>Example:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>curl<span class="w"> </span><span class="s2">&quot;http://localhost:6060/debug/pprof/trace?seconds=20&quot;</span><span class="w"> </span>-o<span class="w"> </span>trace
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>curl<span class="w"> </span><span class="s2">&quot;http://localhost:6060/debug/pprof/profile?duration=20&quot;</span><span class="w"> </span>-o<span class="w"> </span>cpu
-<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>curl<span class="w"> </span><span class="s2">&quot;http://localhost:6060/debug/pprof/heap?gc&quot;</span><span class="w"> </span>-o<span class="w"> </span>heap
-<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>curl<span class="w"> </span><span class="s2">&quot;http://localhost:6060/debug/pprof/allocs&quot;</span><span class="w"> </span>-o<span class="w"> </span>allocs
-<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>curl<span class="w"> </span><span class="s2">&quot;http://localhost:6060/debug/pprof/goroutine&quot;</span><span class="w"> </span>-o<span class="w"> </span>goroutine
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>curl<span class="w"> </span><span class="s2">"http://localhost:6060/debug/pprof/trace?seconds=20"</span><span class="w"> </span>-o<span class="w"> </span>trace
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>curl<span class="w"> </span><span class="s2">"http://localhost:6060/debug/pprof/profile?duration=20"</span><span class="w"> </span>-o<span class="w"> </span>cpu
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>curl<span class="w"> </span><span class="s2">"http://localhost:6060/debug/pprof/heap?gc"</span><span class="w"> </span>-o<span class="w"> </span>heap
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>curl<span class="w"> </span><span class="s2">"http://localhost:6060/debug/pprof/allocs"</span><span class="w"> </span>-o<span class="w"> </span>allocs
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>curl<span class="w"> </span><span class="s2">"http://localhost:6060/debug/pprof/goroutine"</span><span class="w"> </span>-o<span class="w"> </span>goroutine
 </code></pre></div>
 </li>
 <li>
@@ -3353,10 +3353,10 @@ will be lost. So it is recommended to update the ports for the <code>bpfman-daem
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

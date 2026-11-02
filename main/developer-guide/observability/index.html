@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../img/icon/color/bpfman-icon-color.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -27,10 +27,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2516,14 +2516,14 @@ to be forwarded as logs to OpenTelemetry similar to how bpf-metric-exporter is i
 <p><code>bpf-log-exporter</code> needs root privileges to run.
 To see the logs, run with at least <code>info</code> level logs enabled.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gp">$ </span>sudo<span class="w"> </span><span class="nv">RUST_LOG</span><span class="o">=</span>info<span class="w"> </span>bpf-log-exporter
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: &quot;1727301213.084&quot;, prog_id: 326, op: &quot;LOAD&quot;, syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: &quot;&quot;, cmdline: &quot;&quot; }</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: &quot;1727301213.095&quot;, prog_id: 327, op: &quot;LOAD&quot;, syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: &quot;&quot;, cmdline: &quot;&quot; }</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: &quot;1727301213.109&quot;, prog_id: 326, op: &quot;UNLOAD&quot;, syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: &quot;&quot;, cmdline: &quot;&quot; }</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: &quot;1727301213.109&quot;, prog_id: 327, op: &quot;UNLOAD&quot;, syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: &quot;&quot;, cmdline: &quot;&quot; }</span>
-<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: &quot;1727301228.487&quot;, prog_id: 328, op: &quot;LOAD&quot;, syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: &quot;&quot;, cmdline: &quot;&quot; }</span>
-<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: &quot;1727301228.488&quot;, prog_id: 328, op: &quot;UNLOAD&quot;, syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: &quot;&quot;, cmdline: &quot;&quot; }</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: &quot;1727301228.488&quot;, prog_id: 329, op: &quot;LOAD&quot;, syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: &quot;&quot;, cmdline: &quot;&quot; }</span>
-<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: &quot;1727301228.488&quot;, prog_id: 329, op: &quot;UNLOAD&quot;, syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: &quot;&quot;, cmdline: &quot;&quot; }</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: "1727301213.084", prog_id: 326, op: "LOAD", syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: "", cmdline: "" }</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: "1727301213.095", prog_id: 327, op: "LOAD", syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: "", cmdline: "" }</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: "1727301213.109", prog_id: 326, op: "UNLOAD", syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: "", cmdline: "" }</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: "1727301213.109", prog_id: 327, op: "UNLOAD", syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: "", cmdline: "" }</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: "1727301228.487", prog_id: 328, op: "LOAD", syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: "", cmdline: "" }</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: "1727301228.488", prog_id: 328, op: "UNLOAD", syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: "", cmdline: "" }</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: "1727301228.488", prog_id: 329, op: "LOAD", syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: "", cmdline: "" }</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="go">[INFO  bpf_log_exporter] AUDIT_BPF: LogMessage { timestamp: "1727301228.488", prog_id: 329, op: "UNLOAD", syscall_op: 0, pid: 0, uid: 0, gid: 0, comm: "", cmdline: "" }</span>
 <a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="go">:</span>
 </code></pre></div>
 <p>Then use <code>&lt;CTRL&gt;C</code> to stop.</p>
@@ -2609,10 +2609,10 @@ To see the logs, run with at least <code>info</code> level logs enabled.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

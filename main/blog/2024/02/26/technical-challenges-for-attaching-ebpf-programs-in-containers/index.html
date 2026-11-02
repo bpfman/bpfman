@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../../../../img/icon/color/bpfman-icon-color.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -27,10 +27,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2385,7 +2385,7 @@ general case of a container running on a Linux server and also for containers
 running in a Kubernetes cluster.</p>
 <p>The following is a bpfman command line example for loading a uprobe inside a
 container:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>bpfman<span class="w"> </span>load<span class="w"> </span>image<span class="w"> </span>--image-url<span class="w"> </span>quay.io/bpfman-bytecode/uprobe:latest<span class="w"> </span>uprobe<span class="w"> </span>--fn-name<span class="w"> </span><span class="s2">&quot;malloc&quot;</span><span class="w"> </span>--target<span class="w"> </span><span class="s2">&quot;libc&quot;</span><span class="w"> </span>--container-pid<span class="w"> </span><span class="m">102745</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>bpfman<span class="w"> </span>load<span class="w"> </span>image<span class="w"> </span>--image-url<span class="w"> </span>quay.io/bpfman-bytecode/uprobe:latest<span class="w"> </span>uprobe<span class="w"> </span>--fn-name<span class="w"> </span><span class="s2">"malloc"</span><span class="w"> </span>--target<span class="w"> </span><span class="s2">"libc"</span><span class="w"> </span>--container-pid<span class="w"> </span><span class="m">102745</span>
 </code></pre></div>
 <p>The above command instructs bpfman to attach a uprobe to the <code>malloc</code> function
 in the <code>libc</code> library for the container with PID 102745. The main addition here
@@ -2463,16 +2463,16 @@ be found in the <code>/proc/&lt;PID&gt;/ns/</code> directory. An example listing
 102745 directory is shown below:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sudo<span class="w"> </span>ls<span class="w"> </span>-l<span class="w"> </span>/proc/102745/ns/
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>total<span class="w"> </span><span class="m">0</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>cgroup<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;cgroup:[4026531835]&#39;</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>ipc<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;ipc:[4026532858]&#39;</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>mnt<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;mnt:[4026532856]&#39;</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:07<span class="w"> </span>net<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;net:[4026532860]&#39;</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>pid<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;pid:[4026532859]&#39;</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>pid_for_children<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;pid:[4026532859]&#39;</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span><span class="nb">time</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;time:[4026531834]&#39;</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>time_for_children<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;time:[4026531834]&#39;</span>
-<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>user<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;user:[4026531837]&#39;</span>
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>uts<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">&#39;uts:[4026532857]&#39;</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>cgroup<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">'cgroup:[4026531835]'</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>ipc<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">'ipc:[4026532858]'</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>mnt<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">'mnt:[4026532856]'</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:07<span class="w"> </span>net<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">'net:[4026532860]'</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>pid<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">'pid:[4026532859]'</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>pid_for_children<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">'pid:[4026532859]'</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span><span class="nb">time</span><span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">'time:[4026531834]'</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>time_for_children<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">'time:[4026531834]'</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>user<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">'user:[4026531837]'</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>lrwxrwxrwx<span class="w"> </span><span class="m">1</span><span class="w"> </span>root<span class="w"> </span>root<span class="w"> </span><span class="m">0</span><span class="w"> </span>Feb<span class="w"> </span><span class="m">15</span><span class="w"> </span><span class="m">12</span>:10<span class="w"> </span>uts<span class="w"> </span>-&gt;<span class="w"> </span><span class="s1">'uts:[4026532857]'</span>
 </code></pre></div>
 <p>In this case, the mount namespace file is <code>/proc/102745/ns/mnt</code>. </p>
 <blockquote>
@@ -2511,10 +2511,10 @@ find the host PID for a container.</p>
 <p>If you used Podman or Docker to run your container, <strong>and</strong> you gave the
 container a unique name, the following commands can be used to find the host PID
 of a container.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>podman<span class="w"> </span>inspect<span class="w"> </span>-f<span class="w"> </span><span class="s1">&#39;{{.State.Pid}}&#39;</span><span class="w"> </span>&lt;CONTAINER_NAME&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>podman<span class="w"> </span>inspect<span class="w"> </span>-f<span class="w"> </span><span class="s1">'{{.State.Pid}}'</span><span class="w"> </span>&lt;CONTAINER_NAME&gt;
 </code></pre></div>
 <p>or, similarly,</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>docker<span class="w"> </span>inspect<span class="w"> </span>-f<span class="w"> </span><span class="s1">&#39;{{.State.Pid}}&#39;</span><span class="w">  </span>&lt;CONTAINER_NAME&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>docker<span class="w"> </span>inspect<span class="w"> </span>-f<span class="w"> </span><span class="s1">'{{.State.Pid}}'</span><span class="w">  </span>&lt;CONTAINER_NAME&gt;
 </code></pre></div>
 <h5 id="overview-of-pid-namespaces-and-container-host-pids">Overview of PID namespaces and Container Host PIDs</h5>
 <p>Each container has a PID namespace. Each PID namespace (other than the root) is
@@ -2565,7 +2565,7 @@ use that to disambiguate. However, in this case, both are running the same
 <p>If something unique is running inside of the container, we can use the <code>ps -e -o
 pidns,pid,args</code> command to get some info.</p>
 <p>For example, run <code>sleep 1111</code> in <code>container_1</code>, then</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>sudo<span class="w"> </span>ps<span class="w"> </span>-e<span class="w"> </span>-o<span class="w"> </span>pidns,pid,args<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s1">&#39;sleep 1111&#39;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>sudo<span class="w"> </span>ps<span class="w"> </span>-e<span class="w"> </span>-o<span class="w"> </span>pidns,pid,args<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s1">'sleep 1111'</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="m">4026532948</span><span class="w">  </span><span class="m">150778</span><span class="w"> </span>sleep<span class="w"> </span><span class="m">1111</span>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="m">4026531836</span><span class="w">  </span><span class="m">151002</span><span class="w"> </span>grep<span class="w"> </span>--color<span class="o">=</span>auto<span class="w"> </span>sleep<span class="w"> </span><span class="m">1111</span>
 </code></pre></div>
@@ -2592,7 +2592,7 @@ command as we did above to find the container's host PID</p>
 <p>Finally, the container runtime knows the pid mapping. As mentioned at the
 beginning of this section, if the unique name of the container is known, the
 following command can be used to get the host PID.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>podman<span class="w"> </span>inspect<span class="w"> </span>-f<span class="w"> </span><span class="s1">&#39;{{.State.Pid}}&#39;</span><span class="w"> </span>container_1
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>podman<span class="w"> </span>inspect<span class="w"> </span>-f<span class="w"> </span><span class="s1">'{{.State.Pid}}'</span><span class="w"> </span>container_1
 <a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="m">150342</span>
 </code></pre></div>
 <h3 id="how-bpfman-agent-finds-the-pid-on-kubernetes">How bpfman Agent Finds the PID on Kubernetes</h3>
@@ -2649,7 +2649,7 @@ docker container in our kind cluster, so enter the container.</p>
 Install <code>crictl</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>apt<span class="w"> </span>update
 <a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>apt<span class="w"> </span>install<span class="w"> </span>wget
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="nv">VERSION</span><span class="o">=</span><span class="s2">&quot;v1.28.0&quot;</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="nv">VERSION</span><span class="o">=</span><span class="s2">"v1.28.0"</span>
 <a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>wget<span class="w"> </span>https://github.com/kubernetes-sigs/cri-tools/releases/download/<span class="nv">$VERSION</span>/crictl-<span class="nv">$VERSION</span>-linux-amd64.tar.gz
 <a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>tar<span class="w"> </span>zxvf<span class="w"> </span>crictl-<span class="nv">$VERSION</span>-linux-amd64.tar.gz<span class="w"> </span>-C<span class="w"> </span>/usr/local/bin
 <a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>rm<span class="w"> </span>-f<span class="w"> </span>crictl-<span class="nv">$VERSION</span>-linux-amd64.tar.gz
@@ -2679,15 +2679,15 @@ one node in this deployment, so we'll ignore that here.</p>
 selector to get the PIDs of the containers.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1"># Get PIDs for bpfman-agent container</span>
 <a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>crictl<span class="w"> </span>inspect<span class="w"> </span>629172270a384<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>pid
-<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">    </span><span class="s2">&quot;pid&quot;</span>:<span class="w"> </span><span class="m">2158</span>,
-<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">            </span><span class="s2">&quot;pid&quot;</span>:<span class="w"> </span><span class="m">1</span>
-<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">            </span><span class="s2">&quot;type&quot;</span>:<span class="w"> </span><span class="s2">&quot;pid&quot;</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">    </span><span class="s2">"pid"</span>:<span class="w"> </span><span class="m">2158</span>,
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">            </span><span class="s2">"pid"</span>:<span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">            </span><span class="s2">"type"</span>:<span class="w"> </span><span class="s2">"pid"</span>
 <a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>
 <a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="c1"># Get PIDs for bpfman container</span>
 <a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>crictl<span class="w"> </span>inspect<span class="w"> </span>6d2420b80ddf0<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>pid
-<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="w">    </span><span class="s2">&quot;pid&quot;</span>:<span class="w"> </span><span class="m">2108</span>,
-<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a><span class="w">            </span><span class="s2">&quot;pid&quot;</span>:<span class="w"> </span><span class="m">1</span>
-<a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a><span class="w">            </span><span class="s2">&quot;type&quot;</span>:<span class="w"> </span><span class="s2">&quot;pid&quot;</span>
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="w">    </span><span class="s2">"pid"</span>:<span class="w"> </span><span class="m">2108</span>,
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a><span class="w">            </span><span class="s2">"pid"</span>:<span class="w"> </span><span class="m">1</span>
+<a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a><span class="w">            </span><span class="s2">"type"</span>:<span class="w"> </span><span class="s2">"pid"</span>
 </code></pre></div>
 <p>From the above output, we can tell that the host PID for the <code>bpfman-agent</code>
 container is 2158, and the host PID for the <code>bpfman</code> container is 2108. So, now
@@ -2704,7 +2704,7 @@ to install a uprobe in the containers.</p>
 follows.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>docker<span class="w"> </span>ps
 <a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>CONTAINER<span class="w"> </span>ID<span class="w">   </span>IMAGE<span class="w">                  </span>COMMAND<span class="w">                  </span>CREATED<span class="w">        </span>STATUS<span class="w">        </span>PORTS<span class="w">                       </span>NAMES
-<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>c84cae77f800<span class="w">   </span>kindest/node:v1.27.3<span class="w">   </span><span class="s2">&quot;/usr/local/bin/entr…&quot;</span><span class="w">   </span><span class="m">25</span><span class="w"> </span>hours<span class="w"> </span>ago<span class="w">   </span>Up<span class="w"> </span><span class="m">25</span><span class="w"> </span>hours<span class="w">   </span><span class="m">127</span>.0.0.1:36795-&gt;6443/tcp<span class="w">   </span>bpfman-deployment-control-plane
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>c84cae77f800<span class="w">   </span>kindest/node:v1.27.3<span class="w">   </span><span class="s2">"/usr/local/bin/entr…"</span><span class="w">   </span><span class="m">25</span><span class="w"> </span>hours<span class="w"> </span>ago<span class="w">   </span>Up<span class="w"> </span><span class="m">25</span><span class="w"> </span>hours<span class="w">   </span><span class="m">127</span>.0.0.1:36795-&gt;6443/tcp<span class="w">   </span>bpfman-deployment-control-plane
 </code></pre></div>
 <p>Our cluster has a number of pods as shown below.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-A
@@ -2858,10 +2858,10 @@ runtime interface directly rather than using an external executable.</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../img/icon/color/bpfman-icon-color.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -27,10 +27,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -3093,7 +3093,7 @@ from the <code>bpfman</code> repository.</p>
 <a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>
 <a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="go">Options:</span>
 <a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="go">  -h, --help</span>
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="go">          Print help (see a summary with '-h')</span>
 </code></pre></div>
 <p>The general flow for using the CLI is as follows:</p>
 <ul>
@@ -3129,7 +3129,7 @@ from the <code>bpfman</code> repository.</p>
 If the command is successful, the eBPF programs are loaded in kernel memory, but have
 not been attached to any hook points yet (see <a href="#bpfman-attach">bpfman attach</a>).
 If the bytecode file contains multiple eBPF programs, they should be loaded in a single
-command by passing multiple &lt;TYPE>:&lt;NAME> pairs to the <code>--programs</code> parameters.
+command by passing multiple &lt;TYPE&gt;:&lt;NAME&gt; pairs to the <code>--programs</code> parameters.
 They need to be loaded in a single command so that each of the eBPF programs can share any
 global data and maps between them.</p>
 <p>The <code>bpfman load file</code> command is used to load a locally built eBPF program.
@@ -3195,7 +3195,7 @@ image from a given registry.</p>
 <a id="__codelineno-3-58" name="__codelineno-3-58" href="#__codelineno-3-58"></a><span class="go">          Example: --map-owner-id 63178</span>
 <a id="__codelineno-3-59" name="__codelineno-3-59" href="#__codelineno-3-59"></a>
 <a id="__codelineno-3-60" name="__codelineno-3-60" href="#__codelineno-3-60"></a><span class="go">  -h, --help</span>
-<a id="__codelineno-3-61" name="__codelineno-3-61" href="#__codelineno-3-61"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
+<a id="__codelineno-3-61" name="__codelineno-3-61" href="#__codelineno-3-61"></a><span class="go">          Print help (see a summary with '-h')</span>
 </code></pre></div>
 <p>and</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>load<span class="w"> </span>image<span class="w"> </span>--help
@@ -3229,9 +3229,9 @@ image from a given registry.</p>
 <a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>
 <a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="go">  -r, --registry-auth &lt;REGISTRY_AUTH&gt;</span>
 <a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a><span class="go">          Optional: Registry auth for authenticating with the specified image registry.</span>
-<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="go">          This should be base64 encoded from the &#39;&lt;username&gt;:&lt;password&gt;&#39; string just like</span>
-<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="go">          it&#39;s stored in the docker/podman host config.</span>
-<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="go">          Example: --registry_auth &quot;YnjrcKw63PhDcQodiU9hYxQ2&quot;</span>
+<a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a><span class="go">          This should be base64 encoded from the '&lt;username&gt;:&lt;password&gt;' string just like</span>
+<a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a><span class="go">          it's stored in the docker/podman host config.</span>
+<a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a><span class="go">          Example: --registry_auth "YnjrcKw63PhDcQodiU9hYxQ2"</span>
 <a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>
 <a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a><span class="go">  -p, --pull-policy &lt;PULL_POLICY&gt;</span>
 <a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a><span class="go">          Optional: Pull policy for remote images.</span>
@@ -3271,7 +3271,7 @@ image from a given registry.</p>
 <a id="__codelineno-4-71" name="__codelineno-4-71" href="#__codelineno-4-71"></a><span class="go">          Example: --map-owner-id 63178</span>
 <a id="__codelineno-4-72" name="__codelineno-4-72" href="#__codelineno-4-72"></a>
 <a id="__codelineno-4-73" name="__codelineno-4-73" href="#__codelineno-4-73"></a><span class="go">  -h, --help</span>
-<a id="__codelineno-4-74" name="__codelineno-4-74" href="#__codelineno-4-74"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
+<a id="__codelineno-4-74" name="__codelineno-4-74" href="#__codelineno-4-74"></a><span class="go">          Print help (see a summary with '-h')</span>
 </code></pre></div>
 <h3 id="example-load-commands">Example Load Commands</h3>
 <p>Below are some different examples for using the <code>bpfmam load</code> command.</p>
@@ -3309,7 +3309,7 @@ image from a given registry.</p>
 <p>For the <code>--programs tc:pass</code> program loaded with the command above, the <code>&lt;FUNC_NAME&gt;</code>
 would be set as shown in the following snippet, taken from the function name,
 not <code>SEC()</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">SEC</span><span class="p">(</span><span class="s">&quot;classifier/pass&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">SEC</span><span class="p">(</span><span class="s">"classifier/pass"</span><span class="p">)</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kt">int</span><span class="w"> </span><span class="n">pass</span><span class="p">(</span><span class="k">struct</span><span class="w"> </span><span class="nc">__sk_buff</span><span class="w"> </span><span class="o">*</span><span class="n">skb</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="p">{</span>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="o">:</span>
@@ -3436,17 +3436,17 @@ with the same set of attributes.
 From the kernel's perspective, probes and retprobes are both probes.
 What distinguishes a probe from a retprobe is the <code>SEC(..)</code> header in the code.
 For example, <code>kprobe</code> will look something like:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">SEC</span><span class="p">(</span><span class="s">&quot;kprobe/my_kprobe&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">SEC</span><span class="p">(</span><span class="s">"kprobe/my_kprobe"</span><span class="p">)</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kt">int</span><span class="w"> </span><span class="n">my_kprobe</span><span class="p">(</span><span class="k">struct</span><span class="w"> </span><span class="nc">pt_regs</span><span class="w"> </span><span class="o">*</span><span class="n">ctx</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="n">bpf_printk</span><span class="p">(</span><span class="s">&quot; KP: GLOBAL_u8: 0x%02X, GLOBAL_u32: 0x%08X&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">GLOBAL_u8</span><span class="p">,</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="n">bpf_printk</span><span class="p">(</span><span class="s">" KP: GLOBAL_u8: 0x%02X, GLOBAL_u32: 0x%08X"</span><span class="p">,</span><span class="w"> </span><span class="n">GLOBAL_u8</span><span class="p">,</span>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">             </span><span class="n">GLOBAL_u32</span><span class="p">);</span>
 <a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="p">}</span>
 </code></pre></div>
 <p>Whereas <code>kretprobe</code> may look something like:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">SEC</span><span class="p">(</span><span class="s">&quot;kretprobe/my_kretprobe&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">SEC</span><span class="p">(</span><span class="s">"kretprobe/my_kretprobe"</span><span class="p">)</span>
 <a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kt">int</span><span class="w"> </span><span class="n">my_kretprobe</span><span class="p">(</span><span class="k">struct</span><span class="w"> </span><span class="nc">pt_regs</span><span class="w"> </span><span class="o">*</span><span class="n">ctx</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="n">bpf_printk</span><span class="p">(</span><span class="s">&quot;KRP: GLOBAL_u8: 0x%02X, GLOBAL_u32: 0x%08X&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">GLOBAL_u8</span><span class="p">,</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">  </span><span class="n">bpf_printk</span><span class="p">(</span><span class="s">"KRP: GLOBAL_u8: 0x%02X, GLOBAL_u32: 0x%08X"</span><span class="p">,</span><span class="w"> </span><span class="n">GLOBAL_u8</span><span class="p">,</span>
 <a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">             </span><span class="n">GLOBAL_u32</span><span class="p">);</span>
 <a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
 <a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="p">}</span>
@@ -3614,7 +3614,7 @@ the program type are entered.</p>
 <a id="__codelineno-17-34" name="__codelineno-17-34" href="#__codelineno-17-34"></a><span class="go">          Example: --metadata owner=acme</span>
 <a id="__codelineno-17-35" name="__codelineno-17-35" href="#__codelineno-17-35"></a>
 <a id="__codelineno-17-36" name="__codelineno-17-36" href="#__codelineno-17-36"></a><span class="go">  -h, --help</span>
-<a id="__codelineno-17-37" name="__codelineno-17-37" href="#__codelineno-17-37"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)```</span>
+<a id="__codelineno-17-37" name="__codelineno-17-37" href="#__codelineno-17-37"></a><span class="go">          Print help (see a summary with '-h')```</span>
 <a id="__codelineno-17-38" name="__codelineno-17-38" href="#__codelineno-17-38"></a>
 <a id="__codelineno-17-39" name="__codelineno-17-39" href="#__codelineno-17-39"></a><span class="go">Example attaching an XDP Program:</span>
 <a id="__codelineno-17-40" name="__codelineno-17-40" href="#__codelineno-17-40"></a>
@@ -3676,7 +3676,7 @@ and the <code>proceed-on</code> values are different.</p>
 <a id="__codelineno-18-40" name="__codelineno-18-40" href="#__codelineno-18-40"></a><span class="go">          Example: --metadata owner=acme</span>
 <a id="__codelineno-18-41" name="__codelineno-18-41" href="#__codelineno-18-41"></a>
 <a id="__codelineno-18-42" name="__codelineno-18-42" href="#__codelineno-18-42"></a><span class="go">  -h, --help</span>
-<a id="__codelineno-18-43" name="__codelineno-18-43" href="#__codelineno-18-43"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
+<a id="__codelineno-18-43" name="__codelineno-18-43" href="#__codelineno-18-43"></a><span class="go">          Print help (see a summary with '-h')</span>
 </code></pre></div>
 <p>The following is an example of attaching the <code>tc</code> command using short option names:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>attach<span class="w"> </span><span class="m">98</span><span class="w"> </span>tc<span class="w"> </span>-d<span class="w"> </span>ingress<span class="w"> </span>-i<span class="w"> </span>enp1s0<span class="w"> </span>-p<span class="w"> </span><span class="m">40</span>
@@ -3717,10 +3717,10 @@ and the <code>proceed-on</code> values are different.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="go">sudo bpfman attach 63670 tracepoint --tracepoint syscalls/sys_enter_openat</span>
 </code></pre></div>
 <h4 id="uprobe">Uprobe</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="go">sudo bpfman attach 63673 uprobe -t &quot;libc&quot; -f &quot;malloc&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="go">sudo bpfman attach 63673 uprobe -t "libc" -f "malloc"</span>
 </code></pre></div>
 <h4 id="uretprobe">Uretprobe</h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="go">sudo bpfman attach 63809 uprobe -t &quot;libc&quot; -f &quot;malloc&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="go">sudo bpfman attach 63809 uprobe -t "libc" -f "malloc"</span>
 </code></pre></div>
 <h4 id="xdp">XDP</h4>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="go">sudo bpfman attach 63674 xdp --iface eno3 --priority 35</span>
@@ -4034,9 +4034,9 @@ by a load command.</p>
 <a id="__codelineno-44-10" name="__codelineno-44-10" href="#__codelineno-44-10"></a>
 <a id="__codelineno-44-11" name="__codelineno-44-11" href="#__codelineno-44-11"></a><span class="go">  -r, --registry-auth &lt;REGISTRY_AUTH&gt;</span>
 <a id="__codelineno-44-12" name="__codelineno-44-12" href="#__codelineno-44-12"></a><span class="go">          Optional: Registry auth for authenticating with the specified image registry.</span>
-<a id="__codelineno-44-13" name="__codelineno-44-13" href="#__codelineno-44-13"></a><span class="go">          This should be base64 encoded from the &#39;&lt;username&gt;:&lt;password&gt;&#39; string just like</span>
-<a id="__codelineno-44-14" name="__codelineno-44-14" href="#__codelineno-44-14"></a><span class="go">          it&#39;s stored in the docker/podman host config.</span>
-<a id="__codelineno-44-15" name="__codelineno-44-15" href="#__codelineno-44-15"></a><span class="go">          Example: --registry_auth &quot;YnjrcKw63PhDcQodiU9hYxQ2&quot;</span>
+<a id="__codelineno-44-13" name="__codelineno-44-13" href="#__codelineno-44-13"></a><span class="go">          This should be base64 encoded from the '&lt;username&gt;:&lt;password&gt;' string just like</span>
+<a id="__codelineno-44-14" name="__codelineno-44-14" href="#__codelineno-44-14"></a><span class="go">          it's stored in the docker/podman host config.</span>
+<a id="__codelineno-44-15" name="__codelineno-44-15" href="#__codelineno-44-15"></a><span class="go">          Example: --registry_auth "YnjrcKw63PhDcQodiU9hYxQ2"</span>
 <a id="__codelineno-44-16" name="__codelineno-44-16" href="#__codelineno-44-16"></a>
 <a id="__codelineno-44-17" name="__codelineno-44-17" href="#__codelineno-44-17"></a><span class="go">  -p, --pull-policy &lt;PULL_POLICY&gt;</span>
 <a id="__codelineno-44-18" name="__codelineno-44-18" href="#__codelineno-44-18"></a><span class="go">          Optional: Pull policy for remote images.</span>
@@ -4046,7 +4046,7 @@ by a load command.</p>
 <a id="__codelineno-44-22" name="__codelineno-44-22" href="#__codelineno-44-22"></a><span class="go">          [default: IfNotPresent]</span>
 <a id="__codelineno-44-23" name="__codelineno-44-23" href="#__codelineno-44-23"></a>
 <a id="__codelineno-44-24" name="__codelineno-44-24" href="#__codelineno-44-24"></a><span class="go">  -h, --help</span>
-<a id="__codelineno-44-25" name="__codelineno-44-25" href="#__codelineno-44-25"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
+<a id="__codelineno-44-25" name="__codelineno-44-25" href="#__codelineno-44-25"></a><span class="go">          Print help (see a summary with '-h')</span>
 </code></pre></div>
 <p>Example usage:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-45-1" name="__codelineno-45-1" href="#__codelineno-45-1"></a><span class="gp">$ </span>sudo<span class="w"> </span>bpfman<span class="w"> </span>image<span class="w"> </span>pull<span class="w"> </span>--image-url<span class="w"> </span>quay.io/bpfman-bytecode/xdp_pass:latest
@@ -4197,7 +4197,7 @@ The bytecode can take several forms, but at least one must be provided:</p>
 <a id="__codelineno-47-92" name="__codelineno-47-92" href="#__codelineno-47-92"></a><span class="go">          Example: --bc-s390x-eb ./examples/go-xdp-counter/bpf_s390x_bpfeb.o</span>
 <a id="__codelineno-47-93" name="__codelineno-47-93" href="#__codelineno-47-93"></a>
 <a id="__codelineno-47-94" name="__codelineno-47-94" href="#__codelineno-47-94"></a><span class="go">  -h, --help</span>
-<a id="__codelineno-47-95" name="__codelineno-47-95" href="#__codelineno-47-95"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
+<a id="__codelineno-47-95" name="__codelineno-47-95" href="#__codelineno-47-95"></a><span class="go">          Print help (see a summary with '-h')</span>
 </code></pre></div>
 <p>Below are some different examples of building images.
 Note that <code>sudo</code> is not required.
@@ -4313,15 +4313,15 @@ The bytecode can take several forms, but at least one must be provided:</p>
 <a id="__codelineno-50-79" name="__codelineno-50-79" href="#__codelineno-50-79"></a><span class="go">          Example: --bc-s390x-eb ./examples/go-xdp-counter/bpf_s390x_bpfeb.o</span>
 <a id="__codelineno-50-80" name="__codelineno-50-80" href="#__codelineno-50-80"></a>
 <a id="__codelineno-50-81" name="__codelineno-50-81" href="#__codelineno-50-81"></a><span class="go">  -h, --help</span>
-<a id="__codelineno-50-82" name="__codelineno-50-82" href="#__codelineno-50-82"></a><span class="go">          Print help (see a summary with &#39;-h&#39;)</span>
+<a id="__codelineno-50-82" name="__codelineno-50-82" href="#__codelineno-50-82"></a><span class="go">          Print help (see a summary with '-h')</span>
 </code></pre></div>
 <p>Below are some different examples of generating build arguments.
 Note that <code>sudo</code> is not required.</p>
 <p>Example of single bytecode image:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-51-1" name="__codelineno-51-1" href="#__codelineno-51-1"></a><span class="gp">$ </span>bpfman<span class="w"> </span>image<span class="w"> </span>generate-build-args<span class="w"> </span>-b<span class="w"> </span>./examples/go-xdp-counter/bpf_x86_bpfel.o
 <a id="__codelineno-51-2" name="__codelineno-51-2" href="#__codelineno-51-2"></a><span class="go">BYTECODE_FILE=./examples/go-xdp-counter/bpf_x86_bpfel.o</span>
-<a id="__codelineno-51-3" name="__codelineno-51-3" href="#__codelineno-51-3"></a><span class="go">PROGRAMS={&quot;xdp_stats&quot;:&quot;xdp&quot;}</span>
-<a id="__codelineno-51-4" name="__codelineno-51-4" href="#__codelineno-51-4"></a><span class="go">MAPS={&quot;xdp_stats_map&quot;:&quot;per_cpu_array&quot;}</span>
+<a id="__codelineno-51-3" name="__codelineno-51-3" href="#__codelineno-51-3"></a><span class="go">PROGRAMS={"xdp_stats":"xdp"}</span>
+<a id="__codelineno-51-4" name="__codelineno-51-4" href="#__codelineno-51-4"></a><span class="go">MAPS={"xdp_stats_map":"per_cpu_array"}</span>
 </code></pre></div>
 <p>Example of directory with Cilium generated bytecode objects:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-52-1" name="__codelineno-52-1" href="#__codelineno-52-1"></a><span class="gp">$ </span>bpfman<span class="w"> </span>image<span class="w"> </span>generate-build-args<span class="w"> </span>-c<span class="w"> </span>./examples/go-xdp-counter/
@@ -4329,16 +4329,16 @@ Note that <code>sudo</code> is not required.</p>
 <a id="__codelineno-52-3" name="__codelineno-52-3" href="#__codelineno-52-3"></a><span class="go">BC_ARM_EL=./examples/go-xdp-counter/bpf_arm64_bpfel.o</span>
 <a id="__codelineno-52-4" name="__codelineno-52-4" href="#__codelineno-52-4"></a><span class="go">BC_PPC64LE_EL=./examples/go-xdp-counter/bpf_powerpc_bpfel.o</span>
 <a id="__codelineno-52-5" name="__codelineno-52-5" href="#__codelineno-52-5"></a><span class="go">BC_S390X_EB=./examples/go-xdp-counter/bpf_s390_bpfeb.o</span>
-<a id="__codelineno-52-6" name="__codelineno-52-6" href="#__codelineno-52-6"></a><span class="go">PROGRAMS={&quot;xdp_stats&quot;:&quot;xdp&quot;}</span>
-<a id="__codelineno-52-7" name="__codelineno-52-7" href="#__codelineno-52-7"></a><span class="go">MAPS={&quot;xdp_stats_map&quot;:&quot;per_cpu_array&quot;}</span>
+<a id="__codelineno-52-6" name="__codelineno-52-6" href="#__codelineno-52-6"></a><span class="go">PROGRAMS={"xdp_stats":"xdp"}</span>
+<a id="__codelineno-52-7" name="__codelineno-52-7" href="#__codelineno-52-7"></a><span class="go">MAPS={"xdp_stats_map":"per_cpu_array"}</span>
 </code></pre></div>
 <p>Once the labels are generated, the eBPF program can be packaged in a OCI
 container image using <code>docker</code> or <code>podman</code> by passing the generated labels
 as <code>build-arg</code> parameters:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-53-1" name="__codelineno-53-1" href="#__codelineno-53-1"></a><span class="go">docker build \</span>
 <a id="__codelineno-53-2" name="__codelineno-53-2" href="#__codelineno-53-2"></a><span class="go">  --build-arg BYTECODE_FILE=./examples/go-xdp-counter/bpf_x86_bpfel.o \</span>
-<a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a><span class="go">  --build-arg PROGRAMS={&quot;xdp_stats&quot;:&quot;xdp&quot;} \</span>
-<a id="__codelineno-53-4" name="__codelineno-53-4" href="#__codelineno-53-4"></a><span class="go">  --build-arg MAPS={&quot;xdp_stats_map&quot;:&quot;per_cpu_array&quot;} \</span>
+<a id="__codelineno-53-3" name="__codelineno-53-3" href="#__codelineno-53-3"></a><span class="go">  --build-arg PROGRAMS={"xdp_stats":"xdp"} \</span>
+<a id="__codelineno-53-4" name="__codelineno-53-4" href="#__codelineno-53-4"></a><span class="go">  --build-arg MAPS={"xdp_stats_map":"per_cpu_array"} \</span>
 <a id="__codelineno-53-5" name="__codelineno-53-5" href="#__codelineno-53-5"></a><span class="go">  -f Containerfile.bytecode . -t quay.io/$USER/go-xdp-counter-bytecode:test</span>
 </code></pre></div>
 
@@ -4423,10 +4423,10 @@ as <code>build-arg</code> parameters:</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>

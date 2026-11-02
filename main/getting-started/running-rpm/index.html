@@ -19,7 +19,7 @@
       
       
       <link rel="icon" href="../../img/icon/color/bpfman-icon-color.svg">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -27,10 +27,10 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -2243,10 +2243,10 @@ To start <code>bpfman</code>:</p>
 <p>If local RPM builds were previously run on the system, the <code>packit build locally</code> command may
 fail with something similar to:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="gp">$ </span>packit<span class="w"> </span>build<span class="w"> </span>locally
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="go">2024-05-21 10:00:03.904 base_git.py       INFO   Using user-defined script for ActionName.post_upstream_clone: [[&#39;bash&#39;, &#39;-c&#39;, &#39;if [[ ! -d /var/tmp/cargo-vendor-filterer ]]; then git clone https://github.com/coreos/cargo-vendor-filterer.git /var/tmp/cargo-vendor-filterer; fi &amp;&amp; cd /var/tmp/cargo-vendor-filterer &amp;&amp; cargo build &amp;&amp; cd - &amp;&amp; cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . &amp;&amp; ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz&#39;]]</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="go">2024-05-21 10:00:03.904 base_git.py       INFO   Using user-defined script for ActionName.post_upstream_clone: [['bash', '-c', 'if [[ ! -d /var/tmp/cargo-vendor-filterer ]]; then git clone https://github.com/coreos/cargo-vendor-filterer.git /var/tmp/cargo-vendor-filterer; fi &amp;&amp; cd /var/tmp/cargo-vendor-filterer &amp;&amp; cargo build &amp;&amp; cd - &amp;&amp; cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . &amp;&amp; ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz']]</span>
 <a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="go">2024-05-21 10:00:03.956 logging.py        INFO   error: could not find `Cargo.toml` in `/var/tmp/cargo-vendor-filterer` or any parent directory</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="go">2024-05-21 10:00:03.957 commands.py       ERROR  Command &#39;bash -c if [[ ! -d /var/tmp/cargo-vendor-filterer ]]; then git clone https://github.com/coreos/cargo-vendor-filterer.git /var/tmp/cargo-vendor-filterer; fi &amp;&amp; cd /var/tmp/cargo-vendor-filterer &amp;&amp; cargo build &amp;&amp; cd - &amp;&amp; cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . &amp;&amp; ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz&#39; failed.</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="go">2024-05-21 10:00:03.957 utils.py          ERROR  Command &#39;bash -c if [[ ! -d /var/tmp/cargo-vendor-filterer ]]; then git clone https://github.com/coreos/cargo-vendor-filterer.git /var/tmp/cargo-vendor-filterer; fi &amp;&amp; cd /var/tmp/cargo-vendor-filterer &amp;&amp; cargo build &amp;&amp; cd - &amp;&amp; cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . &amp;&amp; ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz&#39; failed.</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="go">2024-05-21 10:00:03.957 commands.py       ERROR  Command 'bash -c if [[ ! -d /var/tmp/cargo-vendor-filterer ]]; then git clone https://github.com/coreos/cargo-vendor-filterer.git /var/tmp/cargo-vendor-filterer; fi &amp;&amp; cd /var/tmp/cargo-vendor-filterer &amp;&amp; cargo build &amp;&amp; cd - &amp;&amp; cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . &amp;&amp; ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz' failed.</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="go">2024-05-21 10:00:03.957 utils.py          ERROR  Command 'bash -c if [[ ! -d /var/tmp/cargo-vendor-filterer ]]; then git clone https://github.com/coreos/cargo-vendor-filterer.git /var/tmp/cargo-vendor-filterer; fi &amp;&amp; cd /var/tmp/cargo-vendor-filterer &amp;&amp; cargo build &amp;&amp; cd - &amp;&amp; cp /var/tmp/cargo-vendor-filterer/target/debug/cargo-vendor-filterer . &amp;&amp; ./cargo-vendor-filterer --format tar.gz --prefix vendor bpfman-bpfman-vendor.tar.gz' failed.</span>
 </code></pre></div>
 <p>To fix, run:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="go">sudo rm -rf /var/tmp/cargo-vendor-filterer/</span>
@@ -2378,10 +2378,10 @@ To start <code>bpfman</code>:</p>
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.indexes", "navigation.tabs", "navigation.tabs.sticky", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
       
     
   </body>
