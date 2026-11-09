@@ -62,7 +62,7 @@ libsystemd = { version = "0.7.2", default-features = false }
 log = { version = "0.4", default-features = false }
 netlink-packet-audit = { version = "^0.7", default-features = false }
 netlink-packet-core = { version = "^0.9", default-features = false }
-netlink-packet-route = { version = "^0.33", default-features = false }
+netlink-packet-route = { version = "^0.34", default-features = false }
 netlink-sys = { version = "^0.9", default-features = false }
 nix = { version = "0.31", default-features = false }
 object = { version = "0.40.0", default-features = false }
@@ -84,7 +84,7 @@ rustup-toolchain = { version = "0.1.10", default-features = false }
 serde = { version = "1.0", default-features = false }
 serde_json = { version = "1", default-features = false }
 sha2 = { version = "0.11.0", default-features = false }
-sigstore = { version = "0.14.0", default-features = false }
+sigstore = { version = "0.15.0", default-features = false }
 sled = { version = "0.34.7", default-features = false }
 syn = { version = "3.0", default-features = false }
 systemd-journal-logger = { version = "2.2.2", default-features = false }
