@@ -21,6 +21,7 @@ import (
 
 	"github.com/bpfman/bpfman"
 	csidriver "github.com/bpfman/bpfman/csi"
+	"github.com/bpfman/bpfman/kernel"
 	"github.com/bpfman/bpfman/manager"
 	"github.com/bpfman/bpfman/platform/ebpf"
 )
@@ -387,4 +388,99 @@ func TestCSIDriver_RecoversStalePerPodMount(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, countMountpoints(t, podBpffs), "stale per-pod bpffs replaced, not stacked")
 	require.Equal(t, 1, countMountpoints(t, targetPath))
+}
+
+// selectorRequest builds a metadata-selector publish request: the maps of
+// every program matching poolLabel are exposed, each under the subdirectory
+// named by its deviceLabel value.
+func selectorRequest(volumeID, targetPath, poolLabel, subpathKey, mapList string) *csi.NodePublishVolumeRequest {
+	return &csi.NodePublishVolumeRequest{
+		VolumeId:   volumeID,
+		TargetPath: targetPath,
+		VolumeContext: map[string]string{
+			csidriver.VolumeAttrProgramsByMetadata: poolLabel,
+			csidriver.VolumeAttrSubpathMetadata:    subpathKey,
+			csidriver.VolumeAttrMaps:               mapList,
+		},
+		VolumeCapability: &csi.VolumeCapability{
+			AccessType: &csi.VolumeCapability_Mount{Mount: &csi.VolumeCapability_MountVolume{}},
+			AccessMode: &csi.VolumeCapability_AccessMode{
+				Mode: csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+			},
+		},
+	}
+}
+
+// Publishing by metadata selector exposes the requested maps of every
+// matching program, each under the subpath named by the subpath metadata
+// key, so a workload can pick its program's maps at runtime (e.g. the
+// netdev a device plugin allocated to its pod).
+func TestCSIDriver_PublishByMetadataSelector(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	env := NewTestEnv(t)
+	discard := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	// Two programs sharing a pool label, one per "device", mimicking the
+	// AF_XDP device plugin's per-netdev XDP programs.
+	pool := "pool-" + t.Name()
+	var ids []kernel.ProgramID
+	for _, device := range []string{"dev_a", "dev_b"} {
+		programs, err := env.LoadFile(ctx, "testdata/bpf/kprobe_counter.bpf.o",
+			[]manager.ProgramSpec{{Type: bpfman.ProgramTypeKprobe, Name: "kprobe_counter"}},
+			manager.LoadOpts{UserMetadata: map[string]string{
+				"afxdp.io/pool":   pool,
+				"afxdp.io/device": device,
+			}})
+		require.NoError(t, err)
+		require.Len(t, programs, 1)
+		ids = append(ids, programs[0].Status.Kernel.ID)
+	}
+	t.Cleanup(func() {
+		for _, id := range ids {
+			_ = env.Unload(context.Background(), id)
+		}
+	})
+
+	csiRoot := filepath.Join(t.TempDir(), "csi-fs")
+	d := csidriver.New(
+		"csi.bpfman.io", "test", "node-test", "unix:///unused.sock",
+		discard,
+		csidriver.WithProgramFinder(env.Manager),
+		csidriver.WithKernel(ebpf.New(ebpf.WithLogger(discard))),
+		csidriver.WithCSIFsRoot(csiRoot),
+	)
+
+	const volumeID = "selector-vol"
+	targetPath := filepath.Join(t.TempDir(), "target")
+	podBpffs := filepath.Join(csiRoot, volumeID)
+	t.Cleanup(func() { cleanupCSI(d, volumeID, targetPath, podBpffs) })
+
+	_, err := d.NodePublishVolume(ctx, selectorRequest(volumeID, targetPath,
+		"afxdp.io/pool="+pool, "afxdp.io/device", "kprobe_stats_map"))
+	require.NoError(t, err)
+
+	// Both programs' maps are exposed, each under its device subpath.
+	require.FileExists(t, filepath.Join(targetPath, "dev_a", "kprobe_stats_map"))
+	require.FileExists(t, filepath.Join(targetPath, "dev_b", "kprobe_stats_map"))
+	require.Equal(t, 1, countMountpoints(t, targetPath))
+
+	// Re-publishing the same request is idempotent.
+	_, err = d.NodePublishVolume(ctx, selectorRequest(volumeID, targetPath,
+		"afxdp.io/pool="+pool, "afxdp.io/device", "kprobe_stats_map"))
+	require.NoError(t, err)
+	require.Equal(t, 1, countMountpoints(t, targetPath), "re-publish does not stack mounts")
+
+	// A selector with no matching program is a retryable NotFound.
+	_, err = d.NodePublishVolume(ctx, selectorRequest("nomatch-vol",
+		filepath.Join(t.TempDir(), "target2"), "afxdp.io/pool=no-such-pool", "afxdp.io/device", "kprobe_stats_map"))
+	require.Equal(t, codes.NotFound, status.Code(err))
+
+	_, err = d.NodeUnpublishVolume(ctx, &csi.NodeUnpublishVolumeRequest{
+		VolumeId: volumeID, TargetPath: targetPath,
+	})
+	require.NoError(t, err)
+	require.Equal(t, 0, countMountpoints(t, targetPath))
+	require.NoDirExists(t, podBpffs)
 }

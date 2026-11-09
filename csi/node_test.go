@@ -174,6 +174,50 @@ func TestNodePublishVolume_RejectsInvalidRequests(t *testing.T) {
 				VolumeId: "../escape", TargetPath: "/target", VolumeCapability: validCap, VolumeContext: validCtx,
 			},
 		},
+		{
+			name: "program and metadata selector are mutually exclusive",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: "vol1", TargetPath: "/target", VolumeCapability: validCap,
+				VolumeContext: map[string]string{
+					VolumeAttrProgram:            "prog",
+					VolumeAttrProgramsByMetadata: "afxdp.io/pool=myPool",
+					VolumeAttrSubpathMetadata:    "afxdp.io/device",
+					VolumeAttrMaps:               "map_a",
+				},
+			},
+		},
+		{
+			name: "metadata selector without subpath metadata",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: "vol1", TargetPath: "/target", VolumeCapability: validCap,
+				VolumeContext: map[string]string{
+					VolumeAttrProgramsByMetadata: "afxdp.io/pool=myPool",
+					VolumeAttrMaps:               "map_a",
+				},
+			},
+		},
+		{
+			name: "metadata selector missing value",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: "vol1", TargetPath: "/target", VolumeCapability: validCap,
+				VolumeContext: map[string]string{
+					VolumeAttrProgramsByMetadata: "afxdp.io/pool",
+					VolumeAttrSubpathMetadata:    "afxdp.io/device",
+					VolumeAttrMaps:               "map_a",
+				},
+			},
+		},
+		{
+			name: "metadata selector missing key",
+			req: &csi.NodePublishVolumeRequest{
+				VolumeId: "vol1", TargetPath: "/target", VolumeCapability: validCap,
+				VolumeContext: map[string]string{
+					VolumeAttrProgramsByMetadata: "=myPool",
+					VolumeAttrSubpathMetadata:    "afxdp.io/device",
+					VolumeAttrMaps:               "map_a",
+				},
+			},
+		},
 	}
 
 	d := &Driver{logger: slog.New(slog.NewTextHandler(io.Discard, nil)), locks: newVolumeLocks()}
@@ -275,6 +319,39 @@ func TestParseMapNames(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			require.Equal(t, tt.want, parseMapNames(tt.in))
+		})
+	}
+}
+
+func TestParseMetadataSelector(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		in      string
+		wantKey string
+		wantVal string
+		wantErr bool
+	}{
+		{name: "empty", in: "", wantKey: "", wantVal: ""},
+		{name: "key value", in: "afxdp.io/pool=myPool", wantKey: "afxdp.io/pool", wantVal: "myPool"},
+		{name: "value may contain equals", in: "k=a=b", wantKey: "k", wantVal: "a=b"},
+		{name: "missing separator", in: "afxdp.io/pool", wantErr: true},
+		{name: "empty key", in: "=value", wantErr: true},
+		{name: "empty value", in: "key=", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			key, val, err := parseMetadataSelector(tt.in)
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Equal(t, codes.InvalidArgument, status.Code(err))
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantKey, key)
+			require.Equal(t, tt.wantVal, val)
 		})
 	}
 }

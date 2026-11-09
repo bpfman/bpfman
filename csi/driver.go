@@ -24,6 +24,11 @@ type ProgramFinder interface {
 	// When several programs match, the one with the lowest kernel program ID is
 	// returned. An error is returned when no program matches.
 	FindLoadedProgramByMetadata(ctx context.Context, key, value string) (bpfman.ProgramRecord, kernel.ProgramID, error)
+
+	// FindLoadedProgramsByMetadata finds all programs matching a metadata
+	// key/value pair, ordered by ascending kernel program ID. Only programs
+	// that exist in both the database and the kernel are considered.
+	FindLoadedProgramsByMetadata(ctx context.Context, key, value string) ([]bpfman.ProgramRecord, error)
 }
 
 // KernelOperations provides BPF map operations.
