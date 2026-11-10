@@ -222,6 +222,30 @@ func TestMetadata_StoredAsJSON(t *testing.T) {
 	assert.Error(t, err, "expected error after delete")
 }
 
+func TestProgramHasXDPFrags_RoundTrip(t *testing.T) {
+	t.Parallel()
+
+	store, err := sqlite.NewInMemory(context.Background(), testLogger())
+	require.NoError(t, err, "failed to create store")
+	defer store.Close()
+
+	ctx := context.Background()
+	programID := kernel.ProgramID(42)
+	prog := testProgram()
+	prog.HasXDPFrags = true
+
+	require.NoError(t, store.Save(ctx, programID, prog), "Save failed")
+
+	got, err := store.Get(ctx, programID)
+	require.NoError(t, err, "Get failed")
+	require.True(t, got.HasXDPFrags)
+
+	list, err := store.List(ctx)
+	require.NoError(t, err, "List failed")
+	require.Len(t, list, 1)
+	require.True(t, list[programID].HasXDPFrags)
+}
+
 func TestProgramName_DuplicatesAllowed(t *testing.T) {
 	t.Parallel()
 
